@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { VictoryChart, VictoryBar, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend, VictoryGroup } from 'victory';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart2 } from 'lucide-react';
 
@@ -129,37 +129,6 @@ const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $mt?: numb
   margin-top: ${props => props.$mt ? `${props.$mt}px` : '0'};
 `;
 
-const TooltipBox = styled.div`
-  background: var(--bg-elevated, rgba(15, 15, 30, 0.95));
-  padding: 12px;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipTitle = styled.span`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: white;
-  display: block;
-  margin-bottom: 4px;
-`;
-
-const TooltipEntry = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  font-size: 0.8125rem;
-`;
-
-const TooltipDot = styled.span<{ $color: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: ${props => props.$color};
-  flex-shrink: 0;
-`;
 
 const EmptyStateContainer = styled.div`
   display: flex;
@@ -258,32 +227,15 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
 
   const getDataKeys = () => {
     switch (metricTab) {
-      case 1: return [{ key: 'performance', color: '#1976d2' }];
-      case 2: return [{ key: 'satisfaction', color: '#2e7d32' }];
-      case 3: return [{ key: 'attendance', color: '#ed6c02' }];
+      case 1: return [{ key: 'performance', color: '#50A0F0' }];
+      case 2: return [{ key: 'satisfaction', color: '#4ECDC4' }];
+      case 3: return [{ key: 'attendance', color: '#8B5CF6' }];
       default: return [
-        { key: 'performance', color: '#1976d2' },
-        { key: 'satisfaction', color: '#2e7d32' },
-        { key: 'attendance', color: '#ed6c02' }
+        { key: 'performance', color: '#50A0F0' },
+        { key: 'satisfaction', color: '#4ECDC4' },
+        { key: 'attendance', color: '#8B5CF6' }
       ];
     }
-  };
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <TooltipBox>
-          <TooltipTitle>{label}</TooltipTitle>
-          {payload.map((entry: any, index: number) => (
-            <TooltipEntry key={index} style={{ color: entry.color }}>
-              <TooltipDot $color={entry.color} />
-              {entry.name}: {entry.value}%
-            </TooltipEntry>
-          ))}
-        </TooltipBox>
-      );
-    }
-    return null;
   };
 
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -344,39 +296,62 @@ const FitnessMetricsChart: React.FC<FitnessMetricsChartProps> = ({ isLoading = f
             </TabBar>
 
             <ChartContainer>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 5, right: 10, left: -15, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis
-                    dataKey="program"
-                    tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.6)' }}
-                    tickLine={false}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+              <VictoryChart
+                domainPadding={{ x: 30 }}
+                padding={{ top: 40, bottom: 50, left: 55, right: 20 }}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                domain={{ y: [0, 100] }}
+                containerComponent={
+                  <VictoryVoronoiContainer
+                    labels={({ datum }) => `${datum.x}: ${datum.y}%`}
+                    labelComponent={
+                      <VictoryTooltip
+                        style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                        flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                      />
+                    }
                   />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: 'rgba(255,255,255,0.6)' }}
-                    tickLine={false}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }} />
+                }
+              >
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  tickFormat={(t: number) => `${t}%`}
+                  style={{
+                    axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryLegend
+                  x={60} y={0}
+                  orientation="horizontal"
+                  gutter={20}
+                  style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }}
+                  data={getDataKeys().map(item => ({
+                    name: capitalize(item.key),
+                    symbol: { fill: item.color },
+                  }))}
+                />
+                <VictoryGroup offset={18}>
                   {getDataKeys().map(item => (
-                    <Bar
+                    <VictoryBar
                       key={item.key}
-                      dataKey={item.key}
-                      name={capitalize(item.key)}
-                      fill={item.color}
-                      barSize={30}
-                      radius={[4, 4, 0, 0]}
+                      data={chartData}
+                      x="program"
+                      y={item.key}
+                      style={{ data: { fill: item.color, width: 16 } }}
+                      cornerRadius={{ top: 4 }}
                     />
                   ))}
-                </BarChart>
-              </ResponsiveContainer>
+                </VictoryGroup>
+              </VictoryChart>
             </ChartContainer>
           </>
         )}

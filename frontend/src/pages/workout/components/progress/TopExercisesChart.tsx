@@ -1,24 +1,18 @@
 /**
- * TopExercisesChart Component
- * ==========================
- * Displays a bar chart of the most frequently performed exercises
+ * ============================================================================
+ * FILE: TopExercisesChart.tsx
+ * PURPOSE: Victory horizontal bar chart showing most frequently performed exercises
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
+ * ============================================================================
  */
 
 import React from 'react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip 
-} from 'recharts';
-import { 
-  ChartSection, 
-  ChartTitle, 
-  ChartContainer, 
-  NoDataMessage 
+import { VictoryBar, VictoryChart, VictoryAxis, VictoryTooltip } from 'victory';
+import {
+  ChartSection,
+  ChartTitle,
+  ChartContainer,
+  NoDataMessage
 } from '../../styles/ClientProgress.styles';
 
 interface TopExerciseData {
@@ -35,29 +29,42 @@ interface TopExercisesChartProps {
   topExercises: TopExerciseData[];
 }
 
-export const TopExercisesChart: React.FC<TopExercisesChartProps> = ({
-  topExercises
-}) => {
+const AXIS_STYLE = {
+  axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+  tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+};
+
+export const TopExercisesChart: React.FC<TopExercisesChartProps> = ({ topExercises }) => {
   return (
     <ChartSection>
       <ChartTitle>Top Exercises</ChartTitle>
       <ChartContainer>
         {topExercises.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topExercises} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-              <XAxis type="number" tick={{ fill: 'white' }} />
-              <YAxis dataKey="name" type="category" width={120} tick={{ fill: 'white' }} />
-              <Tooltip
-                contentStyle={{ 
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  color: 'white'
-                }}
-              />
-              <Bar dataKey="count" fill="#2ed573" />
-            </BarChart>
-          </ResponsiveContainer>
+          <VictoryChart
+            horizontal
+            domainPadding={{ x: 15 }}
+            padding={{ top: 20, bottom: 40, left: 120, right: 30 }}
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+          >
+            <VictoryAxis style={AXIS_STYLE} />
+            <VictoryAxis dependentAxis style={AXIS_STYLE} />
+            <VictoryBar
+              data={topExercises}
+              x="name"
+              y="count"
+              style={{
+                data: { fill: '#4ECDC4', width: 14 },
+              }}
+              labelComponent={
+                <VictoryTooltip
+                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                />
+              }
+              labels={({ datum }) => `${datum.name}: ${datum.count}`}
+            />
+          </VictoryChart>
         ) : (
           <NoDataMessage>No exercise data available</NoDataMessage>
         )}

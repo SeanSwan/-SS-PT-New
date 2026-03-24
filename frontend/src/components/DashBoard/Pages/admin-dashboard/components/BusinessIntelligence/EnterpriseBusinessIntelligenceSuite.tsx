@@ -37,12 +37,12 @@ import {
 } from 'lucide-react';
 
 // Advanced charting components
+// Victory chart components (migrated from Recharts)
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis,
-  PolarRadiusAxis, Radar, ComposedChart
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+  VictoryScatter, VictoryPolarAxis,
+} from 'victory';
 
 // Import Enterprise Admin API Service for real data integration
 import enterpriseAdminApiService from '../../../../../../services/enterpriseAdminApiService';
@@ -932,49 +932,16 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
                   <TrendingUp size={16} />
                   Revenue Projection & Growth
                 </h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis dataKey="month" stroke="rgba(255, 255, 255, 0.6)" />
-                    <YAxis yAxisId="revenue" stroke="rgba(255, 255, 255, 0.6)" />
-                    <YAxis yAxisId="clients" orientation="right" stroke="rgba(255, 255, 255, 0.6)" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(10, 10, 15, 0.9)', 
-                        border: '1px solid rgba(30, 64, 175, 0.3)',
-                        borderRadius: '8px',
-                        color: 'white'
-                      }} 
-                    />
-                    <Legend />
-                    <Area
-                      yAxisId="revenue"
-                      type="monotone"
-                      dataKey="revenue"
-                      stackId="1"
-                      stroke="#059669"
-                      fill="#059669"
-                      fillOpacity={0.6}
-                      name="Actual Revenue"
-                    />
-                    <Line
-                      yAxisId="revenue"
-                      type="monotone"
-                      dataKey="projection"
-                      stroke="#7c3aed"
-                      strokeWidth={3}
-                      strokeDasharray="5 5"
-                      dot={{ fill: '#7c3aed' }}
-                      name="Projected Revenue"
-                    />
-                    <Bar
-                      yAxisId="clients"
-                      dataKey="clients"
-                      fill="rgba(30, 64, 175, 0.5)"
-                      name="Client Count"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                <VictoryChart height={300} padding={{ top: 40, bottom: 50, left: 50, right: 20 }} domainPadding={{ x: 10 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.month}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea data={revenueData} x="month" y="revenue" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#4ECDC499', stroke: '#4ECDC4', strokeWidth: 2 } }} />
+                  <VictoryLine data={revenueData} x="month" y="projection" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#8B5CF6', strokeWidth: 3, strokeDasharray: '5,5' } }} />
+                  <VictoryBar data={revenueData} x="month" y="clients" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F080', width: 12 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Revenue', symbol: { fill: '#4ECDC4' } }, { name: 'Projected', symbol: { fill: '#8B5CF6' } }, { name: 'Clients', symbol: { fill: '#50A0F0' } }]} />
+                </VictoryChart>
               </ChartCard>
               
               <ChartCard>
@@ -982,41 +949,15 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
                   <Users size={16} />
                   Cohort Retention Analysis
                 </h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={cohortData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis dataKey="month" stroke="rgba(255, 255, 255, 0.6)" />
-                    <YAxis yAxisId="retention" stroke="rgba(255, 255, 255, 0.6)" />
-                    <YAxis yAxisId="revenue" orientation="right" stroke="rgba(255, 255, 255, 0.6)" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(10, 10, 15, 0.9)', 
-                        border: '1px solid rgba(30, 64, 175, 0.3)',
-                        borderRadius: '8px',
-                        color: 'white'
-                      }} 
-                    />
-                    <Legend />
-                    <Area
-                      yAxisId="retention"
-                      type="monotone"
-                      dataKey="retention"
-                      stroke="#1e40af"
-                      fill="#1e40af"
-                      fillOpacity={0.6}
-                      name="Retention %"
-                    />
-                    <Line
-                      yAxisId="revenue"
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      dot={{ fill: '#f59e0b' }}
-                      name="Revenue per Client"
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                <VictoryChart height={300} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.month}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea data={cohortData} x="month" y="retention" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F099', stroke: '#50A0F0', strokeWidth: 2 } }} />
+                  <VictoryLine data={cohortData} x="month" y="revenue" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#C6A84B', strokeWidth: 3 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Retention %', symbol: { fill: '#50A0F0' } }, { name: 'Revenue/Client', symbol: { fill: '#C6A84B' } }]} />
+                </VictoryChart>
               </ChartCard>
               
               <ChartCard>
@@ -1024,44 +965,19 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
                   <Award size={16} />
                   Trainer Performance Matrix
                 </h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart data={trainerPerformanceData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="retention" 
-                      name="Retention Rate" 
-                      unit="%"
-                      stroke="rgba(255, 255, 255, 0.6)"
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="revenue" 
-                      name="Revenue" 
-                      unit="$"
-                      stroke="rgba(255, 255, 255, 0.6)"
-                    />
-                    <Tooltip 
-                      cursor={{ strokeDasharray: '3 3' }}
-                      contentStyle={{ 
-                        background: 'rgba(10, 10, 15, 0.9)', 
-                        border: '1px solid rgba(30, 64, 175, 0.3)',
-                        borderRadius: '8px',
-                        color: 'white'
-                      }}
-                      formatter={(value, name) => {
-                        if (name === 'revenue') return [formatCurrency(value as number), 'Revenue'];
-                        if (name === 'retention') return [`${value}%`, 'Retention Rate'];
-                        return [value, name];
-                      }}
-                    />
-                    <Scatter 
-                      name="Trainers" 
-                      dataKey="revenue" 
-                      fill="#7c3aed"
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
+                <VictoryChart height={300} padding={{ top: 20, bottom: 50, left: 60, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `Retention: ${datum.retention}%\nRevenue: ${formatCurrency(datum.revenue)}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis label="Retention Rate (%)" style={{ axis: { stroke: '#E0ECF4' }, axisLabel: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif", padding: 35 }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis label="Revenue ($)" style={{ axis: { stroke: '#E0ECF4' }, axisLabel: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif", padding: 45 }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryScatter
+                    data={trainerPerformanceData}
+                    x="retention" y="revenue"
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    size={7}
+                    style={{ data: { fill: '#8B5CF6', stroke: '#E0ECF4', strokeWidth: 1 } }}
+                  />
+                </VictoryChart>
               </ChartCard>
               
               <ChartCard>
@@ -1069,25 +985,19 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
                   <Globe size={16} />
                   Market Trend Analysis
                 </h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={mockPredictiveInsights.marketTrends.map(trend => ({
-                    trend: trend.trend.replace(' ', '\n'),
-                    impact: trend.impact * 100,
-                    fullMark: 100
-                  }))}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="trend" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar
-                      name="Market Impact"
-                      dataKey="impact"
-                      stroke="#7c3aed"
-                      fill="#7c3aed"
-                      fillOpacity={0.3}
-                      strokeWidth={2}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <VictoryChart polar height={300} padding={{ top: 40, bottom: 40, left: 40, right: 40 }}>
+                  <VictoryPolarAxis
+                    tickValues={mockPredictiveInsights.marketTrends.map((_, i) => i)}
+                    tickFormat={mockPredictiveInsights.marketTrends.map(t => t.trend.replace(' ', '\n'))}
+                    style={{ axis: { stroke: 'rgba(255, 255, 255, 0.2)' }, tickLabels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.15)' } }}
+                  />
+                  <VictoryPolarAxis dependentAxis domain={[0, 100]} style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'rgba(255,255,255,0.5)', fontSize: 8 }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea
+                    data={mockPredictiveInsights.marketTrends.map((trend, i) => ({ x: i, y: trend.impact * 100 }))}
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    style={{ data: { fill: '#8B5CF630', stroke: '#8B5CF6', strokeWidth: 2 } }}
+                  />
+                </VictoryChart>
               </ChartCard>
             </ChartGrid>
           </ChartSection>

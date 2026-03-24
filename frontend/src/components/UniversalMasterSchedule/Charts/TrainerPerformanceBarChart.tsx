@@ -9,16 +9,13 @@
 
 import React from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine
-} from 'recharts';
+  VictoryChart,
+  VictoryBar,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLine,
+} from 'victory';
 import { motion } from 'framer-motion';
 import { Users, Star, TrendingUp, Award } from 'lucide-react';
 
@@ -178,6 +175,9 @@ const TrainerPerformanceBarChart: React.FC<TrainerPerformanceBarChartProps> = ({
     }
   };
 
+  // Crystalline Swan color palette for bars
+  const barColors = ['#50A0F0', '#4ECDC4', '#C6A84B', '#8B5CF6', '#4070C0', '#60C0F0'];
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -185,76 +185,88 @@ const TrainerPerformanceBarChart: React.FC<TrainerPerformanceBarChartProps> = ({
       transition={{ duration: 0.5, delay: 0.1 }}
       style={{ width: '100%', height }}
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={sortedData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-          barCategoryGap="20%"
-        >
-          {/* Grid */}
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="rgba(255, 255, 255, 0.1)" 
-            vertical={false}
+      <VictoryChart
+        height={height}
+        padding={{ top: 20, right: 30, left: 60, bottom: 80 }}
+        domainPadding={{ x: 20 }}
+        containerComponent={
+          <VictoryVoronoiContainer
+            labels={({ datum }: any) => {
+              const trainer = datum;
+              return [
+                trainer.name,
+                `Revenue: $${trainer.revenue?.toLocaleString() || 0}`,
+                `Sessions: ${trainer.sessions || 0}`,
+                `Rating: ${trainer.rating?.toFixed(1) || 0}`,
+                `Clients: ${trainer.clients || 0}`,
+              ].join('\n');
+            }}
+            labelComponent={
+              <VictoryTooltip
+                style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                flyoutPadding={{ top: 10, bottom: 10, left: 12, right: 12 }}
+              />
+            }
           />
-          
-          {/* Axes */}
-          <XAxis 
-            dataKey="name" 
-            tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 11 }}
-            tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            angle={-45}
-            textAnchor="end"
-            height={60}
-            interval={0}
-          />
-          <YAxis 
-            tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
-            tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            tickFormatter={formatYAxis}
-            label={{ 
-              value: getMetricLabel(), 
-              angle: -90, 
-              position: 'insideLeft',
-              style: { textAnchor: 'middle', fill: 'rgba(255, 255, 255, 0.8)' }
+        }
+      >
+        {/* X Axis */}
+        <VictoryAxis
+          tickFormat={(t: string) => t}
+          style={{
+            axis: { stroke: 'rgba(255, 255, 255, 0.2)' },
+            tickLabels: {
+              fill: '#E0ECF4',
+              fontSize: 11,
+              fontFamily: "'Fira Code', monospace",
+              angle: -45,
+              textAnchor: 'end',
+            },
+            grid: { stroke: 'none' },
+          }}
+        />
+
+        {/* Y Axis */}
+        <VictoryAxis
+          dependentAxis
+          tickFormat={formatYAxis}
+          label={getMetricLabel()}
+          style={{
+            axis: { stroke: 'rgba(255, 255, 255, 0.2)' },
+            axisLabel: { fill: 'rgba(255, 255, 255, 0.8)', fontSize: 12, fontFamily: "'Sora', sans-serif", padding: 45 },
+            tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+            grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+          }}
+        />
+
+        {/* Average reference line */}
+        {showComparison && (
+          <VictoryLine
+            data={[
+              { x: sortedData[0]?.name || '', y: average },
+              { x: sortedData[sortedData.length - 1]?.name || '', y: average },
+            ]}
+            style={{
+              data: { stroke: '#C6A84B', strokeWidth: 2, strokeDasharray: '5,5' },
             }}
           />
-          
-          {/* Tooltip */}
-          <Tooltip content={<CustomTooltip />} />
-          
-          {/* Average reference line */}
-          {showComparison && (
-            <ReferenceLine 
-              y={average} 
-              stroke="#f59e0b" 
-              strokeDasharray="5 5" 
-              strokeWidth={2}
-              label={{ 
-                value: `Avg: ${formatYAxis(average)}`, 
-                position: 'topRight',
-                style: { fill: '#f59e0b', fontSize: '12px' }
-              }}
-            />
-          )}
-          
-          {/* Main bars */}
-          <Bar 
-            dataKey={metric}
-            radius={[4, 4, 0, 0]}
-            fill="#3b82f6"
-          >
-            {sortedData.map((trainer, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={getBarColor(getMetricValue(trainer), index)}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+        )}
+
+        {/* Main bars */}
+        <VictoryBar
+          data={sortedData}
+          x="name"
+          y={metric}
+          animate={{ duration: 800, easing: 'cubicInOut' }}
+          cornerRadius={{ top: 4 }}
+          style={{
+            data: {
+              fill: ({ index }: any) => barColors[(index as number) % barColors.length],
+            },
+          }}
+        />
+      </VictoryChart>
     </motion.div>
   );
 };

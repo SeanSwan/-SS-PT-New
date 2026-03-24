@@ -1,24 +1,18 @@
 /**
- * MuscleGroupChart Component
- * =========================
- * Displays a bar chart of muscle group focus distribution
+ * ============================================================================
+ * FILE: MuscleGroupChart.tsx
+ * PURPOSE: Victory bar chart showing muscle group focus distribution
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
+ * ============================================================================
  */
 
 import React from 'react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip 
-} from 'recharts';
-import { 
-  ChartSection, 
-  ChartTitle, 
-  ChartContainer, 
-  NoDataMessage 
+import { VictoryBar, VictoryChart, VictoryAxis, VictoryTooltip } from 'victory';
+import {
+  ChartSection,
+  ChartTitle,
+  ChartContainer,
+  NoDataMessage
 } from '../../styles/ClientProgress.styles';
 import { MuscleGroupData } from '../../types/progress.types';
 
@@ -26,29 +20,41 @@ interface MuscleGroupChartProps {
   muscleGroupData: MuscleGroupData[];
 }
 
-export const MuscleGroupChart: React.FC<MuscleGroupChartProps> = ({
-  muscleGroupData
-}) => {
+const AXIS_STYLE = {
+  axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+  tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+};
+
+export const MuscleGroupChart: React.FC<MuscleGroupChartProps> = ({ muscleGroupData }) => {
   return (
     <ChartSection>
       <ChartTitle>Muscle Group Focus</ChartTitle>
       <ChartContainer>
         {muscleGroupData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={muscleGroupData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-              <XAxis dataKey="name" tick={{ fill: 'white' }} />
-              <YAxis tick={{ fill: 'white' }} />
-              <Tooltip
-                contentStyle={{ 
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  color: 'white'
-                }}
-              />
-              <Bar dataKey="value" fill="#7d5fff" />
-            </BarChart>
-          </ResponsiveContainer>
+          <VictoryChart
+            domainPadding={{ x: 20 }}
+            padding={{ top: 20, bottom: 40, left: 40, right: 20 }}
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+          >
+            <VictoryAxis style={AXIS_STYLE} />
+            <VictoryAxis dependentAxis style={AXIS_STYLE} />
+            <VictoryBar
+              data={muscleGroupData}
+              x="name"
+              y="value"
+              style={{
+                data: { fill: '#8B5CF6', width: 18 },
+              }}
+              labelComponent={
+                <VictoryTooltip
+                  style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                />
+              }
+              labels={({ datum }) => `${datum.name}: ${datum.value}`}
+            />
+          </VictoryChart>
         ) : (
           <NoDataMessage>No muscle group data available</NoDataMessage>
         )}

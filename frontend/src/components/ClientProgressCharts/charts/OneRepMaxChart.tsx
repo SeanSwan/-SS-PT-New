@@ -2,7 +2,7 @@
  * OneRepMaxChart.tsx
  * ==================
  *
- * Bar chart component for displaying 1-rep max projections for key exercises
+ * Horizontal bar chart for displaying 1-rep max projections for key exercises
  * Part of the ClientProgressCharts modular system
  *
  * FEATURES:
@@ -13,6 +13,7 @@
  * - Mobile-optimized responsive design
  * - WCAG AA accessibility compliance
  *
+ * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
@@ -20,15 +21,11 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+  VictoryChart,
+  VictoryBar,
+  VictoryAxis,
+  VictoryTooltip,
+} from 'victory';
 import { OneRepMaxChartProps, OneRepMaxDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -40,43 +37,6 @@ const ChartContainer = styled(motion.div)`
   @media (max-width: 768px) {
     height: 300px;
   }
-`;
-
-const TooltipContainer = styled.div`
-  background: linear-gradient(
-    135deg,
-    rgba(0, 32, 96, 0.95) 0%,
-    rgba(0, 48, 128, 0.9) 100%
-  );
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  min-width: 200px;
-`;
-
-const TooltipLabel = styled.div`
-  font-weight: 600;
-  color: #C6A84B;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipValue = styled.div`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #C6A84B;
-  margin-bottom: 0.25rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipDetail = styled.div`
-  font-size: 0.875rem;
-  color: #b8c9db;
-  font-family: 'Fira Code', monospace;
 `;
 
 const NoDataContainer = styled.div`
@@ -115,49 +75,11 @@ const SortButton = styled.button<{ active: boolean }>`
   }
 `;
 
-// ==================== INTERFACES ====================
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
 // ==================== UTILITY FUNCTIONS ====================
 
 const truncateExerciseName = (name: string, maxLength: number = 20): string => {
   if (name.length <= maxLength) return name;
   return name.substring(0, maxLength - 3) + '...';
-};
-
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  const data = payload[0]?.payload as OneRepMaxDataPoint;
-
-  return (
-    <TooltipContainer>
-      <TooltipLabel>{data.exercise}</TooltipLabel>
-      <TooltipValue>{data.max} lbs</TooltipValue>
-      {data.improvement && (
-        <TooltipDetail>
-          {data.improvement > 0 ? '+' : ''}{data.improvement}% from last month
-        </TooltipDetail>
-      )}
-      {data.category && (
-        <TooltipDetail>Category: {data.category}</TooltipDetail>
-      )}
-      {data.date && (
-        <TooltipDetail>
-          Last PR: {new Date(data.date).toLocaleDateString()}
-        </TooltipDetail>
-      )}
-    </TooltipContainer>
-  );
 };
 
 // ==================== MAIN COMPONENT ====================
@@ -203,6 +125,8 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
       .map((point, index) => ({
         ...point,
         displayName: truncateExerciseName(point.exercise),
+        x: truncateExerciseName(point.exercise),
+        y: point.max,
         sortIndex: index
       }));
   }, [data, currentSort, maxExercises]);
@@ -239,6 +163,14 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
     );
   }
 
+  // Color each bar based on strength ratio
+  const getBarColor = (value: number): string => {
+    const ratio = value / maxWeight;
+    if (ratio >= 0.8) return '#8B5CF6';
+    if (ratio >= 0.6) return '#C6A84B';
+    return '#50A0F0';
+  };
+
   return (
     <motion.div
       className={className}
@@ -273,68 +205,82 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
         animate={animate ? { opacity: 1, y: 0 } : undefined}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-          >
-            <defs>
-              <linearGradient id="strongGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.7}/>
-              </linearGradient>
-              <linearGradient id="moderateGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#C6A84B" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#60C0F0" stopOpacity={0.7}/>
-              </linearGradient>
-              <linearGradient id="lightGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.9}/>
-                <stop offset="95%" stopColor="#50A0F0" stopOpacity={0.7}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(96, 192, 240, 0.1)"
-              horizontal={false}
-            />
-            <XAxis
-              type="number"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
-              domain={[0, 'dataMax']}
-            />
-            <YAxis
-              type="category"
-              dataKey="displayName"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
-              width={90}
-            />
-            {showTooltip && (
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ fill: 'rgba(96, 192, 240, 0.1)' }}
-              />
-            )}
-            <Bar
-              dataKey="max"
-              radius={[0, 4, 4, 0]}
-              isAnimationActive={animate}
-              animationDuration={1200}
-            >
-              {chartData.map((entry, index) => {
-                const ratio = entry.max / maxWeight;
-                let fill = '#60C0F0';
-                if (ratio >= 0.8) fill = 'url(#strongGradient)';
-                else if (ratio >= 0.6) fill = 'url(#moderateGradient)';
-                else fill = 'url(#lightGradient)';
+        <VictoryChart
+          horizontal
+          padding={{ top: 10, right: 40, left: 110, bottom: 40 }}
+          domainPadding={{ x: 15 }}
+          animate={animate ? { duration: 800, easing: 'cubicInOut' } : undefined}
+        >
+          {/* X Axis (values — appears at bottom for horizontal chart) */}
+          <VictoryAxis
+            dependentAxis
+            style={{
+              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+              tickLabels: {
+                fill: '#E0ECF4',
+                fontSize: 11,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: {
+                stroke: 'rgba(96, 192, 240, 0.08)',
+                strokeDasharray: '4,4',
+              },
+            }}
+          />
 
-                return <Cell key={`cell-${index}`} fill={fill} />;
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+          {/* Y Axis (categories — appears on left for horizontal chart) */}
+          <VictoryAxis
+            style={{
+              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+              tickLabels: {
+                fill: '#E0ECF4',
+                fontSize: 11,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: { stroke: 'none' },
+            }}
+          />
+
+          {/* Bars */}
+          <VictoryBar
+            data={chartData}
+            barRatio={0.7}
+            cornerRadius={{ topLeft: 4, topRight: 4 }}
+            style={{
+              data: {
+                fill: ({ datum }) => getBarColor(datum.y),
+                cursor: 'pointer',
+              },
+            }}
+            labels={({ datum }) => {
+              const d = datum as OneRepMaxDataPoint & { y: number };
+              const parts = [`${d.exercise}: ${d.y} lbs`];
+              if (d.improvement) {
+                parts.push(`${d.improvement > 0 ? '+' : ''}${d.improvement}% from last month`);
+              }
+              if (d.category) parts.push(`Category: ${d.category}`);
+              return parts.join('\n');
+            }}
+            labelComponent={
+              showTooltip ? (
+                <VictoryTooltip
+                  flyoutStyle={{
+                    fill: '#141419',
+                    stroke: 'rgba(139, 92, 246, 0.3)',
+                    strokeWidth: 1,
+                  }}
+                  style={{
+                    fill: '#E0ECF4',
+                    fontSize: 11,
+                    fontFamily: "'Fira Code', monospace",
+                  }}
+                  cornerRadius={8}
+                  flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                />
+              ) : undefined
+            }
+          />
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );

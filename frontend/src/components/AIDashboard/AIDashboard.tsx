@@ -17,11 +17,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+// Victory chart components (migrated from Recharts — imports available for future chart usage)
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, BarChart as RechartsBarChart, Bar, PieChart, Pie,
-  Cell, Legend
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+} from 'victory';
 
 // Import MCP services
 import {

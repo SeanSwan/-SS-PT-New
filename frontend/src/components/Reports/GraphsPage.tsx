@@ -15,14 +15,13 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import styled from 'styled-components';
 import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+} from 'victory';
 
 const Container = styled.div`
   padding: 1rem;
@@ -103,16 +102,66 @@ const GraphsPage: React.FC<GraphsPageProps> = ({ setChartDataURL, chartRef }) =>
   return (
     <Container ref={chartRef}>
       <Title>Weekly Intrusion Analytics</Title>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <Line type="monotone" dataKey="humanIntrusions" stroke="#8884d8" />
-          <Line type="monotone" dataKey="vehicleIntrusions" stroke="#82ca9d" />
-          <CartesianGrid stroke="#ccc" />
-          <XAxis dataKey="day" />
-          <YAxis />
-          <Tooltip />
-        </LineChart>
-      </ResponsiveContainer>
+      <div style={{ width: '100%', height: 300 }}>
+        <VictoryChart
+          height={300}
+          padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+          containerComponent={
+            <VictoryVoronoiContainer
+              labels={({ datum }: any) => `${datum.day}: ${datum._y}`}
+              labelComponent={
+                <VictoryTooltip
+                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 11 }}
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                />
+              }
+            />
+          }
+        >
+          <VictoryAxis
+            tickFormat={(t: string) => t}
+            style={{
+              axis: { stroke: '#E0ECF4' },
+              tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+            }}
+          />
+          <VictoryAxis
+            dependentAxis
+            style={{
+              axis: { stroke: '#E0ECF4' },
+              tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+            }}
+          />
+          <VictoryLine
+            data={data}
+            x="day"
+            y="humanIntrusions"
+            interpolation="monotoneX"
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }}
+          />
+          <VictoryLine
+            data={data}
+            x="day"
+            y="vehicleIntrusions"
+            interpolation="monotoneX"
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }}
+          />
+          <VictoryLegend
+            x={80}
+            y={0}
+            orientation="horizontal"
+            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }}
+            data={[
+              { name: 'Human Intrusions', symbol: { fill: '#50A0F0' } },
+              { name: 'Vehicle Intrusions', symbol: { fill: '#4ECDC4' } },
+            ]}
+          />
+        </VictoryChart>
+      </div>
 
       {/* Form inputs to update data for each day */}
       <FormContainer>

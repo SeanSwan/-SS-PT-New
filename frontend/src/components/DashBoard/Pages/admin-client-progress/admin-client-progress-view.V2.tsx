@@ -315,18 +315,10 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fallback client data
+  // Show empty state with error instead of fake data
   const useFallbackClientData = () => {
-    const fallbackClients: Client[] = [
-      { id: '1', firstName: 'John', lastName: 'Doe', username: 'johndoe_fit', availableSessions: 12 },
-      { id: '2', firstName: 'Sarah', lastName: 'Johnson', username: 'sarah_strong', availableSessions: 8 },
-      { id: '3', firstName: 'Mike', lastName: 'Chen', username: 'mike_muscle', availableSessions: 15 },
-    ];
-    
-    setClients(fallbackClients);
-    if (fallbackClients.length > 0 && !selectedClientId) {
-      setSelectedClientId(fallbackClients[0].id);
-    }
+    setClients([]);
+    setError('Unable to load clients. Please check your connection and try again.');
   };
 
   // Fetch client progress

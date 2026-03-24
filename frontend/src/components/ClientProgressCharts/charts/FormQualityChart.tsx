@@ -2,7 +2,7 @@
  * FormQualityChart.tsx
  * ====================
  *
- * Composed chart component for displaying form quality ratings over time
+ * Chart component for displaying form quality ratings over time
  * Part of the ClientProgressCharts modular system
  *
  * FEATURES:
@@ -14,6 +14,7 @@
  * - Mobile-optimized responsive design
  * - WCAG AA accessibility compliance
  *
+ * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
@@ -21,17 +22,14 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  ComposedChart,
-  Line,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryArea,
+  VictoryAxis,
+  VictoryScatter,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from 'victory';
 import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -134,14 +132,6 @@ const LegendDot = styled.div<{ color: string }>`
   background: ${props => props.color};
 `;
 
-// ==================== INTERFACES ====================
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
 // ==================== UTILITY FUNCTIONS ====================
 
 const getFormQuality = (rating: number): string => {
@@ -168,38 +158,6 @@ const generateStars = (rating: number): string => {
          '\u2606'.repeat(emptyStars);
 };
 
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  const data = payload[0]?.payload as FormQualityDataPoint;
-  const quality = getFormQuality(data.averageForm);
-
-  return (
-    <TooltipContainer>
-      <TooltipLabel>
-        {new Date(label!).toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })}
-      </TooltipLabel>
-      <TooltipValue>
-        <span style={{ color: getFormQualityColor(data.averageForm) }}>
-          {generateStars(data.averageForm)} {data.averageForm.toFixed(1)}/5
-        </span>
-        <QualityBadge quality={quality}>{quality}</QualityBadge>
-      </TooltipValue>
-      <TooltipDetail>
-        {data.totalSets} sets across {data.sessionCount} session{data.sessionCount !== 1 ? 's' : ''}
-      </TooltipDetail>
-    </TooltipContainer>
-  );
-};
-
 // ==================== MAIN COMPONENT ====================
 
 const FormQualityChart: React.FC<FormQualityChartProps> = ({
@@ -218,11 +176,12 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // Sort data by date and ensure proper formatting
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(point => ({
+      .map((point, index) => ({
         ...point,
+        x: index,
+        y: point.averageForm,
         displayDate: new Date(point.date).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
@@ -305,130 +264,176 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
       )}
 
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 20,
-            }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(96, 192, 240, 0.1)"
-              vertical={false}
-            />
-
-            <XAxis
-              dataKey="displayDate"
-              stroke="#b8c9db"
-              fontSize={12}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(96, 192, 240, 0.3)' }}
-              tick={{ fontFamily: "'Fira Code', monospace" }}
-            />
-
-            <YAxis
-              domain={[1, 5]}
-              stroke="#b8c9db"
-              fontSize={12}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(96, 192, 240, 0.3)' }}
-              tickFormatter={(value) => `${value}\u2605`}
-              tick={{ fontFamily: "'Fira Code', monospace" }}
-            />
-
-            {showTooltip && (
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ stroke: 'rgba(139, 92, 246, 0.5)', strokeWidth: 2 }}
-              />
-            )}
-
-            {/* Reference areas for quality zones */}
-            <ReferenceArea y1={4.5} y2={5} fill="rgba(198, 168, 75, 0.1)" />
-            <ReferenceArea y1={3.5} y2={4.5} fill="rgba(96, 192, 240, 0.1)" />
-            <ReferenceArea y1={2.5} y2={3.5} fill="rgba(198, 168, 75, 0.08)" />
-            <ReferenceArea y1={1} y2={2.5} fill="rgba(239, 68, 68, 0.1)" />
-
-            {/* Target line */}
-            <ReferenceLine
-              y={targetFormRating}
-              stroke="rgba(139, 92, 246, 0.8)"
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{
-                value: `Target: ${targetFormRating}\u2605`,
-                position: 'topRight',
-                fill: '#8B5CF6',
-                fontSize: 12
-              }}
-            />
-
-            {/* Average line */}
-            {showAverage && (
-              <ReferenceLine
-                y={averageFormRating}
-                stroke="rgba(96, 192, 240, 0.6)"
-                strokeDasharray="3 3"
-                label={{
-                  value: `Avg: ${averageFormRating.toFixed(1)}\u2605`,
-                  position: 'bottomRight',
-                  fill: '#60C0F0',
-                  fontSize: 12
+        <VictoryChart
+          padding={{ top: 30, right: 30, left: 50, bottom: 50 }}
+          domain={{ y: [1, 5] }}
+          animate={animate ? { duration: 800, easing: 'cubicInOut' } : undefined}
+          containerComponent={
+            showTooltip ? (
+              <VictoryVoronoiContainer
+                labels={({ datum }) => {
+                  const d = datum as FormQualityDataPoint & { displayDate: string; quality: string };
+                  return [
+                    d.displayDate,
+                    `${generateStars(d.averageForm)} ${d.averageForm.toFixed(1)}/5 [${d.quality}]`,
+                    `${d.totalSets} sets / ${d.sessionCount} session${d.sessionCount !== 1 ? 's' : ''}`,
+                  ].join('\n');
                 }}
+                labelComponent={
+                  <VictoryTooltip
+                    flyoutStyle={{
+                      fill: '#141419',
+                      stroke: 'rgba(139, 92, 246, 0.3)',
+                      strokeWidth: 1,
+                    }}
+                    style={{
+                      fill: '#E0ECF4',
+                      fontSize: 11,
+                      fontFamily: "'Fira Code', monospace",
+                    }}
+                    cornerRadius={8}
+                    flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  />
+                }
               />
-            )}
+            ) : undefined
+          }
+        >
+          {/* Gradient defs */}
+          <defs>
+            <linearGradient id="victoryFormGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+              <stop offset="50%" stopColor="#a855f7" stopOpacity={0.2} />
+              <stop offset="100%" stopColor="#c084fc" stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
 
-            {/* Area under the line */}
-            <Area
-              type="monotone"
-              dataKey="averageForm"
-              fill="url(#formGradient)"
-              stroke="none"
-              animationDuration={animate ? 1500 : 0}
-            />
+          {/* X Axis */}
+          <VictoryAxis
+            style={{
+              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+              tickLabels: {
+                fill: '#E0ECF4',
+                fontSize: 11,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: { stroke: 'none' },
+            }}
+            tickValues={chartData.map((_, i) => i)}
+            tickFormat={chartData.map(d => d.displayDate)}
+          />
 
-            {/* Main line */}
-            <Line
-              type="monotone"
-              dataKey="averageForm"
-              stroke="url(#formLineGradient)"
-              strokeWidth={3}
-              dot={{
-                fill: '#8B5CF6',
+          {/* Y Axis */}
+          <VictoryAxis
+            dependentAxis
+            style={{
+              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+              tickLabels: {
+                fill: '#E0ECF4',
+                fontSize: 11,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: {
+                stroke: 'rgba(96, 192, 240, 0.08)',
+                strokeDasharray: '4,4',
+              },
+            }}
+            tickFormat={(t: number) => `${t}\u2605`}
+          />
+
+          {/* Quality zone backgrounds — rendered as thin areas */}
+          {/* Excellent zone 4.5-5 */}
+          <VictoryArea
+            data={[
+              { x: chartData[0]?.x ?? 0, y: 5, y0: 4.5 },
+              { x: chartData[chartData.length - 1]?.x ?? 1, y: 5, y0: 4.5 },
+            ]}
+            style={{ data: { fill: 'rgba(198, 168, 75, 0.1)', stroke: 'none' } }}
+          />
+          {/* Good zone 3.5-4.5 */}
+          <VictoryArea
+            data={[
+              { x: chartData[0]?.x ?? 0, y: 4.5, y0: 3.5 },
+              { x: chartData[chartData.length - 1]?.x ?? 1, y: 4.5, y0: 3.5 },
+            ]}
+            style={{ data: { fill: 'rgba(96, 192, 240, 0.08)', stroke: 'none' } }}
+          />
+          {/* Fair zone 2.5-3.5 */}
+          <VictoryArea
+            data={[
+              { x: chartData[0]?.x ?? 0, y: 3.5, y0: 2.5 },
+              { x: chartData[chartData.length - 1]?.x ?? 1, y: 3.5, y0: 2.5 },
+            ]}
+            style={{ data: { fill: 'rgba(198, 168, 75, 0.06)', stroke: 'none' } }}
+          />
+          {/* Poor zone 1-2.5 */}
+          <VictoryArea
+            data={[
+              { x: chartData[0]?.x ?? 0, y: 2.5, y0: 1 },
+              { x: chartData[chartData.length - 1]?.x ?? 1, y: 2.5, y0: 1 },
+            ]}
+            style={{ data: { fill: 'rgba(239, 68, 68, 0.08)', stroke: 'none' } }}
+          />
+
+          {/* Target reference line */}
+          <VictoryLine
+            data={[
+              { x: chartData[0]?.x ?? 0, y: targetFormRating },
+              { x: chartData[chartData.length - 1]?.x ?? 1, y: targetFormRating },
+            ]}
+            style={{
+              data: {
+                stroke: 'rgba(139, 92, 246, 0.8)',
                 strokeWidth: 2,
-                stroke: '#7c3aed',
-                r: 4
+                strokeDasharray: '5,5',
+              },
+            }}
+          />
+
+          {/* Average reference line */}
+          {showAverage && (
+            <VictoryLine
+              data={[
+                { x: chartData[0]?.x ?? 0, y: averageFormRating },
+                { x: chartData[chartData.length - 1]?.x ?? 1, y: averageFormRating },
+              ]}
+              style={{
+                data: {
+                  stroke: 'rgba(96, 192, 240, 0.6)',
+                  strokeWidth: 1,
+                  strokeDasharray: '3,3',
+                },
               }}
-              activeDot={{
-                r: 6,
-                fill: '#8B5CF6',
-                stroke: '#E0ECF4',
-                strokeWidth: 2
-              }}
-              animationDuration={animate ? 1500 : 0}
-              animationEasing="ease-out"
             />
+          )}
 
-            {/* Define gradients */}
-            <defs>
-              <linearGradient id="formGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                <stop offset="50%" stopColor="#a855f7" stopOpacity={0.2} />
-                <stop offset="100%" stopColor="#c084fc" stopOpacity={0.1} />
-              </linearGradient>
+          {/* Area fill under the data line */}
+          <VictoryArea
+            data={chartData}
+            interpolation="monotoneX"
+            style={{
+              data: { fill: 'url(#victoryFormGradient)', stroke: 'none' },
+            }}
+          />
 
-              <linearGradient id="formLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.9} />
-                <stop offset="50%" stopColor="#a855f7" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#c084fc" stopOpacity={0.7} />
-              </linearGradient>
-            </defs>
-          </ComposedChart>
-        </ResponsiveContainer>
+          {/* Main data line */}
+          <VictoryLine
+            data={chartData}
+            interpolation="monotoneX"
+            style={{
+              data: { stroke: '#8B5CF6', strokeWidth: 3 },
+            }}
+          />
+
+          {/* Data points */}
+          <VictoryScatter
+            data={chartData}
+            size={4}
+            style={{
+              data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
+            }}
+          />
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );

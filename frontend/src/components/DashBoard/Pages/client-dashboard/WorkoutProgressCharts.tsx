@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import { Treemap, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
+import {
+  VictoryChart,
+  VictoryArea,
+  VictoryPie,
+  VictoryTooltip,
+  VictoryPolarAxis,
+} from 'victory';
 import apiService from '../../../../services/api.service';
 import { useAuth } from '../../../../context/AuthContext';
 
@@ -38,30 +44,7 @@ interface TreemapNode {
   fill: string;
 }
 
-const CustomizedTreemapContent = ({ root, depth, x, y, width, height, index, colors, name, value }) => {
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        style={{
-          fill: colors[index % colors.length],
-          stroke: '#1e293b',
-          strokeWidth: 2,
-          strokeOpacity: 1,
-        }}
-      />
-      <text x={x + width / 2} y={y + height / 2 + 7} textAnchor="middle" fill="#fff" fontSize={14}>
-        {name}
-      </text>
-      <text x={x + width / 2} y={y + height / 2 + 25} textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={12}>
-        {value} lbs
-      </text>
-    </g>
-  );
-};
+// Treemap replaced with VictoryPie for body composition proportions
 
 const BodyCompositionTreemap: React.FC<{ userId: string }> = ({ userId }) => {
   const [data, setData] = useState<TreemapNode[]>([]);
@@ -102,16 +85,27 @@ const BodyCompositionTreemap: React.FC<{ userId: string }> = ({ userId }) => {
   return (
     <ChartCard variants={itemVariants}>
       <ChartTitle>Body Composition</ChartTitle>
-      <ResponsiveContainer width="100%" height={300}>
-        <Treemap
-          data={data}
-          dataKey="size"
-          ratio={4 / 3}
-          stroke="#fff"
-          fill="#8884d8"
-          content={<CustomizedTreemapContent colors={['#10b981', '#ef4444', '#9ca3af', '#6b7280']} />}
-        />
-      </ResponsiveContainer>
+      <VictoryPie
+        data={data}
+        x="name"
+        y="size"
+        innerRadius={50}
+        padAngle={3}
+        colorScale={['#4ECDC4', '#8B5CF6', '#4070C0', '#50A0F0']}
+        animate={{ duration: 800, easing: 'cubicInOut' }}
+        height={300}
+        labels={({ datum }) => `${datum.name}\n${datum.size} lbs`}
+        labelComponent={
+          <VictoryTooltip
+            flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+            style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+            cornerRadius={8}
+          />
+        }
+        style={{
+          labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+        }}
+      />
     </ChartCard>
   );
 };
@@ -136,28 +130,40 @@ const StrengthProfileRadarChart: React.FC<{ userId: string }> = ({ userId }) => 
   return (
     <ChartCard variants={itemVariants}>
       <ChartTitle>Strength Profile</ChartTitle>
-      <ResponsiveContainer width="100%" height={300}>
-        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-          <defs>
-            <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.3}/>
-            </linearGradient>
-          </defs>
-          <PolarGrid stroke="rgba(255,255,255,0.2)" />
-          <PolarAngleAxis dataKey="subject" tick={{ fill: 'white', fontSize: 12 }} />
-          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-          <Radar name="Strength Profile" dataKey="value" stroke="#60C0F0" fill="url(#radarGradient)" fillOpacity={0.6} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: 'rgba(30, 41, 59, 0.9)',
-              border: '1px solid #60C0F0',
-              borderRadius: '8px',
-            }}
-            labelStyle={{ color: 'white' }}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
+      <VictoryChart
+        polar
+        height={300}
+        animate={{ duration: 800, easing: 'cubicInOut' }}
+      >
+        <VictoryPolarAxis
+          tickValues={data.map((_: any, i: number) => i)}
+          tickFormat={data.map((d: any) => d.subject)}
+          style={{
+            axis: { stroke: 'rgba(255,255,255,0.2)' },
+            tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Sora', sans-serif" },
+            grid: { stroke: 'rgba(255,255,255,0.2)' },
+          }}
+        />
+        <VictoryPolarAxis
+          dependentAxis
+          domain={[0, 100]}
+          style={{
+            axis: { stroke: 'none' },
+            tickLabels: { fill: 'transparent' },
+            grid: { stroke: 'rgba(255,255,255,0.1)' },
+          }}
+        />
+        <VictoryArea
+          data={data.map((d: any, i: number) => ({ x: i, y: d.value }))}
+          style={{
+            data: {
+              fill: 'rgba(80, 160, 240, 0.3)',
+              stroke: '#50A0F0',
+              strokeWidth: 2,
+            },
+          }}
+        />
+      </VictoryChart>
     </ChartCard>
   );
 };

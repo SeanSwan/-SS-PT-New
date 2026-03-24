@@ -2,10 +2,11 @@
  * BodyCompositionChart.tsx
  * ========================
  *
- * Dual-axis ComposedChart for body composition tracking
+ * Dual-axis chart for body composition tracking
  * Left Y-axis: Weight (lbs) with Ice Wing gradient area
  * Right Y-axis: Body Fat % with Wing Purple line
  *
+ * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
@@ -13,16 +14,15 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryLine,
+  VictoryAxis,
+  VictoryLegend,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryScatter,
+} from 'victory';
 import { BodyCompositionChartProps, BodyCompositionDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -36,35 +36,6 @@ const ChartContainer = styled(motion.div)`
   }
 `;
 
-const TooltipContainer = styled.div`
-  background: linear-gradient(
-    135deg,
-    rgba(0, 32, 96, 0.95) 0%,
-    rgba(0, 48, 128, 0.9) 100%
-  );
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipLabel = styled.div`
-  font-weight: 600;
-  color: #60C0F0;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipRow = styled.div<{ color: string }>`
-  font-size: 0.9rem;
-  color: ${props => props.color};
-  margin-bottom: 0.25rem;
-  font-family: 'Fira Code', monospace;
-`;
-
 const NoDataContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -75,44 +46,19 @@ const NoDataContainer = styled.div`
   text-align: center;
 `;
 
-// ==================== INTERFACES ====================
+// ==================== CONSTANTS ====================
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  const data = payload[0]?.payload as BodyCompositionDataPoint & { displayDate: string };
-
-  return (
-    <TooltipContainer>
-      <TooltipLabel>{data.displayDate || label}</TooltipLabel>
-      <TooltipRow color="#60C0F0">
-        Weight: {data.weight} lbs
-      </TooltipRow>
-      <TooltipRow color="#8B5CF6">
-        Body Fat: {data.bodyFat}%
-      </TooltipRow>
-      {data.muscleMass !== undefined && (
-        <TooltipRow color="#C6A84B">
-          Muscle Mass: {data.muscleMass} lbs
-        </TooltipRow>
-      )}
-      {data.progressScore !== undefined && (
-        <TooltipRow color="#50A0F0">
-          Progress Score: {data.progressScore}
-        </TooltipRow>
-      )}
-    </TooltipContainer>
-  );
+const AXIS_STYLE = {
+  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+  tickLabels: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+  grid: {
+    stroke: 'rgba(96, 192, 240, 0.08)',
+    strokeDasharray: '4,4',
+  },
 };
 
 // ==================== MAIN COMPONENT ====================
@@ -123,14 +69,34 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
 
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(point => ({
+      .map((point, index) => ({
         ...point,
+        x: index,
         displayDate: new Date(point.date).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
         }),
       }));
   }, [data]);
+
+  // Compute domains for dual-axis normalization
+  const weightDomain = useMemo(() => {
+    if (!chartData.length) return [0, 100];
+    const weights = chartData.map(d => d.weight);
+    const min = Math.min(...weights);
+    const max = Math.max(...weights);
+    const pad = (max - min) * 0.1 || 5;
+    return [min - pad, max + pad];
+  }, [chartData]);
+
+  const bodyFatDomain = useMemo(() => {
+    if (!chartData.length) return [0, 50];
+    const fats = chartData.map(d => d.bodyFat);
+    const min = Math.min(...fats);
+    const max = Math.max(...fats);
+    const pad = (max - min) * 0.1 || 2;
+    return [min - pad, max + pad];
+  }, [chartData]);
 
   if (!data || data.length === 0) {
     return (
@@ -151,6 +117,13 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
     );
   }
 
+  // Normalize body fat to weight scale for overlay rendering
+  const normalizeBodyFat = (bf: number) => {
+    const [bfMin, bfMax] = bodyFatDomain;
+    const [wMin, wMax] = weightDomain;
+    return wMin + ((bf - bfMin) / (bfMax - bfMin)) * (wMax - wMin);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -158,83 +131,158 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="bodyWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.6} />
-                <stop offset="50%" stopColor="#60C0F0" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#60C0F0" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(96, 192, 240, 0.1)"
+        <VictoryChart
+          padding={{ top: 20, right: 70, left: 60, bottom: 50 }}
+          domain={{ y: weightDomain as [number, number] }}
+          animate={{ duration: 800, easing: 'cubicInOut' }}
+          containerComponent={
+            <VictoryVoronoiContainer
+              labels={({ datum }) => {
+                const d = datum as any;
+                const parts = [`${d.displayDate}`];
+                if (d.weight !== undefined) parts.push(`Weight: ${d.weight} lbs`);
+                if (d.bodyFat !== undefined) parts.push(`Body Fat: ${d.bodyFat}%`);
+                if (d.muscleMass !== undefined) parts.push(`Muscle: ${d.muscleMass} lbs`);
+                return parts.join('\n');
+              }}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{
+                    fill: '#141419',
+                    stroke: 'rgba(139, 92, 246, 0.3)',
+                    strokeWidth: 1,
+                  }}
+                  style={{
+                    fill: '#E0ECF4',
+                    fontSize: 11,
+                    fontFamily: "'Fira Code', monospace",
+                  }}
+                  cornerRadius={8}
+                  flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                />
+              }
             />
-            <XAxis
-              dataKey="displayDate"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
-            />
-            <YAxis
-              yAxisId="weight"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#60C0F0', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
-              label={{
-                value: 'Weight (lbs)',
-                angle: -90,
-                position: 'insideLeft',
+          }
+        >
+          {/* Gradient defs via SVG */}
+          <defs>
+            <linearGradient id="victoryBodyWeightGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.6} />
+              <stop offset="50%" stopColor="#60C0F0" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#60C0F0" stopOpacity={0.05} />
+            </linearGradient>
+          </defs>
+
+          {/* X Axis */}
+          <VictoryAxis
+            style={AXIS_STYLE}
+            tickValues={chartData.map((_, i) => i)}
+            tickFormat={chartData.map(d => d.displayDate)}
+          />
+
+          {/* Left Y Axis — Weight */}
+          <VictoryAxis
+            dependentAxis
+            style={{
+              ...AXIS_STYLE,
+              tickLabels: { ...AXIS_STYLE.tickLabels, fill: '#60C0F0' },
+              axisLabel: {
                 fill: '#60C0F0',
-                style: { fontFamily: "'Fira Code', monospace" }
-              }}
-            />
-            <YAxis
-              yAxisId="bodyFat"
-              orientation="right"
-              stroke="rgba(139, 92, 246, 0.5)"
-              tick={{ fill: '#8B5CF6', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
-              label={{
-                value: 'Body Fat %',
-                angle: 90,
-                position: 'insideRight',
-                fill: '#8B5CF6',
-                style: { fontFamily: "'Fira Code', monospace" }
-              }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{
-                color: '#b8c9db',
+                fontSize: 12,
                 fontFamily: "'Fira Code', monospace",
-                fontSize: '0.8rem'
-              }}
-            />
-            <Area
-              yAxisId="weight"
-              type="monotone"
-              dataKey="weight"
-              name="Weight (lbs)"
-              stroke="#60C0F0"
-              strokeWidth={2}
-              fill="url(#bodyWeightGradient)"
-              animationDuration={1500}
-            />
-            <Line
-              yAxisId="bodyFat"
-              type="monotone"
-              dataKey="bodyFat"
-              name="Body Fat %"
-              stroke="#8B5CF6"
-              strokeWidth={2}
-              dot={{ fill: '#8B5CF6', strokeWidth: 2, stroke: '#7c3aed', r: 4 }}
-              activeDot={{ r: 6, fill: '#8B5CF6', stroke: '#E0ECF4', strokeWidth: 2 }}
-              animationDuration={1500}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+                padding: 40,
+              },
+            }}
+            label="Weight (lbs)"
+          />
+
+          {/* Right Y Axis — Body Fat % */}
+          <VictoryAxis
+            dependentAxis
+            orientation="right"
+            style={{
+              axis: { stroke: 'rgba(139, 92, 246, 0.3)' },
+              tickLabels: {
+                fill: '#8B5CF6',
+                fontSize: 11,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: { stroke: 'none' },
+              axisLabel: {
+                fill: '#8B5CF6',
+                fontSize: 12,
+                fontFamily: "'Fira Code', monospace",
+                padding: 50,
+              },
+            }}
+            label="Body Fat %"
+            tickFormat={(t: number) => {
+              // Reverse-normalize from weight scale back to body fat
+              const [bfMin, bfMax] = bodyFatDomain;
+              const [wMin, wMax] = weightDomain;
+              const bf = bfMin + ((t - wMin) / (wMax - wMin)) * (bfMax - bfMin);
+              return `${bf.toFixed(1)}%`;
+            }}
+          />
+
+          {/* Weight Area */}
+          <VictoryArea
+            data={chartData.map(d => ({ x: d.x, y: d.weight, ...d }))}
+            interpolation="monotoneX"
+            style={{
+              data: {
+                fill: 'url(#victoryBodyWeightGradient)',
+                stroke: '#60C0F0',
+                strokeWidth: 2,
+              },
+            }}
+          />
+
+          {/* Body Fat Line — normalized to weight scale */}
+          <VictoryLine
+            data={chartData.map(d => ({
+              x: d.x,
+              y: normalizeBodyFat(d.bodyFat),
+              ...d,
+            }))}
+            interpolation="monotoneX"
+            style={{
+              data: { stroke: '#8B5CF6', strokeWidth: 2 },
+            }}
+          />
+
+          {/* Body Fat Dots */}
+          <VictoryScatter
+            data={chartData.map(d => ({
+              x: d.x,
+              y: normalizeBodyFat(d.bodyFat),
+              ...d,
+            }))}
+            size={4}
+            style={{
+              data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
+            }}
+          />
+
+          {/* Legend */}
+          <VictoryLegend
+            x={60}
+            y={0}
+            orientation="horizontal"
+            gutter={20}
+            style={{
+              labels: {
+                fill: '#E0ECF4',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 10,
+              },
+            }}
+            data={[
+              { name: 'Weight (lbs)', symbol: { fill: '#60C0F0' } },
+              { name: 'Body Fat %', symbol: { fill: '#8B5CF6' } },
+            ]}
+          />
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );

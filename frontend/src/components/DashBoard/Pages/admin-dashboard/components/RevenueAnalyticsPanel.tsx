@@ -32,23 +32,15 @@ import {
   Globe, Briefcase, Activity, ArrowUp, ArrowDown
 } from 'lucide-react';
 import {
-  LineChart as ReLineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryLine,
+  VictoryAxis,
+  VictoryPie,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+} from 'victory';
 
 // =====================================================
 // STYLED COMPONENTS - EXECUTIVE GRADE DESIGN
@@ -817,53 +809,61 @@ const RevenueAnalyticsPanel: React.FC = () => {
               <LineChart size={20} />
               Revenue Trend
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <ComposedChart data={revenueData.revenueHistory}>
-                <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
+            <VictoryChart
+              height={350}
+              padding={{ top: 20, bottom: 50, left: 70, right: 70 }}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              containerComponent={
+                <VictoryVoronoiContainer
+                  labels={({ datum }) => `${datum.month}\nRevenue: $${datum.revenue?.toLocaleString()}\nTransactions: ${datum.transactions}`}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                      style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                      cornerRadius={8}
+                    />
+                  }
                 />
-                <YAxis 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(30, 58, 138, 0.9)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                  formatter={((value: any, name: string) => [
-                    name === 'revenue' ? `$${value.toLocaleString()}` : String(value),
-                    name === 'revenue' ? 'Revenue' : 'Transactions'
-                  ]) as any}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  fill="url(#colorGradient)"
-                  stroke="#60C0F0"
-                  strokeWidth={3}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="transactions" 
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={{ fill: '#f59e0b', strokeWidth: 2, r: 3 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+              }
+            >
+              <VictoryAxis
+                tickFormat={(t: string) => t}
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryAxis
+                dependentAxis
+                tickFormat={(value: number) => `$${(value / 1000).toFixed(0)}k`}
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryArea
+                data={revenueData.revenueHistory}
+                x="month"
+                y="revenue"
+                style={{
+                  data: {
+                    fill: 'rgba(80, 160, 240, 0.15)',
+                    stroke: '#50A0F0',
+                    strokeWidth: 3,
+                  },
+                }}
+              />
+              <VictoryLine
+                data={revenueData.revenueHistory}
+                x="month"
+                y="transactions"
+                style={{
+                  data: { stroke: '#C6A84B', strokeWidth: 2 },
+                }}
+              />
+            </VictoryChart>
           </ChartCard>
 
           {/* Top Packages Chart */}
@@ -876,42 +876,37 @@ const RevenueAnalyticsPanel: React.FC = () => {
               <PieChart size={20} />
               Revenue by Package
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <RePieChart>
-                <Pie
-                  data={revenueData.topPackages}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="revenue"
-                  nameKey="name"
-                >
-                  {revenueData.topPackages.map((entry: any, index: number) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={pieChartColors[index % pieChartColors.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(30, 58, 138, 0.9)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                  formatter={(value: any) => [`$${value.toLocaleString()}`, 'Revenue']}
+            <VictoryPie
+              data={revenueData.topPackages}
+              x="name"
+              y="revenue"
+              innerRadius={60}
+              padAngle={3}
+              colorScale={pieChartColors}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              height={280}
+              labels={({ datum }) => datum.name}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                  cornerRadius={8}
                 />
-                <Legend 
-                  wrapperStyle={{
-                    fontSize: '12px',
-                    color: 'rgba(255, 255, 255, 0.7)'
-                  }}
-                />
-              </RePieChart>
-            </ResponsiveContainer>
+              }
+              style={{
+                labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+              }}
+            />
+            <VictoryLegend
+              orientation="horizontal"
+              gutter={16}
+              height={60}
+              style={{
+                labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" },
+              }}
+              colorScale={pieChartColors}
+              data={revenueData.topPackages.map((pkg: any) => ({ name: pkg.name }))}
+            />
           </ChartCard>
         </ChartsContainer>
       )}

@@ -39,28 +39,12 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
+// Victory chart components (migrated from Recharts — imports available for future chart usage)
 import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ScatterChart,
-  Scatter
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+  VictoryPolarAxis,
+} from 'victory';
 import { logger } from '@/utils/logger';
 
 // ── Crystalline Swan Theme Tokens ──

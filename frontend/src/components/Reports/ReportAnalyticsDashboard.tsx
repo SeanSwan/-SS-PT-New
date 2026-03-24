@@ -2,24 +2,18 @@
 
 import React, { useState, useEffect, createContext, useContext, ReactNode, forwardRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+// Victory chart components (migrated from Recharts)
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LabelList
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryBar,
+  VictoryPie,
+  VictoryArea,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+} from 'victory';
 import { format, subDays, subMonths } from 'date-fns';
 
 // UI components
@@ -1246,30 +1240,20 @@ const ReportAnalyticsDashboard: React.FC<ReportAnalyticsDashboardProps> = ({
                     </MetricButton>
                   </MetricSelector>
                 </ChartHeader>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0070f3" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#0070f3" stopOpacity={0.1} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey={selectedMetric}
-                      stroke="#0070f3"
-                      fillOpacity={1}
-                      fill="url(#colorMetric)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <VictoryChart height={300} padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[timeRange === '30d' || timeRange === '7d' ? 'day' : 'month']}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea
+                    data={chartData}
+                    x={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'}
+                    y={selectedMetric}
+                    interpolation="monotoneX"
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    style={{ data: { fill: '#50A0F080', stroke: '#50A0F0', strokeWidth: 2 } }}
+                  />
+                </VictoryChart>
               </ChartCard>
 
               <TwoColumnGrid>
@@ -1278,27 +1262,17 @@ const ReportAnalyticsDashboard: React.FC<ReportAnalyticsDashboardProps> = ({
                     <BarChart4 size={18} />
                     Client Distribution
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.clientDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={renderPieChartLabel}
-                      >
-                        {analytics.clientDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <VictoryPie
+                    data={analytics.clientDistribution}
+                    x="name" y="value"
+                    colorScale={COLORS}
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    labels={({ datum }: any) => `${datum.name}: ${datum.value}`}
+                    labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                    innerRadius={40} padAngle={2}
+                    style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                    height={300}
+                  />
                 </ChartCard>
 
                 <ChartCard>
@@ -1306,31 +1280,19 @@ const ReportAnalyticsDashboard: React.FC<ReportAnalyticsDashboardProps> = ({
                     <List size={18} />
                     Report Status
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.reportStatusDistribution}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#0070f3">
-                        {analytics.reportStatusDistribution.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={
-                              entry.name === 'Sent'
-                                ? '#3b82f6'
-                                : entry.name === 'Opened'
-                                ? '#10b981'
-                                : entry.name === 'Error'
-                                ? '#ef4444'
-                                : '#f59e0b'
-                            }
-                          />
-                        ))}
-                        <LabelList dataKey="value" position="top" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <VictoryChart height={300} padding={{ top: 20, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 20 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.value}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryBar
+                      data={analytics.reportStatusDistribution}
+                      x="name" y="value"
+                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      cornerRadius={{ top: 4 }}
+                      style={{ data: { fill: ({ datum }: any) => datum.name === 'Sent' ? '#3b82f6' : datum.name === 'Opened' ? '#10b981' : datum.name === 'Error' ? '#ef4444' : '#f59e0b' } }}
+                    />
+                  </VictoryChart>
                 </ChartCard>
               </TwoColumnGrid>
             </>
@@ -1526,44 +1488,32 @@ const ReportAnalyticsDashboard: React.FC<ReportAnalyticsDashboardProps> = ({
                     <Users size={18} />
                     Recipient Engagement
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'} tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="recipients" stroke="#0070f3" strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="views" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <VictoryChart height={300} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[timeRange === '30d' || timeRange === '7d' ? 'day' : 'month']}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryLine data={chartData} x={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'} y="recipients" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }} />
+                    <VictoryLine data={chartData} x={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'} y="views" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Recipients', symbol: { fill: '#50A0F0' } }, { name: 'Views', symbol: { fill: '#4ECDC4' } }]} />
+                  </VictoryChart>
                 </ChartCard>
                 <ChartCard>
                   <ChartTitle>
                     <Bell size={18} />
                     Delivery Method Breakdown
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={analytics.deliveryMethods}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={renderPieChartLabel}
-                      >
-                        <Cell fill="#0070f3" />
-                        <Cell fill="#f59e0b" />
-                        <Cell fill="#8b5cf6" />
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <VictoryPie
+                    data={analytics.deliveryMethods}
+                    x="name" y="value"
+                    colorScale={['#50A0F0', '#C6A84B', '#8B5CF6']}
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    labels={({ datum }: any) => `${datum.name}: ${datum.value}`}
+                    labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                    innerRadius={40} padAngle={2}
+                    style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                    height={300}
+                  />
                 </ChartCard>
               </TwoColumnGrid>
               <Card style={{ padding: '24px' }}>
@@ -1745,51 +1695,37 @@ const ReportAnalyticsDashboard: React.FC<ReportAnalyticsDashboardProps> = ({
                     <Mail size={18} />
                     Delivery Success Rate
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'} tick={{ fontSize: 12 }} />
-                      <YAxis domain={[70, 100]} tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}%`} />
-                      <Tooltip formatter={(value) => [`${value}%`, 'Success Rate']} />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="reports"
-                        name="Delivery Success Rate"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        data={chartData.map(item => ({
-                          ...item,
-                          reports: 95 + Math.floor(Math.random() * 5)
-                        }))}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <VictoryChart height={300} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domain={{ y: [70, 100] }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[timeRange === '30d' || timeRange === '7d' ? 'day' : 'month']}: ${datum._y}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}%`} style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryLine
+                      data={chartData.map(item => ({ ...item, reports: 95 + Math.floor(Math.random() * 5) }))}
+                      x={timeRange === '30d' || timeRange === '7d' ? 'day' : 'month'}
+                      y="reports"
+                      interpolation="monotoneX"
+                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }}
+                    />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Delivery Success Rate', symbol: { fill: '#4ECDC4' } }]} />
+                  </VictoryChart>
                 </ChartCard>
                 <ChartCard>
                   <ChartTitle>
                     <Zap size={18} />
                     Delivery Methods Performance
                   </ChartTitle>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={[
-                        { name: 'Open Rate', email: 82, sms: 94, both: 97 },
-                        { name: 'Response Time (min)', email: 67, sms: 23, both: 18 },
-                        { name: 'Confirmation Rate', email: 42, sms: 75, both: 86 }
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="email" name="Email" fill="#0070f3" />
-                      <Bar dataKey="sms" name="SMS" fill="#f59e0b" />
-                      <Bar dataKey="both" name="Email & SMS" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <VictoryChart height={300} padding={{ top: 40, bottom: 50, left: 50, right: 20 }} domainPadding={{ x: 20 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryBar data={[{ name: 'Open Rate', email: 82, sms: 94, both: 97 }, { name: 'Response Time (min)', email: 67, sms: 23, both: 18 }, { name: 'Confirmation Rate', email: 42, sms: 75, both: 86 }]} x="name" y="email" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F0', width: 14 } }} />
+                    <VictoryBar data={[{ name: 'Open Rate', email: 82, sms: 94, both: 97 }, { name: 'Response Time (min)', email: 67, sms: 23, both: 18 }, { name: 'Confirmation Rate', email: 42, sms: 75, both: 86 }]} x="name" y="sms" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#C6A84B', width: 14 } }} />
+                    <VictoryBar data={[{ name: 'Open Rate', email: 82, sms: 94, both: 97 }, { name: 'Response Time (min)', email: 67, sms: 23, both: 18 }, { name: 'Confirmation Rate', email: 42, sms: 75, both: 86 }]} x="name" y="both" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF6', width: 14 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Email', symbol: { fill: '#50A0F0' } }, { name: 'SMS', symbol: { fill: '#C6A84B' } }, { name: 'Email & SMS', symbol: { fill: '#8B5CF6' } }]} />
+                  </VictoryChart>
                 </ChartCard>
               </TwoColumnGrid>
               <Card style={{ padding: '24px' }}>

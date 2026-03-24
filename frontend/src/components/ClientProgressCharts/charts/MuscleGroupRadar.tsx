@@ -2,25 +2,24 @@
  * MuscleGroupRadar.tsx
  * =====================
  *
- * RadarChart for muscle group volume distribution
+ * Polar radar chart for muscle group volume distribution
  * Current period in Ice Wing, previous period overlay in Wing Purple
  *
+ * MIGRATED: Recharts RadarChart → Victory polar chart for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryPolarAxis,
+  VictoryLegend,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from 'victory';
 import { MuscleGroupRadarProps } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -34,18 +33,6 @@ const ChartContainer = styled(motion.div)`
   }
 `;
 
-const TooltipContainer = styled.div`
-  background: rgba(0, 32, 96, 0.95);
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8rem;
-`;
-
 const NoDataContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -56,39 +43,36 @@ const NoDataContainer = styled.div`
   text-align: center;
 `;
 
-// ==================== INTERFACES ====================
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  return (
-    <TooltipContainer>
-      <div style={{ color: '#60C0F0', fontWeight: 600, marginBottom: '0.25rem' }}>
-        {label}
-      </div>
-      {payload.map((entry, index) => (
-        <div key={index} style={{ color: entry.color }}>
-          {entry.name}: {entry.value?.toLocaleString()} lbs
-        </div>
-      ))}
-    </TooltipContainer>
-  );
-};
-
 // ==================== MAIN COMPONENT ====================
 
 const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
   const hasPrevious = data?.some(d => d.previousVolume !== undefined);
+
+  // Compute max value for the radial domain
+  const maxVal = useMemo(() => {
+    if (!data || data.length === 0) return 100;
+    const allVals = data.flatMap(d => [d.volume, d.previousVolume ?? 0]);
+    return Math.max(...allVals) * 1.1 || 100;
+  }, [data]);
+
+  // Map data into Victory polar format (index-based x for even angular spacing)
+  const currentData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    return data.map((d, i) => ({
+      x: i,
+      y: d.volume,
+      label: d.muscleGroup,
+    }));
+  }, [data]);
+
+  const previousData = useMemo(() => {
+    if (!data || !hasPrevious) return [];
+    return data.map((d, i) => ({
+      x: i,
+      y: d.previousVolume ?? 0,
+      label: d.muscleGroup,
+    }));
+  }, [data, hasPrevious]);
 
   if (!data || data.length === 0) {
     return (
@@ -116,58 +100,123 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
-            <PolarGrid
-              stroke="rgba(96, 192, 240, 0.1)"
-              gridType="polygon"
+        <VictoryChart
+          polar
+          padding={{ top: 60, right: 60, bottom: 60, left: 60 }}
+          domain={{ y: [0, maxVal] }}
+          animate={{ duration: 800, easing: 'cubicInOut' }}
+          containerComponent={
+            <VictoryVoronoiContainer
+              labels={({ datum }) => {
+                const d = datum as any;
+                return `${d.label}: ${d.y?.toLocaleString()} lbs`;
+              }}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{
+                    fill: '#141419',
+                    stroke: 'rgba(139, 92, 246, 0.3)',
+                    strokeWidth: 1,
+                  }}
+                  style={{
+                    fill: '#E0ECF4',
+                    fontSize: 11,
+                    fontFamily: "'Fira Code', monospace",
+                  }}
+                  cornerRadius={8}
+                  flyoutPadding={{ top: 6, bottom: 6, left: 10, right: 10 }}
+                />
+              }
             />
-            <PolarAngleAxis
-              dataKey="muscleGroup"
-              tick={{
+          }
+        >
+          {/* Angular axis (muscle group labels) */}
+          <VictoryPolarAxis
+            tickValues={data.map((_, i) => i)}
+            tickFormat={data.map(d => d.muscleGroup)}
+            style={{
+              axis: { stroke: 'rgba(96, 192, 240, 0.1)' },
+              tickLabels: {
                 fill: '#E0ECF4',
-                fontSize: 12,
-                fontFamily: "'Fira Code', monospace"
-              }}
-            />
-            <PolarRadiusAxis
-              tick={{
-                fill: '#b8c9db',
-                fontSize: 10,
-                fontFamily: "'Fira Code', monospace"
-              }}
-              axisLine={false}
-              tickCount={5}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            {hasPrevious && (
-              <Radar
-                name="Previous Period"
-                dataKey="previousVolume"
-                stroke="#8B5CF6"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                fill="#8B5CF6"
-                fillOpacity={0.2}
-              />
-            )}
-            <Radar
-              name="Current Period"
-              dataKey="volume"
-              stroke="#60C0F0"
-              strokeWidth={2}
-              fill="#60C0F0"
-              fillOpacity={0.3}
-            />
-            <Legend
-              wrapperStyle={{
-                color: '#b8c9db',
+                fontSize: 11,
                 fontFamily: "'Fira Code', monospace",
-                fontSize: '0.8rem'
+                padding: 15,
+              },
+              grid: {
+                stroke: 'rgba(96, 192, 240, 0.1)',
+                strokeDasharray: '4,4',
+              },
+            }}
+          />
+
+          {/* Radial axis (values) */}
+          <VictoryPolarAxis
+            dependentAxis
+            style={{
+              axis: { stroke: 'none' },
+              tickLabels: {
+                fill: '#b8c9db',
+                fontSize: 9,
+                fontFamily: "'Fira Code', monospace",
+              },
+              grid: {
+                stroke: 'rgba(96, 192, 240, 0.08)',
+                strokeDasharray: '4,4',
+              },
+            }}
+            tickCount={5}
+          />
+
+          {/* Previous period area (behind current) */}
+          {hasPrevious && previousData.length > 0 && (
+            <VictoryArea
+              data={previousData}
+              style={{
+                data: {
+                  fill: '#8B5CF6',
+                  fillOpacity: 0.15,
+                  stroke: '#8B5CF6',
+                  strokeWidth: 2,
+                  strokeDasharray: '5,5',
+                },
               }}
             />
-          </RadarChart>
-        </ResponsiveContainer>
+          )}
+
+          {/* Current period area */}
+          <VictoryArea
+            data={currentData}
+            style={{
+              data: {
+                fill: '#60C0F0',
+                fillOpacity: 0.25,
+                stroke: '#60C0F0',
+                strokeWidth: 2,
+              },
+            }}
+          />
+
+          {/* Legend */}
+          <VictoryLegend
+            x={20}
+            y={5}
+            orientation="horizontal"
+            gutter={16}
+            style={{
+              labels: {
+                fill: '#E0ECF4',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 10,
+              },
+            }}
+            data={[
+              { name: 'Current Period', symbol: { fill: '#60C0F0' } },
+              ...(hasPrevious
+                ? [{ name: 'Previous Period', symbol: { fill: '#8B5CF6' } }]
+                : []),
+            ]}
+          />
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );

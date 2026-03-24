@@ -43,30 +43,16 @@ import {
   MoreVertical
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as RechartsBarChart,
-  Bar,
-  PieChart as RechartsPieChart,
-  Cell,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ScatterChart,
-  Scatter,
-  ComposedChart,
-  ReferenceLine
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryBar,
+  VictoryArea,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+  VictoryPolarAxis,
+} from 'victory';
 
 // Define interfaces
 interface AnalyticsMetric {
@@ -687,70 +673,160 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       )}
 
       <SparklineWrap>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={metric.trend.slice(-7)}>
-            <Line type="monotone" dataKey="value" stroke={chartColors.primary} strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <VictoryChart
+          height={60}
+          padding={{ top: 5, bottom: 5, left: 5, right: 5 }}
+        >
+          <VictoryAxis style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'none' } }} />
+          <VictoryAxis dependentAxis style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'none' } }} />
+          <VictoryLine
+            data={metric.trend.slice(-7)}
+            x="period"
+            y="value"
+            interpolation="monotoneX"
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{ data: { stroke: chartColors.primary, strokeWidth: 2 } }}
+          />
+        </VictoryChart>
       </SparklineWrap>
     </MetricCard>
   );
+
+  // Workout analysis chart data (memoized to avoid re-generating on each render)
+  const workoutAnalysisData = React.useMemo(() => Array.from({ length: 12 }, (_, i) => ({
+    month: `Month ${i + 1}`,
+    workouts: Math.floor(Math.random() * 30) + 10,
+    duration: Math.floor(Math.random() * 60) + 30,
+    intensity: Math.floor(Math.random() * 40) + 60
+  })), []);
 
   // Render workout analysis chart
   const renderWorkoutAnalysisChart = () => (
     <GlassCard>
       <CardTitle style={{ marginBottom: 24 }}>Workout Analysis</CardTitle>
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={Array.from({ length: 12 }, (_, i) => ({
-            month: `Month ${i + 1}`,
-            workouts: Math.floor(Math.random() * 30) + 10,
-            duration: Math.floor(Math.random() * 60) + 30,
-            intensity: Math.floor(Math.random() * 40) + 60
-          }))}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-            <XAxis dataKey="month" stroke="#999" />
-            <YAxis yAxisId="left" stroke="#999" />
-            <YAxis yAxisId="right" orientation="right" stroke="#999" />
-            <RechartsTooltip
-              contentStyle={{
-                backgroundColor: '#252742',
-                border: '1px solid rgba(139, 92, 246,0.3)',
-                borderRadius: 8
-              }}
+        <VictoryChart
+          height={400}
+          padding={{ top: 40, bottom: 50, left: 50, right: 50 }}
+          domainPadding={{ x: 20 }}
+          containerComponent={
+            <VictoryVoronoiContainer
+              labels={({ datum }: any) => `${datum.month}\nWorkouts: ${datum.workouts}\nIntensity: ${datum.intensity}`}
+              labelComponent={
+                <VictoryTooltip
+                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                />
+              }
             />
-            <Legend />
-            <Bar yAxisId="left" dataKey="workouts" fill={chartColors.primary} />
-            <Line yAxisId="right" type="monotone" dataKey="intensity" stroke={chartColors.secondary} strokeWidth={3} />
-          </ComposedChart>
-        </ResponsiveContainer>
+          }
+        >
+          <VictoryAxis
+            style={{
+              axis: { stroke: '#E0ECF4' },
+              tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace", angle: -45, textAnchor: 'end' },
+              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+            }}
+          />
+          <VictoryAxis
+            dependentAxis
+            style={{
+              axis: { stroke: '#E0ECF4' },
+              tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" },
+              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+            }}
+          />
+          <VictoryBar
+            data={workoutAnalysisData}
+            x="month"
+            y="workouts"
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{ data: { fill: chartColors.primary, opacity: 0.8 } }}
+          />
+          <VictoryLine
+            data={workoutAnalysisData}
+            x="month"
+            y="intensity"
+            interpolation="monotoneX"
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{ data: { stroke: chartColors.secondary, strokeWidth: 3 } }}
+          />
+          <VictoryLegend
+            x={60}
+            y={5}
+            orientation="horizontal"
+            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }}
+            data={[
+              { name: 'Workouts', symbol: { fill: chartColors.primary } },
+              { name: 'Intensity', symbol: { fill: chartColors.secondary, type: 'minus' } },
+            ]}
+          />
+        </VictoryChart>
       </ChartContainer>
     </GlassCard>
   );
+
+  // Body composition radar data
+  const bodyCompositionData = React.useMemo(() => [
+    { metric: 'Muscle Mass', current: 85, target: 90 },
+    { metric: 'Body Fat %', current: 88, target: 92 },
+    { metric: 'Hydration', current: 92, target: 95 },
+    { metric: 'Bone Density', current: 78, target: 85 },
+    { metric: 'Metabolic Rate', current: 89, target: 95 },
+    { metric: 'Recovery', current: 83, target: 90 },
+  ], []);
 
   // Render body composition radar chart
   const renderBodyCompositionChart = () => (
     <GlassCard>
       <CardTitle style={{ marginBottom: 24 }}>Body Composition Analysis</CardTitle>
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={[
-            { metric: 'Muscle Mass', current: 85, target: 90, fullMark: 100 },
-            { metric: 'Body Fat %', current: 88, target: 92, fullMark: 100 },
-            { metric: 'Hydration', current: 92, target: 95, fullMark: 100 },
-            { metric: 'Bone Density', current: 78, target: 85, fullMark: 100 },
-            { metric: 'Metabolic Rate', current: 89, target: 95, fullMark: 100 },
-            { metric: 'Recovery', current: 83, target: 90, fullMark: 100 }
-          ]}>
-            <PolarGrid stroke="rgba(255,255,255,0.1)" />
-            <PolarAngleAxis dataKey="metric" tick={{ fill: '#e2e8f0', fontSize: 12 }} />
-            <PolarRadiusAxis stroke="rgba(255,255,255,0.2)" tick={false} />
-            <Radar name="Current" dataKey="current" stroke={chartColors.primary}
-              fill={`${chartColors.primary}40`} strokeWidth={2} />
-            <Radar name="Target" dataKey="target" stroke={chartColors.success}
-              strokeDasharray="5 5" strokeWidth={2} fill="transparent" />
-          </RadarChart>
-        </ResponsiveContainer>
+        <VictoryChart
+          polar
+          height={400}
+          domain={{ y: [0, 100] }}
+        >
+          <VictoryPolarAxis
+            tickValues={bodyCompositionData.map((_, i) => i)}
+            tickFormat={bodyCompositionData.map(d => d.metric)}
+            style={{
+              axis: { stroke: 'rgba(255,255,255,0.1)' },
+              tickLabels: { fill: '#e2e8f0', fontSize: 11, fontFamily: "'Fira Code', monospace", padding: 15 },
+              grid: { stroke: 'rgba(255,255,255,0.1)' },
+            }}
+          />
+          <VictoryPolarAxis
+            dependentAxis
+            style={{
+              axis: { stroke: 'none' },
+              tickLabels: { fill: 'none' },
+              grid: { stroke: 'rgba(255,255,255,0.1)' },
+            }}
+          />
+          <VictoryArea
+            data={bodyCompositionData.map((d, i) => ({ x: i, y: d.current }))}
+            animate={{ duration: 800, easing: 'cubicInOut' }}
+            style={{
+              data: { fill: `${chartColors.primary}40`, stroke: chartColors.primary, strokeWidth: 2 },
+            }}
+          />
+          <VictoryArea
+            data={bodyCompositionData.map((d, i) => ({ x: i, y: d.target }))}
+            style={{
+              data: { fill: 'transparent', stroke: chartColors.success, strokeWidth: 2, strokeDasharray: '5,5' },
+            }}
+          />
+          <VictoryLegend
+            x={120}
+            y={10}
+            orientation="horizontal"
+            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }}
+            data={[
+              { name: 'Current', symbol: { fill: chartColors.primary } },
+              { name: 'Target', symbol: { fill: chartColors.success } },
+            ]}
+          />
+        </VictoryChart>
       </ChartContainer>
     </GlassCard>
   );

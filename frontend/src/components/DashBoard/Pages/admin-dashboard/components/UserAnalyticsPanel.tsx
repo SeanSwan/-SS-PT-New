@@ -32,25 +32,15 @@ import {
   Download, RefreshCw, Filter, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import {
-  LineChart as ReLineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart,
-  ScatterChart,
-  Scatter
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryLine,
+  VictoryAxis,
+  VictoryPie,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+} from 'victory';
 
 // =====================================================
 // STYLED COMPONENTS - USER INTELLIGENCE DESIGN
@@ -799,49 +789,60 @@ const UserAnalyticsPanel: React.FC = () => {
               <LineChart size={20} />
               User Activity Trend (30 Days)
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <ComposedChart data={userAnalytics.userActivity}>
-                <defs>
-                  <linearGradient id="userGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
-                  tickFormatter={(value) => new Date(value).getDate().toString()}
+            <VictoryChart
+              height={350}
+              padding={{ top: 20, bottom: 50, left: 60, right: 30 }}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              containerComponent={
+                <VictoryVoronoiContainer
+                  labels={({ datum }) => `Day ${new Date(datum.date).getDate()}\nActive: ${datum.activeUsers}\nNew: ${datum.newUsers}`}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                      style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                      cornerRadius={8}
+                    />
+                  }
                 />
-                <YAxis 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(16, 185, 129, 0.9)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="activeUsers" 
-                  fill="url(#userGradient)"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="newUsers" 
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 3 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+              }
+            >
+              <VictoryAxis
+                tickFormat={(t: string) => new Date(t).getDate().toString()}
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryAxis
+                dependentAxis
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryArea
+                data={userAnalytics.userActivity}
+                x="date"
+                y="activeUsers"
+                style={{
+                  data: {
+                    fill: 'rgba(78, 205, 196, 0.15)',
+                    stroke: '#4ECDC4',
+                    strokeWidth: 3,
+                  },
+                }}
+              />
+              <VictoryLine
+                data={userAnalytics.userActivity}
+                x="date"
+                y="newUsers"
+                style={{
+                  data: { stroke: '#8B5CF6', strokeWidth: 2 },
+                }}
+              />
+            </VictoryChart>
           </ChartCard>
 
           {/* Device Breakdown */}
@@ -854,42 +855,37 @@ const UserAnalyticsPanel: React.FC = () => {
               <PieChart size={20} />
               Device Usage
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <RePieChart>
-                <Pie
-                  data={userAnalytics.deviceBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="users"
-                  nameKey="name"
-                >
-                  {userAnalytics.deviceBreakdown.map((entry: any, index: number) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={deviceColors[index % deviceColors.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(16, 185, 129, 0.9)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                  formatter={(value: any) => [value.toLocaleString(), 'Users']}
+            <VictoryPie
+              data={userAnalytics.deviceBreakdown}
+              x="name"
+              y="users"
+              innerRadius={60}
+              padAngle={3}
+              colorScale={deviceColors}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              height={280}
+              labels={({ datum }) => `${datum.name}: ${datum.users.toLocaleString()}`}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                  cornerRadius={8}
                 />
-                <Legend 
-                  wrapperStyle={{
-                    fontSize: '12px',
-                    color: 'rgba(255, 255, 255, 0.7)'
-                  }}
-                />
-              </RePieChart>
-            </ResponsiveContainer>
+              }
+              style={{
+                labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+              }}
+            />
+            <VictoryLegend
+              orientation="horizontal"
+              gutter={16}
+              height={60}
+              style={{
+                labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" },
+              }}
+              colorScale={deviceColors}
+              data={userAnalytics.deviceBreakdown.map((d: any) => ({ name: d.name }))}
+            />
           </ChartCard>
         </ChartsGrid>
       )}

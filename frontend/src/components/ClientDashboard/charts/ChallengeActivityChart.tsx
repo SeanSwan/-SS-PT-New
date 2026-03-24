@@ -1,23 +1,20 @@
 /**
  * ChallengeActivityChart.tsx
  * =========================
- * Animated Recharts BarChart showing challenge completion status.
+ * Victory BarChart showing challenge completion status.
  * Data source: useUserChallenges hook → /api/v1/gamification/users/:userId/challenges
- * Cyan bars with purple hover, 1200ms animated entry.
+ * Cyan bars with purple hover, 800ms animated entry.
  */
 
 import React from 'react';
 import styled from 'styled-components';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+  VictoryChart,
+  VictoryBar,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from 'victory';
 import type { UserChallenge } from '../../../hooks/useUserChallenges';
 
 interface ChallengeActivityChartProps {
@@ -49,41 +46,6 @@ const EmptyState = styled.div`
   font-size: 0.9rem;
 `;
 
-const CustomTooltipWrapper = styled.div`
-  background: rgba(0, 32, 96, 0.95);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  color: #fff;
-  font-size: 0.85rem;
-
-  .tooltip-label {
-    color: #60C0F0;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-
-  .tooltip-value {
-    color: rgba(255, 255, 255, 0.8);
-  }
-`;
-
-const CustomTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const data = payload[0].payload;
-  return (
-    <CustomTooltipWrapper>
-      <div className="tooltip-label">{data.fullTitle}</div>
-      <div className="tooltip-value">
-        Status: {data.completed ? 'Completed' : 'In Progress'}
-      </div>
-      {data.difficulty && (
-        <div className="tooltip-value">Difficulty: {data.difficulty}</div>
-      )}
-    </CustomTooltipWrapper>
-  );
-};
-
 const ChallengeActivityChart: React.FC<ChallengeActivityChartProps> = ({ challenges }) => {
   if (!challenges || challenges.length === 0) {
     return (
@@ -95,49 +57,87 @@ const ChallengeActivityChart: React.FC<ChallengeActivityChartProps> = ({ challen
   }
 
   const chartData = challenges.slice(0, 8).map((uc, index) => ({
-    name: uc.challenge?.title?.slice(0, 12) || `Challenge ${index + 1}`,
+    x: uc.challenge?.title?.slice(0, 12) || `Challenge ${index + 1}`,
+    y: uc.isCompleted ? 100 : 50,
     fullTitle: uc.challenge?.title || `Challenge ${index + 1}`,
-    value: uc.isCompleted ? 100 : 50,
     completed: uc.isCompleted,
-    difficulty: uc.challenge?.difficulty
+    difficulty: uc.challenge?.difficulty,
   }));
 
   return (
     <ChartWrapper>
       <ChartTitle>Challenge Activity</ChartTitle>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-          <XAxis
-            dataKey="name"
-            tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[0, 100]}
-            tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.15)' }}
-            tickLine={false}
-            tickFormatter={(v) => `${v}%`}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar
-            dataKey="value"
-            radius={[6, 6, 0, 0]}
-            animationDuration={1200}
-            animationEasing="ease-out"
-          >
-            {chartData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.completed ? '#60C0F0' : '#50A0F0'}
-                opacity={entry.completed ? 0.9 : 0.7}
+      <VictoryChart
+        height={220}
+        padding={{ top: 10, right: 30, left: 50, bottom: 40 }}
+        domainPadding={{ x: 25 }}
+        domain={{ y: [0, 100] }}
+        containerComponent={
+          <VictoryVoronoiContainer
+            labels={({ datum }) =>
+              `${datum.fullTitle}\nStatus: ${datum.completed ? 'Completed' : 'In Progress'}${datum.difficulty ? `\nDifficulty: ${datum.difficulty}` : ''}`
+            }
+            labelComponent={
+              <VictoryTooltip
+                flyoutStyle={{
+                  fill: '#141419',
+                  stroke: 'rgba(139, 92, 246, 0.3)',
+                  strokeWidth: 1,
+                }}
+                style={{
+                  fill: '#E0ECF4',
+                  fontSize: 10,
+                  fontFamily: "'Fira Code', monospace",
+                }}
+                cornerRadius={8}
+                flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
               />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+            }
+          />
+        }
+      >
+        <VictoryAxis
+          style={{
+            axis: { stroke: 'rgba(255,255,255,0.15)' },
+            tickLabels: {
+              fill: '#E0ECF4',
+              fontSize: 11,
+              fontFamily: "'Fira Code', monospace",
+            },
+            grid: {
+              stroke: 'rgba(96, 192, 240, 0.08)',
+              strokeDasharray: '4,4',
+            },
+          }}
+        />
+        <VictoryAxis
+          dependentAxis
+          tickFormat={(v: number) => `${v}%`}
+          style={{
+            axis: { stroke: 'rgba(255,255,255,0.15)' },
+            tickLabels: {
+              fill: '#E0ECF4',
+              fontSize: 11,
+              fontFamily: "'Fira Code', monospace",
+            },
+            grid: {
+              stroke: 'rgba(96, 192, 240, 0.08)',
+              strokeDasharray: '4,4',
+            },
+          }}
+        />
+        <VictoryBar
+          data={chartData}
+          cornerRadius={{ top: 6 }}
+          animate={{ duration: 800, easing: 'cubicInOut' }}
+          style={{
+            data: {
+              fill: ({ datum }) => datum.completed ? '#50A0F0' : '#4070C0',
+              opacity: ({ datum }) => datum.completed ? 0.9 : 0.7,
+            },
+          }}
+        />
+      </VictoryChart>
     </ChartWrapper>
   );
 };

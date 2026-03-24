@@ -46,26 +46,11 @@ import {
   Activity
 } from 'lucide-react';
 import ClientProgressCharts from '../../../../ClientProgressCharts/ClientProgressCharts';
+// Victory chart components (migrated from Recharts)
 import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  RadialBarChart,
-  RadialBar,
-  Cell,
-  PieChart,
-  Pie,
-  ScatterChart,
-  Scatter
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+} from 'victory';
 
 // ─── Theme tokens ────────────────────────────────────────────────
 const theme = {
@@ -953,30 +938,17 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         <DarkCard>
           <Heading6>Assessment Scores Over Time</Heading6>
           <ChartBox>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={Array.from({ length: 6 }, (_, i) => ({
-                month: `Month ${i + 1}`,
-                overall: 6 + (i * 0.4) + Math.random() * 0.5,
-                strength: 6.5 + (i * 0.3) + Math.random() * 0.4,
-                endurance: 5.8 + (i * 0.5) + Math.random() * 0.3,
-                flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis dataKey="month" stroke="#999" />
-                <YAxis domain={[5, 10]} stroke="#999" />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: '#252742',
-                    border: '1px solid rgba(139, 92, 246, 0.3)',
-                    borderRadius: 8
-                  }}
-                />
-                <Line type="monotone" dataKey="overall" stroke="#60C0F0" strokeWidth={3} />
-                <Line type="monotone" dataKey="strength" stroke="#ff6b6b" strokeWidth={2} />
-                <Line type="monotone" dataKey="endurance" stroke="#4ecdc4" strokeWidth={2} />
-                <Line type="monotone" dataKey="flexibility" stroke="#ffe066" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            <VictoryChart height={250} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domain={{ y: [5, 10] }}
+              containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.month}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+            >
+              <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="overall" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#60C0F0', strokeWidth: 3 } }} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="strength" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#ff6b6b', strokeWidth: 2 } }} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="endurance" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="flexibility" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#C6A84B', strokeWidth: 2 } }} />
+              <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Overall', symbol: { fill: '#60C0F0' } }, { name: 'Strength', symbol: { fill: '#ff6b6b' } }, { name: 'Endurance', symbol: { fill: '#4ECDC4' } }, { name: 'Flexibility', symbol: { fill: '#C6A84B' } }]} />
+            </VictoryChart>
           </ChartBox>
         </DarkCard>
 
@@ -1029,28 +1001,16 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         <DarkCard>
           <Heading6>Measurement Trends</Heading6>
           <ChartBox>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={Array.from({ length: 12 }, (_, i) => ({
-                week: `Week ${i + 1}`,
-                weight: 82 - (i * 0.3) + Math.random() * 0.5,
-                bodyFat: 16 - (i * 0.2) + Math.random() * 0.3,
-                muscleMass: 68 + (i * 0.3) + Math.random() * 0.2
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis dataKey="week" stroke="#999" />
-                <YAxis stroke="#999" />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: '#252742',
-                    border: '1px solid rgba(139, 92, 246, 0.3)',
-                    borderRadius: 8
-                  }}
-                />
-                <Line type="monotone" dataKey="weight" stroke="#60C0F0" strokeWidth={3} name="Weight (kg)" />
-                <Line type="monotone" dataKey="bodyFat" stroke="#ff6b6b" strokeWidth={2} name="Body Fat (%)" />
-                <Line type="monotone" dataKey="muscleMass" stroke="#4ecdc4" strokeWidth={2} name="Muscle Mass (kg)" />
-              </LineChart>
-            </ResponsiveContainer>
+            <VictoryChart height={250} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+              containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.week}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+            >
+              <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="weight" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#60C0F0', strokeWidth: 3 } }} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="bodyFat" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#ff6b6b', strokeWidth: 2 } }} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="muscleMass" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
+              <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Weight (kg)', symbol: { fill: '#60C0F0' } }, { name: 'Body Fat (%)', symbol: { fill: '#ff6b6b' } }, { name: 'Muscle Mass (kg)', symbol: { fill: '#4ECDC4' } }]} />
+            </VictoryChart>
           </ChartBox>
         </DarkCard>
 

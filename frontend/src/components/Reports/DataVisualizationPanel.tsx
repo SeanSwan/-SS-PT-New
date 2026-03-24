@@ -9,27 +9,19 @@ import { ThemeSettings, MetricsData } from '../../types/reports';
 // Import the background texture
 import marbleTexture from '../../assets/marble-texture.png'; // Adjust path if needed
 
-// Import recharts components directly
+// Victory chart components (migrated from Recharts)
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  LabelList,
-  AreaChart,
-  Area,
-  // Import types for custom label props if available, otherwise use 'any' or define manually
-  // LabelProps (example name, check recharts actual type)
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryBar,
+  VictoryPie,
+  VictoryArea,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+  VictoryLabel,
+} from 'victory';
 import { logger } from '@/utils/logger';
 
 // --- Type definitions ---
@@ -852,102 +844,105 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
   }, [transformedData, dateRange]);
 
 
+  // ── Victory shared styles ────────────────────────────────────
+  const victoryAxisStyle = {
+    axis: { stroke: '#E0ECF4' },
+    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+  };
+  const victoryTooltipProps = {
+    style: { fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 } as any,
+    flyoutStyle: { fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' },
+  };
+  const victoryLegendStyle = { labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } };
+
+  // Helper to render a Victory bar+line chart for daily data with two dataKeys
+  const renderVictoryDualBarChart = (data: any[], xKey: string, key1: string, key2: string, name1: string, name2: string, color1: string, color2: string) => (
+    <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 50, right: 20 }} domainPadding={{ x: 15 }}
+      containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[xKey]}: ${datum._y}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+    >
+      <VictoryAxis style={victoryAxisStyle} />
+      <VictoryAxis dependentAxis style={victoryAxisStyle} />
+      <VictoryBar data={data} x={xKey} y={key1} animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: color1, width: 14 } }} />
+      <VictoryBar data={data} x={xKey} y={key2} animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: color2, width: 14 } }} />
+      <VictoryLegend x={60} y={5} orientation="horizontal" style={victoryLegendStyle} data={[{ name: name1, symbol: { fill: color1 } }, { name: name2, symbol: { fill: color2 } }]} />
+    </VictoryChart>
+  );
+
+  const renderVictoryDualLineChart = (data: any[], xKey: string, key1: string, key2: string, name1: string, name2: string, color1: string, color2: string) => (
+    <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+      containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[xKey]}: ${datum._y}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+    >
+      <VictoryAxis style={victoryAxisStyle} />
+      <VictoryAxis dependentAxis style={victoryAxisStyle} />
+      <VictoryLine data={data} x={xKey} y={key1} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: color1, strokeWidth: 2 } }} />
+      <VictoryLine data={data} x={xKey} y={key2} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: color2, strokeWidth: 2 } }} />
+      <VictoryLegend x={60} y={5} orientation="horizontal" style={victoryLegendStyle} data={[{ name: name1, symbol: { fill: color1 } }, { name: name2, symbol: { fill: color2 } }]} />
+    </VictoryChart>
+  );
+
+  const renderVictoryDualAreaChart = (data: any[], xKey: string, key1: string, key2: string, name1: string, name2: string, color1: string, color2: string) => (
+    <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+      containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[xKey]}: ${datum._y}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+    >
+      <VictoryAxis style={victoryAxisStyle} />
+      <VictoryAxis dependentAxis style={victoryAxisStyle} />
+      <VictoryArea data={data} x={xKey} y={key1} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${color1}B3`, stroke: color1, strokeWidth: 2 } }} />
+      <VictoryArea data={data} x={xKey} y={key2} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${color2}80`, stroke: color2, strokeWidth: 2 } }} />
+      <VictoryLegend x={60} y={5} orientation="horizontal" style={victoryLegendStyle} data={[{ name: name1, symbol: { fill: color1 } }, { name: name2, symbol: { fill: color2 } }]} />
+    </VictoryChart>
+  );
+
+  const renderVictoryPieChart = (data: { name: string; value: number }[], colorScale: string[]) => (
+    <VictoryPie
+      data={data}
+      x="name"
+      y="value"
+      colorScale={colorScale}
+      animate={{ duration: 800, easing: 'cubicInOut' }}
+      labels={({ datum }: any) => datum.value > 0 ? `${datum.name}: ${datum.value}` : ''}
+      labelComponent={<VictoryTooltip {...victoryTooltipProps} />}
+      innerRadius={40}
+      padAngle={2}
+      style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+    />
+  );
+
+  const renderVictorySingleChart = (data: any[], xKey: string, yKey: string, name: string, color: string, type: 'line' | 'bar' | 'area') => (
+    <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 50, right: 20 }} domainPadding={type === 'bar' ? { x: 15 } : undefined}
+      containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum[xKey]}: ${datum._y}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+    >
+      <VictoryAxis style={victoryAxisStyle} />
+      <VictoryAxis dependentAxis style={victoryAxisStyle} />
+      {type === 'line' && <VictoryLine data={data} x={xKey} y={yKey} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: color, strokeWidth: 3 } }} />}
+      {type === 'bar' && <VictoryBar data={data} x={xKey} y={yKey} animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: color } }} />}
+      {type === 'area' && <VictoryArea data={data} x={xKey} y={yKey} interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${color}80`, stroke: color, strokeWidth: 2 } }} />}
+      <VictoryLegend x={60} y={5} orientation="horizontal" style={victoryLegendStyle} data={[{ name, symbol: { fill: color } }]} />
+    </VictoryChart>
+  );
+
   // --- Chart Rendering Logic ---
   const renderChart = useCallback(() => {
-    const commonProps = { width: "100%" as const, height: 400 }; // Use "as const" for type stability
-
-    const tooltipStyle: any = { // Use 'any' for simplicity or define a specific Tooltip style type
-      contentStyle: { backgroundColor: '#333', border: '1px solid #555', color: '#d4af37', borderRadius: '4px', padding: '8px 12px' },
-      labelStyle: { color: '#fff', marginBottom: '5px' },
-      itemStyle: { color: '#eee' },
-      cursor: { fill: 'rgba(212, 175, 55, 0.15)' } // Slightly less opaque cursor
-    };
-
-    const legendStyle = { color: '#aaa', marginTop: '10px' }; // Add margin
-
     try {
       // --- Overview Tab ---
       if (activeTab === 'overview') {
         switch (chartType) {
           case 'bar':
-            return (
-              <ResponsiveContainer {...commonProps}>
-                <BarChart data={transformedData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="day" stroke="#aaa" />
-                  <YAxis stroke="#aaa" />
-                  <Tooltip {...tooltipStyle} />
-                  <Legend wrapperStyle={legendStyle} />
-                  <Bar dataKey="humanIntrusions" name="Human Intrusions" fill={CHART_COLORS.human}>
-                    {/* USE CUSTOM LABEL */}
-                    <LabelList dataKey="humanIntrusions" content={<CustomBarLabel />} />
-                  </Bar>
-                  <Bar dataKey="vehicleIntrusions" name="Vehicle Intrusions" fill={CHART_COLORS.vehicle}>
-                     {/* USE CUSTOM LABEL */}
-                    <LabelList dataKey="vehicleIntrusions" content={<CustomBarLabel />} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            );
+            return renderVictoryDualBarChart(transformedData.dailyData, 'day', 'humanIntrusions', 'vehicleIntrusions', 'Human Intrusions', 'Vehicle Intrusions', CHART_COLORS.human, CHART_COLORS.vehicle);
           case 'line':
-             return (
-              <ResponsiveContainer {...commonProps}>
-                <LineChart data={transformedData.dailyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="day" stroke="#aaa" />
-                  <YAxis stroke="#aaa" />
-                  <Tooltip {...tooltipStyle} />
-                  <Legend wrapperStyle={legendStyle} />
-                  <Line type="monotone" dataKey="humanIntrusions" name="Human Intrusions" stroke={CHART_COLORS.human} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 7 }} />
-                  <Line type="monotone" dataKey="vehicleIntrusions" name="Vehicle Intrusions" stroke={CHART_COLORS.vehicle} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 7 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            );
+            return renderVictoryDualLineChart(transformedData.dailyData, 'day', 'humanIntrusions', 'vehicleIntrusions', 'Human Intrusions', 'Vehicle Intrusions', CHART_COLORS.human, CHART_COLORS.vehicle);
           case 'pie':
-            if (!transformedData.weeklySummary?.length) { // Check length after filtering zero values
+            if (!transformedData.weeklySummary?.length) {
               return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Pie chart.</div>;
             }
-            return (
-              <ResponsiveContainer {...commonProps}>
-                <PieChart>
-                  <Pie
-                    data={transformedData.weeklySummary}
-                    cx="50%" cy="50%"
-                    labelLine={true}
-                    outerRadius={150}
-                    dataKey="value" nameKey="name"
-                    label={formatPieLabelWithValue} // Use formatter
-                  >
-                    {transformedData.weeklySummary.map((entry) => (
-                      <Cell key={`cell-${entry.name}`} fill={entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle.contentStyle} />
-                  <Legend wrapperStyle={legendStyle} />
-                </PieChart>
-              </ResponsiveContainer>
-            );
+            return renderVictoryPieChart(transformedData.weeklySummary, [CHART_COLORS.human, CHART_COLORS.vehicle]);
           case 'area':
-              return (
-                <ResponsiveContainer {...commonProps}>
-                  <AreaChart data={transformedData.dailyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                    <XAxis dataKey="day" stroke="#aaa" />
-                    <YAxis stroke="#aaa" />
-                    <Tooltip {...tooltipStyle} />
-                    <Legend wrapperStyle={legendStyle} />
-                    <Area type="monotone" dataKey="humanIntrusions" name="Human Intrusions" stackId="1" stroke={CHART_COLORS.human} fill={`${CHART_COLORS.human}B3`} />
-                    <Area type="monotone" dataKey="vehicleIntrusions" name="Vehicle Intrusions" stackId="1" stroke={CHART_COLORS.vehicle} fill={`${CHART_COLORS.vehicle}80`} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              );
-          // ... (heatmap and calendar cases remain the same)
+            return renderVictoryDualAreaChart(transformedData.dailyData, 'day', 'humanIntrusions', 'vehicleIntrusions', 'Human Intrusions', 'Vehicle Intrusions', CHART_COLORS.human, CHART_COLORS.vehicle);
           case 'heatmap':
             return <HeatMap data={transformedData.heatmapData} title="Activity Heatmap by Day and Time" description="Intrusion activity breakdown by day of week and time of day" xAxis="name" dataKeys={['morning', 'day', 'evening']} colors={['#2a2a2a', '#403214', '#624b1d', '#856627', '#a88030', '#cab03a', '#d4af37']} />;
           case 'calendar':
             if (!transformedData.calendarData?.length) return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Calendar Heatmap.</div>;
             return <CalendarHeatMap data={transformedData.calendarData} title="Activity Calendar" description="Average intrusions by date" startDate={dateRange.start} endDate={dateRange.end} colorScale={['#2a2a2a', '#403214', '#624b1d', '#856627', '#a88030', '#cab03a', '#d4af37']} />;
-
           default:
             return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>Select a chart type for Overview.</div>;
         }
@@ -957,29 +952,11 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
       else if (activeTab === 'intrusions') {
          switch (chartType) {
           case 'bar':
-            return (
-              <ResponsiveContainer {...commonProps}>
-                <BarChart data={transformedData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis dataKey="day" stroke="#aaa" />
-                  <YAxis stroke="#aaa" />
-                  <Tooltip {...tooltipStyle} />
-                  <Legend wrapperStyle={legendStyle} />
-                  <Bar dataKey="humanIntrusions" name="Human Intrusions" fill={CHART_COLORS.human} radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="humanIntrusions" content={<CustomBarLabel />} />
-                  </Bar>
-                  <Bar dataKey="vehicleIntrusions" name="Vehicle Intrusions" fill={CHART_COLORS.vehicle} radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="vehicleIntrusions" content={<CustomBarLabel />} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            );
+            return renderVictoryDualBarChart(transformedData.dailyData, 'day', 'humanIntrusions', 'vehicleIntrusions', 'Human Intrusions', 'Vehicle Intrusions', CHART_COLORS.human, CHART_COLORS.vehicle);
            case 'pie': {
-            // Filter data with positive values for individual pies
             const humanPieData = transformedData.dailyData.filter(d => d.humanIntrusions > 0);
             const vehiclePieData = transformedData.dailyData.filter(d => d.vehicleIntrusions > 0);
-            const weeklyPieData = transformedData.weeklySummary; // Already filtered
-
+            const weeklyPieData = transformedData.weeklySummary;
             const hasHumanData = humanPieData.length > 0;
             const hasVehicleData = vehiclePieData.length > 0;
             const hasWeeklyData = weeklyPieData.length > 0;
@@ -988,10 +965,12 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
                return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data available for Pie charts.</div>;
              }
 
-            // Define colors dynamically based on filtered data
             const humanColors = humanPieData.map((_, index) => `hsl(45, 75%, ${30 + index * (60 / Math.max(1, humanPieData.length))}%)`);
             const vehicleColors = vehiclePieData.map((_, index) => `hsl(0, 0%, ${50 + index * (40 / Math.max(1, vehiclePieData.length))}%)`);
 
+            // Transform daily data into Victory-compatible pie data
+            const humanVictoryPieData = humanPieData.map(d => ({ name: d.day, value: d.humanIntrusions }));
+            const vehicleVictoryPieData = vehiclePieData.map(d => ({ name: d.day, value: d.vehicleIntrusions }));
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
@@ -999,28 +978,34 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
                   {hasHumanData ? (
                     <div style={{ width: '45%', minWidth: '280px' }}>
                       <h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Human Intrusions by Day</h4>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <PieChart>
-                          <Pie data={humanPieData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="humanIntrusions" nameKey="day" label={formatPieLabel}>
-                            {humanPieData.map((_entry, index) => ( <Cell key={`cell-human-${index}`} fill={humanColors[index % humanColors.length]} /> ))}
-                          </Pie>
-                          <Tooltip contentStyle={tooltipStyle.contentStyle} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      <VictoryPie
+                        data={humanVictoryPieData}
+                        x="name" y="value"
+                        colorScale={humanColors}
+                        animate={{ duration: 800, easing: 'cubicInOut' }}
+                        labels={({ datum }: any) => datum.value > 0 ? `${datum.name}: ${datum.value}` : ''}
+                        labelComponent={<VictoryTooltip {...victoryTooltipProps} />}
+                        innerRadius={30} padAngle={2}
+                        style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                        height={250} width={300}
+                      />
                     </div>
                   ) : <div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No Human data.</div>}
 
                   {hasVehicleData ? (
                     <div style={{ width: '45%', minWidth: '280px' }}>
                       <h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Vehicle Intrusions by Day</h4>
-                      <ResponsiveContainer width="100%" height={250}>
-                        <PieChart>
-                          <Pie data={vehiclePieData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="vehicleIntrusions" nameKey="day" label={formatPieLabel}>
-                             {vehiclePieData.map((_entry, index) => ( <Cell key={`cell-vehicle-${index}`} fill={vehicleColors[index % vehicleColors.length]} /> ))}
-                          </Pie>
-                          <Tooltip contentStyle={tooltipStyle.contentStyle} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      <VictoryPie
+                        data={vehicleVictoryPieData}
+                        x="name" y="value"
+                        colorScale={vehicleColors}
+                        animate={{ duration: 800, easing: 'cubicInOut' }}
+                        labels={({ datum }: any) => datum.value > 0 ? `${datum.name}: ${datum.value}` : ''}
+                        labelComponent={<VictoryTooltip {...victoryTooltipProps} />}
+                        innerRadius={30} padAngle={2}
+                        style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                        height={250} width={300}
+                      />
                     </div>
                   ) : <div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No Vehicle data.</div>}
                 </div>
@@ -1028,15 +1013,17 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
                 {hasWeeklyData ? (
                   <div style={{ width: '60%', minWidth: '280px' }}>
                     <h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Total Intrusion Distribution</h4>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie data={weeklyPieData} cx="50%" cy="50%" labelLine={true} outerRadius={100} dataKey="value" nameKey="name" label={formatPieLabelWithValue}>
-                           {weeklyPieData.map((entry) => ( <Cell key={`dist-${entry.name}`} fill={entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle} /> ))}
-                        </Pie>
-                        <Tooltip contentStyle={tooltipStyle.contentStyle} />
-                        <Legend wrapperStyle={legendStyle} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <VictoryPie
+                      data={weeklyPieData}
+                      x="name" y="value"
+                      colorScale={weeklyPieData.map((entry) => entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle)}
+                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      labels={({ datum }: any) => datum.value > 0 ? `${datum.name}: ${datum.value}` : ''}
+                      labelComponent={<VictoryTooltip {...victoryTooltipProps} />}
+                      innerRadius={40} padAngle={2}
+                      style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                      height={280} width={400}
+                    />
                   </div>
                 ) : <div style={{ color: '#aaa', width: '60%', minWidth: '280px', textAlign: 'center', marginTop: '20px' }}>No Total data.</div>}
               </div>
@@ -1054,17 +1041,17 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
          if (timeframe === 'daily') { // Hourly
             if (!transformedData.hourlyAggregates?.length || transformedData.hourlyAggregates.every(d => d.total === 0)) return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Hourly Trends.</div>;
             switch (chartType) {
-                case 'line': return <ResponsiveContainer {...commonProps}><LineChart data={transformedData.hourlyAggregates} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="hour" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Line type="monotone" dataKey="human" name="Human" stroke={CHART_COLORS.human} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} /><Line type="monotone" dataKey="vehicle" name="Vehicle" stroke={CHART_COLORS.vehicle} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>;
-                case 'bar': return <ResponsiveContainer {...commonProps}><BarChart data={transformedData.hourlyAggregates} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="hour" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Bar dataKey="human" name="Human" fill={CHART_COLORS.human}><LabelList dataKey="human" content={<CustomBarLabel />} /></Bar><Bar dataKey="vehicle" name="Vehicle" fill={CHART_COLORS.vehicle}><LabelList dataKey="vehicle" content={<CustomBarLabel />} /></Bar></BarChart></ResponsiveContainer>;
-                case 'area': return <ResponsiveContainer {...commonProps}><AreaChart data={transformedData.hourlyAggregates} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="hour" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Area type="monotone" dataKey="human" name="Human" stackId="1" stroke={CHART_COLORS.human} fill={`${CHART_COLORS.human}B3`} /><Area type="monotone" dataKey="vehicle" name="Vehicle" stackId="1" stroke={CHART_COLORS.vehicle} fill={`${CHART_COLORS.vehicle}80`} /></AreaChart></ResponsiveContainer>;
+                case 'line': return renderVictoryDualLineChart(transformedData.hourlyAggregates, 'hour', 'human', 'vehicle', 'Human', 'Vehicle', CHART_COLORS.human, CHART_COLORS.vehicle);
+                case 'bar': return renderVictoryDualBarChart(transformedData.hourlyAggregates, 'hour', 'human', 'vehicle', 'Human', 'Vehicle', CHART_COLORS.human, CHART_COLORS.vehicle);
+                case 'area': return renderVictoryDualAreaChart(transformedData.hourlyAggregates, 'hour', 'human', 'vehicle', 'Human', 'Vehicle', CHART_COLORS.human, CHART_COLORS.vehicle);
                 default: return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>Select Line, Bar, or Area for Hourly Trends.</div>;
             }
         } else { // Weekly
             if (!transformedData.dailyData?.length || transformedData.dailyData.every(d => d.total === 0)) return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Weekly Trends.</div>;
              switch (chartType) {
-                case 'line': return <ResponsiveContainer {...commonProps}><LineChart data={transformedData.dailyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="day" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Line type="monotone" dataKey="total" name="Total Activity" stroke="#d4af37" strokeWidth={3} dot={{ r: 5 }} activeDot={{ r: 8 }} /></LineChart></ResponsiveContainer>;
-                case 'area': return <ResponsiveContainer {...commonProps}><AreaChart data={transformedData.dailyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="day" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Area type="monotone" dataKey="total" name="Total Activity" stroke="#d4af37" fill="#d4af3780" /></AreaChart></ResponsiveContainer>;
-                case 'bar': return <ResponsiveContainer {...commonProps}><BarChart data={transformedData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="day" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Bar dataKey="total" name="Total Activity" fill="#d4af37"><LabelList dataKey="total" content={<CustomBarLabel />} /></Bar></BarChart></ResponsiveContainer>;
+                case 'line': return renderVictorySingleChart(transformedData.dailyData, 'day', 'total', 'Total Activity', '#C6A84B', 'line');
+                case 'area': return renderVictorySingleChart(transformedData.dailyData, 'day', 'total', 'Total Activity', '#C6A84B', 'area');
+                case 'bar': return renderVictorySingleChart(transformedData.dailyData, 'day', 'total', 'Total Activity', '#C6A84B', 'bar');
                 default: return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>Select Line, Area, or Bar for Weekly Trends.</div>;
             }
         }
@@ -1075,8 +1062,22 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
          if (comparisonType === 'humanVsVehicle') {
             if (!transformedData.weeklySummary?.length) return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Human vs Vehicle comparison.</div>;
              switch (chartType) {
-                case 'pie': return <ResponsiveContainer {...commonProps}><PieChart><Pie data={transformedData.weeklySummary} cx="50%" cy="50%" labelLine={true} outerRadius={150} dataKey="value" nameKey="name" label={formatPieLabelWithValue}>{transformedData.weeklySummary.map((entry) => (<Cell key={`compare-${entry.name}`} fill={entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle} />))}</Pie><Tooltip contentStyle={tooltipStyle.contentStyle} /><Legend wrapperStyle={legendStyle} /></PieChart></ResponsiveContainer>;
-                case 'bar': return <ResponsiveContainer {...commonProps}><BarChart data={transformedData.weeklySummary} layout="vertical" margin={{ top: 5, right: 50, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" horizontal={false} /><XAxis type="number" stroke="#aaa" /><YAxis type="category" dataKey="name" width={80} stroke="#aaa" /><Tooltip {...tooltipStyle} /><Bar dataKey="value" name="Count">{transformedData.weeklySummary.map((entry) => (<Cell key={`cell-${entry.name}`} fill={entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle} />))}<LabelList dataKey="value" position="right" content={<CustomBarLabel />} /></Bar></BarChart></ResponsiveContainer>; // Note: CustomBarLabel might need adjustment for vertical bars
+                case 'pie': return renderVictoryPieChart(transformedData.weeklySummary, transformedData.weeklySummary.map((entry) => entry.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle));
+                case 'bar': return (
+                  <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 80, right: 50 }} domainPadding={{ x: 30 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.value}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+                  >
+                    <VictoryAxis style={victoryAxisStyle} />
+                    <VictoryAxis dependentAxis style={victoryAxisStyle} />
+                    <VictoryBar
+                      data={transformedData.weeklySummary}
+                      x="name" y="value"
+                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      cornerRadius={{ top: 4 }}
+                      style={{ data: { fill: ({ datum }: any) => datum.name === 'Human' ? CHART_COLORS.human : CHART_COLORS.vehicle } }}
+                    />
+                  </VictoryChart>
+                );
                 default: return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>Select Pie or Bar for Human vs Vehicle.</div>;
             }
         } else { // weekdayVsWeekend
@@ -1088,13 +1089,37 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
              switch (chartType) {
                 case 'bar':
                      if (!transformedData.weekdayVsWeekendData?.length || transformedData.weekdayVsWeekendData.every(d => d.total === 0)) return <div style={{ color: '#d4af37', textAlign: 'center', paddingTop: '20px' }}>No data for Weekday vs Weekend comparison bars.</div>;
-                     return <ResponsiveContainer {...commonProps}><BarChart data={transformedData.weekdayVsWeekendData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" /><XAxis dataKey="name" stroke="#aaa" /><YAxis stroke="#aaa" /><Tooltip {...tooltipStyle} /><Legend wrapperStyle={legendStyle} /><Bar dataKey="human" name="Human" stackId="a" fill={CHART_COLORS.human}><LabelList dataKey="human" content={<CustomBarLabel />} /></Bar><Bar dataKey="vehicle" name="Vehicle" stackId="a" fill={CHART_COLORS.vehicle}><LabelList dataKey="vehicle" content={<CustomBarLabel />} /></Bar></BarChart></ResponsiveContainer>;
+                     return renderVictoryDualBarChart(transformedData.weekdayVsWeekendData, 'name', 'human', 'vehicle', 'Human', 'Vehicle', CHART_COLORS.human, CHART_COLORS.vehicle);
                 case 'pie':
                      return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                             <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px' }}>
-                                {weekdayWeekendCompData.length > 0 ? (<div style={{ width: '45%', minWidth: '280px' }}><h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Total: Weekday vs Weekend</h4><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={weekdayWeekendCompData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="value" nameKey="name" label={formatPieLabel}>{weekdayWeekendCompData.map((entry) => (<Cell key={`weekday-${entry.name}`} fill={entry.name === 'Weekday' ? CHART_COLORS.weekday : CHART_COLORS.weekend} />))}</Pie><Tooltip contentStyle={tooltipStyle.contentStyle} /></PieChart></ResponsiveContainer></div>) : (<div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No total data.</div>)}
-                                {dailyAvgCompData.length > 0 ? (<div style={{ width: '45%', minWidth: '280px' }}><h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Daily Average Comparison</h4><ResponsiveContainer width="100%" height={250}><BarChart data={dailyAvgCompData} layout="vertical" margin={{ top: 5, right: 50, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" stroke="#444" horizontal={false} /><XAxis type="number" stroke="#aaa" /><YAxis type="category" dataKey="name" width={80} stroke="#aaa" /><Tooltip {...tooltipStyle} /><Bar dataKey="value" name="Daily Average">{dailyAvgCompData.map((entry) => (<Cell key={`cell-avg-${entry.name}`} fill={entry.name === 'Weekday' ? CHART_COLORS.weekday : CHART_COLORS.weekend} />))}<LabelList dataKey="value" position="right" content={<CustomBarLabel />} /></Bar></BarChart></ResponsiveContainer></div>) : (<div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No daily avg data.</div>)}
+                                {weekdayWeekendCompData.length > 0 ? (<div style={{ width: '45%', minWidth: '280px' }}><h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Total: Weekday vs Weekend</h4>
+                                  <VictoryPie
+                                    data={weekdayWeekendCompData} x="name" y="value"
+                                    colorScale={weekdayWeekendCompData.map((entry) => entry.name === 'Weekday' ? CHART_COLORS.weekday : CHART_COLORS.weekend)}
+                                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                                    labels={({ datum }: any) => datum.value > 0 ? `${datum.name}: ${datum.value}` : ''}
+                                    labelComponent={<VictoryTooltip {...victoryTooltipProps} />}
+                                    innerRadius={30} padAngle={2}
+                                    style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                                    height={250} width={300}
+                                  />
+                                </div>) : (<div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No total data.</div>)}
+                                {dailyAvgCompData.length > 0 ? (<div style={{ width: '45%', minWidth: '280px' }}><h4 style={{ textAlign: 'center', marginBottom: '10px', color: '#d4af37' }}>Daily Average Comparison</h4>
+                                  <VictoryChart height={250} width={300} padding={{ top: 20, bottom: 40, left: 80, right: 50 }} domainPadding={{ x: 30 }}
+                                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.value?.toFixed(1)}`} labelComponent={<VictoryTooltip {...victoryTooltipProps} />} />}
+                                  >
+                                    <VictoryAxis style={victoryAxisStyle} />
+                                    <VictoryAxis dependentAxis style={victoryAxisStyle} />
+                                    <VictoryBar
+                                      data={dailyAvgCompData} x="name" y="value"
+                                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                                      cornerRadius={{ top: 4 }}
+                                      style={{ data: { fill: ({ datum }: any) => datum.name === 'Weekday' ? CHART_COLORS.weekday : CHART_COLORS.weekend } }}
+                                    />
+                                  </VictoryChart>
+                                </div>) : (<div style={{ color: '#aaa', width: '45%', minWidth: '280px', textAlign: 'center', alignSelf: 'center' }}>No daily avg data.</div>)}
                             </div>
                         </div>
                     );

@@ -9,12 +9,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+// Victory chart components (migrated from Recharts)
 import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  PieChart, Pie, Cell,
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+  VictoryPolarAxis,
+} from 'victory';
 import {
   Watch, Heart, Moon, Footprints, Flame, Activity,
   Upload, RefreshCw, TrendingUp, Droplets,
@@ -506,52 +506,39 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               {radarData.length > 0 && (
                 <ChartContainer style={{ marginTop: 16 }}>
                   <SectionTitle><TrendingUp size={16} color={C.swanCyan} /> Fitness Overview</SectionTitle>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="rgba(255,255,255,0.08)" />
-                      <PolarAngleAxis dataKey="metric" tick={{ fill: C.mutedText, fontSize: 12 }} />
-                      <PolarRadiusAxis tick={false} domain={[0, 100]} axisLine={false} />
-                      <Radar name="Today" dataKey="value" stroke={C.swanCyan} fill={C.swanCyan} fillOpacity={0.2} strokeWidth={2} />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                  <VictoryChart polar height={280} padding={{ top: 40, bottom: 40, left: 40, right: 40 }}>
+                    <VictoryPolarAxis tickValues={radarData.map((_, i) => i)} tickFormat={radarData.map(d => d.metric)} style={{ axis: { stroke: 'rgba(255,255,255,0.2)' }, tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.15)' } }} />
+                    <VictoryPolarAxis dependentAxis domain={[0, 100]} style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'transparent' }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryArea data={radarData.map((d, i) => ({ x: i, y: d.value }))} animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${C.swanCyan}33`, stroke: C.swanCyan, strokeWidth: 2 } }} />
+                  </VictoryChart>
                 </ChartContainer>
               )}
 
               {/* 30-Day Trend Chart */}
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle>30-Day Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="stepsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={C.successGreen} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={C.successGreen} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="steps" stroke={C.successGreen} fill="url(#stepsGrad)" name="Steps" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea data={chartData} x="date" y="steps" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${C.successGreen}4D`, stroke: C.successGreen, strokeWidth: 2 } }} />
+                </VictoryChart>
               </ChartContainer>
 
               {/* Weekly Averages Comparison */}
               {weeklyChartData.length > 1 && (
                 <ChartContainer style={{ marginTop: 16 }}>
                   <SectionTitle>Weekly Averages</SectionTitle>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={weeklyChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="week" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                      <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar dataKey="steps" fill={C.successGreen} name="Avg Steps" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="activeMin" fill={C.cyberBlue} name="Avg Active Min" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 15 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.week}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryBar data={weeklyChartData} x="week" y="steps" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.successGreen, width: 14 } }} />
+                    <VictoryBar data={weeklyChartData} x="week" y="activeMin" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.cyberBlue, width: 14 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Avg Steps', symbol: { fill: C.successGreen } }, { name: 'Avg Active Min', symbol: { fill: C.cyberBlue } }]} />
+                  </VictoryChart>
                 </ChartContainer>
               )}
             </>
@@ -575,17 +562,15 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               </CardGrid>
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle>Daily Activity</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="steps" fill={C.successGreen} name="Steps" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="activeMinutes" fill={C.cyberBlue} name="Active Min" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 10 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryBar data={chartData} x="date" y="steps" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.successGreen, width: 10 } }} />
+                  <VictoryBar data={chartData} x="date" y="activeMinutes" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.cyberBlue, width: 10 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Steps', symbol: { fill: C.successGreen } }, { name: 'Active Min', symbol: { fill: C.cyberBlue } }]} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}
@@ -614,45 +599,39 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               {latest?.heartRateZones && (latest.heartRateZones.fatBurn || latest.heartRateZones.cardio || latest.heartRateZones.peak) && (
                 <ChartContainer style={{ marginTop: 16 }}>
                   <SectionTitle><Flame size={16} color={C.warningAmber} /> Heart Rate Zones</SectionTitle>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart
+                  <VictoryChart height={200} padding={{ top: 20, bottom: 30, left: 90, right: 30 }} domainPadding={{ x: 15 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.zone}: ${datum.minutes} min`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryBar
                       data={[
                         { zone: 'Out of Range', minutes: latest.heartRateZones.outOfRange || 0 },
                         { zone: 'Fat Burn', minutes: latest.heartRateZones.fatBurn || 0 },
                         { zone: 'Cardio', minutes: latest.heartRateZones.cardio || 0 },
                         { zone: 'Peak', minutes: latest.heartRateZones.peak || 0 },
                       ]}
-                      layout="vertical"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis type="number" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                      <YAxis dataKey="zone" type="category" tick={{ fill: C.mutedText, fontSize: 11 }} width={90} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="minutes" name="Minutes" radius={[0, 4, 4, 0]}>
-                        <Cell fill={C.mutedText} />
-                        <Cell fill={C.warningAmber} />
-                        <Cell fill={C.dangerRed} />
-                        <Cell fill={C.cosmicPurple} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                      x="zone" y="minutes"
+                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      cornerRadius={{ top: 4 }}
+                      style={{ data: { fill: ({ index }: any) => [C.mutedText, C.warningAmber, C.dangerRed, C.cosmicPurple][index as number] || '#50A0F0' } }}
+                    />
+                  </VictoryChart>
                 </ChartContainer>
               )}
 
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Heart size={16} color={C.dangerRed} /> Heart Rate Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} domain={['auto', 'auto']} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line type="monotone" dataKey="restingHeartRate" stroke={C.dangerRed} name="Resting HR" dot={false} strokeWidth={2} />
-                    <Line type="monotone" dataKey="avgHeartRate" stroke={C.warningAmber} name="Avg HR" dot={false} strokeWidth={2} />
-                    <Line type="monotone" dataKey="heartRateVariability" stroke={C.cosmicPurple} name="HRV" dot={false} strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryLine data={chartData} x="date" y="restingHeartRate" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: C.dangerRed, strokeWidth: 2 } }} />
+                  <VictoryLine data={chartData} x="date" y="avgHeartRate" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: C.warningAmber, strokeWidth: 2 } }} />
+                  <VictoryLine data={chartData} x="date" y="heartRateVariability" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: C.cosmicPurple, strokeWidth: 2 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Resting HR', symbol: { fill: C.dangerRed } }, { name: 'Avg HR', symbol: { fill: C.warningAmber } }, { name: 'HRV', symbol: { fill: C.cosmicPurple } }]} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}
@@ -678,52 +657,34 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               {latest?.sleepStages && (latest.sleepStages.deep || latest.sleepStages.light || latest.sleepStages.rem) && (
                 <ChartContainer style={{ marginTop: 16 }}>
                   <SectionTitle><Moon size={16} color={C.cosmicPurple} /> Sleep Stages</SectionTitle>
-                  <ResponsiveContainer width="100%" height={240}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Deep', value: latest.sleepStages.deep || 0 },
-                          { name: 'Light', value: latest.sleepStages.light || 0 },
-                          { name: 'REM', value: latest.sleepStages.rem || 0 },
-                          { name: 'Awake', value: latest.sleepStages.awake || 0 },
-                        ].filter(d => d.value > 0)}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={3}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}m`}
-                      >
-                        <Cell fill={C.cosmicPurple} />
-                        <Cell fill={C.cyberBlue} />
-                        <Cell fill={C.swanCyan} />
-                        <Cell fill={C.mutedText} />
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <VictoryPie
+                    data={[
+                      { name: 'Deep', value: latest.sleepStages.deep || 0 },
+                      { name: 'Light', value: latest.sleepStages.light || 0 },
+                      { name: 'REM', value: latest.sleepStages.rem || 0 },
+                      { name: 'Awake', value: latest.sleepStages.awake || 0 },
+                    ].filter(d => d.value > 0)}
+                    x="name" y="value"
+                    colorScale={[C.cosmicPurple, C.cyberBlue, C.swanCyan, C.mutedText]}
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    labels={({ datum }: any) => `${datum.name}: ${datum.value}m`}
+                    labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                    innerRadius={60} padAngle={3}
+                    style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                    height={240}
+                  />
                 </ChartContainer>
               )}
 
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Moon size={16} color={C.cosmicPurple} /> Sleep Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={C.cosmicPurple} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={C.cosmicPurple} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="sleepDurationMinutes" stroke={C.cosmicPurple} fill="url(#sleepGrad)" name="Sleep (min)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y} min`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryArea data={chartData} x="date" y="sleepDurationMinutes" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: `${C.cosmicPurple}4D`, stroke: C.cosmicPurple, strokeWidth: 2 } }} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}
@@ -750,17 +711,15 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               </CardGrid>
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Droplets size={16} color={C.swimBlue} /> Swimming Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData.filter(d => d.swimDistanceMeters)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="swimDistanceMeters" fill={C.swimBlue} name="Distance (m)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="swimLaps" fill={C.cyberBlue} name="Laps" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 10 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryBar data={chartData.filter(d => d.swimDistanceMeters)} x="date" y="swimDistanceMeters" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.swimBlue, width: 12 } }} />
+                  <VictoryBar data={chartData.filter(d => d.swimDistanceMeters)} x="date" y="swimLaps" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.cyberBlue, width: 12 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Distance (m)', symbol: { fill: C.swimBlue } }, { name: 'Laps', symbol: { fill: C.cyberBlue } }]} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}
@@ -787,17 +746,15 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               </CardGrid>
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><Bike size={16} color={C.cyclingGreen} /> Cycling Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={chartData.filter(d => d.cyclingDistanceMeters)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line type="monotone" dataKey="cyclingDistanceMeters" stroke={C.cyclingGreen} name="Distance (m)" dot={false} strokeWidth={2} />
-                    <Line type="monotone" dataKey="cyclingAvgSpeedKmh" stroke={C.cyberBlue} name="Speed (km/h)" dot={false} strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryLine data={chartData.filter(d => d.cyclingDistanceMeters)} x="date" y="cyclingDistanceMeters" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: C.cyclingGreen, strokeWidth: 2 } }} />
+                  <VictoryLine data={chartData.filter(d => d.cyclingDistanceMeters)} x="date" y="cyclingAvgSpeedKmh" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: C.cyberBlue, strokeWidth: 2 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Distance (m)', symbol: { fill: C.cyclingGreen } }, { name: 'Speed (km/h)', symbol: { fill: C.cyberBlue } }]} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}
@@ -824,17 +781,15 @@ const WearableDataDashboard: React.FC<Props> = ({ userId }) => {
               </CardGrid>
               <ChartContainer style={{ marginTop: 16 }}>
                 <SectionTitle><MapPin size={16} color={C.runOrange} /> Running Trends</SectionTitle>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData.filter(d => d.runDistanceMeters)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="date" tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <YAxis tick={{ fill: C.mutedText, fontSize: 11 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="runDistanceMeters" fill={C.runOrange} name="Distance (m)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="runDurationMinutes" fill={C.cyberBlue} name="Duration (min)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <VictoryChart height={240} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 10 }}
+                  containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                >
+                  <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                  <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                  <VictoryBar data={chartData.filter(d => d.runDistanceMeters)} x="date" y="runDistanceMeters" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.runOrange, width: 12 } }} />
+                  <VictoryBar data={chartData.filter(d => d.runDistanceMeters)} x="date" y="runDurationMinutes" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: C.cyberBlue, width: 12 } }} />
+                  <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Distance (m)', symbol: { fill: C.runOrange } }, { name: 'Duration (min)', symbol: { fill: C.cyberBlue } }]} />
+                </VictoryChart>
               </ChartContainer>
             </>
           )}

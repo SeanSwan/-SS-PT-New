@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { VictoryChart, VictoryLine, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend, VictoryScatter } from 'victory';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart2 } from 'lucide-react';
 
@@ -205,55 +205,58 @@ const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = f
             </p>
 
             <div style={{ height: 300, marginTop: 16 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={progressData}
-                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={{ stroke: '#E0E0E0' }}
+              <VictoryChart
+                padding={{ top: 20, bottom: 50, left: 50, right: 20 }}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                containerComponent={
+                  <VictoryVoronoiContainer
+                    labels={({ datum }) => {
+                      const key = datum.childName?.replace('line-', '') || '';
+                      return `${datum.month}: ${datum.y}%`;
+                    }}
+                    labelComponent={
+                      <VictoryTooltip
+                        style={{ fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
+                        flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                      />
+                    }
                   />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={{ stroke: '#E0E0E0' }}
-                    domain={[0, 'auto']}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="strength"
-                    name="Strength"
-                    stroke="#1976d2"
-                    strokeWidth={2}
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cardio"
-                    name="Cardio"
-                    stroke="#2e7d32"
-                    strokeWidth={2}
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="flexibility"
-                    name="Flexibility"
-                    stroke="#ed6c02"
-                    strokeWidth={2}
-                    dot={{ r: 4, strokeWidth: 2 }}
-                    activeDot={{ r: 6, strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                }
+              >
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  tickFormat={(t: number) => `${t}%`}
+                  style={{
+                    axis: { stroke: 'rgba(224, 236, 244, 0.2)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryLegend
+                  x={60} y={0}
+                  orientation="horizontal"
+                  gutter={20}
+                  style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }}
+                  data={[
+                    { name: 'Strength', symbol: { fill: '#50A0F0' } },
+                    { name: 'Cardio', symbol: { fill: '#4ECDC4' } },
+                    { name: 'Flexibility', symbol: { fill: '#8B5CF6' } },
+                  ]}
+                />
+                <VictoryLine data={progressData} x="month" y="strength" style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }} />
+                <VictoryLine data={progressData} x="month" y="cardio" style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
+                <VictoryLine data={progressData} x="month" y="flexibility" style={{ data: { stroke: '#8B5CF6', strokeWidth: 2 } }} />
+                <VictoryScatter data={progressData} x="month" y="strength" size={4} style={{ data: { fill: '#50A0F0' } }} />
+                <VictoryScatter data={progressData} x="month" y="cardio" size={4} style={{ data: { fill: '#4ECDC4' } }} />
+                <VictoryScatter data={progressData} x="month" y="flexibility" size={4} style={{ data: { fill: '#8B5CF6' } }} />
+              </VictoryChart>
             </div>
           </>
         )}

@@ -65,31 +65,12 @@ import {
   HelpCircle,
   Info
 } from 'lucide-react';
+// Victory chart components (migrated from Recharts)
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Scatter,
-  ScatterChart,
-  ZAxis
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+  VictoryScatter, VictoryPolarAxis,
+} from 'victory';
 
 /* ═══════════════════════════════════════════
    Crystalline Swan Theme Tokens
@@ -1024,71 +1005,57 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
+              <>
                 {chartType === 'bar' && (
-                  <BarChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                    <XAxis dataKey="date" stroke={THEME.textMuted} />
-                    <YAxis stroke={THEME.textMuted} />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar name="Points Earned" dataKey="pointsEarned" fill="#4361ee" />
-                    <Bar name="Points Spent" dataKey="pointsSpent" fill="#ff006e" />
-                  </BarChart>
+                  <VictoryChart height={350} padding={{ top: 40, bottom: 50, left: 50, right: 20 }} domainPadding={{ x: 15 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryBar data={activityData} x="date" y="pointsEarned" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F0', width: 12 } }} />
+                    <VictoryBar data={activityData} x="date" y="pointsSpent" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF6', width: 12 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Points Earned', symbol: { fill: '#50A0F0' } }, { name: 'Points Spent', symbol: { fill: '#8B5CF6' } }]} />
+                  </VictoryChart>
                 )}
-
                 {chartType === 'line' && (
-                  <LineChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                    <XAxis dataKey="date" stroke={THEME.textMuted} />
-                    <YAxis stroke={THEME.textMuted} />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Line type="monotone" name="Points Earned" dataKey="pointsEarned" stroke="#4361ee" dot={{ r: 3 }} />
-                    <Line type="monotone" name="Points Spent" dataKey="pointsSpent" stroke="#ff006e" dot={{ r: 3 }} />
-                  </LineChart>
+                  <VictoryChart height={350} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryLine data={activityData} x="date" y="pointsEarned" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }} />
+                    <VictoryLine data={activityData} x="date" y="pointsSpent" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#8B5CF6', strokeWidth: 2 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Points Earned', symbol: { fill: '#50A0F0' } }, { name: 'Points Spent', symbol: { fill: '#8B5CF6' } }]} />
+                  </VictoryChart>
                 )}
-
                 {chartType === 'area' && (
-                  <AreaChart data={activityData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                    <XAxis dataKey="date" stroke={THEME.textMuted} />
-                    <YAxis stroke={THEME.textMuted} />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Area type="monotone" name="Points Earned" dataKey="pointsEarned" fill="#4361ee33" stroke="#4361ee" />
-                    <Area type="monotone" name="Points Spent" dataKey="pointsSpent" fill="#ff006e33" stroke="#ff006e" />
-                  </AreaChart>
+                  <VictoryChart height={350} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+                    containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+                  >
+                    <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                    <VictoryArea data={activityData} x="date" y="pointsEarned" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F033', stroke: '#50A0F0', strokeWidth: 2 } }} />
+                    <VictoryArea data={activityData} x="date" y="pointsSpent" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF633', stroke: '#8B5CF6', strokeWidth: 2 } }} />
+                    <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Points Earned', symbol: { fill: '#50A0F0' } }, { name: 'Points Spent', symbol: { fill: '#8B5CF6' } }]} />
+                  </VictoryChart>
                 )}
-
                 {chartType === 'pie' && (
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Points Earned', value: activityData.reduce((sum, item) => sum + item.pointsEarned, 0), color: '#4361ee' },
-                        { name: 'Points Spent', value: activityData.reduce((sum, item) => sum + item.pointsSpent, 0), color: '#ff006e' }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      innerRadius={60}
-                      dataKey="value"
-                      nameKey="name"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {[
-                        { name: 'Points Earned', value: 0, color: '#4361ee' },
-                        { name: 'Points Spent', value: 0, color: '#ff006e' }
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Legend />
-                  </PieChart>
+                  <VictoryPie
+                    data={[
+                      { name: 'Points Earned', value: activityData.reduce((sum: number, item: any) => sum + item.pointsEarned, 0) },
+                      { name: 'Points Spent', value: activityData.reduce((sum: number, item: any) => sum + item.pointsSpent, 0) }
+                    ]}
+                    x="name" y="value"
+                    colorScale={['#50A0F0', '#8B5CF6']}
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    labels={({ datum }: any) => `${datum.name}: ${datum.value}`}
+                    labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                    innerRadius={60} padAngle={2}
+                    style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                    height={350}
+                  />
                 )}
-              </ResponsiveContainer>
+              </>
             </ChartContainer>
 
             {/* Chart Type Selector */}
@@ -1137,26 +1104,17 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={tierDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    nameKey="name"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {tierDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <VictoryPie
+                data={tierDistributionData}
+                x="name" y="value"
+                colorScale={tierDistributionData.map((entry: any) => entry.color)}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                labels={({ datum }: any) => `${datum.name}: ${datum.value}`}
+                labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                innerRadius={40} padAngle={2}
+                style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                height={300}
+              />
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1170,23 +1128,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={achievementCompletionData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis type="number" domain={[0, 100]} stroke={THEME.textMuted} />
-                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
-                    {achievementCompletionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={300} padding={{ top: 20, bottom: 30, left: 150, right: 30 }} domainPadding={{ x: 15 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.completion}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                <VictoryAxis dependentAxis domain={[0, 100]} style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={achievementCompletionData} x="name" y="completion" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: ({ datum }: any) => datum.color || '#50A0F0' } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1304,17 +1252,15 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line type="monotone" name="Active Users" dataKey="activeUsers" stroke="#4361ee" dot={{ r: 3 }} />
-                  <Line type="monotone" name="New Users" dataKey="newUsers" stroke="#3a86ff" dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <VictoryChart height={300} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryLine data={activityData} x="date" y="activeUsers" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }} />
+                <VictoryLine data={activityData} x="date" y="newUsers" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
+                <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Active Users', symbol: { fill: '#50A0F0' } }, { name: 'New Users', symbol: { fill: '#4ECDC4' } }]} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1328,17 +1274,15 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="name" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar name="Retention %" dataKey="retention" fill="#4361ee" />
-                  <Bar name="Engagement %" dataKey="engagement" fill="#ff006e" />
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={300} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 15 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum._y}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={engagementData} x="name" y="retention" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F0', width: 14 } }} />
+                <VictoryBar data={engagementData} x="name" y="engagement" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF6', width: 14 } }} />
+                <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Retention %', symbol: { fill: '#50A0F0' } }, { name: 'Engagement %', symbol: { fill: '#8B5CF6' } }]} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1352,27 +1296,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={250}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={userRetentionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="tier" stroke={THEME.textMuted} />
-                  <YAxis domain={[0, 100]} stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Bar name="Retention %" dataKey="retention">
-                    {userRetentionData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          entry.tier === 'Bronze' ? '#CD7F32' :
-                          entry.tier === 'Silver' ? '#C0C0C0' :
-                          entry.tier === 'Gold' ? '#FFD700' :
-                          '#E5E4E2'
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={250} padding={{ top: 20, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 20 }} domain={{ y: [0, 100] }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.tier}: ${datum.retention}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={userRetentionData} x="tier" y="retention" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: ({ datum }: any) => datum.tier === 'Bronze' ? '#CD7F32' : datum.tier === 'Silver' ? '#C0C0C0' : datum.tier === 'Gold' ? '#FFD700' : '#E5E4E2' } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1391,23 +1321,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={400}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={achievementCompletionData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis type="number" domain={[0, 100]} stroke={THEME.textMuted} />
-                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
-                    {achievementCompletionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={400} padding={{ top: 20, bottom: 30, left: 150, right: 30 }} domainPadding={{ x: 15 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.completion}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                <VictoryAxis dependentAxis domain={[0, 100]} style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={achievementCompletionData} x="name" y="completion" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: ({ datum }: any) => datum.color || '#50A0F0' } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1421,21 +1341,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={400}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    name="Achievements Earned"
-                    dataKey="achievementsEarned"
-                    fill="#8338ec33"
-                    stroke="#8338ec"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <VictoryChart height={400} padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryArea data={activityData} x="date" y="achievementsEarned" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF633', stroke: '#8B5CF6', strokeWidth: 2 } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1454,23 +1366,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={rewardRedemptionData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis type="number" stroke={THEME.textMuted} />
-                  <YAxis type="category" dataKey="name" width={150} stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Bar dataKey="redemptions" radius={[0, 4, 4, 0]}>
-                    {rewardRedemptionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 20, bottom: 30, left: 150, right: 30 }} domainPadding={{ x: 15 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.name}: ${datum.redemptions}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'none' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={rewardRedemptionData} x="name" y="redemptions" animate={{ duration: 800, easing: 'cubicInOut' }} cornerRadius={{ top: 4 }} style={{ data: { fill: ({ datum }: any) => datum.color || '#50A0F0' } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1484,21 +1386,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    name="Rewards Redeemed"
-                    dataKey="rewardsRedeemed"
-                    fill="#ff006e33"
-                    stroke="#ff006e"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryArea data={activityData} x="date" y="rewardsRedeemed" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF633', stroke: '#8B5CF6', strokeWidth: 2 } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1512,17 +1406,15 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar name="Points Earned" dataKey="pointsEarned" fill="#4361ee" />
-                  <Bar name="Points Spent" dataKey="pointsSpent" fill="#ff006e" />
-                </BarChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domainPadding={{ x: 15 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryBar data={activityData} x="date" y="pointsEarned" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F0', width: 12 } }} />
+                <VictoryBar data={activityData} x="date" y="pointsSpent" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF6', width: 12 } }} />
+                <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Points Earned', symbol: { fill: '#50A0F0' } }, { name: 'Points Spent', symbol: { fill: '#8B5CF6' } }]} />
+              </VictoryChart>
             </ChartContainer>
 
             <div>
@@ -1570,26 +1462,17 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={tierDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    nameKey="name"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {tierDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <VictoryPie
+                data={tierDistributionData}
+                x="name" y="value"
+                colorScale={tierDistributionData.map((entry: any) => entry.color)}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                labels={({ datum }: any) => `${datum.name}: ${datum.value}`}
+                labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />}
+                innerRadius={40} padAngle={2}
+                style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+                height={350}
+              />
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1603,47 +1486,17 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tierProgressionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="bronze"
-                    stackId="1"
-                    stroke="#CD7F32"
-                    fill="#CD7F3266"
-                    name="Bronze"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="silver"
-                    stackId="1"
-                    stroke="#C0C0C0"
-                    fill="#C0C0C066"
-                    name="Silver"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="gold"
-                    stackId="1"
-                    stroke="#FFD700"
-                    fill="#FFD70066"
-                    name="Gold"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="platinum"
-                    stackId="1"
-                    stroke="#E5E4E2"
-                    fill="#E5E4E266"
-                    name="Platinum"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 40, bottom: 50, left: 50, right: 20 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryArea data={tierProgressionData} x="date" y="bronze" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#CD7F3266', stroke: '#CD7F32', strokeWidth: 2 } }} />
+                <VictoryArea data={tierProgressionData} x="date" y="silver" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#C0C0C066', stroke: '#C0C0C0', strokeWidth: 2 } }} />
+                <VictoryArea data={tierProgressionData} x="date" y="gold" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#FFD70066', stroke: '#FFD700', strokeWidth: 2 } }} />
+                <VictoryArea data={tierProgressionData} x="date" y="platinum" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#E5E4E266', stroke: '#E5E4E2', strokeWidth: 2 } }} />
+                <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Bronze', symbol: { fill: '#CD7F32' } }, { name: 'Silver', symbol: { fill: '#C0C0C0' } }, { name: 'Gold', symbol: { fill: '#FFD700' } }, { name: 'Platinum', symbol: { fill: '#E5E4E2' } }]} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1662,22 +1515,14 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={activityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis dataKey="date" stroke={THEME.textMuted} />
-                  <YAxis domain={[0, 100]} stroke={THEME.textMuted} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    name="Engagement Rate (%)"
-                    dataKey="engagementRate"
-                    stroke="#4361ee"
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domain={{ y: [0, 100] }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.date}: ${datum._y}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}%`} style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryLine data={activityData} x="date" y="engagementRate" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }} />
+                <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Engagement Rate (%)', symbol: { fill: '#50A0F0' } }]} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1691,19 +1536,13 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart
-                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(14,165,233,0.1)" />
-                  <XAxis type="number" dataKey="achievements" name="Achievements" stroke={THEME.textMuted} />
-                  <YAxis type="number" dataKey="retention" name="Retention %" stroke={THEME.textMuted} />
-                  <ZAxis type="number" range={[100, 600]} />
-                  <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
-                  <Legend />
-                  <Scatter name="User Segments" data={engagementData} fill="#8338ec" />
-                </ScatterChart>
-              </ResponsiveContainer>
+              <VictoryChart height={350} padding={{ top: 20, bottom: 50, left: 60, right: 20 }}
+                containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `Achievements: ${datum.achievements}\nRetention: ${datum.retention}%`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              >
+                <VictoryAxis label="Achievements" style={{ axis: { stroke: '#E0ECF4' }, axisLabel: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif", padding: 35 }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryAxis dependentAxis label="Retention %" style={{ axis: { stroke: '#E0ECF4' }, axisLabel: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif", padding: 45 }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryScatter data={engagementData} x="achievements" y="retention" animate={{ duration: 800, easing: 'cubicInOut' }} size={7} style={{ data: { fill: '#8B5CF6', stroke: '#E0ECF4', strokeWidth: 1 } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>
@@ -1717,23 +1556,16 @@ const EnhancedSystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
           <StyledDivider />
           <CardContent>
             <ChartContainer $height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                  { subject: 'User Acquisition', A: 85, B: 75, fullMark: 100 },
-                  { subject: 'Retention', A: 78, B: 65, fullMark: 100 },
-                  { subject: 'Engagement', A: 83, B: 72, fullMark: 100 },
-                  { subject: 'Achievement Rate', A: 72, B: 60, fullMark: 100 },
-                  { subject: 'Reward Usage', A: 65, B: 55, fullMark: 100 },
-                  { subject: 'Points Economy', A: 70, B: 60, fullMark: 100 },
-                ]}>
-                  <PolarGrid stroke="rgba(14,165,233,0.1)" />
-                  <PolarAngleAxis dataKey="subject" stroke={THEME.textMuted} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={THEME.textMuted} />
-                  <Radar name="Current" dataKey="A" stroke="#8338ec" fill="#8338ec" fillOpacity={0.3} />
-                  <Radar name="Previous" dataKey="B" stroke="#ff006e" fill="#ff006e" fillOpacity={0.3} />
-                  <Legend />
-                </RadarChart>
-              </ResponsiveContainer>
+              <VictoryChart polar height={350} padding={{ top: 50, bottom: 50, left: 50, right: 50 }}>
+                <VictoryPolarAxis
+                  tickValues={[0, 1, 2, 3, 4, 5]}
+                  tickFormat={['User Acquisition', 'Retention', 'Engagement', 'Achievement Rate', 'Reward Usage', 'Points Economy']}
+                  style={{ axis: { stroke: 'rgba(255, 255, 255, 0.2)' }, tickLabels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.15)' } }}
+                />
+                <VictoryPolarAxis dependentAxis domain={[0, 100]} style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'rgba(255,255,255,0.4)', fontSize: 8 }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+                <VictoryArea data={[{ x: 0, y: 85 }, { x: 1, y: 78 }, { x: 2, y: 83 }, { x: 3, y: 72 }, { x: 4, y: 65 }, { x: 5, y: 70 }]} animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#8B5CF630', stroke: '#8B5CF6', strokeWidth: 2 } }} />
+                <VictoryArea data={[{ x: 0, y: 75 }, { x: 1, y: 65 }, { x: 2, y: 72 }, { x: 3, y: 60 }, { x: 4, y: 55 }, { x: 5, y: 60 }]} animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#50A0F030', stroke: '#50A0F0', strokeWidth: 2 } }} />
+              </VictoryChart>
             </ChartContainer>
           </CardContent>
         </GlassCard>

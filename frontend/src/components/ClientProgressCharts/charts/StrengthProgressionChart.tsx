@@ -2,9 +2,10 @@
  * StrengthProgressionChart.tsx
  * =============================
  *
- * Multi-line LineChart for tracking estimated 1RM across exercises over time
+ * Multi-line chart for tracking estimated 1RM across exercises over time
  * Each line represents a different exercise, color-cycled through the theme palette
  *
+ * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
@@ -12,20 +13,46 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
+  VictoryChart,
+  VictoryLine,
+  VictoryAxis,
+  VictoryLegend,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryScatter,
+} from 'victory';
 import { StrengthProgressionChartProps } from '../types/ClientProgressTypes';
 
 // ==================== CONSTANTS ====================
 
-const LINE_COLORS = ['#60C0F0', '#8B5CF6', '#50A0F0', '#C6A84B'];
+const LINE_COLORS = ['#50A0F0', '#8B5CF6', '#4ECDC4', '#C6A84B'];
+
+// Shared Victory theme tokens for Crystalline Swan
+const AXIS_STYLE = {
+  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+  tickLabels: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+  grid: {
+    stroke: 'rgba(96, 192, 240, 0.08)',
+    strokeDasharray: '4,4',
+  },
+};
+
+const TOOLTIP_STYLE = {
+  flyoutStyle: {
+    fill: '#141419',
+    stroke: 'rgba(139, 92, 246, 0.3)',
+    strokeWidth: 1,
+  },
+  style: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+};
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -38,35 +65,6 @@ const ChartContainer = styled(motion.div)`
   }
 `;
 
-const TooltipContainer = styled.div`
-  background: linear-gradient(
-    135deg,
-    rgba(0, 32, 96, 0.95) 0%,
-    rgba(0, 48, 128, 0.9) 100%
-  );
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipLabel = styled.div`
-  font-weight: 600;
-  color: #60C0F0;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipRow = styled.div<{ color: string }>`
-  font-size: 0.85rem;
-  color: ${props => props.color};
-  margin-bottom: 0.2rem;
-  font-family: 'Fira Code', monospace;
-`;
-
 const NoDataContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -76,33 +74,6 @@ const NoDataContainer = styled.div`
   color: #b8c9db;
   text-align: center;
 `;
-
-// ==================== INTERFACES ====================
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  return (
-    <TooltipContainer>
-      <TooltipLabel>{label}</TooltipLabel>
-      {payload.map((entry, index) => (
-        <TooltipRow key={index} color={entry.color || '#E0ECF4'}>
-          {entry.name}: {entry.value} lbs
-        </TooltipRow>
-      ))}
-    </TooltipContainer>
-  );
-};
 
 // ==================== MAIN COMPONENT ====================
 
@@ -115,13 +86,15 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
 
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(point => {
+      .map((point, index) => {
         const displayDate = new Date(point.date).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
         });
         return {
           displayDate,
+          x: index,
+          xLabel: displayDate,
           ...point.exercises,
         };
       });
@@ -153,65 +126,99 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(96, 192, 240, 0.1)"
-            />
-            <XAxis
-              dataKey="displayDate"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
-            />
-            <YAxis
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
-              label={{
-                value: 'Est. 1RM (lbs)',
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#b8c9db',
-                style: { fontFamily: "'Fira Code', monospace" }
+        <VictoryChart
+          padding={{ top: 20, right: 40, left: 60, bottom: 50 }}
+          domainPadding={{ y: [10, 10] }}
+          animate={{ duration: 800, easing: 'cubicInOut' }}
+          containerComponent={
+            <VictoryVoronoiContainer
+              labels={({ datum }) => {
+                const parts: string[] = [];
+                exerciseNames.forEach((name) => {
+                  if (datum[name] !== undefined && datum[name] !== null) {
+                    parts.push(`${name}: ${datum[name]} lbs`);
+                  }
+                });
+                return `${datum.xLabel}\n${parts.join('\n')}`;
               }}
+              labelComponent={
+                <VictoryTooltip
+                  {...TOOLTIP_STYLE}
+                  cornerRadius={8}
+                  flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                />
+              }
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{
-                color: '#b8c9db',
+          }
+        >
+          {/* X Axis */}
+          <VictoryAxis
+            style={AXIS_STYLE}
+            tickValues={chartData.map((_, i) => i)}
+            tickFormat={chartData.map(d => d.xLabel)}
+          />
+
+          {/* Y Axis — Est. 1RM (lbs) */}
+          <VictoryAxis
+            dependentAxis
+            style={{
+              ...AXIS_STYLE,
+              axisLabel: {
+                fill: '#E0ECF4',
+                fontSize: 12,
                 fontFamily: "'Fira Code', monospace",
-                fontSize: '0.8rem'
-              }}
-            />
-            {exerciseNames.map((name, index) => (
-              <Line
-                key={name}
-                type="monotone"
-                dataKey={name}
-                name={name}
-                stroke={LINE_COLORS[index % LINE_COLORS.length]}
-                strokeWidth={2}
-                dot={{
-                  fill: LINE_COLORS[index % LINE_COLORS.length],
-                  strokeWidth: 2,
-                  stroke: LINE_COLORS[index % LINE_COLORS.length],
-                  r: 4
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: LINE_COLORS[index % LINE_COLORS.length],
-                  stroke: '#E0ECF4',
-                  strokeWidth: 2
-                }}
-                animationDuration={1500}
-                connectNulls
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+                padding: 40,
+              },
+            }}
+            label="Est. 1RM (lbs)"
+          />
+
+          {/* One line + scatter per exercise */}
+          {exerciseNames.map((name, index) => {
+            const color = LINE_COLORS[index % LINE_COLORS.length];
+            const lineData = chartData
+              .filter(d => d[name] !== undefined && d[name] !== null)
+              .map(d => ({ x: d.x, y: d[name] as number, xLabel: d.xLabel, [name]: d[name] }));
+
+            return (
+              <React.Fragment key={name}>
+                <VictoryLine
+                  data={lineData}
+                  interpolation="monotoneX"
+                  style={{
+                    data: { stroke: color, strokeWidth: 2 },
+                  }}
+                />
+                <VictoryScatter
+                  data={lineData}
+                  size={4}
+                  style={{
+                    data: { fill: color, stroke: color, strokeWidth: 2 },
+                  }}
+                />
+              </React.Fragment>
+            );
+          })}
+
+          {/* Legend */}
+          <VictoryLegend
+            x={50}
+            y={0}
+            orientation="horizontal"
+            gutter={16}
+            style={{
+              labels: {
+                fill: '#E0ECF4',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 10,
+              },
+            }}
+            data={exerciseNames.map((name, index) => ({
+              name,
+              symbol: { fill: LINE_COLORS[index % LINE_COLORS.length] },
+            }))}
+          />
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );

@@ -28,31 +28,15 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as ReTooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart,
-  RadarChart,
-  Radar as RadarComponent,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ScatterChart,
-  Scatter,
-  Treemap
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryLine,
+  VictoryBar,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+} from 'victory';
 import { logger } from '@/utils/logger';
 
 // Types
@@ -1217,53 +1201,67 @@ const AIMonitoringPanel: React.FC = () => {
               </FlexRow>
 
               <div style={{ height: 400 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={performanceMetrics}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis dataKey="date" stroke="#e0e0e0" />
-                    <YAxis yAxisId="left" stroke="#e0e0e0" />
-                    <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
-                    <ReTooltip
-                      contentStyle={{
-                        backgroundColor: '#1d1f2b',
-                        border: '1px solid rgba(139, 92, 246, 0.3)',
-                        borderRadius: 8
-                      }}
+                <VictoryChart
+                  height={400}
+                  padding={{ top: 20, bottom: 50, left: 60, right: 60 }}
+                  animate={{ duration: 800, easing: 'cubicInOut' }}
+                  containerComponent={
+                    <VictoryVoronoiContainer
+                      labels={({ datum }) => `${datum.date}\nAccuracy: ${datum.formAnalysisAccuracy}%\nLatency: ${datum.formAnalysisLatency}ms\nCTR: ${datum.recommendationCTR}%`}
+                      labelComponent={
+                        <VictoryTooltip
+                          flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                          style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                          cornerRadius={8}
+                        />
+                      }
                     />
-                    <Legend />
-                    <Area
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="formAnalysisAccuracy"
-                      fill="url(#accuracyGradient)"
-                      stroke={theme.green}
-                      strokeWidth={2}
-                      name="Form Analysis Accuracy (%)"
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="formAnalysisLatency"
-                      stroke={theme.orange}
-                      strokeWidth={3}
-                      name="Latency (ms)"
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="recommendationCTR"
-                      stroke={theme.blue}
-                      strokeWidth={2}
-                      name="Recommendation CTR (%)"
-                    />
-                    <defs>
-                      <linearGradient id="accuracyGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={theme.green} stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor={theme.green} stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                  </ComposedChart>
-                </ResponsiveContainer>
+                  }
+                >
+                  <VictoryAxis
+                    style={{
+                      axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                      tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                      grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                    }}
+                  />
+                  <VictoryAxis
+                    dependentAxis
+                    style={{
+                      axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                      tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                      grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                    }}
+                  />
+                  <VictoryArea
+                    data={performanceMetrics}
+                    x="date"
+                    y="formAnalysisAccuracy"
+                    style={{
+                      data: {
+                        fill: 'rgba(78, 205, 196, 0.15)',
+                        stroke: '#4ECDC4',
+                        strokeWidth: 2,
+                      },
+                    }}
+                  />
+                  <VictoryLine
+                    data={performanceMetrics}
+                    x="date"
+                    y="formAnalysisLatency"
+                    style={{
+                      data: { stroke: '#C6A84B', strokeWidth: 3 },
+                    }}
+                  />
+                  <VictoryLine
+                    data={performanceMetrics}
+                    x="date"
+                    y="recommendationCTR"
+                    style={{
+                      data: { stroke: '#50A0F0', strokeWidth: 2 },
+                    }}
+                  />
+                </VictoryChart>
               </div>
             </CardBody>
           </GlassPanel>
@@ -1508,42 +1506,57 @@ const AIMonitoringPanel: React.FC = () => {
             <SectionTitle>Model Accuracy Trends</SectionTitle>
 
             <div style={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={performanceMetrics}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="date" stroke="#e0e0e0" />
-                  <YAxis stroke="#e0e0e0" />
-                  <ReTooltip
-                    contentStyle={{
-                      backgroundColor: '#1d1f2b',
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
-                      borderRadius: 8
-                    }}
+              <VictoryChart
+                height={300}
+                padding={{ top: 20, bottom: 50, left: 60, right: 30 }}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                containerComponent={
+                  <VictoryVoronoiContainer
+                    labels={({ datum }) => `${datum.date}\nForm: ${datum.formAnalysisAccuracy}%\nNutrition: ${datum.nutritionAnalysisAccuracy}%\nSentiment: ${datum.sentimentAnalysisAccuracy}%`}
+                    labelComponent={
+                      <VictoryTooltip
+                        flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                        style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 9 }}
+                        cornerRadius={8}
+                      />
+                    }
                   />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="formAnalysisAccuracy"
-                    stroke={theme.green}
-                    strokeWidth={2}
-                    name="Form Analysis"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="nutritionAnalysisAccuracy"
-                    stroke={theme.blue}
-                    strokeWidth={2}
-                    name="Nutrition Analysis"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="sentimentAnalysisAccuracy"
-                    stroke={theme.orange}
-                    strokeWidth={2}
-                    name="Sentiment Analysis"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                }
+              >
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryLine
+                  data={performanceMetrics}
+                  x="date"
+                  y="formAnalysisAccuracy"
+                  style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }}
+                />
+                <VictoryLine
+                  data={performanceMetrics}
+                  x="date"
+                  y="nutritionAnalysisAccuracy"
+                  style={{ data: { stroke: '#50A0F0', strokeWidth: 2 } }}
+                />
+                <VictoryLine
+                  data={performanceMetrics}
+                  x="date"
+                  y="sentimentAnalysisAccuracy"
+                  style={{ data: { stroke: '#C6A84B', strokeWidth: 2 } }}
+                />
+              </VictoryChart>
             </div>
           </CardBody>
         </GlassPanel>
@@ -1553,36 +1566,53 @@ const AIMonitoringPanel: React.FC = () => {
             <SectionTitle>Inference Volume &amp; Cost</SectionTitle>
 
             <div style={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={performanceMetrics}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="date" stroke="#e0e0e0" />
-                  <YAxis yAxisId="left" stroke="#e0e0e0" />
-                  <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
-                  <ReTooltip
-                    contentStyle={{
-                      backgroundColor: '#1d1f2b',
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
-                      borderRadius: 8
-                    }}
+              <VictoryChart
+                height={300}
+                padding={{ top: 20, bottom: 50, left: 60, right: 60 }}
+                animate={{ duration: 800, easing: 'cubicInOut' }}
+                containerComponent={
+                  <VictoryVoronoiContainer
+                    labels={({ datum }) => `${datum.date}\nInferences: ${datum.totalInferences}\nCost: $${datum.costPerInference}`}
+                    labelComponent={
+                      <VictoryTooltip
+                        flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                        style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 9 }}
+                        cornerRadius={8}
+                      />
+                    }
                   />
-                  <Legend />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="totalInferences"
-                    fill={theme.green}
-                    name="Total Inferences"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="costPerInference"
-                    stroke={theme.red}
-                    strokeWidth={3}
-                    name="Cost per Inference ($)"
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+                }
+              >
+                <VictoryAxis
+                  style={{
+                    axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryAxis
+                  dependentAxis
+                  style={{
+                    axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+                    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                  }}
+                />
+                <VictoryBar
+                  data={performanceMetrics}
+                  x="date"
+                  y="totalInferences"
+                  style={{
+                    data: { fill: '#4ECDC4', width: 12 },
+                  }}
+                />
+                <VictoryLine
+                  data={performanceMetrics}
+                  x="date"
+                  y="costPerInference"
+                  style={{ data: { stroke: '#8B5CF6', strokeWidth: 3 } }}
+                />
+              </VictoryChart>
             </div>
           </CardBody>
         </GlassPanel>

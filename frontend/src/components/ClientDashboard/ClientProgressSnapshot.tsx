@@ -20,10 +20,15 @@ import {
   Dumbbell, Clock, Calendar, ChevronRight,
 } from 'lucide-react';
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
-  CartesianGrid, Tooltip as RechartsTooltip, RadarChart, Radar, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis, Legend,
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryLegend,
+  VictoryGroup,
+  VictoryPolarAxis,
+} from 'victory';
 import apiService from '../../services/api.service';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -512,78 +517,128 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
             <ChartWrapper3D>
               <div className="chart-inner">
                 <ChartLabel>Trend Over Time</ChartLabel>
-                <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="snapGradCyan" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="snapGradPurple" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
-                      axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
-                      axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      tick={{ fill: 'rgba(255, 255, 255, 0.5)', fontSize: 10 }}
-                      axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
-                      tickLine={false}
-                    />
-                    <RechartsTooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        return (
-                          <TooltipBox>
-                            <div className="tooltip-label">{label}</div>
-                            {payload.map((p: any, i: number) => (
-                              <div key={i} className="tooltip-item">
-                                <span className="dot" style={{ background: p.color }} />
-                                {p.name}: <strong>{p.value?.toFixed(1)}</strong>
-                              </div>
-                            ))}
-                          </TooltipBox>
-                        );
+                <VictoryChart
+                  height={260}
+                  padding={{ top: 10, right: 50, left: 50, bottom: 50 }}
+                  containerComponent={
+                    <VictoryVoronoiContainer
+                      labels={({ datum }) => {
+                        const parts = [datum.x];
+                        if (datum.weight != null) parts.push(`Weight: ${datum.weight.toFixed(1)} lbs`);
+                        if (datum.bodyFat != null) parts.push(`Body Fat: ${datum.bodyFat.toFixed(1)}%`);
+                        if (datum.waist != null) parts.push(`Waist: ${datum.waist.toFixed(1)} in`);
+                        return parts.join('\n');
                       }}
+                      labelComponent={
+                        <VictoryTooltip
+                          flyoutStyle={{
+                            fill: '#141419',
+                            stroke: 'rgba(139, 92, 246, 0.3)',
+                            strokeWidth: 1,
+                          }}
+                          style={{
+                            fill: '#E0ECF4',
+                            fontSize: 9,
+                            fontFamily: "'Fira Code', monospace",
+                          }}
+                          cornerRadius={8}
+                          flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                        />
+                      }
                     />
-                    <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
-                    <Area
-                      yAxisId="left" type="monotone" dataKey="weight" name="Weight (lbs)"
-                      stroke="#8B5CF6" strokeWidth={2.5} fill="url(#snapGradCyan)"
-                      dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
-                      connectNulls
-                    />
-                    <Area
-                      yAxisId="right" type="monotone" dataKey="bodyFat" name="Body Fat (%)"
-                      stroke="#8B5CF6" strokeWidth={2} fill="url(#snapGradPurple)"
-                      dot={{ fill: '#8B5CF6', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#8B5CF6', stroke: '#002060', strokeWidth: 2 }}
-                      connectNulls
-                    />
-                    <Area
-                      yAxisId="left" type="monotone" dataKey="waist" name="Waist (in)"
-                      stroke="#2DD4BF" strokeWidth={2} fill="transparent"
-                      dot={{ fill: '#2DD4BF', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: '#2DD4BF', stroke: '#002060', strokeWidth: 2 }}
-                      connectNulls
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                  }
+                >
+                  <defs>
+                    <linearGradient id="snapGradWeight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#50A0F0" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#50A0F0" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="snapGradBodyFat" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <VictoryLegend
+                    x={50} y={0}
+                    orientation="horizontal"
+                    gutter={20}
+                    style={{
+                      labels: { fill: 'rgba(255,255,255,0.6)', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+                    }}
+                    data={[
+                      { name: 'Weight (lbs)', symbol: { fill: '#50A0F0' } },
+                      { name: 'Body Fat (%)', symbol: { fill: '#8B5CF6' } },
+                      { name: 'Waist (in)', symbol: { fill: '#4ECDC4' } },
+                    ]}
+                  />
+                  <VictoryAxis
+                    style={{
+                      axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
+                      tickLabels: {
+                        fill: '#E0ECF4',
+                        fontSize: 10,
+                        fontFamily: "'Fira Code', monospace",
+                        angle: -30,
+                        textAnchor: 'end',
+                      },
+                      grid: {
+                        stroke: 'rgba(96, 192, 240, 0.08)',
+                        strokeDasharray: '4,4',
+                      },
+                    }}
+                  />
+                  <VictoryAxis
+                    dependentAxis
+                    style={{
+                      axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
+                      tickLabels: {
+                        fill: '#E0ECF4',
+                        fontSize: 10,
+                        fontFamily: "'Fira Code', monospace",
+                      },
+                      grid: {
+                        stroke: 'rgba(96, 192, 240, 0.08)',
+                        strokeDasharray: '4,4',
+                      },
+                    }}
+                  />
+                  <VictoryArea
+                    data={trendData.map(d => ({ x: d.date, y: d.weight, ...d }))}
+                    interpolation="monotoneX"
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    style={{
+                      data: {
+                        fill: 'url(#snapGradWeight)',
+                        stroke: '#50A0F0',
+                        strokeWidth: 2.5,
+                      },
+                    }}
+                  />
+                  <VictoryArea
+                    data={trendData.map(d => ({ x: d.date, y: d.bodyFat, ...d }))}
+                    interpolation="monotoneX"
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    style={{
+                      data: {
+                        fill: 'url(#snapGradBodyFat)',
+                        stroke: '#8B5CF6',
+                        strokeWidth: 2,
+                      },
+                    }}
+                  />
+                  <VictoryArea
+                    data={trendData.map(d => ({ x: d.date, y: d.waist, ...d }))}
+                    interpolation="monotoneX"
+                    animate={{ duration: 800, easing: 'cubicInOut' }}
+                    style={{
+                      data: {
+                        fill: 'transparent',
+                        stroke: '#4ECDC4',
+                        strokeWidth: 2,
+                      },
+                    }}
+                  />
+                </VictoryChart>
               </div>
             </ChartWrapper3D>
 
@@ -591,16 +646,75 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
               <ChartWrapper3D>
                 <div className="chart-inner">
                   <ChartLabel>Body Shape: First vs Now</ChartLabel>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
-                      <PolarAngleAxis dataKey="metric" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} />
-                      <PolarRadiusAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 9 }} axisLine={false} />
-                      <Radar name="First" dataKey="first" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.1} strokeWidth={2} />
-                      <Radar name="Current" dataKey="current" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.25} strokeWidth={2} />
-                      <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                  <VictoryChart
+                    polar
+                    height={260}
+                    padding={{ top: 30, right: 40, left: 40, bottom: 40 }}
+                  >
+                    <VictoryLegend
+                      x={60} y={0}
+                      orientation="horizontal"
+                      gutter={20}
+                      style={{
+                        labels: { fill: 'rgba(255,255,255,0.6)', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+                      }}
+                      data={[
+                        { name: 'First', symbol: { fill: '#4070C0' } },
+                        { name: 'Current', symbol: { fill: '#50A0F0' } },
+                      ]}
+                    />
+                    {radarData.map((_d, i) => (
+                      <VictoryPolarAxis
+                        key={i}
+                        dependentAxis
+                        style={{
+                          axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
+                          tickLabels: { fill: 'rgba(255,255,255,0.3)', fontSize: 9, fontFamily: "'Fira Code', monospace" },
+                          grid: { stroke: 'rgba(255, 255, 255, 0.1)', strokeDasharray: '4,4' },
+                        }}
+                        tickFormat={() => ''}
+                        axisValue={i + 1}
+                      />
+                    ))}
+                    <VictoryPolarAxis
+                      labelPlacement="vertical"
+                      tickValues={radarData.map((_d, i) => i + 1)}
+                      tickFormat={radarData.map(d => d.metric)}
+                      style={{
+                        axis: { stroke: 'none' },
+                        tickLabels: {
+                          fill: 'rgba(255,255,255,0.6)',
+                          fontSize: 10,
+                          fontFamily: "'Fira Code', monospace",
+                        },
+                        grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
+                      }}
+                    />
+                    <VictoryGroup animate={{ duration: 800, easing: 'cubicInOut' }}>
+                      <VictoryArea
+                        data={radarData.map((d, i) => ({ x: i + 1, y: d.first }))}
+                        style={{
+                          data: {
+                            fill: '#4070C0',
+                            fillOpacity: 0.1,
+                            stroke: '#4070C0',
+                            strokeWidth: 2,
+                          },
+                        }}
+                      />
+                      <VictoryArea
+                        data={radarData.map((d, i) => ({ x: i + 1, y: d.current }))}
+                        style={{
+                          data: {
+                            fill: '#50A0F0',
+                            fillOpacity: 0.25,
+                            stroke: '#50A0F0',
+                            strokeWidth: 2,
+                          },
+                        }}
+                      />
+                    </VictoryGroup>
+                  </VictoryChart>
                 </div>
               </ChartWrapper3D>
             )}

@@ -752,31 +752,13 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fallback client data for when API is unavailable
+  // Show empty state with error instead of fake data
   const useFallbackClientData = () => {
-    const fallbackClients = [
-      { id: '1', firstName: 'John', lastName: 'Doe', username: 'johndoe_fit', photo: undefined },
-      { id: '2', firstName: 'Sarah', lastName: 'Johnson', username: 'sarah_strong', photo: undefined },
-      { id: '3', firstName: 'Mike', lastName: 'Chen', username: 'mike_muscle', photo: undefined },
-      { id: '4', firstName: 'Emily', lastName: 'Rodriguez', username: 'emily_endurance', photo: undefined },
-      { id: '5', firstName: 'David', lastName: 'Wilson', username: 'david_determined', photo: undefined },
-      { id: '6', firstName: 'Lisa', lastName: 'Anderson', username: 'lisa_lean', photo: undefined },
-      { id: '7', firstName: 'James', lastName: 'Taylor', username: 'james_jacked', photo: undefined },
-      { id: '8', firstName: 'Amanda', lastName: 'Brown', username: 'amanda_active', photo: undefined }
-    ];
-
-    setClients(fallbackClients);
-
-    // Select first client if no client is selected
-    if (fallbackClients.length > 0 && !selectedClientId) {
-      setSelectedClientId(fallbackClients[0].id);
-    }
-
-    // Show success message instead of error
+    setClients([]);
     toast({
-      title: "Success",
-      description: "Client data loaded successfully",
-      variant: "default"
+      title: "Connection Issue",
+      description: "Unable to load clients. Please check your connection and try again.",
+      variant: "destructive"
     });
   };
 

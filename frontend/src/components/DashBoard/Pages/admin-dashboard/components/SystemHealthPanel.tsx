@@ -32,21 +32,13 @@ import {
   ArrowUp, ArrowDown, Signal, Cloud, Link
 } from 'lucide-react';
 import {
-  LineChart as ReLineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryAxis,
+  VictoryPie,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from 'victory';
 
 // =====================================================
 // STYLED COMPONENTS - SYSTEM HEALTH DESIGN
@@ -915,42 +907,52 @@ const SystemHealthPanel: React.FC = () => {
               <BarChart3 size={20} />
               Performance Trends (24 Hours)
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={systemHealth.performanceHistory}>
-                <defs>
-                  <linearGradient id="systemGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis 
-                  dataKey="hour" 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
-                  tickFormatter={(value) => `${value}:00`}
+            <VictoryChart
+              height={350}
+              padding={{ top: 20, bottom: 50, left: 60, right: 30 }}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              containerComponent={
+                <VictoryVoronoiContainer
+                  labels={({ datum }) => `${datum.hour}:00\nResponse: ${datum.responseTime?.toFixed(0)}ms`}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                      style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                      cornerRadius={8}
+                    />
+                  }
                 />
-                <YAxis 
-                  stroke="rgba(255, 255, 255, 0.7)"
-                  fontSize={12}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(59, 130, 246, 0.9)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="responseTime" 
-                  fill="url(#systemGradient)"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+              }
+            >
+              <VictoryAxis
+                tickFormat={(value: number) => `${value}:00`}
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryAxis
+                dependentAxis
+                style={{
+                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+                }}
+              />
+              <VictoryArea
+                data={systemHealth.performanceHistory}
+                x="hour"
+                y="responseTime"
+                style={{
+                  data: {
+                    fill: 'rgba(80, 160, 240, 0.15)',
+                    stroke: '#50A0F0',
+                    strokeWidth: 3,
+                  },
+                }}
+              />
+            </VictoryChart>
           </ChartCard>
 
           {/* Resource Usage */}
@@ -963,36 +965,27 @@ const SystemHealthPanel: React.FC = () => {
               <Gauge size={20} />
               Resource Usage
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={systemHealth.resourceUsage}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="usage"
-                  nameKey="name"
-                >
-                  {systemHealth.resourceUsage.map((entry: any, index: number) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'][index % 4]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(59, 130, 246, 0.9)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }}
-                  formatter={(value: any) => [`${value}%`, 'Usage']}
+            <VictoryPie
+              data={systemHealth.resourceUsage}
+              x="name"
+              y="usage"
+              innerRadius={60}
+              padAngle={3}
+              colorScale={['#50A0F0', '#4ECDC4', '#C6A84B', '#8B5CF6']}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              height={350}
+              labels={({ datum }) => `${datum.name}: ${datum.usage}%`}
+              labelComponent={
+                <VictoryTooltip
+                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                  cornerRadius={8}
                 />
-              </PieChart>
-            </ResponsiveContainer>
+              }
+              style={{
+                labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+              }}
+            />
             
             {/* Resource Usage Details */}
             <div style={{ marginTop: '1rem' }}>

@@ -31,26 +31,11 @@ import {
   AlertTriangle, CheckCircle, Building, Briefcase,
   Rocket, Crown, Diamond, Shield, Trophy
 } from 'lucide-react';
+// Victory chart components (migrated from Recharts)
 import {
-  LineChart as ReLineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart,
-  RadialBarChart,
-  RadialBar
-} from 'recharts';
+  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
+} from 'victory';
 
 // =====================================================
 // STYLED COMPONENTS - EXECUTIVE INTELLIGENCE DESIGN
@@ -831,52 +816,15 @@ const BusinessIntelligenceDashboard: React.FC = () => {
               <Rocket size={24} />
               Growth Trajectory & Market Expansion
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={businessData.growthTrajectory}>
-                <defs>
-                  <linearGradient id="executiveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ffd700" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#ffa500" stopOpacity={0.1}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="rgba(255, 255, 255, 0.8)"
-                  fontSize={14}
-                  fontWeight={600}
-                />
-                <YAxis 
-                  stroke="rgba(255, 255, 255, 0.8)"
-                  fontSize={14}
-                  fontWeight={600}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 140, 0, 0.9) 100%)',
-                    border: '2px solid rgba(255, 215, 0, 0.5)',
-                    borderRadius: '12px',
-                    color: '#000',
-                    fontWeight: 600
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  fill="url(#executiveGradient)"
-                  stroke="#ffd700"
-                  strokeWidth={4}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="users" 
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ fill: '#10b981', strokeWidth: 3, r: 5 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <VictoryChart height={400} padding={{ top: 40, bottom: 50, left: 60, right: 20 }}
+              containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.month}: ${datum._y}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(198, 168, 75, 0.5)' }} />} />}
+            >
+              <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", fontWeight: 600 }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryAxis dependentAxis tickFormat={(t: number) => `$${(t / 1000).toFixed(0)}K`} style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace", fontWeight: 600 }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
+              <VictoryArea data={businessData.growthTrajectory} x="month" y="revenue" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { fill: '#C6A84B40', stroke: '#C6A84B', strokeWidth: 4 } }} />
+              <VictoryLine data={businessData.growthTrajectory} x="month" y="users" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 3 } }} />
+              <VictoryLegend x={80} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Revenue', symbol: { fill: '#C6A84B' } }, { name: 'Users', symbol: { fill: '#4ECDC4' } }]} />
+            </VictoryChart>
           </ChartCard>
 
           <ChartCard
@@ -888,25 +836,22 @@ const BusinessIntelligenceDashboard: React.FC = () => {
               <Diamond size={24} />
               Competitive Advantage
             </ChartTitle>
-            <ResponsiveContainer width="100%" height={400}>
-              <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={[
-                { name: 'Brand Strength', value: businessData.executiveKPIs.brandStrength * 10, fill: '#ffd700' },
-                { name: 'Market Position', value: businessData.executiveKPIs.competitiveAdvantage * 10, fill: '#3b82f6' },
-                { name: 'Growth Rate', value: businessData.executiveKPIs.annualGrowthRate / 2, fill: '#10b981' },
-                { name: 'Profit Margin', value: businessData.executiveKPIs.profitMargin * 2, fill: '#f59e0b' }
-              ]}>
-                <RadialBar dataKey="value" fill="#ffd700" />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'rgba(255, 215, 0, 0.9)',
-                    border: '1px solid rgba(255, 215, 0, 0.5)',
-                    borderRadius: '8px',
-                    color: '#000',
-                    fontWeight: 600
-                  }}
-                />
-              </RadialBarChart>
-            </ResponsiveContainer>
+            <VictoryPie
+              data={[
+                { name: 'Brand Strength', value: businessData.executiveKPIs.brandStrength * 10 },
+                { name: 'Market Position', value: businessData.executiveKPIs.competitiveAdvantage * 10 },
+                { name: 'Growth Rate', value: businessData.executiveKPIs.annualGrowthRate / 2 },
+                { name: 'Profit Margin', value: businessData.executiveKPIs.profitMargin * 2 }
+              ]}
+              x="name" y="value"
+              colorScale={['#C6A84B', '#50A0F0', '#4ECDC4', '#8B5CF6']}
+              animate={{ duration: 800, easing: 'cubicInOut' }}
+              labels={({ datum }: any) => `${datum.name}: ${datum.value.toFixed(0)}`}
+              labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(198, 168, 75, 0.5)' }} />}
+              innerRadius={80} padAngle={3}
+              style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" } }}
+              height={400}
+            />
           </ChartCard>
         </ChartsContainer>
       )}

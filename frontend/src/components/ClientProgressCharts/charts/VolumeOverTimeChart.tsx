@@ -2,17 +2,18 @@
  * VolumeOverTimeChart.tsx
  * ======================
  *
- * Line chart component for displaying total workout volume over time
+ * Area chart component for displaying total workout volume over time
  * Part of the ClientProgressCharts modular system
  *
  * FEATURES:
- * - Responsive line chart with smooth animations
+ * - Responsive area chart with smooth animations
  * - Gradient fill under the line
  * - Interactive tooltips with detailed information
  * - Trend line overlay option
  * - Mobile-optimized touch interactions
  * - WCAG AA accessibility compliance
  *
+ * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
  * THEME: Enchanted Apex — Crystalline Swan
  */
 
@@ -20,15 +21,13 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Line as RechartsLine
-} from 'recharts';
+  VictoryChart,
+  VictoryArea,
+  VictoryLine,
+  VictoryAxis,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from 'victory';
 import { VolumeChartProps, VolumeDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -42,35 +41,6 @@ const ChartContainer = styled(motion.div)`
   }
 `;
 
-const TooltipContainer = styled.div`
-  background: linear-gradient(
-    135deg,
-    rgba(0, 32, 96, 0.95) 0%,
-    rgba(0, 48, 128, 0.9) 100%
-  );
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipLabel = styled.div`
-  font-weight: 600;
-  color: #60C0F0;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipValue = styled.div`
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: #C6A84B;
-  font-family: 'Fira Code', monospace;
-`;
-
 const NoDataContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -81,42 +51,19 @@ const NoDataContainer = styled.div`
   text-align: center;
 `;
 
-// ==================== INTERFACES ====================
+// ==================== CONSTANTS ====================
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-// ==================== COMPONENTS ====================
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || !payload.length) {
-    return null;
-  }
-
-  const data = payload[0]?.payload as VolumeDataPoint;
-
-  return (
-    <TooltipContainer>
-      <TooltipLabel>
-        {new Date(label!).toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })}
-      </TooltipLabel>
-      <TooltipValue>
-        {data.label}
-      </TooltipValue>
-      {data.totalSets && (
-        <div style={{ fontSize: '0.875rem', color: '#b8c9db', marginTop: '0.25rem', fontFamily: "'Fira Code', monospace" }}>
-          {data.totalSets} sets
-        </div>
-      )}
-    </TooltipContainer>
-  );
+const AXIS_STYLE = {
+  axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+  tickLabels: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+  grid: {
+    stroke: 'rgba(96, 192, 240, 0.08)',
+    strokeDasharray: '4,4',
+  },
 };
 
 // ==================== MAIN COMPONENT ====================
@@ -136,11 +83,12 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // Sort data by date and ensure proper formatting
     return data
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .map(point => ({
+      .map((point, index) => ({
         ...point,
+        x: index,
+        y: point.value,
         displayDate: new Date(point.date).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric'
@@ -189,64 +137,98 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
       <ChartContainer>
-        <ResponsiveContainer width="100%" height={height}>
-          <AreaChart
+        <VictoryChart
+          padding={{ top: 20, right: 30, left: 60, bottom: 50 }}
+          domainPadding={{ y: [0, 10] }}
+          animate={animate ? { duration: 800, easing: 'cubicInOut' } : undefined}
+          containerComponent={
+            showTooltip ? (
+              <VictoryVoronoiContainer
+                labels={({ datum }) => {
+                  const d = datum as VolumeDataPoint & { displayDate: string };
+                  const parts = [d.displayDate, d.label || `${d.value.toLocaleString()} lbs`];
+                  if (d.totalSets) parts.push(`${d.totalSets} sets`);
+                  return parts.join('\n');
+                }}
+                labelComponent={
+                  <VictoryTooltip
+                    flyoutStyle={{
+                      fill: '#141419',
+                      stroke: 'rgba(139, 92, 246, 0.3)',
+                      strokeWidth: 1,
+                    }}
+                    style={{
+                      fill: '#E0ECF4',
+                      fontSize: 11,
+                      fontFamily: "'Fira Code', monospace",
+                    }}
+                    cornerRadius={8}
+                    flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  />
+                }
+              />
+            ) : undefined
+          }
+        >
+          {/* Gradient defs */}
+          <defs>
+            <linearGradient id="victoryVolumeGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8} />
+              <stop offset="50%" stopColor="#50A0F0" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.1} />
+            </linearGradient>
+          </defs>
+
+          {/* X Axis */}
+          <VictoryAxis
+            style={AXIS_STYLE}
+            tickValues={chartData.map((_, i) => i)}
+            tickFormat={chartData.map(d => d.displayDate)}
+          />
+
+          {/* Y Axis */}
+          <VictoryAxis
+            dependentAxis
+            style={{
+              ...AXIS_STYLE,
+              axisLabel: {
+                fill: '#E0ECF4',
+                fontSize: 12,
+                fontFamily: "'Fira Code', monospace",
+                padding: 40,
+              },
+            }}
+            label="Volume (lbs)"
+          />
+
+          {/* Main Area */}
+          <VictoryArea
             data={chartData}
-            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="volumeAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#60C0F0" stopOpacity={0.8}/>
-                <stop offset="50%" stopColor="#50A0F0" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#C6A84B" stopOpacity={0.1}/>
-              </linearGradient>
-              <linearGradient id="trendLineGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#C6A84B" stopOpacity={0.3}/>
-                <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.6}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(96, 192, 240, 0.1)"
+            interpolation="monotoneX"
+            style={{
+              data: {
+                fill: 'url(#victoryVolumeGradient)',
+                stroke: '#60C0F0',
+                strokeWidth: 2,
+              },
+            }}
+          />
+
+          {/* Trend Line (average) */}
+          {showTrendLine && (
+            <VictoryLine
+              data={chartData.map(d => ({ x: d.x, y: averageValue }))}
+              style={{
+                data: {
+                  stroke: '#C6A84B',
+                  strokeWidth: 2,
+                  strokeDasharray: '5,5',
+                  opacity: 0.6,
+                },
+              }}
             />
-            <XAxis
-              dataKey="displayDate"
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 11, fontFamily: "'Fira Code', monospace" }}
-            />
-            <YAxis
-              stroke="rgba(96, 192, 240, 0.5)"
-              tick={{ fill: '#b8c9db', fontSize: 12, fontFamily: "'Fira Code', monospace" }}
-              label={{ value: 'Volume (lbs)', angle: -90, position: 'insideLeft', fill: '#b8c9db' }}
-            />
-            {showTooltip && (
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ stroke: '#60C0F0', strokeWidth: 1, strokeDasharray: '5 5' }}
-              />
-            )}
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="#60C0F0"
-              strokeWidth={2}
-              fill="url(#volumeAreaGradient)"
-              isAnimationActive={animate}
-              animationDuration={1500}
-            />
-            {showTrendLine && (
-              <RechartsLine
-                type="monotone"
-                dataKey={() => averageValue}
-                stroke="url(#trendLineGradient)"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
-                isAnimationActive={false}
-              />
-            )}
-          </AreaChart>
-        </ResponsiveContainer>
+          )}
+        </VictoryChart>
       </ChartContainer>
     </motion.div>
   );
