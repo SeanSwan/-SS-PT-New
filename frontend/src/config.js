@@ -1,4 +1,6 @@
 // Frontend config file - config.js
+import { logger } from '@/utils/logger';
+
 const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production';
 
 // Create a forceDev utility for development mode
