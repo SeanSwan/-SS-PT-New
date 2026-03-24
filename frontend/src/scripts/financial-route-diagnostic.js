@@ -1,7 +1,7 @@
 // Financial Route Debug Diagnostic
 // This script will help us verify if the financial routes are properly registered
 
-console.log('🔍 Starting Financial Route Diagnostic...');
+logger.log('🔍 Starting Financial Route Diagnostic...');
 
 const debugInfo = {
   serverLogs: `
@@ -60,15 +60,15 @@ const debugInfo = {
        - Verify latest code is deployed
     
     4. ROUTE DEBUGGING:
-       - Add console.log to financial routes to confirm loading
+       - Add logger.log to financial routes to confirm loading
        - Test simpler endpoints first
        - Check route mounting order
   `
 };
 
-console.log(debugInfo.serverLogs);
-console.log(debugInfo.potentialCauses);
-console.log(debugInfo.debugSteps);
+logger.log(debugInfo.serverLogs);
+logger.log(debugInfo.potentialCauses);
+logger.log(debugInfo.debugSteps);
 
 // Create a test request payload for manual testing
 const testPayload = {
@@ -87,7 +87,7 @@ const testPayload = {
   })
 };
 
-console.log('🧪 TEST REQUEST FOR MANUAL VERIFICATION:');
-console.log(JSON.stringify(testPayload, null, 2));
+logger.log('🧪 TEST REQUEST FOR MANUAL VERIFICATION:');
+logger.log(JSON.stringify(testPayload, null, 2));
 
 export default debugInfo;

@@ -10,6 +10,7 @@ import EnhancedPreviewPanel from '../../components/Reports/PreviewPanel';
 // Import the custom hook and context type from ReportDataContext
 import { useReportData, ReportDataContextType } from './../../context/ReportDataContext';
 import { MediaFile, VideoLink } from '../../types/reports';
+import { logger } from '@/utils/logger';
 
 // Styled components
 const PageContainer = styled.div`
@@ -123,33 +124,33 @@ const DetailedReportPage: React.FC = () => {
   // Fetch data when clientId changes
   useEffect(() => {
     if (clientId) {
-      console.log(`DetailedReportPage: Triggering fetch for client ID: ${clientId}`);
+      logger.log(`DetailedReportPage: Triggering fetch for client ID: ${clientId}`);
       fetchInitialData(clientId);
       // TODO: Optionally fetch media/video files here, e.g.:
       // fetchMediaForClient(clientId).then(setMediaFiles);
     } else {
-      console.warn('DetailedReportPage: No clientId found in URL params.');
+      logger.warn('DetailedReportPage: No clientId found in URL params.');
     }
   }, [clientId, fetchInitialData]);
 
   // Handlers for PDF export and report actions
   const handleExportPDF = async (): Promise<void> => {
-    console.log('PDF export triggered from DetailedReportPage - delegates to PreviewPanel');
+    logger.log('PDF export triggered from DetailedReportPage - delegates to PreviewPanel');
     return Promise.resolve();
   };
 
   const handleSaveChanges = async (): Promise<void> => {
-    console.log('Save Draft Clicked - Needs Implementation');
+    logger.log('Save Draft Clicked - Needs Implementation');
     // Implement saving logic here
   };
 
   const handleSendReport = async (): Promise<void> => {
-    console.log('Send Report Clicked - Needs Implementation');
+    logger.log('Send Report Clicked - Needs Implementation');
     // Implement send logic here
   };
 
   const handleEditReport = (): void => {
-    console.log('Edit Report Clicked - Needs Implementation');
+    logger.log('Edit Report Clicked - Needs Implementation');
     // Implement edit logic here
   };
 

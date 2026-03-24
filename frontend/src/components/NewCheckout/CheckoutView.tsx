@@ -45,6 +45,7 @@ import {
   AlertTriangle, Loader, ArrowRight, Star, Sparkles,
   Package, DollarSign, User, Mail, Phone, Home
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // Galaxy-themed animations
 const galaxyPulse = keyframes`
@@ -433,27 +434,27 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     }));
 
     try {
-      console.log('🚀 [Genesis Checkout] Creating Stripe Checkout Session...');
-      console.log('💰 [Genesis Checkout] Total:', total.toFixed(2));
-      console.log('🎯 [Genesis Checkout] Sessions:', sessionCount);
-      console.log('📊 [Genesis Checkout] Cart ID:', cart.id);
-      console.log('👤 [Genesis Checkout] User ID:', user.id);
+      logger.log('🚀 [Genesis Checkout] Creating Stripe Checkout Session...');
+      logger.log('💰 [Genesis Checkout] Total:', total.toFixed(2));
+      logger.log('🎯 [Genesis Checkout] Sessions:', sessionCount);
+      logger.log('📊 [Genesis Checkout] Cart ID:', cart.id);
+      logger.log('👤 [Genesis Checkout] User ID:', user.id);
 
       // First check if the payment system is healthy
-      console.log('🔍 [Genesis Checkout] Testing payment system health...');
+      logger.log('🔍 [Genesis Checkout] Testing payment system health...');
       try {
         const healthResponse = await api.get('/api/v2/payments/health');
-        console.log('✅ [Genesis Checkout] Payment system health:', healthResponse.data);
+        logger.log('✅ [Genesis Checkout] Payment system health:', healthResponse.data);
         
         if (!healthResponse.data?.success || healthResponse.data?.data?.status !== 'healthy') {
-          console.warn('⚠️ [Genesis Checkout] Payment system not fully healthy:', healthResponse.data);
+          logger.warn('⚠️ [Genesis Checkout] Payment system not fully healthy:', healthResponse.data);
         }
       } catch (healthError) {
-        console.warn('⚠️ [Genesis Checkout] Payment health check failed:', healthError);
+        logger.warn('⚠️ [Genesis Checkout] Payment health check failed:', healthError);
         // Continue anyway, the health endpoint might not exist
       }
       
-      console.log('🔍 [Genesis Checkout] Proceeding with checkout session creation...');
+      logger.log('🔍 [Genesis Checkout] Proceeding with checkout session creation...');
       
       const response = await api.post('/api/v2/payments/create-checkout-session', {
         cartId: cart.id,
@@ -474,9 +475,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
           throw new Error(`Missing critical checkout data: sessionId=${!!sessionId}, checkoutUrl=${!!checkoutUrl}`);
         }
         
-        console.log('✅ [Genesis Checkout] Session created successfully');
-        console.log('🔗 [Genesis Checkout] Session ID:', sessionId);
-        console.log('🔗 [Genesis Checkout] Redirecting to Stripe...');
+        logger.log('✅ [Genesis Checkout] Session created successfully');
+        logger.log('🔗 [Genesis Checkout] Session ID:', sessionId);
+        logger.log('🔗 [Genesis Checkout] Redirecting to Stripe...');
 
         // ADMIN DASHBOARD CONNECTION: Track checkout initiation
         try {
@@ -488,9 +489,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
             sessionCount,
             timestamp: new Date().toISOString()
           });
-          console.log('📊 [Admin Dashboard] Checkout tracked for analytics');
+          logger.log('📊 [Admin Dashboard] Checkout tracked for analytics');
         } catch (trackingError) {
-          console.warn('⚠️ [Admin Dashboard] Tracking failed:', trackingError);
+          logger.warn('⚠️ [Admin Dashboard] Tracking failed:', trackingError);
           // Don't fail checkout for tracking errors
         }
 

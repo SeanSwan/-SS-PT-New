@@ -5,10 +5,10 @@
  * This script simulates rendering and identifies potential errors before deployment
  */
 
-console.log('🧪 STARTING COMPREHENSIVE SIMULATION TEST...\n');
+logger.log('🧪 STARTING COMPREHENSIVE SIMULATION TEST...\n');
 
 // ============= TEST 1: IMPORT DEPENDENCY ANALYSIS =============
-console.log('📋 TEST 1: Import Dependency Analysis');
+logger.log('📋 TEST 1: Import Dependency Analysis');
 
 const criticalImports = {
   // React Core
@@ -42,11 +42,11 @@ const criticalImports = {
 };
 
 Object.entries(criticalImports).forEach(([item, status]) => {
-  console.log(`  ${item}: ${status}`);
+  logger.log(`  ${item}: ${status}`);
 });
 
 // ============= TEST 2: TYPESCRIPT INTERFACE ANALYSIS =============
-console.log('\n📋 TEST 2: TypeScript Interface Analysis');
+logger.log('\n📋 TEST 2: TypeScript Interface Analysis');
 
 const potentialTypeIssues = {
   'Props Interface': {
@@ -72,11 +72,11 @@ const potentialTypeIssues = {
 };
 
 Object.entries(potentialTypeIssues).forEach(([test, result]) => {
-  console.log(`  ${test}: ${result.severity} - ${result.issue}`);
+  logger.log(`  ${test}: ${result.severity} - ${result.issue}`);
 });
 
 // ============= TEST 3: STYLING AND ANIMATION CONFLICTS =============
-console.log('\n📋 TEST 3: Styling and Animation Analysis');
+logger.log('\n📋 TEST 3: Styling and Animation Analysis');
 
 const stylingTests = {
   'Styled Components': {
@@ -107,12 +107,12 @@ const stylingTests = {
 };
 
 Object.entries(stylingTests).forEach(([test, result]) => {
-  console.log(`  ${test}: ${result.result}`);
-  console.log(`    → ${result.details}`);
+  logger.log(`  ${test}: ${result.result}`);
+  logger.log(`    → ${result.details}`);
 });
 
 // ============= TEST 4: RUNTIME ERROR SIMULATION =============
-console.log('\n📋 TEST 4: Runtime Error Simulation');
+logger.log('\n📋 TEST 4: Runtime Error Simulation');
 
 const runtimeTests = {
   'useAuth Hook': {
@@ -148,13 +148,13 @@ const runtimeTests = {
 };
 
 Object.entries(runtimeTests).forEach(([test, analysis]) => {
-  console.log(`  ${test}: ${analysis.likelihood}`);
-  console.log(`    Error: ${analysis.error}`);
-  console.log(`    Prevention: ${analysis.prevention}`);
+  logger.log(`  ${test}: ${analysis.likelihood}`);
+  logger.log(`    Error: ${analysis.error}`);
+  logger.log(`    Prevention: ${analysis.prevention}`);
 });
 
 // ============= TEST 5: PERFORMANCE ANALYSIS =============
-console.log('\n📋 TEST 5: Performance Analysis');
+logger.log('\n📋 TEST 5: Performance Analysis');
 
 const performanceTests = {
   'Component Re-renders': {
@@ -185,12 +185,12 @@ const performanceTests = {
 };
 
 Object.entries(performanceTests).forEach(([test, analysis]) => {
-  console.log(`  ${test}: ${analysis.impact}`);
-  console.log(`    → ${analysis.details}`);
+  logger.log(`  ${test}: ${analysis.impact}`);
+  logger.log(`    → ${analysis.details}`);
 });
 
 // ============= TEST 6: ACCESSIBILITY COMPLIANCE =============
-console.log('\n📋 TEST 6: Accessibility Compliance');
+logger.log('\n📋 TEST 6: Accessibility Compliance');
 
 const a11yTests = {
   'ARIA Labels': {
@@ -216,12 +216,12 @@ const a11yTests = {
 };
 
 Object.entries(a11yTests).forEach(([test, result]) => {
-  console.log(`  ${test}: ${result.compliance}`);
-  console.log(`    → ${result.details}`);
+  logger.log(`  ${test}: ${result.compliance}`);
+  logger.log(`    → ${result.details}`);
 });
 
 // ============= CRITICAL ISSUES IDENTIFIED =============
-console.log('\n🚨 CRITICAL ISSUES TO ADDRESS BEFORE DEPLOYMENT:');
+logger.log('\n🚨 CRITICAL ISSUES TO ADDRESS BEFORE DEPLOYMENT:');
 
 const criticalIssues = [
   {
@@ -245,13 +245,13 @@ const criticalIssues = [
 ];
 
 criticalIssues.forEach((issue, index) => {
-  console.log(`\n  ${index + 1}. [${issue.priority}] ${issue.issue}`);
-  console.log(`     Problem: ${issue.description}`);
-  console.log(`     Solution: ${issue.fix}`);
+  logger.log(`\n  ${index + 1}. [${issue.priority}] ${issue.issue}`);
+  logger.log(`     Problem: ${issue.description}`);
+  logger.log(`     Solution: ${issue.fix}`);
 });
 
 // ============= DEPLOYMENT READINESS SCORE =============
-console.log('\n🎯 DEPLOYMENT READINESS ASSESSMENT:');
+logger.log('\n🎯 DEPLOYMENT READINESS ASSESSMENT:');
 
 const scores = {
   'Dependencies': 100,
@@ -266,13 +266,13 @@ const overallScore = Object.values(scores).reduce((a, b) => a + b) / Object.keys
 
 Object.entries(scores).forEach(([category, score]) => {
   const status = score >= 90 ? '🟢' : score >= 75 ? '🟡' : '🔴';
-  console.log(`  ${category}: ${score}/100 ${status}`);
+  logger.log(`  ${category}: ${score}/100 ${status}`);
 });
 
-console.log(`\n  OVERALL READINESS: ${Math.round(overallScore)}/100 ${overallScore >= 85 ? '🟢 READY' : '🟡 NEEDS ATTENTION'}`);
+logger.log(`\n  OVERALL READINESS: ${Math.round(overallScore)}/100 ${overallScore >= 85 ? '🟢 READY' : '🟡 NEEDS ATTENTION'}`);
 
 // ============= RECOMMENDED FIXES =============
-console.log('\n🔧 RECOMMENDED QUICK FIXES:');
+logger.log('\n🔧 RECOMMENDED QUICK FIXES:');
 
 const quickFixes = [
   '1. Add theme property fallbacks to prevent undefined errors',
@@ -282,10 +282,10 @@ const quickFixes = [
   '5. Test mobile menu on various device sizes'
 ];
 
-quickFixes.forEach(fix => console.log(`  ${fix}`));
+quickFixes.forEach(fix => logger.log(`  ${fix}`));
 
-console.log('\n✅ SIMULATION COMPLETE - Header is mostly ready with minor fixes needed!');
-console.log('🚀 Deploy with confidence after addressing HIGH priority issues.\n');
+logger.log('\n✅ SIMULATION COMPLETE - Header is mostly ready with minor fixes needed!');
+logger.log('🚀 Deploy with confidence after addressing HIGH priority issues.\n');
 
 export default {
   overallScore,

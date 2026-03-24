@@ -32,6 +32,7 @@ import {
   Award, CheckCircle, AlertTriangle, Clock, TrendingUp,
   BarChart3, X, Plus, Settings, FileText, Camera
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -620,12 +621,12 @@ const TrainersManagementSection: React.FC = () => {
   };
 
   const handleEditTrainer = (trainerId: string) => {
-    console.log('Edit trainer:', trainerId);
+    logger.log('Edit trainer:', trainerId);
     setActiveActionMenu(null);
   };
 
   const handleViewTrainer = (trainerId: string) => {
-    console.log('View trainer:', trainerId);
+    logger.log('View trainer:', trainerId);
     setActiveActionMenu(null);
   };
 

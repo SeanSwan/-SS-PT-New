@@ -33,6 +33,7 @@ import type {
   ScheduleStats,
   ApiResponse
 } from '../components/UniversalMasterSchedule/types';
+import { logger } from '@/utils/logger';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
@@ -171,7 +172,7 @@ class UniversalMasterScheduleService {
   }>): Promise<{ sessions: Session[]; message: string }> {
     try {
       // Log payload for debugging
-      console.log('[SessionService] Creating sessions with payload:', {
+      logger.log('[SessionService] Creating sessions with payload:', {
         sessions,
         sessionsCount: sessions?.length,
         firstSession: sessions?.[0]
@@ -183,7 +184,7 @@ class UniversalMasterScheduleService {
         sessions: Session[];
       }> = await this.api.post('/api/sessions', { sessions });
 
-      console.log('[SessionService] Create response:', response.data);
+      logger.log('[SessionService] Create response:', response.data);
 
       if (response.data.success) {
         return {
@@ -593,7 +594,7 @@ class UniversalMasterScheduleService {
       const response = await this.api.get('/api/sessions/health');
       return response.status === 200 && response.data.status === 'healthy';
     } catch (error) {
-      console.warn('Universal Master Schedule service health check failed:', error);
+      logger.warn('Universal Master Schedule service health check failed:', error);
       return false;
     }
   }

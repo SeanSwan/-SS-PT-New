@@ -42,6 +42,7 @@ import {
   AchievementDescription,
   PointsChip,
 } from '../styles/PostCardStyles';
+import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Workout Stats Renderer
@@ -134,7 +135,7 @@ TransformationImages.displayName = 'TransformationImages';
 const PostContent: React.FC<PostContentProps> = React.memo(({ post, transformationSliderValue }) => {
   const handleTryWorkout = () => {
     // Future: integrate with workout generator
-    console.log('Opening workout generator with this workout as template...');
+    logger.log('Opening workout generator with this workout as template...');
   };
 
   return (

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import profileService, { UserProfile, UserStats, SocialPost, Achievement, FollowStats } from '../../services/profileService';
+import { logger } from '@/utils/logger';
 
 interface UseProfileReturn {
   // Profile data
@@ -117,7 +118,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       const statsData = await profileService.getUserStats();
       setStats(statsData);
     } catch (err: any) {
-      console.warn('Stats endpoint not available yet:', err.message);
+      logger.warn('Stats endpoint not available yet:', err.message);
       // Set default stats instead of showing error
       setStats({
         posts: 0,
@@ -154,7 +155,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       setPostsHasMore(postsData.posts.length === limit);
       setPostsOffset(offset + postsData.posts.length);
     } catch (err: any) {
-      console.warn('Posts endpoint not available yet:', err.message);
+      logger.warn('Posts endpoint not available yet:', err.message);
       // Set empty posts instead of showing error
       setPosts([]);
       setPostsHasMore(false);
@@ -185,7 +186,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       const achievementsData = await profileService.getUserAchievements();
       setAchievements(achievementsData.achievements);
     } catch (err: any) {
-      console.warn('Achievements endpoint not available yet:', err.message);
+      logger.warn('Achievements endpoint not available yet:', err.message);
       // Set empty achievements instead of showing error
       setAchievements([]);
     } finally {
@@ -205,7 +206,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       const followData = await profileService.getFollowStats();
       setFollowStats(followData);
     } catch (err: any) {
-      console.warn('Follow stats endpoint not available yet:', err.message);
+      logger.warn('Follow stats endpoint not available yet:', err.message);
       // Set default follow stats instead of showing error
       setFollowStats({
         followers: { count: 0, list: [] },

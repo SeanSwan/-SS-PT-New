@@ -8,6 +8,7 @@ import { createAdminClientService, AdminClientServiceInterface } from '../servic
 import { useBackendConnection } from '../hooks/useBackendConnection';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
+import { logger } from '@/utils/logger';
 
 // PRODUCTION-ONLY AuthContext - NO DEVELOPMENT BYPASSES
 // This version is for LIVE PRODUCTION use where real authentication is required
@@ -96,7 +97,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     dispatch = useDispatch();
     reduxUser = useSelector((state: any) => state.auth?.user);
   } catch (error) {
-    console.log('Redux not available, using local state only');
+    logger.log('Redux not available, using local state only');
   }
   
   // Create services with authenticated axios instance
@@ -160,7 +161,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     const checkAuthStatus = async () => {
       // Guard: Only run if no user is currently set (prevents unnecessary re-runs)
       if (user) {
-        console.log('User already authenticated, skipping auth check');
+        logger.log('User already authenticated, skipping auth check');
         setLoading(false);
         return;
       }
@@ -174,7 +175,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         const tokenTimestamp = localStorage.getItem('tokenTimestamp');
         
         if (!token) {
-          console.log('No valid token found');
+          logger.log('No valid token found');
           if (isMounted) {
             setUser(null);
             setLoading(false);
@@ -188,11 +189,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           const maxAge = 24 * 60 * 60 * 1000; // 24 hours
           
           if (age > maxAge) {
-            console.log('Token expired, attempting refresh...');
+            logger.log('Token expired, attempting refresh...');
             const refreshed = await refreshToken();
             
             if (!refreshed) {
-              console.log('Token refresh failed, logging out');
+              logger.log('Token refresh failed, logging out');
               if (isMounted) logout();
               return;
             }
@@ -233,7 +234,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
               dispatch(setReduxUser(formattedUser));
             }
             
-            console.log('Authentication restored:', formattedUser.username, formattedUser.role);
+            logger.log('Authentication restored:', formattedUser.username, formattedUser.role);
           }
         } else {
           throw new Error('Invalid user data from server');
@@ -270,7 +271,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
       // Handle force-password-change flow — clear stale auth state, no user/token yet
       if (response?.forcePasswordChange && response?.tempToken) {
-        console.log('Login requires password change');
+        logger.log('Login requires password change');
         setUser(null);
         setToken(null);
         return { success: true, user: null, forcePasswordChange: true, tempToken: response.tempToken };
@@ -307,7 +308,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           dispatch(setReduxUser(formattedUser));
         }
 
-        console.log('Login successful:', formattedUser.username, formattedUser.role);
+        logger.log('Login successful:', formattedUser.username, formattedUser.role);
         return { success: true, user: formattedUser };
       } else {
         throw new Error('Invalid login response');
@@ -350,7 +351,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       dispatch(logoutRedux());
     }
     
-    console.log('Logged out successfully');
+    logger.log('Logged out successfully');
   }, [dispatch]);
   
   // Register function - PRODUCTION ONLY
@@ -391,7 +392,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           dispatch(setReduxUser(formattedUser));
         }
         
-        console.log('Registration successful:', formattedUser.username);
+        logger.log('Registration successful:', formattedUser.username);
         return { success: true, user: formattedUser };
       } else {
         throw new Error('Invalid registration response');
@@ -448,7 +449,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           dispatch(setReduxUser(updatedUser));
         }
         
-        console.log('User updated successfully');
+        logger.log('User updated successfully');
         return { success: true, user: updatedUser };
       } else {
         throw new Error('Invalid update response');

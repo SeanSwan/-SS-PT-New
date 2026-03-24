@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { logger } from '@/utils/logger';
 
 const API_BASE = '/api/v2/admin/videos';
 const CHUNK_SIZE = 64 * 1024 * 1024; // 64MB for streaming hash
@@ -69,7 +70,7 @@ async function hashFile(file: File, onProgress?: (pct: number) => void): Promise
 
     return hasher.digest('hex');
   } catch (err) {
-    console.warn('[useR2Upload] hash-wasm unavailable or failed:', err);
+    logger.warn('[useR2Upload] hash-wasm unavailable or failed:', err);
     return null;
   }
 }

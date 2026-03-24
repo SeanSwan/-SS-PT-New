@@ -9,6 +9,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import styled from 'styled-components';
+import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -61,7 +62,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    console.log(`🔄 ErrorBoundary retry attempt ${this.state.retryCount + 1}`);
+    logger.log(`🔄 ErrorBoundary retry attempt ${this.state.retryCount + 1}`);
     this.setState(prevState => ({
       hasError: false,
       error: null,
@@ -71,7 +72,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   handleReload = () => {
-    console.log('🔄 ErrorBoundary triggering page reload');
+    logger.log('🔄 ErrorBoundary triggering page reload');
     sessionStorage.clear();
     localStorage.removeItem('ums_mount_count');
     localStorage.removeItem('ums_init_failures');

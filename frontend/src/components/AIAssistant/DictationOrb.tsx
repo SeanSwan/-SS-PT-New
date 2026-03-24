@@ -55,6 +55,7 @@ declare global {
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Mic, MicOff } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ── Crystalline Swan Theme Tokens ──────────────────────────────────────────
 const CS = {
@@ -268,7 +269,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       setInterim('');
       holdingRef.current = false;
       if (event.error === 'not-allowed') {
-        console.warn('Microphone permission denied — enable in browser settings');
+        logger.warn('Microphone permission denied — enable in browser settings');
       }
     };
 

@@ -83,6 +83,7 @@ import {
   RewardPoints,
   RewardBadge
 } from '../styled-gamification-system';
+import { logger } from '@/utils/logger';
 
 /* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
@@ -983,7 +984,7 @@ const RewardManager: React.FC<RewardManagerProps> = ({
                     onChange={(e) => {
                       // File upload would be implemented in a real application
                       // This is just a placeholder for the UI
-                      console.log("File selected:", e.target.files?.[0]);
+                      logger.log("File selected:", e.target.files?.[0]);
                     }}
                   />
                 </OutlinedButton>

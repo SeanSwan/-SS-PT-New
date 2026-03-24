@@ -34,6 +34,7 @@ import {
   ThumbsDown, Heart, Share2, Image, Video, X,
   Users, BarChart3, TrendingUp, Calendar
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -604,7 +605,7 @@ const ContentModerationSection: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Fetching content for moderation...');
+      logger.log('🔄 Fetching content for moderation...');
 
       const response = await makeApiCall('/api/admin/content/posts', {
         method: 'GET'
@@ -649,7 +650,7 @@ const ContentModerationSection: React.FC = () => {
           });
         }
 
-        console.log(`✅ Successfully loaded ${formattedContent.length} content items`);
+        logger.log(`✅ Successfully loaded ${formattedContent.length} content items`);
       } else {
         throw new Error('Invalid response format from server');
       }
@@ -689,7 +690,7 @@ const ContentModerationSection: React.FC = () => {
   // Handle moderation actions
   const handleModerateContent = async (contentId: string, action: string, reason?: string) => {
     try {
-      console.log(`🔄 ${action}ing content ${contentId}...`);
+      logger.log(`🔄 ${action}ing content ${contentId}...`);
 
       const response = await makeApiCall('/api/admin/content/moderate', {
         method: 'POST',
@@ -703,7 +704,7 @@ const ContentModerationSection: React.FC = () => {
       });
 
       if (response.success) {
-        console.log(`✅ Successfully ${action}ed content ${contentId}`);
+        logger.log(`✅ Successfully ${action}ed content ${contentId}`);
         await fetchContent(); // Refresh content list
         setActiveActionMenu(null);
       } else {
@@ -724,7 +725,7 @@ const ContentModerationSection: React.FC = () => {
     }
     
     try {
-      console.log(`🗑️ Deleting content ${contentId}...`);
+      logger.log(`🗑️ Deleting content ${contentId}...`);
 
       const response = await makeApiCall(`/api/admin/content/posts/${contentId}`, {
         method: 'DELETE',
@@ -735,7 +736,7 @@ const ContentModerationSection: React.FC = () => {
       });
 
       if (response.success) {
-        console.log(`✅ Successfully deleted content ${contentId}`);
+        logger.log(`✅ Successfully deleted content ${contentId}`);
         await fetchContent();
         setActiveActionMenu(null);
       } else {
@@ -748,12 +749,12 @@ const ContentModerationSection: React.FC = () => {
   };
 
   const handleViewUser = (userId: string) => {
-    console.log('View user profile:', userId);
+    logger.log('View user profile:', userId);
     setActiveActionMenu(null);
   };
 
   const handleViewReports = (contentId: string) => {
-    console.log('View content reports:', contentId);
+    logger.log('View content reports:', contentId);
     setActiveActionMenu(null);
   };
 

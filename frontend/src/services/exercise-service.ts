@@ -1,6 +1,7 @@
 // services/exercise-service.ts
 import { AxiosInstance } from 'axios';
 import { getMockRecommendedExercises } from './mock-exercise-service';
+import { logger } from '@/utils/logger';
 
 // Define Exercise interface
 export interface Exercise {
@@ -56,19 +57,19 @@ export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInte
   return {
     getRecommendedExercises: async (clientId?: string) => {
       try {
-        console.log(`Fetching recommended exercises from API${clientId ? ` for client ${clientId}` : ''}...`);
+        logger.log(`Fetching recommended exercises from API${clientId ? ` for client ${clientId}` : ''}...`);
         const url = clientId ? `/api/exercises/recommended/${clientId}` : '/api/exercises/recommended';
         const response = await axios.get<RecommendedExercisesResponse>(url);
         
         if (response.data && response.data.success) {
-          console.log(`Received ${response.data.recommendedExercises.length} recommended exercises`);
+          logger.log(`Received ${response.data.recommendedExercises.length} recommended exercises`);
           return response.data;
         } else {
           throw new Error('Invalid API response format');
         }
       } catch (error) {
         console.error('Error fetching recommended exercises:', error);
-        console.log('Falling back to mock exercise data');
+        logger.log('Falling back to mock exercise data');
         // Return mock data if the API fails
         return getMockRecommendedExercises();
       }

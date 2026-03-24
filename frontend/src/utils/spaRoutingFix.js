@@ -18,7 +18,7 @@ export const initializeSPARouting = () => {
     
     // If we're on a route that should exist but got a 404, redirect properly
     if (currentPath !== '/' && !document.querySelector('#root').innerHTML) {
-      console.log('SPA Routing: Handling direct access to:', currentPath);
+      logger.log('SPA Routing: Handling direct access to:', currentPath);
       
       // Store the intended path in sessionStorage
       sessionStorage.setItem('spa_intended_path', currentPath + currentHash);
@@ -33,7 +33,7 @@ export const initializeSPARouting = () => {
     const hash = window.location.hash;
     if (hash && hash.startsWith('#/')) {
       const path = hash.substring(1); // Remove the #
-      console.log('SPA Routing: Restoring path from hash:', path);
+      logger.log('SPA Routing: Restoring path from hash:', path);
       
       // Use React Router's navigation
       window.history.replaceState(null, null, path);
@@ -47,7 +47,7 @@ export const initializeSPARouting = () => {
   const handleStoredPath = () => {
     const intendedPath = sessionStorage.getItem('spa_intended_path');
     if (intendedPath) {
-      console.log('SPA Routing: Restoring intended path:', intendedPath);
+      logger.log('SPA Routing: Restoring intended path:', intendedPath);
       sessionStorage.removeItem('spa_intended_path');
       
       // Navigate to the intended path
@@ -63,7 +63,7 @@ export const initializeSPARouting = () => {
                         document.querySelector('#root').children.length > 0);
     
     if (!isActualApp && window.location.pathname !== '/') {
-      console.log('SPA Routing: 404 detected, attempting to recover');
+      logger.log('SPA Routing: 404 detected, attempting to recover');
       
       // Try to recover by redirecting to the base URL with hash
       const fullPath = window.location.pathname + window.location.search + window.location.hash;
@@ -87,13 +87,13 @@ export const initializeSPARouting = () => {
 export const enhanceBrowserNavigation = () => {
   // Listen for popstate events (back/forward button)
   window.addEventListener('popstate', (event) => {
-    console.log('SPA Routing: Handling browser navigation');
+    logger.log('SPA Routing: Handling browser navigation');
     
     // If the state is null, we might be dealing with a routing issue
     if (!event.state && window.location.pathname !== '/') {
       // Try to restore the correct route
       const currentPath = window.location.pathname + window.location.search + window.location.hash;
-      console.log('SPA Routing: Restoring route after browser navigation:', currentPath);
+      logger.log('SPA Routing: Restoring route after browser navigation:', currentPath);
     }
   });
 };
@@ -125,7 +125,7 @@ export const enhanceInternalLinks = () => {
                           path.startsWith('/signup');
         
         if (isAppRoute) {
-          console.log('SPA Routing: Enhancing internal link navigation to:', path);
+          logger.log('SPA Routing: Enhancing internal link navigation to:', path);
           
           // Prevent default link behavior
           event.preventDefault();
@@ -155,21 +155,21 @@ export const registerSPAServiceWorker = () => {
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker.register('/spa-sw.js')
       .then((registration) => {
-        console.log('SPA Service Worker registered:', registration);
+        logger.log('SPA Service Worker registered:', registration);
       })
       .catch((error) => {
-        console.log('SPA Service Worker registration failed:', error);
+        logger.log('SPA Service Worker registration failed:', error);
       });
   } else if (!import.meta.env.PROD && 'serviceWorker' in navigator) {
     // In development, unregister any existing service workers to avoid cache conflicts
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((registration) => {
         registration.unregister().then(() => {
-          console.log('SW: Unregistered service worker for development');
+          logger.log('SW: Unregistered service worker for development');
         });
       });
     });
-    console.log('SW: Skipping service worker registration in development');
+    logger.log('SW: Skipping service worker registration in development');
   }
 };
 
@@ -183,13 +183,13 @@ export const clearServiceWorkerCaches = async () => {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map(cacheName => {
-          console.log(`SW: Clearing cache: ${cacheName}`);
+          logger.log(`SW: Clearing cache: ${cacheName}`);
           return caches.delete(cacheName);
         })
       );
-      console.log('SW: All caches cleared for development');
+      logger.log('SW: All caches cleared for development');
     } catch (error) {
-      console.warn('SW: Failed to clear caches:', error);
+      logger.warn('SW: Failed to clear caches:', error);
     }
   }
 };
@@ -213,7 +213,7 @@ export const initializeAllSPAFixes = () => {
   // enhanceBrowserNavigation();
   // enhanceInternalLinks();
 
-  console.log('[SPA Fix] Legacy routing fixes disabled - using React Router with server-side rewrites');
+  logger.log('[SPA Fix] Legacy routing fixes disabled - using React Router with server-side rewrites');
 
   // Register service worker after a delay to avoid blocking initial load
   setTimeout(registerSPAServiceWorker, 2000);

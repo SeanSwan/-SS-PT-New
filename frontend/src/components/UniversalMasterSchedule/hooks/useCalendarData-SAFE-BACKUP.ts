@@ -23,6 +23,7 @@ import type {
   FilterOptions,
   Session
 } from '../types';
+import { logger } from '@/utils/logger';
 
 export interface CalendarDataValues {
   sessions: Session[];
@@ -87,7 +88,7 @@ export const useCalendarData = () => {
   }
   
   function initializeRealTimeUpdates(): void {
-    console.log('🔄 Real-time updates initialized');
+    logger.log('🔄 Real-time updates initialized');
   }
   
   // ==================== DATA LOADING FUNCTIONS ====================

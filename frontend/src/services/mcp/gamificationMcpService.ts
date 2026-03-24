@@ -35,6 +35,7 @@ import {
   CompleteQuestResponse,
   DiceRollResult
 } from '../../types/mcp/gamification.types';
+import { logger } from '@/utils/logger';
 
 /**
  * Enhanced Error Handling
@@ -162,7 +163,7 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   checkServerStatus: async (): Promise<McpApiResponse<ServerStatus>> => {
     try {
-      console.log('[GamificationMCP] Checking server status...');
+      logger.log('[GamificationMCP] Checking server status...');
       
       const health = await mcpConfig.checkHealth();
       
@@ -206,12 +207,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   getGamificationProfile: async ({ userId }: GetGamificationProfileParams): Promise<McpApiResponse<GamificationProfile>> => {
     try {
-      console.log(`[GamificationMCP] Getting profile for user: ${userId}`);
+      logger.log(`[GamificationMCP] Getting profile for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback profile');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback profile');
         const { fallbackProfile } = generateFallbackGamificationData();
         return { data: fallbackProfile };
       }
@@ -265,12 +266,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   getAchievements: async ({ userId, category, includeProgress }: GetAchievementsParams): Promise<McpApiResponse<Achievement[]>> => {
     try {
-      console.log(`[GamificationMCP] Getting achievements for user: ${userId}`);
+      logger.log(`[GamificationMCP] Getting achievements for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback achievements');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback achievements');
         const { fallbackAchievements } = generateFallbackGamificationData();
         return { data: fallbackAchievements };
       }
@@ -311,7 +312,7 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   getBoardPosition: async ({ userId }: GetBoardPositionParams): Promise<McpApiResponse<BoardPosition>> => {
     try {
-      console.log(`[GamificationMCP] Getting board position for user: ${userId}`);
+      logger.log(`[GamificationMCP] Getting board position for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
@@ -331,7 +332,7 @@ const gamificationMcpApi: GamificationMcpApi = {
       };
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback position');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback position');
         return { data: fallbackPosition };
       }
       
@@ -373,7 +374,7 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   rollDice: async ({ userId, diceType }: RollDiceParams): Promise<McpApiResponse<DiceRollResult>> => {
     try {
-      console.log(`[GamificationMCP] Rolling dice for user: ${userId}`);
+      logger.log(`[GamificationMCP] Rolling dice for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
@@ -398,7 +399,7 @@ const gamificationMcpApi: GamificationMcpApi = {
       };
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback dice roll');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback dice roll');
         return { data: rollResult };
       }
       
@@ -422,7 +423,7 @@ const gamificationMcpApi: GamificationMcpApi = {
           }
         };
       } catch (mcpError) {
-        console.warn('[GamificationMCP] MCP dice roll failed, using local result');
+        logger.warn('[GamificationMCP] MCP dice roll failed, using local result');
         return { data: rollResult };
       }
       
@@ -442,12 +443,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   getChallenges: async ({ userId, status, category }: GetChallengesParams): Promise<McpApiResponse<Challenge[]>> => {
     try {
-      console.log(`[GamificationMCP] Getting challenges for user: ${userId}`);
+      logger.log(`[GamificationMCP] Getting challenges for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback challenges');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback challenges');
         const { fallbackChallenges } = generateFallbackGamificationData();
         return { data: fallbackChallenges };
       }
@@ -487,12 +488,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   joinChallenge: async ({ userId, challengeId }: JoinChallengeParams): Promise<McpApiResponse<SuccessResponse>> => {
     try {
-      console.log(`[GamificationMCP] User ${userId} joining challenge: ${challengeId}`);
+      logger.log(`[GamificationMCP] User ${userId} joining challenge: ${challengeId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, simulating challenge join');
+        logger.warn('[GamificationMCP] Service unavailable, simulating challenge join');
         return {
           data: {
             success: true,
@@ -537,12 +538,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   getKindnessQuests: async ({ userId, status, difficulty }: GetKindnessQuestsParams): Promise<McpApiResponse<KindnessQuest[]>> => {
     try {
-      console.log(`[GamificationMCP] Getting kindness quests for user: ${userId}`);
+      logger.log(`[GamificationMCP] Getting kindness quests for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, using fallback quests');
+        logger.warn('[GamificationMCP] Service unavailable, using fallback quests');
         const { fallbackQuests } = generateFallbackGamificationData();
         return { data: fallbackQuests };
       }
@@ -582,12 +583,12 @@ const gamificationMcpApi: GamificationMcpApi = {
    */
   completeKindnessQuest: async ({ userId, questId, completionData }: CompleteKindnessQuestParams): Promise<McpApiResponse<CompleteQuestResponse>> => {
     try {
-      console.log(`[GamificationMCP] User ${userId} completing quest: ${questId}`);
+      logger.log(`[GamificationMCP] User ${userId} completing quest: ${questId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('gamification');
       
       if (!isAvailable) {
-        console.warn('[GamificationMCP] Service unavailable, simulating quest completion');
+        logger.warn('[GamificationMCP] Service unavailable, simulating quest completion');
         return {
           data: {
             success: true,

@@ -7,7 +7,7 @@
 
 // HOOKS RECOVERY DISABLED TO STOP INFINITE LOOPS
 // This entire system has been disabled as it was contributing to the loop problem
-console.log('[HOOKS-RECOVERY] DISABLED - Emergency mode active');
+logger.log('[HOOKS-RECOVERY] DISABLED - Emergency mode active');
 
 // EARLY EXIT USING IIFE
 (function() {
@@ -19,7 +19,7 @@ if (false) {
 (function() {
   // DISABLED CODE - DO NOT EXECUTE
   // return;
-  console.log('[HOOKS-RECOVERY] Initializing React Hooks Recovery System');
+  logger.log('[HOOKS-RECOVERY] Initializing React Hooks Recovery System');
   
   // Check if we're in development mode
   // if (process.env.NODE_ENV !== 'development') {
@@ -47,21 +47,21 @@ if (false) {
         
         // Override with emergency values immediately for common hook errors
         if (errorMsg.includes('Rendered fewer hooks than expected')) {
-          console.log('[HOOKS-RECOVERY] Setting immediate admin bypass to prevent further hook errors');
+          logger.log('[HOOKS-RECOVERY] Setting immediate admin bypass to prevent further hook errors');
           localStorage.setItem('bypass_admin_verification', 'true');
           localStorage.setItem('use_emergency_admin_route', 'true');
         }
         
         // Try to apply the emergency fix
         if (window.emergencyAdminFix && typeof window.emergencyAdminFix.fixHooksError === 'function') {
-          console.log('[HOOKS-RECOVERY] Automatically applying emergency fix...');
+          logger.log('[HOOKS-RECOVERY] Automatically applying emergency fix...');
           window.emergencyAdminFix.fixHooksError();
           
           // Prevent default error handling
           event.preventDefault();
           return false;
         } else {
-          console.log('[HOOKS-RECOVERY] Emergency fix not available, can\'t recover automatically');
+          logger.log('[HOOKS-RECOVERY] Emergency fix not available, can\'t recover automatically');
         }
       }
     });
@@ -79,11 +79,11 @@ if (false) {
                errorText.includes('React Router caught the following error')) &&
               errorText.includes('AdminRoute')
             ) {
-              console.log('[HOOKS-RECOVERY] Detected React error boundary with hooks error');
+              logger.log('[HOOKS-RECOVERY] Detected React error boundary with hooks error');
               
               // Apply emergency fix
               if (window.emergencyAdminFix && typeof window.emergencyAdminFix.fixHooksError === 'function') {
-                console.log('[HOOKS-RECOVERY] Automatically applying emergency fix...');
+                logger.log('[HOOKS-RECOVERY] Automatically applying emergency fix...');
                 window.emergencyAdminFix.fixHooksError();
                 // return; // DISABLED
               }
@@ -96,7 +96,7 @@ if (false) {
     // Start observing the document for added error nodes
     observer.observe(document.body, { childList: true, subtree: true });
     
-    console.log('[HOOKS-RECOVERY] React Hooks Recovery System initialized successfully');
+    logger.log('[HOOKS-RECOVERY] React Hooks Recovery System initialized successfully');
     
     // Expose the system to window for debugging
     window.hooksRecovery = {

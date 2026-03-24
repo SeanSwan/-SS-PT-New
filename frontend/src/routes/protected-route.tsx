@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ===================== Styled Components =====================
 
@@ -204,14 +205,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (process.env.NODE_ENV === 'development') {
     const bypass = localStorage.getItem('bypass_admin_verification') === 'true';
     if (bypass) {
-      console.log('[EMERGENCY FIX] Using bypass flag to skip role checks in ProtectedRoute');
+      logger.log('[EMERGENCY FIX] Using bypass flag to skip role checks in ProtectedRoute');
       return <>{children}</>;
     }
   }
   
   // Special case: admin users can access any role-protected route
   if (auth.user.role === 'admin') {
-    console.log('Admin accessing role-protected area - access granted');
+    logger.log('Admin accessing role-protected area - access granted');
   }
   // For non-admin users, perform detailed role checks
   else if ((allowedRoles && allowedRoles.length > 0) || requiredRole) {

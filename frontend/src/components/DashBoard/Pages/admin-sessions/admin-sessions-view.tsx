@@ -83,6 +83,7 @@ import {
   itemVariants,
   staggeredItemVariants
 } from './styled-admin-sessions'; // Ensure path is correct
+import { logger } from '@/utils/logger';
 
 // Interface for client data
 interface Client {
@@ -228,7 +229,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
           description: "Sessions loaded successfully",
         });
       } else {
-        console.warn('Received unexpected data structure for sessions:', response.data);
+        logger.warn('Received unexpected data structure for sessions:', response.data);
         setError('Failed to fetch sessions data: Invalid format');
         toast({
           title: "Error",
@@ -259,7 +260,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       if (response.data && Array.isArray(response.data)) {
         setClients(response.data);
       } else {
-        console.warn('Received unexpected data structure for clients:', response.data);
+        logger.warn('Received unexpected data structure for clients:', response.data);
         toast({
           title: "Warning",
           description: "Failed to load clients (invalid format)",
@@ -288,7 +289,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       if (response.data && Array.isArray(response.data)) {
         setTrainers(response.data);
       } else {
-        console.warn('Received unexpected data structure for trainers:', response.data);
+        logger.warn('Received unexpected data structure for trainers:', response.data);
         toast({
           title: "Warning",
           description: "Failed to load trainers (invalid format)",
@@ -437,7 +438,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         setOpenEditDialog(false); // Close dialog
       } else {
          // Handle non-200 success responses if necessary
-         console.warn('Session update returned status:', response.status);
+         logger.warn('Session update returned status:', response.status);
          toast({
            title: "Warning",
            description: `Session updated, but received status: ${response.status}`,
@@ -507,7 +508,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         setNewSessionClient('');
         setNewSessionTrainer('');
       } else {
-        console.warn('Session creation returned status:', response.status);
+        logger.warn('Session creation returned status:', response.status);
         toast({
           title: "Error",
           description: `Failed to create session (status: ${response.status})`,

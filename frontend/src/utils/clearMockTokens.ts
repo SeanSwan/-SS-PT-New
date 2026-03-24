@@ -9,7 +9,7 @@ const clearMockTokens = () => {
   const userRole = localStorage.getItem('user_role');
   
   if (token && token.startsWith('dev_')) {
-    console.log('🧹 Detected mock token, clearing...');
+    logger.log('🧹 Detected mock token, clearing...');
     localStorage.removeItem('token');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user');
@@ -26,7 +26,7 @@ const clearMockTokens = () => {
   
   // Also check if we have a valid JWT token structure
   if (token && !token.includes('.')) {
-    console.log('🧹 Detected invalid token format, clearing...');
+    logger.log('🧹 Detected invalid token format, clearing...');
     localStorage.removeItem('token');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user');

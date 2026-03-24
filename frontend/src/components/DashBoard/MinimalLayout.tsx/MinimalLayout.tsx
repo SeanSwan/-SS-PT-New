@@ -7,6 +7,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import { ScrollToTop } from '../../common';
+import { logger } from '@/utils/logger';
 
 const MinimalLayoutWrapper = styled.div`
   height: 100%;
@@ -47,7 +48,7 @@ const MinimalLayout: React.FC<MinimalLayoutProps> = ({ children, hideWrapper = f
         size="small"
         scrollThreshold={300}
         onScrollToTop={() => {
-          console.log('Minimal layout scroll to top clicked');
+          logger.log('Minimal layout scroll to top clicked');
         }}
       />
     </MinimalLayoutWrapper>

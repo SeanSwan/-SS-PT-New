@@ -31,6 +31,7 @@ import {
   Save,
   Trophy
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 /* ═══════════════════════════════════════════════════════
    Crystalline Swan Theme Tokens
@@ -585,7 +586,7 @@ const McpDashboard: React.FC = () => {
   const checkMcpStatus = async () => {
     try {
       const status = await checkMcpServersStatus();
-      console.log('MCP Status:', status);
+      logger.log('MCP Status:', status);
     } catch (error) {
       console.error('Error checking MCP status:', error);
     }
@@ -663,7 +664,7 @@ const McpDashboard: React.FC = () => {
               autoRefresh={autoRefresh}
               refreshInterval={30000}
               onStatusChange={(status) => {
-                console.log('MCP Status changed:', status);
+                logger.log('MCP Status changed:', status);
               }}
             />
           </Section>
@@ -891,7 +892,7 @@ const McpDashboard: React.FC = () => {
               <GamificationDisplay
                 variant="full"
                 onDataLoaded={(data) => {
-                  console.log('Gamification data loaded:', data);
+                  logger.log('Gamification data loaded:', data);
                 }}
               />
             </McpIntegrationWrapper>

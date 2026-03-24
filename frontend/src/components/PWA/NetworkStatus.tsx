@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { logger } from '@/utils/logger';
 
 // Animations
 const slideDown = keyframes`
@@ -161,7 +162,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
     let connectionCheckTimeout: NodeJS.Timeout;
 
     const handleOnline = () => {
-      console.log('Network: Connection restored');
+      logger.log('Network: Connection restored');
       setIsConnecting(true);
       
       // Test connection quality
@@ -185,7 +186,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
     };
 
     const handleOffline = () => {
-      console.log('Network: Connection lost');
+      logger.log('Network: Connection lost');
       setIsOnline(false);
       setShowStatus(true);
       setIsConnecting(false);
@@ -217,7 +218,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
           setConnectionQuality('slow');
         }
       } catch (error) {
-        console.log('Network: Connection quality test failed:', error);
+        logger.log('Network: Connection quality test failed:', error);
         setConnectionQuality('slow');
       }
     };
@@ -282,7 +283,7 @@ const NetworkStatus: React.FC<NetworkStatusProps> = ({
         throw new Error('Health check failed');
       }
     } catch (error) {
-      console.log('Network: Retry failed:', error);
+      logger.log('Network: Retry failed:', error);
       setConnectionQuality('slow');
     } finally {
       setIsConnecting(false);

@@ -30,11 +30,11 @@ try {
   // Backup the original file
   const clientBackupPath = path.join(backupDir, 'client-gamification-view.backup.tsx');
   fs.copyFileSync(clientGamificationView, clientBackupPath);
-  console.log('✅ Backed up client gamification view to:', clientBackupPath);
+  logger.log('✅ Backed up client gamification view to:', clientBackupPath);
   
   // Replace with enhanced version
   fs.copyFileSync(clientGamificationViewEnhanced, clientGamificationView);
-  console.log('✅ Updated client gamification view with enhanced version');
+  logger.log('✅ Updated client gamification view with enhanced version');
 } catch (error) {
   console.error('❌ Error updating client gamification view:', error.message);
 }
@@ -44,11 +44,11 @@ try {
   // Backup the original file
   const analyticsBackupPath = path.join(backupDir, 'SystemAnalytics.backup.tsx');
   fs.copyFileSync(systemAnalytics, analyticsBackupPath);
-  console.log('✅ Backed up SystemAnalytics to:', analyticsBackupPath);
+  logger.log('✅ Backed up SystemAnalytics to:', analyticsBackupPath);
   
   // Replace with enhanced version
   fs.copyFileSync(enhancedSystemAnalytics, systemAnalytics);
-  console.log('✅ Updated SystemAnalytics with enhanced version');
+  logger.log('✅ Updated SystemAnalytics with enhanced version');
 } catch (error) {
   console.error('❌ Error updating SystemAnalytics:', error.message);
 }
@@ -61,7 +61,7 @@ try {
   // Create a backup
   const adminBackupPath = path.join(backupDir, 'admin-gamification-view.backup.tsx');
   fs.writeFileSync(adminBackupPath, adminViewContent);
-  console.log('✅ Backed up admin gamification view to:', adminBackupPath);
+  logger.log('✅ Backed up admin gamification view to:', adminBackupPath);
   
   // Update the lazy loading for SystemAnalytics
   adminViewContent = adminViewContent.replace(
@@ -71,7 +71,7 @@ try {
   
   // Write the updated content back to the file
   fs.writeFileSync(adminGamificationView, adminViewContent);
-  console.log('✅ Updated admin gamification view to use enhanced SystemAnalytics');
+  logger.log('✅ Updated admin gamification view to use enhanced SystemAnalytics');
 } catch (error) {
   console.error('❌ Error updating admin gamification view:', error.message);
 }
@@ -96,7 +96,7 @@ export { default as ProgressChart } from './ProgressChart';
 `;
   
   fs.writeFileSync(clientComponentsIndex, clientIndexContent);
-  console.log('✅ Created/updated index.ts for client gamification components');
+  logger.log('✅ Created/updated index.ts for client gamification components');
   
   // For admin gamification components
   const adminComponentsDir = path.join(basePath, 'components', 'DashBoard', 'Pages', 'admin-gamification', 'components');
@@ -126,7 +126,7 @@ export { default as GamificationSettings } from './GamificationSettings';
   }
   
   fs.writeFileSync(adminComponentsIndex, adminIndexContent);
-  console.log('✅ Created/updated index.ts for admin gamification components');
+  logger.log('✅ Created/updated index.ts for admin gamification components');
 } catch (error) {
   console.error('❌ Error updating index files:', error.message);
 }
@@ -189,11 +189,12 @@ import {
   Leaderboard, 
   ProgressChart 
 } from '../components';
+import { logger } from '@/utils/logger';
 \`\`\`
 `;
   
   fs.writeFileSync(clientDocsPath, clientDocsContent);
-  console.log('✅ Created client gamification documentation');
+  logger.log('✅ Created client gamification documentation');
   
   // Create documentation for admin gamification enhancements
   const adminDocsPath = path.join(docsDir, 'ADMIN_GAMIFICATION_ENHANCEMENTS.md');
@@ -245,11 +246,11 @@ import { SystemAnalytics } from './components';
 `;
   
   fs.writeFileSync(adminDocsPath, adminDocsContent);
-  console.log('✅ Created admin gamification documentation');
+  logger.log('✅ Created admin gamification documentation');
 } catch (error) {
   console.error('❌ Error creating documentation:', error.message);
 }
 
-console.log('\n✨ Gamification enhancement update completed! ✨');
-console.log('\nPlease check the updated files and restart your development server to see the changes.');
-console.log('Documentation for the enhancements can be found in the components/DashBoard/Pages/docs directory.');
+logger.log('\n✨ Gamification enhancement update completed! ✨');
+logger.log('\nPlease check the updated files and restart your development server to see the changes.');
+logger.log('Documentation for the enhancements can be found in the components/DashBoard/Pages/docs directory.');

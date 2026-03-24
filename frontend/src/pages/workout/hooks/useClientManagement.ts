@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContextType } from '../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Types
 export interface User {
@@ -65,7 +66,7 @@ export const useClientManagement = ({
           // Handle different API response formats
           setClients(response.data);
         } else {
-          console.warn('Unexpected clients data format:', response.data);
+          logger.warn('Unexpected clients data format:', response.data);
           setClients([]);
         }
       } catch (err: any) {

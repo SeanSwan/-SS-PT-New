@@ -53,6 +53,7 @@ import {
   Scatter,
   Treemap
 } from 'recharts';
+import { logger } from '@/utils/logger';
 
 // Types
 interface AIModel {
@@ -868,7 +869,7 @@ const AIMonitoringPanel: React.FC = () => {
 
       if (response.data.success) {
         setMcpHealthData(response.data.data);
-        console.log('✅ Real MCP health data loaded successfully');
+        logger.log('✅ Real MCP health data loaded successfully');
       } else {
         throw new Error(response.data.message || 'Failed to load MCP health data');
       }
@@ -883,9 +884,9 @@ const AIMonitoringPanel: React.FC = () => {
 
   // Refresh all data
   const refreshAllData = useCallback(async () => {
-    console.log('🔄 Refreshing all AI monitoring data...');
+    logger.log('🔄 Refreshing all AI monitoring data...');
     await fetchMCPHealthData();
-    console.log('✅ All AI monitoring data refreshed');
+    logger.log('✅ All AI monitoring data refreshed');
   }, [fetchMCPHealthData]);
 
   // Initial data load
@@ -1728,7 +1729,7 @@ const AIMonitoringPanel: React.FC = () => {
             <FABAction
               title="Export AI Data"
               onClick={() => {
-                console.log('📁 Export AI data functionality to be implemented');
+                logger.log('📁 Export AI data functionality to be implemented');
                 setFabOpen(false);
               }}
             >
@@ -1737,7 +1738,7 @@ const AIMonitoringPanel: React.FC = () => {
             <FABAction
               title="Retrain Models"
               onClick={() => {
-                console.log('🧠 Model retraining functionality to be implemented');
+                logger.log('🧠 Model retraining functionality to be implemented');
                 setFabOpen(false);
               }}
             >

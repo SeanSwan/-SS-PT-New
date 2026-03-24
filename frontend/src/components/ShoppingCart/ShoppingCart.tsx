@@ -34,6 +34,7 @@ import {
   CelebrationParticles,
   SmartNotifications
 } from "../AdvancedCartInteractions";
+import { logger } from '@/utils/logger';
 
 // Animations
 const shimmer = keyframes`
@@ -740,7 +741,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
     }
     
     // Professional checkout flow with celebration
-    console.log('🎯 [AAA Professional Checkout] Initiating smooth checkout transition...');
+    logger.log('🎯 [AAA Professional Checkout] Initiating smooth checkout transition...');
     
     // Trigger checkout celebration
     triggerCelebration(window.innerWidth / 2, window.innerHeight / 2, 'checkout');
@@ -757,7 +758,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       'success',
       {
         label: 'View Details',
-        onClick: () => console.log('Show checkout details')
+        onClick: () => logger.log('Show checkout details')
       }
     );
     
@@ -1038,7 +1039,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
         <CelebrationParticles celebrations={celebrations} />
         <SmartNotifications 
           notifications={notifications} 
-          onDismiss={(id) => console.log('Dismiss notification:', id)}
+          onDismiss={(id) => logger.log('Dismiss notification:', id)}
         />
       </CartModalOverlay>
     </AnimatePresence>

@@ -11,6 +11,7 @@ import './emergencyAdminFix';
 // Import the necessary store and actions
 import { store } from '../redux/store';
 import { setInitialState } from '../redux/slices/scheduleSlice';
+import { logger } from '@/utils/logger';
 
 // This flag will be used to ensure we only initialize once
 let storeInitialized = false;
@@ -24,7 +25,7 @@ export function initializeStore() {
     return;
   }
   
-  console.log('[StoreInitializer] Initializing Redux store (one-time only)');
+  logger.log('[StoreInitializer] Initializing Redux store (one-time only)');
   
   try {
     // Initialize the schedule slice with default values
@@ -49,7 +50,7 @@ export function initializeStore() {
     
     // Mark as initialized
     storeInitialized = true;
-    console.log('[StoreInitializer] Store initialization complete');
+    logger.log('[StoreInitializer] Store initialization complete');
     
     // Also set the global flag for other components to check
     window.__REDUX_ALREADY_INITIALIZED__ = true;

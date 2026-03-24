@@ -4,6 +4,7 @@ import workoutMcpApi from '../services/mcp/workoutMcpService';
 import gamificationMcpApi from '../services/mcp/gamificationMcpService';
 import { WorkoutProgress, TrainingProgramData } from '../types/mcp/workout.types';
 import { GamificationProfile, Achievement, Challenge } from '../types/mcp/gamification.types';
+import { logger } from '@/utils/logger';
 
 // Interface for the gamification data structure
 interface GamificationData {
@@ -180,7 +181,7 @@ const useClientDashboardMcp = () => {
       setLastSyncTime(new Date());
       
       // Log successful sync for debugging
-      console.log('Successfully synchronized data from MCP servers', {
+      logger.log('Successfully synchronized data from MCP servers', {
         progress: results[0].status === 'fulfilled' && results[0].value ? 'Success' : 'Failed',
         gamification: results[1].status === 'fulfilled' && results[1].value ? 'Success' : 'Failed',
         trainingProgram: results[2].status === 'fulfilled' && results[2].value ? 'Success' : 'Failed',

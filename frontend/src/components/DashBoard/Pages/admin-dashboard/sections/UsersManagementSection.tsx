@@ -29,6 +29,7 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -533,7 +534,7 @@ const UsersManagementSection: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Fetching users for management...');
+      logger.log('🔄 Fetching users for management...');
 
       const response = await makeApiCall('/api/admin/users', {
         method: 'GET'
@@ -572,7 +573,7 @@ const UsersManagementSection: React.FC = () => {
 
         setStats({ totalUsers, activeUsers, newUsers, trainers });
         
-        console.log(`✅ Successfully loaded ${userData.length} users`);
+        logger.log(`✅ Successfully loaded ${userData.length} users`);
       } else {
         throw new Error('Invalid response format from server');
       }
@@ -614,7 +615,7 @@ const UsersManagementSection: React.FC = () => {
   // Handle user actions
   const handlePromoteToTrainer = async (userId: string) => {
     try {
-      console.log(`🔄 Promoting user ${userId} to trainer...`);
+      logger.log(`🔄 Promoting user ${userId} to trainer...`);
 
       const response = await makeApiCall('/api/admin/promote-client', {
         method: 'POST',
@@ -625,7 +626,7 @@ const UsersManagementSection: React.FC = () => {
       });
 
       if (response.success) {
-        console.log(`✅ Successfully promoted user ${userId} to trainer`);
+        logger.log(`✅ Successfully promoted user ${userId} to trainer`);
         await fetchUsers(); // Refresh users list
         setActiveActionMenu(null);
       } else {
@@ -642,7 +643,7 @@ const UsersManagementSection: React.FC = () => {
     if (!adminCode) return;
 
     try {
-      console.log(`🔄 Promoting user ${userId} to admin...`);
+      logger.log(`🔄 Promoting user ${userId} to admin...`);
 
       const response = await makeApiCall('/api/admin/promote-admin', {
         method: 'POST',
@@ -653,7 +654,7 @@ const UsersManagementSection: React.FC = () => {
       });
 
       if (response.success) {
-        console.log(`✅ Successfully promoted user ${userId} to admin`);
+        logger.log(`✅ Successfully promoted user ${userId} to admin`);
         await fetchUsers(); // Refresh users list
         setActiveActionMenu(null);
       } else {
@@ -700,13 +701,13 @@ const UsersManagementSection: React.FC = () => {
 
   const handleEditUser = async (userId: string) => {
     // TODO: Open edit user modal
-    console.log('Edit user:', userId);
+    logger.log('Edit user:', userId);
     setActiveActionMenu(null);
   };
 
   const handleViewUser = (userId: string) => {
     // TODO: Open user details modal
-    console.log('View user:', userId);
+    logger.log('View user:', userId);
     setActiveActionMenu(null);
   };
 
@@ -716,7 +717,7 @@ const UsersManagementSection: React.FC = () => {
     }
 
     try {
-      console.log(`🔄 Deactivating user ${userId}...`);
+      logger.log(`🔄 Deactivating user ${userId}...`);
 
       const response = await makeApiCall(`/api/admin/users/${userId}`, {
         method: 'PUT',
@@ -726,7 +727,7 @@ const UsersManagementSection: React.FC = () => {
       });
 
       if (response.success) {
-        console.log(`✅ Successfully deactivated user ${userId}`);
+        logger.log(`✅ Successfully deactivated user ${userId}`);
         await fetchUsers(); // Refresh users list
         setActiveActionMenu(null);
       } else {

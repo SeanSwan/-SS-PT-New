@@ -55,6 +55,7 @@ import {
   AlertCircle,
   Info
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const NASMContainer = styled(motion.div)`
@@ -534,7 +535,7 @@ const NASMCompliancePanel: React.FC = () => {
           
           <ActionButton
             $variant="primary"
-            onClick={() => console.log('Export compliance report')}
+            onClick={() => logger.log('Export compliance report')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -729,7 +730,7 @@ const NASMCompliancePanel: React.FC = () => {
           </h2>
           
           <ActionButton
-            onClick={() => console.log('View detailed analytics')}
+            onClick={() => logger.log('View detailed analytics')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

@@ -11,6 +11,7 @@ import { useSession } from '../../context/SessionContext';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api.service';
 import SessionErrorBoundary from './SessionErrorBoundary';
+import { logger } from '@/utils/logger';
 
 // Animations
 const shimmer = keyframes`
@@ -510,7 +511,7 @@ const AdminSessionManager: React.FC = () => {
           setAllSessions(sessionsResponse.data);
         }
       } catch (apiError) {
-        console.warn('Backend API not available, generating mock data for admin dashboard');
+        logger.warn('Backend API not available, generating mock data for admin dashboard');
         generateMockAdminData();
       }
     } catch (error) {

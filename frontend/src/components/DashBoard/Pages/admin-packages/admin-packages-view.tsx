@@ -67,6 +67,7 @@ import {
   itemVariants,
   staggeredItemVariants
 } from '../admin-sessions/styled-admin-sessions';
+import { logger } from '@/utils/logger';
 
 /* ─── Local styled-components (replacing MUI) ─── */
 
@@ -597,7 +598,7 @@ const AdminPackagesView: React.FC = () => {
           description: "Packages loaded successfully",
         });
       } else {
-        console.warn('Received unexpected data structure for packages:', response.data);
+        logger.warn('Received unexpected data structure for packages:', response.data);
         setError('Failed to fetch packages: Invalid format');
         toast({
           title: "Error",
@@ -628,7 +629,7 @@ const AdminPackagesView: React.FC = () => {
       if (response.data && Array.isArray(response.data)) {
         setClients(response.data);
       } else {
-        console.warn('Received unexpected data structure for clients:', response.data);
+        logger.warn('Received unexpected data structure for clients:', response.data);
         toast({
           title: "Warning",
           description: "Failed to load clients (invalid format)",
@@ -765,7 +766,7 @@ const AdminPackagesView: React.FC = () => {
         fetchPackages(); // Refresh packages list
         setOpenEditDialog(false);
       } else {
-        console.warn('Package update returned status:', response.status);
+        logger.warn('Package update returned status:', response.status);
         toast({
           title: "Warning",
           description: `Package updated, but received status: ${response.status}`,
@@ -831,7 +832,7 @@ const AdminPackagesView: React.FC = () => {
         setNewSessionsPerWeek(4);
         setNewTheme('cosmic');
       } else {
-        console.warn('Package creation returned status:', response.status);
+        logger.warn('Package creation returned status:', response.status);
         toast({
           title: "Warning",
           description: `Package created, but received status: ${response.status}`,
@@ -923,7 +924,7 @@ const AdminPackagesView: React.FC = () => {
         fetchPackages();
         setOpenDeleteDialog(false);
       } else {
-        console.warn('Package deletion returned status:', response.status);
+        logger.warn('Package deletion returned status:', response.status);
         toast({
           title: "Warning",
           description: `Unexpected response when deleting package: ${response.status}`,

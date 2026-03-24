@@ -57,6 +57,7 @@ import {
 // Types
 import { DragDropResult } from './DragDrop/DragDropManager';
 import { Alternative, Conflict } from './Conflicts/ConflictPanel';
+import { logger } from '@/utils/logger';
 
 interface UniversalMasterScheduleProps {
   adminMobileMenuOpen?: boolean;
@@ -442,7 +443,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     const template = applyTemplate(templateId);
     if (!template) {
       warning('Template not found. It may have been deleted.');
-      console.warn('[Schedule] Template not found:', templateId);
+      logger.warn('[Schedule] Template not found:', templateId);
       return;
     }
 

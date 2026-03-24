@@ -19,6 +19,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Views } from 'react-big-calendar';
 import type { CalendarView } from '../types';
+import { logger } from '@/utils/logger';
 
 export interface MobileCalendarState {
   // Mobile Detection & Breakpoints
@@ -234,7 +235,7 @@ export const useMobileCalendarOptimization = (dependencies: {
   const setOptimalMobileView = useCallback(() => {
     if (currentView !== preferredMobileView) {
       setView(preferredMobileView);
-      console.log(`📱 Optimized view for mobile: ${preferredMobileView}`);
+      logger.log(`📱 Optimized view for mobile: ${preferredMobileView}`);
     }
   }, [currentView, preferredMobileView, setView]);
   
@@ -243,7 +244,7 @@ export const useMobileCalendarOptimization = (dependencies: {
     const nextIndex = (currentIndex + 1) % supportedMobileViews.length;
     const nextView = supportedMobileViews[nextIndex];
     setView(nextView);
-    console.log(`📱 Cycled to mobile view: ${nextView}`);
+    logger.log(`📱 Cycled to mobile view: ${nextView}`);
   }, [currentView, supportedMobileViews, setView]);
   
   // ==================== TOUCH GESTURE HANDLERS ====================
@@ -335,7 +336,7 @@ export const useMobileCalendarOptimization = (dependencies: {
     }
     
     setSelectedDate(newDate);
-    console.log(`📱 Mobile navigation: Previous ${currentView}`);
+    logger.log(`📱 Mobile navigation: Previous ${currentView}`);
   }, [selectedDate, currentView, setSelectedDate]);
   
   const navigateNext = useCallback(() => {
@@ -356,12 +357,12 @@ export const useMobileCalendarOptimization = (dependencies: {
     }
     
     setSelectedDate(newDate);
-    console.log(`📱 Mobile navigation: Next ${currentView}`);
+    logger.log(`📱 Mobile navigation: Next ${currentView}`);
   }, [selectedDate, currentView, setSelectedDate]);
   
   const navigateToToday = useCallback(() => {
     setSelectedDate(new Date());
-    console.log('📱 Mobile navigation: Today');
+    logger.log('📱 Mobile navigation: Today');
   }, [setSelectedDate]);
   
   // ==================== MOBILE UI CONTROLS ====================
@@ -388,7 +389,7 @@ export const useMobileCalendarOptimization = (dependencies: {
       optimizedRendering: true,
       lazyLoadEvents: events.length > 50
     }));
-    console.log('📱 Mobile optimizations enabled');
+    logger.log('📱 Mobile optimizations enabled');
   }, [setOptimalMobileView, events.length]);
   
   // ==================== PERFORMANCE OPTIMIZATIONS ====================

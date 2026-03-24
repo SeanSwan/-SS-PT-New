@@ -54,6 +54,7 @@ import { theme, prefersReducedMotion } from "../../theme/tokens";
 
 // Import big calendar styles
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { logger } from '@/utils/logger';
 
 // Using global type declarations or casting as any if needed:
 const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -1234,7 +1235,7 @@ const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) 
   
   // Enhanced role detection for better debugging
   React.useEffect(() => {
-    console.log('Schedule Component - Current User Role:', {
+    logger.log('Schedule Component - Current User Role:', {
       user: user,
       isAdmin,
       isTrainer,
@@ -1264,7 +1265,7 @@ const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) 
   
   // No longer need to initialize store here as it's handled by storeInitSafeguard.js
   useEffect(() => {
-    console.log('UnifiedCalendar component mounted, using pre-initialized Redux store');
+    logger.log('UnifiedCalendar component mounted, using pre-initialized Redux store');
   }, []);
   
   // Animation controls
@@ -1326,10 +1327,10 @@ const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) 
     const fetchData = async () => {
       try {
         if (status === 'idle') {
-          console.log('Fetching schedule data...');
+          logger.log('Fetching schedule data...');
           await dispatch(fetchEvents()).unwrap();
           await dispatch(fetchTrainers()).unwrap();
-          console.log('Schedule data loaded successfully');
+          logger.log('Schedule data loaded successfully');
         }
       } catch (error) {
         console.error('Error fetching schedule data:', error);

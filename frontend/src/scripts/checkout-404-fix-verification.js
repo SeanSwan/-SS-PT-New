@@ -1,7 +1,7 @@
 // Checkout 404 Fix Verification Script
 // This script verifies that our financial tracking endpoint fix resolves the 404 errors
 
-console.log('🔍 Checkout 404 Fix Verification Starting...');
+logger.log('🔍 Checkout 404 Fix Verification Starting...');
 
 // Test 1: Verify the new endpoint exists
 const endpointVerification = `
@@ -101,15 +101,15 @@ const databaseImpactCheck = `
 - metadata: JSON with sessionCount and timestamps
 `;
 
-console.log(endpointVerification);
-console.log(routeRegistrationCheck);
-console.log(frontendIntegrationCheck);
-console.log(expectedBehavior);
-console.log(databaseImpactCheck);
+logger.log(endpointVerification);
+logger.log(routeRegistrationCheck);
+logger.log(frontendIntegrationCheck);
+logger.log(expectedBehavior);
+logger.log(databaseImpactCheck);
 
-console.log('✅ Checkout 404 Fix Verification Complete!');
-console.log('🚀 The missing /api/financial/track-checkout-start endpoint has been implemented!');
-console.log('📊 Admin dashboard analytics tracking is now fully operational!');
+logger.log('✅ Checkout 404 Fix Verification Complete!');
+logger.log('🚀 The missing /api/financial/track-checkout-start endpoint has been implemented!');
+logger.log('📊 Admin dashboard analytics tracking is now fully operational!');
 
 // Export for testing
 export { 

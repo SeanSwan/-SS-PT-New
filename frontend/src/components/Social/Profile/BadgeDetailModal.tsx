@@ -43,6 +43,7 @@ import {
   XpValue, ProgressSection, ProgressBar, ProgressFill, ProgressText,
   DateRow, ShareButton,
 } from './BadgeDetailModalStyles';
+import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -102,7 +103,7 @@ export const BadgeDetailModal: React.FC<BadgeDetailModalProps> = ({
       // Default: copy badge name to clipboard
       const text = `I earned the "${badge.title}" badge on SwanStudios! (+${badge.xpReward} XP)`;
       navigator.clipboard.writeText(text).catch(() => {
-        console.warn('TODO: clipboard fallback');
+        logger.warn('TODO: clipboard fallback');
       });
     }
   };

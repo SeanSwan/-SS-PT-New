@@ -4,6 +4,7 @@
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { logger } from '@/utils/logger';
 
 // Define the notification interface
 export interface Notification {
@@ -86,7 +87,7 @@ export const fetchNotifications = createAsyncThunk(
       const is503Error = error.response?.status === 503 || error.message?.includes('503');
 
       if (!is503Error) {
-        console.warn('[Notifications] Failed to fetch notifications, using mock data:', error.message);
+        logger.warn('[Notifications] Failed to fetch notifications, using mock data:', error.message);
       }
 
       // Instead of rejecting, provide mock data as graceful fallback
@@ -176,7 +177,7 @@ const notificationSlice = createSlice({
         state.lastFetched = new Date().toISOString();
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
-        console.warn('Notification fetch rejected:', action.payload);
+        logger.warn('Notification fetch rejected:', action.payload);
         state.loading = false;
         state.error = action.payload as string;
         // On error, keep existing notifications rather than clearing them

@@ -35,6 +35,7 @@ import {
   Shield, Database, Memory, Gauge, FileText
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -829,7 +830,7 @@ const MCPServersSection: React.FC = () => {
 
   // Toast notification helper (to be implemented with proper toast library)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
-    console.log(`${type.toUpperCase()}: ${message}`);
+    logger.log(`${type.toUpperCase()}: ${message}`);
     // TODO: Integrate with proper toast notification library (react-hot-toast or similar)
   };
 
@@ -1045,13 +1046,13 @@ const MCPServersSection: React.FC = () => {
   };
 
   const handleViewLogs = (serverId: string) => {
-    console.log('View server logs:', serverId);
+    logger.log('View server logs:', serverId);
     setShowLogs(true);
     setActiveActionMenu(null);
   };
 
   const handleConfigureServer = (serverId: string) => {
-    console.log('Configure server:', serverId);
+    logger.log('Configure server:', serverId);
     setActiveActionMenu(null);
   };
 

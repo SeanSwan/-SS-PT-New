@@ -6,7 +6,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.adminAccess = {
     force: function() {
       localStorage.setItem('bypass_admin_verification', 'true');
-      console.log('Admin access bypass flag set. Reloading...');
+      logger.log('Admin access bypass flag set. Reloading...');
       window.location.reload();
       return 'Forced admin access and reloaded';
     },
@@ -14,7 +14,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       localStorage.removeItem('bypass_admin_verification');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      console.log('Auth reset. Reloading...');
+      logger.log('Auth reset. Reloading...');
       window.location.reload();
       return 'Reset auth and reloaded';
     },
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       };
     }
   };
-  console.log('[DEV MODE] Admin access utility available. Type window.adminAccess.force() in console to force admin access.');
+  logger.log('[DEV MODE] Admin access utility available. Type window.adminAccess.force() in console to force admin access.');
 }
 
 // API URLs
@@ -66,8 +66,8 @@ export const LOGGING = {
   logAuthEvents: true,
 };
 
-console.log(`Running in ${isProd ? 'production' : 'development'} mode`);
-console.log(`API Base URL: ${API_BASE_URL || '(using proxy for /api)'}`);
+logger.log(`Running in ${isProd ? 'production' : 'development'} mode`);
+logger.log(`API Base URL: ${API_BASE_URL || '(using proxy for /api)'}`);
 
 export default {
   API_BASE_URL,

@@ -30,6 +30,7 @@ import {
   // Import types for custom label props if available, otherwise use 'any' or define manually
   // LabelProps (example name, check recharts actual type)
 } from 'recharts';
+import { logger } from '@/utils/logger';
 
 // --- Type definitions ---
 type ChartLabelValue = string | number | null | undefined;
@@ -597,7 +598,7 @@ const DataVisualizationPanel: React.FC<DataVisualizationPanelProps> = ({
           logging: true, // Enable logging for debugging html2canvas
           onclone: (document) => {
             // Potentially modify cloned document here if needed for canvas accuracy
-             console.log("Cloned document for canvas generation.");
+             logger.log("Cloned document for canvas generation.");
           }
         });
 

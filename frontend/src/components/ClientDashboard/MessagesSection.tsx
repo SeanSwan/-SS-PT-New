@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { logger } from '@/utils/logger';
 
 // -----------------------------
 // Styled Components
@@ -111,7 +112,7 @@ const MessagesSection: React.FC = () => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     // Replace with actual API call or Redux action.
-    console.log("New message:", newMessage);
+    logger.log("New message:", newMessage);
     setNewMessage("");
   };
 

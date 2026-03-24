@@ -8,6 +8,7 @@
 
 import axios from 'axios';
 import { setupEnhancedMockApiInterceptor } from '../services/enhanced-mock-api-service';
+import { logger } from '@/utils/logger';
 
 // API base URL from environment variables
 // In production, use correct backend URL
@@ -90,9 +91,9 @@ authAxiosInstance.interceptors.response.use(
 if (process.env.NODE_ENV === 'development' && import.meta.env.VITE_FORCE_MOCK_MODE === 'true') {
   setupEnhancedMockApiInterceptor(axiosInstance);
   setupEnhancedMockApiInterceptor(authAxiosInstance);
-  console.log('🔄 Enhanced mock API interceptor enabled for development (includes storefront support)');
+  logger.log('🔄 Enhanced mock API interceptor enabled for development (includes storefront support)');
 } else {
-  console.log('🔄 Mock API interceptor DISABLED - using real backend');
+  logger.log('🔄 Mock API interceptor DISABLED - using real backend');
 }
 
 export default {

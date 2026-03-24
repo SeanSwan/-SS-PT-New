@@ -30,6 +30,7 @@ import {
   getLevelProgress,
   TIER_DISPLAY,
 } from '../../types/gamification';
+import { logger } from '@/utils/logger';
 
 // Re-export the new types for consumers that import them from this file
 export type { TierName, SkillTree, LevelProgress };
@@ -311,7 +312,7 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
       } catch (error: any) {
         // Graceful fallback: if the API is unavailable, try the simpler
         // profile/achievements endpoint as a backup
-        console.warn('[Gamification] Primary profile endpoint failed, trying fallback:', error.message);
+        logger.warn('[Gamification] Primary profile endpoint failed, trying fallback:', error.message);
 
         try {
           const { data } = await authAxios.get('/api/profile/achievements');
@@ -345,7 +346,7 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
             };
           }
         } catch (fallbackError) {
-          console.warn('[Gamification] Fallback endpoint also failed:', fallbackError);
+          logger.warn('[Gamification] Fallback endpoint also failed:', fallbackError);
         }
 
         // Return a minimal profile so the UI can still render
@@ -420,7 +421,7 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
           return mapped.achievement;
         });
       } catch (error: any) {
-        console.warn('[Gamification] Achievements endpoint failed:', error.message);
+        logger.warn('[Gamification] Achievements endpoint failed:', error.message);
 
         // Fallback: try the profile achievements endpoint
         try {
@@ -440,7 +441,7 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
             badgeImageUrl: a.iconUrl,
           }));
         } catch (fallbackError) {
-          console.warn('[Gamification] Achievements fallback also failed:', fallbackError);
+          logger.warn('[Gamification] Achievements fallback also failed:', fallbackError);
           return [];
         }
       }

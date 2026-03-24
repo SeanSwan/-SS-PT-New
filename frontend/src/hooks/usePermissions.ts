@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Permission types
 export type Permission = 
@@ -201,7 +202,7 @@ export const usePermissions = () => {
   // Effect to log permission changes in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('User permissions updated:', {
+      logger.log('User permissions updated:', {
         user: user?.email,
         role: userRole,
         permissions: userPermissions,

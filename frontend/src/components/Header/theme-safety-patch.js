@@ -19,7 +19,7 @@ const themeSafetyPatches = {
       const value = path.split('.').reduce((obj, key) => obj?.[key], theme);
       return value || fallback;
     } catch (error) {
-      console.warn(`Theme property ${path} not found, using fallback:`, fallback);
+      logger.warn(`Theme property ${path} not found, using fallback:`, fallback);
       return fallback;
     }
   }
@@ -28,4 +28,4 @@ const themeSafetyPatches = {
 // Export theme safety utilities
 export { themeSafetyPatches };
 
-console.log('🛡️ Theme safety enhancements ready for header component');
+logger.log('🛡️ Theme safety enhancements ready for header component');

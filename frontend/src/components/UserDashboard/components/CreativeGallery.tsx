@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import { logger } from '@/utils/logger';
 
 // Professional styled components
 const GalleryContainer = styled(motion.div)`
@@ -362,7 +363,7 @@ const CreativeGallery: React.FC = () => {
   };
 
   const handleVideoPlay = (videoId: string) => {
-    console.log('Play video:', videoId);
+    logger.log('Play video:', videoId);
     // TODO: Implement video player
   };
 

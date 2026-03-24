@@ -43,6 +43,7 @@ import FloatingCart from './components/FloatingCart';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
 import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideoBackground';
+import { logger } from '@/utils/logger';
 
 // ============================================================
 // Package Interface (matches PackagesGrid / PackageCard)
@@ -530,7 +531,7 @@ const StoreV2: React.FC = () => {
   // Toast fallback (same pattern as original store)
   const toast = useCallback(
     (options: { title: string; description: string; variant?: string }) => {
-      console.log('Toast:', options.title, options.description);
+      logger.log('Toast:', options.title, options.description);
     },
     []
   );

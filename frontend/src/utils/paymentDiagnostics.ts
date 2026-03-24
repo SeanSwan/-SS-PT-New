@@ -40,7 +40,7 @@ class PaymentDiagnostics {
    * Run comprehensive payment system diagnostics
    */
   async runDiagnostics(): Promise<PaymentDiagnosticResult> {
-    console.log('🔧 [Payment Diagnostics] Starting comprehensive system check...');
+    logger.log('🔧 [Payment Diagnostics] Starting comprehensive system check...');
     this.issues = [];
 
     const environment = this.checkEnvironment();
@@ -58,7 +58,7 @@ class PaymentDiagnostics {
       connectivity
     };
 
-    console.log('📊 [Payment Diagnostics] Results:', result);
+    logger.log('📊 [Payment Diagnostics] Results:', result);
     return result;
   }
 
@@ -375,7 +375,7 @@ if (typeof window !== 'undefined') {
     run: () => paymentDiagnostics.runDiagnostics(),
     runAndReport: async () => {
       const results = await paymentDiagnostics.runDiagnostics();
-      console.log(paymentDiagnostics.generateReport(results));
+      logger.log(paymentDiagnostics.generateReport(results));
       return results;
     }
   };

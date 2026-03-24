@@ -6,6 +6,7 @@ import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import correct video path
 import wavesVideo from "/smoke.mp4"; // Updated to smoke.mp4
+import { logger } from '@/utils/logger';
 
 // Keyframe animations
 const glow = keyframes`
@@ -217,7 +218,7 @@ const ParallaxSection: React.FC = () => {
             theme="purple"
             size="large"
             animateOnRender={false}
-            onClick={() => console.log("Schedule consultation")}
+            onClick={() => logger.log("Schedule consultation")}
           />
         </ButtonContainer>
       </ParallaxContent>

@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { X, User, Users, Settings, Crown } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 const Container = styled.div<{ $visible: boolean }>`
   position: fixed;
@@ -176,7 +177,7 @@ const UserSwitcher: React.FC = () => {
   const handleUserSwitch = async (username: string) => {
     try {
       await login(username, 'password');
-      console.log(`Switched to ${username}`);
+      logger.log(`Switched to ${username}`);
     } catch (error) {
       console.error('Error switching user:', error);
     }

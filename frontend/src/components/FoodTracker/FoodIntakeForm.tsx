@@ -23,6 +23,7 @@ import {
   Zap,
   Activity
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -532,7 +533,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     const checkStatus = async () => {
       try {
         const status = await checkMcpServersStatus();
-        console.log('Food intake form MCP status:', status);
+        logger.log('Food intake form MCP status:', status);
       } catch (error) {
         console.error('Error checking MCP status:', error);
       }
@@ -685,7 +686,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       try {
         await logFoodIntake(entry);
       } catch (mcpErr) {
-        console.warn('MCP food intake logging failed (non-blocking):', mcpErr);
+        logger.warn('MCP food intake logging failed (non-blocking):', mcpErr);
       }
 
       // Success feedback

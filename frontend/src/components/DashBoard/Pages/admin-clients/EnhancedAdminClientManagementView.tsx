@@ -152,6 +152,7 @@ import {
 // Client source logos for card identification
 import MoveFitLogo3D from '../../../../assets/MoveFitLogo-3d.png';
 import SwanStudiosLogo from '../../../../assets/Logo.png';
+import { logger } from '@/utils/logger';
 
 // ─── Animations ───────────────────────────────────────────────────
 const spin = keyframes`
@@ -2108,7 +2109,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             <CommunicationCenter
               clientId={selectedClient.id}
               onMessageSend={(message) => {
-                console.log('Message sent:', message);
+                logger.log('Message sent:', message);
                 toast({
                   title: "Message Sent",
                   description: "Your message has been sent successfully",
@@ -2116,7 +2117,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                 });
               }}
               onCallStart={(type, participantId) => {
-                console.log(`Starting ${type} call with ${participantId}`);
+                logger.log(`Starting ${type} call with ${participantId}`);
                 toast({
                   title: "Call Starting",
                   description: `Starting ${type} call...`,
@@ -2303,7 +2304,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           client={selectedClient}
           onSubmit={(assessment) => {
             // TODO: Handle assessment submission
-            console.log('New assessment:', assessment);
+            logger.log('New assessment:', assessment);
             setShowAssessmentModal(false);
             toast({
               title: "Success",
@@ -2320,7 +2321,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           onClose={() => setShowBulkActionDialog(false)}
           selectedClients={selectedClients}
           onAction={(action) => {
-            console.log('Bulk action:', action);
+            logger.log('Bulk action:', action);
             setShowBulkActionDialog(false);
             setSelectedClients([]);
             toast({

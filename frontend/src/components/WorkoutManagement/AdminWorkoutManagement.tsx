@@ -23,6 +23,7 @@ import { useWorkoutMcp, WorkoutPlan, Exercise, ClientProgress, WorkoutStatistics
 import ExerciseLibrary from './ExerciseLibrary';
 import WorkoutPlanBuilder from './WorkoutPlanBuilder';
 import ClientSelection from './ClientSelection';
+import { logger } from '@/utils/logger';
 
 // ─── Crystalline Swan Theme Tokens ────────────────────────────────────────
 const theme = {
@@ -994,12 +995,12 @@ const AdminWorkoutManagement: React.FC = () => {
         {activeTab === 1 && renderWorkoutPlans()}
         {activeTab === 2 && (
           <ExerciseLibrary
-            onExerciseSelect={(exercise) => console.log('Selected exercise:', exercise)}
+            onExerciseSelect={(exercise) => logger.log('Selected exercise:', exercise)}
           />
         )}
         {activeTab === 3 && (
           <ClientSelection
-            onClientSelect={(client) => console.log('Selected client:', client)}
+            onClientSelect={(client) => logger.log('Selected client:', client)}
             multiSelect={true}
             showDetails={true}
           />
@@ -1036,7 +1037,7 @@ const AdminWorkoutManagement: React.FC = () => {
           <ModalContent>
             <ExerciseLibrary
               onExerciseSelect={(exercise) => {
-                console.log('Selected exercise:', exercise);
+                logger.log('Selected exercise:', exercise);
                 setExerciseLibraryOpen(false);
               }}
             />
@@ -1072,7 +1073,7 @@ const AdminWorkoutManagement: React.FC = () => {
           <ModalContent>
             <ClientSelection
               onClientSelect={(client) => {
-                console.log('Selected client for assignment:', client);
+                logger.log('Selected client for assignment:', client);
                 setClientSelectionOpen(false);
               }}
               multiSelect={true}

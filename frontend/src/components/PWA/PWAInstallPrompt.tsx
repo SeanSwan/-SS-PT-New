@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { logger } from '@/utils/logger';
 
 // Types
 interface BeforeInstallPromptEvent extends Event {
@@ -173,7 +174,7 @@ const PWAInstallPrompt: React.FC = () => {
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('PWA: beforeinstallprompt event triggered');
+      logger.log('PWA: beforeinstallprompt event triggered');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
@@ -187,7 +188,7 @@ const PWAInstallPrompt: React.FC = () => {
 
     // Listen for app install
     const handleAppInstalled = () => {
-      console.log('PWA: App was installed');
+      logger.log('PWA: App was installed');
       setShowPrompt(false);
       setIsInstalled(true);
       setDeferredPrompt(null);
@@ -219,12 +220,12 @@ const PWAInstallPrompt: React.FC = () => {
       // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice;
       
-      console.log(`PWA: User response to install prompt: ${outcome}`);
+      logger.log(`PWA: User response to install prompt: ${outcome}`);
       
       if (outcome === 'accepted') {
-        console.log('PWA: User accepted the install prompt');
+        logger.log('PWA: User accepted the install prompt');
       } else {
-        console.log('PWA: User dismissed the install prompt');
+        logger.log('PWA: User dismissed the install prompt');
       }
       
       // Reset the deferred prompt

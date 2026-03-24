@@ -5,6 +5,7 @@ import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeCont
 import { useNavigate } from "react-router-dom";
 import apiService from "../../services/api.service";
 import { grantConsent } from "../../services/aiConsentService";
+import { logger } from '@/utils/logger';
 
 /* ── Lazy-loaded wizard sections (code-split for FCP) ── */
 const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
@@ -462,7 +463,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
       } catch {
         // Consent grant is best-effort during onboarding.
         // User can always grant later from AI Privacy & Consent page.
-        console.warn('[Onboarding] AI consent grant failed — user can grant later.');
+        logger.warn('[Onboarding] AI consent grant failed — user can grant later.');
       }
     }
   };

@@ -26,6 +26,7 @@ import {
   Trainer,
   BulkOperationRequest
 } from '../components/UniversalMasterSchedule/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Client-Trainer Assignment Service Class
@@ -70,7 +71,7 @@ class ClientTrainerAssignmentService {
       if (payload?.data && Array.isArray(payload.data)) return payload.data;
       if (payload?.assignments && Array.isArray(payload.assignments)) return payload.assignments;
 
-      console.warn('[ClientTrainerAssignmentService] Unexpected assignments response shape:', payload);
+      logger.warn('[ClientTrainerAssignmentService] Unexpected assignments response shape:', payload);
       return [];
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -512,7 +513,7 @@ class ClientTrainerAssignmentService {
    */
   subscribeToAssignmentUpdates(callback: (assignment: ClientTrainerAssignment) => void): () => void {
     // TODO: Implement WebSocket subscription
-    console.log('WebSocket subscription for assignments not yet implemented');
+    logger.log('WebSocket subscription for assignments not yet implemented');
     return () => {};
   }
   
@@ -526,7 +527,7 @@ class ClientTrainerAssignmentService {
     updateType: 'created' | 'updated' | 'deleted'
   ): void {
     // TODO: Implement WebSocket notification
-    console.log(`Assignment ${updateType}: ${assignmentId}`);
+    logger.log(`Assignment ${updateType}: ${assignmentId}`);
   }
 }
 

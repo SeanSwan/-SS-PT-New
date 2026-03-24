@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/utils/logger';
 
 // Types
 interface MockNotification {
@@ -224,7 +225,7 @@ export const setupMockApiInterceptor = (axios: any) => {
         
         // Get the requested URL and method
         const { url, method } = error.config;
-        console.warn(`[MOCK API] Backend connection failed. Using mock data for ${method} ${url}`);
+        logger.warn(`[MOCK API] Backend connection failed. Using mock data for ${method} ${url}`);
         
         // Return mock data based on the endpoint
         if (url.includes('/notifications')) {

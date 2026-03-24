@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api.service';
 import tokenCleanup from '../utils/tokenCleanup';
+import { logger } from '@/utils/logger';
 
 const AdminLoginDebug: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -20,7 +21,7 @@ const AdminLoginDebug: React.FC = () => {
     const debugData: any = {};
 
     try {
-      console.log('🐛 Starting admin login debug...');
+      logger.log('🐛 Starting admin login debug...');
       
       // Step 1: Check current auth state
       debugData.currentUser = user;
@@ -28,7 +29,7 @@ const AdminLoginDebug: React.FC = () => {
       debugData.currentRole = user?.role;
       
       // Step 2: Clean up any existing tokens
-      console.log('🧹 Cleaning up existing tokens...');
+      logger.log('🧹 Cleaning up existing tokens...');
       tokenCleanup.cleanupAllTokens();
       logout();
       
@@ -42,7 +43,7 @@ const AdminLoginDebug: React.FC = () => {
       };
       
       // Step 4: Attempt API call directly
-      console.log('🌐 Testing direct API call...');
+      logger.log('🌐 Testing direct API call...');
       try {
         const directApiResponse = await apiService.post('/api/auth/login', {
           username: 'admin',
@@ -78,7 +79,7 @@ const AdminLoginDebug: React.FC = () => {
       }
       
       // Step 5: Use auth context login
-      console.log('🔐 Testing auth context login...');
+      logger.log('🔐 Testing auth context login...');
       const loginResult = await login('admin', 'admin123');
       
       debugData.authContextLogin = {
@@ -97,7 +98,7 @@ const AdminLoginDebug: React.FC = () => {
         storedUser: localStorage.getItem('user')
       };
       
-      console.log('🐛 Debug complete! Check the debug panel.');
+      logger.log('🐛 Debug complete! Check the debug panel.');
       
     } catch (error: any) {
       debugData.error = {
@@ -122,7 +123,7 @@ const AdminLoginDebug: React.FC = () => {
       }
     };
     
-    console.log('Current Auth State:', state);
+    logger.log('Current Auth State:', state);
     setDebugInfo({ currentState: state });
   };
 
@@ -164,7 +165,7 @@ const AdminLoginDebug: React.FC = () => {
         {debugInfo && (
           <button
             onClick={() => {
-              console.log('🐛 Full Debug Info:', debugInfo);
+              logger.log('🐛 Full Debug Info:', debugInfo);
               alert('Debug info logged to console. Press F12 to view.');
             }}
             className="w-full bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600"

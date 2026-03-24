@@ -10,6 +10,7 @@
 import { setUser } from '../store/slices/authSlice';
 import store from '../store';
 import { clearMemoryStore } from './dev-memory-store';
+import { logger } from '@/utils/logger';
 
 // Create a manual setToken action since we might not have it exported from the authSlice
 const setToken = (token: string | null) => ({
@@ -77,7 +78,7 @@ export const devQuickLogin = (role: 'admin' | 'trainer' | 'client' | 'user') => 
   localStorage.setItem('token', MOCK_TOKENS[role]);
   localStorage.setItem('user', JSON.stringify(TEST_USERS[role]));
   
-  console.log(`[DEV MODE] Logged in as ${role}`);
+  logger.log(`[DEV MODE] Logged in as ${role}`);
   
   return TEST_USERS[role];
 };
@@ -98,9 +99,9 @@ export const devLogout = () => {
       store.dispatch(setUser(null));
       store.dispatch(setToken(null));
       reduxCleared = true;
-      console.log('[DEV MODE] Redux auth state cleared');
+      logger.log('[DEV MODE] Redux auth state cleared');
     } catch (reduxError) {
-      console.warn('[DEV MODE] Error clearing Redux state:', reduxError);
+      logger.warn('[DEV MODE] Error clearing Redux state:', reduxError);
     }
     
     // 2. Clear localStorage with more comprehensive key removal
@@ -119,9 +120,9 @@ export const devLogout = () => {
       localStorage.removeItem('session_id');
       
       localStorageCleared = true;
-      console.log('[DEV MODE] localStorage auth items cleared');
+      logger.log('[DEV MODE] localStorage auth items cleared');
     } catch (localStorageError) {
-      console.warn('[DEV MODE] Error clearing localStorage:', localStorageError);
+      logger.warn('[DEV MODE] Error clearing localStorage:', localStorageError);
     }
     
     // 3. Clear sessionStorage with comprehensive key removal
@@ -138,25 +139,25 @@ export const devLogout = () => {
       sessionStorage.removeItem('session_id');
       
       sessionStorageCleared = true;
-      console.log('[DEV MODE] sessionStorage auth items cleared');
+      logger.log('[DEV MODE] sessionStorage auth items cleared');
     } catch (sessionStorageError) {
-      console.warn('[DEV MODE] Error clearing sessionStorage:', sessionStorageError);
+      logger.warn('[DEV MODE] Error clearing sessionStorage:', sessionStorageError);
     }
     
     // 4. Clear memory store
     try {
       clearMemoryStore();
       memoryStoreCleared = true;
-      console.log('[DEV MODE] Memory store cleared');
+      logger.log('[DEV MODE] Memory store cleared');
     } catch (memoryError) {
-      console.warn('[DEV MODE] Error clearing memory store:', memoryError);
+      logger.warn('[DEV MODE] Error clearing memory store:', memoryError);
     }
     
     // Log overall result
     if (reduxCleared && localStorageCleared && sessionStorageCleared && memoryStoreCleared) {
-      console.log('[DEV MODE] Successfully logged out with all stores cleared');
+      logger.log('[DEV MODE] Successfully logged out with all stores cleared');
     } else {
-      console.warn('[DEV MODE] Partial logout success - some stores may not have been cleared');
+      logger.warn('[DEV MODE] Partial logout success - some stores may not have been cleared');
     }
   } catch (error) {
     console.error('[DEV MODE] Error during logout:', error);
@@ -164,7 +165,7 @@ export const devLogout = () => {
     // Last-resort fallback: more aggressive clearing
     try {
       // Try completely clearing all storage
-      console.warn('[DEV MODE] Attempting aggressive storage clearing...');
+      logger.warn('[DEV MODE] Attempting aggressive storage clearing...');
       
       try { localStorage.clear(); } catch (e) { /* silent fail */ }
       try { sessionStorage.clear(); } catch (e) { /* silent fail */ }
@@ -177,7 +178,7 @@ export const devLogout = () => {
         store.dispatch(setToken(null));
       } catch (e) { /* silent fail */ }
       
-      console.log('[DEV MODE] Emergency logout completed');
+      logger.log('[DEV MODE] Emergency logout completed');
     } catch (e) {
       console.error('[DEV MODE] Complete failure clearing authentication');
     }
@@ -213,14 +214,14 @@ export const getCurrentUser = () => {
       try {
         return JSON.parse(userString);
       } catch (e) {
-        console.warn('[DEV MODE] Failed to parse user from localStorage');
+        logger.warn('[DEV MODE] Failed to parse user from localStorage');
       }
     }
     
     // No user found in Redux or localStorage
     return null;
   } catch (error) {
-    console.warn('[DEV MODE] Error accessing current user:', error);
+    logger.warn('[DEV MODE] Error accessing current user:', error);
     
     // Last resort: Check localStorage directly
     try {
@@ -248,7 +249,7 @@ export const seedTestAccounts = async () => {
     // const response = await fetch('/api/dev/seed-test-accounts', { method: 'POST' });
     // return response.json();
     
-    console.log('[DEV MODE] Seeded test accounts');
+    logger.log('[DEV MODE] Seeded test accounts');
     return { success: true, message: 'Test accounts created successfully' };
   } catch (error) {
     console.error('[DEV MODE] Failed to seed test accounts', error);

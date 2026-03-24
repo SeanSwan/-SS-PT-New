@@ -13,9 +13,10 @@ import {
 } from './cosmicPerformanceOptimizer';
 
 import cosmicPerformanceOptimizer from './cosmicPerformanceOptimizer';
+import { logger } from '@/utils/logger';
 
 export const testCosmicPerformanceExports = () => {
-  console.log('🧪 Testing Cosmic Performance Optimizer exports...');
+  logger.log('🧪 Testing Cosmic Performance Optimizer exports...');
   
   // Test individual exports
   const individualExports = {
@@ -33,15 +34,15 @@ export const testCosmicPerformanceExports = () => {
     initializeCosmicPerformance: typeof cosmicPerformanceOptimizer.initializeCosmicPerformance
   };
   
-  console.log('✅ Individual exports:', individualExports);
-  console.log('✅ Default exports:', defaultExports);
+  logger.log('✅ Individual exports:', individualExports);
+  logger.log('✅ Default exports:', defaultExports);
   
   // Verify all are functions
   const allValid = Object.values(individualExports).every(type => type === 'function') &&
                    Object.values(defaultExports).every(type => type === 'function');
   
   if (allValid) {
-    console.log('🎉 All exports are working correctly!');
+    logger.log('🎉 All exports are working correctly!');
     return true;
   } else {
     console.error('❌ Some exports are not working correctly');

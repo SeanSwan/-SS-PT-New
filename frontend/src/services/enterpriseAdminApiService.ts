@@ -17,6 +17,7 @@
 
 import productionApiService from './api.service';
 import { AxiosResponse } from 'axios';
+import { logger } from '@/utils/logger';
 
 // =====================================================
 // TYPE DEFINITIONS FOR ENTERPRISE ADMIN FEATURES
@@ -587,7 +588,7 @@ class EnterpriseAdminApiService {
     try {
       const token = productionApiService.getStoredUser()?.token;
       if (!token) {
-        console.warn('[Admin API] No token available for WebSocket connection');
+        logger.warn('[Admin API] No token available for WebSocket connection');
         return null;
       }
       
@@ -598,11 +599,11 @@ class EnterpriseAdminApiService {
       const ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
-        console.log('[Admin API] WebSocket connection established');
+        logger.log('[Admin API] WebSocket connection established');
       };
       
       ws.onclose = () => {
-        console.log('[Admin API] WebSocket connection closed');
+        logger.log('[Admin API] WebSocket connection closed');
       };
       
       ws.onerror = (error) => {
@@ -628,7 +629,7 @@ class EnterpriseAdminApiService {
       const response = await productionApiService.get('/api/admin/features/availability');
       return response.data.available === true;
     } catch (error) {
-      console.warn('[Admin API] Admin features availability check failed:', error);
+      logger.warn('[Admin API] Admin features availability check failed:', error);
       return false;
     }
   }
@@ -674,7 +675,7 @@ export { EnterpriseAdminApiService };
 // Global debug function for admin API troubleshooting
 if (typeof window !== 'undefined') {
   (window as any).debugAdminAPI = () => {
-    console.log('[DEBUG] Admin API Service:', {
+    logger.log('[DEBUG] Admin API Service:', {
       authenticated: productionApiService.isAuthenticated(),
       user: productionApiService.getStoredUser(),
       baseUrl: productionApiService.get('/').then(r => r.config.baseURL).catch(() => 'unknown')
@@ -684,7 +685,7 @@ if (typeof window !== 'undefined') {
   (window as any).testAdminEndpoint = async (endpoint: string) => {
     try {
       const response = await productionApiService.get(`/api/admin/${endpoint}`);
-      console.log(`[DEBUG] Admin endpoint /${endpoint} test:`, response.data);
+      logger.log(`[DEBUG] Admin endpoint /${endpoint} test:`, response.data);
     } catch (error) {
       console.error(`[DEBUG] Admin endpoint /${endpoint} test failed:`, error);
     }

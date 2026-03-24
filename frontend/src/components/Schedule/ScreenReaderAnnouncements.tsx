@@ -7,6 +7,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import { logger } from '@/utils/logger';
 
 // Styles for visually hidden elements that are still accessible to screen readers
 const SROnly = styled.div`
@@ -82,7 +83,7 @@ export const useScreenReaderAnnouncement = (id = 'sr-announcer') => {
     
     const element = document.getElementById(elementId);
     if (!element) {
-      console.warn(`Screen reader announcement element with id "${elementId}" not found`);
+      logger.warn(`Screen reader announcement element with id "${elementId}" not found`);
       return;
     }
 

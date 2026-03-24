@@ -267,7 +267,7 @@ export const isMockDataEnabled = (): boolean => {
   try {
     return localStorage.getItem('useMockData') === 'true';
   } catch (error) {
-    console.warn('Error checking mock data mode:', error);
+    logger.warn('Error checking mock data mode:', error);
     return false;
   }
 };
@@ -285,9 +285,9 @@ export const enableMockData = (): void => {
     localStorage.setItem('mockWorkouts', JSON.stringify(mockWorkouts));
     localStorage.setItem('mockGamification', JSON.stringify(mockGamification));
     
-    console.log('[DEV MODE] Mock data mode enabled');
+    logger.log('[DEV MODE] Mock data mode enabled');
   } catch (error) {
-    console.warn('Error enabling mock data mode:', error);
+    logger.warn('Error enabling mock data mode:', error);
   }
 };
 
@@ -304,9 +304,9 @@ export const disableMockData = (): void => {
     localStorage.removeItem('mockWorkouts');
     localStorage.removeItem('mockGamification');
     
-    console.log('[DEV MODE] Mock data mode disabled');
+    logger.log('[DEV MODE] Mock data mode disabled');
   } catch (error) {
-    console.warn('Error disabling mock data mode:', error);
+    logger.warn('Error disabling mock data mode:', error);
   }
 };
 
@@ -321,7 +321,7 @@ export const getMockNotifications = (): { notifications: MockNotification[], unr
     
     return { notifications, unreadCount };
   } catch (error) {
-    console.warn('Error getting mock notifications:', error);
+    logger.warn('Error getting mock notifications:', error);
     return { 
       notifications: mockNotifications, 
       unreadCount: mockNotifications.filter(n => !n.read).length 
@@ -337,7 +337,7 @@ export const getMockSessions = (): MockSession[] => {
     const storedData = localStorage.getItem('mockSessions');
     return storedData ? JSON.parse(storedData) : mockSessions;
   } catch (error) {
-    console.warn('Error getting mock sessions:', error);
+    logger.warn('Error getting mock sessions:', error);
     return mockSessions;
   }
 };
@@ -350,7 +350,7 @@ export const getMockWorkouts = (): MockWorkout[] => {
     const storedData = localStorage.getItem('mockWorkouts');
     return storedData ? JSON.parse(storedData) : mockWorkouts;
   } catch (error) {
-    console.warn('Error getting mock workouts:', error);
+    logger.warn('Error getting mock workouts:', error);
     return mockWorkouts;
   }
 };
@@ -363,7 +363,7 @@ export const getMockGamification = () => {
     const storedData = localStorage.getItem('mockGamification');
     return storedData ? JSON.parse(storedData) : mockGamification;
   } catch (error) {
-    console.warn('Error getting mock gamification data:', error);
+    logger.warn('Error getting mock gamification data:', error);
     return mockGamification;
   }
 };
@@ -380,7 +380,7 @@ export const markMockNotificationAsRead = (notificationId: string): void => {
     
     localStorage.setItem('mockNotifications', JSON.stringify(updatedNotifications));
   } catch (error) {
-    console.warn('Error marking mock notification as read:', error);
+    logger.warn('Error marking mock notification as read:', error);
   }
 };
 
@@ -394,7 +394,7 @@ export const markAllMockNotificationsAsRead = (): void => {
     
     localStorage.setItem('mockNotifications', JSON.stringify(updatedNotifications));
   } catch (error) {
-    console.warn('Error marking all mock notifications as read:', error);
+    logger.warn('Error marking all mock notifications as read:', error);
   }
 };
 
@@ -421,7 +421,7 @@ export const initializeMockData = (): void => {
       localStorage.setItem('mockGamification', JSON.stringify(mockGamification));
     }
     
-    console.log('[DEV MODE] Mock data initialized');
+    logger.log('[DEV MODE] Mock data initialized');
   }
 };
 

@@ -1,4 +1,5 @@
 import { PlaceholderImageService } from '../../services/placeholder';
+import { logger } from '@/utils/logger';
 
 /**
  * Global Image Error Handler
@@ -49,7 +50,7 @@ class ImageErrorHandler {
     }
 
     this.isInitialized = true;
-    console.log('[ImageErrorHandler] Global image error handler initialized');
+    logger.log('[ImageErrorHandler] Global image error handler initialized');
   }
 
   /**
@@ -87,7 +88,7 @@ class ImageErrorHandler {
           target.setAttribute('data-original-src', originalSrc);
           target.setAttribute('data-replaced-placeholder', 'true');
           
-          console.log(`[ImageErrorHandler] Replaced placeholder URL: ${originalSrc} -> ${replacementSrc}`);
+          logger.log(`[ImageErrorHandler] Replaced placeholder URL: ${originalSrc} -> ${replacementSrc}`);
         }
       }
       
@@ -112,7 +113,7 @@ class ImageErrorHandler {
         img.setAttribute('data-original-src', originalSrc);
         img.setAttribute('data-replaced-placeholder', 'true');
         
-        console.log(`[ImageErrorHandler] Proactively replaced placeholder: ${originalSrc} -> ${replacedSrc}`);
+        logger.log(`[ImageErrorHandler] Proactively replaced placeholder: ${originalSrc} -> ${replacedSrc}`);
       }
     });
   }
@@ -124,7 +125,7 @@ class ImageErrorHandler {
     if (this.isInitialized && typeof window !== 'undefined') {
       document.removeEventListener('error', this.handleGlobalImageError, true);
       this.isInitialized = false;
-      console.log('[ImageErrorHandler] Global image error handler cleaned up');
+      logger.log('[ImageErrorHandler] Global image error handler cleaned up');
     }
   }
 

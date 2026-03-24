@@ -21,6 +21,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import ProcessingOverlay from '../ProcessingOverlay';
 import PriceMismatchModal from '../PriceMismatchModal';
+import { logger } from '@/utils/logger';
 
 /** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
 function getPersistedIdempotencyKey(fingerprint: string): string {
@@ -44,7 +45,7 @@ function getStripe() {
   if (!stripeInstance) {
     const key = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
     if (!key) {
-      console.warn('[ACH] VITE_STRIPE_PUBLIC_KEY not set — Stripe ACH unavailable');
+      logger.warn('[ACH] VITE_STRIPE_PUBLIC_KEY not set — Stripe ACH unavailable');
       return Promise.resolve(null);
     }
     stripeInstance = loadStripe(key);

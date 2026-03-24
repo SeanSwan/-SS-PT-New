@@ -25,7 +25,7 @@ export class StripeAccountValidator {
     frontendAccount: string | null;
     details: string;
   } {
-    console.log('🔍 ACCOUNT VALIDATION CHECK:');
+    logger.log('🔍 ACCOUNT VALIDATION CHECK:');
     
     // SIMPLIFIED VALIDATION: Check environment consistency
     const isBackendLive = clientSecret.startsWith('pi_') && !clientSecret.includes('_test_');
@@ -35,14 +35,14 @@ export class StripeAccountValidator {
     // Extract frontend account ID for logging
     const frontendAccount = this.extractAccountFromKey(publishableKey);
     
-    console.log(`   Backend environment: ${isBackendLive ? 'LIVE' : 'TEST'}`);
-    console.log(`   Frontend environment: ${isFrontendLive ? 'LIVE' : (isFrontendTest ? 'TEST' : 'UNKNOWN')}`);
-    console.log(`   Frontend account ID: ${frontendAccount || 'Unable to extract'}`);
+    logger.log(`   Backend environment: ${isBackendLive ? 'LIVE' : 'TEST'}`);
+    logger.log(`   Frontend environment: ${isFrontendLive ? 'LIVE' : (isFrontendTest ? 'TEST' : 'UNKNOWN')}`);
+    logger.log(`   Frontend account ID: ${frontendAccount || 'Unable to extract'}`);
     
     // Check environment consistency
     if (isBackendLive && isFrontendLive) {
-      console.log('✅ ENVIRONMENT MATCH: Both backend and frontend using LIVE Stripe keys');
-      console.log('✅ ACCOUNT VALIDATION PASSED: Keys are from same environment');
+      logger.log('✅ ENVIRONMENT MATCH: Both backend and frontend using LIVE Stripe keys');
+      logger.log('✅ ACCOUNT VALIDATION PASSED: Keys are from same environment');
       
       return {
         valid: true,
@@ -53,8 +53,8 @@ export class StripeAccountValidator {
     }
     
     if (!isBackendLive && isFrontendTest) {
-      console.log('✅ ENVIRONMENT MATCH: Both backend and frontend using TEST Stripe keys');
-      console.log('✅ ACCOUNT VALIDATION PASSED: Keys are from same environment');
+      logger.log('✅ ENVIRONMENT MATCH: Both backend and frontend using TEST Stripe keys');
+      logger.log('✅ ACCOUNT VALIDATION PASSED: Keys are from same environment');
       
       return {
         valid: true,

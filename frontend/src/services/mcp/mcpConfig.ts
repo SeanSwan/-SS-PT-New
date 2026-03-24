@@ -9,6 +9,7 @@
  */
 
 import productionApiService from '../api.service';
+import { logger } from '@/utils/logger';
 
 // Build-time gate: skip all MCP API calls when disabled (prevents 30s polling and wasted requests)
 const MCP_ENABLED = import.meta.env.VITE_ENABLE_MCP_SERVICES === 'true';
@@ -68,7 +69,7 @@ class McpConfigService {
       this.healthCache = response.data;
       this.lastHealthCheck = now;
       
-      console.log(`[MCP Config] Health check completed:`, this.healthCache.status);
+      logger.log(`[MCP Config] Health check completed:`, this.healthCache.status);
       return this.healthCache;
     } catch (error) {
       console.error('[MCP Config] Health check failed:', error);

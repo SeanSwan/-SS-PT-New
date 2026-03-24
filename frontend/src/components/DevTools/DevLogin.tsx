@@ -8,6 +8,7 @@ import {
   Info,
   Loader2
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ===================== Styled Components =====================
 
@@ -249,7 +250,7 @@ const DevLogin: React.FC = () => {
         password: role === 'admin' ? 'admin123' : 'password123'
       };
       
-      console.log(`DevTools: Attempting login as ${credentials.username}`);
+      logger.log(`DevTools: Attempting login as ${credentials.username}`);
       
       // Make actual login request to backend
       const response = await fetch('/api/auth/login', {
@@ -267,7 +268,7 @@ const DevLogin: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log('Login response:', data);
+      logger.log('Login response:', data);
       
       // Store the actual token from the backend
       if (data.token && data.user) {

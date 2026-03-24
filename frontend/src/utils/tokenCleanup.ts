@@ -23,7 +23,7 @@ class ProductionTokenCleanup {
   cleanupAllTokens(): boolean {
     // Prevent infinite cleanup loops
     if (this.cleanupCount >= this.maxCleanups) {
-      console.warn('[TokenCleanup] Max cleanup attempts reached, skipping to prevent loops');
+      logger.warn('[TokenCleanup] Max cleanup attempts reached, skipping to prevent loops');
       return false;
     }
 
@@ -49,7 +49,7 @@ class ProductionTokenCleanup {
         sessionStorage.removeItem(key);
       });
       
-      console.log(`[TokenCleanup] Tokens cleared (attempt ${this.cleanupCount})`);
+      logger.log(`[TokenCleanup] Tokens cleared (attempt ${this.cleanupCount})`);
       
       // Reset cleanup count after successful cleanup
       setTimeout(() => {
@@ -124,13 +124,13 @@ class ProductionTokenCleanup {
 
       // Quick structure validation
       if (!this.isValidJWTStructure(token)) {
-        console.warn('[TokenCleanup] Invalid token structure detected');
+        logger.warn('[TokenCleanup] Invalid token structure detected');
         return null; // Don't auto-cleanup, let the app handle it
       }
 
       // Check expiration
       if (this.isTokenExpired(token)) {
-        console.log('[TokenCleanup] Token expired');
+        logger.log('[TokenCleanup] Token expired');
         return null; // Don't auto-cleanup, let refresh token handle it
       }
 
@@ -158,7 +158,7 @@ class ProductionTokenCleanup {
         localStorage.setItem(this.userKey, JSON.stringify(user));
       }
 
-      console.log('[TokenCleanup] Token stored successfully');
+      logger.log('[TokenCleanup] Token stored successfully');
       return true;
     } catch (error) {
       console.error('[TokenCleanup] Storage failed:', error);
@@ -172,7 +172,7 @@ class ProductionTokenCleanup {
   handleTokenError(error: any): boolean {
     // Prevent infinite error handling
     if (this.cleanupCount >= this.maxCleanups) {
-      console.warn('[TokenCleanup] Max error handling attempts reached');
+      logger.warn('[TokenCleanup] Max error handling attempts reached');
       return false;
     }
 
@@ -185,7 +185,7 @@ class ProductionTokenCleanup {
       return false; // Not a token error
     }
 
-    console.log('[TokenCleanup] Token error detected:', error?.response?.data?.message || 'Unknown error');
+    logger.log('[TokenCleanup] Token error detected:', error?.response?.data?.message || 'Unknown error');
     
     // Emit event for app to handle
     window.dispatchEvent(new CustomEvent('tokenError', {
@@ -210,7 +210,7 @@ class ProductionTokenCleanup {
       }
 
       if (!this.isValidJWTStructure(token)) {
-        console.warn('[TokenCleanup] Malformed token detected on init');
+        logger.warn('[TokenCleanup] Malformed token detected on init');
         
         // Only cleanup if we haven't done too many already
         if (this.cleanupCount < this.maxCleanups) {
@@ -271,7 +271,7 @@ class ProductionTokenCleanup {
    */
   resetCleanupCount(): void {
     this.cleanupCount = 0;
-    console.log('[TokenCleanup] Cleanup count reset');
+    logger.log('[TokenCleanup] Cleanup count reset');
   }
 
   /**
@@ -289,7 +289,7 @@ const productionTokenCleanup = new ProductionTokenCleanup();
 try {
   productionTokenCleanup.initializeTokenCleanup();
 } catch (error) {
-  console.warn('[TokenCleanup] Initialization failed:', error);
+  logger.warn('[TokenCleanup] Initialization failed:', error);
 }
 
 export default productionTokenCleanup;

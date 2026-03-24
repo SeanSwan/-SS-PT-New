@@ -4,13 +4,13 @@
  */
 
 // Verification script for the enhanced galaxy header
-console.log('🔍 VERIFICATION: Testing Enhanced Galaxy Header...');
+logger.log('🔍 VERIFICATION: Testing Enhanced Galaxy Header...');
 
 // Test 1: Check if header component can be imported
 try {
-  console.log('✅ Testing header import...');
+  logger.log('✅ Testing header import...');
   // This would normally import the header, but we're just checking file structure
-  console.log('✅ Enhanced Galaxy Header file created successfully');
+  logger.log('✅ Enhanced Galaxy Header file created successfully');
 } catch (error) {
   console.error('❌ Header import failed:', error);
 }
@@ -25,9 +25,9 @@ const dependencies = [
   '@mui/icons-material'
 ];
 
-console.log('✅ Checking dependencies...');
+logger.log('✅ Checking dependencies...');
 dependencies.forEach(dep => {
-  console.log(`  - ${dep}: Available in package.json`);
+  logger.log(`  - ${dep}: Available in package.json`);
 });
 
 // Test 3: Verify component structure
@@ -39,9 +39,9 @@ const componentFeatures = [
   'Enhanced animations and effects'
 ];
 
-console.log('🌌 Enhanced Galaxy Header Features:');
+logger.log('🌌 Enhanced Galaxy Header Features:');
 componentFeatures.forEach((feature, index) => {
-  console.log(`  ${index + 1}. ${feature} ✅`);
+  logger.log(`  ${index + 1}. ${feature} ✅`);
 });
 
 // Test 4: Route preservation check
@@ -58,13 +58,13 @@ const preservedRoutes = [
   '/about'
 ];
 
-console.log('🔗 Preserved Routes:');
+logger.log('🔗 Preserved Routes:');
 preservedRoutes.forEach(route => {
-  console.log(`  - ${route} ✅`);
+  logger.log(`  - ${route} ✅`);
 });
 
-console.log('✅ VERIFICATION COMPLETE: Enhanced Galaxy Header ready for deployment!');
-console.log('🚀 Your homepage should now load with the stunning new galaxy theme!');
+logger.log('✅ VERIFICATION COMPLETE: Enhanced Galaxy Header ready for deployment!');
+logger.log('🚀 Your homepage should now load with the stunning new galaxy theme!');
 
 export default {
   headerCreated: true,

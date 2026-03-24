@@ -52,6 +52,7 @@ import {
   Download,
   Upload
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const SettingsContainer = styled(motion.div)`
@@ -482,7 +483,7 @@ const AdminSettingsPanel: React.FC = () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     setSaving(false);
-    console.log('Settings saved:', settings);
+    logger.log('Settings saved:', settings);
   };
 
   const handleToggle = (section: string, key: string) => {
@@ -890,7 +891,7 @@ const AdminSettingsPanel: React.FC = () => {
         
         <HeaderActions>
           <ActionButton
-            onClick={() => console.log('Export settings')}
+            onClick={() => logger.log('Export settings')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

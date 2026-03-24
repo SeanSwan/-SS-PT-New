@@ -1,6 +1,7 @@
 // services/enhanced-progress-analytics-service.ts
 import { AxiosInstance } from 'axios';
 import { ClientProgressData, ClientProgressServiceInterface, createClientProgressService } from './client-progress-service';
+import { logger } from '@/utils/logger';
 
 // Enhanced analytics interfaces
 export interface ComparisonData {
@@ -179,7 +180,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     getComparisonAnalytics: async (clientId: string, comparisonType: string, timeframe: string) => {
       try {
-        console.log(`Fetching comparison analytics for client ${clientId}...`);
+        logger.log(`Fetching comparison analytics for client ${clientId}...`);
         const response = await axios.get(`/api/client-progress/${clientId}/comparison`, {
           params: { type: comparisonType, timeframe }
         });
@@ -193,7 +194,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     getInjuryRiskAssessment: async (clientId: string) => {
       try {
-        console.log(`Fetching injury risk assessment for client ${clientId}...`);
+        logger.log(`Fetching injury risk assessment for client ${clientId}...`);
         const response = await axios.get(`/api/client-progress/${clientId}/risk-assessment`);
         return response.data;
       } catch (error) {
@@ -205,7 +206,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     getGoalTrackingData: async (clientId: string) => {
       try {
-        console.log(`Fetching goal tracking data for client ${clientId}...`);
+        logger.log(`Fetching goal tracking data for client ${clientId}...`);
         const response = await axios.get(`/api/client-progress/${clientId}/goals`);
         return response.data;
       } catch (error) {
@@ -217,7 +218,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     updateGoal: async (clientId: string, goalId: string, updates: Partial<GoalData>) => {
       try {
-        console.log(`Updating goal ${goalId} for client ${clientId}...`);
+        logger.log(`Updating goal ${goalId} for client ${clientId}...`);
         const response = await axios.put(`/api/client-progress/${clientId}/goals/${goalId}`, updates);
         return response.data;
       } catch (error) {
@@ -232,7 +233,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     createGoal: async (clientId: string, goalData: Partial<GoalData>) => {
       try {
-        console.log(`Creating new goal for client ${clientId}...`);
+        logger.log(`Creating new goal for client ${clientId}...`);
         const response = await axios.post(`/api/client-progress/${clientId}/goals`, goalData);
         return response.data;
       } catch (error) {
@@ -247,7 +248,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     getWorkoutHistory: async (clientId: string, timeframe = '3months') => {
       try {
-        console.log(`Fetching workout history for client ${clientId}...`);
+        logger.log(`Fetching workout history for client ${clientId}...`);
         const response = await axios.get(`/api/client-progress/${clientId}/workout-history`, {
           params: { timeframe }
         });
@@ -261,7 +262,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
 
     generateProgressPredictions: async (clientId: string) => {
       try {
-        console.log(`Generating progress predictions for client ${clientId}...`);
+        logger.log(`Generating progress predictions for client ${clientId}...`);
         const response = await axios.get(`/api/client-progress/${clientId}/predictions`);
         return response.data;
       } catch (error) {

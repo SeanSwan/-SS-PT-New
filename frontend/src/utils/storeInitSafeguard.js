@@ -13,6 +13,7 @@ import { store } from '../redux/store';
 // Import the main store and the notificationSlice for initialization
 import mainStore from '../store';
 import { clearNotifications } from '../store/slices/notificationSlice';
+import { logger } from '@/utils/logger';
 
 // Global initialization flag
 window.__REDUX_STORE_INITIALIZED__ = false;
@@ -24,11 +25,11 @@ window.__REDUX_STORE_INITIALIZED__ = false;
 export function safeInitializeStore() {
   // Skip if already initialized
   if (window.__REDUX_STORE_INITIALIZED__) {
-    console.log('[SafeInitializer] Redux store already initialized, skipping');
+    logger.log('[SafeInitializer] Redux store already initialized, skipping');
     return;
   }
 
-  console.log('[SafeInitializer] Performing safe one-time store initialization');
+  logger.log('[SafeInitializer] Performing safe one-time store initialization');
   
   try {
     // 🔧 DEPLOYMENT FIX: Removed problematic scheduleSlice import
@@ -41,7 +42,7 @@ export function safeInitializeStore() {
     // Set global flag to prevent re-initialization
     window.__REDUX_STORE_INITIALIZED__ = true;
     
-    console.log('[SafeInitializer] Store safely initialized');
+    logger.log('[SafeInitializer] Store safely initialized');
   } catch (error) {
     console.error('[SafeInitializer] Store initialization failed:', error);
   }

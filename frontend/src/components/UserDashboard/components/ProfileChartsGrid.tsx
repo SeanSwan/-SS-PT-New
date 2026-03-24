@@ -40,6 +40,7 @@ import ProfileChartsSection from '../../../pages/Social/components/ProfileCharts
 import type { ChartVisibility } from '../../../pages/Social/components/ChartVisibilityToggle';
 import ChartTogglePanel from './ChartTogglePanel';
 import api from '../../../services/api';
+import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -90,7 +91,7 @@ const ProfileChartsGrid: React.FC<ProfileChartsGridProps> = ({
       setShowSettings(false);
     } catch (err) {
       // Silent fail — user can retry. Console warn for debugging.
-      console.warn('Failed to save chart visibility:', err);
+      logger.warn('Failed to save chart visibility:', err);
     } finally {
       setSaving(false);
     }

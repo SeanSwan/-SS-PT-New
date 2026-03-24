@@ -1,8 +1,8 @@
 // Enhanced Debug Deployment - Track Checkout 400 Error Fix
 // This will show us exactly what data is missing from the request
 
-console.log('🔧 Enhanced Debug Deployment for 400 Error Investigation');
-console.log('=======================================================');
+logger.log('🔧 Enhanced Debug Deployment for 400 Error Investigation');
+logger.log('=======================================================');
 
 const debugInfo = {
   
@@ -73,9 +73,9 @@ const debugInfo = {
   `
 };
 
-console.log(debugInfo.discovery);
-console.log(debugInfo.enhancedDebugging);
-console.log(debugInfo.suspectedCause);
-console.log(debugInfo.testPlan);
+logger.log(debugInfo.discovery);
+logger.log(debugInfo.enhancedDebugging);
+logger.log(debugInfo.suspectedCause);
+logger.log(debugInfo.testPlan);
 
 export default debugInfo;

@@ -20,6 +20,7 @@ import {
   FlexBox,
 } from './ui';
 import GlowButton from '../ui/buttons/GlowButton';
+import { logger } from '@/utils/logger';
 
 interface Session {
   id: number;
@@ -258,7 +259,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           }
         }
       } catch (error) {
-        console.warn('Could not fetch package price:', error);
+        logger.warn('Could not fetch package price:', error);
         // Use defaults
         setDefaultFullCharge(175);
         setDefaultLateFee(88);

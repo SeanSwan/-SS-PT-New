@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 /* ─── Types matching ChallengesView ────────────────── */
 
@@ -176,7 +177,7 @@ export function useChallenges(): UseChallengesReturn {
       setChallenges(mapped);
       setIsDemoData(false);
     } catch (err: any) {
-      console.warn('[useChallenges] API unavailable, falling back to empty state:', err.message);
+      logger.warn('[useChallenges] API unavailable, falling back to empty state:', err.message);
       setChallenges([]);
       setIsDemoData(true);
       setError(null); // Don't show error — just flag as demo

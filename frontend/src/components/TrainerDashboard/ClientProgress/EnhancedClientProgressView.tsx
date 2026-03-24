@@ -23,6 +23,7 @@ import {
   type WorkoutHistoryEntry,
   type GoalUpdate
 } from './Analytics';
+import { logger } from '@/utils/logger';
 
 /* ------------------------------------------------------------------ */
 /*  Styled Components – Crystalline Swan theme                             */
@@ -401,7 +402,7 @@ const EnhancedClientProgressView: React.FC = () => {
 
   const handleGoalUpdate = (goalId: string, update: GoalUpdate): void => {
     // Handle goal updates - in real implementation, this would call API
-    console.log('Goal update:', goalId, update);
+    logger.log('Goal update:', goalId, update);
   };
 
   const handleTabChange = (newValue: number) => {

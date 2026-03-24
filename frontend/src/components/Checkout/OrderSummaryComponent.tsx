@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // TypeScript Interfaces
 interface OrderItem {
@@ -568,7 +569,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
       if (validPromoCodes.includes(promoCode.toUpperCase())) {
         setAppliedPromos(prev => [...prev, promoCode.toUpperCase()]);
         setPromoCode('');
-        console.log(`Applied promo code: ${promoCode.toUpperCase()}`);
+        logger.log(`Applied promo code: ${promoCode.toUpperCase()}`);
       } else {
         throw new Error('Invalid promo code');
       }

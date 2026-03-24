@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { logger } from '@/utils/logger';
 
 export interface RealTimeUpdatesValues {
   // Connection Status (Enhanced)
@@ -216,7 +217,7 @@ export const useRealTimeUpdates = ({
     const { type, data, priority } = eventData;
     
     // Log the event for debugging
-    console.log(`📊 Processing schedule event: ${type}`, { priority, data });
+    logger.log(`📊 Processing schedule event: ${type}`, { priority, data });
     
     // Trigger data update for most events
     const updateTriggeringEvents = [
@@ -240,13 +241,13 @@ export const useRealTimeUpdates = ({
     
     // Handle conflict events with special notification
     if (type === 'schedule:conflict') {
-      console.warn('⚠️ Schedule conflict detected:', data.message);
+      logger.warn('⚠️ Schedule conflict detected:', data.message);
       // Could trigger a toast notification here
     }
     
     // Handle gamification events
     if (type === 'gamification:achievement') {
-      console.log('🎉 Achievement unlocked:', data.message);
+      logger.log('🎉 Achievement unlocked:', data.message);
       // Could trigger celebration animation here
     }
     
@@ -257,24 +258,24 @@ export const useRealTimeUpdates = ({
    */
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('🔄 WebSocket already connected');
+      logger.log('🔄 WebSocket already connected');
       return;
     }
     
     if (!enabled) {
-      console.log('🔄 Real-time updates disabled');
+      logger.log('🔄 Real-time updates disabled');
       return;
     }
     
     try {
       setConnectionStatus('connecting');
-      console.log('🔄 Attempting WebSocket connection to:', wsUrl);
+      logger.log('🔄 Attempting WebSocket connection to:', wsUrl);
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('✅ WebSocket connected successfully');
+        logger.log('✅ WebSocket connected successfully');
         setConnectionStatus('connected');
         setReconnectAttempts(0);
         setConnectionStartTime(new Date());
@@ -315,7 +316,7 @@ export const useRealTimeUpdates = ({
           
           // Handle authentication responses
           if (message.type === 'authenticated') {
-            console.log('✅ WebSocket authenticated successfully');
+            logger.log('✅ WebSocket authenticated successfully');
             return;
           }
           
@@ -336,14 +337,14 @@ export const useRealTimeUpdates = ({
           
           // Handle schedule update events
           if (message.type === 'schedule:update') {
-            console.log('📨 Schedule update received:', message.data.type);
+            logger.log('📨 Schedule update received:', message.data.type);
             handleScheduleUpdate(message.data);
             return;
           }
           
           // Handle direct messages
           if (message.type === 'schedule:direct') {
-            console.log('📨 Direct schedule message received:', message.data.type);
+            logger.log('📨 Direct schedule message received:', message.data.type);
             handleScheduleUpdate(message.data);
             return;
           }
@@ -367,7 +368,7 @@ export const useRealTimeUpdates = ({
       };
       
       ws.onclose = (event) => {
-        console.log('🔌 WebSocket connection closed:', event.code, event.reason);
+        logger.log('🔌 WebSocket connection closed:', event.code, event.reason);
         setConnectionStatus('disconnected');
         
         // Clear heartbeat
@@ -426,7 +427,7 @@ export const useRealTimeUpdates = ({
       return;
     }
     
-    console.log(`📤 Flushing ${messageQueue.length} queued messages`);
+    logger.log(`📤 Flushing ${messageQueue.length} queued messages`);
     
     for (const message of messageQueue) {
       try {
@@ -446,7 +447,7 @@ export const useRealTimeUpdates = ({
    */
   const clearQueue = useCallback(() => {
     setMessageQueue([]);
-    console.log('🗑️ Message queue cleared');
+    logger.log('🗑️ Message queue cleared');
   }, []);
   
   /**
@@ -461,7 +462,7 @@ export const useRealTimeUpdates = ({
     setReconnectAttempts(prev => prev + 1);
     
     const delay = reconnectDelay * Math.pow(1.5, reconnectAttempts); // Exponential backoff
-    console.log(`🔄 Scheduling reconnection attempt ${reconnectAttempts + 1} in ${delay}ms`);
+    logger.log(`🔄 Scheduling reconnection attempt ${reconnectAttempts + 1} in ${delay}ms`);
     
     reconnectTimeoutRef.current = setTimeout(() => {
       connect();
@@ -472,7 +473,7 @@ export const useRealTimeUpdates = ({
    * Manually disconnect WebSocket
    */
   const disconnect = useCallback(() => {
-    console.log('🔌 Manually disconnecting WebSocket');
+    logger.log('🔌 Manually disconnecting WebSocket');
     
     // Clear any pending reconnection
     if (reconnectTimeoutRef.current) {
@@ -501,7 +502,7 @@ export const useRealTimeUpdates = ({
    * Force reconnection
    */
   const reconnect = useCallback(() => {
-    console.log('🔄 Manual reconnection requested');
+    logger.log('🔄 Manual reconnection requested');
     disconnect();
     setTimeout(connect, 1000);
   }, [disconnect, connect]);
@@ -546,7 +547,7 @@ export const useRealTimeUpdates = ({
     setCircuitBreakerState('closed');
     setConsecutiveFailures(0);
     setLastCircuitBreakerOpenTime(null);
-    console.log('🔄 Circuit breaker reset');
+    logger.log('🔄 Circuit breaker reset');
   }, []);
   
   /**
@@ -555,7 +556,7 @@ export const useRealTimeUpdates = ({
   const forceCircuitOpen = useCallback(() => {
     setCircuitBreakerState('open');
     setLastCircuitBreakerOpenTime(new Date());
-    console.log('⚠️ Circuit breaker forced open');
+    logger.log('⚠️ Circuit breaker forced open');
   }, []);
   
   /**
@@ -621,14 +622,14 @@ export const useRealTimeUpdates = ({
     if (consecutiveFailures >= circuitBreakerThreshold && circuitBreakerState === 'closed') {
       setCircuitBreakerState('open');
       setLastCircuitBreakerOpenTime(new Date());
-      console.warn('⚠️ Circuit breaker opened due to consecutive failures');
+      logger.warn('⚠️ Circuit breaker opened due to consecutive failures');
     }
     
     // Auto-close circuit breaker after timeout
     if (circuitBreakerState === 'open' && lastCircuitBreakerOpenTime) {
       const timeoutId = setTimeout(() => {
         setCircuitBreakerState('half-open');
-        console.log('🔄 Circuit breaker moved to half-open state');
+        logger.log('🔄 Circuit breaker moved to half-open state');
       }, circuitBreakerTimeout);
       
       return () => clearTimeout(timeoutId);

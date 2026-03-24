@@ -18,6 +18,7 @@ import {
   setUserInMemory,
   setTokenInMemory 
 } from '../../utils/dev-memory-store';
+import { logger } from '@/utils/logger';
 
 // Create a safe fallback for RootState since we might not have access to the actual type
 interface SafeRootState {
@@ -366,11 +367,11 @@ const DevLoginPanel: React.FC = () => {
         navigationRef.current.navigate(path);
       } else {
         // Absolute fallback
-        console.log(`[DEV MODE] Direct navigation to: ${path}`);
+        logger.log(`[DEV MODE] Direct navigation to: ${path}`);
         setTimeout(() => { window.location.href = path; }, 50);
       }
     } catch (error) {
-      console.warn('[DEV MODE] Navigation error:', error);
+      logger.warn('[DEV MODE] Navigation error:', error);
       // Last resort: direct location change
       window.location.href = path;
     }
@@ -388,14 +389,14 @@ const DevLoginPanel: React.FC = () => {
       // Create a safe navigation function that falls back to window.location
       navigationRef.current.navigate = (to: string) => {
         try {
-          console.log(`[DEV MODE] Navigating to: ${to}`);
+          logger.log(`[DEV MODE] Navigating to: ${to}`);
           window.location.href = to;
         } catch (error) {
-          console.warn('[DEV MODE] Navigation failed:', error);
+          logger.warn('[DEV MODE] Navigation failed:', error);
         }
       };
     } catch (error) {
-      console.warn('[DEV MODE] Router check failed:', error);
+      logger.warn('[DEV MODE] Router check failed:', error);
       setRouterAvailable(false);
     }
   }, [store, authState]);
@@ -405,7 +406,7 @@ const DevLoginPanel: React.FC = () => {
     try {
       initializeMemoryStore();
     } catch (error) {
-      console.warn('[DEV MODE] Error initializing memory store:', error);
+      logger.warn('[DEV MODE] Error initializing memory store:', error);
     }
   }, []);
   
@@ -431,7 +432,7 @@ const DevLoginPanel: React.FC = () => {
             foundUser = true;
           }
         } catch (localStorageError) {
-          console.warn('[DEV MODE] Error accessing localStorage:', localStorageError);
+          logger.warn('[DEV MODE] Error accessing localStorage:', localStorageError);
         }
       }
       
@@ -455,7 +456,7 @@ const DevLoginPanel: React.FC = () => {
           setIsOpen(storedState === 'true');
         }
       } catch (error) {
-        console.warn('[DEV MODE] Error accessing localStorage for panel state:', error);
+        logger.warn('[DEV MODE] Error accessing localStorage for panel state:', error);
       }
     } catch (error) {
       // Global error handler as a last resort
@@ -476,7 +477,7 @@ const DevLoginPanel: React.FC = () => {
               setUserInMemory(state.auth.user);
             }
           } catch (error) {
-            console.warn('[DEV MODE] Error in store subscription:', error);
+            logger.warn('[DEV MODE] Error in store subscription:', error);
           }
         });
         
@@ -484,11 +485,11 @@ const DevLoginPanel: React.FC = () => {
           try {
             unsubscribe();
           } catch (error) {
-            console.warn('[DEV MODE] Error unsubscribing from store:', error);
+            logger.warn('[DEV MODE] Error unsubscribing from store:', error);
           }
         };
       } catch (error) {
-        console.warn('[DEV MODE] Error setting up store subscription:', error);
+        logger.warn('[DEV MODE] Error setting up store subscription:', error);
         setReduxAvailable(false);
       }
     }
@@ -503,7 +504,7 @@ const DevLoginPanel: React.FC = () => {
       try {
         localStorage.setItem('dev_panel_open', newState.toString());
       } catch (error) {
-        console.warn('[DEV MODE] Failed to save panel state to localStorage:', error);
+        logger.warn('[DEV MODE] Failed to save panel state to localStorage:', error);
       }
     } catch (error) {
       console.error('[DEV MODE] Error toggling panel:', error);
@@ -519,16 +520,16 @@ const DevLoginPanel: React.FC = () => {
       // Then clear all authentication data
       devLogout();
       
-      console.log('[DEV MODE] Successfully logged out, resetting application state');
+      logger.log('[DEV MODE] Successfully logged out, resetting application state');
       
       // Force page reload to ensure clean state
       setTimeout(() => {
-        console.log('[DEV MODE] Forcing page reload to ensure clean state');
+        logger.log('[DEV MODE] Forcing page reload to ensure clean state');
         window.location.href = '/';
         
         // Double-check reload happened after a delay
         setTimeout(() => {
-          console.log('[DEV MODE] Backup reload triggered');
+          logger.log('[DEV MODE] Backup reload triggered');
           window.location.reload();
         }, 300);
       }, 100);

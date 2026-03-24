@@ -24,6 +24,7 @@ import TrainerDashboardRoutes from './routes/TrainerDashboardRoutes';
 
 // Import contexts
 import { useAuth } from '../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DRAWER_WIDTH = 240;
@@ -523,18 +524,18 @@ const TrainerDashboardLayout: React.FC = () => {
   // Simplified verification - check for basic initialization errors only
   // (ProtectedRoute component handles actual role verification)
   useEffect(() => {
-    console.log('TrainerDashboard: Initializing...');
+    logger.log('TrainerDashboard: Initializing...');
 
     const initializeDashboard = async () => {
       try {
         setIsVerifying(true);
 
         if (!user) {
-          console.log('TrainerDashboard: No user found');
+          logger.log('TrainerDashboard: No user found');
           setError('Authentication required. Please log in.');
         } else {
           // User exists - just log and initialize
-          console.log(`TrainerDashboard: Initializing for ${user.role} user "${user.email}"`);
+          logger.log(`TrainerDashboard: Initializing for ${user.role} user "${user.email}"`);
           setError(null);
         }
       } catch (err) {
@@ -569,7 +570,7 @@ const TrainerDashboardLayout: React.FC = () => {
 
     // Simplified retry logic - just check if user exists
     if (user) {
-      console.log('TrainerDashboard: User exists, clearing error state');
+      logger.log('TrainerDashboard: User exists, clearing error state');
       setError(null);
       setIsVerifying(false);
     } else {

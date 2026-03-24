@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { CircularProgress, Typography } from '../ui/primitives';
+import { logger } from '@/utils/logger';
 
 interface ScheduleInitializerProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ const ScheduleInitializer: React.FC<ScheduleInitializerProps> = ({ children }) =
       setIsReady(true);
     } else {
       const timer = setTimeout(() => {
-        console.log('ScheduleInitializer: Waited for store initialization');
+        logger.log('ScheduleInitializer: Waited for store initialization');
         setIsReady(true);
       }, 100);
 

@@ -34,6 +34,7 @@ import {
 
 // Import styled component from MainCard
 import MainCard from '../../../ui/MainCard';
+import { logger } from '@/utils/logger';
 
 /* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
@@ -742,7 +743,7 @@ const AdminClientProgressView: React.FC = () => {
         useFallbackClientData();
       }
     } catch (err) {
-      console.warn('API clients endpoint unavailable, using fallback data:', err);
+      logger.warn('API clients endpoint unavailable, using fallback data:', err);
 
       // Use fallback data for seamless experience
       useFallbackClientData();

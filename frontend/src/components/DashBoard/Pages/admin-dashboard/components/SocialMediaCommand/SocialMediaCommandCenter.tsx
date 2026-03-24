@@ -37,6 +37,7 @@ import {
 
 // Import Enterprise Admin API Service for REAL DATA
 import enterpriseAdminApiService, { SocialMediaPost } from '../../../../../../services/enterpriseAdminApiService';
+import { logger } from '@/utils/logger';
 
 // Social Media Command Theme
 const socialCommandTheme = {
@@ -355,7 +356,7 @@ const SocialMediaCommandCenter: React.FC = () => {
       setPosts(postsData.posts);
       setAnalytics(analyticsData);
       
-      console.log('[Social Media Command] Fetched data:', { posts: postsData.posts.length, analytics: analyticsData });
+      logger.log('[Social Media Command] Fetched data:', { posts: postsData.posts.length, analytics: analyticsData });
       
     } catch (err) {
       console.error('[Social Media Command] Failed to fetch data:', err);
@@ -367,7 +368,7 @@ const SocialMediaCommandCenter: React.FC = () => {
 
   // Initialize component
   useEffect(() => {
-    console.log('[Social Media Command] Initializing...');
+    logger.log('[Social Media Command] Initializing...');
     fetchSocialMediaData();
 
     // Set up WebSocket for real-time updates
@@ -378,7 +379,7 @@ const SocialMediaCommandCenter: React.FC = () => {
         wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('[Social Media Command] WebSocket message:', data);
+            logger.log('[Social Media Command] WebSocket message:', data);
             
             if (data.type === 'social-media-update') {
               fetchSocialMediaData();
@@ -386,12 +387,12 @@ const SocialMediaCommandCenter: React.FC = () => {
               setPosts(prev => [data.post, ...prev]);
             }
           } catch (parseError) {
-            console.warn('[Social Media Command] Failed to parse WebSocket message:', parseError);
+            logger.warn('[Social Media Command] Failed to parse WebSocket message:', parseError);
           }
         };
       }
     } catch (wsError) {
-      console.warn('[Social Media Command] Failed to establish WebSocket connection:', wsError);
+      logger.warn('[Social Media Command] Failed to establish WebSocket connection:', wsError);
     }
 
     return () => {
@@ -404,7 +405,7 @@ const SocialMediaCommandCenter: React.FC = () => {
   // Handle post moderation
   const handleModeration = useCallback(async (postId: string, action: 'approve' | 'reject' | 'flag', reason?: string) => {
     try {
-      console.log(`[Social Media Command] Moderating post ${postId}: ${action}`);
+      logger.log(`[Social Media Command] Moderating post ${postId}: ${action}`);
       
       await enterpriseAdminApiService.moderateSocialMediaPost(postId, action, reason);
       
@@ -415,7 +416,7 @@ const SocialMediaCommandCenter: React.FC = () => {
           : post
       ));
 
-      console.log(`[Social Media Command] Post ${postId} ${action}ed successfully`);
+      logger.log(`[Social Media Command] Post ${postId} ${action}ed successfully`);
       
     } catch (error) {
       console.error(`[Social Media Command] Failed to ${action} post ${postId}:`, error);

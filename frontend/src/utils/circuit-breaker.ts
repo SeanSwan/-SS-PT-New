@@ -42,7 +42,7 @@ export function recordFailure(key: string): void {
   
   if (breaker.failures >= FAILURE_THRESHOLD) {
     breaker.state = 'OPEN';
-    console.warn(`Circuit breaker ${key} opened due to ${breaker.failures} failures`);
+    logger.warn(`Circuit breaker ${key} opened due to ${breaker.failures} failures`);
   }
 }
 
@@ -125,7 +125,7 @@ export function reset(key: string): void {
 
 // Development mode safety mechanisms
 if (process.env.NODE_ENV === 'development') {
-  console.log('Circuit breaker initialized in development mode');
+  logger.log('Circuit breaker initialized in development mode');
   
   // Expose circuit breaker utilities to window for debugging
   if (typeof window !== 'undefined') {

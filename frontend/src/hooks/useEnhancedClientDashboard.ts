@@ -27,6 +27,7 @@ import clientDashboardService, {
   ClientDashboardData,
   DashboardStats,
 } from '../services/enhancedClientDashboardService';
+import { logger } from '@/utils/logger';
 
 // === TYPES ===
 interface UseEnhancedClientDashboardReturn {
@@ -156,7 +157,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
     if (useCache) {
       const cached = cacheRef.current.get<SessionEvent[]>(cacheKey);
       if (cached) {
-        console.log('📦 Using cached sessions data');
+        logger.log('📦 Using cached sessions data');
         return cached;
       }
     }
@@ -173,7 +174,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       cacheRef.current.set(cacheKey, sessionsData, CACHE_DURATION.sessions);
       setSessionsError(null);
       
-      console.log('✅ Sessions fetched successfully:', sessionsData.length);
+      logger.log('✅ Sessions fetched successfully:', sessionsData.length);
       return sessionsData;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sessions';
@@ -193,7 +194,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
     if (useCache) {
       const cached = cacheRef.current.get<GamificationData>(cacheKey);
       if (cached) {
-        console.log('📦 Using cached gamification data');
+        logger.log('📦 Using cached gamification data');
         return cached;
       }
     }
@@ -207,7 +208,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       cacheRef.current.set(cacheKey, gamificationInfo, CACHE_DURATION.gamification);
       setGamificationError(null);
       
-      console.log('✅ Gamification data fetched successfully:', gamificationInfo);
+      logger.log('✅ Gamification data fetched successfully:', gamificationInfo);
       return gamificationInfo;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch gamification data';
@@ -225,7 +226,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
     if (useCache) {
       const cached = cacheRef.current.get<DashboardStats>(cacheKey);
       if (cached) {
-        console.log('📦 Using cached stats data');
+        logger.log('📦 Using cached stats data');
         return cached;
       }
     }
@@ -234,7 +235,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       const statsData = await clientDashboardService.getDashboardStats();
       cacheRef.current.set(cacheKey, statsData, CACHE_DURATION.stats);
       
-      console.log('✅ Stats fetched successfully:', statsData);
+      logger.log('✅ Stats fetched successfully:', statsData);
       return statsData;
     } catch (err) {
       console.error('❌ Error fetching stats:', err);
@@ -245,7 +246,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
   // === INITIALIZATION ===
   const initializeDashboard = useCallback(async () => {
     if (!user?.id) {
-      console.log('⏳ Waiting for user authentication...');
+      logger.log('⏳ Waiting for user authentication...');
       return;
     }
 
@@ -258,7 +259,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
     }
 
     initializationAttempts.current++;
-    console.log(`🚀 Initializing Enhanced Client Dashboard (attempt ${initializationAttempts.current}/${maxInitializationAttempts})...`);
+    logger.log(`🚀 Initializing Enhanced Client Dashboard (attempt ${initializationAttempts.current}/${maxInitializationAttempts})...`);
     
     setIsInitializing(true);
     setIsLoading(true);
@@ -274,11 +275,11 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       if (socket && socket.connected) {
         setIsConnected(true);
         setConnectionStatus('connected');
-        console.log('✅ Service initialized with real-time features');
+        logger.log('✅ Service initialized with real-time features');
       } else {
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        console.log('✅ Service initialized in polling mode (no real-time features)');
+        logger.log('✅ Service initialized in polling mode (no real-time features)');
       }
 
       // Fetch initial data in parallel for better performance
@@ -307,13 +308,13 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       }
 
       setError(null);
-      console.log('🎉 Dashboard initialization completed successfully');
+      logger.log('🎉 Dashboard initialization completed successfully');
       
       // Set up polling for data refresh if no WebSocket
       if (!socket || !socket.connected) {
-        console.log('📡 Setting up polling mode for data refresh');
+        logger.log('📡 Setting up polling mode for data refresh');
         const pollingInterval = setInterval(async () => {
-          console.log('🔄 Polling for data updates...');
+          logger.log('🔄 Polling for data updates...');
           try {
             const [newSessions, newGamification, newStats] = await Promise.allSettled([
               fetchSessions(false),
@@ -325,7 +326,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
             if (newGamification.status === 'fulfilled') setGamificationData(newGamification.value);
             if (newStats.status === 'fulfilled') setStats(newStats.value);
           } catch (pollingError) {
-            console.log('⚠️ Polling update failed:', pollingError);
+            logger.log('⚠️ Polling update failed:', pollingError);
           }
         }, 30000); // Poll every 30 seconds
         
@@ -356,40 +357,40 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
   useEffect(() => {
     // Only set up real-time event listeners if WebSocket is connected
     if (!isConnected) {
-      console.log('📡 WebSocket not connected - skipping real-time event listeners');
+      logger.log('📡 WebSocket not connected - skipping real-time event listeners');
       return;
     }
 
-    console.log('🔗 Setting up real-time event listeners');
+    logger.log('🔗 Setting up real-time event listeners');
     
     // Set up real-time event listeners
     const handleXpUpdate = (event: CustomEvent) => {
-      console.log('🎯 Real-time XP update received:', event.detail);
+      logger.log('🎯 Real-time XP update received:', event.detail);
       // Invalidate gamification cache and refresh
       cacheRef.current.invalidate(getCacheKey('gamification'));
       fetchGamificationData(false);
     };
 
     const handleBadgeEarned = (event: CustomEvent) => {
-      console.log('🏆 Real-time badge earned:', event.detail);
+      logger.log('🏆 Real-time badge earned:', event.detail);
       cacheRef.current.invalidate(getCacheKey('gamification'));
       fetchGamificationData(false);
     };
 
     const handleLevelUp = (event: CustomEvent) => {
-      console.log('⬆️ Real-time level up:', event.detail);
+      logger.log('⬆️ Real-time level up:', event.detail);
       cacheRef.current.invalidate(getCacheKey('gamification'));
       fetchGamificationData(false);
     };
 
     const handleSessionUpdate = (event: CustomEvent) => {
-      console.log('📅 Real-time session update:', event.detail);
+      logger.log('📅 Real-time session update:', event.detail);
       cacheRef.current.invalidate(getCacheKey('sessions'));
       fetchSessions(false);
     };
 
     const handleNewNotification = (event: CustomEvent) => {
-      console.log('🔔 Real-time notification:', event.detail);
+      logger.log('🔔 Real-time notification:', event.detail);
       setNotifications(prev => [event.detail, ...prev]);
     };
 
@@ -404,7 +405,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
 
     return () => {
       // Cleanup event listeners
-      console.log('🧹 Cleaning up real-time event listeners');
+      logger.log('🧹 Cleaning up real-time event listeners');
       window.removeEventListener('gamification:xp_updated', handleXpUpdate as EventListener);
       window.removeEventListener('gamification:badge_earned', handleBadgeEarned as EventListener);
       window.removeEventListener('gamification:level_up', handleLevelUp as EventListener);
@@ -429,7 +430,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
   // === CLEANUP EFFECT ===
   useEffect(() => {
     return () => {
-      console.log('🧹 Cleaning up Enhanced Client Dashboard');
+      logger.log('🧹 Cleaning up Enhanced Client Dashboard');
       clientDashboardService.cleanup();
       cacheRef.current.clear();
     };
@@ -437,7 +438,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
 
   // === ACTION METHODS ===
   const refreshData = useCallback(async () => {
-    console.log('🔄 Refreshing all dashboard data...');
+    logger.log('🔄 Refreshing all dashboard data...');
     setIsLoading(true);
     setError(null);
     
@@ -454,7 +455,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       if (statsData.status === 'fulfilled') setStats(statsData.value);
       if (notificationsData.status === 'fulfilled') setNotifications(notificationsData.value);
       
-      console.log('✅ All data refreshed successfully');
+      logger.log('✅ All data refreshed successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh data';
       console.error('❌ Error refreshing data:', errorMessage);
@@ -479,7 +480,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       await clientDashboardService.bookSession(sessionId);
       // Refresh sessions after booking
       await refreshSessions();
-      console.log('✅ Session booked successfully');
+      logger.log('✅ Session booked successfully');
     } catch (err) {
       console.error('❌ Error booking session:', err);
       throw err;
@@ -491,7 +492,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       await clientDashboardService.cancelSession(sessionId);
       // Refresh sessions after cancellation
       await refreshSessions();
-      console.log('✅ Session cancelled successfully');
+      logger.log('✅ Session cancelled successfully');
     } catch (err) {
       console.error('❌ Error cancelling session:', err);
       throw err;
@@ -508,7 +509,7 @@ export const useEnhancedClientDashboard = (): UseEnhancedClientDashboardReturn =
       const newStats = await fetchStats(false);
       setStats(newStats);
       
-      console.log('✅ Workout recorded successfully');
+      logger.log('✅ Workout recorded successfully');
     } catch (err) {
       console.error('❌ Error recording workout:', err);
       throw err;

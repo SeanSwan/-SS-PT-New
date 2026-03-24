@@ -15,6 +15,7 @@ import {
   Bookmark,
   History
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ─── Styled Components ───────────────────────────────────────────────
 
@@ -471,7 +472,7 @@ const MyWorkoutsSection: React.FC = () => {
 
         if (response.data) {
           setAvailableSessions(response.data.availableSessions || 0);
-          console.log('User session data:', response.data);
+          logger.log('User session data:', response.data);
 
           // Also check local storage for recent purchases
           const lastOrderStr = localStorage.getItem('lastOrder');

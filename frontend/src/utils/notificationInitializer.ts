@@ -6,6 +6,7 @@ import { store } from '../store';
 import { fetchNotifications } from '../store/slices/notificationSlice';
 import api from '../services/api';
 import { enableMockData, isMockDataEnabled } from './mockDataHelper';
+import { logger } from '@/utils/logger';
 
 /**
  * Initialize notifications for a logged-in user
@@ -22,7 +23,7 @@ export const initializeNotifications = () => {
     try {
       if (useMockData) {
         // Use mock data if backend is unavailable
-        console.log('[DEV MODE] Using mock notification data');
+        logger.log('[DEV MODE] Using mock notification data');
         // We don't actually dispatch here as the reducer should handle the mock data
       } else {
         // Attempt to fetch real notifications
@@ -32,10 +33,10 @@ export const initializeNotifications = () => {
       }
     } catch (error) {
       connectionFailures++;
-      console.warn(`[Notifications] Connection attempt ${connectionFailures} failed:`, error);
+      logger.warn(`[Notifications] Connection attempt ${connectionFailures} failed:`, error);
       
       if (connectionFailures >= MAX_RETRY_COUNT) {
-        console.warn('[Notifications] Switching to mock data after multiple failures');
+        logger.warn('[Notifications] Switching to mock data after multiple failures');
         useMockData = true;
         enableMockData();
       }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { logger } from '@/utils/logger';
 
 /**
  * EMERGENCY ADMIN ROUTE - Hard-coded version
@@ -8,7 +9,7 @@ import { Navigate } from 'react-router-dom';
 const AdminRoute: React.FC<{children: React.ReactNode}> = ({ children }) => {
   // In development mode, always render children - no hooks, no checks
   if (process.env.NODE_ENV === 'development') {
-    console.log('[EMERGENCY] Development mode - bypassing all admin auth checks');
+    logger.log('[EMERGENCY] Development mode - bypassing all admin auth checks');
     // Set bypass flag for other components
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('bypass_admin_verification', 'true');

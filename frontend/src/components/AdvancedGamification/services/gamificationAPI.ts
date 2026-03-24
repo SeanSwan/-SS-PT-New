@@ -28,6 +28,7 @@ import type {
   UserStatistics,
   GamificationResponse
 } from '../types/gamification.types';
+import { logger } from '@/utils/logger';
 
 // ================================================================
 // API CONFIGURATION
@@ -499,7 +500,7 @@ export const useMockData = process.env.NODE_ENV === 'development' &&
                           process.env.REACT_APP_USE_MOCK_GAMIFICATION === 'true';
 
 if (useMockData) {
-  console.warn('🎮 Using mock gamification data for development');
+  logger.warn('🎮 Using mock gamification data for development');
 }
 
 // ================================================================

@@ -5,6 +5,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 interface DashboardWrapperProps {
   children: React.ReactNode;
@@ -23,10 +24,10 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
   
   // Log debug information
   useEffect(() => {
-    console.log('DashboardWrapper - Current path:', location.pathname);
-    console.log('DashboardWrapper - User:', user);
-    console.log('DashboardWrapper - Required role:', requiredRole);
-    console.log('DashboardWrapper - Fallback route:', fallbackRoute);
+    logger.log('DashboardWrapper - Current path:', location.pathname);
+    logger.log('DashboardWrapper - User:', user);
+    logger.log('DashboardWrapper - Required role:', requiredRole);
+    logger.log('DashboardWrapper - Fallback route:', fallbackRoute);
   }, [location.pathname, user, requiredRole, fallbackRoute]);
   
   // Check if user has required role
@@ -55,7 +56,7 @@ const DashboardWrapper: React.FC<DashboardWrapperProps> = ({
   // Redirect if user doesn't have required role
   useEffect(() => {
     if (!hasRequiredRole()) {
-      console.log(`DashboardWrapper - Role check failed, redirecting to ${fallbackRoute}`);
+      logger.log(`DashboardWrapper - Role check failed, redirecting to ${fallbackRoute}`);
       navigate(fallbackRoute, { replace: true });
     }
   }, [user, requiredRole, navigate, fallbackRoute]);

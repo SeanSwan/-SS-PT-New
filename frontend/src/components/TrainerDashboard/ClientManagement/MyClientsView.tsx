@@ -55,6 +55,7 @@ import { useToast } from '../../../hooks/use-toast';
 import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
 import WorkoutCopilotPanel from '../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel';
+import { logger } from '@/utils/logger';
 
 // Types
 interface Client {
@@ -694,7 +695,7 @@ const MyClientsView: React.FC = () => {
               client
             };
           } catch (err) {
-            console.warn('Error fetching client session data:', err);
+            logger.warn('Error fetching client session data:', err);
             return assignment;
           }
         })

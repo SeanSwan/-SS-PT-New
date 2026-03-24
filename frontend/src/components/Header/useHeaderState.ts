@@ -8,6 +8,7 @@ import { useMediaQuery } from '../../styles/mui-replacements';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext';
+import { logger } from '@/utils/logger';
 
 // Galaxy Theme Colors for safe theme access
 const GALAXY_THEME_COLORS = {
@@ -98,7 +99,7 @@ export const useHeaderState = () => {
       // Call the auth context logout function
       logout();
       
-      console.log('Successfully logged out, resetting application state');
+      logger.log('Successfully logged out, resetting application state');
       
       // Clear auth storage
       try {
@@ -108,7 +109,7 @@ export const useHeaderState = () => {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
       } catch (storageError) {
-        console.warn('Error clearing auth storage:', storageError);
+        logger.warn('Error clearing auth storage:', storageError);
       }
       
       // Navigate to home with clean state

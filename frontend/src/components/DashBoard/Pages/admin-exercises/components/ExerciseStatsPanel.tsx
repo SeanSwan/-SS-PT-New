@@ -35,6 +35,7 @@ import {
   accessibleAnimation,
   animationPerformance
 } from '../styles/gamificationAnimations';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 
@@ -633,12 +634,12 @@ const ExerciseStatsPanel: React.FC<ExerciseStatsPanelProps> = ({
   
   const handleExport = useCallback(() => {
     // TODO: Implement export functionality
-    console.log('Exporting stats...');
+    logger.log('Exporting stats...');
   }, []);
   
   const handleRefresh = useCallback(() => {
     // TODO: Implement refresh functionality
-    console.log('Refreshing stats...');
+    logger.log('Refreshing stats...');
   }, []);
   
   const renderTabContent = useCallback(() => {

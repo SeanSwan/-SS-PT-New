@@ -1,7 +1,7 @@
 // Context Loop Verification Script
 // This script helps verify that our AuthContext and CartContext fixes prevent infinite re-renders
 
-console.log('🔍 Context Loop Verification Starting...');
+logger.log('🔍 Context Loop Verification Starting...');
 
 // Test 1: Check for useEffect dependency arrays
 const authContextContent = `
@@ -38,7 +38,7 @@ const dependencyCheck = `
 // Test 3: Expected behavior after fix
 const expectedBehavior = `
 // Expected Application Behavior After Fix:
-✅ App loads without infinite console.log loops
+✅ App loads without infinite logger.log loops
 ✅ User authentication happens once on mount
 ✅ Cart fetches once when user is authenticated
 ✅ No unnecessary re-renders in React DevTools
@@ -51,12 +51,12 @@ const expectedBehavior = `
 4. No performance issues or browser freezing
 `;
 
-console.log(authContextContent);
-console.log(cartContextContent);
-console.log(dependencyCheck);
-console.log(expectedBehavior);
+logger.log(authContextContent);
+logger.log(cartContextContent);
+logger.log(dependencyCheck);
+logger.log(expectedBehavior);
 
-console.log('✅ Context Loop Verification Complete!');
-console.log('🚀 Your infinite re-render loop has been eliminated!');
+logger.log('✅ Context Loop Verification Complete!');
+logger.log('🚀 Your infinite re-render loop has been eliminated!');
 
 export { authContextContent, cartContextContent, dependencyCheck, expectedBehavior };

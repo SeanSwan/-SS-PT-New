@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/utils/logger';
 
 const isDev = import.meta.env?.DEV ?? process.env.NODE_ENV === 'development';
 
@@ -95,7 +96,7 @@ export const perfMark = {
       performance.measure(name, `${name}_start`, `${name}_end`);
       const measure = performance.getEntriesByName(name).pop();
       if (measure) {
-        console.log(`[PERF] ${name}: ${measure.duration.toFixed(2)}ms`);
+        logger.log(`[PERF] ${name}: ${measure.duration.toFixed(2)}ms`);
       }
     } catch (e) { /* ignore */ }
   },
@@ -114,7 +115,7 @@ export const trackRender = (componentName: string) => {
   const now = Date.now();
   if (now - lastLogTime > 3000) {
     lastLogTime = now;
-    console.log('[PERF] Render counts:', { ...renderCounts });
+    logger.log('[PERF] Render counts:', { ...renderCounts });
   }
 };
 
@@ -136,7 +137,7 @@ export const trackScrollEvent = () => {
   if (!scrollLogInterval) {
     scrollLogInterval = setInterval(() => {
       if (scrollEventCount > 0) {
-        console.log(`[PERF] Scroll events in last 3s: ${scrollEventCount}`);
+        logger.log(`[PERF] Scroll events in last 3s: ${scrollEventCount}`);
         scrollEventCount = 0;
       }
     }, 3000);
@@ -147,7 +148,7 @@ export const trackScrollEvent = () => {
 export const logPerfToggles = () => {
   if (!isDev) return;
 
-  console.log('[PERF] Current toggle states:', {
+  logger.log('[PERF] Current toggle states:', {
     DISABLE_SESSION_RENDER: schedulePerf.DISABLE_SESSION_RENDER,
     DISABLE_SESSION_BADGES: schedulePerf.DISABLE_SESSION_BADGES,
     DISABLE_ANIMATIONS: schedulePerf.DISABLE_ANIMATIONS,
@@ -164,7 +165,7 @@ export const logPerfToggles = () => {
 export const setPerfToggle = (key: string, value: boolean | number) => {
   if (!isDev) return;
   localStorage.setItem(`PERF_${key}`, String(value));
-  console.log(`[PERF] Set ${key} = ${value}`);
+  logger.log(`[PERF] Set ${key} = ${value}`);
 };
 
 // Helper to reset all toggles
@@ -182,7 +183,7 @@ export const resetPerfToggles = () => {
     'AUTO_MOBILE_LITE',
   ];
   keys.forEach(key => localStorage.removeItem(`PERF_${key}`));
-  console.log('[PERF] All toggles reset');
+  logger.log('[PERF] All toggles reset');
 };
 
 // Export for console access in dev
@@ -192,7 +193,7 @@ if (isDev && typeof window !== 'undefined') {
   (window as any).resetPerfToggles = resetPerfToggles;
   (window as any).logPerfToggles = logPerfToggles;
 
-  console.log('[PERF] Schedule performance harness loaded. Use window.logPerfToggles() to see current state.');
+  logger.log('[PERF] Schedule performance harness loaded. Use window.logPerfToggles() to see current state.');
 }
 
 /**

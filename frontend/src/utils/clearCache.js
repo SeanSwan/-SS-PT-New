@@ -12,7 +12,7 @@ export const clearAllCaches = async () => {
     const deletePromises = cacheNames.map(cacheName => caches.delete(cacheName));
     await Promise.all(deletePromises);
     
-    console.log('✅ All caches cleared');
+    logger.log('✅ All caches cleared');
     return true;
   } catch (error) {
     console.error('❌ Error clearing caches:', error);
@@ -27,7 +27,7 @@ export const unregisterServiceWorkers = async () => {
       const unregisterPromises = registrations.map(registration => registration.unregister());
       await Promise.all(unregisterPromises);
       
-      console.log('✅ All service workers unregistered');
+      logger.log('✅ All service workers unregistered');
       return true;
     }
     return false;
@@ -56,7 +56,7 @@ export const clearVideoCache = async () => {
       }
     });
     
-    console.log('✅ Video cache cleared');
+    logger.log('✅ Video cache cleared');
     return true;
   } catch (error) {
     console.error('❌ Error clearing video cache:', error);
@@ -66,14 +66,14 @@ export const clearVideoCache = async () => {
 
 // Emergency cache clearing function for dev console
 window.emergencyCacheClear = async () => {
-  console.log('🚨 Emergency cache clearing initiated...');
+  logger.log('🚨 Emergency cache clearing initiated...');
   
   await clearAllCaches();
   await unregisterServiceWorkers();
   await clearVideoCache();
   
-  console.log('🎉 Emergency cache clear complete! Reloading page...');
+  logger.log('🎉 Emergency cache clear complete! Reloading page...');
   setTimeout(() => forceReload(), 1000);
 };
 
-console.log('💡 Cache clearing utility loaded. Run emergencyCacheClear() in dev console if needed.');
+logger.log('💡 Cache clearing utility loaded. Run emergencyCacheClear() in dev console if needed.');

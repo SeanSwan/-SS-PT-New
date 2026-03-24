@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { ClientData, MetricsData, DailyReport, ThemeSettings, MediaFile, VideoLink, DateRange } from '../../types/reports';
 import { useReportData } from './../../context/ReportDataContext';
+import { logger } from '@/utils/logger';
 
 interface PreviewPanelProps { // Or whatever your interface is named
   client: ClientData | null; // <--- ADD
@@ -923,17 +924,17 @@ const EnhancedPreviewPanel: React.FC<EnhancedPreviewPanelProps> = ({
         setIsPDFLoading(true);
         try {
             if (onExportPDF) {
-                console.log("Attempting custom PDF export...");
+                logger.log("Attempting custom PDF export...");
                 await onExportPDF();
             } else {
-                console.log("Using basic PDF export...");
+                logger.log("Using basic PDF export...");
                 await generateBasicPDF();
             }
         } catch (error) {
             console.error('PDF generation failed, falling back to basic if possible:', error);
             if (onExportPDF) {
                  try {
-                    console.log("Fallback to basic PDF export...");
+                    logger.log("Fallback to basic PDF export...");
                     await generateBasicPDF();
                  } catch (basicError) {
                     console.error('Basic PDF generation fallback also failed:', basicError);

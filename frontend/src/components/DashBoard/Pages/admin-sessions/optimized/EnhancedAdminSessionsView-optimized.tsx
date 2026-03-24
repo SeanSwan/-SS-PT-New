@@ -60,6 +60,7 @@ import {
 } from './AdminSessionsTypes';
 
 import { calculateSessionStats } from './AdminSessionsOverview';
+import { logger } from '@/utils/logger';
 
 // ===== STYLED COMPONENTS =====
 
@@ -528,7 +529,7 @@ const EnhancedAdminSessionsViewOptimized: React.FC = () => {
 
   useEffect(() => {
     if (lastMessage) {
-      console.log('Received message in sessions view:', lastMessage);
+      logger.log('Received message in sessions view:', lastMessage);
       
       const message = lastMessage as PurchaseMessage;
       if (message.type === 'purchase' || 

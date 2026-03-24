@@ -42,6 +42,7 @@ import {
   DollarSign, Package, Users, ArrowRight, Home,
   Download, Share, Mail, AlertTriangle, Loader
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // Galaxy-themed animations
 const successPulse = keyframes`
@@ -330,7 +331,7 @@ const SuccessPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      console.log('🎉 [Success Page] Verifying Stripe session:', sessionId);
+      logger.log('🎉 [Success Page] Verifying Stripe session:', sessionId);
 
       // Verify the session with backend
       const response = await api.post('/api/v2/payments/verify-session', {
@@ -341,7 +342,7 @@ const SuccessPage: React.FC = () => {
         const orderData = response.data.data;
         setOrderData(orderData);
 
-        console.log('✅ [Success Page] Order verified:', orderData);
+        logger.log('✅ [Success Page] Order verified:', orderData);
 
         // ADMIN DASHBOARD INTEGRATION: Record successful transaction
         try {
@@ -353,9 +354,9 @@ const SuccessPage: React.FC = () => {
             sessionsAdded: orderData.sessionsAdded,
             timestamp: new Date().toISOString()
           });
-          console.log('📊 [Admin Dashboard] Transaction recorded for analytics');
+          logger.log('📊 [Admin Dashboard] Transaction recorded for analytics');
         } catch (analyticsError) {
-          console.warn('⚠️ [Admin Dashboard] Analytics recording failed:', analyticsError);
+          logger.warn('⚠️ [Admin Dashboard] Analytics recording failed:', analyticsError);
           // Don't fail the success page for analytics errors
         }
 

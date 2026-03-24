@@ -37,6 +37,7 @@ import {
 
 // Import assets
 import logoImg from "../../assets/Logo.png";
+import { logger } from '@/utils/logger';
 
 // Animations
 const float = keyframes`
@@ -335,7 +336,7 @@ const CheckoutCancel: React.FC = () => {
   useEffect(() => {
     const logCancellation = async () => {
       try {
-        console.log('⚠️ Checkout cancelled:', {
+        logger.log('⚠️ Checkout cancelled:', {
           sessionId,
           reason,
           step,
@@ -348,7 +349,7 @@ const CheckoutCancel: React.FC = () => {
         // This helps track checkout abandonment patterns for optimization
         
       } catch (error) {
-        console.warn('Failed to log cancellation analytics:', error);
+        logger.warn('Failed to log cancellation analytics:', error);
       }
     };
     

@@ -30,6 +30,7 @@ import './App.css';
 import './index.css';
 import theme from './styles/theme';
 import { swanStudiosTheme } from './core';
+import { logger } from '@/utils/logger';
 
 // Custom shouldForwardProp function
 const shouldForwardProp = (prop) => {
@@ -60,15 +61,15 @@ const TestAppContent = () => {
   
   // Minimal initialization
   useEffect(() => {
-    console.log('🧪 TEST APP: Running minimal initialization...');
+    logger.log('🧪 TEST APP: Running minimal initialization...');
     
     try {
       dispatch(setInitialized(true));
       const hadMockTokens = clearMockTokens();
       if (hadMockTokens) {
-        console.log('🔄 Cleared mock tokens');
+        logger.log('🔄 Cleared mock tokens');
       }
-      console.log('✅ TEST APP: Initialization successful');
+      logger.log('✅ TEST APP: Initialization successful');
     } catch (initError) {
       console.error('❌ TEST APP: Initialization failed:', initError);
     }
@@ -97,7 +98,7 @@ const TestAppContent = () => {
 };
 
 const TestApp = () => {
-  console.log('🧪 TEST APP: Loading minimal SwanStudios (Header bypassed)...');
+  logger.log('🧪 TEST APP: Loading minimal SwanStudios (Header bypassed)...');
   
   return (
     <QueryClientProvider client={queryClient}>

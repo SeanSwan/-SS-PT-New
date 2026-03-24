@@ -6,9 +6,10 @@
  */
 
 import axios, { AxiosError } from 'axios';
+import { logger } from '@/utils/logger';
 // Toast function stub — shadcn toast infrastructure not fully wired
 const toast = (opts: { title: string; description: string; variant?: string; duration?: number }) => {
-  console.warn(`[MCP Toast] ${opts.title}: ${opts.description}`);
+  logger.warn(`[MCP Toast] ${opts.title}: ${opts.description}`);
 };
 
 // Error types
@@ -124,7 +125,7 @@ export const checkMcpServersAvailability = async (
     await axios.get(`${workoutMcpUrl}/`, { timeout: 3000 });
     results.workout = true;
   } catch (error) {
-    console.warn('[MCP] Workout MCP server not available', error);
+    logger.warn('[MCP] Workout MCP server not available', error);
   }
   
   // Check Gamification MCP server
@@ -132,7 +133,7 @@ export const checkMcpServersAvailability = async (
     await axios.get(`${gamificationMcpUrl}/`, { timeout: 3000 });
     results.gamification = true;
   } catch (error) {
-    console.warn('[MCP] Gamification MCP server not available', error);
+    logger.warn('[MCP] Gamification MCP server not available', error);
   }
   
   return results;

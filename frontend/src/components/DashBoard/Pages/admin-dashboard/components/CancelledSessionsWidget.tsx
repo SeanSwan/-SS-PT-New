@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, DollarSign, Clock, User, Calendar, RefreshCw, X, Check, Ban } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 interface CancelledSession {
   id: number;
@@ -107,7 +108,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
             newPriceCache[session.id] = response.data.data;
           }
         } catch (err) {
-          console.warn(`Could not fetch price for session ${session.id}`);
+          logger.warn(`Could not fetch price for session ${session.id}`);
           // Use default fallback values
           newPriceCache[session.id] = {
             pricePerSession: null,

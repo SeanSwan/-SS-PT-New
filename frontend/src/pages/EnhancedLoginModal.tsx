@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { useUniversalTheme } from "../context/ThemeContext";
 import apiService from "../services/api.service";
 import AuthLayout from "../layouts/AuthLayout";
+import { logger } from '@/utils/logger';
 
 // --- Asset Paths ---
 const Logo = "/Logo.png";
@@ -426,7 +427,7 @@ const EnhancedLoginModal: React.FC = () => {
         
         // If not connected, try fallback direct login
         if (!connected) {
-          console.log("API connection check failed. Using fallback...");
+          logger.log("API connection check failed. Using fallback...");
           // Simulate connected state anyway to let user try
           setServerStatus({ connected: true, checked: true });
         }
@@ -462,19 +463,19 @@ const EnhancedLoginModal: React.FC = () => {
     setIsLoading(true);
     
     // Log the login attempt details to help debug
-    console.log('Login attempt with credentials:', {
+    logger.log('Login attempt with credentials:', {
       usernameOrEmail: credentials.username,
       passwordLength: credentials.password.length
     });
     
     // Development mode bypass for admin login
     if (process.env.NODE_ENV === 'development' && credentials.username.toLowerCase() === 'admin') {
-      console.log('[DEV MODE] Admin login bypass activated');
+      logger.log('[DEV MODE] Admin login bypass activated');
       localStorage.setItem('bypass_admin_verification', 'true');
       
       // Force a 100% successful login
       setTimeout(() => {
-        console.log('[DEV MODE] Admin login successful, redirecting to admin dashboard');
+        logger.log('[DEV MODE] Admin login successful, redirecting to admin dashboard');
         navigate('/dashboard/admin');
       }, 200);
       setIsLoading(false);
@@ -486,7 +487,7 @@ const EnhancedLoginModal: React.FC = () => {
       // First check server connection
       if (!serverStatus.connected && serverStatus.checked) {
         // Allow login anyway, but warn the user
-        console.warn("Attempting login without confirmed server connection");
+        logger.warn("Attempting login without confirmed server connection");
       }
       
       // When calling login, pass the credentials directly
@@ -502,7 +503,7 @@ const EnhancedLoginModal: React.FC = () => {
 
       // Check if login was successful and has user data
       if (result.success && result.user) {
-        console.log('Login successful!', { role: result.user.role });
+        logger.log('Login successful!', { role: result.user.role });
         setTimeout(() => {
           if (result.user.role === "admin") {
             navigate("/dashboard/admin");
@@ -542,7 +543,7 @@ const EnhancedLoginModal: React.FC = () => {
       }
       
       // Log additional details in development
-      console.warn('Login error details:', {
+      logger.warn('Login error details:', {
         status: err?.status || err?.response?.status,
         data: err?.data || err?.response?.data,
         message: errorMessage

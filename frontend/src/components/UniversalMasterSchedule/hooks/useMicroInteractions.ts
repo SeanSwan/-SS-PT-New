@@ -22,6 +22,7 @@
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useToast } from '../../../hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 // Types for different haptic patterns (Enhanced)
 export type HapticType = 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'selection' | 'impact' | 'celebration' | 'achievement' | 'milestone' | 'booking' | 'completion' | 'navigation';
@@ -213,7 +214,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
       Object.entries(SOUND_EFFECTS).forEach(([type, url]) => {
         // Would load and decode audio files here
         if (enableDebugMode) {
-          console.log(`🔊 Would preload sound: ${type} from ${url}`);
+          logger.log(`🔊 Would preload sound: ${type} from ${url}`);
         }
       });
     }
@@ -267,11 +268,11 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
       metricsRef.current.totalHaptics++;
 
       if (enableDebugMode) {
-        console.log(`📳 Haptic: ${type} (intensity: ${intensity || pattern.intensity})`);
+        logger.log(`📳 Haptic: ${type} (intensity: ${intensity || pattern.intensity})`);
       }
     } catch (error) {
       if (enableDebugMode) {
-        console.warn('Haptic feedback failed:', error);
+        logger.warn('Haptic feedback failed:', error);
       }
     }
   }, [enableHaptics, hapticThrottleMs, state.lastHaptic, enableDebugMode]);
@@ -288,14 +289,14 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     try {
       // In a real implementation, would play the actual sound
       if (enableDebugMode) {
-        console.log(`🔊 Sound: ${type} (volume: ${volume})`);
+        logger.log(`🔊 Sound: ${type} (volume: ${volume})`);
       }
 
       setState(prev => ({ ...prev, lastSound: now }));
       metricsRef.current.totalSounds++;
     } catch (error) {
       if (enableDebugMode) {
-        console.warn('Sound effect failed:', error);
+        logger.warn('Sound effect failed:', error);
       }
     }
   }, [enableSounds, soundThrottleMs, state.lastSound, enableDebugMode]);
@@ -307,7 +308,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     const element = document.getElementById(elementId);
     if (!element) {
       if (enableDebugMode) {
-        console.warn(`Element not found for animation: ${elementId}`);
+        logger.warn(`Element not found for animation: ${elementId}`);
       }
       return;
     }
@@ -341,11 +342,11 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
       metricsRef.current.totalAnimations++;
 
       if (enableDebugMode) {
-        console.log(`🎬 Animation: ${animation} on ${elementId} (${Math.round(endTime - startTime)}ms)`);
+        logger.log(`🎬 Animation: ${animation} on ${elementId} (${Math.round(endTime - startTime)}ms)`);
       }
     } catch (error) {
       if (enableDebugMode) {
-        console.warn('Animation failed:', error);
+        logger.warn('Animation failed:', error);
       }
     } finally {
       setState(prev => ({ ...prev, isAnimating: false }));
@@ -389,7 +390,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     }
 
     if (enableDebugMode) {
-      console.log(`⚡ Session Action: ${action} (${success ? 'success' : 'failed'})`);
+      logger.log(`⚡ Session Action: ${action} (${success ? 'success' : 'failed'})`);
     }
   }, [triggerHaptic, playSound, enableDebugMode]);
 
@@ -404,7 +405,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     }
 
     if (enableDebugMode) {
-      console.log(`⚡ Bulk Action: ${action} on ${count} items (${success ? 'success' : 'failed'})`);
+      logger.log(`⚡ Bulk Action: ${action} on ${count} items (${success ? 'success' : 'failed'})`);
     }
   }, [triggerHaptic, playSound, enableDebugMode]);
 
@@ -429,7 +430,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     }
 
     if (enableDebugMode) {
-      console.log(`⚡ Drag Operation: ${phase}`);
+      logger.log(`⚡ Drag Operation: ${phase}`);
     }
   }, [triggerHaptic, playSound, enableDebugMode]);
 
@@ -452,7 +453,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     }
 
     if (enableDebugMode) {
-      console.log(`⚡ Real-time Update: ${type}`);
+      logger.log(`⚡ Real-time Update: ${type}`);
     }
   }, [triggerHaptic, playSound, enableDebugMode]);
 
@@ -461,7 +462,7 @@ export const useMicroInteractions = (options: MicroInteractionOptions = {}): Use
     playSound('swipe', 0.3);
 
     if (enableDebugMode) {
-      console.log(`⚡ Navigation: ${direction}`);
+      logger.log(`⚡ Navigation: ${direction}`);
     }
   }, [triggerHaptic, playSound, enableDebugMode]);
 

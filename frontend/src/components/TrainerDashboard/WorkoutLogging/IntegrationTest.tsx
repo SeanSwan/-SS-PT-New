@@ -28,6 +28,7 @@ import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 // Enhanced components
 import EnhancedWorkoutLogger from './EnhancedWorkoutLogger';
 import MyClientsView from '../ClientManagement/MyClientsView';
+import { logger } from '@/utils/logger';
 
 /**
  * Integration Test Component
@@ -39,17 +40,17 @@ const WorkoutLoggingIntegrationTest: React.FC = () => {
   const { toast } = useToast();
   
   React.useEffect(() => {
-    console.log('✅ Enhanced Workout Logger Integration Test Results:');
-    console.log('✅ React hooks working');
-    console.log('✅ Router hooks available');
-    console.log('✅ Search params accessible');
-    console.log('✅ All icons imported successfully');
-    console.log('✅ Auth context working');
-    console.log('✅ Toast notifications ready');
-    console.log('✅ UI components available');
-    console.log('✅ Original WorkoutLogger accessible');
-    console.log('✅ Enhanced components imported');
-    console.log('🎉 WORKOUT LOGGING INTEGRATION VERIFIED!');
+    logger.log('✅ Enhanced Workout Logger Integration Test Results:');
+    logger.log('✅ React hooks working');
+    logger.log('✅ Router hooks available');
+    logger.log('✅ Search params accessible');
+    logger.log('✅ All icons imported successfully');
+    logger.log('✅ Auth context working');
+    logger.log('✅ Toast notifications ready');
+    logger.log('✅ UI components available');
+    logger.log('✅ Original WorkoutLogger accessible');
+    logger.log('✅ Enhanced components imported');
+    logger.log('🎉 WORKOUT LOGGING INTEGRATION VERIFIED!');
     
     toast({
       title: 'Integration Test Complete',
@@ -79,19 +80,19 @@ const WorkoutLoggingIntegrationTest: React.FC = () => {
           text="Dependencies ✅"
           theme="emerald"
           leftIcon={<CheckCircle size={18} />}
-          onClick={() => console.log('All dependencies verified')}
+          onClick={() => logger.log('All dependencies verified')}
         />
         <GlowButton
           text="Navigation ✅"
           theme="purple"
           leftIcon={<ArrowLeft size={18} />}
-          onClick={() => console.log('Navigation hooks working')}
+          onClick={() => logger.log('Navigation hooks working')}
         />
         <GlowButton
           text="Workout Logger ✅"
           theme="cosmic"
           leftIcon={<Dumbbell size={18} />}
-          onClick={() => console.log('Workout logger integrated')}
+          onClick={() => logger.log('Workout logger integrated')}
         />
       </div>
       

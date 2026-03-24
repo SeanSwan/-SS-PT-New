@@ -30,6 +30,7 @@ import {
   ScheduleStats,
   FilterOptions
 } from '../components/UniversalMasterSchedule/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Enhanced Session Service Class
@@ -651,7 +652,7 @@ class SessionService {
    */
   subscribeToSessionUpdates(callback: (session: Session) => void): () => void {
     // TODO: Implement WebSocket subscription
-    console.log('WebSocket subscription for sessions not yet implemented');
+    logger.log('WebSocket subscription for sessions not yet implemented');
     return () => {};
   }
   
@@ -665,7 +666,7 @@ class SessionService {
     updateType: 'created' | 'updated' | 'deleted'
   ): void {
     // TODO: Implement WebSocket notification
-    console.log(`Session ${updateType}: ${sessionId}`);
+    logger.log(`Session ${updateType}: ${sessionId}`);
   }
 }
 

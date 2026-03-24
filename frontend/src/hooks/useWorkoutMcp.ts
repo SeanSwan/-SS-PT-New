@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Types for workout MCP integration
 export interface Exercise {
@@ -207,7 +208,7 @@ export const useWorkoutMcp = () => {
     try {
       return await callMcpTool('GetWorkoutRecommendations', params);
     } catch (err) {
-      console.warn('MCP call failed, using mock data for workout recommendations:', err);
+      logger.warn('MCP call failed, using mock data for workout recommendations:', err);
       // Return mock data when MCP server is unavailable
       return {
         exercises: [
@@ -240,7 +241,7 @@ export const useWorkoutMcp = () => {
     try {
       return await callMcpTool('GetClientProgress', { userId });
     } catch (err) {
-      console.warn('MCP call failed, using mock data for client progress:', err);
+      logger.warn('MCP call failed, using mock data for client progress:', err);
       return {
         progress: {
           userId,
@@ -299,7 +300,7 @@ export const useWorkoutMcp = () => {
     try {
       return await callMcpTool('GenerateWorkoutPlan', params);
     } catch (err) {
-      console.warn('MCP call failed, using mock data for workout plan generation:', err);
+      logger.warn('MCP call failed, using mock data for workout plan generation:', err);
       return {
         plan: {
           id: 'mock-plan-' + Date.now(),
@@ -357,7 +358,7 @@ export const useWorkoutMcp = () => {
   // Check MCP server health
   const checkMcpHealth = useCallback(async () => {
     try {
-      console.log('\n\n\n           GET', `${MCP_WORKOUT_API_URL}/health`);
+      logger.log('\n\n\n           GET', `${MCP_WORKOUT_API_URL}/health`);
       const response = await fetch(`${MCP_WORKOUT_API_URL}/health`, {
         method: 'GET',
         headers: {
@@ -369,7 +370,7 @@ export const useWorkoutMcp = () => {
       
       if (response.ok) {
         const healthData = await response.json();
-        console.log('MCP server health check result:', healthData);
+        logger.log('MCP server health check result:', healthData);
         setError(null); // Clear any previous errors
         return true;
       } else {

@@ -33,6 +33,7 @@ import { useToast } from "../../hooks/use-toast";
 
 // Import assets
 import logoImg from "../../assets/Logo.png";
+import { logger } from '@/utils/logger';
 
 // Animations
 const shimmer = keyframes`
@@ -230,7 +231,7 @@ const CheckoutSuccess: React.FC = () => {
         setSuccessData(data);
         
         // Log successful page load
-        console.log('✅ Checkout success page loaded with data:', {
+        logger.log('✅ Checkout success page loaded with data:', {
           sessionId: finalSessionId,
           amount: finalAmount,
           currency,
@@ -254,7 +255,7 @@ const CheckoutSuccess: React.FC = () => {
    * Handle successful completion
    */
   const handleSuccess = () => {
-    console.log('✅ Checkout success handling completed');
+    logger.log('✅ Checkout success handling completed');
     
     // Optional: Navigate to dashboard after a delay
     setTimeout(() => {

@@ -47,6 +47,7 @@ import {
   Zap,
   RefreshCw
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ReportsContainer = styled(motion.div)`
@@ -439,11 +440,11 @@ const PerformanceReportsPanel: React.FC = () => {
   };
 
   const handleExport = (format: string) => {
-    console.log(`Exporting report in ${format} format`);
+    logger.log(`Exporting report in ${format} format`);
   };
 
   const handleDownloadReport = (reportId: number) => {
-    console.log(`Downloading report ${reportId}`);
+    logger.log(`Downloading report ${reportId}`);
   };
 
   return (
@@ -583,7 +584,7 @@ const PerformanceReportsPanel: React.FC = () => {
           </h2>
           
           <ActionButton
-            onClick={() => console.log('Generate new report')}
+            onClick={() => logger.log('Generate new report')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

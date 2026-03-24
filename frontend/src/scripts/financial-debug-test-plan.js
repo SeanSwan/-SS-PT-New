@@ -1,8 +1,8 @@
 // Financial Routes Debug Test Plan
 // Use this to verify if the new financial routes are deployed
 
-console.log('🧪 Financial Routes Debug Test Plan');
-console.log('=====================================');
+logger.log('🧪 Financial Routes Debug Test Plan');
+logger.log('=====================================');
 
 const testPlan = {
   
@@ -51,27 +51,27 @@ const testPlan = {
 };
 
 // Manual test commands for easy copy/paste
-console.log('\n📋 MANUAL TEST COMMANDS:');
-console.log('========================');
+logger.log('\n📋 MANUAL TEST COMMANDS:');
+logger.log('========================');
 
-console.log('\n1️⃣ Test Simple Endpoint (Browser or Postman):');
-console.log('GET https://ss-pt-new.onrender.com/api/financial/test');
+logger.log('\n1️⃣ Test Simple Endpoint (Browser or Postman):');
+logger.log('GET https://ss-pt-new.onrender.com/api/financial/test');
 
-console.log('\n2️⃣ Test with curl:');
-console.log('curl -X GET "https://ss-pt-new.onrender.com/api/financial/test"');
+logger.log('\n2️⃣ Test with curl:');
+logger.log('curl -X GET "https://ss-pt-new.onrender.com/api/financial/test"');
 
-console.log('\n3️⃣ Test auth endpoint with curl (replace TOKEN):');
-console.log(`curl -X POST "https://ss-pt-new.onrender.com/api/financial/track-checkout-start" \\
+logger.log('\n3️⃣ Test auth endpoint with curl (replace TOKEN):');
+logger.log(`curl -X POST "https://ss-pt-new.onrender.com/api/financial/track-checkout-start" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_TOKEN" \\
   -d '${JSON.stringify(testPlan.step2.body)}'`);
 
-console.log('\n🎯 EXPECTED OUTCOMES:');
-console.log('====================');
-console.log('✅ Step 1 succeeds → Financial routes are deployed');
-console.log('✅ Step 2 succeeds → Auth endpoint is working');
-console.log('❌ Step 1 fails → Routes not properly deployed/registered');
-console.log('❌ Step 2 fails with 401 → Auth token issue');
-console.log('❌ Step 2 fails with 404 → Endpoint registration issue');
+logger.log('\n🎯 EXPECTED OUTCOMES:');
+logger.log('====================');
+logger.log('✅ Step 1 succeeds → Financial routes are deployed');
+logger.log('✅ Step 2 succeeds → Auth endpoint is working');
+logger.log('❌ Step 1 fails → Routes not properly deployed/registered');
+logger.log('❌ Step 2 fails with 401 → Auth token issue');
+logger.log('❌ Step 2 fails with 404 → Endpoint registration issue');
 
 export default testPlan;

@@ -28,6 +28,7 @@ import {
   Mail, Phone, Calendar, MapPin, Activity, Shield,
   AlertTriangle, CheckCircle, Clock, Star
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -553,19 +554,19 @@ const UsersManagementSection: React.FC = () => {
 
   const handleEditUser = (userId: string) => {
     // TODO: Open edit user modal
-    console.log('Edit user:', userId);
+    logger.log('Edit user:', userId);
     setActiveActionMenu(null);
   };
 
   const handleViewUser = (userId: string) => {
     // TODO: Open user details modal
-    console.log('View user:', userId);
+    logger.log('View user:', userId);
     setActiveActionMenu(null);
   };
 
   const handleDeactivateUser = async (userId: string) => {
     // TODO: Implement user deactivation
-    console.log('Deactivate user:', userId);
+    logger.log('Deactivate user:', userId);
     setActiveActionMenu(null);
   };
 

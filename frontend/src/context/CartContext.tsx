@@ -4,6 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { logger } from '@/utils/logger';
 
 // Define types for TypeScript
 interface CartItem {
@@ -91,14 +92,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const fetchCart = useCallback(async (): Promise<void> => {
     // PRODUCTION: Only fetch cart if user is authenticated
     if (!isAuthenticated || !user || !token) {
-      console.log('User not authenticated, cannot fetch cart');
+      logger.log('User not authenticated, cannot fetch cart');
       setCart(null);
       return;
     }
     
     // Prevent multiple simultaneous fetch operations
     if (fetchInProgress.current) {
-      console.log('Cart fetch already in progress, skipping');
+      logger.log('Cart fetch already in progress, skipping');
       return;
     }
     
@@ -108,13 +109,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching cart for authenticated user:', user.username);
+      logger.log('Fetching cart for authenticated user:', user.username);
       
       const response = await authAxios.get('/api/cart', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('Cart response:', response.status, response.statusText);
+      logger.log('Cart response:', response.status, response.statusText);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
         const cartData = {
@@ -122,9 +123,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           totalSessions: response.data.totalSessions || 0
         };
         setCart(cartData);
-        console.log('Cart data loaded successfully:', response.data.items.length, 'items,', cartData.totalSessions, 'total sessions');
+        logger.log('Cart data loaded successfully:', response.data.items.length, 'items,', cartData.totalSessions, 'total sessions');
       } else {
-        console.warn("Invalid cart data received from API:", response.data?.message || 'Unexpected response format');
+        logger.warn("Invalid cart data received from API:", response.data?.message || 'Unexpected response format');
         setCart(null);
         setError("Failed to load cart: Invalid data format.");
       }
@@ -147,7 +148,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   useEffect(() => {
     // Only fetch if authenticated and haven't initialized yet
     if (isAuthenticated && user && token && !hasInitialized.current) {
-      console.log('User authenticated, initializing cart');
+      logger.log('User authenticated, initializing cart');
       hasInitialized.current = true;
       fetchCart();
     } else if (!isAuthenticated) {
@@ -160,7 +161,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   
   const refreshCart = useCallback(() => {
     if (isAuthenticated && user && token) {
-      console.log('Manual cart refresh requested');
+      logger.log('Manual cart refresh requested');
       fetchCart();
     }
   }, [isAuthenticated, user?.id, token, fetchCart]); // Stable dependencies
@@ -205,13 +206,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       return Promise.reject(new Error("User not logged in"));
     }
     
-    console.log('Adding to cart:', itemData);
+    logger.log('Adding to cart:', itemData);
     
     // 🔧 ROBUST FIX: Handle both 'id' and 'storefrontItemId' property names
     const itemId = (itemData as any).storefrontItemId || itemData.id;
     const storefrontItemId = typeof itemId === 'string' ? parseInt(itemId, 10) : itemId;
     
-    console.log('🔍 DEBUG: itemData.id =', itemData.id, '| storefrontItemId from data =', (itemData as any).storefrontItemId, '| final itemId =', itemId);
+    logger.log('🔍 DEBUG: itemData.id =', itemData.id, '| storefrontItemId from data =', (itemData as any).storefrontItemId, '| final itemId =', itemId);
     
     if (!itemId || isNaN(storefrontItemId)) {
         console.error("Invalid storefrontItemId provided to addToCart. itemData.id:", itemData.id, "| storefrontItemId:", (itemData as any).storefrontItemId);
@@ -230,7 +231,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      console.log('Add to cart response:', response.status, response.statusText);
+      logger.log('Add to cart response:', response.status, response.statusText);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
           const cartData = {
@@ -245,13 +246,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           
           // Check for role upgrade notification
           if (user?.role === 'user' && response.data.userRoleUpgrade) {
-            console.log('User role upgraded to client after adding training sessions');
+            logger.log('User role upgraded to client after adding training sessions');
             showCartNotification('Your account has been upgraded to client status!', 'success');
           }
           
           return Promise.resolve();
       } else {
-          console.warn("Invalid cart data received after add:", response.data);
+          logger.warn("Invalid cart data received after add:", response.data);
           throw new Error("Failed to update cart after adding item.");
       }
     } catch (err: any) {
@@ -288,7 +289,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
              };
          });
       } else {
-          console.warn("Invalid cart data received after update:", response.data);
+          logger.warn("Invalid cart data received after update:", response.data);
           throw new Error("Failed to update cart quantity.");
       }
     } catch (err: any) {
@@ -322,7 +323,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
               };
           });
       } else {
-          console.warn("Invalid cart data received after remove:", response.data);
+          logger.warn("Invalid cart data received after remove:", response.data);
           throw new Error("Failed to update cart after removing item.");
       }
     } catch (err: any) {
@@ -340,7 +341,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     
     // Skip clearing if cart is already empty
     if (!cart || !cart.items || cart.items.length === 0) {
-      console.log('Cart is already empty, skipping clear operation');
+      logger.log('Cart is already empty, skipping clear operation');
       return Promise.resolve();
     }
 

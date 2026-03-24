@@ -38,6 +38,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import MyClientsView from '../components/TrainerDashboard/ClientManagement/MyClientsView';
 import MyClientsViewWithFallback from '../components/TrainerDashboard/ClientManagement/MyClientsViewWithFallback';
 import MyClientsDefault from '../components/TrainerDashboard/ClientManagement';
+import { logger } from '@/utils/logger';
 
 /**
  * Integration Test Component
@@ -49,18 +50,18 @@ const IntegrationTest: React.FC = () => {
   const { toast } = useToast();
   
   React.useEffect(() => {
-    console.log('✅ Integration Test Results:');
-    console.log('✅ React hooks working');
-    console.log('✅ Framer Motion available');
-    console.log('✅ Styled Components working');
-    console.log('✅ Router hooks available');
-    console.log('✅ All Lucide icons imported');
-    console.log('✅ Auth context accessible');
-    console.log('✅ API services available');
-    console.log('✅ Toast hook working');
-    console.log('✅ UI components accessible');
-    console.log('✅ My Clients components imported');
-    console.log('🎉 ALL DEPENDENCIES VERIFIED SUCCESSFULLY!');
+    logger.log('✅ Integration Test Results:');
+    logger.log('✅ React hooks working');
+    logger.log('✅ Framer Motion available');
+    logger.log('✅ Styled Components working');
+    logger.log('✅ Router hooks available');
+    logger.log('✅ All Lucide icons imported');
+    logger.log('✅ Auth context accessible');
+    logger.log('✅ API services available');
+    logger.log('✅ Toast hook working');
+    logger.log('✅ UI components accessible');
+    logger.log('✅ My Clients components imported');
+    logger.log('🎉 ALL DEPENDENCIES VERIFIED SUCCESSFULLY!');
     
     toast({
       title: 'Integration Test Complete',
@@ -87,7 +88,7 @@ const IntegrationTest: React.FC = () => {
           text="Dependencies Verified"
           theme="emerald"
           leftIcon={<CheckCircle size={18} />}
-          onClick={() => console.log('Test button clicked')}
+          onClick={() => logger.log('Test button clicked')}
         />
       </div>
       

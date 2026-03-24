@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api.service';
 import SessionErrorBoundary from './SessionErrorBoundary';
+import { logger } from '@/utils/logger';
 
 // Animations
 const fadeIn = keyframes`
@@ -442,7 +443,7 @@ const TrainerClientSessions: React.FC = () => {
           setStats(statsResponse.data);
         }
       } catch (apiError) {
-        console.warn('Backend API not available, generating mock data for trainer');
+        logger.warn('Backend API not available, generating mock data for trainer');
         generateMockTrainerData();
       }
     } catch (error) {
@@ -536,19 +537,19 @@ const TrainerClientSessions: React.FC = () => {
 
   const handleViewSession = (client: TrainerClient) => {
     // Navigate to detailed session view
-    console.log('Viewing session for client:', client.firstName, client.lastName);
+    logger.log('Viewing session for client:', client.firstName, client.lastName);
     // Implementation would navigate to detailed session monitoring
   };
 
   const handleSendMessage = (client: TrainerClient) => {
     // Open messaging interface
-    console.log('Sending message to client:', client.firstName, client.lastName);
+    logger.log('Sending message to client:', client.firstName, client.lastName);
     // Implementation would open chat/messaging system
   };
 
   const handleViewProgress = (client: TrainerClient) => {
     // Navigate to client progress view
-    console.log('Viewing progress for client:', client.firstName, client.lastName);
+    logger.log('Viewing progress for client:', client.firstName, client.lastName);
     // Implementation would navigate to progress tracking
   };
 

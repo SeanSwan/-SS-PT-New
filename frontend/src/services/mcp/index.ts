@@ -22,6 +22,7 @@ export { default as gamificationMcpApi, GamificationMcpError } from './gamificat
 import type { GamificationMcpApi } from '../../types/mcp/gamification.types';
 import type { WorkoutMcpApi } from '../../types/mcp/workout.types';
 import { mcpConfig } from './mcpConfig';
+import { logger } from '@/utils/logger';
 
 /**
  * Interface for MCP server connectivity status
@@ -59,7 +60,7 @@ export const checkMcpServersStatus = async (forceRefresh = false): Promise<McpSe
   const timestamp = new Date().toISOString();
   
   try {
-    console.log('[MCP Services] Checking comprehensive server status...');
+    logger.log('[MCP Services] Checking comprehensive server status...');
     
     // Get health data from centralized config
     const healthData = await mcpConfig.checkHealth(forceRefresh);
@@ -84,7 +85,7 @@ export const checkMcpServersStatus = async (forceRefresh = false): Promise<McpSe
       }
     };
     
-    console.log('[MCP Services] Status check completed:', {
+    logger.log('[MCP Services] Status check completed:', {
       workoutAvailable: results.workout.available,
       gamificationAvailable: results.gamification.available,
       overallHealthy: results.overall.healthy
@@ -158,7 +159,7 @@ export const isServiceAvailable = async (service: 'workout' | 'gamification'): P
  */
 export const clearMcpCache = (): void => {
   mcpConfig.clearHealthCache();
-  console.log('[MCP Services] Health cache cleared');
+  logger.log('[MCP Services] Health cache cleared');
 };
 
 /**
@@ -186,16 +187,16 @@ export class McpHealthMonitor {
   startMonitoring(intervalMs = 30000): void {
     // Skip monitoring entirely when MCP is disabled at build time
     if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      console.log('[MCP Health Monitor] MCP disabled — skipping health monitoring');
+      logger.log('[MCP Health Monitor] MCP disabled — skipping health monitoring');
       return;
     }
 
     if (this.monitoringInterval) {
-      console.warn('[MCP Health Monitor] Already monitoring, stopping previous interval');
+      logger.warn('[MCP Health Monitor] Already monitoring, stopping previous interval');
       this.stopMonitoring();
     }
 
-    console.log(`[MCP Health Monitor] Starting health monitoring (interval: ${intervalMs}ms)`);
+    logger.log(`[MCP Health Monitor] Starting health monitoring (interval: ${intervalMs}ms)`);
     
     // Initial check
     this.performHealthCheck();
@@ -213,7 +214,7 @@ export class McpHealthMonitor {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('[MCP Health Monitor] Health monitoring stopped');
+      logger.log('[MCP Health Monitor] Health monitoring stopped');
     }
   }
   

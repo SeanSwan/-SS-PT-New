@@ -93,7 +93,7 @@ class PerformanceMonitor {
    */
   public start(): void {
     if (this.isMonitoring) {
-      console.warn('[PerformanceMonitor] Already monitoring');
+      logger.warn('[PerformanceMonitor] Already monitoring');
       return;
     }
 
@@ -117,7 +117,7 @@ class PerformanceMonitor {
     // Monitor long tasks (> 50ms)
     this.observeLongTasks();
 
-    console.log('[PerformanceMonitor] Monitoring started with budgets:', this.budgets);
+    logger.log('[PerformanceMonitor] Monitoring started with budgets:', this.budgets);
   }
 
   /**
@@ -136,7 +136,7 @@ class PerformanceMonitor {
       this.rafId = null;
     }
 
-    console.log('[PerformanceMonitor] Monitoring stopped');
+    logger.log('[PerformanceMonitor] Monitoring stopped');
   }
 
   /**
@@ -209,14 +209,14 @@ class PerformanceMonitor {
         this.metrics.lcp = lastEntry.renderTime || lastEntry.loadTime || 0;
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PerformanceMonitor] LCP: ${this.metrics.lcp.toFixed(0)}ms`);
+          logger.log(`[PerformanceMonitor] LCP: ${this.metrics.lcp.toFixed(0)}ms`);
         }
       });
 
       observer.observe({ entryTypes: ['largest-contentful-paint'] });
       this.observers.push(observer);
     } catch (error) {
-      console.warn('[PerformanceMonitor] LCP observation failed:', error);
+      logger.warn('[PerformanceMonitor] LCP observation failed:', error);
     }
   }
 
@@ -242,14 +242,14 @@ class PerformanceMonitor {
         this.metrics.cls = clsValue;
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PerformanceMonitor] CLS: ${this.metrics.cls.toFixed(3)}`);
+          logger.log(`[PerformanceMonitor] CLS: ${this.metrics.cls.toFixed(3)}`);
         }
       });
 
       observer.observe({ entryTypes: ['layout-shift'] });
       this.observers.push(observer);
     } catch (error) {
-      console.warn('[PerformanceMonitor] CLS observation failed:', error);
+      logger.warn('[PerformanceMonitor] CLS observation failed:', error);
     }
   }
 
@@ -272,14 +272,14 @@ class PerformanceMonitor {
           (firstInput.processingStart || 0) - (firstInput.startTime || 0);
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PerformanceMonitor] FID: ${this.metrics.fid.toFixed(0)}ms`);
+          logger.log(`[PerformanceMonitor] FID: ${this.metrics.fid.toFixed(0)}ms`);
         }
       });
 
       observer.observe({ entryTypes: ['first-input'] });
       this.observers.push(observer);
     } catch (error) {
-      console.warn('[PerformanceMonitor] FID observation failed:', error);
+      logger.warn('[PerformanceMonitor] FID observation failed:', error);
     }
   }
 
@@ -301,7 +301,7 @@ class PerformanceMonitor {
         this.metrics.tti = now;
 
         if (process.env.NODE_ENV === 'development') {
-          console.log(`[PerformanceMonitor] TTI: ${this.metrics.tti.toFixed(0)}ms`);
+          logger.log(`[PerformanceMonitor] TTI: ${this.metrics.tti.toFixed(0)}ms`);
         }
       });
     } else {
@@ -311,7 +311,7 @@ class PerformanceMonitor {
           this.metrics.tti = performance.now();
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(
+            logger.log(
               `[PerformanceMonitor] TTI (fallback): ${this.metrics.tti?.toFixed(0)}ms`
             );
           }
@@ -367,7 +367,7 @@ class PerformanceMonitor {
             this.metrics.longTasks += 1;
 
             if (process.env.NODE_ENV === 'development') {
-              console.warn(
+              logger.warn(
                 `[PerformanceMonitor] Long task detected: ${entry.duration.toFixed(0)}ms`
               );
             }
@@ -402,10 +402,10 @@ class PerformanceMonitor {
 
     const budgetCheck = this.checkBudgets();
     if (budgetCheck.withinBudget) {
-      console.log('✅ All metrics within budget');
+      logger.log('✅ All metrics within budget');
     } else {
-      console.warn('⚠️ Budget violations:');
-      budgetCheck.violations.forEach((violation) => console.warn(`  - ${violation}`));
+      logger.warn('⚠️ Budget violations:');
+      budgetCheck.violations.forEach((violation) => logger.warn(`  - ${violation}`));
     }
 
     console.groupEnd();

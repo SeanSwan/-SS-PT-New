@@ -8,6 +8,7 @@
 
 import { setInitialState } from '../redux/slices/scheduleSlice';
 import { store } from '../redux/store';
+import { logger } from '@/utils/logger';
 
 /**
  * Initialize all Redux store slices with default values
@@ -16,16 +17,16 @@ import { store } from '../redux/store';
 export const initializeReduxStore = () => {
   // Only initialize once
   if (window.__REDUX_ALREADY_INITIALIZED__) {
-    console.log('Redux store already initialized, skipping');
+    logger.log('Redux store already initialized, skipping');
     return;
   }
   
-  console.log('Initializing Redux store with default values...');
+  logger.log('Initializing Redux store with default values...');
   
   // Initialize schedule slice
   const initialState = store.getState();
   if (!initialState.schedule || !initialState.schedule.sessions) {
-    console.log('Schedule slice not initialized, applying defaults');
+    logger.log('Schedule slice not initialized, applying defaults');
     store.dispatch(setInitialState({
       sessions: [],
       trainers: [],
@@ -48,7 +49,7 @@ export const initializeReduxStore = () => {
   
   // Add other slices initialization as needed
   
-  console.log('Redux store initialization complete');
+  logger.log('Redux store initialization complete');
   
   // Mark as initialized to prevent duplicate initializations
   window.__REDUX_ALREADY_INITIALIZED__ = true;

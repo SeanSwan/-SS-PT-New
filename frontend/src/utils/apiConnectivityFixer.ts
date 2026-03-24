@@ -6,6 +6,7 @@
  */
 
 import { enableMockData, isMockDataEnabled } from './mockDataHelper';
+import { logger } from '@/utils/logger';
 
 let connectionErrors = 0;
 const MAX_ERRORS_BEFORE_MOCK = 3;
@@ -18,11 +19,11 @@ let mockModeEnabled = isMockDataEnabled();
 export const initializeApiMonitoring = () => {
   // Check if we're already in mock data mode
   if (mockModeEnabled) {
-    console.log('[API Monitor] Mock data mode already enabled, skipping monitoring');
+    logger.log('[API Monitor] Mock data mode already enabled, skipping monitoring');
     return;
   }
 
-  console.log('[API Monitor] Initializing API connectivity monitoring');
+  logger.log('[API Monitor] Initializing API connectivity monitoring');
 
   // Monitor fetch errors globally
   const originalFetch = window.fetch;
@@ -44,10 +45,10 @@ export const initializeApiMonitoring = () => {
           error.message?.includes('ECONNREFUSED')) {
         
         connectionErrors++;
-        console.warn(`[API Monitor] Connection error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK}): ${error.message}`);
+        logger.warn(`[API Monitor] Connection error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK}): ${error.message}`);
         
         if (connectionErrors >= MAX_ERRORS_BEFORE_MOCK && !mockModeEnabled) {
-          console.warn('[API Monitor] Too many connection errors, enabling mock data mode');
+          logger.warn('[API Monitor] Too many connection errors, enabling mock data mode');
           enableMockData();
           mockModeEnabled = true;
           
@@ -65,10 +66,10 @@ export const initializeApiMonitoring = () => {
   XMLHttpRequest.prototype.open = function(...args) {
     this.addEventListener('error', () => {
       connectionErrors++;
-      console.warn(`[API Monitor] XHR error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK})`);
+      logger.warn(`[API Monitor] XHR error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK})`);
       
       if (connectionErrors >= MAX_ERRORS_BEFORE_MOCK && !mockModeEnabled) {
-        console.warn('[API Monitor] Too many XHR errors, enabling mock data mode');
+        logger.warn('[API Monitor] Too many XHR errors, enabling mock data mode');
         enableMockData();
         mockModeEnabled = true;
         
@@ -125,7 +126,7 @@ function showMockModeNotification() {
       }
     }, 15000);
   } catch (error) {
-    console.warn('[API Monitor] Error showing notification:', error);
+    logger.warn('[API Monitor] Error showing notification:', error);
   }
 }
 
@@ -135,7 +136,7 @@ function showMockModeNotification() {
 export const enableMockDataMode = () => {
   enableMockData();
   mockModeEnabled = true;
-  console.log('[API Monitor] Mock data mode manually enabled');
+  logger.log('[API Monitor] Mock data mode manually enabled');
   showMockModeNotification();
 };
 

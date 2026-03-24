@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { logger } from '@/utils/logger';
 
 interface LoadingSpinnerProps {
   size?: 'small' | 'medium' | 'large';
@@ -46,14 +47,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsTimeout(true);
-      console.warn('⏰ Loading timeout reached:', timeout / 1000, 'seconds');
+      logger.warn('⏰ Loading timeout reached:', timeout / 1000, 'seconds');
     }, timeout);
 
     return () => clearTimeout(timer);
   }, [timeout]);
 
   const handleRetry = useCallback(() => {
-    console.log('🔄 Loading retry triggered');
+    logger.log('🔄 Loading retry triggered');
     setProgress(0);
     setIsTimeout(false);
     window.location.reload();

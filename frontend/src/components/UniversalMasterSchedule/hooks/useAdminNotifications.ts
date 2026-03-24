@@ -22,6 +22,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '../../../hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 // Notification Types
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'critical';
@@ -331,7 +332,7 @@ export const useAdminNotifications = ({
     const minInterval = 60000 / preferences.maxNotificationsPerMinute; // Convert to milliseconds
     
     if (timeSinceLastNotification < minInterval) {
-      console.log(`Throttling notification for category: ${categoryKey}`);
+      logger.log(`Throttling notification for category: ${categoryKey}`);
       return;
     }
     
@@ -375,12 +376,12 @@ export const useAdminNotifications = ({
         audio.volume = preferences.soundVolume / 100;
         audioRef.current = audio;
         audio.play().catch(error => {
-          console.warn('Failed to play notification sound:', error);
+          logger.warn('Failed to play notification sound:', error);
         }).finally(() => {
           audioRef.current = null;
         });
       } catch (error) {
-        console.warn('Failed to create audio for notification:', error);
+        logger.warn('Failed to create audio for notification:', error);
       }
     }
     
@@ -440,7 +441,7 @@ export const useAdminNotifications = ({
   
   const searchNotifications = useCallback((query: string) => {
     // Implementation would filter notifications based on search query
-    console.log('Searching notifications:', query);
+    logger.log('Searching notifications:', query);
   }, []);
   
   const updatePreferences = useCallback((newPreferences: Partial<NotificationPreferences>) => {
@@ -518,7 +519,7 @@ export const useAdminNotifications = ({
         wsRef.current = ws;
         
         ws.onopen = () => {
-          console.log('✅ Admin notifications WebSocket connected');
+          logger.log('✅ Admin notifications WebSocket connected');
           setIsConnected(true);
         };
         
@@ -534,7 +535,7 @@ export const useAdminNotifications = ({
         };
         
         ws.onclose = () => {
-          console.log('🔌 Admin notifications WebSocket disconnected');
+          logger.log('🔌 Admin notifications WebSocket disconnected');
           setIsConnected(false);
           
           // Attempt reconnection after 3 seconds
@@ -564,7 +565,7 @@ export const useAdminNotifications = ({
   useEffect(() => {
     if (preferences.enableDesktop && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(permission => {
-        console.log('Desktop notification permission:', permission);
+        logger.log('Desktop notification permission:', permission);
       });
     }
   }, [preferences.enableDesktop]);

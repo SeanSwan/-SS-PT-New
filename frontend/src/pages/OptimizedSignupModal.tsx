@@ -15,6 +15,7 @@ import { useUniversalTheme } from "../context/ThemeContext";
 import GlowButton from "../components/ui/GlowButton";
 import ProgressBar from "../components/ProgressBar/ProgressBar";
 import AuthLayout from "../layouts/AuthLayout";
+import { logger } from '@/utils/logger';
 
 // --- Asset Paths ---
 const Logo = "/Logo.png";
@@ -773,8 +774,8 @@ const OptimizedSignupModal: React.FC = () => {
     e.preventDefault();
     setError("");
     
-    console.log('👍 FORM SUBMISSION STARTED');
-    console.log('Form data (without password):', {
+    logger.log('👍 FORM SUBMISSION STARTED');
+    logger.log('Form data (without password):', {
       ...formData,
       password: '[REDACTED]',
       confirmPassword: '[REDACTED]'
@@ -859,22 +860,22 @@ const OptimizedSignupModal: React.FC = () => {
         ...registrationData 
       } = formattedData;
       
-      console.log('🚀 Attempting registration...', {
+      logger.log('🚀 Attempting registration...', {
         ...registrationData,
         password: '[REDACTED]'
       });
       
-      console.log('🚀 CALLING REGISTER FUNCTION...');
+      logger.log('🚀 CALLING REGISTER FUNCTION...');
       const result = await register(registrationData);
-      console.log('🎆 REGISTER FUNCTION COMPLETED, result:', result);
+      logger.log('🎆 REGISTER FUNCTION COMPLETED, result:', result);
       
       if (result.success) {
-        console.log('✅ Registration successful, user logged in:', result.user);
+        logger.log('✅ Registration successful, user logged in:', result.user);
 
         // If signup was triggered from gallery funnel, redirect back to gallery with VIP modal
         const navState = location.state as any;
         if (navState?.returnTo && navState?.showVipModal) {
-          console.log('📦 Gallery funnel: redirecting back to', navState.returnTo, 'with VIP modal');
+          logger.log('📦 Gallery funnel: redirecting back to', navState.returnTo, 'with VIP modal');
           navigate(navState.returnTo, { state: { showVipModal: true }, replace: true });
           return;
         }
@@ -882,7 +883,7 @@ const OptimizedSignupModal: React.FC = () => {
         // AuthContext handles login automatically, redirect to appropriate dashboard
         const userRole = result.user?.role || 'user';
 
-        console.log('📦 Redirecting to dashboard for role:', userRole);
+        logger.log('📦 Redirecting to dashboard for role:', userRole);
 
         switch (userRole) {
           case 'admin':

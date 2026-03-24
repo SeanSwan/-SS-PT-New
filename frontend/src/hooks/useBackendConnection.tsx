@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { logger } from '@/utils/logger';
 
 // Connection states
 export const CONNECTION_STATES = {
@@ -146,15 +147,15 @@ export const useBackendConnection = (config = {}) => {
   const checkBackendHealth = useCallback(async () => {
     // Force mock mode if configured - skip health check and return false
     if (fullConfig.forceMockMode) {
-      console.log('Local development mode, skipping backend health check');
+      logger.log('Local development mode, skipping backend health check');
       return false;
     }
     
     try {
-      console.log(`Checking backend health at: ${fullConfig.apiUrl}/health`);
+      logger.log(`Checking backend health at: ${fullConfig.apiUrl}/health`);
       const response = await apiInstance.get('/health');
       if (response.status === 200) {
-        console.log('✅ Backend health check SUCCESS - server is running');
+        logger.log('✅ Backend health check SUCCESS - server is running');
         setConnectionState(CONNECTION_STATES.CONNECTED);
         setRetryCount(0);
         setLastError(null);
@@ -172,7 +173,7 @@ export const useBackendConnection = (config = {}) => {
       
       // Special handling for blocked by client - immediately give up
       if (errorObj.blockedByClient) {
-        console.warn('🚫 Health check BLOCKED by browser/ad blocker - switching to mock mode immediately');
+        logger.warn('🚫 Health check BLOCKED by browser/ad blocker - switching to mock mode immediately');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.MOCK_MODE);
           setRetryCount(fullConfig.maxRetries); // Force max retries to stop further attempts
@@ -181,7 +182,7 @@ export const useBackendConnection = (config = {}) => {
       
       // Only log warnings if not silenced
       if (!errorObj.silenced && !errorObj.blockedByClient) {
-        console.warn('❌ Backend health check failed:', errorObj.message);
+        logger.warn('❌ Backend health check failed:', errorObj.message);
       }
       
       setLastError(errorObj);
@@ -197,7 +198,7 @@ export const useBackendConnection = (config = {}) => {
     
     // Check if circuit breaker is in cooldown period
     if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) < CIRCUIT_BREAKER_COOLDOWN) {
-      console.log(`🛑 CIRCUIT BREAKER: In cooldown period, ${Math.ceil((CIRCUIT_BREAKER_COOLDOWN - (now - circuitBreaker.lastAttempt)) / 1000)}s remaining`);
+      logger.log(`🛑 CIRCUIT BREAKER: In cooldown period, ${Math.ceil((CIRCUIT_BREAKER_COOLDOWN - (now - circuitBreaker.lastAttempt)) / 1000)}s remaining`);
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -207,7 +208,7 @@ export const useBackendConnection = (config = {}) => {
     
     // Reset circuit breaker if cooldown expired
     if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) >= CIRCUIT_BREAKER_COOLDOWN) {
-      console.log('🔄 CIRCUIT BREAKER: Cooldown expired, resetting');
+      logger.log('🔄 CIRCUIT BREAKER: Cooldown expired, resetting');
       circuitBreaker.attempts = 0;
       circuitBreaker.isBlocked = false;
     }
@@ -236,13 +237,13 @@ export const useBackendConnection = (config = {}) => {
     
     // IMMEDIATE EXIT CONDITIONS - Check these first to prevent any work
     if (!isMountedRef.current) {
-      console.log('Component unmounted, cancelling reconnection attempt');
+      logger.log('Component unmounted, cancelling reconnection attempt');
       return;
     }
     
     // FORCE MOCK MODE - Skip ALL connection attempts if enabled (LOCAL development only)
     if (fullConfig.forceMockMode) {
-      console.log('Local development mode detected, switching to mock mode immediately');
+      logger.log('Local development mode detected, switching to mock mode immediately');
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -258,11 +259,11 @@ export const useBackendConnection = (config = {}) => {
     
     // GET CURRENT RETRY COUNT DIRECTLY FROM STATE
     const currentRetryCount = retryCount;
-    console.log(`Attempting reconnection, current retry count: ${currentRetryCount}/${fullConfig.maxRetries}`);
+    logger.log(`Attempting reconnection, current retry count: ${currentRetryCount}/${fullConfig.maxRetries}`);
     
     // CHECK MAX RETRIES REACHED
     if (currentRetryCount >= fullConfig.maxRetries) {
-      console.log(`Max retries (${fullConfig.maxRetries}) reached, switching to mock mode FINAL`);
+      logger.log(`Max retries (${fullConfig.maxRetries}) reached, switching to mock mode FINAL`);
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -282,13 +283,13 @@ export const useBackendConnection = (config = {}) => {
       
       // Check if component unmounted during async operation
       if (!isMountedRef.current) {
-        console.log('Component unmounted during health check, cancelling');
+        logger.log('Component unmounted during health check, cancelling');
         return;
       }
       
       if (isHealthy) {
         // SUCCESS - Connection established, reset circuit breaker
-        console.log('✅ Connection successful, resetting retry count');
+        logger.log('✅ Connection successful, resetting retry count');
         circuitBreaker.attempts = 0; // Reset circuit breaker on success
         if (isMountedRef.current) {
           setRetryCount(0);
@@ -300,7 +301,7 @@ export const useBackendConnection = (config = {}) => {
       
       // FAILED - Increment retry count and schedule next attempt
       const newRetryCount = currentRetryCount + 1;
-      console.log(`❌ Health check failed, incrementing retry count to ${newRetryCount}/${fullConfig.maxRetries}`);
+      logger.log(`❌ Health check failed, incrementing retry count to ${newRetryCount}/${fullConfig.maxRetries}`);
       
       // UPDATE RETRY COUNT IMMEDIATELY
       if (isMountedRef.current) {
@@ -309,7 +310,7 @@ export const useBackendConnection = (config = {}) => {
       
       // Check if we've hit max retries after incrementing
       if (newRetryCount >= fullConfig.maxRetries) {
-        console.log('🛑 Max retries reached after increment, switching to mock mode FINAL');
+        logger.log('🛑 Max retries reached after increment, switching to mock mode FINAL');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.MOCK_MODE);
           setIsRetrying(false);
@@ -319,7 +320,7 @@ export const useBackendConnection = (config = {}) => {
       
       // Schedule next attempt with exponential backoff
       const delay = calculateRetryDelay(newRetryCount - 1);
-      console.log(`⏰ Scheduling retry ${newRetryCount} in ${delay}ms`);
+      logger.log(`⏰ Scheduling retry ${newRetryCount} in ${delay}ms`);
       
       // CRITICAL: Use a separate timeout for each retry attempt
       const timeoutId = setTimeout(() => {
@@ -327,7 +328,7 @@ export const useBackendConnection = (config = {}) => {
           // Only proceed if this is still the active timeout
           attemptReconnection();
         } else {
-          console.log('Timeout cancelled or component unmounted, skipping retry');
+          logger.log('Timeout cancelled or component unmounted, skipping retry');
         }
       }, delay);
       
@@ -346,7 +347,7 @@ export const useBackendConnection = (config = {}) => {
   const manualRetry = useCallback(() => {
     // Check if component is still mounted
     if (!isMountedRef.current) {
-      console.log('Component unmounted, ignoring manual retry');
+      logger.log('Component unmounted, ignoring manual retry');
       return;
     }
     
@@ -363,7 +364,7 @@ export const useBackendConnection = (config = {}) => {
     
     setRetryCount(0);
     setLastError(null);
-    console.log('🔄 Manual retry initiated, resetting all counters');
+    logger.log('🔄 Manual retry initiated, resetting all counters');
     attemptReconnection();
   }, [attemptReconnection]);
   
@@ -374,19 +375,19 @@ export const useBackendConnection = (config = {}) => {
     
     // If force mock mode is enabled (LOCAL development only), go straight to mock mode immediately
     if (fullConfig.forceMockMode) {
-      console.log('Local development detected, switching to mock mode immediately');
+      logger.log('Local development detected, switching to mock mode immediately');
       setConnectionState(CONNECTION_STATES.MOCK_MODE);
       return;
     }
     
     // Skip all connection attempts if already set to mock mode
     if (connectionState === CONNECTION_STATES.MOCK_MODE) {
-      console.log('Already in mock mode, skipping connection attempts');
+      logger.log('Already in mock mode, skipping connection attempts');
       return;
     }
     
     // For production or when backend is expected, attempt connection
-    console.log(`Attempting initial connection to: ${fullConfig.apiUrl}`);
+    logger.log(`Attempting initial connection to: ${fullConfig.apiUrl}`);
     attemptReconnection();
     
     // Cleanup function to prevent memory leaks

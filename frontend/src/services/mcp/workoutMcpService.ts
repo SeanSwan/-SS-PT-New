@@ -34,6 +34,7 @@ import {
   LogWorkoutSessionParams,
   LogFoodIntakeParams
 } from '../../types/mcp/workout.types';
+import { logger } from '@/utils/logger';
 
 /**
  * Enhanced Error Handling
@@ -135,7 +136,7 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   checkServerStatus: async (): Promise<McpApiResponse<ServerStatus>> => {
     try {
-      console.log('[WorkoutMCP] Checking server status...');
+      logger.log('[WorkoutMCP] Checking server status...');
       
       // First check if MCP services are available
       const health = await mcpConfig.checkHealth();
@@ -181,13 +182,13 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   getClientProgress: async ({ userId }: GetClientProgressParams): Promise<McpApiResponse<{ progress: WorkoutProgress }>> => {
     try {
-      console.log(`[WorkoutMCP] Getting progress for user: ${userId}`);
+      logger.log(`[WorkoutMCP] Getting progress for user: ${userId}`);
       
       // Check if workout MCP service is available
       const isAvailable = await mcpConfig.isServiceAvailable('workout');
       
       if (!isAvailable) {
-        console.warn('[WorkoutMCP] Service unavailable, using fallback data');
+        logger.warn('[WorkoutMCP] Service unavailable, using fallback data');
         const { fallbackProgress } = generateFallbackData();
         
         return {
@@ -262,12 +263,12 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   getWorkoutStatistics: async (params: GetWorkoutStatisticsParams): Promise<McpApiResponse<WorkoutStatistics>> => {
     try {
-      console.log(`[WorkoutMCP] Getting statistics for user: ${params.userId}`);
+      logger.log(`[WorkoutMCP] Getting statistics for user: ${params.userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('workout');
       
       if (!isAvailable) {
-        console.warn('[WorkoutMCP] Service unavailable, using fallback statistics');
+        logger.warn('[WorkoutMCP] Service unavailable, using fallback statistics');
         
         return {
           data: {
@@ -362,12 +363,12 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   getClientTrainingProgram: async ({ userId }: GetClientTrainingProgramParams): Promise<McpApiResponse<{ program: TrainingProgramData }>> => {
     try {
-      console.log(`[WorkoutMCP] Getting training program for user: ${userId}`);
+      logger.log(`[WorkoutMCP] Getting training program for user: ${userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('workout');
       
       if (!isAvailable) {
-        console.warn('[WorkoutMCP] Service unavailable, generating fallback program');
+        logger.warn('[WorkoutMCP] Service unavailable, generating fallback program');
         
         const fallbackProgram = {
           activeProgram: {
@@ -484,7 +485,7 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   logWorkout: async (params: LogWorkoutParams): Promise<McpApiResponse<SuccessResponse>> => {
     try {
-      console.log(`[WorkoutMCP] Logging workout for user: ${params.userId}`);
+      logger.log(`[WorkoutMCP] Logging workout for user: ${params.userId}`);
       
       // For now, simulate workout logging success
       // In a full implementation, this would send structured data to the backend
@@ -513,12 +514,12 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   getWorkoutRecommendations: async (params: GetWorkoutRecommendationsParams): Promise<McpApiResponse<{ recommendations: WorkoutRecommendation[] }>> => {
     try {
-      console.log(`[WorkoutMCP] Getting recommendations for user: ${params.userId}`);
+      logger.log(`[WorkoutMCP] Getting recommendations for user: ${params.userId}`);
       
       const isAvailable = await mcpConfig.isServiceAvailable('workout');
       
       if (!isAvailable) {
-        console.warn('[WorkoutMCP] Service unavailable, using fallback recommendations');
+        logger.warn('[WorkoutMCP] Service unavailable, using fallback recommendations');
         
         const fallbackRecommendations = [
           {
@@ -609,7 +610,7 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   getBodyMeasurements: async ({ userId }: GetBodyMeasurementsParams): Promise<McpApiResponse<{ measurements: BodyMeasurement[] }>> => {
     try {
-      console.log(`[WorkoutMCP] Getting body measurements for user: ${userId}`);
+      logger.log(`[WorkoutMCP] Getting body measurements for user: ${userId}`);
       
       // For now, return fallback measurements data
       // In a full implementation, this would retrieve real measurement history
@@ -659,7 +660,7 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   logWorkoutSession: async ({ session }: LogWorkoutSessionParams): Promise<McpApiResponse<SuccessResponse>> => {
     try {
-      console.log('[WorkoutMCP] Logging workout session...');
+      logger.log('[WorkoutMCP] Logging workout session...');
       
       // For now, simulate session logging success
       // In a full implementation, this would send structured session data to the backend
@@ -688,7 +689,7 @@ const workoutMcpApi: WorkoutMcpApi = {
    */
   logFoodIntake: async ({ userId, foodIntake }: LogFoodIntakeParams): Promise<McpApiResponse<SuccessResponse>> => {
     try {
-      console.log(`[WorkoutMCP] Logging food intake for user: ${userId}`);
+      logger.log(`[WorkoutMCP] Logging food intake for user: ${userId}`);
       
       // For now, simulate food logging success
       // In a full implementation, this would send nutrition data to the backend

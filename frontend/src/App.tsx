@@ -83,6 +83,7 @@ import theme from './styles/theme';
 // swanStudiosTheme now merged into UniversalThemeProvider (context/ThemeContext)
 // Cosmic Performance Optimizer
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
+import { logger } from '@/utils/logger';
 
 // Custom shouldForwardProp function to filter out props that cause warnings
 const shouldForwardProp = (prop: string, defaultValidatorFn?: (prop: string) => boolean) => {
@@ -151,7 +152,7 @@ const AppContent = () => {
     // Mark as initialized immediately
     initializationRef.current = true;
     
-    console.log('Running one-time App initialization...');
+    logger.log('Running one-time App initialization...');
 
     // Enable route debugging
     monitorRouting();
@@ -162,7 +163,7 @@ const AppContent = () => {
     // Clear any existing mock tokens that might interfere with real authentication
     const hadMockTokens = clearMockTokens();
     if (hadMockTokens) {
-      console.log('🔄 Cleared mock tokens, please login again with real credentials');
+      logger.log('🔄 Cleared mock tokens, please login again with real credentials');
     }
     
     // Initialize mock data system
@@ -179,7 +180,7 @@ const AppContent = () => {
     // Initialize Homepage v2.0 Performance Monitoring
     // Tracks LCP, CLS, FPS, long tasks for performance budget enforcement
     initPerformanceMonitoring();
-    console.log('🎯 [Homepage v2.0] Performance monitoring initialized (LCP ≤2.5s, CLS ≤0.1, FPS ≥30)');
+    logger.log('🎯 [Homepage v2.0] Performance monitoring initialized (LCP ≤2.5s, CLS ≤0.1, FPS ≥30)');
   }, []);
   
   // Initialize notifications when user is authenticated

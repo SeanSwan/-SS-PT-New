@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import apiService from '../services/api.service';
+import { logger } from '@/utils/logger';
 
 // Session Types
 export interface WorkoutSession {
@@ -197,7 +198,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         updatedAt: new Date().toISOString()
       });
     } catch (error) {
-      console.warn('Failed to auto-save session to backend, using localStorage fallback');
+      logger.warn('Failed to auto-save session to backend, using localStorage fallback');
       // ENHANCED: Safe localStorage write with tab coordination
       if (isActiveTab) {
         localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
@@ -219,7 +220,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         try {
           saveSessionData();
         } catch (error) {
-          console.warn('[SessionContext] Auto-save error:', error);
+          logger.warn('[SessionContext] Auto-save error:', error);
         }
       }, 30000); // Auto-save every 30 seconds
     }
@@ -294,7 +295,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
             }
           }
         } catch (error) {
-          console.warn('[SessionContext] Error syncing session from other tab:', error);
+          logger.warn('[SessionContext] Error syncing session from other tab:', error);
         }
       }
       
@@ -452,7 +453,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // FIXED: Don't use admin-only endpoint for workout sessions
       // Workout sessions are user-generated and managed locally (offline-first design)
       // Only booking of pre-existing available sessions should hit the backend
-      console.log('Creating local workout session (offline-first design)');
+      logger.log('Creating local workout session (offline-first design)');
 
       setCurrentSession(newSession);
       
@@ -506,7 +507,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         try {
           await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
         } catch (apiError) {
-          console.warn('Failed to update session on backend:', apiError);
+          logger.warn('Failed to update session on backend:', apiError);
         }
       }
     } catch (error: any) {
@@ -546,7 +547,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         try {
           await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
         } catch (apiError) {
-          console.warn('Failed to update session on backend:', apiError);
+          logger.warn('Failed to update session on backend:', apiError);
         }
       }
     } catch (error: any) {
@@ -595,7 +596,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         try {
           await apiService.put(`/api/sessions/${currentSession.id}`, completedSession);
         } catch (apiError) {
-          console.warn('Failed to save completed session to backend:', apiError);
+          logger.warn('Failed to save completed session to backend:', apiError);
           // Save to local storage as backup
           const localSessions = JSON.parse(localStorage.getItem(`sessions_${user!.id}`) || '[]');
           localSessions.unshift(completedSession);
@@ -753,7 +754,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         setSessions(limitedSessions);
       }
     } catch (error) {
-      console.warn('Failed to fetch sessions from backend, using local storage');
+      logger.warn('Failed to fetch sessions from backend, using local storage');
       const localSessions = JSON.parse(localStorage.getItem(`sessions_${user.id}`) || '[]');
       setSessions(localSessions.slice(0, limit));
     } finally {
@@ -770,7 +771,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         setSessionAnalytics(response.data);
       }
     } catch (error) {
-      console.warn('Failed to fetch analytics from backend');
+      logger.warn('Failed to fetch analytics from backend');
       // Generate basic analytics from local sessions
       const totalSessions = sessions.length;
       const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
@@ -795,7 +796,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await apiService.get('/api/sessions/available');
       return response.data || [];
     } catch (error) {
-      console.warn('Failed to fetch available sessions from backend');
+      logger.warn('Failed to fetch available sessions from backend');
       return [];
     }
   }, []);
@@ -832,7 +833,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     const targetId = clientId || (user.role === 'client' ? user.id : null);
     
     if (!targetId) {
-      console.warn('No client ID provided for fetching sessions');
+      logger.warn('No client ID provided for fetching sessions');
       return [];
     }
     
@@ -840,7 +841,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await apiService.get(`/api/sessions/client/${targetId}`);
       return response.data || [];
     } catch (error) {
-      console.warn('Failed to fetch client sessions from backend');
+      logger.warn('Failed to fetch client sessions from backend');
       // Return mock data for demo
       return [
         {
@@ -861,7 +862,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const fetchAllUserSessions = useCallback(async (): Promise<WorkoutSession[]> => {
     if (!isAuthenticated || !user || user.role !== 'admin') {
-      console.warn('Admin access required for fetching all user sessions');
+      logger.warn('Admin access required for fetching all user sessions');
       return [];
     }
     
@@ -869,7 +870,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await apiService.get('/api/admin/all-sessions');
       return response.data || [];
     } catch (error) {
-      console.warn('Failed to fetch all sessions from backend');
+      logger.warn('Failed to fetch all sessions from backend');
       // Return mock data for demo
       return [
         {
@@ -890,7 +891,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const fetchTrainerStats = useCallback(async (): Promise<any> => {
     if (!isAuthenticated || !user || !['trainer', 'admin'].includes(user.role)) {
-      console.warn('Trainer or Admin access required for trainer stats');
+      logger.warn('Trainer or Admin access required for trainer stats');
       return {};
     }
     
@@ -898,7 +899,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await apiService.get('/api/trainer/stats');
       return response.data || {};
     } catch (error) {
-      console.warn('Failed to fetch trainer stats from backend');
+      logger.warn('Failed to fetch trainer stats from backend');
       // Return mock data for demo
       return {
         totalClients: 12,
@@ -918,7 +919,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const fetchAdminStats = useCallback(async (): Promise<any> => {
     if (!isAuthenticated || !user || user.role !== 'admin') {
-      console.warn('Admin access required for admin stats');
+      logger.warn('Admin access required for admin stats');
       return {};
     }
     
@@ -926,7 +927,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await apiService.get('/api/admin/session-stats');
       return response.data || {};
     } catch (error) {
-      console.warn('Failed to fetch admin stats from backend');
+      logger.warn('Failed to fetch admin stats from backend');
       // Return mock data for demo
       return {
         totalSessions: 1247,

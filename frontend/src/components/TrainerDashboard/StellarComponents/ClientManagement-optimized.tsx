@@ -35,6 +35,7 @@ import {
   formatTimeAgo
 } from './TrainerSharedComponents-optimized';
 import GlowButton from '../../ui/buttons/GlowButton';
+import { logger } from '@/utils/logger';
 
 // === PERFORMANCE-OPTIMIZED ANIMATIONS ===
 const clientHover = keyframes`
@@ -400,7 +401,7 @@ const ClientManagement: React.FC<ClientManagementProps> = memo(({ className }) =
   }, [searchTerm, activeFilter]);
   
   const handleClientClick = (clientId: number) => {
-    console.log('Navigate to client:', clientId);
+    logger.log('Navigate to client:', clientId);
     // Navigation logic would go here
   };
   
@@ -422,7 +423,7 @@ const ClientManagement: React.FC<ClientManagementProps> = memo(({ className }) =
             theme="primary"
             size="medium"
             leftIcon={<Plus size={18} />}
-            onClick={() => console.log('Add new client')}
+            onClick={() => logger.log('Add new client')}
           />
         </StellarSectionHeader>
         
@@ -516,7 +517,7 @@ const ClientManagement: React.FC<ClientManagementProps> = memo(({ className }) =
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('Message client:', client.id);
+                      logger.log('Message client:', client.id);
                     }}
                     aria-label={`Message ${client.name}`}
                   >
@@ -525,7 +526,7 @@ const ClientManagement: React.FC<ClientManagementProps> = memo(({ className }) =
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('Client menu:', client.id);
+                      logger.log('Client menu:', client.id);
                     }}
                     aria-label={`More options for ${client.name}`}
                   >

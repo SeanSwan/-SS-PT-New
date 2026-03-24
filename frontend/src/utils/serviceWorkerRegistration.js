@@ -13,30 +13,30 @@ export const registerServiceWorker = async () => {
   const enableSW = import.meta.env.VITE_ENABLE_SERVICE_WORKER === 'true';
   
   if (!('serviceWorker' in navigator) || (!isProduction && !enableSW)) {
-    console.log('SW: Service Worker not supported or disabled');
+    logger.log('SW: Service Worker not supported or disabled');
     return null;
   }
 
   try {
-    console.log('SW: Registering service worker...');
+    logger.log('SW: Registering service worker...');
     
     // Register the service worker
     const registration = await navigator.serviceWorker.register('/spa-sw.js', {
       scope: '/'
     });
     
-    console.log('SW: Service worker registered successfully:', registration.scope);
+    logger.log('SW: Service worker registered successfully:', registration.scope);
     
     // Handle service worker updates
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
       
       if (newWorker) {
-        console.log('SW: New service worker found, installing...');
+        logger.log('SW: New service worker found, installing...');
         
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('SW: New service worker installed, update available');
+            logger.log('SW: New service worker installed, update available');
             
             // Show update notification to user
             showUpdateNotification(newWorker);
@@ -121,13 +121,13 @@ const showUpdateNotification = (newWorker) => {
   const updateLater = notification.querySelector('#update-later');
   
   updateNow.addEventListener('click', () => {
-    console.log('SW: User chose to update now');
+    logger.log('SW: User chose to update now');
     newWorker.postMessage({ type: 'SKIP_WAITING' });
     window.location.reload();
   });
   
   updateLater.addEventListener('click', () => {
-    console.log('SW: User chose to update later');
+    logger.log('SW: User chose to update later');
     document.body.removeChild(notification);
   });
   
@@ -145,11 +145,11 @@ const handleServiceWorkerMessage = (data) => {
   
   switch (type) {
     case 'SW_ACTIVATED':
-      console.log('SW: Service worker activated:', message);
+      logger.log('SW: Service worker activated:', message);
       break;
       
     case 'WORKOUT_SYNCED':
-      console.log('SW: Workout synced successfully:', messageData);
+      logger.log('SW: Workout synced successfully:', messageData);
       // Dispatch custom event for app to handle
       window.dispatchEvent(new CustomEvent('workoutSynced', {
         detail: messageData
@@ -157,11 +157,11 @@ const handleServiceWorkerMessage = (data) => {
       break;
       
     case 'CACHE_UPDATED':
-      console.log('SW: Cache updated:', messageData);
+      logger.log('SW: Cache updated:', messageData);
       break;
       
     default:
-      console.log('SW: Unknown message from service worker:', data);
+      logger.log('SW: Unknown message from service worker:', data);
   }
 };
 
@@ -222,10 +222,10 @@ export const requestPersistentStorage = async () => {
   if ('storage' in navigator && 'persist' in navigator.storage) {
     try {
       const persistent = await navigator.storage.persist();
-      console.log('SW: Persistent storage granted:', persistent);
+      logger.log('SW: Persistent storage granted:', persistent);
       return persistent;
     } catch (error) {
-      console.warn('SW: Could not request persistent storage:', error);
+      logger.warn('SW: Could not request persistent storage:', error);
       return false;
     }
   }
@@ -245,7 +245,7 @@ export const getStorageUsage = async () => {
           : 0
       };
     } catch (error) {
-      console.warn('SW: Could not get storage estimate:', error);
+      logger.warn('SW: Could not get storage estimate:', error);
       return { used: 0, available: 0, percentage: 0 };
     }
   }
@@ -254,7 +254,7 @@ export const getStorageUsage = async () => {
 
 // Initialize PWA features
 export const initializePWA = async () => {
-  console.log('SW: Initializing PWA features...');
+  logger.log('SW: Initializing PWA features...');
   
   // Register service worker
   const registration = await registerServiceWorker();
@@ -264,7 +264,7 @@ export const initializePWA = async () => {
   
   // Log storage usage
   const storage = await getStorageUsage();
-  console.log('SW: Storage usage:', storage);
+  logger.log('SW: Storage usage:', storage);
   
   // Add to window for debugging
   if (process.env.NODE_ENV === 'development') {

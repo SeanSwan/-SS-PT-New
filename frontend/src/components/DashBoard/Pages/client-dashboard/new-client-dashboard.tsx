@@ -39,6 +39,7 @@ import {
 // Custom components
 import DashboardStatsCard from '../../../DashBoard/components/dashboard-stats-card';
 import DashboardSection from './components/DashboardSection';
+import { logger } from '@/utils/logger';
 
 // ─── Theme Tokens ───────────────────────────────────────────────────
 const theme = {
@@ -764,7 +765,7 @@ const NewClientDashboard: React.FC = () => {
 
   // Log the auth state for debugging
   useEffect(() => {
-    console.log('Dashboard auth state:', { user, isAuthenticated });
+    logger.log('Dashboard auth state:', { user, isAuthenticated });
   }, [user, isAuthenticated]);
 
   const [isLoading, setLoading] = useState<boolean>(true);

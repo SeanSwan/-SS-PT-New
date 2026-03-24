@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/utils/logger';
 
 // Enhanced mock storefront data with all required fields
 const mockStorefrontItems = [
@@ -156,12 +157,12 @@ const mockStorefrontItems = [
 
 // Enhanced mock API interceptor with storefront support
 export const setupEnhancedMockApiInterceptor = (axios: any) => {
-  console.log('[Mock API] Setting up enhanced interceptor with storefront support');
+  logger.log('[Mock API] Setting up enhanced interceptor with storefront support');
   
   const interceptor = axios.interceptors.response.use(
     response => response,
     error => {
-      console.log('[Mock API] Intercepting error:', error.message);
+      logger.log('[Mock API] Intercepting error:', error.message);
       
       // Check if it's a network error or connection refused
       if (error.message.includes('Network Error') || 
@@ -171,11 +172,11 @@ export const setupEnhancedMockApiInterceptor = (axios: any) => {
           error.request?.readyState === 4 && error.request?.status === 0) {
         
         const { url, method } = error.config;
-        console.log(`[Mock API] Backend connection failed. Using mock data for ${method} ${url}`);
+        logger.log(`[Mock API] Backend connection failed. Using mock data for ${method} ${url}`);
         
         // Handle storefront endpoints
         if (url.includes('/api/storefront')) {
-          console.log(`[Mock API] Mock storefront request`);
+          logger.log(`[Mock API] Mock storefront request`);
           return Promise.resolve({
             data: {
               success: true,

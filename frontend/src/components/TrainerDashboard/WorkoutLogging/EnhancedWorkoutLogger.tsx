@@ -43,6 +43,7 @@ import { LoadingSpinner } from '../../ui/LoadingSpinner';
 
 // Original WorkoutLogger import
 import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
+import { logger } from '@/utils/logger';
 
 // === ANIMATIONS ===
 const stellarPulse = keyframes`
@@ -468,7 +469,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
       }
       
     } catch (err: any) {
-      console.log('API not available, using demo mode');
+      logger.log('API not available, using demo mode');
       
       // Use demo client for demonstration
       setClient(demoClient);

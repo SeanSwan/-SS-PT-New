@@ -34,6 +34,7 @@ import OrientationForm from "../../components/OrientationForm/orientationForm";
 import { CheckoutView } from "../../components/NewCheckout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
 import SectionVideoBackground from "../../components/ui/backgrounds/SectionVideoBackground";
+import { logger } from '@/utils/logger';
 
 // EW Design Tokens
 const T = {
@@ -256,7 +257,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
   // const { toast } = useToast();
   // FIXED: Use useCallback to prevent infinite re-render loop
   const toast = useCallback((options: {title: string, description: string, variant?: string}) => {
-    console.log('Toast:', options.title, options.description);
+    logger.log('Toast:', options.title, options.description);
     // Fallback: could show alert or custom notification
   }, []);
 
@@ -283,10 +284,10 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       setIsLoadingPackages(true);
       setPackagesError(null);
 
-      console.log('🔄 Fetching packages from API...');
+      logger.log('🔄 Fetching packages from API...');
       const response = await api.get('/api/storefront');
 
-      console.log('📦 API response:', response.data);
+      logger.log('📦 API response:', response.data);
 
       // Handle different response formats
       const packagesData = Array.isArray(response.data)
@@ -317,7 +318,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       }));
 
       setPackages(fetchedPackages);
-      console.log('✅ Loaded', fetchedPackages.length, 'packages from database');
+      logger.log('✅ Loaded', fetchedPackages.length, 'packages from database');
     } catch (error: any) {
       console.error('❌ Failed to fetch packages from API, using fallback data:', error);
 
@@ -450,7 +451,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       ];
 
       setPackages(fallbackPackages);
-      console.log('✅ Loaded', fallbackPackages.length, 'fallback packages with correct IDs (50-57)');
+      logger.log('✅ Loaded', fallbackPackages.length, 'fallback packages with correct IDs (50-57)');
 
       setPackagesError(error.message || 'Failed to load packages');
     } finally {
@@ -480,7 +481,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
   }, []);
 
   const handleAddToCart = useCallback(async (pkg: StoreItem) => {
-    console.log('📦 handleAddToCart called with:', {
+    logger.log('📦 handleAddToCart called with:', {
       id: pkg.id,
       name: pkg.name,
       hasId: pkg.id !== undefined
@@ -512,7 +513,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
 
     setIsAddingToCart(pkg.id);
     try {
-      console.log(`🛒 Adding package to cart:`, { packageId: pkg.id, packageName: pkg.name });
+      logger.log(`🛒 Adding package to cart:`, { packageId: pkg.id, packageName: pkg.name });
       await addToCart(cartData);
       setTimeout(() => refreshCart(), 500);
       toast({ title: "Success!", description: `Added ${pkg.name} to cart.` });
@@ -666,7 +667,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
               key="checkout-modal"
               onCancel={handleHideCart}
               onSuccess={() => {
-                console.log('Checkout completed successfully');
+                logger.log('Checkout completed successfully');
                 handleHideCart();
                 toast({
                   title: "Success!",

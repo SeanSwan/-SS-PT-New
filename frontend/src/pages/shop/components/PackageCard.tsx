@@ -22,6 +22,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/GlowButton';
 import { SpecialBadge } from './SpecialBadge';
+import { logger } from '@/utils/logger';
 
 // EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
 const T = {
@@ -307,7 +308,7 @@ const MediaContent: React.FC<MediaContentProps> = ({ mediaInfo, packageName, the
           playsInline
           aria-label={`Video background for ${packageName}`}
           onError={(e) => {
-            console.warn(`Video failed to load for ${packageName}:`, mediaInfo.url);
+            logger.warn(`Video failed to load for ${packageName}:`, mediaInfo.url);
             const target = e.target as HTMLVideoElement;
             const parent = target.parentElement;
             if (parent) {
@@ -584,7 +585,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
       return;
     }
 
-    console.log('Button clicked for package:', { id: pkg.id, name: pkg.name });
+    logger.log('Button clicked for package:', { id: pkg.id, name: pkg.name });
     onAddToCart(pkg);
   }, [onAddToCart, pkg]);
 

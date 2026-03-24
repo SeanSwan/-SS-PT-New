@@ -16,7 +16,7 @@ try {
     customComponentOverrides = overrides.default;
   }
 } catch (error) {
-  console.warn('Could not import custom component overrides, using defaults');
+  logger.warn('Could not import custom component overrides, using defaults');
 }
 
 /**

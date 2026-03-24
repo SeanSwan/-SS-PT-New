@@ -15,6 +15,7 @@ import { DashboardWrapper } from '../components/DashboardWrapper';
 
 // Custom Routes
 import DebugRoutes from './debug-routes';
+import { logger } from '@/utils/logger';
 
 // Loading Component for Code Splitting
 const PageLoader: React.FC = () => (
@@ -46,7 +47,7 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
         console.error(`Failed to load ${componentName}:`, error);
         
         if (fallbackImportFn) {
-          console.log(`Trying fallback for ${componentName}...`);
+          logger.log(`Trying fallback for ${componentName}...`);
           return fallbackImportFn().catch(fallbackError => {
             console.error(`Fallback also failed for ${componentName}:`, fallbackError);
             return {

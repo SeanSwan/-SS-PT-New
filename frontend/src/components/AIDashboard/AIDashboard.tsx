@@ -32,6 +32,7 @@ import {
   McpServersStatus
 } from '../../services/mcp';
 import { api } from '../../services/api.service';
+import { logger } from '@/utils/logger';
 
 // ─── Keyframes ───────────────────────────────────────────────────────────────
 
@@ -670,7 +671,7 @@ const EnhancedAIDashboard: React.FC = () => {
       // Update metrics (using mock data for now)
       setAiMetrics(mockMetrics);
 
-      console.log('[AI Dashboard] Status refreshed:', status);
+      logger.log('[AI Dashboard] Status refreshed:', status);
 
     } catch (error) {
       console.error('[AI Dashboard] Status refresh failed:', error);

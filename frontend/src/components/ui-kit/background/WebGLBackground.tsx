@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { logger } from '@/utils/logger';
 
 interface WebGLBackgroundProps {
   particleCount?: number;
@@ -57,7 +58,7 @@ const WebGLBackground: React.FC<WebGLBackgroundProps> = ({
     // Get WebGL context
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (!gl) {
-      console.warn('[WebGLBackground] WebGL not supported, falling back to Canvas');
+      logger.warn('[WebGLBackground] WebGL not supported, falling back to Canvas');
       // TODO: Fallback to CanvasBackground
       return;
     }

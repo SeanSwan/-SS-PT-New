@@ -14,6 +14,7 @@ import { selectAllSessions } from '../../redux/slices/scheduleSlice';
 import CalendarFallback from './CalendarFallback';
 import { CommandCenterTheme } from './UniversalMasterScheduleTheme';
 import { useToast } from '../../hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 const UniversalMasterSchedule: React.FC = () => {
   const { user } = useAuth();
@@ -76,7 +77,7 @@ const UniversalMasterSchedule: React.FC = () => {
   };
 
   const handleFilterChange = (filters: any) => {
-    console.log('Filters changed:', filters);
+    logger.log('Filters changed:', filters);
   };
 
   return (

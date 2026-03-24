@@ -35,6 +35,7 @@ import {
   Download, Upload, RotateCw, HardDrive, Wifi, User
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -645,7 +646,7 @@ const AdminSettingsSection: React.FC = () => {
       const response = await authAxios.put(`/api/admin/settings/${type}`, settings);
       
       if (response.data.success) {
-        console.log(`${type} settings saved successfully`);
+        logger.log(`${type} settings saved successfully`);
       } else {
         console.error(`Failed to save ${type} settings`);
       }
@@ -691,7 +692,7 @@ const AdminSettingsSection: React.FC = () => {
 
   const copyApiKey = (key: string) => {
     navigator.clipboard.writeText(key);
-    console.log('API key copied to clipboard');
+    logger.log('API key copied to clipboard');
   };
 
   const performBackup = async (type: string) => {
@@ -701,7 +702,7 @@ const AdminSettingsSection: React.FC = () => {
       });
       
       if (response.data.success) {
-        console.log(`${type} backup started successfully`);
+        logger.log(`${type} backup started successfully`);
       }
     } catch (error) {
       console.error(`Error starting ${type} backup:`, error);

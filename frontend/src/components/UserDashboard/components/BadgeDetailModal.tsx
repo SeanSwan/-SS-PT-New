@@ -39,6 +39,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { X, Share2, Calendar, Sparkles } from 'lucide-react';
 import type { UserBadge } from './ProfileBadgeShowcase';
 import type { Rarity } from '../../../types/gamification';
+import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Theme Tokens
@@ -248,7 +249,7 @@ const BadgeDetailModal: React.FC<BadgeDetailModalProps> = ({ badge, isOpen, onCl
   const handleShare = () => {
     const text = `I earned the "${badge.title}" badge on SwanStudios! (+${badge.xpReward} XP)`;
     navigator.clipboard.writeText(text).catch(() => {
-      console.warn('TODO: clipboard fallback');
+      logger.warn('TODO: clipboard fallback');
     });
   };
 

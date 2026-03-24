@@ -30,6 +30,7 @@ import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 import GlowButton from '../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
+import { logger } from '@/utils/logger';
 const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
 
 // ─── SSR-safe useMediaQuery hook (Issue #2: DOM Bloat) ───────────────
@@ -757,7 +758,7 @@ const SocialPageV3: React.FC = () => {
                     <Trophy size={18} />
                     Challenges
                   </NavButton>
-                  <NavButton onClick={() => console.warn('TODO: implement notifications page')} style={{ opacity: 0.6 }}>
+                  <NavButton onClick={() => logger.warn('TODO: implement notifications page')} style={{ opacity: 0.6 }}>
                     <Bell size={18} />
                     Notifications
                     {notificationCount > 0 && <NotifDot>{notificationCount}</NotifDot>}

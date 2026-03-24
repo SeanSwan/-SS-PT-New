@@ -21,6 +21,7 @@
 
 import axios, { AxiosResponse } from 'axios';
 import { io, Socket } from 'socket.io-client';
+import { logger } from '@/utils/logger';
 
 // === TYPE DEFINITIONS ===
 interface SessionEvent {
@@ -127,7 +128,7 @@ const WEBSOCKET_URL = isProduction
   : (import.meta.env.VITE_WEBSOCKET_URL || DEVELOPMENT_URL);
 
 // Debug logging for configuration verification
-console.log('🔧 EnhancedClientDashboardService Configuration:', {
+logger.log('🔧 EnhancedClientDashboardService Configuration:', {
   isProduction,
   API_BASE_URL,
   MCP_GAMIFICATION_URL,
@@ -221,14 +222,14 @@ class WebSocketManager {
 
         // Set up a timeout to resolve with null if connection fails
         const connectionTimeout = setTimeout(() => {
-          console.log('⚠️ WebSocket connection timeout - continuing without real-time features');
+          logger.log('⚠️ WebSocket connection timeout - continuing without real-time features');
           this.socket?.disconnect();
           this.socket = null;
           resolve(null as any); // Resolve with null to continue without WebSocket
         }, 3000); // 3 second timeout
 
         this.socket.on('connect', () => {
-          console.log('✅ WebSocket connected successfully');
+          logger.log('✅ WebSocket connected successfully');
           clearTimeout(connectionTimeout);
           this.reconnectAttempts = 0;
           this.setupEventListeners();
@@ -236,19 +237,19 @@ class WebSocketManager {
         });
 
         this.socket.on('disconnect', (reason) => {
-          console.log('⚠️ WebSocket disconnected:', reason);
+          logger.log('⚠️ WebSocket disconnected:', reason);
           this.handleReconnection();
         });
 
         this.socket.on('connect_error', (error) => {
-          console.log('⚠️ WebSocket connection error (will continue without real-time):', error.message);
+          logger.log('⚠️ WebSocket connection error (will continue without real-time):', error.message);
           clearTimeout(connectionTimeout);
           this.socket = null;
           resolve(null as any); // Resolve with null instead of rejecting
         });
 
       } catch (error) {
-        console.log('⚠️ Failed to initialize WebSocket (will continue without real-time):', error);
+        logger.log('⚠️ Failed to initialize WebSocket (will continue without real-time):', error);
         resolve(null as any); // Resolve with null instead of rejecting
       }
     });
@@ -259,40 +260,40 @@ class WebSocketManager {
 
     // Gamification events
     this.socket.on('xp_updated', (data) => {
-      console.log('🎯 XP Updated:', data);
+      logger.log('🎯 XP Updated:', data);
       // Trigger gamification update in UI
       window.dispatchEvent(new CustomEvent('gamification:xp_updated', { detail: data }));
     });
 
     this.socket.on('badge_earned', (data) => {
-      console.log('🏆 Badge Earned:', data);
+      logger.log('🏆 Badge Earned:', data);
       window.dispatchEvent(new CustomEvent('gamification:badge_earned', { detail: data }));
     });
 
     this.socket.on('level_up', (data) => {
-      console.log('⬆️ Level Up:', data);
+      logger.log('⬆️ Level Up:', data);
       window.dispatchEvent(new CustomEvent('gamification:level_up', { detail: data }));
     });
 
     // Session events
     this.socket.on('session_booked', (data) => {
-      console.log('📅 Session Booked:', data);
+      logger.log('📅 Session Booked:', data);
       window.dispatchEvent(new CustomEvent('schedule:session_booked', { detail: data }));
     });
 
     this.socket.on('session_cancelled', (data) => {
-      console.log('❌ Session Cancelled:', data);
+      logger.log('❌ Session Cancelled:', data);
       window.dispatchEvent(new CustomEvent('schedule:session_cancelled', { detail: data }));
     });
 
     this.socket.on('session_confirmed', (data) => {
-      console.log('✅ Session Confirmed:', data);
+      logger.log('✅ Session Confirmed:', data);
       window.dispatchEvent(new CustomEvent('schedule:session_confirmed', { detail: data }));
     });
 
     // Notification events
     this.socket.on('new_notification', (data) => {
-      console.log('🔔 New Notification:', data);
+      logger.log('🔔 New Notification:', data);
       window.dispatchEvent(new CustomEvent('notifications:new', { detail: data }));
     });
   }
@@ -304,7 +305,7 @@ class WebSocketManager {
     }
 
     this.reconnectAttempts++;
-    console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    logger.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
     setTimeout(() => {
       if (this.socket) {
@@ -344,13 +345,13 @@ class EnhancedClientDashboardService {
       const socket = await this._wsManager.connect(userId);
       
       if (socket) {
-        console.log('🚀 Enhanced Client Dashboard Service initialized with real-time features');
+        logger.log('🚀 Enhanced Client Dashboard Service initialized with real-time features');
       } else {
-        console.log('🚀 Enhanced Client Dashboard Service initialized (polling mode - no real-time features)');
+        logger.log('🚀 Enhanced Client Dashboard Service initialized (polling mode - no real-time features)');
       }
     } catch (error) {
       // Don't throw error if WebSocket fails - continue without real-time features
-      console.log('⚠️ WebSocket unavailable, continuing in polling mode:', error);
+      logger.log('⚠️ WebSocket unavailable, continuing in polling mode:', error);
     }
   }
 
@@ -386,7 +387,7 @@ class EnhancedClientDashboardService {
         end: new Date(session.end || new Date(new Date(session.start || session.sessionDate).getTime() + (session.duration || 60) * 60000)),
       }));
     } catch (error) {
-      console.warn('⚠️ Sessions unavailable, using fallback data');
+      logger.warn('⚠️ Sessions unavailable, using fallback data');
       return this.getFallbackSessions();
     }
   }
@@ -456,7 +457,7 @@ class EnhancedClientDashboardService {
         // MCP analysis received — return fallback since parsing AI content
         // into structured gamification data is not yet implemented.
         // Real gamification data is fetched by useGamificationData hook instead.
-        console.log('✅ MCP analysis received:', content.substring(0, 200) + '...');
+        logger.log('✅ MCP analysis received:', content.substring(0, 200) + '...');
 
         return this.getFallbackGamificationData();
       }
@@ -464,7 +465,7 @@ class EnhancedClientDashboardService {
       throw new Error('Invalid response format from MCP server');
     } catch (error) {
       console.error('❌ Error fetching gamification data from MCP:', error);
-      console.log('ℹ️ Using fallback gamification data');
+      logger.log('ℹ️ Using fallback gamification data');
       // Return fallback data
       return this.getFallbackGamificationData();
     }

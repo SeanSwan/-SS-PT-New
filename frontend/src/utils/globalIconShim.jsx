@@ -3,6 +3,7 @@
  * This file provides fallbacks for any missing icons to prevent crashes
  */
 import React from 'react';
+import { logger } from '@/utils/logger';
 
 // Create a default icon component for fallbacks
 const DefaultIcon = ({ size = 20, color = 'currentColor', ...props }) => (
@@ -34,6 +35,6 @@ if (typeof window !== 'undefined') {
   };
 }
 
-console.log('✅ Global Icon Shim loaded successfully');
+logger.log('✅ Global Icon Shim loaded successfully');
 
 export default DefaultIcon;

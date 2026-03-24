@@ -14,6 +14,7 @@ import moment from 'moment';
 
 // Import gamification service for integrated rewards
 import gamificationService from './gamification/gamification-service';
+import { logger } from '@/utils/logger';
 
 // Get API base URL from environment variables and fix formatting
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -23,7 +24,7 @@ const setMockDataMode = () => {
   // In development mode, use mock data by default
   if (import.meta.env.DEV) {
     localStorage.setItem('use_mock_data', 'true');
-    console.log('Development mode detected - Mock data mode activated by default');
+    logger.log('Development mode detected - Mock data mode activated by default');
     return true;
   }
   
@@ -55,7 +56,7 @@ api.interceptors.request.use(
     }
     
     // Log request for debugging
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    logger.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     
     return config;
   },
@@ -85,7 +86,7 @@ api.interceptors.response.use(
     if (error.response) {
       // Unauthorized - clear token
       if (error.response.status === 401) {
-        console.warn('Authorization has expired or is invalid.');
+        logger.warn('Authorization has expired or is invalid.');
         localStorage.removeItem('token');
       }
       
@@ -257,7 +258,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock session data');
+        logger.log('Using mock session data');
         return MOCK_SESSIONS;
       }
       
@@ -292,7 +293,7 @@ const enhancedScheduleService = {
       
       // If in development mode, return mock data on error
       if (import.meta.env.DEV) {
-        console.warn('API error - using mock session data');
+        logger.warn('API error - using mock session data');
         localStorage.setItem('use_mock_data', 'true');
         return MOCK_SESSIONS;
       }
@@ -309,7 +310,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock stats data');
+        logger.log('Using mock stats data');
         return { stats: MOCK_STATS };
       }
       
@@ -320,7 +321,7 @@ const enhancedScheduleService = {
       
       // If in development mode, return mock data on error
       if (import.meta.env.DEV) {
-        console.warn('API error - using mock stats data');
+        logger.warn('API error - using mock stats data');
         return { stats: MOCK_STATS };
       }
       
@@ -336,7 +337,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock trainer data');
+        logger.log('Using mock trainer data');
         return MOCK_TRAINERS;
       }
       
@@ -353,7 +354,7 @@ const enhancedScheduleService = {
       
       // If in development mode, return mock data on error
       if (import.meta.env.DEV) {
-        console.warn('API error - using mock trainer data');
+        logger.warn('API error - using mock trainer data');
         return MOCK_TRAINERS;
       }
       
@@ -369,7 +370,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock client data');
+        logger.log('Using mock client data');
         return MOCK_CLIENTS;
       }
       
@@ -386,7 +387,7 @@ const enhancedScheduleService = {
       
       // If in development mode, return mock data on error
       if (import.meta.env.DEV) {
-        console.warn('API error - using mock client data');
+        logger.warn('API error - using mock client data');
         return MOCK_CLIENTS;
       }
       
@@ -408,7 +409,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for booking session');
+        logger.log('Using mock data for booking session');
         // Find the session in mock data and update its status
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
         if (sessionIndex === -1) {
@@ -459,7 +460,7 @@ const enhancedScheduleService = {
       
       // If in development mode, use mock data on error
       if (import.meta.env.DEV && !shouldUseMockData()) {
-        console.warn('API error - using mock data for booking');
+        logger.warn('API error - using mock data for booking');
         localStorage.setItem('use_mock_data', 'true');
         // Return a mock success response
         return {
@@ -507,7 +508,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for creating available sessions');
+        logger.log('Using mock data for creating available sessions');
         
         // Create a new available session in mock data for each session in the input
         const newSessions = data.sessions.map(session => ({
@@ -554,7 +555,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for session creation');
+        logger.warn('API error - switching to mock data for session creation');
         
         // Try the mock implementation
         return enhancedScheduleService.createAvailableSessions(data);
@@ -587,7 +588,7 @@ const enhancedScheduleService = {
   
   // Check if we should use mock data
   if (shouldUseMockData()) {
-  console.log('Using mock data for creating blocked time');
+  logger.log('Using mock data for creating blocked time');
   
   // Create a new blocked time in mock data
   const newBlockedTime = {
@@ -648,7 +649,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for blocked time creation');
+        logger.warn('API error - switching to mock data for blocked time creation');
         
         // Try the mock implementation
         return enhancedScheduleService.createBlockedTime(data);
@@ -739,7 +740,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for creating recurring sessions');
+        logger.log('Using mock data for creating recurring sessions');
         
         // Generate recurring sessions based on the pattern
         const generatedSessions = [];
@@ -805,7 +806,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for recurring session creation');
+        logger.warn('API error - switching to mock data for recurring session creation');
         
         // Try the mock implementation
         return enhancedScheduleService.createRecurringSessions(recurringData);
@@ -827,7 +828,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for assigning trainer');
+        logger.log('Using mock data for assigning trainer');
         
         // Find the session in mock data
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
@@ -871,7 +872,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for trainer assignment');
+        logger.warn('API error - switching to mock data for trainer assignment');
         
         // Try the mock implementation
         return enhancedScheduleService.assignTrainer(sessionId, trainerId);
@@ -893,7 +894,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for cancelling session');
+        logger.log('Using mock data for cancelling session');
         
         // Find the session in mock data
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
@@ -930,7 +931,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for session cancellation');
+        logger.warn('API error - switching to mock data for session cancellation');
         
         // Try the mock implementation
         return enhancedScheduleService.cancelSession(sessionId, reason);
@@ -952,7 +953,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for completing session');
+        logger.log('Using mock data for completing session');
         
         // Find the session in mock data
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
@@ -1020,7 +1021,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for session completion');
+        logger.warn('API error - switching to mock data for session completion');
         
         // Try the mock implementation
         return enhancedScheduleService.completeSession(sessionId, notes);
@@ -1041,7 +1042,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for confirming session');
+        logger.log('Using mock data for confirming session');
         
         // Find the session in mock data
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
@@ -1095,7 +1096,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for session confirmation');
+        logger.warn('API error - switching to mock data for session confirmation');
         
         // Try the mock implementation
         return enhancedScheduleService.confirmSession(sessionId);
@@ -1125,7 +1126,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for deleting blocked time');
+        logger.log('Using mock data for deleting blocked time');
         
         // Find the blocked time
         const blockedIndex = MOCK_SESSIONS.findIndex(s => s.id === blockedTimeId && s.status === 'blocked');
@@ -1220,7 +1221,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for blocked time deletion');
+        logger.warn('API error - switching to mock data for blocked time deletion');
         
         // Try the mock implementation
         return enhancedScheduleService.deleteBlockedTime(blockedTimeId, removeAll);
@@ -1239,7 +1240,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for scheduling orientation');
+        logger.log('Using mock data for scheduling orientation');
         
         // Create a new orientation session in mock data
         const newOrientation = {
@@ -1291,7 +1292,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for orientation scheduling');
+        logger.warn('API error - switching to mock data for orientation scheduling');
         
         // Try the mock implementation
         return enhancedScheduleService.scheduleOrientation(orientationData);
@@ -1311,7 +1312,7 @@ const enhancedScheduleService = {
     try {
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for resolving orientation');
+        logger.log('Using mock data for resolving orientation');
         
         // Find the orientation session in mock data
         const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === orientationId);
@@ -1352,7 +1353,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for orientation resolution');
+        logger.warn('API error - switching to mock data for orientation resolution');
         
         // Try the mock implementation
         return enhancedScheduleService.resolveOrientationRequest(orientationId, approved);
@@ -1373,7 +1374,7 @@ const enhancedScheduleService = {
       
       // Check if we should use mock data
       if (shouldUseMockData()) {
-        console.log('Using mock data for session details');
+        logger.log('Using mock data for session details');
         
         // Find the session in mock data
         const session = MOCK_SESSIONS.find(s => s.id === sessionId);
@@ -1409,7 +1410,7 @@ const enhancedScheduleService = {
       // If in development mode and we explicitly don't want to use mock data yet, now we should
       if (import.meta.env.DEV && !shouldUseMockData()) {
         localStorage.setItem('use_mock_data', 'true');
-        console.warn('API error - switching to mock data for session details');
+        logger.warn('API error - switching to mock data for session details');
         
         // Try the mock implementation
         return enhancedScheduleService.getSessionById(sessionId);

@@ -69,6 +69,7 @@ import {
   Scale,
   Ruler
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ─── Keyframes ───────────────────────────────────────────────
 const pulse = keyframes`
@@ -695,7 +696,7 @@ const AdminClientManagementView: React.FC = () => {
   // Update socket effect to use fetchClients after it's defined
   useEffect(() => {
     if (lastMessage) {
-      console.log('Received message:', lastMessage);
+      logger.log('Received message:', lastMessage);
       // Handle purchase updates
       if (lastMessage.type === 'purchase' ||
           (lastMessage.type === 'dashboard:update' && lastMessage.data?.type === 'purchase')) {
@@ -721,13 +722,13 @@ const AdminClientManagementView: React.FC = () => {
         ...filters
       });
 
-      console.log('Client fetch response:', response);
+      logger.log('Client fetch response:', response);
 
       if (response.success) {
         // Handle both real and mock responses
         if (response.message === 'Mock response for /api/admin/clients') {
           // Handle mock response structure
-          console.log('Handling mock client response');
+          logger.log('Handling mock client response');
           // Create mock client data for testing
           setClients([
             {
@@ -798,12 +799,12 @@ const AdminClientManagementView: React.FC = () => {
   const fetchMCPStatus = useCallback(async () => {
     try {
       const response = await adminClientService.getMCPStatus();
-      console.log('MCP status response:', response);
+      logger.log('MCP status response:', response);
       if (response.success && response.data) {
         // Handle both real and mock responses
         if (response.message === 'Mock response for /api/admin/mcp-status') {
           // Handle mock response structure
-          console.log('Handling mock MCP status response');
+          logger.log('Handling mock MCP status response');
           setMcpStatus({
             servers: [
               { name: 'Workout MCP', url: 'http://localhost:8000', status: 'online', lastChecked: new Date().toISOString() },

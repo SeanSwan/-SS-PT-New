@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 const UniversalAuthForm = () => {
   const { login, register } = useAuth();
@@ -82,11 +83,11 @@ const UniversalAuthForm = () => {
           return;
         }
         
-        console.log('🔐 Attempting login with:', formData.username);
+        logger.log('🔐 Attempting login with:', formData.username);
         const result = await login(formData.username, formData.password);
         
         if (result.success) {
-          console.log('✅ Login successful');
+          logger.log('✅ Login successful');
           // AuthContext will handle redirect/state updates
         } else {
           setError(result.error || 'Login failed');
@@ -99,7 +100,7 @@ const UniversalAuthForm = () => {
           return;
         }
         
-        console.log('🚀 Attempting registration with:', {
+        logger.log('🚀 Attempting registration with:', {
           ...formData,
           password: '[REDACTED]'
         });
@@ -107,7 +108,7 @@ const UniversalAuthForm = () => {
         const result = await register(formData);
         
         if (result.success) {
-          console.log('✅ Registration successful, switching to login view');
+          logger.log('✅ Registration successful, switching to login view');
           setIsLogin(true); // Switch to login view after successful registration
           setError('');
           // Reset registration fields

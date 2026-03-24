@@ -21,6 +21,7 @@ import {
   Exercise
 } from '../../hooks/useWorkoutMcp';
 import ExerciseLibrary from './ExerciseLibrary';
+import { logger } from '@/utils/logger';
 
 /* ------------------------------------------------------------------ */
 /*  Crystalline Swan Design Tokens                                     */
@@ -826,7 +827,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     };
 
     // In a real implementation, this would save to the backend
-    console.log('Saving workout plan:', finalPlan);
+    logger.log('Saving workout plan:', finalPlan);
 
     if (onPlanCreated) {
       onPlanCreated(finalPlan);

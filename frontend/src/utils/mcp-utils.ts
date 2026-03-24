@@ -10,6 +10,7 @@ import axios from 'axios';
 import { MCP_CONFIG } from '../config/env-config';
 import { workoutMcpApi } from '../services/mcp/workoutMcpService';
 import { gamificationMcpApi } from '../services/mcp/gamificationMcpService';
+import { logger } from '@/utils/logger';
 
 /**
  * Types for MCP status
@@ -126,7 +127,7 @@ export const syncWorkoutWithGamification = async (
   const status = await quickCheckMcpStatus();
   
   if (!status.gamification) {
-    console.warn('[MCP] Gamification MCP unavailable for workout sync');
+    logger.warn('[MCP] Gamification MCP unavailable for workout sync');
     return false;
   }
   
@@ -159,7 +160,7 @@ export const syncFoodIntakeWithGamification = async (
   const status = await quickCheckMcpStatus();
   
   if (!status.gamification) {
-    console.warn('[MCP] Gamification MCP unavailable for food intake sync');
+    logger.warn('[MCP] Gamification MCP unavailable for food intake sync');
     return false;
   }
   

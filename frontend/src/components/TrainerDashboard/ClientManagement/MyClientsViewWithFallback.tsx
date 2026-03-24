@@ -17,6 +17,7 @@ import { LoadingSpinner } from '../../ui/LoadingSpinner';
 
 // Import the full component
 import MyClientsView from './MyClientsView';
+import { logger } from '@/utils/logger';
 
 // Styled Components for fallback
 const FallbackContainer = styled(motion.div)`
@@ -164,7 +165,7 @@ const MyClientsViewWithFallback: React.FC = () => {
           setApiError(true);
         }
       } catch (error) {
-        console.log('API not available, showing demo mode');
+        logger.log('API not available, showing demo mode');
         setApiError(true);
       } finally {
         setLoading(false);

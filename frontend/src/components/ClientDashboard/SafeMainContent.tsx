@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { logger } from '@/utils/logger';
 
 // Fallback theme values in case theme is undefined
 const fallbackTheme = {
@@ -56,7 +57,7 @@ const getThemeValue = (props, path, fallback) => {
     return value;
   } catch (error) {
     // If any error occurs, use fallback
-    console.warn(`Theme error: ${error.message}, using fallback value`);
+    logger.warn(`Theme error: ${error.message}, using fallback value`);
     return fallback;
   }
 };

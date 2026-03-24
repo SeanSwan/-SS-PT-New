@@ -24,6 +24,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Collaboration Types
 export type CollaborationRole = 'admin' | 'trainer' | 'viewer';
@@ -694,7 +695,7 @@ export const useCollaborativeScheduling = ({
         wsRef.current = ws;
         
         ws.onopen = () => {
-          console.log('✅ Collaborative scheduling WebSocket connected');
+          logger.log('✅ Collaborative scheduling WebSocket connected');
           setIsConnected(true);
           setConnectionQuality('excellent');
           setLastSyncTime(new Date());
@@ -721,7 +722,7 @@ export const useCollaborativeScheduling = ({
         };
         
         ws.onclose = () => {
-          console.log('🔌 Collaborative scheduling WebSocket disconnected');
+          logger.log('🔌 Collaborative scheduling WebSocket disconnected');
           setIsConnected(false);
           setConnectionQuality('offline');
           

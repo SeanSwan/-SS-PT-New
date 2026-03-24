@@ -8,16 +8,16 @@
 if (typeof window !== 'undefined') {
   // Handle token cleanup events
   window.addEventListener('tokenCleanup', (event: any) => {
-    console.log('Token cleanup event received:', event.detail);
+    logger.log('Token cleanup event received:', event.detail);
     // Could trigger a notification or redirect to login
   });
 
   // Handle token error events
   window.addEventListener('tokenError', (event: any) => {
-    console.log('Token error event received:', event.detail);
+    logger.log('Token error event received:', event.detail);
     // In development mode, don't immediately redirect to avoid loops
     if (import.meta.env.MODE === 'development') {
-      console.log('[DEV MODE] Token error detected but not forcing logout');
+      logger.log('[DEV MODE] Token error detected but not forcing logout');
     }
   });
 
@@ -28,11 +28,11 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem('user');
       localStorage.removeItem('tokenTimestamp');
       localStorage.removeItem('bypass_admin_verification');
-      console.log('[DEV MODE] Auth data cleared. Reload the page.');
+      logger.log('[DEV MODE] Auth data cleared. Reload the page.');
       return 'Auth data cleared.';
     };
 
-    console.log('[DEV MODE] Token cleanup initialized. Use window.clearAuthData() to reset.');
+    logger.log('[DEV MODE] Token cleanup initialized. Use window.clearAuthData() to reset.');
   }
 }
 

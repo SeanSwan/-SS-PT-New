@@ -31,6 +31,7 @@ import { workoutMcpApi } from '../../../../../services/mcp/workoutMcpService';
 import { gamificationMcpApi } from '../../../../../services/mcp/gamificationMcpService';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 // Define interfaces
 interface Client {
@@ -476,7 +477,7 @@ export const useTrainerGamification = () => {
       await checkMcpStatus();
       
       if (mcpDataAvailable) {
-        console.log('[MCP] Attempting to fetch data from MCP servers');
+        logger.log('[MCP] Attempting to fetch data from MCP servers');
         try {
           // For demo purposes, we'll use the same client IDs from mock data
           // In a real app, we would fetch the actual client list first
@@ -549,7 +550,7 @@ export const useTrainerGamification = () => {
       }
       
       // If we couldn't get data from MCP or it wasn't available, fall back to mock data
-      console.log('[MCP] Using mock data as fallback');
+      logger.log('[MCP] Using mock data as fallback');
       await Promise.all([
         fetchClients(),
         fetchAchievements()

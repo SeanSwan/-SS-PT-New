@@ -13,7 +13,7 @@
  * - Updated import in App.tsx
  */
 
-console.log('🔧 BUILD FIX: JSX file extension corrected');
-console.log('✅ Ready for deployment');
+logger.log('🔧 BUILD FIX: JSX file extension corrected');
+logger.log('✅ Ready for deployment');
 
 export default { fixed: true, ready: true };

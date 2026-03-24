@@ -22,6 +22,7 @@ import {
   Database, CreditCard, BarChart3, Settings, ExternalLink,
   Eye, Calculator, Zap, Clock, TrendingUp
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // Styled Components
 const cosmicPulse = keyframes`
@@ -207,7 +208,7 @@ const DataVerificationPanel: React.FC = () => {
   const runVerification = async (type: string, endpoint: string, description: string) => {
     try {
       setLoading(type);
-      console.log(`🔍 Running ${description}...`);
+      logger.log(`🔍 Running ${description}...`);
       
       const response = await authAxios.get(endpoint);
       
@@ -220,7 +221,7 @@ const DataVerificationPanel: React.FC = () => {
         }
       }));
       
-      console.log(`✅ ${description} completed:`, response.data);
+      logger.log(`✅ ${description} completed:`, response.data);
       
     } catch (error: any) {
       console.error(`❌ ${description} failed:`, error);

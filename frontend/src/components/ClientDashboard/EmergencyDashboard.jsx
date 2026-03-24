@@ -4,6 +4,7 @@
  * This component uses no hooks and provides basic functionality to break out of loops.
  */
 import React from 'react';
+import { logger } from '@/utils/logger';
 
 class EmergencyDashboard extends React.Component {
   constructor(props) {
@@ -20,12 +21,12 @@ class EmergencyDashboard extends React.Component {
       localStorage.setItem('emergency_dashboard_loaded', 'true');
     }
     
-    console.log('[EMERGENCY DASHBOARD] Emergency Dashboard loaded');
+    logger.log('[EMERGENCY DASHBOARD] Emergency Dashboard loaded');
   }
   
   // Method to reset all emergency flags
   resetEmergencyMode = () => {
-    console.log('[EMERGENCY DASHBOARD] Resetting emergency mode...');
+    logger.log('[EMERGENCY DASHBOARD] Resetting emergency mode...');
     
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('bypass_admin_verification');
@@ -48,7 +49,7 @@ class EmergencyDashboard extends React.Component {
   
   // Method to force direct normal dashboard access
   goToAdminDashboard = () => {
-    console.log('[EMERGENCY DASHBOARD] Attempting to access admin dashboard...');
+    logger.log('[EMERGENCY DASHBOARD] Attempting to access admin dashboard...');
     
     // Set all bypass flags to ensure access
     if (typeof localStorage !== 'undefined') {

@@ -34,6 +34,7 @@ import {
 } from './TrainerSharedComponents-optimized';
 import { StatItem } from './TrainerStats-optimized';
 import GlowButton from '../../ui/buttons/GlowButton';
+import { logger } from '@/utils/logger';
 
 // === PERFORMANCE-OPTIMIZED ANIMATIONS ===
 const uploadPulse = keyframes`
@@ -478,7 +479,7 @@ const ContentStudio: React.FC<ContentStudioProps> = memo(({ className }) => {
     e.preventDefault();
     setIsDragOver(false);
     // Handle file upload logic here
-    console.log('Files dropped:', e.dataTransfer.files);
+    logger.log('Files dropped:', e.dataTransfer.files);
   }, []);
   
   const handleFileSelect = useCallback(() => {
@@ -490,7 +491,7 @@ const ContentStudio: React.FC<ContentStudioProps> = memo(({ className }) => {
     input.onchange = (e) => {
       const target = e.target as HTMLInputElement;
       if (target.files) {
-        console.log('Files selected:', target.files);
+        logger.log('Files selected:', target.files);
       }
     };
     input.click();

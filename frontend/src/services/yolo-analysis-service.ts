@@ -155,19 +155,19 @@ export const YoloAnalysisService = {
     }
     
     const wsUrl = `${YOLO_API_URL.replace('http', 'ws')}/ws/form-analysis/${sessionId}`;
-    console.log(`Creating WebSocket connection to: ${wsUrl}`);
+    logger.log(`Creating WebSocket connection to: ${wsUrl}`);
     
     const socket = new WebSocket(wsUrl);
     
     // Set up all WebSocket event handlers
     socket.onopen = (event) => {
-      console.log(`WebSocket connection opened for session: ${sessionId}`);
+      logger.log(`WebSocket connection opened for session: ${sessionId}`);
     };
     
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Received WebSocket message:', data.type || 'unknown type');
+        logger.log('Received WebSocket message:', data.type || 'unknown type');
         onMessage(data);
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -179,7 +179,7 @@ export const YoloAnalysisService = {
     };
     
     socket.onclose = (event) => {
-      console.log(`WebSocket connection closed for session ${sessionId}. Code: ${event.code}, Reason: ${event.reason}`);
+      logger.log(`WebSocket connection closed for session ${sessionId}. Code: ${event.code}, Reason: ${event.reason}`);
     };
     
     return socket;
@@ -203,7 +203,7 @@ export const YoloAnalysisService = {
         console.error('Error sending video frame:', error);
       }
     } else {
-      console.warn(`Cannot send video frame: WebSocket is not open (state: ${socket.readyState})`);
+      logger.warn(`Cannot send video frame: WebSocket is not open (state: ${socket.readyState})`);
     }
   },
   

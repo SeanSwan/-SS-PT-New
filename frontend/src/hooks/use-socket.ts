@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './use-toast';
+import { logger } from '@/utils/logger';
 
 // Flag to track the WebSocket server status
 // Always set to false in development mode to prevent connection attempts
@@ -15,7 +16,7 @@ function createMockWebSocket(verbose = false) {
     readyState: 1, // WebSocket.OPEN (ALWAYS OPEN)
     isClosing: false, // Custom flag to track intentional close
     send: (data) => {
-      if (verbose) console.log('Mock WebSocket: Message sent:', data);
+      if (verbose) logger.log('Mock WebSocket: Message sent:', data);
       // For ping messages, simulate a pong response
       if (data === 'ping') {
         setTimeout(() => {
@@ -27,7 +28,7 @@ function createMockWebSocket(verbose = false) {
       return true;
     },
     close: () => {
-      if (verbose) console.log('Mock WebSocket: Close requested but staying open in mock mode');
+      if (verbose) logger.log('Mock WebSocket: Close requested but staying open in mock mode');
       // In mock mode, we don't actually close - we just mark as closing
       // This prevents the reconnection loops
       mockSocket.isClosing = true;
@@ -59,7 +60,7 @@ function checkWebSocketServerAvailability() {
   // In development mode, always assume WebSocket server is unavailable
   if (process.env.NODE_ENV === 'development') {
     webSocketServerAvailable = false;
-    console.log('Development mode: Skipping WebSocket server availability check - WebSocket server set to unavailable');
+    logger.log('Development mode: Skipping WebSocket server availability check - WebSocket server set to unavailable');
     return Promise.resolve(false);
   }
   
@@ -108,7 +109,7 @@ function checkWebSocketServerAvailability() {
       const timeoutId = setTimeout(() => {
         webSocketServerAvailable = false;
         webSocketServerCheckInProgress = false;
-        console.log('WebSocket server check timed out - assuming not available');
+        logger.log('WebSocket server check timed out - assuming not available');
         resolve(false);
       }, 2000);
       
@@ -116,7 +117,7 @@ function checkWebSocketServerAvailability() {
         clearTimeout(timeoutId);
         webSocketServerAvailable = true;
         webSocketServerCheckInProgress = false;
-        console.log('WebSocket server is available');
+        logger.log('WebSocket server is available');
         testSocket.close();
         resolve(true);
       };
@@ -125,13 +126,13 @@ function checkWebSocketServerAvailability() {
         clearTimeout(timeoutId);
         webSocketServerAvailable = false;
         webSocketServerCheckInProgress = false;
-        console.log('WebSocket server is not available - using mock WebSocket');
+        logger.log('WebSocket server is not available - using mock WebSocket');
         resolve(false);
       };
     } catch (error) {
       webSocketServerAvailable = false;
       webSocketServerCheckInProgress = false;
-      console.log('Error setting up WebSocket test connection:', error);
+      logger.log('Error setting up WebSocket test connection:', error);
       resolve(false);
     }
   });
@@ -140,7 +141,7 @@ function checkWebSocketServerAvailability() {
 // Initialize flags for WebSocket server status - immediately in development mode
 // This ensures no real WebSocket connections are attempted during development
 if (process.env.NODE_ENV === 'development') {
-  console.log('WebSocket Module Initialization: DEVELOPMENT MODE DETECTED - ALL WEBSOCKET CONNECTIONS DISABLED');
+  logger.log('WebSocket Module Initialization: DEVELOPMENT MODE DETECTED - ALL WEBSOCKET CONNECTIONS DISABLED');
   // These settings will prevent any actual WebSocket connection attempts
   webSocketServerAvailable = false;
   
@@ -148,7 +149,7 @@ if (process.env.NODE_ENV === 'development') {
   if (typeof window !== 'undefined') {
     window.REACT_APP_FORCE_MOCK_WEBSOCKET = 'true';
     window.REACT_APP_MOCK_WEBSOCKET = 'true';
-    console.log('WebSocket Module: Global mock WebSocket flags set');
+    logger.log('WebSocket Module: Global mock WebSocket flags set');
   }
 }
 
@@ -207,7 +208,7 @@ export function useSocket(endpoint = '', options = {}) {
       }
     } catch (e) {
       // Handle plain text messages or parsing errors
-      console.log('Received non-JSON message:', event.data);
+      logger.log('Received non-JSON message:', event.data);
       setLastMessage({ type: 'text', data: event.data });
     }
   }, [handleNotification]);
@@ -273,7 +274,7 @@ export function useSocket(endpoint = '', options = {}) {
     // Skip connecting to real server in development mode
     // Always use mock socket instead for stability
     if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode: Using mock WebSocket exclusively');
+      logger.log('Development mode: Using mock WebSocket exclusively');
       const mockSocket = createMockWebSocket(false);
       setSocket(mockSocket);
       setUseMockSocket(true);
@@ -290,7 +291,7 @@ export function useSocket(endpoint = '', options = {}) {
     
     if (!isAuthenticated || !endpoint) return null;
     if (!token) {
-      console.log('WebSocket connection not attempted: No authentication token available');
+      logger.log('WebSocket connection not attempted: No authentication token available');
       return null;
     }
 
@@ -302,7 +303,7 @@ export function useSocket(endpoint = '', options = {}) {
         // Already have an open socket (real or mock)
         return socket;
       }
-      console.log('Using mock WebSocket for endpoint:', endpoint);
+      logger.log('Using mock WebSocket for endpoint:', endpoint);
       // Only create verbose mock sockets in development
       const mockSocket = createMockWebSocket(process.env.NODE_ENV === 'development' && reconnectAttempts === 0);
       setSocket(mockSocket);
@@ -320,7 +321,7 @@ export function useSocket(endpoint = '', options = {}) {
       
       // Construct full WebSocket URL with authentication token
       const fullUrl = `${SOCKET_URL}${endpoint}${token ? `?token=${token}` : ''}`;
-      console.log(`Attempting WebSocket connection to ${endpoint}`);
+      logger.log(`Attempting WebSocket connection to ${endpoint}`);
       const newSocket = new WebSocket(fullUrl);
 
       // Set up event handlers
@@ -329,7 +330,7 @@ export function useSocket(endpoint = '', options = {}) {
         setError(null);
         setReconnectAttempts(0);
         setIsReconnecting(false);
-        console.log(`WebSocket connected: ${endpoint}`);
+        logger.log(`WebSocket connected: ${endpoint}`);
       };
 
       newSocket.onmessage = handleWebSocketMessage;
@@ -348,7 +349,7 @@ export function useSocket(endpoint = '', options = {}) {
         // Only attempt reconnection if this is a real WebSocket, not a mock
         if (!useMockSocket) {
           setIsConnected(false);
-          console.log(`WebSocket closed: ${event.code} ${event.reason}`);
+          logger.log(`WebSocket closed: ${event.code} ${event.reason}`);
 
           // If this is our first attempt and it fails cleanly, switch to mock mode for future attempts
           if (reconnectAttempts === 0) {
@@ -372,7 +373,7 @@ export function useSocket(endpoint = '', options = {}) {
             
             // Set reconnect timeout
             reconnectTimeoutRef.current = setTimeout(() => {
-              console.log(`Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+              logger.log(`Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
               connect();
             }, reconnectIntervalMs);
           } else if (reconnectAttempts >= maxReconnectAttempts) {
@@ -397,7 +398,7 @@ export function useSocket(endpoint = '', options = {}) {
           }
         } else {
           // For mock sockets, we ignore real close events to prevent reconnection loops
-          console.log('Mock socket close event ignored to prevent reconnection loops');
+          logger.log('Mock socket close event ignored to prevent reconnection loops');
         }
       };
 
@@ -435,7 +436,7 @@ export function useSocket(endpoint = '', options = {}) {
     
     // Only try to connect if we have authentication AND a token (or we're using mock)
     if (isAuthenticated && endpoint && (token || useMockSocket)) {
-      console.log(`Attempting WebSocket connection to ${endpoint}`);
+      logger.log(`Attempting WebSocket connection to ${endpoint}`);
       const newSocket = connect();
       
       // Only set up ping if we have a valid socket

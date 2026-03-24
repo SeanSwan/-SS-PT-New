@@ -11,6 +11,7 @@ import {
   SelectItem,
 } from '../ui/select';
 import { Icons } from '../icons/icons.jsx';
+import { logger } from '@/utils/logger';
 
 const SignUpForm = () => {
   const { register } = useAuth();
@@ -120,7 +121,7 @@ const SignUpForm = () => {
     }
 
     try {
-      console.log('🚀 Attempting registration with:', {
+      logger.log('🚀 Attempting registration with:', {
         ...formData,
         password: '[REDACTED]'
       });
@@ -143,7 +144,7 @@ const SignUpForm = () => {
         });
         
         // Redirect logic could be added here
-        console.log('✅ Registration successful, user:', result.user);
+        logger.log('✅ Registration successful, user:', result.user);
       } else {
         setError(result.error || 'Registration failed. Please try again.');
       }

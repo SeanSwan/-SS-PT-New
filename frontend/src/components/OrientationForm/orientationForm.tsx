@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom';
 
 // Import the logo (ensure the path is correct)
 import Logo from "../../assets/Logo.png";
+import { logger } from '@/utils/logger';
 
 // Global style to prevent scrolling when modal is open and ensure consistent styling
 const GlobalStyle = createGlobalStyle`
@@ -675,7 +676,7 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
       }
 
       const result = await response.json();
-      console.log("Orientation form submitted:", result);
+      logger.log("Orientation form submitted:", result);
       setSubmitted(true);
       
     } catch (apiError) {

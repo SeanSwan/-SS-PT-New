@@ -39,6 +39,7 @@ import type {
   ClientTrainerAssignment, 
   Session
 } from '../types';
+import { logger } from '@/utils/logger';
 
 export interface CalendarDataValues {
   // Core Raw Data (Enhanced with Redux Integration)
@@ -251,7 +252,7 @@ export const useCalendarData = () => {
   // ==================== REAL-TIME UPDATES ====================
   
   const initializeRealTimeUpdates = useCallback(() => {
-    console.log('🔄 Initializing real-time updates...');
+    logger.log('🔄 Initializing real-time updates...');
     
     // TODO: Implement WebSocket connection
     // const ws = new WebSocket(`${process.env.VITE_WS_URL || 'ws://localhost:3001'}/schedule-updates`);
@@ -278,7 +279,7 @@ export const useCalendarData = () => {
     // Return cleanup function
     return () => {
       // ws?.close();
-      console.log('🔄 Real-time updates cleaned up');
+      logger.log('🔄 Real-time updates cleaned up');
     };
   }, []);
   
@@ -387,7 +388,7 @@ export const useCalendarData = () => {
         sessionStorage.removeItem(`${type}_cache_timestamp`);
       });
     }
-    console.log(`🗑️ Cache invalidated: ${dataType || 'all'}`);
+    logger.log(`🗑️ Cache invalidated: ${dataType || 'all'}`);
   }, []);
   
   // ==================== ENHANCED INITIALIZATION ====================
@@ -397,7 +398,7 @@ export const useCalendarData = () => {
   } = {}) => {
     const { realTimeEnabled = false } = params;
     
-    console.log('🚀 Initializing Universal Master Schedule...');
+    logger.log('🚀 Initializing Universal Master Schedule...');
     
     // Check if we should delay initialization due to previous failures
     const initFailures = parseInt(sessionStorage.getItem('init_failures') || '0');
@@ -406,7 +407,7 @@ export const useCalendarData = () => {
     
     if (initFailures > 0 && (now - lastInitAttempt) < 10000) {
       const delay = Math.min(2000 * initFailures, 10000); // Max 10 second delay
-      console.log(`🕰️ Delaying initialization by ${delay}ms due to ${initFailures} previous failures`);
+      logger.log(`🕰️ Delaying initialization by ${delay}ms due to ${initFailures} previous failures`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
     
@@ -416,7 +417,7 @@ export const useCalendarData = () => {
       sessionStorage.setItem('last_init_attempt', now.toString());
       
       // Load data with intelligent prioritization
-      console.log('📊 Loading core data...');
+      logger.log('📊 Loading core data...');
       
       // Load sessions first (highest priority)
       await loadSessions({ showLoading: true });
@@ -434,7 +435,7 @@ export const useCalendarData = () => {
       results.forEach((result, index) => {
         const dataTypes = ['clients', 'trainers', 'assignments'];
         if (result.status === 'rejected') {
-          console.warn(`⚠️ Failed to load ${dataTypes[index]}:`, result.reason);
+          logger.warn(`⚠️ Failed to load ${dataTypes[index]}:`, result.reason);
         }
       });
       
@@ -442,7 +443,7 @@ export const useCalendarData = () => {
       sessionStorage.removeItem('init_failures');
       updateDataHealth(true);
       
-      console.log('✅ Universal Master Schedule initialized successfully');
+      logger.log('✅ Universal Master Schedule initialized successfully');
       
       // Initialize real-time updates if enabled
       if (realTimeEnabled) {
@@ -451,7 +452,7 @@ export const useCalendarData = () => {
           // Store cleanup function for later use
           (window as any).__scheduleCleanup = cleanup;
         } catch (rtError) {
-          console.warn('⚠️ Real-time updates failed to initialize:', rtError);
+          logger.warn('⚠️ Real-time updates failed to initialize:', rtError);
         }
       }
       
@@ -476,7 +477,7 @@ export const useCalendarData = () => {
   }, [loadSessions, loadClients, loadTrainers, loadAssignments, clearErrors, updateDataHealth, initializeRealTimeUpdates]);
   
   const refreshData = useCallback(async (force: boolean = false, filterOptions?: import('../types').FilterOptions) => {
-    console.log(`🔄 Refreshing data${force ? ' (forced)' : ''}...`, filterOptions ? `with filters: ${JSON.stringify(filterOptions)}` : '');
+    logger.log(`🔄 Refreshing data${force ? ' (forced)' : ''}...`, filterOptions ? `with filters: ${JSON.stringify(filterOptions)}` : '');
 
     try {
       setLoading(prev => ({ ...prev, refreshing: true }));
@@ -497,7 +498,7 @@ export const useCalendarData = () => {
 
       // Check results
       const successCount = results.filter(r => r.status === 'fulfilled').length;
-      console.log(`✅ Data refresh completed: ${successCount}/4 successful`);
+      logger.log(`✅ Data refresh completed: ${successCount}/4 successful`);
 
       updateDataHealth(successCount > 0);
 
@@ -520,7 +521,7 @@ export const useCalendarData = () => {
     const interval = setInterval(() => {
       if (isDataStale()) {
         setDataHealth(prev => ({ ...prev, isStale: true }));
-        console.log('⏰ Data is stale, consider refreshing');
+        logger.log('⏰ Data is stale, consider refreshing');
       }
     }, 5 * 60 * 1000);
     

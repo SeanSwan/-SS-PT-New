@@ -56,6 +56,7 @@ import {
   Star,
   Activity
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ModerationContainer = styled(motion.div)`
@@ -378,7 +379,7 @@ const ContentModerationPanel: React.FC = () => {
 
   const handleAction = (itemId: number, action: string) => {
     setContentItems(prev => prev.filter(item => item.id !== itemId));
-    console.log(`${action} action performed on item ${itemId}`);
+    logger.log(`${action} action performed on item ${itemId}`);
   };
 
   const filterOptions = [

@@ -6,6 +6,7 @@
  */
 
 import { authAxiosInstance } from './axiosConfig';
+import { logger } from '@/utils/logger';
 
 /**
  * Check API Connectivity
@@ -212,12 +213,12 @@ export const forceSynchronization = async () => {
  * Useful for tracking data flow in the frontend
  */
 export const initDebugLogger = () => {
-  const originalLog = console.log;
+  const originalLog = logger.log;
   const originalError = console.error;
-  const originalWarn = console.warn;
+  const originalWarn = logger.warn;
   
   // Override console.log
-  console.log = (...args) => {
+  logger.log = (...args) => {
     const timestamp = new Date().toISOString();
     originalLog(`[DEBUG ${timestamp}]`, ...args);
     
@@ -249,7 +250,7 @@ export const initDebugLogger = () => {
   };
   
   // Override console.warn
-  console.warn = (...args) => {
+  logger.warn = (...args) => {
     const timestamp = new Date().toISOString();
     originalWarn(`[WARN ${timestamp}]`, ...args);
     
@@ -258,9 +259,9 @@ export const initDebugLogger = () => {
   
   // Return function to restore original console methods
   return () => {
-    console.log = originalLog;
+    logger.log = originalLog;
     console.error = originalError;
-    console.warn = originalWarn;
+    logger.warn = originalWarn;
   };
 };
 

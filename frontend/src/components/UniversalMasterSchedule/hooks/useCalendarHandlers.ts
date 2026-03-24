@@ -28,6 +28,7 @@ import { gamificationMCPService } from '../../../services/gamificationMCPService
 import { useTouchGesture } from '../../PWA/TouchGestureProvider';
 import { useMicroInteractions } from './useMicroInteractions';
 import type { SessionEvent, Session } from '../types';
+import { logger } from '@/utils/logger';
 
 export interface CalendarHandlersValues {
   // Touch/Haptic Support (Enhanced)
@@ -174,7 +175,7 @@ export const useCalendarHandlers = (dependencies: {
           includeStats: true
         });
         
-        console.log('🎮 Gamification reward triggered successfully:', result);
+        logger.log('🎮 Gamification reward triggered successfully:', result);
         
         // Enhanced toast with micro-interaction
         toast({
@@ -599,7 +600,7 @@ export const useCalendarHandlers = (dependencies: {
   }, [closeAllDialogs, refreshData, handleAnalyticsViewChange, triggerHaptic, withLoadingState]);
   
   const cleanupEventListeners = useCallback(() => {
-    console.log('🧹 Enhanced event listeners cleaned up');
+    logger.log('🧹 Enhanced event listeners cleaned up');
   }, []);
   
   // ==================== RETURN VALUES & ACTIONS ====================

@@ -20,6 +20,7 @@
  */
 
 import axios, { AxiosResponse } from 'axios';
+import { logger } from '@/utils/logger';
 
 // Types
 interface GamificationPayload {
@@ -95,7 +96,7 @@ class GamificationMCPService {
     levelUp?: boolean;
   }> {
     try {
-      console.log('🎮 Awarding points via MCP:', payload);
+      logger.log('🎮 Awarding points via MCP:', payload);
       
       // In production, this would call the actual MCP gamification server
       const response: AxiosResponse<{
@@ -208,7 +209,7 @@ class GamificationMCPService {
     platform?: string;
   }> {
     try {
-      console.log('📱 Generating social post via MCP:', payload);
+      logger.log('📱 Generating social post via MCP:', payload);
       
       const response = await this.api.post('/api/social/generate-post', payload);
       

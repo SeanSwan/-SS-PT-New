@@ -33,6 +33,7 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 // ==================== Styled Components ====================
 
@@ -624,7 +625,7 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
 
       if (!isAvailable) {
         // Fall back to mock data for development
-        console.log('[Gamification] Using mock data');
+        logger.log('[Gamification] Using mock data');
         setMockData();
         setLoading(false);
         return;
@@ -740,7 +741,7 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
         }
       } else {
         // Mock roll for development
-        console.log('[Gamification] Using mock dice roll');
+        logger.log('[Gamification] Using mock dice roll');
 
         // Random roll between 1-6
         const roll = Math.floor(Math.random() * 6) + 1;
@@ -821,7 +822,7 @@ const GamificationDisplay: React.FC<GamificationDisplayProps> = ({
         }
       } else {
         // Mock join for development
-        console.log('[Gamification] Mocking challenge join:', challengeId);
+        logger.log('[Gamification] Mocking challenge join:', challengeId);
 
         // Update challenge status in local state
         setChallenges(challenges.map(challenge => {

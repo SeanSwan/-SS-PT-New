@@ -82,6 +82,7 @@ import {
   PlainButton,
   ContainedButton,
 } from './styles/PostCardStyles';
+import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: PostCard Orchestrator Component
@@ -201,7 +202,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
 
   const handleMute = useCallback(() => {
     // TODO: Wire to POST /api/social/mute/:userId when backend supports it
-    console.warn('TODO: implement mute user', post.user.id);
+    logger.warn('TODO: implement mute user', post.user.id);
   }, [post.user.id]);
 
   const handleDeletePost = useCallback(async () => {

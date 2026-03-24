@@ -34,6 +34,7 @@ import {
   Smartphone, Monitor, Globe, Zap, Star, X, FileText
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -638,7 +639,7 @@ const NotificationsSection: React.FC = () => {
         setNotifications(notificationsData);
         calculateStats(notificationsData);
       } else {
-        console.warn('[Notifications] Empty response from API:', response.data.message);
+        logger.warn('[Notifications] Empty response from API:', response.data.message);
         setNotifications([]);
         calculateStats([]);
       }
@@ -788,17 +789,17 @@ const NotificationsSection: React.FC = () => {
 
   // Handle notification actions
   const handleCreateNotification = () => {
-    console.log('Create new notification');
+    logger.log('Create new notification');
     setActiveActionMenu(null);
   };
 
   const handleEditNotification = (notificationId: string) => {
-    console.log('Edit notification:', notificationId);
+    logger.log('Edit notification:', notificationId);
     setActiveActionMenu(null);
   };
 
   const handleViewNotification = (notificationId: string) => {
-    console.log('View notification details:', notificationId);
+    logger.log('View notification details:', notificationId);
     setActiveActionMenu(null);
   };
 
@@ -822,12 +823,12 @@ const NotificationsSection: React.FC = () => {
   };
 
   const handleDuplicateNotification = (notificationId: string) => {
-    console.log('Duplicate notification:', notificationId);
+    logger.log('Duplicate notification:', notificationId);
     setActiveActionMenu(null);
   };
 
   const handleSendTestNotification = (notificationId: string) => {
-    console.log('Send test notification:', notificationId);
+    logger.log('Send test notification:', notificationId);
     setActiveActionMenu(null);
   };
 

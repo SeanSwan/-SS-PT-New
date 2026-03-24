@@ -7,6 +7,7 @@
 import React, { Component, ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
+import { logger } from '@/utils/logger';
 
 // Animations
 const fadeIn = keyframes`
@@ -242,11 +243,11 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
     const { maxRetries = 3 } = this.props;
     
     if (this.state.retryCount >= maxRetries) {
-      console.warn('[SessionErrorBoundary] Max retries reached, showing permanent error');
+      logger.warn('[SessionErrorBoundary] Max retries reached, showing permanent error');
       return;
     }
 
-    console.log(`[SessionErrorBoundary] Retrying... (${this.state.retryCount + 1}/${maxRetries})`);
+    logger.log(`[SessionErrorBoundary] Retrying... (${this.state.retryCount + 1}/${maxRetries})`);
     
     this.setState(prevState => ({
       hasError: false,

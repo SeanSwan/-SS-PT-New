@@ -20,6 +20,7 @@ import {
   processSessionDistribution
 } from '../Charts';
 import type { Session, Client, Trainer } from '../types';
+import { logger } from '@/utils/logger';
 // Removed circular dependencies - data will be passed as parameters
 
 export interface BusinessMetrics {
@@ -447,12 +448,12 @@ export const useBusinessIntelligence = (data: {
   
   const recalculateMetrics = () => {
     // This will trigger re-computation of all memoized values
-    console.log('📊 Business metrics recalculated');
+    logger.log('📊 Business metrics recalculated');
   };
   
   const exportBusinessReport = async (format: 'pdf' | 'excel' | 'csv') => {
     // TODO: Implement export functionality
-    console.log(`📄 Exporting business report in ${format} format`);
+    logger.log(`📄 Exporting business report in ${format} format`);
   };
   
   const generateExecutiveSummary = (): string => {

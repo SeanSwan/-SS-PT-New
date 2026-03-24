@@ -238,7 +238,7 @@ export const registerReduxMCP = (mcpServer, store) => {
     handler: (params) => handler.dispatchReduxAction(params)
   });
   
-  console.log('Redux MCP integration registered successfully');
+  logger.log('Redux MCP integration registered successfully');
 };
 
 export default {

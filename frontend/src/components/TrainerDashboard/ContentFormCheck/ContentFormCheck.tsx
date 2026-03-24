@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import YoloAnalysisService, { AnalysisData } from '../../../services/yolo-analysis-service';
+import { logger } from '@/utils/logger';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -1219,7 +1220,7 @@ const ContentFormCheck: React.FC = () => {
         
         // Handle WebSocket connection events
         socket.onopen = () => {
-          console.log('WebSocket connection established');
+          logger.log('WebSocket connection established');
         };
         
         socket.onerror = (error) => {
@@ -1228,7 +1229,7 @@ const ContentFormCheck: React.FC = () => {
         };
         
         socket.onclose = () => {
-          console.log('WebSocket connection closed');
+          logger.log('WebSocket connection closed');
           setIsAnalyzing(false);
         };
         

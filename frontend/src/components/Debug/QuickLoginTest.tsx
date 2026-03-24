@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 const QuickLoginTest: React.FC = () => {
   const [result, setResult] = useState<string>('');
@@ -24,8 +25,8 @@ const QuickLoginTest: React.FC = () => {
       // Try to login as admin
       const result = await login('admin', 'admin123');
       
-      console.log('Login result:', result);
-      console.log('Current user after login:', user);
+      logger.log('Login result:', result);
+      logger.log('Current user after login:', user);
       
       setResult(JSON.stringify({
         success: result.success,

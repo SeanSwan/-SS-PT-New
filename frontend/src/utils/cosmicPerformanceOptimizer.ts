@@ -106,7 +106,7 @@ export const detectDeviceCapabilities = (): DeviceCapabilities => {
     capabilities.performance = calculatePerformanceLevel(capabilities);
 
   } catch (error) {
-    console.warn('Error detecting device capabilities:', error);
+    logger.warn('Error detecting device capabilities:', error);
   }
 
   return capabilities;
@@ -325,7 +325,7 @@ export const startPerformanceMonitoring = (): (() => void) => {
       
       // Adjust performance if FPS drops too low
       if (fps < 30 && currentProfile && currentProfile.animations !== 'minimal') {
-        console.log('Low FPS detected, reducing performance settings');
+        logger.log('Low FPS detected, reducing performance settings');
         const degradedProfile: PerformanceProfile = {
           ...currentProfile,
           animations: currentProfile.animations === 'full' ? 'reduced' : 'minimal',
@@ -395,20 +395,20 @@ export const startPerformanceMonitoring = (): (() => void) => {
  * Initialize the cosmic performance system
  */
 export const initializeCosmicPerformance = (): (() => void) => {
-  console.log('🌟 Initializing Cosmic Performance System...');
+  logger.log('🌟 Initializing Cosmic Performance System...');
   
   const capabilities = detectDeviceCapabilities();
   const profile = generatePerformanceProfile(capabilities);
   
-  console.log('📊 Device Capabilities:', capabilities);
-  console.log('⚡ Performance Profile:', profile);
+  logger.log('📊 Device Capabilities:', capabilities);
+  logger.log('⚡ Performance Profile:', profile);
   
   applyPerformanceOptimizations(profile);
   
   // Start monitoring (can be disabled for production if needed)
   const cleanup = startPerformanceMonitoring();
   
-  console.log('✨ Cosmic Performance System initialized successfully!');
+  logger.log('✨ Cosmic Performance System initialized successfully!');
   
   return cleanup;
 };

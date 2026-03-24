@@ -13,6 +13,7 @@ import YoloAnalysisService from './yolo-analysis-service';
 import { createClientProgressService } from './client-progress-service';
 import { createEnhancedProgressAnalyticsService } from './enhanced-progress-analytics-service';
 import axios from 'axios';
+import { logger } from '@/utils/logger';
 
 // === SPECIALIZED SERVICES ===
 export { default as universalMasterScheduleService } from './universal-master-schedule-service';
@@ -132,8 +133,8 @@ export const getServiceHealth = () => {
 
 export const createServiceLogger = (serviceName: string) => {
   return {
-    info: (message: string, data?: any) => console.log(`[${serviceName}] ${message}`, data),
+    info: (message: string, data?: any) => logger.log(`[${serviceName}] ${message}`, data),
     error: (message: string, error?: any) => console.error(`[${serviceName}] ${message}`, error),
-    warn: (message: string, data?: any) => console.warn(`[${serviceName}] ${message}`, data)
+    warn: (message: string, data?: any) => logger.warn(`[${serviceName}] ${message}`, data)
   };
 };

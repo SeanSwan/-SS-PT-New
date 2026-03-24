@@ -20,6 +20,7 @@ import type {
   MultiSelectState,
   Session
 } from '../types';
+import { logger } from '@/utils/logger';
 // Removed circular dependencies - these will be passed as parameters
 
 export interface BulkOperationsValues {
@@ -341,7 +342,7 @@ export const useBulkOperations = (dependencies: {
         
         // Update progress
         const progress = ((batchIndex + 1) / batches.length) * 100;
-        console.log(`Bulk operation progress: ${progress.toFixed(1)}%`);
+        logger.log(`Bulk operation progress: ${progress.toFixed(1)}%`);
       }
       
       // Show results summary
@@ -412,7 +413,7 @@ export const useBulkOperations = (dependencies: {
     setDialogs(prev => ({ ...prev, bulkActionDialog: false }));
     
     // Log operation for audit trail
-    console.log('📊 Bulk operation audit log:', {
+    logger.log('📊 Bulk operation audit log:', {
       action: bulkActionType,
       timestamp: new Date().toISOString(),
       sessionCount: results.length,

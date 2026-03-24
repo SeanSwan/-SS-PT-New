@@ -1,6 +1,7 @@
 // services/client-progress-service.ts
 import { AxiosInstance } from 'axios';
 import { getMockClientProgress, mockClientProgressService } from './mock-client-progress';
+import { logger } from '@/utils/logger';
 
 export interface ClientProgressData {
   id: string;
@@ -111,13 +112,13 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
   return {
     getClientProgress: async () => {
       try {
-        console.log('Fetching client progress data from API...');
+        logger.log('Fetching client progress data from API...');
         const response = await axios.get<ClientProgressResponse>('/api/client-progress');
-        console.log('Client progress data received:', response.data.success);
+        logger.log('Client progress data received:', response.data.success);
         return response.data;
       } catch (error) {
         console.error('Error fetching client progress:', error);
-        console.log('Falling back to mock client progress data');
+        logger.log('Falling back to mock client progress data');
         // Return mock data if the API fails
         return getMockClientProgress();
       }
@@ -125,12 +126,12 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
     
     getClientProgressById: async (userId: string) => {
       try {
-        console.log(`Fetching client progress for user ${userId}...`);
+        logger.log(`Fetching client progress for user ${userId}...`);
         const response = await axios.get<ClientProgressResponse>(`/api/client-progress/${userId}`);
         return response.data;
       } catch (error) {
         console.error(`Error fetching client progress for user ${userId}:`, error);
-        console.log('Falling back to mock client progress data');
+        logger.log('Falling back to mock client progress data');
         // Return mock data if the API fails
         const mockData = getMockClientProgress();
         mockData.progress.userId = userId;
@@ -140,7 +141,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
     
     updateClientProgress: async (updates: Partial<ClientProgressData>) => {
       try {
-        console.log('Updating client progress data...');
+        logger.log('Updating client progress data...');
         const response = await axios.put<ClientProgressResponse>('/api/client-progress', updates);
         return response.data;
       } catch (error) {
@@ -154,7 +155,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
     
     updateClientProgressById: async (userId: string, updates: Partial<ClientProgressData>) => {
       try {
-        console.log(`Updating client progress for user ${userId}...`);
+        logger.log(`Updating client progress for user ${userId}...`);
         const response = await axios.put<ClientProgressResponse>(`/api/client-progress/${userId}`, updates);
         return response.data;
       } catch (error) {
@@ -168,7 +169,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
     
     getLeaderboard: async () => {
       try {
-        console.log('Fetching client progress leaderboard...');
+        logger.log('Fetching client progress leaderboard...');
         const response = await axios.get<LeaderboardResponse>('/api/client-progress/leaderboard');
         return response.data;
       } catch (error) {

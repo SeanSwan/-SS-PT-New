@@ -40,6 +40,7 @@ import {
 import { useAuth } from '../../../../../context/AuthContext';
 import AdminOnboardingPanel from '../../admin-clients/components/AdminOnboardingPanel';
 import WorkoutLoggerModal from '../../admin-clients/components/WorkoutLoggerModal';
+import { logger } from '@/utils/logger';
 const WorkoutCopilotPanel = React.lazy(() => import('../../admin-clients/components/WorkoutCopilotPanel'));
 const ClientMeasurementPanel = React.lazy(() => import('../../admin-clients/components/ClientMeasurementPanel'));
 const ClientWeighInPanel = React.lazy(() => import('../../admin-clients/components/ClientWeighInPanel'));
@@ -685,7 +686,7 @@ const ClientsManagementSection: React.FC = () => {
         
         setClients(clientsData);
         calculateStats(clientsData);
-        console.log('✅ Real client data loaded successfully');
+        logger.log('✅ Real client data loaded successfully');
       } else {
         throw new Error(response.data.message || 'Failed to load clients');
       }
@@ -784,9 +785,9 @@ const ClientsManagementSection: React.FC = () => {
   // Refresh all data
   const refreshAllData = useCallback(async () => {
     try {
-      console.log('🔄 Refreshing all client data...');
+      logger.log('🔄 Refreshing all client data...');
       await fetchClients();
-      console.log('✅ All client data refreshed');
+      logger.log('✅ All client data refreshed');
     } catch (error) {
       console.error('❌ Failed to refresh:', error);
       setErrors(prev => ({ ...prev, clients: 'Failed to refresh data' }));
@@ -835,7 +836,7 @@ const ClientsManagementSection: React.FC = () => {
       if (response.data.success) {
         await refreshAllData();
         setActiveActionMenu(null);
-        console.log('✅ Client promoted to trainer successfully');
+        logger.log('✅ Client promoted to trainer successfully');
       } else {
         throw new Error(response.data.message || 'Failed to promote client');
       }
@@ -849,7 +850,7 @@ const ClientsManagementSection: React.FC = () => {
   };
 
   const handleEditClient = (clientId: string) => {
-    console.log('📝 Edit client functionality to be implemented:', clientId);
+    logger.log('📝 Edit client functionality to be implemented:', clientId);
     setActiveActionMenu(null);
     // TODO: Implement edit client modal
   };
@@ -861,7 +862,7 @@ const ClientsManagementSection: React.FC = () => {
       const response = await authAxios.get(`/api/admin/clients/${clientId}`);
       
       if (response.data.success) {
-        console.log('👁️ Client details:', response.data.data.client);
+        logger.log('👁️ Client details:', response.data.data.client);
         // TODO: Implement client details modal
       }
     } catch (error: any) {
@@ -884,7 +885,7 @@ const ClientsManagementSection: React.FC = () => {
       if (response.data.success) {
         await refreshAllData();
         setActiveActionMenu(null);
-        console.log('✅ Client deactivated successfully');
+        logger.log('✅ Client deactivated successfully');
       } else {
         throw new Error(response.data.message || 'Failed to deactivate client');
       }

@@ -48,6 +48,7 @@ import {
 import { useRealTimeUpdates } from './hooks/useRealTimeUpdates';
 import { useAdminNotifications } from './hooks/useAdminNotifications';
 import { useCollaborativeScheduling } from './hooks/useCollaborativeScheduling';
+import { logger } from '@/utils/logger';
 
 // Styled Components
 const MonitorContainer = styled(motion.div)`
@@ -487,7 +488,7 @@ const RealTimeSystemMonitor: React.FC<RealTimeSystemMonitorProps> = ({
   
   const handleRefreshData = () => {
     // Trigger refresh for all monitored systems
-    console.log('🔄 Refreshing system metrics...');
+    logger.log('🔄 Refreshing system metrics...');
   };
   
   const handleExportMetrics = () => {

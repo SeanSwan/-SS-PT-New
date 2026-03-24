@@ -1,4 +1,5 @@
 import { ExternalToast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export type ToastProps = {
   title?: string;
@@ -15,31 +16,31 @@ export type ToastProps = {
 export const toast = {
   // Default toast
   default: (props: ToastProps) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Toast notification:', props);
   },
   
   // Success toast
   success: (props: ToastProps) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Success toast notification:', props);
   },
 
   // Error toast
   error: (props: ToastProps) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Error toast notification:', props);
   },
 
   // Warning toast
   warning: (props: ToastProps) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Warning toast notification:', props);
   },
 
   // Info toast
   info: (props: ToastProps) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Info toast notification:', props);
   },
 
@@ -52,7 +53,7 @@ export const toast = {
       error: string | ((error: unknown) => string);
     } & ToastProps
   ) => {
-    console.warn('Sonner package needs to be installed to show toast notifications');
+    logger.warn('Sonner package needs to be installed to show toast notifications');
     console.info('Promise toast notification:', options);
     return promise;
   },

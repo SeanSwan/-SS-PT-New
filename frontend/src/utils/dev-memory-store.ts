@@ -53,7 +53,7 @@ export const initializeMemoryStore = (): void => {
     memoryStore.initialized = true;
     console.debug('[DEV MODE] Memory store initialized from localStorage');
   } catch (error) {
-    console.warn('[DEV MODE] Failed to initialize memory store from localStorage', error);
+    logger.warn('[DEV MODE] Failed to initialize memory store from localStorage', error);
     // Still mark as initialized even if it failed
     memoryStore.initialized = true;
   }
@@ -73,7 +73,7 @@ export const setUserInMemory = (user: User | null): void => {
       localStorage.removeItem('user');
     }
   } catch (error) {
-    console.warn('[DEV MODE] Failed to sync user to localStorage', error);
+    logger.warn('[DEV MODE] Failed to sync user to localStorage', error);
   }
 };
 
@@ -91,7 +91,7 @@ export const setTokenInMemory = (token: string | null): void => {
       localStorage.removeItem('token');
     }
   } catch (error) {
-    console.warn('[DEV MODE] Failed to sync token to localStorage', error);
+    logger.warn('[DEV MODE] Failed to sync token to localStorage', error);
   }
 };
 
@@ -131,7 +131,7 @@ export const clearMemoryStore = (): void => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
   } catch (error) {
-    console.warn('[DEV MODE] Failed to clear localStorage', error);
+    logger.warn('[DEV MODE] Failed to clear localStorage', error);
   }
 };
 

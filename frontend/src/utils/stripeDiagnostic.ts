@@ -137,26 +137,26 @@ async function getBackendStripeStatus(): Promise<any> {
  * Run comprehensive Stripe diagnostics
  */
 export async function runStripeDiagnostics(): Promise<DiagnosticResult> {
-  console.log('\n🔍 SWANSTUDIOS STRIPE FRONTEND DIAGNOSTICS');
-  console.log('==========================================');
+  logger.log('\n🔍 SWANSTUDIOS STRIPE FRONTEND DIAGNOSTICS');
+  logger.log('==========================================');
   
   const timestamp = new Date().toISOString();
   const frontend = getFrontendStripeConfig();
   
-  console.log('\n📱 Frontend Configuration:');
-  console.log(`   - Publishable Key: ${frontend.rawKey}`);
-  console.log(`   - Key Valid: ${frontend.publishableKey.isValid ? '✅' : '❌'}`);
-  console.log(`   - Environment: ${frontend.publishableKey.format}`);
-  console.log(`   - Account ID: ${frontend.publishableKey.accountId || 'Unknown'}`);
+  logger.log('\n📱 Frontend Configuration:');
+  logger.log(`   - Publishable Key: ${frontend.rawKey}`);
+  logger.log(`   - Key Valid: ${frontend.publishableKey.isValid ? '✅' : '❌'}`);
+  logger.log(`   - Environment: ${frontend.publishableKey.format}`);
+  logger.log(`   - Account ID: ${frontend.publishableKey.accountId || 'Unknown'}`);
   
   if (frontend.publishableKey.errors.length > 0) {
-    console.log('   - Errors:');
+    logger.log('   - Errors:');
     frontend.publishableKey.errors.forEach(error => {
-      console.log(`     ❌ ${error}`);
+      logger.log(`     ❌ ${error}`);
     });
   }
 
-  console.log('\n🖥️ Fetching Backend Status...');
+  logger.log('\n🖥️ Fetching Backend Status...');
   const backendStatus = await getBackendStripeStatus();
   
   const backend = {
@@ -166,37 +166,37 @@ export async function runStripeDiagnostics(): Promise<DiagnosticResult> {
     error: backendStatus.error?.details || backendStatus.message
   };
 
-  console.log(`   - Backend Available: ${backend.available ? '✅' : '❌'}`);
-  console.log(`   - Stripe Configured: ${backend.configured ? '✅' : '❌'}`);
-  console.log(`   - Backend Environment: ${backend.environment || 'Unknown'}`);
+  logger.log(`   - Backend Available: ${backend.available ? '✅' : '❌'}`);
+  logger.log(`   - Stripe Configured: ${backend.configured ? '✅' : '❌'}`);
+  logger.log(`   - Backend Environment: ${backend.environment || 'Unknown'}`);
   
   if (backend.error) {
-    console.log(`   - Error: ${backend.error}`);
+    logger.log(`   - Error: ${backend.error}`);
   }
 
   // Analyze key matching
   const matching = analyzeKeyMatching(frontend, backend);
   
-  console.log('\n🔗 Key Matching Analysis:');
-  console.log(`   - Keys Match: ${matching.keysMatch ? '✅' : '❌'}`);
-  console.log(`   - Environments Match: ${matching.environmentsMatch ? '✅' : '❌'}`);
+  logger.log('\n🔗 Key Matching Analysis:');
+  logger.log(`   - Keys Match: ${matching.keysMatch ? '✅' : '❌'}`);
+  logger.log(`   - Environments Match: ${matching.environmentsMatch ? '✅' : '❌'}`);
   
   if (matching.issues.length > 0) {
-    console.log('   - Issues:');
+    logger.log('   - Issues:');
     matching.issues.forEach(issue => {
-      console.log(`     ⚠️ ${issue}`);
+      logger.log(`     ⚠️ ${issue}`);
     });
   }
 
   // Generate recommendations
   const recommendations = generateRecommendations(frontend, backend, matching);
   
-  console.log('\n💡 Recommendations:');
+  logger.log('\n💡 Recommendations:');
   recommendations.forEach((rec, index) => {
-    console.log(`   ${index + 1}. ${rec}`);
+    logger.log(`   ${index + 1}. ${rec}`);
   });
 
-  console.log('\n==========================================');
+  logger.log('\n==========================================');
 
   const result: DiagnosticResult = {
     timestamp,
@@ -293,19 +293,19 @@ function generateRecommendations(frontend: any, backend: any, matching: any): st
  * Quick key format checker (for console use)
  */
 export function checkKeyFormat(key: string): void {
-  console.log('\n🔑 Stripe Key Format Check');
-  console.log('==========================');
+  logger.log('\n🔑 Stripe Key Format Check');
+  logger.log('==========================');
   
   const validation = validatePublishableKey(key);
   
-  console.log(`Key: ${key.substring(0, 15)}...`);
-  console.log(`Valid: ${validation.isValid ? '✅' : '❌'}`);
-  console.log(`Format: ${validation.format}`);
-  console.log(`Account: ${validation.accountId || 'Unknown'}`);
+  logger.log(`Key: ${key.substring(0, 15)}...`);
+  logger.log(`Valid: ${validation.isValid ? '✅' : '❌'}`);
+  logger.log(`Format: ${validation.format}`);
+  logger.log(`Account: ${validation.accountId || 'Unknown'}`);
   
   if (validation.errors.length > 0) {
-    console.log('Errors:');
-    validation.errors.forEach(error => console.log(`  ❌ ${error}`));
+    logger.log('Errors:');
+    validation.errors.forEach(error => logger.log(`  ❌ ${error}`));
   }
 }
 
@@ -313,28 +313,28 @@ export function checkKeyFormat(key: string): void {
  * Test Stripe Elements loading
  */
 export async function testStripeLoading(): Promise<boolean> {
-  console.log('\n🧪 Testing Stripe.js Loading...');
+  logger.log('\n🧪 Testing Stripe.js Loading...');
   
   try {
     const { loadStripe } = await import('@stripe/stripe-js');
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
     
     if (!publishableKey) {
-      console.log('❌ No publishable key found');
+      logger.log('❌ No publishable key found');
       return false;
     }
 
     const stripe = await loadStripe(publishableKey);
     
     if (stripe) {
-      console.log('✅ Stripe.js loaded successfully');
+      logger.log('✅ Stripe.js loaded successfully');
       return true;
     } else {
-      console.log('❌ Stripe.js failed to load (invalid key?)');
+      logger.log('❌ Stripe.js failed to load (invalid key?)');
       return false;
     }
   } catch (error) {
-    console.log('❌ Error loading Stripe.js:', error);
+    logger.log('❌ Error loading Stripe.js:', error);
     return false;
   }
 }
@@ -350,10 +350,10 @@ if (typeof window !== 'undefined') {
     getLastResult: () => (window as any).lastStripeDiagnostics
   };
   
-  console.log('🛠️ Swan Stripe Diagnostics loaded!');
-  console.log('   Usage: SwanStripeDiagnostics.runDiagnostics()');
-  console.log('   Quick check: SwanStripeDiagnostics.checkKeyFormat("pk_...")');
-  console.log('   Test loading: SwanStripeDiagnostics.testStripeLoading()');
+  logger.log('🛠️ Swan Stripe Diagnostics loaded!');
+  logger.log('   Usage: SwanStripeDiagnostics.runDiagnostics()');
+  logger.log('   Quick check: SwanStripeDiagnostics.checkKeyFormat("pk_...")');
+  logger.log('   Test loading: SwanStripeDiagnostics.testStripeLoading()');
 }
 
 export default {

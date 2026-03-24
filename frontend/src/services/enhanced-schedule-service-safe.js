@@ -5,6 +5,7 @@
  */
 
 import baseScheduleService from './enhanced-schedule-service';
+import { logger } from '@/utils/logger';
 
 // Create a safe wrapper with fallback implementations
 const safeScheduleService = {
@@ -14,7 +15,7 @@ const safeScheduleService = {
   getSessions: async () => {
     try {
       if (typeof baseScheduleService.getSessions !== 'function') {
-        console.warn('getSessions not defined in enhanced-schedule-service, using fallback');
+        logger.warn('getSessions not defined in enhanced-schedule-service, using fallback');
         return [];
       }
       
@@ -30,7 +31,7 @@ const safeScheduleService = {
   getTrainers: async () => {
     try {
       if (typeof baseScheduleService.getTrainers !== 'function') {
-        console.warn('getTrainers not defined in enhanced-schedule-service, using fallback');
+        logger.warn('getTrainers not defined in enhanced-schedule-service, using fallback');
         return [];
       }
       
@@ -46,7 +47,7 @@ const safeScheduleService = {
   getClients: async () => {
     try {
       if (typeof baseScheduleService.getClients !== 'function') {
-        console.warn('getClients not defined in enhanced-schedule-service, using fallback');
+        logger.warn('getClients not defined in enhanced-schedule-service, using fallback');
         return [];
       }
       
@@ -62,7 +63,7 @@ const safeScheduleService = {
   getScheduleStats: async () => {
     try {
       if (typeof baseScheduleService.getScheduleStats !== 'function') {
-        console.warn('getScheduleStats not defined in enhanced-schedule-service, using fallback');
+        logger.warn('getScheduleStats not defined in enhanced-schedule-service, using fallback');
         return {
           stats: {
             total: 0,
@@ -111,7 +112,7 @@ const safeScheduleService = {
   bookSession: async (sessionId) => {
     try {
       if (typeof baseScheduleService.bookSession !== 'function') {
-        console.warn('bookSession not defined in enhanced-schedule-service, using fallback');
+        logger.warn('bookSession not defined in enhanced-schedule-service, using fallback');
         return { success: true, sessionId };
       }
       
@@ -126,7 +127,7 @@ const safeScheduleService = {
   createAvailableSessions: async (data) => {
     try {
       if (typeof baseScheduleService.createAvailableSessions !== 'function') {
-        console.warn('createAvailableSessions not defined in enhanced-schedule-service, using fallback');
+        logger.warn('createAvailableSessions not defined in enhanced-schedule-service, using fallback');
         return { success: true, sessions: [] };
       }
       
@@ -141,7 +142,7 @@ const safeScheduleService = {
   confirmSession: async (sessionId) => {
     try {
       if (typeof baseScheduleService.confirmSession !== 'function') {
-        console.warn('confirmSession not defined in enhanced-schedule-service, using fallback');
+        logger.warn('confirmSession not defined in enhanced-schedule-service, using fallback');
         return { success: true, sessionId };
       }
       
@@ -156,7 +157,7 @@ const safeScheduleService = {
   cancelSession: async (sessionId) => {
     try {
       if (typeof baseScheduleService.cancelSession !== 'function') {
-        console.warn('cancelSession not defined in enhanced-schedule-service, using fallback');
+        logger.warn('cancelSession not defined in enhanced-schedule-service, using fallback');
         return { success: true, sessionId };
       }
       
@@ -171,7 +172,7 @@ const safeScheduleService = {
   createBlockedTime: async (data) => {
     try {
       if (typeof baseScheduleService.createBlockedTime !== 'function') {
-        console.warn('createBlockedTime not defined in enhanced-schedule-service, using fallback');
+        logger.warn('createBlockedTime not defined in enhanced-schedule-service, using fallback');
         return { 
           success: true, 
           session: {
@@ -202,7 +203,7 @@ const safeScheduleService = {
   assignTrainer: async (sessionId, trainerId) => {
     try {
       if (typeof baseScheduleService.assignTrainer !== 'function') {
-        console.warn('assignTrainer not defined in enhanced-schedule-service, using fallback');
+        logger.warn('assignTrainer not defined in enhanced-schedule-service, using fallback');
         return { success: true, sessionId, trainerId };
       }
       
@@ -268,7 +269,7 @@ const safeScheduleService = {
       }
       
       // Fallback: use regular booking method
-      console.warn('bookSessionWithTransaction not available, using regular booking');
+      logger.warn('bookSessionWithTransaction not available, using regular booking');
       const result = await safeScheduleService.bookSession(sessionData.sessionId);
       
       return {
@@ -293,7 +294,7 @@ const safeScheduleService = {
   deleteBlockedTime: async (blockedTimeId, removeAll = false) => {
     try {
       if (typeof baseScheduleService.deleteBlockedTime !== 'function') {
-        console.warn('deleteBlockedTime not defined in enhanced-schedule-service, using fallback');
+        logger.warn('deleteBlockedTime not defined in enhanced-schedule-service, using fallback');
         return { 
           success: true, 
           message: removeAll ? 

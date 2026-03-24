@@ -46,6 +46,7 @@ import Pagination from '../../../ui-kit/Pagination';
 import Badge, { getStatusVariant } from '../../../ui-kit/Badge';
 import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
 import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-kit/Container';
+import { logger } from '@/utils/logger';
 
 // ==========================================
 // PAGE-SPECIFIC STYLED COMPONENTS
@@ -307,7 +308,7 @@ const AdminClientProgressView: React.FC = () => {
         useFallbackClientData();
       }
     } catch (err) {
-      console.warn('API unavailable, using fallback data:', err);
+      logger.warn('API unavailable, using fallback data:', err);
       useFallbackClientData();
     } finally {
       setLoading(false);

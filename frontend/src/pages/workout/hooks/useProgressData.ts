@@ -15,6 +15,7 @@ import {
   MuscleGroupData,
   IntensityTrendData
 } from '../types/progress.types';
+import { logger } from '@/utils/logger';
 
 interface UseProgressDataProps {
   userId?: string;
@@ -161,7 +162,7 @@ export const useProgressData = ({
         
         // Use mock data for development/testing
         if (process.env.NODE_ENV === 'development' && (!user || user.id === 'temp-user-id' || targetUserId === 'temp-user-id')) {
-          console.log('Using mock data for development');
+          logger.log('Using mock data for development');
           setProgress(mockProgress);
           setStatistics(mockStatistics);
           setLoading(false);
@@ -212,7 +213,7 @@ export const useProgressData = ({
           if (progressResponse.data && progressResponse.data.progress) {
             setProgress(progressResponse.data.progress);
           } else {
-            console.warn('Unexpected progress data format:', progressResponse.data);
+            logger.warn('Unexpected progress data format:', progressResponse.data);
           }
         } catch (progressErr: any) {
           console.error('Error fetching progress data:', progressErr);
@@ -235,7 +236,7 @@ export const useProgressData = ({
           if (statisticsResponse.data && statisticsResponse.data.statistics) {
             setStatistics(statisticsResponse.data.statistics);
           } else {
-            console.warn('Unexpected statistics data format:', statisticsResponse.data);
+            logger.warn('Unexpected statistics data format:', statisticsResponse.data);
           }
         } catch (statsErr: any) {
           console.error('Error fetching statistics data:', statsErr);

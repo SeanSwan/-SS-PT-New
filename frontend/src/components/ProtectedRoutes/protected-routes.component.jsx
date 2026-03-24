@@ -3,6 +3,7 @@ import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import config from '../../../config';
+import { logger } from '@/utils/logger';
 
 const ProtectedRoute = ({ children, requiredRole, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
@@ -40,7 +41,7 @@ const ProtectedRoute = ({ children, requiredRole, allowedRoles }) => {
       return user.role === role;
     });
     
-    console.log('Role check:', { userRole: user.role, rolesToCheck, hasAccess: hasRequiredRole });
+    logger.log('Role check:', { userRole: user.role, rolesToCheck, hasAccess: hasRequiredRole });
     
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;

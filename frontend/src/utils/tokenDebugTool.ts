@@ -6,6 +6,7 @@
  */
 
 import tokenCleanup from './tokenCleanup';
+import { logger } from '@/utils/logger';
 
 class TokenDebugTool {
   constructor() {
@@ -25,21 +26,21 @@ class TokenDebugTool {
     
     // Get token info
     const tokenInfo = tokenCleanup.getTokenInfo();
-    console.log('📊 Token Info:', tokenInfo);
+    logger.log('📊 Token Info:', tokenInfo);
     
     // Check localStorage
     const localStorageTokens = this.getAllStorageTokens('localStorage');
-    console.log('💾 localStorage tokens:', localStorageTokens);
+    logger.log('💾 localStorage tokens:', localStorageTokens);
     
     // Check sessionStorage
     const sessionStorageTokens = this.getAllStorageTokens('sessionStorage');
-    console.log('🔒 sessionStorage tokens:', sessionStorageTokens);
+    logger.log('🔒 sessionStorage tokens:', sessionStorageTokens);
     
     // Check if token is being sent in requests
-    console.log('🌐 Token in axios headers:', this.checkAxiosHeaders());
+    logger.log('🌐 Token in axios headers:', this.checkAxiosHeaders());
     
     // Provide recommendations
-    console.log('💡 Recommendations:', this.getRecommendations(tokenInfo));
+    logger.log('💡 Recommendations:', this.getRecommendations(tokenInfo));
     
     console.groupEnd();
     
@@ -82,7 +83,7 @@ class TokenDebugTool {
       // Import api service to check headers
       import('../services/api.service').then(module => {
         const authHeader = module.apiClient.defaults.headers.common['Authorization'];
-        console.log('Authorization header:', authHeader);
+        logger.log('Authorization header:', authHeader);
         return authHeader || 'No Authorization header found';
       });
       return 'Checking...';
@@ -123,9 +124,9 @@ class TokenDebugTool {
    * Clean up all tokens
    */
   cleanupTokens() {
-    console.log('🧹 Cleaning up all tokens...');
+    logger.log('🧹 Cleaning up all tokens...');
     const result = tokenCleanup.cleanupAllTokens();
-    console.log(result ? '✅ Cleanup successful' : '❌ Cleanup failed');
+    logger.log(result ? '✅ Cleanup successful' : '❌ Cleanup failed');
     return result;
   }
 
@@ -147,15 +148,15 @@ class TokenDebugTool {
     }
     
     if (!testToken) {
-      console.log('❌ No token to test');
+      logger.log('❌ No token to test');
       return false;
     }
     
     console.group('🧪 Testing Token Validation');
     
     const isValid = tokenCleanup.isValidJWTStructure(testToken);
-    console.log('Token:', testToken.substring(0, 50) + '...');
-    console.log('Is valid JWT structure:', isValid);
+    logger.log('Token:', testToken.substring(0, 50) + '...');
+    logger.log('Is valid JWT structure:', isValid);
     
     if (isValid) {
       try {
@@ -163,14 +164,14 @@ class TokenDebugTool {
         const header = JSON.parse(atob(parts[0]));
         const payload = JSON.parse(atob(parts[1]));
         
-        console.log('Header:', header);
-        console.log('Payload:', payload);
+        logger.log('Header:', header);
+        logger.log('Payload:', payload);
         
         if (payload.exp) {
           const now = Date.now() / 1000;
           const isExpired = now > payload.exp;
-          console.log('Is expired:', isExpired);
-          console.log('Expires at:', new Date(payload.exp * 1000));
+          logger.log('Is expired:', isExpired);
+          logger.log('Expires at:', new Date(payload.exp * 1000));
         }
       } catch (error) {
         console.error('Error parsing token:', error);

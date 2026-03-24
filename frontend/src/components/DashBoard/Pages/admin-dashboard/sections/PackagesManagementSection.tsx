@@ -34,6 +34,7 @@ import {
   BarChart3, PieChart, Settings, Gift, Zap
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -685,17 +686,17 @@ const PackagesManagementSection: React.FC = () => {
 
   // Handle package actions
   const handleCreatePackage = () => {
-    console.log('Create new package');
+    logger.log('Create new package');
     setActiveActionMenu(null);
   };
 
   const handleEditPackage = (packageId: string) => {
-    console.log('Edit package:', packageId);
+    logger.log('Edit package:', packageId);
     setActiveActionMenu(null);
   };
 
   const handleViewPackage = (packageId: string) => {
-    console.log('View package details:', packageId);
+    logger.log('View package details:', packageId);
     setActiveActionMenu(null);
   };
 
@@ -736,7 +737,7 @@ const PackagesManagementSection: React.FC = () => {
   };
 
   const handleViewAnalytics = (packageId: string) => {
-    console.log('View package analytics:', packageId);
+    logger.log('View package analytics:', packageId);
     setActiveActionMenu(null);
   };
 

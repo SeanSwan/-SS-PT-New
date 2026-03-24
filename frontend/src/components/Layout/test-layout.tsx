@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
+import { logger } from '@/utils/logger';
 
 const MainContainer = styled.div`
   display: flex;
@@ -37,7 +38,7 @@ const Content = styled.main`
 `;
 
 const TestLayout = ({ children }) => {
-  console.log('✅ TEST LAYOUT: Rendering with minimal header...');
+  logger.log('✅ TEST LAYOUT: Rendering with minimal header...');
   
   return (
     <MainContainer>

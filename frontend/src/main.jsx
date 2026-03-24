@@ -9,6 +9,7 @@ import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import App from './App';
 import './index.css';
+import { logger } from '@/utils/logger';
 
 // Create Emotion cache for styled-components v6
 const emotionCache = createCache({
@@ -48,14 +49,14 @@ initializeAllSPAFixes();
 
 // Initialize PWA features (service worker, offline support, etc.)
 initializePWA().then((pwaInfo) => {
-  console.log('PWA initialized:', pwaInfo);
+  logger.log('PWA initialized:', pwaInfo);
   
   // Add PWA info to window for debugging
   if (import.meta.env.DEV) {
     window.__PWA_INFO__ = pwaInfo;
   }
 }).catch((error) => {
-  console.warn('PWA initialization failed:', error);
+  logger.warn('PWA initialization failed:', error);
 });
 
 // Get the root element - remove the TypeScript non-null assertion (!)

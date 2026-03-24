@@ -15,6 +15,7 @@ import {
   workoutMcpApi,
   gamificationMcpApi 
 } from '../services/mcp';
+import { logger } from '@/utils/logger';
 
 export interface McpTestResult {
   test: string;
@@ -38,7 +39,7 @@ export interface McpTestSuite {
  * Run comprehensive MCP integration tests
  */
 export const testMcpIntegration = async (): Promise<McpTestSuite> => {
-  console.log('🧪 Starting MCP Integration Test Suite...');
+  logger.log('🧪 Starting MCP Integration Test Suite...');
   
   const results: McpTestResult[] = [];
   const startTime = Date.now();
@@ -213,14 +214,14 @@ export const testMcpIntegration = async (): Promise<McpTestSuite> => {
   };
   
   // Log results
-  console.log('🧪 MCP Integration Test Suite Complete!');
-  console.log(`✅ ${passedTests}/${results.length} tests passed`);
-  console.log(`⏱️ Total duration: ${totalDuration}ms`);
+  logger.log('🧪 MCP Integration Test Suite Complete!');
+  logger.log(`✅ ${passedTests}/${results.length} tests passed`);
+  logger.log(`⏱️ Total duration: ${totalDuration}ms`);
   
   if (testSuite.overall.success) {
-    console.log('🎉 All MCP integration tests passed!');
+    logger.log('🎉 All MCP integration tests passed!');
   } else {
-    console.log('❌ Some MCP integration tests failed. Check results for details.');
+    logger.log('❌ Some MCP integration tests failed. Check results for details.');
   }
   
   return testSuite;
@@ -237,7 +238,7 @@ async function runTest(
   const startTime = Date.now();
   
   try {
-    console.log(`🔬 Running test: ${testName}...`);
+    logger.log(`🔬 Running test: ${testName}...`);
     
     const result = await testFn();
     const duration = Date.now() - startTime;
@@ -250,7 +251,7 @@ async function runTest(
       details: result.data
     });
     
-    console.log(`${result.success ? '✅' : '❌'} ${testName} (${duration}ms)`);
+    logger.log(`${result.success ? '✅' : '❌'} ${testName} (${duration}ms)`);
     
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -264,7 +265,7 @@ async function runTest(
       details: { error: errorMessage }
     });
     
-    console.log(`❌ ${testName} failed: ${errorMessage} (${duration}ms)`);
+    logger.log(`❌ ${testName} failed: ${errorMessage} (${duration}ms)`);
   }
 }
 
@@ -310,11 +311,11 @@ export const quickMcpHealthCheck = async (): Promise<{
  */
 export const runDevMcpTest = async (): Promise<void> => {
   if (process.env.NODE_ENV !== 'development') {
-    console.warn('⚠️ MCP tests should only be run in development mode');
+    logger.warn('⚠️ MCP tests should only be run in development mode');
     return;
   }
   
-  console.log('🚀 Running MCP Integration Tests in Development Mode...');
+  logger.log('🚀 Running MCP Integration Tests in Development Mode...');
   
   try {
     const results = await testMcpIntegration();
@@ -328,9 +329,9 @@ export const runDevMcpTest = async (): Promise<void> => {
     })));
     
     if (results.overall.success) {
-      console.log('🎉 MCP Integration is working correctly!');
+      logger.log('🎉 MCP Integration is working correctly!');
     } else {
-      console.log('⚠️ MCP Integration has some issues that need attention.');
+      logger.log('⚠️ MCP Integration has some issues that need attention.');
     }
     
   } catch (error) {

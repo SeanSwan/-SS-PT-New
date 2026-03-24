@@ -61,6 +61,7 @@ import {
   ScatterChart,
   Scatter
 } from 'recharts';
+import { logger } from '@/utils/logger';
 
 // ── Crystalline Swan Theme Tokens ──
 const theme = {
@@ -676,7 +677,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       actionable: true,
       action: {
         label: 'Adjust Workout Plan',
-        callback: () => console.log('Adjusting workout plan...')
+        callback: () => logger.log('Adjusting workout plan...')
       },
       timestamp: '2024-12-10T14:30:00Z',
       modelUsed: 'Training Load Optimizer v2.1',
@@ -699,7 +700,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       actionable: true,
       action: {
         label: 'Optimize Recovery Protocol',
-        callback: () => console.log('Opening recovery recommendations...')
+        callback: () => logger.log('Opening recovery recommendations...')
       },
       timestamp: '2024-12-10T12:15:00Z',
       modelUsed: 'Recovery Predictor AI',
@@ -739,7 +740,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       actionable: true,
       action: {
         label: 'Create Meal Plan',
-        callback: () => console.log('Creating optimized meal plan...')
+        callback: () => logger.log('Creating optimized meal plan...')
       },
       timestamp: '2024-12-10T08:45:00Z',
       modelUsed: 'Nutrition Timing AI',
@@ -925,7 +926,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
     const interval = setInterval(() => {
       if (refreshInterval > 0) {
         // In a real implementation, this would fetch new insights
-        console.log('Auto-refreshing AI insights...');
+        logger.log('Auto-refreshing AI insights...');
       }
     }, refreshInterval);
 
