@@ -67,6 +67,7 @@ const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CAT
 const PaymentSettingsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PaymentSettingsPanel'));
 const LeadCRMDashboard = React.lazy(() => import('./Pages/admin-leads/LeadCRMDashboard'));
 const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
+const AdminViewAsWrapper = React.lazy(() => import('./Pages/admin-clients/components/AdminViewAsWrapper'));
 const ChartGallery = React.lazy(() => import('../Charts/ChartGallery'));
 const BadgeArtGallery = React.lazy(() => import('../BadgeGallery/BadgeArtGallery'));
 
@@ -191,6 +192,11 @@ const UnifiedAdminRoutes: React.FC = () => (
 
     <Route path="/people" element={<ClientsWorkspace />}>
       <Route index element={<ClientsManagementSection />} />
+      <Route path="view-as/:userId" element={
+        <React.Suspense fallback={<CosmicSuspenseLoader />}>
+          <AdminViewAsWrapper />
+        </React.Suspense>
+      } />
       <Route path="users" element={<ModernUserManagementSystem />} />
       <Route path="trainers" element={<EnhancedTrainerDataManagement />} />
       <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />

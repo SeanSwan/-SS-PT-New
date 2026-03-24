@@ -76,7 +76,7 @@ import ClientProgressDashboard from './components/ClientProgressDashboard';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import GamificationOverview from './components/GamificationOverview';
 import CommunicationCenter from './components/CommunicationCenter';
-import ClientWorkoutsModal from './components/ClientWorkoutsModal';
+import EnhancedWorkoutsModal from './components/EnhancedWorkoutsModal';
 import ClientSessionsModal from './components/ClientSessionsModal';
 import ClientBodyMapModal from './components/ClientBodyMapModal';
 import BookSessionDialog from './components/BookSessionDialog';
@@ -2332,9 +2332,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         />
       )}
 
-      {/* Client Workouts Modal */}
+      {/* Enhanced Workouts Modal — full exercise details + Victory charts + PRs */}
       {showWorkoutsModal && selectedClient && (
-        <ClientWorkoutsModal
+        <EnhancedWorkoutsModal
           open={showWorkoutsModal}
           clientId={Number(selectedClient.id)}
           clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
