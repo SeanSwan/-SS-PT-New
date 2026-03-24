@@ -1,3 +1,21 @@
+/**
+ * ┌─── SUB-COMPONENT: ClientDetailsModal ──────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: Quick-view modal showing client summary info       │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-23        │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────┐                        │
+ * │ │ Client Name              [Close] │                        │
+ * │ │ ┌─ Summary Grid ──────────────┐  │                        │
+ * │ │ │ Email | Phone | Status      │  │                        │
+ * │ │ │ Goal  | Sessions | Created  │  │                        │
+ * │ │ └────────────────────────────┘  │                        │
+ * │ └──────────────────────────────────┘                        │
+ * │ Props: { open, onClose, client: EnhancedAdminClient }       │
+ * │ CLICK-OUTCOMES:                                             │
+ * │ [Close] → closes modal, returns focus to client list        │
+ * └─────────────────────────────────────────────────────────────┘
+ */
 import React from 'react';
 import styled from 'styled-components';
 import CustomModal from '../../../../UniversalMasterSchedule/ui/CustomModal';

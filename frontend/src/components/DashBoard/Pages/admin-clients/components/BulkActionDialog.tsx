@@ -1,3 +1,22 @@
+/**
+ * ┌─── SUB-COMPONENT: BulkActionDialog ────────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: Confirmation dialog for bulk client operations     │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-23        │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────┐                        │
+ * │ │ Bulk Action               [Close]│                        │
+ * │ │ Action: [Deactivate ▾]           │                        │
+ * │ │ Affecting N clients              │                        │
+ * │ │ Type "CONFIRM" to proceed: [___] │                        │
+ * │ │ [Cancel] [Execute]               │                        │
+ * │ └──────────────────────────────────┘                        │
+ * │ Props: { open, onClose, selectedClients[], onAction }       │
+ * │ CLICK-OUTCOMES:                                             │
+ * │ [Execute] → confirms typed input → calls onAction(action)  │
+ * │ [Cancel] → closes dialog                                   │
+ * └─────────────────────────────────────────────────────────────┘
+ */
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import Modal from '../../../../UniversalMasterSchedule/ui/CustomModal';

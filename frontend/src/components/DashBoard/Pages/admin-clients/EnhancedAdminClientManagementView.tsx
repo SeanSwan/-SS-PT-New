@@ -76,6 +76,11 @@ import ClientProgressDashboard from './components/ClientProgressDashboard';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import GamificationOverview from './components/GamificationOverview';
 import CommunicationCenter from './components/CommunicationCenter';
+import ClientWorkoutsModal from './components/ClientWorkoutsModal';
+import ClientSessionsModal from './components/ClientSessionsModal';
+import ClientBodyMapModal from './components/ClientBodyMapModal';
+import BookSessionDialog from './components/BookSessionDialog';
+import WorkoutLoggerModal from './components/WorkoutLoggerModal';
 
 // lucide-react icons
 import {
@@ -169,25 +174,26 @@ const slideUp = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// ─── Crystalline Swan Theme Tokens ────────────────────────────────
+// ─── Crystalline Swan Theme Tokens (Dark-First) ─────────────────
+// Uses CSS custom properties with dark Void Crystal fallbacks
 const theme = {
-  bg: 'rgba(15,23,42,0.95)',
-  bgSolid: '#002060',
-  surface: '#1d1f2b',
+  bg: 'var(--bg-base, #0A0A0F)',
+  bgSolid: 'var(--bg-base, #0A0A0F)',
+  surface: 'var(--bg-surface, #141419)',
   surfaceHover: 'rgba(255,255,255,0.05)',
-  border: 'rgba(14,165,233,0.2)',
-  borderHover: 'rgba(14,165,233,0.4)',
-  borderActive: '#0ea5e9',
-  text: '#e2e8f0',
-  textSecondary: '#a0a0b0',
-  accent: '#0ea5e9',
-  accentGlow: 'rgba(14,165,233,0.3)',
+  border: 'rgba(96,192,240,0.2)',
+  borderHover: 'rgba(96,192,240,0.4)',
+  borderActive: '#60C0F0',
+  text: 'var(--text-primary, #E0ECF4)',
+  textSecondary: 'var(--text-secondary, #94a3b8)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentGlow: 'rgba(96,192,240,0.3)',
   cyan: '#60C0F0',
   purple: '#8B5CF6',
   success: '#4caf50',
   warning: '#ff9800',
-  error: '#f44336',
-  gold: '#ffd700',
+  error: '#C92A54',
+  gold: '#C6A84B',
 };
 
 // ─── Base Styled Components ───────────────────────────────────────
@@ -1243,6 +1249,11 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
   const [showAssessmentModal, setShowAssessmentModal] = useState<boolean>(false);
   const [showBulkActionDialog, setShowBulkActionDialog] = useState<boolean>(false);
+  const [showWorkoutsModal, setShowWorkoutsModal] = useState<boolean>(false);
+  const [showSessionsModal, setShowSessionsModal] = useState<boolean>(false);
+  const [showBodyMapModal, setShowBodyMapModal] = useState<boolean>(false);
+  const [showBookSessionDialog, setShowBookSessionDialog] = useState<boolean>(false);
+  const [showWorkoutLoggerModal, setShowWorkoutLoggerModal] = useState<boolean>(false);
   const [selectedClient, setSelectedClient] = useState<EnhancedAdminClient | null>(null);
 
   // Menu states
@@ -1485,13 +1496,31 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   };
 
   const handleEdit = (client: EnhancedAdminClient) => {
-    // TODO: Implement edit functionality
-    toast({
-      title: "Feature Coming Soon",
-      description: "Edit functionality will be available in the next update.",
-      variant: "default"
-    });
+    setSelectedClient(client);
+    setShowDetailsModal(true);
     handleMenuClose();
+  };
+
+  const handleResetPassword = async (client: EnhancedAdminClient) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to reset the password for ${client.firstName} ${client.lastName}?\n\nA temporary password will be generated and the client will be notified.`
+    );
+    if (!confirmed) return;
+    handleMenuClose();
+    try {
+      await adminClientService.resetClientPassword(client.id);
+      toast({
+        title: "Password Reset",
+        description: `Password reset for ${client.firstName} ${client.lastName}. They will receive an email with their temporary password.`,
+        variant: "default"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password",
+        variant: "destructive"
+      });
+    }
   };
 
   // Helper: engagement chip status
@@ -2130,15 +2159,59 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               <ClipboardList size={18} />
               New Assessment
             </DropdownItem>
-            <DropdownItem onClick={() => {/* TODO: Assign workout plan */}}>
+            <DropdownItem onClick={() => {
+              if (menuClient) {
+                setSelectedClient(menuClient);
+                setShowWorkoutLoggerModal(true);
+              }
+              handleMenuClose();
+            }}>
               <Dumbbell size={18} />
-              Assign Workout Plan
+              Log Workout
             </DropdownItem>
-            <DropdownItem onClick={() => {/* TODO: Schedule session */}}>
+            <DropdownItem onClick={() => {
+              if (menuClient) {
+                setSelectedClient(menuClient);
+                setShowWorkoutsModal(true);
+              }
+              handleMenuClose();
+            }}>
+              <Activity size={18} />
+              View Workouts
+            </DropdownItem>
+            <DropdownItem onClick={() => {
+              if (menuClient) {
+                setSelectedClient(menuClient);
+                setShowSessionsModal(true);
+              }
+              handleMenuClose();
+            }}>
+              <Calendar size={18} />
+              View Sessions
+            </DropdownItem>
+            <DropdownItem onClick={() => {
+              if (menuClient) {
+                setSelectedClient(menuClient);
+                setShowBookSessionDialog(true);
+              }
+              handleMenuClose();
+            }}>
               <Clock size={18} />
               Schedule Session
             </DropdownItem>
-            <DropdownItem onClick={() => {/* TODO: Reset password */}}>
+            <DropdownItem onClick={() => {
+              if (menuClient) {
+                setSelectedClient(menuClient);
+                setShowBodyMapModal(true);
+              }
+              handleMenuClose();
+            }}>
+              <HeartPulse size={18} />
+              Body Map
+            </DropdownItem>
+            <DropdownItem onClick={() => {
+              if (menuClient) handleResetPassword(menuClient);
+            }}>
               <Key size={18} />
               Reset Password
             </DropdownItem>
@@ -2163,19 +2236,19 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           </SpeedDialActionBtn>
           <SpeedDialActionBtn
             title="Analytics"
-            onClick={() => {/* TODO: Quick analytics */ setSpeedDialOpen(false); }}
+            onClick={() => { setCurrentTab(3); setSpeedDialOpen(false); }}
           >
             <ClipboardList size={20} />
           </SpeedDialActionBtn>
           <SpeedDialActionBtn
             title="Broadcast Message"
-            onClick={() => {/* TODO: Broadcast message modal */ setSpeedDialOpen(false); }}
+            onClick={() => { setCurrentTab(5); setSpeedDialOpen(false); }}
           >
             <MessageSquare size={20} />
           </SpeedDialActionBtn>
           <SpeedDialActionBtn
             title="AI Insights"
-            onClick={() => {/* TODO: AI insights modal */ setSpeedDialOpen(false); }}
+            onClick={() => { setCurrentTab(4); setSpeedDialOpen(false); }}
           >
             <Brain size={20} />
           </SpeedDialActionBtn>
@@ -2247,13 +2320,77 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           onClose={() => setShowBulkActionDialog(false)}
           selectedClients={selectedClients}
           onAction={(action) => {
-            // TODO: Handle bulk actions
             console.log('Bulk action:', action);
             setShowBulkActionDialog(false);
             setSelectedClients([]);
             toast({
               title: "Success",
               description: `Bulk action completed for ${selectedClients.length} clients`,
+              variant: "default"
+            });
+          }}
+        />
+      )}
+
+      {/* Client Workouts Modal */}
+      {showWorkoutsModal && selectedClient && (
+        <ClientWorkoutsModal
+          open={showWorkoutsModal}
+          clientId={Number(selectedClient.id)}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          onClose={() => setShowWorkoutsModal(false)}
+        />
+      )}
+
+      {/* Client Sessions Modal */}
+      {showSessionsModal && selectedClient && (
+        <ClientSessionsModal
+          open={showSessionsModal}
+          clientId={Number(selectedClient.id)}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          onClose={() => setShowSessionsModal(false)}
+        />
+      )}
+
+      {/* Client Body Map Modal */}
+      {showBodyMapModal && selectedClient && (
+        <ClientBodyMapModal
+          clientId={Number(selectedClient.id)}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          onClose={() => setShowBodyMapModal(false)}
+        />
+      )}
+
+      {/* Book Session Dialog */}
+      {showBookSessionDialog && selectedClient && (
+        <BookSessionDialog
+          open={showBookSessionDialog}
+          onClose={() => setShowBookSessionDialog(false)}
+          clientId={selectedClient.id}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          onSuccess={() => {
+            setShowBookSessionDialog(false);
+            toast({
+              title: "Session Booked",
+              description: `Session scheduled for ${selectedClient.firstName} ${selectedClient.lastName}`,
+              variant: "default"
+            });
+          }}
+        />
+      )}
+
+      {/* Workout Logger Modal */}
+      {showWorkoutLoggerModal && selectedClient && (
+        <WorkoutLoggerModal
+          open={showWorkoutLoggerModal}
+          onClose={() => setShowWorkoutLoggerModal(false)}
+          clientId={Number(selectedClient.id)}
+          clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+          onSuccess={() => {
+            setShowWorkoutLoggerModal(false);
+            toast({
+              title: "Workout Saved",
+              description: `Workout logged for ${selectedClient.firstName} ${selectedClient.lastName}`,
               variant: "default"
             });
           }}

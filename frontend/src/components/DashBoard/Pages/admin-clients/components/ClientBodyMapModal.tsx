@@ -17,7 +17,7 @@ import {
 import BodyMap from '../../../../BodyMap';
 
 const WidePanel = styled.div`
-  background: rgba(29, 31, 43, 0.98);
+  background: var(--bg-elevated, rgba(10, 10, 15, 0.98));
   border-radius: 12px;
   max-width: 1000px;
   width: 95%;
@@ -27,6 +27,11 @@ const WidePanel = styled.div`
   border: 1px solid rgba(139, 92, 246, 0.2);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(12px);
+
+  @supports not (backdrop-filter: blur(12px)) {
+    background: var(--bg-elevated, #141419);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+  }
 `;
 
 interface ClientBodyMapModalProps {

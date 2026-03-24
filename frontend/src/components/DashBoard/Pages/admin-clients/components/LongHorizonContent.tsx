@@ -1,3 +1,27 @@
+/**
+ * ┌─── SUB-COMPONENT: LongHorizonContent ──────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: Long-horizon monitoring dashboard for client       │
+ * │          health metrics, trends, risk alerts, and           │
+ * │          predictive analytics over extended timeframes       │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-23        │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────┐                        │
+ * │ │ Long Horizon Analysis     [Refresh]│                      │
+ * │ │ ┌─ Risk Cards ─────────────────┐ │                        │
+ * │ │ │ Churn Risk | Progress Stall  │ │                        │
+ * │ │ └─────────────────────────────┘ │                        │
+ * │ │ ┌─ Trend Charts ──────────────┐ │                        │
+ * │ │ │ Weight | Strength | Volume  │ │                        │
+ * │ │ └─────────────────────────────┘ │                        │
+ * │ │ ┌─ Recommendations ──────────┐  │                        │
+ * │ │ │ AI-generated suggestions   │  │                        │
+ * │ │ └────────────────────────────┘  │                        │
+ * │ └──────────────────────────────────┘                        │
+ * │ Props: { clientId, clientName }                             │
+ * │ API: GET /api/admin/clients/:id/long-horizon               │
+ * └─────────────────────────────────────────────────────────────┘
+ */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import {

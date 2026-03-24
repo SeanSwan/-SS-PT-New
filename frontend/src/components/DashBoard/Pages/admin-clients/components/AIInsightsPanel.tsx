@@ -1,13 +1,26 @@
 /**
- * AI Insights Panel Component
- * 7-Star AAA Personal Training & Social Media App
- *
- * Advanced AI-powered insights system providing:
- * - Predictive analytics and recommendations
- * - Risk assessment and early warning systems
- * - Personalized coaching suggestions
- * - Performance optimization insights
- * - Behavioral analysis and engagement recommendations
+ * ┌─── SUB-COMPONENT: AIInsightsPanel ─────────────────────────┐
+ * │ PARENT: EnhancedAdminClientManagementView                   │
+ * │ PURPOSE: AI-powered insights: predictive analytics, risk    │
+ * │          assessment, coaching suggestions, performance       │
+ * │          optimization, behavioral analysis                  │
+ * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-23        │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────────────┐                        │
+ * │ │ AI Insights                      │                        │
+ * │ │ ┌─ Insight Cards ──────────────┐ │                        │
+ * │ │ │ 🎯 Recommendations          │ │                        │
+ * │ │ │ ⚠️ Risk Alerts              │ │                        │
+ * │ │ │ 🏆 Achievement Predictions   │ │                        │
+ * │ │ └─────────────────────────────┘ │                        │
+ * │ │ ┌─ Performance Radar Chart ───┐ │                        │
+ * │ │ │ Strength/Endurance/Balance  │ │                        │
+ * │ │ └─────────────────────────────┘ │                        │
+ * │ └──────────────────────────────────┘                        │
+ * │ Props: { clientId, clientName }                             │
+ * │ API: GET /api/admin/clients/:id/ai-insights                │
+ * │ GAMIFICATION: Surfaces badge predictions + tier progress    │
+ * └─────────────────────────────────────────────────────────────┘
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
