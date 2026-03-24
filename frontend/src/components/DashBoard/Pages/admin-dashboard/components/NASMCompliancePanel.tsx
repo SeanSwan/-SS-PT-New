@@ -26,6 +26,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import DemoDataBanner from './DemoDataBanner';
 import { 
   Award, 
   Shield, 
@@ -511,6 +512,7 @@ const NASMCompliancePanel: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
+      <DemoDataBanner noApi />
       <NASMHeader>
         <HeaderTitle>
           <div className="header-icon">

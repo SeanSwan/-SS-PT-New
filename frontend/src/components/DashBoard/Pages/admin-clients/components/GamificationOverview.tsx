@@ -1413,7 +1413,15 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
               $borderColor={rarityColor(badge.rarity)}
               style={{ margin: '0 auto 8px auto' }}
             >
-              <BadgeCheck size={28} color={rarityColor(badge.rarity)} />
+              {badge.iconUrl ? (
+                <img
+                  src={badge.iconUrl}
+                  alt={badge.name}
+                  style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).nextElementSibling as HTMLElement).style.removeProperty('display'); }}
+                />
+              ) : null}
+              <BadgeCheck size={28} color={rarityColor(badge.rarity)} style={badge.iconUrl ? { display: 'none' } : undefined} />
             </AvatarCircle>
             <BadgeName>{badge.name}</BadgeName>
             <BadgeDescription>{badge.description}</BadgeDescription>

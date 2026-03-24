@@ -1673,7 +1673,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                     <FlexRow $gap={4} style={{ marginTop: 4 }}>
                       {client.badges.slice(0, 3).map(badge => (
                         <SmallBadgeAvatar key={badge.id} $borderColor={rarityColor(badge.rarity)} title={badge.description}>
-                          <img src={badge.iconUrl} alt={badge.name} />
+                          <img src={badge.iconUrl} alt={badge.name} onError={(e) => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).alt = badge.name.charAt(0); }} />
                         </SmallBadgeAvatar>
                       ))}
                       {client.badges.length > 3 && (
