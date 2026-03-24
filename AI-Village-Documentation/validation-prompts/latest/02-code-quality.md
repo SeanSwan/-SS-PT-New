@@ -1,491 +1,468 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 56.5s
-> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/components/AdminViewAsBar.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/AdminViewAsWrapper.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutChartsTab.tsx, frontend/src/components/Shared/ShareToFeedModal.tsx, frontend/src/hooks/analytics/useWorkoutAnalytics.ts
-> **Generated:** 3/23/2026, 9:00:44 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 45.9s
+> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutChartsTab.tsx, frontend/src/hooks/analytics/useWorkoutAnalytics.ts, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutLoggerModal.tsx
+> **Generated:** 3/23/2026, 10:27:06 PM
 
 ---
 
-# Code Review: SwanStudios Admin Workout Analytics & Social Sharing
+# Code Review: SwanStudios Workout Analytics Components
 
-## Summary
-Overall code quality is **good** with proper TypeScript usage, React patterns, and styled-components integration. Main concerns: error handling gaps, performance optimizations needed, and some DRY violations.
+## Executive Summary
+**Overall Grade: B+ (85/100)**
+
+Strong TypeScript typing and React patterns, but several performance anti-patterns, DRY violations, and accessibility gaps. The code is production-ready with recommended fixes.
 
 ---
 
 ## 1. TypeScript Best Practices
 
-### ❌ CRITICAL: Missing Type Safety in `useWorkoutAnalytics.ts`
-**File:** `frontend/src/hooks/analytics/useWorkoutAnalytics.ts`
-**Issue:** File is truncated, but based on usage in other files, the hook likely uses `any` for API responses.
+### ✅ STRENGTHS
+- Excellent discriminated union usage in `useWorkoutAnalytics` return type
+- Proper interface exports for cross-component type safety
+- Good use of `useMemo` return type inference
 
-**Evidence from EnhancedWorkoutsModal.tsx:**
+### ❌ FINDINGS
+
+#### **MEDIUM** — Unsafe `any` usage in Victory chart callbacks
+**File:** `WorkoutChartsTab.tsx:110`
 ```tsx
-const raw = resp.data?.clients || resp.data?.data?.clients || [];
-setUsers(raw.map((u: any) => ({ // ❌ Using 'any'
+labels={({ datum }: any) => `${Math.round(datum.volume).toLocaleString()} lbs`}
 ```
-
 **Fix:**
-```typescript
-// Define proper API response types
-interface ClientsAPIResponse {
-  clients: Array<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: 'client' | 'trainer' | 'admin';
-  }>;
-  pagination?: {
-    total: number;
-    page: number;
-    limit: number;
-  };
-}
-
-// Use in fetch
-const resp = await authAxios.get<ClientsAPIResponse>('/api/admin/clients', {
-  params: { limit: 100, page: 1 }
-});
-const raw = resp.data.clients;
-setUsers(raw.map((u) => ({ // ✅ Type-safe
-  id: u.id,
-  firstName: u.firstName,
-  // ...
-})));
-```
-
----
-
-### ⚠️ HIGH: Loose Type Assertions in AdminViewAsWrapper
-**File:** `AdminViewAsWrapper.tsx:133-145`
 ```tsx
-const profile = profileRes.value.data.client || profileRes.value.data.user || profileRes.value.data;
-// ❌ No type guard, assumes structure exists
+import type { DatumValue } from 'victory';
+
+labels={({ datum }: { datum: DatumValue & { volume: number } }) => 
+  `${Math.round(datum.volume).toLocaleString()} lbs`
+}
 ```
 
+#### **LOW** — Implicit `any` in error catch blocks
+**File:** `useWorkoutAnalytics.ts:189`
+```ts
+} catch (err: any) {
+  setError(err.message || 'Failed to load analytics');
+}
+```
 **Fix:**
-```typescript
-interface ProfileAPIResponse {
-  client?: UserProfile;
-  user?: UserProfile;
-  data?: UserProfile;
-}
-
-interface UserProfile {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
-
-// Add type guard
-function extractProfile(data: unknown): UserProfile {
-  const response = data as ProfileAPIResponse;
-  const profile = response.client || response.user || response.data;
-  
-  if (!profile || typeof profile.id !== 'number') {
-    throw new Error('Invalid profile data structure');
-  }
-  
-  return {
-    id: profile.id,
-    firstName: profile.firstName || '',
-    lastName: profile.lastName || '',
-    email: profile.email || '',
-    role: profile.role || 'client',
-  };
+```ts
+} catch (err) {
+  const message = err instanceof Error ? err.message : 'Failed to load analytics';
+  setError(message);
 }
 ```
 
----
-
-### ⚠️ MEDIUM: Missing Discriminated Union for Tab State
-**File:** `EnhancedWorkoutsModal.tsx:237`
+#### **MEDIUM** — Missing null safety in date formatting
+**File:** `EnhancedWorkoutsModal.tsx:168`
 ```tsx
-const [activeTab, setActiveTab] = useState<'history' | 'charts' | 'prs'>('history');
-// ✅ Good use of union type, but could be stronger with discriminated union
+{new Date(session.date).toLocaleDateString(...)}
 ```
-
-**Enhancement:**
-```typescript
-type TabState = 
-  | { type: 'history'; expandedSessions: Set<string> }
-  | { type: 'charts' }
-  | { type: 'prs'; sortBy: 'weight' | 'date' };
-
-const [tabState, setTabState] = useState<TabState>({ 
-  type: 'history', 
-  expandedSessions: new Set() 
-});
+**Risk:** Invalid dates crash the component. Add guard:
+```tsx
+{session.date 
+  ? new Date(session.date).toLocaleDateString('en-US', {...})
+  : 'No date'
+}
 ```
 
 ---
 
 ## 2. React Patterns
 
-### ❌ CRITICAL: Stale Closure Risk in AdminViewAsBar
-**File:** `AdminViewAsBar.tsx:87-95`
-```tsx
-useEffect(() => {
-  const handleClick = (e: MouseEvent) => {
-    if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-      setShowDropdown(false); // ❌ Closure captures initial state
-    }
-  };
-  document.addEventListener('mousedown', handleClick);
-  return () => document.removeEventListener('mousedown', handleClick);
-}, []); // ❌ Empty deps — handleClick never updates
-```
+### ✅ STRENGTHS
+- Proper `useCallback` memoization in `useWorkoutAnalytics`
+- Correct lazy loading with `Suspense` boundaries
+- Good error boundary implementation for `VoiceMemoUpload`
 
-**Fix:**
-```tsx
-useEffect(() => {
-  const handleClick = (e: MouseEvent) => {
-    if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-      setShowDropdown(false);
-    }
-  };
-  document.addEventListener('mousedown', handleClick);
-  return () => document.removeEventListener('mousedown', handleClick);
-}, [showDropdown]); // ✅ Include dependency OR use callback ref pattern
-```
+### ❌ FINDINGS
 
-**Better solution (no deps needed):**
-```tsx
-const handleClickOutside = useCallback((e: MouseEvent) => {
-  if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-    setShowDropdown(false);
-  }
-}, []);
-
-useEffect(() => {
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => document.removeEventListener('mousedown', handleClickOutside);
-}, [handleClickOutside]);
-```
-
----
-
-### ⚠️ HIGH: Missing Memoization in EnhancedWorkoutsModal
-**File:** `EnhancedWorkoutsModal.tsx:241-251`
+#### **HIGH** — Stale closure in `groupLogs` memoization
+**File:** `EnhancedWorkoutsModal.tsx:96-108`
 ```tsx
 const groupLogs = useMemo(() => {
-  return (session: WorkoutSession) => { // ❌ Returns function, not memoized data
-    const groups: Record<string, { sets: [...] }> = {};
-    // ... grouping logic
-    return Object.entries(groups);
-  };
-}, []); // ❌ Empty deps means this never changes anyway
+  return (session: WorkoutSession) => { /* ... */ };
+}, []); // ❌ Empty deps — function never updates
 ```
+**Issue:** `useMemo` with empty deps creates a stale closure. This should be a plain function or properly memoized.
 
 **Fix:**
 ```tsx
-// Move grouping logic outside component or memoize per session
-const groupLogsByExercise = (session: WorkoutSession) => {
-  const groups: Record<string, { sets: Array<{...}> }> = {};
-  for (const log of session.logs) {
-    if (!groups[log.exerciseName]) {
-      groups[log.exerciseName] = { sets: [] };
-    }
-    groups[log.exerciseName].sets.push({
-      setNumber: log.setNumber,
-      reps: log.reps,
-      weight: log.weight,
-      rpe: log.rpe,
-    });
-  }
+// Option 1: Remove useMemo (function is cheap to recreate)
+const groupLogs = (session: WorkoutSession) => {
+  const groups: Record<string, { sets: SetData[] }> = {};
+  // ... logic
   return Object.entries(groups);
 };
 
-// Use directly in render (pure function, no memo needed)
-{data.sessions.map((session) => {
-  const exerciseGroups = groupLogsByExercise(session);
-  // ...
-})}
+// Option 2: If truly expensive, memoize per-session
+const groupedLogs = useMemo(
+  () => sessions.map(s => ({ id: s.id, groups: groupLogs(s) })),
+  [sessions]
+);
 ```
 
----
-
-### ⚠️ MEDIUM: Unnecessary Re-renders in ShareToFeedModal
-**File:** `ShareToFeedModal.tsx:186-189`
-```tsx
-React.useEffect(() => {
-  if (open) setContent(prefilledContent);
-}, [open, prefilledContent]); // ❌ Resets content on every prefilledContent change
+#### **CRITICAL** — Infinite re-render risk in `useWorkoutAnalytics`
+**File:** `useWorkoutAnalytics.ts:192-197`
+```ts
+return useMemo(() => ({
+  data,
+  isLoading,
+  error,
+  refetch: fetchAnalytics, // ❌ fetchAnalytics recreated every render
+}), [data, isLoading, error, fetchAnalytics]);
 ```
-
-**Issue:** If parent re-renders with same prefilled content (reference changes), this resets user's edits.
+**Issue:** `fetchAnalytics` is in deps but not memoized, causing infinite loops.
 
 **Fix:**
-```tsx
-const [content, setContent] = useState('');
-const hasInitialized = useRef(false);
+```ts
+const refetch = useCallback(() => {
+  fetchAnalytics();
+}, [fetchAnalytics]);
 
-React.useEffect(() => {
-  if (open && !hasInitialized.current) {
-    setContent(prefilledContent);
-    hasInitialized.current = true;
-  }
-  if (!open) {
-    hasInitialized.current = false; // Reset for next open
-  }
-}, [open, prefilledContent]);
+return useMemo(() => ({
+  data,
+  isLoading,
+  error,
+  refetch,
+}), [data, isLoading, error, refetch]);
+```
+
+#### **HIGH** — Missing cleanup in `useEffect`
+**File:** `WorkoutLoggerModal.tsx:308-330`
+```tsx
+useEffect(() => {
+  if (!open) return;
+  document.addEventListener('keydown', handleKeyDown);
+  // ... focus logic
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [open, onClose]);
+```
+**Issue:** `handleKeyDown` is recreated every render but not in cleanup deps. Use `useCallback`:
+```tsx
+const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  // ... logic
+}, [onClose]);
+
+useEffect(() => {
+  if (!open) return;
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [open, handleKeyDown]);
 ```
 
 ---
 
 ## 3. Styled-Components & Theme
 
-### ⚠️ HIGH: Hardcoded Colors Violate Theme System
-**File:** `AdminViewAsBar.tsx:33-38`
+### ✅ STRENGTHS
+- Excellent use of CSS custom properties with fallbacks
+- Proper `backdrop-filter` fallback for Safari
+- Good architectural note about containing blocks
+
+### ❌ FINDINGS
+
+#### **HIGH** — Hardcoded colors violate theme system
+**File:** `WorkoutChartsTab.tsx:88-94`
 ```tsx
-const Bar = styled.div`
-  background: rgba(139, 92, 246, 0.1); // ❌ Hardcoded Wing Purple
-  border: 1px solid rgba(139, 92, 246, 0.3); // ❌ Hardcoded
-  // ...
+background: ${p => {
+  if (p.$intensity === 0) return 'var(--bg-surface, #1A1A24)';
+  if (p.$intensity === 1) return '#002060'; // ❌ Hardcoded
+  if (p.$intensity === 2) return '#4070C0'; // ❌ Hardcoded
+  return '#60C0F0'; // ❌ Hardcoded
+}};
+```
+**Fix:** Use theme tokens
+```tsx
+import { MIDNIGHT_SAPPHIRE, SWAN_LAVENDER, ICE_WING } from '../../../../../styles/theme';
+
+background: ${p => {
+  if (p.$intensity === 0) return 'var(--bg-surface, #1A1A24)';
+  if (p.$intensity === 1) return MIDNIGHT_SAPPHIRE;
+  if (p.$intensity === 2) return SWAN_LAVENDER;
+  return ICE_WING;
+}};
+```
+
+#### **MEDIUM** — Inline styles in JSX
+**File:** `EnhancedWorkoutsModal.tsx:145-149`
+```tsx
+<p style={{ color: 'var(--text-secondary, rgba(255,255,255,0.6))', marginTop: '0.5rem' }}>
+  Loading workout data...
+</p>
+```
+**Fix:** Extract to styled component
+```tsx
+const LoadingText = styled.p`
+  color: var(--text-secondary, rgba(255,255,255,0.6));
+  margin-top: 0.5rem;
 `;
 ```
 
-**Fix:**
+#### **LOW** — Inconsistent theme token naming
+**File:** `WorkoutLoggerModal.tsx:85-91`
 ```tsx
-const Bar = styled.div`
-  background: ${({ theme }) => theme.colors.wingPurple}1A; // 10% opacity
-  border: 1px solid ${({ theme }) => theme.colors.wingPurple}4D; // 30% opacity
-  // OR use CSS custom properties:
-  background: rgba(var(--wing-purple-rgb), 0.1);
-  border: 1px solid rgba(var(--wing-purple-rgb), 0.3);
-`;
+const SWAN_CYAN = WING_PURPLE; // ❌ Confusing alias
+const GALAXY_CORE = MIDNIGHT_SAPPHIRE; // ❌ Retired theme reference
 ```
-
-**All hardcoded colors to fix:**
-- `#60C0F0` (Ice Wing) → `var(--accent-primary)` ✅ (already used in some places)
-- `#8B5CF6` (Wing Purple) → `var(--wing-purple)` or `${theme.colors.wingPurple}`
-- `#C6A84B` (Gilded Fern) → `var(--luxury-accent)`
-- `#E0ECF4` (Frost White) → `var(--text-primary)`
-- `#94a3b8` (secondary text) → `var(--text-secondary)`
-
----
-
-### ⚠️ MEDIUM: Inconsistent Color Variable Usage
-**File:** Multiple files
+**Fix:** Remove aliases, use canonical names directly:
 ```tsx
-// AdminViewAsBar.tsx:40
-color: var(--accent-primary, #60C0F0); // ✅ Good fallback
-
-// WorkoutChartsTab.tsx:83-89
-const chartColors = {
-  cyan: '#60C0F0', // ❌ Hardcoded, should use theme
-  purple: '#8B5CF6',
-  // ...
-};
-```
-
-**Fix:** Create centralized theme object:
-```typescript
-// theme.ts
-export const crystallineSwanTheme = {
-  colors: {
-    midnightSapphire: '#002060',
-    royalDepth: '#003080',
-    iceWing: '#60C0F0',
-    arcticCyan: '#50A0F0',
-    gildedFern: '#C6A84B',
-    frostWhite: '#E0ECF4',
-    swanLavender: '#4070C0',
-    wingPurple: '#8B5CF6',
-  },
-  // ...
-};
-
-// Use in styled-components
-import { ThemeProvider } from 'styled-components';
-<ThemeProvider theme={crystallineSwanTheme}>
-  <App />
-</ThemeProvider>
+// Delete lines 85-91, use WING_PURPLE and MIDNIGHT_SAPPHIRE directly
 ```
 
 ---
 
 ## 4. DRY Violations
 
-### ⚠️ HIGH: Duplicated API Error Handling
-**Files:** `AdminViewAsBar.tsx:77-82`, `AdminViewAsWrapper.tsx:126-145`, `ShareToFeedModal.tsx:196-213`
+#### **HIGH** — Duplicated date formatting logic
+**Locations:**
+- `EnhancedWorkoutsModal.tsx:168`
+- `EnhancedWorkoutsModal.tsx:229`
+- `WorkoutLoggerModal.tsx` (implied in truncated code)
 
-**Pattern repeated 3+ times:**
+**Extract to utility:**
 ```tsx
-try {
-  const resp = await authAxios.get('/api/...');
-  const data = resp.data?.field || resp.data?.data?.field || [];
-  // ... process data
-} catch (err: any) {
-  // Silent fail OR basic error message
-}
+// utils/dateFormatters.ts
+export const formatWorkoutDate = (date: string | Date): string => {
+  if (!date) return 'No date';
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return 'Invalid date';
+  return d.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+};
 ```
 
-**Fix:** Create shared API utility:
-```typescript
-// utils/apiHelpers.ts
-interface APIResponse<T> {
-  data?: T;
-  [key: string]: any;
-}
+#### **MEDIUM** — Duplicated empty state component
+**Locations:**
+- `EnhancedWorkoutsModal.tsx:137-141` (No workouts)
+- `EnhancedWorkoutsModal.tsx:223-227` (No PRs)
+- `WorkoutChartsTab.tsx:73` (No chart data)
 
-export async function fetchWithFallback<T>(
-  axiosInstance: AxiosInstance,
-  url: string,
-  options?: AxiosRequestConfig,
-  dataPath: string[] = ['data']
-): Promise<T | null> {
-  try {
-    const response = await axiosInstance.get<APIResponse<T>>(url, options);
-    
-    // Try multiple paths: data.clients, data.data.clients, data
-    for (const path of dataPath) {
-      const value = path.split('.').reduce((obj, key) => obj?.[key], response.data);
-      if (value !== undefined) return value as T;
-    }
-    
-    return response.data as T;
-  } catch (error) {
-    console.error(`API fetch failed for ${url}:`, error);
-    return null;
-  }
-}
-
-// Usage
-const clients = await fetchWithFallback<UserOption[]>(
-  authAxios,
-  '/api/admin/clients',
-  { params: { limit: 100 } },
-  ['clients', 'data.clients', 'data']
-);
-```
-
----
-
-### ⚠️ MEDIUM: Duplicated Empty State Components
-**Files:** `AdminViewAsWrapper.tsx:99-107`, `EnhancedWorkoutsModal.tsx:306-310`, `WorkoutChartsTab.tsx:71-73`
-
-**Fix:** Extract shared component:
+**Extract to shared component:**
 ```tsx
 // components/Shared/EmptyState.tsx
 interface EmptyStateProps {
   icon: React.ReactNode;
   message: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ icon, message, action }) => (
-  <EmptyStateContainer>
-    {icon}
-    <EmptyMessage>{message}</EmptyMessage>
-    {action && (
-      <EmptyAction onClick={action.onClick}>{action.label}</EmptyAction>
-    )}
-  </EmptyStateContainer>
-);
-
-// Usage
-<EmptyState
-  icon={<Dumbbell size={40} />}
-  message="No workouts recorded yet"
-  action={{ label: "Log First Workout", onClick: handleLogWorkout }}
-/>
+export const EmptyState = styled.div<EmptyStateProps>`
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary, #94a3b8);
+  
+  svg { opacity: 0.4; margin-bottom: 12px; }
+`;
 ```
 
----
+#### **HIGH** — Duplicated modal overlay/panel structure
+**Files:** `EnhancedWorkoutsModal.tsx` and `WorkoutLoggerModal.tsx` both define `ModalOverlay`, `ModalPanel`, etc.
 
-### ⚠️ MEDIUM: Duplicated Date Formatting
-**Files:** Multiple files format dates inline:
+**Fix:** Already using `copilot-shared-styles` in `EnhancedWorkoutsModal` — migrate `WorkoutLoggerModal` to same:
 ```tsx
-// EnhancedWorkoutsModal.tsx:329
-{new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-
-// AdminViewAsWrapper.tsx:242
-{new Date(w.date).toLocaleDateString()}
-```
-
-**Fix:**
-```typescript
-// utils/dateFormatters.ts
-export const formatWorkoutDate = (date: string | Date) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-export const formatSessionDateTime = (date: string | Date) => {
-  const d = new Date(date);
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  })}`;
-};
-
-// Usage
-<div>{formatWorkoutDate(session.date)}</div>
+import {
+  ModalOverlay, ModalPanel, ModalHeader, ModalTitle, CloseButton, ModalBody
+} from './copilot-shared-styles';
 ```
 
 ---
 
 ## 5. Error Handling
 
-### ❌ CRITICAL: Silent Failures in AdminViewAsBar
-**File:** `AdminViewAsBar.tsx:77-82`
-```tsx
-try {
-  const resp = await authAxios.get('/api/admin/clients', {
-    params: { limit: 100, page: 1 }
-  });
-  // ... process
-} catch {
-  // Silently fail — admin can still use the search
-  // ❌ No user feedback, no logging, no retry mechanism
-}
-```
+### ✅ STRENGTHS
+- Error boundary for lazy-loaded `VoiceMemoUpload`
+- `Promise.allSettled` for resilient parallel fetching
+- User-facing retry button in error UI
+
+### ❌ FINDINGS
+
+#### **CRITICAL** — No error boundary around Victory charts
+**File:** `WorkoutChartsTab.tsx`
+**Risk:** Victory chart errors crash entire modal.
 
 **Fix:**
 ```tsx
-const [fetchError, setFetchError] = useState<string | null>(null);
-
-try {
-  const resp = await authAxios.get('/api/admin/clients', {
-    params: { limit: 100, page: 1 }
-  });
-  setUsers(/* ... */);
-  setFetchError(null);
-} catch (error) {
-  console.error('Failed to fetch clients:', error);
-  setFetchError('Could not load client list. Search may be limited.');
-  
-  // Optional: Show toast notification
-  toast({
-    title: 'Warning',
-    description: 'Client list unavailable. Try refreshing.',
-    variant: 'warning',
-  });
+// WorkoutChartsTab.tsx
+class ChartErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) {
+    console.error('[Chart] Render error:', error);
+  }
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
 }
 
-// In render:
-{fetchError && (
-  <ErrorBanner>
-    {fetchError}
-    <RetryButton onClick={fetchUsers}>Retry</RetryButton>
-  </ErrorBanner>
-)}
+// Wrap each chart:
+<ChartErrorBoundary fallback={<EmptyChart>Chart failed to render</EmptyChart>}>
+  <VictoryChart>...</VictoryChart>
+</ChartErrorBoundary>
+```
+
+#### **HIGH** — Silent failure in derived analytics
+**File:** `useWorkoutAnalytics.ts:128-145`
+```ts
+} else {
+  // Derive from sessions
+  const weekMap = new Map<string, { volume: number; count: number }>();
+  // ... no error logging if derivation fails
+}
+```
+**Fix:** Add console warnings for debugging:
+```ts
+} else {
+  console.warn('[Analytics] Volume API failed, deriving from sessions');
+  // ... derivation logic
+}
+```
+
+#### **MEDIUM** — Generic error message loses context
+**File:** `WorkoutLoggerModal.tsx:395-399`
+```tsx
+} catch (err: any) {
+  toast({
+    title: 'Error',
+    description: err.message || 'Failed to log workout', // ❌ No HTTP status
+    variant: 'destructive',
+  });
+}
+```
+**Fix:**
+```tsx
+} catch (err) {
+  const message = err instanceof Error ? err.message : 'Unknown error';
+  const status = (err as any)?.response?.status;
+  toast({
+    title: 'Failed to Log Workout',
+    description: status === 403 
+      ? 'Permission denied' 
+      : status === 422 
+        ? 'Invalid workout data' 
+        : message,
+    variant: 'destructive',
+  });
+}
 ```
 
 ---
 
-### ⚠️ HIGH: Missing Error Boundary for Lazy-Loaded Charts
-**File:** `EnhancedWorkou
+## 6. Performance Anti-Patterns
+
+#### **CRITICAL** — Inline object creation in render loop
+**File:** `EnhancedWorkoutsModal.tsx:163-177`
+```tsx
+{data.sessions.map((session) => {
+  const isExpanded = expandedSessions.has(session.id);
+  const exerciseGroups = groupLogs(session); // ❌ Computed every render
+  return (
+    <SessionCard key={session.id}>
+```
+**Issue:** `groupLogs(session)` runs for ALL sessions on every render, even collapsed ones.
+
+**Fix:** Memoize grouped data
+```tsx
+const groupedSessions = useMemo(() => 
+  data?.sessions.map(session => ({
+    ...session,
+    exerciseGroups: groupLogs(session),
+  })) ?? [],
+  [data?.sessions]
+);
+
+// In render:
+{groupedSessions.map((session) => {
+  const isExpanded = expandedSessions.has(session.id);
+  return (
+    <SessionCard key={session.id}>
+      {/* Use session.exerciseGroups */}
+```
+
+#### **HIGH** — Inline function in onClick breaks memoization
+**File:** `EnhancedWorkoutsModal.tsx:180`
+```tsx
+<ShareIconBtn onClick={(e) => { e.stopPropagation(); setShareSession(session); }}>
+```
+**Issue:** New function created every render for every session.
+
+**Fix:**
+```tsx
+const handleShare = useCallback((session: WorkoutSession) => (e: React.MouseEvent) => {
+  e.stopPropagation();
+  setShareSession(session);
+}, []);
+
+// In render:
+<ShareIconBtn onClick={handleShare(session)}>
+```
+
+#### **HIGH** — Expensive calendar computation not memoized
+**File:** `WorkoutChartsTab.tsx:81-92`
+```tsx
+const calendarCells = React.useMemo(() => {
+  const cells: { date: string; count: number }[] = [];
+  const today = new Date(); // ❌ Creates new Date every time deps change
+  // ... 90 iterations
+}, [data.workoutCalendar]);
+```
+**Issue:** `new Date()` inside `useMemo` causes unnecessary recalculations.
+
+**Fix:**
+```tsx
+const calendarCells = useMemo(() => {
+  const cells: { date: string; count: number }[] = [];
+  const today = Date.now(); // Use timestamp
+  const calMap = new Map(data.workoutCalendar.map(c => [c.date, c.count]));
+  
+  for (let i = 89; i >= 0; i--) {
+    const timestamp = today - (i * 86400000); // 24h in ms
+    const d = new Date(timestamp);
+    const key = d.toISOString().split('T')[0];
+    cells.push({ date: key, count: calMap.get(key) || 0 });
+  }
+  return cells;
+}, [data.workoutCalendar]);
+```
+
+#### **MEDIUM** — Inline style objects in loops
+**File:** `EnhancedWorkoutsModal.tsx:195-197`
+```tsx
+<div style={{ padding: '0 16px 16px' }}>
+  <ExerciseTable>
+    <Td rowSpan={sets.length} style={{ fontWeight: 500, verticalAlign: 'top' }}>
+```
+**Fix:** Extract to styled components
+```tsx
+const ExerciseTableWrapper = styled.div`
+  padding: 0 16px 16px;
+`;
+
+const ExerciseNameCell = styled(Td)`
+  font-weight: 500;
+  vertical-align: top;
+`;
+```
+
+#### **LOW** — Missing `key` prop in nested map
+**File:** `EnhancedWorkoutsModal.tsx:200-210`
+```tsx
+{exerciseGroups.map(([exerciseName, { sets }]) =>
+  sets.map((set, idx) => (
+    <tr key={`${exerciseName}-${set.setNumber}`}> {/* ✅ Good */}
+```
+**Status:** Actually correct — using stable composite key. No issue.
+
+---
+
+## 7. Accessibility
+
+#### **HIGH** — Missing
 
 ---
 

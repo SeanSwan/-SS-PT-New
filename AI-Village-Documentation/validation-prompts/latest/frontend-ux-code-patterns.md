@@ -1,68 +1,60 @@
 # Frontend UX & Code Patterns — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 8.9s
-> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/components/AdminViewAsBar.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/AdminViewAsWrapper.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutChartsTab.tsx, frontend/src/components/Shared/ShareToFeedModal.tsx, frontend/src/hooks/analytics/useWorkoutAnalytics.ts
-> **Generated:** 3/23/2026, 9:00:44 PM
+> **Status:** PASS | **Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 6.4s
+> **Files:** frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutChartsTab.tsx, frontend/src/hooks/analytics/useWorkoutAnalytics.ts, frontend/src/components/DashBoard/Pages/admin-clients/components/WorkoutLoggerModal.tsx
+> **Generated:** 3/23/2026, 10:27:06 PM
 
 ---
 
-This review evaluates the **SwanStudios** admin-client management suite. The codebase demonstrates strong adherence to the "Crystalline Swan" design language and clean component architecture.
+This review evaluates the SwanStudios frontend codebase against the specified "Crystalline Swan" design system and React best practices.
 
 ### 1. React Component Patterns
-*   **Finding:** **Prop Drilling in `EnhancedWorkoutsModal`** — The modal passes `clientId` and `clientName` down, but the `useWorkoutAnalytics` hook is called inside the modal.
-    *   **Recommendation:** Ensure the `useWorkoutAnalytics` hook handles the `null` ID case gracefully (which it currently does) to prevent unnecessary API calls.
-    *   **Rating:** **LOW**
-*   **Finding:** **Lazy Loading** — `WorkoutChartsTab` is correctly implemented with `lazy` and `Suspense`, which is excellent for performance given the weight of the `victory` library.
-    *   **Rating:** **HIGH (Positive)**
+*   **Finding:** **High** — `WorkoutLoggerModal.tsx` is monolithic (exceeding 300 lines).
+    *   **Recommendation:** Extract `ExerciseEntryRow` and `SetRow` into standalone components. This will improve readability, simplify state updates, and prevent unnecessary re-renders of the entire modal when a single input changes.
+*   **Finding:** **Medium** — `useWorkoutAnalytics` uses `Promise.allSettled` correctly, but the derivation logic (calculating PRs/Volume from sessions if the API fails) is heavy.
+    *   **Recommendation:** Move the derivation logic into a memoized utility function outside the hook to keep the hook focused on orchestration.
 
 ### 2. styled-components Best Practices
-*   **Finding:** **Hardcoded Colors** — Several components (e.g., `AdminViewAsBar`, `AdminViewAsWrapper`) use hardcoded hex values (e.g., `#60C0F0`, `#8B5CF6`) instead of the defined theme tokens.
-    *   **Recommendation:** Move these to a global `theme` object or CSS variables defined in your `GlobalStyle` to ensure consistency across the "Crystalline Swan" theme.
-    *   **Rating:** **MEDIUM**
-*   **Finding:** **Glassmorphism Consistency** — The `backdrop-filter` usage is inconsistent. Some components use `@supports` checks, while others do not.
-    *   **Recommendation:** Create a shared `GlassPanel` styled component to standardize the `background: rgba(...)` and `backdrop-filter` logic.
-    *   **Rating:** **MEDIUM**
+*   **Finding:** **High** — Hardcoded colors (e.g., `#ff6b6b`, `#002060`) persist in `WorkoutLoggerModal.tsx` and `WorkoutChartsTab.tsx`.
+    *   **Recommendation:** You have a defined palette. Replace all hex codes with CSS variables (e.g., `var(--accent-primary)` or `var(--wing-purple)`) to ensure theme consistency and support future theme toggling.
+*   **Finding:** **Medium** — `backdrop-filter` usage is good, but ensure `ModalOverlay` z-index management is centralized in a global theme or constant file to avoid "z-index wars" as the app grows.
 
 ### 3. Animation & Interaction
-*   **Finding:** **Lack of Reduced Motion** — Transitions (e.g., `transition: width 0.6s ease` in `XPFill`) do not respect `prefers-reduced-motion`.
-    *   **Recommendation:** Wrap animations in a media query: `@media (prefers-reduced-motion: reduce) { transition: none; }`.
-    *   **Rating:** **LOW**
-*   **Finding:** **Hover States** — The `SessionCard` and `DropdownItem` hover states are well-implemented, providing good visual feedback.
-    *   **Rating:** **HIGH (Positive)**
+*   **Finding:** **Medium** — `WorkoutChartsTab.tsx` uses `Victory` charts. While functional, the `CalendarCell` hover effect uses `transform: scale(1.2)`.
+    *   **Recommendation:** Ensure `prefers-reduced-motion` is respected. You have a media query for it, but consider using `framer-motion` for more fluid, accessible transitions that automatically respect system settings.
 
 ### 4. Form UX
-*   **Finding:** **Textarea Accessibility** — In `ShareToFeedModal`, the `TextArea` lacks a label or `aria-label`. While the modal has an `aria-label`, the input itself needs an `aria-describedby` or a visible label for screen readers.
-    *   **Recommendation:** Add a visually hidden label or a clear `aria-label="Post content"`.
-    *   **Rating:** **MEDIUM**
-*   **Finding:** **Autofill/Focus** — `autoFocus` is used correctly in the modal, which is great for user flow.
-    *   **Rating:** **HIGH (Positive)**
+*   **Finding:** **CRITICAL** — `WorkoutLoggerModal.tsx` lacks proper keyboard navigation for the dynamic list of exercises.
+    *   **Recommendation:** When adding/removing exercises, focus management is lost. Use a `useRef` array or a focus-trap library to move focus to the newly added exercise input automatically.
+*   **Finding:** **Medium** — The `WorkoutLoggerModal` uses a custom `validate` function.
+    *   **Recommendation:** For a form this complex, integrate `react-hook-form` with `zod` validation. This will drastically reduce boilerplate and provide better error handling for the nested `sets` array.
 
 ### 5. State Management
-*   **Finding:** **Derived State** — `groupLogs` in `EnhancedWorkoutsModal` uses `useMemo` correctly to prevent re-calculating the grouping on every render.
-    *   **Rating:** **HIGH (Positive)**
-*   **Finding:** **Dropdown State** — `AdminViewAsBar` uses a `mousedown` listener to close the dropdown. This is standard, but ensure the `ref` is properly cleaned up to avoid memory leaks if the component unmounts during an async operation.
-    *   **Rating:** **LOW**
+*   **Finding:** **Medium** — `WorkoutLoggerModal` uses `useState` for a deeply nested object (`exercises: Exercise[]`).
+    *   **Recommendation:** This is prone to mutation bugs. Use `useReducer` to handle complex state transitions (e.g., `ADD_SET`, `REMOVE_EXERCISE`, `UPDATE_WEIGHT`) to ensure state updates are predictable and immutable.
 
 ### 6. Accessibility Gaps
-*   **Finding:** **Color-only Indicators** — In `WorkoutChartsTab`, the `CalendarCell` uses color intensity to represent workout frequency. A screen reader user will not perceive this data.
-    *   **Recommendation:** Add an `aria-label` to each `CalendarCell` (e.g., `aria-label="Date: 2026-03-23, 2 workouts"`).
-    *   **Rating:** **CRITICAL**
-*   **Finding:** **Keyboard Navigation** — `SessionHeader` is a button, which is good. However, ensure that the `DropdownItem` in `AdminViewAsBar` supports `Enter` and `Space` keys (standard for `<button>`), which it does.
-    *   **Rating:** **HIGH (Positive)**
+*   **Finding:** **High** — `WorkoutChartsTab.tsx` uses `role="img"` for the calendar heatmap but relies on `data-tooltip` (CSS-only) for information.
+    *   **Recommendation:** CSS-only tooltips are invisible to screen readers. Use an `aria-label` on each `CalendarCell` that describes the date and intensity (which you have partially implemented), but ensure the `HeatmapLegend` is also programmatically associated with the grid.
+*   **Finding:** **Medium** — `EnhancedWorkoutsModal.tsx` uses `button` elements for tabs, which is good, but ensure the `aria-controls` IDs match the actual panels to allow screen readers to jump to the content.
 
 ---
 
-### Summary Table
+### Summary of Ratings
 
-| Finding | Severity | Component |
+| Category | Rating | Primary Issue |
 | :--- | :--- | :--- |
-| **Color-only indicators in Heatmap** | **CRITICAL** | `WorkoutChartsTab.tsx` |
-| **Missing ARIA labels on inputs** | **MEDIUM** | `ShareToFeedModal.tsx` |
-| **Inconsistent Theme Tokens** | **MEDIUM** | Global / Multiple |
-| **Reduced Motion support** | **LOW** | `AdminViewAsWrapper.tsx` |
-| **Lazy Loading Implementation** | **HIGH (P)** | `EnhancedWorkoutsModal.tsx` |
+| **React Patterns** | **HIGH** | Monolithic modal component; needs decomposition. |
+| **Styled Components** | **HIGH** | Hardcoded hex values violating the design system. |
+| **Animation** | **MEDIUM** | Motion needs better `prefers-reduced-motion` integration. |
+| **Form UX** | **CRITICAL** | Poor focus management in dynamic form lists. |
+| **State Management** | **MEDIUM** | Deeply nested state in `useState` is brittle. |
+| **Accessibility** | **HIGH** | CSS-only tooltips are inaccessible to screen readers. |
 
-**Gemini 3.1 Flash Verdict:** The code is production-ready but requires an accessibility pass on the data visualization components to ensure the "Crystalline Swan" experience is inclusive for all users.
+**Next Steps:**
+1.  **Refactor `WorkoutLoggerModal`**: Break into smaller components and move to `useReducer`.
+2.  **Globalize Palette**: Move all hardcoded colors into a `theme.ts` file and use `styled-components` `ThemeProvider`.
+3.  **A11y Audit**: Replace CSS tooltips with a library like `Radix UI` or `Floating UI` to ensure keyboard and screen reader support.
 
 ---
 

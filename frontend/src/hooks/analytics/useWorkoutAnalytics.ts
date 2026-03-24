@@ -16,6 +16,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import {
+  derive1RMProgression, deriveMuscleGroupVolume, deriveRPETrend,
+  calcLongestStreak, calcBrzycki1RM,
+  type OneRMProgression, type MuscleGroupVolume, type RPEPoint,
+} from './workoutAnalyticsUtils';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -77,6 +82,9 @@ export interface IntensityPoint {
   intensity: number;
 }
 
+export type { OneRMProgression, MuscleGroupVolume, RPEPoint };
+export { calcBrzycki1RM };
+
 export interface AnalyticsData {
   sessions: WorkoutSession[];
   weeklyVolume: WeeklyVolume[];
@@ -84,11 +92,15 @@ export interface AnalyticsData {
   intensityTrend: IntensityPoint[];
   workoutCalendar: WorkoutCalendarEntry[];
   personalRecords: PersonalRecord[];
+  oneRMProgression: OneRMProgression[];
+  muscleGroupVolume: MuscleGroupVolume[];
+  rpeTrend: RPEPoint[];
   summary: {
     totalWorkouts: number;
     totalExercises: number;
     totalVolume: number;
     avgIntensity: number;
+    avgRPE: number;
     longestStreak: number;
   };
 }
@@ -255,11 +267,28 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
         .map(([date, count]) => ({ date, count }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
+      // NASM-specific derived analytics
+      const oneRMProgression = derive1RMProgression(sessions);
+      const muscleGroupVolume = deriveMuscleGroupVolume(sessions);
+      const rpeTrend = deriveRPETrend(sessions);
+      const longestStreak = calcLongestStreak(sessions);
+
+      // Add estimated 1RM to personal records that don't have it
+      for (const pr of personalRecords) {
+        if (!pr.estimated1RM && pr.weight > 0 && pr.reps > 0) {
+          pr.estimated1RM = calcBrzycki1RM(pr.weight, pr.reps);
+        }
+      }
+
       // Summary
       const totalVolume = sessions.reduce((sum, s) => sum + s.totalWeight, 0);
       const totalExercises = new Set(sessions.flatMap(s => s.logs.map(l => l.exerciseName))).size;
       const avgIntensity = sessions.length > 0
         ? sessions.reduce((sum, s) => sum + s.intensity, 0) / sessions.length
+        : 0;
+      const allRPEs = sessions.flatMap(s => s.logs.filter(l => l.rpe && l.rpe > 0).map(l => l.rpe!));
+      const avgRPE = allRPEs.length > 0
+        ? allRPEs.reduce((sum, r) => sum + r, 0) / allRPEs.length
         : 0;
 
       setData({
@@ -269,12 +298,16 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
         intensityTrend,
         workoutCalendar,
         personalRecords,
+        oneRMProgression,
+        muscleGroupVolume,
+        rpeTrend,
         summary: {
           totalWorkouts: sessions.length,
           totalExercises,
           totalVolume,
           avgIntensity: Math.round(avgIntensity * 10) / 10,
-          longestStreak: 0,
+          avgRPE: Math.round(avgRPE * 10) / 10,
+          longestStreak,
         },
       });
     } catch (err: any) {

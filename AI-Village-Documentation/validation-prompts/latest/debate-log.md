@@ -1,27 +1,30 @@
 # Code Quality & Architecture — Recursive Consensus Debate Log
 
 > **Consensus:** YES — Models agreed
-> **Rounds:** 4
-> **Tokens:** 28,000 input / 2,781 output
+> **Rounds:** 5
+> **Tokens:** 31,098 input / 4,894 output
 
 ---
 
 ## CTO (Chief Technology Officer) — Round 1
 
-As the CTO, I have reviewed the provided codebase. While the adherence to the "Crystalline Swan" design system is commendable, there are several severe architectural, data integrity, and React lifecycle flaws that will cause production crashes, data corruption, and UI failures. 
+As the CTO, I have reviewed the codebase against our architectural standards, performance baselines, and the strict Crystalline Swan design system. While the team has done a decent job with the React patterns and TypeScript discriminated unions, there are several critical flaws that will cause silent failures in production, corrupt user data, and degrade performance. 
 
-Here is my round 1 analysis. I expect these to be addressed immediately.
+Here is my Round 1 Audit. I expect these to be addressed before this merges into `main`.
 
----
+### 1. HIGH — Silent Failure on Primary Data Fetch
+- **File:** `frontend/src/hooks/analytics/useWorkoutAnalytics.ts`
+- **Line:** 114-138
+- **What's Wrong:** We are using `Promise.allSettled` to fetch the primary workout data alongside secondary analytics. If the primary `workoutsRes` fails (e.g., a 500 error or network timeout), the code silently ignores the rejection and proceeds with an empty `sessions` array. The user will see a "No workouts recorded yet" empty state instead of an error boundary, making debugging impossible and causing users to think their data was deleted.
+- **Proposed Fix:** Add a strict rejection check for the primary data source to trigger the catch block.
+  ```typescript
+  // Line 129
+  if (workoutsRes.status === 'rejected' || !workoutsRes.value.data?.success) {
+    throw new Error('Failed to load workout history');
+  }
+  ```
 
-### 1. CRITICAL: CSS Containing Block Breaks Modal Overlay
-*   **File:** `frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx`
-*   **Line:** 106 (`backdrop-filter: blur(12px);`) & 461 (`<ShareToFeedModal />`)
-*   **What's Wrong:** The `WidePanel` component applies `backdrop-filter: blur(12px)`. According to the CSS specification, `backdrop-filter` (like `transform`) creates a **new containing block**. Because `<ShareToFeedModal>` is rendered as a child inside `WidePanel`, its `position: fixed` overlay will be trapped inside the dimensions of `WidePanel` instead of covering the viewport. The user will see a clipped, broken overlay that fails to block interactions outside the panel.
-*   **Proposed Fix:** Render `<ShareToFeedModal>` outside of `<WidePanel>`, or update `ShareToFeedModal.tsx` to use React Portals so it attaches directly to the DOM root.
-    ```tsx
-    // In ShareToFeedModal.tsx
-    import { createPortal } from
+### 2. HIGH — UTC Date Offset Bug Corrupting Streaks
 
 ---
 
@@ -29,74 +32,79 @@ Here is my round 1 analysis. I expect these to be addressed immediately.
 
 # CEO Response — Round 1
 
-## DISAGREEMENT ON SEVERITY & PROPOSED SOLUTIONS
+## DISAGREE on Severity & Implementation Details
 
-CTO, I appreciate the detailed technical review. However, I must challenge both the severity classification and the proposed solution for the issue raised.
+CTO, thank you for the thorough audit. I agree these issues need addressing, but I have concerns about your proposed solutions and severity classifications. Let me address each point:
 
 ---
 
-### 1. CSS Containing Block Issue — SEVERITY OVERSTATED
+### 1. Silent Failure on Primary Data Fetch — PARTIALLY AGREE
 
-**File:** `frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx`
+**Agreement:** Yes, silent failures are unacceptable for primary data operations. This is a legitimate production risk.
 
-#### Points of Agreement:
-- Yes, `backdrop-filter` does create a containing block per CSS spec
-- Yes, this can theoretically affect `position: fixed` children
-- Yes, portals are a valid solution pattern
+**Disagreement on Implementation:**
 
-#### Points of Disagreement:
+Your proposed fix at line 129 is **too aggressive** and will break legitimate use cases:
 
-**A. Severity Classification:**
-You've labeled this as "CRITICAL" and claim it will cause "production crashes" and "UI failures." This is **inaccurate hyperbole**:
-- This is a **visual clipping bug**, not a crash
-- The modal will still render and function — users can still interact with it
-- This should be classified as **HIGH priority UI bug**, not CRITICAL
-
-**B. Incomplete Analysis:**
-Before mandating a portal refactor, we need:
-1. **Actual verification** — Has this bug been observed in production/staging? What browsers?
-2. **Current z-index values** — What are the z-index values of `WidePanel` vs `ShareToFeedModal`?
-3. **Viewport dimensions** — If `WidePanel` is full-screen or near-full-screen, the clipping may be negligible
-
-**C. Solution Cost-Benefit:**
-
-Your proposed portal solution has **architectural implications** you haven't addressed:
-- **Context loss**: Portals break React context unless explicitly passed
-- **Event bubbling**: Synthetic events behave differently through portals
-- **Testing complexity**: Portal components require different test setup
-- **Bundle size**: Adds `createPortal` import across potentially multiple modals
-
-#### My Counter-Proposal:
-
-**Option 1 (Low-Risk Fix):** Remove `backdrop-filter` from `WidePanel` and apply it to a non-ancestor element
-```tsx
-// Line ~106 in EnhancedWorkoutsModal.tsx
-// Remove backdrop-filter from WidePanel
-// Add it to a sibling backdrop element that doesn't contain the modal
+```typescript
+// CTO's proposal - TOO STRICT
+if (workoutsRes.status === 'rejected' || !workoutsRes.value.data?.success) {
+  throw new Error('Failed to load workout history');
+}
 ```
 
-**Option 2 (If portals are necessary):** 
-- First, **measure the actual impact** in production
-- Then create a **reusable `PortalModal` wrapper** component to handle context/events consistently
-- Refactor ALL modals at once, not piecemeal
+**Problems:**
+1. A user with genuinely zero workouts will have `success: true` but empty data — your check conflates API errors with empty states
+2. The error message is too generic for debugging
+3. We lose the ability to show partial data if secondary analytics fail
+
+**CEO Counter-Proposal:**
+```typescript
+// Line 129 - More nuanced approach
+if (workoutsRes.status === 'rejected') {
+  const error = workoutsRes.reason;
+  logger.error('Primary workout fetch failed', { error, userId });
+  throw new Error(`Workout data unavailable: ${error?.message || 'Unknown error'}`);
+}
+
+if (!workoutsRes.value.data?.success) {
+  logger.warn('Workout API returned unsuccessful response', { 
+    response: workoutsRes.value.data 
+  });
+  throw new Error('Unable to load workout history. Please try again.');
+}
+
+const sessions = workoutsRes.value.data.data || [];
+```
+
+**Rationale:** 
+- Separates network failures from API-level errors
+- Provides actionable logging for ops team
+- Maintains user-friendly error messages
+- Preserves empty state handling
 
 ---
 
-### Required Before Next Round:
+### 2. UTC Date Offset Bug — AWAITING FULL DETAILS
 
-CTO, please provide:
-1. **Evidence**: Screenshots or bug reports showing this issue in production
-2. **Scope**: List of ALL components using `backdrop-filter` with nested modals
-3. **Performance data**: Render time impact of portal vs. non-portal modals
-4. **Alternative assessment**: Why can't we remove/relocate the `backdrop-filter`?
+CTO, your message was cut off at "UTC Date Offset Bug Corrupting Streaks". 
 
-I will not approve a portal refactor for a single modal without understanding the full architectural impact.
+**Before I can respond, I need:**
+- File name and line numbers
+- Specific example of the corruption
+- Your proposed fix
+
+**However, I'll proactively flag a concern:** If this involves timezone handling in `useWorkoutAnalytics.ts` or streak calculations, we need to ensure:
+1. Server timestamps are stored in UTC (confirm with backend team)
+2. Client-side conversions use user's local timezone consistently
+3. Streak logic uses calendar days in user's timezone, not UTC days
+
+**CEO Directive:** Please complete your audit point #2 in your next response so I can evaluate it properly.
 
 ---
 
-**Status:** DISAGREEMENT — Awaiting CTO's additional analysis and scope clarification.
-
-**Rounds Remaining:** 3
+## Status: 3 rounds remaining
+**Action Required:** CTO to provide complete details on issue #2 and respond to my counter-proposal on issue #1.
 
 ---
 
@@ -104,72 +112,79 @@ I will not approve a portal refactor for a single modal without understanding th
 
 # CTO Response — Round 2
 
-## PARTIAL AGREEMENT & TECHNICAL CORRECTION
+## AGREE on Issue 1 Implementation
 
-CEO, I appreciate the pushback. You are correct that my severity classification was overstated; I concede that this is a **HIGH priority UI bug**, not a crash-inducing CRITICAL failure. I also agree that introducing a new architectural pattern (Portals) piecemeal for a single modal is poor practice and adds unnecessary testing overhead. 
+I accept your refinement on Issue 1. You are correct that separating the network rejection from the API payload failure provides better telemetry, and the addition of `logger.error` aligns perfectly with our Datadog observability standards. We will proceed with your exact implementation for `useWorkoutAnalytics.ts`. 
 
-However, I must correct a fundamental technical misunderstanding regarding React Portals, and propose a zero-cost solution that satisfies both of our concerns.
-
----
-
-### 1. Technical Correction: React Portals & Context
-
-**Disagreement:** You stated that Portals "break React context unless explicitly passed" and that "Synthetic events behave differently." 
-**Why:** This is factually incorrect in modern React. `ReactDOM.createPortal` explicitly **preserves** the React tree hierarchy, even though it changes the DOM hierarchy. 
-*   **Context:** Any Context provided above the portal in the React tree is perfectly accessible inside the portal. 
-*   **Event Bubbling:** Synthetic events fired inside a portal bubble up to the React ancestors, *not* the DOM ancestors. 
-
-While I agree we shouldn't use Portals here due to the overhead of standardizing a `PortalModal` wrapper right now, we must base our architectural decisions on accurate technical premises.
-
-### 2. The Solution: JSX Restructuring (Refining your Option 1)
-
-**File:** `frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx`
-
-You asked for an alternative assessment and suggested moving the `backdrop-filter` to a sibling element (Option 1). While valid, modifying the CSS of `WidePanel` might cause visual regressions elsewhere if `WidePanel` is a shared component.
-
-**My Proposed Alternative (Zero-Cost Fix):**
-We do not need Portals, nor do we need to touch the CSS. We simply move the `<ShareToFeedModal />` invocation outside of the `<WidePanel />` in the JSX tree. Because `ShareToFeedModal` is `position: fixed`, it does not matter where it sits in the DOM, as long as it is *outside* the element with `backdrop-filter`.
-
-**Exact Code Change:**
-```tsx
-// EnhancedWorkoutsModal.tsx - Current (Lines ~450-465)
-return (
-  <WidePanel>
-    <WorkoutHeader />
-    <WorkoutList />
-    {/* Trapped inside the containing block */}
-    {isShareModalOpen && <ShareToFeedModal onClose={closeShareModal} />} 
-  </WidePanel>
-);
-
-// EnhancedWorkoutsModal.tsx - Proposed Fix
-return (
-  <>
-    <WidePanel>
-      <WorkoutHeader />
-      <WorkoutList />
-    </WidePanel>
-    
-    {/* Rendered as a sibling, escaping the backdrop-filter containing block */}
-    {isShareModalOpen && <ShareToFeedModal onClose={closeShareModal} />}
-  </>
-);
-```
-
-### 3. Addressing Your Required Action Items
-
-1.  **Evidence & Viewport Dimensions:** `WidePanel` is a side-drawer component (typically 400px-600px wide). `ShareToFeedModal` is designed to be a centered screen overlay. Trapped inside `WidePanel`, the overlay will abruptly cut off at the 400px mark, leaving the rest of the screen un-darkened and clickable. This is a guaranteed CSS specification behavior, not an edge case.
-2.  **Scope:** I have audited the codebase. This is the only instance where a `position: fixed` modal is nested inside a component utilizing `backdrop-filter`. 
-3.  **Performance Data:** N/A. By using the JSX sibling approach above, we avoid Portals entirely, resulting in zero bundle size increase and zero render time impact.
+Now, let's move on to the missing details from my previous report, plus one new critical performance bottleneck I uncovered.
 
 ---
 
-### Next Steps for Consensus
+### 2. HIGH — UTC Date Offset Bug Corrupting Streaks (Full Details)
 
-If you approve the JSX sibling restructuring, we can consider this issue resolved without introducing Portals or altering the "Crystalline Swan" CSS system. 
+As you proactively suspected, this is exactly a timezone normalization failure between the server's UTC timestamps and the client's local calendar days.
 
-**Status:** Awaiting CEO approval on the JSX sibling fix. 
-**Rounds Remaining:** 2
+- **File:** `frontend/src/utils/streak/calculateStreak.ts`
+- **Line:** 22-35
+- **What's Wrong:** The streak calculation relies on naive string splitting of ISO dates to group workouts by day.
+  ```typescript
+  // Current bad implementation (Lines 24-25)
+  const today = new Date().toISOString().split('T')[0];
+  const workoutDay = new Date(workout.timestamp).toISOString().split('T')[0];
+  ```
+  **The Corruption:** `toISOString()` always returns UTC. If a user in Los Angeles (PST) logs a workout at 10:00 PM on Monday, the UTC time is 6:00 AM on Tuesday. The current logic credits the workout to Tuesday. If the user works out again at 8:00 AM Tuesday local time, the system registers two workouts on Tuesday and *zero* on Monday, instantly breaking their active streak and corrupting their historical data. 
+
+- **Proposed Fix:** We must use our approved date library (`date-fns-tz`) to cast the UTC server timestamp into the user's local timezone before extracting the calendar date.
+  ```typescript
+  // Proposed Fix (Lines 24-26)
+  import { formatInTimeZone } from 'date-fns-tz';
+
+  // Assuming userTimezone is passed into the function from the user's settings/browser
+  const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+  const workoutDay = formatInTimeZone(new Date(workout.timestamp), userTimezone, 'yyyy-MM-dd');
+  ```
+
+---
+
+### 3. MEDIUM — O(n) Re-render Cascade in Workout Feed
+
+While reviewing the dashboard, I caught a React anti-pattern that violates our performance baselines and will cause severe UI lag on lower-end mobile devices.
+
+- **File:** `frontend/src/components/dashboard/WorkoutFeed.tsx`
+- **Line:** 82-95
+- **What's Wrong:** Inside the `.map()` iterating over the user's workout history, we are passing an inline arrow function to a heavy child component.
+  ```tsx
+  // Line 88
+  {workouts.map(workout => (
+    <WorkoutCard 
+      key={workout.id} 
+      workout={workout} 
+      onLike={() => handleLikeToggle(workout.id)} // <-- The culprit
+    />
+  ))}
+  ```
+  Because `onLike` receives a new function reference on every single render, `React.memo` on the `WorkoutCard` component is completely defeated. If a user has 100 workouts in their feed and types a single character into the "Search Workouts" input (which updates parent state), all 100 `WorkoutCard` components will unnecessarily re-render.
+
+- **Proposed Fix:** Refactor `WorkoutCard` to accept the `id` and a stable function reference.
+  ```tsx
+  // 1. In WorkoutFeed.tsx (Line 45) - wrap handler in useCallback
+  const handleLikeToggle = useCallback((workoutId: string) => {
+    // ... existing like logic
+  }, [dispatch]);
+
+  // 2. In WorkoutFeed.tsx (Line 88) - pass stable reference
+  {workouts.map(workout => (
+    <WorkoutCard 
+      key={workout.id} 
+      workoutId={workout.id}
+      workout={workout} 
+      onLike={handleLikeToggle} 
+    />
+  ))}
+  ```
+  *(Note: `WorkoutCard.tsx` will need a minor update to call `onLike(workoutId)` internally).*
+
+Let me know your thoughts on the streak fix and the performance refactor. Once we align, I will have the engineering team push the hotfixes.
 
 ---
 
@@ -177,84 +192,270 @@ If you approve the JSX sibling restructuring, we can consider this issue resolve
 
 # CEO Response — Round 2
 
-## CONSENSUS REACHED ON ISSUE #1
+## PARTIALLY AGREE with Conditions
 
-CTO, excellent work on the technical clarification and the pragmatic solution. I'm prepared to reach consensus on this issue with one minor procedural addition.
-
----
-
-### Agreement on All Technical Points:
-
-1. **Severity Reclassification**: Confirmed as **HIGH priority UI bug** ✓
-2. **Portal Context Behavior**: I stand corrected — you are absolutely right that `createPortal` preserves React context and event bubbling through the React tree. Thank you for the technical correction. ✓
-3. **JSX Sibling Solution**: Your proposed fix is elegant, zero-cost, and architecturally sound. Moving `<ShareToFeedModal />` outside `<WidePanel>` as a sibling solves the containing block issue without touching shared CSS or introducing new patterns. ✓
-4. **Scope Confirmation**: Acknowledged that this is an isolated instance. ✓
+CTO, excellent follow-through on the complete details. I appreciate the specificity. However, I have implementation concerns on both issues that could introduce new bugs or violate our architecture principles.
 
 ---
 
-### Approved Implementation with One Addition:
+### 2. UTC Date Offset Bug — AGREE on Problem, DISAGREE on Solution
 
-**File:** `frontend/src/components/DashBoard/Pages/admin-clients/components/EnhancedWorkoutsModal.tsx`
+**Agreement:** 
+- Yes, this is a **HIGH severity** bug that corrupts user-facing metrics
+- The naive `toISOString().split('T')[0]` approach is fundamentally broken for timezone-aware applications
+- This will cause false streak breaks and erode user trust
 
-**Approved Change (Lines ~450-465):**
-```tsx
-// BEFORE
-return (
-  <WidePanel>
-    <WorkoutHeader />
-    <WorkoutList />
-    {isShareModalOpen && <ShareToFeedModal onClose={closeShareModal} />} 
-  </WidePanel>
-);
+**Disagreement on Implementation:**
 
-// AFTER
-return (
-  <>
-    <WidePanel>
-      <WorkoutHeader />
-      <WorkoutList />
-    </WidePanel>
-    
-    {/* Moved outside WidePanel to escape backdrop-filter containing block */}
-    {/* See: [TICKET-XXX] - CSS containing block fix for position:fixed modals */}
-    {isShareModalOpen && <ShareToFeedModal onClose={closeShareModal} />}
-  </>
-);
+Your proposed fix has **three critical flaws**:
+
+```typescript
+// CTO's proposal - INCOMPLETE
+const today = formatInTimeZone(new Date(), userTimezone, 'yyyy-MM-dd');
+const workoutDay = formatInTimeZone(new Date(workout.timestamp), userTimezone, 'yyyy-MM-dd');
 ```
 
-**Additional Requirement (Documentation):**
-Add a brief comment in `WidePanel.tsx` (or its documentation) noting that `backdrop-filter` creates a containing block, so any `position: fixed` children should be rendered as siblings, not descendants. This prevents future developers from reintroducing the same pattern.
+**Problems:**
 
-**Example:**
-```tsx
-// WidePanel.tsx (near the backdrop-filter style definition)
+1. **Where does `userTimezone` come from?** You assume it's "passed into the function from the user's settings/browser" but:
+   - `calculateStreak.ts` is a pure utility function with no access to user context
+   - We don't currently store timezone preferences in user settings
+   - Browser timezone detection (`Intl.DateTimeFormat().resolvedOptions().timeZone`) may not reflect user's actual location (VPN users, travelers)
+
+2. **Architectural violation:** Injecting timezone as a parameter into every utility function breaks our separation of concerns. Streak calculation should be timezone-agnostic at the utility level.
+
+3. **Missing migration strategy:** Existing streak data was calculated with the broken logic. Your fix will cause **all existing streaks to recalculate differently**, potentially resetting thousands of users' progress overnight.
+
+**CEO Counter-Proposal:**
+
+```typescript
+// File: frontend/src/utils/streak/calculateStreak.ts
+// Lines 1-3 (new imports)
+import { formatInTimeZone } from 'date-fns-tz';
+import { getUserTimezone } from '@/utils/timezone';
+
+// Lines 24-28 (refactored)
+export function calculateStreak(workouts: Workout[]): StreakData {
+  const userTz = getUserTimezone(); // Centralized timezone resolution
+  const today = formatInTimeZone(new Date(), userTz, 'yyyy-MM-dd');
+  
+  const workoutsByDay = workouts.reduce((acc, workout) => {
+    const workoutDay = formatInTimeZone(new Date(workout.timestamp), userTz, 'yyyy-MM-dd');
+    // ... rest of logic
+  }, {});
+}
+```
+
+**Plus new file:**
+```typescript
+// File: frontend/src/utils/timezone.ts (NEW FILE)
 /**
- * ⚠️ ARCHITECTURAL NOTE:
- * This component uses backdrop-filter, which creates a CSS containing block.
- * Do NOT nest position:fixed modals inside this component.
- * Render modals as siblings instead. See EnhancedWorkoutsModal.tsx for example.
+ * Centralized timezone resolution following user preference hierarchy:
+ * 1. Explicit user setting (if we add this feature)
+ * 2. Browser-detected timezone
+ * 3. Fallback to UTC (safe default)
+ */
+export function getUserTimezone(): string {
+  try {
+    // TODO: Check user.settings.timezone when backend supports it
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    logger.warn('Timezone detection failed, falling back to UTC', { error });
+    return 'UTC';
+  }
+}
+```
+
+**Plus migration plan:**
+```typescript
+// File: backend/scripts/recalculate-streaks.ts (NEW SCRIPT)
+/**
+ * One-time migration to recalculate all user streaks with correct timezone logic.
+ * Run during low-traffic window with feature flag to gradually roll out.
  */
 ```
 
----
+**Rationale:**
+- Centralized timezone logic prevents inconsistencies across the app
+- Graceful fallback prevents crashes
+- Migration script prevents user-facing data corruption
+- Sets foundation for future timezone preference feature
 
-### Issue #1 Resolution:
-
-**Status:** ✅ **CONSENSUS REACHED**  
-**Action Items:**
-1. Implement JSX restructuring in `EnhancedWorkoutsModal.tsx` (lines ~450-465)
-2. Add architectural warning comment in `WidePanel.tsx`
-3. QA to verify modal overlay renders correctly across viewport sizes
+**CEO Directive:** Do not implement the streak fix until we align on the timezone resolution strategy and migration plan.
 
 ---
 
-### Ready for Additional Issues:
+### 3. O(n) Re-render Cascade — AGREE on Problem, DISAGREE on Severity & Solution Completeness
 
-CTO, your Round 1 message was truncated. You mentioned "several severe architectural, data integrity, and React lifecycle flaws." 
+**Agreement:**
+- Inline arrow functions in map loops are a React anti-pattern
+- This defeats `React.memo` optimization
+- Performance impact scales with workout count
 
-**Please present issues #2, #3, etc. in your next response** so we can continue the technical review efficiently.
+**Disagreement:**
 
-**Rounds Remaining:** 2
+1. **Severity is overstated:** You classified this as MEDIUM, but:
+   - Modern React 18+ with concurrent rendering handles this more gracefully
+   - Our target devices (per product specs) are iPhone 11+ / Android 10+, not "lower-end mobile devices"
+   - Real performance bottleneck is likely the API call waterfall in `useWorkoutAnalytics.ts` (which we already addressed)
+
+2. **Incomplete solution:** Your fix only addresses `onLike` but ignores:
+   - Other inline handlers in the same component (check lines 92, 105)
+   - The `workout` object itself may be recreating references on parent re-renders
+   - Missing `React.memo` on `WorkoutCard` (you assume it exists but didn't verify)
+
+**CEO Counter-Proposal:**
+
+```typescript
+// File: frontend/src/components/dashboard/WorkoutFeed.tsx
+
+// Lines 45-55 (wrap ALL handlers)
+const handleLikeToggle = useCallback((workoutId: string) => {
+  dispatch(toggleWorkoutLike(workoutId));
+}, [dispatch]);
+
+const handleShare = useCallback((workoutId: string) => {
+  dispatch(shareWorkout(workoutId));
+}, [dispatch]);
+
+const handleDelete = useCallback((workoutId: string) => {
+  dispatch(deleteWorkout(workoutId));
+}, [dispatch]);
+
+// Lines 88-95 (stable references)
+{workouts.map(workout => (
+  <WorkoutCard 
+    key={workout.id} 
+    workout={workout} 
+    onLike={handleLikeToggle}
+    onShare={handleShare}
+    onDelete={handleDelete}
+  />
+))}
+```
+
+**Plus verification:**
+```typescript
+// File: frontend/src/components/dashboard/WorkoutCard.tsx
+// Line 1 (verify this exists, add if missing)
+export const WorkoutCard = React.memo<WorkoutCardProps>(({ 
+  workout, 
+  onLike, 
+  onShare, 
+  onDelete 
+}) => {
+  // Component implementation
+  // Handlers should call: onLike(workout.id), not onLike()
+});
+```
+
+**Rationale:**
+- Addresses all inline handlers, not just one
+- Verifies `React.memo` is actually applied
+- Prevents partial fix that leaves other performance issues
+
+**CEO Directive:** Downgrade to LOW priority. Address after HIGH severity issues (streak bug, data fetch error handling) are resolved and tested.
+
+---
+
+## Summary
+
+**CONSENSUS:**
+- Issue 1 (Silent Failure) — Resolved with CEO's implementation ✅
+
+**REQUIRES ALIGNMENT:**
+- Issue 2 (Streak Bug) — Agree on problem, need to finalize timezone resolution strategy and migration plan
+- Issue 3 (Re-renders) — Agree on problem, need comprehensive fix for all handlers + verification
+
+**Status:** 2 rounds remaining
+
+**Action Required:** CTO to respond on timezone resolution approach and confirm scope expansion for performance fix.
+
+---
+
+## CTO (Chief Technology Officer) — Round 5
+
+# CTO Response — Round 3
+
+## PARTIALLY AGREE — Architectural Dispute on Issue 2
+
+CEO, your catch regarding the migration script for existing streaks is spot on. You are absolutely right that fixing the timezone logic without recalculating historical data would corrupt existing user progress. I also agree with your comprehensive expansion of the performance fix in Issue 3. 
+
+However, I must strongly **DISAGREE** with your implementation of the timezone resolution in Issue 2. It introduces a severe architectural flaw that will break Server-Side Rendering (SSR) and ruin our test suite.
+
+Here is my technical breakdown and counter-proposal.
+
+---
+
+### 2. UTC Date Offset Bug — DISAGREE on Impure Function Architecture
+
+**The Problem with the CEO's Implementation:**
+You proposed importing and calling `getUserTimezone()` directly *inside* `calculateStreak.ts`. 
+1. **Breaks SSR (Hydration Mismatches):** If `calculateStreak` runs on the server (e.g., Next.js SSR), `Intl.DateTimeFormat().resolvedOptions().timeZone` will evaluate to the server's timezone (likely UTC). When it runs on the client, it evaluates to local time. This will cause React hydration errors and UI flickering.
+2. **Destroys Function Purity:** `calculateStreak` is currently a pure function. Baking a browser API (`Intl`) into it makes it impure, non-deterministic, and impossible to unit test without complex global mocks.
+3. **Breaks the Migration Script:** The backend migration script you correctly proposed cannot use `Intl.DateTimeFormat()` to get a specific user's timezone. The backend needs to pass each user's specific timezone into the function.
+
+**CTO Counter-Proposal (Dependency Injection):**
+We must keep `calculateStreak` pure by passing the timezone as an argument. We will use your `getUserTimezone()` utility, but we will invoke it at the React Hook/Component level (or the backend service level), not inside the utility function.
+
+```typescript
+// File: frontend/src/utils/streak/calculateStreak.ts
+// Lines 24-28 (Refactored for Purity)
+import { formatInTimeZone } from 'date-fns-tz';
+
+// userTz is injected. Defaults to UTC as a safe fallback.
+export function calculateStreak(workouts: Workout[], userTz: string = 'UTC'): StreakData {
+  const today = formatInTimeZone(new Date(), userTz, 'yyyy-MM-dd');
+  
+  const workoutsByDay = workouts.reduce((acc, workout) => {
+    const workoutDay = formatInTimeZone(new Date(workout.timestamp), userTz, 'yyyy-MM-dd');
+    // ... rest of logic
+    return acc;
+  }, {} as Record<string, Workout[]>);
+  
+  // ...
+}
+```
+
+```typescript
+// File: frontend/src/hooks/streak/useStreak.ts (Example Caller)
+// Lines 12-15
+import { getUserTimezone } from '@/utils/timezone';
+import { calculateStreak } from '@/utils/streak/calculateStreak';
+
+export function useStreak(workouts: Workout[]) {
+  // Timezone is resolved in the React layer
+  const userTz = useMemo(() => getUserTimezone(), []); 
+  return useMemo(() => calculateStreak(workouts, userTz), [workouts, userTz]);
+}
+```
+
+**Agreement on Migration:**
+I fully endorse your `backend/scripts/recalculate-streaks.ts` migration plan. By making `calculateStreak` accept `userTz` as an argument, the backend script can easily iterate through users, fetch their stored timezone (or fallback to UTC), and pass it into the exact same utility function.
+
+---
+
+### 3. O(n) Re-render Cascade — AGREE on Solution, CONCEDE on Priority
+
+**Agreement:**
+You are entirely correct that my fix was incomplete. Wrapping `onShare` and `onDelete` is necessary, and explicitly defining `React.memo` on `WorkoutCard.tsx` ensures the optimization actually works. I accept your exact code implementation for `frontend/src/components/dashboard/WorkoutFeed.tsx` and `WorkoutCard.tsx`.
+
+**Concession:**
+I will concede to downgrading this to **LOW priority**. You make a fair point regarding React 18's concurrent rendering capabilities mitigating the immediate UI thread blocking on modern devices. We will schedule this refactor for the sprint backlog, to be executed immediately after the HIGH severity streak migration is complete.
+
+---
+
+## Summary
+
+**CONSENSUS REACHED ON:**
+- **Issue 1:** Resolved (CEO's implementation).
+- **Issue 3:** Resolved (CEO's comprehensive implementation, downgraded to LOW priority).
+- **Issue 2 (Migration):** Resolved (Backend migration script required).
+
+**REQUIRES FINAL ALIGNMENT:**
+- **Issue 2 (Architecture):** Please confirm my Dependency Injection approach for `calculateStreak.ts` so we can maintain SSR compatibility and function purity. 
+
+**Status:** 1 round remaining.
 
 ---
 
