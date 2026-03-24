@@ -44,6 +44,11 @@ const WorkoutChartsTab = lazy(() => import('./WorkoutChartsTab'));
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * ARCHITECTURAL NOTE: WidePanel uses backdrop-filter which creates a CSS
+ * containing block. Do NOT nest position:fixed modals inside this component.
+ * Render modals as siblings instead (see ShareToFeedModal placement below).
+ */
 const WidePanel = styled.div`
   background: var(--bg-elevated, rgba(10, 10, 15, 0.98));
   border-radius: 12px;
@@ -320,14 +325,17 @@ const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, on
         )}
 
         {/* Tabs */}
-        <TabBar>
-          <Tab $active={activeTab === 'history'} onClick={() => setActiveTab('history')}>
+        <TabBar role="tablist" aria-label="Workout data views">
+          <Tab $active={activeTab === 'history'} onClick={() => setActiveTab('history')}
+            role="tab" aria-selected={activeTab === 'history'} aria-controls="tab-history">
             <Dumbbell size={16} /> History
           </Tab>
-          <Tab $active={activeTab === 'charts'} onClick={() => setActiveTab('charts')}>
+          <Tab $active={activeTab === 'charts'} onClick={() => setActiveTab('charts')}
+            role="tab" aria-selected={activeTab === 'charts'} aria-controls="tab-charts">
             <BarChart3 size={16} /> Charts
           </Tab>
-          <Tab $active={activeTab === 'prs'} onClick={() => setActiveTab('prs')}>
+          <Tab $active={activeTab === 'prs'} onClick={() => setActiveTab('prs')}
+            role="tab" aria-selected={activeTab === 'prs'} aria-controls="tab-prs">
             <Trophy size={16} /> PRs
           </Tab>
         </TabBar>
@@ -390,7 +398,8 @@ const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, on
                           </SessionMeta>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <ShareIconBtn onClick={(e) => { e.stopPropagation(); setShareSession(session); }}>
+                          <ShareIconBtn onClick={(e) => { e.stopPropagation(); setShareSession(session); }}
+                            aria-label={`Share ${session.title} to social feed`}>
                             <Share2 size={12} /> Share
                           </ShareIconBtn>
                           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -474,18 +483,20 @@ const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, on
                           <Trophy size={14} />
                           {pr.weight > 0 ? `${pr.weight} lbs` : 'BW'} × {pr.reps}
                         </PRBadge>
-                        <ShareIconBtn onClick={() => setShareSession({
-                          id: `pr-${pr.exercise}`,
-                          title: pr.exercise,
-                          date: pr.date,
-                          duration: 0,
-                          intensity: 0,
-                          status: 'completed',
-                          totalSets: 0,
-                          totalReps: pr.reps,
-                          totalWeight: pr.weight,
-                          logs: [],
-                        } as WorkoutSession)}>
+                        <ShareIconBtn
+                          aria-label={`Share ${pr.exercise} personal record`}
+                          onClick={() => setShareSession({
+                            id: `pr-${pr.exercise}`,
+                            title: pr.exercise,
+                            date: pr.date,
+                            duration: 0,
+                            intensity: 0,
+                            status: 'completed',
+                            totalSets: 0,
+                            totalReps: pr.reps,
+                            totalWeight: pr.weight,
+                            logs: [],
+                          } as WorkoutSession)}>
                           <Share2 size={12} /> Share
                         </ShareIconBtn>
                       </div>
@@ -496,20 +507,24 @@ const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, on
           )}
         </ScrollBody>
 
-        {/* Share Workout to Social Feed */}
-        <ShareToFeedModal
-          open={!!shareSession}
-          onClose={() => setShareSession(null)}
-          postType="workout"
-          workoutSessionId={shareSession?.id}
-          prefilledContent={shareSession
-            ? shareSession.id.startsWith('pr-')
-              ? `🏆 New Personal Record! ${clientName} hit ${shareSession.totalWeight} lbs × ${shareSession.totalReps} reps on ${shareSession.title}!`
-              : `💪 ${clientName} crushed a ${shareSession.title} workout! ${shareSession.logs.length} exercises, ${Math.round(shareSession.totalWeight).toLocaleString()} lbs total volume.`
-            : ''
-          }
-        />
       </WidePanel>
+
+      {/* Share to Social Feed — rendered OUTSIDE WidePanel to escape
+       * backdrop-filter containing block (position:fixed modals break
+       * when nested inside backdrop-filter elements). */}
+      <ShareToFeedModal
+        open={!!shareSession}
+        onClose={() => setShareSession(null)}
+        postType={shareSession?.id.startsWith('pr-') ? 'achievement' : 'workout'}
+        // Only pass workoutSessionId for real workout sessions, not fabricated PR entries
+        workoutSessionId={shareSession && !shareSession.id.startsWith('pr-') ? shareSession.id : undefined}
+        prefilledContent={shareSession
+          ? shareSession.id.startsWith('pr-')
+            ? `New Personal Record! ${clientName} hit ${shareSession.totalWeight} lbs x ${shareSession.totalReps} reps on ${shareSession.title}!`
+            : `${clientName} crushed a ${shareSession.title} workout! ${shareSession.logs.length} exercises, ${Math.round(shareSession.totalWeight).toLocaleString()} lbs total volume.`
+          : ''
+        }
+      />
     </ModalOverlay>
   );
 };

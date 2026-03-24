@@ -343,7 +343,7 @@ const AdminViewAsWrapper: React.FC = () => {
         <EmptyState>
           {error || 'User not found'}
           <br /><br />
-          <BackBtn onClick={handleExit}>
+          <BackBtn onClick={handleExit} aria-label="Back to clients list">
             <ArrowLeft size={14} /> Back to Clients
           </BackBtn>
         </EmptyState>
@@ -362,7 +362,7 @@ const AdminViewAsWrapper: React.FC = () => {
           Viewing as <strong>{user.firstName} {user.lastName}</strong> ({user.role})
           — This is a read-only preview of their dashboard
         </BannerText>
-        <ExitBtn onClick={handleExit}>
+        <ExitBtn onClick={handleExit} aria-label="Exit impersonation view">
           <X size={14} /> Exit View
         </ExitBtn>
       </Banner>

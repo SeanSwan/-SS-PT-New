@@ -24,7 +24,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { X, Share2, Globe, Users, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -236,11 +236,26 @@ const ShareToFeedModal: React.FC<Props> = ({
   const [content, setContent] = useState(prefilledContent);
   const [visibility, setVisibility] = useState<Visibility>('public');
   const [submitting, setSubmitting] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Reset content when modal opens with new prefilled content
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) setContent(prefilledContent);
   }, [open, prefilledContent]);
+
+  // Escape key to close + focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      // Focus the modal on open
+      modalRef.current?.focus();
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
@@ -280,7 +295,7 @@ const ShareToFeedModal: React.FC<Props> = ({
 
   return (
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <Modal role="dialog" aria-modal="true" aria-label="Share to feed">
+      <Modal ref={modalRef} role="dialog" aria-modal="true" aria-label="Share to feed" tabIndex={-1}>
         <Header>
           <Title><Share2 size={18} color="#8B5CF6" /> Share to Feed</Title>
           <CloseBtn onClick={onClose} aria-label="Close"><X size={18} /></CloseBtn>
@@ -295,15 +310,18 @@ const ShareToFeedModal: React.FC<Props> = ({
             autoFocus
           />
 
-          <Row>
-            <Label>Visibility:</Label>
-            <VisBtn $active={visibility === 'public'} onClick={() => setVisibility('public')}>
+          <Row role="radiogroup" aria-label="Post visibility">
+            <Label id="vis-label">Visibility:</Label>
+            <VisBtn $active={visibility === 'public'} onClick={() => setVisibility('public')}
+              role="radio" aria-checked={visibility === 'public'}>
               <Globe size={14} /> Public
             </VisBtn>
-            <VisBtn $active={visibility === 'friends'} onClick={() => setVisibility('friends')}>
+            <VisBtn $active={visibility === 'friends'} onClick={() => setVisibility('friends')}
+              role="radio" aria-checked={visibility === 'friends'}>
               <Users size={14} /> Friends
             </VisBtn>
-            <VisBtn $active={visibility === 'private'} onClick={() => setVisibility('private')}>
+            <VisBtn $active={visibility === 'private'} onClick={() => setVisibility('private')}
+              role="radio" aria-checked={visibility === 'private'}>
               <Lock size={14} /> Private
             </VisBtn>
           </Row>

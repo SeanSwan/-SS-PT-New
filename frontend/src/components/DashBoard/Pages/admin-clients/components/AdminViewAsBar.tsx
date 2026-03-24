@@ -229,7 +229,7 @@ const AdminViewAsBar: React.FC<Props> = ({ viewingUser, onSelectUser, onExit }) 
         <ViewingText>
           Viewing as <strong>{viewingUser.firstName} {viewingUser.lastName}</strong> ({viewingUser.role})
         </ViewingText>
-        <ExitBtn onClick={onExit}>
+        <ExitBtn onClick={onExit} aria-label="Exit impersonation view">
           <X size={14} /> Exit View
         </ExitBtn>
       </ViewingBanner>
@@ -246,11 +246,16 @@ const AdminViewAsBar: React.FC<Props> = ({ viewingUser, onSelectUser, onExit }) 
           value={search}
           onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
           onFocus={() => setShowDropdown(true)}
+          aria-label="Search users to view as"
+          role="combobox"
+          aria-expanded={showDropdown && filteredUsers.length > 0}
+          aria-haspopup="listbox"
         />
         {showDropdown && filteredUsers.length > 0 && (
-          <Dropdown>
+          <Dropdown role="listbox" aria-label="User list">
             {filteredUsers.slice(0, 20).map(u => (
               <DropdownItem
+                role="option"
                 key={u.id}
                 onClick={() => { onSelectUser(u); setShowDropdown(false); setSearch(''); }}
               >
