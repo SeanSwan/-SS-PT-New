@@ -152,7 +152,8 @@ import {
   UserCog, Cpu, Server, Globe, Menu, X,
   CheckSquare, XSquare, Sliders, Puzzle,
   ExternalLink, Grid, Home, Compass,
-  ChevronRight, ChevronLeft, ChevronDown, ChevronUp
+  ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
+  UserCircle
 } from 'lucide-react';
 
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
@@ -592,6 +593,44 @@ const NavigationMeta = styled.div<{ isCollapsed: boolean }>`
   align-items: center;
   gap: ${props => props.theme.spacing.sm};
 `;
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: My Training Personal Link
+// PURPOSE: Divider + nav item allowing admin/trainer to switch to their client view
+// ─────────────────────────────────────────────────────────────
+const MyTrainingDivider = styled.div<{ isCollapsed: boolean }>`
+  height: 1px;
+  margin: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #141419 20%,
+    rgba(139, 92, 246, 0.3) 50%,
+    #141419 80%,
+    transparent 100%
+  );
+`;
+
+const MyTrainingIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    stroke: url(#myTrainingGradient);
+  }
+`;
+
+const MyTrainingGradientDef = () => (
+  <svg width="0" height="0" style={{ position: 'absolute' }}>
+    <defs>
+      <linearGradient id="myTrainingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#8B5CF6" />
+        <stop offset="100%" stopColor="#60C0F0" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
 
@@ -1207,6 +1246,46 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
             </NavigationSection>
           ))}
         </Navigation>
+
+        {/* My Training — personal identity shift link for admin/trainer */}
+        {(user?.role === 'admin' || user?.role === 'trainer') && (
+          <>
+            <MyTrainingGradientDef />
+            <MyTrainingDivider isCollapsed={isCollapsed} />
+            <TooltipWrapper>
+              <NavigationItem
+                isActive={isActiveRoute('/client-dashboard')}
+                isCollapsed={isCollapsed}
+                deviceType={deviceType}
+                onClick={() => handleNavigation('/client-dashboard')}
+                variants={itemVariants}
+                whileHover="hover"
+                whileTap="tap"
+                role="menuitem"
+                aria-label="My Training"
+                title={isCollapsed ? 'My Training' : undefined}
+                style={{ margin: `0 ${executiveCommandTheme.spacing.sm}` }}
+              >
+                <NavigationIcon isCollapsed={isCollapsed}>
+                  <MyTrainingIcon>
+                    <UserCircle size={20} />
+                  </MyTrainingIcon>
+                </NavigationIcon>
+                <NavigationText isCollapsed={isCollapsed}>
+                  My Training
+                </NavigationText>
+              </NavigationItem>
+              {isCollapsed && (
+                <Tooltip className="tooltip">
+                  My Training
+                  <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                    Switch to your personal training view
+                  </div>
+                </Tooltip>
+              )}
+            </TooltipWrapper>
+          </>
+        )}
 
         {/* Footer */}
         <SidebarFooter isCollapsed={isCollapsed}>

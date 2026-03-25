@@ -814,6 +814,28 @@ export const login = async (req, res) => {
 
     logger.info(`✅ Successful login for user: ${username}, role: ${user.role}`);
 
+    // Auto-initialize gamification record for admin/trainer users
+    // so they can use client features (workout logging, XP, progress)
+    if (['admin', 'trainer'].includes(user.role)) {
+      try {
+        const { default: Gamification } = await import('../models/Gamification.mjs');
+        await Gamification.findOrCreate({
+          where: { userId: user.id },
+          defaults: {
+            level: 1,
+            currentXP: 0,
+            totalXP: 0,
+            tier: 'bronze',
+            currentStreak: 0,
+            longestStreak: 0,
+          }
+        });
+      } catch (gamErr) {
+        // Non-fatal — don't block login if gamification init fails
+        logger.error('Gamification auto-init error (non-fatal):', gamErr.message);
+      }
+    }
+
     // Return user data and tokens
     console.log('📤 Sending successful login response');
     return res.status(200).json({

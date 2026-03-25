@@ -63,6 +63,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import adminClientService from '../../../../services/adminClientService';
@@ -147,6 +148,7 @@ import {
   Dumbbell,
   ChevronLeft,
   ChevronDown,
+  LayoutDashboard,
 } from 'lucide-react';
 
 // Client source logos for card identification
@@ -391,6 +393,20 @@ const RoundButton = styled.button<{ $size?: number }>`
   &:hover {
     background-color: rgba(14, 165, 233, 0.15);
     color: ${theme.cyan};
+  }
+`;
+
+// View Dashboard button — circular icon button with Ice Wing icon + Wing Purple hover glow
+const ViewDashboardButton = styled(RoundButton)`
+  background: #002060;
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  color: #60C0F0;
+
+  &:hover {
+    background: #002060;
+    box-shadow: 0 0 16px #8B5CF6;
+    transform: translateY(-2px);
+    border-color: rgba(139, 92, 246, 0.5);
   }
 `;
 
@@ -1228,6 +1244,7 @@ interface ClientBadge {
 // ─── Main component ──────────────────────────────────────────────
 const EnhancedAdminClientManagementView: React.FC = () => {
   const { authAxios, services } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   // State management
@@ -1741,6 +1758,13 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                     <RoundButton title="View Details" onClick={() => handleViewDetails(client)}>
                       <Eye size={18} />
                     </RoundButton>
+                    <ViewDashboardButton
+                      title="View client dashboard"
+                      aria-label="View client dashboard"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/people/view-as/${client.id}`); }}
+                    >
+                      <LayoutDashboard size={18} color="#60C0F0" />
+                    </ViewDashboardButton>
                     <RoundButton title="Send Message" onClick={() => handleSendMessage(client)}>
                       <MessageSquare size={18} />
                     </RoundButton>
