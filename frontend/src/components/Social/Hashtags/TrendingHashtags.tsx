@@ -20,8 +20,26 @@
  * │ │ 🔥 #legday  #transformation  #dance  #music │    │
  * │ │    (← horizontal scroll →)                   │    │
  * │ └──────────────────────────────────────────────┘    │
- * │ Props: { category?, activeTag?, onTagClick }        │
+ * │ Props: { category?, activeTag?, onTagClick, limit? }│
+ * │ CLICK-OUTCOMES:                                     │
+ * │ [HashtagChip click] → Toggle: if same tag clicked   │
+ * │   again → onTagClick(null) clears filter;           │
+ * │   otherwise → onTagClick(hashtag) sets filter       │
+ * │ GAMIFICATION: None — display only, no XP rewards    │
  * └─────────────────────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  { category, activeTag, onTagClick, limit }
+ * State:     { hashtags: HashtagData[], loading: boolean }
+ * API Calls: GET /api/social/hashtags/trending?category=X&limit=N
+ * Events:    onTagClick → parent filter state
+ * Children:  HashtagChip (mapped from hashtags array)
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   FeedFilterBar --> TrendingHashtags
+ *   TrendingHashtags --> HashtagChip[HashtagChip x N]
+ *   TrendingHashtags -->|GET /trending| HashtagAPI
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

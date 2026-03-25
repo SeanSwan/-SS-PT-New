@@ -12,8 +12,12 @@
 
 import Hashtag from '../models/social/Hashtag.mjs';
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Official Hashtag Definitions
+// PURPOSE: 32 curated tags across 3 categories for day-one discovery
+// ─────────────────────────────────────────────────────────────
 const SEED_HASHTAGS = [
-  // Fitness (14 tags)
+  // ── Fitness Tags (14) ──
   { name: 'fitness', category: 'fitness' },
   { name: 'legday', category: 'fitness' },
   { name: 'chestday', category: 'fitness' },
@@ -29,7 +33,7 @@ const SEED_HASHTAGS = [
   { name: 'strength', category: 'fitness' },
   { name: 'mobility', category: 'fitness' },
 
-  // Creative (10 tags)
+  // ── Creative Tags (10) ──
   { name: 'dance', category: 'creative' },
   { name: 'music', category: 'creative' },
   { name: 'singing', category: 'creative' },
@@ -41,7 +45,7 @@ const SEED_HASHTAGS = [
   { name: 'freestyle', category: 'creative' },
   { name: 'beats', category: 'creative' },
 
-  // Community (8 tags)
+  // ── Community Tags (8) ──
   { name: 'swanstudios', category: 'community' },
   { name: 'swanfam', category: 'community' },
   { name: 'meetup', category: 'community' },

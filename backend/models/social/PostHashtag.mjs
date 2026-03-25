@@ -14,6 +14,10 @@
 import { DataTypes } from 'sequelize';
 import db from '../../database.mjs';
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Model Definition
+// PURPOSE: Many-to-many join between SocialPosts and Hashtags
+// ─────────────────────────────────────────────────────────────
 const PostHashtag = db.define('PostHashtag', {
   id: {
     type: DataTypes.INTEGER,

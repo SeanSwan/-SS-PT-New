@@ -8,9 +8,16 @@
 
 'use strict';
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Migration — Hashtag Discovery Tables
+// PURPOSE: Creates 3 tables for hashtag-driven content discovery
+//   1. Hashtags — tag definitions with auto-classification + trending counters
+//   2. PostHashtags — many-to-many join linking posts ↔ hashtags
+//   3. UserHashtagFollows — user follow subscriptions for feed personalization
+// ─────────────────────────────────────────────────────────────
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Create Hashtags table
+    // ── Table 1: Hashtags (core tag definitions) ──
     await queryInterface.createTable('Hashtags', {
       id: {
         type: Sequelize.INTEGER,
@@ -64,7 +71,7 @@ module.exports = {
       }
     });
 
-    // Create PostHashtags join table
+    // ── Table 2: PostHashtags (many-to-many join) ──
     await queryInterface.createTable('PostHashtags', {
       id: {
         type: Sequelize.INTEGER,
@@ -90,7 +97,7 @@ module.exports = {
       }
     });
 
-    // Create UserHashtagFollows table
+    // ── Table 3: UserHashtagFollows (user subscriptions) ──
     await queryInterface.createTable('UserHashtagFollows', {
       id: {
         type: Sequelize.INTEGER,
@@ -116,7 +123,7 @@ module.exports = {
       }
     });
 
-    // Add indexes
+    // ── Indexes for query performance ──
     await queryInterface.addIndex('Hashtags', ['category']);
     await queryInterface.addIndex('Hashtags', ['weeklyCount']);
     await queryInterface.addIndex('Hashtags', ['usageCount']);

@@ -435,7 +435,7 @@ const ClientCommunityPage: React.FC = () => {
           <HashtagHint>
             <Hash size={12} />
             Type #hashtags to categorize your post
-            <PointsChip>+10 XP</PointsChip>
+            <PointsChip>+15 XP</PointsChip>
           </HashtagHint>
           {postError && <ErrorBox style={{ marginTop: 8, padding: '0.5rem' }}>{postError}</ErrorBox>}
         </div>

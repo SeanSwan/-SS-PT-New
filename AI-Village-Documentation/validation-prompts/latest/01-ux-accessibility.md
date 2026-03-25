@@ -1,60 +1,167 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 19.2s
-> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
-> **Generated:** 3/24/2026, 10:21:55 PM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 18.7s
+> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
+> **Generated:** 3/24/2026, 10:56:33 PM
 
 ---
 
-SwanStudios UX and Accessibility Audit Report
+Here's a comprehensive UX and accessibility audit of the provided code, focusing on the `HashtagChip.tsx` component and related backend logic.
 
-**Theme:** Enchanted Apex: Crystalline Swan
-**Palette:** Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent).
-**Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming).
+---
+
+## UX and Accessibility Audit: SwanStudios Hashtag Feature
+
+### Overview
+The provided code defines the backend models and routes for a hashtag system and a frontend React component for displaying hashtags. The backend logic appears robust for managing hashtags, their associations, and basic trending/search functionalities. The frontend component, `HashtagChip.tsx`, is the primary focus for UX and accessibility concerns.
 
 ---
 
 ### 1. WCAG 2.1 AA Compliance
 
-#### `frontend/src/components/Social/Feed/SocialFeed.tsx`
+#### Color Contrast
 
-| Finding | Rating | Details | Recommendation |
-|---|---|---|---|
-| **Color Contrast: LoadMoreButton text** | CRITICAL | The `LoadMoreButton` has `color: #E0ECF4` (Frost White) on a transparent background with `border: 1px solid rgba(139, 92, 246, 0.5)`. The effective background color will be the `FeedContainer`'s background, which is not explicitly set here but likely a dark color. If the `FeedContainer`'s background is `Royal Depth #003080` or `Midnight Sapphire #002060`, the contrast ratio with `#E0ECF4` will be insufficient (e.g., #003080 vs #E0ECF4 is 4.1:1, below 4.5:1 for AA). The hover state `color: #8B5CF6` on `rgba(139, 92, 246, 0.08)` background will also likely fail. | **Increase contrast.** Ensure the text color `#E0ECF4` has at least a 4.5:1 contrast ratio with the computed background color. Consider using a solid background for the button or a darker text color. For hover, ensure `#8B5CF6` on `rgba(139, 92, 246, 0.08)` (which will blend with the parent background) also meets contrast. |
-| **Color Contrast: EmptyFeedMessage background** | CRITICAL | `EmptyFeedMessage` uses `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` as background. The text color is `#C6A84B` (Gilded Fern) for `Heading6` and `#E0ECF4` (Frost White) for `BodyText2`. `#C6A84B` on `#003080` (Royal Depth, assuming this is the base for the rgba) is 4.1:1. `#E0ECF4` on `#003080` is 4.1:1. Both fail AA. | **Increase contrast.** Adjust text colors or background opacity/color to ensure all text within `EmptyFeedMessage` meets a 4.5:1 contrast ratio. |
-| **Color Contrast: WelcomeCard text** | CRITICAL | `WelcomeCard` has `BodyText2 $color="rgba(255,255,255,0.85)"` on a `linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08))` background. The effective background color will be the `FeedContainer`'s background. If the `FeedContainer`'s background is `Frost White #E0ECF4`, the contrast will be extremely poor. If it's a dark background like `Royal Depth #003080`, `rgba(255,255,255,0.85)` (which is close to white) on `rgba(139, 92, 246, 0.15)` (a light purple tint) over `#003080` (dark blue) might pass, but it's complex and needs verification. The `WelcomeTip` uses `color: #50A0F0` on `rgba(0, 32, 96, 0.6)`. `#50A0F0` (Arctic Cyan) on `#002060` (Midnight Sapphire, assuming this is the base for rgba) is 4.0:1, failing AA. | **Verify and adjust contrast.** Explicitly define the background for `WelcomeCard` or ensure the text colors dynamically adjust. For `WelcomeTip`, choose a text color that provides sufficient contrast against the `rgba(0, 32, 96, 0.6)` background. |
-| **Color Contrast: GamificationHeader text** | CRITICAL | `GamificationHeader` has `color: white` on a `linear-gradient(135deg, #8B5CF6, #8B5CF6)` (Wing Purple) background. `#FFFFFF` on `#8B5CF6` is 2.7:1, failing AA. | **Increase contrast.** Change the text color to one that provides at least 4.5:1 contrast with `#8B5CF6`. |
-| **Color Contrast: PointsDisplay text** | CRITICAL | `PointsDisplay` has `Heading6 $fontWeight={700}` and `BodyText2 $color="#E0ECF4"` on `rgba(255, 255, 255, 0.2)` background. This background is semi-transparent, meaning the effective background is a blend. Assuming it's over `GamificationHeader`'s `#8B5CF6`, `#E0ECF4` (Frost White) on `#8B5CF6` is 2.7:1, failing AA. | **Increase contrast.** Adjust text colors or the `PointsDisplay` background to ensure sufficient contrast. |
-| **Color Contrast: ActivityIndicator text** | CRITICAL | `ActivityIndicator` has `BodyText2 $color="#60C0F0"` (Ice Wing) on `rgba(96, 192, 240, 0.1)` background. This background is semi-transparent. Assuming it's over `Frost White #E0ECF4` (Background), `#60C0F0` on `#E0ECF4` is 3.0:1, failing AA. If over a dark background, it might pass, but needs verification. | **Increase contrast.** Ensure `#60C0F0` has sufficient contrast against its actual background. |
-| **Color Contrast: StatCard text** | CRITICAL | `StatCard` uses `Heading6 $color="#8B5CF6"`, `#C6A84B"`, `#60C0F0"` and `CaptionText $color="#50A0F0"` on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background. `#8B5CF6` (Wing Purple) on `#003080` (Royal Depth) is 3.1:1. `#C6A84B` (Gilded Fern) on `#003080` is 4.1:1. `#60C0F0` (Ice Wing) on `#003080` is 4.0:1. `#50A0F0` (Arctic Cyan) on `#003080` is 4.0:1. All fail AA. | **Increase contrast.** Adjust text colors or background opacity/color to ensure all text within `StatCard` meets a 4.5:1 contrast ratio. |
-| **Color Contrast: LiveBadgeLabel** | MEDIUM | `LiveBadgeLabel` has `background: #60C0F0` (Ice Wing) and `color: #001840`. `#001840` on `#60C0F0` is 4.6:1, which passes AA. However, the text is very small (`0.65rem`). For text smaller than 18pt (24px) or 14pt (19px) bold, a contrast ratio of 4.5:1 is required. For larger text, 3:1 is sufficient. This text is small, so 4.5:1 is needed. It barely passes, but could be improved for readability. | **Consider slightly higher contrast.** While it technically passes, a slightly darker text color or lighter background could improve readability for such small text. |
-| **Keyboard Navigation: LoadMoreButton focus indicator** | LOW | The `LoadMoreButton` has `transition: background-color 0.2s ease, border-color 0.2s ease;` for hover. It lacks an explicit `outline` or `box-shadow` for focus state. While browsers provide default outlines, custom focus indicators are best practice for consistency and visibility. | **Add explicit focus styles.** Ensure `LoadMoreButton:focus-visible` has a clear, visible focus indicator (e.g., `outline: 2px solid #50A0F0; outline-offset: 2px;` or a distinct `box-shadow`). |
-| **Keyboard Navigation: ContainedButton & OutlinedButton focus indicator** | LOW | Similar to `LoadMoreButton`, these buttons lack explicit focus styles. | **Add explicit focus styles.** Ensure `ContainedButton:focus-visible` and `OutlinedButton:focus-visible` have clear, visible focus indicators. |
-| **ARIA Labels: Icons without text labels** | LOW | Many `lucide-react` icons (e.g., `Zap`, `Star`, `Trophy`, `Users`, `Clock`, `TrendingUp`) are used without explicit `aria-label` attributes when they convey meaning without accompanying visible text. For example, `Zap` in `StreakDisplay` or `Star` in `PointsDisplay`. | **Add `aria-label` to meaningful icons.** For icons that convey information and don't have adjacent text that fully describes their purpose, add an `aria-label` (e.g., `<Zap size={16} aria-label="Streak" />`). If the text next to it already describes it, `aria-hidden="true"` can be used on the icon. |
-| **ARIA Labels: LoadMoreButton with dynamic text** | LOW | The `LoadMoreButton` text changes between "Load more posts" and "Loading more posts...". While the text changes, an `aria-live` region could provide more explicit feedback for screen reader users when the loading state changes. | **Consider `aria-live` for loading state.** Wrap the button text in a `<span>` and use an `aria-live="polite"` region to announce the loading status change, or ensure the button's `aria-label` updates. |
-| **Focus Management: Initial focus on empty feed** | LOW | When the feed is empty, the `WelcomeCard` is displayed. It contains buttons. The initial focus might not be on the most logical element for a new user. | **Consider initial focus.** If the `WelcomeCard` is the primary interaction point, ensure the first interactive element within it (e.g., "Browse Challenges" button) receives focus when the component mounts, especially if it's part of a larger page. |
+*   **Finding:** CRITICAL
+*   **Description:** The `HashtagChip` component uses `var(--text-secondary, #94a3b8)` for inactive text color and `var(--border-soft, rgba(96, 192, 240, 0.12))` for inactive border color. These values, especially `#94a3b8` (a light grey-blue) on a `var(--bg-elevated, #141419)` (a very dark grey) background, are highly likely to fail WCAG 2.1 AA contrast requirements for normal text (minimum 4.5:1). The border color `rgba(96, 192, 240, 0.12)` is almost invisible on a dark background, making the chip's boundary unclear for users with low vision.
+*   **Recommendation:**
+    *   **Text Color:** Increase the contrast of `var(--text-secondary)` against `var(--bg-elevated)`. Aim for a contrast ratio of at least 4.5:1. Consider using a lighter color from the active palette (e.g., `Frost White #E0ECF4` or a slightly darker version of it) or a custom color that passes the contrast check.
+    *   **Border Color:** Increase the opacity or brightness of `var(--border-soft)` when used for inactive chips, or use a more contrasting color from the theme.
+    *   **Active State:** Ensure the active state text color (`#E0ECF4`) on the mixed background (`color-mix(in srgb, ${$color} 20%, var(--bg-elevated, #141419))`) also meets the 4.5:1 contrast ratio.
+    *   **Tooling:** Use a color contrast checker (e.g., WebAIM Contrast Checker) to verify all color combinations.
 
-#### `frontend/src/components/Social/Feed/CreatePostCard.tsx`
+#### Aria Labels
 
-| Finding | Rating | Details | Recommendation |
-|---|---|---|---|
-| **Color Contrast: PointPreviewChip text** | CRITICAL | `PointPreviewChip` has `background: #C6A84B` (Gilded Fern) and `color: #002060` (Midnight Sapphire). `#002060` on `#C6A84B` is 3.1:1, failing AA. | **Increase contrast.** Change the text color or background color to ensure at least 4.5:1 contrast. |
-| **Color Contrast: NativeSelect helper text** | CRITICAL | `SelectHelperText` has `color: #E0ECF4` (Frost White) on a background that is likely `CreatePostCardWrapper`'s background (which is not explicitly defined here but likely a dark theme color). If it's `Royal Depth #003080`, the contrast is 4.1:1, failing AA. | **Increase contrast.** Ensure `SelectHelperText` has sufficient contrast against its background. |
-| **Keyboard Navigation: Custom select (`NativeSelect`)** | MEDIUM | The `NativeSelect` is a standard HTML select, which is generally accessible. However, custom styling might interfere with default browser accessibility features. It's important to ensure it's fully navigable and operable with a keyboard. | **Verify keyboard interaction.** Test thoroughly with keyboard only. Ensure focus is clear, options are navigable, and selection works as expected. If custom styling hides the native select, ensure a visually distinct focus indicator is applied to the wrapper. |
-| **ARIA Labels: Icons in PostTypeOptions** | LOW | Icons like `User`, `Dumbbell`, `Camera`, `Trophy`, etc., are used in `POST_TYPE_OPTIONS` without explicit `aria-label` or `aria-hidden`. While they are accompanied by text labels, `aria-hidden="true"` on the icons would prevent screen readers from redundantly announcing them. | **Add `aria-hidden="true"` to decorative icons.** For icons that are purely decorative or redundant with adjacent text, add `aria-hidden="true"` to prevent screen readers from announcing them. |
-| **ARIA Labels: FloatingCreateButton** | LOW | The `FloatingCreateButton` has a `title` attribute, which is good, but an explicit `aria-label` is often preferred for screen readers, especially for buttons that only contain an icon. | **Add `aria-label` to icon-only buttons.** Add `aria-label="Create an enhanced post with more options"` to the `FloatingCreateButton` for better screen reader experience. |
-| **Focus Management: FloatingCreateButton scrolls to card** | LOW | The `FloatingCreateButton` scrolls the `CreatePostCard` into view. While this is a good visual cue, ensure that after the scroll, focus is appropriately managed. Ideally, focus should move to the newly revealed "Create Post" heading or the first interactive element within the expanded card. | **Manage focus after scroll.** After scrolling the card into view, programmatically move focus to the `CreatePostCardWrapper` or the `CreatePostForm`'s primary input field to maintain a logical tab order. |
-| **Accessibility: File input for media upload** | LOW | The file input (`<input type="file" style={{ display: 'none' }} />`) is hidden and triggered by a button. This pattern is common but requires careful implementation to ensure accessibility. The `OutlinedButton` acts as the visual trigger. | **Ensure hidden input is accessible.** Verify that the hidden input is still reachable by assistive technologies. Using a `<label>` element associated with the input is generally the most robust way to do this. The current setup relies on `fileInputRef.current?.click()`, which might not be fully accessible in all contexts. |
+*   **Finding:** MEDIUM
+*   **Description:** The `HashtagChip` is a `<button>`. While buttons are inherently interactive and focusable, adding `aria-label` can provide more context, especially when the visual text might be abbreviated or when additional information (like `usageCount`) is present but not explicitly part of the button's accessible name. For example, a screen reader might just announce "#fitness" without the context of it being a filter or a link to a page.
+*   **Recommendation:**
+    *   For the `HashtagChip`, consider an `aria-label` like `aria-label={\`Filter by hashtag ${hashtag.name}\`}` or `aria-label={\`View posts tagged ${hashtag.name}\`}` depending on its primary action. If `showCount` is true, incorporate it: `aria-label={\`View posts tagged ${hashtag.name}, ${hashtag.usageCount} posts\`} `.
+    *   If the chip acts as a toggle (e.g., for filtering), use `aria-pressed={isActive}`.
 
-#### `frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx`
+#### Keyboard Navigation
 
-| Finding | Rating | Details | Recommendation |
-|---|---|---|---|
-| **Color Contrast: PostInput placeholder** | CRITICAL | `PostInput` has `&::placeholder { color: var(--text-muted, #64748b); }` on `var(--bg-surface, #1A1A24)`. `#64748b` on `#1A1A24` is 2.9:1, failing AA. Placeholder text needs to meet 4.5:1 contrast. | **Increase contrast for placeholder text.** Choose a darker placeholder color or a lighter background. |
-| **Color Contrast: ChallengeDesc text** | CRITICAL | `ChallengeDesc` uses `color: var(--text-secondary, #94a3b8)` on `var(--bg-elevated, #141419)`. `#94a3b8` on `#141419` is 3.5:1, failing AA. | **Increase contrast.** Adjust `var(--text-secondary)` to ensure it meets 4.5:1 contrast against `var(--bg-elevated)`. |
-| **Color Contrast: ChallengeFooter text** | CRITICAL | `ChallengeFooter` uses `color: var(--text-muted, #64748b)` on `var(--bg-elevated, #141419)`. `#64748b` on `#141419` is 2.9:1, failing AA. | **Increase contrast.** Adjust `var(--text-muted)` to ensure it meets 4.5:1 contrast against `var(--bg-elevated)`. |
-| **Color Contrast: LeaderRow XP text** | CRITICAL | `LeaderRow` XP text uses `color: var(--accent-primary, #60C0F0)` on `var(--bg-surface, #1A1A24)`. `#60C0F0` on `#1A1A24` is 4.0:1, failing AA. | **Increase contrast.** Adjust `var(--accent-primary)` to ensure it meets 4.5:1 contrast against `var(--bg-surface)`. |
-| **Color Contrast: FeedPost body and time** | CRITICAL | `FeedPost` uses `.post-body { color: var(--text-secondary, #94a3b8); }` and `.post-time { color: var(--text-muted, #64748b); }` on `PageWrap`'s background (which is not explicitly defined but likely a dark color, or `SectionCard`'s `var(--bg-surface, #1A1A24)`). If on `#1A1A24`, both fail contrast (3.5:1 and 2.9:1 respectively). | **Increase contrast.** Ensure `.post-body` and
+*   **Finding:** LOW
+*   **Description:** The `HashtagChip` is rendered as a `<button>`, which is semantically correct and inherently keyboard-focusable and clickable. This is good. No explicit issues found in the provided snippet.
+*   **Recommendation:** Ensure that when multiple `HashtagChip` components are present (e.g., in a list of trending hashtags), their tab order is logical and predictable. This is usually handled by the browser's default tab order, but complex layouts might require `tabIndex` adjustments (though generally avoided if possible).
+
+#### Focus Management
+
+*   **Finding:** LOW
+*   **Description:** Similar to keyboard navigation, using a native `<button>` ensures proper focus indication by default.
+*   **Recommendation:** Verify that the default focus indicator (outline) is clearly visible and not suppressed or overridden in a way that reduces its visibility. If custom focus styles are applied, ensure they meet WCAG 2.1 AA requirements for non-text contrast (3:1 against adjacent colors).
+
+---
+
+### 2. Mobile UX
+
+#### Touch Targets
+
+*   **Finding:** HIGH
+*   **Description:** The `HashtagChip` has a `min-height` that varies by `size` prop: `sm` (28px), `md` (36px), `lg` (44px). The WCAG 2.1 AA requirement for touch targets is a minimum of 44x44 CSS pixels. Only the `lg` size meets this requirement. The `sm` and `md` sizes are too small for reliable touch interaction, especially for users with motor impairments or large fingers.
+*   **Recommendation:**
+    *   **Increase `min-height` for `sm` and `md`:** Adjust `min-height` for `sm` and `md` to at least 44px. This might require adjusting padding and font sizes to maintain visual balance.
+    *   **Consider `min-width`:** While `min-height` is specified, `min-width` is not. Ensure that the horizontal padding and content make the overall clickable area at least 44px wide as well.
+    *   **Consistent Sizing:** Re-evaluate if `sm` and `md` sizes are truly necessary if they cannot meet the touch target requirements. Perhaps `lg` should be the default, or the smallest size should still be 44px.
+
+#### Responsive Breakpoints
+
+*   **Finding:** LOW
+*   **Description:** The provided `HashtagChip.tsx` snippet doesn't include explicit media queries for responsive breakpoints. However, `styled-components` allows for responsive styling. The `display: inline-flex` and `white-space: nowrap` properties could lead to horizontal scrolling or cramped layouts if many chips are displayed on a small screen without proper wrapping or truncation.
+*   **Recommendation:**
+    *   **Wrapping:** Ensure the parent container of multiple chips allows them to wrap onto new lines (`flex-wrap: wrap`).
+    *   **Truncation/Scrolling:** If `white-space: nowrap` is critical for single chips, consider how long hashtag names are handled. On mobile, very long hashtags might need truncation with an ellipsis or a horizontal scrollable container for a group of chips.
+    *   **Font Size Adjustment:** While `font-size` is set by `size` prop, consider if these sizes are optimal across all screen sizes or if they should be adjusted at certain breakpoints.
+
+#### Gesture Support
+
+*   **Finding:** N/A
+*   **Description:** The `HashtagChip` is a simple clickable element. No complex gestures (swipe, pinch, long-press) are implied or expected for this component.
+*   **Recommendation:** No specific recommendations for this component.
+
+---
+
+### 3. Design Consistency
+
+#### Theme Tokens Usage
+
+*   **Finding:** MEDIUM
+*   **Description:** The `CATEGORY_COLORS` object hardcodes hex values (`#8B5CF6`, `#C6A84B`, `#60C0F0`, `#4070C0`) which directly correspond to `Wing Purple`, `Gilded Fern`, `Ice Wing`, and `Swan Lavender` from the `Crystalline Swan` theme. While these are the correct colors, they are not referenced as CSS variables or theme tokens. This creates a maintenance burden if the theme's specific hex values change. The `Midnight Sapphire`, `Royal Depth`, `Arctic Cyan`, and `Frost White` colors are not explicitly used in this component, but their absence isn't necessarily an inconsistency.
+*   **Recommendation:**
+    *   **Centralize Theme Variables:** Define all theme colors as CSS variables (e.g., `--color-wing-purple: #8B5CF6;`) or within a `styled-components` theme object.
+    *   **Reference Tokens:** Update `CATEGORY_COLORS` to reference these theme variables (e.g., `fitness: 'var(--color-wing-purple)'`). This ensures that if the hex value for `Wing Purple` ever changes, all components using it will update automatically.
+    *   **`var(--border-soft, rgba(96, 192, 240, 0.12))`:** The fallback `rgba(96, 192, 240, 0.12)` is `Ice Wing` with 12% opacity. This is good, but `border-soft` itself should ideally be a theme token.
+    *   **`var(--text-secondary, #94a3b8)` and `var(--bg-elevated, #141419)`:** These are good examples of using CSS variables with fallbacks. Ensure these variables are defined globally in the theme.
+
+#### Hardcoded Colors
+
+*   **Finding:** HIGH
+*   **Description:**
+    *   `#E0ECF4` (Frost White) is hardcoded for active text color.
+    *   `#141419` is hardcoded as a fallback for `var(--bg-elevated)`. While a fallback is useful, this specific hex value should be explicitly defined as part of the theme's background palette (e.g., `Royal Depth` or a darker variant).
+    *   `#94a3b8` is hardcoded as a fallback for `var(--text-secondary)`. This color is not explicitly listed in the provided `Crystalline Swan` palette and might be a remnant or an unapproved color.
+*   **Recommendation:**
+    *   **Replace Hardcoded Hexes with Tokens:** Replace all hardcoded hex values with references to theme tokens or CSS variables.
+    *   **Review Fallbacks:** Ensure fallback values for CSS variables are also part of the approved theme palette or are explicitly documented as exceptions. The `#94a3b8` fallback for `text-secondary` needs review for palette consistency and contrast.
+
+---
+
+### 4. User Flow Friction
+
+#### Unnecessary Clicks / Confusing Navigation
+
+*   **Finding:** LOW
+*   **Description:** The `HashtagChip` itself is a single clickable element, which is straightforward. The backend routes for hashtags (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`) provide a comprehensive set of endpoints for discovery and interaction. The `onClick` prop on the frontend chip allows for flexible navigation (e.g., to a hashtag's detail page or to filter a feed).
+*   **Recommendation:** Ensure the `onClick` action is clear to the user. For example, if clicking a chip filters the current view, provide visual feedback. If it navigates to a new page, the context should make that clear (e.g., "View all posts with #fitness").
+
+#### Missing Feedback States
+
+*   **Finding:** MEDIUM
+*   **Description:** The `HashtagChip` has `hover` styles, which is good visual feedback. However, there's no explicit `active` (pressed) or `disabled` state styling defined in the provided `styled-components` snippet.
+*   **Recommendation:**
+    *   **Active (Pressed) State:** Add a distinct visual style for when the button is actively being pressed (e.g., a slightly darker background, a subtle shadow). This provides immediate feedback that the click registered.
+    *   **Disabled State:** If a `HashtagChip` can be disabled (e.g., if a user can't follow a banned hashtag), provide clear visual styling (e.g., reduced opacity, different cursor) and ensure it's not focusable or clickable.
+    *   **Loading States:** While not directly in the chip, consider how the *data* for the chips is loaded. If a list of chips is loading, a skeleton state would be beneficial (see next section).
+
+---
+
+### 5. Loading States
+
+#### Skeleton Screens, Error Boundaries, Empty States
+
+*   **Finding:** MEDIUM (Frontend) / LOW (Backend)
+*   **Description:**
+    *   **Frontend (`HashtagChip.tsx`):** The `HashtagChip` component itself doesn't handle loading states, which is appropriate as it's a display component. However, the *parent components* that render lists of these chips (e.g., `TrendingHashtags`, `FeedFilterBar`) would need to implement skeleton screens or loading indicators while fetching data from the backend.
+    *   **Backend (`hashtags.mjs`, `posts.mjs`):** The backend routes handle errors gracefully by returning `500` status codes and `success: false` with error messages. This is good for API consumers.
+    *   **Empty States:** The backend routes for `/search` and `/trending` correctly return `data: []` if no results are found. The `/following` and `/suggestions` routes also handle empty results.
+*   **Recommendation:**
+    *   **Frontend Skeleton Screens:** For lists of `HashtagChip`s (e.g., trending, search results, followed hashtags), implement skeleton loaders to indicate that content is being fetched. This improves perceived performance.
+    *   **Frontend Error Boundaries:** Implement React Error Boundaries in parent components to gracefully catch and display errors that might occur during data fetching or rendering of `HashtagChip` lists.
+    *   **Frontend Empty States:** When backend returns `data: []`, the frontend should display a user-friendly "No hashtags found" or "You are not following any hashtags yet" message instead of just an empty space.
+
+---
+
+### Backend Code Review Notes
+
+The backend code (`Hashtag.mjs`, `PostHashtag.mjs`, `UserHashtagFollow.mjs`, `hashtags.mjs`, `posts.mjs`, `index.mjs`) is generally well-structured and commented.
+
+*   **`Hashtag.mjs`:**
+    *   `CATEGORY_KEYWORDS` is a good approach for auto-classification.
+    *   `validate: { is: /^[a-z0-9_]{2,30}$/i }` for `name` is good for data integrity.
+*   **`hashtags.mjs`:**
+    *   The `extractHashtags` and `processHashtags` functions are well-designed for handling hashtag creation and association.
+    *   Error handling in `processHashtags` (logging non-fatal errors) is appropriate.
+    *   All routes (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`, `/follow`, `/unfollow`) have clear purposes and handle edge cases (e.g., `q.length < 1` for search, hashtag not found).
+    *   The `/trending` route's `period` query parameter is mentioned in comments but not implemented in the code (it only orders by `weeklyCount` and `usageCount`). This is a minor discrepancy between comment and code.
+*   **`posts.mjs`:**
+    *   The `awardSocialPoints` and `awardEngagementReceivedPoints` functions are a good implementation of gamification logic.
+    *   Multer setup for media upload is robust, including file type validation and size limits.
+    *   The `getEnhancedFallbackFeed` is a good resilience mechanism for legacy table issues.
+    *   The feed logic correctly handles friendship status and visibility.
+    *   Batch fetching for comments and likes is an efficient approach.
+    *   The post creation endpoint correctly integrates hashtag processing and point awarding.
+    *   Reporting mechanism is well-defined.
+    *   Reaction handling (`reactToPost`, `removeReaction`) is good.
+
+Overall, the backend code is solid and demonstrates good practices for API development and data management. The UX and accessibility concerns are primarily on the frontend component's styling and interaction.
 
 ---
 

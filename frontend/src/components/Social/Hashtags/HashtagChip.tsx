@@ -9,6 +9,27 @@
  * WHAT THIS FILE DOES: Renders a single hashtag as a clickable chip.
  * Shows the tag name, optional usage count, and official badge.
  * HOW IT FITS IN THE APP: Used in TrendingHashtags, PostCard, HashtagPage
+ *
+ * ┌─── SUB-COMPONENT: HashtagChip ─────────────────────────────┐
+ * │ PARENT: TrendingHashtags / PostCard / HashtagPage           │
+ * │ PURPOSE: Atomic hashtag display + click target              │
+ * │ WIREFRAME:                                                  │
+ * │ ┌──────────────────────────┐                                │
+ * │ │ # tagname  ✓  1.2k      │                                │
+ * │ └──────────────────────────┘                                │
+ * │ Props: { hashtag, isActive?, showCount?, size?, onClick? }  │
+ * │ CLICK-OUTCOMES:                                             │
+ * │ [Chip click] → Calls onClick(hashtag) → Parent decides     │
+ * │   action (toggle feed filter or navigate to hashtag page)   │
+ * │ GAMIFICATION: None — purely presentational component        │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  { hashtag: HashtagData, isActive, showCount, size, onClick }
+ * State:     None (stateless presentational component)
+ * API Calls: None (parent fetches data)
+ * Events:    onClick → parent handler
+ * Children:  None (leaf component)
  */
 
 import React from 'react';

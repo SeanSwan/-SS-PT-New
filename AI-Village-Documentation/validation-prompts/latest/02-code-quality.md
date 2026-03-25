@@ -1,539 +1,439 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 59.5s
-> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
-> **Generated:** 3/24/2026, 10:21:55 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 58.6s
+> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
+> **Generated:** 3/24/2026, 10:56:33 PM
 
 ---
 
-# Code Review: SwanStudios Social Feed System
+# Code Review: SwanStudios Hashtag System
 
-## Executive Summary
-**Overall Grade: B+ (83/100)**
+## CRITICAL Issues
 
-The codebase demonstrates strong architectural patterns with proper hook extraction, memoization, and component composition. However, there are **critical TypeScript gaps**, **performance anti-patterns**, and **error handling deficiencies** that need immediate attention.
+### 1. **SQL Injection Vulnerability in Post Reporting**
+**File:** `backend/routes/social/posts.mjs` (lines 715-730)  
+**Severity:** CRITICAL
 
----
-
-## 1. TypeScript Best Practices
-
-### ❌ CRITICAL: Missing Type Definitions
-**File:** `SocialFeed.tsx`
-**Lines:** 304-318
-
-```tsx
-const feedStats = useMemo(() => {
-  return posts.reduce((acc, p) => {  // ❌ 'p' implicitly has 'any' type
-    acc.totalPosts++;
-    if (p.type === 'workout') acc.workoutPosts++;
-    // ...
-  }, {
-    totalPosts: 0, workoutPosts: 0, // ❌ Accumulator type not defined
-    // ...
-  });
-}, [posts]);
-```
-
-**Issue:** No type safety for post objects or accumulator.
-
-**Fix:**
-```tsx
-interface FeedStats {
-  totalPosts: number;
-  workoutPosts: number;
-  achievementPosts: number;
-  transformationPosts: number;
-  totalLikes: number;
-  totalComments: number;
-}
-
-interface Post {
-  id: string;
-  type: 'workout' | 'achievement' | 'transformation' | 'general';
-  likesCount?: number;
-  commentsCount?: number;
-  createdAt: string;
-  user: {
-    firstName: string;
-    // ... other user fields
-  };
-}
-
-const feedStats = useMemo((): FeedStats => {
-  return posts.reduce<FeedStats>((acc, p: Post) => {
-    acc.totalPosts++;
-    if (p.type === 'workout') acc.workoutPosts++;
-    // ...
-    return acc;
-  }, {
-    totalPosts: 0,
-    workoutPosts: 0,
-    achievementPosts: 0,
-    transformationPosts: 0,
-    totalLikes: 0,
-    totalComments: 0
-  });
-}, [posts]);
-```
-
----
-
-### 🔴 HIGH: Unsafe Type Assertions
-**File:** `ClientCommunityPage.tsx`
-**Lines:** 179-182
-
-```tsx
-const [challenges, setChallenges] = useState<any[]>([]);  // ❌ any[]
-const [feed, setFeed] = useState<any[]>([]);              // ❌ any[]
-```
-
-**Issue:** Using `any` defeats TypeScript's purpose.
-
-**Fix:**
-```tsx
-interface Challenge {
-  id: string;
-  title?: string;
-  name?: string;
-  description?: string;
-  progress?: number;
-  daysRemaining?: number;
-}
-
-interface FeedPost {
-  id: string;
-  content?: string;
-  text?: string;
-  user?: {
-    firstName?: string;
-  };
-  authorName?: string;
-  createdAt?: string;
-}
-
-const [challenges, setChallenges] = useState<Challenge[]>([]);
-const [feed, setFeed] = useState<FeedPost[]>([]);
-```
-
----
-
-### 🟡 MEDIUM: Inconsistent Type Patterns
-**File:** `CreatePostCard.tsx`
-**Lines:** 114-115
-
-```tsx
-import type { PostTypeOption, VisibilityOption } from './types/CreatePostTypes';
-```
-
-**Issue:** Types imported but not validated in component props.
-
-**Recommendation:** Add runtime validation or Zod schema for API responses.
-
----
-
-## 2. React Patterns
-
-### ✅ GOOD: Proper Hook Usage
-**File:** `SocialFeed.tsx`
-**Lines:** 304-318
-
-```tsx
-const feedStats = useMemo(() => {
-  return posts.reduce((acc, p) => {
-    // Single-pass calculation
-  }, { /* initial */ });
-}, [posts]); // ✅ Correct dependency
-```
-
-**Praise:** Memoization prevents recalculation on every render.
-
----
-
-### 🔴 HIGH: Inline Object Creation in Render
-**File:** `CreatePostCard.tsx`
-**Lines:** 151-154
-
-```tsx
-<CreatePostForm
-  workoutStats={form.workoutStats}
-  onWorkoutStatsChange={(field, value) => 
-    form.setWorkoutStats(prev => ({ ...prev, [field]: value }))  // ❌ New function every render
+```javascript
+await sequelize.query(
+  `INSERT INTO "PostReports" ("reporterId", "contentType", "contentId", "contentAuthorId", "reason", "description", "status", "createdAt", "updatedAt")
+   VALUES (:reporterId, 'post', :contentId, :authorId, :reason, :description, 'pending', NOW(), NOW())`,
+  {
+    replacements: {
+      reporterId: req.user.id,
+      contentId: postId,
+      authorId: post.userId,
+      reason,
+      description: description || null,
+    },
   }
-/>
-```
-
-**Issue:** Creates new callback on every render, breaking `React.memo` optimization.
-
-**Fix:**
-```tsx
-// In useCreatePostForm hook:
-const handleWorkoutStatsChange = useCallback((field: string, value: any) => {
-  setWorkoutStats(prev => ({ ...prev, [field]: value }));
-}, []);
-
-// In component:
-<CreatePostForm
-  onWorkoutStatsChange={form.handleWorkoutStatsChange}
-/>
-```
-
----
-
-### 🟡 MEDIUM: Missing Keys in Mapped Elements
-**File:** `ClientCommunityPage.tsx`
-**Lines:** 210-218
-
-```tsx
-{challenges.slice(0, 3).map((c: any, i: number) => (
-  <ChallengeCard key={c.id || i}>  // ⚠️ Fallback to index is anti-pattern
-```
-
-**Issue:** Using index as fallback key causes reconciliation bugs.
-
-**Fix:**
-```tsx
-{challenges.slice(0, 3).map((c) => (
-  <ChallengeCard key={c.id}>  // Require stable ID from backend
-```
-
-**Backend Action Required:** Ensure all API responses include stable `id` fields.
-
----
-
-### 🟢 LOW: Stale Closure Risk (Mitigated)
-**File:** `SocialFeed.tsx`
-**Lines:** 331-333
-
-```tsx
-const handleLikeToggle = useCallback((postId: string, isLiked: boolean) => {
-  return isLiked ? unlikePost(postId) : likePost(postId);
-}, [likePost, unlikePost]);  // ✅ Dependencies included
-```
-
-**Praise:** Correctly memoized with dependencies.
-
----
-
-## 3. Styled-Components
-
-### 🔴 HIGH: Hardcoded Color Values
-**File:** `SocialFeed.tsx`
-**Lines:** 61-78
-
-```tsx
-const LoadMoreButton = styled.button`
-  border: 1px solid rgba(139, 92, 246, 0.5);  // ❌ Hardcoded #8B5CF6
-  color: #E0ECF4;                              // ❌ Should use theme token
-  
-  &:hover {
-    border-color: #8B5CF6;                     // ❌ Hardcoded
-    color: #8B5CF6;
-  }
-`;
-```
-
-**Issue:** Violates theme system, breaks consistency.
-
-**Fix:**
-```tsx
-const LoadMoreButton = styled.button`
-  border: 1px solid ${({ theme }) => theme.colors.wingPurple}50;
-  color: ${({ theme }) => theme.colors.frostWhite};
-  
-  &:hover {
-    border-color: ${({ theme }) => theme.colors.wingPurple};
-    color: ${({ theme }) => theme.colors.wingPurple};
-  }
-`;
-```
-
-**Action Required:** Create `theme.ts` with Enchanted Apex palette:
-```tsx
-export const theme = {
-  colors: {
-    midnightSapphire: '#002060',
-    royalDepth: '#003080',
-    iceWing: '#60C0F0',
-    arcticCyan: '#50A0F0',
-    gildedFern: '#C6A84B',
-    frostWhite: '#E0ECF4',
-    swanLavender: '#4070C0',
-    wingPurple: '#8B5CF6'
-  }
-};
-```
-
----
-
-### 🟡 MEDIUM: Inconsistent Spacing Units
-**File:** `ClientCommunityPage.tsx`
-**Lines:** 44-46
-
-```tsx
-const PageWrap = styled.div`
-  padding: 1.5rem;  // ⚠️ rem units
-  min-height: 100%;
-`;
-
-const PostBox = styled.div`
-  padding: 1rem;     // ⚠️ Inconsistent with 8px grid
-  margin-bottom: 1.25rem;
-`;
-```
-
-**Issue:** Mix of rem and implicit px breaks 8px grid system.
-
-**Fix:**
-```tsx
-const spacing = {
-  xs: '4px',
-  sm: '8px',
-  md: '16px',
-  lg: '24px',
-  xl: '32px'
-};
-
-const PageWrap = styled.div`
-  padding: ${spacing.lg};
-`;
-```
-
----
-
-### ✅ GOOD: Proper Animation Keyframes
-**File:** `SocialFeed.tsx`
-**Lines:** 20-28
-
-```tsx
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-`;
-
-const LiveBadgeLabel = styled.span`
-  animation: ${pulse} 2s infinite;  // ✅ Reusable keyframe
-`;
-```
-
----
-
-## 4. DRY Violations
-
-### 🔴 HIGH: Duplicated Loading States
-**Files:** `SocialFeed.tsx` (lines 357-365), `ClientCommunityPage.tsx` (lines 197-199)
-
-```tsx
-// SocialFeed.tsx
-if (isLoading) {
-  return (
-    <FeedContainer>
-      <CenterBox>
-        <Spinner />
-      </CenterBox>
-    </FeedContainer>
-  );
-}
-
-// ClientCommunityPage.tsx
-if (loading) {
-  return <PageWrap><ShimmerBlock /></PageWrap>;
-}
-```
-
-**Issue:** Two different loading patterns for same concept.
-
-**Fix:** Extract shared component:
-```tsx
-// components/common/LoadingState.tsx
-export const LoadingState: React.FC<{ variant?: 'spinner' | 'shimmer' }> = ({ 
-  variant = 'spinner' 
-}) => {
-  if (variant === 'shimmer') {
-    return <ShimmerBlock />;
-  }
-  return (
-    <CenterBox>
-      <Spinner />
-    </CenterBox>
-  );
-};
-```
-
----
-
-### 🟡 MEDIUM: Repeated Error UI
-**Files:** `SocialFeed.tsx` (lines 367-383), `ClientCommunityPage.tsx` (lines 201)
-
-```tsx
-// SocialFeed.tsx
-if (error) {
-  return (
-    <FeedContainer>
-      <EmptyFeedMessage>
-        <Heading6 $color="#C6A84B" $gutterBottom>Error loading feed</Heading6>
-        <BodyText2>Something went wrong...</BodyText2>
-        <ContainedButton onClick={() => window.location.reload()}>Retry</ContainedButton>
-      </EmptyFeedMessage>
-    </FeedContainer>
-  );
-}
-
-// ClientCommunityPage.tsx
-{error && <ErrorBox>{error}</ErrorBox>}
-```
-
-**Fix:** Create `ErrorBoundary` component with retry logic:
-```tsx
-interface ErrorStateProps {
-  error: Error | string;
-  onRetry?: () => void;
-}
-
-export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => (
-  <ErrorContainer>
-    <ErrorIcon />
-    <ErrorMessage>{typeof error === 'string' ? error : error.message}</ErrorMessage>
-    {onRetry && <RetryButton onClick={onRetry}>Retry</RetryButton>}
-  </ErrorContainer>
 );
 ```
 
+**Issue:** While using parameterized queries, the `reason` field is validated but `description` is not sanitized. More critically, the raw SQL approach bypasses Sequelize's built-in protections.
+
+**Fix:** Use Sequelize model methods instead of raw queries, or add strict validation on `description`.
+
 ---
 
-## 5. Error Handling
+### 2. **Missing Transaction Rollback on Hashtag Processing Failure**
+**File:** `backend/routes/social/posts.mjs` (lines 355-370)  
+**Severity:** CRITICAL
 
-### ❌ CRITICAL: Unhandled Promise Rejections
-**File:** `ClientCommunityPage.tsx`
-**Lines:** 186-195
+```javascript
+// Create the post
+const post = await SocialPost.create(postData);
 
-```tsx
-useEffect(() => {
-  const fetchData = async () => {
-    if (!authAxios) return;
-    try {
-      const [cRes, fRes] = await Promise.allSettled([...]);
-      // ❌ No error handling for individual promise failures
-      if (cRes.status === 'fulfilled') setChallenges(cRes.value?.data?.data || []);
-    } catch (err: any) {
-      setError(err.message);  // ❌ Loses error context
-    }
-  };
-  fetchData();
-}, [authAxios]);
+// Extract and process hashtags from content
+let linkedHashtags = [];
+try {
+  const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+  const tagNames = extractHashtags(content);
+  if (tagNames.length > 0) {
+    linkedHashtags = await processHashtags(post.id, tagNames);
+  }
+} catch (hashtagErr) {
+  // Non-fatal: hashtag processing failure should not block post creation
+  console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
+}
 ```
 
-**Issues:**
-1. `Promise.allSettled` errors are silently ignored
-2. No user feedback for partial failures
-3. Error message loses stack trace
+**Issue:** Post is created without a transaction. If hashtag processing partially succeeds then fails, you'll have orphaned `PostHashtag` records and incorrect `usageCount` values. Media upload happens before post creation, so R2 cleanup on failure is also missing.
+
+**Fix:** Wrap post creation, media upload, and hashtag processing in a Sequelize transaction with proper rollback.
+
+---
+
+### 3. **Race Condition in Hashtag Usage Count Increment**
+**File:** `backend/routes/social/hashtags.mjs` (lines 71-75)  
+**Severity:** CRITICAL
+
+```javascript
+// Increment usage counts
+await hashtag.increment(['usageCount', 'weeklyCount'], {
+  ...(transaction ? { transaction } : {})
+});
+```
+
+**Issue:** Multiple concurrent posts with the same hashtag can cause lost updates. `increment()` is atomic at the DB level, but the surrounding `findOrCreate` + `PostHashtag.findOrCreate` is not, leading to duplicate join records or missed counts.
+
+**Fix:** Use database-level unique constraints (already present) + proper error handling for constraint violations, or use `ON CONFLICT` upsert logic.
+
+---
+
+## HIGH Issues
+
+### 4. **Missing TypeScript Types in Frontend Component**
+**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (truncated)  
+**Severity:** HIGH
+
+**Issue:** Component is truncated, but visible code shows proper TypeScript usage. However, the styled-component props use `$` prefix convention but don't show proper typing for the styled component itself.
+
+**Expected:**
+```typescript
+const Chip = styled.button<{ 
+  $active: boolean; 
+  $color: string; 
+  $size: 'sm' | 'md' | 'lg' 
+}>`...`
+```
+
+**Current:** Uses `string` instead of discriminated union for `$size`.
+
+---
+
+### 5. **Hardcoded Color Values Instead of Theme Tokens**
+**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (lines 48-53)  
+**Severity:** HIGH
+
+```typescript
+const CATEGORY_COLORS: Record<string, string> = {
+  fitness: '#8B5CF6',    // Wing Purple
+  creative: '#C6A84B',   // Gilded Fern
+  community: '#60C0F0',  // Ice Wing
+  general: '#4070C0',    // Swan Lavender
+};
+```
+
+**Issue:** Hardcoded hex values violate the styled-components theme token requirement. Should reference `theme.colors.*` or CSS custom properties.
 
 **Fix:**
-```tsx
-useEffect(() => {
-  const fetchData = async () => {
-    if (!authAxios) return;
-    
-    try {
-      const [cRes, fRes] = await Promise.allSettled([
-        authAxios.get('/api/social/challenges'),
-        authAxios.get('/api/social/feed', { params: { limit: 3 } })
-      ]);
-      
-      // Handle challenges response
-      if (cRes.status === 'fulfilled') {
-        setChallenges(cRes.value?.data?.data || []);
-      } else {
-        console.error('Failed to load challenges:', cRes.reason);
-        // Show partial error to user
-        setError(prev => prev ? `${prev}; Challenges unavailable` : 'Challenges unavailable');
-      }
-      
-      // Handle feed response
-      if (fRes.status === 'fulfilled') {
-        setFeed(fRes.value?.data?.data || []);
-      } else {
-        console.error('Failed to load feed:', fRes.reason);
-        setError(prev => prev ? `${prev}; Feed unavailable` : 'Feed unavailable');
-      }
-    } catch (err) {
-      // Catch unexpected errors
-      console.error('Unexpected error in fetchData:', err);
-      setError('An unexpected error occurred. Please refresh the page.');
-      
-      // Optional: Send to error tracking service
-      // Sentry.captureException(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  fetchData();
-}, [authAxios]);
+```typescript
+const CATEGORY_COLORS: Record<string, string> = {
+  fitness: 'var(--wing-purple, #8B5CF6)',
+  creative: 'var(--gilded-fern, #C6A84B)',
+  community: 'var(--ice-wing, #60C0F0)',
+  general: 'var(--swan-lavender, #4070C0)',
+};
 ```
 
 ---
 
-### 🔴 HIGH: Missing Error Boundaries
-**File:** `SocialFeed.tsx`
+### 6. **Unhandled Promise Rejection in Hashtag Extraction**
+**File:** `backend/routes/social/posts.mjs` (lines 358-368)  
+**Severity:** HIGH
 
-**Issue:** No React Error Boundary to catch render errors.
+```javascript
+try {
+  const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+  const tagNames = extractHashtags(content);
+  if (tagNames.length > 0) {
+    linkedHashtags = await processHashtags(post.id, tagNames);
+  }
+} catch (hashtagErr) {
+  console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
+}
+```
 
-**Fix:** Wrap component in error boundary:
-```tsx
-// components/common/ErrorBoundary.tsx
-export class SocialFeedErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  state = { hasError: false, error: null };
-  
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+**Issue:** If `processHashtags` throws after creating some hashtags, the counts will be inconsistent. The error is swallowed without user notification.
+
+**Fix:** Either make hashtag processing atomic (transaction) or return partial success info to the user.
+
+---
+
+### 7. **Missing Error Boundary for Async Operations**
+**File:** `backend/routes/social/hashtags.mjs` (multiple routes)  
+**Severity:** HIGH
+
+**Issue:** All routes use generic `catch` blocks that log to console but don't differentiate between validation errors, DB errors, and system errors. User gets same "Failed to fetch" message for all failures.
+
+**Fix:** Implement error classification:
+```javascript
+} catch (error) {
+  if (error.name === 'SequelizeValidationError') {
+    return res.status(400).json({ success: false, message: error.errors[0].message });
   }
-  
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('SocialFeed Error:', error, errorInfo);
-    // Send to monitoring service
+  if (error.name === 'SequelizeUniqueConstraintError') {
+    return res.status(409).json({ success: false, message: 'Hashtag already exists' });
   }
-  
-  render() {
-    if (this.state.hasError) {
-      return (
-        <ErrorFallback 
-          error={this.state.error} 
-          resetError={() => this.setState({ hasError: false, error: null })}
-        />
-      );
-    }
-    return this.props.children;
+  logger.error('Hashtag route error:', error);
+  return res.status(500).json({ success: false, message: 'Server error' });
+}
+```
+
+---
+
+## MEDIUM Issues
+
+### 8. **DRY Violation: Duplicate Reaction Fetching Logic**
+**File:** `backend/routes/social/posts.mjs` (lines 178-187, 317-326)  
+**Severity:** MEDIUM
+
+```javascript
+// Appears twice with identical logic
+let reactionCountsMap = {};
+let userReactionsMap = {};
+try {
+  reactionCountsMap = await SocialLike.getReactionCounts(postIds);
+  userReactionsMap = await SocialLike.getUserReactions(req.user.id, postIds);
+} catch (err) {
+  console.log('Reaction methods not available, falling back to legacy:', err.message);
+}
+```
+
+**Fix:** Extract to helper function:
+```javascript
+async function fetchReactionData(userId, postIds) {
+  try {
+    return {
+      counts: await SocialLike.getReactionCounts(postIds),
+      userReactions: await SocialLike.getUserReactions(userId, postIds)
+    };
+  } catch (err) {
+    return { counts: {}, userReactions: {} };
   }
 }
-
-// Usage in parent:
-<SocialFeedErrorBoundary>
-  <SocialFeed variant="full" />
-</SocialFeedErrorBoundary>
 ```
 
 ---
 
-### 🟡 MEDIUM: Weak Backend Error Handling
-**File:** `posts.mjs`
-**Lines:** 100-110
+### 9. **Inefficient N+1 Query Pattern in Hashtag Page**
+**File:** `backend/routes/social/hashtags.mjs` (lines 197-213)  
+**Severity:** MEDIUM
 
-```mjs
-async function awardSocialPoints(userId, action, metadata = {}) {
-  try {
-    const pointsToAward = SOCIAL_POINT_RULES[action];
-    
-    if (!pointsToAward) {
-      console.log(`No points defined for social action: ${action}`);
-      return { pointsAwarded: 0, success: false };  // ❌ Silent failure
-    }
-    // ...
-  } catch (error) {
-    console.error(`❌ Error awarding social points for ${action}
+```javascript
+const postIds = (await PostHashtag.findAll({
+  where: { hashtagId: hashtag.id },
+  attributes: ['postId'],
+  order: [['createdAt', 'DESC']],
+  limit: limit + offset
+})).map(ph => ph.postId);
+
+const paginatedIds = postIds.slice(offset, offset + limit);
+
+const posts = paginatedIds.length > 0
+  ? await SocialPost.findAll({
+      where: {
+        id: { [Op.in]: paginatedIds },
+        moderationStatus: { [Op.or]: ['approved', null] }
+      },
+      // ...
+    })
+  : [];
+```
+
+**Issue:** Fetches all post IDs up to `limit + offset`, then slices in memory. For large hashtags, this is inefficient.
+
+**Fix:** Use proper pagination with `LIMIT` and `OFFSET` in the initial query, or use cursor-based pagination.
+
+---
+
+### 10. **Missing Input Validation on Hashtag Search**
+**File:** `backend/routes/social/hashtags.mjs` (lines 124-127)  
+**Severity:** MEDIUM
+
+```javascript
+const q = (req.query.q || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+if (q.length < 1) {
+  return res.json({ success: true, data: [] });
+}
+```
+
+**Issue:** No max length check. A malicious user could send a 10,000-character query that passes the regex but causes DB performance issues.
+
+**Fix:**
+```javascript
+const q = (req.query.q || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+```
+
+---
+
+### 11. **Inconsistent Error Logging**
+**File:** Multiple files  
+**Severity:** MEDIUM
+
+**Issue:** Some routes use `console.error`, some use `console.log`, some check for `logger` existence. Inconsistent logging makes debugging harder.
+
+**Fix:** Standardize on logger utility:
+```javascript
+import logger from '../../utils/logger.mjs';
+// Always use logger.error, logger.warn, logger.info
+```
+
+---
+
+### 12. **Magic Numbers in Pagination**
+**File:** `backend/routes/social/hashtags.mjs` (lines 109, 130, etc.)  
+**Severity:** MEDIUM
+
+```javascript
+const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+```
+
+**Issue:** Hardcoded limits scattered throughout. Should be constants.
+
+**Fix:**
+```javascript
+const PAGINATION_DEFAULTS = {
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 50,
+  MAX_HASHTAG_SEARCH_LIMIT: 30
+};
+```
+
+---
+
+## LOW Issues
+
+### 13. **Unused Import in Hashtag Model**
+**File:** `backend/models/social/Hashtag.mjs`  
+**Severity:** LOW
+
+**Issue:** `classifyHashtag` is exported but only used in `hashtags.mjs` route. Not a problem, but worth noting for tree-shaking.
+
+---
+
+### 14. **Missing JSDoc for Exported Functions**
+**File:** `backend/routes/social/hashtags.mjs` (lines 34-40)  
+**Severity:** LOW
+
+```javascript
+export function extractHashtags(content) {
+  if (!content || typeof content !== 'string') return [];
+  const matches = content.match(HASHTAG_REGEX) || [];
+  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))].slice(0, 10);
+}
+```
+
+**Issue:** Missing JSDoc comment explaining the 10-hashtag limit and deduplication logic.
+
+---
+
+### 15. **Inconsistent Naming: `weeklyCount` vs `usageCount`**
+**File:** `backend/models/social/Hashtag.mjs` (lines 73-83)  
+**Severity:** LOW
+
+**Issue:** No documentation on when `weeklyCount` is reset. Should have a cron job reference or migration script comment.
+
+**Fix:** Add comment:
+```javascript
+weeklyCount: {
+  type: DataTypes.INTEGER,
+  defaultValue: 0,
+  allowNull: false,
+  comment: 'Posts this week — reset weekly by cron job (see scripts/resetWeeklyCounts.mjs)'
+}
+```
+
+---
+
+### 16. **Potential Memory Leak in Hashtag Suggestions**
+**File:** `backend/routes/social/hashtags.mjs` (lines 162-185)  
+**Severity:** LOW
+
+```javascript
+const usedTagIds = postIds.length > 0
+  ? (await PostHashtag.findAll({
+      where: { postId: { [Op.in]: postIds } },
+      attributes: ['hashtagId'],
+      group: ['hashtagId']
+    })).map(ph => ph.hashtagId)
+  : [];
+```
+
+**Issue:** If a user has 1000+ posts, this could fetch a large result set. Should limit to recent posts (already done with `limit: 20` on posts, but worth documenting).
+
+---
+
+### 17. **Missing Index on `PostHashtag.createdAt`**
+**File:** `backend/models/social/PostHashtag.mjs` (lines 39-44)  
+**Severity:** LOW
+
+**Issue:** Hashtag page sorts by `PostHashtag.createdAt DESC` but no index exists on that column.
+
+**Fix:** Add index:
+```javascript
+indexes: [
+  { unique: true, fields: ['postId', 'hashtagId'] },
+  { fields: ['postId'] },
+  { fields: ['hashtagId'] },
+  { fields: ['createdAt'] } // Add this
+]
+```
+
+---
+
+### 18. **Truncated Frontend Component**
+**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx`  
+**Severity:** LOW
+
+**Issue:** Component is incomplete (ends mid-template literal). Cannot fully review hover states, click handlers, or accessibility attributes.
+
+**Expected:** Full component with `onClick` handler, keyboard navigation, and ARIA labels.
+
+---
+
+## Performance Anti-Patterns
+
+### 19. **Inline Function Creation in Map**
+**File:** `backend/routes/social/posts.mjs` (lines 188-200)  
+**Severity:** LOW
+
+```javascript
+const formattedPosts = posts.map(post => {
+  const postObj = post.toJSON();
+  postObj.commentsCount = commentCountMap[post.id] || 0;
+  postObj.isLiked = likedPostIds.has(post.id);
+  postObj.reactionCounts = reactionCountsMap[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
+  postObj.userReactions = userReactionsMap[post.id] || [];
+  return postObj;
+});
+```
+
+**Issue:** Not a problem in Node.js backend, but if this pattern appears in React components, it would cause re-renders.
+
+---
+
+### 20. **Missing Memoization in Category Color Lookup**
+**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (lines 48-53)  
+**Severity:** LOW
+
+**Issue:** `CATEGORY_COLORS` is a constant object, so no issue. But if this were computed, it should be memoized.
+
+---
+
+## Summary Table
+
+| Severity | Count | Key Issues |
+|----------|-------|------------|
+| CRITICAL | 3 | SQL injection risk, missing transactions, race conditions |
+| HIGH | 4 | Missing TypeScript types, hardcoded colors, unhandled promises, poor error handling |
+| MEDIUM | 6 | DRY violations, N+1 queries, missing validation, inconsistent logging |
+| LOW | 7 | Missing docs, potential memory issues, missing indexes, truncated component |
+
+---
+
+## Recommendations Priority
+
+1. **Immediate (CRITICAL):**
+   - Wrap post creation in transaction with rollback
+   - Add proper error handling for hashtag race conditions
+   - Replace raw SQL with Sequelize models in reporting
+
+2. **Short-term (HIGH):**
+   - Implement proper error classification in all routes
+   - Replace hardcoded colors with theme tokens
+   - Add TypeScript discriminated unions for size props
 
 ---
 

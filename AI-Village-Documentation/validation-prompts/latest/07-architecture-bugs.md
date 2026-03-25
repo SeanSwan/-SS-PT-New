@@ -1,120 +1,175 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 149.2s
-> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
-> **Generated:** 3/24/2026, 10:21:55 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 71.2s
+> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
+> **Generated:** 3/24/2026, 10:56:33 PM
 
 ---
 
-# Deep Code Review: SwanStudios Social Module
+# Deep Code Review: SwanStudios Social Hashtag System
 
 ## Executive Summary
 
-This review identifies **CRITICAL** bugs, architectural flaws, and production blockers across the frontend and backend social modules. The codebase has significant integration mismatches between the frontend post creation and backend validation, plus several race conditions and error handling gaps.
+This review identifies **CRITICAL** bugs that will cause runtime failures, **HIGH** severity architectural flaws, and **MEDIUM** production readiness issues. The codebase has significant data integrity risks around hashtag-post relationships and point awarding.
 
 ---
 
 ## 1. Bug Detection
 
-### CRITICAL
+### CRITICAL: Data Integrity Failure in Hashtag Processing
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **CRITICAL** | `ClientCommunityPage.tsx:158-170` | **Race condition in handlePost**: After posting, if the feed refresh fails, the user sees an error message even though their post was successfully created. The error state is shared between initial data fetch and post operations, causing confusion. | Separate error states: `fetchError` vs `postError`. Only show post-specific errors. Refresh feed optimistically or handle refresh failure silently. |
-| **CRITICAL** | `posts.mjs:50` | **Type coercion bug in fallback feed**: `userId: String(userId)` converts userId to string, but the query also checks `{ visibility: 'public' }` which doesn't involve userId. More critically, the original query uses numeric userIds while fallback uses string - this inconsistency can cause posts to be missed or duplicated during the migration period. | Normalize userId type consistently: `userId: { [Op.or]: [String(userId), Number(userId)] }` or ensure all userIds are stored as the same type. |
-| **CRITICAL** | `ClientCommunityPage.tsx:158` | **Invalid post type sent to backend**: The frontend sends `type: 'text'` but the backend `SocialPost.mjs` ENUM only accepts: `'general', 'workout', 'achievement', 'challenge', 'milestone', 'creative', 'dance', 'music', 'singing', 'art', 'gaming', 'comedy'`. This will cause a database constraint violation. | Change to `type: 'general'` or map 'text' to 'general' on frontend before sending. |
+| **CRITICAL** | `hashtags.mjs` lines 68-98 | `processHashtags` increments `usageCount` and `weeklyCount` on every post creation, but **there is no corresponding decrement when posts are deleted**. This causes permanently inflated usage statistics. | Add a `decrementHashtagCounts` function called in `posts.mjs` DELETE endpoint that decrements both counters. Use a transaction to ensure atomicity. |
+| **CRITICAL** | `hashtags.mjs` line 72 | **Dynamic import inside a loop** — `await import('../../models/social/Hashtag.mjs')` is called for every hashtag in the loop, causing N module reloads. This is a severe performance bug. | Move the import to the top of the function: `const { classifyHashtag } = await import(...)` once before the loop, or better, import it at module level. |
+| **CRITICAL** | `posts.mjs` line 66 | In `getEnhancedFallbackFeed`, the `where` clause compares `userId: String(userId)` but the fallback query uses `raw: true` and the EnhancedSocialPost may store numeric IDs. This will fail to match the user's own posts. | Change to `userId: userId` (numeric) and ensure consistent type handling, or use `sequelize.cast()` for cross-database compatibility. |
 
-### HIGH
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `SocialFeed.tsx:182-193` | **Stale timer bug**: The useEffect has `if (posts.length === 0) return;` which exits early. However, if posts goes from populated to empty, any pending timer from a previous render is NOT cleaned up because the effect didn't run to set up the new timer. The cleanup function only runs when the effect re-runs, not when it skips. | Move the timer setup outside the early return, or use a ref to track if cleanup is needed. Better: always set up cleanup regardless of posts.length. |
-| **HIGH** | `SocialFeed.tsx:276` | **Potential null reference**: `profile.data` is accessed without checking if `profile` itself is loaded. If `useGamificationData` returns `{ data: null, isLoading: true }`, this will throw. | Add null check: `profile.data && (variant === 'full') && ...` or use optional chaining with a loading skeleton. |
-| **HIGH** | `CreatePostCard.tsx:143` | **Type safety violation**: `value={form.visibility} onChange={(e) => form.setVisibility(e.target.value as any)}` - the `as any` cast bypasses TypeScript checking. If an invalid value is passed, it will fail at runtime. | Define proper type for visibility and validate in the setter, or use a type guard. |
-
-### MEDIUM
+### HIGH: Race Conditions & Async Issues
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **MEDIUM** | `SocialFeed.tsx:182-193` | **Inefficient reactivity**: The effect depends on entire `posts` array reference. Any change to posts (even just a like count update) triggers re-evaluation of the timeDiff logic. | Use a more stable dependency like `posts[0]?.createdAt` or separate the "is recent" check into a computed value. |
-| **MEDIUM** | `ClientCommunityPage.tsx:133` | **Fragile response parsing**: `res.data?.data || res.data` assumes either nested or flat response structure. This pattern is repeated and indicates API response inconsistency. | Standardize API response format across all endpoints. Use a wrapper like `{ success: true, data: [...] }` consistently. |
-| **MEDIUM** | `SocialPost.mjs:27` | **Insecure default moderation**: `moderationStatus: { defaultValue: 'approved' }` - new posts are auto-approved without any content filtering. This bypasses the entire moderation system for new content. | Default to `'pending'` and implement async approval for trusted users, or run content through AI moderation before approval. |
+| **HIGH** | `hashtags.mjs` lines 68-98 | `processHashtags` has **no transaction wrapping**. If `PostHashtag.findOrCreate` succeeds but `hashtag.increment()` fails, the join record exists without the count being updated. | Wrap the entire operation in `sequelize.transaction()` and pass to all queries. |
+| **HIGH** | `posts.mjs` lines 304-306 | Comment count is updated manually (`post.commentsCount += 1`) instead of using database increment. If the response fails after save but before returning, the count is already incremented but client sees error. | Use `await post.increment('commentsCount')` instead of manual increment. |
+| **HIGH** | `posts.mjs` lines 304-306 | Same issue with comment deletion - manual decrement can cause inconsistency | Use `await post.decrement('commentsCount')` |
+
+### MEDIUM: Null/Undefined Access Without Guards
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `hashtags.mjs` line 177 | `req.user.id` is used without checking if `req.user` exists. If `protect` middleware fails silently, this throws. | Add guard: `if (!req.user?.id) return res.status(401)...` |
+| **MEDIUM** | `posts.mjs` line 68 | `parseInt(req.query.limit)` can return `NaN` if invalid string passed, then `Math.max(1, NaN)` returns `NaN`, causing SQL error. | Add: `const limit = Math.max(1, parseInt(req.query?.limit) || 20)` |
+| **MEDIUM** | `hashtags.mjs` line 132 | `parseInt(req.query.limit)` can be negative if someone passes `?limit=-5`. | Add: `const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 20, 50))` |
 
 ---
 
 ## 2. Architecture Flaws
 
-### HIGH
+### CRITICAL: Unused Parameter & Dead Code
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **HIGH** | `SocialFeed.tsx` (entire file) | **God component risk**: While styled-components are at the top, the component logic is ~150 lines with multiple responsibilities: rendering feed, gamification header, stats, recent activity indicator, and loading states. The variant prop controls two very different views. | Extract `GamificationHeader` into its own component. Extract `FeedStats` into its own component. Create separate `SocialHub` vs `SocialFeedCompact` components. |
-| **HIGH** | `ClientCommunityPage.tsx:120-145` | **Coupled data fetching**: All three data sources (challenges, feed, leaderboard) are fetched in one useEffect with Promise.allSettled. If leaderboard fails but challenges succeed, the whole component shows error. The leaderboard is also hardcoded, making the Promise.allSettled pointless for that data. | Separate into independent hooks/useEffects. Remove hardcoded leaderboard or fetch it properly. Add granular error handling per data source. |
-| **HIGH** | `posts.mjs:29-52` | **Complex fallback logic with type mismatches**: The `getEnhancedFallbackFeed` function has extensive type coercion (string vs number userId) and complex query building. This indicates the migration from legacy to enhanced table is incomplete and fragile. | Complete the migration or establish a clear data sync strategy. Add database-level constraints to ensure consistent userId types. |
+| **CRITICAL** | `hashtags.mjs` line 117 | **Dead code**: `period` query parameter is accepted (`?period=24h|7d|30d`) but **never used**. The trending endpoint always returns the same data regardless of period. | Either implement weekly count reset logic via cron job, or remove the unused parameter and update API docs. |
+| **CRITICAL** | `HashtagChip.tsx` line 89-91 | **Syntax error**: The styled-component template is truncated mid-line with incomplete `color-mix()` call. This will cause build failure. | Complete the hover state: `background: color-mix(in srgb, ${$color} 30%, var(--bg-elevated, #141419));` |
+| **HIGH** | `hashtags.mjs` lines 155-170 | The `suggestions` endpoint makes **5 separate database queries** that could be combined into 2-3. This is an N+1 pattern. | Use Sequelize `include` with `through` to fetch used/followed tags in one query. |
 
-### MEDIUM
+### HIGH: Prop Drilling & Component Issues
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **MEDIUM** | `CreatePostCard.tsx:89-107` | **Prop drilling in CreatePostForm**: The component receives many individual props (`postContent`, `onContentChange`, `postType`, etc.) that could be grouped into a context or a single `formState` object. | Create a `PostFormContext` or pass a single `formState` object to reduce prop count and improve maintainability. |
-| **MEDIUM** | `SocialFeed.tsx:195-199` | **Unstable callback reference**: `handleLikeToggle` returns a function call (`unlikePost(postId)` or `likePost(postId)`) rather than being a direct callback. This creates unnecessary function creation on each render even with useCallback. | Change to direct invocation: `const handleLikeToggle = useCallback((postId: string, isLiked: boolean) => { if (isLiked) unlikePost(postId); else likePost(postId); }, [likePost, unlikePost]);` |
+| **HIGH** | `HashtagChip.tsx` entire file | The component imports `Hash` and `CheckCircle` from `lucide-react` but **never uses them**. Dead imports. | Remove unused imports or implement the icons in the render. |
+| **MEDIUM** | `HashtagChip.tsx` | No error boundary or null check for `hashtag` prop. If parent passes `null` or `undefined`, runtime crash. | Add: `if (!hashtag) return null;` at component start |
 
 ---
 
 ## 3. Integration Issues
 
-### CRITICAL
+### HIGH: Frontend-Backend Contract Mismatch
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **CRITICAL** | `ClientCommunityPage.tsx:158` ↔ `SocialPost.mjs:27` | **API contract mismatch - post type**: Frontend sends `{ type: 'text' }` but backend ENUM doesn't include 'text'. This will cause Sequelize validation error: `SequelizeDatabaseError: invalid input value for enum` | Frontend: Change `type: 'text'` to `type: 'general'` or add 'text' to the backend ENUM. |
-| **CRITICAL** | `SocialFeed.tsx:276` ↔ `useGamificationData` hook | **Missing loading state propagation**: The component renders gamification header when `profile.data` exists, but doesn't wait for profile to load. If profile is still fetching, `profile.data` is undefined and the header is skipped silently. | Add `profile.isLoading` check and render a skeleton/loading state for the gamification header. |
+| **HIGH** | `hashtags.mjs` line 225 | The `:slug` endpoint returns `posts` array but doesn't include `hashtags` on each post object. Frontend's `PostCard` likely expects hashtags. | Add `include: [{ model: Hashtag, as: 'hashtags', attributes: ['id', 'name', 'slug'] }]` to the SocialPost query. |
+| **MEDIUM** | `posts.mjs` line 201 | The feed returns `pagination.total` from `SocialPost.count()` which doesn't respect the hashtag/category filters properly — it counts before applying all WHERE clauses. | Move count query inside the filter logic or use a subquery. |
 
-### HIGH
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `ClientCommunityPage.tsx:133` | **Inconsistent API response shapes**: The code handles both `res.data?.data` (nested) and `res.data` (flat) responses. This indicates different endpoints return different structures. | Standardize all social API responses to `{ success: boolean, data: T, pagination?: {...} }` format. |
-| **HIGH** | `posts.mjs:200-215` | **Missing moderation filter in main feed query**: The main feed query (lines 200-215) does NOT filter by `moderationStatus: 'approved'`. Only the fallback query (line 50) and `getFeedForUser` method filter by moderation. This means unapproved posts could appear in the main feed. | Add `moderationStatus: 'approved'` to the main feed query where clause. |
-
-### MEDIUM
+### MEDIUM: Missing Loading/Error States
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **MEDIUM** | `SocialFeed.tsx:276` | **User object may be null**: `user?.firstName` is used but if `useAuth` returns null user, the welcome message shows "Welcome back, !" with empty name. | Add fallback: `{user?.firstName || 'Athlete'}` or show a different message when user is not loaded. |
-| **MEDIUM** | `CreatePostCard.tsx:143` | **Visibility select lacks validation**: The NativeSelect passes any string value to setVisibility. If the API receives an invalid visibility, it will fail. | Add validation in setVisibility or use a controlled select with only valid options. |
+| **MEDIUM** | `hashtags.mjs` line 117 | No validation for invalid `category` values — silently ignores invalid category and returns all. | Return 400 for invalid category: `if (category && !['fitness',...].includes(category)) return res.status(400)...` |
+| **MEDIUM** | `posts.mjs` line 68 | No validation for non-numeric `limit`/`offset` — passes through to SQL which may error or return unexpected results. | Add explicit validation with defaults. |
 
 ---
 
 ## 4. Dead Code & Tech Debt
 
-### HIGH
+### HIGH: Unused Code & TODO Items
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **HIGH** | `SocialFeed.tsx:8-22` | **Unused imports**: 14 icon imports from lucide-react are never used: `MessageSquare, Heart, Share, Image, Send, MoreVertical, Award, Dumbbell, Clock, Star, Zap, TrendingUp, Users, Trophy`. The file uses some of these (Star, Zap, Clock, Trophy) but many are redundant. | Remove unused imports: `MessageSquare, Heart, Share, Image, Send, MoreVertical, Award, Dumbbell, TrendingUp, Users`. Keep only what's used. |
-| **HIGH** | `SocialFeed.tsx:23` | **Unused import**: `useNavigate` is imported but never used. | Remove `import { useNavigate } from 'react-router-dom';` |
-| **HIGH** | `ClientCommunityPage.tsx:150` | **Hardcoded leaderboard data**: `PLACEHOLDER_LEADERS` is defined and used but appears to be placeholder data that was never replaced with API integration. | Either remove and show "Leaderboard unavailable" or implement the API call to fetch real leaderboard data. |
+| **HIGH** | `hashtags.mjs` line 117 | **TODO not implemented**: The `period` parameter for trending hashtags is accepted but has no implementation. | Either implement weekly count reset via scheduled job, or document as "coming soon" and remove from API. |
+| **MEDIUM** | `Hashtag.mjs` lines 22-30 | `CATEGORY_KEYWORDS` is a large static object. If this grows larger, consider moving to database table for admin management. | Low priority — acceptable for MVP |
+| **MEDIUM** | `posts.mjs` lines 35-36 | `isLegacySocialTableMissingError` function is a workaround for missing tables. This indicates incomplete migration. | Complete the migration to create legacy tables. |
 
-### MEDIUM
+### LOW: Commented Code
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **MEDIUM** | `SocialFeed.tsx:57-60` | **Duplicate gradient**: The `ContainedButton` uses the same gradient for both primary and default cases: `if ($color === 'primary') return '...'; return '...';` - both return identical values. | Simplify to single gradient or remove the conditional logic. |
-| **MEDIUM** | `CreatePostCard.tsx:47-55` | **Commented-out architecture diagram**: The file contains extensive MERMAID diagram comments that are documentation, not executable code. While not harmful, they bloat the file. | Move to separate ARCHITECTURE.md or keep minimal inline docs. |
-| **MEDIUM** | `posts.mjs:107,118,125` | **Debug console.log statements**: These log successful point awards and should be removed or replaced with proper structured logging for production. | Replace with: `logger.info('Points awarded', { userId, action, points })` or remove in production build. |
+| **LOW** | `posts.mjs` line 261 | Comment: `// With memory storage, no temp file cleanup needed` — this is fine but could be a TODO to add cleanup logic for disk storage fallback. | Acceptable — document in tech spec |
 
 ---
 
 ## 5. Production Readiness
 
-### CRITICAL
+### CRITICAL: Console.log Statements
 
 | Severity | File & Line | What's Wrong | Fix |
 |----------|-------------|--------------|-----|
-| **CRITICAL** | `posts.mjs:107,118,125` | **Debug logging in production**: Multiple `console.log` and `console.error` statements throughout the backend route file will pollute production logs and potentially expose sensitive user data (userId in log messages). | Remove all console.log/console.error statements or replace with a proper logger (e.g., Winston, Pino) with appropriate log levels. |
-| **CRITICAL** | `SocialPost.mjs:27` | **No content validation at API boundary**: The model accepts any content without sanitization. The `moderationStatus` defaults to 'approved' with no content filtering. | Add input validation/sanitization in the route handler before creating posts. Integrate AI moderation service. |
-| **CRITICAL** | `ClientCommunityPage.tsx:158` | **No rate limiting on client**: The user can click "Post" rapidly and create multiple posts in succession.
+| **CRITICAL** | `posts.mjs` lines 91, 104, 116 | Multiple `console.log` statements for point awards (`✅ Awarded ${pointsToAward} points...`) will ship to production and pollute logs. | Replace with proper logger: `logger.info('Points awarded', { userId, action, points })` |
+| **CRITICAL** | `hashtags.mjs` lines 87, 89 | `console.warn` for hashtag processing failures. While less severe, these should use the imported `logger`. | Replace with `logger.warn(...)` |
+
+### HIGH: Missing Input Validation
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **HIGH** | `hashtags.mjs` line 193 | `req.params.slug` is used directly without sanitization. While Sequelize escapes values, empty slug would match unintended records. | Add: `if (!slug || slug.length < 2) return res.status(400)...` |
+| **HIGH** | `posts.mjs` line 254 | `type` parameter accepts any string but only certain types award points. No validation allows invalid types. | Add validation: `const VALID_TYPES = ['general', 'workout', 'transformation', ...]; if (!VALID_TYPES.includes(type)) ...` |
+
+### MEDIUM: Rate Limiting & Performance
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|-------------|--------------|-----|
+| **MEDIUM** | `hashtags.mjs` line 155 | The `suggestions` endpoint could be expensive with many posts. No pagination on the underlying post queries. | Add `limit: 20` to the `SocialPost.findAll` call. |
+| **MEDIUM** | `posts.mjs` line 145 | Friend ID extraction loads ALL friendships into memory. For users with 1000+ friends, this is problematic. | Add pagination or use cursor-based friend retrieval. |
+
+---
+
+## Summary Table
+
+| Category | Count |
+|----------|-------|
+| CRITICAL | 8 |
+| HIGH | 10 |
+| MEDIUM | 10 |
+| LOW | 2 |
+
+## Top 5 Ship Blockers
+
+1. **`processHashtags` dynamic import in loop** — Performance + correctness
+2. **No decrement of hashtag counts on post delete** — Data integrity
+3. **Console.log statements in production** — Log pollution
+4. **Missing transaction in hashtag processing** — Data consistency
+5. **Styled-component syntax error in HashtagChip** — Build failure
+
+---
+
+## Recommended Immediate Actions
+
+```javascript
+// 1. Fix processHashtags - move import outside loop
+export async function processHashtags(postId, tagNames, transaction = null) {
+  if (!tagNames || tagNames.length === 0) return [];
+  // IMPORT ONCE AT TOP
+  const { classifyHashtag } = await import('../../models/social/Hashtag.mjs');
+  // ... rest of function
+}
+
+// 2. Add transaction wrapping
+export async function processHashtags(postId, tagNames, transaction = null) {
+  const t = transaction || await sequelize.transaction();
+  try {
+    // ... all queries with { transaction: t }
+    if (!transaction) await t.commit();
+  } catch (err) {
+    if (!transaction) await t.rollback();
+    throw err;
+  }
+}
+
+// 3. Fix HashtagChip.tsx line 89-91
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, ${$color} 30%, var(--bg-elevated, #141419));
+    border-color: ${({ $color }) => $color};
+  }
+```
 
 ---
 

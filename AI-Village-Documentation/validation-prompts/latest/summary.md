@@ -1,56 +1,58 @@
-# Validation Summary — 3/24/2026, 10:21:55 PM
+# Validation Summary — 3/24/2026, 10:56:33 PM
 
-> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
-> **Validators:** 10/7 passed | **Cost:** $0.4086
+> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
+> **Validators:** 11/7 passed | **Cost:** $0.3693
 
 ## Quick Status
 
 | # | Track | Status | Time |
 |---|-------|--------|------|
-| 1 | UX & Accessibility | PASS | 19.2s |
-| 2 | Code Quality | PASS | 59.5s |
-| 3 | Security | PASS | 35.4s |
-| 4 | Performance & Scalability | PASS | 11.4s |
-| 5 | Competitive Intelligence | PASS | 24.1s |
-| 6 | User Research & Persona Alignment | FAIL | 180.0s |
-| 7 | Architecture & Bug Hunter | PASS | 149.2s |
-| 8 | Frontend UX & Code Patterns | PASS | 8.1s |
-| 9 | Data Safety & Integrity | PASS | 61.5s |
-| 10 | Code Quality Debate (Phase 2) | PASS | 178.6s |
-| 11 | UX/UI Design Debate (Phase 3) | PASS | 194.8s |
+| 1 | UX & Accessibility | PASS | 18.7s |
+| 2 | Code Quality | PASS | 58.6s |
+| 3 | Security | PASS | 50.2s |
+| 4 | Performance & Scalability | PASS | 10.6s |
+| 5 | Competitive Intelligence | PASS | 22.2s |
+| 6 | User Research & Persona Alignment | PASS | 54.5s |
+| 7 | Architecture & Bug Hunter | PASS | 71.2s |
+| 8 | Frontend UX & Code Patterns | PASS | 5.4s |
+| 9 | Data Safety & Integrity | PASS | 65.5s |
+| 10 | Code Quality Debate (Phase 2) | PASS | 156.8s |
+| 11 | UX/UI Design Debate (Phase 3) | PASS | 195.6s |
 
 ## CRITICAL Findings (fix now)
-[Code Quality] The codebase demonstrates strong architectural patterns with proper hook extraction, memoization, and component composition. However, there are **critical TypeScript gaps**, **performance anti-patterns**, and **error handling deficiencies** that need immediate attention.
-[Performance & Scalability] The frontend suffers from **heavy main-thread computation** during feed rendering and **missing virtualization**, which will cause lag as the feed grows. The backend contains **critical N+1 query patterns** and **unbounded database lookups** that will fail under high concurrent load.
-[Competitive Intelligence] The reviewed codebase demonstrates strong social features, but the training programming infrastructure visible in the social components reveals critical absences that competitors have standardized. **Trainerize** and **Future** offer comprehensive exercise libraries with video demonstrations, while SwanStudios lacks visible exercise database infrastructure in the social modules. The workout sharing functionality in `CreatePostCard.tsx` references workout statistics but does not demonstrate a complete exercise library or video demonstration system.
-[Architecture & Bug Hunter] This review identifies **CRITICAL** bugs, architectural flaws, and production blockers across the frontend and backend social modules. The codebase has significant integration mismatches between the frontend post creation and backend validation, plus several race conditions and error handling gaps.
-[Frontend UX & Code Patterns] *   **Theme Consistency (CRITICAL):** You are using hardcoded hex values (e.g., `#8B5CF6`, `#60C0F0`) throughout `SocialFeed.tsx` and `CreatePostCard.tsx`.
-[Frontend UX & Code Patterns] *   **ARIA Roles (CRITICAL):**
-[Data Safety & Integrity] **CRITICAL ISSUES FOUND: 3**
-[Data Safety & Integrity] **Severity:** CRITICAL
-[Data Safety & Integrity] **Severity:** CRITICAL
-[Data Safety & Integrity] **Severity:** CRITICAL
+[UX & Accessibility] *   **Finding:** CRITICAL
+[UX & Accessibility] *   **Truncation/Scrolling:** If `white-space: nowrap` is critical for single chips, consider how long hashtag names are handled. On mobile, very long hashtags might need truncation with an ellipsis or a horizontal scrollable container for a group of chips.
+[Code Quality] **Severity:** CRITICAL
+[Code Quality] **Issue:** While using parameterized queries, the `reason` field is validated but `description` is not sanitized. More critically, the raw SQL approach bypasses Sequelize's built-in protections.
+[Code Quality] **Severity:** CRITICAL
+[Code Quality] **Severity:** CRITICAL
+[Code Quality] 1. **Immediate (CRITICAL):**
+[Competitive Intelligence] While SwanStudios has a robust "social graph" foundation that beats the standard "feed-only" model of competitors like TrueCoach or My PT Hub, there are critical gaps in user engagement loops and content monetization.
+[User Research & Persona Alignment] **Critical Gap:**
+[User Research & Persona Alignment] **Critical Gap:**
 
 ## HIGH Findings (fix before deploy)
-[Performance & Scalability] *   **Impact:** High memory usage and slow API response for "power users."
-[Competitive Intelligence] The `useGamificationData` hook and `profile.data.streakDays` display in `SocialFeed.tsx` surface gamification metrics to users. The `PointPreviewChip` in `CreatePostCard.tsx` previews expected points before posting, creating anticipation and encouraging higher-value post types.
-[Competitive Intelligence] Implement post-creation intercepts that prompt free users to upgrade when attempting high-value actions (transformation posts, challenge creation). "Upgrade to premium to unlock unlimited transformation posts with before/after comparisons."
-[Frontend UX & Code Patterns] *   **`SocialFeed.tsx` (HIGH):** The `feedStats` calculation uses `useMemo` correctly, but the `useEffect` for `recentActivity` is prone to race conditions if `posts` updates rapidly.
-[Frontend UX & Code Patterns] *   **Reduced Motion (HIGH):** There is no support for `prefers-reduced-motion`.
-[Frontend UX & Code Patterns] *   **Validation Feedback (HIGH):** `ClientCommunityPage.tsx` allows posting empty strings (only checked via `!postText.trim()`).
-[Frontend UX & Code Patterns] *   **Keyboard Traps (HIGH):** The `CreatePostCard` expansion logic uses `setTimeout` to scroll into view. This can be disorienting for keyboard users. Ensure focus is programmatically moved to the `textarea` after the expansion animation completes.
-[Frontend UX & Code Patterns] *   **`SocialPost.mjs` (HIGH):** The moderation methods (`flagContent`, `approveContent`) are well-structured. However, the `incrementReports` method updates the database directly.
-[Data Safety & Integrity] **OVERALL RISK LEVEL: HIGH**
-[Data Safety & Integrity] **HIGH PRIORITY ISSUES: 4**
+[UX & Accessibility] *   **Description:** The `HashtagChip` component uses `var(--text-secondary, #94a3b8)` for inactive text color and `var(--border-soft, rgba(96, 192, 240, 0.12))` for inactive border color. These values, especially `#94a3b8` (a light grey-blue) on a `var(--bg-elevated, #141419)` (a very dark grey) background, are highly likely to fail WCAG 2.1 AA contrast requirements for normal text (minimum 4.5:1). The border color `rgba(96, 192, 240, 0.12)` is almost invisible on a dark background, making the chip's boundary unclear for users with low vision.
+[UX & Accessibility] *   **Finding:** HIGH
+[UX & Accessibility] *   **Finding:** HIGH
+[Code Quality] **Severity:** HIGH
+[Code Quality] **Severity:** HIGH
+[Code Quality] **Severity:** HIGH
+[Code Quality] **Severity:** HIGH
+[Code Quality] 2. **Short-term (HIGH):**
+[Performance & Scalability] *   **Impact:** If a post has 10 hashtags, this triggers **30 database operations** per post creation. Under high load, this will exhaust the connection pool.
+[Competitive Intelligence] Most PT software looks like a medical chart (white background, blue links). SwanStudios leverages the *Crystalline Swan* theme (`#002060` + `#60C0F0`) to tap into the "Apex Predator" market—users who want high performance but appreciate high design.
 
 ## MEDIUM Findings (fix this sprint)
-[Frontend UX & Code Patterns] *   **`CreatePostCard.tsx` (MEDIUM):** The "Render Shell" pattern is excellent for decoupling logic. However, the component relies heavily on `useCreatePostForm`. Ensure this hook uses `useCallback` for all handlers to prevent re-renders of the sub-components (`CreatePostTypeSelector`, etc.).
-[Frontend UX & Code Patterns] *   **Glassmorphism (MEDIUM):** The `backdrop-filter: blur()` implementation is inconsistent. Some components use `rgba(0, 48, 128, 0.85)` while others use `rgba(0, 48, 128, 0.95)`. Standardize these into a `glassmorphism` mixin.
-[Frontend UX & Code Patterns] *   **Framer Motion (MEDIUM):** You are using CSS keyframes for `pulse` and `spin`. While performant, they lack the "spring" physics associated with the Enchanted Apex theme.
-[Frontend UX & Code Patterns] *   **Derived State (MEDIUM):** In `SocialFeed.tsx`, `feedStats` is derived from `posts`. This is good. However, in `ClientCommunityPage.tsx`, you are manually fetching the feed after a post.
-[Frontend UX & Code Patterns] *   **Color Contrast (MEDIUM):** The `Gilded Fern #C6A84B` on `Frost White #E0ECF4` (background) may fail WCAG AA contrast standards. Use a slightly darker shade for text elements.
-[Frontend UX & Code Patterns] *   **`posts.mjs` (MEDIUM):** The `awardSocialPoints` function is a great start, but it is currently a "fire and forget" operation.
-[Data Safety & Integrity] **MEDIUM PRIORITY ISSUES: 2**
+[UX & Accessibility] *   **Finding:** MEDIUM
+[UX & Accessibility] *   **Finding:** MEDIUM
+[UX & Accessibility] *   **Finding:** MEDIUM
+[UX & Accessibility] *   **Finding:** MEDIUM (Frontend) / LOW (Backend)
+[Code Quality] **Severity:** MEDIUM
+[Code Quality] **Severity:** MEDIUM
+[Code Quality] **Severity:** MEDIUM
+[Code Quality] **Severity:** MEDIUM
+[Code Quality] **Severity:** MEDIUM
 [Data Safety & Integrity] **Severity:** MEDIUM
 
 ---

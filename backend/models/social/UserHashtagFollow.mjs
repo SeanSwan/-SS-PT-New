@@ -14,6 +14,10 @@
 import { DataTypes } from 'sequelize';
 import db from '../../database.mjs';
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Model Definition
+// PURPOSE: Tracks user → hashtag follow relationships for feed personalization
+// ─────────────────────────────────────────────────────────────
 const UserHashtagFollow = db.define('UserHashtagFollow', {
   id: {
     type: DataTypes.INTEGER,

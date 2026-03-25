@@ -9,10 +9,23 @@
  * WHAT THIS FILE DOES: Provides endpoints for trending hashtags, search,
  * follow/unfollow, hashtag pages, and admin moderation.
  * HOW IT FITS IN THE APP: Frontend FeedFilterBar / TrendingHashtags → this API
+ *
+ * KEY DECISIONS: Utility functions (extractHashtags, processHashtags, reset)
+ * live in hashtagUtils.mjs to comply with 300-line monolith rule.
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   FeedFilterBar -->|GET /trending| TrendingEndpoint
+ *   SearchBar -->|GET /search| SearchEndpoint
+ *   UserProfile -->|GET /following| FollowingEndpoint
+ *   HashtagPage -->|GET /:slug| DetailEndpoint
+ *   HashtagChip -->|POST /follow| FollowEndpoint
+ *   HashtagChip -->|DELETE /unfollow| UnfollowEndpoint
  */
 
 import express from 'express';
 import { Op } from 'sequelize';
+import rateLimit from 'express-rate-limit';
 import sequelize from '../../database.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import Hashtag from '../../models/social/Hashtag.mjs';
@@ -20,94 +33,32 @@ import PostHashtag from '../../models/social/PostHashtag.mjs';
 import UserHashtagFollow from '../../models/social/UserHashtagFollow.mjs';
 import { SocialPost } from '../../models/social/index.mjs';
 import { getUser } from '../../models/index.mjs';
-import logger from '../../utils/logger.mjs';
+
+// Re-export utilities for backward compatibility with posts.mjs imports
+export { extractHashtags, processHashtags, resetWeeklyCounters } from './hashtagUtils.mjs';
 
 const router = express.Router();
 router.use(protect);
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Hashtag Extraction Utility
-// PURPOSE: Extract and normalize hashtags from post content
+// SECTION: Rate Limiters
+// PURPOSE: Prevent spam on follow/unfollow actions
 // ─────────────────────────────────────────────────────────────
-
-// Matches #hashtag (alphanumeric + underscores, 2-30 chars)
-const HASHTAG_REGEX = /#([a-zA-Z0-9_]{2,30})/g;
-
-/**
- * Extract unique hashtag names from text content.
- * @param {string} content - Post text content
- * @returns {string[]} Array of lowercase hashtag names (without #)
- */
-export function extractHashtags(content) {
-  if (!content || typeof content !== 'string') return [];
-  const matches = content.match(HASHTAG_REGEX) || [];
-  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))].slice(0, 10);
-}
-
-/**
- * Process extracted hashtags: find-or-create, link to post, update counts.
- * @param {number} postId - The post ID to link hashtags to
- * @param {string[]} tagNames - Array of normalized tag names
- * @param {object} [transaction] - Optional Sequelize transaction
- * @returns {object[]} Array of linked Hashtag records
- */
-export async function processHashtags(postId, tagNames, transaction = null) {
-  if (!tagNames || tagNames.length === 0) return [];
-  const { classifyHashtag } = await import('../../models/social/Hashtag.mjs');
-
-  const linkedTags = [];
-
-  for (const name of tagNames) {
-    try {
-      // Find or create the hashtag
-      const [hashtag] = await Hashtag.findOrCreate({
-        where: { name },
-        defaults: {
-          name,
-          slug: name,
-          category: classifyHashtag(name),
-          isOfficial: false,
-          isBanned: false
-        },
-        ...(transaction ? { transaction } : {})
-      });
-
-      // Skip banned hashtags
-      if (hashtag.isBanned) continue;
-
-      // Create the join record (ignore duplicates)
-      await PostHashtag.findOrCreate({
-        where: { postId, hashtagId: hashtag.id },
-        defaults: { postId, hashtagId: hashtag.id },
-        ...(transaction ? { transaction } : {})
-      });
-
-      // Increment usage counts
-      await hashtag.increment(['usageCount', 'weeklyCount'], {
-        ...(transaction ? { transaction } : {})
-      });
-
-      linkedTags.push(hashtag);
-    } catch (err) {
-      // Non-fatal: log and continue with other tags
-      if (logger && logger.warn) {
-        logger.warn(`Failed to process hashtag "${name}": ${err.message}`);
-      } else {
-        console.warn(`Failed to process hashtag "${name}": ${err.message}`);
-      }
-    }
-  }
-
-  return linkedTags;
-}
+const followLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute window
+  max: 10,              // 10 follow/unfollow actions per minute
+  message: { success: false, message: 'Too many follow actions. Try again in a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Public Routes
+// SECTION: Discovery Routes (trending, search, suggestions)
 // ─────────────────────────────────────────────────────────────
 
 /**
  * GET /trending — Top trending hashtags
- * Query: ?period=24h|7d|30d&category=fitness|creative|community&limit=20
+ * Query: ?category=fitness|creative|community&limit=20
  */
 router.get('/trending', async (req, res) => {
   try {
@@ -189,11 +140,10 @@ router.get('/following', async (req, res) => {
 });
 
 /**
- * GET /suggestions — Suggested hashtags for user (based on recent post history)
+ * GET /suggestions — Suggested hashtags (popular ones user hasn't used/followed)
  */
 router.get('/suggestions', async (req, res) => {
   try {
-    // Get hashtags from user's recent posts
     const recentPostIds = await SocialPost.findAll({
       where: { userId: req.user.id },
       order: [['createdAt', 'DESC']],
@@ -203,7 +153,6 @@ router.get('/suggestions', async (req, res) => {
 
     const postIds = recentPostIds.map(p => p.id);
 
-    // Find hashtags user has used
     const usedTagIds = postIds.length > 0
       ? (await PostHashtag.findAll({
           where: { postId: { [Op.in]: postIds } },
@@ -212,7 +161,6 @@ router.get('/suggestions', async (req, res) => {
         })).map(ph => ph.hashtagId)
       : [];
 
-    // Find hashtags the user already follows
     const followedIds = (await UserHashtagFollow.findAll({
       where: { userId: req.user.id },
       attributes: ['hashtagId']
@@ -220,7 +168,6 @@ router.get('/suggestions', async (req, res) => {
 
     const excludeIds = [...new Set([...usedTagIds, ...followedIds])];
 
-    // Suggest popular hashtags the user hasn't interacted with
     const suggestions = await Hashtag.findAll({
       where: {
         isBanned: false,
@@ -238,8 +185,12 @@ router.get('/suggestions', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Hashtag Detail Page
+// ─────────────────────────────────────────────────────────────
+
 /**
- * GET /:slug — Hashtag detail page with posts
+ * GET /:slug — Hashtag detail page with posts + related tags
  * Query: ?page=1&limit=20&sort=recent|popular
  */
 router.get('/:slug', async (req, res) => {
@@ -258,17 +209,12 @@ router.get('/:slug', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Hashtag not found' });
     }
 
-    // Count followers
-    const followerCount = await UserHashtagFollow.count({
-      where: { hashtagId: hashtag.id }
-    });
-
-    // Check if current user follows this hashtag
+    const followerCount = await UserHashtagFollow.count({ where: { hashtagId: hashtag.id } });
     const isFollowing = await UserHashtagFollow.findOne({
       where: { userId: req.user.id, hashtagId: hashtag.id }
     });
 
-    // Get posts with this hashtag
+    // Get post IDs tagged with this hashtag
     const postIds = (await PostHashtag.findAll({
       where: { hashtagId: hashtag.id },
       attributes: ['postId'],
@@ -295,7 +241,7 @@ router.get('/:slug', async (req, res) => {
         })
       : [];
 
-    // Get related hashtags (co-occurring tags in the same posts)
+    // Co-occurring hashtags for "Related" section
     let relatedHashtags = [];
     if (paginatedIds.length > 0) {
       const relatedTagIds = await PostHashtag.findAll({
@@ -308,7 +254,7 @@ router.get('/:slug', async (req, res) => {
           [sequelize.fn('COUNT', sequelize.col('hashtagId')), 'coCount']
         ],
         group: ['hashtagId'],
-        order: [[sequelize.literal('\"coCount\"'), 'DESC']],
+        order: [[sequelize.literal('"coCount"'), 'DESC']],
         limit: 8,
         raw: true
       });
@@ -327,19 +273,10 @@ router.get('/:slug', async (req, res) => {
     return res.json({
       success: true,
       data: {
-        hashtag: {
-          ...hashtag.toJSON(),
-          followerCount,
-          isFollowing: !!isFollowing
-        },
+        hashtag: { ...hashtag.toJSON(), followerCount, isFollowing: !!isFollowing },
         posts: posts.map(p => p.toJSON()),
         relatedHashtags,
-        pagination: {
-          page,
-          limit,
-          total: postIds.length,
-          hasMore: offset + limit < postIds.length
-        }
+        pagination: { page, limit, total: postIds.length, hasMore: offset + limit < postIds.length }
       }
     });
   } catch (error) {
@@ -348,10 +285,14 @@ router.get('/:slug', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Follow / Unfollow (rate-limited)
+// ─────────────────────────────────────────────────────────────
+
 /**
  * POST /follow/:hashtagId — Follow a hashtag
  */
-router.post('/follow/:hashtagId', async (req, res) => {
+router.post('/follow/:hashtagId', followLimiter, async (req, res) => {
   try {
     const hashtagId = parseInt(req.params.hashtagId);
     const hashtag = await Hashtag.findByPk(hashtagId);
@@ -374,7 +315,7 @@ router.post('/follow/:hashtagId', async (req, res) => {
 /**
  * DELETE /unfollow/:hashtagId — Unfollow a hashtag
  */
-router.delete('/unfollow/:hashtagId', async (req, res) => {
+router.delete('/unfollow/:hashtagId', followLimiter, async (req, res) => {
   try {
     const hashtagId = parseInt(req.params.hashtagId);
     await UserHashtagFollow.destroy({

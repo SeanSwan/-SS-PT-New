@@ -868,6 +868,25 @@ router.delete('/:postId', async (req, res) => {
       }
     }
     
+    // Decrement hashtag usage counts before cascade deletes PostHashtags (Issue #2 fix)
+    try {
+      const PostHashtag = (await import('../../models/social/PostHashtag.mjs')).default;
+      const Hashtag = (await import('../../models/social/Hashtag.mjs')).default;
+      const linkedHashtags = await PostHashtag.findAll({
+        where: { postId: post.id },
+        attributes: ['hashtagId']
+      });
+      if (linkedHashtags.length > 0) {
+        const hashtagIds = linkedHashtags.map(ph => ph.hashtagId);
+        await Hashtag.decrement(['usageCount', 'weeklyCount'], {
+          where: { id: { [Op.in]: hashtagIds } }
+        });
+      }
+    } catch (hashtagErr) {
+      // Non-fatal: hashtag count cleanup shouldn't block post deletion
+      console.warn('Hashtag count decrement failed (non-fatal):', hashtagErr.message);
+    }
+
     // Delete the post (and its associated comments due to CASCADE)
     await post.destroy();
     

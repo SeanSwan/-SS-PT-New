@@ -14,12 +14,36 @@
  * │ PARENT: SocialFeed / ClientCommunityPage            │
  * │ WIREFRAME:                                          │
  * │ ┌──────────────────────────────────────────────┐    │
- * │ │ [All] [Fitness] [Creative] [Community] [🔍]  │    │
+ * │ │ [All] [Fitness] [Creative] [Community]       │    │
  * │ ├──────────────────────────────────────────────┤    │
  * │ │ 🔥 #legday  #dance  #transformation  ...    │    │
+ * │ ├──────────────────────────────────────────────┤    │
+ * │ │ Showing posts tagged #legday  [Clear]        │    │
  * │ └──────────────────────────────────────────────┘    │
- * │ Props: { onFilterChange, onHashtagSelect }          │
+ * │ Props: { filters, onFiltersChange }                 │
+ * │ CLICK-OUTCOMES:                                     │
+ * │ [Category btn] → onFiltersChange({category, null})  │
+ * │   → Clears hashtag, parent refetches with ?category │
+ * │ [Trending tag] → onFiltersChange({..., hashtag})    │
+ * │   → Parent refetches feed with ?hashtag=slug        │
+ * │ [Clear btn] → onFiltersChange({..., hashtag: null}) │
+ * │   → Removes hashtag filter, parent refetches        │
+ * │ GAMIFICATION: None — filter controls only           │
  * └─────────────────────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  { filters: FeedFilters, onFiltersChange: fn }
+ * State:     None (controlled component — parent owns filter state)
+ * API Calls: None (TrendingHashtags child fetches trending)
+ * Events:    onFiltersChange → parent refetches feed
+ * Children:  TrendingHashtags
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   ClientCommunityPage --> FeedFilterBar
+ *   FeedFilterBar --> CategoryButtons[FilterBtn x 4]
+ *   FeedFilterBar --> TrendingHashtags
+ *   FeedFilterBar --> ActiveHashtagBadge
  */
 
 import React, { useState, useCallback } from 'react';

@@ -13,6 +13,19 @@
  * HOW IT FITS IN THE APP: SocialPost → PostHashtag (join) → Hashtag
  * KEY DECISIONS: Auto-classification via keyword matching; usageCount
  * and weeklyCount for trending algorithm; isOfficial for curated tags.
+ *
+ * ┌─── MODEL: Hashtag ─────────────────────────────────────────┐
+ * │ TABLE: Hashtags                                             │
+ * │ ASSOCIATIONS:                                               │
+ * │   belongsToMany(SocialPost) via PostHashtags                │
+ * │   hasMany(UserHashtagFollow) for subscriptions              │
+ * │ KEY FIELDS:                                                 │
+ * │   name/slug — unique, alphanumeric 2-30 chars               │
+ * │   category — auto-classified (fitness/creative/community)   │
+ * │   weeklyCount — reset weekly for trending algorithm         │
+ * │   isBanned — admin moderation flag                          │
+ * │ EXPORTED: classifyHashtag(name) — keyword-based classifier  │
+ * └─────────────────────────────────────────────────────────────┘
  */
 
 import { DataTypes } from 'sequelize';

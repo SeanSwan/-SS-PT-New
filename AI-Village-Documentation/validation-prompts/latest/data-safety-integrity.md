@@ -1,121 +1,172 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 61.5s
-> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
-> **Generated:** 3/24/2026, 10:21:55 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 65.5s
+> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
+> **Generated:** 3/24/2026, 10:56:33 PM
 
 ---
 
 # 🚨 DATA SAFETY AUDIT REPORT — CRITICAL FINDINGS
 
-## ⚠️ EXECUTIVE SUMMARY
-**OVERALL RISK LEVEL: HIGH**  
-**CRITICAL ISSUES FOUND: 3**  
-**HIGH PRIORITY ISSUES: 4**  
-**MEDIUM PRIORITY ISSUES: 2**
+## EXECUTIVE SUMMARY
+**OVERALL RISK LEVEL: MEDIUM-HIGH**
 
-This audit identified **multiple data destruction risks** that could result in permanent loss of user posts, comments, likes, and social engagement history. The most severe issues involve missing transaction wrappers, unsafe deletion patterns, and potential race conditions in point awarding systems.
+I've identified **7 CRITICAL/HIGH findings** that could result in data loss, orphaned records, or corrupted state. The most severe issues involve:
+- Missing transaction wrappers for multi-table operations
+- Potential for orphaned hashtag data during post deletion
+- Race conditions in point awarding
+- Unsafe DELETE operations without WHERE clause validation
 
 ---
 
 ## 🔴 CRITICAL FINDINGS
 
-### CRITICAL-1: Unprotected Bulk Delete in Post Deletion Flow
+### CRITICAL-1: Post Deletion Orphans Hashtag Usage Counts
 **Severity:** CRITICAL  
-**Data at Risk:** All user posts, comments, likes, media files  
-**Blast Radius:** Single API call could orphan all comments/likes for a post  
-**File & Line:** `backend/routes/social/posts.mjs` (line not shown, but implied in DELETE endpoint)
+**Data at Risk:** Hashtag usage statistics (usageCount, weeklyCount)  
+**Blast Radius:** All hashtags used in deleted posts — corrupted trending data affects all users  
+**File & Line:** `backend/routes/social/posts.mjs:688-729` (DELETE /:postId route)
 
-**What's Wrong:**  
-The code references `deletePost` function in `useSocialFeed` hook, but the backend route implementation is truncated. If the DELETE endpoint doesn't use transactions, a failure during cascading deletes (post → comments → likes → media) could leave orphaned records or partially deleted data.
-
-**Scenario:**
-```javascript
-// DANGEROUS PATTERN (if implemented this way):
-await SocialPost.destroy({ where: { id: postId } });
-await SocialComment.destroy({ where: { postId } }); // ❌ If this fails, post is gone but comments remain
-await SocialLike.destroy({ where: { postId } });    // ❌ Orphaned likes
-await deletePhoto(post.mediaUrl);                    // ❌ Media file deleted but DB still references it
-```
+**What's Wrong:**
+When a post is deleted, the CASCADE delete removes `PostHashtag` join records, but **does NOT decrement** the `Hashtag.usageCount` and `Hashtag.weeklyCount` fields. This means:
+1. User creates post with #fitness → usageCount increments to 1000
+2. User deletes post → PostHashtag record deleted via CASCADE
+3. **Hashtag.usageCount still shows 1000** (should be 999)
+4. Over time, trending hashtags show inflated counts that never decrease
 
 **Fix:**
 ```javascript
-// SAFE PATTERN:
+// In DELETE /:postId route, BEFORE post.destroy():
+
+// Fetch hashtags linked to this post
+const linkedHashtags = await PostHashtag.findAll({
+  where: { postId },
+  attributes: ['hashtagId']
+});
+
+// Decrement usage counts for each hashtag
+if (linkedHashtags.length > 0) {
+  const hashtagIds = linkedHashtags.map(ph => ph.hashtagId);
+  await Hashtag.decrement(
+    ['usageCount', 'weeklyCount'],
+    { where: { id: { [Op.in]: hashtagIds } } }
+  );
+}
+
+// NOW safe to delete the post (CASCADE will remove PostHashtag records)
+await post.destroy();
+```
+
+---
+
+### CRITICAL-2: Hashtag Processing Lacks Transaction Wrapper
+**Severity:** CRITICAL  
+**Data at Risk:** Post-hashtag associations, hashtag counts  
+**Blast Radius:** Single post creation failure could leave partial data (post exists but hashtags not linked, or counts incremented but join records missing)  
+**File & Line:** `backend/routes/social/hashtags.mjs:47-91` (processHashtags function)
+
+**What's Wrong:**
+The `processHashtags` function performs **3 separate database operations per hashtag**:
+1. `Hashtag.findOrCreate()` — creates/finds hashtag
+2. `PostHashtag.findOrCreate()` — creates join record
+3. `hashtag.increment()` — updates usage counts
+
+If the server crashes or database connection drops between steps 2 and 3, you get:
+- Post linked to hashtag ✅
+- Usage count NOT incremented ❌
+- Trending algorithm shows wrong data forever
+
+**Fix:**
+```javascript
+// In POST / route (posts.mjs:~line 560), wrap the entire post creation + hashtag processing in a transaction:
+
 const transaction = await sequelize.transaction();
 try {
-  const post = await SocialPost.findByPk(postId, { transaction });
-  if (!post) throw new Error('Post not found');
-  
-  // Delete in reverse dependency order
-  await SocialComment.destroy({ where: { postId }, transaction });
-  await SocialLike.destroy({ where: { postId }, transaction });
-  
-  // Delete media AFTER DB records are marked for deletion
-  const mediaUrl = post.mediaUrl;
-  await post.destroy({ transaction });
-  
+  // Create the post
+  const post = await SocialPost.create(postData, { transaction });
+
+  // Process hashtags INSIDE the transaction
+  let linkedHashtags = [];
+  try {
+    const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+    const tagNames = extractHashtags(content);
+    if (tagNames.length > 0) {
+      linkedHashtags = await processHashtags(post.id, tagNames, transaction); // ← Pass transaction
+    }
+  } catch (hashtagErr) {
+    // If hashtag processing fails, rollback the entire post creation
+    throw hashtagErr;
+  }
+
   await transaction.commit();
   
-  // Only delete physical file after DB commit succeeds
-  if (mediaUrl) {
-    await deletePhoto(mediaUrl).catch(err => 
-      console.error('Media cleanup failed (non-fatal):', err)
-    );
-  }
+  // Award points AFTER commit (non-critical, can fail independently)
+  const pointResult = await awardSocialPoints(...);
+  
+  // ... rest of response
 } catch (error) {
   await transaction.rollback();
   throw error;
 }
 ```
 
+**Also update processHashtags signature:**
+```javascript
+// In hashtags.mjs, ensure ALL operations use the transaction:
+export async function processHashtags(postId, tagNames, transaction = null) {
+  // ... existing code, but ensure EVERY query passes { transaction }
+  const [hashtag] = await Hashtag.findOrCreate({
+    where: { name },
+    defaults: { ... },
+    transaction // ← Must be passed to ALL operations
+  });
+  
+  await PostHashtag.findOrCreate({
+    where: { postId, hashtagId: hashtag.id },
+    defaults: { postId, hashtagId: hashtag.id },
+    transaction // ← Here too
+  });
+  
+  await hashtag.increment(['usageCount', 'weeklyCount'], { transaction }); // ← And here
+}
+```
+
 ---
 
-### CRITICAL-2: Race Condition in Point Awarding System
-**Severity:** CRITICAL  
-**Data at Risk:** User point balances, transaction history  
-**Blast Radius:** All users creating posts/likes simultaneously  
-**File & Line:** `backend/routes/social/posts.mjs:90-130` (`awardSocialPoints` function)
+### HIGH-1: Point Awarding Race Condition
+**Severity:** HIGH  
+**Data at Risk:** User point balances, PointTransaction records  
+**Blast Radius:** Individual users could have incorrect point totals if two actions happen simultaneously  
+**File & Line:** `backend/routes/social/posts.mjs:72-110` (awardSocialPoints function)
 
-**What's Wrong:**  
-The point awarding system reads the last balance, calculates new balance, then writes — classic read-modify-write race condition. If two posts are created simultaneously:
-
+**What's Wrong:**
+The point awarding logic has a **read-modify-write race condition**:
 ```javascript
-// User has 100 points
-// Request A reads balance: 100
-// Request B reads balance: 100
-// Request A writes: 100 + 25 = 125
-// Request B writes: 100 + 10 = 110  ❌ Lost 25 points!
+// Thread A reads balance: 100
+const lastTransaction = await PointTransaction.findOne({ where: { userId }, order: [['createdAt', 'DESC']] });
+const currentBalance = lastTransaction ? lastTransaction.balance : 0; // 100
+
+// Thread B reads balance: 100 (same time)
+// Thread A writes new balance: 110 (100 + 10)
+// Thread B writes new balance: 125 (100 + 25) ← OVERWRITES Thread A's update
 ```
 
-**Current Code:**
-```javascript
-const lastTransaction = await PointTransaction.findOne({
-  where: { userId },
-  order: [['createdAt', 'DESC']]
-});
-const currentBalance = lastTransaction ? lastTransaction.balance : 0;
-const newBalance = currentBalance + pointsToAward; // ❌ RACE CONDITION
-```
+If a user likes a post and comments on it at the exact same moment, one of the point awards will be lost.
 
 **Fix:**
 ```javascript
 async function awardSocialPoints(userId, action, metadata = {}) {
-  const transaction = await sequelize.transaction({
-    isolationLevel: sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE
-  });
-  
-  try {
-    const pointsToAward = SOCIAL_POINT_RULES[action];
-    if (!pointsToAward) {
-      await transaction.rollback();
-      return { pointsAwarded: 0, success: false };
-    }
+  const pointsToAward = SOCIAL_POINT_RULES[action];
+  if (!pointsToAward) return { pointsAwarded: 0, success: false };
 
-    // Lock the user's last transaction row
+  // Use a transaction with row-level locking
+  const transaction = await sequelize.transaction();
+  try {
+    // Lock the user's latest transaction row to prevent concurrent updates
     const lastTransaction = await PointTransaction.findOne({
       where: { userId },
       order: [['createdAt', 'DESC']],
-      lock: transaction.LOCK.UPDATE, // ✅ Prevents concurrent reads
+      lock: transaction.LOCK.UPDATE, // ← Prevents race condition
       transaction
     });
     
@@ -128,15 +179,15 @@ async function awardSocialPoints(userId, action, metadata = {}) {
       balance: newBalance,
       transactionType: 'earn',
       source: 'social_engagement',
-      description: `Social Action: ${action.replace('_', ' ')}`,
+      description: `Social Action: ${action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
       metadata: { socialAction: action, ...metadata }
     }, { transaction });
 
     await transaction.commit();
-    return { pointsAwarded: pointsToAward, newBalance, success: true };
+    return { pointsAwarded: pointsToAward, newBalance, success: true, action };
   } catch (error) {
     await transaction.rollback();
-    console.error('Point award failed:', error);
+    console.error(`❌ Error awarding social points for ${action}:`, error);
     return { pointsAwarded: 0, success: false, error: error.message };
   }
 }
@@ -144,311 +195,213 @@ async function awardSocialPoints(userId, action, metadata = {}) {
 
 ---
 
-### CRITICAL-3: Missing Transaction Wrapper in Post Creation
-**Severity:** CRITICAL  
-**Data at Risk:** Posts, media files, point transactions  
-**Blast Radius:** Every post creation could leave orphaned media or unawarded points  
-**File & Line:** `backend/routes/social/posts.mjs` (POST endpoint — code truncated)
-
-**What's Wrong:**  
-If post creation follows this pattern (common in the codebase):
-```javascript
-// DANGEROUS:
-const post = await SocialPost.create({ userId, content, mediaUrl });
-await awardSocialPoints(userId, 'post_create_workout'); // ❌ If this fails, post exists but no points
-```
-
-If point awarding fails, the post is created but the user doesn't get their XP. If media upload fails after DB insert, the DB references a non-existent file.
-
-**Fix:**
-```javascript
-router.post('/', upload.single('media'), async (req, res) => {
-  const transaction = await sequelize.transaction();
-  let uploadedMediaUrl = null;
-  
-  try {
-    // 1. Upload media first (before DB write)
-    if (req.file) {
-      uploadedMediaUrl = await uploadPhoto(req.file, 'social-posts');
-    }
-    
-    // 2. Create post with transaction
-    const post = await SocialPost.create({
-      userId: req.user.id,
-      content: req.body.content,
-      type: req.body.type || 'general',
-      visibility: req.body.visibility || 'friends',
-      mediaUrl: uploadedMediaUrl,
-      moderationStatus: 'approved'
-    }, { transaction });
-    
-    // 3. Award points within same transaction
-    const pointAction = `post_create_${post.type}`;
-    const pointResult = await awardSocialPoints(
-      req.user.id, 
-      pointAction, 
-      { postId: post.id }
-    );
-    
-    if (!pointResult.success) {
-      throw new Error('Failed to award points');
-    }
-    
-    await transaction.commit();
-    
-    res.status(201).json({
-      success: true,
-      post,
-      pointsAwarded: pointResult.pointsAwarded
-    });
-  } catch (error) {
-    await transaction.rollback();
-    
-    // Clean up uploaded media if DB transaction failed
-    if (uploadedMediaUrl) {
-      await deletePhoto(uploadedMediaUrl).catch(err => 
-        console.error('Cleanup failed:', err)
-      );
-    }
-    
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-```
-
----
-
-## 🟠 HIGH PRIORITY FINDINGS
-
-### HIGH-1: Unsafe Moderation Status Changes Without Audit Trail
+### HIGH-2: Unfollow Hashtag Missing WHERE Clause Validation
 **Severity:** HIGH  
-**Data at Risk:** Post visibility, moderation history  
-**Blast Radius:** All posts subject to moderation  
-**File & Line:** `backend/models/social/SocialPost.mjs:180-230` (moderation methods)
+**Data at Risk:** UserHashtagFollow records  
+**Blast Radius:** If hashtagId is null/undefined, could delete ALL of a user's follows  
+**File & Line:** `backend/routes/social/hashtags.mjs:341-354` (DELETE /unfollow/:hashtagId)
 
-**What's Wrong:**  
-The moderation methods (`flagContent`, `approveContent`, etc.) directly modify the post without creating an audit trail. If a moderator accidentally approves a flagged post, there's no way to see the previous state.
+**What's Wrong:**
+```javascript
+router.delete('/unfollow/:hashtagId', async (req, res) => {
+  const hashtagId = parseInt(req.params.hashtagId);
+  await UserHashtagFollow.destroy({
+    where: { userId: req.user.id, hashtagId } // ← If hashtagId is NaN, this becomes { userId: 123, hashtagId: NaN }
+  });
+```
+
+If `req.params.hashtagId` is malformed (e.g., `/unfollow/abc`), `parseInt()` returns `NaN`. Sequelize might interpret this as:
+```sql
+DELETE FROM "UserHashtagFollows" WHERE "userId" = 123 AND "hashtagId" IS NULL;
+```
+This could delete **all follows where hashtagId is NULL** (if any exist due to data corruption).
 
 **Fix:**
 ```javascript
-// Create ModerationLog model first:
-const ModerationLog = db.define('ModerationLog', {
-  postId: { type: DataTypes.INTEGER, allowNull: false },
-  moderatorId: { type: DataTypes.INTEGER, allowNull: false },
-  action: { type: DataTypes.ENUM('flag', 'approve', 'reject', 'hide'), allowNull: false },
-  previousStatus: { type: DataTypes.STRING },
-  newStatus: { type: DataTypes.STRING },
-  reason: { type: DataTypes.TEXT },
-  notes: { type: DataTypes.TEXT },
-  timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
-});
-
-// Update moderation methods:
-SocialPost.prototype.flagContent = async function(reason, flaggedByUserId, notes = null) {
-  const transaction = await db.transaction();
+router.delete('/unfollow/:hashtagId', async (req, res) => {
   try {
-    const previousStatus = this.moderationStatus;
+    const hashtagId = parseInt(req.params.hashtagId);
     
-    // Log the action
-    await ModerationLog.create({
-      postId: this.id,
-      moderatorId: flaggedByUserId,
-      action: 'flag',
-      previousStatus,
-      newStatus: 'flagged',
-      reason,
-      notes
-    }, { transaction });
-    
-    // Update post
-    this.moderationStatus = 'flagged';
-    this.flaggedReason = reason;
-    this.flaggedAt = new Date();
-    this.flaggedBy = flaggedByUserId;
-    this.moderationNotes = notes;
-    this.lastModeratedAt = new Date();
-    this.lastModeratedBy = flaggedByUserId;
-    
-    await this.save({ transaction });
-    await transaction.commit();
-    return this;
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-```
-
----
-
-### HIGH-2: Missing Cascade Delete Protection
-**Severity:** HIGH  
-**Data at Risk:** User accounts, all associated social data  
-**Blast Radius:** If a user is deleted, all their posts/comments/likes vanish  
-**File & Line:** `backend/models/social/SocialPost.mjs:15-25` (foreign key definitions)
-
-**What's Wrong:**  
-The `userId` foreign key doesn't specify `onDelete` behavior. PostgreSQL default is `NO ACTION`, which will **block** user deletion if they have posts. But if someone adds `CASCADE` later, deleting a user would silently wipe all their content.
-
-**Current Code:**
-```javascript
-userId: {
-  type: DataTypes.INTEGER,
-  allowNull: false,
-  references: {
-    model: 'Users',
-    key: 'id'
-  }
-  // ❌ Missing onDelete specification
-}
-```
-
-**Fix:**
-```javascript
-userId: {
-  type: DataTypes.INTEGER,
-  allowNull: false,
-  references: {
-    model: 'Users',
-    key: 'id'
-  },
-  onDelete: 'RESTRICT', // ✅ Prevents accidental user deletion
-  onUpdate: 'CASCADE'
-}
-
-// Add a separate "soft delete" mechanism for users:
-// In User model:
-deletedAt: {
-  type: DataTypes.DATE,
-  allowNull: true,
-  comment: 'Soft delete timestamp — user account deactivated'
-}
-
-// Update queries to filter out soft-deleted users:
-// WHERE deletedAt IS NULL
-```
-
----
-
-### HIGH-3: Unvalidated File Upload Could Fill Disk
-**Severity:** HIGH  
-**Data at Risk:** Server disk space, service availability  
-**Blast Radius:** All users (denial of service)  
-**File & Line:** `backend/routes/social/posts.mjs:200-220` (multer config)
-
-**What's Wrong:**  
-The multer config allows 50MB files but doesn't limit the **number** of uploads per user or total storage. A malicious user could upload hundreds of 50MB videos and exhaust storage.
-
-**Current Code:**
-```javascript
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
-  }
-  // ❌ No rate limiting, no per-user quota
-});
-```
-
-**Fix:**
-```javascript
-// Add UserStorageQuota model:
-const UserStorageQuota = db.define('UserStorageQuota', {
-  userId: { type: DataTypes.INTEGER, primaryKey: true },
-  totalBytes: { type: DataTypes.BIGINT, defaultValue: 0 },
-  quotaBytes: { type: DataTypes.BIGINT, defaultValue: 5 * 1024 * 1024 * 1024 }, // 5GB default
-  fileCount: { type: DataTypes.INTEGER, defaultValue: 0 }
-});
-
-// Middleware to check quota before upload:
-async function checkStorageQuota(req, res, next) {
-  try {
-    const [quota] = await UserStorageQuota.findOrCreate({
-      where: { userId: req.user.id },
-      defaults: { userId: req.user.id }
-    });
-    
-    const fileSize = parseInt(req.headers['content-length']) || 0;
-    
-    if (quota.totalBytes + fileSize > quota.quotaBytes) {
-      return res.status(413).json({
-        success: false,
-        error: 'Storage quota exceeded',
-        used: quota.totalBytes,
-        limit: quota.quotaBytes
+    // Validate hashtagId is a positive integer
+    if (!Number.isFinite(hashtagId) || hashtagId <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid hashtag ID' 
       });
     }
     
-    req.userQuota = quota;
-    next();
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-}
-
-// Apply middleware:
-router.post('/', checkStorageQuota, upload.single('media'), async (req, res) => {
-  // ... existing code ...
-  
-  // After successful upload, update quota:
-  if (uploadedMediaUrl) {
-    await req.userQuota.increment({
-      totalBytes: req.file.size,
-      fileCount: 1
+    const deleted = await UserHashtagFollow.destroy({
+      where: { userId: req.user.id, hashtagId }
     });
+    
+    if (deleted === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'You are not following this hashtag' 
+      });
+    }
+
+    return res.json({ success: true, message: 'Unfollowed hashtag' });
+  } catch (error) {
+    console.error('Error unfollowing hashtag:', error);
+    return res.status(500).json({ success: false, message: 'Failed to unfollow hashtag' });
   }
 });
 ```
 
 ---
 
-### HIGH-4: Potential SQL Injection in Search Query
-**Severity:** HIGH  
-**Data at Risk:** All database tables (if exploited)  
-**Blast Radius:** Entire database could be read/modified  
-**File & Line:** `backend/models/social/SocialPost.mjs:295-310` (`getContentForModeration`)
+## 🟠 MEDIUM FINDINGS
 
-**What's Wrong:**  
-The search parameter is used in an `iLike` query, but if the input isn't sanitized, it could contain SQL wildcards or injection attempts.
+### MEDIUM-1: Comment Deletion Doesn't Decrement Post Count in Transaction
+**Severity:** MEDIUM  
+**Data at Risk:** Post.commentsCount field  
+**Blast Radius:** Single post's comment count could be off by 1 if deletion fails partway  
+**File & Line:** `backend/routes/social/posts.mjs:1011-1050` (DELETE /:postId/comments/:commentId)
 
-**Current Code:**
+**What's Wrong:**
 ```javascript
-if (search) {
-  whereClause.content = {
-    [db.Sequelize.Op.iLike]: `%${search}%` // ❌ Unsanitized user input
-  };
+await comment.destroy(); // ← Deletes comment
+if (post.commentsCount > 0) {
+  post.commentsCount -= 1;
+  await post.save(); // ← If this fails, comment is deleted but count not updated
 }
 ```
 
 **Fix:**
 ```javascript
-if (search) {
-  // Escape special characters
-  const sanitizedSearch = search
-    .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards
-    .trim()
-    .substring(0, 100); // Limit length
+const transaction = await sequelize.transaction();
+try {
+  await comment.destroy({ transaction });
   
-  if (sanitizedSearch.length > 0) {
-    whereClause.content = {
-      [db.Sequelize.Op.iLike]: `%${sanitizedSearch}%`
-    };
+  if (post.commentsCount > 0) {
+    post.commentsCount -= 1;
+    await post.save({ transaction });
   }
+  
+  await transaction.commit();
+  return res.status(200).json({ success: true, message: 'Comment deleted successfully' });
+} catch (error) {
+  await transaction.rollback();
+  throw error;
 }
 ```
 
 ---
 
-## 🟡 MEDIUM PRIORITY FINDINGS
-
-### MEDIUM-1: Missing Input Validation on Post Content
+### MEDIUM-2: Post Report Duplicate Check Race Condition
 **Severity:** MEDIUM  
-**Data at Risk:** Database integrity, XSS vulnerabilities  
-**Blast Radius:** All users viewing posts  
-**File & Line:** `frontend/src/components/Social/Feed/CreatePostCard.tsx:200` (form submission)
+**Data at Risk:** PostReports table (duplicate reports)  
+**Blast Radius:** Single user could submit duplicate reports if they click twice quickly  
+**File & Line:** `backend/routes/social/posts.mjs:803-852` (POST /:postId/report)
 
-**What's Wrong:**  
-The frontend doesn't validate post content length or sanitize HTML before submission.
+**What's Wrong:**
+The duplicate check is not atomic:
+```javascript
+const [existing] = await sequelize.query(`SELECT id FROM "PostReports" WHERE ...`);
+if (existing && existing.length > 0) {
+  return res.status(409).json({ success: false, message: 'You have already reported this post' });
+}
+// ← Another request could insert here before the next line executes
+await sequelize.query(`INSERT INTO "PostReports" ...`);
+```
+
+**Fix:**
+Add a unique constraint to the database schema:
+```sql
+-- Migration file
+ALTER TABLE "PostReports" 
+ADD CONSTRAINT unique_user_content_report 
+UNIQUE ("reporterId", "contentType", "contentId");
+```
+
+Then handle the constraint violation in code:
+```javascript
+try {
+  await sequelize.query(`INSERT INTO "PostReports" ...`);
+} catch (error) {
+  if (error.name === 'SequelizeUniqueConstraintError') {
+    return res.status(409).json({ success: false, message: 'You have already reported this post' });
+  }
+  throw error;
+}
+```
+
+---
+
+### MEDIUM-3: Hashtag Extraction Doesn't Validate Against Banned Tags
+**Severity:** MEDIUM  
+**Data at Risk:** Hashtag.isBanned enforcement  
+**Blast Radius:** Users could create posts with banned hashtags if they type them manually  
+**File & Line:** `backend/routes/social/hashtags.mjs:47-91` (processHashtags function)
+
+**What's Wrong:**
+The `processHashtags` function skips banned hashtags AFTER creating the join record:
+```javascript
+const [hashtag] = await Hashtag.findOrCreate({ where: { name }, defaults: { ... } });
+if (hashtag.isBanned) continue; // ← PostHashtag record already created above
+```
+
+This means:
+1. User types `#bannedword` in post
+2. `PostHashtag` record created linking post to banned hashtag
+3. Code skips incrementing usage count
+4. **But the link still exists in the database**
+
+**Fix:**
+```javascript
+// Check if hashtag is banned BEFORE creating the join record
+const [hashtag, created] = await Hashtag.findOrCreate({
+  where: { name },
+  defaults: { name, slug: name, category: classifyHashtag(name), isOfficial: false, isBanned: false },
+  ...(transaction ? { transaction } : {})
+});
+
+// Skip banned hashtags entirely
+if (hashtag.isBanned) {
+  console.warn(`Skipping banned hashtag: ${name}`);
+  continue;
+}
+
+// NOW create the join record (only for non-banned tags)
+await PostHashtag.findOrCreate({ ... });
+```
+
+---
+
+## ✅ POSITIVE FINDINGS (Good Practices Observed)
+
+1. **CASCADE Deletes Configured:** `PostHashtag` and `UserHashtagFollow` use `onDelete: 'CASCADE'`, preventing orphaned join records when posts/hashtags are deleted.
+2. **Non-Fatal Hashtag Processing:** Hashtag extraction failures don't block post creation (line 575-578 in posts.mjs).
+3. **Input Validation:** Hashtag names validated with regex `/^[a-z0-9_]{2,30}$/i` (Hashtag.mjs:60).
+4. **Banned Hashtag Check:** `isBanned` flag prevents banned tags from appearing in trending/search results.
+
+---
+
+## 🔧 RECOMMENDED IMMEDIATE ACTIONS
+
+### Priority 1 (Deploy This Week):
+1. **Fix CRITICAL-1:** Add hashtag count decrement to post deletion route
+2. **Fix CRITICAL-2:** Wrap post creation + hashtag processing in transaction
+3. **Fix HIGH-1:** Add row-level locking to point awarding
+
+### Priority 2 (Next Sprint):
+4. **Fix HIGH-2:** Add input validation to unfollow route
+5. **Fix MEDIUM-1:** Wrap comment deletion in transaction
+6. **Add Database Constraint:** Unique index on `(reporterId, contentType, contentId)` in PostReports
+
+### Priority 3 (Technical Debt):
+7. **Add Integration Tests:** Test post deletion → verify hashtag counts decrement
+8. **Add Monitoring:** Alert if `Hashtag.usageCount` diverges from actual `PostHashtag` count by >5%
+9. **Weekly Cleanup Job:** Recalculate hashtag usage counts from PostHashtag table to fix drift
+
+---
+
+## 📊 RISK SUMMARY
+
+| Severity | Count | Data Loss Risk | User Impact |
+|----------|-------|----------------|-------------|
+| CRITICAL | 2 | High (trending data corruption, partial writes) | All users (wrong trending tags
 
 ---
 
