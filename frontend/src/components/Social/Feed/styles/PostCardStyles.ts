@@ -74,6 +74,10 @@ export const PostCardWrapper = styled.article`
   animation: ${slideUpFade} 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 
+  /* Native browser virtualization — skips rendering off-screen posts */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+
   @media (min-width: 768px) {
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.06);

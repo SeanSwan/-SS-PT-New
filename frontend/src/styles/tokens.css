@@ -88,3 +88,19 @@
   /* ── Touch Targets ── */
   --min-touch-target: 44px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * SECTION: Reduced Motion (WCAG 2.3.3)
+ * PURPOSE: Disable animations/transitions for users who prefer reduced motion.
+ * Applies globally — individual components can override with more specific selectors.
+ * ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

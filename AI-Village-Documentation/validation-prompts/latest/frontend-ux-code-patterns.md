@@ -1,71 +1,64 @@
 # Frontend UX & Code Patterns — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 5.4s
-> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
-> **Generated:** 3/24/2026, 10:56:33 PM
+> **Status:** PASS | **Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 6.2s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/Social/Feed/PostCard.tsx, frontend/src/components/Social/Feed/hooks/useCreatePostForm.ts, frontend/src/components/Social/Feed/components/PostContent.tsx, frontend/src/components/Social/Feed/components/PostActions.tsx
+> **Generated:** 3/24/2026, 11:23:10 PM
 
 ---
 
-This review focuses on the provided backend social architecture and the `HashtagChip` component.
+This review evaluates the `SwanStudios` social feed implementation against the **Crystalline Swan** design system and React best practices.
 
 ### 1. React Component Patterns
-*   **Component Hygiene:** The `HashtagChip` uses `styled-components` with transient props (`$active`, `$size`), which is excellent practice to prevent DOM attribute pollution.
-*   **Prop Drilling:** The component is well-typed. However, consider adding a `loading` state or `disabled` prop to prevent rapid-fire clicks during navigation or API calls.
-*   **Optimization:** The component is small and functional. It should be wrapped in `React.memo` if used in large lists (e.g., a "Trending Hashtags" sidebar) to prevent unnecessary re-renders when parent state updates.
+*   **Finding:** The `useCreatePostForm` hook is an excellent example of logic extraction. It keeps the `CreatePostCard` component clean and focused on layout.
+*   **Finding:** `PostCard` uses `React.memo` correctly, but the `handleLikeToggle` in `SocialFeed.tsx` is passed down to `PostCard`. Ensure that `onLike` is stable (which it is, via `useCallback`) to prevent unnecessary re-renders of the entire feed.
+*   **Rating:** **HIGH** (Positive)
 
 ### 2. styled-components Best Practices
-*   **Theme Integration:** You are using hardcoded hex values in `CATEGORY_COLORS`. **CRITICAL:** Move these to your `theme` object (e.g., `theme.colors.hashtags.fitness`). This ensures consistency with the rest of the Crystalline Swan design system.
-*   **Glassmorphism:** The current implementation uses `color-mix`. Ensure your `GlobalStyles` defines the base `var(--bg-elevated)` correctly. The hover state is clean, but ensure it meets contrast ratios (WCAG AA) for accessibility.
+*   **Finding:** You are using `var(--bg-elevated, ...)` alongside hardcoded theme colors (e.g., `#002060`).
+    *   **Recommendation:** Move all hardcoded hex values (like `#8B5CF6` or `#60C0F0`) into a centralized `theme.ts` object. This ensures that if the "Crystalline Swan" palette shifts, you don't have to perform a global search-and-replace.
+*   **Finding:** The `styled` components are well-structured, but ensure `backdrop-filter` is used sparingly, as it is performance-intensive on mobile devices.
+*   **Rating:** **MEDIUM**
 
 ### 3. Animation & Interaction
-*   **Framer Motion:** The `transition` property is good, but for a "luxury vault" feel, consider adding a subtle `whileHover={{ scale: 1.05 }}` and `whileTap={{ scale: 0.95 }}` using `framer-motion`.
-*   **Reduced Motion:** Ensure your `transition` settings respect the `prefers-reduced-motion` media query.
+*   **Finding:** The `pulse` animation on the `LiveBadgeLabel` is a great touch for the "Gaming/Arena" feel.
+*   **Finding:** **Missing Reduced Motion.** Users with vestibular disorders may find the `spin` and `pulse` animations distracting.
+    *   **Recommendation:** Wrap animations in a media query:
+        ```css
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+        }
+        ```
+*   **Rating:** **MEDIUM**
 
 ### 4. Form UX
-*   **Accessibility:** The `HashtagChip` is a `<button>`, which is correct for keyboard navigation. Ensure you add `aria-label` if the chip contains only an icon or if the usage count is not descriptive enough for screen readers.
+*   **Finding:** `CreatePostCard` has a `Simple Mode` vs `More Options` toggle. This is excellent progressive disclosure.
+*   **Finding:** The `isSubmitDisabled` logic in `useCreatePostForm` is robust, but it lacks a "loading" state indicator for the *entire* card during submission (it only shows on the button).
+*   **Rating:** **HIGH**
 
 ### 5. State Management
-*   **Backend Logic:** The `processHashtags` function in `hashtags.mjs` is robust. Using `findOrCreate` inside a loop is standard for Sequelize, but for high-traffic scenarios, consider a bulk-insert strategy to reduce database round-trips.
+*   **Finding:** The `feedStats` calculation in `SocialFeed.tsx` uses `useMemo` with `posts.reduce`. This is efficient, but if the feed grows to hundreds of posts, this will block the main thread.
+    *   **Recommendation:** If the feed becomes large, consider moving this calculation to the backend or a web worker.
+*   **Rating:** **MEDIUM**
 
 ### 6. Accessibility Gaps
-*   **Color-Only Indicators:** You are using color to distinguish categories. **HIGH:** If a user is colorblind, they cannot distinguish between "Fitness" and "Creative" categories. Add a small icon or text label to the chip to communicate category context.
+*   **Finding:** **CRITICAL.** The `LoadMoreButton` and `ActionButton` components lack sufficient `aria-label` or `aria-pressed` states in some instances.
+*   **Finding:** The `PostCard` menu uses a `mousedown` listener for closing. This is a common "keyboard trap" or "keyboard-unfriendly" pattern.
+    *   **Recommendation:** Ensure the menu can be closed via the `Escape` key and that focus is managed (e.g., focus returns to the trigger button after the menu closes).
+*   **Finding:** Color-only indicators: The `LiveBadgeLabel` uses color to convey status. Ensure there is a text-based indicator (which you have) to satisfy WCAG 1.4.1.
+*   **Rating:** **CRITICAL**
 
 ---
 
-### Summary of Findings
+### Summary of Action Items
 
-| Finding | Severity | Recommendation |
+| Finding | Severity | Priority |
 | :--- | :--- | :--- |
-| **Hardcoded Colors** | **HIGH** | Move `CATEGORY_COLORS` into the `styled-components` theme provider. |
-| **Color-Only Category** | **HIGH** | Add icons or text labels to the chip to ensure category accessibility. |
-| **Missing `React.memo`** | **LOW** | Wrap `HashtagChip` in `memo` to optimize performance in long lists. |
-| **Missing `aria-label`** | **MEDIUM** | Add `aria-label` to the button to describe the action (e.g., "Follow #fitness"). |
-| **Sequelize Bulk Ops** | **MEDIUM** | In `processHashtags`, consider `bulkCreate` with `updateOnDuplicate` for better performance. |
+| **Keyboard Accessibility:** Add `Escape` key support for menus and modals. | **CRITICAL** | Immediate |
+| **Reduced Motion:** Add `@media (prefers-reduced-motion)` to all keyframes. | **MEDIUM** | Next Sprint |
+| **Theme Centralization:** Move hardcoded hex codes to `theme.ts`. | **MEDIUM** | Next Sprint |
+| **Focus Management:** Ensure focus returns to trigger elements after modals/menus close. | **HIGH** | Immediate |
 
----
-
-### Code Improvement Suggestion (HashtagChip.tsx)
-
-```tsx
-// Suggested improvement for Category Accessibility
-const CategoryIcon = ({ category }: { category: string }) => {
-  switch (category) {
-    case 'fitness': return <Dumbbell size={12} />;
-    case 'creative': return <Palette size={12} />;
-    case 'community': return <Users size={12} />;
-    default: return <Hash size={12} />;
-  }
-};
-
-// Inside the component:
-<Chip $active={!!isActive} $color={theme.colors.hashtags[category]}>
-  <CategoryIcon category={hashtag.category} />
-  <span>#{hashtag.name}</span>
-  {showCount && <CountBadge>{hashtag.usageCount}</CountBadge>}
-</Chip>
-```
-
-**Final Verdict:** The architecture is solid and follows the "Crystalline Swan" aesthetic well. The backend logic for hashtag extraction and classification is clean and handles non-fatal errors gracefully. Focus on the accessibility of the category indicators to ensure the platform remains inclusive.
+**Gemini 3.1 Flash Verdict:** The code is highly modular and follows the "no-monolith" rule effectively. The logic separation between hooks and components is top-tier. Focus on **keyboard navigation** and **reduced-motion support** to bring this to production-grade accessibility standards.
 
 ---
 

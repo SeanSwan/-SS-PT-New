@@ -1,8 +1,8 @@
 # Security — Validation Report
 
-> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 50.2s
-> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
-> **Generated:** 3/24/2026, 10:56:33 PM
+> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 39.6s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/Social/Feed/PostCard.tsx, frontend/src/components/Social/Feed/hooks/useCreatePostForm.ts, frontend/src/components/Social/Feed/components/PostContent.tsx, frontend/src/components/Social/Feed/components/PostActions.tsx
+> **Generated:** 3/24/2026, 11:23:10 PM
 
 ---
 

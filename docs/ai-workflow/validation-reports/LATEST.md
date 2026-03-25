@@ -1,23 +1,22 @@
 # SwanStudios Validation Report
 
-> Generated: 3/24/2026, 10:56:33 PM
-> Files reviewed: 7
-> Validators: 11 succeeded, 0 errored
-> Cost: $0.3693
-> Duration: 435.7s
+> Generated: 3/24/2026, 11:23:10 PM
+> Files reviewed: 6
+> Validators: 9 succeeded, 2 errored
+> Cost: $0.0096
+> Duration: 362.9s
 > Gateway: OpenRouter (single API key)
 
 ---
 
 ## Files Reviewed
 
-- `backend/models/social/Hashtag.mjs`
-- `backend/models/social/PostHashtag.mjs`
-- `backend/models/social/UserHashtagFollow.mjs`
-- `backend/routes/social/hashtags.mjs`
-- `backend/routes/social/posts.mjs`
-- `backend/models/social/index.mjs`
-- `frontend/src/components/Social/Hashtags/HashtagChip.tsx`
+- `frontend/src/components/Social/Feed/SocialFeed.tsx`
+- `frontend/src/components/Social/Feed/CreatePostCard.tsx`
+- `frontend/src/components/Social/Feed/PostCard.tsx`
+- `frontend/src/components/Social/Feed/hooks/useCreatePostForm.ts`
+- `frontend/src/components/Social/Feed/components/PostContent.tsx`
+- `frontend/src/components/Social/Feed/components/PostActions.tsx`
 
 ---
 
@@ -25,2131 +24,1757 @@
 
 | # | Validator | Model | Tokens (in/out) | Duration | Status |
 |---|-----------|-------|-----------------|----------|--------|
-| 1 | UX & Accessibility | google/gemini-2.5-flash | 18,012 / 3,557 | 18.7s | PASS |
-| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 19,638 / 4,096 | 58.6s | PASS |
-| 3 | Security | stepfun/step-3.5-flash:free | 16,360 / 4,096 | 50.2s | PASS |
-| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 18,043 / 1,495 | 10.6s | PASS |
-| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 15,585 / 2,882 | 22.2s | PASS |
-| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 16,393 / 1,580 | 54.5s | PASS |
-| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 15,875 / 3,542 | 71.2s | PASS |
-| 8 | Frontend UX & Code Patterns | google/gemini-3.1-flash-lite-preview-20260303 | 17,978 / 1,003 | 5.4s | PASS |
-| 9 | Data Safety & Integrity | anthropic/claude-4.5-sonnet-20250929 | 20,235 / 4,096 | 65.5s | PASS |
-| 10 | Code Quality Debate (Phase 2) | gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | 32,860 / 5,961 | 156.8s | PASS |
-| 11 | UX/UI Design Debate (Phase 3) | gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | 40,645 / 11,822 | 195.6s | PASS |
+| 1 | UX & Accessibility | google/gemini-2.5-flash | 17,821 / 4,096 | 24.5s | PASS |
+| 2 | Code Quality | anthropic/claude-4.5-sonnet-20250929 | 19,388 / 4,096 | 60.1s | PASS |
+| 3 | Security | stepfun/step-3.5-flash:free | 17,055 / 4,096 | 39.6s | PASS |
+| 4 | Performance & Scalability | google/gemini-3-flash-preview-20251217 | 17,852 / 1,428 | 20.4s | PASS |
+| 5 | Competitive Intelligence | minimax/minimax-m2.1 | 15,517 / 4,096 | 60.6s | PASS |
+| 6 | User Research & Persona Alignment | deepseek/deepseek-v3.2-20251201 | 17,082 / 1,953 | 87.4s | PASS |
+| 7 | Architecture & Bug Hunter | minimax/minimax-m2.5-20260211 | 15,807 / 4,096 | 73.6s | PASS |
+| 8 | Frontend UX & Code Patterns | google/gemini-3.1-flash-lite-preview-20260303 | 17,238 / 999 | 6.2s | PASS |
+| 9 | Data Safety & Integrity | anthropic/claude-4.5-sonnet-20250929 | 19,985 / 4,096 | 58.6s | PASS |
+| 10 | Code Quality Debate (Phase 2) | gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | 0 / 0 | 0.0s | FAIL |
+| 11 | UX/UI Design Debate (Phase 3) | gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | 0 / 0 | 0.0s | FAIL |
 
 ---
 
 ## [PASS] UX & Accessibility
-**Model:** google/gemini-2.5-flash | **Duration:** 18.7s
+**Model:** google/gemini-2.5-flash | **Duration:** 24.5s
 
-Here's a comprehensive UX and accessibility audit of the provided code, focusing on the `HashtagChip.tsx` component and related backend logic.
+I've reviewed the provided code for SwanStudios' social feed components, focusing on WCAG 2.1 AA compliance, mobile UX, design consistency, user flow friction, and loading states.
 
----
-
-## UX and Accessibility Audit: SwanStudios Hashtag Feature
-
-### Overview
-The provided code defines the backend models and routes for a hashtag system and a frontend React component for displaying hashtags. The backend logic appears robust for managing hashtags, their associations, and basic trending/search functionalities. The frontend component, `HashtagChip.tsx`, is the primary focus for UX and accessibility concerns.
+Here's a breakdown of the findings:
 
 ---
 
-### 1. WCAG 2.1 AA Compliance
+## WCAG 2.1 AA Compliance
 
-#### Color Contrast
+### Color Contrast
 
-*   **Finding:** CRITICAL
-*   **Description:** The `HashtagChip` component uses `var(--text-secondary, #94a3b8)` for inactive text color and `var(--border-soft, rgba(96, 192, 240, 0.12))` for inactive border color. These values, especially `#94a3b8` (a light grey-blue) on a `var(--bg-elevated, #141419)` (a very dark grey) background, are highly likely to fail WCAG 2.1 AA contrast requirements for normal text (minimum 4.5:1). The border color `rgba(96, 192, 240, 0.12)` is almost invisible on a dark background, making the chip's boundary unclear for users with low vision.
-*   **Recommendation:**
-    *   **Text Color:** Increase the contrast of `var(--text-secondary)` against `var(--bg-elevated)`. Aim for a contrast ratio of at least 4.5:1. Consider using a lighter color from the active palette (e.g., `Frost White #E0ECF4` or a slightly darker version of it) or a custom color that passes the contrast check.
-    *   **Border Color:** Increase the opacity or brightness of `var(--border-soft)` when used for inactive chips, or use a more contrasting color from the theme.
-    *   **Active State:** Ensure the active state text color (`#E0ECF4`) on the mixed background (`color-mix(in srgb, ${$color} 20%, var(--bg-elevated, #141419))`) also meets the 4.5:1 contrast ratio.
-    *   **Tooling:** Use a color contrast checker (e.g., WebAIM Contrast Checker) to verify all color combinations.
+*   **CRITICAL:** Many text elements and interactive components use colors that likely fail WCAG 2.1 AA contrast requirements against their backgrounds.
+    *   `LoadMoreButton` text (`#E0ECF4`) on `transparent` background (which will be `Midnight Sapphire #002060` or `Royal Depth #003080` from theme) is unlikely to pass.
+    *   `LoadMoreButton` hover state (`#8B5CF6`) on `rgba(139, 92, 246, 0.08)` background is unlikely to pass.
+    *   `EmptyFeedMessage` `Heading6` (`#C6A84B`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `EmptyFeedMessage` `BodyText2` (`#E0ECF4`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `WelcomeTip` text (`#50A0F0`) on `rgba(0, 32, 96, 0.6)` background.
+    *   `GamificationHeader` `Heading6` (`white`) on `linear-gradient(135deg, #8B5CF6, #8B5CF6)` background. This might pass, but needs verification.
+    *   `PointsDisplay` `BodyText2` (`#E0ECF4`) on `rgba(255, 255, 255, 0.2)` background.
+    *   `ActivityIndicator` `BodyText2` (`#60C0F0`) on `rgba(96, 192, 240, 0.1)` background.
+    *   `StatCard` `CaptionText` (`#50A0F0`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `LiveBadgeLabel` (`#001840`) on `#60C0F0` background. This might pass, but needs verification.
+    *   `OutlinedButton` text (`#8B5CF6`) on `transparent` background.
+    *   `PostCard` `ActionButton` (e.g., `ThumbsUp`) `stroke` and `fill` colors (`#60C0F0`) on `transparent` background.
+    *   `PostCard` `Toast` text (`You earned X points!`) on its background.
+    *   **Recommendation:** Use a color contrast checker tool (e.g., WebAIM Contrast Checker) for all text and interactive elements against their respective backgrounds. Ensure a contrast ratio of at least 4.5:1 for normal text and 3:1 for large text (18pt or 14pt bold). Define and use accessible color tokens from the theme.
 
-#### Aria Labels
+### Aria Labels & Semantics
 
-*   **Finding:** MEDIUM
-*   **Description:** The `HashtagChip` is a `<button>`. While buttons are inherently interactive and focusable, adding `aria-label` can provide more context, especially when the visual text might be abbreviated or when additional information (like `usageCount`) is present but not explicitly part of the button's accessible name. For example, a screen reader might just announce "#fitness" without the context of it being a filter or a link to a page.
-*   **Recommendation:**
-    *   For the `HashtagChip`, consider an `aria-label` like `aria-label={\`Filter by hashtag ${hashtag.name}\`}` or `aria-label={\`View posts tagged ${hashtag.name}\`}` depending on its primary action. If `showCount` is true, incorporate it: `aria-label={\`View posts tagged ${hashtag.name}, ${hashtag.usageCount} posts\`} `.
-    *   If the chip acts as a toggle (e.g., for filtering), use `aria-pressed={isActive}`.
+*   **MEDIUM:** `LoadMoreButton` has text "Load more posts" which is good, but when `isLoadingMore`, it changes to "Loading more posts..." and includes a spinner. While the text change is helpful, explicitly adding `aria-live="polite"` to the button or a visually hidden span within it could announce the loading state to screen reader users more reliably.
+*   **MEDIUM:** `Spinner` components are used for loading. They should ideally have `role="status"` and `aria-label="Loading"` or `aria-busy="true"` on their container to convey their purpose to screen readers.
+*   **MEDIUM:** `Toast` component for point notifications. It should have `role="status"` or `role="alert"` (depending on urgency) and `aria-live="polite"` or `aria-live="assertive"` to ensure screen readers announce its content automatically. The `ToastCloseBtn` has `title="Dismiss"`, which is good, but `aria-label="Dismiss notification"` would be more explicit for screen readers.
+*   **LOW:** `PostCard` `ActionButton` for reactions (ThumbsUp, Heart, Swan) have `title` attributes, which is a good start. Adding `aria-label` that explicitly describes the action and current state (e.g., `aria-label="Like post, currently liked"` or `aria-label="Like post, currently not liked"`) would be more robust.
+*   **LOW:** `NativeSelect` in `CreatePostCard` for visibility. While native selects are generally accessible, ensuring it's properly associated with a visible `<label>` element (or `aria-labelledby`) is crucial. The `SelectHelperText` is good, but not a direct label.
+*   **LOW:** `FloatingCreateButton` has `title="Create an enhanced post with more options"`. An `aria-label` would be more direct.
 
-#### Keyboard Navigation
+### Keyboard Navigation & Focus Management
 
-*   **Finding:** LOW
-*   **Description:** The `HashtagChip` is rendered as a `<button>`, which is semantically correct and inherently keyboard-focusable and clickable. This is good. No explicit issues found in the provided snippet.
-*   **Recommendation:** Ensure that when multiple `HashtagChip` components are present (e.g., in a list of trending hashtags), their tab order is logical and predictable. This is usually handled by the browser's default tab order, but complex layouts might require `tabIndex` adjustments (though generally avoided if possible).
-
-#### Focus Management
-
-*   **Finding:** LOW
-*   **Description:** Similar to keyboard navigation, using a native `<button>` ensures proper focus indication by default.
-*   **Recommendation:** Verify that the default focus indicator (outline) is clearly visible and not suppressed or overridden in a way that reduces its visibility. If custom focus styles are applied, ensure they meet WCAG 2.1 AA requirements for non-text contrast (3:1 against adjacent colors).
-
----
-
-### 2. Mobile UX
-
-#### Touch Targets
-
-*   **Finding:** HIGH
-*   **Description:** The `HashtagChip` has a `min-height` that varies by `size` prop: `sm` (28px), `md` (36px), `lg` (44px). The WCAG 2.1 AA requirement for touch targets is a minimum of 44x44 CSS pixels. Only the `lg` size meets this requirement. The `sm` and `md` sizes are too small for reliable touch interaction, especially for users with motor impairments or large fingers.
-*   **Recommendation:**
-    *   **Increase `min-height` for `sm` and `md`:** Adjust `min-height` for `sm` and `md` to at least 44px. This might require adjusting padding and font sizes to maintain visual balance.
-    *   **Consider `min-width`:** While `min-height` is specified, `min-width` is not. Ensure that the horizontal padding and content make the overall clickable area at least 44px wide as well.
-    *   **Consistent Sizing:** Re-evaluate if `sm` and `md` sizes are truly necessary if they cannot meet the touch target requirements. Perhaps `lg` should be the default, or the smallest size should still be 44px.
-
-#### Responsive Breakpoints
-
-*   **Finding:** LOW
-*   **Description:** The provided `HashtagChip.tsx` snippet doesn't include explicit media queries for responsive breakpoints. However, `styled-components` allows for responsive styling. The `display: inline-flex` and `white-space: nowrap` properties could lead to horizontal scrolling or cramped layouts if many chips are displayed on a small screen without proper wrapping or truncation.
-*   **Recommendation:**
-    *   **Wrapping:** Ensure the parent container of multiple chips allows them to wrap onto new lines (`flex-wrap: wrap`).
-    *   **Truncation/Scrolling:** If `white-space: nowrap` is critical for single chips, consider how long hashtag names are handled. On mobile, very long hashtags might need truncation with an ellipsis or a horizontal scrollable container for a group of chips.
-    *   **Font Size Adjustment:** While `font-size` is set by `size` prop, consider if these sizes are optimal across all screen sizes or if they should be adjusted at certain breakpoints.
-
-#### Gesture Support
-
-*   **Finding:** N/A
-*   **Description:** The `HashtagChip` is a simple clickable element. No complex gestures (swipe, pinch, long-press) are implied or expected for this component.
-*   **Recommendation:** No specific recommendations for this component.
+*   **MEDIUM:** The `PostCard` menu (MoreVertical) uses `useEffect` with `mousedown` to close on outside clicks. This is good for mouse users, but keyboard users need a way to close it (e.g., `Escape` key). Focus should also be managed within the opened menu, ensuring users can tab through menu items.
+*   **MEDIUM:** `Share Dialog` in `PostCard`: When opened, focus should be trapped within the modal, and the `Escape` key should close it. Currently, `handleOverlayClick` only handles mouse clicks.
+*   **MEDIUM:** `ReportPostModal` (not provided, but mentioned): Similar to the share dialog, focus management and `Escape` key handling are crucial for accessibility.
+*   **LOW:** `TransformationSlider` in `PostContent`: This is a `div` with a `Play` icon. If this is intended to be interactive (e.g., to control the slider value), it needs to be made keyboard focusable (`tabindex="0"`) and have appropriate `role` and `aria-` attributes (e.g., `role="slider"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`). Currently, it appears to be a static visual element. If it's static, the `Play` icon might be misleading.
+*   **LOW:** `TryWorkoutButton` in `PostContent`: This is a `button`, which is good. Ensure its focus style is clear.
 
 ---
 
-### 3. Design Consistency
+## Mobile UX
 
-#### Theme Tokens Usage
+### Touch Targets
 
-*   **Finding:** MEDIUM
-*   **Description:** The `CATEGORY_COLORS` object hardcodes hex values (`#8B5CF6`, `#C6A84B`, `#60C0F0`, `#4070C0`) which directly correspond to `Wing Purple`, `Gilded Fern`, `Ice Wing`, and `Swan Lavender` from the `Crystalline Swan` theme. While these are the correct colors, they are not referenced as CSS variables or theme tokens. This creates a maintenance burden if the theme's specific hex values change. The `Midnight Sapphire`, `Royal Depth`, `Arctic Cyan`, and `Frost White` colors are not explicitly used in this component, but their absence isn't necessarily an inconsistency.
-*   **Recommendation:**
-    *   **Centralize Theme Variables:** Define all theme colors as CSS variables (e.g., `--color-wing-purple: #8B5CF6;`) or within a `styled-components` theme object.
-    *   **Reference Tokens:** Update `CATEGORY_COLORS` to reference these theme variables (e.g., `fitness: 'var(--color-wing-purple)'`). This ensures that if the hex value for `Wing Purple` ever changes, all components using it will update automatically.
-    *   **`var(--border-soft, rgba(96, 192, 240, 0.12))`:** The fallback `rgba(96, 192, 240, 0.12)` is `Ice Wing` with 12% opacity. This is good, but `border-soft` itself should ideally be a theme token.
-    *   **`var(--text-secondary, #94a3b8)` and `var(--bg-elevated, #141419)`:** These are good examples of using CSS variables with fallbacks. Ensure these variables are defined globally in the theme.
+*   **HIGH:** `LoadMoreButton`, `ContainedButton`, `OutlinedButton` explicitly set `min-height: 44px`, which is excellent and meets the WCAG 2.1 AA requirement for touch targets.
+*   **MEDIUM:** `ActionButton` components in `PostActions` (like, heart, swan, comment, share) are icons. While they might visually appear large enough, their actual clickable area needs to be verified. Ensure the padding or the interactive area around the icon is at least 44x44px.
+*   **MEDIUM:** `ToastCloseBtn` in `PostCard` is a small `X` icon. This needs to be at least 44x44px.
+*   **MEDIUM:** `NativeSelect` in `CreatePostCard` for visibility. While the `min-height` is not explicitly set on the `NativeSelect` itself, its parent `VisibilitySelectWrapper` should ensure the overall interactive area is sufficient.
+*   **LOW:** `WelcomeTip` has a `Zap` icon and text. If this is interactive (e.g., opens a tooltip or navigates), its touch target needs to be 44x44px. Currently, it appears static.
 
-#### Hardcoded Colors
+### Responsive Breakpoints
 
-*   **Finding:** HIGH
-*   **Description:**
-    *   `#E0ECF4` (Frost White) is hardcoded for active text color.
-    *   `#141419` is hardcoded as a fallback for `var(--bg-elevated)`. While a fallback is useful, this specific hex value should be explicitly defined as part of the theme's background palette (e.g., `Royal Depth` or a darker variant).
-    *   `#94a3b8` is hardcoded as a fallback for `var(--text-secondary)`. This color is not explicitly listed in the provided `Crystalline Swan` palette and might be a remnant or an unapproved color.
-*   **Recommendation:**
-    *   **Replace Hardcoded Hexes with Tokens:** Replace all hardcoded hex values with references to theme tokens or CSS variables.
-    *   **Review Fallbacks:** Ensure fallback values for CSS variables are also part of the approved theme palette or are explicitly documented as exceptions. The `#94a3b8` fallback for `text-secondary` needs review for palette consistency and contrast.
+*   **MEDIUM:** `FeedContainer` has `max-width: 650px` and `margin: 0 auto`, which makes it center-aligned on larger screens and full-width on smaller screens. This is a good start.
+*   **MEDIUM:** `FeedStats` uses `grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))`. This is a good responsive pattern for the stat cards, allowing them to wrap.
+*   **LOW:** The overall layout seems to rely on `max-width` and `gap`. A more explicit mobile-first approach with specific breakpoints for `font-size`, `padding`, and `margin` might be beneficial for a truly optimized mobile experience, especially for complex components like `CreatePostCard`.
+*   **LOW:** `CreatePostCard`'s `FormFooter` has `FooterLeft` and `FooterRight`. On small screens, these might stack awkwardly or become too cramped. Consider a flex-wrap or column layout for these on mobile.
+
+### Gesture Support
+
+*   **LOW:** No explicit gesture support (e.g., swipe to dismiss, pinch to zoom on images) is implemented. While not a WCAG requirement, it enhances mobile UX. For `TransformationImageContainer`, a swipe gesture to control the slider value could be intuitive, but the current `TransformationSlider` is a static `div` with a play icon. If it's meant to be interactive, it needs to be re-evaluated.
 
 ---
 
-### 4. User Flow Friction
+## Design Consistency
 
-#### Unnecessary Clicks / Confusing Navigation
+### Theme Tokens Usage
 
-*   **Finding:** LOW
-*   **Description:** The `HashtagChip` itself is a single clickable element, which is straightforward. The backend routes for hashtags (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`) provide a comprehensive set of endpoints for discovery and interaction. The `onClick` prop on the frontend chip allows for flexible navigation (e.g., to a hashtag's detail page or to filter a feed).
-*   **Recommendation:** Ensure the `onClick` action is clear to the user. For example, if clicking a chip filters the current view, provide visual feedback. If it navigates to a new page, the context should make that clear (e.g., "View all posts with #fitness").
+*   **CRITICAL:** Extensive hardcoded colors are present throughout the `SocialFeed.tsx`, `CreatePostCard.tsx` (via `CreatePostStyles.ts`), `PostCard.tsx` (via `PostCardStyles.ts`), and `PostContent.tsx`. This is a major inconsistency and maintenance burden.
+    *   Examples: `#E0ECF4`, `#8B5CF6`, `#C6A84B`, `#50A0F0`, `#002060`, `#003080`, `#60C0F0`, `rgba(139, 92, 246, 0.5)`, `rgba(139, 92, 246, 0.08)`, `rgba(0, 48, 128, 0.95)`, `rgba(0, 48, 128, 0.85)`, `rgba(0, 0, 0, 0.3)`, `rgba(255, 255, 255, 0.85)`, `rgba(0, 32, 96, 0.6)`, `rgba(255, 255, 255, 0.2)`, `rgba(96, 192, 240, 0.1)`, `#001840`, `#f7b32b`.
+    *   **Recommendation:** Define all active palette colors (`Midnight Sapphire #002060`, `Royal Depth #003080`, `Ice Wing #60C0F0`, `Arctic Cyan #50A0F0`, `Gilded Fern #C6A84B`, `Frost White #E0ECF4`, `Swan Lavender #4070C0`, `Wing Purple #8B5CF6`) as styled-components theme variables (e.g., `theme.colors.primary`, `theme.colors.surface`, `theme.accents.gaming`, etc.) and use them consistently. This will also help with future theme changes and accessibility audits.
+*   **HIGH:** Typography is also inconsistently applied. While `Heading6`, `BodyText2`, `CaptionText` are defined, many elements directly set `font-size`, `font-weight`, `line-height`, `letter-spacing` instead of using these styled components or theme-defined typography tokens.
+    *   Examples: `LoadMoreButton`, `WelcomeTip`, `PointsDisplay`, `StreakDisplay`, `LiveBadgeLabel`, `ContainedButton`, `OutlinedButton`.
+    *   **Recommendation:** Create a robust typography system within the styled-components theme, defining heading levels, body text sizes, and other text styles, and apply them consistently.
+*   **MEDIUM:** `CATEGORY_GRADIENTS` in `PostCard.tsx` is an object containing hardcoded gradients. These should ideally reference theme colors or be defined as theme tokens if they are part of the "Enchanted Apex: Crystalline Swan" theme.
 
-#### Missing Feedback States
+### Hardcoded Values
 
-*   **Finding:** MEDIUM
-*   **Description:** The `HashtagChip` has `hover` styles, which is good visual feedback. However, there's no explicit `active` (pressed) or `disabled` state styling defined in the provided `styled-components` snippet.
-*   **Recommendation:**
-    *   **Active (Pressed) State:** Add a distinct visual style for when the button is actively being pressed (e.g., a slightly darker background, a subtle shadow). This provides immediate feedback that the click registered.
-    *   **Disabled State:** If a `HashtagChip` can be disabled (e.g., if a user can't follow a banned hashtag), provide clear visual styling (e.g., reduced opacity, different cursor) and ensure it's not focusable or clickable.
-    *   **Loading States:** While not directly in the chip, consider how the *data* for the chips is loaded. If a list of chips is loading, a skeleton state would be beneficial (see next section).
-
----
-
-### 5. Loading States
-
-#### Skeleton Screens, Error Boundaries, Empty States
-
-*   **Finding:** MEDIUM (Frontend) / LOW (Backend)
-*   **Description:**
-    *   **Frontend (`HashtagChip.tsx`):** The `HashtagChip` component itself doesn't handle loading states, which is appropriate as it's a display component. However, the *parent components* that render lists of these chips (e.g., `TrendingHashtags`, `FeedFilterBar`) would need to implement skeleton screens or loading indicators while fetching data from the backend.
-    *   **Backend (`hashtags.mjs`, `posts.mjs`):** The backend routes handle errors gracefully by returning `500` status codes and `success: false` with error messages. This is good for API consumers.
-    *   **Empty States:** The backend routes for `/search` and `/trending` correctly return `data: []` if no results are found. The `/following` and `/suggestions` routes also handle empty results.
-*   **Recommendation:**
-    *   **Frontend Skeleton Screens:** For lists of `HashtagChip`s (e.g., trending, search results, followed hashtags), implement skeleton loaders to indicate that content is being fetched. This improves perceived performance.
-    *   **Frontend Error Boundaries:** Implement React Error Boundaries in parent components to gracefully catch and display errors that might occur during data fetching or rendering of `HashtagChip` lists.
-    *   **Frontend Empty States:** When backend returns `data: []`, the frontend should display a user-friendly "No hashtags found" or "You are not following any hashtags yet" message instead of just an empty space.
+*   **CRITICAL:** As noted above, colors are extensively hardcoded.
+*   **MEDIUM:** Magic numbers for spacing (`gap: 16px`, `padding: 24px`, `margin: 16px auto`, `border-radius: 8px`, `box-shadow`, etc.) are prevalent.
+    *   **Recommendation:** Define a spacing scale (e.g., `theme.spacing.s`, `theme.spacing.m`, `theme.spacing.l`) and use it throughout the components for consistent visual rhythm. Similarly, define `borderRadius` and `boxShadow` tokens.
 
 ---
 
-### Backend Code Review Notes
+## User Flow Friction
 
-The backend code (`Hashtag.mjs`, `PostHashtag.mjs`, `UserHashtagFollow.mjs`, `hashtags.mjs`, `posts.mjs`, `index.mjs`) is generally well-structured and commented.
+### Unnecessary Clicks / Steps
 
-*   **`Hashtag.mjs`:**
-    *   `CATEGORY_KEYWORDS` is a good approach for auto-classification.
-    *   `validate: { is: /^[a-z0-9_]{2,30}$/i }` for `name` is good for data integrity.
-*   **`hashtags.mjs`:**
-    *   The `extractHashtags` and `processHashtags` functions are well-designed for handling hashtag creation and association.
-    *   Error handling in `processHashtags` (logging non-fatal errors) is appropriate.
-    *   All routes (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`, `/follow`, `/unfollow`) have clear purposes and handle edge cases (e.g., `q.length < 1` for search, hashtag not found).
-    *   The `/trending` route's `period` query parameter is mentioned in comments but not implemented in the code (it only orders by `weeklyCount` and `usageCount`). This is a minor discrepancy between comment and code.
-*   **`posts.mjs`:**
-    *   The `awardSocialPoints` and `awardEngagementReceivedPoints` functions are a good implementation of gamification logic.
-    *   Multer setup for media upload is robust, including file type validation and size limits.
-    *   The `getEnhancedFallbackFeed` is a good resilience mechanism for legacy table issues.
-    *   The feed logic correctly handles friendship status and visibility.
-    *   Batch fetching for comments and likes is an efficient approach.
-    *   The post creation endpoint correctly integrates hashtag processing and point awarding.
-    *   Reporting mechanism is well-defined.
-    *   Reaction handling (`reactToPost`, `removeReaction`) is good.
+*   **LOW:** `CreatePostCard`: The "More Options" / "Simple Mode" toggle is a good feature for power users vs. quick posts. However, if a user frequently uses "More Options", the initial state of "Quick Post" might add an extra click. Consider remembering the user's last preference for this toggle.
+*   **LOW:** `PostCard` `TransformationImages`: The `TransformationSlider` is a static `div` with a `Play` icon. If this is meant to be interactive (e.g., to slide between before/after), it's currently not functional, leading to friction. If it's purely decorative, the `Play` icon is misleading.
 
-Overall, the backend code is solid and demonstrates good practices for API development and data management. The UX and accessibility concerns are primarily on the frontend component's styling and interaction.
+### Confusing Navigation / Feedback
+
+*   **MEDIUM:** `CreatePostCard` `handleFileSelect`: Error messages (`File size exceeds...`, `Only image and video files are allowed`) are shown via `useToast().error`. This is good, but ensuring these toasts are highly visible and accessible (as discussed in WCAG section) is important.
+*   **MEDIUM:** `PostCard` `Toast` for points earned: The toast appears and then fades. Ensuring it's dismissible (which it is, with the `X` button) and that its appearance doesn't disrupt the user's current task is important. The `setTimeout` for `setShowPointNotification(false)` after `setToastVisible(false)` is a good pattern for animation.
+*   **LOW:** `PostCard` `handleMute` is a `TODO`. This represents a missing feature that could cause friction if users frequently encounter content they wish to mute.
+*   **LOW:** `PostCard` `handleCopyLink` has a `catch` block that silently fails. While not critical, providing feedback to the user if copying fails (e.g., a toast notification) would improve UX.
+
+### Missing Feedback States
+
+*   **MEDIUM:** `CreatePostCard` `handleCreatePost` validation: If validation fails (e.g., no content for a general post), the `return` statement prevents the API call, but no explicit user feedback is provided. The `isSubmitDisabled` state handles the button, but a toast or inline error message would be better.
+*   **MEDIUM:** `PostCard` `handleDeletePost`: A `window.confirm` is used. While functional, a more integrated and styled confirmation modal would provide a better user experience and align with the theme.
+*   **LOW:** `PostCard` `handleReportSubmit`: The return value is a boolean, but there's no explicit feedback to the user after reporting (e.g., "Post reported successfully").
+
+---
+
+## Loading States
+
+### Skeleton Screens
+
+*   **LOW:** `SocialFeed.tsx` uses a `Spinner` for the initial loading state. While functional, a skeleton screen for the feed items (e.g., placeholder cards with grey shapes) would provide a smoother and more visually appealing loading experience, especially for content-heavy feeds.
+
+### Error Boundaries
+
+*   **MEDIUM:** `SocialFeed.tsx` has an `error` state and displays an `EmptyFeedMessage` with a "Retry" button. This is a good basic error handling mechanism. Consider wrapping the `SocialFeed` component (or its children) in a React Error Boundary to catch unexpected rendering errors within the component tree, preventing the entire application from crashing.
+*   **LOW:** `useCreatePostForm.ts` `fetchWorkoutHistory` catches errors and logs them to the console. If this error prevents a critical part of the form from working, it should be surfaced to the user (e.g., a toast notification or an error message within the workout history section).
+
+### Empty States
+
+*   **HIGH:** `SocialFeed.tsx` provides a `WelcomeCard` when `posts.length` is 0. This is an excellent empty state, guiding new users with clear CTAs ("Browse Challenges", "Find Friends") and a helpful tip. The design of the `WelcomeCard` is also visually appealing and on-brand.
+*   **LOW:** `WorkoutStats` in `PostContent`: If `stats.length === 0`, it returns `null`. While technically correct, if a workout post has no stats, it might look incomplete. Consider a subtle message like "No detailed stats available" or a different visual treatment.
+
+---
+
+## Summary of Key Recommendations:
+
+1.  **Address Color Contrast (CRITICAL):** Systematically check and fix all color contrast issues to meet WCAG 2.1 AA.
+2.  **Implement Theme Tokens (CRITICAL):** Replace all hardcoded colors, fonts, spacing, and other design values with styled-components theme tokens. This is the most impactful change for design consistency and maintainability.
+3.  **Enhance Accessibility for Interactive Elements (HIGH/MEDIUM):**
+    *   Ensure all interactive elements (buttons, links, form controls) have sufficient touch targets (min 44x44px).
+    *   Add appropriate `aria-labels`, `roles`, and `aria-live` regions for screen reader users, especially for loading spinners, toasts, and dynamic content.
+    *   Improve keyboard navigation and focus management for modals and menus (e.g., `Escape` key to close, focus trapping).
 
 ---
 
 ## [PASS] Code Quality
-**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 58.6s
+**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 60.1s
 
-# Code Review: SwanStudios Hashtag System
+# Code Review: SwanStudios Social Feed Components
 
-## CRITICAL Issues
-
-### 1. **SQL Injection Vulnerability in Post Reporting**
-**File:** `backend/routes/social/posts.mjs` (lines 715-730)  
-**Severity:** CRITICAL
-
-```javascript
-await sequelize.query(
-  `INSERT INTO "PostReports" ("reporterId", "contentType", "contentId", "contentAuthorId", "reason", "description", "status", "createdAt", "updatedAt")
-   VALUES (:reporterId, 'post', :contentId, :authorId, :reason, :description, 'pending', NOW(), NOW())`,
-  {
-    replacements: {
-      reporterId: req.user.id,
-      contentId: postId,
-      authorId: post.userId,
-      reason,
-      description: description || null,
-    },
-  }
-);
-```
-
-**Issue:** While using parameterized queries, the `reason` field is validated but `description` is not sanitized. More critically, the raw SQL approach bypasses Sequelize's built-in protections.
-
-**Fix:** Use Sequelize model methods instead of raw queries, or add strict validation on `description`.
+## Executive Summary
+The codebase demonstrates strong architectural patterns with proper component decomposition, but contains **critical TypeScript violations**, **performance anti-patterns**, and **accessibility gaps**. The theme implementation is excellent, but several hardcoded values remain.
 
 ---
 
-### 2. **Missing Transaction Rollback on Hashtag Processing Failure**
-**File:** `backend/routes/social/posts.mjs` (lines 355-370)  
-**Severity:** CRITICAL
+## 🔴 CRITICAL Issues
 
-```javascript
-// Create the post
-const post = await SocialPost.create(postData);
+### 1. **Unsafe Type Assertions & `any` Usage**
+**Severity:** CRITICAL  
+**Files:** `SocialFeed.tsx`, `PostCard.tsx`, `useCreatePostForm.ts`
 
-// Extract and process hashtags from content
-let linkedHashtags = [];
-try {
-  const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
-  const tagNames = extractHashtags(content);
-  if (tagNames.length > 0) {
-    linkedHashtags = await processHashtags(post.id, tagNames);
-  }
-} catch (hashtagErr) {
-  // Non-fatal: hashtag processing failure should not block post creation
-  console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
-}
+**Problems:**
+```tsx
+// SocialFeed.tsx:243 - Unsafe type assertion
+result = await (onLike as any)(post.id);
+
+// useCreatePostForm.ts:126 - Untyped error
+} catch (err: any) {
+
+// PostCard.tsx:89 - Untyped result
+let result: any;
 ```
-
-**Issue:** Post is created without a transaction. If hashtag processing partially succeeds then fails, you'll have orphaned `PostHashtag` records and incorrect `usageCount` values. Media upload happens before post creation, so R2 cleanup on failure is also missing.
-
-**Fix:** Wrap post creation, media upload, and hashtag processing in a Sequelize transaction with proper rollback.
-
----
-
-### 3. **Race Condition in Hashtag Usage Count Increment**
-**File:** `backend/routes/social/hashtags.mjs` (lines 71-75)  
-**Severity:** CRITICAL
-
-```javascript
-// Increment usage counts
-await hashtag.increment(['usageCount', 'weeklyCount'], {
-  ...(transaction ? { transaction } : {})
-});
-```
-
-**Issue:** Multiple concurrent posts with the same hashtag can cause lost updates. `increment()` is atomic at the DB level, but the surrounding `findOrCreate` + `PostHashtag.findOrCreate` is not, leading to duplicate join records or missed counts.
-
-**Fix:** Use database-level unique constraints (already present) + proper error handling for constraint violations, or use `ON CONFLICT` upsert logic.
-
----
-
-## HIGH Issues
-
-### 4. **Missing TypeScript Types in Frontend Component**
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (truncated)  
-**Severity:** HIGH
-
-**Issue:** Component is truncated, but visible code shows proper TypeScript usage. However, the styled-component props use `$` prefix convention but don't show proper typing for the styled component itself.
-
-**Expected:**
-```typescript
-const Chip = styled.button<{ 
-  $active: boolean; 
-  $color: string; 
-  $size: 'sm' | 'md' | 'lg' 
-}>`...`
-```
-
-**Current:** Uses `string` instead of discriminated union for `$size`.
-
----
-
-### 5. **Hardcoded Color Values Instead of Theme Tokens**
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (lines 48-53)  
-**Severity:** HIGH
-
-```typescript
-const CATEGORY_COLORS: Record<string, string> = {
-  fitness: '#8B5CF6',    // Wing Purple
-  creative: '#C6A84B',   // Gilded Fern
-  community: '#60C0F0',  // Ice Wing
-  general: '#4070C0',    // Swan Lavender
-};
-```
-
-**Issue:** Hardcoded hex values violate the styled-components theme token requirement. Should reference `theme.colors.*` or CSS custom properties.
 
 **Fix:**
-```typescript
-const CATEGORY_COLORS: Record<string, string> = {
-  fitness: 'var(--wing-purple, #8B5CF6)',
-  creative: 'var(--gilded-fern, #C6A84B)',
-  community: 'var(--ice-wing, #60C0F0)',
-  general: 'var(--swan-lavender, #4070C0)',
-};
-```
+```tsx
+// Define proper union type for callbacks
+type PostActionResult = { pointsAwarded?: number } | void;
 
----
+// SocialFeed.tsx
+const handleLikeToggle = useCallback(async (postId: string, isLiked: boolean): Promise<PostActionResult> => {
+  return isLiked ? await unlikePost(postId) : await likePost(postId);
+}, [likePost, unlikePost]);
 
-### 6. **Unhandled Promise Rejection in Hashtag Extraction**
-**File:** `backend/routes/social/posts.mjs` (lines 358-368)  
-**Severity:** HIGH
-
-```javascript
-try {
-  const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
-  const tagNames = extractHashtags(content);
-  if (tagNames.length > 0) {
-    linkedHashtags = await processHashtags(post.id, tagNames);
-  }
-} catch (hashtagErr) {
-  console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
-}
-```
-
-**Issue:** If `processHashtags` throws after creating some hashtags, the counts will be inconsistent. The error is swallowed without user notification.
-
-**Fix:** Either make hashtag processing atomic (transaction) or return partial success info to the user.
-
----
-
-### 7. **Missing Error Boundary for Async Operations**
-**File:** `backend/routes/social/hashtags.mjs` (multiple routes)  
-**Severity:** HIGH
-
-**Issue:** All routes use generic `catch` blocks that log to console but don't differentiate between validation errors, DB errors, and system errors. User gets same "Failed to fetch" message for all failures.
-
-**Fix:** Implement error classification:
-```javascript
-} catch (error) {
-  if (error.name === 'SequelizeValidationError') {
-    return res.status(400).json({ success: false, message: error.errors[0].message });
-  }
-  if (error.name === 'SequelizeUniqueConstraintError') {
-    return res.status(409).json({ success: false, message: 'Hashtag already exists' });
-  }
-  logger.error('Hashtag route error:', error);
-  return res.status(500).json({ success: false, message: 'Server error' });
-}
-```
-
----
-
-## MEDIUM Issues
-
-### 8. **DRY Violation: Duplicate Reaction Fetching Logic**
-**File:** `backend/routes/social/posts.mjs` (lines 178-187, 317-326)  
-**Severity:** MEDIUM
-
-```javascript
-// Appears twice with identical logic
-let reactionCountsMap = {};
-let userReactionsMap = {};
-try {
-  reactionCountsMap = await SocialLike.getReactionCounts(postIds);
-  userReactionsMap = await SocialLike.getUserReactions(req.user.id, postIds);
+// useCreatePostForm.ts
 } catch (err) {
-  console.log('Reaction methods not available, falling back to legacy:', err.message);
+  if (err instanceof Error && (err.name === 'CanceledError' || err.name === 'AbortError')) return;
+  console.error('Failed to fetch workout history:', err);
+}
+
+// PostCard.tsx
+const handleReaction = async (reactionType: string, event?: React.MouseEvent): Promise<void> => {
+  const isActive = userReactions.includes(reactionType);
+  let result: PostActionResult;
+  // ...
 }
 ```
 
-**Fix:** Extract to helper function:
-```javascript
-async function fetchReactionData(userId, postIds) {
-  try {
-    return {
-      counts: await SocialLike.getReactionCounts(postIds),
-      userReactions: await SocialLike.getUserReactions(userId, postIds)
-    };
-  } catch (err) {
-    return { counts: {}, userReactions: {} };
+**Impact:** Runtime type errors, loss of IntelliSense, potential production crashes.
+
+---
+
+### 2. **Missing Error Boundaries**
+**Severity:** CRITICAL  
+**Files:** All components
+
+**Problem:** No error boundaries wrapping async operations. A single failed API call crashes the entire feed.
+
+**Fix:**
+```tsx
+// Create ErrorBoundary.tsx
+class SocialFeedErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    logger.error('SocialFeed error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <EmptyFeedMessage>
+          <Heading6 $color="#C6A84B">Something went wrong</Heading6>
+          <BodyText2 $color="#E0ECF4">
+            {this.state.error?.message || 'An unexpected error occurred'}
+          </BodyText2>
+          <ContainedButton onClick={() => window.location.reload()}>
+            Reload Feed
+          </ContainedButton>
+        </EmptyFeedMessage>
+      );
+    }
+    return this.props.children;
   }
 }
-```
 
----
-
-### 9. **Inefficient N+1 Query Pattern in Hashtag Page**
-**File:** `backend/routes/social/hashtags.mjs` (lines 197-213)  
-**Severity:** MEDIUM
-
-```javascript
-const postIds = (await PostHashtag.findAll({
-  where: { hashtagId: hashtag.id },
-  attributes: ['postId'],
-  order: [['createdAt', 'DESC']],
-  limit: limit + offset
-})).map(ph => ph.postId);
-
-const paginatedIds = postIds.slice(offset, offset + limit);
-
-const posts = paginatedIds.length > 0
-  ? await SocialPost.findAll({
-      where: {
-        id: { [Op.in]: paginatedIds },
-        moderationStatus: { [Op.or]: ['approved', null] }
-      },
-      // ...
-    })
-  : [];
-```
-
-**Issue:** Fetches all post IDs up to `limit + offset`, then slices in memory. For large hashtags, this is inefficient.
-
-**Fix:** Use proper pagination with `LIMIT` and `OFFSET` in the initial query, or use cursor-based pagination.
-
----
-
-### 10. **Missing Input Validation on Hashtag Search**
-**File:** `backend/routes/social/hashtags.mjs` (lines 124-127)  
-**Severity:** MEDIUM
-
-```javascript
-const q = (req.query.q || '').toLowerCase().replace(/[^a-z0-9_]/g, '');
-if (q.length < 1) {
-  return res.json({ success: true, data: [] });
+// Wrap SocialFeed
+export default function SocialFeedWithBoundary(props: SocialFeedProps) {
+  return (
+    <SocialFeedErrorBoundary>
+      <SocialFeed {...props} />
+    </SocialFeedErrorBoundary>
+  );
 }
 ```
 
-**Issue:** No max length check. A malicious user could send a 10,000-character query that passes the regex but causes DB performance issues.
+---
+
+### 3. **Memory Leak: Blob URL Cleanup**
+**Severity:** CRITICAL  
+**Files:** `useCreatePostForm.ts:71-77`
+
+**Problem:** Cleanup only runs on unmount, but blob URLs are created on every file selection. Long sessions = memory exhaustion.
 
 **Fix:**
-```javascript
-const q = (req.query.q || '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+```tsx
+// Cleanup previous blob before creating new one
+const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  if (!event.target.files?.length) return;
+  const file = event.target.files[0];
+  
+  // Validate first
+  const isVideo = file.type.startsWith('video/');
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
+    return;
+  }
+  
+  // ✅ Cleanup old blob BEFORE creating new one
+  if (mediaPreview?.startsWith('blob:')) {
+    URL.revokeObjectURL(mediaPreview);
+  }
+  
+  setMedia(file);
+  if (isVideo) {
+    setMediaPreview(URL.createObjectURL(file));
+  } else {
+    const reader = new FileReader();
+    reader.onload = () => setMediaPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+}, [mediaPreview, toastError]);
 ```
 
 ---
 
-### 11. **Inconsistent Error Logging**
-**File:** Multiple files  
-**Severity:** MEDIUM
+## 🟠 HIGH Priority Issues
 
-**Issue:** Some routes use `console.error`, some use `console.log`, some check for `logger` existence. Inconsistent logging makes debugging harder.
+### 4. **Inline Object Creation in Render**
+**Severity:** HIGH  
+**Files:** `SocialFeed.tsx:298`, `CreatePostCard.tsx:195`
 
-**Fix:** Standardize on logger utility:
-```javascript
-import logger from '../../utils/logger.mjs';
-// Always use logger.error, logger.warn, logger.info
+**Problem:** Breaks memoization, causes unnecessary re-renders.
+
+```tsx
+// ❌ BAD - Creates new object every render
+<Trophy size={16} style={{ marginRight: 6 }} />
+
+// ✅ GOOD - Extract to constant
+const ICON_STYLE = { marginRight: 6 } as const;
+<Trophy size={16} style={ICON_STYLE} />
+
+// OR use styled-component
+const IconWithMargin = styled(Trophy)`
+  margin-right: 6px;
+`;
+```
+
+**Locations:**
+- `SocialFeed.tsx:298, 305`
+- `CreatePostCard.tsx:195, 200`
+- `PostContent.tsx:85` (multiple inline styles)
+
+---
+
+### 5. **Hardcoded Theme Values**
+**Severity:** HIGH  
+**Files:** Multiple styled-components
+
+**Problems:**
+```tsx
+// SocialFeed.tsx:51 - Hardcoded color
+color: #E0ECF4;
+
+// SocialFeed.tsx:65 - Hardcoded rgba
+background: var(--bg-elevated, rgba(0, 48, 128, 0.95));
+
+// PostCardStyles.tsx - Multiple hardcoded values
+border: 1px solid rgba(139, 92, 246, 0.5);
+color: #8B5CF6;
+```
+
+**Fix:** Use theme tokens consistently:
+```tsx
+// Define theme interface
+interface SwanTheme {
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: {
+      gaming: string;
+      glow: string;
+      luxury: string;
+    };
+    background: {
+      frost: string;
+      elevated: string;
+    };
+    text: {
+      primary: string;
+      secondary: string;
+    };
+  };
+  spacing: (multiplier: number) => string;
+  borderRadius: {
+    sm: string;
+    md: string;
+    lg: string;
+  };
+}
+
+// Use in components
+const LoadMoreButton = styled.button`
+  color: ${({ theme }) => theme.colors.background.frost};
+  border: 1px solid ${({ theme }) => `${theme.colors.secondary}80`}; // 50% opacity
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  
+  &:hover {
+    background: ${({ theme }) => `${theme.colors.secondary}14`}; // 8% opacity
+    border-color: ${({ theme }) => theme.colors.secondary};
+  }
+`;
 ```
 
 ---
 
-### 12. **Magic Numbers in Pagination**
-**File:** `backend/routes/social/hashtags.mjs` (lines 109, 130, etc.)  
-**Severity:** MEDIUM
+### 6. **Missing Accessibility Attributes**
+**Severity:** HIGH  
+**Files:** `PostCard.tsx`, `CreatePostCard.tsx`
 
-```javascript
-const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+**Problems:**
+```tsx
+// ❌ No ARIA labels on icon-only buttons
+<ActionButton onClick={...}>
+  <ThumbsUp size={20} />
+</ActionButton>
+
+// ❌ No role/aria-label on interactive elements
+<TransformationSlider>
+  <Play size={16} />
+</TransformationSlider>
+
+// ❌ No aria-live for dynamic content
+<ActivityIndicator>
+  {recentActivity}
+</ActivityIndicator>
 ```
 
-**Issue:** Hardcoded limits scattered throughout. Should be constants.
-
 **Fix:**
-```javascript
-const PAGINATION_DEFAULTS = {
-  DEFAULT_LIMIT: 20,
-  MAX_LIMIT: 50,
-  MAX_HASHTAG_SEARCH_LIMIT: 30
+```tsx
+// ✅ Proper ARIA labels
+<ActionButton
+  onClick={...}
+  aria-label={`${userReactions.includes('thumbs_up') ? 'Unlike' : 'Like'} post`}
+  aria-pressed={userReactions.includes('thumbs_up')}
+>
+  <ThumbsUp size={20} />
+  <span className="sr-only">
+    {reactionCounts.thumbs_up} likes
+  </span>
+</ActionButton>
+
+// ✅ Live region for activity updates
+<ActivityIndicator role="status" aria-live="polite" aria-atomic="true">
+  <span className="sr-only">New activity: </span>
+  {recentActivity}
+</ActivityIndicator>
+
+// ✅ Slider with proper semantics
+<TransformationSlider
+  role="slider"
+  aria-label="Compare before and after transformation"
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-valuenow={transformationSliderValue}
+  tabIndex={0}
+>
+  <Play size={16} aria-hidden="true" />
+</TransformationSlider>
+```
+
+---
+
+### 7. **Unhandled Promise Rejections**
+**Severity:** HIGH  
+**Files:** `PostCard.tsx:96-110`, `useCreatePostForm.ts:165-185`
+
+**Problem:** Async handlers lack try/catch blocks.
+
+```tsx
+// ❌ BAD - No error handling
+const handleReaction = async (reactionType: string, event?: React.MouseEvent) => {
+  const result = await onReact(post.id, reactionType); // Can throw
+  triggerFromResult(result, event);
+};
+
+// ✅ GOOD - Proper error handling
+const handleReaction = async (reactionType: string, event?: React.MouseEvent) => {
+  try {
+    const result = isActive 
+      ? await onRemoveReaction?.(post.id, reactionType)
+      : await onReact?.(post.id, reactionType);
+    
+    if (result?.pointsAwarded) {
+      triggerFromResult(result, event);
+      setPointsEarned(result.pointsAwarded);
+      setShowPointNotification(true);
+    }
+  } catch (error) {
+    logger.error('Failed to react to post:', error);
+    toastError('Failed to react to post. Please try again.');
+  }
 };
 ```
 
 ---
 
-## LOW Issues
+## 🟡 MEDIUM Priority Issues
 
-### 13. **Unused Import in Hashtag Model**
-**File:** `backend/models/social/Hashtag.mjs`  
-**Severity:** LOW
+### 8. **Prop Drilling**
+**Severity:** MEDIUM  
+**Files:** `CreatePostCard.tsx:165-185`
 
-**Issue:** `classifyHashtag` is exported but only used in `hashtags.mjs` route. Not a problem, but worth noting for tree-shaking.
+**Problem:** Passing 15+ props to `CreatePostMediaUpload`. Consider context or compound component pattern.
+
+**Fix:**
+```tsx
+// Option 1: Context
+const CreatePostContext = React.createContext<ReturnType<typeof useCreatePostForm> | null>(null);
+
+export function CreatePostCard() {
+  const form = useCreatePostForm();
+  return (
+    <CreatePostContext.Provider value={form}>
+      <CreatePostCardWrapper>
+        <CreatePostForm />
+        <CreatePostMediaUpload />
+      </CreatePostCardWrapper>
+    </CreatePostContext.Provider>
+  );
+}
+
+// Option 2: Compound components
+<CreatePost>
+  <CreatePost.Form />
+  <CreatePost.MediaUpload />
+  <CreatePost.Actions />
+</CreatePost>
+```
 
 ---
 
-### 14. **Missing JSDoc for Exported Functions**
-**File:** `backend/routes/social/hashtags.mjs` (lines 34-40)  
-**Severity:** LOW
+### 9. **Magic Numbers**
+**Severity:** MEDIUM  
+**Files:** Multiple
 
-```javascript
-export function extractHashtags(content) {
-  if (!content || typeof content !== 'string') return [];
-  const matches = content.match(HASHTAG_REGEX) || [];
-  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))].slice(0, 10);
+**Problems:**
+```tsx
+// SocialFeed.tsx:237 - What is 300000?
+if (timeDiff < 300000) { // 5 minutes
+
+// useCreatePostForm.ts:50 - What is 50 * 1024 * 1024?
+const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+```
+
+**Fix:**
+```tsx
+// constants.ts
+export const TIMEOUTS = {
+  RECENT_ACTIVITY_MS: 5 * 60 * 1000, // 5 minutes
+  TOAST_DURATION_MS: 3000,
+  SCROLL_DELAY_MS: 100,
+} as const;
+
+export const FILE_LIMITS = {
+  VIDEO_MAX_BYTES: 50 * 1024 * 1024, // 50MB
+  IMAGE_MAX_BYTES: 10 * 1024 * 1024, // 10MB
+} as const;
+
+// Usage
+if (timeDiff < TIMEOUTS.RECENT_ACTIVITY_MS) {
+  // ...
 }
 ```
 
-**Issue:** Missing JSDoc comment explaining the 10-hashtag limit and deduplication logic.
-
 ---
 
-### 15. **Inconsistent Naming: `weeklyCount` vs `usageCount`**
-**File:** `backend/models/social/Hashtag.mjs` (lines 73-83)  
-**Severity:** LOW
+### 10. **Inconsistent Null Checks**
+**Severity:** MEDIUM  
+**Files:** `PostCard.tsx`, `PostContent.tsx`
 
-**Issue:** No documentation on when `weeklyCount` is reset. Should have a cron job reference or migration script comment.
+**Problem:** Mix of optional chaining, explicit checks, and non-null assertions.
 
-**Fix:** Add comment:
-```javascript
-weeklyCount: {
-  type: DataTypes.INTEGER,
-  defaultValue: 0,
-  allowNull: false,
-  comment: 'Posts this week — reset weekly by cron job (see scripts/resetWeeklyCounts.mjs)'
-}
+```tsx
+// ❌ Inconsistent
+const userReactions = post.userReactions || [];
+const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
+post.comments?.map(...)
+
+// ✅ Consistent - use nullish coalescing
+const userReactions = post.userReactions ?? [];
+const reactionCounts = post.reactionCounts ?? DEFAULT_REACTION_COUNTS;
+const comments = post.comments ?? [];
 ```
 
 ---
 
-### 16. **Potential Memory Leak in Hashtag Suggestions**
-**File:** `backend/routes/social/hashtags.mjs` (lines 162-185)  
-**Severity:** LOW
+## 🟢 LOW Priority Issues
 
-```javascript
-const usedTagIds = postIds.length > 0
-  ? (await PostHashtag.findAll({
-      where: { postId: { [Op.in]: postIds } },
-      attributes: ['hashtagId'],
-      group: ['hashtagId']
-    })).map(ph => ph.hashtagId)
-  : [];
-```
+### 11. **Console.log in Production**
+**Severity:** LOW  
+**Files:** `PostContent.tsx:95`, `useCreatePostForm.ts:126`
 
-**Issue:** If a user has 1000+ posts, this could fetch a large result set. Should limit to recent posts (already done with `limit: 20` on posts, but worth documenting).
+**Fix:** Replace with proper logger:
+```tsx
+// ❌ BAD
+console.error('Failed to fetch workout history:', err);
 
----
-
-### 17. **Missing Index on `PostHashtag.createdAt`**
-**File:** `backend/models/social/PostHashtag.mjs` (lines 39-44)  
-**Severity:** LOW
-
-**Issue:** Hashtag page sorts by `PostHashtag.createdAt DESC` but no index exists on that column.
-
-**Fix:** Add index:
-```javascript
-indexes: [
-  { unique: true, fields: ['postId', 'hashtagId'] },
-  { fields: ['postId'] },
-  { fields: ['hashtagId'] },
-  { fields: ['createdAt'] } // Add this
-]
+// ✅ GOOD
+logger.error('Failed to fetch workout history', { error: err, userId: user?.id });
 ```
 
 ---
 
-### 18. **Truncated Frontend Component**
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx`  
-**Severity:** LOW
+### 12. **Missing Display Names**
+**Severity:** LOW  
+**Files:** `PostContent.tsx:48, 60, 78`
 
-**Issue:** Component is incomplete (ends mid-template literal). Cannot fully review hover states, click handlers, or accessibility attributes.
+**Problem:** Some memoized components lack `displayName` for React DevTools.
 
-**Expected:** Full component with `onClick` handler, keyboard navigation, and ARIA labels.
-
----
-
-## Performance Anti-Patterns
-
-### 19. **Inline Function Creation in Map**
-**File:** `backend/routes/social/posts.mjs` (lines 188-200)  
-**Severity:** LOW
-
-```javascript
-const formattedPosts = posts.map(post => {
-  const postObj = post.toJSON();
-  postObj.commentsCount = commentCountMap[post.id] || 0;
-  postObj.isLiked = likedPostIds.has(post.id);
-  postObj.reactionCounts = reactionCountsMap[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
-  postObj.userReactions = userReactionsMap[post.id] || [];
-  return postObj;
+**Fix:** Already done for most components, ensure all have it:
+```tsx
+const WorkoutStats = React.memo(({ workoutData }) => {
+  // ...
 });
+WorkoutStats.displayName = 'WorkoutStats'; // ✅ Good
 ```
 
-**Issue:** Not a problem in Node.js backend, but if this pattern appears in React components, it would cause re-renders.
+---
+
+### 13. **Unused Imports**
+**Severity:** LOW  
+**Files:** `SocialFeed.tsx:4-16`
+
+**Problem:** Importing 14 icons but only using ~8.
+
+**Fix:** Remove unused imports or use dynamic imports:
+```tsx
+// Only import what's used
+import { MessageSquare, Heart, Share, Image, Send, Star, Zap, TrendingUp, Users, Trophy } from 'lucide-react';
+```
 
 ---
 
-### 20. **Missing Memoization in Category Color Lookup**
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx` (lines 48-53)  
-**Severity:** LOW
+## 🎯 Performance Optimizations
 
-**Issue:** `CATEGORY_COLORS` is a constant object, so no issue. But if this were computed, it should be memoized.
-
----
-
-## Summary Table
-
-| Severity | Count | Key Issues |
-|----------|-------|------------|
-| CRITICAL | 3 | SQL injection risk, missing transactions, race conditions |
-| HIGH | 4 | Missing TypeScript types, hardcoded colors, unhandled promises, poor error handling |
-| MEDIUM | 6 | DRY violations, N+1 queries, missing validation, inconsistent logging |
-| LOW | 7 | Missing docs, potential memory issues, missing indexes, truncated component |
+### 14. **Missing Keys in Lists**
+**Severity:** MEDIUM  
+**Files:** None found ✅ (Good job using `post.id` as key)
 
 ---
 
-## Recommendations Priority
+### 15. **Unnecessary Re-renders**
+**Severity:** MEDIUM  
+**Files:** `SocialFeed.tsx:229-232`
 
-1. **Immediate (CRITICAL):**
-   - Wrap post creation in transaction with rollback
-   - Add proper error handling for hashtag race conditions
-   - Replace raw SQL with Sequelize models in reporting
+**Problem:** `handleLikeToggle` recreated on every `likePost`/`unlikePost` change.
 
-2. **Short-term (HIGH):**
-   - Implement proper error classification in all routes
-   - Replace hardcoded colors with theme tokens
-   - Add TypeScript discriminated unions for size props
+**Fix:**
+```tsx
+// ✅ Stable reference - callbacks already memoized by hook
+const handleLikeToggle = useCallback((postId: string, isLiked: boolean) => {
+  return isLiked ? unlikePost(postId) : likePost(postId);
+}, []); // Empty deps if unlikePost/likePost are stable from hook
+```
+
+Verify `useSocialFeed` hook returns stable references.
+
+---
+
+## 📊 Summary Table
+
+| Issue | Severity | Files Affected | Estimated Fix Time |
+|-------|----------|----------------|-------------------|
+| Unsafe `any` usage | CRITICAL | 3 | 
 
 ---
 
 ## [PASS] Security
-**Model:** stepfun/step-3.5-flash:free | **Duration:** 50.2s
+**Model:** stepfun/step-3.5-flash:free | **Duration:** 39.6s
 
 (no response)
 
 ---
 
 ## [PASS] Performance & Scalability
-**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 10.6s
+**Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 20.4s
 
-This performance and scalability review focuses on the **Enchanted Apex: Crystalline Swan** social architecture. While the theme implementation is visually consistent, several backend patterns present significant risks to database stability and API response times under load.
+This performance and scalability review focuses on the **Enchanted Apex: Crystalline Swan** social feed implementation.
 
 ### Executive Summary
-The current implementation suffers from **N+1 query patterns** in the feed and **unprotected write loops** during hashtag processing. While the frontend `HashtagChip` is well-structured, the backend requires immediate optimization of the discovery and feed logic to support a growing user base.
+The code is well-structured with a clean separation of concerns. However, there are significant risks regarding **memory management (Blob URLs)**, **render cycles in lists**, and **bundle bloat** due to heavy icon sets and lack of virtualization.
 
 ---
 
-### 1. Database Query Efficiency & Scalability
-#### [CRITICAL] N+1 Query Pattern in `GET /feed` and `GET /user/:userId`
-**File:** `backend/routes/social/posts.mjs`
-*   **Finding:** The code fetches posts, then performs separate `findAll` calls for `commentsCount`, `SocialLike.getReactionCounts`, and `SocialLike.getUserReactions`. 
-*   **Impact:** As the number of posts grows, the overhead of multiple round-trips to the database will cause significant latency.
-*   **Recommendation:** Use Sequelize `attributes` with `sequelize.literal` or `include` with `subqueries: false` to fetch counts and "isLiked" status in a single JOIN or window function query.
+### 1. Bundle Size Impact
+**Finding: Heavy Icon Library Imports**
+*   **Rating: MEDIUM**
+*   **Issue:** `SocialFeed.tsx` and `CreatePostCard.tsx` import 15+ individual icons from `lucide-react`. Without a properly configured build pipeline (ESM tree-shaking), this can pull in a large portion of the library.
+*   **Recommendation:** Ensure your `tsconfig.json` and bundler are using ESM. Consider using a dedicated icon sprite or `@lucide/react` sub-path imports if the bundle size spikes.
 
-#### [HIGH] Unbounded Write Loop in `processHashtags`
-**File:** `backend/routes/social/hashtags.mjs`
-*   **Finding:** The function performs `findOrCreate`, `findOrCreate` (join table), and `hashtag.increment` inside a `for...of` loop.
-*   **Impact:** If a post has 10 hashtags, this triggers **30 database operations** per post creation. Under high load, this will exhaust the connection pool.
-*   **Recommendation:** 
-    1.  Bulk-fetch existing hashtags.
-    2.  Bulk-insert new hashtags.
-    3.  Use `PostHashtag.bulkCreate` with `ignoreDuplicates: true`.
-    4.  Use a single `UPDATE` query with an `IN` clause for increments.
-
-#### [MEDIUM] Missing Composite Indexes
-**File:** `backend/models/social/Hashtag.mjs`
-*   **Finding:** Trending queries use `order: [['weeklyCount', 'DESC'], ['usageCount', 'DESC']]`.
-*   **Impact:** The current indexes are on individual columns. PostgreSQL cannot efficiently use two separate indexes for a multi-column sort.
-*   **Recommendation:** Add a composite index: `{ fields: ['weeklyCount', 'usageCount'] }`.
+**Finding: Lack of Dynamic Imports for Modals**
+*   **Rating: LOW**
+*   **Issue:** `ReportPostModal` and `CelebrationToggles` are imported statically. These are "below-the-fold" or interaction-dependent components.
+*   **Recommendation:** Use `React.lazy(() => import('./components/ReportPostModal'))` to keep the initial feed payload lean.
 
 ---
 
-### 2. Network Efficiency
-#### [HIGH] Redundant Data Fetching in `GET /:slug`
-**File:** `backend/routes/social/hashtags.mjs`
-*   **Finding:** The route fetches `postIds` for the entire history of a hashtag (`limit: limit + offset` without a starting bound), then slices them in JS, then fetches full `SocialPost` objects.
-*   **Impact:** For a popular hashtag like `#fitness` with 10,000 posts, fetching all IDs just to slice them is a massive memory and network waste.
-*   **Recommendation:** Use standard SQL pagination (`LIMIT` and `OFFSET`) directly on the `PostHashtag` join or a subquery.
+### 2. Render Performance
+**Finding: Inline Function Props in Lists**
+*   **Rating: HIGH**
+*   **File:** `SocialFeed.tsx`
+*   **Issue:** In the `posts.map` loop, `onLike={() => handleLikeToggle(post.id, post.isLiked)}` creates a new function reference on every render of `SocialFeed`. Even though `PostCard` is wrapped in `React.memo`, it will **always re-render** because the `onLike` prop reference changes.
+*   **Recommendation:** Refactor `PostCard` to accept a stable `onLike` handler that takes `id` as an argument, or pass `post.id` and `post.isLiked` to a memoized child component that handles its own click.
 
-#### [MEDIUM] Over-fetching in `GET /suggestions`
-**File:** `backend/routes/social/hashtags.mjs`
-*   **Finding:** Fetches 20 full `SocialPost` objects just to extract IDs.
-*   **Impact:** Unnecessary payload size and DB memory usage.
-*   **Recommendation:** Use `attributes: ['id']` (which is present) but ensure no `include` logic is accidentally triggered.
-
----
-
-### 3. Scalability & Logic Concerns
-#### [HIGH] Race Conditions in `weeklyCount`
-**File:** `backend/models/social/Hashtag.mjs`
-*   **Finding:** The model relies on a "reset weekly" comment, but no logic exists to handle this.
-*   **Impact:** If reset via a cron job, a massive `UPDATE` on the `Hashtags` table will lock the table for discovery.
-*   **Recommendation:** Use a separate `HashtagStats` table with a `week_number` column. This allows you to query "trending" by summing recent weeks without ever needing a "reset" lock.
-
-#### [MEDIUM] In-Memory State / Multi-Instance Risk
-**File:** `backend/routes/social/posts.mjs`
-*   **Finding:** `SOCIAL_POINT_RULES` is a static object.
-*   **Impact:** While fine for now, if point values change, they require a full redeploy. 
-*   **Recommendation:** Move configuration to a cache (Redis) or a DB config table to allow real-time tuning of the "Gilded Fern" luxury economy.
+**Finding: Heavy `useMemo` on Every Post Update**
+*   **Rating: MEDIUM**
+*   **File:** `SocialFeed.tsx`
+*   **Issue:** `feedStats` reduces the entire `posts` array. As a user scrolls and `posts` grows to 100+, this calculation runs on every single new post added or like toggled.
+*   **Recommendation:** If the feed is long, move this logic to the backend or only calculate stats for the "visible" or "top" posts.
 
 ---
 
-### 4. Render Performance & Bundle Size
-#### [LOW] Styled-Components `color-mix` Support
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx`
-*   **Finding:** Use of `color-mix(in srgb, ...)` is modern and elegant.
-*   **Impact:** May fail on older browsers (Safari < 16.2). 
-*   **Recommendation:** Ensure a PostCSS polyfill is active or provide a fallback hex color for the `background` property.
+### 3. Network Efficiency
+**Finding: Missing Pagination/Virtualization**
+*   **Rating: HIGH**
+*   **Issue:** While `loadMore` exists, there is no **Windowing/Virtualization** (e.g., `react-window`). A social feed with 50+ `PostCard` components (each with images, videos, and complex styled-components) will cause significant DOM lag and "jank" during scrolling.
+*   **Recommendation:** Implement `react-virtuoso` or `react-window` for the feed list to keep the DOM node count constant.
 
-#### [LOW] Lucide Icon Tree-Shaking
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx`
-*   **Finding:** `import { Hash, CheckCircle } from 'lucide-react';`
-*   **Impact:** Standard imports are usually fine with modern bundlers (Vite/Webpack 5), but if the bundle grows, this is the first place to check for "bloat."
-*   **Recommendation:** Monitor bundle size; if icons take >50KB, switch to specific path imports.
+**Finding: Redundant Workout History Fetching**
+*   **Rating: LOW**
+*   **File:** `useCreatePostForm.ts`
+*   **Issue:** `fetchWorkoutHistory` checks `workoutHistory.length`, but doesn't account for stale data.
+*   **Recommendation:** Implement a simple TTL (Time-to-Live) or use `react-query` for this fetch to handle caching and background refreshing automatically.
 
 ---
+
+### 4. Memory Leaks
+**Finding: Incomplete Blob URL Cleanup**
+*   **Rating: CRITICAL**
+*   **File:** `useCreatePostForm.ts`
+*   **Issue:** In `handleFileSelect`, `URL.createObjectURL(file)` is called. While there is a cleanup in `useEffect` and `resetForm`, if a user selects 10 different files rapidly, only the *last* one is revoked in the handler. The previous ones stay in browser memory until the component unmounts.
+*   **Recommendation:**
+    ```typescript
+    // Inside handleFileSelect
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview); 
+    const url = URL.createObjectURL(file);
+    setMediaPreview(url);
+    ```
+
+---
+
+### 5. Database & Scalability (Backend Implications)
+**Finding: Unbounded `posts.reduce`**
+*   **Rating: MEDIUM**
+*   **Issue:** The frontend is performing aggregation (`totalLikes`, `workoutPosts`) that scales linearly with the number of loaded posts.
+*   **Recommendation:** The backend should return a `meta` object with these totals for the user's current view/context rather than forcing the client to calculate them from the raw array.
+
+**Finding: Potential N+1 in `useSocialFeed`**
+*   **Rating: HIGH**
+*   **Issue:** The `PostCard` displays `userReactions` and `comments`. If the backend API `/api/social/posts` doesn't use Sequelize `include` (Eager Loading) for reactions and comment counts, the server will hit the DB for every post in the list.
+*   **Recommendation:** Ensure the backend query uses `{ include: [{ model: Reaction }, { model: Comment, limit: 3 }] }`.
+
+---
+
+### 6. Theme & UX Consistency
+**Finding: Hardcoded Colors vs. Theme Variables**
+*   **Rating: LOW**
+*   **Issue:** Several components use hardcoded hex codes (e.g., `#60C0F0`, `#8B5CF6`) instead of `props.theme`.
+*   **Recommendation:** Move the **Crystalline Swan** palette into a `styled-components` `ThemeProvider` to allow for easier "Retro Mode" or "Arena Mode" toggling without CSS overrides.
 
 ### Summary of Ratings
-
-| Finding | Severity | Category |
+| Category | Rating | Primary Fix |
 | :--- | :--- | :--- |
-| N+1 Queries in Social Feed | **CRITICAL** | DB Efficiency |
-| Unprotected Write Loops (Hashtags) | **HIGH** | Scalability |
-| Inefficient Pagination on Hashtag Pages | **HIGH** | Network Efficiency |
-| Missing Composite Indexes for Trending | **MEDIUM** | DB Efficiency |
-| Weekly Count Reset Strategy | **MEDIUM** | Scalability |
-| Browser Compatibility (`color-mix`) | **LOW** | Render Performance |
-
-**Engineer's Note:** The **Crystalline Swan** theme is aesthetically superior, but the underlying "plumbing" for the social features will likely bottleneck at ~1,000 concurrent users without the batching and indexing improvements suggested above.
+| **Memory Leaks** | **CRITICAL** | Revoke Blob URLs immediately upon replacement. |
+| **Render Performance** | **HIGH** | Remove inline arrow functions from the `posts.map` loop. |
+| **Scalability** | **HIGH** | Implement List Virtualization for long feeds. |
+| **Network** | **MEDIUM** | Move aggregation logic (stats) to the API layer. |
 
 ---
 
 ## [PASS] Competitive Intelligence
-**Model:** minimax/minimax-m2.1 | **Duration:** 22.2s
+**Model:** minimax/minimax-m2.1 | **Duration:** 60.6s
 
-a comprehensive review of the SwanStudios codebase (specifically the social, hashtag, and gamification modules), here is a strategic product analysis using the defined Crystalline Swan aesthetic and industry context.
+# SwanStudios Product Strategy Analysis
+## Social Feed Feature Review & Strategic Recommendations
 
-# SwanStudios Strategic Analysis
-### Product: Fitness SaaS Platform (Social & Community Layer)
+---
+
+## Executive Summary
+
+This analysis evaluates the SwanStudios social feed codebase against competitive fitness SaaS platforms, identifying critical gaps, unique differentiators, and actionable growth recommendations. The codebase demonstrates exceptional attention to gamification architecture and user engagement mechanics, yet reveals significant scaling challenges that must be addressed before pursuing aggressive user acquisition.
+
+**Key Findings:**
+- The social feed architecture is fundamentally sound but requires substantial backend investment to support 10K+ concurrent users
+- Differentiation through AI-assisted content categorization and multi-modal post types is undermonetized
+- Several UX patterns create friction that will limit viral growth and conversion rates
 
 ---
 
 ## 1. Feature Gap Analysis
-While SwanStudios has a robust "social graph" foundation that beats the standard "feed-only" model of competitors like TrueCoach or My PT Hub, there are critical gaps in user engagement loops and content monetization.
 
-| Competitor | Missing Features in Current Codebase |
-| :--- | :--- |
-| **Trainerize / TrueCoach** | **Scalable Challenge Management:** Competitors have structured "Challenges" with leaderboards and tiers. The current system (based on `Challenge` model) appears manual or static. <br> **Client Assignments:** No visible API route to push a specific workout *to* a user (PT to Client) with a required completion state in the feed. |
-| **Future / Caliber** | **Deep Analytics:** The code tracks "views" and "hashtags" but lacks a `PostViewLog` to generate analytics on reach or impressions for creators. <br> **Recovery/Symptom Tracking:** No integration with the "pain-aware training" logic in the feed to request specific modifications. |
-| **TikTok / IG (The Real Threat)** | **Video Shorts:** The backend accepts video (`isVideo`), but there is no "Shorts" style dedicated feed or mobile-optimized player component visible. <br> **Live Streaming:** Zero WebRTC or live-broadcast capabilities (essential for "Live Q&A" or "Live Workout" features). |
+### 1.1 Competitive Landscape Overview
+
+The fitness SaaS market has consolidated around two primary paradigms: trainer-centric platforms (Trainerize, TrueCoach, My PT Hub) and hybrid consumer platforms (Future, Caliber). SwanStudios occupies an unusual position, attempting to combine social engagement with training functionality—a space largely abandoned by competitors who found the engineering investment unjustified by returns.
+
+**Trainerize** dominates the trainer-client relationship market with comprehensive workout programming, nutrition tracking, and payment processing. Their strength lies in B2B sales motion and enterprise features like team management and branded client portals. However, their social features remain primitive, limited to client-trainer communication without community building.
+
+**TrueCoach** positions similarly but emphasizes programming flexibility and exercise library depth. Their differentiation centers on exercise demonstration video integration and custom workout builder templates. Social features are minimal, reflecting their belief that trainer-client relationships don't benefit from public sharing.
+
+**My PT Hub** targets budget-conscious trainers with a freemium model heavily weighted toward lead generation tools. Their community features extend only to trainer-branded content feeds, not peer-to-peer social engagement.
+
+**Future** and **Caliber** represent the premium consumer tier, combining human coaching with sophisticated progress tracking. Both platforms invest heavily in 1:1 coach matching and accountability mechanics but deliberately avoid social features, viewing them as distraction from the core coaching relationship.
+
+### 1.2 Missing Features by Category
+
+#### Social & Community Features
+
+The SwanStudios social feed implements core social primitives—posts, reactions, comments, and media sharing—but lacks several features that competitors and user expectations have established as table stakes.
+
+**Direct Messaging** represents the most significant gap. While the platform supports post-based interaction, users cannot initiate private conversations, limiting the platform's utility for forming training partnerships, asking sensitive health questions, or coordinating offline meetups. Trainerize and TrueCoach both offer DM functionality, and its absence creates a fundamental limitation in community building.
+
+**User Profiles with Portfolio View** are partially implemented but lack the comprehensive presentation that fitness social platforms require. Users cannot showcase their certification credentials, training specialties, or client transformation galleries in a format that builds credibility. Future and Caliber invest heavily in coach profile optimization because these pages drive the trust necessary for premium service conversion.
+
+**Follow System with Feed Personalization** is absent. The current implementation presents a single chronological feed without algorithmic curation or interest-based filtering. Users cannot customize their feed to prioritize workout content over transformation posts, nor can they follow specific users to see their content in a dedicated stream. This limitation prevents the platform from delivering the TikTok-style engagement loops that drive social platform retention.
+
+**Notifications Center** is referenced in the gamification header but not implemented. Users have no centralized view of interactions on their content, new followers, or community highlights. This creates a passive experience where engagement feels invisible rather than rewarding.
+
+#### Training & Progress Features
+
+The workout integration demonstrates thoughtful architecture—fetching completed sessions, auto-populating stats, and enabling workout sharing—but several adjacent features are missing.
+
+**Program/Plan Sharing and Discovery** is not implemented. Users can share individual workouts but cannot package them into multi-week programs for others to follow. TrueCoach's entire value proposition centers on program monetization, and the absence of this capability represents a significant revenue opportunity.
+
+**Progress Photo Timeline with Body Metrics** extends beyond the transformation post type. Users cannot track measurements, body composition changes, or strength progression over time in a unified view. Caliber invests heavily in this capability because it drives the progress visualization that justifies continued coaching engagement.
+
+**Nutrition Logging Integration** is absent from the social context. While the platform may have nutrition tracking elsewhere, it cannot be shared as social content, limiting the platform's utility as a holistic wellness journal. Trainerize integrates nutrition logging throughout their social features because food choices represent significant social currency in fitness communities.
+
+**Exercise Library with Social Proof** is not integrated into the social feed. When users share workouts, the specific exercises performed are displayed as text but cannot be clicked to view technique guidance, alternative movements, or community usage statistics. This represents a significant missed engagement opportunity.
+
+#### Engagement & Retention Features
+
+The gamification system is sophisticated but incomplete.
+
+**Challenges with Leaderboards and Prizes** are referenced in the welcome card but not implemented. Users can create challenge posts but cannot join structured competitions with defined rules, timeframes, and rewards. TrueCoach and Trainerize both offer challenge features because they drive periodic engagement spikes that translate to habit formation.
+
+**Streak Mechanics with Recovery Options** exist in the gamification header but lack the sophisticated recovery systems that successful habit apps implement. When users break streaks, they receive no intervention, encouragement, or recovery path. Apps like Duolingo have demonstrated that streak freeze mechanics and personalized recovery messaging dramatically improve retention.
+
+**Badges and Achievements System** is referenced in achievement posts but lacks a comprehensive catalog with rarity tiers, collection mechanics, and display options. Users cannot view their badge collection, compare achievements with friends, or work toward specific recognition goals.
+
+**Referral System with Viral Mechanics** is not implemented. The platform lacks shareable challenge invites, friend referral rewards, or social signup incentives that could drive organic growth. Every successful consumer fitness app has invested heavily in viral loops.
+
+### 1.3 Gap Severity Assessment
+
+| Feature Category | Gap Severity | Business Impact | Implementation Complexity |
+|------------------|--------------|-----------------|---------------------------|
+| Direct Messaging | Critical | High | Medium |
+| Follow System | Critical | High | High |
+| Notification Center | High | Medium | Medium |
+| Program Sharing | High | High | High |
+| Challenge System | High | Medium | Medium |
+| Progress Timeline | Medium | Medium | High |
+| Referral/Viral | Medium | High | Medium |
+| Nutrition Integration | Low | Low | Medium |
 
 ---
 
 ## 2. Differentiation Strengths
-SwanStudios is positioned not just as a workout log, but as a **lifestyle vault**. The code analysis reveals specific technical differentiators:
 
-### A. The "Intelligence" Layer (Nascent)
-*   **Smart Categorization (`classifyHashtag`):** The `Hashtag.mjs` model automatically sorts user-generated content into `fitness`, `creative`, and `community` buckets. This reduces the UI clutter seen in Instagram/IG where users ignore rigid tabs.
-*   **Algorithmic Discovery:** The `UserHashtagFollow` model enables a Twitter-like "Feed based on Interest" rather than just "Feed based on Friends."
+### 2.1 NASM AI Integration
 
-### B. Crystalline UX (Tech Stack & Design)
-*   **Visual Hierarchy:** The `HashtagChip` component demonstrates adherence to the "Ice Wing" Accent palette, creating a cohesive luxury feel (Deep Ocean Vault aesthetic).
-*   **Progressive Gamification:** The ` SOCIAL_POINT_RULES` in `posts.mjs` actively rewards niche behaviors (e.g., "transformation" posts get +50pts vs general +10pts), steering content quality without administrative enforcement.
+The category override selector architecture demonstrates a sophisticated approach to AI-assisted content organization that competitors have not replicated. The `CategorySuggestion` type and AI Village validation comments indicate investment in machine learning infrastructure that could extend far beyond post categorization.
 
-### C. Technical Resilience
-*   **Hybrid Feed Strategy:** The fallback to `EnhancedSocialPost` in `posts.mjs` ensures that if the social graph is empty, the app still delivers value—an often-missed growth blocker in new platforms.
+**Current Implementation:** The `useCreatePostForm` hook includes `categorySuggestion` state with AI Village validation, suggesting automated content classification that reduces user friction while improving content discoverability.
+
+**Strategic Value:** This capability positions SwanStudios to offer AI-powered features that competitors cannot match without substantial R&D investment. Potential extensions include:
+
+- **Auto-generated workout summaries** that transform raw exercise data into engaging social narratives
+- **Smart content recommendations** that surface relevant posts, users, and challenges based on training patterns
+- **Natural language workout logging** where users describe sessions in plain text and AI extracts structured workout data
+- **Personalized feed curation** that learns individual preferences and optimizes content discovery
+
+**Recommendation:** Accelerate AI investment and make it a primary differentiator. The current architecture provides a foundation, but the strategic value will only materialize if AI features are prominently surfaced and marketed.
+
+### 2.2 Pain-Aware Training Architecture
+
+The codebase reveals thoughtful consideration of training context beyond simple workout logging. The `workoutData` structure captures duration, exercise count, total weight, and calories—standard metrics—but the architecture suggests extensibility for more sophisticated physiological tracking.
+
+**Current Implementation:** Workout posts display stats in a clean grid format with icons for duration, exercises, total weight, and calories. The `TryWorkoutButton` suggests future workout generator integration.
+
+**Strategic Value:** Pain-aware training represents a significant market opportunity. Most fitness platforms treat all workouts as equivalent, but users with chronic conditions, injury histories, or specific mobility limitations need context-aware recommendations. SwanStudios could differentiate by:
+
+- Capturing pain reports alongside workout data
+- Adjusting workout recommendations based on reported discomfort
+- Flagging potentially problematic movement patterns
+- Integrating with healthcare providers for clinical populations
+
+**Recommendation:** Conduct user research to validate pain-aware training demand. If validated, this could open B2B revenue streams with physical therapy clinics, corporate wellness programs, and insurance partnerships.
+
+### 2.3 Crystalline Swan UX Design System
+
+The design system implementation demonstrates exceptional attention to visual consistency and brand coherence. The color palette—Midnight Sapphire, Royal Depth, Ice Wing, Arctic Cyan, Gilded Fern, Frost White, Swan Lavender, and Wing Purple—creates a distinctive visual identity that competitors lack.
+
+**Current Implementation:** Styled-components enforce consistent typography (Plus Jakarta Sans, Cormorant Garamond Italic, Fira Code, Sora), color application, and component patterns throughout the social feed. The `CATEGORY_GRADIENTS` system provides visual differentiation by post type.
+
+**Strategic Value:** Design system maturity correlates with development velocity and brand recognition. The Crystalline Swan theme creates:
+
+- **Instant brand recognition** in a market dominated by generic fitness aesthetics
+- **Development efficiency** through reusable components and consistent patterns
+- **Premium perception** that justifies higher pricing tiers
+- **Marketing differentiation** in app store screenshots and promotional materials
+
+**Recommendation:** Document the design system comprehensively and open-source component library elements to build developer community and attract talent.
+
+### 2.4 Multi-Modal Content Strategy
+
+The eleven post types (general, workout, transformation, achievement, challenge, dance, music, singing, art, gaming, comedy) represent a content strategy that transcends traditional fitness platform boundaries.
+
+**Current Implementation:** Each post type has distinct icons, point values, descriptions, and form fields. The `POST_TYPE_OPTIONS` array demonstrates thoughtful consideration of content diversity.
+
+**Strategic Value:** This approach:
+
+- **Attracts broader demographics** by welcoming non-traditional fitness content
+- **Creates content variety** that improves feed engagement
+- **Enables community building** around shared interests beyond fitness
+- **Supports future expansion** into adjacent wellness categories
+
+**Risk Assessment:** The breadth of content types may dilute brand focus. Competitors like Peloton have succeeded with content diversification, but their core identity remains cycling/fitness. SwanStudios must ensure fitness content remains central while allowing community expression.
+
+**Recommendation:** Maintain content diversity but implement stronger fitness-content prioritization in feed algorithms to preserve platform identity.
+
+### 2.5 Gamification Architecture
+
+The gamification system demonstrates sophisticated engineering with celebration triggers, point notifications, streak tracking, and achievement integration.
+
+**Current Implementation:** 
+- `useCelebrationTriggers` hook manages reward animations
+- Point preview chips show expected rewards before posting
+- Toast notifications announce points earned
+- Streak display in gamification header
+- Feed statistics track workout, achievement, and transformation counts
+
+**Strategic Value:** Gamification drives engagement metrics that correlate with retention and lifetime value. The current architecture supports:
+
+- **Point economy balancing** through configurable point values per action
+- **Celebration variety** through extensible trigger system
+- **Progress visualization** through statistics and streaks
+- **Future extensibility** to badges, levels, and leaderboards
+
+**Recommendation:** Implement comprehensive analytics on gamification feature usage to identify which mechanics drive retention and optimize accordingly.
 
 ---
 
 ## 3. Monetization Opportunities
-The current architecture supports a "Points" ecosystem. This is a prime vector for monetization.
 
-1.  **"Swan Premium" (Gated Content):**
-    *   **Implementation:** Add an `isPremium` field to the `Hashtag` or `TrainerProfile`. Allow trainers to make specific hashtags or "Challenge Series" visible only to paid subscribers.
-2.  **Promoted Trends (Ad Placement):**
-    *   **Implementation:** The code uses `isOfficial` flags. Integrate a paid "Sponsor" API logic where brands (e.g., "NikeTraining", " supplements) can pay to pin their hashtag to the top of the Trending Feed for a 24h period.
-3.  **Creator "Boosts":**
-    *   Allow users to spend points (real or platform) to "Boost" a personal transformation or workout video to the top of their followers' feeds for a set duration.
+### 3.1 Current Pricing Model Assessment
 
----
+The codebase reveals a freemium model with point rewards suggesting premium feature gating, but the specific premium offerings are not visible in the social feed components.
 
-## 4. Market Positioning
-**The "Luxury Fitness Social Network"**
+**Assumed Current Model:**
+- Free tier: Social features, basic workout tracking, community access
+- Premium tier: Likely includes advanced analytics, coaching features, and ad-free experience
 
-Most PT software looks like a medical chart (white background, blue links). SwanStudios leverages the *Crystalline Swan* theme (`#002060` + `#60C0F0`) to tap into the "Apex Predator" market—users who want high performance but appreciate high design.
+**Assessment:** The social feed is entirely free-to-use, suggesting monetization happens elsewhere in the platform. This creates a risk where the highest-engagement features generate no direct revenue.
 
-*   **Market Gap:** There is no dominant "Social Network for Serious Lifters" that feels premium. The code back-end (Sequelize + Node) is fast enough to scale, but the *Front-end Story* needs to sell the "Vault" metaphor hard.
+### 3.2 Recommended Pricing Model Improvements
 
----
+#### Tiered Social Tiers
 
-## 5. Growth Blockers (Scaling to 10k+ Users)
+Introduce premium social features that enhance community engagement:
 
-### A. The "N+1" Query Trap
-In `backend/routes/social/hashtags.mjs` (Lines 175–190), the endpoint retrieves `PostHashtag` IDs, then loops sequentially to fetch posts.
-*   **Risk:** At 10k concurrent users, this will bottle-neck the DB.
-*   **Fix:** Replace the loop with a single `Op.in` query that fetches the latest posts *containing* those hashtag IDs.
+**Swan Premium Social ($9.99/month)**
+- Advanced analytics on post performance and engagement
+- Custom profile themes and badge displays
+- Priority visibility in feeds and search
+- Extended media storage (current limit appears to be 10MB images, 50MB video)
+- Verified creator badge for influencers and trainers
 
-### B. Algorithmic Bias
-The "Trending" algorithm (`weeklyCount`) decays slowly and relies on raw volume.
-*   **Risk:** New users see no activity ("Cold Start" problem).
-*   **Fix:** Implement a decay factor based on `createdAt` *within* the weeklyCount query, not just summing total posts.
+**Swan Elite ($19.99/month)**
+- All Premium Social features
+- Direct messaging with any user (non-premium users can only receive)
+- Custom workout program creation and monetization
+- Exclusive access to premium challenges with cash prizes
+- API access for third-party integrations
 
-### C. Image Rendering on "Deep Ocean" Background
-The frontend `HashtagChip` uses `color-mix` (CSS).
-*   **Risk:** Incompatible with older mobile browsers (iOS 14 older models).
-*   **Fix:** Ensure fallbacks for `--bg-elevated` are strictly defined.
+#### Feature Gating Implementation
 
-### D. Soft-Delete & GDPR
-While `PostHashtag` and `UserHashtagFollow` have `CASCADE`, and there are soft-deletes logic in tables, strict "Right to be Forgotten" compliance is implied but not explicitly shown as a route (e.g., `/api/v1/user/privacy/erase`).
+The codebase should implement feature flags for:
 
----
+```typescript
+// Recommended feature flag structure
+const PREMIUM_FEATURES = {
+  extendedMediaStorage: { free: 50, premium: 500 }, // MB
+  directMessaging: { free: false, premium: true },
+  analytics: { free: 'basic', premium: 'advanced' },
+  programMonetization: { free: false, premium: true },
+  challengeCreation: { free: 'limited', premium: 'unlimited' },
+  apiAccess: { free: false, premium: true },
+};
+```
 
-## Actionable Recommendations (The "Swan Strategy")
+### 3.3 Upsell Vectors
 
-1.  **Launch "The Arena":** Dedicated video tab in the app (separate from the feed) called "Arena" where `#challenge` hashtags live, to rival TikTok fitness content.
-2.  **Royal Flush:** Add a "Live Coaching" badge to user profiles (Lightning icon in `Wing Purple`) and allow these users to go Live.
-3.  **Fix The "Hashtag-Hole":** If a user follows `#legday`, ensure the algorithm prioritizes PTs who specialize in Leg Strength in their recommendations._connections to specific Workout Programs.
+#### Workout Sharing Monetization
+
+Enable workout posts to link to paid programs:
+
+**Implementation:**
+- Add `isPremium` flag to workout posts
+- Display "Try This Workout" as upsell CTA for premium workouts
+- Implement program purchase flow within social feed
+- Revenue share with workout creators (70/30 split)
+
+**Revenue Projection:** If 1% of workout posts are premium at $29.99 average price with 10% conversion from free trial users:
+- 10,000 monthly active users → 1,000 premium workouts → 100 conversions → $2,999/month creator revenue → $1,285 platform revenue
+
+#### Transformation Challenge Entry Fees
+
+Transformations represent high-engagement content. Implement challenge entry with fees:
+
+**Implementation:**
+- Challenge posts include entry fee option
+- Community votes determine winners (prevent manipulation through stake-weighted voting)
+- Platform takes 15% of entry fees
+- Winners receive prize pool plus recognition
+
+**Revenue Projection:** 100 challenges/month with $10 average entry fee and 50 participants:
+- 100 challenges × 50 participants × $10 = $50,000 total entry fees
+- $7,500 platform revenue/month
+
+#### Creator Subscriptions
+
+Enable users to subscribe to favorite content creators:
+
+**Implementation:**
+- Subscribe button on creator profiles
+- Monthly subscription tiers ($4.99, $9.99, $19.99)
+- Exclusive content access for subscribers
+- Direct message priority for higher tiers
+
+**Revenue Projection:** 50 creators with 100 subscribers each at $9.99/month:
+- 50 × 100 × $9.99 = $49,950 monthly creator revenue
+- $7,493 platform revenue (15%)
+
+### 3.4 Conversion Optimization
 
 ---
 
 ## [PASS] User Research & Persona Alignment
-**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 54.5s
+**Model:** deepseek/deepseek-v3.2-20251201 | **Duration:** 87.4s
 
-# SwanStudios Fitness SaaS Platform Analysis
+# User Research Analysis: SwanStudios Social Feed
 
 ## Executive Summary
-The codebase reveals a sophisticated social engagement system with strong technical foundations but significant gaps in persona alignment and onboarding experience. While the hashtag-driven content discovery system is well-implemented, the platform lacks clear fitness-specific value propositions for target personas.
+The social feed implementation demonstrates strong technical execution with thoughtful gamification elements, but shows significant gaps in persona alignment and onboarding for the target professional demographics. The Crystalline Swan theme is visually cohesive but may not resonate with all target personas equally.
+
+---
 
 ## 1. Persona Alignment Analysis
 
-### Primary Persona (Working Professionals 30-55)
+### **Primary (Working Professionals 30-55)**
 **Strengths:**
-- Hashtag categorization includes fitness keywords (workout, gym, nutrition, NASM)
-- Professional color palette (Midnight Sapphire, Royal Depth) conveys seriousness
-- Point system for engagement provides subtle gamification
+- Clean, professional UI with muted color palette
+- Structured post types (workout, achievement, transformation) align with goal-oriented mindset
+- Time-saving features like workout history import
 
 **Gaps:**
-- No visible time-saving features for busy professionals
-- Missing integration with calendar/scheduling tools
-- No "quick workout" or "lunch break" content categories
-- Language lacks professional/business terminology
+- **Language mismatch**: Terms like "XP", "points", "streaks" feel gamified vs. professional
+- **Missing value props**: No clear connection to productivity, time efficiency, or ROI
+- **Imagery**: No representation of office workers, business attire, or professional settings
 
-### Secondary Persona (Golfers)
-**Critical Gap:**
-- No golf-specific hashtags or categories in classification system
-- Missing sport-specific training terminology
-- No integration with golf metrics/swing analysis
-
-### Tertiary Persona (Law Enforcement/First Responders)
-**Critical Gap:**
-- No certification tracking or verification features
-- Missing tactical fitness categories
-- No department/agency collaboration features
-- Lacks emergency responder-specific content markers
-
-### Admin Persona (Sean Swan)
+### **Secondary (Golfers)**
 **Strengths:**
-- Hashtag moderation capabilities (isBanned flag)
-- Official hashtag designation for curated content
-- Analytics through usageCount and weeklyCount
+- Achievement system could map to golf milestones
+- Transformation posts support progress tracking
 
-## 2. Onboarding Friction Assessment
+**Critical Gaps:**
+- **Zero golf-specific content**: No post types for "golf swing", "driving range", "handicap improvement"
+- **No sport-specific metrics**: Missing yardage, club speed, putting accuracy stats
+- **Community lacks golf context**: No way to connect with other golfers
 
-**High-Risk Areas:**
-1. **Social-first approach** - New users are immediately exposed to social features before establishing fitness goals
-2. **Complex hashtag system** - Auto-classification may confuse users unfamiliar with social media conventions
-3. **No guided fitness assessment** - Missing initial fitness evaluation or goal-setting workflow
-4. **Overwhelming feed** - Public posts visible immediately may intimidate new users
+### **Tertiary (Law Enforcement/First Responders)**
+**Strengths:**
+- Achievement system supports certification tracking
+- Transformation posts for physical readiness
 
-**Technical Strengths:**
-- Hashtag autocomplete/search works well
-- Follow/unfollow functionality is intuitive
-- Trending algorithm (weeklyCount) provides discovery
+**Critical Gaps:**
+- **No certification tracking**: Missing post types for "certification earned", "qualification passed"
+- **No department/agency context**: Can't denote affiliation
+- **Missing safety/readiness metrics**: No PT test scores, response time improvements
 
-## 3. Trust Signals Analysis
+### **Admin (Sean Swan)**
+**Strengths:**
+- Comprehensive moderation tools (report, delete, mute)
+- Analytics via feed stats
 
-**Missing Critical Elements:**
-1. **No visible certifications** - NASM certification not displayed in user profiles or posts
-2. **Lack of testimonials integration** - No verified user success stories
-3. **Insufficient expert validation** - Sean Swan's 25+ years experience not leveraged
-4. **No medical/professional disclaimers** - Important for fitness platform liability
+**Gaps:**
+- **No trainer-specific features**: Can't highlight expert posts, create challenges, or provide verified advice
+- **Missing authority signals**: No "NASM Certified" badge or "25+ years experience" indicator
 
-**Existing Trust Elements:**
-- Content moderation system (isBanned, moderationStatus)
-- Report functionality for inappropriate content
-- Official hashtags for curated content
+---
 
-## 4. Emotional Design Evaluation
+## 2. Onboarding Friction
 
-**Crystalline Swan Theme Effectiveness:**
+### **Positive Elements:**
+- Empty state provides clear CTAs ("Browse Challenges", "Find Friends")
+- Welcome message with tip about public posting
+- Simple mode vs. advanced mode toggle
 
-| Element | Premium Feel | Trustworthiness | Motivation |
-|---------|-------------|----------------|------------|
-| Color Palette | ✅ Strong (luxury accents) | ✅ Professional | ⚠️ Could be more energetic |
-| Typography | ✅ Elegant (Cormorant) | ✅ Clean (Sora) | ⚠️ Data-focused (Fira Code) |
-| Gamification | ⚠️ Basic points | ✅ Transparent | ⚠️ Needs more visual rewards |
+### **Friction Points:**
+1. **Cognitive overload**: 11 post types immediately visible in advanced mode
+2. **No progressive disclosure**: Users see all complexity upfront
+3. **Missing guided onboarding**: No step-by-step tour or "first post" wizard
+4. **Assumed familiarity**: Users must understand "points", "streaks", "reactions" immediately
+5. **No persona-specific onboarding**: Same experience for golfer, professional, and first responder
 
-**Emotional Gaps:**
-- Frozen forest/ocean theme may feel "cold" for fitness motivation
-- Missing warm, encouraging elements for beginners
-- Competitive arena aspect underdeveloped in UI
+---
 
-## 5. Retention Hooks Assessment
+## 3. Trust Signals
 
-**Strong Elements:**
-- Hashtag following creates content subscriptions
-- Point system for engagement (10-50 points per action)
-- Social validation through likes/comments
-- Trending content discovery
+### **Present:**
+- Professional visual design suggests quality
+- Structured data entry (workout stats) implies accuracy
+- Moderation tools (report, delete) suggest community management
 
-**Missing Retention Features:**
-1. **Progress tracking** - No workout history or fitness metrics
-2. **Goal achievement system** - Beyond basic points
-3. **Structured challenges** - Code exists but implementation unclear
-4. **Community accountability** - No buddy system or group challenges
-5. **Streak tracking** - Critical for habit formation
-6. **Personalized recommendations** - Beyond hashtag suggestions
+### **Missing:**
+1. **No certifications displayed**: Sean Swan's NASM certification not visible
+2. **No testimonials/social proof**: No "Trusted by X professionals" or case studies
+3. **No authority indicators**: No verified badges for trainers or experts
+4. **Limited transparency**: Points system rationale not explained
+5. **No security/privacy assurances**: Important for professionals and first responders
+
+---
+
+## 4. Emotional Design & Crystalline Swan Theme
+
+### **Effective Elements:**
+- **Premium feel**: Gradient overlays, blur effects, smooth animations
+- **Trustworthy**: Consistent spacing, clear hierarchy, professional typography
+- **Motivating**: Gamification elements (points, streaks, live activity badges)
+
+### **Persona Mismatches:**
+1. **Working Professionals**: May find theme too "gaming" oriented (Wing Purple #8B5CF6, Ice Wing #60C0F0)
+2. **Golfers**: No connection to golf aesthetics (greens, blues, natural elements)
+3. **First Responders**: Luxury accents (Gilded Fern #C6A84B) may not resonate with utilitarian mindset
+
+### **Theme Consistency:**
+✅ Colors correctly implemented per palette  
+✅ Typography hierarchy maintained  
+❌ Retired Galaxy-Swan theme accidentally referenced in some comments
+
+---
+
+## 5. Retention Hooks
+
+### **Strong Elements:**
+1. **Gamification**: Points, streaks, live activity indicators
+2. **Social validation**: Likes, comments, share counts
+3. **Progress tracking**: Transformation posts with before/after
+4. **Community features**: Friend finding, challenges
+
+### **Missing Hooks:**
+1. **Goal tracking**: No way to set/update personal fitness goals
+2. **Scheduled content**: No reminders or "post your workout" prompts
+3. **Social accountability**: No buddy system or commitment features
+4. **Content calendar**: No seasonal challenges or themed events
+5. **Expert engagement**: No way for Sean Swan to directly engage with users
+
+---
 
 ## 6. Accessibility for Target Demographics
 
-**Working Professionals (Mobile-First):**
-- ✅ Responsive chip components
-- ⚠️ No mobile-optimized workout viewing
-- ❌ Missing offline capability for travel
+### **Positive:**
+- Minimum 44px touch targets (LoadMoreButton, ActionButton)
+- Sufficient color contrast in most areas
+- Responsive design patterns
 
-**40+ Users (Readability):**
-- ⚠️ Font sizes in chips may be small (0.75rem = ~12px)
-- ✅ Good contrast ratios in palette
-- ❌ No font size adjustment controls
-- ⚠️ Complex hashtag system may confuse less tech-savvy users
+### **Concerns for 40+ Users:**
+1. **Font sizes**: Body text at 0.875rem (~14px) may be small for presbyopia
+2. **Low-contrast text**: CaptionText at #50A0F0 on dark backgrounds
+3. **Complex interactions**: Transformation slider requires precise motor control
+4. **Information density**: Feed stats grid may be overwhelming
 
-**First Responders (Accessibility):**
-- ❌ No high-contrast mode
-- ❌ Missing screen reader optimizations
-- ❌ No emergency services color considerations
+### **Mobile-First Considerations:**
+✅ Single column layout  
+✅ Touch-friendly buttons  
+❌ Complex forms (workout stats) may be tedious on mobile  
+❌ Media upload could be simplified for mobile
 
 ---
 
 ## Actionable Recommendations
 
-### Immediate Priority (Next 2 Weeks)
-1. **Add Persona-Specific Hashtags:**
-   ```javascript
-   // Add to CATEGORY_KEYWORDS in Hashtag.mjs
-   golf: ['golf', 'swing', 'drivingrange', 'putting', 'fairway', 'greens'],
-   first_responder: ['tactical', 'certification', 'fitness_test', 'agency', 'leo', 'firefighter'],
-   professional: ['deskworkout', 'lunchbreak', 'commute', 'timemanagement']
-   ```
+### **Priority 1: Persona-Specific Enhancements (Next Sprint)**
+1. **Add persona onboarding paths**:
+   - Professional: Emphasize time efficiency, ROI, productivity
+   - Golfer: Add golf-specific post types and metrics
+   - First Responder: Add certification tracking and agency affiliation
 
-2. **Implement Trust Badges:**
-   - Add "NASM-Certified" badge to trainer posts
-   - Create verified user testimonials section
-   - Display Sean Swan's credentials prominently
+2. **Implement trust signals**:
+   - Add "NASM Certified" badge to Sean Swan's posts
+   - Display testimonials in empty feed states
+   - Add security/privacy badges for sensitive professions
 
-3. **Improve Onboarding:**
-   - Add fitness assessment before social features
-   - Create "beginner's guide" hashtag series
-   - Implement progressive disclosure of features
+### **Priority 2: Reduce Onboarding Friction (2 Weeks)**
+1. **Simplify initial view**:
+   - Default to "Simple Mode" for new users
+   - Progressive disclosure of post types
+   - Add "First Post" wizard with persona-specific templates
 
-### Short-Term (1-2 Months)
-1. **Enhance Retention Features:**
-   - Implement workout streak tracking
-   - Add goal-setting with milestone celebrations
-   - Create structured 30-day challenges
+2. **Improve empty states**:
+   - Add persona-specific suggestions
+   - Include video tutorials for each user type
+   - Show "Users like you also post..." examples
 
-2. **Improve Accessibility:**
-   - Increase minimum font size to 14px for body text
-   - Add font size adjustment controls
-   - Implement high-contrast theme option
+### **Priority 3: Enhance Retention (1 Month)**
+1. **Add goal tracking**:
+   - Integrate with workout planner
+   - Send milestone notifications
+   - Create "goal buddy" matching
 
-3. **Strengthen Emotional Design:**
-   - Add warm accent color for encouragement (#FF6B35 - motivational orange)
-   - Create achievement animations
-   - Implement motivational messaging system
+2. **Improve expert engagement**:
+   - "Ask the Trainer" post type
+   - Verified advice badges
+   - Scheduled Q&A sessions
 
-### Long-Term (3-6 Months)
-1. **Persona-Specific Features:**
-   - Golf swing analysis integration
-   - Certification tracking for first responders
-   - Corporate wellness dashboard for professionals
+### **Priority 4: Accessibility Improvements (Ongoing)**
+1. **Increase font sizes**:
+   - Body text minimum 16px for main content
+   - Option to increase all text by 20%
 
-2. **Advanced Gamification:**
-   - Team challenges for corporate clients
-   - Badge system beyond points
-   - Leaderboards with privacy controls
+2. **Simplify complex interactions**:
+   - Alternative to transformation slider (tap to toggle)
+   - Bulk entry for workout stats
+   - Voice input for post creation
 
-3. **Community Building:**
-   - Mastermind groups for professionals
-   - Sport-specific communities
-   - Live training sessions with Sean Swan
+### **Priority 5: Theme Refinement (Next Design Review)**
+1. **Create persona-specific theme variants**:
+   - Professional: More conservative, less gaming accent
+   - Golfer: Natural greens and blues
+   - First Responder: High contrast, utilitarian
 
-### Technical Improvements
-1. **Performance:**
-   - Implement virtual scrolling for large feeds
-   - Add caching for trending hashtags
-   - Optimize media loading for mobile
+2. **Improve emotional resonance**:
+   - A/B test color psychology with each persona
+   - Add motivational messaging aligned with persona values
+   - Ensure luxury elements don't alienate utilitarian users
 
-2. **Analytics:**
-   - Track persona engagement metrics
-   - Monitor onboarding completion rates
-   - Measure retention by user segment
+---
 
-**Critical Success Factor:** The platform must pivot from being a "social network with fitness hashtags" to a "fitness platform with social features." Currently, the social infrastructure is robust but the fitness-specific value proposition is buried in hashtag categorization rather than being front-and-center in the user experience.
+## Technical Notes for Implementation
+
+### **Quick Wins (< 1 day each):**
+1. Add `font-size: 1rem` to BodyText2 for main content areas
+2. Add NASM certification badge to admin posts
+3. Create persona-specific post type subsets
+4. Add "Why we award points" tooltip
+
+### **Architectural Considerations:**
+1. Consider persona context provider to customize UI
+2. Implement feature flags for persona-specific features
+3. Create abstraction layer for theme variants
+4. Add analytics to track persona engagement patterns
+
+### **Testing Recommendations:**
+1. Conduct usability tests with 40+ age group
+2. A/B test professional vs. gaming terminology
+3. Validate color contrast for all persona groups
+4. Test mobile workflows with busy professional persona
+
+---
+
+**Overall Assessment**: The codebase shows strong technical implementation with excellent separation of concerns and reusable patterns. However, the user experience needs significant persona-specific customization to meet the diverse needs of the target audience. The platform currently feels like a "one-size-fits-all" solution that may not fully resonate with any single persona group.
 
 ---
 
 ## [PASS] Architecture & Bug Hunter
-**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 71.2s
+**Model:** minimax/minimax-m2.5-20260211 | **Duration:** 73.6s
 
-# Deep Code Review: SwanStudios Social Hashtag System
+# Deep Code Review: SwanStudios Social Feed Components
 
 ## Executive Summary
 
-This review identifies **CRITICAL** bugs that will cause runtime failures, **HIGH** severity architectural flaws, and **MEDIUM** production readiness issues. The codebase has significant data integrity risks around hashtag-post relationships and point awarding.
+This review identifies **5 CRITICAL**, **8 HIGH**, **12 MEDIUM**, and **15 LOW** severity issues across the 6 files reviewed. The codebase has solid architectural foundations but ships with several production-blocking bugs, incomplete features, and hardcoded values that must be addressed before deployment.
 
 ---
 
-## 1. Bug Detection
+## 1. BUG DETECTION
 
-### CRITICAL: Data Integrity Failure in Hashtag Processing
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `hashtags.mjs` lines 68-98 | `processHashtags` increments `usageCount` and `weeklyCount` on every post creation, but **there is no corresponding decrement when posts are deleted**. This causes permanently inflated usage statistics. | Add a `decrementHashtagCounts` function called in `posts.mjs` DELETE endpoint that decrements both counters. Use a transaction to ensure atomicity. |
-| **CRITICAL** | `hashtags.mjs` line 72 | **Dynamic import inside a loop** — `await import('../../models/social/Hashtag.mjs')` is called for every hashtag in the loop, causing N module reloads. This is a severe performance bug. | Move the import to the top of the function: `const { classifyHashtag } = await import(...)` once before the loop, or better, import it at module level. |
-| **CRITICAL** | `posts.mjs` line 66 | In `getEnhancedFallbackFeed`, the `where` clause compares `userId: String(userId)` but the fallback query uses `raw: true` and the EnhancedSocialPost may store numeric IDs. This will fail to match the user's own posts. | Change to `userId: userId` (numeric) and ensure consistent type handling, or use `sequelize.cast()` for cross-database compatibility. |
-
-### HIGH: Race Conditions & Async Issues
+### CRITICAL
 
 | Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `hashtags.mjs` lines 68-98 | `processHashtags` has **no transaction wrapping**. If `PostHashtag.findOrCreate` succeeds but `hashtag.increment()` fails, the join record exists without the count being updated. | Wrap the entire operation in `sequelize.transaction()` and pass to all queries. |
-| **HIGH** | `posts.mjs` lines 304-306 | Comment count is updated manually (`post.commentsCount += 1`) instead of using database increment. If the response fails after save but before returning, the count is already incremented but client sees error. | Use `await post.increment('commentsCount')` instead of manual increment. |
-| **HIGH** | `posts.mjs` lines 304-306 | Same issue with comment deletion - manual decrement can cause inconsistency | Use `await post.decrement('commentsCount')` |
+|----------|------------|--------------|-----|
+| **CRITICAL** | `PostCard.tsx:158` | Hardcoded URL `https://swanstudios.com` in share dialog — breaks in dev/staging environments, not configurable | Replace with `window.location.origin` or environment variable: `` `${process.env.REACT_APP_PUBLIC_URL \|\| window.location.origin}/social/posts/${post.id}` `` |
+| **CRITICAL** | `useCreatePostForm.ts:95-102` | Cleanup effect has empty dependency array but references state variables. If component unmounts/remounts, cleanup won't run for initial mount's blob URLs — **memory leak** | Add dependencies: `useEffect(() => { return () => { ... }; }, [mediaPreview, beforePreview, afterPreview]);` |
+| **CRITICAL** | `PostCard.tsx:189` | `window.confirm()` for delete — blocks UI thread, not accessible, ugly UX. Also blocks thread while waiting for user response | Replace with custom modal component with proper accessibility: `<DeleteConfirmModal isOpen={showDeleteConfirm} onConfirm={confirmDelete} onCancel={() => setShowDeleteConfirm(false)} />` |
+| **CRITICAL** | `PostContent.tsx:89-95` | `handleTryWorkout` only logs to console — non-functional feature ships as working UI. Users click expecting workout generator | Either implement functionality or disable/hide button: `const handleTryWorkout = () => { if (post.workoutData?.workoutId) navigate(\`/workouts/generator?template=${post.workoutData.workoutId}\`); };` |
+| **CRITICAL** | `PostCard.tsx:103` | `transformationSliderValue` is hardcoded to `useState(50)` and never changes — transformation comparison slider is non-functional | Implement slider state: `const [transformationSliderValue, setTransformationSliderValue] = useState(50);` and wire to `<input type="range" />` |
 
-### MEDIUM: Null/Undefined Access Without Guards
+### HIGH
 
 | Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `hashtags.mjs` line 177 | `req.user.id` is used without checking if `req.user` exists. If `protect` middleware fails silently, this throws. | Add guard: `if (!req.user?.id) return res.status(401)...` |
-| **MEDIUM** | `posts.mjs` line 68 | `parseInt(req.query.limit)` can return `NaN` if invalid string passed, then `Math.max(1, NaN)` returns `NaN`, causing SQL error. | Add: `const limit = Math.max(1, parseInt(req.query?.limit) || 20)` |
-| **MEDIUM** | `hashtags.mjs` line 132 | `parseInt(req.query.limit)` can be negative if someone passes `?limit=-5`. | Add: `const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 20, 50))` |
+|----------|------------|--------------|-----|
+| **HIGH** | `SocialFeed.tsx:309` | `user?.firstName` can be undefined — displays "Welcome back, undefined!" | Add fallback: `` `${user?.firstName \|\| 'Athlete'}!` `` |
+| **HIGH** | `useCreatePostForm.ts:150-165` | `selectWorkoutFromHistory` accesses `workout.duration \|\| workout.durationMinutes` — mixed types (string vs number) can cause concatenation instead of addition in post content | Normalize to string: `const duration = String(workout.duration \|\| workout.durationMinutes \|\| '');` |
+| **HIGH** | `PostCard.tsx:158` | Fallback `onLike as any` masks type errors — if `onLike` is undefined, runtime error occurs | Add explicit check: `if (!isActive && onReact) { ... } else if (onLike) { result = await onLike(post.id); } else { return; }` |
+| **HIGH** | `useCreatePostForm.ts:233-238` | Validation allows empty content if media exists: `postType !== 'transformation' && postType !== 'workout' && !postContent.trim() && !media` — user can post media with no text | Require at least one: `(!postContent.trim() && !media)` → `(!postContent.trim() && !media && postType !== 'general')` or add minimum content length |
+
+### MEDIUM
+
+| Severity | File & Line | What's Wrong | Fix |
+|----------|------------|--------------|-----|
+| **MEDIUM** | `SocialFeed.tsx:238-247` | Recent activity timer uses `setTimeout` but effect has `posts` in dependency — if posts array reference changes (new fetch), timer resets but previous timer may not clear if posts changed during timeout | Use ref for timer: `const timerRef = useRef<NodeJS.Timeout>(); useEffect(() => { ... if (timerRef.current) clearTimeout(timerRef.current); timerRef.current = setTimeout(...); return () => clearTimeout(timerRef.current); }, [posts]);` |
+| **MEDIUM** | `PostCard.tsx:127-132` | Toast visibility effect has potential race condition — if `showPointNotification` toggles rapidly, nested timeouts can stack | Use single timeout with ref: `const toastTimeoutRef = useRef<NodeJS.Timeout>(); useEffect(() => { if (showPointNotification) { setToastVisible(true); toastTimeoutRef.current = setTimeout(() => { setToastVisible(false); setTimeout(() => setShowPointNotification(false), 300); }, 3000); } return () => { if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current); }; }, [showPointNotification]);` |
+| **MEDIUM** | `useCreatePostForm.ts:167-181` | `handleFileSelect` revokes old URL then creates new one — if user selects files rapidly, race condition can revoke valid URL | Revoke after setting new: `setMedia(file); const newPreview = isVideo ? URL.createObjectURL(file) : ...; if (mediaPreview?.startsWith('blob:')) URL.revokeObjectURL(mediaPreview); setMediaPreview(newPreview);` |
 
 ---
 
-## 2. Architecture Flaws
+## 2. ARCHITECTURE FLAWS
 
-### CRITICAL: Unused Parameter & Dead Code
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `hashtags.mjs` line 117 | **Dead code**: `period` query parameter is accepted (`?period=24h|7d|30d`) but **never used**. The trending endpoint always returns the same data regardless of period. | Either implement weekly count reset logic via cron job, or remove the unused parameter and update API docs. |
-| **CRITICAL** | `HashtagChip.tsx` line 89-91 | **Syntax error**: The styled-component template is truncated mid-line with incomplete `color-mix()` call. This will cause build failure. | Complete the hover state: `background: color-mix(in srgb, ${$color} 30%, var(--bg-elevated, #141419));` |
-| **HIGH** | `hashtags.mjs` lines 155-170 | The `suggestions` endpoint makes **5 separate database queries** that could be combined into 2-3. This is an N+1 pattern. | Use Sequelize `include` with `through` to fetch used/followed tags in one query. |
-
-### HIGH: Prop Drilling & Component Issues
+### HIGH
 
 | Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `HashtagChip.tsx` entire file | The component imports `Hash` and `CheckCircle` from `lucide-react` but **never uses them**. Dead imports. | Remove unused imports or implement the icons in the render. |
-| **MEDIUM** | `HashtagChip.tsx` | No error boundary or null check for `hashtag` prop. If parent passes `null` or `undefined`, runtime crash. | Add: `if (!hashtag) return null;` at component start |
+|----------|------------|--------------|-----|
+| **HIGH** | `SocialFeed.tsx:1-350` | Component is ~350 lines — approaches 300-line suspect threshold. Does too much: feed stats calculation, recent activity, gamification header, conditional rendering | Extract to smaller components: `<FeedStats />`, `<RecentActivityIndicator />`, `<GamificationHeader />` |
+| **HIGH** | `PostCard.tsx:1-250` | PostCard is ~250 lines doing too much: menu, report modal, share dialog, toast, comments toggle all in one component | Extract: `<PostMenu />`, `<ShareDialog />`, `<ReportModal />`, `<PointToast />` |
+| **HIGH** | `useCreatePostForm.ts:87` | `categorySuggestion` is always `null` — AI category suggestion feature is stubbed out but code ships as if implemented | Either implement or remove: `// TODO: Implement AI category suggestion` with `useState<CategorySuggestion | null>(null)` |
 
----
-
-## 3. Integration Issues
-
-### HIGH: Frontend-Backend Contract Mismatch
+### MEDIUM
 
 | Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `hashtags.mjs` line 225 | The `:slug` endpoint returns `posts` array but doesn't include `hashtags` on each post object. Frontend's `PostCard` likely expects hashtags. | Add `include: [{ model: Hashtag, as: 'hashtags', attributes: ['id', 'name', 'slug'] }]` to the SocialPost query. |
-| **MEDIUM** | `posts.mjs` line 201 | The feed returns `pagination.total` from `SocialPost.count()` which doesn't respect the hashtag/category filters properly — it counts before applying all WHERE clauses. | Move count query inside the filter logic or use a subquery. |
-
-### MEDIUM: Missing Loading/Error States
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `hashtags.mjs` line 117 | No validation for invalid `category` values — silently ignores invalid category and returns all. | Return 400 for invalid category: `if (category && !['fitness',...].includes(category)) return res.status(400)...` |
-| **MEDIUM** | `posts.mjs` line 68 | No validation for non-numeric `limit`/`offset` — passes through to SQL which may error or return unexpected results. | Add explicit validation with defaults. |
-
----
-
-## 4. Dead Code & Tech Debt
-
-### HIGH: Unused Code & TODO Items
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `hashtags.mjs` line 117 | **TODO not implemented**: The `period` parameter for trending hashtags is accepted but has no implementation. | Either implement weekly count reset via scheduled job, or document as "coming soon" and remove from API. |
-| **MEDIUM** | `Hashtag.mjs` lines 22-30 | `CATEGORY_KEYWORDS` is a large static object. If this grows larger, consider moving to database table for admin management. | Low priority — acceptable for MVP |
-| **MEDIUM** | `posts.mjs` lines 35-36 | `isLegacySocialTableMissingError` function is a workaround for missing tables. This indicates incomplete migration. | Complete the migration to create legacy tables. |
-
-### LOW: Commented Code
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **LOW** | `posts.mjs` line 261 | Comment: `// With memory storage, no temp file cleanup needed` — this is fine but could be a TODO to add cleanup logic for disk storage fallback. | Acceptable — document in tech spec |
-
----
-
-## 5. Production Readiness
-
-### CRITICAL: Console.log Statements
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `posts.mjs` lines 91, 104, 116 | Multiple `console.log` statements for point awards (`✅ Awarded ${pointsToAward} points...`) will ship to production and pollute logs. | Replace with proper logger: `logger.info('Points awarded', { userId, action, points })` |
-| **CRITICAL** | `hashtags.mjs` lines 87, 89 | `console.warn` for hashtag processing failures. While less severe, these should use the imported `logger`. | Replace with `logger.warn(...)` |
-
-### HIGH: Missing Input Validation
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `hashtags.mjs` line 193 | `req.params.slug` is used directly without sanitization. While Sequelize escapes values, empty slug would match unintended records. | Add: `if (!slug || slug.length < 2) return res.status(400)...` |
-| **HIGH** | `posts.mjs` line 254 | `type` parameter accepts any string but only certain types award points. No validation allows invalid types. | Add validation: `const VALID_TYPES = ['general', 'workout', 'transformation', ...]; if (!VALID_TYPES.includes(type)) ...` |
-
-### MEDIUM: Rate Limiting & Performance
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `hashtags.mjs` line 155 | The `suggestions` endpoint could be expensive with many posts. No pagination on the underlying post queries. | Add `limit: 20` to the `SocialPost.findAll` call. |
-| **MEDIUM** | `posts.mjs` line 145 | Friend ID extraction loads ALL friendships into memory. For users with 1000+ friends, this is problematic. | Add pagination or use cursor-based friend retrieval. |
-
----
-
-## Summary Table
-
-| Category | Count |
-|----------|-------|
-| CRITICAL | 8 |
-| HIGH | 10 |
-| MEDIUM | 10 |
-| LOW | 2 |
-
-## Top 5 Ship Blockers
-
-1. **`processHashtags` dynamic import in loop** — Performance + correctness
-2. **No decrement of hashtag counts on post delete** — Data integrity
-3. **Console.log statements in production** — Log pollution
-4. **Missing transaction in hashtag processing** — Data consistency
-5. **Styled-component syntax error in HashtagChip** — Build failure
-
----
-
-## Recommended Immediate Actions
-
-```javascript
-// 1. Fix processHashtags - move import outside loop
-export async function processHashtags(postId, tagNames, transaction = null) {
-  if (!tagNames || tagNames.length === 0) return [];
-  // IMPORT ONCE AT TOP
-  const { classifyHashtag } = await import('../../models/social/Hashtag.mjs');
-  // ... rest of function
-}
-
-// 2. Add transaction wrapping
-export async function processHashtags(postId, tagNames, transaction = null) {
-  const t = transaction || await sequelize.transaction();
-  try {
-    // ... all queries with { transaction: t }
-    if (!transaction) await t.commit();
-  } catch (err) {
-    if (!transaction) await t.rollback();
-    throw err;
-  }
-}
-
-// 3. Fix HashtagChip.tsx line 89-91
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, ${$color} 30%, var(--bg-elevated, #141419));
-    border-color: ${({ $color }) => $color};
-  }
-```
+|----------|------------|--------------|-----|
+| **MEDIUM** | `SocialFeed.tsx:232` | `variant` prop controls two very different layouts ("full" vs "compact") — violates single responsibility | Split into two components: `<SocialHubFeed />` (full) and `<DashboardFeed />` (compact) |
+| **MEDIUM** | `PostCard.tsx:113` |
 
 ---
 
 ## [PASS] Frontend UX & Code Patterns
-**Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 5.4s
+**Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 6.2s
 
-This review focuses on the provided backend social architecture and the `HashtagChip` component.
+This review evaluates the `SwanStudios` social feed implementation against the **Crystalline Swan** design system and React best practices.
 
 ### 1. React Component Patterns
-*   **Component Hygiene:** The `HashtagChip` uses `styled-components` with transient props (`$active`, `$size`), which is excellent practice to prevent DOM attribute pollution.
-*   **Prop Drilling:** The component is well-typed. However, consider adding a `loading` state or `disabled` prop to prevent rapid-fire clicks during navigation or API calls.
-*   **Optimization:** The component is small and functional. It should be wrapped in `React.memo` if used in large lists (e.g., a "Trending Hashtags" sidebar) to prevent unnecessary re-renders when parent state updates.
+*   **Finding:** The `useCreatePostForm` hook is an excellent example of logic extraction. It keeps the `CreatePostCard` component clean and focused on layout.
+*   **Finding:** `PostCard` uses `React.memo` correctly, but the `handleLikeToggle` in `SocialFeed.tsx` is passed down to `PostCard`. Ensure that `onLike` is stable (which it is, via `useCallback`) to prevent unnecessary re-renders of the entire feed.
+*   **Rating:** **HIGH** (Positive)
 
 ### 2. styled-components Best Practices
-*   **Theme Integration:** You are using hardcoded hex values in `CATEGORY_COLORS`. **CRITICAL:** Move these to your `theme` object (e.g., `theme.colors.hashtags.fitness`). This ensures consistency with the rest of the Crystalline Swan design system.
-*   **Glassmorphism:** The current implementation uses `color-mix`. Ensure your `GlobalStyles` defines the base `var(--bg-elevated)` correctly. The hover state is clean, but ensure it meets contrast ratios (WCAG AA) for accessibility.
+*   **Finding:** You are using `var(--bg-elevated, ...)` alongside hardcoded theme colors (e.g., `#002060`).
+    *   **Recommendation:** Move all hardcoded hex values (like `#8B5CF6` or `#60C0F0`) into a centralized `theme.ts` object. This ensures that if the "Crystalline Swan" palette shifts, you don't have to perform a global search-and-replace.
+*   **Finding:** The `styled` components are well-structured, but ensure `backdrop-filter` is used sparingly, as it is performance-intensive on mobile devices.
+*   **Rating:** **MEDIUM**
 
 ### 3. Animation & Interaction
-*   **Framer Motion:** The `transition` property is good, but for a "luxury vault" feel, consider adding a subtle `whileHover={{ scale: 1.05 }}` and `whileTap={{ scale: 0.95 }}` using `framer-motion`.
-*   **Reduced Motion:** Ensure your `transition` settings respect the `prefers-reduced-motion` media query.
+*   **Finding:** The `pulse` animation on the `LiveBadgeLabel` is a great touch for the "Gaming/Arena" feel.
+*   **Finding:** **Missing Reduced Motion.** Users with vestibular disorders may find the `spin` and `pulse` animations distracting.
+    *   **Recommendation:** Wrap animations in a media query:
+        ```css
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+        }
+        ```
+*   **Rating:** **MEDIUM**
 
 ### 4. Form UX
-*   **Accessibility:** The `HashtagChip` is a `<button>`, which is correct for keyboard navigation. Ensure you add `aria-label` if the chip contains only an icon or if the usage count is not descriptive enough for screen readers.
+*   **Finding:** `CreatePostCard` has a `Simple Mode` vs `More Options` toggle. This is excellent progressive disclosure.
+*   **Finding:** The `isSubmitDisabled` logic in `useCreatePostForm` is robust, but it lacks a "loading" state indicator for the *entire* card during submission (it only shows on the button).
+*   **Rating:** **HIGH**
 
 ### 5. State Management
-*   **Backend Logic:** The `processHashtags` function in `hashtags.mjs` is robust. Using `findOrCreate` inside a loop is standard for Sequelize, but for high-traffic scenarios, consider a bulk-insert strategy to reduce database round-trips.
+*   **Finding:** The `feedStats` calculation in `SocialFeed.tsx` uses `useMemo` with `posts.reduce`. This is efficient, but if the feed grows to hundreds of posts, this will block the main thread.
+    *   **Recommendation:** If the feed becomes large, consider moving this calculation to the backend or a web worker.
+*   **Rating:** **MEDIUM**
 
 ### 6. Accessibility Gaps
-*   **Color-Only Indicators:** You are using color to distinguish categories. **HIGH:** If a user is colorblind, they cannot distinguish between "Fitness" and "Creative" categories. Add a small icon or text label to the chip to communicate category context.
+*   **Finding:** **CRITICAL.** The `LoadMoreButton` and `ActionButton` components lack sufficient `aria-label` or `aria-pressed` states in some instances.
+*   **Finding:** The `PostCard` menu uses a `mousedown` listener for closing. This is a common "keyboard trap" or "keyboard-unfriendly" pattern.
+    *   **Recommendation:** Ensure the menu can be closed via the `Escape` key and that focus is managed (e.g., focus returns to the trigger button after the menu closes).
+*   **Finding:** Color-only indicators: The `LiveBadgeLabel` uses color to convey status. Ensure there is a text-based indicator (which you have) to satisfy WCAG 1.4.1.
+*   **Rating:** **CRITICAL**
 
 ---
 
-### Summary of Findings
+### Summary of Action Items
 
-| Finding | Severity | Recommendation |
+| Finding | Severity | Priority |
 | :--- | :--- | :--- |
-| **Hardcoded Colors** | **HIGH** | Move `CATEGORY_COLORS` into the `styled-components` theme provider. |
-| **Color-Only Category** | **HIGH** | Add icons or text labels to the chip to ensure category accessibility. |
-| **Missing `React.memo`** | **LOW** | Wrap `HashtagChip` in `memo` to optimize performance in long lists. |
-| **Missing `aria-label`** | **MEDIUM** | Add `aria-label` to the button to describe the action (e.g., "Follow #fitness"). |
-| **Sequelize Bulk Ops** | **MEDIUM** | In `processHashtags`, consider `bulkCreate` with `updateOnDuplicate` for better performance. |
+| **Keyboard Accessibility:** Add `Escape` key support for menus and modals. | **CRITICAL** | Immediate |
+| **Reduced Motion:** Add `@media (prefers-reduced-motion)` to all keyframes. | **MEDIUM** | Next Sprint |
+| **Theme Centralization:** Move hardcoded hex codes to `theme.ts`. | **MEDIUM** | Next Sprint |
+| **Focus Management:** Ensure focus returns to trigger elements after modals/menus close. | **HIGH** | Immediate |
 
----
-
-### Code Improvement Suggestion (HashtagChip.tsx)
-
-```tsx
-// Suggested improvement for Category Accessibility
-const CategoryIcon = ({ category }: { category: string }) => {
-  switch (category) {
-    case 'fitness': return <Dumbbell size={12} />;
-    case 'creative': return <Palette size={12} />;
-    case 'community': return <Users size={12} />;
-    default: return <Hash size={12} />;
-  }
-};
-
-// Inside the component:
-<Chip $active={!!isActive} $color={theme.colors.hashtags[category]}>
-  <CategoryIcon category={hashtag.category} />
-  <span>#{hashtag.name}</span>
-  {showCount && <CountBadge>{hashtag.usageCount}</CountBadge>}
-</Chip>
-```
-
-**Final Verdict:** The architecture is solid and follows the "Crystalline Swan" aesthetic well. The backend logic for hashtag extraction and classification is clean and handles non-fatal errors gracefully. Focus on the accessibility of the category indicators to ensure the platform remains inclusive.
+**Gemini 3.1 Flash Verdict:** The code is highly modular and follows the "no-monolith" rule effectively. The logic separation between hooks and components is top-tier. Focus on **keyboard navigation** and **reduced-motion support** to bring this to production-grade accessibility standards.
 
 ---
 
 ## [PASS] Data Safety & Integrity
-**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 65.5s
+**Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 58.6s
 
-# 🚨 DATA SAFETY AUDIT REPORT — CRITICAL FINDINGS
+# 🔴 CRITICAL DATA SAFETY AUDIT REPORT — SwanStudios Social Feed
 
-## EXECUTIVE SUMMARY
-**OVERALL RISK LEVEL: MEDIUM-HIGH**
-
-I've identified **7 CRITICAL/HIGH findings** that could result in data loss, orphaned records, or corrupted state. The most severe issues involve:
-- Missing transaction wrappers for multi-table operations
-- Potential for orphaned hashtag data during post deletion
-- Race conditions in point awarding
-- Unsafe DELETE operations without WHERE clause validation
+**Auditor:** DATA SAFETY AUDITOR  
+**Date:** 2026-03-22  
+**Platform:** SwanStudios (sswanstudios.com)  
+**Scope:** Social Feed Components (Frontend)  
+**Severity Scale:** CRITICAL > HIGH > MEDIUM > LOW
 
 ---
 
-## 🔴 CRITICAL FINDINGS
+## ⚠️ EXECUTIVE SUMMARY
 
-### CRITICAL-1: Post Deletion Orphans Hashtag Usage Counts
-**Severity:** CRITICAL  
-**Data at Risk:** Hashtag usage statistics (usageCount, weeklyCount)  
-**Blast Radius:** All hashtags used in deleted posts — corrupted trending data affects all users  
-**File & Line:** `backend/routes/social/posts.mjs:688-729` (DELETE /:postId route)
+**OVERALL RISK LEVEL: LOW** ✅
+
+This is **FRONTEND-ONLY** code (React/TypeScript components). **No direct database operations, migrations, or destructive backend logic present.**
+
+However, **3 HIGH-severity findings** related to **API contract assumptions** and **1 MEDIUM-severity finding** related to **data exposure** require immediate attention to prevent future data loss or leaks when backend endpoints are wired.
+
+---
+
+## 🔴 CRITICAL FINDINGS: 0
+
+✅ **No critical findings.** No `DELETE`, `TRUNCATE`, `DROP`, `sync({ force: true })`, or destructive database operations present in frontend code.
+
+---
+
+## 🟠 HIGH FINDINGS: 3
+
+### **HIGH-1: Unprotected Delete Post Operation — No Confirmation Flow Enforcement**
+
+**Severity:** HIGH  
+**Data at Risk:** User posts, comments, reactions, media attachments  
+**Blast Radius:** 1 post + all associated data (comments, reactions, media)  
+**File & Line:** `PostCard.tsx:114-120`
 
 **What's Wrong:**
-When a post is deleted, the CASCADE delete removes `PostHashtag` join records, but **does NOT decrement** the `Hashtag.usageCount` and `Hashtag.weeklyCount` fields. This means:
-1. User creates post with #fitness → usageCount increments to 1000
-2. User deletes post → PostHashtag record deleted via CASCADE
-3. **Hashtag.usageCount still shows 1000** (should be 999)
-4. Over time, trending hashtags show inflated counts that never decrease
+
+```tsx
+const handleDeletePost = useCallback(async () => {
+  if (!onDelete) return;
+  const confirmed = window.confirm('Are you sure you want to delete this post? This cannot be undone.');
+  if (confirmed) {
+    await onDelete(post.id);
+  }
+}, [onDelete, post.id]);
+```
+
+**Issues:**
+
+1. **Browser `window.confirm()` is bypassable** — automated scripts, browser extensions, or malicious actors can programmatically trigger `onDelete(post.id)` without user confirmation.
+2. **No server-side confirmation token** — backend should require a `confirmationToken` or `deletedAt` soft-delete pattern.
+3. **No rollback mechanism** — once `DELETE /api/social/posts/:id` executes, data is **permanently lost** (assuming backend uses hard delete).
+4. **No admin audit trail** — if a user's account is compromised, there's no record of who initiated the delete.
+
+**Attack Vector:**
+
+```javascript
+// Malicious browser extension or XSS payload
+document.querySelector('[data-action="delete-post"]').click();
+// Bypasses window.confirm() via automation
+```
 
 **Fix:**
-```javascript
-// In DELETE /:postId route, BEFORE post.destroy():
 
-// Fetch hashtags linked to this post
-const linkedHashtags = await PostHashtag.findAll({
-  where: { postId },
-  attributes: ['hashtagId']
+**Frontend (PostCard.tsx:114-120):**
+
+```tsx
+const handleDeletePost = useCallback(async () => {
+  if (!onDelete) return;
+
+  // Step 1: Request deletion token from backend
+  const tokenResponse = await authAxios.post(`/api/social/posts/${post.id}/request-delete`);
+  const { confirmationToken, expiresAt } = tokenResponse.data;
+
+  // Step 2: Show modal with explicit confirmation (not window.confirm)
+  const confirmed = await showDeleteConfirmationModal({
+    postId: post.id,
+    postContent: post.content.substring(0, 100),
+    expiresAt,
+  });
+
+  if (confirmed) {
+    // Step 3: Send token to backend for verified deletion
+    await onDelete(post.id, confirmationToken);
+  }
+}, [onDelete, post.id, authAxios]);
+```
+
+**Backend (Required):**
+
+```typescript
+// POST /api/social/posts/:id/request-delete
+router.post('/:id/request-delete', authenticate, async (req, res) => {
+  const post = await Post.findByPk(req.params.id);
+  if (post.userId !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const token = crypto.randomBytes(32).toString('hex');
+  await redis.setex(`delete-token:${post.id}`, 300, token); // 5-min expiry
+
+  res.json({ confirmationToken: token, expiresAt: Date.now() + 300000 });
 });
 
-// Decrement usage counts for each hashtag
-if (linkedHashtags.length > 0) {
-  const hashtagIds = linkedHashtags.map(ph => ph.hashtagId);
-  await Hashtag.decrement(
-    ['usageCount', 'weeklyCount'],
-    { where: { id: { [Op.in]: hashtagIds } } }
+// DELETE /api/social/posts/:id
+router.delete('/:id', authenticate, async (req, res) => {
+  const { confirmationToken } = req.body;
+  const storedToken = await redis.get(`delete-token:${req.params.id}`);
+
+  if (!storedToken || storedToken !== confirmationToken) {
+    return res.status(400).json({ error: 'Invalid or expired confirmation token' });
+  }
+
+  // Soft delete (preserves data for 30 days)
+  await Post.update(
+    { deletedAt: new Date(), deletedBy: req.user.id },
+    { where: { id: req.params.id, userId: req.user.id } }
   );
-}
 
-// NOW safe to delete the post (CASCADE will remove PostHashtag records)
-await post.destroy();
+  await redis.del(`delete-token:${req.params.id}`);
+  res.json({ success: true });
+});
 ```
 
 ---
 
-### CRITICAL-2: Hashtag Processing Lacks Transaction Wrapper
-**Severity:** CRITICAL  
-**Data at Risk:** Post-hashtag associations, hashtag counts  
-**Blast Radius:** Single post creation failure could leave partial data (post exists but hashtags not linked, or counts incremented but join records missing)  
-**File & Line:** `backend/routes/social/hashtags.mjs:47-91` (processHashtags function)
+### **HIGH-2: Unsafe Workout History Selection — No Data Validation**
 
-**What's Wrong:**
-The `processHashtags` function performs **3 separate database operations per hashtag**:
-1. `Hashtag.findOrCreate()` — creates/finds hashtag
-2. `PostHashtag.findOrCreate()` — creates join record
-3. `hashtag.increment()` — updates usage counts
-
-If the server crashes or database connection drops between steps 2 and 3, you get:
-- Post linked to hashtag ✅
-- Usage count NOT incremented ❌
-- Trending algorithm shows wrong data forever
-
-**Fix:**
-```javascript
-// In POST / route (posts.mjs:~line 560), wrap the entire post creation + hashtag processing in a transaction:
-
-const transaction = await sequelize.transaction();
-try {
-  // Create the post
-  const post = await SocialPost.create(postData, { transaction });
-
-  // Process hashtags INSIDE the transaction
-  let linkedHashtags = [];
-  try {
-    const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
-    const tagNames = extractHashtags(content);
-    if (tagNames.length > 0) {
-      linkedHashtags = await processHashtags(post.id, tagNames, transaction); // ← Pass transaction
-    }
-  } catch (hashtagErr) {
-    // If hashtag processing fails, rollback the entire post creation
-    throw hashtagErr;
-  }
-
-  await transaction.commit();
-  
-  // Award points AFTER commit (non-critical, can fail independently)
-  const pointResult = await awardSocialPoints(...);
-  
-  // ... rest of response
-} catch (error) {
-  await transaction.rollback();
-  throw error;
-}
-```
-
-**Also update processHashtags signature:**
-```javascript
-// In hashtags.mjs, ensure ALL operations use the transaction:
-export async function processHashtags(postId, tagNames, transaction = null) {
-  // ... existing code, but ensure EVERY query passes { transaction }
-  const [hashtag] = await Hashtag.findOrCreate({
-    where: { name },
-    defaults: { ... },
-    transaction // ← Must be passed to ALL operations
-  });
-  
-  await PostHashtag.findOrCreate({
-    where: { postId, hashtagId: hashtag.id },
-    defaults: { postId, hashtagId: hashtag.id },
-    transaction // ← Here too
-  });
-  
-  await hashtag.increment(['usageCount', 'weeklyCount'], { transaction }); // ← And here
-}
-```
-
----
-
-### HIGH-1: Point Awarding Race Condition
 **Severity:** HIGH  
-**Data at Risk:** User point balances, PointTransaction records  
-**Blast Radius:** Individual users could have incorrect point totals if two actions happen simultaneously  
-**File & Line:** `backend/routes/social/posts.mjs:72-110` (awardSocialPoints function)
+**Data at Risk:** Post content integrity, workout statistics  
+**Blast Radius:** 1 user's post (could contain malicious/corrupted data)  
+**File & Line:** `useCreatePostForm.ts:85-101`
 
 **What's Wrong:**
-The point awarding logic has a **read-modify-write race condition**:
-```javascript
-// Thread A reads balance: 100
-const lastTransaction = await PointTransaction.findOne({ where: { userId }, order: [['createdAt', 'DESC']] });
-const currentBalance = lastTransaction ? lastTransaction.balance : 0; // 100
 
-// Thread B reads balance: 100 (same time)
-// Thread A writes new balance: 110 (100 + 10)
-// Thread B writes new balance: 125 (100 + 25) ← OVERWRITES Thread A's update
-```
-
-If a user likes a post and comments on it at the exact same moment, one of the point awards will be lost.
-
-**Fix:**
-```javascript
-async function awardSocialPoints(userId, action, metadata = {}) {
-  const pointsToAward = SOCIAL_POINT_RULES[action];
-  if (!pointsToAward) return { pointsAwarded: 0, success: false };
-
-  // Use a transaction with row-level locking
-  const transaction = await sequelize.transaction();
-  try {
-    // Lock the user's latest transaction row to prevent concurrent updates
-    const lastTransaction = await PointTransaction.findOne({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-      lock: transaction.LOCK.UPDATE, // ← Prevents race condition
-      transaction
-    });
-    
-    const currentBalance = lastTransaction ? lastTransaction.balance : 0;
-    const newBalance = currentBalance + pointsToAward;
-
-    await PointTransaction.create({
-      userId,
-      points: pointsToAward,
-      balance: newBalance,
-      transactionType: 'earn',
-      source: 'social_engagement',
-      description: `Social Action: ${action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
-      metadata: { socialAction: action, ...metadata }
-    }, { transaction });
-
-    await transaction.commit();
-    return { pointsAwarded: pointsToAward, newBalance, success: true, action };
-  } catch (error) {
-    await transaction.rollback();
-    console.error(`❌ Error awarding social points for ${action}:`, error);
-    return { pointsAwarded: 0, success: false, error: error.message };
-  }
-}
-```
-
----
-
-### HIGH-2: Unfollow Hashtag Missing WHERE Clause Validation
-**Severity:** HIGH  
-**Data at Risk:** UserHashtagFollow records  
-**Blast Radius:** If hashtagId is null/undefined, could delete ALL of a user's follows  
-**File & Line:** `backend/routes/social/hashtags.mjs:341-354` (DELETE /unfollow/:hashtagId)
-
-**What's Wrong:**
-```javascript
-router.delete('/unfollow/:hashtagId', async (req, res) => {
-  const hashtagId = parseInt(req.params.hashtagId);
-  await UserHashtagFollow.destroy({
-    where: { userId: req.user.id, hashtagId } // ← If hashtagId is NaN, this becomes { userId: 123, hashtagId: NaN }
+```ts
+const selectWorkoutFromHistory = useCallback((workout: WorkoutSession) => {
+  const dur = workout.duration || workout.durationMinutes || '';
+  const exercises = workout.exerciseCount || workout.exercises?.length || '';
+  const weight = workout.totalWeight || workout.volumeLoad || '';
+  const calories = workout.caloriesBurned || workout.calories || '';
+  setWorkoutStats({
+    duration: String(dur), exerciseCount: String(exercises),
+    totalWeight: String(weight), caloriesBurned: String(calories),
   });
+  const date = workout.date || workout.sessionDate || workout.createdAt;
+  const dateStr = date ? new Date(date).toLocaleDateString() : '';
+  const workoutName = workout.name || workout.workoutName || workout.title || 'Workout';
+  setPostContent(
+    `Just completed: ${workoutName}${dateStr ? ` on ${dateStr}` : ''}! ` +
+    `${dur ? `${dur} min` : ''} ${exercises ? `| ${exercises} exercises` : ''} ` +
+    `${weight ? `| ${weight} lbs lifted` : ''}`
+  );
+  setShowWorkoutHistory(false);
+}, []);
 ```
 
-If `req.params.hashtagId` is malformed (e.g., `/unfollow/abc`), `parseInt()` returns `NaN`. Sequelize might interpret this as:
-```sql
-DELETE FROM "UserHashtagFollows" WHERE "userId" = 123 AND "hashtagId" IS NULL;
-```
-This could delete **all follows where hashtagId is NULL** (if any exist due to data corruption).
+**Issues:**
 
-**Fix:**
-```javascript
-router.delete('/unfollow/:hashtagId', async (req, res) => {
-  try {
-    const hashtagId = parseInt(req.params.hashtagId);
-    
-    // Validate hashtagId is a positive integer
-    if (!Number.isFinite(hashtagId) || hashtagId <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid hashtag ID' 
-      });
+1. **No sanitization of `workoutName`** — if backend returns `<script>alert('XSS')</script>` as workout name, it gets injected into `postContent`.
+2. **No validation of numeric fields** — `duration`, `exerciseCount`, `totalWeight`, `caloriesBurned` could be negative, NaN, or Infinity.
+3. **Unvalidated date parsing** — malformed dates could crash `new Date(date).toLocaleDateString()`.
+4. **No type guards** — assumes `workout.exercises` is always an array (could be `null` or malformed).
+
+**Attack Vector:**
+
+```json
+// Malicious API response from compromised backend
+{
+  "data": [
+    {
+      "id": "123",
+      "name": "<img src=x onerror=alert('XSS')>",
+      "duration": -999999,
+      "exerciseCount": "DROP TABLE posts;--",
+      "totalWeight": Infinity
     }
-    
-    const deleted = await UserHashtagFollow.destroy({
-      where: { userId: req.user.id, hashtagId }
-    });
-    
-    if (deleted === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'You are not following this hashtag' 
-      });
-    }
-
-    return res.json({ success: true, message: 'Unfollowed hashtag' });
-  } catch (error) {
-    console.error('Error unfollowing hashtag:', error);
-    return res.status(500).json({ success: false, message: 'Failed to unfollow hashtag' });
-  }
-});
-```
-
----
-
-## 🟠 MEDIUM FINDINGS
-
-### MEDIUM-1: Comment Deletion Doesn't Decrement Post Count in Transaction
-**Severity:** MEDIUM  
-**Data at Risk:** Post.commentsCount field  
-**Blast Radius:** Single post's comment count could be off by 1 if deletion fails partway  
-**File & Line:** `backend/routes/social/posts.mjs:1011-1050` (DELETE /:postId/comments/:commentId)
-
-**What's Wrong:**
-```javascript
-await comment.destroy(); // ← Deletes comment
-if (post.commentsCount > 0) {
-  post.commentsCount -= 1;
-  await post.save(); // ← If this fails, comment is deleted but count not updated
-}
-```
-
-**Fix:**
-```javascript
-const transaction = await sequelize.transaction();
-try {
-  await comment.destroy({ transaction });
-  
-  if (post.commentsCount > 0) {
-    post.commentsCount -= 1;
-    await post.save({ transaction });
-  }
-  
-  await transaction.commit();
-  return res.status(200).json({ success: true, message: 'Comment deleted successfully' });
-} catch (error) {
-  await transaction.rollback();
-  throw error;
-}
-```
-
----
-
-### MEDIUM-2: Post Report Duplicate Check Race Condition
-**Severity:** MEDIUM  
-**Data at Risk:** PostReports table (duplicate reports)  
-**Blast Radius:** Single user could submit duplicate reports if they click twice quickly  
-**File & Line:** `backend/routes/social/posts.mjs:803-852` (POST /:postId/report)
-
-**What's Wrong:**
-The duplicate check is not atomic:
-```javascript
-const [existing] = await sequelize.query(`SELECT id FROM "PostReports" WHERE ...`);
-if (existing && existing.length > 0) {
-  return res.status(409).json({ success: false, message: 'You have already reported this post' });
-}
-// ← Another request could insert here before the next line executes
-await sequelize.query(`INSERT INTO "PostReports" ...`);
-```
-
-**Fix:**
-Add a unique constraint to the database schema:
-```sql
--- Migration file
-ALTER TABLE "PostReports" 
-ADD CONSTRAINT unique_user_content_report 
-UNIQUE ("reporterId", "contentType", "contentId");
-```
-
-Then handle the constraint violation in code:
-```javascript
-try {
-  await sequelize.query(`INSERT INTO "PostReports" ...`);
-} catch (error) {
-  if (error.name === 'SequelizeUniqueConstraintError') {
-    return res.status(409).json({ success: false, message: 'You have already reported this post' });
-  }
-  throw error;
-}
-```
-
----
-
-### MEDIUM-3: Hashtag Extraction Doesn't Validate Against Banned Tags
-**Severity:** MEDIUM  
-**Data at Risk:** Hashtag.isBanned enforcement  
-**Blast Radius:** Users could create posts with banned hashtags if they type them manually  
-**File & Line:** `backend/routes/social/hashtags.mjs:47-91` (processHashtags function)
-
-**What's Wrong:**
-The `processHashtags` function skips banned hashtags AFTER creating the join record:
-```javascript
-const [hashtag] = await Hashtag.findOrCreate({ where: { name }, defaults: { ... } });
-if (hashtag.isBanned) continue; // ← PostHashtag record already created above
-```
-
-This means:
-1. User types `#bannedword` in post
-2. `PostHashtag` record created linking post to banned hashtag
-3. Code skips incrementing usage count
-4. **But the link still exists in the database**
-
-**Fix:**
-```javascript
-// Check if hashtag is banned BEFORE creating the join record
-const [hashtag, created] = await Hashtag.findOrCreate({
-  where: { name },
-  defaults: { name, slug: name, category: classifyHashtag(name), isOfficial: false, isBanned: false },
-  ...(transaction ? { transaction } : {})
-});
-
-// Skip banned hashtags entirely
-if (hashtag.isBanned) {
-  console.warn(`Skipping banned hashtag: ${name}`);
-  continue;
-}
-
-// NOW create the join record (only for non-banned tags)
-await PostHashtag.findOrCreate({ ... });
-```
-
----
-
-## ✅ POSITIVE FINDINGS (Good Practices Observed)
-
-1. **CASCADE Deletes Configured:** `PostHashtag` and `UserHashtagFollow` use `onDelete: 'CASCADE'`, preventing orphaned join records when posts/hashtags are deleted.
-2. **Non-Fatal Hashtag Processing:** Hashtag extraction failures don't block post creation (line 575-578 in posts.mjs).
-3. **Input Validation:** Hashtag names validated with regex `/^[a-z0-9_]{2,30}$/i` (Hashtag.mjs:60).
-4. **Banned Hashtag Check:** `isBanned` flag prevents banned tags from appearing in trending/search results.
-
----
-
-## 🔧 RECOMMENDED IMMEDIATE ACTIONS
-
-### Priority 1 (Deploy This Week):
-1. **Fix CRITICAL-1:** Add hashtag count decrement to post deletion route
-2. **Fix CRITICAL-2:** Wrap post creation + hashtag processing in transaction
-3. **Fix HIGH-1:** Add row-level locking to point awarding
-
-### Priority 2 (Next Sprint):
-4. **Fix HIGH-2:** Add input validation to unfollow route
-5. **Fix MEDIUM-1:** Wrap comment deletion in transaction
-6. **Add Database Constraint:** Unique index on `(reporterId, contentType, contentId)` in PostReports
-
-### Priority 3 (Technical Debt):
-7. **Add Integration Tests:** Test post deletion → verify hashtag counts decrement
-8. **Add Monitoring:** Alert if `Hashtag.usageCount` diverges from actual `PostHashtag` count by >5%
-9. **Weekly Cleanup Job:** Recalculate hashtag usage counts from PostHashtag table to fix drift
-
----
-
-## 📊 RISK SUMMARY
-
-| Severity | Count | Data Loss Risk | User Impact |
-|----------|-------|----------------|-------------|
-| CRITICAL | 2 | High (trending data corruption, partial writes) | All users (wrong trending tags
-
----
-
-## [PASS] Code Quality Debate (Phase 2)
-**Model:** gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | **Duration:** 156.8s
-
-## CEO (Claude 4.5 Sonnet) — Round 2 Response
-
-Gemini, you've caught a critical flaw in my reasoning on Issue #8. I concede.
-
----
-
-### AGREEMENT on Issue #8 Rejection
-
-**You are absolutely correct.** I made a fundamental domain modeling error. 
-
-When a `SocialPost` is deleted, the foreign key cascade deletes **all** associated `Comment` records—both parent comments and their replies. There is no scenario where a parent comment survives while its replies are deleted, because they're all bound to the same post lifecycle.
-
-Updating `repliesCount` on records that are about to be cascade-deleted is indeed wasteful and logically incoherent. **Issue #8 is withdrawn.**
-
-The key distinction you highlighted is crucial:
-- **Hashtags** (Issue #2): Shared platform-wide resources that outlive individual posts → **must decrement**
-- **Comments** (Issue #8): Lifecycle-bound to their parent post → **cascade handles everything**
-
----
-
-### CONSENSUS REACHED
-
-We have alignment on the complete architectural fix plan:
-
-#### **Approved Critical Fixes:**
-1. ✅ **Issue #1** (Hashtag increment race condition) - Add `created` flag check in `processHashtags`
-2. ✅ **Issue #2** (Orphaned hashtag counts) - Decrement before post deletion
-3. ✅ **Issue #3** (R2 resource leak) - URL-based key extraction + cleanup in catch block with DLQ logging
-4. ✅ **Issue #4** (Comment count races) - Replace `+=` with atomic `increment()`/`decrement()`
-5. ✅ **Issue #5** (Disabled constraints) - Remove `constraints: false` from associations
-6. ✅ **Issue #6** (Type mismatch) - Use `Number(userId)` instead of `String(userId)`
-7. ✅ **Issue #7** (Transaction boundaries) - Wrap post creation + hashtag processing in transaction
-8. ❌ **Issue #8** (Comment cascade) - **REJECTED** per correct domain analysis
-
----
-
-### Final Implementation Checklist
-
-**File: `backend/routes/social/hashtags.mjs` (Lines 84-92)**
-```javascript
-const [postHashtag, created] = await PostHashtag.findOrCreate({
-  where: { postId, hashtagId: hashtag.id },
-  defaults: { postId, hashtagId: hashtag.id },
-  ...(transaction ? { transaction } : {})
-});
-
-if (created) {
-  await hashtag.increment(['usageCount', 'weeklyCount'], {
-    ...(transaction ? { transaction } : {})
-  });
-}
-```
-
-**File: `backend/routes/social/posts.mjs` (Lines 688-729, before `post.destroy()`)**
-```javascript
-const linkedHashtags = await PostHashtag.findAll({
-  where: { postId },
-  attributes: ['hashtagId']
-});
-
-if (linkedHashtags.length > 0) {
-  const hashtagIds = linkedHashtags.map(ph => ph.hashtagId);
-  const Hashtag = (await import('../../models/social/Hashtag.mjs')).default;
-  await Hashtag.decrement(['usageCount', 'weeklyCount'], {
-    where: { id: { [Op.in]: hashtagIds } }
-  });
-}
-```
-
-**File: `backend/routes/social/posts.mjs` (Lines 415-503, POST / route)**
-```javascript
-let uploadedMediaKey = null;
-
-if (req.file) {
-  try {
-    const isVideo = req.file.mimetype.startsWith('video/');
-    const result = await uploadPhoto(req.file.buffer, {
-      folder: 'social-posts',
-      isVideo,
-      userId: req.user.id
-    });
-    postData.mediaUrl = result.url;
-    postData.mediaType = isVideo ? 'video' : 'image';
-    
-    const urlParts = new URL(result.url);
-    uploadedMediaKey = urlParts.pathname.substring(1);
-    
-  } catch (uploadErr) {
-    console.error('Media upload failed:', uploadErr);
-    return res.status(500).json({ success: false, message: 'Failed to upload media' });
-  }
-}
-
-const sequelize = SocialPost.sequelize;
-const transaction = await sequelize.transaction();
-
-try {
-  const post = await SocialPost.create(postData, { transaction });
-  
-  if (hashtags && hashtags.length > 0) {
-    await processHashtags(post.id, hashtags, transaction);
-  }
-  
-  // Notification logic here (use transaction)
-  
-  await transaction.commit();
-  
-  return res.status(201).json({
-    success: true,
-    post: await post.reload({ include: [...] })
-  });
-  
-} catch (error) {
-  await transaction.rollback();
-  
-  if (uploadedMediaKey) {
-    try {
-      await deletePhoto(uploadedMediaKey);
-      console.log(`Cleaned up orphaned media: ${uploadedMediaKey}`);
-    } catch (cleanupErr) {
-      console.error('CRITICAL: Failed to cleanup orphaned R2 file:', uploadedMediaKey, cleanupErr);
-    }
-  }
-  
-  console.error('Error creating post:', error);
-  return res.status(500).json({ success: false, message: 'Failed to create post' });
-}
-```
-
-**File: `backend/routes/social/posts.mjs` (Lines 843-844 & 910-913)**
-```javascript
-// POST /:postId/comments
-await post.increment('commentsCount');
-
-// DELETE /:postId/comments/:commentId
-await post.decrement('commentsCount');
-```
-
-**File: `backend/models/social/index.mjs` (Lines 17-31)**
-```javascript
-SocialPost.belongsToMany(Hashtag, {
-  through: PostHashtag,
-  foreignKey: 'postId',
-  otherKey: 'hashtagId',
-  as: 'hashtags'
-  // constraints: false REMOVED
-});
-
-Hashtag.belongsToMany(SocialPost, {
-  through: PostHashtag,
-  foreignKey: 'hashtagId',
-  otherKey: 'postId',
-  as: 'posts'
-  // constraints: false REMOVED
-});
-```
-
-**File: `backend/routes/social/posts.mjs` (Line 36)**
-```javascript
-const where = {
-  status: 'published',
-  moderationStatus: 'approved',
-  [Op.or]: [
-    { visibility: 'public' },
-    { userId: Number(userId) }
   ]
-};
+}
 ```
 
----
+**Fix:**
 
-## CEO Final Verdict
+```ts
+import DOMPurify from 'dompurify'; // Install: npm install dompurify
 
-**All architectural concerns resolved.** This fix set eliminates data corruption vectors, prevents resource leaks, and establishes proper transactional boundaries. The codebase is now production-ready from a data integrity standpoint.
+const selectWorkoutFromHistory = useCallback((workout: WorkoutSession) => {
+  // Validate and sanitize numeric fields
+  const dur = Math.max(0, Number(workout.duration || workout.durationMinutes || 0));
+  const exercises = Math.max(0, Number(workout.exerciseCount || workout.exercises?.length || 0));
+  const weight = Math.max(0, Number(workout.totalWeight || workout.volumeLoad || 0));
+  const calories = Math.max(0, Number(workout.caloriesBurned || workout.calories || 0));
 
-**Approved for implementation.** No further debate rounds needed.
+  // Validate ranges
+  if (dur > 1440) { toastError('Invalid workout duration'); return; } // Max 24 hours
+  if (exercises > 200) { toastError('Invalid exercise count'); return; }
+  if (weight > 100000) { toastError('Invalid weight value'); return; }
+  if (calories > 10000) { toastError('Invalid calorie value'); return; }
 
----
+  setWorkoutStats({
+    duration: String(dur),
+    exerciseCount: String(exercises),
+    totalWeight: String(weight),
+    caloriesBurned: String(calories),
+  });
 
-## [PASS] UX/UI Design Debate (Phase 3)
-**Model:** gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | **Duration:** 195.6s
+  // Sanitize text fields
+  const workoutName = DOMPurify.sanitize(
+    workout.name || workout.workoutName || workout.title || 'Workout',
+    { ALLOWED_TAGS: [] } // Strip all HTML
+  ).substring(0, 100); // Max length
 
-## Design Collaborator (Claude 4.5 Sonnet) — Round 2 Response
-
-**CONSENSUS REACHED** on the two outstanding issues with minor technical refinements.
-
-Director, you've identified legitimate brand violations that I introduced in my refactor. I **AGREE** with both corrections:
-
-1. ✅ The `filter: brightness(1.1)` approach was indeed lazy and produces imperceptible changes on dark backgrounds
-2. ✅ Pure white (`#FFFFFF`) violates the Crystalline Swan palette - Frost White (`#E0ECF4`) must be used consistently
-
-However, I propose **one micro-optimization** to your hover state implementation for performance:
-
----
-
-### 🔧 FINAL TECHNICAL REFINEMENT
-
-#### Minor Optimization: Hover State Performance
-
-**File:** `HashtagChip.tsx` (Hover state implementation)
-
-**Your Approach:**
-```tsx
-background: ${({ $active, $color }) => getHoverBackgroundColor($active, $color)};
-```
-
-**The Issue:** This recalculates the gradient string on every render, even though hover states are deterministic.
-
-**My Optimization:**
-```tsx
-// Memoize hover backgrounds at module level (add after getBoxShadow helper)
-const HOVER_BACKGROUNDS = {
-  inactive: {
-    '#8B5CF6': 'linear-gradient(rgba(139, 92, 246, 0.10), rgba(139, 92, 246, 0.10)), #141419',
-    '#C6A84B': 'linear-gradient(rgba(198, 168, 75, 0.10), rgba(198, 168, 75, 0.10)), #141419',
-    '#60C0F0': 'linear-gradient(rgba(96, 192, 240, 0.10), rgba(96, 192, 240, 0.10)), #141419',
-    '#4070C0': 'linear-gradient(rgba(64, 112, 192, 0.10), rgba(64, 112, 192, 0.10)), #141419',
-  },
-  active: {
-    '#8B5CF6': 'linear-gradient(rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.25)), #141419',
-    '#C6A84B': 'linear-gradient(rgba(198, 168, 75, 0.25), rgba(198, 168, 75, 0.25)), #141419',
-    '#60C0F0': 'linear-gradient(rgba(96, 192, 240, 0.25), rgba(96, 192, 240, 0.25)), #141419',
-    '#4070C0': 'linear-gradient(rgba(64, 112, 192, 0.25), rgba(64, 112, 192, 0.25)), #141419',
+  // Validate date
+  const date = workout.date || workout.sessionDate || workout.createdAt;
+  let dateStr = '';
+  if (date) {
+    const parsedDate = new Date(date);
+    if (!isNaN(parsedDate.getTime())) {
+      dateStr = parsedDate.toLocaleDateString();
+    }
   }
-} as const;
 
-const getHoverBackground = (active: boolean, color: string): string => {
-  const state = active ? 'active' : 'inactive';
-  return HOVER_BACKGROUNDS[state][color as keyof typeof HOVER_BACKGROUNDS.active] 
-    || HOVER_BACKGROUNDS[state]['#4070C0'];
-};
+  setPostContent(
+    `Just completed: ${workoutName}${dateStr ? ` on ${dateStr}` : ''}! ` +
+    `${dur ? `${dur} min` : ''} ${exercises ? `| ${exercises} exercises` : ''} ` +
+    `${weight ? `| ${weight} lbs lifted` : ''}`
+  );
+  setShowWorkoutHistory(false);
+}, [toastError]);
 ```
-
-**Why:** Pre-computed string constants eliminate runtime concatenation. With 20+ chips in a filter bar, this saves ~40 string operations per render cycle.
 
 ---
 
-### ✅ FINAL MERGED IMPLEMENTATION
+### **HIGH-3: Uncontrolled Media Upload — No Client-Side Validation**
 
-**File:** `frontend/src/components/Social/Hashtags/HashtagChip.tsx`
+**Severity:** HIGH  
+**Data at Risk:** Server storage, user bandwidth, database integrity  
+**Blast Radius:** All users (if malicious files uploaded)  
+**File & Line:** `useCreatePostForm.ts:104-116`
 
-Here is the **complete, production-ready implementation** incorporating all agreed changes:
+**What's Wrong:**
 
-```tsx
-/**
- * ============================================================================
- * FILE: HashtagChip.tsx
- * PURPOSE: Clickable hashtag chip with usage count and follow state
- * AUTHORS: SwanStudios Creative Director + Design Collaborator
- * LAST MODIFIED: 2026-03-24 | STATUS: Final (Post-Debate Consensus)
- * THEME: Enchanted Apex (Crystalline Swan)
- * ============================================================================
- */
+```ts
+const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  if (!event.target.files?.length) return;
+  const file = event.target.files[0];
+  const isVideo = file.type.startsWith('video/');
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) { toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`); return; }
+  if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) { toastError('Only image and video files are allowed'); return; }
+  // ... rest of code
+}, [mediaPreview, toastError]);
+```
 
-import React from 'react';
-import styled, { css } from 'styled-components';
-import { Hash, CheckCircle } from 'lucide-react';
+**Issues:**
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
-export interface HashtagData {
-  id: number;
-  name: string;
-  slug: string;
-  category?: 'fitness' | 'creative' | 'community' | 'general';
-  usageCount?: number;
-  weeklyCount?: number;
-  isOfficial?: boolean;
+1. **MIME type spoofing** — attacker can rename `malware.exe` to `malware.jpg` and set `Content-Type: image/jpeg`.
+2. **No file signature validation** — doesn't check magic bytes (e.g., `FF D8 FF` for JPEG).
+3. **No dimension limits** — 10MB image could be 50000x50000px, crashing browser/server.
+4. **No virus scanning** — malicious files uploaded directly to server.
+5. **Video codec not validated** — could upload `.webm` with malicious codec.
+
+**Attack Vector:**
+
+```bash
+# Create malicious "image"
+echo "<?php system(\$_GET['cmd']); ?>" > shell.php
+mv shell.php shell.jpg
+# Upload via form — bypasses MIME check
+```
+
+**Fix:**
+
+```ts
+import imageCompression from 'browser-image-compression'; // npm install browser-image-compression
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const MAX_IMAGE_DIMENSION = 4096; // 4K max
+const MAX_VIDEO_DURATION = 180; // 3 minutes
+
+const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  if (!event.target.files?.length) return;
+  const file = event.target.files[0];
+
+  // Step 1: Validate MIME type
+  const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+  const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+  if (!isImage && !isVideo) {
+    toastError('Only JPEG, PNG, WebP, GIF, MP4, WebM, and MOV files allowed');
+    return;
+  }
+
+  // Step 2: Validate file size
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
+    return;
+  }
+
+  // Step 3: Validate magic bytes (file signature)
+  const buffer = await file.slice(0, 12).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const isValidImage = (
+    (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) || // JPEG
+    (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) || // PNG
+    (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) || // WebP
+    (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) // GIF
+  );
+  const isValidVideo = (
+    (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) || // MP4/MOV
+    (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) // WebM
+  );
+
+  if (isImage && !isValidImage) {
+    toastError('Invalid image file (corrupted or wrong format)');
+    return;
+  }
+  if (isVideo && !isValidVideo) {
+    toastError('Invalid video file (corrupted or wrong format)');
+    return;
+  }
+
+  // Step 4: Validate image dimensions
+  if (isImage) {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = objectUrl;
+    });
+    URL.revokeObjectURL(objectUrl);
+
+    if (img.width > MAX_IMAGE_DIMENSION || img.height > MAX_IMAGE_DIMENSION) {
+      toastError(`Image dimensions exceed ${MAX_IMAGE_DIMENSION}x${MAX_IMAGE_DIMENSION}px`);
+      return;
+    }
+
+    // Compress image if > 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: MAX_IMAGE_DIMENSION,
+        useWebWorker: true,
+      });
+      setMedia(compressed);
+      setMediaPreview(URL.createObjectURL(compressed));
+      return;
+    }
+  }
+
+  // Step 5: Validate video duration
+  if (isVideo) {
+    const video = document.createElement('video');
+    const objectUrl = URL.createObjectURL(file);
+
+---
+
+## [FAIL] Code Quality Debate (Phase 2)
+**Model:** gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | **Duration:** 0.0s
+
+Error: The operation was aborted due to timeout
+
+---
+
+## [FAIL] UX/UI Design Debate (Phase 3)
+**Model:** gemini-3.1-pro-preview ↔ anthropic/claude-4.5-sonnet-20250929 | **Duration:** 0.0s
+
+Error: Google GenAI 503: {
+  "error": {
+    "code": 503,
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "status": "UNAVAILABLE"
+  }
 }
 
-interface HashtagChipProps {
-  hashtag: HashtagData;
-  isActive?: boolean;
-  showCount?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  isDisabled?: boolean;
-  onClick?: (hashtag: HashtagData) => void;
-}
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Theme Tokens (Crystalline Swan)
-// ─────────────────────────────────────────────────────────────
-const CATEGORY_COLORS: Record<string, string> = {
-  fitness: '#8B5CF6',    // Wing Purple
-  creative: '#C6A84B',   // Gilded Fern
-  community: '#60C0F0',  // Ice Wing
-  general: '#4070C0',    // Swan Lavender
-};
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Color Helpers (Browser-Safe Implementations)
-// ─────────────────────────────────────────────────────────────
-const BASE_BACKGROUNDS = {
-  inactive: '#141419', // Carbon
-  active: {
-    '#8B5CF6': 'linear-gradient(rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.15)), #141419',
-    '#C6A84B': 'linear-gradient(rgba(198, 168, 75, 0.15), rgba(198, 168, 75, 0.15)), #141419',
-    '#60C0F0': 'linear-gradient(rgba(96, 192, 240, 0.15), rgba(96, 192, 240, 0.15)), #141419',
-    '#4070C0': 'linear-gradient(rgba(64, 112, 192, 0.15), rgba(64, 112, 192, 0.15)), #141419',
-  }
-} as const;
-
-const HOVER_BACKGROUNDS = {
-  inactive: {
-    '#8B5CF6': 'linear-gradient(rgba(139, 92, 246, 0.10), rgba(139, 92, 246, 0.10)), #141419',
-    '#C6A84B': 'linear-gradient(rgba(198, 168, 75, 0.10), rgba(198, 168, 75, 0.10)), #141419',
-    '#60C0F0': 'linear-gradient(rgba(96, 192, 240, 0.10), rgba(96, 192, 240, 0.10)), #141419',
-    '#4070C0': 'linear-gradient(rgba(64, 112, 192, 0.10), rgba(64, 112, 192, 0.10)), #141419',
-  },
-  active: {
-    '#8B5CF6': 'linear-gradient(rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.25)), #141419',
-    '#C6A84B': 'linear-gradient(rgba(198, 168, 75, 0.25), rgba(198, 168, 75, 0.25)), #141419',
-    '#60C0F0': 'linear-gradient(rgba(96, 192, 240, 0.25), rgba(96, 192, 240, 0.25)), #141419',
-    '#4070C0': 'linear-gradient(rgba(64, 112, 192, 0.25), rgba(64, 112, 192, 0.25)), #141419',
-  }
-} as const;
-
-const BOX_SHADOWS = {
-  inactive: 'none',
-  active: {
-    '#8B5CF6': '0 0 16px rgba(139, 92, 246, 0.3)',
-    '#C6A84B': '0 0 16px rgba(198, 168, 75, 0.3)',
-    '#60C0F0': '0 0 16px rgba(96, 192, 240, 0.3)',
-    '#4070C0': '0 0 16px rgba(64, 112, 192, 0.3)',
-  }
-} as const;
-
-const getBackground = (active: boolean, color: string): string => {
-  if (!active) return BASE_BACKGROUNDS.inactive;
-  return BASE_BACKGROUNDS.active[color as keyof typeof BASE_BACKGROUNDS.active] 
-    || BASE_BACKGROUNDS.active['#4070C0'];
-};
-
-const getHoverBackground = (active: boolean, color: string): string => {
-  const state = active ? 'active' : 'inactive';
-  return HOVER_BACKGROUNDS[state][color as keyof typeof HOVER_BACKGROUNDS.active] 
-    || HOVER_BACKGROUNDS[state]['#4070C0'];
-};
-
-const getBoxShadow = (active: boolean, color: string): string => {
-  if (!active) return BOX_SHADOWS.inactive;
-  return BOX_SHADOWS.active[color as keyof typeof BOX_SHADOWS.active] 
-    || BOX_SHADOWS.active['#4070C0'];
-};
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
-const Chip = styled.button<{ $active: boolean; $color: string; $size: string }>`
-  /* Base Layout */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 100px;
-  cursor: pointer;
-  white-space: nowrap;
-  
-  /* Typography */
-  font-family: 'Sora', sans-serif;
-  font-weight: 500;
-  
-  /* Crystalline Swan Colors */
-  background: ${({ $active, $color }) => getBackground($active, $color)};
-  border: 1px solid ${({ $active, $color }) => 
-    $active ? $color : 'rgba(64, 112, 192, 0.4)'}; /* Swan Lavender 40% */
-  color: ${({ $active }) => 
-    $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.7)'}; /* Frost White */
-  box-shadow: ${({ $active, $color }) => getBoxShadow($active, $color)};
-
-  /* Animation */
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  will-change: transform, box-shadow, background;
-
-  /* Responsive Sizing (Desktop-first, Touch-optimized) */
-  ${({ $size }) => $size === 'sm' && css`
-    padding: 0 12px;
-    font-size: 13px;
-    min-height: 32px;
-    letter-spacing: 0;
-    
-    @media (pointer: coarse) {
-      min-height: 44px;
-      padding: 0 16px;
-      font-size: 14px;
-    }
-  `}
-  
-  ${({ $size }) => $size === 'md' && css`
-    padding: 0 16px;
-    font-size: 15px;
-    min-height: 36px;
-    letter-spacing: 0.01em;
-    
-    @media (pointer: coarse) {
-      min-height: 48px;
-      padding: 0 20px;
-      font-size: 16px;
-    }
-  `}
-  
-  ${({ $size }) => $size === 'lg' && css`
-    padding: 0 20px;
-    font-size: 16px;
-    min-height: 40px;
-    letter-spacing: 0.01em;
-    
-    @media (pointer: coarse) {
-      min-height: 52px;
-      padding: 0 24px;
-      font-size: 18px;
-    }
-  `}
-
-  /* Interactive States */
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    background: ${({ $active, $color }) => getHoverBackground($active, $color)};
-    border-color: ${({ $active, $color }) => 
-      $active ? $color : 'rgba(64, 112, 192, 0.8)'}; /* Swan Lavender 80% */
-    color: #E0ECF4; /* Full Frost White on hover */
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.96) translateY(0);
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #8B5CF6; /* Wing Purple Focus Ring */
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const CountBadge = styled.span<{ $active: boolean }>`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8em;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 2px 8px;
-  border-radius: 12px;
-  /* FIXED: Using Frost White (#E0ECF4) instead of Pure White */
-  background: ${({ $active }) => 
-    $active ? 'rgba(224, 236, 244, 0.15)' : 'rgba(10, 10, 15, 0.5)'}; /* Obsidian Black 50% */
-  color: ${({ $active }) => 
-    $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
-`;
-
-const OfficialIcon = styled(CheckCircle)`
-  color: #C6A84B; /* Gilded Fern */
-  margin-left: -2px;
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
-export const HashtagChip: React.FC<HashtagChipProps> = ({
-  hashtag,
-  isActive = false,
-  showCount = false,
-  size = 'md',
-  isDisabled = false,
-  onClick,
-}) => {
-  const categoryColor = CATEGORY_COLORS[hashtag.category || 'general'];
-  
-  const formatCount = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
-    return count.toString();
-  };
-
-  const ariaLabel = [
-    isActive ? 'Remove filter for' : 'Filter by',
-    `hashtag ${hashtag.name}`,
-    showCount && hashtag.usageCount ? `, ${hashtag.usageCount} posts` : '',
-    hashtag.isOfficial ? ', official tag' : ''
-  ].filter(Boolean).join('');
-
-  return (
-    <Chip
-      $active={isActive}
-      $color={categoryColor}
-      $size={size}
-      onClick={() => onClick?.(hashtag)}
-      disabled={isDisabled}
-      aria-pressed={isActive}
-      aria-label={ariaLabel}
-      type="button"
-    >
-      <Hash size={size === 'sm' ? 14 : size === 'md' ? 16 : 18} stroke
 
 ---
 
@@ -2157,68 +1782,69 @@ export const HashtagChip: React.FC<HashtagChipProps> = ({
 
 ### Critical Findings
 **UX & Accessibility:**
-- *   **Finding:** CRITICAL
-- *   **Truncation/Scrolling:** If `white-space: nowrap` is critical for single chips, consider how long hashtag names are handled. On mobile, very long hashtags might need truncation with an ellipsis or a horizontal scrollable container for a group of chips.
+- *   **CRITICAL:** Many text elements and interactive components use colors that likely fail WCAG 2.1 AA contrast requirements against their backgrounds.
+- *   **CRITICAL:** Extensive hardcoded colors are present throughout the `SocialFeed.tsx`, `CreatePostCard.tsx` (via `CreatePostStyles.ts`), `PostCard.tsx` (via `PostCardStyles.ts`), and `PostContent.tsx`. This is a major inconsistency and maintenance burden.
+- *   **CRITICAL:** As noted above, colors are extensively hardcoded.
+- *   **LOW:** `PostCard` `handleCopyLink` has a `catch` block that silently fails. While not critical, providing feedback to the user if copying fails (e.g., a toast notification) would improve UX.
+- *   **LOW:** `useCreatePostForm.ts` `fetchWorkoutHistory` catches errors and logs them to the console. If this error prevents a critical part of the form from working, it should be surfaced to the user (e.g., a toast notification or an error message within the workout history section).
 **Code Quality:**
+- The codebase demonstrates strong architectural patterns with proper component decomposition, but contains **critical TypeScript violations**, **performance anti-patterns**, and **accessibility gaps**. The theme implementation is excellent, but several hardcoded values remain.
 - **Severity:** CRITICAL
-- **Issue:** While using parameterized queries, the `reason` field is validated but `description` is not sanitized. More critically, the raw SQL approach bypasses Sequelize's built-in protections.
 - **Severity:** CRITICAL
 - **Severity:** CRITICAL
-- 1. **Immediate (CRITICAL):**
+**Performance & Scalability:**
+- *   **Rating: CRITICAL**
 **Competitive Intelligence:**
-- While SwanStudios has a robust "social graph" foundation that beats the standard "feed-only" model of competitors like TrueCoach or My PT Hub, there are critical gaps in user engagement loops and content monetization.
+- This analysis evaluates the SwanStudios social feed codebase against competitive fitness SaaS platforms, identifying critical gaps, unique differentiators, and actionable growth recommendations. The codebase demonstrates exceptional attention to gamification architecture and user engagement mechanics, yet reveals significant scaling challenges that must be addressed before pursuing aggressive user acquisition.
 **User Research & Persona Alignment:**
-- **Critical Gap:**
-- **Critical Gap:**
-- **Missing Critical Elements:**
-- 5. **Streak tracking** - Critical for habit formation
-- **Critical Success Factor:** The platform must pivot from being a "social network with fitness hashtags" to a "fitness platform with social features." Currently, the social infrastructure is robust but the fitness-specific value proposition is buried in hashtag categorization rather than being front-and-center in the user experience.
+- **Critical Gaps:**
+- **Critical Gaps:**
 **Architecture & Bug Hunter:**
-- This review identifies **CRITICAL** bugs that will cause runtime failures, **HIGH** severity architectural flaws, and **MEDIUM** production readiness issues. The codebase has significant data integrity risks around hashtag-post relationships and point awarding.
+- This review identifies **5 CRITICAL**, **8 HIGH**, **12 MEDIUM**, and **15 LOW** severity issues across the 6 files reviewed. The codebase has solid architectural foundations but ships with several production-blocking bugs, incomplete features, and hardcoded values that must be addressed before deployment.
 **Frontend UX & Code Patterns:**
-- *   **Theme Integration:** You are using hardcoded hex values in `CATEGORY_COLORS`. **CRITICAL:** Move these to your `theme` object (e.g., `theme.colors.hashtags.fitness`). This ensures consistency with the rest of the Crystalline Swan design system.
+- *   **Finding:** **CRITICAL.** The `LoadMoreButton` and `ActionButton` components lack sufficient `aria-label` or `aria-pressed` states in some instances.
+- *   **Rating:** **CRITICAL**
 **Data Safety & Integrity:**
-- I've identified **7 CRITICAL/HIGH findings** that could result in data loss, orphaned records, or corrupted state. The most severe issues involve:
-- **Severity:** CRITICAL
-- **Severity:** CRITICAL
-- // Award points AFTER commit (non-critical, can fail independently)
-- 1. **Fix CRITICAL-1:** Add hashtag count decrement to post deletion route
-**Code Quality Debate (Phase 2):**
-- Gemini, you've caught a critical flaw in my reasoning on Issue #8. I concede.
-- console.error('CRITICAL: Failed to cleanup orphaned R2 file:', uploadedMediaKey, cleanupErr);
+- **Severity Scale:** CRITICAL > HIGH > MEDIUM > LOW
+- ✅ **No critical findings.** No `DELETE`, `TRUNCATE`, `DROP`, `sync({ force: true })`, or destructive database operations present in frontend code.
 
 ### High Priority Findings
 **UX & Accessibility:**
-- *   **Description:** The `HashtagChip` component uses `var(--text-secondary, #94a3b8)` for inactive text color and `var(--border-soft, rgba(96, 192, 240, 0.12))` for inactive border color. These values, especially `#94a3b8` (a light grey-blue) on a `var(--bg-elevated, #141419)` (a very dark grey) background, are highly likely to fail WCAG 2.1 AA contrast requirements for normal text (minimum 4.5:1). The border color `rgba(96, 192, 240, 0.12)` is almost invisible on a dark background, making the chip's boundary unclear for users with low vision.
-- *   **Finding:** HIGH
-- *   **Finding:** HIGH
+- *   **HIGH:** `LoadMoreButton`, `ContainedButton`, `OutlinedButton` explicitly set `min-height: 44px`, which is excellent and meets the WCAG 2.1 AA requirement for touch targets.
+- *   **HIGH:** Typography is also inconsistently applied. While `Heading6`, `BodyText2`, `CaptionText` are defined, many elements directly set `font-size`, `font-weight`, `line-height`, `letter-spacing` instead of using these styled components or theme-defined typography tokens.
+- *   **MEDIUM:** `CreatePostCard` `handleFileSelect`: Error messages (`File size exceeds...`, `Only image and video files are allowed`) are shown via `useToast().error`. This is good, but ensuring these toasts are highly visible and accessible (as discussed in WCAG section) is important.
+- *   **HIGH:** `SocialFeed.tsx` provides a `WelcomeCard` when `posts.length` is 0. This is an excellent empty state, guiding new users with clear CTAs ("Browse Challenges", "Find Friends") and a helpful tip. The design of the `WelcomeCard` is also visually appealing and on-brand.
+- 3.  **Enhance Accessibility for Interactive Elements (HIGH/MEDIUM):**
 **Code Quality:**
 - **Severity:** HIGH
 - **Severity:** HIGH
 - **Severity:** HIGH
 - **Severity:** HIGH
-- 2. **Short-term (HIGH):**
 **Performance & Scalability:**
-- *   **Impact:** If a post has 10 hashtags, this triggers **30 database operations** per post creation. Under high load, this will exhaust the connection pool.
+- *   **Rating: HIGH**
+- *   **Rating: HIGH**
+- *   **Rating: HIGH**
 **Competitive Intelligence:**
-- Most PT software looks like a medical chart (white background, blue links). SwanStudios leverages the *Crystalline Swan* theme (`#002060` + `#60C0F0`) to tap into the "Apex Predator" market—users who want high performance but appreciate high design.
+- **Notifications Center** is referenced in the gamification header but not implemented. Users have no centralized view of interactions on their content, new followers, or community highlights. This creates a passive experience where engagement feels invisible rather than rewarding.
+- - **Premium perception** that justifies higher pricing tiers
+- **Assessment:** The social feed is entirely free-to-use, suggesting monetization happens elsewhere in the platform. This creates a risk where the highest-engagement features generate no direct revenue.
+- Transformations represent high-engagement content. Implement challenge entry with fees:
+- - Direct message priority for higher tiers
 **User Research & Persona Alignment:**
-- **High-Risk Areas:**
-- - ❌ No high-contrast mode
-- - Implement high-contrast theme option
+- - **No trainer-specific features**: Can't highlight expert posts, create challenges, or provide verified advice
+- - First Responder: High contrast, utilitarian
 **Architecture & Bug Hunter:**
-- This review identifies **CRITICAL** bugs that will cause runtime failures, **HIGH** severity architectural flaws, and **MEDIUM** production readiness issues. The codebase has significant data integrity risks around hashtag-post relationships and point awarding.
+- This review identifies **5 CRITICAL**, **8 HIGH**, **12 MEDIUM**, and **15 LOW** severity issues across the 6 files reviewed. The codebase has solid architectural foundations but ships with several production-blocking bugs, incomplete features, and hardcoded values that must be addressed before deployment.
 **Frontend UX & Code Patterns:**
-- *   **Backend Logic:** The `processHashtags` function in `hashtags.mjs` is robust. Using `findOrCreate` inside a loop is standard for Sequelize, but for high-traffic scenarios, consider a bulk-insert strategy to reduce database round-trips.
-- *   **Color-Only Indicators:** You are using color to distinguish categories. **HIGH:** If a user is colorblind, they cannot distinguish between "Fitness" and "Creative" categories. Add a small icon or text label to the chip to communicate category context.
+- *   **Rating:** **HIGH** (Positive)
+- *   **Rating:** **HIGH**
+- **Gemini 3.1 Flash Verdict:** The code is highly modular and follows the "no-monolith" rule effectively. The logic separation between hooks and components is top-tier. Focus on **keyboard navigation** and **reduced-motion support** to bring this to production-grade accessibility standards.
 **Data Safety & Integrity:**
-- **OVERALL RISK LEVEL: MEDIUM-HIGH**
-- I've identified **7 CRITICAL/HIGH findings** that could result in data loss, orphaned records, or corrupted state. The most severe issues involve:
+- **Severity Scale:** CRITICAL > HIGH > MEDIUM > LOW
+- However, **3 HIGH-severity findings** related to **API contract assumptions** and **1 MEDIUM-severity finding** related to **data exposure** require immediate attention to prevent future data loss or leaks when backend endpoints are wired.
 - **Severity:** HIGH
 - **Severity:** HIGH
-- 3. **Fix HIGH-1:** Add row-level locking to point awarding
-**Code Quality Debate (Phase 2):**
-- The key distinction you highlighted is crucial:
+- **Severity:** HIGH
 
 ---
 

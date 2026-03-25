@@ -575,7 +575,8 @@ router.post('/', upload.single('media'), async (req, res) => {
       visibility
     };
     
-    // Upload media to R2 if file was provided
+    // Upload media to R2 BEFORE transaction (external service, not rollback-safe)
+    let uploadedMediaKey = null;
     if (req.file) {
       try {
         const isVideo = req.file.mimetype.startsWith('video/');
@@ -587,6 +588,11 @@ router.post('/', upload.single('media'), async (req, res) => {
         });
         postData.mediaUrl = result.url;
         postData.mediaType = isVideo ? 'video' : 'image';
+        // Extract R2 key for cleanup on rollback
+        try {
+          const urlParts = new URL(result.url);
+          uploadedMediaKey = urlParts.pathname.substring(1);
+        } catch { uploadedMediaKey = result.url; }
       } catch (uploadErr) {
         console.error('R2 upload failed for social post:', uploadErr.message);
         return res.status(500).json({
@@ -595,41 +601,52 @@ router.post('/', upload.single('media'), async (req, res) => {
         });
       }
     }
-    
+
     // Add reference IDs if specified
-    if (req.body.workoutSessionId) {
-      postData.workoutSessionId = req.body.workoutSessionId;
-    }
-    
-    if (req.body.achievementId) {
-      postData.achievementId = req.body.achievementId;
-    }
-    
-    if (req.body.userAchievementId) {
-      postData.userAchievementId = req.body.userAchievementId;
-    }
-    
-    if (req.body.challengeId) {
-      postData.challengeId = req.body.challengeId;
-    }
-    
-    // Create the post
-    const post = await SocialPost.create(postData);
+    if (req.body.workoutSessionId) postData.workoutSessionId = req.body.workoutSessionId;
+    if (req.body.achievementId) postData.achievementId = req.body.achievementId;
+    if (req.body.userAchievementId) postData.userAchievementId = req.body.userAchievementId;
+    if (req.body.challengeId) postData.challengeId = req.body.challengeId;
 
-    // Extract and process hashtags from content
+    // ── Transaction: post creation + hashtag linking (atomic) ──
+    // Ensures post and its hashtag associations are created together or not at all
+    const transaction = await sequelize.transaction();
+    let post = null;
     let linkedHashtags = [];
+
     try {
-      const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
-      const tagNames = extractHashtags(content);
-      if (tagNames.length > 0) {
-        linkedHashtags = await processHashtags(post.id, tagNames);
+      post = await SocialPost.create(postData, { transaction });
+
+      // Extract and process hashtags inside same transaction
+      try {
+        const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+        const tagNames = extractHashtags(content);
+        if (tagNames.length > 0) {
+          linkedHashtags = await processHashtags(post.id, tagNames, transaction);
+        }
+      } catch (hashtagErr) {
+        // Non-fatal: hashtag failure should not roll back the post
+        console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
       }
-    } catch (hashtagErr) {
-      // Non-fatal: hashtag processing failure should not block post creation
-      console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
+
+      await transaction.commit();
+    } catch (txError) {
+      await transaction.rollback();
+
+      // Clean up orphaned R2 media on transaction failure
+      if (uploadedMediaKey) {
+        try {
+          await deletePhoto(uploadedMediaKey);
+          console.log(`Cleaned up orphaned R2 media: ${uploadedMediaKey}`);
+        } catch (cleanupErr) {
+          console.error('CRITICAL: Failed to cleanup orphaned R2 file:', uploadedMediaKey, cleanupErr.message);
+        }
+      }
+
+      throw txError;
     }
 
-    // Award points for post creation based on type
+    // Award points AFTER commit (non-transactional, fire-and-forget safe)
     const pointAction = `post_create_${type}`;
     const pointResult = await awardSocialPoints(req.user.id, pointAction, {
       postId: post.id,
@@ -650,7 +667,7 @@ router.post('/', upload.single('media'), async (req, res) => {
       ]
     });
 
-    // Add point information to response
+    // Build response with optional points data
     const responseData = {
       success: true,
       message: 'Post created successfully',
@@ -667,10 +684,7 @@ router.post('/', upload.single('media'), async (req, res) => {
     return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating post:', error);
-    
-    // With memory storage, no temp file cleanup needed
-    // R2 upload only happens on success path above
-    
+
     return res.status(500).json({
       success: false,
       message: 'Failed to create post',

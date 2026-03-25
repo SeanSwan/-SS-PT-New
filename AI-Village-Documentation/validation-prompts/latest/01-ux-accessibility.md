@@ -1,167 +1,147 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 18.7s
-> **Files:** backend/models/social/Hashtag.mjs, backend/models/social/PostHashtag.mjs, backend/models/social/UserHashtagFollow.mjs, backend/routes/social/hashtags.mjs, backend/routes/social/posts.mjs, backend/models/social/index.mjs, frontend/src/components/Social/Hashtags/HashtagChip.tsx
-> **Generated:** 3/24/2026, 10:56:33 PM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 24.5s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/Social/Feed/PostCard.tsx, frontend/src/components/Social/Feed/hooks/useCreatePostForm.ts, frontend/src/components/Social/Feed/components/PostContent.tsx, frontend/src/components/Social/Feed/components/PostActions.tsx
+> **Generated:** 3/24/2026, 11:23:10 PM
 
 ---
 
-Here's a comprehensive UX and accessibility audit of the provided code, focusing on the `HashtagChip.tsx` component and related backend logic.
+I've reviewed the provided code for SwanStudios' social feed components, focusing on WCAG 2.1 AA compliance, mobile UX, design consistency, user flow friction, and loading states.
+
+Here's a breakdown of the findings:
 
 ---
 
-## UX and Accessibility Audit: SwanStudios Hashtag Feature
+## WCAG 2.1 AA Compliance
 
-### Overview
-The provided code defines the backend models and routes for a hashtag system and a frontend React component for displaying hashtags. The backend logic appears robust for managing hashtags, their associations, and basic trending/search functionalities. The frontend component, `HashtagChip.tsx`, is the primary focus for UX and accessibility concerns.
+### Color Contrast
 
----
+*   **CRITICAL:** Many text elements and interactive components use colors that likely fail WCAG 2.1 AA contrast requirements against their backgrounds.
+    *   `LoadMoreButton` text (`#E0ECF4`) on `transparent` background (which will be `Midnight Sapphire #002060` or `Royal Depth #003080` from theme) is unlikely to pass.
+    *   `LoadMoreButton` hover state (`#8B5CF6`) on `rgba(139, 92, 246, 0.08)` background is unlikely to pass.
+    *   `EmptyFeedMessage` `Heading6` (`#C6A84B`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `EmptyFeedMessage` `BodyText2` (`#E0ECF4`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `WelcomeTip` text (`#50A0F0`) on `rgba(0, 32, 96, 0.6)` background.
+    *   `GamificationHeader` `Heading6` (`white`) on `linear-gradient(135deg, #8B5CF6, #8B5CF6)` background. This might pass, but needs verification.
+    *   `PointsDisplay` `BodyText2` (`#E0ECF4`) on `rgba(255, 255, 255, 0.2)` background.
+    *   `ActivityIndicator` `BodyText2` (`#60C0F0`) on `rgba(96, 192, 240, 0.1)` background.
+    *   `StatCard` `CaptionText` (`#50A0F0`) on `rgba(0, 48, 128, 0.95)` or `rgba(0, 48, 128, 0.85)` background.
+    *   `LiveBadgeLabel` (`#001840`) on `#60C0F0` background. This might pass, but needs verification.
+    *   `OutlinedButton` text (`#8B5CF6`) on `transparent` background.
+    *   `PostCard` `ActionButton` (e.g., `ThumbsUp`) `stroke` and `fill` colors (`#60C0F0`) on `transparent` background.
+    *   `PostCard` `Toast` text (`You earned X points!`) on its background.
+    *   **Recommendation:** Use a color contrast checker tool (e.g., WebAIM Contrast Checker) for all text and interactive elements against their respective backgrounds. Ensure a contrast ratio of at least 4.5:1 for normal text and 3:1 for large text (18pt or 14pt bold). Define and use accessible color tokens from the theme.
 
-### 1. WCAG 2.1 AA Compliance
+### Aria Labels & Semantics
 
-#### Color Contrast
+*   **MEDIUM:** `LoadMoreButton` has text "Load more posts" which is good, but when `isLoadingMore`, it changes to "Loading more posts..." and includes a spinner. While the text change is helpful, explicitly adding `aria-live="polite"` to the button or a visually hidden span within it could announce the loading state to screen reader users more reliably.
+*   **MEDIUM:** `Spinner` components are used for loading. They should ideally have `role="status"` and `aria-label="Loading"` or `aria-busy="true"` on their container to convey their purpose to screen readers.
+*   **MEDIUM:** `Toast` component for point notifications. It should have `role="status"` or `role="alert"` (depending on urgency) and `aria-live="polite"` or `aria-live="assertive"` to ensure screen readers announce its content automatically. The `ToastCloseBtn` has `title="Dismiss"`, which is good, but `aria-label="Dismiss notification"` would be more explicit for screen readers.
+*   **LOW:** `PostCard` `ActionButton` for reactions (ThumbsUp, Heart, Swan) have `title` attributes, which is a good start. Adding `aria-label` that explicitly describes the action and current state (e.g., `aria-label="Like post, currently liked"` or `aria-label="Like post, currently not liked"`) would be more robust.
+*   **LOW:** `NativeSelect` in `CreatePostCard` for visibility. While native selects are generally accessible, ensuring it's properly associated with a visible `<label>` element (or `aria-labelledby`) is crucial. The `SelectHelperText` is good, but not a direct label.
+*   **LOW:** `FloatingCreateButton` has `title="Create an enhanced post with more options"`. An `aria-label` would be more direct.
 
-*   **Finding:** CRITICAL
-*   **Description:** The `HashtagChip` component uses `var(--text-secondary, #94a3b8)` for inactive text color and `var(--border-soft, rgba(96, 192, 240, 0.12))` for inactive border color. These values, especially `#94a3b8` (a light grey-blue) on a `var(--bg-elevated, #141419)` (a very dark grey) background, are highly likely to fail WCAG 2.1 AA contrast requirements for normal text (minimum 4.5:1). The border color `rgba(96, 192, 240, 0.12)` is almost invisible on a dark background, making the chip's boundary unclear for users with low vision.
-*   **Recommendation:**
-    *   **Text Color:** Increase the contrast of `var(--text-secondary)` against `var(--bg-elevated)`. Aim for a contrast ratio of at least 4.5:1. Consider using a lighter color from the active palette (e.g., `Frost White #E0ECF4` or a slightly darker version of it) or a custom color that passes the contrast check.
-    *   **Border Color:** Increase the opacity or brightness of `var(--border-soft)` when used for inactive chips, or use a more contrasting color from the theme.
-    *   **Active State:** Ensure the active state text color (`#E0ECF4`) on the mixed background (`color-mix(in srgb, ${$color} 20%, var(--bg-elevated, #141419))`) also meets the 4.5:1 contrast ratio.
-    *   **Tooling:** Use a color contrast checker (e.g., WebAIM Contrast Checker) to verify all color combinations.
+### Keyboard Navigation & Focus Management
 
-#### Aria Labels
-
-*   **Finding:** MEDIUM
-*   **Description:** The `HashtagChip` is a `<button>`. While buttons are inherently interactive and focusable, adding `aria-label` can provide more context, especially when the visual text might be abbreviated or when additional information (like `usageCount`) is present but not explicitly part of the button's accessible name. For example, a screen reader might just announce "#fitness" without the context of it being a filter or a link to a page.
-*   **Recommendation:**
-    *   For the `HashtagChip`, consider an `aria-label` like `aria-label={\`Filter by hashtag ${hashtag.name}\`}` or `aria-label={\`View posts tagged ${hashtag.name}\`}` depending on its primary action. If `showCount` is true, incorporate it: `aria-label={\`View posts tagged ${hashtag.name}, ${hashtag.usageCount} posts\`} `.
-    *   If the chip acts as a toggle (e.g., for filtering), use `aria-pressed={isActive}`.
-
-#### Keyboard Navigation
-
-*   **Finding:** LOW
-*   **Description:** The `HashtagChip` is rendered as a `<button>`, which is semantically correct and inherently keyboard-focusable and clickable. This is good. No explicit issues found in the provided snippet.
-*   **Recommendation:** Ensure that when multiple `HashtagChip` components are present (e.g., in a list of trending hashtags), their tab order is logical and predictable. This is usually handled by the browser's default tab order, but complex layouts might require `tabIndex` adjustments (though generally avoided if possible).
-
-#### Focus Management
-
-*   **Finding:** LOW
-*   **Description:** Similar to keyboard navigation, using a native `<button>` ensures proper focus indication by default.
-*   **Recommendation:** Verify that the default focus indicator (outline) is clearly visible and not suppressed or overridden in a way that reduces its visibility. If custom focus styles are applied, ensure they meet WCAG 2.1 AA requirements for non-text contrast (3:1 against adjacent colors).
+*   **MEDIUM:** The `PostCard` menu (MoreVertical) uses `useEffect` with `mousedown` to close on outside clicks. This is good for mouse users, but keyboard users need a way to close it (e.g., `Escape` key). Focus should also be managed within the opened menu, ensuring users can tab through menu items.
+*   **MEDIUM:** `Share Dialog` in `PostCard`: When opened, focus should be trapped within the modal, and the `Escape` key should close it. Currently, `handleOverlayClick` only handles mouse clicks.
+*   **MEDIUM:** `ReportPostModal` (not provided, but mentioned): Similar to the share dialog, focus management and `Escape` key handling are crucial for accessibility.
+*   **LOW:** `TransformationSlider` in `PostContent`: This is a `div` with a `Play` icon. If this is intended to be interactive (e.g., to control the slider value), it needs to be made keyboard focusable (`tabindex="0"`) and have appropriate `role` and `aria-` attributes (e.g., `role="slider"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`). Currently, it appears to be a static visual element. If it's static, the `Play` icon might be misleading.
+*   **LOW:** `TryWorkoutButton` in `PostContent`: This is a `button`, which is good. Ensure its focus style is clear.
 
 ---
 
-### 2. Mobile UX
+## Mobile UX
 
-#### Touch Targets
+### Touch Targets
 
-*   **Finding:** HIGH
-*   **Description:** The `HashtagChip` has a `min-height` that varies by `size` prop: `sm` (28px), `md` (36px), `lg` (44px). The WCAG 2.1 AA requirement for touch targets is a minimum of 44x44 CSS pixels. Only the `lg` size meets this requirement. The `sm` and `md` sizes are too small for reliable touch interaction, especially for users with motor impairments or large fingers.
-*   **Recommendation:**
-    *   **Increase `min-height` for `sm` and `md`:** Adjust `min-height` for `sm` and `md` to at least 44px. This might require adjusting padding and font sizes to maintain visual balance.
-    *   **Consider `min-width`:** While `min-height` is specified, `min-width` is not. Ensure that the horizontal padding and content make the overall clickable area at least 44px wide as well.
-    *   **Consistent Sizing:** Re-evaluate if `sm` and `md` sizes are truly necessary if they cannot meet the touch target requirements. Perhaps `lg` should be the default, or the smallest size should still be 44px.
+*   **HIGH:** `LoadMoreButton`, `ContainedButton`, `OutlinedButton` explicitly set `min-height: 44px`, which is excellent and meets the WCAG 2.1 AA requirement for touch targets.
+*   **MEDIUM:** `ActionButton` components in `PostActions` (like, heart, swan, comment, share) are icons. While they might visually appear large enough, their actual clickable area needs to be verified. Ensure the padding or the interactive area around the icon is at least 44x44px.
+*   **MEDIUM:** `ToastCloseBtn` in `PostCard` is a small `X` icon. This needs to be at least 44x44px.
+*   **MEDIUM:** `NativeSelect` in `CreatePostCard` for visibility. While the `min-height` is not explicitly set on the `NativeSelect` itself, its parent `VisibilitySelectWrapper` should ensure the overall interactive area is sufficient.
+*   **LOW:** `WelcomeTip` has a `Zap` icon and text. If this is interactive (e.g., opens a tooltip or navigates), its touch target needs to be 44x44px. Currently, it appears static.
 
-#### Responsive Breakpoints
+### Responsive Breakpoints
 
-*   **Finding:** LOW
-*   **Description:** The provided `HashtagChip.tsx` snippet doesn't include explicit media queries for responsive breakpoints. However, `styled-components` allows for responsive styling. The `display: inline-flex` and `white-space: nowrap` properties could lead to horizontal scrolling or cramped layouts if many chips are displayed on a small screen without proper wrapping or truncation.
-*   **Recommendation:**
-    *   **Wrapping:** Ensure the parent container of multiple chips allows them to wrap onto new lines (`flex-wrap: wrap`).
-    *   **Truncation/Scrolling:** If `white-space: nowrap` is critical for single chips, consider how long hashtag names are handled. On mobile, very long hashtags might need truncation with an ellipsis or a horizontal scrollable container for a group of chips.
-    *   **Font Size Adjustment:** While `font-size` is set by `size` prop, consider if these sizes are optimal across all screen sizes or if they should be adjusted at certain breakpoints.
+*   **MEDIUM:** `FeedContainer` has `max-width: 650px` and `margin: 0 auto`, which makes it center-aligned on larger screens and full-width on smaller screens. This is a good start.
+*   **MEDIUM:** `FeedStats` uses `grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))`. This is a good responsive pattern for the stat cards, allowing them to wrap.
+*   **LOW:** The overall layout seems to rely on `max-width` and `gap`. A more explicit mobile-first approach with specific breakpoints for `font-size`, `padding`, and `margin` might be beneficial for a truly optimized mobile experience, especially for complex components like `CreatePostCard`.
+*   **LOW:** `CreatePostCard`'s `FormFooter` has `FooterLeft` and `FooterRight`. On small screens, these might stack awkwardly or become too cramped. Consider a flex-wrap or column layout for these on mobile.
 
-#### Gesture Support
+### Gesture Support
 
-*   **Finding:** N/A
-*   **Description:** The `HashtagChip` is a simple clickable element. No complex gestures (swipe, pinch, long-press) are implied or expected for this component.
-*   **Recommendation:** No specific recommendations for this component.
+*   **LOW:** No explicit gesture support (e.g., swipe to dismiss, pinch to zoom on images) is implemented. While not a WCAG requirement, it enhances mobile UX. For `TransformationImageContainer`, a swipe gesture to control the slider value could be intuitive, but the current `TransformationSlider` is a static `div` with a play icon. If it's meant to be interactive, it needs to be re-evaluated.
 
 ---
 
-### 3. Design Consistency
+## Design Consistency
 
-#### Theme Tokens Usage
+### Theme Tokens Usage
 
-*   **Finding:** MEDIUM
-*   **Description:** The `CATEGORY_COLORS` object hardcodes hex values (`#8B5CF6`, `#C6A84B`, `#60C0F0`, `#4070C0`) which directly correspond to `Wing Purple`, `Gilded Fern`, `Ice Wing`, and `Swan Lavender` from the `Crystalline Swan` theme. While these are the correct colors, they are not referenced as CSS variables or theme tokens. This creates a maintenance burden if the theme's specific hex values change. The `Midnight Sapphire`, `Royal Depth`, `Arctic Cyan`, and `Frost White` colors are not explicitly used in this component, but their absence isn't necessarily an inconsistency.
-*   **Recommendation:**
-    *   **Centralize Theme Variables:** Define all theme colors as CSS variables (e.g., `--color-wing-purple: #8B5CF6;`) or within a `styled-components` theme object.
-    *   **Reference Tokens:** Update `CATEGORY_COLORS` to reference these theme variables (e.g., `fitness: 'var(--color-wing-purple)'`). This ensures that if the hex value for `Wing Purple` ever changes, all components using it will update automatically.
-    *   **`var(--border-soft, rgba(96, 192, 240, 0.12))`:** The fallback `rgba(96, 192, 240, 0.12)` is `Ice Wing` with 12% opacity. This is good, but `border-soft` itself should ideally be a theme token.
-    *   **`var(--text-secondary, #94a3b8)` and `var(--bg-elevated, #141419)`:** These are good examples of using CSS variables with fallbacks. Ensure these variables are defined globally in the theme.
+*   **CRITICAL:** Extensive hardcoded colors are present throughout the `SocialFeed.tsx`, `CreatePostCard.tsx` (via `CreatePostStyles.ts`), `PostCard.tsx` (via `PostCardStyles.ts`), and `PostContent.tsx`. This is a major inconsistency and maintenance burden.
+    *   Examples: `#E0ECF4`, `#8B5CF6`, `#C6A84B`, `#50A0F0`, `#002060`, `#003080`, `#60C0F0`, `rgba(139, 92, 246, 0.5)`, `rgba(139, 92, 246, 0.08)`, `rgba(0, 48, 128, 0.95)`, `rgba(0, 48, 128, 0.85)`, `rgba(0, 0, 0, 0.3)`, `rgba(255, 255, 255, 0.85)`, `rgba(0, 32, 96, 0.6)`, `rgba(255, 255, 255, 0.2)`, `rgba(96, 192, 240, 0.1)`, `#001840`, `#f7b32b`.
+    *   **Recommendation:** Define all active palette colors (`Midnight Sapphire #002060`, `Royal Depth #003080`, `Ice Wing #60C0F0`, `Arctic Cyan #50A0F0`, `Gilded Fern #C6A84B`, `Frost White #E0ECF4`, `Swan Lavender #4070C0`, `Wing Purple #8B5CF6`) as styled-components theme variables (e.g., `theme.colors.primary`, `theme.colors.surface`, `theme.accents.gaming`, etc.) and use them consistently. This will also help with future theme changes and accessibility audits.
+*   **HIGH:** Typography is also inconsistently applied. While `Heading6`, `BodyText2`, `CaptionText` are defined, many elements directly set `font-size`, `font-weight`, `line-height`, `letter-spacing` instead of using these styled components or theme-defined typography tokens.
+    *   Examples: `LoadMoreButton`, `WelcomeTip`, `PointsDisplay`, `StreakDisplay`, `LiveBadgeLabel`, `ContainedButton`, `OutlinedButton`.
+    *   **Recommendation:** Create a robust typography system within the styled-components theme, defining heading levels, body text sizes, and other text styles, and apply them consistently.
+*   **MEDIUM:** `CATEGORY_GRADIENTS` in `PostCard.tsx` is an object containing hardcoded gradients. These should ideally reference theme colors or be defined as theme tokens if they are part of the "Enchanted Apex: Crystalline Swan" theme.
 
-#### Hardcoded Colors
+### Hardcoded Values
 
-*   **Finding:** HIGH
-*   **Description:**
-    *   `#E0ECF4` (Frost White) is hardcoded for active text color.
-    *   `#141419` is hardcoded as a fallback for `var(--bg-elevated)`. While a fallback is useful, this specific hex value should be explicitly defined as part of the theme's background palette (e.g., `Royal Depth` or a darker variant).
-    *   `#94a3b8` is hardcoded as a fallback for `var(--text-secondary)`. This color is not explicitly listed in the provided `Crystalline Swan` palette and might be a remnant or an unapproved color.
-*   **Recommendation:**
-    *   **Replace Hardcoded Hexes with Tokens:** Replace all hardcoded hex values with references to theme tokens or CSS variables.
-    *   **Review Fallbacks:** Ensure fallback values for CSS variables are also part of the approved theme palette or are explicitly documented as exceptions. The `#94a3b8` fallback for `text-secondary` needs review for palette consistency and contrast.
+*   **CRITICAL:** As noted above, colors are extensively hardcoded.
+*   **MEDIUM:** Magic numbers for spacing (`gap: 16px`, `padding: 24px`, `margin: 16px auto`, `border-radius: 8px`, `box-shadow`, etc.) are prevalent.
+    *   **Recommendation:** Define a spacing scale (e.g., `theme.spacing.s`, `theme.spacing.m`, `theme.spacing.l`) and use it throughout the components for consistent visual rhythm. Similarly, define `borderRadius` and `boxShadow` tokens.
 
 ---
 
-### 4. User Flow Friction
+## User Flow Friction
 
-#### Unnecessary Clicks / Confusing Navigation
+### Unnecessary Clicks / Steps
 
-*   **Finding:** LOW
-*   **Description:** The `HashtagChip` itself is a single clickable element, which is straightforward. The backend routes for hashtags (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`) provide a comprehensive set of endpoints for discovery and interaction. The `onClick` prop on the frontend chip allows for flexible navigation (e.g., to a hashtag's detail page or to filter a feed).
-*   **Recommendation:** Ensure the `onClick` action is clear to the user. For example, if clicking a chip filters the current view, provide visual feedback. If it navigates to a new page, the context should make that clear (e.g., "View all posts with #fitness").
+*   **LOW:** `CreatePostCard`: The "More Options" / "Simple Mode" toggle is a good feature for power users vs. quick posts. However, if a user frequently uses "More Options", the initial state of "Quick Post" might add an extra click. Consider remembering the user's last preference for this toggle.
+*   **LOW:** `PostCard` `TransformationImages`: The `TransformationSlider` is a static `div` with a `Play` icon. If this is meant to be interactive (e.g., to slide between before/after), it's currently not functional, leading to friction. If it's purely decorative, the `Play` icon is misleading.
 
-#### Missing Feedback States
+### Confusing Navigation / Feedback
 
-*   **Finding:** MEDIUM
-*   **Description:** The `HashtagChip` has `hover` styles, which is good visual feedback. However, there's no explicit `active` (pressed) or `disabled` state styling defined in the provided `styled-components` snippet.
-*   **Recommendation:**
-    *   **Active (Pressed) State:** Add a distinct visual style for when the button is actively being pressed (e.g., a slightly darker background, a subtle shadow). This provides immediate feedback that the click registered.
-    *   **Disabled State:** If a `HashtagChip` can be disabled (e.g., if a user can't follow a banned hashtag), provide clear visual styling (e.g., reduced opacity, different cursor) and ensure it's not focusable or clickable.
-    *   **Loading States:** While not directly in the chip, consider how the *data* for the chips is loaded. If a list of chips is loading, a skeleton state would be beneficial (see next section).
+*   **MEDIUM:** `CreatePostCard` `handleFileSelect`: Error messages (`File size exceeds...`, `Only image and video files are allowed`) are shown via `useToast().error`. This is good, but ensuring these toasts are highly visible and accessible (as discussed in WCAG section) is important.
+*   **MEDIUM:** `PostCard` `Toast` for points earned: The toast appears and then fades. Ensuring it's dismissible (which it is, with the `X` button) and that its appearance doesn't disrupt the user's current task is important. The `setTimeout` for `setShowPointNotification(false)` after `setToastVisible(false)` is a good pattern for animation.
+*   **LOW:** `PostCard` `handleMute` is a `TODO`. This represents a missing feature that could cause friction if users frequently encounter content they wish to mute.
+*   **LOW:** `PostCard` `handleCopyLink` has a `catch` block that silently fails. While not critical, providing feedback to the user if copying fails (e.g., a toast notification) would improve UX.
 
----
+### Missing Feedback States
 
-### 5. Loading States
-
-#### Skeleton Screens, Error Boundaries, Empty States
-
-*   **Finding:** MEDIUM (Frontend) / LOW (Backend)
-*   **Description:**
-    *   **Frontend (`HashtagChip.tsx`):** The `HashtagChip` component itself doesn't handle loading states, which is appropriate as it's a display component. However, the *parent components* that render lists of these chips (e.g., `TrendingHashtags`, `FeedFilterBar`) would need to implement skeleton screens or loading indicators while fetching data from the backend.
-    *   **Backend (`hashtags.mjs`, `posts.mjs`):** The backend routes handle errors gracefully by returning `500` status codes and `success: false` with error messages. This is good for API consumers.
-    *   **Empty States:** The backend routes for `/search` and `/trending` correctly return `data: []` if no results are found. The `/following` and `/suggestions` routes also handle empty results.
-*   **Recommendation:**
-    *   **Frontend Skeleton Screens:** For lists of `HashtagChip`s (e.g., trending, search results, followed hashtags), implement skeleton loaders to indicate that content is being fetched. This improves perceived performance.
-    *   **Frontend Error Boundaries:** Implement React Error Boundaries in parent components to gracefully catch and display errors that might occur during data fetching or rendering of `HashtagChip` lists.
-    *   **Frontend Empty States:** When backend returns `data: []`, the frontend should display a user-friendly "No hashtags found" or "You are not following any hashtags yet" message instead of just an empty space.
+*   **MEDIUM:** `CreatePostCard` `handleCreatePost` validation: If validation fails (e.g., no content for a general post), the `return` statement prevents the API call, but no explicit user feedback is provided. The `isSubmitDisabled` state handles the button, but a toast or inline error message would be better.
+*   **MEDIUM:** `PostCard` `handleDeletePost`: A `window.confirm` is used. While functional, a more integrated and styled confirmation modal would provide a better user experience and align with the theme.
+*   **LOW:** `PostCard` `handleReportSubmit`: The return value is a boolean, but there's no explicit feedback to the user after reporting (e.g., "Post reported successfully").
 
 ---
 
-### Backend Code Review Notes
+## Loading States
 
-The backend code (`Hashtag.mjs`, `PostHashtag.mjs`, `UserHashtagFollow.mjs`, `hashtags.mjs`, `posts.mjs`, `index.mjs`) is generally well-structured and commented.
+### Skeleton Screens
 
-*   **`Hashtag.mjs`:**
-    *   `CATEGORY_KEYWORDS` is a good approach for auto-classification.
-    *   `validate: { is: /^[a-z0-9_]{2,30}$/i }` for `name` is good for data integrity.
-*   **`hashtags.mjs`:**
-    *   The `extractHashtags` and `processHashtags` functions are well-designed for handling hashtag creation and association.
-    *   Error handling in `processHashtags` (logging non-fatal errors) is appropriate.
-    *   All routes (`/trending`, `/search`, `/following`, `/suggestions`, `/:slug`, `/follow`, `/unfollow`) have clear purposes and handle edge cases (e.g., `q.length < 1` for search, hashtag not found).
-    *   The `/trending` route's `period` query parameter is mentioned in comments but not implemented in the code (it only orders by `weeklyCount` and `usageCount`). This is a minor discrepancy between comment and code.
-*   **`posts.mjs`:**
-    *   The `awardSocialPoints` and `awardEngagementReceivedPoints` functions are a good implementation of gamification logic.
-    *   Multer setup for media upload is robust, including file type validation and size limits.
-    *   The `getEnhancedFallbackFeed` is a good resilience mechanism for legacy table issues.
-    *   The feed logic correctly handles friendship status and visibility.
-    *   Batch fetching for comments and likes is an efficient approach.
-    *   The post creation endpoint correctly integrates hashtag processing and point awarding.
-    *   Reporting mechanism is well-defined.
-    *   Reaction handling (`reactToPost`, `removeReaction`) is good.
+*   **LOW:** `SocialFeed.tsx` uses a `Spinner` for the initial loading state. While functional, a skeleton screen for the feed items (e.g., placeholder cards with grey shapes) would provide a smoother and more visually appealing loading experience, especially for content-heavy feeds.
 
-Overall, the backend code is solid and demonstrates good practices for API development and data management. The UX and accessibility concerns are primarily on the frontend component's styling and interaction.
+### Error Boundaries
+
+*   **MEDIUM:** `SocialFeed.tsx` has an `error` state and displays an `EmptyFeedMessage` with a "Retry" button. This is a good basic error handling mechanism. Consider wrapping the `SocialFeed` component (or its children) in a React Error Boundary to catch unexpected rendering errors within the component tree, preventing the entire application from crashing.
+*   **LOW:** `useCreatePostForm.ts` `fetchWorkoutHistory` catches errors and logs them to the console. If this error prevents a critical part of the form from working, it should be surfaced to the user (e.g., a toast notification or an error message within the workout history section).
+
+### Empty States
+
+*   **HIGH:** `SocialFeed.tsx` provides a `WelcomeCard` when `posts.length` is 0. This is an excellent empty state, guiding new users with clear CTAs ("Browse Challenges", "Find Friends") and a helpful tip. The design of the `WelcomeCard` is also visually appealing and on-brand.
+*   **LOW:** `WorkoutStats` in `PostContent`: If `stats.length === 0`, it returns `null`. While technically correct, if a workout post has no stats, it might look incomplete. Consider a subtle message like "No detailed stats available" or a different visual treatment.
+
+---
+
+## Summary of Key Recommendations:
+
+1.  **Address Color Contrast (CRITICAL):** Systematically check and fix all color contrast issues to meet WCAG 2.1 AA.
+2.  **Implement Theme Tokens (CRITICAL):** Replace all hardcoded colors, fonts, spacing, and other design values with styled-components theme tokens. This is the most impactful change for design consistency and maintainability.
+3.  **Enhance Accessibility for Interactive Elements (HIGH/MEDIUM):**
+    *   Ensure all interactive elements (buttons, links, form controls) have sufficient touch targets (min 44x44px).
+    *   Add appropriate `aria-labels`, `roles`, and `aria-live` regions for screen reader users, especially for loading spinners, toasts, and dynamic content.
+    *   Improve keyboard navigation and focus management for modals and menus (e.g., `Escape` key to close, focus trapping).
 
 ---
 

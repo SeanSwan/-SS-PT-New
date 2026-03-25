@@ -48,6 +48,8 @@ export function extractHashtags(content) {
 
 /**
  * Process extracted hashtags: find-or-create, link to post, update counts.
+ * Optimized to reduce N+1 queries: batch pre-fetch existing tags, then only
+ * create missing ones. Batch increment at the end.
  * Non-fatal — individual tag failures don't break the post creation.
  * @param {number} postId - The post ID to link hashtags to
  * @param {string[]} tagNames - Array of normalized tag names
@@ -56,51 +58,67 @@ export function extractHashtags(content) {
  */
 export async function processHashtags(postId, tagNames, transaction = null) {
   if (!tagNames || tagNames.length === 0) return [];
+  const { Op } = await import('sequelize');
+  const txOpt = transaction ? { transaction } : {};
+  const log = logger?.warn ? logger : console;
 
-  const linkedTags = [];
+  // ── Step 1: Batch-fetch existing hashtags (1 query instead of N) ──
+  const existingTags = await Hashtag.findAll({
+    where: { name: { [Op.in]: tagNames } },
+    ...txOpt
+  });
+  const existingMap = new Map(existingTags.map(t => [t.name, t]));
 
+  // ── Step 2: Create missing hashtags (only for new tags) ──
+  const allTags = [];
   for (const name of tagNames) {
     try {
-      // Find or create the hashtag with auto-classification
-      const [hashtag] = await Hashtag.findOrCreate({
-        where: { name },
-        defaults: {
-          name,
-          slug: name,
-          category: classifyHashtag(name),
-          isOfficial: false,
-          isBanned: false
-        },
-        ...(transaction ? { transaction } : {})
-      });
-
-      // Skip banned hashtags silently
-      if (hashtag.isBanned) continue;
-
-      // Create the join record (ignore duplicates via findOrCreate)
-      // Only increment counts if the join record was actually created (Issue #1 fix)
-      const [, created] = await PostHashtag.findOrCreate({
-        where: { postId, hashtagId: hashtag.id },
-        defaults: { postId, hashtagId: hashtag.id },
-        ...(transaction ? { transaction } : {})
-      });
-
-      // Increment usage counts only for new associations (prevents double-counting)
-      if (created) {
-        await hashtag.increment(['usageCount', 'weeklyCount'], {
-          ...(transaction ? { transaction } : {})
+      let hashtag = existingMap.get(name);
+      if (!hashtag) {
+        [hashtag] = await Hashtag.findOrCreate({
+          where: { name },
+          defaults: {
+            name, slug: name,
+            category: classifyHashtag(name),
+            isOfficial: false, isBanned: false
+          },
+          ...txOpt
         });
       }
-
-      linkedTags.push(hashtag);
+      if (!hashtag.isBanned) allTags.push(hashtag);
     } catch (err) {
-      // Non-fatal: log and continue with other tags
-      const log = logger?.warn ? logger : console;
       log.warn(`Failed to process hashtag "${name}": ${err.message}`);
     }
   }
 
-  return linkedTags;
+  // ── Step 3: Batch-create join records + track which are new ──
+  const newAssociationIds = [];
+  for (const hashtag of allTags) {
+    try {
+      const [, created] = await PostHashtag.findOrCreate({
+        where: { postId, hashtagId: hashtag.id },
+        defaults: { postId, hashtagId: hashtag.id },
+        ...txOpt
+      });
+      if (created) newAssociationIds.push(hashtag.id);
+    } catch (err) {
+      log.warn(`Failed to link hashtag #${hashtag.name} to post: ${err.message}`);
+    }
+  }
+
+  // ── Step 4: Batch increment counts for new associations (1 query) ──
+  if (newAssociationIds.length > 0) {
+    try {
+      await Hashtag.increment(['usageCount', 'weeklyCount'], {
+        where: { id: { [Op.in]: newAssociationIds } },
+        ...txOpt
+      });
+    } catch (err) {
+      log.warn(`Failed to increment hashtag counts: ${err.message}`);
+    }
+  }
+
+  return allTags;
 }
 
 // ─────────────────────────────────────────────────────────────

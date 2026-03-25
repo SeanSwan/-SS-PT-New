@@ -75,12 +75,15 @@ const Chip = styled.button<{ $active: boolean; $color: string; $size: string }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid ${({ $active, $color }) => $active ? $color : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
+  border: 1px solid ${({ $active, $color }) => $active ? $color : 'var(--border-soft, rgba(96, 192, 240, 0.2))'};
   border-radius: 20px;
   cursor: pointer;
   font-family: 'Sora', sans-serif;
   font-weight: 500;
   white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: ${({ $active, $color }) => $active ? '#E0ECF4' : 'var(--text-secondary, #94a3b8)'};
 
