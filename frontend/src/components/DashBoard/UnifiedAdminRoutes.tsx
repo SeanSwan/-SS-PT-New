@@ -205,7 +205,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     </Route>
 
     <Route path="/people" element={<ClientsWorkspace />}>
-      <Route index element={<S><ClientsManagementSection /></S>} />
+      {/* index route removed — MasterDetailLayout handles the default roster view */}
       <Route path="view-as/:userId" element={<S><AdminViewAsWrapper /></S>} />
       <Route path="users" element={<S><ModernUserManagementSystem /></S>} />
       <Route path="trainers" element={<S><EnhancedTrainerDataManagement /></S>} />

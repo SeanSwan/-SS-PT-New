@@ -257,6 +257,7 @@ const AdminClientProgressView: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Table hook for leaderboard with search, sort, and pagination
   const {
