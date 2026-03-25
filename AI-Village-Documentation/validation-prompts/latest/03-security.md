@@ -1,8 +1,8 @@
 # Security — Validation Report
 
-> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 46.9s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx, frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
-> **Generated:** 3/24/2026, 9:52:54 PM
+> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 35.4s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
+> **Generated:** 3/24/2026, 10:21:55 PM
 
 ---
 

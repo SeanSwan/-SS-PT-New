@@ -215,7 +215,55 @@ router.get('/feed', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
-    
+    const hashtagFilter = req.query.hashtag; // Filter by hashtag slug
+    const categoryFilter = req.query.category; // Filter by broad category
+
+    // If filtering by hashtag, get matching post IDs first
+    let hashtagPostIds = null;
+    if (hashtagFilter) {
+      try {
+        const Hashtag = (await import('../../models/social/Hashtag.mjs')).default;
+        const PostHashtag = (await import('../../models/social/PostHashtag.mjs')).default;
+        const tag = await Hashtag.findOne({ where: { slug: hashtagFilter.toLowerCase(), isBanned: false } });
+        if (tag) {
+          const joins = await PostHashtag.findAll({
+            where: { hashtagId: tag.id },
+            attributes: ['postId']
+          });
+          hashtagPostIds = joins.map(j => j.postId);
+        } else {
+          hashtagPostIds = [];
+        }
+      } catch (e) {
+        console.warn('Hashtag filter failed (non-fatal):', e.message);
+      }
+    }
+
+    // If filtering by category, get matching post IDs from hashtags in that category
+    let categoryPostIds = null;
+    if (categoryFilter && ['fitness', 'creative', 'community'].includes(categoryFilter)) {
+      try {
+        const Hashtag = (await import('../../models/social/Hashtag.mjs')).default;
+        const PostHashtag = (await import('../../models/social/PostHashtag.mjs')).default;
+        const tags = await Hashtag.findAll({
+          where: { category: categoryFilter, isBanned: false },
+          attributes: ['id']
+        });
+        if (tags.length > 0) {
+          const joins = await PostHashtag.findAll({
+            where: { hashtagId: { [Op.in]: tags.map(t => t.id) } },
+            attributes: ['postId'],
+            group: ['postId']
+          });
+          categoryPostIds = joins.map(j => j.postId);
+        } else {
+          categoryPostIds = [];
+        }
+      } catch (e) {
+        console.warn('Category filter failed (non-fatal):', e.message);
+      }
+    }
+
     // Get the current user's friends
     const friendships = await Friendship.findAll({
       where: {
@@ -234,16 +282,40 @@ router.get('/feed', async (req, res) => {
     // Include user's own posts and friends' posts, plus public posts
     const userIds = [req.user.id, ...friendIds];
     
+    // Build where clause with optional hashtag/category filters
+    const feedWhere = {
+      [Op.and]: [
+        {
+          [Op.or]: [
+            { userId: { [Op.in]: userIds } },
+            { visibility: 'public' }
+          ]
+        },
+        { moderationStatus: { [Op.or]: ['approved', null] } }
+      ]
+    };
+
+    // Narrow by hashtag if filter provided
+    if (hashtagPostIds !== null) {
+      if (hashtagPostIds.length === 0) {
+        return res.status(200).json({ success: true, posts: [], pagination: { limit, offset, total: 0 } });
+      }
+      feedWhere[Op.and].push({ id: { [Op.in]: hashtagPostIds } });
+    }
+
+    // Narrow by category if filter provided
+    if (categoryPostIds !== null) {
+      if (categoryPostIds.length === 0) {
+        return res.status(200).json({ success: true, posts: [], pagination: { limit, offset, total: 0 } });
+      }
+      feedWhere[Op.and].push({ id: { [Op.in]: categoryPostIds } });
+    }
+
     const posts = await SocialPost.findAll({
-      where: {
-        [Op.or]: [
-          { userId: { [Op.in]: userIds } },
-          { visibility: 'public' } 
-        ]
-      },
+      where: feedWhere,
       limit,
       offset,
-      order: [['createdAt', 'DESC']], 
+      order: [['createdAt', 'DESC']],
       include: [
         {
           model: getUser(),
@@ -318,14 +390,7 @@ router.get('/feed', async (req, res) => {
       pagination: {
         limit,
         offset,
-        total: await SocialPost.count({
-          where: {
-            [Op.or]: [
-              { userId: { [Op.in]: userIds } },
-              { visibility: 'public' }
-            ]
-          }
-        })
+        total: await SocialPost.count({ where: feedWhere })
       }
     });
   } catch (error) {
@@ -550,16 +615,30 @@ router.post('/', upload.single('media'), async (req, res) => {
     
     // Create the post
     const post = await SocialPost.create(postData);
-    
+
+    // Extract and process hashtags from content
+    let linkedHashtags = [];
+    try {
+      const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+      const tagNames = extractHashtags(content);
+      if (tagNames.length > 0) {
+        linkedHashtags = await processHashtags(post.id, tagNames);
+      }
+    } catch (hashtagErr) {
+      // Non-fatal: hashtag processing failure should not block post creation
+      console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
+    }
+
     // Award points for post creation based on type
     const pointAction = `post_create_${type}`;
     const pointResult = await awardSocialPoints(req.user.id, pointAction, {
       postId: post.id,
       postType: type,
       hasMedia: !!req.file,
-      visibility
+      visibility,
+      hashtags: linkedHashtags.map(h => h.name)
     });
-    
+
     // Fetch the full post with user data
     const fullPost = await SocialPost.findByPk(post.id, {
       include: [
@@ -570,20 +649,21 @@ router.post('/', upload.single('media'), async (req, res) => {
         }
       ]
     });
-    
+
     // Add point information to response
     const responseData = {
       success: true,
       message: 'Post created successfully',
-      post: fullPost
+      post: fullPost,
+      hashtags: linkedHashtags.map(h => ({ id: h.id, name: h.name, slug: h.slug }))
     };
-    
+
     if (pointResult.success) {
       responseData.pointsAwarded = pointResult.pointsAwarded;
       responseData.newBalance = pointResult.newBalance;
-      responseData.pointMessage = `🎉 You earned ${pointResult.pointsAwarded} points for creating a ${type} post!`;
+      responseData.pointMessage = `You earned ${pointResult.pointsAwarded} points for creating a ${type} post!`;
     }
-    
+
     return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating post:', error);

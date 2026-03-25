@@ -1,78 +1,502 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 57.8s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx, frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
-> **Generated:** 3/24/2026, 9:52:54 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 59.5s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
+> **Generated:** 3/24/2026, 10:21:55 PM
 
 ---
 
-# Code Review: WorkoutLogger, ExerciseCardComponent, ViewSessionModal
+# Code Review: SwanStudios Social Feed System
 
-## Critical Issues
+## Executive Summary
+**Overall Grade: B+ (83/100)**
 
-### 1. **Race Condition in Submit Handler** ⚠️ CRITICAL
-**File:** `WorkoutLogger.tsx` (lines 308-365)
+The codebase demonstrates strong architectural patterns with proper hook extraction, memoization, and component composition. However, there are **critical TypeScript gaps**, **performance anti-patterns**, and **error handling deficiencies** that need immediate attention.
 
-**Issue:** The `isSubmittingRef` pattern has a race condition. Setting the ref *after* the check doesn't prevent concurrent calls if two clicks happen within the same event loop tick.
+---
+
+## 1. TypeScript Best Practices
+
+### ❌ CRITICAL: Missing Type Definitions
+**File:** `SocialFeed.tsx`
+**Lines:** 304-318
 
 ```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return;
-  isSubmittingRef.current = true; // ❌ Still vulnerable to race
+const feedStats = useMemo(() => {
+  return posts.reduce((acc, p) => {  // ❌ 'p' implicitly has 'any' type
+    acc.totalPosts++;
+    if (p.type === 'workout') acc.workoutPosts++;
+    // ...
+  }, {
+    totalPosts: 0, workoutPosts: 0, // ❌ Accumulator type not defined
+    // ...
+  });
+}, [posts]);
 ```
+
+**Issue:** No type safety for post objects or accumulator.
 
 **Fix:**
 ```tsx
-const handleSubmit = async () => {
-  // Atomic check-and-set
-  if (isSubmittingRef.current) {
-    console.warn('Submit already in progress');
-    return;
-  }
-  
-  const submitId = Date.now();
-  isSubmittingRef.current = submitId;
-  setIsSubmitting(true);
+interface FeedStats {
+  totalPosts: number;
+  workoutPosts: number;
+  achievementPosts: number;
+  transformationPosts: number;
+  totalLikes: number;
+  totalComments: number;
+}
 
-  try {
-    // ... existing logic
-  } finally {
-    // Only clear if this is still the active submit
-    if (isSubmittingRef.current === submitId) {
-      isSubmittingRef.current = null;
-    }
-    setIsSubmitting(false);
+interface Post {
+  id: string;
+  type: 'workout' | 'achievement' | 'transformation' | 'general';
+  likesCount?: number;
+  commentsCount?: number;
+  createdAt: string;
+  user: {
+    firstName: string;
+    // ... other user fields
+  };
+}
+
+const feedStats = useMemo((): FeedStats => {
+  return posts.reduce<FeedStats>((acc, p: Post) => {
+    acc.totalPosts++;
+    if (p.type === 'workout') acc.workoutPosts++;
+    // ...
+    return acc;
+  }, {
+    totalPosts: 0,
+    workoutPosts: 0,
+    achievementPosts: 0,
+    transformationPosts: 0,
+    totalLikes: 0,
+    totalComments: 0
+  });
+}, [posts]);
+```
+
+---
+
+### 🔴 HIGH: Unsafe Type Assertions
+**File:** `ClientCommunityPage.tsx`
+**Lines:** 179-182
+
+```tsx
+const [challenges, setChallenges] = useState<any[]>([]);  // ❌ any[]
+const [feed, setFeed] = useState<any[]>([]);              // ❌ any[]
+```
+
+**Issue:** Using `any` defeats TypeScript's purpose.
+
+**Fix:**
+```tsx
+interface Challenge {
+  id: string;
+  title?: string;
+  name?: string;
+  description?: string;
+  progress?: number;
+  daysRemaining?: number;
+}
+
+interface FeedPost {
+  id: string;
+  content?: string;
+  text?: string;
+  user?: {
+    firstName?: string;
+  };
+  authorName?: string;
+  createdAt?: string;
+}
+
+const [challenges, setChallenges] = useState<Challenge[]>([]);
+const [feed, setFeed] = useState<FeedPost[]>([]);
+```
+
+---
+
+### 🟡 MEDIUM: Inconsistent Type Patterns
+**File:** `CreatePostCard.tsx`
+**Lines:** 114-115
+
+```tsx
+import type { PostTypeOption, VisibilityOption } from './types/CreatePostTypes';
+```
+
+**Issue:** Types imported but not validated in component props.
+
+**Recommendation:** Add runtime validation or Zod schema for API responses.
+
+---
+
+## 2. React Patterns
+
+### ✅ GOOD: Proper Hook Usage
+**File:** `SocialFeed.tsx`
+**Lines:** 304-318
+
+```tsx
+const feedStats = useMemo(() => {
+  return posts.reduce((acc, p) => {
+    // Single-pass calculation
+  }, { /* initial */ });
+}, [posts]); // ✅ Correct dependency
+```
+
+**Praise:** Memoization prevents recalculation on every render.
+
+---
+
+### 🔴 HIGH: Inline Object Creation in Render
+**File:** `CreatePostCard.tsx`
+**Lines:** 151-154
+
+```tsx
+<CreatePostForm
+  workoutStats={form.workoutStats}
+  onWorkoutStatsChange={(field, value) => 
+    form.setWorkoutStats(prev => ({ ...prev, [field]: value }))  // ❌ New function every render
+  }
+/>
+```
+
+**Issue:** Creates new callback on every render, breaking `React.memo` optimization.
+
+**Fix:**
+```tsx
+// In useCreatePostForm hook:
+const handleWorkoutStatsChange = useCallback((field: string, value: any) => {
+  setWorkoutStats(prev => ({ ...prev, [field]: value }));
+}, []);
+
+// In component:
+<CreatePostForm
+  onWorkoutStatsChange={form.handleWorkoutStatsChange}
+/>
+```
+
+---
+
+### 🟡 MEDIUM: Missing Keys in Mapped Elements
+**File:** `ClientCommunityPage.tsx`
+**Lines:** 210-218
+
+```tsx
+{challenges.slice(0, 3).map((c: any, i: number) => (
+  <ChallengeCard key={c.id || i}>  // ⚠️ Fallback to index is anti-pattern
+```
+
+**Issue:** Using index as fallback key causes reconciliation bugs.
+
+**Fix:**
+```tsx
+{challenges.slice(0, 3).map((c) => (
+  <ChallengeCard key={c.id}>  // Require stable ID from backend
+```
+
+**Backend Action Required:** Ensure all API responses include stable `id` fields.
+
+---
+
+### 🟢 LOW: Stale Closure Risk (Mitigated)
+**File:** `SocialFeed.tsx`
+**Lines:** 331-333
+
+```tsx
+const handleLikeToggle = useCallback((postId: string, isLiked: boolean) => {
+  return isLiked ? unlikePost(postId) : likePost(postId);
+}, [likePost, unlikePost]);  // ✅ Dependencies included
+```
+
+**Praise:** Correctly memoized with dependencies.
+
+---
+
+## 3. Styled-Components
+
+### 🔴 HIGH: Hardcoded Color Values
+**File:** `SocialFeed.tsx`
+**Lines:** 61-78
+
+```tsx
+const LoadMoreButton = styled.button`
+  border: 1px solid rgba(139, 92, 246, 0.5);  // ❌ Hardcoded #8B5CF6
+  color: #E0ECF4;                              // ❌ Should use theme token
+  
+  &:hover {
+    border-color: #8B5CF6;                     // ❌ Hardcoded
+    color: #8B5CF6;
+  }
+`;
+```
+
+**Issue:** Violates theme system, breaks consistency.
+
+**Fix:**
+```tsx
+const LoadMoreButton = styled.button`
+  border: 1px solid ${({ theme }) => theme.colors.wingPurple}50;
+  color: ${({ theme }) => theme.colors.frostWhite};
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.wingPurple};
+    color: ${({ theme }) => theme.colors.wingPurple};
+  }
+`;
+```
+
+**Action Required:** Create `theme.ts` with Enchanted Apex palette:
+```tsx
+export const theme = {
+  colors: {
+    midnightSapphire: '#002060',
+    royalDepth: '#003080',
+    iceWing: '#60C0F0',
+    arcticCyan: '#50A0F0',
+    gildedFern: '#C6A84B',
+    frostWhite: '#E0ECF4',
+    swanLavender: '#4070C0',
+    wingPurple: '#8B5CF6'
   }
 };
 ```
 
-**Alternative:** Use a proper mutex library like `async-mutex` or disable the button in the UI layer.
-
 ---
 
-### 2. **Missing Error Boundary** ⚠️ CRITICAL
-**File:** All three files
+### 🟡 MEDIUM: Inconsistent Spacing Units
+**File:** `ClientCommunityPage.tsx`
+**Lines:** 44-46
 
-**Issue:** No error boundaries wrapping complex components. A single runtime error in `ExerciseCardComponent` will crash the entire workout logger.
+```tsx
+const PageWrap = styled.div`
+  padding: 1.5rem;  // ⚠️ rem units
+  min-height: 100%;
+`;
+
+const PostBox = styled.div`
+  padding: 1rem;     // ⚠️ Inconsistent with 8px grid
+  margin-bottom: 1.25rem;
+`;
+```
+
+**Issue:** Mix of rem and implicit px breaks 8px grid system.
 
 **Fix:**
 ```tsx
-// Create ErrorBoundary.tsx
-class WorkoutLoggerErrorBoundary extends React.Component<
+const spacing = {
+  xs: '4px',
+  sm: '8px',
+  md: '16px',
+  lg: '24px',
+  xl: '32px'
+};
+
+const PageWrap = styled.div`
+  padding: ${spacing.lg};
+`;
+```
+
+---
+
+### ✅ GOOD: Proper Animation Keyframes
+**File:** `SocialFeed.tsx`
+**Lines:** 20-28
+
+```tsx
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+`;
+
+const LiveBadgeLabel = styled.span`
+  animation: ${pulse} 2s infinite;  // ✅ Reusable keyframe
+`;
+```
+
+---
+
+## 4. DRY Violations
+
+### 🔴 HIGH: Duplicated Loading States
+**Files:** `SocialFeed.tsx` (lines 357-365), `ClientCommunityPage.tsx` (lines 197-199)
+
+```tsx
+// SocialFeed.tsx
+if (isLoading) {
+  return (
+    <FeedContainer>
+      <CenterBox>
+        <Spinner />
+      </CenterBox>
+    </FeedContainer>
+  );
+}
+
+// ClientCommunityPage.tsx
+if (loading) {
+  return <PageWrap><ShimmerBlock /></PageWrap>;
+}
+```
+
+**Issue:** Two different loading patterns for same concept.
+
+**Fix:** Extract shared component:
+```tsx
+// components/common/LoadingState.tsx
+export const LoadingState: React.FC<{ variant?: 'spinner' | 'shimmer' }> = ({ 
+  variant = 'spinner' 
+}) => {
+  if (variant === 'shimmer') {
+    return <ShimmerBlock />;
+  }
+  return (
+    <CenterBox>
+      <Spinner />
+    </CenterBox>
+  );
+};
+```
+
+---
+
+### 🟡 MEDIUM: Repeated Error UI
+**Files:** `SocialFeed.tsx` (lines 367-383), `ClientCommunityPage.tsx` (lines 201)
+
+```tsx
+// SocialFeed.tsx
+if (error) {
+  return (
+    <FeedContainer>
+      <EmptyFeedMessage>
+        <Heading6 $color="#C6A84B" $gutterBottom>Error loading feed</Heading6>
+        <BodyText2>Something went wrong...</BodyText2>
+        <ContainedButton onClick={() => window.location.reload()}>Retry</ContainedButton>
+      </EmptyFeedMessage>
+    </FeedContainer>
+  );
+}
+
+// ClientCommunityPage.tsx
+{error && <ErrorBox>{error}</ErrorBox>}
+```
+
+**Fix:** Create `ErrorBoundary` component with retry logic:
+```tsx
+interface ErrorStateProps {
+  error: Error | string;
+  onRetry?: () => void;
+}
+
+export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => (
+  <ErrorContainer>
+    <ErrorIcon />
+    <ErrorMessage>{typeof error === 'string' ? error : error.message}</ErrorMessage>
+    {onRetry && <RetryButton onClick={onRetry}>Retry</RetryButton>}
+  </ErrorContainer>
+);
+```
+
+---
+
+## 5. Error Handling
+
+### ❌ CRITICAL: Unhandled Promise Rejections
+**File:** `ClientCommunityPage.tsx`
+**Lines:** 186-195
+
+```tsx
+useEffect(() => {
+  const fetchData = async () => {
+    if (!authAxios) return;
+    try {
+      const [cRes, fRes] = await Promise.allSettled([...]);
+      // ❌ No error handling for individual promise failures
+      if (cRes.status === 'fulfilled') setChallenges(cRes.value?.data?.data || []);
+    } catch (err: any) {
+      setError(err.message);  // ❌ Loses error context
+    }
+  };
+  fetchData();
+}, [authAxios]);
+```
+
+**Issues:**
+1. `Promise.allSettled` errors are silently ignored
+2. No user feedback for partial failures
+3. Error message loses stack trace
+
+**Fix:**
+```tsx
+useEffect(() => {
+  const fetchData = async () => {
+    if (!authAxios) return;
+    
+    try {
+      const [cRes, fRes] = await Promise.allSettled([
+        authAxios.get('/api/social/challenges'),
+        authAxios.get('/api/social/feed', { params: { limit: 3 } })
+      ]);
+      
+      // Handle challenges response
+      if (cRes.status === 'fulfilled') {
+        setChallenges(cRes.value?.data?.data || []);
+      } else {
+        console.error('Failed to load challenges:', cRes.reason);
+        // Show partial error to user
+        setError(prev => prev ? `${prev}; Challenges unavailable` : 'Challenges unavailable');
+      }
+      
+      // Handle feed response
+      if (fRes.status === 'fulfilled') {
+        setFeed(fRes.value?.data?.data || []);
+      } else {
+        console.error('Failed to load feed:', fRes.reason);
+        setError(prev => prev ? `${prev}; Feed unavailable` : 'Feed unavailable');
+      }
+    } catch (err) {
+      // Catch unexpected errors
+      console.error('Unexpected error in fetchData:', err);
+      setError('An unexpected error occurred. Please refresh the page.');
+      
+      // Optional: Send to error tracking service
+      // Sentry.captureException(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchData();
+}, [authAxios]);
+```
+
+---
+
+### 🔴 HIGH: Missing Error Boundaries
+**File:** `SocialFeed.tsx`
+
+**Issue:** No React Error Boundary to catch render errors.
+
+**Fix:** Wrap component in error boundary:
+```tsx
+// components/common/ErrorBoundary.tsx
+export class SocialFeedErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; error: Error | null }
 > {
   state = { hasError: false, error: null };
-
+  
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
-
+  
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('WorkoutLogger Error:', error, errorInfo);
-    toast.error('Something went wrong. Your data is safe.');
+    console.error('SocialFeed Error:', error, errorInfo);
+    // Send to monitoring service
   }
-
+  
   render() {
     if (this.state.hasError) {
       return (
@@ -86,436 +510,30 @@ class WorkoutLoggerErrorBoundary extends React.Component<
   }
 }
 
-// Wrap in WorkoutLogger.tsx
-export default function WorkoutLoggerWithBoundary(props: WorkoutLoggerProps) {
-  return (
-    <WorkoutLoggerErrorBoundary>
-      <WorkoutLogger {...props} />
-    </WorkoutLoggerErrorBoundary>
-  );
-}
+// Usage in parent:
+<SocialFeedErrorBoundary>
+  <SocialFeed variant="full" />
+</SocialFeedErrorBoundary>
 ```
 
 ---
 
-### 3. **Uncontrolled AbortController Leak** ⚠️ CRITICAL
-**File:** `WorkoutLogger.tsx` (lines 334-336)
+### 🟡 MEDIUM: Weak Backend Error Handling
+**File:** `posts.mjs`
+**Lines:** 100-110
 
-**Issue:** `AbortController` is created but never cleaned up if component unmounts during submission.
-
-```tsx
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 30000);
-// ❌ No cleanup on unmount
-```
-
-**Fix:**
-```tsx
-const handleSubmit = async () => {
-  // ... validation
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-  
-  // Store for cleanup
-  const cleanup = () => {
-    clearTimeout(timeoutId);
-    controller.abort();
-  };
-  
+```mjs
+async function awardSocialPoints(userId, action, metadata = {}) {
   try {
-    const response = await dailyWorkoutFormService.submitWorkoutForm(
-      formData,
-      { signal: controller.signal } // ⚠️ Ensure service accepts signal
-    );
+    const pointsToAward = SOCIAL_POINT_RULES[action];
+    
+    if (!pointsToAward) {
+      console.log(`No points defined for social action: ${action}`);
+      return { pointsAwarded: 0, success: false };  // ❌ Silent failure
+    }
     // ...
-  } finally {
-    cleanup();
-    // ...
-  }
-};
-
-// Add cleanup on unmount
-useEffect(() => {
-  return () => {
-    // Cancel any pending submissions
-    if (isSubmittingRef.current) {
-      toast.info('Workout submission cancelled');
-    }
-  };
-}, []);
-```
-
----
-
-## High Priority Issues
-
-### 4. **Massive Re-render Cascade** 🔴 HIGH
-**File:** `WorkoutLogger.tsx` (lines 368-400)
-
-**Issue:** Every keystroke in `sessionNotes` or `overallIntensity` triggers re-render of ALL exercise cards because parent state changes.
-
-**Evidence:**
-```tsx
-const [sessionNotes, setSessionNotes] = useState(''); // ❌ Causes full re-render
-const [overallIntensity, setOverallIntensity] = useState(5);
-
-// 50+ exercises × 5 sets = 250+ DOM updates per keystroke
-```
-
-**Fix:**
-```tsx
-// 1. Memoize expensive children
-const MemoizedExerciseCard = React.memo(ExerciseCardComponent, (prev, next) => {
-  return (
-    prev.exercise === next.exercise &&
-    prev.exerciseIndex === next.exerciseIndex &&
-    prev.onUpdateExercise === next.onUpdateExercise // ⚠️ Must be stable
-  );
-});
-
-// 2. Stabilize callbacks with useCallback
-const updateExercise = useCallback((exerciseIndex: number, field: keyof ExerciseEntry, value: any) => {
-  setExercises(prev => prev.map((exercise, i) =>
-    i !== exerciseIndex ? exercise : { ...exercise, [field]: value }
-  ));
-}, []); // ✅ No dependencies = stable reference
-
-// 3. Move session summary to separate component with local state
-const SessionSummaryForm = () => {
-  const [localNotes, setLocalNotes] = useState('');
-  const [localIntensity, setLocalIntensity] = useState(5);
-  
-  // Only sync on blur/submit
-  const handleBlur = () => {
-    onNotesChange(localNotes);
-    onIntensityChange(localIntensity);
-  };
-  
-  return <textarea value={localNotes} onChange={e => setLocalNotes(e.target.value)} onBlur={handleBlur} />;
-};
-```
-
----
-
-### 5. **Missing Keys in Dynamic Lists** 🔴 HIGH
-**File:** `ExerciseCardComponent.tsx` (line 56)
-
-**Issue:** Using array index as key for sets can cause state corruption when sets are reordered/removed.
-
-```tsx
-{exercise.sets.map((set, setIndex) => (
-  <SetRow key={setIndex}> {/* ❌ Anti-pattern */}
-```
-
-**Fix:**
-```tsx
-// Add unique ID to ExerciseSet interface
-interface ExerciseSet {
-  id: string; // ✅ Add this
-  setNumber: number;
-  // ...
-}
-
-// Generate on creation
-const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
-  id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, // ✅ Unique
-  setNumber,
-  weight: 0,
-  // ...
-}), []);
-
-// Use in render
-<SetRow key={set.id}>
-```
-
----
-
-### 6. **Inline Function Creation in Render** 🔴 HIGH
-**File:** `ExerciseCardComponent.tsx` (lines 45-80)
-
-**Issue:** Creating new functions on every render breaks `React.memo` and causes child re-renders.
-
-```tsx
-onClick={() => onUpdateExercise(exerciseIndex, 'formRating', rating)} // ❌ New function every render
-onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))} // ❌
-```
-
-**Fix:**
-```tsx
-// Create stable handlers at component level
-const handleFormRatingChange = useCallback((rating: number) => {
-  onUpdateExercise(exerciseIndex, 'formRating', rating);
-}, [exerciseIndex, onUpdateExercise]);
-
-const handleSetRPEChange = useCallback((setIndex: number, value: string) => {
-  onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(value) || 1);
-}, [exerciseIndex, onUpdateSet]);
-
-// Use in render
-<StarButton onClick={() => handleFormRatingChange(rating)}>
-<SliderInput onChange={(e) => handleSetRPEChange(setIndex, e.target.value)} />
-```
-
----
-
-### 7. **Type Safety Violations** 🔴 HIGH
-**File:** `WorkoutLogger.tsx` (lines 150-160)
-
-**Issue:** Unsafe type assertions and missing null checks.
-
-```tsx
-const axiosResponse = await api.get(infoUrl);
-const data = axiosResponse?.data ?? axiosResponse; // ❌ Assumes shape
-
-if (data.success && data.client) { // ❌ No type guard
-  setClient({
-    id: data.client.id, // ❌ Could be undefined
-```
-
-**Fix:**
-```tsx
-// Define response type
-interface ClientInfoResponse {
-  success: boolean;
-  client?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    availableSessions: number;
-    phone?: string;
-    hasWorkoutToday?: boolean;
-  };
-  message?: string;
-}
-
-// Type guard
-function isClientInfoResponse(data: unknown): data is ClientInfoResponse {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'success' in data &&
-    typeof (data as any).success === 'boolean'
-  );
-}
-
-// Use in code
-const axiosResponse = await api.get<ClientInfoResponse>(infoUrl);
-const data = axiosResponse?.data ?? axiosResponse;
-
-if (!isClientInfoResponse(data)) {
-  throw new Error('Invalid response format');
-}
-
-if (data.success && data.client) {
-  setClient({
-    id: data.client.id,
-    firstName: data.client.firstName,
-    // ... all required fields
-  });
-}
-```
-
----
-
-## Medium Priority Issues
-
-### 8. **Hardcoded Colors in Styled Components** 🟡 MEDIUM
-**File:** `ExerciseCardComponent.tsx` (multiple locations)
-
-**Issue:** Direct color values instead of theme tokens.
-
-```tsx
-background: rgba(20, 20, 25, 0.7); // ❌ Should use CS.bgCard
-border: 1px solid rgba(255, 255, 255, 0.03); // ❌ Should use CS.glassBorder
-color: #f87171; // ❌ Should use CS.error
-```
-
-**Fix:**
-```tsx
-// In WorkoutLoggerCS.ts, add missing tokens
-export const CS = {
-  // ... existing
-  bgCard: 'rgba(20, 20, 25, 0.7)',
-  error: '#f87171',
-  errorBg: 'rgba(239, 68, 68, 0.1)',
-  errorBorder: 'rgba(239, 68, 68, 0.3)',
-};
-
-// Use in components
-background: ${CS.bgCard};
-border: 1px solid ${CS.glassBorder};
-color: ${CS.error};
-```
-
----
-
-### 9. **DRY Violation: Date Formatting** 🟡 MEDIUM
-**File:** `ViewSessionModal.tsx` (lines 50-72)
-
-**Issue:** Duplicate date formatting logic across codebase.
-
-```tsx
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return 'N/A';
-  try {
-    const options: Intl.DateTimeFormatOptions = { /* ... */ };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  } catch (e) {
-    return "Invalid Date";
-  }
-};
-```
-
-**Fix:**
-```tsx
-// Create utils/dateFormatters.ts
-export const formatters = {
-  sessionDate: (date: string | Date | null | undefined): string => {
-    if (!date) return 'N/A';
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      }).format(new Date(date));
-    } catch {
-      return 'Invalid Date';
-    }
-  },
-  
-  sessionTime: (date: string | Date | null | undefined): string => {
-    if (!date) return 'N/A';
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date(date));
-    } catch {
-      return 'Invalid Time';
-    }
-  }
-};
-
-// Use everywhere
-import { formatters } from '@/utils/dateFormatters';
-<Typography>{formatters.sessionDate(session.sessionDate)}</Typography>
-```
-
----
-
-### 10. **Missing Loading States** 🟡 MEDIUM
-**File:** `WorkoutLogger.tsx` (lines 145-180)
-
-**Issue:** `loadClientData` shows spinner, but `loadTodaysPlan` doesn't disable UI during fetch.
-
-```tsx
-const loadTodaysPlan = useCallback(async () => {
-  setIsLoadingPlan(true);
-  // ... fetch logic
-  // ❌ No UI feedback if exercises array is already populated
-}, [clientId]);
-```
-
-**Fix:**
-```tsx
-// Add loading overlay
-{isLoadingPlan && (
-  <LoadingOverlay>
-    <Spinner />
-    <Typography>Loading workout plan...</Typography>
-  </LoadingOverlay>
-)}
-
-// Disable interactions
-<ExerciseSection aria-busy={isLoadingPlan} style={{ pointerEvents: isLoadingPlan ? 'none' : 'auto' }}>
-```
-
----
-
-### 11. **Accessibility: Missing ARIA Labels** 🟡 MEDIUM
-**File:** `ExerciseCardComponent.tsx` (lines 120-140)
-
-**Issue:** Slider inputs lack proper labels for screen readers.
-
-```tsx
-<SliderInput
-  type="range"
-  min={1}
-  max={10}
-  value={set.rpe}
-  // ❌ No aria-label or aria-labelledby
-/>
-```
-
-**Fix:**
-```tsx
-<SliderInput
-  type="range"
-  min={1}
-  max={10}
-  value={set.rpe}
-  aria-label={`Set ${set.setNumber} RPE (Rate of Perceived Exertion)`}
-  aria-valuemin={1}
-  aria-valuemax={10}
-  aria-valuenow={set.rpe}
-  aria-valuetext={`${set.rpe} out of 10`}
-  onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))}
-/>
-```
-
----
-
-## Low Priority Issues
-
-### 12. **Unused Props** 🔵 LOW
-**File:** `ExerciseCardComponent.tsx` (line 10)
-
-**Issue:** `clientId` prop is passed but only used in `GhostDataRow`.
-
-```tsx
-interface ExerciseCardComponentProps {
-  clientId?: number; // ❌ Optional but always passed
-```
-
-**Fix:**
-```tsx
-// Make required if always needed
-clientId: number;
-
-// OR remove if GhostDataRow can get it from context
-const { clientId } = useWorkoutContext();
-```
-
----
-
-### 13. **Magic Numbers** 🔵 LOW
-**File:** `WorkoutLogger.tsx` (lines 334-336)
-
-**Issue:** Hardcoded timeout value.
-
-```tsx
-const timeoutId = setTimeout(() => controller.abort(), 30000); // ❌ Magic number
-```
-
-**Fix:**
-```tsx
-// In WorkoutLoggerCS.ts
-export const SUBMIT_TIMEOUT_MS = 30_000;
-export const MAX_RETRY_ATTEMPTS = 3;
-
-// Use in code
-const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
-```
-
----
-
-### 14. **Console.error in Production** 🔵 LOW
-**File:** `WorkoutLogger.tsx` (multiple locations)
-
-**Issue:** `console.error` calls will appear in
+  } catch (error) {
+    console.error(`❌ Error awarding social points for ${action}
 
 ---
 

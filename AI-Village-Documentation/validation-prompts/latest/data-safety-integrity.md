@@ -1,506 +1,454 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 170.2s
-> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx, frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
-> **Generated:** 3/24/2026, 9:52:54 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 61.5s
+> **Files:** frontend/src/components/Social/Feed/SocialFeed.tsx, frontend/src/components/Social/Feed/CreatePostCard.tsx, frontend/src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx, backend/models/social/SocialPost.mjs, backend/routes/social/posts.mjs
+> **Generated:** 3/24/2026, 10:21:55 PM
 
 ---
 
 # 🚨 DATA SAFETY AUDIT REPORT — CRITICAL FINDINGS
 
 ## ⚠️ EXECUTIVE SUMMARY
+**OVERALL RISK LEVEL: HIGH**  
+**CRITICAL ISSUES FOUND: 3**  
+**HIGH PRIORITY ISSUES: 4**  
+**MEDIUM PRIORITY ISSUES: 2**
 
-**CRITICAL RISK DETECTED:** The WorkoutLogger component has **ZERO transaction safety** and **NO rollback mechanisms** for multi-table operations. A single network timeout or race condition could leave user data in a **permanently corrupted state**.
-
-**BLAST RADIUS:** All users logging workouts (trainers + clients) are at risk of data loss.
+This audit identified **multiple data destruction risks** that could result in permanent loss of user posts, comments, likes, and social engagement history. The most severe issues involve missing transaction wrappers, unsafe deletion patterns, and potential race conditions in point awarding systems.
 
 ---
 
 ## 🔴 CRITICAL FINDINGS
 
-### **CRITICAL-1: Workout Submission Has No Transaction Wrapper**
+### CRITICAL-1: Unprotected Bulk Delete in Post Deletion Flow
+**Severity:** CRITICAL  
+**Data at Risk:** All user posts, comments, likes, media files  
+**Blast Radius:** Single API call could orphan all comments/likes for a post  
+**File & Line:** `backend/routes/social/posts.mjs` (line not shown, but implied in DELETE endpoint)
 
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** Exercise logs, session deductions, achievement points, client workout history  
-**Blast Radius:** **Every workout submission** — affects all trainers and clients  
-**File:** `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx`  
-**Lines:** 307-344 (handleSubmit function)
+**What's Wrong:**  
+The code references `deletePost` function in `useSocialFeed` hook, but the backend route implementation is truncated. If the DELETE endpoint doesn't use transactions, a failure during cascading deletes (post → comments → likes → media) could leave orphaned records or partially deleted data.
 
-#### **What's Wrong:**
-
-The `handleSubmit` function calls `dailyWorkoutFormService.submitWorkoutForm()` which likely performs **multiple database writes**:
-
-1. Insert workout form record
-2. Insert exercise entries (N records)
-3. Insert set data (M records per exercise)
-4. **Deduct client session count** (UPDATE Users table)
-5. Award achievement points (INSERT/UPDATE UserAchievements)
-6. Update client stats (UPDATE ClientStats)
-
-**If any step fails mid-transaction**, you get:
-
-- ✅ Workout form created
-- ✅ 3 out of 5 exercises saved
-- ❌ Session NOT deducted (client gets free workout)
-- ❌ Points NOT awarded
-- ❌ Stats NOT updated
-
-**OR WORSE:**
-
-- ❌ Workout form creation fails
-- ✅ Session deducted anyway (client loses paid session with no workout logged)
-- ❌ Orphaned exercise records in database
-
-#### **Current Code:**
-
-```tsx
-const handleSubmit = async () => {
-  // ... validation ...
-
-  try {
-    const formData = {
-      clientId,
-      date: new Date().toISOString().split('T')[0],
-      exercises,
-      sessionNotes,
-      overallIntensity
-    };
-
-    const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
-    // ❌ NO TRANSACTION WRAPPER
-    // ❌ NO ROLLBACK ON PARTIAL FAILURE
-    // ❌ NO IDEMPOTENCY CHECK (double-submit = double session deduction)
-
-    if (response.success && response.data) {
-      toast.success('Workout logged successfully! Session deducted and points earned.');
-      // ⚠️ User sees success message even if backend partially failed
-    }
-  } catch (error: unknown) {
-    // ❌ Generic error handler — no way to know WHAT failed
-    toast.error(getErrorMessage(error, 'Failed to submit workout form'));
-  }
-}
+**Scenario:**
+```javascript
+// DANGEROUS PATTERN (if implemented this way):
+await SocialPost.destroy({ where: { id: postId } });
+await SocialComment.destroy({ where: { postId } }); // ❌ If this fails, post is gone but comments remain
+await SocialLike.destroy({ where: { postId } });    // ❌ Orphaned likes
+await deletePhoto(post.mediaUrl);                    // ❌ Media file deleted but DB still references it
 ```
 
-#### **Fix:**
-
-**Backend must wrap ALL operations in a Sequelize transaction:**
-
-```typescript
-// backend/services/dailyWorkoutFormService.ts
-async submitWorkoutForm(formData: DailyWorkoutForm, userId: number) {
-  const transaction = await sequelize.transaction({
-    isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED
-  });
-
-  try {
-    // 1. Check client has available sessions FIRST (with row lock)
-    const client = await User.findByPk(formData.clientId, {
-      lock: transaction.LOCK.UPDATE,
-      transaction
-    });
-
-    if (!client || client.availableSessions <= 0) {
-      throw new Error('Client has no available sessions');
-    }
-
-    // 2. Check for duplicate submission (idempotency)
-    const existingForm = await DailyWorkoutForm.findOne({
-      where: {
-        clientId: formData.clientId,
-        date: formData.date,
-        createdAt: { [Op.gte]: new Date(Date.now() - 60000) } // Last 60 seconds
-      },
-      transaction
-    });
-
-    if (existingForm) {
-      throw new Error('Duplicate submission detected');
-    }
-
-    // 3. Create workout form
-    const workoutForm = await DailyWorkoutForm.create({
-      clientId: formData.clientId,
-      trainerId: userId,
-      date: formData.date,
-      sessionNotes: formData.sessionNotes,
-      overallIntensity: formData.overallIntensity
-    }, { transaction });
-
-    // 4. Bulk insert exercises (atomic)
-    const exerciseRecords = formData.exercises.map(ex => ({
-      workoutFormId: workoutForm.id,
-      exerciseId: ex.exerciseId,
-      exerciseName: ex.exerciseName,
-      formRating: ex.formRating,
-      painLevel: ex.painLevel,
-      performanceNotes: ex.performanceNotes
-    }));
-
-    const createdExercises = await ExerciseEntry.bulkCreate(exerciseRecords, {
-      transaction,
-      returning: true
-    });
-
-    // 5. Bulk insert sets (atomic)
-    const setRecords = formData.exercises.flatMap((ex, exIdx) =>
-      ex.sets.map(set => ({
-        exerciseEntryId: createdExercises[exIdx].id,
-        setNumber: set.setNumber,
-        weight: set.weight,
-        reps: set.reps,
-        rpe: set.rpe,
-        tempo: set.tempo,
-        restTime: set.restTime,
-        formQuality: set.formQuality,
-        notes: set.notes
-      }))
+**Fix:**
+```javascript
+// SAFE PATTERN:
+const transaction = await sequelize.transaction();
+try {
+  const post = await SocialPost.findByPk(postId, { transaction });
+  if (!post) throw new Error('Post not found');
+  
+  // Delete in reverse dependency order
+  await SocialComment.destroy({ where: { postId }, transaction });
+  await SocialLike.destroy({ where: { postId }, transaction });
+  
+  // Delete media AFTER DB records are marked for deletion
+  const mediaUrl = post.mediaUrl;
+  await post.destroy({ transaction });
+  
+  await transaction.commit();
+  
+  // Only delete physical file after DB commit succeeds
+  if (mediaUrl) {
+    await deletePhoto(mediaUrl).catch(err => 
+      console.error('Media cleanup failed (non-fatal):', err)
     );
+  }
+} catch (error) {
+  await transaction.rollback();
+  throw error;
+}
+```
 
-    await ExerciseSet.bulkCreate(setRecords, { transaction });
+---
 
-    // 6. Deduct session (atomic decrement)
-    await client.decrement('availableSessions', { by: 1, transaction });
+### CRITICAL-2: Race Condition in Point Awarding System
+**Severity:** CRITICAL  
+**Data at Risk:** User point balances, transaction history  
+**Blast Radius:** All users creating posts/likes simultaneously  
+**File & Line:** `backend/routes/social/posts.mjs:90-130` (`awardSocialPoints` function)
 
-    // 7. Award points (upsert to prevent duplicates)
-    await UserAchievement.upsert({
-      userId: formData.clientId,
-      achievementType: 'workout_completed',
-      points: 10,
-      earnedAt: new Date()
+**What's Wrong:**  
+The point awarding system reads the last balance, calculates new balance, then writes — classic read-modify-write race condition. If two posts are created simultaneously:
+
+```javascript
+// User has 100 points
+// Request A reads balance: 100
+// Request B reads balance: 100
+// Request A writes: 100 + 25 = 125
+// Request B writes: 100 + 10 = 110  ❌ Lost 25 points!
+```
+
+**Current Code:**
+```javascript
+const lastTransaction = await PointTransaction.findOne({
+  where: { userId },
+  order: [['createdAt', 'DESC']]
+});
+const currentBalance = lastTransaction ? lastTransaction.balance : 0;
+const newBalance = currentBalance + pointsToAward; // ❌ RACE CONDITION
+```
+
+**Fix:**
+```javascript
+async function awardSocialPoints(userId, action, metadata = {}) {
+  const transaction = await sequelize.transaction({
+    isolationLevel: sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE
+  });
+  
+  try {
+    const pointsToAward = SOCIAL_POINT_RULES[action];
+    if (!pointsToAward) {
+      await transaction.rollback();
+      return { pointsAwarded: 0, success: false };
+    }
+
+    // Lock the user's last transaction row
+    const lastTransaction = await PointTransaction.findOne({
+      where: { userId },
+      order: [['createdAt', 'DESC']],
+      lock: transaction.LOCK.UPDATE, // ✅ Prevents concurrent reads
+      transaction
+    });
+    
+    const currentBalance = lastTransaction ? lastTransaction.balance : 0;
+    const newBalance = currentBalance + pointsToAward;
+
+    await PointTransaction.create({
+      userId,
+      points: pointsToAward,
+      balance: newBalance,
+      transactionType: 'earn',
+      source: 'social_engagement',
+      description: `Social Action: ${action.replace('_', ' ')}`,
+      metadata: { socialAction: action, ...metadata }
     }, { transaction });
 
-    // 8. Update stats
-    await ClientStats.increment('totalWorkouts', {
-      where: { clientId: formData.clientId },
-      transaction
-    });
-
-    // ✅ COMMIT — All or nothing
     await transaction.commit();
-
-    return { success: true, data: workoutForm };
-
+    return { pointsAwarded: pointsToAward, newBalance, success: true };
   } catch (error) {
-    // ✅ ROLLBACK — Undo everything
     await transaction.rollback();
-
-    // Log detailed error for debugging
-    logger.error('Workout submission failed', {
-      clientId: formData.clientId,
-      error: error.message,
-      stack: error.stack
-    });
-
-    throw error;
+    console.error('Point award failed:', error);
+    return { pointsAwarded: 0, success: false, error: error.message };
   }
 }
 ```
 
-**Frontend: Add idempotency check:**
-
-```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) {
-    toast.warning('Submission already in progress');
-    return; // ✅ Prevent double-submit
-  }
-
-  isSubmittingRef.current = true;
-  setIsSubmitting(true);
-
-  // ... validation ...
-
-  const submissionId = `${clientId}-${new Date().toISOString().split('T')[0]}-${Date.now()}`;
-
-  try {
-    const response = await dailyWorkoutFormService.submitWorkoutForm({
-      ...formData,
-      submissionId // ✅ Backend can detect duplicates
-    });
-
-    if (response.success) {
-      toast.success('Workout logged! Session deducted.');
-      setSubmittedFormId(response.data.id);
-      onComplete(response.data);
-    }
-  } catch (error: unknown) {
-    if (error.message?.includes('Duplicate submission')) {
-      toast.error('This workout was already submitted. Refresh the page.');
-    } else if (error.message?.includes('no available sessions')) {
-      toast.error('Client has no sessions remaining. Cannot submit.');
-    } else {
-      toast.error('Submission failed. Your data was NOT saved. Please try again.');
-    }
-  } finally {
-    isSubmittingRef.current = false;
-    setIsSubmitting(false);
-  }
-};
-```
-
 ---
 
-### **CRITICAL-2: Race Condition in Double-Submit Guard**
+### CRITICAL-3: Missing Transaction Wrapper in Post Creation
+**Severity:** CRITICAL  
+**Data at Risk:** Posts, media files, point transactions  
+**Blast Radius:** Every post creation could leave orphaned media or unawarded points  
+**File & Line:** `backend/routes/social/posts.mjs` (POST endpoint — code truncated)
 
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** Session credits, duplicate workout records  
-**Blast Radius:** Any user who double-clicks "Submit" or has slow network  
-**File:** `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx`  
-**Lines:** 307-310
-
-#### **What's Wrong:**
-
-```tsx
-const handleSubmit = async () => {
-  if (isSubmittingRef.current) return; // ❌ CHECK
-  isSubmittingRef.current = true;      // ❌ SET (race window here!)
-  setIsSubmitting(true);
+**What's Wrong:**  
+If post creation follows this pattern (common in the codebase):
+```javascript
+// DANGEROUS:
+const post = await SocialPost.create({ userId, content, mediaUrl });
+await awardSocialPoints(userId, 'post_create_workout'); // ❌ If this fails, post exists but no points
 ```
 
-**Race condition timeline:**
+If point awarding fails, the post is created but the user doesn't get their XP. If media upload fails after DB insert, the DB references a non-existent file.
 
-```
-T+0ms:  User clicks Submit (Call #1)
-T+1ms:  Call #1 checks isSubmittingRef.current → FALSE ✅
-T+2ms:  User double-clicks (Call #2)
-T+3ms:  Call #2 checks isSubmittingRef.current → STILL FALSE ❌
-T+4ms:  Call #1 sets isSubmittingRef.current = true
-T+5ms:  Call #2 sets isSubmittingRef.current = true
-T+6ms:  Both calls proceed to API → DOUBLE SESSION DEDUCTION
-```
-
-#### **Fix:**
-
-Use **atomic compare-and-swap** pattern:
-
-```tsx
-const isSubmittingRef = useRef<{ locked: boolean }>({ locked: false });
-
-const handleSubmit = async () => {
-  // ✅ Atomic lock acquisition
-  if (isSubmittingRef.current.locked) {
-    toast.warning('Submission already in progress');
-    return;
-  }
-
-  // ✅ Set lock BEFORE any async operations
-  isSubmittingRef.current = { locked: true }; // New object reference = atomic
-  setIsSubmitting(true);
-
-  try {
-    // ... submission logic ...
-  } finally {
-    // ✅ Always release lock
-    isSubmittingRef.current = { locked: false };
-    setIsSubmitting(false);
-  }
-};
-```
-
-**OR use a submission token:**
-
-```tsx
-const [submissionToken, setSubmissionToken] = useState<string | null>(null);
-
-const handleSubmit = async () => {
-  const token = `${Date.now()}-${Math.random()}`;
-
-  if (submissionToken) {
-    toast.warning('Submission in progress');
-    return;
-  }
-
-  setSubmissionToken(token);
-
-  try {
-    const response = await dailyWorkoutFormService.submitWorkoutForm({
-      ...formData,
-      submissionToken: token // Backend validates uniqueness
-    });
-  } finally {
-    setSubmissionToken(null);
-  }
-};
-```
-
----
-
-### **CRITICAL-3: No Validation That Client Exists Before Submission**
-
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** Orphaned workout records, referential integrity violations  
-**Blast Radius:** Any workout submitted for a deleted/invalid client  
-**File:** `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx`  
-**Lines:** 313-316
-
-#### **What's Wrong:**
-
-```tsx
-if (!client) {
-  toast.error('Client information not loaded');
-  isSubmittingRef.current = false;
-  setIsSubmitting(false);
-  return;
-}
-```
-
-**This only checks the LOCAL state.** If:
-
-1. Trainer opens WorkoutLogger for Client #123
-2. Admin deletes Client #123 in another tab
-3. Trainer submits workout
-4. **Backend creates workout record with `clientId: 123` (orphaned record)**
-
-#### **Fix:**
-
-**Backend MUST validate client exists with a foreign key constraint:**
-
-```sql
--- Migration: Add FK constraint
-ALTER TABLE daily_workout_forms
-ADD CONSTRAINT fk_client
-FOREIGN KEY (client_id)
-REFERENCES users(id)
-ON DELETE CASCADE; -- ⚠️ Or RESTRICT to prevent deletion of clients with workouts
-```
-
-**Backend service validation:**
-
-```typescript
-async submitWorkoutForm(formData: DailyWorkoutForm) {
+**Fix:**
+```javascript
+router.post('/', upload.single('media'), async (req, res) => {
   const transaction = await sequelize.transaction();
-
+  let uploadedMediaUrl = null;
+  
   try {
-    // ✅ Validate client exists AND has sessions (with row lock)
-    const client = await User.findOne({
-      where: {
-        id: formData.clientId,
-        role: 'client', // ✅ Prevent submitting workout for a trainer account
-        deletedAt: null // ✅ Soft-delete check
-      },
-      lock: transaction.LOCK.UPDATE,
-      transaction
+    // 1. Upload media first (before DB write)
+    if (req.file) {
+      uploadedMediaUrl = await uploadPhoto(req.file, 'social-posts');
+    }
+    
+    // 2. Create post with transaction
+    const post = await SocialPost.create({
+      userId: req.user.id,
+      content: req.body.content,
+      type: req.body.type || 'general',
+      visibility: req.body.visibility || 'friends',
+      mediaUrl: uploadedMediaUrl,
+      moderationStatus: 'approved'
+    }, { transaction });
+    
+    // 3. Award points within same transaction
+    const pointAction = `post_create_${post.type}`;
+    const pointResult = await awardSocialPoints(
+      req.user.id, 
+      pointAction, 
+      { postId: post.id }
+    );
+    
+    if (!pointResult.success) {
+      throw new Error('Failed to award points');
+    }
+    
+    await transaction.commit();
+    
+    res.status(201).json({
+      success: true,
+      post,
+      pointsAwarded: pointResult.pointsAwarded
     });
-
-    if (!client) {
-      throw new Error('Client not found or has been deleted');
+  } catch (error) {
+    await transaction.rollback();
+    
+    // Clean up uploaded media if DB transaction failed
+    if (uploadedMediaUrl) {
+      await deletePhoto(uploadedMediaUrl).catch(err => 
+        console.error('Cleanup failed:', err)
+      );
     }
+    
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
 
-    if (client.availableSessions <= 0) {
-      throw new Error('Client has no available sessions');
-    }
+---
 
-    // ... rest of transaction ...
+## 🟠 HIGH PRIORITY FINDINGS
+
+### HIGH-1: Unsafe Moderation Status Changes Without Audit Trail
+**Severity:** HIGH  
+**Data at Risk:** Post visibility, moderation history  
+**Blast Radius:** All posts subject to moderation  
+**File & Line:** `backend/models/social/SocialPost.mjs:180-230` (moderation methods)
+
+**What's Wrong:**  
+The moderation methods (`flagContent`, `approveContent`, etc.) directly modify the post without creating an audit trail. If a moderator accidentally approves a flagged post, there's no way to see the previous state.
+
+**Fix:**
+```javascript
+// Create ModerationLog model first:
+const ModerationLog = db.define('ModerationLog', {
+  postId: { type: DataTypes.INTEGER, allowNull: false },
+  moderatorId: { type: DataTypes.INTEGER, allowNull: false },
+  action: { type: DataTypes.ENUM('flag', 'approve', 'reject', 'hide'), allowNull: false },
+  previousStatus: { type: DataTypes.STRING },
+  newStatus: { type: DataTypes.STRING },
+  reason: { type: DataTypes.TEXT },
+  notes: { type: DataTypes.TEXT },
+  timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+});
+
+// Update moderation methods:
+SocialPost.prototype.flagContent = async function(reason, flaggedByUserId, notes = null) {
+  const transaction = await db.transaction();
+  try {
+    const previousStatus = this.moderationStatus;
+    
+    // Log the action
+    await ModerationLog.create({
+      postId: this.id,
+      moderatorId: flaggedByUserId,
+      action: 'flag',
+      previousStatus,
+      newStatus: 'flagged',
+      reason,
+      notes
+    }, { transaction });
+    
+    // Update post
+    this.moderationStatus = 'flagged';
+    this.flaggedReason = reason;
+    this.flaggedAt = new Date();
+    this.flaggedBy = flaggedByUserId;
+    this.moderationNotes = notes;
+    this.lastModeratedAt = new Date();
+    this.lastModeratedBy = flaggedByUserId;
+    
+    await this.save({ transaction });
+    await transaction.commit();
+    return this;
   } catch (error) {
     await transaction.rollback();
     throw error;
+  }
+};
+```
+
+---
+
+### HIGH-2: Missing Cascade Delete Protection
+**Severity:** HIGH  
+**Data at Risk:** User accounts, all associated social data  
+**Blast Radius:** If a user is deleted, all their posts/comments/likes vanish  
+**File & Line:** `backend/models/social/SocialPost.mjs:15-25` (foreign key definitions)
+
+**What's Wrong:**  
+The `userId` foreign key doesn't specify `onDelete` behavior. PostgreSQL default is `NO ACTION`, which will **block** user deletion if they have posts. But if someone adds `CASCADE` later, deleting a user would silently wipe all their content.
+
+**Current Code:**
+```javascript
+userId: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+  references: {
+    model: 'Users',
+    key: 'id'
+  }
+  // ❌ Missing onDelete specification
+}
+```
+
+**Fix:**
+```javascript
+userId: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+  references: {
+    model: 'Users',
+    key: 'id'
+  },
+  onDelete: 'RESTRICT', // ✅ Prevents accidental user deletion
+  onUpdate: 'CASCADE'
+}
+
+// Add a separate "soft delete" mechanism for users:
+// In User model:
+deletedAt: {
+  type: DataTypes.DATE,
+  allowNull: true,
+  comment: 'Soft delete timestamp — user account deactivated'
+}
+
+// Update queries to filter out soft-deleted users:
+// WHERE deletedAt IS NULL
+```
+
+---
+
+### HIGH-3: Unvalidated File Upload Could Fill Disk
+**Severity:** HIGH  
+**Data at Risk:** Server disk space, service availability  
+**Blast Radius:** All users (denial of service)  
+**File & Line:** `backend/routes/social/posts.mjs:200-220` (multer config)
+
+**What's Wrong:**  
+The multer config allows 50MB files but doesn't limit the **number** of uploads per user or total storage. A malicious user could upload hundreds of 50MB videos and exhaust storage.
+
+**Current Code:**
+```javascript
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+  }
+  // ❌ No rate limiting, no per-user quota
+});
+```
+
+**Fix:**
+```javascript
+// Add UserStorageQuota model:
+const UserStorageQuota = db.define('UserStorageQuota', {
+  userId: { type: DataTypes.INTEGER, primaryKey: true },
+  totalBytes: { type: DataTypes.BIGINT, defaultValue: 0 },
+  quotaBytes: { type: DataTypes.BIGINT, defaultValue: 5 * 1024 * 1024 * 1024 }, // 5GB default
+  fileCount: { type: DataTypes.INTEGER, defaultValue: 0 }
+});
+
+// Middleware to check quota before upload:
+async function checkStorageQuota(req, res, next) {
+  try {
+    const [quota] = await UserStorageQuota.findOrCreate({
+      where: { userId: req.user.id },
+      defaults: { userId: req.user.id }
+    });
+    
+    const fileSize = parseInt(req.headers['content-length']) || 0;
+    
+    if (quota.totalBytes + fileSize > quota.quotaBytes) {
+      return res.status(413).json({
+        success: false,
+        error: 'Storage quota exceeded',
+        used: quota.totalBytes,
+        limit: quota.quotaBytes
+      });
+    }
+    
+    req.userQuota = quota;
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Apply middleware:
+router.post('/', checkStorageQuota, upload.single('media'), async (req, res) => {
+  // ... existing code ...
+  
+  // After successful upload, update quota:
+  if (uploadedMediaUrl) {
+    await req.userQuota.increment({
+      totalBytes: req.file.size,
+      fileCount: 1
+    });
+  }
+});
+```
+
+---
+
+### HIGH-4: Potential SQL Injection in Search Query
+**Severity:** HIGH  
+**Data at Risk:** All database tables (if exploited)  
+**Blast Radius:** Entire database could be read/modified  
+**File & Line:** `backend/models/social/SocialPost.mjs:295-310` (`getContentForModeration`)
+
+**What's Wrong:**  
+The search parameter is used in an `iLike` query, but if the input isn't sanitized, it could contain SQL wildcards or injection attempts.
+
+**Current Code:**
+```javascript
+if (search) {
+  whereClause.content = {
+    [db.Sequelize.Op.iLike]: `%${search}%` // ❌ Unsanitized user input
+  };
+}
+```
+
+**Fix:**
+```javascript
+if (search) {
+  // Escape special characters
+  const sanitizedSearch = search
+    .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards
+    .trim()
+    .substring(0, 100); // Limit length
+  
+  if (sanitizedSearch.length > 0) {
+    whereClause.content = {
+      [db.Sequelize.Op.iLike]: `%${sanitizedSearch}%`
+    };
   }
 }
 ```
 
 ---
 
-## 🟠 HIGH SEVERITY FINDINGS
+## 🟡 MEDIUM PRIORITY FINDINGS
 
-### **HIGH-1: Exercise Removal Has No Confirmation**
+### MEDIUM-1: Missing Input Validation on Post Content
+**Severity:** MEDIUM  
+**Data at Risk:** Database integrity, XSS vulnerabilities  
+**Blast Radius:** All users viewing posts  
+**File & Line:** `frontend/src/components/Social/Feed/CreatePostCard.tsx:200` (form submission)
 
-**Severity:** 🟠 **HIGH**  
-**Data at Risk:** 30+ minutes of trainer data entry  
-**Blast Radius:** Single workout session (1 trainer + 1 client)  
-**File:** `frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx`  
-**Lines:** 60-63
-
-#### **What's Wrong:**
-
-```tsx
-<RemoveExerciseBtn
-  onClick={() => onRemoveExercise(exerciseIndex)}
-  aria-label={`Remove ${exercise.exerciseName}`}
->
-```
-
-**No confirmation dialog.** Trainer accidentally clicks X → **all sets for that exercise deleted instantly.**
-
-#### **Fix:**
-
-```tsx
-const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
-
-<RemoveExerciseBtn
-  onClick={() => setConfirmDelete(exerciseIndex)}
->
-  <X size={18} />
-</RemoveExerciseBtn>
-
-{confirmDelete === exerciseIndex && (
-  <ConfirmDialog
-    title="Delete Exercise?"
-    message={`Remove "${exercise.exerciseName}" and all ${exercise.sets.length} sets?`}
-    onConfirm={() => {
-      onRemoveExercise(exerciseIndex);
-      setConfirmDelete(null);
-    }}
-    onCancel={() => setConfirmDelete(null)}
-  />
-)}
-```
-
----
-
-### **HIGH-2: No Auto-Save / Draft Recovery**
-
-**Severity:** 🟠 **HIGH**  
-**Data at Risk:** 60+ minutes of workout logging  
-**Blast Radius:** Any trainer who loses network or closes tab  
-**File:** `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx`  
-**Lines:** Entire component (no draft save logic)
-
-#### **What's Wrong:**
-
-If trainer logs 12 exercises over 45 minutes, then:
-
-- Browser crashes
-- Network drops
-- Accidentally closes tab
-
-**ALL DATA LOST.** No recovery mechanism.
-
-#### **Fix:**
-
-```tsx
-// Auto-save draft every 30 seconds
-useEffect(() => {
-  const draftKey = `workout-draft-${clientId}-${new Date().toISOString().split('T')[0]}`;
-
-  const saveDraft = () => {
-    try {
-      localStorage.setItem(draftKey, JSON.stringify({
-        exercises,
-        sessionNotes,
-        overallIntensity,
-        warmupItems,
-        balanceCoreItems,
-        cooldownItems,
-        timestamp: Date.now()
-      }));
-    } catch (e) {
-      console.warn('Failed to save draft:', e);
-    }
-  };
-
-  const interval = setInterval(saveDraft, 30000);
-  return () => clearInterval(interval);
-}, [exercises, sessionNotes, overallIntensity, warmupItems, balanceCoreItems, cooldownItems, clientId]);
-
-// Load draft on mount
-useEffect(() => {
-  const draftKey = `workout-draft-${clientId}-${new Date().toISOString().split('T')[0]}`;
-
-  try {
-    const draft = localStorage.getItem(draftKey);
-    if (draft) {
-      const parsed = JSON
+**What's Wrong:**  
+The frontend doesn't validate post content length or sanitize HTML before submission.
 
 ---
 
