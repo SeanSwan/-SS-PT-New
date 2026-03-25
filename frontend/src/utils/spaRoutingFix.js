@@ -1,10 +1,17 @@
 /**
  * SPA Routing Fix for SwanStudios
  * ===============================
- * 
+ *
  * Comprehensive solution to handle SPA routing issues across different hosting providers
  * Implements client-side fallbacks when server-side configuration isn't working properly
  */
+
+// Local logger — avoids circular/timing issues when spaRoutingFix loads early in main.jsx
+const logger = {
+  log: (...args) => console.log(...args),
+  warn: (...args) => console.warn(...args),
+  error: (...args) => console.error(...args),
+};
 
 /**
  * Initialize SPA routing fix
