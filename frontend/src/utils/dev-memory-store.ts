@@ -8,6 +8,8 @@
  * authentication state is inaccessible through normal means.
  */
 
+import { logger } from '@/utils/logger';
+
 type User = {
   id: string;
   name: string;

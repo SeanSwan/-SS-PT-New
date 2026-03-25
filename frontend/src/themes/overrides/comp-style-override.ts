@@ -2,6 +2,9 @@
  * comp-style-override.ts
  * Component style overrides for the theme
  */
+
+import { logger } from '@/utils/logger';
+
 // MUI Theme type removed — this file is unused legacy Berry Admin infrastructure
 
 // Instead of importing from index.ts, we use a more descriptively named file

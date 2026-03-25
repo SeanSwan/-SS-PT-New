@@ -3,6 +3,8 @@
  * Provides error handling and fail-safe mechanisms for critical components
  */
 
+import { logger } from '@/utils/logger';
+
 // Circuit breaker state
 interface CircuitBreakerState {
   failures: number;

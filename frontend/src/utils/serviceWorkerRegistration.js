@@ -6,6 +6,8 @@
  * for offline functionality and PWA features
  */
 
+import { logger } from '@/utils/logger';
+
 // Register service worker with enhanced lifecycle management
 export const registerServiceWorker = async () => {
   // Only register in production or when explicitly enabled

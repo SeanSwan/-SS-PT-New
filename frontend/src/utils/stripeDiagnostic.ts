@@ -16,6 +16,8 @@
  * Security: NEVER exposes actual secret values, only configuration status
  */
 
+import { logger } from '@/utils/logger';
+
 interface StripeKeyValidation {
   isValid: boolean;
   format: 'live' | 'test' | 'invalid';

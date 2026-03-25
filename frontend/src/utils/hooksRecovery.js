@@ -5,6 +5,8 @@
  * and tries to recover from them during runtime.
  */
 
+import { logger } from '@/utils/logger';
+
 // HOOKS RECOVERY DISABLED TO STOP INFINITE LOOPS
 // This entire system has been disabled as it was contributing to the loop problem
 logger.log('[HOOKS-RECOVERY] DISABLED - Emergency mode active');

@@ -4,6 +4,8 @@
  * Handles token cleanup on app startup
  */
 
+import { logger } from '@/utils/logger';
+
 // Listen for token cleanup events
 if (typeof window !== 'undefined') {
   // Handle token cleanup events

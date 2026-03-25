@@ -4,6 +4,8 @@
  * Production-ready token cleanup that doesn't create infinite loops
  */
 
+import { logger } from '@/utils/logger';
+
 class ProductionTokenCleanup {
   private tokenKey = 'token';
   private userKey = 'user';

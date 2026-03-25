@@ -5,6 +5,8 @@
  * Helps debug 401 errors, client secret issues, and API key mismatches
  */
 
+import { logger } from '@/utils/logger';
+
 interface PaymentDiagnosticResult {
   success: boolean;
   issues: Array<{

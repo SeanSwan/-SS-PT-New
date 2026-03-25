@@ -4,6 +4,8 @@
  * Utility to provide mock data for development and testing when backend is unavailable
  */
 
+import { logger } from '@/utils/logger';
+
 // Types for mock data
 export interface MockNotification {
   id: string;

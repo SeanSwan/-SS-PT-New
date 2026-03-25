@@ -13,6 +13,8 @@
  * - Swan Galaxy theme performance tuning
  */
 
+import { logger } from '@/utils/logger';
+
 export interface DeviceCapabilities {
   performance: 'weak' | 'medium' | 'powerful';
   memory: number | null;

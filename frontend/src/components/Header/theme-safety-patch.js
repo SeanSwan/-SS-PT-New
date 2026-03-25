@@ -3,6 +3,8 @@
  * Adds critical theme fallbacks and error prevention
  */
 
+import { logger } from '@/utils/logger';
+
 // This patch adds safety fallbacks to the most critical theme access points
 // to prevent undefined errors during theme switching or initialization
 

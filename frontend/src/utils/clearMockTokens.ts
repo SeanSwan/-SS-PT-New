@@ -3,6 +3,8 @@
  * Detects and removes any mock tokens created by DevTools
  */
 
+import { logger } from '@/utils/logger';
+
 const clearMockTokens = () => {
   // Get current token from localStorage
   const token = localStorage.getItem('token');

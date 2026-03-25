@@ -4,6 +4,8 @@
  * This module provides MCP tools and resources for Redux state management integration
  */
 
+import { logger } from '@/utils/logger';
+
 // Define the MCP resource schema for workout progress data
 const WorkoutProgressResource = {
   name: "WorkoutProgress",

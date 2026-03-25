@@ -24,6 +24,8 @@
  * @see docs/ai-workflow/HOMEPAGE-REFACTOR-FINAL-PLAN.md
  */
 
+import { logger } from '@/utils/logger';
+
 export interface PerformanceMetrics {
   // Core Web Vitals
   lcp: number | null; // Largest Contentful Paint (ms)

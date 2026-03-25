@@ -7,6 +7,8 @@
  * SIMPLIFIED APPROACH: Focus on environment consistency rather than account parsing
  */
 
+import { logger } from '@/utils/logger';
+
 export class StripeAccountValidator {
   static extractAccountFromPaymentIntent(clientSecret: string): string | null {
     // DEPRECATED: Payment intent ID parsing is unreliable

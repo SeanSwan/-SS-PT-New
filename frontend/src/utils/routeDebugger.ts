@@ -3,6 +3,8 @@
  * Helps diagnose SPA routing issues
  */
 
+import { logger } from '@/utils/logger';
+
 export function logRouteChange(location: Location) {
   logger.log('🔍 [Route Debugger] Location changed:', {
     pathname: location.pathname,

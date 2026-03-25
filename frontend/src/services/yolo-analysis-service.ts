@@ -3,6 +3,8 @@
  * Service for communicating with the YOLO AI Form/Posture Analysis MCP Server
  */
 
+import { logger } from '@/utils/logger';
+
 interface AnalysisSessionResponse {
   session_id: string;
   success: boolean;
