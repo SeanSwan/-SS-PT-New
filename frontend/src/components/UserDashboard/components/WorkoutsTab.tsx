@@ -36,16 +36,16 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   type CategoryData,
-  MOCK_CATEGORIES,
   CATEGORY_META,
   computeStats,
 } from './WorkoutsTabData';
 import {
-  Container, Header, SectionTitle, MockBadge, LogButton,
+  Container, Header, SectionTitle, LogButton,
   StatsRow, StatCard, StatIcon, StatValue, StatLabel,
   CategorySection, CategoryHeader, CategoryIcon, CategoryName, CategoryCount,
   ChartScroll, ChartContainer,
   ErrorCard, RetryButton, ShimmerCard,
+  EmptyState, EmptyTitle, EmptyText,
 } from './WorkoutsTabStyles';
 import { classifyMuscleGroup } from '../../../hooks/analytics/workoutAnalyticsUtils';
 
@@ -74,7 +74,6 @@ const WorkoutsTab: React.FC = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [useMock, setUseMock] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
 
@@ -93,17 +92,15 @@ const WorkoutsTab: React.FC = () => {
         : Array.isArray(payload) ? payload : [];
 
       if (list.length === 0) {
-        setUseMock(true);
-        setCategories(MOCK_CATEGORIES);
+        setCategories([]);
         setStreak(0);
       } else {
-        setUseMock(false);
         setCategories(transformWorkoutLogs(list));
         setStreak(calcStreak(list));
       }
     } catch {
-      setUseMock(true);
-      setCategories(MOCK_CATEGORIES);
+      setCategories([]);
+      setError('Unable to load workout data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -134,7 +131,6 @@ const WorkoutsTab: React.FC = () => {
         <SectionTitle>
           <BarChart3 size={20} style={{ color: '#60C0F0' }} />
           Exercise Usage
-          {useMock && <MockBadge>PREVIEW</MockBadge>}
         </SectionTitle>
         <LogButton onClick={() => navigate('/dashboard/admin-sessions')}>
           <Dumbbell size={16} />
@@ -142,25 +138,40 @@ const WorkoutsTab: React.FC = () => {
         </LogButton>
       </Header>
 
-      <StatsRow>
-        <StatCard>
-          <StatIcon><TrendingUp size={18} /></StatIcon>
-          <StatValue>{stats.totalExercises.toLocaleString()}</StatValue>
-          <StatLabel>Total Sets</StatLabel>
-        </StatCard>
-        <StatCard>
-          <StatIcon><Flame size={18} /></StatIcon>
-          <StatValue>{stats.mostActiveCategory}</StatValue>
-          <StatLabel>Most Active</StatLabel>
-        </StatCard>
-        <StatCard>
-          <StatIcon><Dumbbell size={18} /></StatIcon>
-          <StatValue>{useMock ? '—' : streak}</StatValue>
-          <StatLabel>Day Streak</StatLabel>
-        </StatCard>
-      </StatsRow>
+      {categories.length === 0 ? (
+        <EmptyState>
+          <Dumbbell size={48} style={{ opacity: 0.3, color: '#60C0F0' }} />
+          <EmptyTitle>No workouts logged yet</EmptyTitle>
+          <EmptyText>
+            Start logging workouts to see your exercise breakdown by body part.
+            Your most-used exercises will appear here as charts.
+          </EmptyText>
+          <LogButton onClick={() => navigate('/dashboard/admin-sessions')}>
+            <Dumbbell size={16} />
+            Log Your First Workout
+          </LogButton>
+        </EmptyState>
+      ) : (
+        <>
+          <StatsRow>
+            <StatCard>
+              <StatIcon><TrendingUp size={18} /></StatIcon>
+              <StatValue>{stats.totalExercises.toLocaleString()}</StatValue>
+              <StatLabel>Total Sets</StatLabel>
+            </StatCard>
+            <StatCard>
+              <StatIcon><Flame size={18} /></StatIcon>
+              <StatValue>{stats.mostActiveCategory}</StatValue>
+              <StatLabel>Most Active</StatLabel>
+            </StatCard>
+            <StatCard>
+              <StatIcon><Dumbbell size={18} /></StatIcon>
+              <StatValue>{streak}</StatValue>
+              <StatLabel>Day Streak</StatLabel>
+            </StatCard>
+          </StatsRow>
 
-      {categories.map((cat) => (
+          {categories.map((cat) => (
         <CategorySection key={cat.key}>
           <CategoryHeader>
             <CategoryIcon>{cat.icon}</CategoryIcon>
@@ -227,6 +238,8 @@ const WorkoutsTab: React.FC = () => {
           </ChartScroll>
         </CategorySection>
       ))}
+        </>
+      )}
     </Container>
   );
 };

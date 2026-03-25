@@ -185,3 +185,34 @@ export const ShimmerCard = styled.div`
   @keyframes shimmerAnim { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
   animation: shimmerAnim 1.5s ease-in-out infinite;
 `;
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Empty State
+// PURPOSE: Shown when no workouts have been logged yet
+// ─────────────────────────────────────────────────────────────
+export const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 16px;
+  text-align: center;
+  min-height: 300px;
+`;
+
+export const EmptyTitle = styled.h4`
+  color: var(--text-heading, #E0ECF4);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+`;
+
+export const EmptyText = styled.p`
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 360px;
+`;
