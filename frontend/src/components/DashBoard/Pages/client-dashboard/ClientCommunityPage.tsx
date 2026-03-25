@@ -64,6 +64,7 @@ import {
 } from './ClientCommunityStyles';
 
 // Styled components extracted to ClientCommunityStyles.ts per 300-line rule
+const MAX_POST_LENGTH = 500;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -109,24 +110,26 @@ const ClientCommunityPage: React.FC = () => {
     fetchData();
   }, [authAxios]);
 
-  // Refetch feed when filters change
-  const fetchFeed = useCallback(async () => {
+  // Refetch feed when filters change — stable dependency array per AI Village Phase 3 consensus
+  // Uses primitive values (category, hashtag) instead of the filters object to prevent
+  // unnecessary re-renders and race conditions when filters change mid-fetch
+  const fetchFeed = useCallback(async (category: string, hashtag: string | null) => {
     if (!authAxios) return;
     try {
       const params: Record<string, string | number> = { limit: 10 };
-      if (filters.category !== 'all') params.category = filters.category;
-      if (filters.hashtag) params.hashtag = filters.hashtag;
+      if (category !== 'all') params.category = category;
+      if (hashtag) params.hashtag = hashtag;
 
       const res = await authAxios.get('/api/social/feed', { params });
       setFeed(res.data?.posts || res.data?.data || []);
     } catch {
       // Silent fail on feed refresh — data is supplementary
     }
-  }, [authAxios, filters]);
+  }, [authAxios]);
 
   useEffect(() => {
-    if (!loading) fetchFeed();
-  }, [filters, fetchFeed, loading]);
+    if (!loading) fetchFeed(filters.category, filters.hashtag);
+  }, [filters.category, filters.hashtag, fetchFeed, loading]);
 
   const handlePost = useCallback(async () => {
     if (!postText.trim() || !authAxios) return;
@@ -138,13 +141,13 @@ const ClientCommunityPage: React.FC = () => {
         type: 'general'
       });
       setPostText('');
-      fetchFeed(); // Refresh feed after posting
+      fetchFeed(filters.category, filters.hashtag); // Refresh feed after posting
     } catch (err: any) {
       setPostError(err.message || 'Failed to create post');
     } finally {
       setPosting(false);
     }
-  }, [postText, authAxios, fetchFeed]);
+  }, [postText, authAxios, fetchFeed, filters.category, filters.hashtag]);
 
   // Fallback leaderboard data
   const leaderData = leaderboard.length > 0
@@ -183,13 +186,16 @@ const ClientCommunityPage: React.FC = () => {
             value={postText}
             onChange={e => { setPostText(e.target.value); setPostError(null); }}
             placeholder="Share an update... use #hashtags to categorize! #fitness #dance"
-            maxLength={500}
+            maxLength={MAX_POST_LENGTH}
             aria-label="Write a post"
           />
           <HashtagHint>
             <Hash size={12} />
             Type #hashtags to categorize your post
             <PointsChip>+15 XP</PointsChip>
+            <span style={{ marginLeft: 'auto', color: postText.length > MAX_POST_LENGTH * 0.9 ? '#ef4444' : undefined }}>
+              {postText.length}/{MAX_POST_LENGTH}
+            </span>
           </HashtagHint>
           {postError && <ErrorBox style={{ marginTop: 8, padding: '0.5rem' }}>{postError}</ErrorBox>}
         </div>
