@@ -8,9 +8,9 @@ import GlowButton from '../../../ui/buttons/GlowButton';
 
 const DashboardContainer = styled(motion.div)`
   padding: 2rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: var(--bg-base, #030712);
   min-height: 100vh;
-  color: white;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const Header = styled.div`
@@ -24,7 +24,7 @@ const PageTitle = styled.h1`
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #ffffff, #60C0F0);
+  background: linear-gradient(135deg, var(--text-primary, #E0ECF4), var(--accent-primary, #60C0F0));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -32,18 +32,18 @@ const PageTitle = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, #94a3b8);
   margin-top: 0.5rem;
 `;
 
 const StatsTickerPlaceholder = styled.div`
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--bg-elevated, #141419);
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
   text-align: center;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.2));
+  color: var(--text-secondary, #94a3b8);
 `;
 
 const ClientDashboardView: React.FC = () => {

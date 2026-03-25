@@ -10,6 +10,39 @@
  * by category (technique, form correction, warm-up, cool-down, stretching).
  * HOW IT FITS IN THE APP: Trainer Dashboard → Videos tab
  * KEY DECISIONS: 2-col desktop / 1-col mobile grid, category filter chips, dark-first
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerVideosPage                                 ║
+ * ║  PURPOSE: Filterable training video library + upload          ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-24                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ Training Videos                          [Upload Video]    │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [All] [Technique] [Form] [Warm-Up] [Cool-Down] [Stretch]  │
+ * ├──────────────────────┬─────────────────────────────────────┤
+ * │ ┌──────────────────┐ │ ┌──────────────────┐               │
+ * │ │ ▶ Video Title    │ │ │ ▶ Video Title    │               │
+ * │ │ 5:30 • Technique │ │ │ 3:15 • Form      │               │
+ * │ └──────────────────┘ │ └──────────────────┘               │
+ * └──────────────────────┴─────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  None (page-level component)
+ * State:     { videos, activeCategory, loading }
+ * API Calls: GET /api/videos?category=X (future — placeholder data now)
+ * Events:    onCategoryChange → filter videos, onUpload → upload modal
+ * Children:  CategoryFilterBar, VideoGrid, VideoCard, UploadButton
+ *
+ * CLICK-OUTCOMES:
+ * [Category chip]  → Filter video grid by selected category
+ * [Video card]     → Play video (future — opens player modal)
+ * [Upload Video]   → Open upload modal (future — placeholder button)
+ *
+ * GAMIFICATION: Video view completion → 50 XP (education module, future)
  */
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';

@@ -33,8 +33,8 @@ export const textGlow = keyframes`
 export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #002060, #1e1e3f);
-  color: white;
+  background: var(--bg-base, #030712);
+  color: var(--text-primary, #E0ECF4);
   min-height: 100vh;
   width: 100%;
 `;

@@ -46,8 +46,8 @@ export const PageContainer = styled.div`
   width: 100%;
   min-height: calc(100vh - 64px);
   overflow-x: hidden;
-  background: linear-gradient(135deg, #002060, #1e1e3f);
-  color: #e2e8f0;
+  background: var(--bg-base, #030712);
+  color: var(--text-primary, #E0ECF4);
 `;
 
 export const ContentContainer = styled.div`

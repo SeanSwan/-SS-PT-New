@@ -792,7 +792,7 @@ const SystemHealthPanel: React.FC = () => {
                 Optimal
               </MetricStatus>
             </MetricHeader>
-            <MetricValue>{Math.round(systemHealth.systemMetrics.responseTime)}ms</MetricValue>
+            <MetricValue>{Number(systemHealth.systemMetrics.responseTime).toFixed(1)}ms</MetricValue>
             <MetricLabel>Avg Response Time</MetricLabel>
           </MetricCard>
 
@@ -863,7 +863,7 @@ const SystemHealthPanel: React.FC = () => {
               
               <ServiceMetrics>
                 <ServiceMetric>
-                  <ServiceMetricValue>{Math.round(service.responseTime)}ms</ServiceMetricValue>
+                  <ServiceMetricValue>{Number(service.responseTime).toFixed(1)}ms</ServiceMetricValue>
                   <ServiceMetricLabel>Response</ServiceMetricLabel>
                 </ServiceMetric>
                 <ServiceMetric>

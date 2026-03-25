@@ -11,6 +11,46 @@
  * HOW IT FITS IN THE APP: Trainer Dashboard → Workout Forge tab
  * KEY DECISIONS: NASM 5-phase OPT model drives rep/set/tempo defaults
  * NASM PROTOCOL CONTEXT: Phase selector controls suggested parameters per OPT model
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerWorkoutForgePage                           ║
+ * ║  PURPOSE: Build NASM OPT workout templates for clients        ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-24                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ Workout Forge                             [Save] [AI Gen] │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Client: [Select Client ▼]   OPT Phase: [Phase 1 ▼]       │
+ * │ Template Name: [________________________]                  │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Phase 1: Stabilization — 12-20 reps, 1-3 sets, 4/2/1     │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Exercise List                               [+ Add]       │
+ * │ ┌──────────────────────────────────────────────────────┐  │
+ * │ │ 1. Goblet Squat  •  3×15  •  4/2/1  •  60s rest     │  │
+ * │ │ 2. Cable Row     •  3×15  •  4/2/1  •  60s rest     │  │
+ * │ └──────────────────────────────────────────────────────┘  │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  None (page-level component)
+ * State:     { clients, selectedClient, phase, templateName, exercises, loading }
+ * API Calls: GET /api/users?role=client, POST /api/workout-templates, POST /api/ai/generate-workout
+ * Events:    onPhaseChange → update defaults, onAddExercise → append, onSave → POST, onAIGenerate → POST
+ * Children:  ClientSelector, PhaseSelector, PhaseInfoBar, ExerciseList, ExerciseRow
+ *
+ * CLICK-OUTCOMES:
+ * [Phase dropdown]   → Update OPT phase → Refresh rep/set/tempo defaults
+ * [+ Add Exercise]   → Append blank exercise row to list
+ * [AI Generate]      → POST /api/ai/generate-workout → Populate exercise list
+ * [Save Template]    → POST /api/workout-templates → Success toast
+ * [Remove exercise]  → Remove row from exercise list
+ *
+ * NASM PROTOCOL CONTEXT: OPT_PHASES constant drives rep/set/tempo/rest defaults
+ * GAMIFICATION: Template save → trainer does not earn XP (client earns on completion)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';

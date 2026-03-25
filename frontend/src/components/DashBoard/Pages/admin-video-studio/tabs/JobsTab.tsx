@@ -281,6 +281,8 @@ const statusIcon = (status: string) => {
 const formatDate = (d: string | null) => {
   if (!d) return '--';
   const date = new Date(d);
+  // Guard against invalid date strings that produce NaN timestamps
+  if (isNaN(date.getTime())) return '--';
   return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',

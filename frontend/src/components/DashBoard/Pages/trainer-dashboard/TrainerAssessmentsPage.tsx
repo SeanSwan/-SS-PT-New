@@ -10,6 +10,39 @@
  * fill in score/notes/date, and view recent assessment history.
  * HOW IT FITS IN THE APP: Trainer Dashboard → Assessments tab
  * KEY DECISIONS: NASM-aligned assessment types, dark-first theme
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerAssessmentsPage                            ║
+ * ║  PURPOSE: Record movement screens & performance tests         ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-24                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ Assessments                                                │
+ * ├────────────────────────────┬───────────────────────────────┤
+ * │ New Assessment Form        │ Recent Assessments            │
+ * │ [Client ▼] [Type ▼]       │ ┌───────────────────────────┐ │
+ * │ Score: [____]              │ │ Client A — Movement Screen│ │
+ * │ Notes: [____________]     │ │ Score: 85  •  Mar 22      │ │
+ * │ Date:  [____]              │ │ Client B — Postural       │ │
+ * │ [Submit Assessment]        │ │ Score: 72  •  Mar 20      │ │
+ * └────────────────────────────┴───────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  None (page-level component)
+ * State:     { clients, assessments, formState, loading }
+ * API Calls: GET /api/users?role=client, GET /api/assessments, POST /api/assessments
+ * Events:    handleSubmit → POST assessment → refresh list
+ * Children:  AssessmentForm, AssessmentHistoryList
+ *
+ * CLICK-OUTCOMES:
+ * [Submit Assessment] → POST /api/assessments → Success toast → Refresh history
+ * [Assessment row]    → Expand details (future)
+ *
+ * NASM PROTOCOL CONTEXT: Assessment types map to NASM OPT evaluation criteria
+ * GAMIFICATION: Assessment completion → 50 XP (education module)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';

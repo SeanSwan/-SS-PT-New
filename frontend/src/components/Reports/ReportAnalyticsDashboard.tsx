@@ -826,7 +826,11 @@ const StyledTabsList = styled(TabsList)`
 `;
 
 // ---------------------------------------------------------------------------
-// MOCK DATA GENERATION (for demo purposes)
+// SECTION: Demo Data Generation
+// PURPOSE: Placeholder data for report analytics until real API is connected.
+// WHY: No backend endpoint yet — uses fitness-appropriate demo data instead of
+//   the original security-company placeholders.
+// TODO: Replace with GET /api/reports/analytics when backend is built.
 // ---------------------------------------------------------------------------
 const generateMockData = () => {
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
@@ -854,12 +858,12 @@ const generateMockData = () => {
   });
 
   const clientDistribution = [
-    { name: 'Residential', value: 32 },
-    { name: 'Commercial', value: 25 },
-    { name: 'Industrial', value: 18 },
-    { name: 'Government', value: 12 },
-    { name: 'Education', value: 8 },
-    { name: 'Healthcare', value: 5 },
+    { name: 'Personal Training', value: 35 },
+    { name: 'Group Sessions', value: 22 },
+    { name: 'Online Coaching', value: 18 },
+    { name: 'Golf Performance', value: 12 },
+    { name: 'Nutrition Plans', value: 8 },
+    { name: 'Assessments', value: 5 },
   ];
 
   const deliveryMethods = [
@@ -875,8 +879,8 @@ const generateMockData = () => {
     { name: 'Pending', value: 20 },
   ];
 
-  const reportTypes = ['Daily Security', 'Weekly Summary', 'Incident', 'Maintenance', 'Monthly Compliance'];
-  const clients = ['Oakwood Properties', 'Highland Corporate Center', 'Riverfront Residences', 'Metro Industrial Park', 'GreenView Apartments', 'Tech Innovation Campus'];
+  const reportTypes = ['Progress Update', 'Weekly Summary', 'Assessment Results', 'Workout Plan', 'Monthly Review'];
+  const clients = ['Jackie M.', 'Demo Client A', 'Demo Client B', 'Demo Client C', 'Demo Client D', 'Demo Client E'];
 
   const recentReports = Array.from({ length: 20 }, (_, i) => {
     const date = subDays(new Date(), Math.floor(Math.random() * 30));
@@ -888,7 +892,7 @@ const generateMockData = () => {
     return {
       id: `report-${i + 1}`,
       date: format(date, 'MMM d, yyyy'),
-      title: `${reportType} Report - ${client}`,
+      title: `${reportType} - ${client}`,
       client,
       recipients,
       views,

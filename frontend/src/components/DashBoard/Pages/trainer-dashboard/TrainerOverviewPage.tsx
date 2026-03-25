@@ -10,6 +10,42 @@
  * key performance stats, today's upcoming sessions, and shortcut actions.
  * HOW IT FITS IN THE APP: Trainer Dashboard → Overview tab (default landing)
  * KEY DECISIONS: Dark-first Crystalline Swan theme, CSS custom properties for theme compat
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: TrainerOverviewPage                               ║
+ * ║  PURPOSE: At-a-glance trainer dashboard with stats + schedule ║
+ * ║  OWNER: Claude Opus 4.6                                       ║
+ * ║  LAST VALIDATED: 2026-03-24                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ Trainer Overview                                           │
+ * ├────────┬────────┬────────┬────────┐                        │
+ * │ Active │ Today  │ Hours  │ Compl  │  ← StatCards           │
+ * │Clients │Sessions│  Week  │  Rate  │                        │
+ * └────────┴────────┴────────┴────────┘                        │
+ * ┌──────────────────────────┬─────────────────────────────────┤
+ * │ Today's Sessions         │ Quick Actions                   │
+ * │ ┌──────────────────────┐ │ [View Clients] [Schedule]       │
+ * │ │ 9:00 AM — Client A   │ │ [Workout Forge] [Videos]        │
+ * │ │ 10:30 AM — Client B  │ │                                 │
+ * │ └──────────────────────┘ │                                 │
+ * └──────────────────────────┴─────────────────────────────────┘
+ *
+ * DATA FLOW:
+ * Props In:  None (page-level component)
+ * State:     { sessions, stats, loading }
+ * API Calls: GET /api/sessions?trainerId=me&date=today
+ * Events:    Quick action clicks → navigate to other tabs
+ * Children:  StatCard (×4), SessionList, QuickActionGrid
+ *
+ * CLICK-OUTCOMES:
+ * [StatCard]        → Visual only (no click action)
+ * [Session row]     → Navigate to session detail (future)
+ * [Quick Action]    → Navigate to respective dashboard tab
+ *
+ * GAMIFICATION: None — trainer view, no direct XP triggers
  */
 import React, { useEffect, useState, useMemo } from 'react';
 import styled from 'styled-components';
