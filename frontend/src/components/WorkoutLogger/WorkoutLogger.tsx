@@ -94,7 +94,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const { user } = useAuth();
 
   // ── Core State ──
-  const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
+  const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {
+    if (initialData && Array.isArray(initialData) && initialData.length > 0) {
+      return initialData as ExerciseEntry[];
+    }
+    return [];
+  });
   const [sessionNotes, setSessionNotes] = useState('');
   const [overallIntensity, setOverallIntensity] = useState(5);
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
@@ -174,7 +179,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // ── Load client on mount ──
   useEffect(() => {
     loadClientData();
-  }, [clientId]);
+  }, [loadClientData]);
 
   // ── AI-to-Logger prefill ──
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
@@ -286,7 +291,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [convertAIExercises]);
 
   // ── Client Data ──
-  const loadClientData = async () => {
+  const loadClientData = useCallback(async () => {
     setIsLoadingClient(true);
     try {
       const api = new ApiService();
@@ -329,7 +334,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingClient(false);
     }
-  };
+  }, [clientId, user]);
 
   // ── Load Today's Plan ──
   const loadTodaysPlan = useCallback(async () => {

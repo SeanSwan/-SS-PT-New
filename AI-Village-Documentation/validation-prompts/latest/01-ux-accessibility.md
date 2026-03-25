@@ -1,167 +1,90 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 22.5s
-> **Files:** AI-Village-Documentation/gemini-consults/latest.md, AI-Village-Documentation/validation-prompts/latest/01-ux-accessibility.md, AI-Village-Documentation/validation-prompts/latest/02-code-quality.md, AI-Village-Documentation/validation-prompts/latest/03-security.md, AI-Village-Documentation/validation-prompts/latest/04-performance.md, AI-Village-Documentation/validation-prompts/latest/05-competitive-intel.md
-> **Generated:** 3/24/2026, 6:33:20 PM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 25.7s
+> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx, frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
+> **Generated:** 3/24/2026, 9:52:54 PM
 
 ---
 
-Here's the UX and Accessibility audit of the provided code, structured as requested.
+Here's a comprehensive audit of the provided code snippets, focusing on WCAG 2.1 AA compliance, Mobile UX, Design Consistency, User Flow Friction, and Loading States.
 
-## UX and Accessibility Audit: SwanStudios Frontend Code
+---
+
+## Audit Report: SwanStudios Workout Logger & Session Modal
+
+**Theme:** Enchanted Apex: Crystalline Swan (Midnight Sapphire, Royal Depth, Ice Wing, Arctic Cyan, Gilded Fern, Frost White, Swan Lavender, Wing Purple)
+**Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming)
+
+---
 
 ### 1. WCAG 2.1 AA Compliance
 
-#### AI-Village-Documentation/gemini-consults/latest.md
+#### frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
 
-*   **Finding:** The "Vault Override" Impersonation HUD specifies `Graphite #1A1A24` background with `Frost White #E0ECF4` text.
-    *   **Rating:** HIGH
-    *   **Impact:** The contrast ratio between `Graphite #1A1A24` and `Frost White #E0ECF4` is 10.9:1, which is excellent and passes WCAG AA. However, the `Wing Purple #8B5CF6` bottom border at 30% opacity (`rgba(139, 92, 246, 0.3)`) against `Graphite #1A1A24` will have a very low contrast ratio, likely failing WCAG 2.1 AA for non-text elements (minimum 3:1). The `box-shadow` also uses `Wing Purple` at 15% opacity, which might not provide sufficient visual distinction if it's meant to convey active state.
-    *   **Recommendation:** Increase the opacity or adjust the color of the `Wing Purple` border to ensure a minimum contrast ratio of 3:1 against the `Graphite` background. Re-evaluate the `box-shadow` for sufficient visual weight if it's meant to be an interactive indicator.
-*   **Finding:** The "Vault Override" Impersonation HUD specifies `Fira Code` for text, `13px`.
-    *   **Rating:** MEDIUM
-    *   **Impact:** `Fira Code` is a monospaced font, which can sometimes be less readable for long passages of text, especially at smaller sizes. While 13px is generally acceptable, the combination with a monospaced font for a critical "system override" message could slightly reduce readability for some users.
-    *   **Recommendation:** Test the readability of `Fira Code` at 13px with diverse users. Consider if a slightly larger font size or a more conventional sans-serif font would improve clarity for this critical system message.
-*   **Finding:** The "Vault Override" Impersonation HUD Exit Button specifies `Midnight Sapphire #002060` background with `Frost White #E0ECF4` text.
-    *   **Rating:** HIGH
-    *   **Impact:** The contrast ratio between `Midnight Sapphire #002060` and `Frost White #E0ECF4` is 10.9:1, which is excellent and passes WCAG AA. However, the hover state specifies `box-shadow: 0 0 12px #8B5CF6;` (Wing Purple). This shadow alone might not be a sufficient visual indicator for users with certain visual impairments if the background color doesn't change.
-    *   **Recommendation:** Ensure the hover state provides a clear and distinct visual change beyond just a shadow. Consider a subtle background color change or a more pronounced border to enhance the interactive feedback.
-*   **Finding:** The "My Training" Sidebar Item icon uses a `linear-gradient` (`#8B5CF6` → `#60C0F0`) with `-webkit-background-clip: text; -webkit-text-fill-color: transparent;`.
-    *   **Rating:** HIGH
-    *   **Impact:** Text with `transparent` fill color and a background gradient can have unpredictable contrast ratios depending on the background behind it. If the sidebar background is dynamic or if the gradient colors themselves don't provide sufficient contrast against the immediate background, this could fail WCAG 2.1 AA for text contrast (4.5:1).
-    *   **Recommendation:** Ensure that the gradient, when applied to text, always maintains a minimum contrast ratio of 4.5:1 against the sidebar's background. It's generally safer to use solid colors for text or ensure the gradient is applied to a background element rather than the text itself for accessibility.
-*   **Finding:** The Client Card "View Dashboard" Button uses `Midnight Sapphire #002060` background with `Ice Wing #60C0F0` icon.
-    *   **Rating:** HIGH
-    *   **Impact:** The contrast ratio between `Midnight Sapphire #002060` and `Ice Wing #60C0F0` is 4.6:1, which passes WCAG 2.1 AA for graphical objects (3:1 minimum). This is good. The hover state adds `box-shadow: 0 0 16px #8B5CF6;`. Similar to the exit button, ensure this shadow provides sufficient visual feedback for interaction.
-    *   **Recommendation:** While the contrast is good, ensure the icon is clearly discernible and its purpose is evident without relying solely on color. If it's an icon-only button, an `aria-label` is crucial.
-*   **Finding:** Admin Personal Dashboard Empty State text uses `Cormorant Garamond Italic, 24px, Frost White #E0ECF4`.
-    *   **Rating:** MEDIUM
-    *   **Impact:** `Cormorant Garamond Italic` is a serif font, and italics can sometimes reduce readability, especially for users with dyslexia or cognitive impairments. At 24px, it's considered large text, so the contrast requirement is 3:1, which `Frost White` against a dark background (implied for the "Crystalline Swan" theme) would likely meet.
-    *   **Recommendation:** While 24px is a good size, consider if a non-italic version or a more legible serif font would improve readability for this motivational message.
-*   **Finding:** Admin Personal Dashboard Empty State CTA button uses `Wing Purple #8B5CF6` background with implied `Frost White #E0ECF4` text (from other button specs).
-    *   **Rating:** HIGH
-    *   **Impact:** The contrast ratio between `Wing Purple #8B5CF6` and `Frost White #E0ECF4` is 3.1:1. This passes WCAG 2.1 AA for large text (24px is large text) and graphical objects (3:1). If the text is smaller than 24px, it would fail for normal text (4.5:1). The specification does not explicitly state the text color or size for this button.
-    *   **Recommendation:** Explicitly define the text color and size for this CTA. If the text is standard size (e.g., 14-18px), ensure the contrast ratio is at least 4.5:1. If `Frost White` text is used, the button text size must be at least 24px or 18px bold to meet AA.
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **MEDIUM** | **Color Contrast (Text on Background)** | `WorkoutLoggerContainer` uses `CS.text` (`#E0ECF4`) on `CS.bgDeep` (likely a very dark blue/black). While `CS.text` is Frost White, the actual `CS.bgDeep` value is not provided in the snippet, making it impossible to verify contrast. However, the `radial-gradient` and `background-image` with `opacity: 0.03` might subtly alter the effective background color. | **Verify contrast:** Ensure `CS.text` (`#E0ECF4`) has a contrast ratio of at least 4.5:1 against the effective background color of `WorkoutLoggerContainer`. Use a color contrast checker tool. |
+| **MEDIUM** | **Color Contrast (Load Plan Button)** | `LoadPlanButton` uses `color: #8B5CF6` (Wing Purple) on `background: rgba(139, 92, 246, 0.12)`. This is a low-contrast combination. | **Increase contrast:** Adjust the background opacity or use a darker text color for `LoadPlanButton` to meet the 4.5:1 contrast ratio. Consider using `CS.secondary` as the background and `CS.text` for the text. |
+| **MEDIUM** | **Color Contrast (RolodexTrigger)** | `RolodexTrigger` uses `color: ${CS.textSecondary}` (not defined in snippet, but typically a lighter gray) on `background: ${CS.inputBgDark}` (not defined). The hover state changes `color: ${CS.text}` and `border-color: ${CS.glow}`. Without `CS.textSecondary` and `CS.inputBgDark` values, contrast cannot be fully verified, but these often fall short. | **Verify and adjust contrast:** Ensure `CS.textSecondary` has sufficient contrast against `CS.inputBgDark`. Also, ensure the `CS.text` on `CS.inputBgDark` (on hover) and `CS.glow` border have sufficient contrast. |
+| **LOW** | **Focus Indicator (Load Plan Button)** | The `LoadPlanButton` has a `transition: all 0.2s` but no explicit `outline` or `box-shadow` for `:focus-visible`. | **Add clear focus indicator:** Implement a distinct `outline` or `box-shadow` for `:focus-visible` on `LoadPlanButton` to ensure keyboard users can easily identify focus. |
+| **LOW** | **Focus Indicator (Add Exercise Button)** | `AddExerciseButton` has `box-shadow` on hover, but no explicit `outline` or `box-shadow` for `:focus-visible`. | **Add clear focus indicator:** Implement a distinct `outline` or `box-shadow` for `:focus-visible` on `AddExerciseButton`. |
+| **LOW** | **ARIA Live Region Usage** | The `LiveRegion` is present but its content is only updated when `exercises.length > 0`. It might be beneficial to provide feedback for other significant actions, e.g., "Exercise added," "Set removed," "Workout submitted." | **Expand live region usage:** Consider updating the `LiveRegion` with more granular feedback for key user actions (adding/removing exercises/sets, submission status) to inform screen reader users. |
+| **LOW** | **Keyboard Navigation (NASMProtocolSection)** | The `NASMProtocolSection` is a sub-component. Assuming it contains interactive elements (checkboxes, buttons), ensure these are keyboard navigable and have proper focus management. | **Verify sub-component accessibility:** Ensure all interactive elements within `NASMProtocolSection` (and other sub-components) are keyboard navigable, have visible focus indicators, and appropriate ARIA attributes. |
+| **LOW** | **ARIA Labels (NASMProtocolSection Icons)** | The icons (`Heart`, `Shield`, `RotateCcw`) within `NASMProtocolSection` are purely decorative and don't have `aria-hidden="true"`. If they are part of a clickable element, the clickable element needs an appropriate `aria-label`. | **Add `aria-hidden` or `aria-label`:** If the icons are decorative, add `aria-hidden="true"`. If they are part of a clickable element, ensure the parent element has a descriptive `aria-label`. |
 
-#### AI-Village-Documentation/validation-prompts/latest/01-ux-accessibility.md (Existing Audit)
+#### frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
 
-*   **Finding:** Hardcoded colors in `theme-safety-patch.js` from the RETIRED Galaxy-Swan theme.
-    *   **Rating:** CRITICAL (Agreed)
-    *   **Impact:** Direct violation of design consistency and high risk of WCAG 2.1 AA contrast failures if these fallbacks are ever used.
-    *   **Recommendation:** Update these fallback colors to align with the active "Enchanted Apex: Crystalline Swan" palette and ensure they meet WCAG 2.1 AA contrast ratios.
-*   **Finding:** Hardcoded color values and direct access to `theme.palette` properties without explicit contrast checks in `comp-style-override.ts`.
-    *   **Rating:** HIGH (Agreed)
-    *   **Impact:** High risk of WCAG 2.1 AA contrast failures.
-    *   **Recommendation:** Implement a robust color contrast checking mechanism and map MUI's palette to named theme tokens.
-*   **Finding:** `MuiTooltip` uses `color: theme.palette.background.paper` and `background: theme.palette.text.primary`.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Potential for insufficient contrast if these palette values are not carefully chosen.
-    *   **Recommendation:** Verify contrast for tooltips.
-*   **Finding:** No explicit `aria-label` or `role` attributes in `comp-style-override.ts`.
-    *   **Rating:** LOW (Agreed)
-    *   **Impact:** General architectural concern; components using these styles need proper semantics.
-    *   **Recommendation:** Ensure components are semantically correct and use `aria-labels` for clarity.
-*   **Finding:** Inconsistent `borderRadius` values.
-    *   **Rating:** LOW (Agreed)
-    *   **Impact:** Minor visual inconsistency.
-    *   **Recommendation:** Standardize `border-radius` using theme tokens.
-*   **Finding:** `MuiCheckbox` `root` style `& + .MuiFormControlLabel-label` `marginTop: 2`.
-    *   **Rating:** LOW (Agreed)
-    *   **Impact:** Potential for reduced touch target.
-    *   **Recommendation:** Ensure touch target is not reduced.
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **CRITICAL** | **Color Contrast (StarButton - Unfilled)** | The `StarButton` uses `stroke: ${CS.accent}` (Ice Wing, `#60C0F0`) for unfilled stars. This light blue on the dark background (`rgba(20, 20, 25, 0.7)`) is highly likely to fail contrast requirements, especially for non-text content. | **Increase contrast for icons:** Ensure the `stroke` color of the unfilled `StarButton` meets WCAG 2.1 AA contrast for non-text content (3:1). Consider using a darker shade or a more contrasting color from the palette. |
+| **HIGH** | **Color Contrast (SliderInput - Track)** | The `SliderInput` track uses `background: linear-gradient(90deg, rgba(96, 192, 240, 0.15), rgba(80, 160, 240, 0.2))`. This is a very light and transparent color on a dark background, likely failing the 3:1 contrast for non-text content. | **Increase contrast for slider track:** Adjust the `rgba` values for the `SliderInput` track to ensure it meets the 3:1 contrast ratio against its background. |
+| **HIGH** | **Color Contrast (TableHeader Text)** | `TableHeader` uses `color: ${CS.gaming}` (Ice Wing, `#60C0F0`) on `background: rgba(26, 26, 36, 0.8)`. This combination is likely to fail the 4.5:1 contrast ratio for text. | **Increase contrast for table headers:** Use a darker color for the `TableHeader` text or a lighter background to ensure a 4.5:1 contrast ratio. `CS.text` (`#E0ECF4`) would be a safer choice for text. |
+| **HIGH** | **Color Contrast (SetCell data-label on Mobile)** | On mobile, `SetCell::before` uses `color: ${CS.textMuted}` (not defined, but implies a muted color) on `background: rgba(20, 20, 25, 0.5)`. Muted colors often fail contrast. | **Verify and adjust contrast for mobile labels:** Ensure `CS.textMuted` has sufficient contrast (4.5:1) against the `SetCell` background. |
+| **MEDIUM** | **Touch Target Size (StarButton, RemoveSetButton, RemoveExerciseBtn)** | While `StarButton` has `min-width: 44px; min-height: 44px;` and `RemoveExerciseBtn` has `min-width: 44px; min-height: 44px;`, `RemoveSetButton` has `min-width: 44px; min-height: 44px;` but its padding is `0.25rem` which might make the actual clickable area smaller than 44px if the icon is small. | **Verify touch targets:** Double-check that the actual interactive area (including padding) of `RemoveSetButton` and `StarButton` truly meets the 44x44px minimum. The `padding: 8px` on `StarButton` is good, but `padding: 0.25rem` on `RemoveSetButton` with an 18px icon might be borderline. |
+| **MEDIUM** | **ARIA Labels (SliderInput)** | The `SliderInput` for RPE and Pain Level has an `aria-label` but it only describes the field, not its current value. Screen readers might not announce the current value automatically. | **Enhance ARIA labels for sliders:** Consider adding `aria-valuetext` or ensuring the associated `SliderValue` is programmatically linked to the slider (e.g., using `aria-labelledby` if the `SliderValue` is a separate element). |
+| **LOW** | **ARIA Labels (TempoInput)** | `TempoInput` is a custom component. Ensure it correctly implements ARIA attributes for accessibility, including `aria-label` or `aria-labelledby`. The current `ariaLabel` prop is a good start, but its internal implementation needs verification. | **Verify custom component accessibility:** Ensure `TempoInput` properly exposes its `ariaLabel` to the underlying input element and handles other accessibility concerns (e.g., keyboard interaction for custom controls). |
+| **LOW** | **Focus Indicator (NumberInput, TextInput)** | `NumberInput` and `TextInput` have `border-color` and `box-shadow` on `:focus-visible`, which is good. However, ensure these are sufficiently distinct from other states (e.g., hover) and meet contrast requirements for focus indicators. | **Review focus indicator distinctness:** Confirm that the focus indicators for inputs are clearly distinguishable from non-focused states and meet contrast requirements. |
+| **LOW** | **Semantic HTML (SetCell on Mobile)** | On mobile, `SetCell` uses `display: contents` and then `display: flex` with `::before` for labels. While `display: contents` can remove an element from the accessibility tree, the `::before` content might not be reliably announced by all screen readers as a label for the input. | **Consider alternative mobile table structure:** For better semantic meaning and screen reader support, consider using actual `<th>` elements that are visually hidden on desktop but displayed as labels on mobile, or use `aria-labelledby` to link the input to a visible label. |
+
+#### frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
+
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **CRITICAL** | **Color Contrast (Typography on Dialog Background)** | `Typography` elements use `color: 'rgba(255, 255, 255, 0.7)'` (a light gray) on the `DIALOG_PAPER_STYLE` background (`linear-gradient(135deg, #1e3a8a, #0a0a0f)`). This light gray on a dark blue/black gradient is highly likely to fail the 4.5:1 contrast ratio. | **Increase contrast:** Use a brighter color for text, or ensure the `rgba` value is high enough to pass contrast. `Frost White` (`#E0ECF4`) or a similar light color should be used for primary text. |
+| **HIGH** | **Color Contrast (Chip Text)** | The `Chip` uses `color: 'rgba(255,255,255,0.7)'` on an unspecified background (likely derived from `ChipContainer`'s `chipstatus` prop). This is the same low-contrast text as above. | **Increase contrast for chip text:** Ensure the chip text has sufficient contrast against its background. |
+| **HIGH** | **Color Contrast (Dialog Title Background)** | `DialogTitle` uses `background: 'rgba(30, 58, 138, 0.3)'` with `color: Typography variant="h6"` (default white/light). The transparent background might lead to insufficient contrast against the underlying `DIALOG_PAPER_STYLE` background. | **Verify and adjust contrast:** Ensure the `DialogTitle` text has sufficient contrast against its effective background, considering the transparency and the gradient behind it. |
+| **HIGH** | **Focus Management (Modal)** | When the modal opens, focus should be trapped within the modal and moved to the first interactive element. When closed, focus should return to the element that triggered the modal. This is not explicitly handled in the provided snippet. | **Implement robust focus management:** Use a library or custom logic to ensure focus trapping within the modal and proper focus restoration upon closing. |
+| **MEDIUM** | **ARIA Labels (Avatar)** | The `Avatar` component has `alt` text, which is good. However, if the avatar itself is interactive (e.g., clicking opens a profile), it would need an `aria-label` on the interactive element. | **Verify Avatar interactivity:** If `Avatar` is clickable, ensure the clickable element has an appropriate `aria-label` (e.g., "View client profile for [name]"). |
+| **MEDIUM** | **Keyboard Navigation (Dialog Actions)** | `GlowButton` is used in `DialogActions`. Ensure these buttons are keyboard navigable and have clear focus indicators. | **Verify button accessibility:** Ensure `GlowButton` (and any other interactive elements in `DialogActions`) are keyboard navigable and have visible focus states. |
+| **LOW** | **ARIA Roles (ChipContainer)** | `ChipContainer` is a styled div. If it's meant to convey status or act as a tag, consider if a more semantic element or ARIA role (e.g., `role="status"` if it updates dynamically, or `role="term"` for a definition list) would be appropriate, though often a simple `div` is fine for visual styling. | **Review semantic meaning of ChipContainer:** If the chip conveys important, dynamic status, consider `role="status"`. Otherwise, a `div` is acceptable. |
+| **LOW** | **Hardcoded Colors (DIALOG_PAPER_STYLE, DialogTitle, Typography, Chip)** | Many colors are hardcoded strings (`#1e3a8a`, `rgba(...)`, `#0a0a0f`) instead of using theme tokens. This makes global color updates difficult and can lead to inconsistent contrast. | **Use theme tokens:** Replace hardcoded colors with theme tokens (e.g., `CS.primary`, `CS.surface`, `CS.text`, `CS.glow`) to ensure consistency and maintainability. This will also help with contrast verification. |
+
+---
 
 ### 2. Mobile UX
 
-#### AI-Village-Documentation/gemini-consults/latest.md
+#### frontend/src/components/WorkoutLogger/WorkoutLogger.tsx
 
-*   **Finding:** Client Card "View Dashboard" Button specifies `width: 44px; height: 44px;` for strict mobile touch target.
-    *   **Rating:** CRITICAL (Positive Finding)
-    *   **Impact:** Explicitly addressing the 44x44px touch target rule is excellent for mobile UX and accessibility.
-    *   **Recommendation:** Ensure this is consistently applied to *all* interactive elements on mobile.
-*   **Finding:** The "Vault Override" Impersonation HUD Exit Button specifies `min-height: 44px; min-width: 80px;` for touch target.
-    *   **Rating:** CRITICAL (Positive Finding)
-    *   **Impact:** Another excellent example of explicitly addressing the 44x44px touch target rule.
-    *   **Recommendation:** Continue this rigorous application of touch target sizing across the entire application.
-*   **Finding:** The plan identifies "Client Card Clutter" on a mobile screen (375px) as a problem, specifically text buttons breaking the 44px touch-target rule and causing horizontal overflow.
-    *   **Rating:** CRITICAL (Positive Finding - Problem Identified)
-    *   **Impact:** This shows a strong awareness of mobile UX challenges and the 44px rule. The proposed solution (icon-only "Ghost" action) directly addresses this.
-    *   **Recommendation:** Ensure the implementation of the "Ghost" action truly resolves the clutter and touch target issues without introducing new usability problems (e.g., discoverability of icon-only actions).
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **MEDIUM** | **Touch Target (TimerFAB)** | `TimerFAB` has `width: 52px; height: 52px;`, which meets the 44px minimum. However, the `font-size: 1.5rem` for the emoji might be small, and the actual clickable area needs to be confirmed. | **Verify actual clickable area:** Ensure the entire 52x52px area is clickable, not just the emoji itself. This is usually handled correctly by `button` elements. |
+| **LOW** | **Padding on Small Screens** | `WorkoutLoggerContainer` reduces padding to `1rem` at `768px` and `0.75rem` at `430px`. This is good for responsiveness. | **Good practice:** Responsive padding is well implemented. |
+| **LOW** | **Responsive Layout (General)** | The layout generally uses `flex` and `grid` and media queries (`@media (max-width: 768px)`) for `WorkoutLoggerContainer` padding. This indicates a responsive approach. | **Good practice:** The overall structure seems responsive. Further details would require reviewing sub-components. |
 
-#### AI-Village-Documentation/validation-prompts/latest/01-ux-accessibility.md (Existing Audit)
+#### frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
 
-*   **Finding:** No explicit touch target sizing (minimum 44x44px) defined in `comp-style-override.ts`.
-    *   **Rating:** HIGH (Agreed)
-    *   **Impact:** Many interactive elements might fall below the minimum touch target size.
-    *   **Recommendation:** Conduct a thorough review and apply 44x44px minimums. The `gemini-consults` document shows this is being addressed for new features, which is good.
-*   **Finding:** No responsive breakpoints or media queries defined within `comp-style-override.ts`.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Base styles might not adapt well to smaller screens.
-    *   **Recommendation:** Ensure the overarching theme and layout system handles responsiveness.
-*   **Finding:** `MuiListItemButton` hover styles are not applicable to touch devices.
-    *   **Rating:** LOW (Agreed)
-    *   **Impact:** Lack of equivalent visual feedback for touch.
-    *   **Recommendation:** Provide clear active/pressed states for touch.
-*   **Finding:** `cosmicPerformanceOptimizer` detects `devicePixelRatio` and `preferReducedMotion`.
-    *   **Rating:** LOW (Positive Finding - Agreed)
-    *   **Impact:** Improves mobile UX by adapting to device capabilities.
-    *   **Recommendation:** Continue leveraging these capabilities.
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **HIGH** | **Touch Target (StarButton, RemoveSetButton, RemoveExerciseBtn)** | As noted in WCAG, `StarButton`, `RemoveSetButton`, and `RemoveExerciseBtn` have `min-width: 44px; min-height: 44px;`. While this is good, the internal padding and icon size should be considered to ensure the *effective* touch target is truly 44x44px. | **Confirm effective touch target:** Visually inspect and test on mobile devices to ensure the interactive area of these buttons is easily tappable without accidental presses. |
+| **HIGH** | **Mobile Table Layout (SetRow - `display: block`)** | The `SetRow` switches to `display: block` on mobile, with each `SetCell` becoming a flex row with a `data-label`. This is a common pattern for responsive tables, but `display: block` can sometimes break the semantic meaning of a table row for assistive technologies if not handled carefully. | **Verify semantic structure for mobile tables:** While visually effective, ensure screen readers still convey the relationship between the "label" and the input. Consider if a definition list (`dl`, `dt`, `dd`) or a more explicit `aria-labelledby` approach would be more robust for accessibility on mobile. |
+| **MEDIUM** | **Input Sizing on Mobile** | `NumberInput` and `TextInput` have `min-height: 48px` on `max-width: 768px` and `font-size: 16px` on `max-width: 430px`. This is good for touch targets and readability. | **Good practice:** Input sizing and font adjustments for mobile are well-handled. |
+| **LOW** | **Slider Input Usability on Mobile** | Range sliders can be tricky on mobile. While the `min-height` is not explicitly set for the slider itself, the thumb size is 20x20px, which is good. | **Test slider interaction:** Thoroughly test the `SliderInput` on various mobile devices to ensure smooth and accurate interaction, especially for precise selections. |
 
-### 3. Design Consistency
+#### frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
 
-#### AI-Village-Documentation/gemini-consults/latest.md
-
-*   **Finding:** The "Vault Override" Impersonation HUD uses `Graphite #1A1A24` and `Fira Code` typography, which are not explicitly part of the active "Enchanted Apex: Crystalline Swan" palette or typography stack. The active palette includes `Midnight Sapphire`, `Royal Depth`, `Ice Wing`, `Arctic Cyan`, `Gilded Fern`, `Frost White`, `Swan Lavender`, `Wing Purple`. Typography includes `Plus Jakarta Sans`, `Cormorant Garamond Italic`, `Fira Code`, `Sora`. `Fira Code` is listed as "data" typography, but here it's used for a system message. `Graphite` is a new color.
-    *   **Rating:** HIGH
-    *   **Impact:** Introducing new colors (`Graphite`) and using a specific typography (`Fira Code`) outside its defined context ("data") for a critical UI element can introduce visual inconsistencies and dilute the "Crystalline Swan" aesthetic. While the intent is to signify a "system override," it should ideally be achieved using existing theme tokens or carefully introduced new ones that complement the theme.
-    *   **Recommendation:** Re-evaluate the use of `Graphite #1A1A24`. Can a dark shade from the existing palette (e.g., a darker `Royal Depth` or `Midnight Sapphire`) achieve the desired "vault" feel? If `Graphite` is essential, formally add it to the theme's color palette with a clear purpose. Clarify if `Fira Code` is now also intended for "system override" messages, or if a different font from the existing stack would be more appropriate for readability in this context.
-*   **Finding:** The "My Training" Sidebar Item uses a `Carbon #141419` divider. `Carbon` is a new color not in the active palette.
-    *   **Rating:** MEDIUM
-    *   **Impact:** Similar to `Graphite`, introducing new, unlisted colors can lead to design inconsistencies.
-    *   **Recommendation:** Formally add `Carbon` to the theme's color palette with a clear purpose, or find an equivalent from the existing "Enchanted Apex" palette (e.g., a very dark `Royal Depth`).
-*   **Finding:** The "My Training" Sidebar Item icon uses a **Cosmic Nebula gradient** (`#8B5CF6` → `#60C0F0`). These colors (`Wing Purple` and `Ice Wing`) are from the active palette, which is good.
-    *   **Rating:** LOW (Positive Finding)
-    *   **Impact:** Consistent use of theme tokens for gradients.
-    *   **Recommendation:** Continue to define and use named gradients within the theme for consistency.
-*   **Finding:** The Admin Personal Dashboard Empty State CTA button specifies `Wing Purple #8B5CF6` for background and `Ice Wing #60C0F0` for hover glow. These are both active theme tokens.
-    *   **Rating:** LOW (Positive Finding)
-    *   **Impact:** Good use of theme tokens.
-    *   **Recommendation:** Continue this practice.
-
-#### AI-Village-Documentation/validation-prompts/latest/01-ux-accessibility.md (Existing Audit)
-
-*   **Finding:** Hardcoded colors from the RETIRED "Galaxy-Swan" theme in `theme-safety-patch.js`.
-    *   **Rating:** CRITICAL (Agreed)
-    *   **Impact:** Direct violation of design consistency.
-    *   **Recommendation:** **IMMEDIATELY** update these fallback colors to the "Enchanted Apex: Crystalline Swan" palette.
-*   **Finding:** Comment "Common theme fallbacks for galaxy header" explicitly references the retired theme.
-    *   **Rating:** HIGH (Agreed)
-    *   **Impact:** Confusing and misleading.
-    *   **Recommendation:** Update comments or remove them.
-*   **Finding:** Direct access to `theme.palette.grey[50]`, `theme.palette.secondary.light`, etc., instead of named design tokens in `comp-style-override.ts`.
-    *   **Rating:** HIGH (Agreed)
-    *   **Impact:** Inconsistencies if shades don't align with "Enchanted Apex" intent.
-    *   **Recommendation:** Map MUI's palette to specific named tokens.
-*   **Finding:** Inconsistent `borderRadius` values.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Visual inconsistencies.
-    *   **Recommendation:** Use the `borderRadius` parameter consistently.
-*   **Finding:** `MuiAutocomplete` `popper` `boxShadow` is hardcoded.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Prevents easy theme updates for shadows.
-    *   **Recommendation:** Define shadow tokens within the theme.
-*   **Finding:** `MuiAvatar` background uses `(theme.palette.primary as any)[200] || theme.palette.primary.light`.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Relies on generic MUI palette values.
-    *   **Recommendation:** Define specific avatar colors using "Enchanted Apex" palette.
-*   **Finding:** `MuiDataGrid` cell background colors for `high`, `medium`, `low` are hardcoded to `theme.palette.success.light`, `theme.palette.warning.light`, `theme.palette.error.light`.
-    *   **Rating:** MEDIUM (Agreed)
-    *   **Impact:** Shades might not align with "Enchanted Apex" palette.
-    *   **Recommendation:** Define semantic status colors using "Enchanted Apex" palette.
-*   **Finding:** `comp-style-override.ts` is explicitly marked as "unused legacy Berry Admin infrastructure."
-    *   **Rating:** CRITICAL (Agreed)
-    *   **Impact:** Major red flag for design consistency and maintainability.
-    *   **Recommendation:** Clarify status; delete if unused, or fully audit and update if used.
-*   **Finding:** `cosmicPerformanceOptimizer.ts
+| Rating | Finding | Details | Recommendation |
+|---|---|---|---|
+| **HIGH** |
 
 ---
 

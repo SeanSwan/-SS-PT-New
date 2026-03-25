@@ -1,500 +1,521 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 99.0s
-> **Files:** AI-Village-Documentation/gemini-consults/latest.md, AI-Village-Documentation/validation-prompts/latest/01-ux-accessibility.md, AI-Village-Documentation/validation-prompts/latest/02-code-quality.md, AI-Village-Documentation/validation-prompts/latest/03-security.md, AI-Village-Documentation/validation-prompts/latest/04-performance.md, AI-Village-Documentation/validation-prompts/latest/05-competitive-intel.md
-> **Generated:** 3/24/2026, 6:33:20 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 57.8s
+> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx, frontend/src/components/DashBoard/Pages/admin-sessions/ViewSessionModal.tsx
+> **Generated:** 3/24/2026, 9:52:54 PM
 
 ---
 
-# Code Quality Review: SwanStudios AI Village Documentation
+# Code Review: WorkoutLogger, ExerciseCardComponent, ViewSessionModal
 
-## Executive Summary
+## Critical Issues
 
-**Overall Assessment:** These are **documentation/validation files**, not production code. However, they contain **critical design specifications** that will directly impact implementation quality. The review focuses on **design consistency violations**, **accessibility gaps**, and **implementation risks** identified by the AI validation system.
+### 1. **Race Condition in Submit Handler** ⚠️ CRITICAL
+**File:** `WorkoutLogger.tsx` (lines 308-365)
 
-**Key Finding:** Multiple validators flagged **RETIRED Galaxy-Swan theme colors** still present in production code, creating a **CRITICAL design consistency violation**.
+**Issue:** The `isSubmittingRef` pattern has a race condition. Setting the ref *after* the check doesn't prevent concurrent calls if two clicks happen within the same event loop tick.
 
----
-
-## 1. TypeScript Best Practices
-
-### ❌ CRITICAL: Documentation References Non-Existent Types
-
-**File:** `latest.md` (Gemini Design Mandate)  
-**Lines:** 89-134 (Implementation Directives)
-
-**Issue:** The design specs reference components/props that don't exist in the codebase being validated:
-
-```md
-#### A. The Impersonation HUD (View-As Banner)
-*   **Container:** `position: fixed; top: 0; left: 0; width: 100%; height: 48px; z-index: 9999;`
+```tsx
+const handleSubmit = async () => {
+  if (isSubmittingRef.current) return;
+  isSubmittingRef.current = true; // ❌ Still vulnerable to race
 ```
 
-**Problem:** No TypeScript interface defined for `ImpersonationHUDProps` or `AdminViewAsWrapperProps`. The validation reports reference these components, but the design doc doesn't specify type contracts.
-
-**Recommendation:**
-
-```typescript
-// Should be added to design spec
-interface ImpersonationHUDProps {
-  clientName: string;
-  onExit: () => void;
-  isVisible: boolean;
-}
-
-interface AdminViewAsWrapperProps {
-  children: React.ReactNode;
-  clientId: string;
-  isImpersonating: boolean;
-}
-```
-
-**Rating:** HIGH (blocks type-safe implementation)
-
----
-
-### ⚠️ MEDIUM: Transient Props Pattern Not Validated
-
-**File:** `latest.md`  
-**Line:** 79
-
-```md
-**Transient Props:** Use styled-components transient props (e.g., `$isImpersonating`)
-```
-
-**Issue:** The design mandate specifies transient props but doesn't validate that the codebase uses styled-components v5.1+ (required for `$` prefix support).
-
-**Recommendation:** Add to validation checklist:
-
-```typescript
-// Verify styled-components version supports transient props
-import { version } from 'styled-components';
-if (parseInt(version.split('.')[0]) < 5) {
-  throw new Error('styled-components v5.1+ required for transient props');
-}
-```
-
-**Rating:** MEDIUM
-
----
-
-## 2. React Patterns
-
-### ✅ GOOD: Context Provider Pattern Specified
-
-**File:** `latest.md`  
-**Line:** 75
-
-```md
-**Impersonation Context Provider:** Wrap the `AdminViewAsWrapper` in a styled-component layout
-```
-
-**Positive Finding:** The design correctly identifies the need for a context provider to manage impersonation state. This prevents prop drilling.
-
----
-
-### ⚠️ MEDIUM: Missing Memoization Guidance
-
-**File:** `latest.md`  
-**Lines:** 89-134
-
-**Issue:** The HUD component will re-render on every parent state change (e.g., Redux updates) because there's no memoization guidance.
-
-**Recommendation:** Add to spec:
-
-```typescript
-// Memoize HUD to prevent unnecessary re-renders
-export const ImpersonationHUD = React.memo<ImpersonationHUDProps>(
-  ({ clientName, onExit, isVisible }) => {
-    // ... implementation
-  },
-  (prev, next) => 
-    prev.clientName === next.clientName && 
-    prev.isVisible === next.isVisible
-);
-```
-
-**Rating:** MEDIUM
-
----
-
-## 3. styled-components & Theme Violations
-
-### 🔴 CRITICAL: Retired Theme Colors in Production Code
-
-**Files:** Multiple validation reports reference this  
-**Primary Source:** `theme-safety-patch.js` (flagged in ALL 5 validation reports)
-
-**Issue:** The validation reports consistently identify **hardcoded Galaxy-Swan theme colors** (`#ff6b9d`, `rgba(10, 10, 26, 0.9)`) in production code, directly violating the Crystalline Swan palette.
-
-**From 01-ux-accessibility.md:**
-```md
-**Finding:** Hardcoded colors in `themeSafetyPatches` (e.g., `#60c0f0`, `#ff6b9d`, `rgba(10, 10, 26, 0.9)`)
-**Rating:** CRITICAL
-**Impact:** Direct violation of design consistency. These colors are not part of the active "Enchanted Apex: Crystalline Swan" palette.
-```
-
-**From 02-code-quality.md:**
-```javascript
-// ❌ WRONG - Uses retired Galaxy-Swan colors
-primaryColor: '#60c0f0',
-accentColor: '#ff6b9d',  // RETIRED GALAXY ACCENT
-backgroundColor: 'rgba(10, 10, 26, 0.9)', // RETIRED GALAXY DARK
-```
-
-**Correct Implementation:**
-```typescript
-export const themeSafetyPatches = {
-  primaryColor: '#002060',    // Midnight Sapphire
-  accentColor: '#60C0F0',     // Ice Wing (Gaming Accent)
-  backgroundColor: 'rgba(0, 32, 96, 0.9)', // Royal Depth with alpha
-  textColor: '#E0ECF4',       // Frost White
-  luxuryAccent: '#C6A84B',    // Gilded Fern
-  glowAccent: '#50A0F0',      // Arctic Cyan
-} as const;
-```
-
-**Rating:** CRITICAL
-
----
-
-### 🔴 CRITICAL: Design Spec Uses Hardcoded Values
-
-**File:** `latest.md`  
-**Lines:** 89-134
-
-**Issue:** The Gemini design mandate specifies **hardcoded color values** instead of theme tokens:
-
-```md
-**Background:** `Graphite #1A1A24` with `backdrop-filter: blur(12px);`
-**Border Bottom:** `1px solid rgba(139, 92, 246, 0.3)` (Wing Purple at 30% opacity).
-```
-
-**Problem:** `Graphite #1A1A24` is **not in the Enchanted Apex palette**. This is a new color introduced without validation.
-
-**Correct Approach:**
-```typescript
-// Use theme tokens, not hardcoded values
-const ImpersonationHUD = styled.div`
-  background: ${({ theme }) => theme.colors.royalDepth};
-  border-bottom: 1px solid ${({ theme }) => rgba(theme.colors.wingPurple, 0.3)};
-  backdrop-filter: blur(12px);
-`;
-```
-
-**Rating:** CRITICAL
-
----
-
-### ⚠️ HIGH: Inconsistent Border Radius
-
-**File:** `02-code-quality.md`  
-**Finding from validation:**
-
-```md
-**Finding:** `MuiButton` `borderRadius: '4px'`. The `MuiPaper` `rounded` style uses `${borderRadius}px`.
-**Rating:** MEDIUM
-**Impact:** Inconsistent border-radius values across components.
-```
-
-**Issue:** The design spec doesn't define a global border-radius token. The validation report shows production code has inconsistent values.
-
-**Recommendation:** Add to design system:
-
-```typescript
-export const borderRadius = {
-  small: '4px',   // Buttons, chips
-  medium: '8px',  // Cards, modals
-  large: '12px',  // Panels, containers
-  full: '9999px', // Pills, avatars
-} as const;
-```
-
-**Rating:** HIGH
-
----
-
-## 4. DRY Violations
-
-### ⚠️ MEDIUM: Duplicated Touch Target Specs
-
-**File:** `latest.md`  
-**Lines:** 100, 119
-
-**Issue:** The 44px touch target rule is specified twice:
-
-```md
-**Touch Target:** Must be exactly `min-height: 44px; min-width: 80px;`
-// ... later ...
-**Size:** `width: 44px; height: 44px;` (Strict mobile touch target).
-```
-
-**Recommendation:** Extract to shared constant:
-
-```typescript
-export const TOUCH_TARGET = {
-  minHeight: 44,
-  minWidth: 44,
-  recommended: 48, // iOS HIG recommendation
-} as const;
-
-// Usage in styled-component
-const TouchButton = styled.button`
-  min-height: ${TOUCH_TARGET.minHeight}px;
-  min-width: ${TOUCH_TARGET.minWidth}px;
-`;
-```
-
-**Rating:** MEDIUM
-
----
-
-### ⚠️ MEDIUM: Repeated Glow Effect Pattern
-
-**File:** `latest.md`  
-**Lines:** 98, 110, 121
-
-**Issue:** The "Dual-Button Glow" effect is specified three times with slight variations:
-
-```md
-**Hover State:** `box-shadow: 0 0 12px #8B5CF6;`
-// ... later ...
-**Hover State:** `box-shadow: 0 0 16px #8B5CF6; transform: translateY(-2px);`
-// ... later ...
-**Empty State CTA:** hover glow `Ice Wing #60C0F0` (`box-shadow: 0 0 16px #60C0F0`).
-```
-
-**Recommendation:** Create reusable mixin:
-
-```typescript
-export const glowEffects = {
-  primary: (color: string) => css`
-    box-shadow: 0 0 12px ${color};
-    transition: box-shadow 0.3s ease;
-  `,
-  elevated: (color: string) => css`
-    box-shadow: 0 0 16px ${color};
-    transform: translateY(-2px);
-    transition: all 0.3s ease;
-  `,
-} as const;
-
-// Usage
-const GlowButton = styled.button`
-  &:hover {
-    ${({ theme }) => glowEffects.elevated(theme.colors.wingPurple)}
-  }
-`;
-```
-
-**Rating:** MEDIUM
-
----
-
-## 5. Error Handling
-
-### 🔴 CRITICAL: Security Vulnerability in MCP Integration
-
-**File:** `03-security.md` (validation report)  
-**Referenced Code:** `ReduxIntegration.js`
-
-**Issue:** The validation report identifies a **critical security flaw**:
-
-```md
-#### 1. Unauthorized State Exposure & Arbitrary Action Dispatch via MCP
-**OWASP:** A01:2021 – Broken Access Control
-
-The MCP integration exposes the entire Redux workout state via `WorkoutProgressResource` 
-and allows dispatching arbitrary Redux actions via `ReduxActionTool` **without any 
-authentication or authorization checks**.
-```
-
-**Impact:** This is a **CRITICAL** finding that the design doc (`latest.md`) doesn't address. The Admin-as-Client feature could be exploited to:
-
-1. View any client's workout data
-2. Impersonate any user without authorization
-3. Corrupt application state
-
-**Recommendation:** The design spec MUST include authorization checks:
-
-```typescript
-// Add to implementation requirements
-interface ImpersonationRequest {
-  adminId: string;
-  clientId: string;
-  jwt: string; // Required for authorization
-}
-
-async function authorizeImpersonation(req: ImpersonationRequest): Promise<boolean> {
-  // Verify JWT
-  const decoded = verifyJWT(req.jwt);
-  
-  // Check admin role
-  if (decoded.role !== 'ADMIN') {
-    throw new UnauthorizedError('Only admins can impersonate clients');
+**Fix:**
+```tsx
+const handleSubmit = async () => {
+  // Atomic check-and-set
+  if (isSubmittingRef.current) {
+    console.warn('Submit already in progress');
+    return;
   }
   
-  // Verify admin owns this client
-  const client = await db.clients.findOne({
-    where: { id: req.clientId, trainerId: req.adminId }
+  const submitId = Date.now();
+  isSubmittingRef.current = submitId;
+  setIsSubmitting(true);
+
+  try {
+    // ... existing logic
+  } finally {
+    // Only clear if this is still the active submit
+    if (isSubmittingRef.current === submitId) {
+      isSubmittingRef.current = null;
+    }
+    setIsSubmitting(false);
+  }
+};
+```
+
+**Alternative:** Use a proper mutex library like `async-mutex` or disable the button in the UI layer.
+
+---
+
+### 2. **Missing Error Boundary** ⚠️ CRITICAL
+**File:** All three files
+
+**Issue:** No error boundaries wrapping complex components. A single runtime error in `ExerciseCardComponent` will crash the entire workout logger.
+
+**Fix:**
+```tsx
+// Create ErrorBoundary.tsx
+class WorkoutLoggerErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('WorkoutLogger Error:', error, errorInfo);
+    toast.error('Something went wrong. Your data is safe.');
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <ErrorFallback 
+          error={this.state.error} 
+          resetError={() => this.setState({ hasError: false, error: null })}
+        />
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrap in WorkoutLogger.tsx
+export default function WorkoutLoggerWithBoundary(props: WorkoutLoggerProps) {
+  return (
+    <WorkoutLoggerErrorBoundary>
+      <WorkoutLogger {...props} />
+    </WorkoutLoggerErrorBoundary>
+  );
+}
+```
+
+---
+
+### 3. **Uncontrolled AbortController Leak** ⚠️ CRITICAL
+**File:** `WorkoutLogger.tsx` (lines 334-336)
+
+**Issue:** `AbortController` is created but never cleaned up if component unmounts during submission.
+
+```tsx
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30000);
+// ❌ No cleanup on unmount
+```
+
+**Fix:**
+```tsx
+const handleSubmit = async () => {
+  // ... validation
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
+  // Store for cleanup
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    controller.abort();
+  };
+  
+  try {
+    const response = await dailyWorkoutFormService.submitWorkoutForm(
+      formData,
+      { signal: controller.signal } // ⚠️ Ensure service accepts signal
+    );
+    // ...
+  } finally {
+    cleanup();
+    // ...
+  }
+};
+
+// Add cleanup on unmount
+useEffect(() => {
+  return () => {
+    // Cancel any pending submissions
+    if (isSubmittingRef.current) {
+      toast.info('Workout submission cancelled');
+    }
+  };
+}, []);
+```
+
+---
+
+## High Priority Issues
+
+### 4. **Massive Re-render Cascade** 🔴 HIGH
+**File:** `WorkoutLogger.tsx` (lines 368-400)
+
+**Issue:** Every keystroke in `sessionNotes` or `overallIntensity` triggers re-render of ALL exercise cards because parent state changes.
+
+**Evidence:**
+```tsx
+const [sessionNotes, setSessionNotes] = useState(''); // ❌ Causes full re-render
+const [overallIntensity, setOverallIntensity] = useState(5);
+
+// 50+ exercises × 5 sets = 250+ DOM updates per keystroke
+```
+
+**Fix:**
+```tsx
+// 1. Memoize expensive children
+const MemoizedExerciseCard = React.memo(ExerciseCardComponent, (prev, next) => {
+  return (
+    prev.exercise === next.exercise &&
+    prev.exerciseIndex === next.exerciseIndex &&
+    prev.onUpdateExercise === next.onUpdateExercise // ⚠️ Must be stable
+  );
+});
+
+// 2. Stabilize callbacks with useCallback
+const updateExercise = useCallback((exerciseIndex: number, field: keyof ExerciseEntry, value: any) => {
+  setExercises(prev => prev.map((exercise, i) =>
+    i !== exerciseIndex ? exercise : { ...exercise, [field]: value }
+  ));
+}, []); // ✅ No dependencies = stable reference
+
+// 3. Move session summary to separate component with local state
+const SessionSummaryForm = () => {
+  const [localNotes, setLocalNotes] = useState('');
+  const [localIntensity, setLocalIntensity] = useState(5);
+  
+  // Only sync on blur/submit
+  const handleBlur = () => {
+    onNotesChange(localNotes);
+    onIntensityChange(localIntensity);
+  };
+  
+  return <textarea value={localNotes} onChange={e => setLocalNotes(e.target.value)} onBlur={handleBlur} />;
+};
+```
+
+---
+
+### 5. **Missing Keys in Dynamic Lists** 🔴 HIGH
+**File:** `ExerciseCardComponent.tsx` (line 56)
+
+**Issue:** Using array index as key for sets can cause state corruption when sets are reordered/removed.
+
+```tsx
+{exercise.sets.map((set, setIndex) => (
+  <SetRow key={setIndex}> {/* ❌ Anti-pattern */}
+```
+
+**Fix:**
+```tsx
+// Add unique ID to ExerciseSet interface
+interface ExerciseSet {
+  id: string; // ✅ Add this
+  setNumber: number;
+  // ...
+}
+
+// Generate on creation
+const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
+  id: `set-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, // ✅ Unique
+  setNumber,
+  weight: 0,
+  // ...
+}), []);
+
+// Use in render
+<SetRow key={set.id}>
+```
+
+---
+
+### 6. **Inline Function Creation in Render** 🔴 HIGH
+**File:** `ExerciseCardComponent.tsx` (lines 45-80)
+
+**Issue:** Creating new functions on every render breaks `React.memo` and causes child re-renders.
+
+```tsx
+onClick={() => onUpdateExercise(exerciseIndex, 'formRating', rating)} // ❌ New function every render
+onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))} // ❌
+```
+
+**Fix:**
+```tsx
+// Create stable handlers at component level
+const handleFormRatingChange = useCallback((rating: number) => {
+  onUpdateExercise(exerciseIndex, 'formRating', rating);
+}, [exerciseIndex, onUpdateExercise]);
+
+const handleSetRPEChange = useCallback((setIndex: number, value: string) => {
+  onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(value) || 1);
+}, [exerciseIndex, onUpdateSet]);
+
+// Use in render
+<StarButton onClick={() => handleFormRatingChange(rating)}>
+<SliderInput onChange={(e) => handleSetRPEChange(setIndex, e.target.value)} />
+```
+
+---
+
+### 7. **Type Safety Violations** 🔴 HIGH
+**File:** `WorkoutLogger.tsx` (lines 150-160)
+
+**Issue:** Unsafe type assertions and missing null checks.
+
+```tsx
+const axiosResponse = await api.get(infoUrl);
+const data = axiosResponse?.data ?? axiosResponse; // ❌ Assumes shape
+
+if (data.success && data.client) { // ❌ No type guard
+  setClient({
+    id: data.client.id, // ❌ Could be undefined
+```
+
+**Fix:**
+```tsx
+// Define response type
+interface ClientInfoResponse {
+  success: boolean;
+  client?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    availableSessions: number;
+    phone?: string;
+    hasWorkoutToday?: boolean;
+  };
+  message?: string;
+}
+
+// Type guard
+function isClientInfoResponse(data: unknown): data is ClientInfoResponse {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'success' in data &&
+    typeof (data as any).success === 'boolean'
+  );
+}
+
+// Use in code
+const axiosResponse = await api.get<ClientInfoResponse>(infoUrl);
+const data = axiosResponse?.data ?? axiosResponse;
+
+if (!isClientInfoResponse(data)) {
+  throw new Error('Invalid response format');
+}
+
+if (data.success && data.client) {
+  setClient({
+    id: data.client.id,
+    firstName: data.client.firstName,
+    // ... all required fields
   });
-  
-  if (!client) {
-    throw new ForbiddenError('Admin does not own this client');
+}
+```
+
+---
+
+## Medium Priority Issues
+
+### 8. **Hardcoded Colors in Styled Components** 🟡 MEDIUM
+**File:** `ExerciseCardComponent.tsx` (multiple locations)
+
+**Issue:** Direct color values instead of theme tokens.
+
+```tsx
+background: rgba(20, 20, 25, 0.7); // ❌ Should use CS.bgCard
+border: 1px solid rgba(255, 255, 255, 0.03); // ❌ Should use CS.glassBorder
+color: #f87171; // ❌ Should use CS.error
+```
+
+**Fix:**
+```tsx
+// In WorkoutLoggerCS.ts, add missing tokens
+export const CS = {
+  // ... existing
+  bgCard: 'rgba(20, 20, 25, 0.7)',
+  error: '#f87171',
+  errorBg: 'rgba(239, 68, 68, 0.1)',
+  errorBorder: 'rgba(239, 68, 68, 0.3)',
+};
+
+// Use in components
+background: ${CS.bgCard};
+border: 1px solid ${CS.glassBorder};
+color: ${CS.error};
+```
+
+---
+
+### 9. **DRY Violation: Date Formatting** 🟡 MEDIUM
+**File:** `ViewSessionModal.tsx` (lines 50-72)
+
+**Issue:** Duplicate date formatting logic across codebase.
+
+```tsx
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return 'N/A';
+  try {
+    const options: Intl.DateTimeFormatOptions = { /* ... */ };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  } catch (e) {
+    return "Invalid Date";
   }
+};
+```
+
+**Fix:**
+```tsx
+// Create utils/dateFormatters.ts
+export const formatters = {
+  sessionDate: (date: string | Date | null | undefined): string => {
+    if (!date) return 'N/A';
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }).format(new Date(date));
+    } catch {
+      return 'Invalid Date';
+    }
+  },
   
-  return true;
-}
-```
+  sessionTime: (date: string | Date | null | undefined): string => {
+    if (!date) return 'N/A';
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(date));
+    } catch {
+      return 'Invalid Time';
+    }
+  }
+};
 
-**Rating:** CRITICAL
+// Use everywhere
+import { formatters } from '@/utils/dateFormatters';
+<Typography>{formatters.sessionDate(session.sessionDate)}</Typography>
+```
 
 ---
 
-### ⚠️ HIGH: Missing Error States in Design Spec
+### 10. **Missing Loading States** 🟡 MEDIUM
+**File:** `WorkoutLogger.tsx` (lines 145-180)
 
-**File:** `latest.md`  
-**Lines:** 89-134
+**Issue:** `loadClientData` shows spinner, but `loadTodaysPlan` doesn't disable UI during fetch.
 
-**Issue:** The design spec defines the "happy path" UI but doesn't specify error states:
-
-- What happens if impersonation fails?
-- What if the client's gamification data fails to load?
-- What if WebSocket connection drops during "View As" session?
-
-**Recommendation:** Add error state specs:
-
-```md
-#### E. Error States
-
-**Impersonation Failure:**
-- **Toast Notification:** "Failed to load client dashboard. Please try again."
-- **Background:** `rgba(220, 38, 38, 0.1)` (red tint)
-- **Icon:** Alert triangle, `#DC2626`
-
-**Network Disconnection:**
-- **Banner:** "Connection lost. Viewing cached data."
-- **Background:** `rgba(251, 191, 36, 0.1)` (amber tint)
-- **Auto-retry:** Every 5s, max 3 attempts
+```tsx
+const loadTodaysPlan = useCallback(async () => {
+  setIsLoadingPlan(true);
+  // ... fetch logic
+  // ❌ No UI feedback if exercises array is already populated
+}, [clientId]);
 ```
 
-**Rating:** HIGH
+**Fix:**
+```tsx
+// Add loading overlay
+{isLoadingPlan && (
+  <LoadingOverlay>
+    <Spinner />
+    <Typography>Loading workout plan...</Typography>
+  </LoadingOverlay>
+)}
+
+// Disable interactions
+<ExerciseSection aria-busy={isLoadingPlan} style={{ pointerEvents: isLoadingPlan ? 'none' : 'auto' }}>
+```
 
 ---
 
-## 6. Performance Anti-Patterns
+### 11. **Accessibility: Missing ARIA Labels** 🟡 MEDIUM
+**File:** `ExerciseCardComponent.tsx` (lines 120-140)
 
-### ⚠️ HIGH: Memory Leak in Performance Monitor
+**Issue:** Slider inputs lack proper labels for screen readers.
 
-**File:** `04-performance.md` (validation report)  
-**Referenced Code:** `performanceMonitor.ts`
-
-**Issue:** The validation report identifies a **CRITICAL memory leak**:
-
-```md
-| **Unbounded `setInterval`** | **CRITICAL** | In `performanceMonitor.ts`, 
-`initPerformanceMonitoring` starts a `setInterval` every 10s that is **never cleared**. 
-If a React component calls this on mount, every HMR (Hot Module Replacement) or re-mount 
-will leak a new interval. |
+```tsx
+<SliderInput
+  type="range"
+  min={1}
+  max={10}
+  value={set.rpe}
+  // ❌ No aria-label or aria-labelledby
+/>
 ```
 
-**Impact:** This will cause performance degradation in the Admin-as-Client feature if the dashboard is mounted/unmounted frequently (e.g., switching between "Admin Mode" and "Personal Training Mode").
-
-**Recommendation:** The design spec should mandate cleanup:
-
-```typescript
-// Add to implementation requirements
-export function useImpersonationMonitoring(clientId: string) {
-  useEffect(() => {
-    const monitor = PerformanceMonitor.getInstance();
-    monitor.start();
-    
-    return () => {
-      monitor.stop(); // MUST call stop() on unmount
-      monitor.clearMetrics();
-    };
-  }, [clientId]);
-}
+**Fix:**
+```tsx
+<SliderInput
+  type="range"
+  min={1}
+  max={10}
+  value={set.rpe}
+  aria-label={`Set ${set.setNumber} RPE (Rate of Perceived Exertion)`}
+  aria-valuemin={1}
+  aria-valuemax={10}
+  aria-valuenow={set.rpe}
+  aria-valuetext={`${set.rpe} out of 10`}
+  onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))}
+/>
 ```
-
-**Rating:** HIGH
 
 ---
 
-### ⚠️ MEDIUM: Inline Style Injection
+## Low Priority Issues
 
-**File:** `04-performance.md`  
-**Referenced Code:** `cosmicPerformanceOptimizer.ts`
+### 12. **Unused Props** 🔵 LOW
+**File:** `ExerciseCardComponent.tsx` (line 10)
 
-**Issue:**
+**Issue:** `clientId` prop is passed but only used in `GhostDataRow`.
 
-```md
-| **Global CSS Variable Injection** | **MEDIUM** | `cosmicPerformanceOptimizer.ts` 
-calls `root.style.setProperty` and appends `<style>` tags dynamically. Doing this during 
-a render cycle or frequently can trigger global "Recalculate Style" events, causing frame drops. |
+```tsx
+interface ExerciseCardComponentProps {
+  clientId?: number; // ❌ Optional but always passed
 ```
 
-**Impact:** The Impersonation HUD's dynamic styling could cause jank if applied during transitions.
+**Fix:**
+```tsx
+// Make required if always needed
+clientId: number;
 
-**Recommendation:** Add to design spec:
-
-```md
-#### Performance Requirements
-
-- **Style Injection Timing:** Apply HUD styles **before** first paint using `requestIdleCallback`
-- **CSS Variables:** Pre-define all HUD variables in theme, don't inject at runtime
-- **Transition Optimization:** Use `will-change: transform` on HUD container
+// OR remove if GhostDataRow can get it from context
+const { clientId } = useWorkoutContext();
 ```
-
-**Rating:** MEDIUM
 
 ---
 
-### ⚠️ MEDIUM: Missing Keys in Client Card List
+### 13. **Magic Numbers** 🔵 LOW
+**File:** `WorkoutLogger.tsx` (lines 334-336)
 
-**File:** `latest.md` (implied from design)  
-**Line:** 119 (Client Card spec)
+**Issue:** Hardcoded timeout value.
 
-**Issue:** The design spec describes a "Client Card Ghost Action" but doesn't specify how the client list is rendered. The validation reports show Redux state management, implying a list render.
-
-**Risk:** If the client list doesn't use proper `key` props, React will re-render all cards on state changes.
-
-**Recommendation:** Add to spec:
-
-```typescript
-// Client list rendering requirement
-{clients.map((client) => (
-  <ClientCard
-    key={client.id} // REQUIRED: Use stable ID, not index
-    client={client}
-    onViewDashboard={() => handleImpersonate(client.id)}
-  />
-))}
+```tsx
+const timeoutId = setTimeout(() => controller.abort(), 30000); // ❌ Magic number
 ```
 
-**Rating:** MEDIUM
+**Fix:**
+```tsx
+// In WorkoutLoggerCS.ts
+export const SUBMIT_TIMEOUT_MS = 30_000;
+export const MAX_RETRY_ATTEMPTS = 3;
+
+// Use in code
+const timeoutId = setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
+```
 
 ---
 
-## 7. Accessibility Issues
+### 14. **Console.error in Production** 🔵 LOW
+**File:** `WorkoutLogger.tsx` (multiple locations)
 
-### ⚠️ HIGH: Missing ARIA Labels
-
-**File:** `latest.md`  
-**Lines:** 119-123 (Client Card Ghost Action)
-
-**Issue:** The design spec defines an **icon-only button** without ARIA labels:
-
-```md
-**Client Card "View Dashboard" Button**
-*   **Icon:** Use a sleek SVG (Eye or Portal). Color: `Ice Wing #60C0F0`.
-```
-
-**Problem:** Screen readers won't announce the button's purpose.
-
-**Recommendation:**
-
-```typescript
+**Issue:** `console.error` calls will appear in
 
 ---
 

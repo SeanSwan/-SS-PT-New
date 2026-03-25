@@ -94,6 +94,20 @@ const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiCons
 const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
 
+// Client dashboard pages (replacing stubs)
+const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
+const ClientOverviewPage = React.lazy(() => import('./Pages/client-dashboard/ClientOverviewPage'));
+const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/ClientProfilePage'));
+const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
+const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));
+const ClientWorkoutForgePage = React.lazy(() => import('./Pages/client-dashboard/ClientWorkoutForgePage'));
+
+// Trainer dashboard pages (replacing stubs)
+const TrainerOverviewPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerOverviewPage'));
+const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
+const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
+const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
+
 // === UNIVERSAL THEME SYSTEM ===
 const universalTheme = {
   // Role-specific color palettes
@@ -436,13 +450,13 @@ const roleConfigurations: Record<string, RoleConfig> = {
   },
   trainer: {
     routes: [
-      { path: '/overview', component: () => <div>Trainer Overview (Coming Soon)</div>, title: 'Training Overview', description: 'Your coaching dashboard' },
+      { path: '/overview', component: TrainerOverviewPage, title: 'Training Overview', description: 'Your coaching dashboard' },
       { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
-      { path: '/assessments', component: () => <div>Form Assessments (Coming Soon)</div>, title: 'Form Assessments', description: 'YOLO AI form checking' },
-      { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
-      { path: '/workout-forge', component: () => <div>Workout Intelligence (Coming Soon)</div>, title: 'Workout Intelligence', description: 'AI workout generation' },
+      { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'YOLO AI form checking' },
+      { path: '/videos', component: TrainerVideosPage, title: 'Training Videos', description: 'Video content library' },
+      { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'AI workout generation' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }
     ],
@@ -450,17 +464,17 @@ const roleConfigurations: Record<string, RoleConfig> = {
   },
   client: {
     routes: [
-      { path: '/overview', component: () => <div>Galaxy Overview (Coming Soon)</div>, title: 'Overview', description: 'Your fitness journey hub' },
-      { path: '/workouts', component: () => <div>My Workouts (Coming Soon)</div>, title: 'My Workouts', description: 'Assigned workout plans' },
+      { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
+      { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
-      { path: '/workout-forge', component: () => <div>Workout Intelligence (Coming Soon)</div>, title: 'Workout Intelligence', description: 'Self-serve AI workout generation' },
+      { path: '/workout-forge', component: ClientWorkoutForgePage, title: 'Workout Intelligence', description: 'Self-serve AI workout generation' },
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
-      { path: '/community', component: () => <div>Community & Challenges (Coming Soon)</div>, title: 'Community', description: 'Social feed and challenges' },
+      { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
-      { path: '/profile', component: () => <div>Profile & Settings (Coming Soon)</div>, title: 'Profile', description: 'Personal settings' },
-      { path: '/rewards', component: () => <div>My Rewards (Coming Soon)</div>, title: 'Rewards', description: 'Points and achievements' }
+      { path: '/profile', component: ClientProfilePage, title: 'Profile', description: 'Personal settings and preferences' },
+      { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' }
     ],
     defaultPath: '/overview'
   }
