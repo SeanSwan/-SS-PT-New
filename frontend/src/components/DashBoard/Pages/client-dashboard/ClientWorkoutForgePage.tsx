@@ -105,7 +105,7 @@ const PhaseOption = styled.button<{ $active: boolean }>`
   color: var(--text-primary, #E0ECF4);
   transition: border-color 0.2s, background 0.2s;
   &:hover { border-color: var(--accent-primary, #60C0F0); }
-  span { display: block; font-size: 0.6875rem; color: var(--text-muted, #64748b); margin-top: 0.125rem;
+  span { display: block; font-size: 0.6875rem; color: var(--text-muted, #94a3b8); margin-top: 0.125rem;
          font-family: 'Fira Code', monospace; }
 `;
 
@@ -170,7 +170,7 @@ const PlaceholderMsg = styled.p`
 `;
 
 const ErrorBox = styled.div`
-  background: var(--bg-elevated, #141419); border-left: 4px solid #C92A54;
+  background: var(--bg-elevated, #141419); border-left: 4px solid var(--error-accent, #C92A54);
   border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
   color: var(--text-primary, #E0ECF4); font-size: 0.875rem;
 `;

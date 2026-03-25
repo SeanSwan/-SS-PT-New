@@ -108,7 +108,7 @@ const ProgressBarInner = styled.div<{ $pct: number; $color: string }>`
 
 const XpLabel = styled.div`
   display: flex; justify-content: space-between; font-size: 0.75rem;
-  color: var(--text-muted, #64748b); margin-top: 0.375rem;
+  color: var(--text-muted, #94a3b8); margin-top: 0.375rem;
   font-family: 'Fira Code', monospace;
 `;
 
@@ -144,7 +144,7 @@ const BadgeIcon = styled.div<{ $rarity?: string }>`
 `;
 
 const EmptyState = styled.p`
-  color: var(--text-muted, #64748b); font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8); font-size: 0.875rem;
   text-align: center; padding: 1.5rem 0;
 `;
 
@@ -158,7 +158,7 @@ const BadgePlaceholder = styled.div`
   background: var(--bg-elevated, #141419);
   border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.15));
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted, #64748b);
+  gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted, #94a3b8);
 `;
 
 const ShimmerBlock = styled.div`
@@ -168,7 +168,7 @@ const ShimmerBlock = styled.div`
 `;
 
 const ErrorBox = styled.div`
-  background: var(--bg-elevated, #141419); border-left: 4px solid #C92A54;
+  background: var(--bg-elevated, #141419); border-left: 4px solid var(--error-accent, #C92A54);
   border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
   color: var(--text-primary, #E0ECF4); font-size: 0.875rem;
 `;
@@ -206,7 +206,10 @@ const ClientRewardsPage: React.FC = () => {
   const xp = gamData?.totalPoints || gamData?.xp || 0;
   const nextLevelXp = Math.ceil(((level + 1) / 0.1) ** 2);
   const currentLevelXp = Math.ceil((level / 0.1) ** 2);
-  const pct = nextLevelXp > currentLevelXp ? ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100 : 0;
+  // Clamp 0-100 to prevent negative progress bar at level 1 with 0 XP
+  const pct = nextLevelXp > currentLevelXp
+    ? Math.max(0, Math.min(100, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100))
+    : 0;
   const tier = getTierForLevel(level);
   const achievements = gamData?.recentAchievements || gamData?.achievements || [];
 
@@ -235,7 +238,7 @@ const ClientRewardsPage: React.FC = () => {
               <AchievementItem key={a.id || i}>
                 <BadgeIcon $rarity={a.rarity}><Star size={16} /></BadgeIcon>
                 <div><div>{a.name || a.title || 'Achievement'}</div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>{a.description || ''}</span></div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{a.description || ''}</span></div>
               </AchievementItem>
             ))
           }

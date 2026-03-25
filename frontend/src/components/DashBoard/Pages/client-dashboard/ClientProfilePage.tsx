@@ -99,7 +99,7 @@ const InfoGrid = styled.div`
 const InfoItem = styled.div`
   label {
     display: block; font-size: 0.75rem;
-    color: var(--text-muted, #64748b); margin-bottom: 0.25rem;
+    color: var(--text-muted, #94a3b8); margin-bottom: 0.25rem;
     text-transform: uppercase; letter-spacing: 0.05em;
   }
   span {

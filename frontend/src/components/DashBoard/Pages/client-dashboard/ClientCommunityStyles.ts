@@ -93,13 +93,13 @@ export const PostInput = styled.textarea`
   }
 
   &::placeholder {
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted, #94a3b8);
   }
 `;
 
 export const HashtagHint = styled.div`
   font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #94a3b8);
   margin-top: 4px;
   display: flex;
   align-items: center;
@@ -159,7 +159,7 @@ export const ChallengeFooter = styled.div`
   align-items: center;
   justify-content: space-between;
   font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #94a3b8);
 `;
 
 export const ProgressBarOuter = styled.div`
@@ -229,11 +229,11 @@ export const FeedPost = styled.div`
   &:last-child { border-bottom: none; }
   .post-author { font-weight: 600; font-size: 0.875rem; }
   .post-body { font-size: 0.8125rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem; }
-  .post-time { font-size: 0.6875rem; color: var(--text-muted, #64748b); margin-top: 0.25rem; }
+  .post-time { font-size: 0.6875rem; color: var(--text-muted, #94a3b8); margin-top: 0.25rem; }
 `;
 
 export const EmptyState = styled.p`
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #94a3b8);
   font-size: 0.875rem;
   text-align: center;
   padding: 1.5rem 0;
@@ -249,7 +249,7 @@ export const ShimmerBlock = styled.div`
 
 export const ErrorBox = styled.div`
   background: var(--bg-elevated, #141419);
-  border-left: 4px solid #C92A54;
+  border-left: 4px solid var(--error-accent, #C92A54);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;

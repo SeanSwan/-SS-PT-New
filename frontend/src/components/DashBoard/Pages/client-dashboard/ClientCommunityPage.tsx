@@ -52,10 +52,12 @@
  * - Hashtag usage bonus → +5 XP for first-time tag use
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Send, Clock, Swords, MessageSquare, Hash } from 'lucide-react';
-import { useAuth } from '../../../../context/AuthContext';
 import { FeedFilterBar, type FeedFilters } from '../../../Social/Hashtags';
+import {
+  useSocialFeed, useSocialChallenges, useLeaderboard, useCreatePost,
+} from '../../../../hooks/useDashboardQueries';
 import {
   PageWrap, PostBtn, PostBox, PostInput, HashtagHint, TwoCol, SectionCard,
   ChallengeCard, ChallengeTitle, ChallengeDesc, ChallengeFooter, ProgressBarOuter,
@@ -66,102 +68,51 @@ import {
 // Styled components extracted to ClientCommunityStyles.ts per 300-line rule
 const MAX_POST_LENGTH = 500;
 
+const FALLBACK_LEADERS = [
+  { name: 'SwanAthlete1', xp: 12400 },
+  { name: 'IronPhoenix', xp: 9800 },
+  { name: 'CoreCrusher', xp: 7200 },
+  { name: 'FlexMaster', xp: 5100 },
+  { name: 'StrideKing', xp: 3600 },
+];
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
+// TanStack Query handles caching, deduplication, abort on unmount
 // ─────────────────────────────────────────────────────────────
 
 const ClientCommunityPage: React.FC = () => {
-  const { authAxios } = useAuth();
   const [filters, setFilters] = useState<FeedFilters>({ category: 'all', hashtag: null });
-  const [challenges, setChallenges] = useState<any[]>([]);
-  const [feed, setFeed] = useState<any[]>([]);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [postText, setPostText] = useState('');
-  const [posting, setPosting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [postError, setPostError] = useState<string | null>(null);
 
-  // Fetch initial data: challenges + feed + leaderboard (separate error handling)
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!authAxios) return;
-      try {
-        const [cRes, fRes, lRes] = await Promise.allSettled([
-          authAxios.get('/api/social/challenges'),
-          authAxios.get('/api/social/feed', { params: { limit: 5 } }),
-          authAxios.get('/api/gamification/leaderboard', { params: { limit: 5 } })
-        ]);
-        if (cRes.status === 'fulfilled') {
-          setChallenges(cRes.value?.data?.data || cRes.value?.data?.challenges || []);
-        }
-        if (fRes.status === 'fulfilled') {
-          setFeed(fRes.value?.data?.posts || fRes.value?.data?.data || []);
-        }
-        if (lRes.status === 'fulfilled') {
-          setLeaderboard(lRes.value?.data?.data || lRes.value?.data?.leaderboard || []);
-        }
-      } catch (err: any) {
-        setFetchError(err.message || 'Failed to load community data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [authAxios]);
+  // TanStack Query: automatic caching + AbortController on unmount
+  const { data: challenges = [], error: challengesError } = useSocialChallenges();
+  const { data: feed = [], isLoading: feedLoading, error: feedError } = useSocialFeed({
+    limit: 10,
+    category: filters.category,
+    hashtag: filters.hashtag,
+  });
+  const { data: leaderboard = [] } = useLeaderboard({ limit: 5 });
+  const createPost = useCreatePost();
 
-  // Refetch feed when filters change — stable dependency array per AI Village Phase 3 consensus
-  // Uses primitive values (category, hashtag) instead of the filters object to prevent
-  // unnecessary re-renders and race conditions when filters change mid-fetch
-  const fetchFeed = useCallback(async (category: string, hashtag: string | null) => {
-    if (!authAxios) return;
-    try {
-      const params: Record<string, string | number> = { limit: 10 };
-      if (category !== 'all') params.category = category;
-      if (hashtag) params.hashtag = hashtag;
+  const loading = feedLoading;
+  const fetchError = feedError?.message || challengesError?.message || null;
 
-      const res = await authAxios.get('/api/social/feed', { params });
-      setFeed(res.data?.posts || res.data?.data || []);
-    } catch {
-      // Silent fail on feed refresh — data is supplementary
-    }
-  }, [authAxios]);
+  const handlePost = () => {
+    if (!postText.trim()) return;
+    createPost.mutate(postText, {
+      onSuccess: () => setPostText(''),
+    });
+  };
 
-  useEffect(() => {
-    if (!loading) fetchFeed(filters.category, filters.hashtag);
-  }, [filters.category, filters.hashtag, fetchFeed, loading]);
-
-  const handlePost = useCallback(async () => {
-    if (!postText.trim() || !authAxios) return;
-    setPostError(null);
-    try {
-      setPosting(true);
-      await authAxios.post('/api/social/posts', {
-        content: postText.trim(),
-        type: 'general'
-      });
-      setPostText('');
-      fetchFeed(filters.category, filters.hashtag); // Refresh feed after posting
-    } catch (err: any) {
-      setPostError(err.message || 'Failed to create post');
-    } finally {
-      setPosting(false);
-    }
-  }, [postText, authAxios, fetchFeed, filters.category, filters.hashtag]);
-
-  // Fallback leaderboard data
-  const leaderData = leaderboard.length > 0
-    ? leaderboard.slice(0, 5).map((u: any, i: number) => ({
-        name: u.firstName || u.username || `Swan${i + 1}`,
-        xp: u.totalPoints || u.points || 0
-      }))
-    : [
-        { name: 'SwanAthlete1', xp: 12400 },
-        { name: 'IronPhoenix', xp: 9800 },
-        { name: 'CoreCrusher', xp: 7200 },
-        { name: 'FlexMaster', xp: 5100 },
-        { name: 'StrideKing', xp: 3600 },
-      ];
+  // Memoize leaderboard mapping to avoid recomputing on every render
+  const leaderData = useMemo(() => {
+    if (leaderboard.length === 0) return FALLBACK_LEADERS;
+    return leaderboard.slice(0, 5).map((u: any, i: number) => ({
+      name: u.firstName || u.username || `Swan${i + 1}`,
+      xp: u.totalPoints || u.points || 0,
+    }));
+  }, [leaderboard]);
 
   if (loading) {
     return (
@@ -193,13 +144,13 @@ const ClientCommunityPage: React.FC = () => {
             <Hash size={12} />
             Type #hashtags to categorize your post
             <PointsChip>+15 XP</PointsChip>
-            <span style={{ marginLeft: 'auto', color: postText.length > MAX_POST_LENGTH * 0.9 ? '#ef4444' : undefined }}>
+            <span style={{ marginLeft: 'auto', color: postText.length > MAX_POST_LENGTH * 0.9 ? 'var(--error-accent, #C92A54)' : undefined }}>
               {postText.length}/{MAX_POST_LENGTH}
             </span>
           </HashtagHint>
-          {postError && <ErrorBox style={{ marginTop: 8, padding: '0.5rem' }}>{postError}</ErrorBox>}
+          {createPost.error && <ErrorBox style={{ marginTop: 8, padding: '0.5rem' }}>{createPost.error.message || 'Failed to create post'}</ErrorBox>}
         </div>
-        <PostBtn onClick={handlePost} disabled={posting || !postText.trim()} aria-label="Create post">
+        <PostBtn onClick={handlePost} disabled={createPost.isPending || !postText.trim()} aria-label="Create post">
           <Send size={16} aria-hidden="true" /> Post
         </PostBtn>
       </PostBox>

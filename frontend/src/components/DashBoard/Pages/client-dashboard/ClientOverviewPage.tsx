@@ -90,7 +90,7 @@ const IconBox = styled.div<{ $color?: string }>`
 `;
 
 const StatLabel = styled.span`
-  display: block; font-size: 0.75rem; color: var(--text-muted, #64748b);
+  display: block; font-size: 0.75rem; color: var(--text-muted, #94a3b8);
 `;
 
 const StatValue = styled.span`
@@ -128,11 +128,11 @@ const ActivityItem = styled.div`
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
   font-size: 0.875rem;
   &:last-child { border-bottom: none; }
-  span { color: var(--text-muted, #64748b); font-size: 0.75rem; display: block; margin-top: 0.25rem; }
+  span { color: var(--text-muted, #94a3b8); font-size: 0.75rem; display: block; margin-top: 0.25rem; }
 `;
 
 const EmptyState = styled.p`
-  color: var(--text-muted, #64748b); font-size: 0.875rem; text-align: center; padding: 1.5rem 0;
+  color: var(--text-muted, #94a3b8); font-size: 0.875rem; text-align: center; padding: 1.5rem 0;
 `;
 
 const ShimmerCard = styled.div`
@@ -144,7 +144,7 @@ const ShimmerCard = styled.div`
 
 const ErrorBox = styled.div`
   background: var(--bg-elevated, #141419);
-  border-left: 4px solid #C92A54;
+  border-left: 4px solid var(--error-accent, #C92A54);
   border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
   color: var(--text-primary, #E0ECF4); font-size: 0.875rem;
 `;
@@ -196,7 +196,8 @@ const ClientOverviewPage: React.FC = () => {
   const xp = gamData?.totalPoints || gamData?.xp || 0;
   const nextLevelXp = Math.ceil((((level + 1) / 0.1) ** 2));
   const streak = gamData?.currentStreak || 0;
-  const totalWorkouts = gamData?.totalWorkouts || recentWorkouts.length || 0;
+  // Use gamification total (not capped) — recentWorkouts.length is limited by API limit param
+  const totalWorkouts = typeof gamData?.totalWorkouts === 'number' ? gamData.totalWorkouts : recentWorkouts.length;
 
   if (loading) {
     return (

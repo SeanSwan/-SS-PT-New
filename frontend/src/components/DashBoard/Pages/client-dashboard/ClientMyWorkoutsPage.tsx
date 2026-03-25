@@ -11,7 +11,8 @@
  * GET /api/workout/sessions which includes WorkoutLog entries per set.
  *
  * HOW IT FITS IN THE APP: Client Dashboard → My Workouts tab
- * KEY DECISIONS: Per-set display (not aggregated) to show weight progression
+ * KEY DECISIONS: Per-set display (not aggregated) to show weight progression.
+ * Uses TanStack Query for caching + automatic AbortController on unmount.
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: ClientMyWorkoutsPage                             ║
@@ -40,13 +41,13 @@
  * └────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Dumbbell, Calendar, Clock, Flame, TrendingUp,
   ChevronDown, ChevronUp, Star, Weight, Zap
 } from 'lucide-react';
-import { useAuth } from '../../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
 import {
   PageContainer, Header, Title, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
   WorkoutCard, WorkoutHeader, WorkoutInfo, WorkoutDate, WorkoutTitle, WorkoutMeta,
@@ -86,70 +87,55 @@ interface WorkoutSession {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SECTION: Helpers
+// ─────────────────────────────────────────────────────────────
+
+// Group logs by exercise name, sort sets within each exercise
+function groupLogs(logs: WorkoutLog[]): Record<string, WorkoutLog[]> {
+  const groups: Record<string, WorkoutLog[]> = {};
+  for (const log of logs) {
+    const key = log.exerciseName || 'Unknown Exercise';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(log);
+  }
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => a.setNumber - b.setNumber);
+  }
+  return groups;
+}
+
+// ─────────────────────────────────────────────────────────────
 // SECTION: Component
+// TanStack Query handles caching, deduplication, abort on unmount
 // ─────────────────────────────────────────────────────────────
 
 const ClientMyWorkoutsPage: React.FC = () => {
-  const { authAxios } = useAuth();
   const navigate = useNavigate();
-  const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const fetchWorkouts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await authAxios.get('/api/workout/sessions', {
-        params: { limit: 50, page: 1 }
-      });
-      const payload = res.data?.data;
-      const list = Array.isArray(payload?.workouts)
-        ? payload.workouts
-        : Array.isArray(payload) ? payload : [];
-      setWorkouts(list);
-    } catch {
-      setError('Unable to load workouts. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [authAxios]);
+  // TanStack Query: automatic caching + AbortController on unmount
+  const { data: workouts = [] as WorkoutSession[], isLoading, error, refetch } = useWorkoutSessions({ limit: 50 });
 
-  useEffect(() => { fetchWorkouts(); }, [fetchWorkouts]);
-
-  const toggleExpand = (id: string) => {
+  const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  // Group logs by exercise name
-  const groupLogs = (logs: WorkoutLog[]) => {
-    const groups: Record<string, WorkoutLog[]> = {};
-    for (const log of logs) {
-      const key = log.exerciseName || 'Unknown Exercise';
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(log);
-    }
-    // Sort sets within each exercise
-    for (const key of Object.keys(groups)) {
-      groups[key].sort((a, b) => a.setNumber - b.setNumber);
-    }
-    return groups;
-  };
+  // Memoize expensive stats computation (was flagged by AI Village)
+  const { totalWorkouts, thisWeek, totalVolume } = useMemo(() => {
+    const total = workouts.length;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const week = workouts.filter((w: WorkoutSession) => new Date(w.date) >= weekAgo).length;
+    const volume = workouts.reduce((sum: number, w: WorkoutSession) => sum + (w.totalWeight || 0), 0);
+    return { totalWorkouts: total, thisWeek: week, totalVolume: volume };
+  }, [workouts]);
 
-  // Compute stats
-  const totalWorkouts = workouts.length;
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const thisWeek = workouts.filter(w => new Date(w.date) >= weekAgo).length;
-  const totalVolume = workouts.reduce((sum, w) => sum + (w.totalWeight || 0), 0);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <ShimmerCard /><ShimmerCard /><ShimmerCard />
@@ -161,8 +147,8 @@ const ClientMyWorkoutsPage: React.FC = () => {
     return (
       <PageContainer>
         <ErrorCard>
-          <p>{error}</p>
-          <RetryBtn onClick={fetchWorkouts}>Retry</RetryBtn>
+          <p>Unable to load workouts. Please try again.</p>
+          <RetryBtn onClick={() => refetch()}>Retry</RetryBtn>
         </ErrorCard>
       </PageContainer>
     );
@@ -206,7 +192,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
             </StatCard>
           </StatsRow>
 
-          {workouts.map(workout => {
+          {workouts.map((workout: WorkoutSession) => {
             const isExpanded = expandedIds.has(workout.id);
             const exerciseGroups = workout.logs ? groupLogs(workout.logs) : {};
             const exerciseNames = Object.keys(exerciseGroups);
@@ -288,5 +274,3 @@ const ClientMyWorkoutsPage: React.FC = () => {
 };
 
 export default ClientMyWorkoutsPage;
-
-// Styled components extracted to ClientMyWorkoutsStyles.ts per 300-line rule

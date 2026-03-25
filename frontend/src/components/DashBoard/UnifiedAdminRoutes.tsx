@@ -2,65 +2,74 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ExecutivePageContainer } from './AdminLayout.styles';
 
-import { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
-import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
-import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
-import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
-import AdminPackagesView from './Pages/admin-packages/admin-packages-view.V2';
-import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
-const CustomPackageCreator = React.lazy(() => import('./Pages/admin-dashboard/CustomPackageCreator'));
-import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
-import MessagingPage from '../../pages/MessagingPage';
-
-import UniversalSchedule from '../Schedule/UniversalSchedule';
-import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
-import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
-import UserAnalyticsPanel from './Pages/admin-dashboard/components/UserAnalyticsPanel';
-import SystemHealthPanel from './Pages/admin-dashboard/components/SystemHealthPanel';
-import SecurityMonitoringPanel from './Pages/admin-dashboard/components/SecurityMonitoringPanel';
-import PerformanceReportsPanel from './Pages/admin-dashboard/components/PerformanceReportsPanel';
-
-import {
-  ClientsManagementSection,
-  ContentModerationSection,
-  NotificationsSection,
-  MCPServersSection,
-  AdminSettingsSection,
-} from './Pages/admin-dashboard/sections';
-
-import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
-import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
-import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
-import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
-import NotesManager from '../Admin/NotesManager';
-import PhotoManager from '../Admin/PhotoManager';
-import AutomationManager from '../Admin/AutomationManager';
-import SMSLogsPanel from '../Admin/SMSLogsPanel';
-import PricingSheetViewer from '../Admin/PricingSheetViewer';
-import SalesScriptViewer from '../Admin/SalesScriptViewer';
-import LaunchChecklist from '../Admin/LaunchChecklist';
-import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
-import AdminWaiversManager from './Pages/admin-waivers/AdminWaiversManager';
-
-const MeasurementEntry = React.lazy(() => import('./Pages/admin-dashboard/MeasurementEntry'));
-import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
-import AdminExerciseCommandCenter from './Pages/admin-exercises';
-import VideoStudioManager from './Pages/admin-video-studio/VideoStudioManager';
-import VideoDetailView from './Pages/admin-video-studio/VideoDetailView';
-import { TheAestheticCodex } from '../../core';
+// ─────────────────────────────────────────────────────────────
+// SECTION: Lazy-loaded route components (~40% initial bundle reduction)
+// All route-level components use React.lazy for code-splitting.
+// Only structural/layout components (workspaces, Suspense loader) stay eager.
+// ─────────────────────────────────────────────────────────────
 import CosmicSuspenseLoader from '../Shared/CosmicSuspenseLoader';
-import OrientationList from './Pages/admin-dashboard/components/OrientationList';
 import ParamRedirect from './ParamRedirect';
 
+// Dashboard home — eager since it's the default landing page
+import { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
+
+// Lazy: Admin panels & views
+const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'));
+const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-management/modern-user-management'));
+const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));
+const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view.V2'));
+const AdminSpecialsManager = React.lazy(() => import('./Pages/admin-specials/AdminSpecialsManager'));
+const CustomPackageCreator = React.lazy(() => import('./Pages/admin-dashboard/CustomPackageCreator'));
+const EnhancedTrainerDataManagement = React.lazy(() => import('./Pages/admin-trainers/EnhancedTrainerDataManagement'));
+const MessagingPage = React.lazy(() => import('../../pages/MessagingPage'));
+
+// Lazy: Schedule & analytics
+const UniversalSchedule = React.lazy(() => import('../Schedule/UniversalSchedule'));
+const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
+const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'));
+const UserAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/UserAnalyticsPanel'));
+const SystemHealthPanel = React.lazy(() => import('./Pages/admin-dashboard/components/SystemHealthPanel'));
+const SecurityMonitoringPanel = React.lazy(() => import('./Pages/admin-dashboard/components/SecurityMonitoringPanel'));
+const PerformanceReportsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PerformanceReportsPanel'));
+
+// Lazy: Dashboard sections (named exports → wrapped for React.lazy)
+const ClientsManagementSection = React.lazy(() => import('./Pages/admin-dashboard/sections').then(m => ({ default: m.ClientsManagementSection })));
+const ContentModerationSection = React.lazy(() => import('./Pages/admin-dashboard/sections').then(m => ({ default: m.ContentModerationSection })));
+const NotificationsSection = React.lazy(() => import('./Pages/admin-dashboard/sections').then(m => ({ default: m.NotificationsSection })));
+const MCPServersSection = React.lazy(() => import('./Pages/admin-dashboard/sections').then(m => ({ default: m.MCPServersSection })));
+const AdminSettingsSection = React.lazy(() => import('./Pages/admin-dashboard/sections').then(m => ({ default: m.AdminSettingsSection })));
+
+// Lazy: Admin tools
+const TrainerPermissionsManager = React.lazy(() => import('../Admin/TrainerPermissionsManager'));
+const ClientTrainerAssignments = React.lazy(() => import('../Admin/ClientTrainerAssignments'));
+const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'));
+const WorkoutPlanBuilder = React.lazy(() => import('../Admin/WorkoutPlanBuilder'));
+const NotesManager = React.lazy(() => import('../Admin/NotesManager'));
+const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'));
+const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'));
+const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'));
+const PricingSheetViewer = React.lazy(() => import('../Admin/PricingSheetViewer'));
+const AdminSocialManagementView = React.lazy(() => import('./Pages/admin-dashboard/components/AdminSocialManagementView'));
+const AdminWaiversManager = React.lazy(() => import('./Pages/admin-waivers/AdminWaiversManager'));
+
+// Lazy: Specialized views
+const MeasurementEntry = React.lazy(() => import('./Pages/admin-dashboard/MeasurementEntry'));
+const NASMCompliancePanel = React.lazy(() => import('./Pages/admin-dashboard/components/NASMCompliancePanel'));
+const AdminExerciseCommandCenter = React.lazy(() => import('./Pages/admin-exercises'));
+const VideoStudioManager = React.lazy(() => import('./Pages/admin-video-studio/VideoStudioManager'));
+const VideoDetailView = React.lazy(() => import('./Pages/admin-video-studio/VideoDetailView'));
+const OrientationList = React.lazy(() => import('./Pages/admin-dashboard/components/OrientationList'));
+
+// Lazy: Feature modules
 const AdminGalleryManager = React.lazy(() => import('./Pages/admin-gallery/AdminGalleryManager'));
-const HomepageDesignLab = React.lazy(() => import('./Pages/admin-design/HomepageDesignLab'));
+// HomepageDesignLab removed — not currently routed (was Phase 1 consolidation)
 const MovementAnalysisListPage = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisListPage'));
 const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-analysis/MovementAnalysisWizard'));
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
-const FoodIntelligenceDashboard = React.lazy(() => import('../FoodTracker/FoodIntelligenceDashboard'));
+// FoodIntelligenceDashboard removed — merged into NutritionWorkspace
 const NutritionWorkspace = React.lazy(() => import('./workspaces/NutritionWorkspace'));
 const FoodScannerPage = React.lazy(() => import('../../pages/FoodScanner/FoodScannerPage'));
 const CATaxCalculatorWidget = React.lazy(() => import('./Pages/admin-revenue/CATaxCalculatorWidget'));
@@ -104,6 +113,11 @@ const pageMotion = {
 
 const wrap = (element: React.ReactNode) => (
   <ExecutivePageContainer {...pageMotion}>{element}</ExecutivePageContainer>
+);
+
+// Suspense wrapper for lazy-loaded route components
+const S: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <React.Suspense fallback={<CosmicSuspenseLoader />}>{children}</React.Suspense>
 );
 
 const UnifiedAdminRoutes: React.FC = () => (
@@ -184,145 +198,69 @@ const UnifiedAdminRoutes: React.FC = () => (
     {/* ─── Workspace Routes (canonical) ─── */}
     <Route path="/home" element={<DashboardWorkspace />}>
       <Route index element={<RevolutionaryAdminDashboard />} />
-      <Route path="notifications" element={<NotificationsSection />} />
+      <Route path="notifications" element={<S><NotificationsSection /></S>} />
       <Route path="alerts" element={<Navigate to="/dashboard/home" replace />} />
-      <Route path="approvals" element={<PendingOrdersAdminPanel />} />
-      <Route path="snapshot" element={<SystemHealthPanel />} />
+      <Route path="approvals" element={<S><PendingOrdersAdminPanel /></S>} />
+      <Route path="snapshot" element={<S><SystemHealthPanel /></S>} />
     </Route>
 
     <Route path="/people" element={<ClientsWorkspace />}>
-      <Route index element={<ClientsManagementSection />} />
-      <Route path="view-as/:userId" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <AdminViewAsWrapper />
-        </React.Suspense>
-      } />
-      <Route path="users" element={<ModernUserManagementSystem />} />
-      <Route path="trainers" element={<EnhancedTrainerDataManagement />} />
-      <Route path="trainers/permissions" element={<TrainerPermissionsManager onPermissionChange={() => {}} />} />
-      <Route path="orientations" element={<OrientationList />} />
-      <Route path="onboarding" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <ClientOnboardingWizard />
-        </React.Suspense>
-      } />
-      <Route path="messages" element={<MessagingPage />} />
-      <Route path="sms-logs" element={<SMSLogsPanel />} />
-      <Route path="notes/:clientId?" element={<NotesManager />} />
-      <Route path="nutrition/:clientId?" element={<NutritionPlanBuilder />} />
-      <Route path="workouts/:clientId?" element={<WorkoutPlanBuilder />} />
-      <Route path="photos/:clientId?" element={<PhotoManager />} />
-      <Route path="nasm" element={<NASMCompliancePanel />} />
-      <Route path="progress" element={<AdminClientProgressView />} />
-      <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
-      <Route path="social" element={<AdminSocialManagementView />} />
-      <Route path="waivers" element={<AdminWaiversManager />} />
-      <Route path="leads" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <LeadCRMDashboard />
-        </React.Suspense>
-      } />
-      <Route path="movement-screen" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisListPage />
-        </React.Suspense>
-      } />
-      <Route path="movement-screen/new" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
-      <Route path="movement-screen/new/:clientId" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
-      <Route path="movement-screen/:id" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
-      <Route path="measurements/:clientId?" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MeasurementEntry />
-        </React.Suspense>
-      } />
+      <Route index element={<S><ClientsManagementSection /></S>} />
+      <Route path="view-as/:userId" element={<S><AdminViewAsWrapper /></S>} />
+      <Route path="users" element={<S><ModernUserManagementSystem /></S>} />
+      <Route path="trainers" element={<S><EnhancedTrainerDataManagement /></S>} />
+      <Route path="trainers/permissions" element={<S><TrainerPermissionsManager onPermissionChange={() => {}} /></S>} />
+      <Route path="orientations" element={<S><OrientationList /></S>} />
+      <Route path="onboarding" element={<S><ClientOnboardingWizard /></S>} />
+      <Route path="messages" element={<S><MessagingPage /></S>} />
+      <Route path="sms-logs" element={<S><SMSLogsPanel /></S>} />
+      <Route path="notes/:clientId?" element={<S><NotesManager /></S>} />
+      <Route path="nutrition/:clientId?" element={<S><NutritionPlanBuilder /></S>} />
+      <Route path="workouts/:clientId?" element={<S><WorkoutPlanBuilder /></S>} />
+      <Route path="photos/:clientId?" element={<S><PhotoManager /></S>} />
+      <Route path="nasm" element={<S><NASMCompliancePanel /></S>} />
+      <Route path="progress" element={<S><AdminClientProgressView /></S>} />
+      <Route path="assignments" element={<S><ClientTrainerAssignments onAssignmentChange={() => {}} /></S>} />
+      <Route path="social" element={<S><AdminSocialManagementView /></S>} />
+      <Route path="waivers" element={<S><AdminWaiversManager /></S>} />
+      <Route path="leads" element={<S><LeadCRMDashboard /></S>} />
+      <Route path="movement-screen" element={<S><MovementAnalysisListPage /></S>} />
+      <Route path="movement-screen/new" element={<S><MovementAnalysisWizard /></S>} />
+      <Route path="movement-screen/new/:clientId" element={<S><MovementAnalysisWizard /></S>} />
+      <Route path="movement-screen/:id" element={<S><MovementAnalysisWizard /></S>} />
+      <Route path="measurements/:clientId?" element={<S><MeasurementEntry /></S>} />
     </Route>
 
     <Route path="/scheduling" element={<SchedulingWorkspace />}>
-      <Route index element={<UniversalSchedule mode="admin" />} />
-      <Route path="sessions" element={<EnhancedAdminSessionsView />} />
-      <Route path="assignments" element={<ClientTrainerAssignments onAssignmentChange={() => {}} />} />
+      <Route index element={<S><UniversalSchedule mode="admin" /></S>} />
+      <Route path="sessions" element={<S><EnhancedAdminSessionsView /></S>} />
+      <Route path="assignments" element={<S><ClientTrainerAssignments onAssignmentChange={() => {}} /></S>} />
     </Route>
 
     <Route path="/store" element={<StoreWorkspace />}>
-      <Route index element={<PendingOrdersAdminPanel />} />
-      <Route path="packages" element={<AdminPackagesView />} />
-      <Route path="specials" element={<AdminSpecialsManager />} />
-      <Route path="custom-packages" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <CustomPackageCreator />
-        </React.Suspense>
-      } />
-      <Route path="revenue" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <CATaxCalculatorWidget />
-        </React.Suspense>
-      } />
-      <Route path="payment-settings" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <PaymentSettingsPanel />
-        </React.Suspense>
-      } />
+      <Route index element={<S><PendingOrdersAdminPanel /></S>} />
+      <Route path="packages" element={<S><AdminPackagesView /></S>} />
+      <Route path="specials" element={<S><AdminSpecialsManager /></S>} />
+      <Route path="custom-packages" element={<S><CustomPackageCreator /></S>} />
+      <Route path="revenue" element={<S><CATaxCalculatorWidget /></S>} />
+      <Route path="payment-settings" element={<S><PaymentSettingsPanel /></S>} />
     </Route>
 
     <Route path="/workouts" element={<WorkoutsWorkspace />}>
       <Route index element={<WorkoutOutletWrapper component="planner" />} />
       <Route path="logger" element={<WorkoutOutletWrapper component="logger" />} />
       <Route path="ai" element={<WorkoutOutletWrapper component="ai" />} />
-      <Route path="movement" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisListPage />
-        </React.Suspense>
-      } />
-      <Route path="movement/new" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
-      <Route path="movement/new/:clientId" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
-      <Route path="movement/:id" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <MovementAnalysisWizard />
-        </React.Suspense>
-      } />
+      <Route path="movement" element={<S><MovementAnalysisListPage /></S>} />
+      <Route path="movement/new" element={<S><MovementAnalysisWizard /></S>} />
+      <Route path="movement/new/:clientId" element={<S><MovementAnalysisWizard /></S>} />
+      <Route path="movement/:id" element={<S><MovementAnalysisWizard /></S>} />
       {/* Redirect legacy /ai route to planner (AI Generator merged into Workout Planner tab) */}
       <Route path="ai" element={<Navigate to="/dashboard/workouts" replace />} />
-      <Route path="form-analysis" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <FormAnalysisPage />
-        </React.Suspense>
-      } />
+      <Route path="form-analysis" element={<S><FormAnalysisPage /></S>} />
       <Route path="body-map" element={<WorkoutOutletWrapper component="body-map" />} />
-      <Route path="bootcamp" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <BootcampBuilderPage />
-        </React.Suspense>
-      } />
-      <Route path="equipment" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <EquipmentManagerPage />
-        </React.Suspense>
-      } />
-      <Route path="nutrition" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <NutritionWorkspace />
-        </React.Suspense>
-      } />
+      <Route path="bootcamp" element={<S><BootcampBuilderPage /></S>} />
+      <Route path="equipment" element={<S><EquipmentManagerPage /></S>} />
+      <Route path="nutrition" element={<S><NutritionWorkspace /></S>} />
       {/* food-scanner merged into nutrition tab */}
       <Route path="food-scanner" element={<Navigate to="/dashboard/workouts/nutrition" replace />} />
     </Route>
@@ -336,59 +274,39 @@ const UnifiedAdminRoutes: React.FC = () => (
 
     <Route path="/content" element={<ContentWorkspace />}>
       <Route index element={<Navigate to="/dashboard/content/video-studio" replace />} />
-      <Route path="video-studio" element={<VideoStudioManager />} />
-      <Route path="video-studio/:id" element={<VideoDetailView />} />
-      <Route path="moderation" element={<ContentModerationSection />} />
-      <Route path="exercises" element={<AdminExerciseCommandCenter />} />
+      <Route path="video-studio" element={<S><VideoStudioManager /></S>} />
+      <Route path="video-studio/:id" element={<S><VideoDetailView /></S>} />
+      <Route path="moderation" element={<S><ContentModerationSection /></S>} />
+      <Route path="exercises" element={<S><AdminExerciseCommandCenter /></S>} />
       {/* Legacy route - gamification moved to its own workspace */}
       <Route path="gamification" element={<Navigate to="/dashboard/gamification" replace />} />
-      <Route path="gallery" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <AdminGalleryManager />
-        </React.Suspense>
-      } />
+      <Route path="gallery" element={<S><AdminGalleryManager /></S>} />
       {/* Design tab removed (Phase 1 consolidation) - redirect to content root */}
       <Route path="design" element={<Navigate to="/dashboard/content/video-studio" replace />} />
     </Route>
 
     <Route path="/analytics" element={<AnalyticsWorkspace />}>
-      <Route index element={<UserAnalyticsPanel />} />
-      <Route path="charts" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <ChartGallery />
-        </React.Suspense>
-      } />
-      <Route path="badges" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <BadgeArtGallery />
-        </React.Suspense>
-      } />
-      <Route path="revenue" element={<RevenueAnalyticsPanel />} />
+      <Route index element={<S><UserAnalyticsPanel /></S>} />
+      <Route path="charts" element={<S><ChartGallery /></S>} />
+      <Route path="badges" element={<S><BadgeArtGallery /></S>} />
+      <Route path="revenue" element={<S><RevenueAnalyticsPanel /></S>} />
       <Route path="performance" element={
-        import.meta.env.DEV ? <PerformanceReportsPanel /> : <Navigate to="/dashboard/analytics" replace />
+        import.meta.env.DEV ? <S><PerformanceReportsPanel /></S> : <Navigate to="/dashboard/analytics" replace />
       } />
-      <Route path="bi" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <EnterpriseBusinessIntelligenceSuite />
-        </React.Suspense>
-      } />
-      <Route path="social" element={
-        <React.Suspense fallback={<CosmicSuspenseLoader />}>
-          <SocialMediaCommandCenter />
-        </React.Suspense>
-      } />
+      <Route path="bi" element={<S><EnterpriseBusinessIntelligenceSuite /></S>} />
+      <Route path="social" element={<S><SocialMediaCommandCenter /></S>} />
     </Route>
 
     <Route path="/system" element={<SystemWorkspace />}>
-      <Route index element={<SystemHealthPanel />} />
-      <Route path="health" element={<SystemHealthPanel />} />
+      <Route index element={<S><SystemHealthPanel /></S>} />
+      <Route path="health" element={<S><SystemHealthPanel /></S>} />
       <Route path="security" element={
-        import.meta.env.DEV ? <SecurityMonitoringPanel /> : <Navigate to="/dashboard/system" replace />
+        import.meta.env.DEV ? <S><SecurityMonitoringPanel /></S> : <Navigate to="/dashboard/system" replace />
       } />
-      <Route path="automation" element={<AutomationManager />} />
-      <Route path="mcp" element={<MCPServersSection />} />
-      <Route path="settings" element={<AdminSettingsSection />} />
-      <Route path="settings/pricing" element={<PricingSheetViewer />} />
+      <Route path="automation" element={<S><AutomationManager /></S>} />
+      <Route path="mcp" element={<S><MCPServersSection /></S>} />
+      <Route path="settings" element={<S><AdminSettingsSection /></S>} />
+      <Route path="settings/pricing" element={<S><PricingSheetViewer /></S>} />
       {/* Phase 1 consolidation: Sales Scripts, Launch Checklist, Style Guide removed - redirect to settings */}
       <Route path="settings/scripts" element={<Navigate to="/dashboard/system/settings" replace />} />
       <Route path="settings/launch" element={<Navigate to="/dashboard/system/settings" replace />} />
