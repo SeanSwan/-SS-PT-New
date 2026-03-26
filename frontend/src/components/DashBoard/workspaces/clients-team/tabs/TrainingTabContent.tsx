@@ -65,7 +65,7 @@
 import React, { useState, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
 import { Wand2, Play, Sparkles, Archive } from 'lucide-react';
-import AICommandBar from '../../../../Shared/AICommandBar/AICommandBar';
+// AICommandBar now embedded at workspace level, not per-tab
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Lazy-loaded heavy components
@@ -77,6 +77,10 @@ const WorkoutPlanBuilder = React.lazy(
   () => import('../../../../WorkoutManagement/WorkoutPlanBuilder')
 );
 
+const WorkoutLogger = React.lazy(
+  () => import('../../../../WorkoutLogger/WorkoutLogger')
+);
+
 const WorkoutCopilotPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel')
 );
@@ -85,7 +89,7 @@ const WorkoutCopilotPanel = React.lazy(
 // SECTION: Types & Configuration
 // ─────────────────────────────────────────────────────────────
 
-type TrainingSection = 'architect' | 'session' | 'ai' | 'history';
+type TrainingSection = 'architect' | 'logger' | 'copilot' | 'history';
 
 interface TrainingTabContentProps {
   clientId: number | string;
@@ -99,8 +103,8 @@ const SECTIONS: {
   icon: React.ReactNode;
 }[] = [
   { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
-  { id: 'session', label: 'Active Session', shortLabel: 'Session', icon: <Play size={18} /> },
-  { id: 'ai', label: 'Enchanted AI', shortLabel: 'AI', icon: <Sparkles size={18} /> },
+  { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
+  { id: 'copilot', label: 'AI Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
   { id: 'history', label: 'Vault History', shortLabel: 'History', icon: <Archive size={18} /> },
 ];
 
@@ -336,22 +340,31 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
       case 'architect':
         return (
           <Suspense fallback={<SuspenseFallback />}>
-            <WorkoutPlanBuilder />
+            <WorkoutPlanBuilder
+              clientId={String(clientId)}
+              clientName={clientName}
+            />
           </Suspense>
         );
-      case 'session':
+      case 'logger':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <WorkoutLogger
+              clientId={Number(clientId)}
+              onComplete={(formData) => {
+                console.log('Workout completed:', formData);
+              }}
+              onCancel={() => {
+                setActiveSection('architect');
+              }}
+            />
+          </Suspense>
+        );
+      case 'copilot':
         return (
           <Suspense fallback={<SuspenseFallback />}>
             <WorkoutCopilotPanel inline={true} />
           </Suspense>
-        );
-      case 'ai':
-        return (
-          <AICommandBar
-            context="training"
-            clientId={clientId}
-            clientName={clientName}
-          />
         );
       case 'history':
         return (

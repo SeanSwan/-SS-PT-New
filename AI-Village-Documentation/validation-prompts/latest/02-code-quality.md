@@ -1,479 +1,500 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 65.8s
-> **Files:** docs/ai-workflow/blueprints/CLIENT-DETAIL-WIRING-BLUEPRINT.md
-> **Generated:** 3/25/2026, 5:21:14 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 59.2s
+> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseAutocomplete.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
+> **Generated:** 3/25/2026, 10:52:32 PM
 
 ---
 
-# CODE REVIEW: CLIENT-DETAIL-WIRING-BLUEPRINT.md
+# Code Review: WorkoutLogger Component Suite
 
-## Document Type: Architecture Blueprint
-**Status**: Pre-implementation specification document  
-**Review Scope**: Architecture patterns, TypeScript implications, React patterns, design system consistency
+## Executive Summary
+**Overall Grade: B+ (83/100)**
+
+The WorkoutLogger suite demonstrates strong architectural decomposition and modern React patterns, but suffers from **critical performance anti-patterns**, **TypeScript safety gaps**, and **accessibility issues**. The Crystalline Swan theme implementation is excellent, but hardcoded values persist in several components.
 
 ---
 
-## ⚠️ CRITICAL FINDINGS
+## 1. TypeScript Best Practices
 
-### C1: Missing TypeScript Type Definitions
-**Severity**: CRITICAL  
-**Category**: TypeScript Best Practices
+### ❌ CRITICAL: Missing Discriminated Unions for Exercise Types
+**File:** `WorkoutLogger.tsx` (lines 50-60)
 
-**Issue**: Blueprint specifies complex data structures without TypeScript interfaces/types:
-
-1. **AI Analysis Output Schema** (Section 3b) - JSON example without TS type
-2. **Component Props** - No prop type specifications for new components
-3. **State Management** - No type definitions for context/state shapes
-4. **API Response Types** - Missing types for `/api/pain-entries/:id/photo-analysis`
-
-**Required Action**:
-```typescript
-// Missing type definitions that MUST be created:
-
-// AI Postural Analysis
-interface AIPosturalAnalysis {
-  posturalAssessment: string;
-  likelyDysfunction: string;
-  overactiveMuscles: string[];
-  underactiveMuscles: string[];
-  correctiveProtocol: CorrectiveExercise[];
-  severity: 'mild' | 'moderate' | 'severe';
-  safeToTrain: boolean;
-  modifications: string;
+```tsx
+interface Exercise {
+  id: string;
+  name: string;
+  description?: string;
+  exerciseType: string; // ❌ Should be union type
+  difficulty: number;
+  muscleGroups: string[];
 }
+```
 
-interface CorrectiveExercise {
-  phase: 'SMR' | 'Static Stretch' | 'Activation' | 'Integration';
-  exercise: string;
-  exerciseId: number;
+**Issue:** `exerciseType` is a stringly-typed field that should be a discriminated union.
+
+**Fix:**
+```tsx
+type ExerciseType = 'compound' | 'isolation' | 'flexibility' | 'cardio' | 'balance';
+
+interface Exercise {
+  id: string;
+  name: string;
+  description?: string;
+  exerciseType: ExerciseType; // ✅ Type-safe
+  difficulty: 1 | 2 | 3 | 4 | 5; // ✅ Literal union
+  muscleGroups: readonly MuscleGroup[]; // ✅ Readonly array
 }
+```
 
-// Pain Entry Model Extension
-interface PainEntry {
-  id: number;
-  clientId: number;
-  bodyRegion: string;
-  painLevel: number; // 0-10
-  notes: string;
-  photoUrl: string | null;
-  aiAnalysis: AIPosturalAnalysis | null;
-  correctiveExercises: number[]; // exercise IDs
-  createdAt: Date;
-  updatedAt: Date;
+---
+
+### 🟡 HIGH: Unsafe Type Assertions in API Response Handling
+**File:** `WorkoutLogger.tsx` (lines 224-235)
+
+```tsx
+const axiosResponse = await api.get(infoUrl);
+const data = axiosResponse?.data ?? axiosResponse; // ❌ Unsafe fallback
+
+if (data.success && data.client) { // ❌ No runtime validation
+  setClient({
+    id: data.client.id, // ❌ Could be undefined
+    firstName: data.client.firstName,
+    // ...
+  });
 }
+```
 
-// AI Command Bar Context
-type AIContext = 
-  | 'workout_generation'
-  | 'assessment'
-  | 'data_analysis'
-  | 'client_review'
-  | 'form_analysis'
-  | 'nutrition'
-  | 'equipment'
-  | 'boot_camp'
-  | 'general'
-  | 'pain_analysis'
-  | 'gamification';
+**Issue:** No runtime type validation. `data.client.id` could be `undefined` or wrong type.
 
-interface AICommandBarProps {
-  context: AIContext;
+**Fix:**
+```tsx
+import { z } from 'zod';
+
+const ClientSchema = z.object({
+  id: z.number().int().positive(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  availableSessions: z.number().int().nonnegative(),
+  phone: z.string().optional(),
+});
+
+// In loadClientData:
+const parsed = ClientSchema.safeParse(data.client);
+if (!parsed.success) {
+  throw new Error(`Invalid client data: ${parsed.error.message}`);
+}
+setClient(parsed.data);
+```
+
+---
+
+### 🟡 MEDIUM: `any` Usage in Error Handlers
+**File:** `WorkoutLogger.tsx` (lines 278, 445)
+
+```tsx
+} catch (error: unknown) {
+  console.error('Failed to load today\'s plan:', error);
+  toast.error(getErrorMessage(error, 'Could not load today\'s workout plan'));
+}
+```
+
+**Issue:** While `unknown` is used (good!), the `getErrorMessage` utility likely uses `any` internally.
+
+**Fix:** Ensure `getErrorMessage` uses proper type guards:
+```tsx
+// In WorkoutLoggerCS.ts
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message);
+  }
+  return fallback;
+}
+```
+
+---
+
+### 🟢 LOW: Missing Readonly Modifiers on Props
+**File:** `ExerciseCardComponent.tsx` (lines 14-25)
+
+```tsx
+interface ExerciseCardComponentProps {
+  exercise: ExerciseEntry; // ❌ Should be Readonly<ExerciseEntry>
+  exerciseIndex: number;
   clientId?: number;
-  onContextChange?: (context: AIContext) => void;
-  initialExpanded?: boolean;
-}
-
-// Training Tab Sidebar State
-type TrainingSubView = 'program-architect' | 'active-session' | 'enchanted-ai' | 'vault-history';
-
-interface TrainingTabState {
-  activeSubView: TrainingSubView;
-  clientId: number;
-  preservedState: {
-    workoutLogger?: WorkoutLoggerState;
-    planBuilder?: PlanBuilderState;
-  };
+  // ...
 }
 ```
 
-**Impact**: Without these types, implementation will use `any` or incorrect types, defeating TypeScript's purpose.
-
----
-
-### C2: State Management Architecture Undefined
-**Severity**: CRITICAL  
-**Category**: React Patterns
-
-**Issue**: Blueprint doesn't specify state management strategy for:
-
-1. **Cross-tab state preservation** (Section 9: "WorkoutLogger state loss on tab switch")
-2. **AI Command Bar conversation history** per section
-3. **Client detail view tab state** when switching between clients
-4. **Decomposed component communication** (WorkoutPlanBuilder → 6 files)
-
-**Required Decisions**:
-```typescript
-// Option 1: React Context (recommended for client-scoped state)
-interface ClientDetailContextValue {
-  clientId: number;
-  activeTab: 'training' | 'biometrics' | 'overview' | 'settings';
-  trainingSubView: TrainingSubView;
-  preservedState: Map<string, unknown>;
-  setPreservedState: (key: string, value: unknown) => void;
+**Fix:**
+```tsx
+interface ExerciseCardComponentProps {
+  readonly exercise: Readonly<ExerciseEntry>;
+  readonly exerciseIndex: number;
+  readonly clientId?: number;
+  // ...
 }
-
-// Option 2: URL state (for deep linking)
-// /clients/61/training/active-session
-// Requires react-router v6 nested routes
-
-// Option 3: Zustand store (for complex state)
-interface ClientDetailStore {
-  clients: Map<number, ClientDetailState>;
-  setActiveTab: (clientId: number, tab: string) => void;
-  preserveWorkoutLogger: (clientId: number, state: WorkoutLoggerState) => void;
-}
-
-// DECISION REQUIRED BEFORE IMPLEMENTATION
-```
-
-**Impact**: Without this decision, developers will implement inconsistent state management, causing bugs and refactoring.
-
----
-
-### C3: Performance Anti-Pattern: Inline Context Switching
-**Severity**: CRITICAL  
-**Category**: Performance
-
-**Issue**: Section 4 specifies AI Command Bar auto-sets context on every render:
-
-```typescript
-// ANTI-PATTERN (implied by blueprint):
-function ClientDetailView({ activeTab, clientId }) {
-  const aiContext = getContextForTab(activeTab); // Recalculates every render
-  
-  return (
-    <>
-      <AICommandBar context={aiContext} clientId={clientId} />
-      {/* ... */}
-    </>
-  );
-}
-```
-
-**Required Pattern**:
-```typescript
-// CORRECT: Memoized context
-function ClientDetailView({ activeTab, clientId }: ClientDetailViewProps) {
-  const aiContext = useMemo(() => {
-    const contextMap: Record<string, AIContext> = {
-      training: 'workout_generation',
-      biometrics: 'assessment',
-      overview: 'data_analysis',
-      settings: 'client_review',
-    };
-    return contextMap[activeTab] || 'general';
-  }, [activeTab]);
-
-  return (
-    <>
-      <AICommandBar context={aiContext} clientId={clientId} />
-      {/* ... */}
-    </>
-  );
-}
-```
-
-**Impact**: Unnecessary re-renders of AI Command Bar on every parent render.
-
----
-
-## 🔴 HIGH SEVERITY FINDINGS
-
-### H1: Missing Error Boundary Strategy
-**Severity**: HIGH  
-**Category**: Error Handling
-
-**Issue**: Blueprint specifies complex async operations (AI photo analysis, workout generation) without error boundary placement:
-
-1. **AI photo upload failure** - No UI fallback specified
-2. **Workout logger crash** - Could lose session data
-3. **Bento grid cell expansion** - No error state for failed data fetch
-
-**Required Specification**:
-```typescript
-// Error boundary placement strategy needed:
-<ClientDetailView>
-  <ErrorBoundary fallback={<ClientDetailErrorFallback />}>
-    <AICommandBar /> {/* Isolated - failure doesn't break page */}
-  </ErrorBoundary>
-  
-  <ErrorBoundary fallback={<TabErrorFallback />}>
-    {activeTab === 'training' && (
-      <ErrorBoundary fallback={<SubViewErrorFallback />}>
-        <TrainingTab /> {/* Nested - sub-view failure shows inline error */}
-      </ErrorBoundary>
-    )}
-  </ErrorBoundary>
-</ClientDetailView>
-
-// User-facing error messages for AI failures:
-const AI_ERROR_MESSAGES = {
-  PHOTO_UPLOAD_FAILED: 'Unable to upload photo. Check file size (<5MB) and format (JPG/PNG).',
-  ANALYSIS_TIMEOUT: 'AI analysis is taking longer than expected. Results will appear in notifications.',
-  ANALYSIS_FAILED: 'AI analysis unavailable. You can still log pain manually.',
-} as const;
 ```
 
 ---
 
-### H2: Accessibility Violations in Wireframes
-**Severity**: HIGH  
-**Category**: React Patterns (A11y)
+## 2. React Patterns & Hooks
 
-**Issue**: Wireframes show interactive elements without accessibility specifications:
+### ❌ CRITICAL: Stale Closure in `loadClientData`
+**File:** `WorkoutLogger.tsx` (lines 212-245)
 
-1. **Training sidebar** - No ARIA roles for navigation
-2. **Bento grid expansion** - No keyboard navigation spec
-3. **AI Command Bar** - No screen reader announcements for AI responses
-4. **Pain photo capture** - No alt text strategy
+```tsx
+const loadClientData = useCallback(async () => {
+  // ... implementation
+}, [clientId, user]); // ❌ Missing dependency
 
-**Required Additions**:
-```typescript
-// Training Sidebar (Section 3a)
-<nav aria-label="Training tools">
-  <button
-    role="tab"
-    aria-selected={active === 'program-architect'}
-    aria-controls="training-panel-program-architect"
-    onClick={() => setActive('program-architect')}
-  >
-    <LayoutTemplate aria-hidden="true" />
-    <span>Program Architect</span>
-  </button>
-</nav>
-
-// Bento Grid Cell (Section 3b)
-<button
-  aria-label="Expand body map to full view"
-  aria-expanded={isExpanded}
-  onClick={handleExpand}
-  onKeyDown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') handleExpand();
-  }}
->
-
-// AI Command Bar
-<div role="log" aria-live="polite" aria-atomic="false">
-  {messages.map(msg => (
-    <div key={msg.id} aria-label={`${msg.role}: ${msg.content}`}>
-      {msg.content}
-    </div>
-  ))}
-</div>
+useEffect(() => {
+  loadClientData(); // ❌ Calls stale function
+}, [loadClientData]); // ❌ Infinite loop risk
 ```
 
----
+**Issue:** `loadClientData` is called in `useEffect` but the dependency array is incomplete. If `user` changes, the effect won't re-run.
 
-### H3: Bundle Size Risk - No Code Splitting Strategy
-**Severity**: HIGH  
-**Category**: Performance
-
-**Issue**: Section 9 mentions `React.lazy()` but doesn't specify:
-
-1. **Loading boundaries** - Where to show Suspense fallbacks
-2. **Preloading strategy** - When to prefetch heavy components
-3. **Bundle analysis** - No size targets specified
-
-**Required Specification**:
-```typescript
-// Lazy loading with preload strategy
-const WorkoutPlanBuilder = lazy(() => 
-  import(/* webpackChunkName: "workout-plan-builder" */ './WorkoutPlanBuilder')
-);
-
-const WorkoutLogger = lazy(() => 
-  import(/* webpackChunkName: "workout-logger" */ './WorkoutLogger')
-);
-
-// Preload on hover (before click)
-function TrainingSidebar() {
-  const handleMouseEnter = (view: TrainingSubView) => {
-    if (view === 'program-architect') {
-      import('./WorkoutPlanBuilder'); // Preload
+**Fix:**
+```tsx
+// Option 1: Remove useCallback (preferred for single-use effects)
+useEffect(() => {
+  const loadClientData = async () => {
+    setIsLoadingClient(true);
+    try {
+      // ... implementation
+    } finally {
+      setIsLoadingClient(false);
     }
   };
-
-  return (
-    <button onMouseEnter={() => handleMouseEnter('program-architect')}>
-      Program Architect
-    </button>
-  );
-}
-
-// Suspense boundaries with themed fallback
-<Suspense fallback={<ComponentLoadingFallback />}>
-  <WorkoutPlanBuilder clientId={clientId} />
-</Suspense>
-
-// Bundle size targets (add to blueprint):
-// - WorkoutPlanBuilder: <150KB gzipped
-// - WorkoutLogger: <120KB gzipped
-// - WorkoutCopilot: <100KB gzipped
-// - Total client detail view: <500KB initial load
-```
-
----
-
-### H4: Theme Token Misuse - Arctic Cyan Ambiguity
-**Severity**: HIGH  
-**Category**: styled-components
-
-**Issue**: Section 8 states Arctic Cyan `#50A0F0` is "Data visualization ONLY" but Section 3a shows it used for:
-
-1. **Active state inset glow** (Training sidebar)
-2. **Ice Wing `#60C0F0`** used for "gaming accents" (very similar color)
-
-**Conflict**:
-```typescript
-// Section 3a: Training Sidebar Active State
-// "Ice Wing inset glow" - but Ice Wing (#60C0F0) is for gaming accents
-
-// Section 8: Arctic Cyan (#50A0F0) is "Data visualization ONLY"
-
-// These are only 16 units apart in hex - visually similar
-// Risk: Developers will confuse them
-```
-
-**Required Clarification**:
-```typescript
-// Design token usage matrix needed:
-enum ThemeToken {
-  ICE_WING = '#60C0F0',      // Gaming: XP bars, achievement glows, active state glows
-  ARCTIC_CYAN = '#50A0F0',   // Data viz: Chart bars, metric values (NO glows)
-}
-
-// Styled component example:
-const SidebarButton = styled.button<{ $active: boolean }>`
-  background: ${p => p.$active ? 'rgba(0, 32, 96, 0.4)' : 'transparent'};
-  border-left: ${p => p.$active ? '3px solid #8B5CF6' : 'none'}; // Wing Purple
-  box-shadow: ${p => p.$active 
-    ? 'inset 0 0 12px rgba(96, 192, 240, 0.3)' // ICE_WING for glow
-    : 'none'
-  };
-`;
-
-const ChartBar = styled.rect`
-  fill: #50A0F0; // ARCTIC_CYAN for data viz (no glow)
-`;
-```
-
----
-
-## 🟡 MEDIUM SEVERITY FINDINGS
-
-### M1: Framer Motion Animation Performance
-**Severity**: MEDIUM  
-**Category**: Performance
-
-**Issue**: Section 3a specifies Framer Motion for sub-tab transitions:
-
-```typescript
-initial={{ opacity: 0, y: 10 }}
-animate={{ opacity: 1, y: 0 }}
-exit={{ opacity: 0, y: -10 }}
-transition={{ type: "spring", stiffness: 300, damping: 30 }}
-```
-
-**Concern**: Spring animations trigger layout recalculations. For frequent tab switches, this could cause jank.
-
-**Recommendation**:
-```typescript
-// Use transform instead of y (GPU-accelerated):
-initial={{ opacity: 0, transform: 'translateY(10px)' }}
-animate={{ opacity: 1, transform: 'translateY(0)' }}
-exit={{ opacity: 0, transform: 'translateY(-10px)' }}
-transition={{ 
-  type: "tween", // Simpler than spring for small movements
-  duration: 0.2,
-  ease: [0.4, 0, 0.2, 1] // cubic-bezier from design tokens
-}}
-
-// Or use CSS transitions for better performance:
-const SubViewContainer = styled.div`
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   
-  &.active {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+  loadClientData();
+}, [clientId, user?.id, user?.role]); // ✅ Explicit dependencies
+
+// Option 2: Use useCallback with exhaustive deps
+const loadClientData = useCallback(async () => {
+  // ... implementation
+}, [clientId, user?.id, user?.role, setClient, setIsLoadingClient]);
 ```
 
 ---
 
-### M2: Mobile Full-Screen Takeover - Back Button Trap
-**Severity**: MEDIUM  
-**Category**: React Patterns (UX)
+### 🟡 HIGH: Race Condition in Double-Submit Prevention
+**File:** `WorkoutLogger.tsx` (lines 432-435)
 
-**Issue**: Section 4 specifies AI Command Bar mobile behavior:
+```tsx
+const handleSubmit = async () => {
+  if (isSubmittingRef.current) return;
+  isSubmittingRef.current = true; // ❌ Not atomic
+  setIsSubmitting(true);
+  
+  // ... async work
+  
+  isSubmittingRef.current = false; // ❌ Could be overwritten
+  setIsSubmitting(false);
+};
+```
 
-> "Mobile: full-screen takeover with `backdrop-filter: blur(12px)`"
+**Issue:** Between the check and set, another click could slip through. The `finally` block doesn't guarantee atomicity.
 
-**Problem**: No back button behavior specified. Users may press device back button expecting to close AI terminal, but it navigates away from page.
+**Fix:**
+```tsx
+const submitLockRef = useRef<Promise<void> | null>(null);
 
-**Required Pattern**:
-```typescript
-function AICommandBar({ context, clientId }: AICommandBarProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const isMobile = useMediaQuery('(max-width: 1023px)');
+const handleSubmit = async () => {
+  if (submitLockRef.current) {
+    toast.info('Submission already in progress');
+    return;
+  }
+  
+  const submitPromise = (async () => {
+    setIsSubmitting(true);
+    try {
+      // ... validation and submission
+    } finally {
+      setIsSubmitting(false);
+      submitLockRef.current = null;
+    }
+  })();
+  
+  submitLockRef.current = submitPromise;
+  await submitPromise;
+};
+```
 
-  useEffect(() => {
-    if (!isMobile || !isExpanded) return;
+---
 
-    // Push fake history state for back button handling
-    window.history.pushState({ aiTerminalOpen: true }, '');
+### 🟡 MEDIUM: Missing Cleanup in AbortController
+**File:** `WorkoutLogger.tsx` (lines 447-450)
 
-    const handlePopState = (e: PopStateEvent) => {
-      if (e.state?.aiTerminalOpen) {
-        setIsExpanded(false);
-        e.preventDefault();
-      }
-    };
+```tsx
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // Clean up history state if component unmounts while expanded
-      if (window.history.state?.aiTerminalOpen) {
-        window.history.back();
-      }
-    };
-  }, [isMobile, isExpanded]);
+try {
+  const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+  // ...
+} finally {
+  clearTimeout(timeoutId); // ✅ Good
+  // ❌ Missing: controller cleanup
+}
+```
 
-  // ... rest of component
+**Issue:** If component unmounts during submission, the AbortController signal isn't cleaned up.
+
+**Fix:**
+```tsx
+useEffect(() => {
+  const abortController = new AbortController();
+  
+  return () => {
+    abortController.abort(); // ✅ Cleanup on unmount
+  };
+}, []);
+
+// In handleSubmit:
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+try {
+  const response = await dailyWorkoutFormService.submitWorkoutForm(
+    formData,
+    { signal: controller.signal } // ✅ Pass signal
+  );
+} finally {
+  clearTimeout(timeoutId);
 }
 ```
 
 ---
 
-### M3: Bento Grid Expansion - Layout Shift
-**Severity**: MEDIUM  
-**Category**: Performance
+### 🟢 LOW: Unnecessary `useCallback` Wrapping
+**File:** `WorkoutLogger.tsx` (lines 305-310)
 
-**Issue**: Section 3b specifies bento grid cells expand to "full-view overlay" but doesn't specify layout shift prevention.
+```tsx
+const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
+  setNumber, weight: 0, reps: 0, rpe: 5, tempo: '', restTime: 60, formQuality: 3, notes: ''
+}), []); // ❌ Pure function doesn't need useCallback
+```
 
-**Problem**: Expanding a cell could cause Cumulative Layout Shift (CLS) if not handled properly.
+**Issue:** `createEmptySet` is a pure function with no dependencies. `useCallback` adds overhead without benefit.
 
-**Required Pattern**:
-```typescript
-// Use fixed positioning for expansion (no layout shift):
-const BentoCell = styled.div<{ $isExpanded: boolean }>`
-  ${p => p.$isExpanded && css`
-    position:
+**Fix:**
+```tsx
+// Move outside component (preferred)
+function createEmptySet(setNumber: number): ExerciseSet {
+  return {
+    setNumber,
+    weight: 0,
+    reps: 0,
+    rpe: 5,
+    tempo: '',
+    restTime: 60,
+    formQuality: 3,
+    notes: '',
+  };
+}
+
+// Or inline without useCallback
+const createEmptySet = (setNumber: number): ExerciseSet => ({
+  setNumber, weight: 0, reps: 0, rpe: 5, tempo: '', restTime: 60, formQuality: 3, notes: ''
+});
+```
+
+---
+
+## 3. Styled-Components & Theme
+
+### 🟡 HIGH: Hardcoded Colors in `ExerciseAutocomplete.tsx`
+**File:** `ExerciseAutocomplete.tsx` (lines 22-32)
+
+```tsx
+const CS = {
+  bg: '#141419',           // ❌ Hardcoded
+  surface: '#1A1A24',      // ❌ Hardcoded
+  card: 'rgba(20, 20, 25, 0.85)', // ❌ Hardcoded
+  gaming: '#60C0F0',       // ✅ Matches theme
+  glow: '#50A0F0',         // ✅ Matches theme
+  // ...
+};
+```
+
+**Issue:** Component redefines theme tokens instead of importing from `WorkoutLoggerCS.ts`.
+
+**Fix:**
+```tsx
+// Remove local CS definition
+import { CS, withAlpha } from './WorkoutLoggerCS';
+
+// Use theme tokens:
+const StyledInput = styled.input`
+  background: ${CS.inputBgDark}; // ✅ From shared theme
+  color: ${CS.text};
+  border: 1.5px solid ${withAlpha(CS.glow, 0.12)};
+`;
+```
+
+---
+
+### 🟡 MEDIUM: Inconsistent Border Radius Values
+**Files:** Multiple
+
+```tsx
+// WorkoutLogger.tsx line 687
+border-radius: 1rem;
+
+// ExerciseAutocomplete.tsx line 78
+border-radius: 0.75rem;
+
+// NASMExerciseRolodex.tsx line 312
+border-radius: 1rem;
+```
+
+**Issue:** Border radius values vary between `0.75rem`, `1rem`, and `10px` without clear semantic meaning.
+
+**Fix:**
+```tsx
+// In WorkoutLoggerCS.ts
+export const BORDER_RADIUS = {
+  sm: '0.5rem',   // 8px — chips, badges
+  md: '0.75rem',  // 12px — inputs, buttons
+  lg: '1rem',     // 16px — cards, modals
+  xl: '1.5rem',   // 24px — hero sections
+} as const;
+
+// Usage:
+border-radius: ${BORDER_RADIUS.md};
+```
+
+---
+
+### 🟢 LOW: Missing CSS Custom Properties for Theme
+**File:** `WorkoutLogger.tsx` (lines 680-695)
+
+```tsx
+const WorkoutLoggerContainer = styled(motion.div)`
+  background: ${CS.bgDeep};
+  color: ${CS.text};
+  // ❌ Not using CSS custom properties
+`;
+```
+
+**Issue:** Theme values are compiled at build time. Runtime theme switching requires CSS variables.
+
+**Fix:**
+```tsx
+// In global theme provider:
+:root {
+  --brand-primary: #002060;
+  --accent-glow: #50A0F0;
+  --text-primary: #E0ECF4;
+  /* ... */
+}
+
+// In styled-components:
+const WorkoutLoggerContainer = styled(motion.div)`
+  background: var(--brand-primary);
+  color: var(--text-primary);
+`;
+```
+
+---
+
+## 4. DRY Violations
+
+### 🟡 HIGH: Duplicated Exercise Conversion Logic
+**Files:** `WorkoutLogger.tsx` (lines 180-195, 260-275)
+
+```tsx
+// Line 180 — convertAIExercises
+const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
+  return incoming.map(ex => ({
+    exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    exerciseName: ex.exerciseName,
+    sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+      setNumber: i + 1,
+      weight: ex.weight || 0,
+      reps: ex.reps || 10,
+      // ...
+    })),
+    // ...
+  }));
+}, []);
+
+// Line 260 — loadTodaysPlan (similar logic)
+const prefilled: ExerciseEntry[] = planDay.exercises.map((ex: any) => ({
+  exerciseId: ex.exerciseId || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
+  sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+    setNumber: i + 1,
+    weight: ex.weight || 0,
+    reps: ex.targetReps || ex.reps || 10,
+    // ...
+  })),
+  // ...
+}));
+```
+
+**Issue:** Exercise-to-ExerciseEntry conversion is duplicated 3 times with slight variations.
+
+**Fix:**
+```tsx
+// Extract to shared utility
+function convertToExerciseEntry(
+  source: WorkoutExerciseTransfer | PlanExercise,
+  idPrefix: 'ai' | 'plan' | 'template'
+): ExerciseEntry {
+  return {
+    exerciseId: source.exerciseId || `${idPrefix}-${Date.now()}-${generateId()}`,
+    exerciseName: source.exerciseName || source.name || 'Unknown Exercise',
+    sets: Array.from({ length: source.sets || 3 }, (_, i) => ({
+      setNumber: i + 1,
+      weight: source.weight || 0,
+      reps: source.targetReps || source.reps || 10,
+      rpe: 5,
+      tempo: source.tempo || '',
+      restTime: source.restTime || source.restSeconds || 60,
+      formQuality: 3,
+      notes: source.notes || '',
+    })),
+    formRating: 3,
+    painLevel: 0,
+    performanceNotes: '',
+  };
+}
+
+// Usage:
+const converted = incoming.map(ex => convertToExerciseEntry(ex, 'ai'));
+```
+
+---
+
+### 🟡 MEDIUM: Repeated Toast Success Messages
+**Files:** Multiple
+
+```tsx
+// WorkoutLogger.tsx line 152
+toast.success(`Loaded Phase ${phase} template — ${templateExercises.length} exercises`);
+
+// WorkoutLogger.tsx line 174
+toast.success(`Applied ${converted.length} exercises from AI plan`);
+
+// WorkoutLogger.tsx line 283
+toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
+```
+
+**Issue:** Similar toast patterns repeated throughout. Extract to utility.
+
+**Fix:**
+```tsx
+// In WorkoutLoggerCS.ts
+export const toastMessages = {
+  exercisesLoaded: (count: number, source: string) =>
+    `Loaded ${count} exercise${count !== 1 ? 's' : ''} from ${source}`,
+  exerciseAdded: (name: string) => `Added ${name}
 
 ---
 

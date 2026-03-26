@@ -190,7 +190,7 @@ const AICommandBar = memo(function AICommandBar({
 
   const contextLabel = CONTEXT_LABELS[context];
   const displayPlaceholder =
-    placeholder || `Ask ${contextLabel}...`;
+    placeholder || `SwanStudios Assistant — ${contextLabel}...`;
 
   // ── Ctrl+K global shortcut ──
   useEffect(() => {

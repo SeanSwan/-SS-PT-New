@@ -537,9 +537,45 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
         <NavLink to="/contact">Contact</NavLink>
       </DesktopNav>
 
-      {/* Right Section: Theme Toggle + Cart + Auth */}
+      {/* Right Section: Theme Toggle + AI Capsule + Cart + Auth */}
       <RightSection>
         <UniversalThemeToggle size="medium" showTooltip />
+
+        {/* Admin-only SwanStudios Assistant capsule */}
+        {isAuthenticated && user?.role === 'admin' && (
+          <Link
+            to="/dashboard/home"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              borderRadius: 20,
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%)',
+              color: '#fff',
+              fontSize: 12,
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.02em',
+              boxShadow: '0 0 12px rgba(139, 92, 246, 0.3)',
+              transition: 'box-shadow 0.2s, transform 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 20px rgba(139, 92, 246, 0.5)';
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 12px rgba(139, 92, 246, 0.3)';
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+            }}
+            aria-label="SwanStudios Assistant — Admin only"
+          >
+            <span style={{ fontSize: 14 }}>&#10024;</span>
+            SS Assistant
+          </Link>
+        )}
 
         {isAuthenticated && (
           <IconButton to="/shop" aria-label="Shopping cart">

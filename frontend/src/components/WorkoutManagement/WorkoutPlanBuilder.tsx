@@ -77,7 +77,7 @@ import ExerciseSelectionStep from './ExerciseSelectionStep';
 import ReviewSaveStep from './ReviewSaveStep';
 
 // Types and constants
-import { WorkoutPlanBuilderProps, steps, goals, mockClients } from './WorkoutPlanBuilderTypes';
+import { WorkoutPlanBuilderProps, steps, goals } from './WorkoutPlanBuilderTypes';
 
 // Styled components
 import {
@@ -281,7 +281,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
             handlePlanDetailChange={handlePlanDetailChange}
             goals={goals}
             clientId={clientId}
-            mockClients={mockClients}
+            clientName={clientName}
           />
         );
       case 1:

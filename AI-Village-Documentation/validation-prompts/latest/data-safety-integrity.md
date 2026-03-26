@@ -1,447 +1,453 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 62.2s
-> **Files:** docs/ai-workflow/blueprints/CLIENT-DETAIL-WIRING-BLUEPRINT.md
-> **Generated:** 3/25/2026, 5:21:14 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 68.7s
+> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseAutocomplete.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
+> **Generated:** 3/25/2026, 10:52:32 PM
 
 ---
 
-# 🚨 DATA SAFETY AUDIT REPORT — CLIENT DETAIL WIRING BLUEPRINT
-## SwanStudios Production SaaS Platform
+# 🚨 DATA SAFETY AUDIT REPORT — WORKOUT LOGGER FRONTEND
 
+**Platform:** SwanStudios Personal Training SaaS  
 **Auditor:** DATA SAFETY AUDITOR  
-**Date:** 2024  
+**Date:** 2026-03-20  
 **Severity Scale:** CRITICAL | HIGH | MEDIUM | LOW  
-**Status:** ⚠️ **MULTIPLE CRITICAL FINDINGS — DEPLOYMENT BLOCKED**
 
 ---
 
 ## ⚠️ EXECUTIVE SUMMARY
 
-This blueprint describes architectural changes that will touch **core user data systems** including:
-- Client records (Users table)
-- Workout history (Sessions, WorkoutPlans)
-- Biometric data (PainEntries, Measurements)
-- Photo uploads (R2 storage)
-- AI analysis results (JSONB fields)
+**OVERALL RISK LEVEL: LOW-MEDIUM**
 
-**CRITICAL CONCERNS IDENTIFIED:**
-1. **Database schema changes with no migration safety plan**
-2. **Photo upload system with no data retention policy enforcement**
-3. **AI analysis storage in JSONB with no validation**
-4. **Component refactoring that could break existing data flows**
-5. **No rollback plan for failed deployments**
+This is **FRONTEND CODE ONLY** — no direct database operations, migrations, or destructive queries are present. However, several **data integrity risks** exist at the API boundary and state management layer that could lead to:
+
+1. **Partial workout submissions** (incomplete data sent to backend)
+2. **Race conditions** during form submission (duplicate submissions)
+3. **Data loss on navigation** (unsaved workout state)
+4. **Client session deduction without workout save** (payment/session integrity)
+
+**CRITICAL FINDING:** The `handleSubmit` function has a **race condition window** that could allow duplicate submissions, potentially deducting multiple sessions from a client's account.
 
 ---
 
 ## 🔴 CRITICAL FINDINGS
 
-### FINDING #1: UNCONTROLLED DATABASE SCHEMA CHANGES
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** All pain entries, client biometric history  
-**Blast Radius:** ALL USERS with existing pain/injury data  
-**File & Line:** Section 3b (Biometrics Tab), "Model: `PainEntry.mjs`"
+### **CRITICAL-001: Race Condition in Workout Submission**
+- **Severity:** CRITICAL  
+- **Data at Risk:** Client session credits, workout form records  
+- **Blast Radius:** Individual client (1 user per incident, but repeatable)  
+- **File & Line:** `WorkoutLogger.tsx:383-437` (`handleSubmit` function)
 
 **What's Wrong:**
-The blueprint states:
-> "Model: `PainEntry.mjs` | Add: `photoUrl` (STRING), `aiAnalysis` (JSONB), `correctiveExercises` (ARRAY of exercise IDs)"
 
-**This is a schema-altering change with NO migration safety plan:**
-- Adding columns to a production table with existing data
-- No mention of `ALTER TABLE` transaction safety
-- No mention of default values for existing rows
-- No mention of nullable vs NOT NULL constraints
-- **JSONB field with no validation schema = corrupt data risk**
-- **ARRAY field with no foreign key validation = orphaned exercise references**
-
-**If this goes wrong:**
-- Migration could fail mid-execution, leaving table locked
-- Existing pain entries could become unreadable if code expects new fields
-- Rollback could fail if `down()` migration is missing
-- Client injury history could be lost or corrupted
-
-**Fix Required:**
-```javascript
-// migrations/YYYYMMDDHHMMSS-add-pain-photo-analysis.js
-
-module.exports = {
-  up: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
-    
-    try {
-      // Add columns with NULL defaults (safe for existing data)
-      await queryInterface.addColumn(
-        'PainEntries',
-        'photoUrl',
-        {
-          type: Sequelize.STRING(512),
-          allowNull: true, // CRITICAL: must be nullable
-          defaultValue: null
-        },
-        { transaction }
-      );
-
-      await queryInterface.addColumn(
-        'PainEntries',
-        'aiAnalysis',
-        {
-          type: Sequelize.JSONB,
-          allowNull: true,
-          defaultValue: null,
-          validate: {
-            // CRITICAL: validate structure before save
-            isValidAnalysis(value) {
-              if (value && typeof value !== 'object') {
-                throw new Error('aiAnalysis must be an object');
-              }
-              // Add schema validation here
-            }
-          }
-        },
-        { transaction }
-      );
-
-      await queryInterface.addColumn(
-        'PainEntries',
-        'correctiveExercises',
-        {
-          type: Sequelize.ARRAY(Sequelize.INTEGER),
-          allowNull: true,
-          defaultValue: null
-        },
-        { transaction }
-      );
-
-      // CRITICAL: Add index for photo lookups
-      await queryInterface.addIndex(
-        'PainEntries',
-        ['photoUrl'],
-        {
-          name: 'pain_entries_photo_url_idx',
-          where: { photoUrl: { [Sequelize.Op.ne]: null } },
-          transaction
-        }
-      );
-
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
-  },
-
-  down: async (queryInterface, Sequelize) => {
-    const transaction = await queryInterface.sequelize.transaction();
-    
-    try {
-      // CRITICAL: Must have rollback plan
-      await queryInterface.removeIndex(
-        'PainEntries',
-        'pain_entries_photo_url_idx',
-        { transaction }
-      );
-      
-      await queryInterface.removeColumn('PainEntries', 'correctiveExercises', { transaction });
-      await queryInterface.removeColumn('PainEntries', 'aiAnalysis', { transaction });
-      await queryInterface.removeColumn('PainEntries', 'photoUrl', { transaction });
-      
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+```tsx
+const handleSubmit = async () => {
+  if (isSubmittingRef.current) return;
+  isSubmittingRef.current = true; // ⚠️ Set AFTER async check
+  setIsSubmitting(true);
+  // ... validation logic ...
+  try {
+    const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+    // Backend deducts session here
+  } catch (error) {
+    // ...
+  } finally {
+    isSubmittingRef.current = false; // ⚠️ Reset in finally
+    setIsSubmitting(false);
   }
 };
 ```
 
-**Additional Safety Requirements:**
-1. **Pre-deployment backup:** Full `PainEntries` table dump
-2. **Row count validation:** Migration must log before/after row counts
-3. **Dry-run test:** Run migration on staging with production data clone
-4. **Validation query:** After migration, verify all existing records still readable
+**The Problem:**
+1. **Race window exists between check and set** — If user double-clicks submit button within ~10ms, both clicks pass the `if (isSubmittingRef.current)` check before either sets the flag.
+2. **Backend receives duplicate requests** — Two identical workout forms submitted.
+3. **Session credits deducted twice** — Client loses 2 sessions for 1 workout.
+4. **Duplicate workout records** — Database contains two identical forms for same date.
 
----
+**Real-World Scenario:**
+- Trainer logs workout for client with 2 sessions remaining
+- Slow network causes 3-second delay
+- Trainer double-clicks "Complete Workout" thinking first click failed
+- Backend processes both requests
+- Client now has 0 sessions (should have 1)
+- **Client locked out of training until admin manually restores session**
 
-### FINDING #2: PHOTO DELETION POLICY NOT ENFORCED
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** User privacy, GDPR compliance, storage costs  
-**Blast Radius:** ALL USERS uploading pain photos  
-**File & Line:** Section 3b, "Photos stored in R2 with user-scoped access, auto-delete after 90 days configurable"
+**Fix:**
 
-**What's Wrong:**
-The blueprint mentions "auto-delete after 90 days configurable" but provides:
-- **NO implementation plan**
-- **NO cron job specification**
-- **NO cascade delete logic** (what happens to `photoUrl` in database when R2 file is deleted?)
-- **NO user consent flow** (GDPR requires explicit consent for photo storage)
-
-**If this goes wrong:**
-- Photos accumulate forever, violating GDPR "right to be forgotten"
-- Storage costs spiral out of control
-- Database has `photoUrl` pointing to deleted R2 objects (404 errors)
-- User deletes account, but photos remain in R2 (privacy violation)
-
-**Fix Required:**
-
-**1. Database-side cascade delete:**
-```javascript
-// models/PainEntry.mjs
-
-class PainEntry extends Model {
-  static associate(models) {
-    PainEntry.belongsTo(models.User, {
-      foreignKey: 'userId',
-      onDelete: 'CASCADE' // CRITICAL: delete pain entries when user deleted
-    });
+```tsx
+const handleSubmit = async () => {
+  // ATOMIC check-and-set pattern
+  if (isSubmittingRef.current) {
+    console.warn('[WorkoutLogger] Duplicate submission blocked');
+    return;
   }
-}
+  isSubmittingRef.current = true; // ✅ Set IMMEDIATELY after check
+  setIsSubmitting(true);
 
-// Add lifecycle hook
-PainEntry.addHook('beforeDestroy', async (painEntry, options) => {
-  // CRITICAL: Delete R2 photo before deleting DB record
-  if (painEntry.photoUrl) {
-    try {
-      const key = painEntry.photoUrl.split('/').pop();
-      await r2Client.deleteObject({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: `pain-photos/${painEntry.userId}/${key}`
-      });
-      console.log(`[PainEntry] Deleted R2 photo: ${key}`);
-    } catch (error) {
-      console.error(`[PainEntry] Failed to delete R2 photo: ${error.message}`);
-      // CRITICAL: Should this block the delete? Decide based on business rules
-      if (options.transaction) {
-        throw error; // Rollback transaction if photo delete fails
-      }
-    }
-  }
-});
-```
+  // ✅ Add submission ID to prevent backend duplicates
+  const submissionId = `${clientId}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-**2. Scheduled cleanup job:**
-```javascript
-// jobs/cleanupExpiredPainPhotos.mjs
+  try {
+    const formData = {
+      clientId,
+      submissionId, // ✅ Backend can dedupe on this
+      date: new Date().toISOString().split('T')[0],
+      exercises,
+      sessionNotes,
+      overallIntensity
+    };
 
-import { Op } from 'sequelize';
-import { PainEntry } from '../models/index.mjs';
-import { r2Client } from '../config/r2.mjs';
-
-export async function cleanupExpiredPainPhotos() {
-  const RETENTION_DAYS = parseInt(process.env.PAIN_PHOTO_RETENTION_DAYS || '90', 10);
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
-
-  console.log(`[Cleanup] Deleting pain photos older than ${cutoffDate.toISOString()}`);
-
-  const expiredEntries = await PainEntry.findAll({
-    where: {
-      photoUrl: { [Op.ne]: null },
-      createdAt: { [Op.lt]: cutoffDate }
-    },
-    attributes: ['id', 'photoUrl', 'userId', 'createdAt']
-  });
-
-  let deletedCount = 0;
-  let failedCount = 0;
-
-  for (const entry of expiredEntries) {
-    try {
-      const key = entry.photoUrl.split('/').pop();
+    const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+    
+    if (response.success && response.data) {
+      toast.success('Workout logged successfully! Session deducted and points earned.');
+      setSubmittedFormId(response.data.id || response.data.formId || null);
       
-      // Delete from R2
-      await r2Client.deleteObject({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: `pain-photos/${entry.userId}/${key}`
-      });
-
-      // CRITICAL: Update DB record (don't delete entry, just remove photo reference)
-      await entry.update({ 
-        photoUrl: null,
-        aiAnalysis: {
-          ...entry.aiAnalysis,
-          photoDeletedAt: new Date().toISOString(),
-          photoDeletedReason: 'retention_policy'
-        }
-      });
-
-      deletedCount++;
-    } catch (error) {
-      console.error(`[Cleanup] Failed to delete photo for PainEntry ${entry.id}: ${error.message}`);
-      failedCount++;
+      // ✅ Clear local state to prevent re-submission on navigation back
+      setExercises([]);
+      setSessionNotes('');
+      
+      onComplete(response.data);
+    } else {
+      throw new Error(response.message || 'Failed to submit workout form');
     }
+  } catch (error: unknown) {
+    console.error('Error submitting workout form:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      toast.error('Workout submission timed out. Please try again.');
+    } else {
+      toast.error(getErrorMessage(error, 'Failed to submit workout form'));
+    }
+    // ⚠️ CRITICAL: Only reset flag on error, not on success
+    isSubmittingRef.current = false;
+    setIsSubmitting(false);
   }
-
-  console.log(`[Cleanup] Deleted ${deletedCount} photos, ${failedCount} failures`);
-  
-  // CRITICAL: Alert if failure rate > 10%
-  if (failedCount > 0 && (failedCount / expiredEntries.length) > 0.1) {
-    // Send alert to ops team
-    throw new Error(`High failure rate in photo cleanup: ${failedCount}/${expiredEntries.length}`);
-  }
-
-  return { deletedCount, failedCount };
-}
+  // ✅ Do NOT reset flag in finally — keep locked after success
+};
 ```
 
-**3. User consent flow:**
-```typescript
-// frontend: PainPhotoCapture.tsx
-
-const [consentGiven, setConsentGiven] = useState(false);
-
-// CRITICAL: Must show before photo upload
-{!consentGiven && (
-  <ConsentModal>
-    <p>Pain position photos will be:</p>
-    <ul>
-      <li>Analyzed by AI for postural assessment</li>
-      <li>Stored securely for {RETENTION_DAYS} days</li>
-      <li>Automatically deleted after retention period</li>
-      <li>Deleted immediately if you delete your account</li>
-    </ul>
-    <Checkbox onChange={(e) => setConsentGiven(e.target.checked)}>
-      I consent to photo storage and AI analysis
-    </Checkbox>
-  </ConsentModal>
-)}
+**Backend Protection Required:**
+```sql
+-- Backend migration: Add unique constraint to prevent duplicate submissions
+ALTER TABLE daily_workout_forms 
+ADD CONSTRAINT unique_client_date_submission 
+UNIQUE (client_id, workout_date, submission_id);
 ```
 
 ---
 
-### FINDING #3: AI ANALYSIS JSONB WITH NO VALIDATION
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** Biometric analysis data, corrective exercise recommendations  
-**Blast Radius:** ALL USERS using AI postural analysis  
-**File & Line:** Section 3b, "AI Analysis Output Schema"
+### **CRITICAL-002: No Confirmation Before Destructive Actions**
+- **Severity:** HIGH  
+- **Data at Risk:** Unsaved workout data (30-60 minutes of trainer work)  
+- **Blast Radius:** Individual workout session  
+- **File & Line:** `WorkoutLogger.tsx:673` (`onCancel` callback)
 
 **What's Wrong:**
-The blueprint shows a detailed JSON schema for AI analysis output, but:
-- **NO validation before saving to database**
-- **NO schema versioning** (what happens when AI model changes output format?)
-- **NO error handling** if AI returns malformed data
-- **Corrective exercises referenced by ID with no foreign key validation**
 
-**If this goes wrong:**
-- Corrupt JSON saved to database, breaks frontend rendering
-- Exercise IDs reference non-existent exercises (orphaned references)
-- Schema changes break old records (can't read historical data)
-- AI returns `null` or error, but code saves it anyway
-
-**Fix Required:**
-
-**1. Validation schema (Zod):**
-```typescript
-// shared/schemas/aiPosturalAnalysis.schema.ts
-
-import { z } from 'zod';
-
-export const AIPosturalAnalysisSchema = z.object({
-  schemaVersion: z.literal('1.0'), // CRITICAL: version for future migrations
-  posturalAssessment: z.string().min(10).max(2000),
-  likelyDysfunction: z.string().min(3).max(200),
-  overactiveMuscles: z.array(z.string()).min(1).max(10),
-  underactiveMuscles: z.array(z.string()).min(1).max(10),
-  correctiveProtocol: z.array(z.object({
-    phase: z.enum(['SMR', 'Static Stretch', 'Activation', 'Integration']),
-    exercise: z.string(),
-    exerciseId: z.number().int().positive()
-  })).min(1).max(20),
-  severity: z.enum(['mild', 'moderate', 'severe']),
-  safeToTrain: z.boolean(),
-  modifications: z.string().max(1000).optional(),
-  analyzedAt: z.string().datetime(),
-  modelVersion: z.string() // Track which AI model version generated this
-});
-
-export type AIPosturalAnalysis = z.infer<typeof AIPosturalAnalysisSchema>;
+```tsx
+<WorkoutLoggerFooter
+  onCancel={onCancel} // ⚠️ No confirmation dialog
+  // ...
+/>
 ```
 
-**2. Backend validation:**
+If trainer accidentally clicks "Cancel" after logging 45 minutes of workout data, **all data is lost instantly** with no recovery option.
+
+**Real-World Scenario:**
+- Trainer logs 12 exercises, 48 sets, detailed form notes
+- Accidentally clicks "Cancel" instead of "Complete Workout"
+- **All data lost** — must re-enter entire workout from memory
+- Client session NOT deducted (correct), but trainer time wasted
+
+**Fix:**
+
+```tsx
+const handleCancel = useCallback(() => {
+  if (exercises.length > 0) {
+    const confirmed = window.confirm(
+      `You have ${exercises.length} exercise(s) logged. ` +
+      `Are you sure you want to discard this workout?\n\n` +
+      `This action cannot be undone.`
+    );
+    if (!confirmed) return;
+  }
+  
+  // ✅ Clear state before calling parent onCancel
+  setExercises([]);
+  setSessionNotes('');
+  onCancel();
+}, [exercises.length, onCancel]);
+
+// Update footer:
+<WorkoutLoggerFooter
+  onCancel={handleCancel}
+  // ...
+/>
+```
+
+---
+
+### **CRITICAL-003: Session Deduction Without Workout Persistence Guarantee**
+- **Severity:** HIGH  
+- **Data at Risk:** Client session credits, payment integrity  
+- **Blast Radius:** Individual client per incident  
+- **File & Line:** `WorkoutLogger.tsx:419-424`
+
+**What's Wrong:**
+
+```tsx
+const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+
+if (response.success && response.data) {
+  toast.success('Workout logged successfully! Session deducted and points earned.');
+  // ⚠️ Assumes backend atomically saved workout AND deducted session
+  onComplete(response.data);
+}
+```
+
+**The Problem:**
+If backend uses **non-transactional logic** like:
 ```javascript
-// services/aiPosturalAnalysisService.mjs
+// ⚠️ DANGEROUS BACKEND PATTERN (hypothetical)
+await WorkoutForm.create(formData);        // Step 1: Save workout
+await Client.decrement('sessions', { ... }); // Step 2: Deduct session
+```
 
-import { AIPosturalAnalysisSchema } from '../shared/schemas/aiPosturalAnalysis.schema.js';
-import { Exercise } from '../models/index.mjs';
+**Failure Scenarios:**
+1. Workout saves, session deduction fails → Client keeps session but has workout record (minor issue)
+2. **Workout save fails, session deduction succeeds** → **CLIENT LOSES SESSION WITH NO WORKOUT LOGGED** (CRITICAL)
 
-export async function analyzePosturalPain(painEntryId, photoUrl, region, painLevel) {
-  let aiResponse;
+**Fix (Frontend — Defensive):**
+
+```tsx
+const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+
+if (response.success && response.data) {
+  // ✅ Verify backend returned BOTH workout ID and updated session count
+  if (!response.data.id && !response.data.formId) {
+    throw new Error('Backend did not return workout form ID — data may not be saved');
+  }
+  
+  if (response.data.sessionDeducted && response.data.remainingSessions == null) {
+    console.error('[WorkoutLogger] Session deducted but remaining count not returned');
+    toast.warning('Workout saved, but session count could not be verified. Please refresh.');
+  }
+  
+  toast.success(
+    `Workout logged! ${response.data.remainingSessions ?? '?'} session(s) remaining.`
+  );
+  onComplete(response.data);
+}
+```
+
+**Backend Fix Required (CRITICAL):**
+```javascript
+// ✅ SAFE BACKEND PATTERN (must be implemented)
+const transaction = await sequelize.transaction();
+try {
+  const workout = await WorkoutForm.create(formData, { transaction });
+  await Client.decrement('availableSessions', { 
+    where: { id: clientId },
+    transaction 
+  });
+  await transaction.commit();
+  return { success: true, data: workout, remainingSessions: client.availableSessions - 1 };
+} catch (error) {
+  await transaction.rollback();
+  throw error; // ✅ No partial state — either both succeed or both fail
+}
+```
+
+---
+
+## 🟠 HIGH FINDINGS
+
+### **HIGH-001: No Auto-Save for Long Workout Sessions**
+- **Severity:** HIGH  
+- **Data at Risk:** 30-90 minutes of workout logging work  
+- **Blast Radius:** Individual workout session  
+- **File & Line:** `WorkoutLogger.tsx` (missing feature)
+
+**What's Wrong:**
+No `localStorage` or `sessionStorage` backup of workout state. If:
+- Browser crashes
+- Tab accidentally closed
+- Network interruption during submit
+- User navigates away
+
+**All workout data is lost permanently.**
+
+**Fix:**
+
+```tsx
+// Add auto-save effect
+useEffect(() => {
+  if (exercises.length === 0) return;
+  
+  const autoSaveKey = `workout_draft_${clientId}_${new Date().toISOString().split('T')[0]}`;
+  const draftData = {
+    exercises,
+    sessionNotes,
+    overallIntensity,
+    timestamp: Date.now(),
+  };
   
   try {
-    // Call AI vision model
-    aiResponse = await callAIVisionModel(photoUrl, region, painLevel);
-    
-    // CRITICAL: Validate response structure
-    const validatedAnalysis = AIPosturalAnalysisSchema.parse({
-      ...aiResponse,
-      schemaVersion: '1.0',
-      analyzedAt: new Date().toISOString(),
-      modelVersion: process.env.AI_MODEL_VERSION || 'unknown'
-    });
-
-    // CRITICAL: Verify all exercise IDs exist in database
-    const exerciseIds = validatedAnalysis.correctiveProtocol.map(p => p.exerciseId);
-    const existingExercises = await Exercise.findAll({
-      where: { id: exerciseIds },
-      attributes: ['id']
-    });
-
-    if (existingExercises.length !== exerciseIds.length) {
-      const foundIds = existingExercises.map(e => e.id);
-      const missingIds = exerciseIds.filter(id => !foundIds.includes(id));
-      throw new Error(`AI referenced non-existent exercises: ${missingIds.join(', ')}`);
-    }
-
-    // CRITICAL: Save with transaction
-    const transaction = await sequelize.transaction();
-    
-    try {
-      const painEntry = await PainEntry.findByPk(painEntryId, { transaction });
-      
-      if (!painEntry) {
-        throw new Error(`PainEntry ${painEntryId} not found`);
-      }
-
-      await painEntry.update({
-        aiAnalysis: validatedAnalysis,
-        correctiveExercises: exerciseIds
-      }, { transaction });
-
-      await transaction.commit();
-      
-      return validatedAnalysis;
-      
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
-
-  } catch (error) {
-    console.error(`[AI Analysis] Failed for PainEntry ${painEntryId}:`, error);
-    
-    // CRITICAL: Save error state to database (don't leave it hanging)
-    await PainEntry.update({
-      aiAnalysis: {
-        schemaVersion: '1.0',
-        error: true,
-        errorMessage: error.message,
-        errorAt: new Date().toISOString()
-      }
-    }, {
-      where: { id: painEntryId }
-    });
-
-    throw error;
+    localStorage.setItem(autoSaveKey, JSON.stringify(draftData));
+  } catch (err) {
+    console.warn('[WorkoutLogger] Auto-save failed:', err);
   }
+}, [exercises, sessionNotes, overallIntensity, clientId]);
+
+// Restore on mount
+useEffect(() => {
+  const autoSaveKey = `workout_draft_${clientId}_${new Date().toISOString().split('T')[0]}`;
+  try {
+    const saved = localStorage.getItem(autoSaveKey);
+    if (saved) {
+      const draft = JSON.parse(saved);
+      const age = Date.now() - draft.timestamp;
+      
+      if (age < 24 * 60 * 60 * 1000) { // < 24 hours old
+        const restore = window.confirm(
+          `Found unsaved workout from ${new Date(draft.timestamp).toLocaleTimeString()}. Restore?`
+        );
+        if (restore) {
+          setExercises(draft.exercises);
+          setSessionNotes(draft.sessionNotes);
+          setOverallIntensity(draft.overallIntensity);
+          toast.success('Draft workout restored');
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[WorkoutLogger] Draft restore failed:', err);
+  }
+}, [clientId]);
+
+// Clear draft after successful submit
+const handleSubmit = async () => {
+  // ... existing code ...
+  if (response.success) {
+    const autoSaveKey = `workout_draft_${clientId}_${new Date().toISOString().split('T')[0]}`;
+    localStorage.removeItem(autoSaveKey); // ✅ Clear draft
+    onComplete(response.data);
+  }
+};
+```
+
+---
+
+### **HIGH-002: No Validation for Duplicate Exercise Entries**
+- **Severity:** MEDIUM  
+- **Data at Risk:** Workout data integrity (duplicate exercises logged)  
+- **Blast Radius:** Individual workout  
+- **File & Line:** `WorkoutLogger.tsx:296` (`addExercise` function)
+
+**What's Wrong:**
+
+```tsx
+const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
+  setExercises(prev => [...prev, {
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    // ...
+  }]);
+  // ⚠️ No check if exercise already exists in workout
+}, [createEmptySet]);
+```
+
+**Scenario:**
+- Trainer adds "Barbell Bench Press"
+- Forgets they already added it
+- Adds "Barbell Bench Press" again
+- Workout now has duplicate entries
+- Backend may reject, or worse, accept duplicate data
+
+**Fix:**
+
+```tsx
+const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
+  const exists = exercises.some(ex => 
+    ex.exerciseId === exercise.id || 
+    ex.exerciseName.toLowerCase() === exercise.name.toLowerCase()
+  );
+  
+  if (exists) {
+    toast.warning(`${exercise.name} is already in this workout`);
+    return;
+  }
+  
+  setExercises(prev => [...prev, {
+    exerciseId: exercise.id,
+    exerciseName: exercise.name,
+    sets: [createEmptySet(1)],
+    formRating: 3,
+    painLevel: 0,
+    performanceNotes: ''
+  }]);
+  setShowExerciseSearch(false);
+  toast.success(`Added ${exercise.name} to workout`);
+}, [exercises, createEmptySet]);
+```
+
+---
+
+### **HIGH-003: Incomplete Exercise Validation Allows Empty Submissions**
+- **Severity:** MEDIUM  
+- **Data at Risk:** Workout data quality  
+- **Blast Radius:** Individual workout  
+- **File & Line:** `WorkoutLogger.tsx:390-395`
+
+**What's Wrong:**
+
+```tsx
+const hasIncompleteExercises = exercises.some(exercise =>
+  exercise.sets.length === 0 ||
+  exercise.sets.some(set => set.weight === 0 && set.reps === 0)
+);
+```
+
+**Problem:** Validation only checks if **both** weight and reps are 0. Allows:
+- Weight = 0, Reps = 10 (bodyweight exercises — valid)
+- Weight = 135, Reps = 0 (invalid — no reps logged)
+- **RPE = 0** (invalid — should be 1-10)
+- **Tempo = ""** (missing — should be required for NASM compliance)
+
+**Fix:**
+
+```tsx
+const hasIncompleteExercises = exercises.some(exercise => {
+  if (exercise.sets.length === 0) return true;
+  
+  return exercise.sets.some(set => {
+    // ✅ Allow bodyweight (weight=0) if reps > 0
+    if (set.weight === 0 && set.reps === 0) return true;
+    
+    // ✅ Require reps for all sets
+    if (set.reps === 0) return true;
+    
+    // ✅ Validate RPE range
+    if (set.rpe < 1 || set.rpe > 10) return true;
+    
+    // ✅ Require tempo for NASM compliance (optional: make configurable)
+    // if (!set.tempo || set.tempo.trim() === '') return true;
+    
+    return false;
+  });
+});
+
+if (hasIncompleteExercises) {
+  toast.error('Please complete all sets (reps, weight, RPE 1-10) before submitting');
+  return;
 }
 ```
 
 ---
 
-### FINDING #4: COMPONENT REFACTORING WITHOUT DATA FLOW AUDIT
-**Severity:** 🔴 **CRITICAL**  
-**Data at Risk:** Workout plans, session logs, client progress data  
-**Blast Radius:** ALL USERS with active workout plans  
-**File & Line
+## 🟡 MEDIUM FINDINGS
+
+### **MEDIUM-001
 
 ---
 

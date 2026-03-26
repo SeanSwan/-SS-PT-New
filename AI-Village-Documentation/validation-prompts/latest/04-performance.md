@@ -1,70 +1,107 @@
 # Performance & Scalability — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 9.6s
-> **Files:** docs/ai-workflow/blueprints/CLIENT-DETAIL-WIRING-BLUEPRINT.md
-> **Generated:** 3/25/2026, 5:21:14 PM
+> **Status:** PASS | **Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 11.7s
+> **Files:** frontend/src/components/WorkoutLogger/WorkoutLogger.tsx, frontend/src/components/WorkoutLogger/ExerciseAutocomplete.tsx, frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx, frontend/src/components/WorkoutLogger/ExerciseCardComponent.tsx
+> **Generated:** 3/25/2026, 10:52:32 PM
 
 ---
 
-This performance and scalability review focuses on the architectural blueprint for the **Client Detail View** and **AI Terminal Integration**.
+This performance and scalability review targets the **Enchanted Apex: Crystalline Swan** implementation of the `WorkoutLogger` suite.
 
 ### Executive Summary
-The plan to decompose monoliths (e.g., `WorkoutPlanBuilder.tsx` from 1,457 lines) is a **critical** positive step for maintainability. However, the proposed "Bento Box" UI and the heavy integration of AI Vision/Video Biomechanics introduce significant risks regarding bundle bloat, memory management on mobile, and database scalability.
+The architecture is well-decomposed, but there are significant risks regarding **memory management in event listeners**, **redundant API patterns**, and **render cycles** in the exercise list. The use of `react-window` is a major win for scalability, but its implementation in the Rolodex has a minor API mismatch.
 
 ---
 
-### 1. Bundle Size & Lazy Loading
-**Finding: Monolithic Component Heavy-Loading**
-*   **Rating: HIGH**
-*   **Issue:** The blueprint moves several massive components (`WorkoutPlanBuilder`, `WorkoutLogger`, `WorkoutCopilotPanel`) into a single `ClientDetailView`. Even with decomposition, if these are imported statically, the initial load for a single client profile will exceed 1MB+ of JS.
-*   **Recommendation:** Implement **Route-based or Tab-based Code Splitting**. Use `React.lazy()` for each sidebar/bento item. The "Active Session" and "Program Architect" should only load their chunks when the specific sub-tab is clicked.
+### 1. Memory Leaks & Event Hygiene
+**Finding 1.1: Global Event Listener Accumulation**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** The `useEffect` listening for `AI_LOAD_TEMPLATE`, `AI_ADD_EXERCISE`, and `AI_TOGGLE_NASM_ITEM` depends on `loadPhaseTemplate`. Every time `loadPhaseTemplate` changes (which it shouldn't, but it's in the dependency array), the listeners are removed and re-added. More critically, if `WorkoutLogger` is unmounted and remounted, any logic inside those closures might reference stale state if not handled carefully.
+*   **Rating: MEDIUM**
+
+**Finding 1.2: Missing Abort Logic in `loadClientData`**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** `loadClientData` is called on mount but lacks an `AbortController`. If a user navigates away quickly, the `setState` calls in the `.finally` and `.catch` blocks will fire on an unmounted component.
+*   **Rating: LOW**
+
+---
 
 ### 2. Render Performance
-**Finding: Context-Induced Re-render Cascades**
+**Finding 2.1: Object Literal Injection in `react-window`**
+*   **File:** `NASMExerciseRolodex.tsx`
+*   **Issue:** The `List` component receives `rowProps={{}}`. In React, `{{}}` creates a new object reference on every render. This forces `react-window` to re-calculate its internal context even if the data hasn't changed.
 *   **Rating: MEDIUM**
-*   **Issue:** The `AICommandBar` is planned to be "at the top of every dashboard section" with auto-setting context. If this context is stored in a top-level `Provider` that also houses client data, every keystroke in the AI Terminal or every context switch will trigger a re-render of the entire `ClientDetailView` (including heavy charts).
-*   **Recommendation:** Use **Zustand** or **Signals** for the AI Terminal state to decouple the input/streaming text from the heavy UI components of the Training/Biometrics tabs.
 
-### 3. Network Efficiency
-**Finding: N+1 Data Fetching in Bento Grid**
+**Finding 2.2: Context Provider Over-rendering**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** The entire `WorkoutLogger` is wrapped in `<NASMLearningProvider>`. If this provider manages state (like "Learning Mode" toggles), every exercise card and set input will re-render when the mode is toggled, unless those sub-components are strictly memoized against context changes.
 *   **Rating: MEDIUM**
-*   **Issue:** The Biometrics "Bento Box" displays 4 distinct tools (Body Map, Measurements, Movement, Form). If each cell initiates its own `useEffect` fetch, opening a client profile will trigger 5-8 concurrent API calls (including the AI context and client header).
-*   **Recommendation:** Implement a **Composite Data Fragment** for the "Overview" and "Biometrics" landing states. Fetch summary data in one call; only fetch "Heavy" data (like full video biomechanics or 840+ exercise DB) when a bento cell "Expands to full-view."
 
-### 4. Memory Leaks & DOM Refs
-**Finding: Camera/Vision Stream Cleanup**
-*   **Rating: HIGH**
-*   **Issue:** The `PainPhotoCapture.tsx` and `FormAnalysisPage` (Video Biomechanics) involve hardware access (Camera API).
-*   **Recommendation:** Ensure strict `useEffect` cleanup for `MediaStream` tracks. In a SPA, failing to stop the camera track when switching from "Biometrics" to "Settings" will keep the camera active, draining mobile battery and causing "Hardware in use" errors on subsequent attempts.
-
-### 5. Database & Scalability
-**Finding: Unbounded JSONB Growth**
-*   **Rating: MEDIUM**
-*   **Issue:** The `PainEntry.mjs` model is adding `aiAnalysis` (JSONB). While flexible, storing raw AI outputs (which can be verbose) without a schema or size limit can lead to slow indexed reads over time.
-*   **Recommendation:** 
-    1.  **Index the `severity` and `likelyDysfunction`** keys within the JSONB using a GIN index to allow trainers to query "All clients with Upper Cross Syndrome."
-    2.  **R2 Lifecycle:** The blueprint mentions "auto-delete after 90 days." Ensure the database `photoUrl` is cleared via a CRON job/Worker to avoid "Dangling Pointers" to deleted storage objects.
-
-### 6. Scalability (Multi-Instance)
-**Finding: AI Terminal State**
+**Finding 2.3: `useMemo` for Section Filtering**
+*   **File:** `NASMExerciseRolodex.tsx`
+*   **Issue:** `filteredResults` and `filteredAllExercises` perform `.filter()` operations on every render. While `results` is memoized, the `sectionContext` check runs frequently.
+*   **Recommendation:** Ensure `allExercises` is truly static or cached via a custom hook to prevent O(N) filtering on every keystroke.
 *   **Rating: LOW**
-*   **Issue:** If the AI conversation history is kept only in-memory (React State), a page refresh or a mobile browser "tab sleep" will wipe the context.
-*   **Recommendation:** Persist the "Active AI Session" to `sessionStorage` or a Redis-backed cache if the intent is to allow the trainer to continue the conversation across different dashboard sections.
 
 ---
 
-### Summary of Ratings
+### 3. Network Efficiency
+**Finding 3.1: Redundant Search Implementations**
+*   **File:** `ExerciseAutocomplete.tsx` vs `NASMExerciseRolodex.tsx`
+*   **Issue:** You have two separate components doing exercise searches. `ExerciseAutocomplete` uses a manual `fetch` with debounce, while `NASMExerciseRolodex` uses a custom `useExerciseSearch` hook.
+*   **Risk:** Inconsistent caching. If a user searches "Bench Press" in the Rolodex and then in the Autocomplete, the browser may make two identical API calls.
+*   **Rating: MEDIUM**
 
-| Finding | Severity | Category |
-| :--- | :--- | :--- |
-| Lack of `React.lazy` for sub-tab components | **HIGH** | Bundle Size |
-| Camera Stream cleanup in `PainPhotoCapture` | **HIGH** | Memory Leak |
-| Global Context re-renders on AI input | **MEDIUM** | Render Perf |
-| N+1 API calls for Bento Grid cells | **MEDIUM** | Network |
-| Missing GIN indexes on `aiAnalysis` JSONB | **MEDIUM** | Database |
+**Finding 3.2: N+1 Potential in `loadTodaysPlan`**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** The component fetches the "Current Plan," then maps exercises. If the backend `/api/workouts/${clientId}/current` doesn't include full exercise metadata (muscle groups, types), the frontend might be forced to make follow-up calls for each exercise ID to populate the UI.
+*   **Rating: LOW**
 
-### Performance Engineer's Verdict:
-**PROCEED WITH CAUTION.** The UI/UX design is elite (Enchanted Apex theme), but the technical implementation must prioritize **Lazy Loading** and **State Isolation**. Without code-splitting the 1,400-line components being moved, the `sswanstudios.com` production dashboard will suffer from significant "Interaction to Next Paint" (INP) lag.
+---
+
+### 4. Bundle Size & Tree Shaking
+**Finding 4.1: Large PDF Library in Main Bundle**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** `import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';`
+*   **Impact:** PDF generation libraries (like `jspdf` or `pdfmake`) are notoriously heavy (500KB+). Importing this at the top level includes it in the initial `WorkoutLogger` chunk.
+*   **Recommendation:** Use a dynamic import inside `handleExportPDF`:
+  ```tsx
+  const { exportWorkoutLoggerPDF } = await import('../../services/pdfExportService');
+  ```
+*   **Rating: HIGH**
+
+**Finding 4.2: Icon Library Overhead**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** Importing multiple icons from `lucide-react`. Ensure your build tool (Vite/Webpack) is configured for tree-shaking, otherwise, the entire icon set may be bundled.
+*   **Rating: LOW**
+
+---
+
+### 5. Scalability & State Management
+**Finding 5.1: Large State Object for Exercises**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** `exercises` is a deeply nested array of objects. Updating a single "Reps" value in a set causes a top-level state change in `WorkoutLogger`, triggering a reconciliation of the entire exercise list.
+*   **Recommendation:** For 20+ exercises with 5+ sets each, consider a `useReducer` or an atom-based approach (Jotai/Recoil) to update specific sets without re-rendering the orchestrator.
+*   **Rating: MEDIUM**
+
+**Finding 5.2: SessionStorage Race Conditions**
+*   **File:** `WorkoutLogger.tsx`
+*   **Issue:** The AI-to-Logger prefill reads from `sessionStorage`. If a trainer has two tabs open for different clients, the `PENDING_WORKOUT_KEY` could collide.
+*   **Recommendation:** Key the storage by `clientId`: `PENDING_WORKOUT_KEY_${clientId}`.
+*   **Rating: MEDIUM**
+
+---
+
+### Summary Table
+
+| Finding | Severity | Category | Recommendation |
+| :--- | :--- | :--- | :--- |
+| **PDF Library Bundle Size** | **HIGH** | Bundle Size | Use dynamic `import()` for PDF service. |
+| **Global Event Listeners** | **MEDIUM** | Memory | Use `useRef` for handlers to avoid re-binding. |
+| **Redundant Search Logic** | **MEDIUM** | Efficiency | Consolidate into `useExerciseSearch` hook. |
+| **Nested State Updates** | **MEDIUM** | Performance | Use `useReducer` for complex exercise arrays. |
+| **Storage Collisions** | **MEDIUM** | Scalability | Namespace `sessionStorage` by `clientId`. |
+| **React-Window rowProps** | **MEDIUM** | Render | Memoize `rowProps` or pass `null`. |
 
 ---
 

@@ -20,6 +20,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MasterDetailLayout } from './clients-team';
 import AdminViewAsBar from '../Pages/admin-clients/components/AdminViewAsBar';
+import { AICommandBar } from '../../Shared/AICommandBar';
 
 const ClientsWorkspace: React.FC = () => {
   const navigate = useNavigate();
@@ -49,6 +50,11 @@ const ClientsWorkspace: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
+      {/* SwanStudios Assistant — embedded command bar */}
+      <div style={{ padding: '8px 16px 0', flexShrink: 0 }}>
+        <AICommandBar context="client_review" />
+      </div>
+
       {/* Admin View-As bar (compact) */}
       <div style={{ padding: '8px 16px 0', flexShrink: 0 }}>
         <AdminViewAsBar

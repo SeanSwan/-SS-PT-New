@@ -52,7 +52,7 @@ export interface PlanDetailsStepProps {
   handlePlanDetailChange: (field: keyof WorkoutPlan, value: any) => void;
   goals: { value: string; label: string }[];
   clientId?: string;
-  mockClients: { id: string; name: string; email: string }[];
+  clientName?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -63,10 +63,38 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
   handlePlanDetailChange,
   goals,
   clientId,
-  mockClients,
+  clientName,
 }) => {
   return (
     <div style={{ marginTop: 16 }}>
+      {/* Client badge — shown when clientId is pre-set from Client Detail View */}
+      {clientId && (
+        <div style={{
+          marginBottom: 20,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 16px',
+          borderRadius: 8,
+          background: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
+        }}>
+          <span style={{
+            fontFamily: "'Sora', sans-serif",
+            fontSize: 12,
+            color: 'var(--text-muted, #94a3b8)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>Client</span>
+          <span style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 15,
+            fontWeight: 600,
+            color: 'var(--accent-primary, #60C0F0)',
+          }}>{clientName || `Client #${clientId}`}</span>
+        </div>
+      )}
+
       <FormGrid $cols="1fr 1fr">
         <FieldGroup>
           <FieldLabel htmlFor="plan-name">Plan Name</FieldLabel>
@@ -128,26 +156,6 @@ const PlanDetailsStep: React.FC<PlanDetailsStepProps> = ({
           />
         </FieldGroup>
       </FormGrid>
-
-      {!clientId && (
-        <div style={{ marginTop: 20 }}>
-          <FieldGroup>
-            <FieldLabel htmlFor="plan-client">Assign to Client</FieldLabel>
-            <NativeSelect
-              id="plan-client"
-              value={plan.clientId}
-              onChange={(e) => handlePlanDetailChange('clientId', e.target.value)}
-            >
-              <option value="">Select a client...</option>
-              {mockClients.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.email})
-                </option>
-              ))}
-            </NativeSelect>
-          </FieldGroup>
-        </div>
-      )}
     </div>
   );
 };

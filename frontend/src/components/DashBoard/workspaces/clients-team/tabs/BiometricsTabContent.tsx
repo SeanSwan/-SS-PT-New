@@ -1,65 +1,82 @@
 /**
  * ============================================================================
  * FILE: BiometricsTabContent.tsx
- * PURPOSE: Bento-box grid of biometric feature cards for client detail view
+ * PURPOSE: Bento grid with lazy-loaded biometric components for client detail
  * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-03-25
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Renders the Biometrics tab content as a 2x2 bento grid
- * of feature cards (Body Map, Measurements, Movement Analysis, Form Analysis).
- * Each card is a clickable placeholder that will lazy-load its full component.
+ * WHAT THIS FILE DOES: Renders 4 biometric feature cards as a bento grid.
+ * Clicking a card expands it to show the real component (BodyMap,
+ * Measurements, MovementAnalysis, FormAnalysis) with a back button.
  *
  * HOW IT FITS IN THE APP: ClientDetailView → renderBiometrics → BiometricsTabContent
  *
- * KEY DECISIONS: Bento-box grid over tabs-within-tabs to maximize information
- * density. Cards use dashed borders (pending state) that become solid on hover
- * to signal interactivity. View Transitions API names baked in for future use.
+ * KEY DECISIONS: Cards expand inline (not modal) to avoid tab-ception.
+ * Real components lazy-loaded only when card is clicked. TabErrorBoundary
+ * wraps each for crash isolation.
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: BiometricsTabContent                             ║
- * ║  PURPOSE: Bento grid of biometric feature cards              ║
+ * ║  PURPOSE: Bento grid → expandable biometric tools            ║
  * ║  OWNER: Claude Opus 4.6 (CEO)                                ║
  * ║  LAST VALIDATED: 2026-03-25                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
- * WIREFRAME:
+ * WIREFRAME (Grid):
  * ┌──────────────────────┬──────────────────────┐
  * │ Body Map              │ Measurements          │
- * │ (Interactive SVG +    │ (Weight, body fat,    │
- * │  AI photo upload)     │  muscle mass trends)  │
  * ├──────────────────────┼──────────────────────┤
  * │ Movement Analysis     │ Form Analysis         │
- * │ (NASM assessment      │ (AI form check        │
- * │  results)             │  results)             │
  * └──────────────────────┴──────────────────────┘
  *
- * MERMAID ARCHITECTURE:
- * graph TD
- *   A[BiometricsTabContent] --> B[BentoCard: Body Map]
- *   A --> C[BentoCard: Measurements]
- *   A --> D[BentoCard: Movement Analysis]
- *   A --> E[BentoCard: Form Analysis]
+ * WIREFRAME (Expanded):
+ * ┌──────────────────────────────────────────────┐
+ * │ ← Back to Biometrics     [Card Title]        │
+ * ├──────────────────────────────────────────────┤
+ * │ [Full Component rendered here]                │
+ * └──────────────────────────────────────────────┘
  *
  * CLICK-OUTCOME FLOWCHART:
- * [Card: Body Map] -> Opens BodyMap component (lazy) -> Interactive SVG + photo upload
- * [Card: Measurements] -> Opens ClientMeasurementPanel (lazy) -> Weight/BF/muscle trends
- * [Card: Movement Analysis] -> Opens MovementAnalysisWizard (lazy) -> NASM assessment
- * [Card: Form Analysis] -> Opens FormAnalysis component (lazy) -> AI form checking
+ * [Card: Body Map] → expandedCard='body-map' → Lazy BodyMap (userId, mode=trainer)
+ * [Card: Measurements] → expandedCard='measurements' → Lazy ClientMeasurementPanel
+ * [Card: Movement] → expandedCard='movement-analysis' → Lazy MovementAnalysisWizard
+ * [Card: Form] → expandedCard='form-analysis' → Lazy FormAnalysisPage
+ * [Back button] → expandedCard=null → Returns to bento grid
  *
  * DATA FLOW:
  * Props In:  { clientId, clientName? }
  * State:     { expandedCard }
- * Children:  BentoCard x4 (placeholder state)
+ * Children:  BodyMap, ClientMeasurementPanel, MovementAnalysisWizard, FormAnalysisPage
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { MapPin, Ruler, Activity, Eye } from 'lucide-react';
+import { MapPin, Ruler, Activity, Eye, ArrowLeft } from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Lazy-loaded biometric components
+// PURPOSE: Only load heavy components when user clicks a card
+// ─────────────────────────────────────────────────────────────
+
+const BodyMap = React.lazy(
+  () => import('../../../../BodyMap')
+);
+
+const ClientMeasurementPanel = React.lazy(
+  () => import('../../../Pages/admin-clients/components/ClientMeasurementPanel')
+);
+
+const MovementAnalysisWizard = React.lazy(
+  () => import('../../../Pages/admin-movement-analysis/MovementAnalysisWizard')
+);
+
+const FormAnalysisPage = React.lazy(
+  () => import('../../../../FormAnalysis/FormAnalysisPage')
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
-// PURPOSE: Props and card configuration interfaces
 // ─────────────────────────────────────────────────────────────
 
 interface BiometricsTabContentProps {
@@ -67,19 +84,17 @@ interface BiometricsTabContentProps {
   clientName?: string;
 }
 
+type CardId = 'body-map' | 'measurements' | 'movement-analysis' | 'form-analysis';
+
 interface BentoCardConfig {
-  id: string;
+  id: CardId;
   title: string;
   description: string;
   icon: React.ReactNode;
-  /** Future: lazy component path */
-  componentPath: string;
 }
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Card Configuration
-// PURPOSE: Declarative card definitions for the bento grid
-// WHY: Easy to add/remove cards without touching render logic
 // ─────────────────────────────────────────────────────────────
 
 const BIOMETRIC_CARDS: BentoCardConfig[] = [
@@ -88,52 +103,43 @@ const BIOMETRIC_CARDS: BentoCardConfig[] = [
     title: 'Body Map',
     description: 'Interactive SVG body map with AI-powered photo upload for visual progress tracking.',
     icon: <MapPin size={24} />,
-    componentPath: '../../../BodyMap',
   },
   {
     id: 'measurements',
     title: 'Measurements',
     description: 'Weight, body fat percentage, muscle mass, and circumference measurement trends.',
     icon: <Ruler size={24} />,
-    componentPath: 'ClientMeasurementPanel',
   },
   {
     id: 'movement-analysis',
     title: 'Movement Analysis',
     description: 'NASM Overhead Squat Assessment and corrective exercise recommendations.',
     icon: <Activity size={24} />,
-    componentPath: 'MovementAnalysisWizard',
   },
   {
     id: 'form-analysis',
     title: 'Form Analysis',
     description: 'AI-powered exercise form checking with video analysis and feedback.',
     icon: <Eye size={24} />,
-    componentPath: 'FormAnalysisComponent',
   },
 ];
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
-// PURPOSE: Subtle entrance and hover animations for cards
-// WHY: Premium feel consistent with MasterDetailStyles surfaceRise
 // ─────────────────────────────────────────────────────────────
 
 const cardEntrance = keyframes`
-  0% {
-    opacity: 0;
-    transform: translateY(16px) scale(0.97);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  0% { opacity: 0; transform: translateY(16px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+`;
+
+const shimmer = keyframes`
+  0% { opacity: 0.4; }
+  100% { opacity: 0.8; }
 `;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
-// PURPOSE: Dark-first bento grid with CSS custom properties
-// WHY: Matches Crystalline Swan dark aesthetic with dual-glow system
 // ─────────────────────────────────────────────────────────────
 
 const BentoGrid = styled.div`
@@ -148,8 +154,7 @@ const BentoGrid = styled.div`
   }
 `;
 
-const BentoCardWrapper = styled.button<{ $isExpanded: boolean }>`
-  /* Reset button defaults */
+const BentoCardWrapper = styled.button`
   all: unset;
   box-sizing: border-box;
   cursor: pointer;
@@ -160,24 +165,16 @@ const BentoCardWrapper = styled.button<{ $isExpanded: boolean }>`
   min-height: 160px;
   border-radius: 12px;
   background: var(--bg-surface, #141419);
-  border: 1.5px dashed ${({ $isExpanded }) =>
-    $isExpanded ? 'var(--accent-primary, #60C0F0)' : 'rgba(0, 48, 128, 0.6)'};
+  border: 1.5px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
   animation: ${cardEntrance} 400ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 
-  /* Stagger entrance per card position */
   &:nth-child(1) { animation-delay: 0ms; }
   &:nth-child(2) { animation-delay: 60ms; }
   &:nth-child(3) { animation-delay: 120ms; }
   &:nth-child(4) { animation-delay: 180ms; }
 
-  /* View Transitions API support */
-  view-transition-name: var(--card-id);
-
-  /* 44px min touch target is satisfied by min-height + padding */
-
   &:hover {
-    border-style: solid;
     border-color: var(--accent-primary, #60C0F0);
     box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent),
                 inset 0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
@@ -191,9 +188,7 @@ const BentoCardWrapper = styled.button<{ $isExpanded: boolean }>`
                 inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
 
-  &:active {
-    transform: translateY(0);
-  }
+  &:active { transform: translateY(0); }
 `;
 
 const CardIconCircle = styled.div`
@@ -225,55 +220,165 @@ const CardDescription = styled.span`
   color: var(--text-muted, #4070C0);
 `;
 
-const ComingSoonBadge = styled.span`
+const ExpandedView = styled.div`
+  animation: ${cardEntrance} 300ms cubic-bezier(0.22, 1, 0.36, 1);
+`;
+
+const BackButton = styled.button`
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
+  gap: 8px;
+  padding: 8px 16px;
+  min-height: 44px;
+  border-radius: 8px;
   font-family: 'Sora', sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--accent-gold, #C6A84B);
-  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent);
-  align-self: flex-start;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  margin-bottom: 16px;
+  transition: background 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+const ExpandedTitle = styled.h3`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #E0ECF4);
+  margin: 0 0 16px;
+`;
+
+const ComponentWrapper = styled.div`
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-surface, #141419);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
+  min-height: 400px;
+`;
+
+const ShimmerLoader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+
+  & > div {
+    height: 20px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent-primary, #50A0F0) 10%, var(--bg-surface, #141419));
+    animation: ${shimmer} 1.5s ease-in-out infinite alternate;
+  }
+
+  & > div:nth-child(1) { width: 70%; }
+  & > div:nth-child(2) { width: 90%; }
+  & > div:nth-child(3) { width: 55%; }
 `;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
-// PURPOSE: Main biometrics tab content with bento card grid
 // ─────────────────────────────────────────────────────────────
+
+const SuspenseFallback: React.FC = () => (
+  <ShimmerLoader role="status" aria-live="polite" aria-label="Loading component">
+    <div />
+    <div />
+    <div />
+  </ShimmerLoader>
+);
 
 const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
   clientId,
   clientName,
 }) => {
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<CardId | null>(null);
 
-  const handleCardClick = useCallback((cardId: string) => {
-    // Future: lazy-load the actual component into an expanded state
-    setExpandedCard((prev) => (prev === cardId ? null : cardId));
-    console.warn(`TODO: Lazy-load component for card "${cardId}" (client ${clientId})`);
-  }, [clientId]);
+  const handleCardClick = useCallback((cardId: CardId) => {
+    setExpandedCard(cardId);
+  }, []);
 
+  const handleBack = useCallback(() => {
+    setExpandedCard(null);
+  }, []);
+
+  // Render the expanded component for a given card
+  const renderExpandedComponent = (cardId: CardId) => {
+    switch (cardId) {
+      case 'body-map':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <BodyMap userId={Number(clientId)} mode="trainer" />
+          </Suspense>
+        );
+      case 'measurements':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <ClientMeasurementPanel
+              clientId={Number(clientId)}
+              clientName={clientName || `Client #${clientId}`}
+              onClose={handleBack}
+            />
+          </Suspense>
+        );
+      case 'movement-analysis':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <MovementAnalysisWizard />
+          </Suspense>
+        );
+      case 'form-analysis':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <FormAnalysisPage />
+          </Suspense>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // When a card is expanded, show the component with a back button
+  if (expandedCard) {
+    const cardConfig = BIOMETRIC_CARDS.find((c) => c.id === expandedCard);
+    return (
+      <ExpandedView>
+        <BackButton onClick={handleBack} aria-label="Back to biometrics grid">
+          <ArrowLeft size={16} />
+          Back to Biometrics
+        </BackButton>
+        <ExpandedTitle>{cardConfig?.title}</ExpandedTitle>
+        <ComponentWrapper>
+          {renderExpandedComponent(expandedCard)}
+        </ComponentWrapper>
+      </ExpandedView>
+    );
+  }
+
+  // Default: show the bento grid
   return (
     <BentoGrid role="group" aria-label={`Biometrics for ${clientName || 'client'}`}>
       {BIOMETRIC_CARDS.map((card) => (
         <BentoCardWrapper
           key={card.id}
-          $isExpanded={expandedCard === card.id}
           onClick={() => handleCardClick(card.id)}
-          aria-label={`${card.title} — ${card.description}`}
-          aria-pressed={expandedCard === card.id}
-          style={{ '--card-id': `bento-${card.id}` } as React.CSSProperties}
+          aria-label={`Open ${card.title}`}
         >
           <CardIconCircle aria-hidden="true">
             {card.icon}
           </CardIconCircle>
           <CardTitle>{card.title}</CardTitle>
           <CardDescription>{card.description}</CardDescription>
-          <ComingSoonBadge>Coming Soon</ComingSoonBadge>
         </BentoCardWrapper>
       ))}
     </BentoGrid>

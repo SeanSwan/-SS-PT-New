@@ -70,9 +70,6 @@ export const goals = [
   { value: 'rehabilitation', label: 'Rehabilitation' },
 ];
 
-/** Mock clients for the demo client selector. */
-export const mockClients = [
-  { id: '1', name: 'John Doe', email: 'john@example.com' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@example.com' },
-];
+// Mock clients REMOVED — WorkoutPlanBuilder auto-applies clientId from props
+// when rendered inside Client Detail View. Client selector only appears
+// when used standalone (admin workout management page).

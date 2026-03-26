@@ -12,7 +12,8 @@ import { useAuth } from '../../context/AuthContext';
 
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import UnifiedAdminRoutes from './UnifiedAdminRoutes';
-import AIAssistantFAB from '../AIAssistant/AIAssistantFAB';
+// AIAssistantFAB REMOVED — SwanStudios Assistant is now embedded via AICommandBar
+// in each workspace (Dashboard, Clients, Scheduling, Workouts)
 import { executiveCommandTheme, ExecutiveGlobalStyles } from './AdminLayoutTheme';
 import {
   ExecutiveLayoutContainer,
@@ -154,7 +155,6 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
           </AnimatePresence>
         </ExecutiveMainContent>
       </ExecutiveLayoutContainer>
-      <AIAssistantFAB userRole="admin" defaultContext="workout_generation" />
     </ThemeProvider>
   );
 };
