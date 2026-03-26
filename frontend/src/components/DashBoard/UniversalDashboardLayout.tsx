@@ -281,9 +281,9 @@ const UniversalLayoutContainer = styled.div`
   }
 `;
 
-const UniversalMainContent = styled(motion.main)`
+const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
   flex: 1;
-  margin-left: 280px;
+  margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '64px' : '280px')};
   padding: ${props => props.theme.spacing.lg};
   min-height: 100vh;
   position: relative;
@@ -292,6 +292,7 @@ const UniversalMainContent = styled(motion.main)`
   /* GPU layer promotion for smooth scrolling */
   transform: translateZ(0);
   -webkit-overflow-scrolling: touch;
+  transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   @media (min-width: 769px) {
     /* Only use backdrop-filter on desktop where it's less impactful */
@@ -659,6 +660,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         
         {/* Universal Main Content Area */}
         <UniversalMainContent
+          $sidebarCollapsed={sidebarCollapsed}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
