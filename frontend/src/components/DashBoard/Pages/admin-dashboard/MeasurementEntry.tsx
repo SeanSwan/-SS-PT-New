@@ -731,8 +731,18 @@ const CustomTooltipBox = styled.div`
 // Component
 // ═════════════════════════════════════════════════════════════════════════════════
 
-const MeasurementEntry: React.FC = () => {
+interface MeasurementEntryProps {
+  /** When embedded in BiometricsTabContent, auto-select this client */
+  embeddedClientId?: string;
+  embeddedClientName?: string;
+}
+
+const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
+  embeddedClientId,
+  embeddedClientName,
+}) => {
   const { clientId: routeClientId } = useParams<{ clientId?: string }>();
+  const effectiveClientId = embeddedClientId || routeClientId;
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -815,12 +825,17 @@ const MeasurementEntry: React.FC = () => {
           name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Client ${c.id}`,
         }));
         setClients(mapped);
-        // Auto-select client from route param
-        if (routeClientId) {
-          const match = mapped.find((c: Client) => c.id === routeClientId);
+        // Auto-select client from embedded prop or route param
+        if (effectiveClientId) {
+          const match = mapped.find((c: Client) => c.id === effectiveClientId);
           if (match) {
             setSelectedClient(match);
             setClientSearch(match.name);
+          } else if (embeddedClientName) {
+            // Client not in list yet — create a placeholder
+            const placeholder = { id: effectiveClientId, name: embeddedClientName };
+            setSelectedClient(placeholder);
+            setClientSearch(embeddedClientName);
           }
         }
       } catch (error) {
@@ -828,7 +843,7 @@ const MeasurementEntry: React.FC = () => {
       }
     };
     fetchClients();
-  }, [toast, routeClientId]);
+  }, [toast, effectiveClientId, embeddedClientName]);
 
   useEffect(() => {
     if (selectedClient) {
@@ -1029,53 +1044,75 @@ const MeasurementEntry: React.FC = () => {
       <GlassPanel as={motion.div} variants={itemVariants}>
         <SectionTitle>Body Measurements Entry</SectionTitle>
         <ResponsiveGrid>
-          {/* Searchable Client Select */}
-          <AutocompleteWrapper ref={autocompleteRef}>
+          {/* Client Select — read-only badge when embedded, autocomplete otherwise */}
+          {embeddedClientId ? (
             <InputWrapper>
-              <StyledLabel>Select Client</StyledLabel>
-              <FlexRow $gap={0} style={{ position: 'relative' }}>
-                <StyledInput
-                  type="text"
-                  placeholder="Search clients..."
-                  value={clientSearch}
-                  onChange={(e) => {
-                    setClientSearch(e.target.value);
-                    setShowDropdown(true);
-                    if (selectedClient && e.target.value !== selectedClient.name) {
-                      setSelectedClient(null);
-                    }
-                  }}
-                  onFocus={() => setShowDropdown(true)}
-                  $hasAdornment={!!selectedClient}
-                />
-                {selectedClient && (
-                  <InputAdornmentSpan
-                    style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-                    onClick={handleClearClient}
-                  >
-                    <X size={16} />
-                  </InputAdornmentSpan>
-                )}
-              </FlexRow>
+              <StyledLabel>Client</StyledLabel>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 14px',
+                background: 'rgba(96, 192, 240, 0.08)',
+                border: '1px solid rgba(96, 192, 240, 0.25)',
+                borderRadius: 8,
+                color: '#60C0F0',
+                fontSize: '0.95rem',
+                fontWeight: 500,
+                minHeight: 44,
+              }}>
+                <Ruler size={16} style={{ opacity: 0.7 }} />
+                {selectedClient?.name || embeddedClientName || `Client #${embeddedClientId}`}
+              </div>
             </InputWrapper>
-            {showDropdown && clientSearch.length > 0 && (
-              <DropdownList>
-                {filteredClients.length > 0 ? (
-                  filteredClients.map((client) => (
-                    <DropdownItem
-                      key={client.id}
-                      $highlighted={selectedClient?.id === client.id}
-                      onClick={() => handleSelectClient(client)}
+          ) : (
+            <AutocompleteWrapper ref={autocompleteRef}>
+              <InputWrapper>
+                <StyledLabel>Select Client</StyledLabel>
+                <FlexRow $gap={0} style={{ position: 'relative' }}>
+                  <StyledInput
+                    type="text"
+                    placeholder="Search clients..."
+                    value={clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value);
+                      setShowDropdown(true);
+                      if (selectedClient && e.target.value !== selectedClient.name) {
+                        setSelectedClient(null);
+                      }
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    $hasAdornment={!!selectedClient}
+                  />
+                  {selectedClient && (
+                    <InputAdornmentSpan
+                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                      onClick={handleClearClient}
                     >
-                      {client.name}
-                    </DropdownItem>
-                  ))
-                ) : (
-                  <DropdownItem>No clients found</DropdownItem>
-                )}
-              </DropdownList>
-            )}
-          </AutocompleteWrapper>
+                      <X size={16} />
+                    </InputAdornmentSpan>
+                  )}
+                </FlexRow>
+              </InputWrapper>
+              {showDropdown && clientSearch.length > 0 && (
+                <DropdownList>
+                  {filteredClients.length > 0 ? (
+                    filteredClients.map((client) => (
+                      <DropdownItem
+                        key={client.id}
+                        $highlighted={selectedClient?.id === client.id}
+                        onClick={() => handleSelectClient(client)}
+                      >
+                        {client.name}
+                      </DropdownItem>
+                    ))
+                  ) : (
+                    <DropdownItem>No clients found</DropdownItem>
+                  )}
+                </DropdownList>
+              )}
+            </AutocompleteWrapper>
+          )}
 
           {/* Measurement Date */}
           <InputWrapper>

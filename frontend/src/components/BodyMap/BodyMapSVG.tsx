@@ -36,6 +36,10 @@ const MapContainer = styled.div`
   justify-content: center;
   align-items: flex-start;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 
   ${device.md} {
     flex-direction: row;
@@ -55,9 +59,11 @@ const ViewPanel = styled.div`
   padding: 10px;
   text-align: center;
   width: 100%;
-  max-width: 85vw;
+  max-width: 100%;
   margin: 0 auto;
   touch-action: manipulation;
+  box-sizing: border-box;
+  min-width: 0;
 
   ${device.sm} {
     max-width: 300px;
@@ -67,6 +73,7 @@ const ViewPanel = styled.div`
   ${device.md} {
     flex: 1;
     max-width: 320px;
+    min-width: 0;
   }
 
   ${device.xxxl} {

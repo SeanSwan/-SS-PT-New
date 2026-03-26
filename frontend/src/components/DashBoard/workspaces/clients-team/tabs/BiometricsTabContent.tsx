@@ -2,25 +2,25 @@
  * ============================================================================
  * FILE: BiometricsTabContent.tsx
  * PURPOSE: Bento grid with lazy-loaded biometric components for client detail
- * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-03-25
+ * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-03-26
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders 4 biometric feature cards as a bento grid.
  * Clicking a card expands it to show the real component (BodyMap,
- * Measurements, MovementAnalysis, FormAnalysis) with a back button.
+ * Measurements, MovementAnalysis, FormAnalysis) with a sticky back button.
  *
  * HOW IT FITS IN THE APP: ClientDetailView → renderBiometrics → BiometricsTabContent
  *
  * KEY DECISIONS: Cards expand inline (not modal) to avoid tab-ception.
- * Real components lazy-loaded only when card is clicked. TabErrorBoundary
- * wraps each for crash isolation.
+ * Real components lazy-loaded only when card is clicked. BackButton is
+ * sticky at top so user can always navigate back.
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: BiometricsTabContent                             ║
  * ║  PURPOSE: Bento grid → expandable biometric tools            ║
  * ║  OWNER: Claude Opus 4.6 (CEO)                                ║
- * ║  LAST VALIDATED: 2026-03-25                                   ║
+ * ║  LAST VALIDATED: 2026-03-26                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * WIREFRAME (Grid):
@@ -32,14 +32,14 @@
  *
  * WIREFRAME (Expanded):
  * ┌──────────────────────────────────────────────┐
- * │ ← Back to Biometrics     [Card Title]        │
+ * │ ← Back to Biometrics     [Card Title]        │  ← sticky bar
  * ├──────────────────────────────────────────────┤
- * │ [Full Component rendered here]                │
+ * │ [Full Component rendered here — scrollable]   │
  * └──────────────────────────────────────────────┘
  *
  * CLICK-OUTCOME FLOWCHART:
  * [Card: Body Map] → expandedCard='body-map' → Lazy BodyMap (userId, mode=trainer)
- * [Card: Measurements] → expandedCard='measurements' → Lazy ClientMeasurementPanel
+ * [Card: Measurements] → expandedCard='measurements' → Lazy MeasurementEntry (clientId)
  * [Card: Movement] → expandedCard='movement-analysis' → Lazy MovementAnalysisWizard
  * [Card: Form] → expandedCard='form-analysis' → Lazy FormAnalysisPage
  * [Back button] → expandedCard=null → Returns to bento grid
@@ -47,7 +47,7 @@
  * DATA FLOW:
  * Props In:  { clientId, clientName? }
  * State:     { expandedCard }
- * Children:  BodyMap, ClientMeasurementPanel, MovementAnalysisWizard, FormAnalysisPage
+ * Children:  BodyMap, MeasurementEntry, MovementAnalysisWizard, FormAnalysisPage
  */
 
 import React, { useState, useCallback, Suspense } from 'react';
@@ -63,8 +63,8 @@ const BodyMap = React.lazy(
   () => import('../../../../BodyMap')
 );
 
-const ClientMeasurementPanel = React.lazy(
-  () => import('../../../Pages/admin-clients/components/ClientMeasurementPanel')
+const MeasurementEntry = React.lazy(
+  () => import('../../../Pages/admin-dashboard/MeasurementEntry')
 );
 
 const MovementAnalysisWizard = React.lazy(
@@ -222,6 +222,29 @@ const CardDescription = styled.span`
 
 const ExpandedView = styled.div`
   animation: ${cardEntrance} 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+// ── Sticky back bar — always visible at top of expanded component ──
+const StickyBackBar = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 -16px;
+  background: var(--bg-base, #0A0A0F);
+  border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
+  backdrop-filter: blur(12px);
+
+  @media (max-width: 768px) {
+    margin: 0 -8px;
+    padding: 10px 12px;
+  }
 `;
 
 const BackButton = styled.button`
@@ -239,11 +262,13 @@ const BackButton = styled.button`
   font-weight: 500;
   color: var(--accent-primary, #60C0F0);
   background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  margin-bottom: 16px;
-  transition: background 150ms ease;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  transition: background 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
 
   &:hover {
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+    border-color: var(--accent-primary, #60C0F0);
   }
 
   &:focus-visible {
@@ -257,15 +282,22 @@ const ExpandedTitle = styled.h3`
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary, #E0ECF4);
-  margin: 0 0 16px;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ComponentWrapper = styled.div`
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--bg-surface, #141419);
   border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-  min-height: 400px;
+  flex: 1;
+  min-height: 0;
 `;
 
 const ShimmerLoader = styled.div`
@@ -324,10 +356,9 @@ const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
       case 'measurements':
         return (
           <Suspense fallback={<SuspenseFallback />}>
-            <ClientMeasurementPanel
-              clientId={Number(clientId)}
-              clientName={clientName || `Client #${clientId}`}
-              onClose={handleBack}
+            <MeasurementEntry
+              embeddedClientId={String(clientId)}
+              embeddedClientName={clientName || `Client #${clientId}`}
             />
           </Suspense>
         );
@@ -348,16 +379,18 @@ const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
     }
   };
 
-  // When a card is expanded, show the component with a back button
+  // When a card is expanded, show the component with a sticky back button
   if (expandedCard) {
     const cardConfig = BIOMETRIC_CARDS.find((c) => c.id === expandedCard);
     return (
       <ExpandedView>
-        <BackButton onClick={handleBack} aria-label="Back to biometrics grid">
-          <ArrowLeft size={16} />
-          Back to Biometrics
-        </BackButton>
-        <ExpandedTitle>{cardConfig?.title}</ExpandedTitle>
+        <StickyBackBar>
+          <BackButton onClick={handleBack} aria-label="Back to biometrics grid">
+            <ArrowLeft size={16} />
+            Back to Biometrics
+          </BackButton>
+          <ExpandedTitle>{cardConfig?.title}</ExpandedTitle>
+        </StickyBackBar>
         <ComponentWrapper>
           {renderExpandedComponent(expandedCard)}
         </ComponentWrapper>

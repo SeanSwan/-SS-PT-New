@@ -1,3 +1,11 @@
+/**
+ * ============================================================================
+ * FILE: AdminLayout.styles.ts
+ * PURPOSE: Styled components for the admin dashboard layout container
+ * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-03-26
+ * ============================================================================
+ */
+
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
@@ -5,63 +13,36 @@ export const ExecutiveLayoutContainer = styled.div`
   display: flex;
   min-height: 100dvh;
   width: 100%;
-  background: ${props => props.theme.gradients.dataFlow};
+  background: var(--bg-base, #0A0A0F);
   position: relative;
   overflow: hidden;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-      radial-gradient(2px 2px at 40px 60px, rgba(59, 130, 246, 0.3), transparent),
-      radial-gradient(1px 1px at 90px 120px, rgba(14, 165, 233, 0.2), transparent),
-      radial-gradient(1px 1px at 170px 80px, rgba(255, 255, 255, 0.1), transparent);
-    background-size: 200px 160px;
-    background-repeat: repeat;
-    animation: commandFloat 60s linear infinite;
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  @keyframes commandFloat {
-    0% { transform: translateY(0) rotate(0deg); }
-    100% { transform: translateY(-20px) rotate(360deg); }
-  }
 `;
 
 export const ExecutiveMainContent = styled(motion.main)`
   flex: 1;
   margin-left: 280px;
-  padding: ${props => props.theme.spacing.lg};
+  padding: 24px;
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
-  background: rgba(248, 250, 252, 0.02);
-  backdrop-filter: blur(10px);
+  background: var(--bg-base, #0A0A0F);
   overflow-y: auto;
   overflow-x: hidden;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     margin-left: 0;
     padding: 16px;
-    min-height: 100dvh;
+    padding-top: 72px; /* space for mobile menu button */
   }
 
   @media (max-width: 430px) {
     padding: 12px;
+    padding-top: 68px;
   }
 
   @media (max-width: 375px) {
     padding: 8px;
-  }
-
-  @media (max-width: 320px) {
-    padding: 6px;
+    padding-top: 64px;
   }
 `;
 
@@ -85,10 +66,10 @@ export const ExecutiveLoadingContainer = styled.div`
 export const ExecutiveLoadingSpinner = styled(motion.div)`
   width: 60px;
   height: 60px;
-  border: 4px solid rgba(59, 130, 246, 0.2);
-  border-left: 4px solid ${props => props.theme.colors.stellarAuthority};
+  border: 4px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  border-left: 4px solid var(--accent-primary, #60C0F0);
   border-radius: 50%;
-  margin-bottom: ${props => props.theme.spacing.lg};
+  margin-bottom: 24px;
 `;
 
 export const ExecutiveErrorContainer = styled.div`
@@ -98,40 +79,41 @@ export const ExecutiveErrorContainer = styled.div`
   align-items: center;
   min-height: 80vh;
   text-align: center;
-  padding: ${props => props.theme.spacing.xl};
+  padding: 32px;
 
   h2 {
-    color: ${props => props.theme.colors.criticalRed};
-    margin-bottom: ${props => props.theme.spacing.md};
+    color: #ef4444;
+    margin-bottom: 16px;
     font-size: 1.5rem;
-    font-weight: ${props => props.theme.typography.weights.semibold};
+    font-weight: 600;
   }
 
   p {
-    color: ${props => props.theme.colors.platinumSilver};
-    margin-bottom: ${props => props.theme.spacing.lg};
+    color: var(--text-secondary, rgba(224, 236, 244, 0.65));
+    margin-bottom: 24px;
     max-width: 600px;
     line-height: 1.6;
   }
 `;
 
 export const ExecutiveButton = styled(motion.button)`
-  background: ${props => props.theme.gradients.commandCenter};
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: ${props => props.theme.borderRadius.md};
-  color: ${props => props.theme.colors.stellarWhite};
-  padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-  font-weight: ${props => props.theme.typography.weights.medium};
+  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  border-radius: 12px;
+  color: #fff;
+  padding: 12px 24px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 44px;
 
   &:hover {
-    box-shadow: ${props => props.theme.shadows.commandGlow};
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
   }
 
-  &:focus {
-    outline: 2px solid ${props => props.theme.colors.stellarAuthority};
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 `;

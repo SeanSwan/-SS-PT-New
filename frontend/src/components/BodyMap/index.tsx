@@ -37,6 +37,9 @@ const BodyMapSection = styled.div`
   backdrop-filter: blur(8px);
   padding: 16px;
   margin-bottom: 24px;
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 
   ${device.sm} {
     padding: 24px;
