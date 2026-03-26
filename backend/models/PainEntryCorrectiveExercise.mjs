@@ -2,7 +2,7 @@
  * ============================================================================
  * FILE: PainEntryCorrectiveExercise.mjs
  * PURPOSE: Junction model linking pain entries to NASM corrective exercises
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-25
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-26
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  *
@@ -19,94 +19,70 @@
  * KEY DECISIONS:
  *   Junction table instead of JSONB array — enables referential integrity,
  *   prevents orphaned exercise IDs (AI Village Phase 2 consensus).
+ *   Self-initializes at import time (matching ClientPainEntry pattern)
+ *   to ensure rawAttributes are available for association setup.
  */
 
 import { DataTypes, Model } from 'sequelize';
+import sequelize from '../database.mjs';
 
-class PainEntryCorrectiveExercise extends Model {
-  /**
-   * Set up associations with ClientPainEntry and Exercise models.
-   * Uses constraints: false to prevent sync failures if referenced
-   * tables don't exist yet.
-   */
-  static associate(models) {
-    if (models.ClientPainEntry) {
-      PainEntryCorrectiveExercise.belongsTo(models.ClientPainEntry, {
-        foreignKey: 'painEntryId',
-        as: 'painEntry',
-        constraints: false,
-      });
-    }
+class PainEntryCorrectiveExercise extends Model {}
 
-    if (models.Exercise) {
-      PainEntryCorrectiveExercise.belongsTo(models.Exercise, {
-        foreignKey: 'exerciseId',
-        as: 'exercise',
-        constraints: false,
-      });
-    }
-  }
-}
-
-export function initPainEntryCorrectiveExercise(sequelize) {
-  PainEntryCorrectiveExercise.init(
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      painEntryId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      exerciseId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      phase: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        validate: {
-          isIn: [['inhibit', 'lengthen', 'activate', 'integrate']],
-        },
-      },
-      sortOrder: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-      },
-      aiNotes: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      prescription: {
-        type: DataTypes.JSONB,
-        allowNull: true,
-        defaultValue: null,
-      },
-      source: {
-        type: DataTypes.STRING(20),
-        allowNull: false,
-        defaultValue: 'ai_analysis',
+PainEntryCorrectiveExercise.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    painEntryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    exerciseId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    phase: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      validate: {
+        isIn: [['inhibit', 'lengthen', 'activate', 'integrate']],
       },
     },
-    {
-      sequelize,
-      modelName: 'PainEntryCorrectiveExercise',
-      tableName: 'PainEntryCorrectiveExercises',
-      timestamps: true,
-      indexes: [
-        {
-          unique: true,
-          fields: ['painEntryId', 'exerciseId', 'phase'],
-          name: 'idx_unique_pain_exercise_phase',
-        },
-      ],
-    }
-  );
-
-  return PainEntryCorrectiveExercise;
-}
+    sortOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    aiNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    prescription: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: null,
+    },
+    source: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'ai_analysis',
+    },
+  },
+  {
+    sequelize,
+    modelName: 'PainEntryCorrectiveExercise',
+    tableName: 'PainEntryCorrectiveExercises',
+    timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['painEntryId', 'exerciseId', 'phase'],
+        name: 'idx_unique_pain_exercise_phase',
+      },
+    ],
+  }
+);
 
 export default PainEntryCorrectiveExercise;
