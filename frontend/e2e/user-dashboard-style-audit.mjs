@@ -52,7 +52,7 @@ async function createAuthUser() {
   const stamp = Date.now();
   const username = `qa_style_${stamp}`;
   const email = `qa.style.${stamp}@swanstudios-qa.local`;
-  const password = 'StyleAudit!2026Aa';
+  const password = process.env.QA_PASSWORD || (() => { throw new Error('QA_PASSWORD env var is required'); })();
 
   const registerRes = await fetch(`${API_URL}/api/auth/register`, {
     method: 'POST',
