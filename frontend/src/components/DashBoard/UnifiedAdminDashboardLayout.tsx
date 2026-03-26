@@ -31,6 +31,7 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Verify admin access
   useEffect(() => {
@@ -140,8 +141,12 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
     <ThemeProvider theme={executiveCommandTheme}>
       <ExecutiveGlobalStyles />
       <ExecutiveLayoutContainer>
-        <AdminStellarSidebar />
+        <AdminStellarSidebar
+          collapsed={sidebarCollapsed}
+          onCollapsedChange={setSidebarCollapsed}
+        />
         <ExecutiveMainContent
+          $sidebarCollapsed={sidebarCollapsed}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}

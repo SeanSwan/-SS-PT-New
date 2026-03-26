@@ -124,6 +124,7 @@ const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
   transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
               transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  overflow-y: ${({ $collapsed }) => ($collapsed ? 'visible' : 'hidden')};
 
   @media (max-width: 1024px) {
     top: 0;
@@ -180,24 +181,44 @@ const LogoLabel = styled.span<{ $visible: boolean }>`
 `;
 
 const CollapseBtn = styled.button<{ $collapsed: boolean }>`
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-  background: var(--bg-surface, #141419);
-  color: var(--text-secondary, #4070C0);
+  width: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
+  height: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
+  min-width: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
+  min-height: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
+  border-radius: ${({ $collapsed }) => ($collapsed ? '50%' : '6px')};
+  border: 1px solid ${({ $collapsed }) =>
+    $collapsed
+      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'
+      : 'var(--border-soft, rgba(224, 236, 244, 0.06))'};
+  background: ${({ $collapsed }) =>
+    $collapsed
+      ? 'var(--bg-elevated, #1A1A24)'
+      : 'var(--bg-surface, #141419)'};
+  color: ${({ $collapsed }) =>
+    $collapsed
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--text-secondary, #4070C0)'};
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
-  opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
-  pointer-events: ${({ $collapsed }) => ($collapsed ? 'none' : 'auto')};
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  position: ${({ $collapsed }) => ($collapsed ? 'absolute' : 'static')};
+  ${({ $collapsed }) =>
+    $collapsed
+      ? `
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  `
+      : ''}
 
   &:hover {
     background: var(--bg-elevated, #1A1A24);
     color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
   }
 
   @media (max-width: 1024px) {
@@ -355,14 +376,42 @@ const FooterVersion = styled.div`
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 
-const AdminStellarSidebar: React.FC = () => {
+interface AdminStellarSidebarProps {
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  // Aliases used by UniversalDashboardLayout
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  isMobileOpen?: boolean;
+  onToggleMobile?: () => void;
+}
+
+const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
+  collapsed: controlledCollapsed,
+  onCollapsedChange,
+  isCollapsed,
+  onToggleCollapse,
+  isMobileOpen,
+  onToggleMobile,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const sidebarRef = useRef<HTMLElement>(null);
 
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const collapsed = controlledCollapsed ?? isCollapsed ?? internalCollapsed;
+  const setCollapsed = (val: boolean) => {
+    setInternalCollapsed(val);
+    onCollapsedChange?.(val);
+    if (onToggleCollapse) onToggleCollapse();
+  };
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+  const mobileOpen = isMobileOpen ?? internalMobileOpen;
+  const setMobileOpen = (val: boolean) => {
+    setInternalMobileOpen(val);
+    if (onToggleMobile && val !== mobileOpen) onToggleMobile();
+  };
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 1024 : false
   );

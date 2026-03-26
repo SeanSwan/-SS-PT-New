@@ -18,9 +18,9 @@ export const ExecutiveLayoutContainer = styled.div`
   overflow: hidden;
 `;
 
-export const ExecutiveMainContent = styled(motion.main)`
+export const ExecutiveMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
   flex: 1;
-  margin-left: 280px;
+  margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '64px' : '280px')};
   padding: 24px;
   min-height: 100vh;
   min-height: 100dvh;
@@ -28,6 +28,7 @@ export const ExecutiveMainContent = styled(motion.main)`
   background: var(--bg-base, #0A0A0F);
   overflow-y: auto;
   overflow-x: hidden;
+  transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   @media (max-width: 1024px) {
     margin-left: 0;
