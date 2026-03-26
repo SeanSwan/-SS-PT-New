@@ -1,46 +1,97 @@
 /**
- * WorkoutCopilotPanel
- * ===================
- * Coach Copilot UI for AI-powered workout generation + approval.
- * State machine: IDLE -> GENERATING -> DRAFT_REVIEW | DEGRADED | ERROR -> APPROVING -> SAVED
+ * ============================================================================
+ * FILE: WorkoutCopilotPanel.tsx
+ * PURPOSE: Slim orchestrator for the AI Workout Copilot state machine.
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-25
+ * AI VILLAGE VALIDATED: 2026-03-25
+ * ============================================================================
  *
- * Architecture: styled-components + lucide-react (zero MUI)
- * Theme: Crystalline Swan (cosmic dark, cyan accents, glass surfaces)
- * Touch targets: 44px minimum on all interactive elements
+ * WHAT THIS FILE DOES: Manages the copilot's finite state machine
+ * (idle → pain_check → generating → draft_review/degraded/error → approving → saved)
+ * and routes rendering to decomposed sub-components. All state and handler
+ * logic lives here; sub-components are pure UI.
  *
- * Phase 5B -- Smart Workout Logger MVP Coach Copilot
+ * HOW IT FITS IN THE APP: Mounted inside the admin client detail panel
+ * (inline mode) or as a standalone modal (overlay mode).
  *
- * TODO (follow-up): Extract styled components, editor, and explainability
- * into sub-modules to reduce monolith size (~1150 lines).
+ * KEY DECISIONS: Decomposed from a 1,099-line monolith into 8 files per
+ * the 300-line max rule. State machine + handlers stay here; JSX render
+ * blocks extracted to CopilotIdleState, CopilotPainCheck, CopilotErrorStates,
+ * CopilotDraftReview, CopilotSavedState.
+ *
+ * NASM PROTOCOL CONTEXT: Draft generation follows NASM OPT 5-phase model.
+ * Pain safety check enforces NASM CES restrictions.
+ */
+
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: WorkoutCopilotPanel                              ║
+ * ║  PURPOSE: AI workout generation + approval state machine     ║
+ * ║  OWNER: Claude Opus 4.6                                      ║
+ * ║  LAST VALIDATED: 2026-03-25                                  ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [Header: Workout Intelligence — ClientName] [X]            │
+ * ├─────────┬──────────────────────────────────────────────────┤
+ * │ Single  │ Long-Horizon │ (tabs)                            │
+ * ├─────────┴──────────────────────────────────────────────────┤
+ * │ [State-driven content area]                                │
+ * │   idle → CopilotIdleState                                  │
+ * │   pain_check → CopilotPainCheck                            │
+ * │   generating → Spinner                                     │
+ * │   error/approve_error/degraded → CopilotErrorStates        │
+ * │   draft_review/approving → CopilotDraftReview              │
+ * │   saved → CopilotSavedState                                │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ [Footer: Regenerate | Approve & Save] (draft_review only)  │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * MERMAID ARCHITECTURE:
+ * graph TD
+ *   A[WorkoutCopilotPanel] --> B[CopilotIdleState]
+ *   A --> C[CopilotPainCheck]
+ *   A --> D[CopilotErrorStates]
+ *   A --> E[CopilotDraftReview]
+ *   A --> F[CopilotSavedState]
+ *   A --> G[LongHorizonContent]
+ *
+ * DATA FLOW:
+ * Props In:  WorkoutCopilotPanelProps (open, onClose, clientId, clientName, ...)
+ * State:     CopilotState FSM + draft data + error data + pain entries
+ * API Calls: generateDraft, approveDraft, listTemplates, getActivePain
+ * Children:  CopilotIdleState, CopilotPainCheck, CopilotErrorStates,
+ *            CopilotDraftReview, CopilotSavedState, LongHorizonContent
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import styled from 'styled-components';
-import {
-  X, Sparkles, Save, AlertTriangle, ChevronDown, ChevronRight,
-  Plus, Trash2, RotateCcw, Shield, Brain, Info, CheckCircle2,
-  FileWarning, RefreshCw,
-} from 'lucide-react';
+import { X, Sparkles, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
 import {
   createAiWorkoutService,
   isDegraded,
   isDraftSuccess,
-  type WorkoutPlan,
-  type WorkoutDay,
-  type Exercise,
-  type DraftSuccessResponse,
-  type DegradedResponse,
-  type Explainability,
-  type SafetyConstraints,
-  type ExerciseRecommendation,
-  type ValidationError,
-  type TemplateSuggestion,
-  type TemplateEntry,
 } from '../../../../../services/aiWorkoutService';
-import { createPainEntryService, type PainEntry } from '../../../../../services/painEntryService';
-import LongHorizonContent from './LongHorizonContent';
+import { createPainEntryService } from '../../../../../services/painEntryService';
+
+import type {
+  CopilotState,
+  WorkoutCopilotPanelProps,
+  WorkoutPlan,
+  WorkoutDay,
+  Exercise,
+  Explainability,
+  SafetyConstraints,
+  ExerciseRecommendation,
+  ValidationError,
+  TemplateEntry,
+  DegradedResponse,
+  PainEntry,
+} from './copilot-types';
+
+import { TabBar, TabButton } from './copilot-local-styles';
 import {
   SWAN_CYAN,
   ModalOverlay,
@@ -52,93 +103,24 @@ import {
   ModalFooter,
   PrimaryButton,
   SecondaryButton,
-  AddButton,
-  RemoveButton,
-  Input,
-  TextArea,
-  SmallInput,
-  FormGroup,
-  FormGrid,
-  Label,
-  InfoPanel,
-  InfoContent,
-  Badge,
-  BadgeRow,
-  Divider,
-  SectionTitle,
   CenterContent,
   Spinner,
-  DaySection,
-  DayHeader,
-  DayContent,
-  ExerciseCard,
-  ExerciseHeader,
-  TemplateList,
-  TemplateItem,
-  ExplainabilityGrid,
-  ExplainCard,
-  ExplainLabel,
-  ExplainValue,
   InlineWrapper,
   InlinePanel,
 } from './copilot-shared-styles';
 
-type CopilotState =
-  | 'idle'
-  | 'pain_check'
-  | 'generating'
-  | 'draft_review'
-  | 'degraded'
-  | 'error'
-  | 'approving'
-  | 'saved'
-  | 'approve_error';
+import CopilotIdleState from './CopilotIdleState';
+import CopilotPainCheck from './CopilotPainCheck';
+import CopilotErrorStates from './CopilotErrorStates';
+import CopilotDraftReview from './CopilotDraftReview';
+import CopilotSavedState from './CopilotSavedState';
+import LongHorizonContent from './LongHorizonContent';
 
-const TabBar = styled.div`
-  display: flex;
-  gap: 8px;
-  padding: 10px 24px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-`;
-
-const TabButton = styled.button<{ $active?: boolean }>`
-  min-height: 40px;
-  border: 1px solid ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255,255,255,0.15)')};
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  padding: 8px 14px;
-  color: ${({ $active }) => ($active ? SWAN_CYAN : '#cbd5e1')};
-  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.08)' : 'rgba(255,255,255,0.02)')};
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-`;
-
-const OverrideSection = styled.div`
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  border-radius: 10px;
-  padding: 12px;
-  background: rgba(120, 53, 15, 0.18);
-`;
-
-const OverrideTextArea = styled(TextArea)<{ $required?: boolean }>`
-  border-color: ${({ $required }) => ($required ? 'rgba(251, 191, 36, 0.7)' : 'rgba(255,255,255,0.15)')};
-  box-shadow: ${({ $required }) => ($required ? '0 0 0 2px rgba(251,191,36,0.22)' : 'none')};
-`;
-
-interface WorkoutCopilotPanelProps {
-  open: boolean;
-  onClose: () => void;
-  clientId: number;
-  clientName: string;
-  onSuccess?: () => void;
-  /** When true, auto-starts generation on open (skips idle screen). */
-  autoGenerate?: boolean;
-  /** When true, renders inline (no modal overlay) for workspace embedding. */
-  inline?: boolean;
-}
-
-// ── Component ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// SECTION: Component
+// PURPOSE: State machine orchestrator — all state lives here,
+// sub-components are stateless UI renderers.
+// ─────────────────────────────────────────────────────────────
 
 const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   open,
@@ -201,7 +183,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'single' | 'long-horizon'>('single');
   const [lhFooterContent, setLhFooterContent] = useState<React.ReactNode | null>(null);
 
-  // Reset on open
+  // ── Reset on open ───────────────────────────────────────────
   useEffect(() => {
     if (open) {
       setState('idle');
@@ -394,17 +376,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setIsSubmitting(false);
     }
   }, [
-    clientId,
-    editedPlan,
-    auditLogId,
-    overrideReason,
-    overrideReasonRequired,
-    trainerNotes,
-    isSubmitting,
-    clientName,
-    service,
-    toast,
-    onSuccess,
+    clientId, editedPlan, auditLogId, overrideReason, overrideReasonRequired,
+    trainerNotes, isSubmitting, clientName, service, toast, onSuccess,
   ]);
 
   // ── Plan editing helpers ────────────────────────────────────
@@ -510,554 +483,91 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         <ModalBody>
           {activeTab === 'single' && (
             <>
-          {/* ── IDLE state ──────────────────────────────────── */}
-          {state === 'idle' && (
-            <CenterContent>
-              <Sparkles size={48} color={SWAN_CYAN} />
-              <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate AI Workout Plan</h3>
-              <p style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
-                The AI will analyze {clientName}'s profile, training history, and NASM assessment
-                to generate a personalized workout plan for your review.
-              </p>
-
-              {(isAdmin || overrideReasonRequired) && (
-                <OverrideSection style={{ width: '100%', maxWidth: 500 }}>
-                  <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
-                  <OverrideTextArea
-                    $required={overrideReasonRequired}
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    placeholder="Provide justification when consent override is required"
-                    rows={3}
-                  />
-                </OverrideSection>
-              )}
-
-              <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
-                <Sparkles size={16} />
-                Generate Draft
-              </PrimaryButton>
-
-              {/* Template catalog (informational -- backend auto-selects from NASM constraints) */}
-              {templatesLoading && (
-                <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Loading templates...</p>
-              )}
-              {!templatesLoading && templates.length > 0 && (
-                <>
-                  <SectionTitle style={{ marginTop: 16 }}>
-                    <Info size={16} /> Available NASM Templates
-                  </SectionTitle>
-                  <TemplateList>
-                    {templates.map((t) => (
-                      <TemplateItem key={t.id}>
-                        <Badge>{t.nasmFramework}</Badge>
-                        <span>{t.label}</span>
-                        {t.tags.length > 0 && (
-                          <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: 'auto' }}>
-                            {t.tags.join(', ')}
-                          </span>
-                        )}
-                      </TemplateItem>
-                    ))}
-                  </TemplateList>
-                  <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 8, maxWidth: 500 }}>
-                    The AI automatically selects the best template based on {clientName}'s
-                    NASM assessment and training goals.
-                  </p>
-                </>
-              )}
-            </CenterContent>
-          )}
-
-          {/* ── PAIN SAFETY CHECK state ────────────────────── */}
-          {state === 'pain_check' && (
-            <CenterContent>
-              <AlertTriangle size={48} color="#ffaa00" />
-              <h3 style={{ color: '#ffaa00', margin: 0 }}>
-                Active Pain Entries Detected
-              </h3>
-              <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
-                {clientName} has {activePainEntries.length} active pain/injury{activePainEntries.length > 1 ? ' entries' : ' entry'}.
-                Review before generating to ensure the AI applies appropriate restrictions.
-              </p>
-
-              <div style={{ width: '100%', maxWidth: 600, margin: '12px 0' }}>
-                {activePainEntries.map((entry) => {
-                  const severityColor =
-                    entry.painLevel >= 7 ? '#C6A84B' :
-                    entry.painLevel >= 4 ? '#50A0F0' : '#60C0F0';
-                  const severityLabel =
-                    entry.painLevel >= 7 ? 'SEVERE' :
-                    entry.painLevel >= 4 ? 'MODERATE' : 'MILD';
-                  const regionLabel = entry.bodyRegion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-                  return (
-                    <InfoPanel key={entry.id} style={{ marginBottom: 8, borderLeftColor: severityColor, borderLeftWidth: 3, borderLeftStyle: 'solid' }}>
-                      <InfoContent style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
-                            {regionLabel} ({entry.side})
-                          </span>
-                          <Badge $color={severityColor}>
-                            {severityLabel} — {entry.painLevel}/10
-                          </Badge>
-                        </div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 4 }}>
-                          Type: {entry.painType}
-                          {entry.description && <> — {entry.description}</>}
-                        </div>
-                        {entry.aggravatingMovements && (
-                          <div style={{ color: '#ff9999', fontSize: '0.8rem', marginTop: 4 }}>
-                            Aggravates: {entry.aggravatingMovements}
-                          </div>
-                        )}
-                      </InfoContent>
-                    </InfoPanel>
-                  );
-                })}
-              </div>
-
-              <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, maxWidth: 500 }}>
-                The AI will automatically apply NASM CES restrictions based on these entries.
-                Severe entries (7-10) will hard-restrict exercises. Moderate entries (4-6) will modify loads.
-              </p>
-
-              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                <SecondaryButton onClick={() => setState('idle')}>
-                  Cancel
-                </SecondaryButton>
-                <PrimaryButton onClick={handlePainAcknowledgeAndGenerate} disabled={isSubmitting}>
-                  <Shield size={16} />
-                  Acknowledge &amp; Generate
-                </PrimaryButton>
-              </div>
-            </CenterContent>
-          )}
-
-          {/* ── GENERATING state ────────────────────────────── */}
-          {state === 'generating' && (
-            <CenterContent>
-              <Spinner size={48} color={SWAN_CYAN} />
-              <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generating Workout Plan...</h3>
-              <p style={{ color: '#94a3b8', margin: 0 }}>
-                Analyzing client profile, training history, and NASM constraints.
-                This may take 10-30 seconds.
-              </p>
-            </CenterContent>
-          )}
-
-          {/* ── ERROR state ─────────────────────────────────── */}
-          {(state === 'error' || state === 'approve_error') && (
-            <CenterContent>
-              <AlertTriangle size={48} color="#ff6b6b" />
-              <h3 style={{ color: '#ff6b6b', margin: 0 }}>
-                {state === 'approve_error' ? 'Approval Failed' : 'Generation Failed'}
-              </h3>
-              <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>{errorMessage}</p>
-
-              {/* Field-level errors for 422 */}
-              {approveErrors.length > 0 && (
-                <div style={{ width: '100%', maxWidth: 500 }}>
-                  {approveErrors.map((e, i) => (
-                    <InfoPanel key={i} $variant="error">
-                      <FileWarning size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                      <InfoContent>
-                        <strong>{e.field || e.code}:</strong> {e.message}
-                      </InfoContent>
-                    </InfoPanel>
-                  ))}
-                </div>
-              )}
-
-              {isConsentError && (
-                <InfoPanel $variant="warning">
-                  <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    {isWaiverError
-                      ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver before AI features can be used.'
-                      : 'This client has not granted AI consent. The client must enable AI features from their own account settings before AI workout generation can be used.'}
-                  </InfoContent>
-                </InfoPanel>
-              )}
-
-              {isAssignmentError && (
-                <InfoPanel $variant="warning">
-                  <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    You are not currently assigned to this client. Please contact an
-                    administrator to update your client assignments.
-                  </InfoContent>
-                </InfoPanel>
-              )}
-
-              <div style={{ display: 'flex', gap: 12 }}>
-                {isRetryable && (
-                  <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
-                    <RefreshCw size={16} />
-                    Retry
-                  </PrimaryButton>
-                )}
-                {isOverrideError && (
-                  <PrimaryButton onClick={() => { setOverrideReasonRequired(true); setState('idle'); }}>
-                    Provide Override Reason
-                  </PrimaryButton>
-                )}
-                {state === 'approve_error' && editedPlan && (
-                  <SecondaryButton onClick={() => setState('draft_review')}>
-                    Back to Editor
-                  </SecondaryButton>
-                )}
-                <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-              </div>
-            </CenterContent>
-          )}
-
-          {/* ── DEGRADED state ──────────────────────────────── */}
-          {state === 'degraded' && degradedData && (
-            <CenterContent>
-              <AlertTriangle size={48} color="#ffaa00" />
-              <h3 style={{ color: '#ffaa00', margin: 0 }}>AI Temporarily Unavailable</h3>
-              <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
-                {degradedData.message}
-              </p>
-
-              {degradedData.fallback.reasons.length > 0 && (
-                <InfoPanel $variant="warning">
-                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    {degradedData.fallback.reasons.map((r, i) => (
-                      <div key={i}>{r}</div>
-                    ))}
-                  </InfoContent>
-                </InfoPanel>
-              )}
-
-              {degradedData.fallback.templateSuggestions.length > 0 && (
-                <>
-                  <SectionTitle>Available Templates (Manual Mode)</SectionTitle>
-                  <TemplateList>
-                    {degradedData.fallback.templateSuggestions.map((t) => (
-                      <TemplateItem key={t.id}>
-                        <Badge $color="#ffaa00">{t.category}</Badge>
-                        <span>{t.label}</span>
-                      </TemplateItem>
-                    ))}
-                  </TemplateList>
-                </>
-              )}
-
-              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
-                  <RefreshCw size={16} />
-                  Retry AI Generation
-                </PrimaryButton>
-                <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-              </div>
-            </CenterContent>
-          )}
-
-          {/* ── DRAFT_REVIEW state ──────────────────────────── */}
-          {(state === 'draft_review' || state === 'approving') && editedPlan && (
-            <>
-              {/* Safety constraints */}
-              {safetyConstraints && (
-                <BadgeRow>
-                  {safetyConstraints.medicalClearanceRequired && (
-                    <Badge $color="#ff6b6b">
-                      <Shield size={12} /> Medical Clearance Required
-                    </Badge>
-                  )}
-                  <Badge>
-                    Max Intensity: {safetyConstraints.maxIntensityPct}%
-                  </Badge>
-                  {safetyConstraints.movementRestrictions.map((r, i) => (
-                    <Badge key={i} $color="#ffaa00">{r}</Badge>
-                  ))}
-                  <Badge $color="#00ff64">{generationMode.replace(/_/g, ' ')}</Badge>
-                </BadgeRow>
-              )}
-
-              {/* Warnings */}
-              {warnings.length > 0 && (
-                <InfoPanel $variant="warning">
-                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    {warnings.map((w, i) => <div key={i}>{w}</div>)}
-                  </InfoContent>
-                </InfoPanel>
-              )}
-
-              {/* Missing inputs */}
-              {missingInputs.length > 0 && (
-                <InfoPanel $variant="info">
-                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    <strong>Missing data:</strong> {missingInputs.join(', ')}
-                  </InfoContent>
-                </InfoPanel>
-              )}
-
-              {/* Plan header (editable) */}
-              <FormGrid>
-                <FormGroup $fullWidth>
-                  <Label>Plan Name</Label>
-                  <Input
-                    value={editedPlan.planName}
-                    onChange={(e) => updatePlanField('planName', e.target.value)}
-                    placeholder="Plan name"
-                    maxLength={200}
-                  />
-                </FormGroup>
-                <FormGroup>
-                  <Label>Duration (weeks)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={52}
-                    value={editedPlan.durationWeeks}
-                    onChange={(e) => updatePlanField('durationWeeks', parseInt(e.target.value) || 1)}
-                  />
-                </FormGroup>
-                <FormGroup>
-                  <Label>Summary</Label>
-                  <TextArea
-                    value={editedPlan.summary || ''}
-                    onChange={(e) => updatePlanField('summary', e.target.value)}
-                    placeholder="Plan summary..."
-                    maxLength={2000}
-                  />
-                </FormGroup>
-              </FormGrid>
-
-              <Divider />
-
-              {/* Days (collapsible) */}
-              <SectionTitle>Training Days ({editedPlan.days.length})</SectionTitle>
-              {editedPlan.days.map((day, dayIdx) => (
-                <DaySection key={dayIdx}>
-                  <DayHeader onClick={() => toggleDay(dayIdx)}>
-                    {expandedDays.has(dayIdx) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    <span>Day {day.dayNumber}: {day.name}</span>
-                    <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: '0.85rem' }}>
-                      {day.exercises.length} exercises
-                    </span>
-                  </DayHeader>
-
-                  {expandedDays.has(dayIdx) && (
-                    <DayContent>
-                      <FormGrid>
-                        <FormGroup>
-                          <Label>Day Name</Label>
-                          <SmallInput
-                            value={day.name}
-                            onChange={(e) => updateDay(dayIdx, 'name', e.target.value)}
-                            maxLength={100}
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Focus</Label>
-                          <SmallInput
-                            value={day.focus || ''}
-                            onChange={(e) => updateDay(dayIdx, 'focus', e.target.value)}
-                            placeholder="e.g. Chest, Shoulders"
-                            maxLength={200}
-                          />
-                        </FormGroup>
-                      </FormGrid>
-
-                      {/* Exercises */}
-                      {day.exercises.map((ex, exIdx) => (
-                        <ExerciseCard key={exIdx}>
-                          <ExerciseHeader>
-                            <Label style={{ color: SWAN_CYAN, fontWeight: 700 }}>
-                              Exercise {exIdx + 1}
-                            </Label>
-                            <RemoveButton onClick={() => removeExercise(dayIdx, exIdx)}>
-                              <Trash2 size={14} />
-                            </RemoveButton>
-                          </ExerciseHeader>
-                          <FormGrid>
-                            <FormGroup>
-                              <Label>Name</Label>
-                              <SmallInput
-                                value={ex.name}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'name', e.target.value)}
-                                placeholder="Exercise name"
-                                maxLength={200}
-                              />
-                            </FormGroup>
-                            <FormGroup>
-                              <Label>Sets x Reps</Label>
-                              <SmallInput
-                                value={ex.setScheme || ''}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'setScheme', e.target.value)}
-                                placeholder="e.g. 4x8-10"
-                                maxLength={100}
-                              />
-                            </FormGroup>
-                            <FormGroup>
-                              <Label>Rest (seconds)</Label>
-                              <SmallInput
-                                type="number"
-                                min={0}
-                                max={600}
-                                value={ex.restPeriod ?? ''}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'restPeriod', e.target.value ? parseInt(e.target.value) : null)}
-                              />
-                            </FormGroup>
-                            <FormGroup>
-                              <Label>Tempo</Label>
-                              <SmallInput
-                                value={ex.tempo || ''}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'tempo', e.target.value)}
-                                placeholder="e.g. 3-1-2-0"
-                                maxLength={50}
-                              />
-                            </FormGroup>
-                            <FormGroup $fullWidth>
-                              <Label>Intensity Guideline</Label>
-                              <SmallInput
-                                value={ex.intensityGuideline || ''}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'intensityGuideline', e.target.value)}
-                                placeholder="e.g. 75-80% 1RM"
-                                maxLength={500}
-                              />
-                            </FormGroup>
-                            <FormGroup $fullWidth>
-                              <Label>Notes</Label>
-                              <SmallInput
-                                value={ex.notes || ''}
-                                onChange={(e) => updateExercise(dayIdx, exIdx, 'notes', e.target.value)}
-                                placeholder="Coach notes..."
-                                maxLength={1000}
-                              />
-                            </FormGroup>
-                          </FormGrid>
-                        </ExerciseCard>
-                      ))}
-                      <AddButton onClick={() => addExercise(dayIdx)}>
-                        <Plus size={14} /> Add Exercise
-                      </AddButton>
-                    </DayContent>
-                  )}
-                </DaySection>
-              ))}
-
-              <Divider />
-
-              {/* Explainability panel (read-only) */}
-              {explainability && (
-                <>
-                  <SectionTitle><Brain size={16} /> AI Explainability</SectionTitle>
-                  <ExplainabilityGrid>
-                    <ExplainCard>
-                      <ExplainLabel>Data Sources</ExplainLabel>
-                      <ExplainValue>
-                        <BadgeRow>
-                          {explainability.dataSources.map((s) => (
-                            <Badge key={s}>{s.replace(/_/g, ' ')}</Badge>
-                          ))}
-                        </BadgeRow>
-                      </ExplainValue>
-                    </ExplainCard>
-                    <ExplainCard>
-                      <ExplainLabel>Data Quality</ExplainLabel>
-                      <ExplainValue>{explainability.dataQuality}</ExplainValue>
-                    </ExplainCard>
-                    {explainability.phaseRationale && (
-                      <ExplainCard style={{ gridColumn: '1 / -1' }}>
-                        <ExplainLabel>Phase Rationale</ExplainLabel>
-                        <ExplainValue>{explainability.phaseRationale}</ExplainValue>
-                      </ExplainCard>
-                    )}
-                  </ExplainabilityGrid>
-                </>
-              )}
-
-              {/* Exercise recommendations (read-only) */}
-              {exerciseRecs.length > 0 && (
-                <>
-                  <Divider />
-                  <SectionTitle>1RM Recommendations</SectionTitle>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                          {['Exercise', 'Best', 'Est. 1RM', 'Load Range', 'Target'].map((h) => (
-                            <th key={h} style={{ padding: '8px 12px', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {exerciseRecs.map((rec, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <td style={{ padding: '8px 12px', color: '#e2e8f0' }}>{rec.exerciseName}</td>
-                            <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{rec.bestWeight}lb x{rec.bestReps}</td>
-                            <td style={{ padding: '8px 12px', color: SWAN_CYAN, fontWeight: 600 }}>{Math.round(rec.estimated1RM)}lb</td>
-                            <td style={{ padding: '8px 12px', color: '#94a3b8' }}>
-                              {rec.loadRecommendation ? `${Math.round(rec.loadRecommendation.minLoad)}-${Math.round(rec.loadRecommendation.maxLoad)}lb` : '--'}
-                            </td>
-                            <td style={{ padding: '8px 12px', color: '#94a3b8' }}>
-                              {rec.loadRecommendation?.targetReps || '--'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-
-              <Divider />
-
-              {/* Trainer notes */}
-              <FormGroup $fullWidth>
-                <Label>Coach Notes (optional)</Label>
-                <TextArea
-                  value={trainerNotes}
-                  onChange={(e) => setTrainerNotes(e.target.value)}
-                  placeholder="Rationale for edits, volume adjustments, etc."
-                  rows={3}
+              {state === 'idle' && (
+                <CopilotIdleState
+                  clientName={clientName}
+                  isAdmin={isAdmin}
+                  overrideReasonRequired={overrideReasonRequired}
+                  overrideReason={overrideReason}
+                  setOverrideReason={setOverrideReason}
+                  handleGenerate={handleGenerate}
+                  isSubmitting={isSubmitting}
+                  templatesLoading={templatesLoading}
+                  templates={templates}
                 />
-              </FormGroup>
-            </>
-          )}
-
-          {/* ── SAVED state ─────────────────────────────────── */}
-          {state === 'saved' && (
-            <CenterContent>
-              <CheckCircle2 size={48} color="#00ff64" />
-              <h3 style={{ color: '#00ff64', margin: 0 }}>Plan Approved and Saved</h3>
-              <p style={{ color: '#94a3b8', margin: 0 }}>
-                Plan ID: <strong style={{ color: '#e2e8f0' }}>{savedPlanId}</strong> for {clientName}
-              </p>
-
-              {unmatchedExercises.length > 0 && (
-                <InfoPanel $variant="warning">
-                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    <strong>Unmatched exercises</strong> (not in library):
-                    {unmatchedExercises.map((e, i) => (
-                      <div key={i}>Day {e.dayNumber}: {e.name}</div>
-                    ))}
-                  </InfoContent>
-                </InfoPanel>
               )}
 
-              {validationWarnings.length > 0 && (
-                <InfoPanel $variant="warning">
-                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <InfoContent>
-                    {validationWarnings.map((w, i) => (
-                      <div key={i}>{w.message}</div>
-                    ))}
-                  </InfoContent>
-                </InfoPanel>
+              {state === 'pain_check' && (
+                <CopilotPainCheck
+                  clientName={clientName}
+                  activePainEntries={activePainEntries}
+                  isSubmitting={isSubmitting}
+                  setState={setState}
+                  handlePainAcknowledgeAndGenerate={handlePainAcknowledgeAndGenerate}
+                />
               )}
 
-              <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-            </CenterContent>
-          )}
+              {state === 'generating' && (
+                <CenterContent>
+                  <Spinner size={48} color={SWAN_CYAN} />
+                  <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generating Workout Plan...</h3>
+                  <p style={{ color: '#94a3b8', margin: 0 }}>
+                    Analyzing client profile, training history, and NASM constraints.
+                    This may take 10-30 seconds.
+                  </p>
+                </CenterContent>
+              )}
+
+              {(state === 'error' || state === 'approve_error' || state === 'degraded') && (
+                <CopilotErrorStates
+                  state={state}
+                  errorMessage={errorMessage}
+                  approveErrors={approveErrors}
+                  degradedData={degradedData}
+                  isConsentError={isConsentError}
+                  isWaiverError={isWaiverError}
+                  isAssignmentError={isAssignmentError}
+                  isOverrideError={isOverrideError}
+                  isRetryable={isRetryable}
+                  handleGenerate={handleGenerate}
+                  isSubmitting={isSubmitting}
+                  onClose={onClose}
+                  setState={setState}
+                  editedPlan={editedPlan}
+                  setOverrideReasonRequired={setOverrideReasonRequired}
+                />
+              )}
+
+              {(state === 'draft_review' || state === 'approving') && editedPlan && (
+                <CopilotDraftReview
+                  editedPlan={editedPlan}
+                  explainability={explainability}
+                  safetyConstraints={safetyConstraints}
+                  exerciseRecs={exerciseRecs}
+                  warnings={warnings}
+                  missingInputs={missingInputs}
+                  generationMode={generationMode}
+                  expandedDays={expandedDays}
+                  toggleDay={toggleDay}
+                  updatePlanField={updatePlanField}
+                  updateDay={updateDay}
+                  updateExercise={updateExercise}
+                  addExercise={addExercise}
+                  removeExercise={removeExercise}
+                  trainerNotes={trainerNotes}
+                  setTrainerNotes={setTrainerNotes}
+                />
+              )}
+
+              {state === 'saved' && (
+                <CopilotSavedState
+                  savedPlanId={savedPlanId}
+                  clientName={clientName}
+                  unmatchedExercises={unmatchedExercises}
+                  validationWarnings={validationWarnings}
+                  onClose={onClose}
+                />
+              )}
             </>
           )}
 

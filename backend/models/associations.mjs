@@ -142,6 +142,7 @@ const setupAssociations = async () => {
 
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
+    const PainEntryCorrectiveExerciseModule = await import('./PainEntryCorrectiveExercise.mjs');
 
     // Form Analysis Models (Phase 2 - AI Form Analysis)
     const FormAnalysisModule = await import('./FormAnalysis.mjs');
@@ -314,6 +315,7 @@ const setupAssociations = async () => {
 
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntry = ClientPainEntryModule.default;
+    const PainEntryCorrectiveExercise = PainEntryCorrectiveExerciseModule.default;
 
     // Form Analysis Models (Phase 2 - AI Form Analysis)
     const FormAnalysis = FormAnalysisModule.default;
@@ -983,6 +985,10 @@ const setupAssociations = async () => {
     User.hasMany(ClientPainEntry, { foreignKey: 'userId', as: 'painEntries' });
     ClientPainEntry.belongsTo(User, { foreignKey: 'userId', as: 'client' });
     ClientPainEntry.belongsTo(User, { foreignKey: 'createdById', as: 'createdBy' });
+    ClientPainEntry.hasMany(PainEntryCorrectiveExercise, { foreignKey: 'painEntryId', as: 'correctiveExercises' });
+    PainEntryCorrectiveExercise.belongsTo(ClientPainEntry, { foreignKey: 'painEntryId', as: 'painEntry' });
+    PainEntryCorrectiveExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
+    Exercise.hasMany(PainEntryCorrectiveExercise, { foreignKey: 'exerciseId', as: 'correctiveUses' });
     console.log('✅ Pain/Injury Tracking models integrated');
 
     // Movement Analysis Associations (Phase 13)
@@ -1241,6 +1247,7 @@ const setupAssociations = async () => {
 
       // Pain/Injury Tracking
       ClientPainEntry,
+      PainEntryCorrectiveExercise,
 
       // Movement Analysis Models (Phase 13)
       MovementAnalysis,

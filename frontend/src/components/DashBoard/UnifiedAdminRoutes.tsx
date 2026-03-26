@@ -247,21 +247,19 @@ const UnifiedAdminRoutes: React.FC = () => (
     </Route>
 
     <Route path="/workouts" element={<WorkoutsWorkspace />}>
-      <Route index element={<WorkoutOutletWrapper component="planner" />} />
-      <Route path="logger" element={<WorkoutOutletWrapper component="logger" />} />
-      <Route path="ai" element={<WorkoutOutletWrapper component="ai" />} />
-      <Route path="movement" element={<S><MovementAnalysisListPage /></S>} />
-      <Route path="movement/new" element={<S><MovementAnalysisWizard /></S>} />
-      <Route path="movement/new/:clientId" element={<S><MovementAnalysisWizard /></S>} />
-      <Route path="movement/:id" element={<S><MovementAnalysisWizard /></S>} />
-      {/* Redirect legacy /ai route to planner (AI Generator merged into Workout Planner tab) */}
-      <Route path="ai" element={<Navigate to="/dashboard/workouts" replace />} />
-      <Route path="form-analysis" element={<S><FormAnalysisPage /></S>} />
-      <Route path="body-map" element={<WorkoutOutletWrapper component="body-map" />} />
+      {/* Default: redirect to Boot Camp (first tab in Global Studio Library) */}
+      <Route index element={<Navigate to="/dashboard/workouts/bootcamp" replace />} />
       <Route path="bootcamp" element={<S><BootcampBuilderPage /></S>} />
       <Route path="equipment" element={<S><EquipmentManagerPage /></S>} />
       <Route path="nutrition" element={<S><NutritionWorkspace /></S>} />
-      {/* food-scanner merged into nutrition tab */}
+      <Route path="calendar" element={<div style={{ padding: 24, color: '#E0ECF4', fontFamily: "'Sora', sans-serif" }}>Global Session Calendar — Coming Soon</div>} />
+      {/* Legacy redirects: client-specific tools moved to Client Detail View */}
+      <Route path="logger" element={<Navigate to="/dashboard/people" replace />} />
+      <Route path="ai" element={<Navigate to="/dashboard/people" replace />} />
+      <Route path="movement" element={<Navigate to="/dashboard/people" replace />} />
+      <Route path="movement/*" element={<Navigate to="/dashboard/people" replace />} />
+      <Route path="form-analysis" element={<Navigate to="/dashboard/people" replace />} />
+      <Route path="body-map" element={<Navigate to="/dashboard/people" replace />} />
       <Route path="food-scanner" element={<Navigate to="/dashboard/workouts/nutrition" replace />} />
     </Route>
 

@@ -28,6 +28,13 @@ import { logger } from '@/utils/logger';
 import ClientMiniCard, { type MiniCardClient } from './ClientMiniCard';
 import ClientDetailView from './ClientDetailView';
 import {
+  TrainingTabContent,
+  BiometricsTabContent,
+  OverviewTabContent,
+  SettingsTabContent,
+} from './tabs';
+import { TabErrorBoundary } from '../../../Shared/TabErrorBoundary';
+import {
   MasterDetailContainer,
   MasterPane,
   DetailPane,
@@ -463,6 +470,38 @@ const MasterDetailLayout: React.FC = () => {
           <ClientDetailView
             client={selectedClient}
             onBack={handleBack}
+            renderTraining={(cid) => (
+              <TabErrorBoundary tabName="Training">
+                <TrainingTabContent
+                  clientId={cid}
+                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+                />
+              </TabErrorBoundary>
+            )}
+            renderBiometrics={(cid) => (
+              <TabErrorBoundary tabName="Biometrics">
+                <BiometricsTabContent
+                  clientId={cid}
+                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+                />
+              </TabErrorBoundary>
+            )}
+            renderOverview={(cid) => (
+              <TabErrorBoundary tabName="Overview">
+                <OverviewTabContent
+                  clientId={cid}
+                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+                />
+              </TabErrorBoundary>
+            )}
+            renderSettings={(cid) => (
+              <TabErrorBoundary tabName="Settings">
+                <SettingsTabContent
+                  clientId={cid}
+                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+                />
+              </TabErrorBoundary>
+            )}
           />
         ) : (
           // Empty state: Apex Command Center

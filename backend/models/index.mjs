@@ -183,6 +183,7 @@ export const getMeasurementMilestone = () => getModel('MeasurementMilestone');
 
 // Pain/Injury Tracking (NASM CES + Squat University)
 export const getClientPainEntry = () => getModel('ClientPainEntry');
+export const getPainEntryCorrectiveExercise = () => getModel('PainEntryCorrectiveExercise');
 
 // Video Catalog Models
 export const getVideoCatalog = () => getModel('VideoCatalog');
