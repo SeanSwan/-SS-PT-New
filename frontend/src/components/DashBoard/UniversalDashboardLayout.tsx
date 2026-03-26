@@ -78,7 +78,7 @@ import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
 import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
 import SessionAllocationManager from '../Admin/SessionAllocationManager';
 import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
-import NASMProgressCharts from '../Client/NASMProgressCharts';
+import { ClientProgressCharts as NASMProgressCharts } from '../ClientProgressCharts';
 
 // 🎨 THE AESTHETIC CODEX: Import the definitive style guide
 import TheAestheticCodex from '../../core/TheAestheticCodex';
@@ -149,10 +149,10 @@ const universalTheme = {
     voidBlack: '#000000',
     warningAmber: '#f59e0b',
     successGreen: '#10b981',
-    criticalRed: '#ef4444',
+    criticalRed: 'var(--danger, #C92A54)', /* Crimson Frost */
   },
   typography: {
-    fontFamily: "'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', 'Sora', -apple-system, BlinkMacSystemFont, sans-serif",
     weights: { light: 300, normal: 400, medium: 500, semibold: 600, bold: 700 },
   },
   spacing: { xs: '0.25rem', sm: '0.5rem', md: '1rem', lg: '1.5rem', xl: '2rem', xxl: '3rem' },
@@ -176,7 +176,7 @@ const UniversalGlobalStyles = createGlobalStyle`
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary, #E0ECF4);
     background: var(--bg-base, #0A0A0F);
     -webkit-font-smoothing: antialiased;
@@ -287,7 +287,7 @@ const UniversalErrorContainer = styled.div`
   padding: 32px;
 
   h2 {
-    color: #ef4444;
+    color: var(--danger, #C92A54); /* Crimson Frost */
     margin-bottom: 16px;
     font-size: 1.5rem;
     font-weight: 600;
@@ -517,7 +517,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   // Error state
   const ErrorState = () => (
     <UniversalErrorContainer>
-      <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🛡️</div>
+      <div style={{ fontSize: '3rem', marginBottom: '1.5rem', color: 'var(--danger, #C92A54)' }}>!</div>
       <h2>Dashboard Access Error</h2>
       <p>{error}</p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
@@ -532,7 +532,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           onClick={handleLogout}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          style={{ background: 'rgba(239, 68, 68, 0.2)' }}
+          style={{ background: 'rgba(201, 42, 84, 0.2)' }} /* Crimson Frost */
         >
           Logout
         </UniversalButton>

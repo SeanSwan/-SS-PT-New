@@ -912,3 +912,119 @@ When git status shows >20 untracked test result directories, suggest cleanup to 
 - **Gamification double-award:** Always use idempotency keys (userId + actionType + ISO timestamp) to prevent duplicate point awards
 - **Chart lazy loading:** All 50 Victory charts MUST use `React.lazy()` + `SafeChart` error boundary — never eagerly load the full gallery
 - **Social feed pagination:** Use cursor-based pagination (not offset) for social feed queries to prevent missing/duplicate posts during scroll
+
+---
+
+## Anti-AI-Tells Checklist (MANDATORY — adapted from taste-skill)
+
+AI-generated interfaces have recognizable "tells" that make them look generic. All SwanStudios code MUST avoid these patterns:
+
+### Banned Patterns
+- **No pure `#000000` black** — Use Obsidian Black `#0A0A0F` or Carbon `#141419`
+- **No `99.99%` or `100%` fake round numbers** in dashboards — Use organic data like `97.3%`, `47.2%`
+- **No "John Doe" / "Jane Smith"** placeholder names — Use realistic names or user's actual data
+- **No filler words in copy:** "Elevate", "Seamless", "Unleash", "Next-Gen", "Cutting-Edge", "Revolutionary" (in user-facing text)
+- **No Unsplash links** for placeholder images — Use `/api/placeholder/` or picsum.photos
+- **No oversaturated neon outer glows** (except controlled Ice Wing/Wing Purple glow system)
+- **No gradient text on large headers** — Use solid Frost White `#E0ECF4`
+- **No custom mouse cursors** — Standard pointer is correct
+- **No generic 3-column equal-width card layouts** — Use asymmetric bento grids or varied widths
+- **No cards that don't communicate hierarchy** — Only use elevation when it serves information architecture
+- **No linear easing on animations** — Use `cubic-bezier(0.16, 1, 0.3, 1)` (spring snap-and-settle) or `cubic-bezier(0.25, 0.46, 0.45, 0.94)`
+- **No `Inter`, `Roboto`, `Arial`, `Helvetica`** — These are banned AI-slop fonts. Use Plus Jakarta Sans, Sora, Cormorant Garamond, Fira Code
+
+### Required States (every interactive component)
+1. **Default** — Resting state
+2. **Hover** — Visual feedback with glow/transform
+3. **Active/Pressed** — Scale-down feedback
+4. **Focus-visible** — Ice Wing focus ring (accessibility)
+5. **Loading** — Frost Shimmer skeleton or spinner
+6. **Empty** — Meaningful empty state with CTA
+7. **Error** — Crimson Frost border + Frost White text + retry action
+
+---
+
+## Visual Diff Loop (MANDATORY for UI work — adapted from Nick Saraev workflow)
+
+After building or modifying any frontend component, run the screenshot-compare loop:
+
+### The Loop
+1. **Build** — Implement the component
+2. **Screenshot** — Take Playwright screenshots at 3 breakpoints: 375px (mobile), 768px (tablet), 1440px (desktop)
+3. **Compare** — Compare to admin dashboard reference for consistency (fonts, colors, spacing, theme token usage)
+4. **Fix** — Fix any mismatches identified
+5. **Re-screenshot** — Verify fixes
+6. **Ship** — When visual parity achieved
+
+### When to Run
+- **Always** after creating or rebuilding a page/component
+- **Always** after theme changes
+- **Recommended** after responsive adjustments
+
+### Reference Screenshots
+- Admin dashboard is the gold standard — all other dashboards must match its visual language
+- Store reference screenshots in `tests/screenshots/references/` (gitignored)
+- Naming: `{page}-{breakpoint}w-{variant}.png` (e.g., `trainer-dashboard-375w-dark.png`)
+
+---
+
+## 3-Tier Development Workflow (MANDATORY)
+
+Choose the appropriate workflow tier based on change scope:
+
+### Tier 1: Fast Path (single-component changes)
+`Code → Playwright Screenshot QA → Ship`
+- For: Bug fixes, style tweaks, single file changes
+- Skip: AI Village, Gemini review, full blueprint
+
+### Tier 2: Standard Path (feature work)
+`Code → Gemini CTO Review → Fix Findings → Playwright QA → Ship`
+- For: New features, multi-file changes, new pages
+- Run: `node scripts/consult-gemini.mjs --review --file path/to/component.tsx`
+
+### Tier 3: Deploy Path (production pushes)
+`Full 11-Brain AI Village → Fix All Findings → Playwright QA → Deploy`
+- For: Pushing to main, major refactors, >100 lines changed
+- Run: `node scripts/validation-orchestrator.mjs --staged`
+- **MANDATORY** before merging PRs
+
+### Tier Selection Guide
+| Change Type | Tier | Time |
+|---|---|---|
+| Fix a color / font / spacing | 1 (Fast) | 5 min |
+| Add a new card component | 1 (Fast) | 15 min |
+| Build a new dashboard page | 2 (Standard) | 1-2 hours |
+| Rebuild trainer/client dashboards | 2 (Standard) | 2-4 hours |
+| Push to production | 3 (Deploy) | 30 min validation |
+| Major architecture change | 3 (Deploy) | Full review |
+
+---
+
+## Installed Skills Reference
+
+### Core Process Skills (10)
+| Skill | Purpose |
+|-------|---------|
+| `verification-before-completion` | MANDATORY before "done" claims |
+| `systematic-debugging` | Root-cause-first bug investigation |
+| `requesting-code-review` | Pre-merge review checklist |
+| `test-driven-development` | Tests before production code |
+| `webapp-testing` | Playwright frontend testing |
+| `web-design-guidelines` | UI accessibility/contrast audit |
+| `audit-website` | Comprehensive site audit |
+| `agent-browser` | Browser automation |
+| `frontend-design` | Distinctive production-grade UI |
+| `ui-ux-pro-max` | 50 styles, 21 palettes, design DB |
+
+### Design Enhancement Skills (from taste-skill, 7)
+| Skill | Purpose | When to Use |
+|-------|---------|-------------|
+| `design-taste-frontend` | Anti-AI-slop design rules, 3 tunable dials | Building any new UI component |
+| `high-end-visual-design` | $150k agency look, spring physics | Premium/hero sections |
+| `redesign-existing-projects` | Design audit + fix priority | Reviewing existing pages |
+| `full-output-enforcement` | Anti-truncation, no `// TODO` | Always active |
+| `minimalist-ui` | Editorial clean interfaces | NOT for SwanStudios (our brand is maximalist dark-luxury) |
+| `industrial-brutalist-ui` | Swiss typographic + terminal | NOT for SwanStudios |
+| `stitch-design-taste` | Google Stitch compatibility | Only if using Stitch |
+
+**Note:** `design-taste-frontend` bans "AI purple/blue" — this conflicts with our Crystalline Swan brand. Override: Wing Purple `#8B5CF6` and Ice Wing `#60C0F0` glows ARE our brand identity and are NOT generic AI purple/blue. Use them confidently.

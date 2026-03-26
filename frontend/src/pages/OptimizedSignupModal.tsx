@@ -890,10 +890,10 @@ const OptimizedSignupModal: React.FC = () => {
             navigate('/dashboard');
             break;
           case 'trainer':
-            navigate('/trainer-dashboard');
+            navigate('/dashboard/trainer/overview');
             break;
           case 'client':
-            navigate('/client-dashboard');
+            navigate('/dashboard/client/overview');
             break;
           default:
             navigate('/user-dashboard');

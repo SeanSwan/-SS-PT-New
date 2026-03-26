@@ -119,9 +119,9 @@ const DashboardSelector: React.FC = () => {
   const currentPath = location.pathname;
   
   // Determine which dashboard is currently active
-  const isAdminDashboard = currentPath.includes('/dashboard');
-  const isTrainerDashboard = currentPath.includes('/trainer');
-  const isClientDashboard = currentPath.includes('/client-dashboard');
+  const isAdminDashboard = currentPath.includes('/dashboard/admin');
+  const isTrainerDashboard = currentPath.includes('/dashboard/trainer');
+  const isClientDashboard = currentPath.includes('/dashboard/client');
   const isUserDashboard = currentPath.includes('/user-dashboard');
   
   // Function to determine if a dashboard option should be enabled based on user role
@@ -213,12 +213,12 @@ const DashboardSelector: React.FC = () => {
         dashboardIcon = <LayoutDashboard size={16} />;
         break;
       case 'trainer':
-        dashboardPath = '/trainer-dashboard';
+        dashboardPath = '/dashboard/trainer/overview';
         dashboardName = 'Trainer Dashboard';
         dashboardIcon = <Users size={16} />;
         break;
       case 'client':
-        dashboardPath = '/client-dashboard';
+        dashboardPath = '/dashboard/client/overview';
         dashboardName = 'Client Dashboard';
         dashboardIcon = <User size={16} />;
         break;
@@ -273,7 +273,7 @@ const DashboardSelector: React.FC = () => {
         {isEnabled('trainer') && (
           <DropdownItem
             active={isTrainerDashboard}
-            onClick={() => handleSelectDashboard('/trainer-dashboard')}
+            onClick={() => handleSelectDashboard('/dashboard/trainer/overview')}
           >
             <ItemIcon>
               <Users size={16} color="#8B5CF6" />
@@ -290,7 +290,7 @@ const DashboardSelector: React.FC = () => {
         {isEnabled('client') && (
           <DropdownItem
             active={isClientDashboard}
-            onClick={() => handleSelectDashboard('/client-dashboard')}
+            onClick={() => handleSelectDashboard('/dashboard/client/overview')}
           >
             <ItemIcon>
               <User size={16} color="#FF6B6B" />

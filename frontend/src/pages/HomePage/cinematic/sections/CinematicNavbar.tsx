@@ -343,10 +343,12 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
                   $tokens={tokens}
                   onClick={() => {
                     const role = user?.role;
-                    if (role === 'admin' || role === 'trainer') {
-                      navigate('/dashboard');
+                    if (role === 'admin') {
+                      navigate('/dashboard/admin/overview');
+                    } else if (role === 'trainer') {
+                      navigate('/dashboard/trainer/overview');
                     } else {
-                      navigate('/client-dashboard');
+                      navigate('/dashboard/client/overview');
                     }
                   }}
                   aria-label="Go to dashboard"
@@ -426,9 +428,11 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
               <>
                 <MobileNavLink
                   to={
-                    user?.role === 'admin' || user?.role === 'trainer'
-                      ? '/dashboard'
-                      : '/client-dashboard'
+                    user?.role === 'admin'
+                      ? '/dashboard/admin/overview'
+                      : user?.role === 'trainer'
+                        ? '/dashboard/trainer/overview'
+                        : '/dashboard/client/overview'
                   }
                   $tokens={tokens}
                   onClick={closeMobileMenu}

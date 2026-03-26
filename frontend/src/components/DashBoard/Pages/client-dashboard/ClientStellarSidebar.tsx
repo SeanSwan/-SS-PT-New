@@ -142,10 +142,10 @@ const LogoMark = styled.div`
   align-items: center;
   justify-content: center;
   color: var(--accent-primary, #60C0F0);
-
-  svg {
-    filter: drop-shadow(0 0 4px rgba(96, 192, 240, 0.6));
-  }
+  font-weight: 700;
+  font-size: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-shadow: 0 0 6px rgba(96, 192, 240, 0.6);
 `;
 
 const LogoLabel = styled.span<{ $visible: boolean }>`
@@ -501,8 +501,8 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
       >
         <SidebarHeader $collapsed={collapsed}>
           <LogoBrand>
-            <LogoMark><Star size={16} /></LogoMark>
-            <LogoLabel $visible={showLabel}>SwanStudios</LogoLabel>
+            <LogoMark>SS</LogoMark>
+            <LogoLabel $visible={showLabel}>Client</LogoLabel>
           </LogoBrand>
 
           {onToggleCollapse && (

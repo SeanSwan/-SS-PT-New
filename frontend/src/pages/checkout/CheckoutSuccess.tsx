@@ -259,7 +259,7 @@ const CheckoutSuccess: React.FC = () => {
     
     // Optional: Navigate to dashboard after a delay
     setTimeout(() => {
-      navigate('/client-dashboard');
+      navigate('/dashboard/client/overview');
     }, 5000);
   };
   

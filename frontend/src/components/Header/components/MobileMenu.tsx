@@ -238,14 +238,14 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           )}
           {isRoleEnabled('trainer') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink to="/trainer-dashboard" onClick={closeMobileMenu} $isActive={isActive('/trainer-dashboard')}>
+              <MobileNavLink to="/dashboard/trainer/overview" onClick={closeMobileMenu} $isActive={isActive('/dashboard/trainer')}>
                 <Users size={20} /> Trainer Dashboard
               </MobileNavLink>
             </motion.div>
           )}
           {isRoleEnabled('client') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink to="/client-dashboard" onClick={closeMobileMenu} $isActive={isActive('/client-dashboard')}>
+              <MobileNavLink to="/dashboard/client/overview" onClick={closeMobileMenu} $isActive={isActive('/dashboard/client')}>
                 <User size={20} /> Client Dashboard
               </MobileNavLink>
             </motion.div>

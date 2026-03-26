@@ -24,7 +24,7 @@ const PageLoader: React.FC = () => (
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: '50vh',
-    background: 'linear-gradient(135deg, #002060, #1e1e3f)',
+    background: 'var(--bg-base, #0A0A0F)',
     color: 'white'
   }}>
     <div style={{
@@ -55,7 +55,7 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
                 <div style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  background: 'linear-gradient(135deg, #002060, #1e1e3f)',
+                  background: 'var(--bg-base, #0A0A0F)',
                   color: 'white',
                   minHeight: '50vh',
                   display: 'flex',
@@ -91,7 +91,7 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
             <div style={{
               padding: '2rem',
               textAlign: 'center',
-              background: 'linear-gradient(135deg, #002060, #1e1e3f)',
+              background: 'var(--bg-base, #0A0A0F)',
               color: 'white',
               minHeight: '50vh',
               display: 'flex',
@@ -314,6 +314,12 @@ const WorkoutDashboard = lazyLoadWithErrorHandling(
 const AdminDashboardLayout = lazyLoadWithErrorHandling(
   () => import('../components/DashBoard/UnifiedAdminDashboardLayout'),
   'Admin Dashboard Layout'
+);
+
+// Universal Dashboard Layout — serves ALL roles (admin, trainer, client)
+const UniversalDashboardLayout = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/UniversalDashboardLayout'),
+  'Universal Dashboard Layout'
 );
 const TheAestheticCodex = lazyLoadWithErrorHandling(
   () => import('../core/TheAestheticCodex'),
@@ -689,26 +695,14 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Protected Client Routes
+    // Protected Client Routes — redirect old routes to unified dashboard
     {
       path: 'client-dashboard',
-      element: (
-        <ProtectedRoute allowedRoles={['client', 'admin']}>
-          <Suspense fallback={<PageLoader />}>
-            <RevolutionaryClientDashboard />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/dashboard/client/overview" replace />
     },
     {
       path: 'client-dashboard-legacy',
-      element: (
-        <ProtectedRoute allowedRoles={['client', 'admin']}>
-          <Suspense fallback={<PageLoader />}>
-            <NewClientDashboard />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/dashboard/client/overview" replace />
     },
     {
       path: 'emergency-admin',
@@ -719,16 +713,10 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Trainer Dashboard Routes
+    // Trainer Dashboard Routes — redirect old routes to unified dashboard
     {
       path: 'trainer-dashboard/*',
-      element: (
-        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
-          <Suspense fallback={<PageLoader />}>
-            <TrainerDashboard />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
     // User Dashboard Route
@@ -846,13 +834,14 @@ const MainRoutes: RouteObject = {
       )
     }] : []),
     
-    // Enhanced Admin Dashboard Routes
+    // Universal Dashboard Routes — serves admin, trainer, and client roles
+    // UniversalDashboardLayout handles role detection and renders role-specific sidebar + routes
     {
       path: 'dashboard/*',
       element: (
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute allowedRoles={['admin', 'trainer', 'client']}>
           <Suspense fallback={<PageLoader />}>
-            <AdminDashboardLayout />
+            <UniversalDashboardLayout />
           </Suspense>
         </ProtectedRoute>
       )

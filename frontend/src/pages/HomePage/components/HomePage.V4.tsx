@@ -1454,7 +1454,7 @@ const HomePageV4: React.FC = () => {
               </CapsuleButton>
               <CapsuleButton
                 $variant="arcticCyan"
-                onClick={() => navigate('/client-dashboard')}
+                onClick={() => navigate('/dashboard/client/overview')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >
@@ -1480,7 +1480,7 @@ const HomePageV4: React.FC = () => {
               </CapsuleButton>
               <CapsuleButton
                 $variant="wingPurple"
-                onClick={() => navigate('/trainer-dashboard')}
+                onClick={() => navigate('/dashboard/trainer/overview')}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
               >

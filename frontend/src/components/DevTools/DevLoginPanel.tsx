@@ -583,9 +583,9 @@ const DevLoginPanel: React.FC = () => {
       if (role === 'admin') {
         safeNavigate('/dashboard');
       } else if (role === 'trainer') {
-        safeNavigate('/trainer-dashboard');
+        safeNavigate('/dashboard/trainer/overview');
       } else if (role === 'client') {
-        safeNavigate('/client-dashboard');
+        safeNavigate('/dashboard/client/overview');
       } else if (role === 'user') {
         safeNavigate('/social');
       }

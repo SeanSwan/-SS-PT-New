@@ -604,7 +604,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             onClick={() => {
               setShowSuccessModal(false);
               if (!onComplete) {
-                navigate("/client-dashboard");
+                navigate("/dashboard/client/overview");
               }
             }}
           >
@@ -653,7 +653,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
                 onClick={() => {
                   setShowSuccessModal(false);
                   if (!onComplete) {
-                    navigate("/client-dashboard");
+                    navigate("/dashboard/client/overview");
                   }
                 }}
                 style={{ marginTop: "1.5rem" }}

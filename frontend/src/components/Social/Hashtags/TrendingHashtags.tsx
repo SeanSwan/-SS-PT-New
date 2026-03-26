@@ -45,7 +45,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { TrendingUp } from 'lucide-react';
-import { useAuth } from '../../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import HashtagChip, { type HashtagData } from './HashtagChip';
 
 // ─────────────────────────────────────────────────────────────
