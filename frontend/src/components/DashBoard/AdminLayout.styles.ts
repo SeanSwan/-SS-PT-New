@@ -15,7 +15,7 @@ export const ExecutiveLayoutContainer = styled.div`
   width: 100%;
   background: var(--bg-base, #0A0A0F);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
 `;
 
 export const ExecutiveMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
@@ -44,6 +44,11 @@ export const ExecutiveMainContent = styled(motion.main)<{ $sidebarCollapsed?: bo
   @media (max-width: 375px) {
     padding: 8px;
     padding-top: 64px;
+  }
+
+  @media (max-width: 320px) {
+    padding: 6px;
+    padding-top: 60px;
   }
 `;
 

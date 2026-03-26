@@ -108,202 +108,146 @@ const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboar
 const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
 
-// === UNIVERSAL THEME SYSTEM ===
+// ─────────────────────────────────────────────────────────────
+// SECTION: Universal Theme — CSS Custom Property Bridge
+// PURPOSE: Mirrors AdminLayoutTheme pattern for theme changer compat
+// WHY: Original hardcoded bright theme ignored the 14-theme system
+// ─────────────────────────────────────────────────────────────
 const universalTheme = {
-  // Role-specific color palettes
   admin: {
-    primary: '#1e3a8a',      // Command Navy
-    secondary: '#3b82f6',    // Stellar Blue  
-    accent: '#60C0F0',       // Cyber Cyan
+    primary: 'var(--brand-primary, #002060)',
+    secondary: 'var(--accent-purple, #8B5CF6)',
+    accent: 'var(--accent-cyan, #60C0F0)',
     gradients: {
-      primary: 'linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 50%, #60C0F0 100%)',
-      background: 'radial-gradient(ellipse at top, #3b82f6 0%, #1e3a8a 50%, #0a0a0f 100%)'
-    }
+      primary: 'linear-gradient(135deg, var(--accent-purple, #8B5CF6) 0%, var(--accent-cyan, #60C0F0) 100%)',
+      background: 'var(--bg-base, #0A0A0F)',
+    },
   },
   trainer: {
-    primary: '#8B5CF6',      // Stellar Purple
-    secondary: '#9333ea',    // Cosmic Amethyst
-    accent: '#60C0F0',       // Cyber Cyan
+    primary: 'var(--accent-purple, #8B5CF6)',
+    secondary: 'var(--accent-cyan, #60C0F0)',
+    accent: 'var(--accent-cyan, #60C0F0)',
     gradients: {
-      primary: 'linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%)',
-      background: 'radial-gradient(ellipse at top, #9333ea 0%, #8B5CF6 50%, #0a0a0f 100%)'
-    }
+      primary: 'linear-gradient(135deg, var(--accent-purple, #8B5CF6) 0%, var(--accent-cyan, #60C0F0) 100%)',
+      background: 'var(--bg-base, #0A0A0F)',
+    },
   },
   client: {
-    primary: '#10b981',      // Galaxy Emerald
-    secondary: '#22c55e',    // Cosmic Green
-    accent: '#60C0F0',       // Cyber Cyan
+    primary: 'var(--accent-cyan, #60C0F0)',
+    secondary: 'var(--accent-purple, #8B5CF6)',
+    accent: 'var(--accent-cyan, #60C0F0)',
     gradients: {
-      primary: 'linear-gradient(135deg, #10b981 0%, #22c55e 50%, #60C0F0 100%)',
-      background: 'radial-gradient(ellipse at top, #22c55e 0%, #10b981 50%, #0a0a0f 100%)'
-    }
+      primary: 'linear-gradient(135deg, var(--accent-cyan, #60C0F0) 0%, var(--accent-purple, #8B5CF6) 100%)',
+      background: 'var(--bg-base, #0A0A0F)',
+    },
   },
-  // Common elements
   common: {
-    deepSpace: '#0a0a0f',
-    stellarWhite: '#ffffff',
-    platinumSilver: '#e5e7eb',
-    cosmicGray: '#9ca3af',
+    deepSpace: 'var(--bg-base, #0A0A0F)',
+    stellarWhite: 'var(--text-primary, #E0ECF4)',
+    platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+    cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
     voidBlack: '#000000',
     warningAmber: '#f59e0b',
     successGreen: '#10b981',
-    criticalRed: '#ef4444'
+    criticalRed: '#ef4444',
   },
   typography: {
-    fontFamily: '"Inter", "SF Pro Display", "Roboto", sans-serif',
-    weights: { light: 300, normal: 400, medium: 500, semibold: 600, bold: 700 }
+    fontFamily: "'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif",
+    weights: { light: 300, normal: 400, medium: 500, semibold: 600, bold: 700 },
   },
   spacing: { xs: '0.25rem', sm: '0.5rem', md: '1rem', lg: '1.5rem', xl: '2rem', xxl: '3rem' },
-  borderRadius: { sm: '6px', md: '12px', lg: '16px', xl: '24px' }
+  borderRadius: { sm: '6px', md: '12px', lg: '16px', xl: '24px' },
 };
 
-// === GLOBAL STYLES FOR UNIVERSAL SYSTEM ===
+// ─────────────────────────────────────────────────────────────
+// SECTION: Global Styles — CSS Custom Property Bridge (dark-first)
+// PURPOSE: Matches ExecutiveGlobalStyles from AdminLayoutTheme
+// ─────────────────────────────────────────────────────────────
 const UniversalGlobalStyles = createGlobalStyle`
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
-  
+
   html, body {
     height: 100%;
     overflow-x: hidden;
   }
-  
+
   body {
-    font-family: ${props => props.theme.typography.fontFamily};
-    color: ${props => props.theme.common.stellarWhite};
-    background: ${props => {
-      const role = props.theme.currentRole || 'admin';
-      return props.theme[role]?.gradients?.background || props.theme.admin.gradients.background;
-    }};
+    font-family: 'Plus Jakarta Sans', 'Sora', 'Inter', sans-serif;
+    color: var(--text-primary, #E0ECF4);
+    background: var(--bg-base, #0A0A0F);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
-  /* Custom Scrollbar Styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: rgba(10, 10, 15, 0.3);
-    border-radius: 4px;
-  }
-  
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: ${props => {
-      const role = props.theme.currentRole || 'admin';
-      return props.theme[role]?.gradients?.primary || props.theme.admin.gradients.primary;
-    }};
-    border-radius: 4px;
-    
-    &:hover {
-      background: ${props => {
-        const role = props.theme.currentRole || 'admin';
-        return props.theme[role]?.secondary || props.theme.admin.secondary;
-      }};
-    }
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+    border-radius: 3px;
   }
-  
-  /* Focus Styles for Accessibility */
-  *:focus {
-    outline: 2px solid ${props => {
-      const role = props.theme.currentRole || 'admin';
-      return props.theme[role]?.secondary || props.theme.admin.secondary;
-    }};
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4),
+                inset 0 0 0 1px rgba(139, 92, 246, 0.2);
   }
-  
-  /* Disable focus outline for mouse users */
-  .js-focus-visible *:focus:not(.focus-visible) {
+
+  *:focus:not(:focus-visible) {
     outline: none;
   }
 `;
 
-// === STYLED COMPONENTS ===
+// ─────────────────────────────────────────────────────────────
+// SECTION: Layout Container — dark-first, matches admin layout
+// ─────────────────────────────────────────────────────────────
 const UniversalLayoutContainer = styled.div`
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
-  background: ${props => {
-    const role = props.theme.currentRole || 'admin';
-    return props.theme[role]?.gradients?.background || props.theme.admin.gradients.background;
-  }};
+  background: var(--bg-base, #0A0A0F);
   position: relative;
-  /* SCROLL FIX: Removed overflow: hidden which was blocking body scroll */
   overflow-x: hidden;
-
-  /* Role-specific cosmic particle background */
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: ${props => {
-      const role = props.theme.currentRole || 'admin';
-      const primaryColor = props.theme[role]?.secondary || props.theme.admin.secondary;
-      const accentColor = props.theme.common.stellarWhite;
-
-      return `
-        radial-gradient(2px 2px at 40px 60px, ${primaryColor}30, transparent),
-        radial-gradient(1px 1px at 90px 120px, ${primaryColor}20, transparent),
-        radial-gradient(1px 1px at 170px 80px, ${accentColor}10, transparent)
-      `;
-    }};
-    background-size: 200px 160px;
-    background-repeat: repeat;
-    /* SCROLL FIX: Disable animation on mobile to prevent scroll jank */
-    animation: universalFloat 60s linear infinite;
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: -1;
-    /* GPU layer promotion for smoother animation */
-    transform: translateZ(0);
-    will-change: transform;
-  }
-
-  @keyframes universalFloat {
-    0% { transform: translateY(0) rotate(0deg); }
-    100% { transform: translateY(-20px) rotate(360deg); }
-  }
-
-  /* SCROLL FIX: Disable expensive animation on mobile */
-  @media (max-width: 768px) {
-    &::before {
-      animation: none;
-      transform: none;
-      will-change: auto;
-    }
-  }
 `;
 
 const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
   flex: 1;
   margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '64px' : '280px')};
-  padding: ${props => props.theme.spacing.lg};
+  padding: 24px;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
-  /* SCROLL FIX: Replaced expensive backdrop-filter with solid background on mobile */
-  background: rgba(248, 250, 252, 0.02);
-  /* GPU layer promotion for smooth scrolling */
-  transform: translateZ(0);
-  -webkit-overflow-scrolling: touch;
+  background: var(--bg-base, #0A0A0F);
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  @media (min-width: 769px) {
-    /* Only use backdrop-filter on desktop where it's less impactful */
-    backdrop-filter: blur(10px);
+  @media (max-width: 1024px) {
+    margin-left: 0;
+    padding: 16px;
+    padding-top: 72px;
   }
 
-  @media (max-width: 768px) {
-    margin-left: 0;
-    padding: ${props => props.theme.spacing.md};
-    /* Solid background instead of blur for mobile performance */
-    background: rgba(10, 10, 15, 0.95);
+  @media (max-width: 430px) {
+    padding: 12px;
+    padding-top: 68px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 8px;
+    padding-top: 64px;
+  }
+
+  @media (max-width: 320px) {
+    padding: 6px;
+    padding-top: 60px;
   }
 `;
 
@@ -327,16 +271,10 @@ const UniversalLoadingContainer = styled.div`
 const UniversalLoadingSpinner = styled(motion.div)`
   width: 60px;
   height: 60px;
-  border: 4px solid ${props => {
-    const role = props.theme.currentRole || 'admin';
-    return `${props.theme[role]?.primary || props.theme.admin.primary}20`;
-  }};
-  border-left: 4px solid ${props => {
-    const role = props.theme.currentRole || 'admin';
-    return props.theme[role]?.secondary || props.theme.admin.secondary;
-  }};
+  border: 4px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  border-left: 4px solid var(--accent-primary, #60C0F0);
   border-radius: 50%;
-  margin-bottom: ${props => props.theme.spacing.lg};
+  margin-bottom: 24px;
 `;
 
 const UniversalErrorContainer = styled.div`
@@ -346,45 +284,42 @@ const UniversalErrorContainer = styled.div`
   align-items: center;
   min-height: 80vh;
   text-align: center;
-  padding: ${props => props.theme.spacing.xl};
-  
+  padding: 32px;
+
   h2 {
-    color: ${props => props.theme.common.criticalRed};
-    margin-bottom: ${props => props.theme.spacing.md};
+    color: #ef4444;
+    margin-bottom: 16px;
     font-size: 1.5rem;
-    font-weight: ${props => props.theme.typography.weights.semibold};
+    font-weight: 600;
   }
-  
+
   p {
-    color: ${props => props.theme.common.platinumSilver};
-    margin-bottom: ${props => props.theme.spacing.lg};
+    color: var(--text-secondary, rgba(224, 236, 244, 0.65));
+    margin-bottom: 24px;
     max-width: 600px;
     line-height: 1.6;
   }
 `;
 
 const UniversalButton = styled(motion.button)`
-  background: ${props => {
-    const role = props.theme.currentRole || 'admin';
-    return props.theme[role]?.gradients?.primary || props.theme.admin.gradients.primary;
-  }};
-  border: 1px solid ${props => {
-    const role = props.theme.currentRole || 'admin';
-    return `${props.theme[role]?.secondary || props.theme.admin.secondary}30`;
-  }};
-  border-radius: ${props => props.theme.borderRadius.md};
-  color: ${props => props.theme.common.stellarWhite};
-  padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
-  font-weight: ${props => props.theme.typography.weights.medium};
+  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  border-radius: 12px;
+  color: #fff;
+  padding: 12px 24px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+  min-height: 44px;
+
   &:hover {
-    box-shadow: 0 0 30px ${props => {
-      const role = props.theme.currentRole || 'admin';
-      return `${props.theme[role]?.secondary || props.theme.admin.secondary}60`;
-    }};
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
     transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -562,17 +497,17 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         animate={{ rotate: 360 }}
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
-      <h2 style={{ 
-        fontSize: '1.25rem', 
+      <h2 style={{
+        fontSize: '1.25rem',
         fontWeight: 500,
-        color: universalTheme.common.platinumSilver,
-        marginBottom: '0.5rem'
+        color: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
+        marginBottom: '0.5rem',
       }}>
-        Initializing Universal Dashboard...
+        Initializing Dashboard...
       </h2>
-      <p style={{ 
-        color: universalTheme.common.cosmicGray,
-        fontSize: '0.9rem'
+      <p style={{
+        color: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+        fontSize: '0.9rem',
       }}>
         Loading {userRole} interface
       </p>
