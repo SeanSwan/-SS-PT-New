@@ -26,7 +26,7 @@ export const executiveCommandTheme = {
     executiveAccent: 'var(--accent-cyan, #60C0F0)',     // Ice Wing
     warningAmber: 'var(--warning, #f59e0b)',
     successGreen: 'var(--success, #10b981)',
-    criticalRed: 'var(--danger, #ef4444)',
+    criticalRed: 'var(--danger, #C92A54)', /* Crimson Frost */
     stellarWhite: 'var(--text-primary, #E0ECF4)',       // Frost White
     platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
     cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',

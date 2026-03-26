@@ -88,7 +88,7 @@ export const ExecutiveErrorContainer = styled.div`
   padding: 32px;
 
   h2 {
-    color: #ef4444;
+    color: var(--danger, #C92A54); /* Crimson Frost */
     margin-bottom: 16px;
     font-size: 1.5rem;
     font-weight: 600;

@@ -156,15 +156,18 @@ const LogoBrand = styled.div<{ $collapsed: boolean }>`
 `;
 
 const LogoMark = styled.div`
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  /* Premium Vault Emblem — Midnight Sapphire with Ice Wing border */
+  background: var(--bg-primary, #002060);
+  border: 1px solid rgba(96, 192, 240, 0.3);
+  box-shadow: 0 0 12px rgba(96, 192, 240, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--accent-primary, #60C0F0);
   font-weight: 700;
   font-size: 14px;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -181,19 +184,20 @@ const LogoLabel = styled.span<{ $visible: boolean }>`
 `;
 
 const CollapseBtn = styled.button<{ $collapsed: boolean }>`
-  width: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
-  height: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
-  min-width: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
-  min-height: ${({ $collapsed }) => ($collapsed ? '32px' : '28px')};
-  border-radius: ${({ $collapsed }) => ($collapsed ? '50%' : '6px')};
+  /* Enforce 44px minimum touch target */
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
   border: 1px solid ${({ $collapsed }) =>
     $collapsed
-      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'
-      : 'var(--border-soft, rgba(224, 236, 244, 0.06))'};
+      ? 'rgba(96, 192, 240, 0.3)'
+      : 'rgba(224, 236, 244, 0.06)'};
   background: ${({ $collapsed }) =>
     $collapsed
       ? 'var(--bg-elevated, #1A1A24)'
-      : 'var(--bg-surface, #141419)'};
+      : 'transparent'};
   color: ${({ $collapsed }) =>
     $collapsed
       ? 'var(--accent-primary, #60C0F0)'
@@ -202,23 +206,24 @@ const CollapseBtn = styled.button<{ $collapsed: boolean }>`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition: all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: ${({ $collapsed }) => ($collapsed ? 'absolute' : 'static')};
   ${({ $collapsed }) =>
     $collapsed
       ? `
-    top: 72px;
+    top: 64px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(10, 10, 15, 0.5);
   `
       : ''}
 
   &:hover {
     background: var(--bg-elevated, #1A1A24);
     color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.25);
+    transform: ${({ $collapsed }) => ($collapsed ? 'translateX(-50%) scale(1.05)' : 'scale(1.05)')};
   }
 
   @media (max-width: 1024px) {
@@ -227,21 +232,25 @@ const CollapseBtn = styled.button<{ $collapsed: boolean }>`
 `;
 
 const MobileCloseBtn = styled.button`
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 8px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
+  /* Enforce 44px minimum touch target */
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  /* Crimson Frost — official error token */
+  border: 1px solid rgba(201, 42, 84, 0.2);
+  background: rgba(201, 42, 84, 0.08);
+  color: #C92A54;
   display: none;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(201, 42, 84, 0.15);
+    box-shadow: 0 0 12px rgba(201, 42, 84, 0.2);
   }
 
   @media (max-width: 1024px) {
@@ -274,25 +283,34 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   align-items: center;
   gap: 12px;
   width: calc(100% - 16px);
-  margin: 2px 8px;
+  margin: 4px 8px;
   padding: ${({ $collapsed }) => ($collapsed ? '12px 0' : '10px 12px')};
   min-height: 44px;
   border-radius: 10px;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
+
+  /* Crystalline Active State */
   color: ${({ $active }) =>
-    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #4070C0)'};
+    $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, #4070C0)'};
   background: ${({ $active }) =>
     $active
-      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)'
+      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, transparent 100%)'
       : 'transparent'};
   border-left: 3px solid ${({ $active }) =>
     $active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
-  animation: ${surfaceRise} 300ms ease backwards;
+  transition: all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: ${surfaceRise} 400ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   position: relative;
 
+  ${({ $active }) =>
+    $active &&
+    `box-shadow: inset 4px 0 12px -4px rgba(139, 92, 246, 0.4);`}
+
   &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
+    background: ${({ $active }) =>
+      $active
+        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, transparent 100%)'
+        : 'rgba(96, 192, 240, 0.06)'};
     color: var(--text-primary, #E0ECF4);
   }
 
@@ -301,9 +319,14 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
     outline-offset: -2px;
   }
 
-  ${({ $active }) =>
-    $active &&
-    `box-shadow: inset 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);`}
+  /* Dual-glow: active icon gets Ice Wing glow */
+  svg {
+    color: ${({ $active }) =>
+      $active ? 'var(--accent-primary, #60C0F0)' : 'inherit'};
+    filter: ${({ $active }) =>
+      $active ? 'drop-shadow(0 0 6px rgba(96, 192, 240, 0.5))' : 'none'};
+    transition: all 250ms ease;
+  }
 `;
 
 const NavIcon = styled.span`
@@ -329,26 +352,32 @@ const NavLabel = styled.span<{ $visible: boolean }>`
 
 const NavTooltip = styled.div`
   position: absolute;
-  left: calc(100% + 12px);
+  left: calc(100% + 16px);
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(0.95);
   z-index: 1100;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 8px;
-  background: var(--bg-elevated, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.1));
+
+  /* Deep-Ocean Glassmorphism */
+  background: rgba(26, 26, 36, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  box-shadow: 0 8px 24px rgba(10, 10, 15, 0.8);
+
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 150ms ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 
   ${NavItem}:hover & {
     opacity: 1;
+    transform: translateY(-50%) scale(1);
   }
 `;
 
