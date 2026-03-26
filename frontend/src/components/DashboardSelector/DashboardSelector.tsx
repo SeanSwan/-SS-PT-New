@@ -208,7 +208,7 @@ const DashboardSelector: React.FC = () => {
     
     switch (singleDashboard) {
       case 'admin':
-        dashboardPath = '/dashboard/default';
+        dashboardPath = '/dashboard/admin/overview';
         dashboardName = 'Admin Dashboard';
         dashboardIcon = <LayoutDashboard size={16} />;
         break;
@@ -256,7 +256,7 @@ const DashboardSelector: React.FC = () => {
         {isEnabled('admin') && (
           <DropdownItem
             active={isAdminDashboard}
-            onClick={() => handleSelectDashboard('/dashboard/default')}
+            onClick={() => handleSelectDashboard('/dashboard/admin/overview')}
           >
             <ItemIcon>
               <LayoutDashboard size={16} color="#60C0F0" />

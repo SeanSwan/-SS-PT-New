@@ -440,6 +440,18 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const userRole = rawRole === 'user' ? 'client' : rawRole;
   const isValidRole = ['admin', 'trainer', 'client'].includes(userRole);
 
+  // Derive the active dashboard role from the URL path
+  // This allows admins to view trainer/client dashboards via the dashboard selector
+  const pathSegments = location.pathname.split('/');
+  const dashboardIndex = pathSegments.indexOf('dashboard');
+  const urlRole = dashboardIndex >= 0 ? pathSegments[dashboardIndex + 1] : null;
+  const validUrlRoles = ['admin', 'trainer', 'client'];
+
+  // Use URL role if it's valid AND the user has permission to view it (admins can view all)
+  const activeRole = (urlRole && validUrlRoles.includes(urlRole) && (userRole === 'admin' || urlRole === userRole))
+    ? urlRole
+    : userRole;
+
   // Initialize Redux user context and fetch role-based data
   useEffect(() => {
     const initializeUserContext = async () => {
@@ -509,7 +521,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         color: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
         fontSize: '0.9rem',
       }}>
-        Loading {userRole} interface
+        Loading {activeRole} interface
       </p>
     </UniversalLoadingContainer>
   );
@@ -549,7 +561,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
       onToggleMobile: handleToggleMobile
     };
 
-    switch (userRole) {
+    switch (activeRole) {
       case 'admin':
         return <AdminStellarSidebar {...sidebarProps} />;
       case 'trainer':
@@ -562,11 +574,11 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   };
 
   // Get role configuration
-  const roleConfig = roleConfigurations[userRole] || roleConfigurations.client;
+  const roleConfig = roleConfigurations[activeRole] || roleConfigurations.client;
 
   if (isLoading) {
     return (
-      <ThemeProvider theme={{ ...universalTheme, currentRole: userRole }}>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
         <UniversalGlobalStyles />
         <UniversalLayoutContainer>
           <LoadingState />
@@ -577,7 +589,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
 
   if (error) {
     return (
-      <ThemeProvider theme={{ ...universalTheme, currentRole: userRole }}>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
         <UniversalGlobalStyles />
         <UniversalLayoutContainer>
           <ErrorState />
@@ -587,7 +599,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   }
 
   return (
-    <ThemeProvider theme={{ ...universalTheme, currentRole: userRole }}>
+    <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
       <UniversalGlobalStyles />
       <UniversalLayoutContainer>
         {/* Role-specific Stellar Sidebar */}
@@ -604,15 +616,15 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
             <Suspense fallback={<LoadingState />}>
               <Routes>
                 {/* Default redirect */}
-                <Route path="/" element={<Navigate to={`/dashboard/${userRole}${roleConfig.defaultPath}`} replace />} />
-                
-                {/* Role-specific routes */}
-                <Route path={`/${userRole}/*`} element={
+                <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+
+                {/* Role-specific routes — render routes for the active URL role */}
+                <Route path={`/${activeRole}/*`} element={
                   <Routes>
                     {roleConfig.routes.map(({ path, component: Component }) => (
-                      <Route 
-                        key={path} 
-                        path={path} 
+                      <Route
+                        key={path}
+                        path={path}
                         element={
                           <UniversalPageContainer
                             initial={{ opacity: 0, y: 20 }}
@@ -621,16 +633,16 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
                           >
                             <Component />
                           </UniversalPageContainer>
-                        } 
+                        }
                       />
                     ))}
                     {/* Default redirect for role */}
-                    <Route path="*" element={<Navigate to={`/dashboard/${userRole}${roleConfig.defaultPath}`} replace />} />
+                    <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
                   </Routes>
                 } />
-                
+
                 {/* Fallback Route */}
-                <Route path="*" element={<Navigate to={`/dashboard/${userRole}${roleConfig.defaultPath}`} replace />} />
+                <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
               </Routes>
             </Suspense>
           </AnimatePresence>
