@@ -88,7 +88,7 @@ export const ExecutiveGlobalStyles = createGlobalStyle`
   body {
     font-family: ${props => props.theme.typography.fontFamily};
     color: var(--text-primary, #E0ECF4);
-    background: radial-gradient(ellipse at top, var(--accent-purple, #8B5CF6) 0%, var(--brand-primary, #002060) 50%, var(--bg-base, #0A0A0F) 100%);
+    background: var(--bg-base, #0A0A0F);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
