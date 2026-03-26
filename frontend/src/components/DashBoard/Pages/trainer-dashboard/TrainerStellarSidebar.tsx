@@ -411,7 +411,7 @@ const trainerNavConfig = [
     items: [
       { label: 'Training Videos', path: '/dashboard/trainer/videos', icon: Video },
       { label: 'Workout Intelligence', path: '/dashboard/trainer/workout-forge', icon: Brain },
-      { label: 'Nutrition Intelligence', path: '/dashboard/workouts/nutrition', icon: Apple },
+      { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
     ],
   },
   {

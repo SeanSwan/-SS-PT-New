@@ -106,6 +106,7 @@ const ClientWorkoutForgePage = React.lazy(() => import('./Pages/client-dashboard
 const TrainerOverviewPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerOverviewPage'));
 const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
 const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
+const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
 
 // ─────────────────────────────────────────────────────────────
@@ -323,6 +324,12 @@ const UniversalButton = styled(motion.button)`
   }
 `;
 
+// Wrapper component for client progress — needs auth context for user ID
+const ClientProgressWrapper: React.FC = () => {
+  const { user } = useAuth();
+  return <NASMProgressCharts clientId={user?.id || 0} />;
+};
+
 // === ROLE CONFIGURATION ===
 interface RoleConfig {
   routes: Array<{
@@ -391,8 +398,9 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'YOLO AI form checking' },
-      { path: '/videos', component: TrainerVideosPage, title: 'Training Videos', description: 'Video content library' },
+      { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
       { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'AI workout generation' },
+      { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }
     ],
@@ -402,7 +410,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
     routes: [
       { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
-      { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
+      { path: '/progress', component: ClientProgressWrapper, title: 'My Progress', description: 'NASM progress visualization dashboard' },
       { path: '/workout-forge', component: ClientWorkoutForgePage, title: 'Workout Intelligence', description: 'Self-serve AI workout generation' },
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
