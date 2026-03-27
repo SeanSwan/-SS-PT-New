@@ -32,7 +32,7 @@ import {
   Marker,
   ZoomableGroup,
 } from 'react-simple-maps';
-import { Globe, Users, MapPin, RefreshCw, Eye } from 'lucide-react';
+import { Globe, Users, MapPin, RefreshCw, Eye, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────
@@ -67,6 +67,11 @@ const VisitorWorldMap: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hoveredCity, setHoveredCity] = useState<CityPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [center, setCenter] = useState<[number, number]>([0, 20]);
+
+  const handleZoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.5, 8)), []);
+  const handleZoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.5, 1)), []);
 
   const fetchMapData = useCallback(async () => {
     try {
@@ -162,7 +167,16 @@ const VisitorWorldMap: React.FC = () => {
           height={400}
           style={{ width: '100%', height: 'auto' }}
         >
-          <ZoomableGroup center={[0, 20]} zoom={1}>
+          <ZoomableGroup
+            center={center}
+            zoom={zoom}
+            onMoveEnd={({ coordinates, zoom: z }) => { setCenter(coordinates); setZoom(z); }}
+            filterZoomEvent={(evt) => {
+              // Block scroll/wheel zoom — only allow programmatic zoom via buttons
+              if ('type' in evt && (evt as Event).type === 'wheel') return false;
+              return true;
+            }}
+          >
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => (
@@ -237,6 +251,16 @@ const VisitorWorldMap: React.FC = () => {
             <TooltipCount>{hoveredCity.count} visitor{hoveredCity.count !== 1 ? 's' : ''}</TooltipCount>
           </Tooltip>
         )}
+
+        {/* Zoom controls */}
+        <ZoomControls>
+          <ZoomBtn onClick={handleZoomIn} aria-label="Zoom in" title="Zoom in">
+            <Plus size={16} />
+          </ZoomBtn>
+          <ZoomBtn onClick={handleZoomOut} aria-label="Zoom out" title="Zoom out" disabled={zoom <= 1}>
+            <Minus size={16} />
+          </ZoomBtn>
+        </ZoomControls>
 
         {/* Empty state */}
         {!loading && (!mapData?.byCity.length) && (
@@ -446,6 +470,44 @@ const TooltipCount = styled.div`
   font-family: 'Fira Code', monospace;
   color: var(--accent-primary, #60C0F0);
   margin-top: 2px;
+`;
+
+const ZoomControls = styled.div`
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+`;
+
+const ZoomBtn = styled.button`
+  width: 36px;
+  height: 36px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft, rgba(96,192,240,0.15));
+  background: var(--bg-elevated, #141419);
+  color: var(--text-secondary, rgba(224,236,244,0.7));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+
+  &:hover:not(:disabled) {
+    color: var(--accent-primary, #60C0F0);
+    border-color: var(--accent-primary, #60C0F0);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419));
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
 `;
 
 const EmptyOverlay = styled.div`
