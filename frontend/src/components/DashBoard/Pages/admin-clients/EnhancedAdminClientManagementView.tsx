@@ -151,8 +151,8 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 
-// Client source logos for card identification
-import MoveFitLogo3D from '../../../../assets/MoveFitLogo-3d.png';
+// Client source logos for card identification (transparent PNG for badge overlay)
+import MoveFitLogo3D from '../../../../assets/MoveFitLogo-transparent.png';
 import SwanStudiosLogo from '../../../../assets/Logo.png';
 import { logger } from '@/utils/logger';
 
@@ -1154,6 +1154,7 @@ interface EnhancedAdminClient {
   createdAt: string;
   updatedAt: string;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
+  accountStatus?: 'stub' | 'invited' | 'active';
   // Enhanced fields
   totalWorkouts: number;
   workoutStreak: number;
@@ -1642,6 +1643,16 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         {client.clientSource === 'external' && (
                           <StatusChip $small $bgColor="rgba(198, 168, 75, 0.2)" $textColor="#C6A84B">
                             External
+                          </StatusChip>
+                        )}
+                        {client.accountStatus === 'stub' && (
+                          <StatusChip $small $bgColor="rgba(201, 42, 84, 0.2)" $textColor="#C92A54">
+                            Unclaimed
+                          </StatusChip>
+                        )}
+                        {client.accountStatus === 'invited' && (
+                          <StatusChip $small $bgColor="rgba(96, 192, 240, 0.2)" $textColor="#60C0F0">
+                            Invited
                           </StatusChip>
                         )}
                       </FlexRow>

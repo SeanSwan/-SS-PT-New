@@ -54,6 +54,8 @@ data/
 frontend/test-results/
 playwright-report/
 test-results/
+tests/screenshots/
+*.tsbuildinfo
 
 # File archive vault
 .swan/archive/

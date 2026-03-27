@@ -272,6 +272,7 @@ import logger from '../utils/logger.mjs';
 import bcrypt from 'bcryptjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
 import { getMeasurementStatus } from '../services/measurementScheduleService.mjs';
+import { generateClaimToken } from '../services/claimTokenService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -1297,6 +1298,9 @@ class AdminClientController {
         });
       }
 
+      // Generate SWAN-XXXX claim token for account claiming (Crystalline Link Protocol)
+      const { plainToken, hash: claimTokenHash, expires: claimTokenExpires } = await generateClaimToken();
+
       const newClient = await User.create({
         firstName,
         lastName,
@@ -1314,7 +1318,10 @@ class AdminClientController {
         emergencyContact,
         clientSource,
         availableSessions: 0, // External clients get 0 sessions
+        accountStatus: 'stub', // External clients start as STUB until they claim their account
         forcePasswordChange: true,
+        claimTokenHash,
+        claimTokenExpires,
         role: 'client',
         isActive: true
       }, { transaction });
@@ -1353,12 +1360,17 @@ class AdminClientController {
 
       logger.info(`External client created: ${email} (source: ${clientSource}) by admin ${req.user?.id}`);
 
+      const claimUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/claim/${plainToken}`;
+
       return res.status(201).json({
         success: true,
         message: `External client created (${clientSource})`,
         data: {
           client: clientData,
-          temporaryPassword: passwordSource === 'generated' ? effectivePassword : undefined
+          temporaryPassword: passwordSource === 'generated' ? effectivePassword : undefined,
+          claimToken: plainToken,
+          claimUrl,
+          claimExpiresAt: claimTokenExpires.toISOString(),
         }
       });
 

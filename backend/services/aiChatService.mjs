@@ -588,11 +588,12 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       analyses, painEntries, sessions,
       complianceData, businessKpis, checkInData,
     ] = await Promise.all([
-      // 1. User profile
+      // 1. User profile (includes clientSource for Move Fitness vs SwanStudios context)
       safeQuery(
         `SELECT role, "createdAt", "fitnessGoal",
                 "weight", "height", "dateOfBirth", "gender", "healthConcerns",
-                "trainingExperience", "masterPromptJson", "availableSessions"
+                "trainingExperience", "masterPromptJson", "availableSessions",
+                "clientSource", "accountStatus"
          FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
       // 2. Equipment profiles
       safeQuery(
@@ -773,6 +774,7 @@ Goal: ${u.fitnessGoal || 'Not set'}
 Experience: ${u.trainingExperience || 'Not set'}
 Health Concerns: ${u.healthConcerns || 'None noted'}
 Sessions Available: ${u.availableSessions ?? 'Unknown'}
+Client Source: ${u.clientSource === 'move_fitness' ? 'Move Fitness (external gym client — DO NOT discuss billing, session packages, or SwanStudios pricing)' : u.clientSource === 'external' ? 'External Client' : 'SwanStudios'}
 Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}`);
 
         if (u.masterPromptJson) {

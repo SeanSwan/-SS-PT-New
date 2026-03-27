@@ -167,6 +167,12 @@ const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About.V2')
 );
 
+// Account Claiming (Crystalline Link Protocol — SWAN-XXXX invite codes)
+const ClaimAccountPage = lazyLoadWithErrorHandling(
+  () => import('../pages/ClaimAccountPage'),
+  'Claim Account Page'
+);
+
 // Public Waiver (Phase 5W-G) — V3 primary, V2 fallback
 const PublicWaiverPage = lazyLoadWithErrorHandling(
   () => import('../pages/PublicWaiverPage.V3'),
@@ -442,6 +448,24 @@ const MainRoutes: RouteObject = {
       )
     },
     
+    // Account Claiming (Crystalline Link Protocol — public, no auth required)
+    {
+      path: 'claim/:token',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ClaimAccountPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'claim',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ClaimAccountPage />
+        </Suspense>
+      )
+    },
+
     // Public Waiver (Phase 5W-G)
     {
       path: 'waiver',

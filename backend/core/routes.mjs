@@ -136,6 +136,9 @@ import analyticsRoutes from '../routes/analyticsRoutes.mjs';
 import clientAnalyticsRoutes from '../routes/clientAnalyticsRoutes.mjs';
 import communicationDraftRoutes from '../routes/communicationDraftRoutes.mjs';
 
+// ===================== ACCOUNT CLAIMING (Crystalline Link Protocol) =====================
+import claimRoutes from '../routes/claimRoutes.mjs';
+
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
 import movementAnalysisRoutes from '../routes/movementAnalysisRoutes.mjs';
@@ -393,6 +396,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/waivers', adminWaiverRoutes);
   // 📋 Public Waiver (Phase 5W-G: QR/header waiver submission + version text retrieval)
   app.use('/api/public/waivers', publicWaiverRoutes);
+  // 🔗 Account Claiming (Crystalline Link Protocol — QR/SWAN-XXXX invite codes)
+  app.use('/api/claim', claimRoutes);
   // Client Compliance, Business KPIs, and Automated Check-Ins
   app.use('/api/admin', adminComplianceRoutes);
 

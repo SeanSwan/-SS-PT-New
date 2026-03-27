@@ -335,6 +335,24 @@ User.init(
       comment: 'Client origin: swanstudios (package holder), move_fitness (gym client), external (other)'
     },
 
+    // ========== ACCOUNT STATUS & CLAIM TOKEN (Crystalline Link Protocol) ==========
+    accountStatus: {
+      type: DataTypes.ENUM('stub', 'invited', 'active'),
+      allowNull: false,
+      defaultValue: 'active',
+      comment: 'stub=admin-created no login, invited=claim token sent, active=can login'
+    },
+    claimTokenHash: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'Bcrypt hash of SWAN-XXXX invite code for account claiming'
+    },
+    claimTokenExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: '30-day expiry for claim tokens'
+    },
+
     // ========== PROFILE PRIVACY SETTINGS ==========
     // AI Village 9-Brain Consensus (2026-03-15): app-level privacy, not DB RLS
     profileVisibility: {
