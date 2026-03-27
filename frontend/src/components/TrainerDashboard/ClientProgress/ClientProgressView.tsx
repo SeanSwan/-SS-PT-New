@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useSearchParams } from 'react-router-dom';
 import { Activity, Calendar, Target, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useGlobalClient } from '../../../context/GlobalClientContext';
 import { useClientProgress, ProgressMeasurement } from '../../UniversalMasterSchedule/hooks/useClientProgress';
 import theme from '../../../theme/tokens';
 import ClientProgressCharts from '../../ClientProgressCharts/ClientProgressCharts';
@@ -221,6 +222,7 @@ const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurem
 
 const ClientProgressView: React.FC = () => {
   const { user } = useAuth();
+  const { activeClient } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialClientId = searchParams.get('clientId') || '';
   const [clientIdInput, setClientIdInput] = useState(initialClientId);
@@ -228,6 +230,15 @@ const ClientProgressView: React.FC = () => {
     const parsed = Number(initialClientId);
     return Number.isFinite(parsed) ? parsed : undefined;
   });
+
+  // Auto-load client when global active client changes (trainer/admin selects from sidebar)
+  useEffect(() => {
+    if (activeClient?.id && user?.role !== 'client') {
+      setClientIdInput(String(activeClient.id));
+      setSelectedClientId(activeClient.id);
+      setSearchParams({ clientId: String(activeClient.id) });
+    }
+  }, [activeClient?.id, user?.role, setSearchParams]);
 
   const resolvedClientId = user?.role === 'client' ? user?.id : selectedClientId;
   // Trainer/admin always selects a client to view, and clients view their own data

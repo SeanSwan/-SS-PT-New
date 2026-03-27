@@ -59,7 +59,7 @@ import { useAIChat } from '../../hooks/useAIChat';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-type AIContext =
+export type AIContext =
   | 'general'
   | 'macro_logging'
   | 'form_tips'

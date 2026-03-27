@@ -37,6 +37,7 @@ import {
 
 // Context and Services
 import { useAuth } from '../../../context/AuthContext';
+import { useGlobalClient } from '../../../context/GlobalClientContext';
 import { useToast } from '../../../hooks/use-toast';
 import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
@@ -444,8 +445,10 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const [useOriginalLogger, setUseOriginalLogger] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Get client ID from URL parameters
-  const clientId = searchParams.get('clientId');
+  // Get client ID from GlobalClientContext first, then fall back to URL param
+  const { activeClient } = useGlobalClient();
+  const urlClientId = searchParams.get('clientId');
+  const clientId = urlClientId || (activeClient?.id ? String(activeClient.id) : null);
   
   // Load client data
   const loadClientData = useCallback(async () => {

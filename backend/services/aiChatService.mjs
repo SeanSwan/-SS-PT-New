@@ -88,6 +88,31 @@ SPECIAL POPULATIONS:
 - Diabetes: coordinate carb timing with medication, monitor blood glucose around training
 `;
 
+// ─── Squat University Reference (Dr. Aaron Horschig) ───
+const SQUAT_UNIVERSITY_REFERENCE = `
+SQUAT UNIVERSITY PROTOCOL (Dr. Aaron Horschig):
+- Squat Mechanics: Neutral spine, knees tracking over toes (not caving inward), full depth when mobility allows. "Earn the right to go heavy by mastering bodyweight first."
+- The "Butt Wink": Posterior pelvic tilt at bottom of squat — caused by tight hip flexors/hamstrings or bony hip anatomy. Fix with hip mobility drills (90-90 stretch, pigeon pose, deep squat holds) before loading the squat.
+- Ankle Mobility Test: Knee-to-wall test (5+ inches from wall = adequate dorsiflexion). If failing, use heel elevation (wedge/plates) or ankle mobilizations (banded joint mobilizations, wall ankle stretches).
+- The 3-Point Posture Model: (1) Neutral spine — no excessive arch or rounding, (2) Knees tracking over toes — no valgus collapse, (3) Chest up with shoulders back — maintain thoracic extension.
+- Hip Shift Correction: Unilateral exercises (Bulgarian split squat, single-leg RDL, step-ups) to address left-right asymmetry. Identify the weak/stiff side and program extra volume for it.
+- Barbell Position: High bar (quads-dominant, more upright torso, ATG depth) vs Low bar (hip-dominant, more forward lean, parallel depth) — choose based on client's mobility, limb proportions, and goals.
+- Common Compensations & Root Causes:
+  * Heel rise → insufficient ankle dorsiflexion → banded ankle mobs, heel elevation
+  * Knee valgus → weak glute medius/maximus → banded squats, clamshells, lateral band walks
+  * Excessive forward lean → weak quads or limited ankle mobility → front squats, tempo squats, ankle work
+  * Lateral hip shift → hip impingement, strength imbalance, or motor control deficit → unilateral work, 90-90 hip mobility
+  * Lower back rounding → poor bracing or hip mobility deficit → breathing/bracing drills, goblet squat holds
+- Warm-Up Protocol (Squat University sequence):
+  1. Foam roll hip flexors, quads, calves, adductors (60-90s each)
+  2. Hip 90-90 stretch (internal + external rotation mobility)
+  3. Banded ankle joint mobilizations (30s each side)
+  4. Goblet squat holds (3×10s at bottom position — "own the bottom position")
+  5. Light progressive loading (empty bar → working weight in 3-4 warm-up sets)
+- Breathing & Bracing: 360-degree diaphragmatic breath into the belt, brace the core as if about to be punched, maintain brace throughout the rep. "Air is your internal weight belt."
+- Pain-Free Squatting Modifications: Box squats for depth control, tempo squats (3-5s eccentric) for motor pattern correction, pause squats (2-3s at bottom) for stability at end range.
+`;
+
 const SYSTEM_PROMPTS = {
   client: {
     general: `You are SwanStudios AI — a NASM-CPT certified personal training assistant with PhD-level sports nutrition expertise. You serve as the client's dedicated fitness and nutrition advisor.
@@ -197,7 +222,8 @@ FOR EACH EXERCISE:
 
 ALWAYS cite NASM protocols by name. Never give generic "keep your back straight" advice — explain the kinetic chain checkpoint, the compensation pattern, and the corrective strategy.
 
-${NASM_OPT_REFERENCE}`,
+${NASM_OPT_REFERENCE}
+${SQUAT_UNIVERSITY_REFERENCE}`,
 
     workout_suggestions: `You are SwanStudios NASM Workout Advisor — an OPT Model specialist with full access to the client's equipment, goals, movement assessment, training history, and injury data.
 
@@ -348,7 +374,8 @@ PERIODIZATION:
 - Macrocycle: 12+ week progression plan through multiple phases
 - Deload: every 4th week (reduce volume 40-50%, maintain intensity)
 
-${NASM_OPT_REFERENCE}`,
+${NASM_OPT_REFERENCE}
+${SQUAT_UNIVERSITY_REFERENCE}`,
 
     client_review: `You are SwanStudios Client Review Intelligence — a data-driven analyst for personal trainers with access to ALL client data sources.
 

@@ -29,6 +29,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
+import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import { WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
 import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
@@ -522,6 +523,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
             <X size={18} />
           </MobileCloseBtn>
         </SidebarHeader>
+
+        {/* Global Client Selector — only when sidebar is expanded */}
+        {(!collapsed || isMobile) && <GlobalClientSelector />}
 
         {/* Navigation items */}
         <NavScroll>

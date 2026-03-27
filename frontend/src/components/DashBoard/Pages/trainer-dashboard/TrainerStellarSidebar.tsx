@@ -19,6 +19,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import {
   Activity, Users, ClipboardCheck, BarChart3, Target,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
@@ -521,6 +522,9 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
             <X size={18} />
           </MobileCloseBtn>
         </SidebarHeader>
+
+        {/* Global Client Selector — only when sidebar is expanded */}
+        {!collapsed && <GlobalClientSelector />}
 
         <NavScroll>
           {trainerNavConfig.map((group) => (

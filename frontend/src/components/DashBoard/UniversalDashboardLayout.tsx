@@ -28,6 +28,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
+import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { 
   fetchEvents, 
@@ -110,6 +111,7 @@ const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboar
 const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
+const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Universal Theme — CSS Custom Property Bridge
@@ -448,6 +450,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [omniTerminalOpen, setOmniTerminalOpen] = useState(false);
 
   // Redux state
   const currentUserRole = useAppSelector(selectCurrentUserRole);
@@ -618,57 +621,124 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   }
 
   return (
-    <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
-      <UniversalGlobalStyles />
-      <UniversalLayoutContainer>
-        {/* Role-specific Stellar Sidebar */}
-        {renderSidebar()}
-        
-        {/* Universal Main Content Area */}
-        <UniversalMainContent
-          $sidebarCollapsed={sidebarCollapsed}
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <AnimatePresence mode="wait">
-            <Suspense fallback={<LoadingState />}>
-              <Routes>
-                {/* Default redirect */}
-                <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+    <GlobalClientProvider>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
+        <UniversalGlobalStyles />
+        <UniversalLayoutContainer>
+          {/* Role-specific Stellar Sidebar */}
+          {renderSidebar()}
 
-                {/* Role-specific routes — render routes for the active URL role */}
-                <Route path={`/${activeRole}/*`} element={
-                  <Routes>
-                    {roleConfig.routes.map(({ path, component: Component }) => (
-                      <Route
-                        key={path}
-                        path={path}
-                        element={
-                          <UniversalPageContainer
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
-                          >
-                            <Component />
-                          </UniversalPageContainer>
-                        }
-                      />
-                    ))}
-                    {/* Default redirect for role */}
-                    <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
-                  </Routes>
-                } />
+          {/* Universal Main Content Area */}
+          <UniversalMainContent
+            $sidebarCollapsed={sidebarCollapsed}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <AnimatePresence mode="wait">
+              <Suspense fallback={<LoadingState />}>
+                <Routes>
+                  {/* Default redirect */}
+                  <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
 
-                {/* Fallback Route */}
-                <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
-              </Routes>
-            </Suspense>
-          </AnimatePresence>
-        </UniversalMainContent>
-      </UniversalLayoutContainer>
-    </ThemeProvider>
+                  {/* Role-specific routes — render routes for the active URL role */}
+                  <Route path={`/${activeRole}/*`} element={
+                    <Routes>
+                      {roleConfig.routes.map(({ path, component: Component }) => (
+                        <Route
+                          key={path}
+                          path={path}
+                          element={
+                            <UniversalPageContainer
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.6 }}
+                            >
+                              <Component />
+                            </UniversalPageContainer>
+                          }
+                        />
+                      ))}
+                      {/* Default redirect for role */}
+                      <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+                    </Routes>
+                  } />
+
+                  {/* Fallback Route */}
+                  <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+                </Routes>
+              </Suspense>
+            </AnimatePresence>
+          </UniversalMainContent>
+        </UniversalLayoutContainer>
+
+        {/* OmniTerminal — persistent AI assistant drawer, accessible from all pages */}
+        {(activeRole === 'admin' || activeRole === 'trainer') && (
+          <Suspense fallback={null}>
+            <OmniTerminal
+              isOpen={omniTerminalOpen}
+              onClose={() => setOmniTerminalOpen(false)}
+            />
+          </Suspense>
+        )}
+
+        {/* OmniTerminal trigger FAB */}
+        {(activeRole === 'admin' || activeRole === 'trainer') && !omniTerminalOpen && (
+          <OmniTerminalFAB
+            onClick={() => setOmniTerminalOpen(true)}
+            aria-label="Open SwanStudios Assistant"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
+              <path d="M18 14v2a6 6 0 0 1-12 0v-2" />
+              <line x1="12" y1="18" x2="12" y2="22" />
+              <line x1="8" y1="22" x2="16" y2="22" />
+            </svg>
+            AI
+          </OmniTerminalFAB>
+        )}
+      </ThemeProvider>
+    </GlobalClientProvider>
   );
 };
+
+// OmniTerminal floating action button
+const OmniTerminalFAB = styled.button`
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+  z-index: 1050;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3), 0 0 12px rgba(96, 192, 240, 0.2);
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(139, 92, 246, 0.5), 0 0 20px rgba(96, 192, 240, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  @media (max-width: 768px) {
+    bottom: 16px;
+    right: 16px;
+  }
+`;
 
 export default UniversalDashboardLayout;
