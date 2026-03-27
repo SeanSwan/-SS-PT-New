@@ -447,8 +447,13 @@ router.post('/track-pageview', pageviewLimiter, async (req, res) => {
     const { page, referrer } = req.body || {};
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    // Skip bots
-    if (/bot|crawler|spider|curl|wget|python|scrapy/i.test(userAgent)) {
+    // Skip bots and automated testing tools (Playwright, Puppeteer, etc.)
+    if (/bot|crawler|spider|curl|wget|python|scrapy|playwright|puppeteer|headless|cypress/i.test(userAgent)) {
+      return res.json({ success: true, tracked: false });
+    }
+
+    // Skip admin dashboard and auth pages — these inflate visitor counts
+    if (page && (/^\/dashboard/i.test(page) || /^\/(login|register|auth)/i.test(page))) {
       return res.json({ success: true, tracked: false });
     }
 

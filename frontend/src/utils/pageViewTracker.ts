@@ -14,6 +14,13 @@ export function trackPageView(path?: string) {
 
   // Don't re-track the same page
   if (pagePath === lastTrackedPath) return;
+
+  // Skip admin dashboard pages — these inflate visitor counts
+  if (pagePath.startsWith('/dashboard')) return;
+
+  // Skip login/auth pages
+  if (pagePath === '/login' || pagePath === '/register' || pagePath === '/auth') return;
+
   lastTrackedPath = pagePath;
 
   try {

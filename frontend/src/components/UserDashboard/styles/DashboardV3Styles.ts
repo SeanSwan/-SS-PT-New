@@ -173,6 +173,7 @@ export const ContentGrid = styled.div`
   grid-template-columns: 300px 1fr;
   gap: 2rem;
   margin-top: 2rem;
+  overflow: hidden;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -1350,6 +1351,8 @@ export const MainContent = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
+  overflow: hidden;
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {

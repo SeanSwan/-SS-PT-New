@@ -349,11 +349,12 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // ── 1. Logged-in users with IPs ──
+    // ── 1. Logged-in users with IPs (exclude admins — they inflate visitor counts) ──
     const users = await User.findAll({
       where: {
         lastLoginIP: { [Op.ne]: null },
         lastActive: { [Op.gte]: ninetyDaysAgo },
+        role: { [Op.ne]: 'admin' },
       },
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'lastLoginIP', 'lastActive', 'lastLogin'],
       order: [['lastActive', 'DESC']],
@@ -568,6 +569,18 @@ router.get('/visitor-history', async (req, res) => {
     }
 
     const { count, rows } = await PageView.findAndCountAll({
+      where: {
+        // Exclude Playwright/bot user agents
+        [Op.or]: [
+          { userAgent: null },
+          { userAgent: { [Op.notILike]: '%playwright%' } },
+        ],
+        // Exclude records that only visited admin dashboard or auth pages
+        [Op.not]: [
+          { page: { [Op.iLike]: '/dashboard%' } },
+        ],
+        page: { [Op.notIn]: ['/login', '/register', '/auth'] },
+      },
       order: [['last_seen', 'DESC']],
       limit,
       offset,
