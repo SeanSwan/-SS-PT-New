@@ -107,8 +107,8 @@ const VisitorWorldMap: React.FC = () => {
   }, [mapData]);
 
   const markerRadius = (count: number) => {
-    const min = 4;
-    const max = 14;
+    const min = 2;
+    const max = 5;
     return min + ((count / maxCount) * (max - min));
   };
 
@@ -195,7 +195,7 @@ const VisitorWorldMap: React.FC = () => {
               >
                 {/* Outer glow ring */}
                 <circle
-                  r={markerRadius(city.count) + 4}
+                  r={markerRadius(city.count) + 2}
                   fill="rgba(96, 192, 240, 0.15)"
                   className="pulse-ring"
                 />
@@ -205,17 +205,17 @@ const VisitorWorldMap: React.FC = () => {
                   fill="var(--accent-primary, #60C0F0)"
                   fillOpacity={0.85}
                   stroke="var(--accent-secondary, #8B5CF6)"
-                  strokeWidth={1.5}
+                  strokeWidth={0.5}
                   style={{ cursor: 'pointer' }}
                 />
                 {/* Count label for large markers */}
-                {city.count > 1 && markerRadius(city.count) >= 8 && (
+                {city.count > 1 && markerRadius(city.count) >= 4 && (
                   <text
                     textAnchor="middle"
-                    y={4}
+                    y={1.5}
                     style={{
                       fontFamily: "'Fira Code', monospace",
-                      fontSize: '9px',
+                      fontSize: '4px',
                       fontWeight: 700,
                       fill: '#fff',
                       pointerEvents: 'none',
