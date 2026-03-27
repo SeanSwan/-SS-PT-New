@@ -1038,7 +1038,8 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
  * Tries providers in order: OpenAI -> Anthropic -> Gemini
  */
 export async function sendChatMessage(messages, options = {}) {
-  const { maxTokens = 3000, temperature = 0.7 } = options;
+  // maxTokens reduced from 3000 to 1500 to stay under Render's proxy timeout
+  const { maxTokens = 1500, temperature = 0.7 } = options;
   const providers = getAvailableProviders();
   const failoverTrace = [];
 
@@ -1137,7 +1138,7 @@ async function callProvider(provider, messages, options) {
 
 async function callOpenAI(apiKey, messages, maxTokens, temperature) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 50000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1222,9 +1223,9 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
     parts: [{ text: m.content }],
   }));
 
-  // 50-second timeout to stay under Render's proxy timeout (~60s)
+  // 25-second timeout — must finish before Render's 30s proxy timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 50000);
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch(
@@ -1265,7 +1266,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error('Gemini request timed out after 50s');
+      throw new Error('Gemini request timed out after 25s');
     }
     throw err;
   }
