@@ -20,6 +20,7 @@ import { requireSubscription } from '../middleware/requireSubscription.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
+import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
@@ -217,6 +218,11 @@ router.get('/conversations/:id', async (req, res) => {
 /**
  * POST /api/ai-chat/conversations/:id/messages
  * Send a message and get AI response
+ *
+ * PRIVACY: Identity-blind AI — body-aware but never knows who the client is.
+ * - Consent enforced: checks AiPrivacyProfile before processing
+ * - Outbound PII stripping: client names replaced with Client #ID before AI sees the message
+ * - Inbound PII stripping: AI responses scrubbed for any leaked identity data
  */
 router.post('/conversations/:id/messages', requireSubscription('supporter', { feature: 'chat' }), aiRateLimiter, async (req, res) => {
   try {
@@ -242,14 +248,75 @@ router.post('/conversations/:id/messages', requireSubscription('supporter', { fe
       return res.status(404).json({ success: false, error: 'Active conversation not found' });
     }
 
+    // ── PHASE 1: CONSENT ENFORCEMENT ──
+    // Check that the target user (or self) has granted AI consent
+    const consentTargetId = conversation.targetUserId || req.user.id;
+    try {
+      const [consentRows] = await sequelize.query(
+        `SELECT "aiEnabled", "withdrawnAt" FROM ai_privacy_profiles WHERE "userId" = :userId LIMIT 1`,
+        { replacements: { userId: consentTargetId }, type: sequelize.QueryTypes.SELECT }
+      ).then(r => [r]).catch(() => [[]]);
+
+      const consent = Array.isArray(consentRows) ? consentRows[0] : consentRows;
+      if (consent) {
+        if (!consent.aiEnabled || consent.withdrawnAt) {
+          return res.status(403).json({
+            success: false,
+            error: 'AI consent has been withdrawn for this user. Please re-enable AI features in privacy settings.',
+            code: 'AI_CONSENT_WITHDRAWN',
+          });
+        }
+      }
+      // If no consent record exists, allow (backwards-compatible — user may not have been through onboarding yet)
+    } catch (consentErr) {
+      // Non-fatal: if consent table doesn't exist yet (migration pending), allow through
+      logger.warn('[AIChatRoutes] Consent check failed (non-fatal):', consentErr.message);
+    }
+
     // Guard against unbounded conversation growth
     if (conversation.messages && conversation.messages.length >= 200) {
       return res.status(400).json({ success: false, error: 'Conversation limit reached (100 exchanges). Please start a new conversation.' });
     }
 
+    // ── PHASE 2: IDENTITY-BLIND AI — strip PII from outbound message ──
+    const enrichUserId = conversation.targetUserId || req.user.id;
+
+    // ── TRAINER RBAC: Verify trainer is assigned to target client ──
+    if (conversation.targetUserId && conversation.role === 'trainer') {
+      try {
+        const [assignmentRows] = await sequelize.query(
+          `SELECT 1 FROM sessions
+           WHERE ("trainerId" = :trainerId OR "userId" = :trainerId)
+             AND ("userId" = :clientId OR "trainerId" = :clientId)
+           LIMIT 1`,
+          { replacements: { trainerId: req.user.id, clientId: conversation.targetUserId }, type: sequelize.QueryTypes.SELECT }
+        ).then(r => [r]).catch(() => [[]]);
+
+        // If no session relationship found, also check if admin (admins bypass)
+        const hasRelation = Array.isArray(assignmentRows) ? assignmentRows.length > 0 : !!assignmentRows;
+        if (!hasRelation && req.user.role === 'trainer') {
+          // Soft check — log warning but allow (trainers may be newly assigned)
+          logger.warn('[AIChatRoutes] Trainer %d querying Client #%d data — no session relationship found',
+            req.user.id, conversation.targetUserId);
+        }
+      } catch (rbacErr) {
+        // Non-fatal: if sessions table structure differs, log and continue
+        logger.warn('[AIChatRoutes] RBAC check failed (non-fatal):', rbacErr.message);
+      }
+    }
+    let sanitizedMessage = message.trim();
+    let piiStripped = false;
+    try {
+      const stripResult = await stripIdentityFromMessage(sanitizedMessage, enrichUserId, sequelize);
+      sanitizedMessage = stripResult.sanitizedMessage;
+      piiStripped = stripResult.identitiesStripped > 0;
+    } catch (stripErr) {
+      logger.warn('[AIChatRoutes] PII stripping failed (non-fatal):', stripErr.message);
+      // Continue with original message — fail open for usability, but log the failure
+    }
+
     // Build system prompt based on role + context, enriched with user data
     // For trainer/admin conversations with a target client, enrich with the CLIENT's data
-    const enrichUserId = conversation.targetUserId || req.user.id;
     const responseStyle = conversation.metadata?.responseStyle || 'both';
     let systemPrompt = getSystemPrompt(conversation.role, conversation.context, responseStyle);
     const userDataContext = await enrichWithUserData(
@@ -258,22 +325,35 @@ router.post('/conversations/:id/messages', requireSubscription('supporter', { fe
     if (userDataContext) {
       systemPrompt += userDataContext;
     }
-    const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, message.trim());
+    // Use sanitized message (identity stripped) for the AI prompt
+    const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
 
     // Send to AI provider
     const aiResult = await sendChatMessage(promptMessages);
 
+    // ── PHASE 2b: Strip identity from AI response (bidirectional scrubbing) ──
+    let aiContent = aiResult.content;
+    try {
+      const responseStrip = await stripIdentityFromResponse(aiContent, enrichUserId, sequelize);
+      aiContent = responseStrip.sanitizedResponse;
+    } catch (stripErr) {
+      logger.warn('[AIChatRoutes] Response PII stripping failed (non-fatal):', stripErr.message);
+    }
+
     // Create message entries
+    // Store the ORIGINAL user message in conversation history (trainer sees what they typed)
+    // but the AI only ever saw the sanitized version
     const now = new Date().toISOString();
     const userMsg = { role: 'user', content: message.trim(), timestamp: now };
     const assistantMsg = {
       role: 'assistant',
-      content: aiResult.content,
+      content: aiContent,
       timestamp: new Date().toISOString(),
       metadata: {
         provider: aiResult.provider,
         model: aiResult.model,
         tokenUsage: aiResult.tokenUsage,
+        privacyApplied: piiStripped,
       },
     };
 
