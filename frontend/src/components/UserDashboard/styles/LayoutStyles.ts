@@ -86,6 +86,7 @@ export const ContentGrid = styled.div`
   grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1.5rem;
+  overflow: hidden;
 
   @media (min-width: 768px) { grid-template-columns: 240px 1fr; gap: 1.5rem; }
   @media (min-width: 1024px) { grid-template-columns: 280px 1fr; gap: 2rem; margin-top: 2rem; }
@@ -152,6 +153,8 @@ export const MainContent = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
+  overflow: hidden;
 
   @media (max-width: 320px) { gap: 1rem; }
   @media (min-width: 2560px) { gap: 2rem; }
