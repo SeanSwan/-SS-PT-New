@@ -1018,16 +1018,26 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
     { role: 'system', content: systemPrompt },
   ];
 
-  // Add conversation history (last 20 messages to stay within context limits)
-  const recentMessages = conversationMessages.slice(-20);
+  // ── HISTORY TRIMMING ──
+  // Keep last 6 messages (3 exchanges) to stay within Render's 30s proxy timeout.
+  // Truncate long messages (AI responses can be 5000+ chars) to prevent prompt bloat.
+  const MAX_HISTORY_MESSAGES = 6;
+  const MAX_MSG_CHARS = 800;
+
+  const recentMessages = conversationMessages.slice(-MAX_HISTORY_MESSAGES);
   for (const msg of recentMessages) {
+    let content = msg.content || '';
+    if (content.length > MAX_MSG_CHARS) {
+      // Keep first 500 chars + last 200 chars with truncation marker
+      content = content.slice(0, 500) + '\n\n[... response truncated for context window ...]\n\n' + content.slice(-200);
+    }
     messages.push({
       role: msg.role === 'assistant' ? 'assistant' : 'user',
-      content: msg.content,
+      content,
     });
   }
 
-  // Add the new user message
+  // Add the new user message (full, not truncated)
   messages.push({ role: 'user', content: newMessage });
 
   return messages;
@@ -1223,53 +1233,71 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
     parts: [{ text: m.content }],
   }));
 
-  // 25-second timeout — must finish before Render's 30s proxy timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
+  // Try Pro first (better quality), fall back to Flash (faster) on timeout
+  const models = ['gemini-3.1-pro-preview', 'gemini-2.5-flash'];
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents,
-          systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature,
-          },
-        }),
+  for (const model of models) {
+    // Pro gets 22s timeout, Flash gets 20s — both must finish before Render's 30s proxy timeout
+    const timeoutMs = model.includes('pro') ? 22000 : 20000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents,
+            systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
+            generationConfig: {
+              maxOutputTokens: maxTokens,
+              temperature,
+            },
+          }),
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Gemini ${response.status}: ${err.slice(0, 200)}`);
       }
-    );
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Gemini ${response.status}: ${err.slice(0, 200)}`);
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      return {
+        content: text,
+        model,
+        tokenUsage: {
+          inputTokens: data.usageMetadata?.promptTokenCount || null,
+          outputTokens: data.usageMetadata?.candidatesTokenCount || null,
+          totalTokens: data.usageMetadata?.totalTokenCount || null,
+        },
+      };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        // Pro timed out — try Flash (faster model)
+        if (model.includes('pro')) {
+          logger.warn('[AIChatService] Gemini Pro timed out after %dms, falling back to Flash', timeoutMs);
+          continue;
+        }
+        throw new Error('Gemini Flash request timed out after ' + timeoutMs + 'ms');
+      }
+      // Non-timeout error on Pro — still try Flash
+      if (model.includes('pro')) {
+        logger.warn('[AIChatService] Gemini Pro error: %s — falling back to Flash', err.message);
+        continue;
+      }
+      throw err;
     }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return {
-      content: text,
-      model: 'gemini-3.1-pro-preview',
-      tokenUsage: {
-        inputTokens: data.usageMetadata?.promptTokenCount || null,
-        outputTokens: data.usageMetadata?.candidatesTokenCount || null,
-        totalTokens: data.usageMetadata?.totalTokenCount || null,
-      },
-    };
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('Gemini request timed out after 25s');
-    }
-    throw err;
   }
+
+  throw new Error('All Gemini models failed');
 }
 
 async function callVenice(apiKey, messages, maxTokens, temperature) {
