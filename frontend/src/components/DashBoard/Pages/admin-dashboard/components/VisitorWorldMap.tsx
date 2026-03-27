@@ -59,8 +59,9 @@ interface MapData {
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
 // US states overlay (10m resolution — shows all 50 states)
 const US_STATES_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
-// Canadian provinces/territories overlay
-const CANADA_URL = 'https://gist.githubusercontent.com/Brideau/2391df60938462571ca9/raw/canada.json';
+// NOTE: Canadian provinces overlay removed — countries-50m.json only has country outlines,
+// not province boundaries. Province-level data requires a dedicated source (e.g., StatsCan).
+// The main world map already renders Canada's country border.
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -203,26 +204,6 @@ const VisitorWorldMap: React.FC = () => {
 
             {/* US state boundaries overlay */}
             <Geographies geography={US_STATES_URL}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill="transparent"
-                    stroke="var(--border-soft, rgba(96,192,240,0.08))"
-                    strokeWidth={0.3}
-                    style={{
-                      default: { outline: 'none' },
-                      hover: { outline: 'none' },
-                      pressed: { outline: 'none' },
-                    }}
-                  />
-                ))
-              }
-            </Geographies>
-
-            {/* Canadian provinces/territories overlay */}
-            <Geographies geography={CANADA_URL}>
               {({ geographies }) =>
                 geographies.map((geo) => (
                   <Geography

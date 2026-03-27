@@ -812,13 +812,13 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
               </SubTitle>
               <GlassPaper>
                 <BoldText style={{ display: 'block', marginBottom: 4 }}>
-                  {data.achievementStats.mostPopularAchievement.name}
+                  {data.achievementStats?.mostPopularAchievement?.name ?? 'No data yet'}
                 </BoldText>
                 <SubText style={{ display: 'block', marginBottom: 8 }}>
-                  {data.achievementStats.mostPopularAchievement.description}
+                  {data.achievementStats?.mostPopularAchievement?.description ?? '—'}
                 </SubText>
                 <ChipBadge>
-                  Earned by {data.achievementStats.mostPopularAchievement.count} users
+                  Earned by {data.achievementStats?.mostPopularAchievement?.count ?? 0} users
                 </ChipBadge>
               </GlassPaper>
 
@@ -828,13 +828,13 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
               </SubTitle>
               <GlassPaper style={{ marginBottom: 0 }}>
                 <BoldText style={{ display: 'block', marginBottom: 4 }}>
-                  {data.rewardStats.mostRedeemedReward.name}
+                  {data.rewardStats?.mostRedeemedReward?.name ?? 'No data yet'}
                 </BoldText>
                 <SubText style={{ display: 'block', marginBottom: 8 }}>
-                  {data.rewardStats.mostRedeemedReward.description}
+                  {data.rewardStats?.mostRedeemedReward?.description ?? '—'}
                 </SubText>
                 <ChipBadge>
-                  Redeemed {data.rewardStats.mostRedeemedReward.count} times
+                  Redeemed {data.rewardStats?.mostRedeemedReward?.count ?? 0} times
                 </ChipBadge>
               </GlassPaper>
             </CardBody>
@@ -982,12 +982,12 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     <ListPrimary>Most Popular Achievement</ListPrimary>
                     <ListSecondary as="div">
                       <BoldText style={{ display: 'block', fontSize: '0.85rem' }}>
-                        {data.achievementStats.mostPopularAchievement.name}
+                        {data.achievementStats?.mostPopularAchievement?.name ?? 'No data yet'}
                       </BoldText>
-                      <span>{data.achievementStats.mostPopularAchievement.description}</span>
+                      <span>{data.achievementStats?.mostPopularAchievement?.description ?? '—'}</span>
                       <br />
                       <span style={{ color: THEME.success }}>
-                        Earned by {data.achievementStats.mostPopularAchievement.count} users
+                        Earned by {data.achievementStats?.mostPopularAchievement?.count ?? 0} users
                       </span>
                     </ListSecondary>
                   </ListContent>
@@ -998,12 +998,12 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     <ListPrimary>Least Popular Achievement</ListPrimary>
                     <ListSecondary as="div">
                       <BoldText style={{ display: 'block', fontSize: '0.85rem' }}>
-                        {data.achievementStats.leastPopularAchievement.name}
+                        {data.achievementStats?.leastPopularAchievement?.name ?? 'No data yet'}
                       </BoldText>
-                      <span>{data.achievementStats.leastPopularAchievement.description}</span>
+                      <span>{data.achievementStats?.leastPopularAchievement?.description ?? '—'}</span>
                       <br />
                       <span style={{ color: THEME.error }}>
-                        Earned by only {data.achievementStats.leastPopularAchievement.count} users
+                        Earned by only {data.achievementStats?.leastPopularAchievement?.count ?? 0} users
                       </span>
                     </ListSecondary>
                   </ListContent>
@@ -1344,7 +1344,7 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     <ListIcon><Trophy size={18} color={THEME.warning} /></ListIcon>
                     <ListContent>
                       <ListSecondary style={{ color: THEME.text }}>
-                        "{data.achievementStats.mostPopularAchievement.name}" is the most popular achievement, with a 90% completion rate among active users.
+                        "{data.achievementStats?.mostPopularAchievement?.name ?? 'N/A'}" is the most popular achievement, with a 90% completion rate among active users.
                       </ListSecondary>
                     </ListContent>
                   </ListRow>
@@ -1352,7 +1352,7 @@ const SystemAnalytics: React.FC<{ data: any }> = ({ data }) => {
                     <ListIcon><Gift size={18} color={THEME.accent} /></ListIcon>
                     <ListContent>
                       <ListSecondary style={{ color: THEME.text }}>
-                        "{data.rewardStats.mostRedeemedReward.name}" is the most redeemed reward, accounting for 36% of all reward redemptions.
+                        "{data.rewardStats?.mostRedeemedReward?.name ?? 'N/A'}" is the most redeemed reward, accounting for 36% of all reward redemptions.
                       </ListSecondary>
                     </ListContent>
                   </ListRow>

@@ -526,6 +526,10 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       if (includeIntensityTrends) {
         // FIXED: Use workoutDate instead of date (Sequelize field name)
         const sessionDate = new Date(session.workoutDate);
+        // Calculate ISO week number from the session date
+        const startOfYear = new Date(sessionDate.getFullYear(), 0, 1);
+        const daysSinceStart = Math.floor((sessionDate - startOfYear) / (24 * 60 * 60 * 1000));
+        const weekNumber = Math.ceil((daysSinceStart + startOfYear.getDay() + 1) / 7);
         const weekKey = `W${weekNumber}`;
         
         if (!weeklyIntensity[weekKey]) {

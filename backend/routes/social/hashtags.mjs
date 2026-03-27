@@ -79,6 +79,10 @@ router.get('/trending', async (req, res) => {
 
     return res.json({ success: true, data: hashtags });
   } catch (error) {
+    // Non-fatal: table may not be migrated yet in production
+    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
+      return res.json({ success: true, data: [] });
+    }
     console.error('Error fetching trending hashtags:', error);
     return res.status(500).json({ success: false, message: 'Failed to fetch trending hashtags' });
   }

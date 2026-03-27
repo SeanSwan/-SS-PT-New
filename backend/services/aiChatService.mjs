@@ -12,6 +12,7 @@
  * Provider priority: Gemini -> OpenAI -> Anthropic -> Venice
  */
 import logger from '../utils/logger.mjs';
+import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 
 // ─── NASM OPT Model Reference (embedded in prompts) ───
 const NASM_OPT_REFERENCE = `
@@ -746,6 +747,16 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
 
     // ── PROCESS RESULTS: Build data parts from parallel query results ──
 
+    // ── PRIVACY: Fetch client identity for PII stripping in notes/sessions ──
+    let clientIdentity = null;
+    try {
+      const idRows = await sequelize.query(
+        `SELECT "firstName", "lastName", email, phone FROM "Users" WHERE id = :userId LIMIT 1`,
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+      );
+      if (idRows.length > 0) clientIdentity = idRows[0];
+    } catch { /* non-fatal */ }
+
     // ── 1. USER PROFILE ──
     // PRIVACY: Use user ID only — no real names or emails sent to AI providers
     try {
@@ -848,9 +859,12 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- GOALS ---\n${goals.map(g => `[${(g.priority || 'med').toUpperCase()}] ${g.title}: ${g.progressPercentage ?? 0}%${g.targetValue ? ` (${g.currentValue || 0}/${g.targetValue})` : ''}${g.deadline ? ` due:${g.deadline}` : ''}`).join('\n')}`);
     }
 
-    // ── 10. TRAINER NOTES ──
+    // ── 10. TRAINER NOTES (PII-stripped) ──
     if (notes.length > 0) {
-      dataParts.push(`\n--- TRAINER NOTES ---\n${notes.map(n => `[${n.severity?.toUpperCase()}/${n.noteType}] ${n.content}${n.isResolved ? ' (RESOLVED)' : ''}`).join('\n')}`);
+      dataParts.push(`\n--- TRAINER NOTES ---\n${notes.map(n => {
+        const safeContent = stripIdentityFromNotes(n.content, userId, clientIdentity);
+        return `[${n.severity?.toUpperCase()}/${n.noteType}] ${safeContent}${n.isResolved ? ' (RESOLVED)' : ''}`;
+      }).join('\n')}`);
     }
 
     // ── 11. NASM PROGRESS LEVELS ──
@@ -911,9 +925,12 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${p.description}` : ''}`).join('\n')}`);
     }
 
-    // ── 17. SESSIONS ──
+    // ── 17. SESSIONS (notes PII-stripped) ──
     if (sessions.length > 0) {
-      dataParts.push(`\n--- SESSIONS ---\n${sessions.map(s => `${s.sessionDate}: ${s.status}${s.duration ? ` (${s.duration}min)` : ''}${s.notes ? ` — ${s.notes}` : ''}`).join('\n')}`);
+      dataParts.push(`\n--- SESSIONS ---\n${sessions.map(s => {
+        const safeNotes = s.notes ? stripIdentityFromNotes(s.notes, userId, clientIdentity) : '';
+        return `${s.sessionDate}: ${s.status}${s.duration ? ` (${s.duration}min)` : ''}${safeNotes ? ` — ${safeNotes}` : ''}`;
+      }).join('\n')}`);
     }
 
     // ── 18. COMPLIANCE ──
@@ -968,7 +985,17 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     } catch { /* MV or tables may not exist yet — non-fatal */ }
 
     if (dataParts.length === 0) return '';
-    return '\n\n=== CLIENT DATA (21 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
+
+    // PRIVACY: Prepend identity-blind instruction to AI
+    const privacyHeader = `
+=== PRIVACY: IDENTITY-BLIND MODE ===
+You are operating in identity-blind mode. The client is referred to ONLY as "Client #${userId}".
+You do NOT know and must NOT guess the client's real name, email, phone, or address.
+If the trainer mentions a name, it has been replaced with "[Client #${userId}]" for privacy.
+NEVER ask for or reference personal identifying information. Focus solely on their fitness data.
+=== END PRIVACY ===`;
+
+    return '\n\n' + privacyHeader + '\n\n=== CLIENT DATA (21 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';
@@ -1109,12 +1136,15 @@ async function callProvider(provider, messages, options) {
 }
 
 async function callOpenAI(apiKey, messages, maxTokens, temperature) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
+    signal: controller.signal,
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages,
@@ -1122,6 +1152,7 @@ async function callOpenAI(apiKey, messages, maxTokens, temperature) {
       temperature,
     }),
   });
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const err = await response.text();
@@ -1191,38 +1222,53 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
     parts: [{ text: m.content }],
   }));
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature,
-        },
-      }),
+  // 50-second timeout to stay under Render's proxy timeout (~60s)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents,
+          systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+            temperature,
+          },
+        }),
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Gemini ${response.status}: ${err.slice(0, 200)}`);
     }
-  );
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Gemini ${response.status}: ${err.slice(0, 200)}`);
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return {
+      content: text,
+      model: 'gemini-3.1-pro-preview',
+      tokenUsage: {
+        inputTokens: data.usageMetadata?.promptTokenCount || null,
+        outputTokens: data.usageMetadata?.candidatesTokenCount || null,
+        totalTokens: data.usageMetadata?.totalTokenCount || null,
+      },
+    };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Gemini request timed out after 50s');
+    }
+    throw err;
   }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return {
-    content: text,
-    model: 'gemini-3.1-pro-preview',
-    tokenUsage: {
-      inputTokens: data.usageMetadata?.promptTokenCount || null,
-      outputTokens: data.usageMetadata?.candidatesTokenCount || null,
-      totalTokens: data.usageMetadata?.totalTokenCount || null,
-    },
-  };
 }
 
 async function callVenice(apiKey, messages, maxTokens, temperature) {

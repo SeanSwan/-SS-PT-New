@@ -108,6 +108,10 @@ router.get('/active', async (req, res) => {
       }
     });
   } catch (error) {
+    // Non-fatal: table may not be migrated yet in production
+    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
+      return res.status(200).json({ success: true, challenges: [], pagination: { limit: 10, offset: 0, total: 0 } });
+    }
     console.error('Error fetching active challenges:', error);
     return res.status(500).json({
       success: false,
