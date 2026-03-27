@@ -251,10 +251,30 @@ const TrainerAssessmentsPage: React.FC = () => {
     load();
   }, [authAxios]);
 
-  const handleSubmit = useCallback(() => {
-    // TODO: implement POST /api/assessments
-    console.warn('TODO: submit assessment', { assessmentType, clientId, score, notes, date });
-  }, [assessmentType, clientId, score, notes, date]);
+  const handleSubmit = useCallback(async () => {
+    if (!authAxios || !clientId || !assessmentType) return;
+    try {
+      await authAxios.post('/api/assessments', {
+        assessmentType,
+        clientId: Number(clientId),
+        score: Number(score) || 0,
+        notes,
+        date: date || new Date().toISOString().split('T')[0],
+      });
+      // Reset form on success
+      setScore(5);
+      setNotes('');
+      setDate(new Date().toISOString().split('T')[0]);
+      // Reload assessments list
+      try {
+        const res = await authAxios.get('/api/assessments');
+        const list = Array.isArray(res.data) ? res.data : res.data?.assessments || [];
+        setHistory(list);
+      } catch { /* list refresh failed, non-critical */ }
+    } catch (err: any) {
+      console.error('Failed to submit assessment:', err);
+    }
+  }, [authAxios, assessmentType, clientId, score, notes, date]);
 
   return (
     <PageWrapper>

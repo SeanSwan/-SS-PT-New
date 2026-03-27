@@ -55,7 +55,7 @@ const ModerationWidget: React.FC = () => {
           <ModTitle>Content Moderation</ModTitle>
           {stats.pending > 0 && <ModBadge>{stats.pending}</ModBadge>}
         </ModHeaderLeft>
-        <ModViewAll onClick={() => navigate('/dashboard/content/moderation')} aria-label="View all moderation items">
+        <ModViewAll onClick={() => navigate('/dashboard/admin/content')} aria-label="View all moderation items">
           View All <ExternalLink size={14} />
         </ModViewAll>
       </ModHeader>

@@ -652,7 +652,7 @@ const TrainersManagementSection: React.FC = () => {
   };
 
   const handleManagePermissions = () => {
-    navigate('/dashboard/trainers/permissions');
+    navigate('/dashboard/admin/trainer-permissions');
   };
 
   const getUserInitials = (name: string) => {

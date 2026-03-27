@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useAuth } from '../../../context/AuthContext';
 import {
   Activity,
   Trophy,
@@ -368,37 +369,88 @@ const EnhancedClientProgressView: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const { authAxios } = useAuth();
+  const [clientData, setClientData] = useState<ClientData | null>(null);
+  const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryEntry[]>([]);
+  const [isLoadingClient, setIsLoadingClient] = useState(true);
 
   const clientId = searchParams.get('clientId') || '1';
 
-  // Mock enhanced client data - in real implementation, this would come from API
-  const enhancedClientData = useMemo((): ClientData => ({
-    id: clientId,
-    firstName: 'John',
-    lastName: 'Doe',
-    username: 'johndoe',
-    startDate: '2024-01-15',
-    totalSessions: 45,
-    completedSessions: 38,
-    riskLevel: 'medium' as const,
-    primaryGoals: ['Weight Loss', 'Strength Building'],
-    lastAssessment: new Date().toISOString(),
-    progressMetrics: {
-      strength: 75,
-      cardio: 68,
-      flexibility: 60,
-      balance: 65,
-      stability: 70
-    }
-  }), [clientId]);
+  // Fetch real client data from API
+  const loadClientData = useCallback(async () => {
+    if (!authAxios) return;
+    setIsLoadingClient(true);
+    try {
+      const [clientRes, progressRes] = await Promise.allSettled([
+        authAxios.get(`/api/workout-forms/client/${clientId}/info`),
+        authAxios.get(`/api/workout-forms/client/${clientId}/progress`),
+      ]);
 
-  const mockWorkoutHistory = useMemo((): WorkoutHistoryEntry[] => [
-    { date: '2024-07-15', type: 'Strength', duration: 60, intensity: 7 },
-    { date: '2024-07-13', type: 'Cardio', duration: 45, intensity: 6 },
-    { date: '2024-07-11', type: 'Flexibility', duration: 30, intensity: 5 },
-    { date: '2024-07-09', type: 'Strength', duration: 65, intensity: 8 },
-    { date: '2024-07-07', type: 'HIIT', duration: 35, intensity: 9 }
-  ], []);
+      const clientInfo = clientRes.status === 'fulfilled' ? clientRes.value.data?.client : null;
+      const progressInfo = progressRes.status === 'fulfilled' ? progressRes.value.data : null;
+
+      setClientData({
+        id: clientId,
+        firstName: clientInfo?.firstName || 'Client',
+        lastName: clientInfo?.lastName || `#${clientId}`,
+        username: clientInfo?.email?.split('@')[0] || `client${clientId}`,
+        startDate: clientInfo?.createdAt || new Date().toISOString(),
+        totalSessions: progressInfo?.totalSessions || 0,
+        completedSessions: progressInfo?.completedSessions || 0,
+        riskLevel: 'low' as const,
+        primaryGoals: clientInfo?.goals || ['Fitness Improvement'],
+        lastAssessment: progressInfo?.lastAssessmentDate || new Date().toISOString(),
+        progressMetrics: {
+          strength: progressInfo?.metrics?.strength || 50,
+          cardio: progressInfo?.metrics?.cardio || 50,
+          flexibility: progressInfo?.metrics?.flexibility || 50,
+          balance: progressInfo?.metrics?.balance || 50,
+          stability: progressInfo?.metrics?.stability || 50
+        }
+      });
+
+      // Load workout history
+      if (progressInfo?.recentWorkouts) {
+        setWorkoutHistory(progressInfo.recentWorkouts.map((w: any) => ({
+          date: w.date || w.createdAt,
+          type: w.workoutType || 'Strength',
+          duration: w.duration || 45,
+          intensity: w.intensity || 5
+        })));
+      }
+    } catch (error) {
+      logger.error('Failed to load client progress data:', error);
+      // Fallback with client ID visible (no fake names)
+      setClientData({
+        id: clientId,
+        firstName: 'Client',
+        lastName: `#${clientId}`,
+        username: `client${clientId}`,
+        startDate: new Date().toISOString(),
+        totalSessions: 0,
+        completedSessions: 0,
+        riskLevel: 'low' as const,
+        primaryGoals: ['Fitness Improvement'],
+        lastAssessment: new Date().toISOString(),
+        progressMetrics: { strength: 50, cardio: 50, flexibility: 50, balance: 50, stability: 50 }
+      });
+    } finally {
+      setIsLoadingClient(false);
+    }
+  }, [authAxios, clientId]);
+
+  useEffect(() => {
+    loadClientData();
+  }, [loadClientData]);
+
+  // Use real data, fallback to safe defaults
+  const enhancedClientData = clientData || {
+    id: clientId, firstName: 'Loading', lastName: '...', username: '',
+    startDate: '', totalSessions: 0, completedSessions: 0, riskLevel: 'low' as const,
+    primaryGoals: [], lastAssessment: '', progressMetrics: { strength: 0, cardio: 0, flexibility: 0, balance: 0, stability: 0 }
+  };
+
+  const mockWorkoutHistory = workoutHistory;
 
   const handleGoalUpdate = (goalId: string, update: GoalUpdate): void => {
     // Handle goal updates - in real implementation, this would call API

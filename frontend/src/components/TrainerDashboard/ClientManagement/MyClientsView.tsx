@@ -661,11 +661,13 @@ const MyClientsView: React.FC = () => {
       setError(null);
       
       // Fetch trainer's client assignments
-      const assignments = await authAxios.get(`/api/client-trainer-assignments?trainerId=${user.id}`);
-      
+      // Use the trainer-specific endpoint (GET /) is admin-only, trainers use /trainer/:id
+      const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
+      const assignmentsData = response.data?.assignments || response.data || [];
+
       // Enhance with session data for each client
       const enhancedAssignments = await Promise.all(
-        assignments.data.map(async (assignment: any) => {
+        (Array.isArray(assignmentsData) ? assignmentsData : []).map(async (assignment: any) => {
           try {
             // Get client's session history and upcoming sessions
             const [sessions, upcomingSessions] = await Promise.all([

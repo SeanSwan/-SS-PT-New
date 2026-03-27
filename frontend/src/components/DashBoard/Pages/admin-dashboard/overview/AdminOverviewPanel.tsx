@@ -38,28 +38,28 @@ const AdminOverviewPanel: React.FC = () => {
         title: 'Revenue Analytics',
         description: 'Detailed revenue analysis',
         icon: <DollarSign size={20} />,
-        action: () => navigate('/dashboard/analytics/revenue'),
+        action: () => navigate('/dashboard/admin/revenue'),
       },
       {
         id: 'view-users',
         title: 'User Management',
         description: 'Manage platform users',
         icon: <Users size={20} />,
-        action: () => navigate('/dashboard/people'),
+        action: () => navigate('/dashboard/admin/client-management'),
       },
       {
         id: 'view-security',
         title: 'Security Dashboard',
         description: 'Security monitoring',
         icon: <ShieldCheck size={20} />,
-        action: () => navigate('/dashboard/system/security'),
+        action: () => navigate('/dashboard/admin/style-guide'),
       },
       {
         id: 'view-system',
         title: 'System Health',
         description: 'Infrastructure monitoring',
         icon: <Monitor size={20} />,
-        action: () => navigate('/dashboard/system/health'),
+        action: () => navigate('/dashboard/admin/style-guide'),
       },
     ],
     [navigate]
@@ -172,75 +172,130 @@ const AdminOverviewPanel: React.FC = () => {
   }, [fetchAdminOverview]);
 
   return (
-    <div>
-      <AITerminalPanel
-        context="data_management"
-        label="Admin Assistant"
-        emptyHint="I'm your Admin Assistant. Ask about client analytics, revenue insights, system health, or any business operations."
-        defaultOpen={false}
-      />
-      <VisitorGeoWidget />
-      <PendingPaymentsWidget />
-      <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
-      <OrientationIntakeWidget />
-      <ContactNotifications autoRefresh={true} showActions={true} />
-      <SocialOverviewWidget />
-      <ModerationWidget />
-      <PostReportsWidget />
+    <BentoWrapper>
+      {/* ── Row 0: AI Terminal (full width) ── */}
+      <BentoFull>
+        <AITerminalPanel
+          context="data_management"
+          label="Admin Assistant"
+          emptyHint="I'm your Admin Assistant. Ask about client analytics, revenue insights, system health, or any business operations."
+          defaultOpen={false}
+        />
+      </BentoFull>
 
-      <ControlsHeader>
-        <ControlsInner>
-          <CosmicSelect
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            aria-label="Select time range"
-          >
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-          </CosmicSelect>
-          {isLoading && <StatusText>Loading...</StatusText>}
-          {error && <ErrorText>{error}</ErrorText>}
-        </ControlsInner>
-      </ControlsHeader>
+      {/* ── Row 1: Critical Alerts (2-col bento) ── */}
+      <BentoHalf><VisitorGeoWidget /></BentoHalf>
+      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
 
-      <AdminOverviewMetrics metrics={metrics} />
+      {/* ── Row 2: Signups + Orientations + Contacts ── */}
+      <BentoFull>
+        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
+      </BentoFull>
+      <BentoHalf><OrientationIntakeWidget /></BentoHalf>
+      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
 
-      {/* Business Intelligence KPI Dashboard — merged into main dashboard */}
-      <BusinessKPIDashboard />
+      {/* ── Row 3: Social triptych (3-col on desktop) ── */}
+      <BentoThird><SocialOverviewWidget /></BentoThird>
+      <BentoThird><ModerationWidget /></BentoThird>
+      <BentoThird><PostReportsWidget /></BentoThird>
 
-      {/* Client Compliance — "Needs Attention" system (TrueCoach-style) */}
-      <ClientComplianceDashboard />
+      {/* ── Row 4: Metrics controls + KPI cards (full width) ── */}
+      <BentoFull>
+        <ControlsHeader>
+          <ControlsInner>
+            <CosmicSelect
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              aria-label="Select time range"
+            >
+              <option value="24h">Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+            </CosmicSelect>
+            {isLoading && <StatusText>Loading...</StatusText>}
+            {error && <ErrorText>{error}</ErrorText>}
+          </ControlsInner>
+        </ControlsHeader>
+      </BentoFull>
 
-      {/* Automated Check-Ins & Habit Tracking (PT Distinction-style) */}
-      <AutomatedCheckInsWidget />
+      <BentoFull><AdminOverviewMetrics metrics={metrics} /></BentoFull>
+      <BentoFull><BusinessKPIDashboard /></BentoFull>
 
-      {/* Upcoming Measurement Check-ins Widget */}
-      <UpcomingChecksWidget />
+      {/* ── Row 5: Client Intelligence (2-col bento) ── */}
+      <BentoHalf><ClientComplianceDashboard /></BentoHalf>
+      <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
 
-      {/* Cancelled Sessions Widget - Shows late cancellations with charge options */}
-      <CancelledSessionsWidget maxItems={10} showChargeButtons={true} />
+      {/* ── Row 6: Operations (2-col bento) ── */}
+      <BentoHalf><UpcomingChecksWidget /></BentoHalf>
+      <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
 
-      <AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} />
-      <AdminQuickActions actions={quickActions} />
-    </div>
+      {/* ── Row 7: System + Actions (2-col bento) ── */}
+      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
+      <BentoHalf><AdminQuickActions actions={quickActions} /></BentoHalf>
+    </BentoWrapper>
   );
 };
 
-// === Styled Components ===
+// === Styled Components — Bento Grid Layout ===
+
+const BentoWrapper = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+`;
+
+// Full width (spans all columns)
+const BentoFull = styled.div`
+  grid-column: 1 / -1;
+`;
+
+// Half width (1 of 2 columns, or 3 of 6 on wide screens)
+const BentoHalf = styled.div`
+  grid-column: span 1;
+
+  @media (min-width: 1280px) {
+    grid-column: span 3;
+  }
+
+  @media (max-width: 768px) {
+    grid-column: 1 / -1;
+  }
+`;
+
+// Third width (1 of 3 on wide screens, stacks on mobile)
+const BentoThird = styled.div`
+  grid-column: span 1;
+
+  @media (min-width: 1280px) {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 768px) {
+    grid-column: 1 / -1;
+  }
+`;
 
 const ControlsHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
   padding: 16px 24px;
-  background: rgba(0, 32, 96, 0.4);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 90%, var(--accent-secondary, #8B5CF6) 10%);
   backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
+  box-shadow: var(--shadow-elevation, 0 4px 24px rgba(0, 0, 0, 0.2));
 `;
 
 const ControlsInner = styled.div`
@@ -251,10 +306,10 @@ const ControlsInner = styled.div`
 
 const CosmicSelect = styled.select`
   appearance: none;
-  background: rgba(255, 255, 255, 0.03) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2300FFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: var(--bg-surface, #1A1A24) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2360C0F0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   padding: 10px 40px 10px 16px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -264,25 +319,25 @@ const CosmicSelect = styled.select`
   transition: all 0.2s ease;
 
   &:hover, &:focus {
-    background-color: rgba(139, 92, 246, 0.05);
-    border-color: #8B5CF6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    background-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
+    border-color: var(--accent-secondary, #8B5CF6);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent);
   }
 
   option {
-    background: #002060;
-    color: #ffffff;
+    background: var(--bg-elevated, #141419);
+    color: var(--text-primary, #E0ECF4);
     padding: 12px;
   }
 `;
 
 const StatusText = styled.span`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224,236,244,0.6));
   font-size: 0.875rem;
 `;
 
 const ErrorText = styled.span`
-  color: #ef4444;
+  color: #C92A54;
   font-size: 0.875rem;
 `;
 

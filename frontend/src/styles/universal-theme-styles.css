@@ -258,6 +258,16 @@
 
 /* Crystalline Light Theme Specific */
 [data-theme="crystalline-light"] {
+  /* Midnight Sapphire-tinted shadows — visible on light backgrounds */
+  --shadow-primary: 0 0 30px rgba(0, 32, 96, 0.12);
+  --shadow-elevation: 0 15px 35px rgba(0, 32, 96, 0.08);
+  --shadow-cosmic: 0 8px 32px rgba(0, 32, 96, 0.1), 0 0 60px rgba(0, 32, 96, 0.06);
+  --shadow-secondary: 0 4px 16px rgba(0, 32, 96, 0.06);
+  --shadow-accent: 0 0 20px rgba(0, 32, 96, 0.1);
+  --shadow-glow: 0 0 24px rgba(0, 32, 96, 0.08);
+  --shadow-glass: 0 8px 32px rgba(0, 32, 96, 0.06);
+  --shadow-button: 0 4px 12px rgba(0, 32, 96, 0.1);
+
   /* Softer effects for light theme */
   .animate-theme-float,
   .animate-theme-pulse {

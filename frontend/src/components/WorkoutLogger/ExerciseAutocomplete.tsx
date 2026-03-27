@@ -230,6 +230,9 @@ const ExerciseAutocomplete: React.FC<ExerciseAutocompleteProps> = ({
       }
     } catch (err: any) {
       if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+      console.error('Exercise search failed:', err);
+      setResults([]);
+      setIsOpen(false);
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);

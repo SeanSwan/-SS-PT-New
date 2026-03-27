@@ -53,6 +53,7 @@
  * GAMIFICATION: Template save → trainer does not earn XP (client earns on completion)
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { toast } from 'react-toastify';
 import styled from 'styled-components';
 import {
   Zap, ChevronDown, Plus, Sparkles, Save, User, Dumbbell, Clock, Target
@@ -272,13 +273,13 @@ const TrainerWorkoutForgePage: React.FC = () => {
         <CardTitle><User size={18} /> Exercises</CardTitle>
         <ExerciseArea>No exercises added yet. Use the buttons below to build the workout.</ExerciseArea>
         <ButtonRow>
-          <ActionBtn $variant="secondary" onClick={() => console.warn('TODO: open exercise picker')}>
+          <ActionBtn $variant="secondary" onClick={() => toast.info('Exercise picker coming in Phase 3')}>
             <Plus size={18} /> Add Exercise
           </ActionBtn>
-          <ActionBtn onClick={() => console.warn('TODO: trigger AI workout generation')}>
+          <ActionBtn onClick={() => toast.info('AI workout generation coming in Phase 3')}>
             <Sparkles size={18} /> Generate with AI
           </ActionBtn>
-          <ActionBtn $variant="secondary" onClick={() => console.warn('TODO: save workout template')}>
+          <ActionBtn $variant="secondary" onClick={() => toast.info('Template saving coming in Phase 3')}>
             <Save size={18} /> Save Template
           </ActionBtn>
         </ButtonRow>

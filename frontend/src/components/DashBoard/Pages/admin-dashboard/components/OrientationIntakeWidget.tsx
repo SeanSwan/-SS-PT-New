@@ -220,7 +220,7 @@ const OrientationIntakeWidget: React.FC = () => {
             <RefreshCw size={14} />
             Refresh
           </Button>
-          <Button onClick={() => navigate('/dashboard/people/orientations')}>
+          <Button onClick={() => navigate('/dashboard/admin/unified-onboarding')}>
             Open Queue
           </Button>
         </ActionRow>

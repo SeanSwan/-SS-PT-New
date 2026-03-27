@@ -93,6 +93,8 @@ const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSche
 const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiConsentScreen'));
 const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
+const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
+const VideoLibraryPageLazy = React.lazy(() => import('../../pages/VideoLibraryV3'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -387,7 +389,16 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' },
       
       // 🎨 DESIGN SYSTEM & DEVELOPMENT
-      { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' }
+      { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
+
+      // 🎬 CONTENT MANAGEMENT
+      { path: '/content', component: VideoLibraryPageLazy, title: 'Content Studio', description: 'Video and content management' },
+
+      // 🍁 ADMIN-ONLY: Canada Immigration
+      { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
+
+      // 💪 WORKOUT LOGGING (admin can log workouts too)
+      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' }
     ],
     defaultPath: '/overview'
   },
@@ -411,7 +422,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/progress', component: ClientProgressWrapper, title: 'My Progress', description: 'NASM progress visualization dashboard' },
-      { path: '/workout-forge', component: ClientWorkoutForgePage, title: 'Workout Intelligence', description: 'Self-serve AI workout generation' },
+      // Workout Intelligence REMOVED for clients — trainers create plans, clients receive them
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },

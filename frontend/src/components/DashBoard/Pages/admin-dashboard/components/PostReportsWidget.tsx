@@ -254,7 +254,7 @@ const PostReportsWidget: React.FC = () => {
           <Title>Post Reports</Title>
           {totalPending > 0 && <Badge>{totalPending}</Badge>}
         </TitleRow>
-        <ViewAllBtn onClick={() => navigate('/dashboard/content/moderation')}>
+        <ViewAllBtn onClick={() => navigate('/dashboard/admin/content')}>
           View All <ChevronRight size={16} />
         </ViewAllBtn>
       </Header>

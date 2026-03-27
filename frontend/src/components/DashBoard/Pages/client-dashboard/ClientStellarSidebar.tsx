@@ -402,7 +402,6 @@ const clientNavConfig = [
   {
     section: 'INTELLIGENCE',
     items: [
-      { label: 'Workout Intelligence', path: '/dashboard/client/workout-forge', icon: Brain },
       { label: 'Nutrition Intelligence', path: '/dashboard/client/meal-planner', icon: UtensilsCrossed },
       { label: 'AI Privacy & Consent', path: '/dashboard/client/ai-consent', icon: Shield },
     ],

@@ -274,7 +274,7 @@ const SocialOverviewWidget: React.FC = () => {
             <RefreshCw size={14} />
             Refresh
           </ActionButton>
-          <ActionButton onClick={() => navigate('/dashboard/people/social')}>
+          <ActionButton onClick={() => navigate('/dashboard/admin/client-management')}>
             <MessageSquare size={14} />
             Open Command
           </ActionButton>

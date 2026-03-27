@@ -79,7 +79,7 @@ interface Client {
   firstName: string;
   lastName: string;
   email: string;
-  availableSessions: number;
+  availableSessions: number | null;
   phone?: string;
 }
 
@@ -142,7 +142,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     const templateExercises: ExerciseEntry[] = template.exercises.map((ex, i) => ({
       exerciseId: `template-${phase}-${i}-${Date.now()}`,
       exerciseName: ex.name,
-      sets: Array.from({ length: ex.sets }, (_, s) => ({
+      sets: Array.from({ length: Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3) }, (_, s) => ({
         setNumber: s + 1,
         weight: 0,
         reps: ex.reps,
@@ -183,10 +183,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // ── AI-to-Logger prefill ──
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
-    return incoming.map(ex => ({
+    return incoming.map(ex => {
+      const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
+      return {
       exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       exerciseName: ex.exerciseName,
-      sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+      sets: Array.from({ length: setCount }, (_, i) => ({
         setNumber: i + 1,
         weight: ex.weight || 0,
         reps: ex.reps || 10,
@@ -199,7 +201,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       formRating: 3,
       painLevel: 0,
       performanceNotes: '',
-    }));
+    };});
   }, []);
 
   // Listen for live custom event
@@ -229,7 +231,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const entry: ExerciseEntry = {
         exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         exerciseName: d.exerciseName,
-        sets: Array.from({ length: d.sets || 3 }, (_, i) => ({
+        sets: Array.from({ length: Array.isArray(d.sets) ? d.sets.length : (Number(d.sets) || 3) }, (_, i) => ({
           setNumber: i + 1,
           weight: d.weight || 0,
           reps: d.reps || 10,
@@ -322,12 +324,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: unknown) {
       console.error('Failed to load client data:', error);
+      // Use null for unknown session state — prevents blocking ALL submissions on network failure
       setClient({
         id: clientId,
         firstName: 'Client',
         lastName: `#${clientId}`,
         email: '',
-        availableSessions: 0,
+        availableSessions: null,
         phone: ''
       });
       toast.error(getErrorMessage(error, 'Failed to load client information'));
@@ -362,10 +365,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         return;
       }
 
-      const prefilled: ExerciseEntry[] = planDay.exercises.map((ex: any) => ({
+      const prefilled: ExerciseEntry[] = planDay.exercises.map((ex: any) => {
+        const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
+        return {
         exerciseId: ex.exerciseId || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
-        sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+        sets: Array.from({ length: setCount }, (_, i) => ({
           setNumber: i + 1,
           weight: ex.weight || 0,
           reps: ex.targetReps || ex.reps || 10,
@@ -378,7 +383,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         formRating: 3,
         painLevel: 0,
         performanceNotes: '',
-      }));
+      };});
 
       setExercises(prev => [...prev, ...prefilled]);
       toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
@@ -473,7 +478,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
     if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
-    if (client.availableSessions <= 0 && user?.role !== 'admin') {
+    // Strict === 0 check: null (unknown/error state) passes through, allowing submission
+    if (client.availableSessions === 0 && user?.role !== 'admin') {
       toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
@@ -783,7 +789,7 @@ const TimerFAB = styled.button`
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: var(--brand-primary, #002060);
+  background: var(--bg-elevated, ${CS.primary});
   border: 1px solid var(--accent-primary, rgba(96, 192, 240, 0.3));
   color: var(--text-primary, #E0ECF4);
   cursor: pointer;
