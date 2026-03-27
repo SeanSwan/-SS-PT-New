@@ -1048,8 +1048,9 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
  * Tries providers in order: OpenAI -> Anthropic -> Gemini
  */
 export async function sendChatMessage(messages, options = {}) {
-  // maxTokens reduced from 3000 to 1500 to stay under Render's proxy timeout
-  const { maxTokens = 1500, temperature = 0.7 } = options;
+  // maxTokens: 2500 balances response quality vs Render's 30s proxy timeout
+  // (History trimming in buildPromptMessages keeps prompt size manageable)
+  const { maxTokens = 2500, temperature = 0.7 } = options;
   const providers = getAvailableProviders();
   const failoverTrace = [];
 
@@ -1237,8 +1238,8 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   const models = ['gemini-3.1-pro-preview', 'gemini-2.5-flash'];
 
   for (const model of models) {
-    // Pro gets 22s timeout, Flash gets 20s — both must finish before Render's 30s proxy timeout
-    const timeoutMs = model.includes('pro') ? 22000 : 20000;
+    // Pro gets 25s timeout (primary), Flash gets 22s (fallback) — must finish before Render's 30s proxy timeout
+    const timeoutMs = model.includes('pro') ? 25000 : 22000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
