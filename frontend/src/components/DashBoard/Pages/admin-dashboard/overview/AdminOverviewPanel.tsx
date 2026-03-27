@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,8 @@ import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
+
+const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
 
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
@@ -186,6 +188,13 @@ const AdminOverviewPanel: React.FC = () => {
       {/* ── Row 1: Critical Alerts (2-col bento) ── */}
       <BentoHalf><VisitorGeoWidget /></BentoHalf>
       <BentoHalf><PendingPaymentsWidget /></BentoHalf>
+
+      {/* ── Row 1b: World Map (full width) ── */}
+      <BentoFull>
+        <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+          <VisitorWorldMap />
+        </Suspense>
+      </BentoFull>
 
       {/* ── Row 2: Signups + Orientations + Contacts ── */}
       <BentoFull>

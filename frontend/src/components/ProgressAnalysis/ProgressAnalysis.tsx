@@ -342,13 +342,15 @@ const ProgressAnalysis: React.FC<ProgressAnalysisProps> = ({ onClose }) => {
    */
   const loadClients = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/clients`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/clients`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       const data = await response.json();
-      setClients(data.data || []);
+      // API returns { data: { clients: [...], pagination } }
+      const clientList = Array.isArray(data.data) ? data.data : (data.data?.clients ?? []);
+      setClients(clientList);
     } catch (error) {
       console.error('Error loading clients:', error);
       enqueueSnackbar('Failed to load clients', { variant: 'error' });
