@@ -55,7 +55,12 @@ interface MapData {
 }
 
 // Natural Earth TopoJSON — free, no API key needed
-const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+// 50m resolution for sharper country borders
+const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
+// US states overlay (10m resolution — shows all 50 states)
+const US_STATES_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
+// Canadian provinces/territories overlay
+const CANADA_URL = 'https://gist.githubusercontent.com/Brideau/2391df60938462571ca9/raw/canada.json';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -112,8 +117,8 @@ const VisitorWorldMap: React.FC = () => {
   }, [mapData]);
 
   const markerRadius = (count: number) => {
-    const min = 2;
-    const max = 5;
+    const min = 1;
+    const max = 3;
     return min + ((count / maxCount) * (max - min));
   };
 
@@ -196,6 +201,46 @@ const VisitorWorldMap: React.FC = () => {
               }
             </Geographies>
 
+            {/* US state boundaries overlay */}
+            <Geographies geography={US_STATES_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="transparent"
+                    stroke="var(--border-soft, rgba(96,192,240,0.08))"
+                    strokeWidth={0.3}
+                    style={{
+                      default: { outline: 'none' },
+                      hover: { outline: 'none' },
+                      pressed: { outline: 'none' },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
+
+            {/* Canadian provinces/territories overlay */}
+            <Geographies geography={CANADA_URL}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="transparent"
+                    stroke="var(--border-soft, rgba(96,192,240,0.08))"
+                    strokeWidth={0.3}
+                    style={{
+                      default: { outline: 'none' },
+                      hover: { outline: 'none' },
+                      pressed: { outline: 'none' },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
+
             {/* Visitor markers */}
             {mapData?.byCity.map((city, i) => (
               <Marker
@@ -209,7 +254,7 @@ const VisitorWorldMap: React.FC = () => {
               >
                 {/* Outer glow ring */}
                 <circle
-                  r={markerRadius(city.count) + 2}
+                  r={markerRadius(city.count) + 1}
                   fill="rgba(96, 192, 240, 0.15)"
                   className="pulse-ring"
                 />
@@ -280,9 +325,9 @@ export default VisitorWorldMap;
 // SECTION: Animations
 // ─────────────────────────────────────────────────────────────
 const pulse = keyframes`
-  0% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(1.6); }
-  100% { opacity: 0.6; transform: scale(1); }
+  0% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+  100% { opacity: 0.4; }
 `;
 
 const spin = keyframes`
