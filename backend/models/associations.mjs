@@ -858,7 +858,18 @@ const setupAssociations = async () => {
     WorkoutExercise.belongsTo(WorkoutSession, { foreignKey: 'workoutSessionId', as: 'workoutSession' });
     WorkoutExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
     Exercise.hasMany(WorkoutExercise, { foreignKey: 'exerciseId', as: 'workoutExercises' });
-    
+
+    // Exercise ↔ MuscleGroup & Equipment (many-to-many via join tables)
+    // Required by workoutService.getWorkoutSessions() includes
+    if (MuscleGroup && ExerciseMuscleGroup) {
+      Exercise.belongsToMany(MuscleGroup, { through: ExerciseMuscleGroup, foreignKey: 'exerciseId', otherKey: 'muscleGroupId', as: 'muscleGroups', constraints: false });
+      MuscleGroup.belongsToMany(Exercise, { through: ExerciseMuscleGroup, foreignKey: 'muscleGroupId', otherKey: 'exerciseId', as: 'exercises', constraints: false });
+    }
+    if (Equipment && ExerciseEquipment) {
+      Exercise.belongsToMany(Equipment, { through: ExerciseEquipment, foreignKey: 'exerciseId', otherKey: 'equipmentId', as: 'equipment', constraints: false });
+      Equipment.belongsToMany(Exercise, { through: ExerciseEquipment, foreignKey: 'equipmentId', otherKey: 'exerciseId', as: 'exercises', constraints: false });
+    }
+
     // Set Associations (for WorkoutExercise performance tracking)
     WorkoutExercise.hasMany(Set, { foreignKey: 'workoutExerciseId', as: 'sets' });
     Set.belongsTo(WorkoutExercise, { foreignKey: 'workoutExerciseId', as: 'workoutExercise' });

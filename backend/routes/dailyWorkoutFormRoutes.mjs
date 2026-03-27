@@ -865,30 +865,37 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
       order: [['date', 'ASC']]
     });
 
-    // Process data for charts
+    // Process data for charts (null-safe: formData may be null/undefined)
     const workoutHistory = forms.map(form => ({
       date: form.date,
       duration: form.getEstimatedDuration(),
-      intensity: form.formData.overallIntensity || 5,
+      intensity: form.formData?.overallIntensity || 5,
       totalVolume: form.getTotalVolume(),
       exerciseCount: form.getExerciseCount(),
       pointsEarned: form.totalPointsEarned
     }));
 
-    const formTrends = forms.map(form => ({
-      date: form.date,
-      averageFormRating: form.formData.exercises.reduce((sum, ex) => sum + (ex.formRating || 3), 0) / form.formData.exercises.length,
-      exerciseCount: form.getExerciseCount()
-    }));
+    const formTrends = forms.map(form => {
+      const exercises = form.formData?.exercises || [];
+      const ratingSum = exercises.reduce((sum, ex) => sum + (ex.formRating || 3), 0);
+      return {
+        date: form.date,
+        averageFormRating: exercises.length > 0 ? ratingSum / exercises.length : 0,
+        exerciseCount: form.getExerciseCount()
+      };
+    });
 
-    const volumeProgression = forms.map(form => ({
-      date: form.date,
-      totalWeight: form.getTotalVolume(),
-      totalReps: form.formData.exercises.reduce((sum, ex) => {
-        return sum + (ex.sets ? ex.sets.reduce((setSum, set) => setSum + (parseInt(set.reps) || 0), 0) : 0);
-      }, 0),
-      totalSets: form.getTotalSets()
-    }));
+    const volumeProgression = forms.map(form => {
+      const exercises = form.formData?.exercises || [];
+      return {
+        date: form.date,
+        totalWeight: form.getTotalVolume(),
+        totalReps: exercises.reduce((sum, ex) => {
+          return sum + (ex.sets ? ex.sets.reduce((setSum, set) => setSum + (parseInt(set.reps) || 0), 0) : 0);
+        }, 0),
+        totalSets: form.getTotalSets()
+      };
+    });
 
     // Mock NASM categories (this would be enhanced with actual NASM data)
     const categories = [

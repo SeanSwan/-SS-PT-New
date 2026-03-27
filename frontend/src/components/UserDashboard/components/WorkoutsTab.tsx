@@ -184,9 +184,9 @@ const WorkoutsTab: React.FC = () => {
             <ChartContainer>
               <VictoryChart
                 horizontal
-                padding={{ top: 4, bottom: 4, left: 140, right: 50 }}
+                padding={{ top: 4, bottom: 4, left: typeof window !== 'undefined' && window.innerWidth < 430 ? 90 : 140, right: 30 }}
                 height={cat.exercises.length * 32 + 8}
-                width={500}
+                width={typeof window !== 'undefined' ? Math.min(500, window.innerWidth - 48) : 500}
                 domainPadding={{ x: [0, 8] }}
               >
                 <VictoryAxis

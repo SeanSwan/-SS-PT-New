@@ -83,12 +83,14 @@ export const ContentWrapper = styled.div`
 
 export const ContentGrid = styled.div`
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
 
-  @media (max-width: 1024px) { grid-template-columns: 1fr; gap: 1.5rem; }
-  @media (max-width: 320px) { gap: 1rem; margin-top: 1rem; }
+  @media (min-width: 768px) { grid-template-columns: 240px 1fr; gap: 1.5rem; }
+  @media (min-width: 1024px) { grid-template-columns: 280px 1fr; gap: 2rem; margin-top: 2rem; }
+  @media (min-width: 1280px) { grid-template-columns: 300px 1fr; }
+  @media (min-width: 1440px) { grid-template-columns: 320px 1fr; }
   @media (min-width: 2560px) { grid-template-columns: 380px 1fr; gap: 2.5rem; margin-top: 3rem; }
   @media (min-width: 3840px) { grid-template-columns: 460px 1fr; gap: 3rem; margin-top: 4rem; }
 `;

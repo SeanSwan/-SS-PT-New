@@ -135,6 +135,18 @@ class DailyWorkoutForm extends Model {
   }
 
   /**
+   * Estimate workout duration based on exercise/set count
+   * Uses NASM standard rest periods: ~90s per set average
+   * @returns {number} Estimated duration in minutes
+   */
+  getEstimatedDuration() {
+    const totalSets = this.getTotalSets();
+    if (totalSets === 0) return 0;
+    // Estimate: ~2 min per set (exercise time + rest), plus 5 min warm-up/cool-down
+    return Math.round((totalSets * 2) + 5);
+  }
+
+  /**
    * Get form summary for admin dashboard and client progress
    * @returns {Object} Comprehensive form summary
    */

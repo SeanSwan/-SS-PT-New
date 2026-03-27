@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { Users, Search, X, ChevronDown } from 'lucide-react';
 import { useGlobalClient } from '../../context/GlobalClientContext';
@@ -107,16 +108,13 @@ const ClearButton = styled.button`
 `;
 
 const Dropdown = styled.div<{ $visible: boolean }>`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  width: 100%;
+  position: fixed;
   max-height: 280px;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--accent-primary, #60C0F0);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 8px rgba(96, 192, 240, 0.15);
-  z-index: 1000;
+  z-index: 99999;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -192,13 +190,19 @@ const GlobalClientSelector: React.FC = () => {
   const { activeClient, setActiveClient, clientList } = useGlobalClient();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 260 });
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  /** Close dropdown on outside click */
+  /** Close dropdown on outside click (check both trigger and portal dropdown) */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inWrapper = wrapperRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inWrapper && !inDropdown) {
         setIsOpen(false);
         setSearchQuery('');
       }
@@ -206,6 +210,14 @@ const GlobalClientSelector: React.FC = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  /** Position dropdown below trigger using getBoundingClientRect */
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+  }, [isOpen]);
 
   /** Auto-focus search input when dropdown opens */
   useEffect(() => {
@@ -250,6 +262,7 @@ const GlobalClientSelector: React.FC = () => {
   return (
     <SelectorWrapper ref={wrapperRef}>
       <TriggerButton
+        ref={triggerRef}
         $isOpen={isOpen}
         $hasValue={!!activeClient}
         onClick={toggleOpen}
@@ -278,38 +291,46 @@ const GlobalClientSelector: React.FC = () => {
         )}
       </TriggerButton>
 
-      <Dropdown $visible={isOpen} role="listbox">
-        <SearchRow>
-          <Search size={14} style={{ color: 'var(--text-muted, rgba(224,236,244,0.4))' }} />
-          <SearchInput
-            ref={searchRef}
-            placeholder="Search clients..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search clients"
-          />
-        </SearchRow>
-        <OptionsList>
-          {filteredClients.length === 0 ? (
-            <EmptyMessage>No clients found</EmptyMessage>
-          ) : (
-            filteredClients.map((client) => (
-              <OptionItem
-                key={client.id}
-                $active={activeClient?.id === client.id}
-                onClick={() => handleSelect(client)}
-                role="option"
-                aria-selected={activeClient?.id === client.id}
-              >
-                <AvatarCircle>
-                  {getInitials(client.firstName, client.lastName)}
-                </AvatarCircle>
-                {client.firstName} {client.lastName}
-              </OptionItem>
-            ))
-          )}
-        </OptionsList>
-      </Dropdown>
+      {createPortal(
+        <Dropdown
+          ref={dropdownRef}
+          $visible={isOpen}
+          role="listbox"
+          style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+        >
+          <SearchRow>
+            <Search size={14} style={{ color: 'var(--text-muted, rgba(224,236,244,0.4))' }} />
+            <SearchInput
+              ref={searchRef}
+              placeholder="Search clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search clients"
+            />
+          </SearchRow>
+          <OptionsList>
+            {filteredClients.length === 0 ? (
+              <EmptyMessage>No clients found</EmptyMessage>
+            ) : (
+              filteredClients.map((client) => (
+                <OptionItem
+                  key={client.id}
+                  $active={activeClient?.id === client.id}
+                  onClick={() => handleSelect(client)}
+                  role="option"
+                  aria-selected={activeClient?.id === client.id}
+                >
+                  <AvatarCircle>
+                    {getInitials(client.firstName, client.lastName)}
+                  </AvatarCircle>
+                  {client.firstName} {client.lastName}
+                </OptionItem>
+              ))
+            )}
+          </OptionsList>
+        </Dropdown>,
+        document.body
+      )}
     </SelectorWrapper>
   );
 };

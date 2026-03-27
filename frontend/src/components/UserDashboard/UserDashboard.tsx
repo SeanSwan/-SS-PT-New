@@ -122,16 +122,19 @@ const PageContainer = styled.div`
 const CoverPhotoSection = styled.div<{ $src?: string | null }>`
   position: relative;
   width: 100%;
-  height: 220px;
+  height: 160px;
   background: ${({ $src }) =>
     $src
       ? `url(${$src}) center/cover no-repeat`
       : `linear-gradient(135deg, ${T.midnightSapphire} 0%, ${T.royalDepth} 40%, ${T.swanLavender} 100%)`};
   border-bottom: 1px solid ${T.glassBorder};
 
-  @media (min-width: 768px) {
-    height: 280px;
-  }
+  @media (min-width: 375px) { height: 180px; }
+  @media (min-width: 430px) { height: 200px; }
+  @media (min-width: 768px) { height: 260px; }
+  @media (min-width: 1280px) { height: 280px; }
+  @media (min-width: 1920px) { height: 320px; }
+  @media (min-width: 2560px) { height: 360px; }
 `;
 
 const CoverOverlay = styled.div`
@@ -147,9 +150,9 @@ const CoverUploadButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
   border: 2px solid rgba(224, 236, 244, 0.4);
   border-radius: 50%;
@@ -176,9 +179,12 @@ const ProfileHeaderSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 24px 32px;
-  margin-top: -60px;
+  padding: 0 12px 24px;
+  margin-top: -48px;
   z-index: 2;
+
+  @media (min-width: 375px) { padding: 0 16px 24px; margin-top: -52px; }
+  @media (min-width: 768px) { padding: 0 24px 32px; margin-top: -60px; }
 `;
 
 const AvatarWrapper = styled.div`
@@ -187,13 +193,22 @@ const AvatarWrapper = styled.div`
 `;
 
 const AvatarRing = styled(motion.div)`
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   background: linear-gradient(135deg, ${T.iceWing}, ${T.swanLavender});
-  padding: 4px;
-  box-shadow: 0 0 0 4px ${T.midnightSapphire},
-              0 0 24px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+  padding: 3px;
+  box-shadow: 0 0 0 3px ${T.midnightSapphire},
+              0 0 16px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+
+  @media (min-width: 375px) { width: 104px; height: 104px; }
+  @media (min-width: 430px) { width: 112px; height: 112px; }
+  @media (min-width: 768px) {
+    width: 120px; height: 120px; padding: 4px;
+    box-shadow: 0 0 0 4px ${T.midnightSapphire},
+                0 0 24px color-mix(in srgb, ${T.iceWing} 30%, transparent);
+  }
+  @media (min-width: 1440px) { width: 140px; height: 140px; }
 `;
 
 const AvatarInner = styled.div`
@@ -272,8 +287,13 @@ const RoleBadge = styled.span`
 
 const StatsRow = styled.div`
   display: flex;
-  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
   margin-bottom: 16px;
+
+  @media (min-width: 430px) { gap: 24px; }
+  @media (min-width: 768px) { gap: 32px; }
 `;
 
 const StatItem = styled(motion.div)`
@@ -343,7 +363,14 @@ const ProfileAction = styled(motion.button)<{ $primary?: boolean }>`
 const ContentWrapper = styled.div`
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 16px 48px;
+  padding: 0 8px 32px;
+
+  @media (min-width: 375px) { padding: 0 12px 36px; }
+  @media (min-width: 430px) { padding: 0 16px 40px; }
+  @media (min-width: 768px) { padding: 0 24px 48px; }
+  @media (min-width: 1440px) { max-width: 1000px; }
+  @media (min-width: 1920px) { max-width: 1100px; }
+  @media (min-width: 2560px) { max-width: 1280px; }
 `;
 
 /* ─── Tab Bar ───────────────────────────────────────────────────── */
@@ -370,15 +397,18 @@ const TabButton = styled.button<{ $active: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 52px;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 10px 12px;
   border: none;
   background: ${({ $active }) =>
     $active
       ? `linear-gradient(135deg, color-mix(in srgb, ${T.iceWing} 15%, transparent), color-mix(in srgb, ${T.swanLavender} 10%, transparent))`
       : 'transparent'};
   color: ${({ $active }) => ($active ? T.iceWing : T.textMuted)};
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+
+  @media (min-width: 430px) { padding: 12px 14px; font-size: 0.85rem; }
+  @media (min-width: 768px) { padding: 14px 16px; font-size: 0.9rem; min-height: 52px; }
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
   cursor: pointer;
   transition: background 0.3s ease, color 0.3s ease;

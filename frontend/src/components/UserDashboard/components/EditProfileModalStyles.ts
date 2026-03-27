@@ -42,10 +42,14 @@ export const ModalContainer = styled(motion.div)`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
   border-radius: 16px;
-  padding: 1.5rem;
-  width: 100%;
+  padding: 1rem;
+  width: calc(100% - 16px);
   max-width: 560px;
   max-height: 90vh;
+  margin: 0 8px;
+
+  @media (min-width: 375px) { padding: 1.25rem; width: calc(100% - 24px); margin: 0 12px; }
+  @media (min-width: 768px) { padding: 1.5rem; width: 100%; margin: 0; }
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
               0 0 24px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent);
