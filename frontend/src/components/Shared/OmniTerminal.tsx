@@ -40,6 +40,7 @@ import styled from 'styled-components';
 import { Minus, X } from 'lucide-react';
 import AITerminalPanel from './AITerminalPanel';
 import type { AIContext } from './AITerminalPanel';
+import { useGlobalClient } from '../../context/GlobalClientContext';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -203,24 +204,68 @@ const OmniTerminal: React.FC<OmniTerminalProps> = ({
   isOpen,
   onClose,
   context,
-  clientId,
+  clientId: propClientId,
 }) => {
   const drawerRef = useRef<HTMLElement>(null);
+  // Use GlobalClientContext if no explicit clientId prop
+  const { activeClient } = useGlobalClient();
+  const clientId = propClientId ?? activeClient?.id;
 
-  // Escape key handler
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    },
-    [isOpen, onClose],
-  );
-
+  // ── Focus trap + keyboard handler (AI Village consensus fix) ──
   useEffect(() => {
+    if (!isOpen) {
+      // Delay aria-hidden removal to match exit animation (350ms)
+      const timer = setTimeout(() => {
+        document.getElementById('root')?.removeAttribute('aria-hidden');
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+
+    // Hide main app from screen readers when drawer is open
+    document.getElementById('root')?.setAttribute('aria-hidden', 'true');
+
+    // Auto-focus first focusable element
+    requestAnimationFrame(() => {
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), [href], input:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable && focusable.length > 0) {
+        focusable[0].focus();
+      }
+    });
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      // Focus trap: Tab cycles within drawer (queries dynamically for new elements)
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusable = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(
+            'button:not(:disabled), [href], input:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+          ),
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [isOpen, onClose]);
 
   // Prevent background scroll when open
   useEffect(() => {
@@ -269,7 +314,6 @@ const OmniTerminal: React.FC<OmniTerminalProps> = ({
               context={context}
               clientId={clientId}
               defaultOpen
-              compact
             />
           )}
         </TerminalBody>

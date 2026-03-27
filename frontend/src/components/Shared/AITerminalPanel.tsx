@@ -52,10 +52,13 @@
  * NOTE: 453 lines — exceeds 300-line rule. TODO: extract styled
  * components to AITerminalPanelStyles.ts, types to shared AITypes.ts
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Bot, ChevronDown, ChevronUp, Send, Sparkles, X } from 'lucide-react';
+import { Bot, ChevronDown, ChevronUp, Send, Sparkles, Volume2, VolumeX, X } from 'lucide-react';
 import { useAIChat } from '../../hooks/useAIChat';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+
+const CrystallineVoicePill = lazy(() => import('./CrystallineVoicePill'));
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -121,15 +124,30 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   const displayPlaceholder = placeholder || `Ask ${displayLabel} anything...`;
   const displayHint = emptyHint || `I'm your ${displayLabel}. Ask me anything about ${context === 'general' ? 'this workspace' : context.replace(/_/g, ' ')}.`;
 
+  // ── Text-to-Speech for AI responses ──
+  const tts = useTextToSpeech({ rate: 1.05, volume: 0.9 });
+
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const prevMessageCountRef = useRef(messages.length);
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-speak new AI messages when TTS is enabled
+  useEffect(() => {
+    if (messages.length > prevMessageCountRef.current) {
+      const latest = messages[messages.length - 1];
+      if (latest?.role === 'assistant' && tts.enabled) {
+        tts.speak(latest.content);
+      }
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages, tts]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
@@ -148,6 +166,24 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     // Atomic: creates conversation if needed + sends message in one call
     await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
   }, [inputValue, sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
+
+  // Voice auto-send: transcript goes directly to AI (no manual Send needed)
+  const handleVoiceAutoSend = useCallback(async (text: string) => {
+    if (!text.trim() || sending) return;
+    let enrichedMessage = text.trim();
+    if (clientId) {
+      enrichedMessage += `\n[Context: clientId=${clientId}]`;
+    }
+    if (equipmentProfileId) {
+      enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
+    }
+    await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
+  }, [sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
+
+  // Voice transcript → fill input (non-auto-send mode, e.g., for review before sending)
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setInputValue((prev) => (prev ? prev + ' ' + text : text));
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -231,6 +267,18 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
           )}
 
           <InputArea>
+            {/* Voice Pill — auto-sends after 2s silence */}
+            <Suspense fallback={null}>
+              <CrystallineVoicePill
+                onTranscript={handleVoiceTranscript}
+                onAutoSend={handleVoiceAutoSend}
+                isSpeaking={tts.speaking}
+                isProcessing={sending}
+                onStopSpeaking={tts.stop}
+                compact
+              />
+            </Suspense>
+
             <ChatInput
               ref={inputRef}
               value={inputValue}
@@ -240,6 +288,20 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
               rows={1}
               disabled={sending}
             />
+
+            {/* TTS toggle */}
+            {tts.supported && (
+              <TtsToggle
+                type="button"
+                onClick={tts.toggleEnabled}
+                $active={tts.enabled}
+                aria-label={tts.enabled ? 'Disable voice readback' : 'Enable voice readback'}
+                title={tts.enabled ? 'Voice readback ON' : 'Voice readback OFF'}
+              >
+                {tts.enabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              </TtsToggle>
+            )}
+
             <SendButton
               onClick={handleSend}
               disabled={!inputValue.trim() || sending}
@@ -478,6 +540,30 @@ const SendButton = styled.button`
 
   &:not(:disabled):hover {
     opacity: 0.85;
+  }
+`;
+
+const TtsToggle = styled.button<{ $active: boolean }>`
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: ${({ $active }) =>
+    $active ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
+  color: ${({ $active }) =>
+    $active ? '#22C55E' : 'rgba(255, 255, 255, 0.4)'};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+
+  &:hover {
+    background: ${({ $active }) =>
+      $active ? 'rgba(34, 197, 94, 0.25)' : 'rgba(255, 255, 255, 0.08)'};
+    color: ${({ $active }) =>
+      $active ? '#22C55E' : 'rgba(255, 255, 255, 0.6)'};
   }
 `;
 
