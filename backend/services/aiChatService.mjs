@@ -1234,12 +1234,15 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
     parts: [{ text: m.content }],
   }));
 
-  // Try Pro first (better quality), fall back to Flash (faster) on timeout
-  const models = ['gemini-3.1-pro-preview', 'gemini-2.5-flash'];
+  // Flash first (fast, reliable under Render's 30s timeout), Pro as env-var override
+  // Set GEMINI_MODEL=gemini-3.1-pro-preview in .env to use Pro instead
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const fallbackModel = primaryModel.includes('pro') ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
+  const models = [primaryModel, fallbackModel];
 
   for (const model of models) {
-    // Pro gets 25s timeout (primary), Flash gets 22s (fallback) — must finish before Render's 30s proxy timeout
-    const timeoutMs = model.includes('pro') ? 25000 : 22000;
+    // 25s timeout for all models — must finish before Render's 30s proxy timeout
+    const timeoutMs = 25000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
