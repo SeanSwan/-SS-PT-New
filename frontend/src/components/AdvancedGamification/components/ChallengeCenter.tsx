@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Flame, Target, CheckCircle, User, ClipboardList, Palette, Dumbbell, Apple, Brain, Users } from 'lucide-react';
 import { GamificationCard } from '../shared/GamificationCard';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
@@ -525,20 +526,20 @@ export const ChallengeCenter: React.FC<ChallengeCenterProps> = ({
   // ================================================================
 
   const filterOptions = [
-    { id: 'active', label: 'Active', icon: '🔥' },
-    { id: 'available', label: 'Available', icon: '🎯' },
-    { id: 'completed', label: 'Completed', icon: '✅' },
-    { id: 'my-challenges', label: 'My Challenges', icon: '👤' },
-    { id: 'all', label: 'All', icon: '📋' }
+    { id: 'active', label: 'Active', icon: <Flame size={16} /> },
+    { id: 'available', label: 'Available', icon: <Target size={16} /> },
+    { id: 'completed', label: 'Completed', icon: <CheckCircle size={16} /> },
+    { id: 'my-challenges', label: 'My Challenges', icon: <User size={16} /> },
+    { id: 'all', label: 'All', icon: <ClipboardList size={16} /> }
   ];
 
   const categoryOptions = [
-    { id: 'all', label: 'All', icon: '🎨' },
-    { id: 'fitness', label: 'Fitness', icon: '💪' },
-    { id: 'nutrition', label: 'Nutrition', icon: '🥗' },
-    { id: 'mindfulness', label: 'Mindfulness', icon: '🧘' },
-    { id: 'social', label: 'Social', icon: '👥' },
-    { id: 'streak', label: 'Streaks', icon: '🔥' }
+    { id: 'all', label: 'All', icon: <Palette size={16} /> },
+    { id: 'fitness', label: 'Fitness', icon: <Dumbbell size={16} /> },
+    { id: 'nutrition', label: 'Nutrition', icon: <Apple size={16} /> },
+    { id: 'mindfulness', label: 'Flexibility', icon: <Brain size={16} /> },
+    { id: 'social', label: 'Social', icon: <Users size={16} /> },
+    { id: 'streak', label: 'Streaks', icon: <Flame size={16} /> }
   ];
 
   // ================================================================
@@ -683,7 +684,7 @@ export const ChallengeCenter: React.FC<ChallengeCenterProps> = ({
   return (
     <CenterContainer className={className}>
       <CenterHeader>
-        <Title>🎯 Challenge Center</Title>
+        <Title><Target size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Challenge Center</Title>
       </CenterHeader>
 
       <QuickStats>
@@ -902,7 +903,7 @@ export const ChallengeCenter: React.FC<ChallengeCenterProps> = ({
                   )}
 
                   <ParticipantCount>
-                    👥 {challenge.participants}
+                    <Users size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />{challenge.participants}
                     {challenge.maxParticipants && ` / ${challenge.maxParticipants}`}
                   </ParticipantCount>
                 </ActionButtons>

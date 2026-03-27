@@ -30,7 +30,8 @@ const fetchClientProgress = async (userId: number): Promise<ClientProgressSummar
     throw new Error('Missing auth token');
   }
 
-  const response = await fetch(`/api/client/${userId}/progress`, {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const response = await fetch(`${baseUrl}/api/client/${userId}/progress`, {
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -54,6 +55,6 @@ export const useClientProgress = (userId?: number, isClient?: boolean) => {
     queryKey: ['clientProgress', userId],
     queryFn: () => fetchClientProgress(userId as number),
     // Only fetch if userId is valid and user is not explicitly marked as non-client
-    enabled: Number.isFinite(userId) && isClient !== false
+    enabled: !!userId && userId > 0 && isClient !== false
   });
 };

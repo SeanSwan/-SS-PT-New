@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, CalendarDays, Trophy, Target, Dumbbell, Users, BarChart3, Star, Flame, UserPlus, Zap } from 'lucide-react';
 import { GamificationCard } from '../shared/GamificationCard';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
@@ -525,16 +526,16 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   // ================================================================
 
   const timeframeOptions = [
-    { id: 'weekly', label: 'Weekly', icon: '📅' },
-    { id: 'monthly', label: 'Monthly', icon: '🗓️' },
-    { id: 'all-time', label: 'All Time', icon: '🏆' }
+    { id: 'weekly', label: 'Weekly', icon: <Calendar size={16} /> },
+    { id: 'monthly', label: 'Monthly', icon: <CalendarDays size={16} /> },
+    { id: 'all-time', label: 'All Time', icon: <Trophy size={16} /> }
   ];
 
   const categoryOptions = [
-    { id: 'all', label: 'Overall', icon: '🎯' },
-    { id: 'fitness', label: 'Fitness', icon: '💪' },
-    { id: 'social', label: 'Social', icon: '👥' },
-    { id: 'achievements', label: 'Achievements', icon: '🏆' }
+    { id: 'all', label: 'Overall', icon: <Target size={16} /> },
+    { id: 'fitness', label: 'Fitness', icon: <Dumbbell size={16} /> },
+    { id: 'social', label: 'Social', icon: <Users size={16} /> },
+    { id: 'achievements', label: 'Achievements', icon: <Trophy size={16} /> }
   ];
 
   // ================================================================
@@ -703,7 +704,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   return (
     <WidgetContainer className={className}>
       <WidgetHeader>
-        <Title>📊 Leaderboard</Title>
+        <Title><BarChart3 size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Leaderboard</Title>
       </WidgetHeader>
 
       <FilterSection>
@@ -799,13 +800,13 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     </Username>
                     <UserStats>
                       <StatBadge type="level">
-                        ⭐ Level {user.level}
+                        <Star size={12} /> Level {user.level}
                       </StatBadge>
                       <StatBadge type="streak">
-                        🔥 {user.streak}
+                        <Flame size={12} /> {user.streak}
                       </StatBadge>
                       <StatBadge type="achievements">
-                        🏆 {user.achievementCount}
+                        <Trophy size={12} /> {user.achievementCount}
                       </StatBadge>
                     </UserStats>
                   </UserDetails>
@@ -823,14 +824,14 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                       size="small"
                       onClick={() => handleFollowUser(user.id)}
                     >
-                      {user.isFriend ? '👥' : '➕'}
+                      {user.isFriend ? <Users size={14} /> : <UserPlus size={14} />}
                     </AnimatedButton>
                     <AnimatedButton
                       variant="primary"
                       size="small"
                       onClick={() => handleChallengeUser(user.id)}
                     >
-                      ⚡
+                      <Zap size={14} />
                     </AnimatedButton>
                   </ActionButtons>
                 )}

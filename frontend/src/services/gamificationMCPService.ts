@@ -179,7 +179,7 @@ class GamificationMCPService {
    */
   async getLeaderboard(timeframe: 'weekly' | 'monthly' | 'all-time' = 'weekly', limit: number = 10): Promise<LeaderboardEntry[]> {
     try {
-      const response = await this.api.get(`/api/gamification/leaderboard?timeframe=${timeframe}&limit=${limit}`);
+      const response = await this.api.get(`/api/v1/gamification/leaderboard?timeframe=${timeframe}&limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching leaderboard:', error);

@@ -32,7 +32,7 @@
  * DATA FLOW:
  * Props In:  none
  * State:     { gamData, recentWorkouts, loading, error }
- * API Calls: GET /api/gamification/dashboard, GET /api/workout/sessions?limit=5
+ * API Calls: GET /api/v1/gamification/dashboard, GET /api/workout/sessions?limit=5
  * Children:  none (self-contained)
  */
 
@@ -178,7 +178,7 @@ const ClientOverviewPage: React.FC = () => {
       try {
         setLoading(true);
         const [gamRes, workoutRes] = await Promise.allSettled([
-          authAxios.get('/api/gamification/dashboard'),
+          authAxios.get('/api/v1/gamification/dashboard'),
           authAxios.get('/api/workout/sessions', { params: { limit: 5 } })
         ]);
         if (gamRes.status === 'fulfilled') setGamData(gamRes.value?.data?.data || gamRes.value?.data);

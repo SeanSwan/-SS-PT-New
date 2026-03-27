@@ -31,7 +31,7 @@
  * DATA FLOW:
  * Props In:  none
  * State:     { gamData, loading, error }
- * API Calls: GET /api/gamification/dashboard
+ * API Calls: GET /api/v1/gamification/dashboard
  * Children:  none
  */
 
@@ -187,7 +187,7 @@ const ClientRewardsPage: React.FC = () => {
     const fetchData = async () => {
       if (!authAxios) return;
       try {
-        const res = await authAxios.get('/api/gamification/dashboard');
+        const res = await authAxios.get('/api/v1/gamification/dashboard');
         setGamData(res.data?.data || res.data);
       } catch (err: any) {
         setError(err.message || 'Failed to load rewards data');

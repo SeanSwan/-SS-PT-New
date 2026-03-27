@@ -13,6 +13,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Dumbbell, Users, Flame, Target, Star, Building, Palette, Circle, Diamond } from 'lucide-react';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
 import { getBadgeImage } from '../../../utils/badgeImageResolver';
@@ -454,21 +455,21 @@ export const AchievementShowcase: React.FC<AchievementShowcaseProps> = ({
   });
 
   const categoryOptions = [
-    { id: 'all', label: 'All', icon: '🏆' },
-    { id: 'fitness', label: 'Fitness', icon: '💪' },
-    { id: 'social', label: 'Social', icon: '👥' },
-    { id: 'streak', label: 'Streaks', icon: '🔥' },
-    { id: 'milestone', label: 'Milestones', icon: '🎯' },
-    { id: 'special', label: 'Special', icon: '⭐' },
-    { id: 'community', label: 'Community', icon: '🏛️' },
+    { id: 'all', label: 'All', icon: <Trophy size={16} /> },
+    { id: 'fitness', label: 'Fitness', icon: <Dumbbell size={16} /> },
+    { id: 'social', label: 'Social', icon: <Users size={16} /> },
+    { id: 'streak', label: 'Streaks', icon: <Flame size={16} /> },
+    { id: 'milestone', label: 'Milestones', icon: <Target size={16} /> },
+    { id: 'special', label: 'Special', icon: <Star size={16} color="#C6A84B" /> },
+    { id: 'community', label: 'Community', icon: <Building size={16} /> },
   ];
 
   const rarityOptions = [
-    { id: 'all', label: 'All Rarities', icon: '🎨' },
-    { id: 'common', label: 'Cygnus Initiate', icon: '🔵' },
-    { id: 'rare', label: 'Frostwing', icon: '🟡' },
-    { id: 'epic', label: 'Gilded Sovereign', icon: '🟣' },
-    { id: 'legendary', label: 'Amethyst Apex', icon: '💎' },
+    { id: 'all', label: 'All Rarities', icon: <Palette size={16} /> },
+    { id: 'common', label: 'Cygnus Initiate', icon: <Circle size={16} color="#4070C0" fill="#4070C0" /> },
+    { id: 'rare', label: 'Frostwing', icon: <Circle size={16} color="#C6A84B" fill="#C6A84B" /> },
+    { id: 'epic', label: 'Gilded Sovereign', icon: <Circle size={16} color="#8B5CF6" fill="#8B5CF6" /> },
+    { id: 'legendary', label: 'Amethyst Apex', icon: <Diamond size={16} color="#60C0F0" /> },
   ];
 
   const containerVariants = {

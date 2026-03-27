@@ -501,7 +501,7 @@ class EnhancedClientDashboardService {
     try {
       // Use backend API for leaderboard data
       const response: AxiosResponse<{ leaderboard: any[] }> = await apiClient.get(
-        `/api/gamification/leaderboard`,
+        `/api/v1/gamification/leaderboard`,
         {
           params: { timeframe },
         }

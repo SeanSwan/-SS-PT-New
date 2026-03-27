@@ -78,7 +78,7 @@ export function useSocialFeed(params: FeedParams = {}) {
   return useQuery({
     queryKey: queryKeys.social.feed(queryParams),
     queryFn: async ({ signal }) => {
-      const res = await authAxios.get('/api/social/feed', { params: queryParams, signal });
+      const res = await authAxios.get('/api/social/posts/feed', { params: queryParams, signal });
       return res.data?.posts || res.data?.data || [];
     },
     enabled: !!authAxios,
@@ -90,7 +90,7 @@ export function useSocialChallenges() {
   return useQuery({
     queryKey: queryKeys.social.challenges(),
     queryFn: async ({ signal }) => {
-      const res = await authAxios.get('/api/social/challenges', { signal });
+      const res = await authAxios.get('/api/social/challenges/active', { signal });
       return res.data?.data || res.data?.challenges || [];
     },
     enabled: !!authAxios,
@@ -133,7 +133,7 @@ export function useLeaderboard(params: LeaderboardParams = {}) {
   return useQuery({
     queryKey: queryKeys.gamification.leaderboard(params),
     queryFn: async ({ signal }) => {
-      const res = await authAxios.get('/api/gamification/leaderboard', {
+      const res = await authAxios.get('/api/v1/gamification/leaderboard', {
         params: { limit: params.limit || 5 },
         signal,
       });

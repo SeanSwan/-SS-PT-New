@@ -77,14 +77,16 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
     setLoadingTrainers(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/users?role=trainer', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const response = await fetch(`${baseUrl}/api/admin/users?role=trainer`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
       const data = await response.json();
       if (data.success && data.data) {
-        setTrainers(data.data);
+        const list = Array.isArray(data.data) ? data.data : data.data?.users || [];
+        setTrainers(list);
       }
     } catch (err) {
       console.error('Error fetching trainers:', err);

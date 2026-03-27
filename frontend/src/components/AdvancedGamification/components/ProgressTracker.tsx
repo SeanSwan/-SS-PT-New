@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, CalendarDays, BarChart3, Target, TrendingUp } from 'lucide-react';
 import { GamificationCard } from '../shared/GamificationCard';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
@@ -544,10 +545,10 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   // ================================================================
 
   const timeframeOptions = [
-    { id: 'weekly', label: 'Weekly', icon: '📅' },
-    { id: 'monthly', label: 'Monthly', icon: '🗓️' },
-    { id: 'quarterly', label: 'Quarterly', icon: '📊' },
-    { id: 'yearly', label: 'Yearly', icon: '🎯' }
+    { id: 'weekly', label: 'Weekly', icon: <Calendar size={16} /> },
+    { id: 'monthly', label: 'Monthly', icon: <CalendarDays size={16} /> },
+    { id: 'quarterly', label: 'Quarterly', icon: <BarChart3 size={16} /> },
+    { id: 'yearly', label: 'Yearly', icon: <Target size={16} /> }
   ];
 
   // ================================================================
@@ -727,7 +728,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
       animate="visible"
     >
       <TrackerHeader variants={itemVariants}>
-        <Title>📈 Progress Tracker</Title>
+        <Title><TrendingUp size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Progress Tracker</Title>
       </TrackerHeader>
 
       <StatsOverview variants={itemVariants}>
@@ -811,7 +812,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
 
         <SidePanel>
           <MilestoneSection>
-            <SectionTitle>🎯 Milestones</SectionTitle>
+            <SectionTitle><Target size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />Milestones</SectionTitle>
             <MilestoneList>
               {milestones.map((milestone) => {
                 const progressPercentage = (milestone.currentValue / milestone.targetValue) * 100;

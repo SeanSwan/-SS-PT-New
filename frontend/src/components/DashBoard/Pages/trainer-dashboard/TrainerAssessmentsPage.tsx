@@ -33,12 +33,12 @@
  * DATA FLOW:
  * Props In:  None (page-level component)
  * State:     { clients, assessments, formState, loading }
- * API Calls: GET /api/users?role=client, GET /api/assessments, POST /api/assessments
+ * API Calls: GET /api/admin/clients, GET /api/movement-analysis, POST /api/movement-analysis
  * Events:    handleSubmit → POST assessment → refresh list
  * Children:  AssessmentForm, AssessmentHistoryList
  *
  * CLICK-OUTCOMES:
- * [Submit Assessment] → POST /api/assessments → Success toast → Refresh history
+ * [Submit Assessment] → POST /api/movement-analysis → Success toast → Refresh history
  * [Assessment row]    → Expand details (future)
  *
  * NASM PROTOCOL CONTEXT: Assessment types map to NASM OPT evaluation criteria
@@ -239,12 +239,12 @@ const TrainerAssessmentsPage: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await authAxios.get('/api/assessments');
+        const res = await authAxios.get('/api/movement-analysis');
         setHistory(Array.isArray(res.data) ? res.data : res.data?.assessments || []);
       } catch { setHistory([]); }
       try {
-        const res = await authAxios.get('/api/users?role=client');
-        const list = Array.isArray(res.data) ? res.data : res.data?.users || [];
+        const res = await authAxios.get('/api/admin/clients');
+        const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.clients || [];
         setClients(list.map((u: any) => ({ id: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username })));
       } catch { setClients([]); }
     };
@@ -254,7 +254,7 @@ const TrainerAssessmentsPage: React.FC = () => {
   const handleSubmit = useCallback(async () => {
     if (!authAxios || !clientId || !assessmentType) return;
     try {
-      await authAxios.post('/api/assessments', {
+      await authAxios.post('/api/movement-analysis', {
         assessmentType,
         clientId: Number(clientId),
         score: Number(score) || 0,
@@ -267,7 +267,7 @@ const TrainerAssessmentsPage: React.FC = () => {
       setDate(new Date().toISOString().split('T')[0]);
       // Reload assessments list
       try {
-        const res = await authAxios.get('/api/assessments');
+        const res = await authAxios.get('/api/movement-analysis');
         const list = Array.isArray(res.data) ? res.data : res.data?.assessments || [];
         setHistory(list);
       } catch { /* list refresh failed, non-critical */ }

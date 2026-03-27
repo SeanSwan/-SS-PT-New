@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Home, Trophy, Target, BarChart3, TrendingUp, Sparkles } from 'lucide-react';
 import { GamificationCard } from '../shared/GamificationCard';
 import { AnimatedButton } from '../shared/AnimatedButton';
 import { TabNavigation } from '../shared/TabNavigation';
@@ -305,11 +306,11 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
   // ================================================================
 
   const tabOptions = [
-    { id: 'overview', label: 'Overview', icon: '🏠' },
-    { id: 'achievements', label: 'Achievements', icon: '🏆' },
-    { id: 'challenges', label: 'Challenges', icon: '🎯' },
-    { id: 'leaderboard', label: 'Leaderboard', icon: '📊' },
-    { id: 'progress', label: 'Progress', icon: '📈' }
+    { id: 'overview', label: 'Overview', icon: <Home size={16} /> },
+    { id: 'achievements', label: 'Achievements', icon: <Trophy size={16} /> },
+    { id: 'challenges', label: 'Challenges', icon: <Target size={16} /> },
+    { id: 'leaderboard', label: 'Leaderboard', icon: <BarChart3 size={16} /> },
+    { id: 'progress', label: 'Progress', icon: <TrendingUp size={16} /> }
   ];
 
   // ================================================================
@@ -423,7 +424,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
         >
           <h3 style={{ color: '#8B5CF6', marginBottom: '1rem' }}>Recent Achievement</h3>
           <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '1.5rem' }}>
-            🏆 Week Warrior - 7 day streak!
+            <Trophy size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Week Warrior - 7 day streak!
           </p>
           <AnimatedButton 
             variant="secondary"
@@ -469,7 +470,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
     >
       <HubHeader variants={itemVariants}>
         <WelcomeTitle>
-          🌟 Your Fitness Journey
+          <Sparkles size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Your Fitness Journey
         </WelcomeTitle>
         <SubTitle>
           Track progress, unlock achievements, and join the community
@@ -492,7 +493,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
             <TabContent key="achievements">
               <GamificationCard variant="glass" padding="large">
                 <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
-                  🏆 Achievement Showcase Coming Soon!
+                  <Trophy size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Achievement Showcase Coming Soon!
                 </h2>
               </GamificationCard>
             </TabContent>
@@ -502,7 +503,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
             <TabContent key="challenges">
               <GamificationCard variant="gradient" padding="large">
                 <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
-                  🎯 Challenge Center Coming Soon!
+                  <Target size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Challenge Center Coming Soon!
                 </h2>
               </GamificationCard>
             </TabContent>
@@ -512,7 +513,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
             <TabContent key="leaderboard">
               <GamificationCard variant="premium" padding="large">
                 <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
-                  📊 Leaderboard Coming Soon!
+                  <BarChart3 size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Leaderboard Coming Soon!
                 </h2>
               </GamificationCard>
             </TabContent>
@@ -522,7 +523,7 @@ export const GamificationHub: React.FC<GamificationHubProps> = ({
             <TabContent key="progress">
               <GamificationCard variant="elevated" padding="large">
                 <h2 style={{ color: '#8B5CF6', textAlign: 'center' }}>
-                  📈 Progress Tracker Coming Soon!
+                  <TrendingUp size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Progress Tracker Coming Soon!
                 </h2>
               </GamificationCard>
             </TabContent>

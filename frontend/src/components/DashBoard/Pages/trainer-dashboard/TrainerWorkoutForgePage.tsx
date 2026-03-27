@@ -181,8 +181,8 @@ const TrainerWorkoutForgePage: React.FC = () => {
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const res = await authAxios.get('/api/users?role=client');
-        const list = Array.isArray(res.data) ? res.data : res.data?.users || [];
+        const res = await authAxios.get('/api/admin/clients');
+        const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.clients || [];
         setClients(list.map((u: any) => ({ id: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username })));
       } catch { setClients([]); }
     };

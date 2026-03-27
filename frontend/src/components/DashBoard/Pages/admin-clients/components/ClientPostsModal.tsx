@@ -1,7 +1,7 @@
 /**
  * ClientPostsModal.tsx
  * Shows social media posts for a specific client.
- * Fetches from GET /api/social/feed (filtered by userId)
+ * Fetches from GET /api/social/posts/feed (filtered by userId)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -44,7 +44,7 @@ const ClientPostsModal: React.FC<Props> = ({ open, clientId, clientName, onClose
     try {
       setLoading(true);
       setError(null);
-      const resp = await authAxios.get('/api/social/feed', { params: { userId: clientId, limit: 20 } });
+      const resp = await authAxios.get('/api/social/posts/feed', { params: { userId: clientId, limit: 20 } });
       if (resp.data.success || resp.data.posts) {
         const raw = resp.data.posts || resp.data.data?.posts || [];
         setPosts(raw.map((p: any) => ({
