@@ -1299,7 +1299,7 @@ class AdminClientController {
       }
 
       // Generate SWAN-XXXX claim token for account claiming (Crystalline Link Protocol)
-      const { plainToken, hash: claimTokenHash, expires: claimTokenExpires } = await generateClaimToken();
+      const { plainToken, hash: claimTokenHash, expires: claimTokenExpires } = generateClaimToken();
 
       const newClient = await User.create({
         firstName,

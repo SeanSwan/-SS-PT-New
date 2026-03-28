@@ -2,8 +2,8 @@
  * ============================================================================
  * FILE: claimRoutes.mjs
  * PURPOSE: REST API for client account claiming (Crystalline Link Protocol)
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-27
- * AI VILLAGE VALIDATED: 2026-03-27
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * AI VILLAGE VALIDATED: 2026-03-28 (11-Brain Consensus Applied)
  * ============================================================================
  *
  * WHAT THIS FILE DOES:
@@ -16,16 +16,15 @@
  *   Client scans QR → GET /verify/:token → shows claim form
  *   Client submits → POST /activate → sets password, status=active
  *
- * ARCHITECTURE:
- * graph TD
- *   AdminUI -->|POST /generate-token| GenerateEndpoint
- *   QRScan -->|GET /verify/:token| VerifyEndpoint
- *   ClaimForm -->|POST /activate| ActivateEndpoint
+ * AI VILLAGE FIXES APPLIED:
+ *   Finding 1: accountStatus filter includes BOTH 'stub' and 'invited'
+ *   Finding 3: SHA-256 direct lookup replaces bcrypt O(n) loop
+ *   Finding 4: State-based email authorization (stub only)
  */
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { generateClaimToken, verifyClaimToken, isTokenExpired } from '../services/claimTokenService.mjs';
+import { generateClaimToken, hashToken, isTokenExpired } from '../services/claimTokenService.mjs';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -34,7 +33,7 @@ const router = express.Router();
 // ─────────────────────────────────────────────────────────────
 // SECTION: Admin-Only Token Generation
 // PURPOSE: Create invite codes for STUB clients
-// ─────────────────────────────────────────────────────────────
+// ────────���──────────────────────────────────────────────���─────
 
 /**
  * POST /api/claim/generate-token
@@ -65,7 +64,7 @@ router.post('/generate-token', protect, async (req, res) => {
       });
     }
 
-    const { plainToken, hash, expires } = await generateClaimToken();
+    const { plainToken, hash, expires } = generateClaimToken();
 
     await client.update({
       accountStatus: 'invited',
@@ -93,7 +92,8 @@ router.post('/generate-token', protect, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Public Token Verification
 // PURPOSE: Check if a claim token is valid (no auth required)
-// ─────────────────────────────────────────────────────────────
+// WHY O(1): SHA-256 hash allows direct WHERE lookup (AI Village Finding 3)
+// ──────────────────────────────���──────────────────────────────
 
 /**
  * GET /api/claim/verify/:token
@@ -107,31 +107,27 @@ router.get('/verify/:token', async (req, res) => {
     }
 
     const User = getUser();
+    const tokenHash = hashToken(token);
 
-    // Find users with non-null claim tokens that haven't expired
-    const candidates = await User.findAll({
+    // O(1) direct lookup by SHA-256 hash (AI Village Finding 3: replaces bcrypt loop)
+    const candidate = await User.findOne({
       where: {
-        claimTokenHash: { [Op.ne]: null },
-        accountStatus: 'invited',
+        claimTokenHash: tokenHash,
+        accountStatus: { [Op.in]: ['invited', 'stub'] }, // AI Village Finding 1
       },
-      attributes: ['id', 'firstName', 'claimTokenHash', 'claimTokenExpires', 'clientSource'],
+      attributes: ['id', 'firstName', 'claimTokenExpires', 'clientSource'],
     });
 
-    for (const candidate of candidates) {
-      if (isTokenExpired(candidate.claimTokenExpires)) continue;
-
-      const match = await verifyClaimToken(token, candidate.claimTokenHash);
-      if (match) {
-        return res.json({
-          success: true,
-          data: {
-            valid: true,
-            firstName: candidate.firstName,
-            clientSource: candidate.clientSource,
-            expiresAt: candidate.claimTokenExpires,
-          }
-        });
-      }
+    if (candidate && !isTokenExpired(candidate.claimTokenExpires)) {
+      return res.json({
+        success: true,
+        data: {
+          valid: true,
+          firstName: candidate.firstName,
+          clientSource: candidate.clientSource,
+          expiresAt: candidate.claimTokenExpires,
+        }
+      });
     }
 
     return res.json({ success: true, data: { valid: false } });
@@ -141,10 +137,10 @@ router.get('/verify/:token', async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────��────────
 // SECTION: Account Activation
 // PURPOSE: Client sets password and activates their account
-// ─────────────────────────────────────────────────────────────
+// ───���──────────────────────────────���──────────────────────────
 
 /**
  * POST /api/claim/activate
@@ -164,33 +160,24 @@ router.post('/activate', async (req, res) => {
     }
 
     const User = getUser();
+    const tokenHash = hashToken(token);
 
-    const candidates = await User.findAll({
+    // O(1) direct lookup by SHA-256 hash (AI Village Finding 3)
+    const matchedUser = await User.findOne({
       where: {
-        claimTokenHash: { [Op.ne]: null },
-        accountStatus: 'invited',
+        claimTokenHash: tokenHash,
+        accountStatus: { [Op.in]: ['invited', 'stub'] }, // AI Village Finding 1
       },
     });
 
-    let matchedUser = null;
-    for (const candidate of candidates) {
-      if (isTokenExpired(candidate.claimTokenExpires)) continue;
-
-      const match = await verifyClaimToken(token, candidate.claimTokenHash);
-      if (match) {
-        matchedUser = candidate;
-        break;
-      }
-    }
-
-    if (!matchedUser) {
+    if (!matchedUser || isTokenExpired(matchedUser.claimTokenExpires)) {
       return res.status(404).json({
         success: false,
         message: 'Invalid or expired invite code. Please contact your trainer for a new code.'
       });
     }
 
-    // Update email if provided (client may want to use their own email)
+    // Update password and activate account
     const updates = {
       password,
       accountStatus: 'active',
@@ -199,11 +186,24 @@ router.post('/activate', async (req, res) => {
       claimTokenExpires: null,
     };
 
+    // AI Village Finding 4: State-based email authorization (stub accounts only)
     if (email && email !== matchedUser.email) {
+      if (matchedUser.accountStatus !== 'stub') {
+        return res.status(403).json({
+          success: false,
+          message: 'Email changes require verification. Please update via account settings.'
+        });
+      }
+
+      // Basic email format validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ success: false, message: 'Invalid email format' });
+      }
+
       // Check email isn't taken
       const existing = await User.findOne({ where: { email, id: { [Op.ne]: matchedUser.id } } });
       if (existing) {
-        return res.status(400).json({ success: false, message: 'Email already in use' });
+        return res.status(409).json({ success: false, message: 'Email already in use' });
       }
       updates.email = email;
     }
