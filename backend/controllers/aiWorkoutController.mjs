@@ -746,11 +746,61 @@ export const generateWorkoutPlan = async (req, res) => {
     }
 
     // --- Phase 3A: Validate provider output (PII → Zod → Rules) ---
+    // Self-healing pipeline: validate → if non-PII failure, retry once with correction prompt
     const { result: providerResult } = routerOutcome;
-
-    const validation = runValidationPipeline(providerResult.rawText, {
+    const validationOpts = {
       userName: originalName || undefined,
-    });
+      optPhase: serverConstraints?.optPhase || undefined,
+    };
+
+    let validation = runValidationPipeline(providerResult.rawText, validationOpts);
+
+    // --- Phase 3A-retry: Self-healing retry with correction prompt ---
+    // On parse/validation errors (NOT PII leaks), retry once with explicit correction feedback
+    if (!validation.ok && validation.failStage !== 'pii_leak') {
+      logger.warn('[Self-Heal] Validation failed, attempting retry with correction prompt', {
+        failStage: validation.failStage,
+        failReason: validation.failReason,
+      });
+
+      const correctionPrompt = `CRITICAL CORRECTION: Your previous output failed validation. Error: ${validation.failReason}. `
+        + 'You MUST return valid JSON matching this exact schema: { "planName": string, "durationWeeks": number, '
+        + '"summary": string, "days": [{ "dayNumber": number, "name": string, "focus": string, "exercises": '
+        + '[{ "name": string, "setScheme": string, "repGoal": string, "restPeriod": number (0-600), '
+        + '"tempo": string (format: "4/2/1" or "X/0/X"), "intensityGuideline": string }] }] }. '
+        + 'Regenerate the workout with this exact structure. No markdown, no code fences, pure JSON only.';
+
+      const retryOutcome = await routeAiGeneration({
+        requestType: 'workout_generation',
+        userId: targetUserId,
+        deidentifiedPayload: safePayload,
+        serverConstraints,
+        payloadHash,
+        promptVersion: PROMPT_VERSION,
+        correctionPrompt,
+      });
+
+      if (retryOutcome.ok) {
+        const retryValidation = runValidationPipeline(retryOutcome.result.rawText, validationOpts);
+        if (retryValidation.ok) {
+          logger.info('[Self-Heal] Retry succeeded after correction prompt');
+          // Use the retried result
+          validation = retryValidation;
+          // Update providerResult reference for downstream (audit log, metrics)
+          Object.assign(providerResult, retryOutcome.result);
+        } else {
+          logger.warn('[Self-Heal] Retry also failed validation', {
+            failStage: retryValidation.failStage,
+            failReason: retryValidation.failReason,
+          });
+          // Fall through to error handling below with original validation
+        }
+      } else {
+        logger.warn('[Self-Heal] Retry router call failed', {
+          errors: retryOutcome.errors?.map(e => e.code),
+        });
+      }
+    }
 
     if (!validation.ok) {
       const statusMap = {

@@ -60,6 +60,7 @@ import { AICommandBar } from '../../../Shared/AICommandBar';
 interface Session {
   id: number;
   clientName?: string;
+  client?: { firstName?: string; lastName?: string };
   startTime?: string;
   endTime?: string;
   status?: string;
@@ -253,9 +254,16 @@ const TrainerOverviewPage: React.FC = () => {
     fetchToday();
   }, [authAxios]);
 
+  const getClientName = (s: Session): string => {
+    if (s.client?.firstName) {
+      return `${s.client.firstName}${s.client.lastName ? ' ' + s.client.lastName : ''}`;
+    }
+    return s.clientName || 'Unassigned';
+  };
+
   const stats = useMemo(() => ({
     totalClients: sessions.length > 0
-      ? new Set(sessions.map(s => s.clientName)).size
+      ? new Set(sessions.map(s => getClientName(s))).size
       : 0,
     sessionsThisWeek: sessions.length,
     hoursLogged: sessions.reduce((sum, s) => {
@@ -281,11 +289,11 @@ const TrainerOverviewPage: React.FC = () => {
       <StatsGrid>
         <StatCard>
           <IconCircle><Users size={22} color="#60C0F0" /></IconCircle>
-          <StatInfo><StatValue>{stats.totalClients}</StatValue><StatLabel>Total Clients</StatLabel></StatInfo>
+          <StatInfo><StatValue>{stats.totalClients}</StatValue><StatLabel>Clients Today</StatLabel></StatInfo>
         </StatCard>
         <StatCard>
           <IconCircle $color="rgba(139,92,246,0.15)"><CalendarDays size={22} color="#8B5CF6" /></IconCircle>
-          <StatInfo><StatValue>{stats.sessionsThisWeek}</StatValue><StatLabel>Sessions This Week</StatLabel></StatInfo>
+          <StatInfo><StatValue>{stats.sessionsThisWeek}</StatValue><StatLabel>Today's Sessions</StatLabel></StatInfo>
         </StatCard>
         <StatCard>
           <IconCircle $color="rgba(198,168,75,0.15)"><Clock size={22} color="#C6A84B" /></IconCircle>
@@ -309,7 +317,7 @@ const TrainerOverviewPage: React.FC = () => {
           sessions.slice(0, 6).map(s => (
             <SessionRow key={s.id}>
               <SessionInfo>
-                <SessionClient>{s.clientName || 'Client'}</SessionClient>
+                <SessionClient>{getClientName(s)}</SessionClient>
                 <SessionTime>{s.startTime ? new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}</SessionTime>
               </SessionInfo>
               <StatusBadge $status={s.status}>{s.status || 'upcoming'}</StatusBadge>

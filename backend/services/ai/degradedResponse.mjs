@@ -95,7 +95,11 @@ export function buildDegradedResponse(errors, failoverTrace) {
     success: true,
     degraded: true,
     code: 'AI_DEGRADED_MODE',
-    message: 'AI providers are temporarily unavailable. You can use manual templates or wait for AI to recover.',
+    message: "We're experiencing high AI demand. Here's a set of certified NASM templates while we optimize your personalized plan.",
+    metadata: {
+      isFallback: true,
+      fallbackReason: 'all_providers_unavailable',
+    },
     fallback: {
       type: 'manual_template_only',
       templateSuggestions: buildTemplateSuggestions(),

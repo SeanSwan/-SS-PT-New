@@ -344,9 +344,15 @@ export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
     
-    // Get post count
+    // Get post count (only count approved/unmoderated posts to match feed display)
     const postCount = await SocialPost.count({
-      where: { userId }
+      where: {
+        userId,
+        [Op.or]: [
+          { moderationStatus: 'approved' },
+          { moderationStatus: null }
+        ]
+      }
     });
     
     // Get followers count (where current user is the recipient)

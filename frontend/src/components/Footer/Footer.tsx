@@ -375,11 +375,11 @@ const EnhancedFooter: React.FC = () => {
         <FooterSection>
           <FooterHeading>Programs</FooterHeading>
           <FooterNav>
-            <FooterLink to="/programs/personal-training">Personal Training</FooterLink>
-            <FooterLink to="/programs/group-classes">Group Classes</FooterLink>
-            <FooterLink to="/programs/nutrition">Nutrition Coaching</FooterLink>
-            <FooterLink to="/programs/online-training">Online Training</FooterLink>
-            <FooterLink to="/programs/recovery">Recovery & Wellness</FooterLink>
+            <FooterLink to="/store">Personal Training</FooterLink>
+            <FooterLink to="/store">Group Classes</FooterLink>
+            <FooterLink to="/store">Nutrition Coaching</FooterLink>
+            <FooterLink to="/store">Online Training</FooterLink>
+            <FooterLink to="/store">Recovery & Wellness</FooterLink>
           </FooterNav>
         </FooterSection>
 

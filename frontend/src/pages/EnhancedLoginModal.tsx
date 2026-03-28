@@ -403,7 +403,7 @@ const ConnectionStatus = styled(motion.div)`
  */
 const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const { theme } = useUniversalTheme();
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
@@ -439,6 +439,20 @@ const EnhancedLoginModal: React.FC = () => {
     
     checkConnection();
   }, []);
+
+  // Redirect already-authenticated users to their dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const role = user.role;
+      if (role === 'admin') {
+        navigate('/dashboard/admin');
+      } else if (role === 'trainer') {
+        navigate('/dashboard/trainer/overview');
+      } else {
+        navigate('/dashboard/client/overview');
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleClose = () => {
     if (window.history.length > 1) {

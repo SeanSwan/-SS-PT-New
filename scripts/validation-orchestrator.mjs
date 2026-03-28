@@ -127,7 +127,7 @@ function getGeminiKey() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { files: [], since: null, staged: false };
+  const opts = { files: [], since: null, staged: false, document: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--files' && args[i + 1]) {
       i++;
@@ -142,6 +142,8 @@ function parseArgs() {
       opts.since = args[++i];
     } else if (args[i] === '--staged') {
       opts.staged = true;
+    } else if (args[i] === '--document' && args[i + 1]) {
+      opts.document = args[++i];
     }
   }
   return opts;
@@ -496,6 +498,256 @@ ${codeBundle}`,
   // The old single-pass Gemini track is replaced by debate loops.
 
   return tracks;
+}
+
+// ─────────────────────────────────────────────
+// Document Validator Tracks (for --document mode)
+// ─────────────────────────────────────────────
+
+function buildDocumentValidatorTracks(documentContent, documentPath) {
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Key differentiators: NASM OPT 5-phase periodization, voice-first AI workout logging, Octalysis gamification, 4-dashboard architecture (Admin/Trainer/Client/Social), 840+ exercise database, social fitness platform. Production: sswanstudios.com. Document: ${documentPath}`;
+
+  return [
+    {
+      name: 'Technical Accuracy',
+      model: MODELS.claudeSonnet45,
+      prompt: `You are a senior technical reviewer for a fitness SaaS platform. ${ctx}
+
+Review this QA/vision alignment document for TECHNICAL ACCURACY:
+1. **Factual correctness** — Are feature descriptions accurate? Does the report match what the codebase actually has?
+2. **Score fairness** — Are the 1-10 scores fair based on the evidence presented? Any over-rated or under-rated?
+3. **Missing features** — Does the report miss any major features that ARE built and working?
+4. **False gaps** — Does the report claim gaps that don't actually exist (features that are built but the tester missed)?
+5. **Architecture accuracy** — Are the technical descriptions of the stack, AI pipeline, and integrations correct?
+
+For each finding provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **Section:** Which part of the document
+- **Issue:** What's wrong or missing
+- **Correction:** What should be stated instead
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Strategic Analysis',
+      model: MODELS.gemini25Flash,
+      prompt: `You are a product strategist and competitive analyst. ${ctx}
+
+Review this vision alignment document for STRATEGIC QUALITY:
+1. **Competitive analysis accuracy** — Are the competitor comparisons fair? Is the market positioning realistic?
+2. **Priority ordering** — Are the Priority 1/2/3 recommendations in the right order? What should be higher/lower?
+3. **Missing opportunities** — What strategic opportunities does the report overlook?
+4. **Risk assessment** — What risks are not addressed? (market, technical, operational)
+5. **Revenue impact** — Which recommendations would have the highest revenue impact?
+6. **Feasibility** — Are the timeline estimates (2-4 weeks, 1-3 months, 3-6 months) realistic?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'UX/Design Gap Validation',
+      model: MODELS.gemini31Flash,
+      prompt: `You are a UX/UI design expert reviewing a QA report for a luxury fitness platform. ${ctx}
+
+Review this document for UX/DESIGN accuracy:
+1. **Gap validity** — Are the identified UI gaps real? (e.g., "no visible recording state" on voice — is that actually missing?)
+2. **Priority accuracy** — Are the UX fixes correctly prioritized? Voice logging is flagged as #1 — do you agree?
+3. **Missing UX issues** — What UX problems does the report NOT mention? (mobile responsiveness, accessibility, loading states, etc.)
+4. **Design recommendations** — Are the strategic design suggestions (wearables, AI form analysis, etc.) the right ones?
+5. **Crystalline Swan compliance** — Does the report correctly assess theme adherence?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Business & Revenue Validation',
+      model: MODELS.minimaxM21,
+      prompt: `You are a fitness industry business analyst. ${ctx}
+
+Review this vision alignment report for BUSINESS ACCURACY:
+1. **Market positioning** — Is the "hybrid B2C/B2B" positioning valid? Is the competitive moat real?
+2. **Monetization gaps** — Does the report correctly identify revenue opportunities? What's missing?
+3. **Client onboarding** — The report scores onboarding at 7/10. Is that fair given the 2-tier (SwanStudios/Move Fitness) model?
+4. **Pricing strategy** — Does the report address pricing optimization? Premium vs freemium?
+5. **Growth blockers** — What growth blockers are missing from the analysis?
+6. **White-label viability** — Is the white-label recommendation realistic for this stage?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Gamification & Engagement Review',
+      model: MODELS.deepseekV3,
+      prompt: `You are a gamification and user engagement specialist. The platform uses the Octalysis Framework with 5 tiers (Bronze Forge → Crystalline Swan), 6 skill trees, and badge rarity system. ${ctx}
+
+Review this document's gamification assessment:
+1. **Score accuracy** — Gamification is scored 6/10 PARTIAL. Is this fair? What specific features ARE working vs missing?
+2. **Octalysis implementation** — The report says core drives aren't surfaced in UI. Which drives ARE present (even implicitly)?
+3. **Social-gamification link** — Is the integration between social features and gamification correctly assessed?
+4. **Engagement recommendations** — Are the suggested improvements (badges, streaks, achievements) the RIGHT priorities?
+5. **Retention mechanics** — What retention loops exist that the report doesn't mention?
+6. **Competitor comparison** — How does the gamification compare to Duolingo, Strava, Nike Run Club specifically?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'NASM & Fitness Science Validation',
+      model: MODELS.gemini3Flash,
+      prompt: `You are a certified fitness professional and exercise science reviewer. ${ctx}
+
+Review this document for FITNESS SCIENCE accuracy:
+1. **NASM OPT Protocol** — The report scores AI workout generation 9/10. Validate the OPT phase descriptions are accurate.
+2. **Exercise database** — The report says 840+ exercises aren't browsable. Is the admin exercise command center not counted? What about the exercise autocomplete in the workout builder?
+3. **Periodization accuracy** — Are the tempo, rep ranges, and rest period descriptions in the report correct?
+4. **Voice logging** — Is voice-first workout logging truly the #1 differentiator? Or is NASM AI more important?
+5. **Nutrition integration** — Does the report accurately assess the nutrition-workout connection?
+6. **Recovery & mobility** — Are there recovery features the report misses?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Security & Privacy Assessment',
+      model: MODELS.step35Flash,
+      prompt: `You are a security and privacy expert. ${ctx}
+
+Review this document for SECURITY & PRIVACY considerations:
+1. **PII handling** — The report mentions "Identity-Blind AI Privacy" as an advantage. Validate this claim.
+2. **Missing security assessment** — The QA report doesn't include security testing. What security gaps should have been assessed?
+3. **Data privacy** — Social fitness data, workout history, health metrics — are privacy controls adequate?
+4. **HIPAA-adjacent concerns** — Personal training data borders on health data. Is this addressed?
+5. **Payment security** — Stripe integration security assessment — was this covered?
+6. **Wearable data risks** — If wearable integration is recommended, what security implications exist?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Architecture & Implementation Gap',
+      model: MODELS.minimaxM25,
+      prompt: `You are a principal engineer reviewing a QA gap analysis. ${ctx}
+
+Review this document for ARCHITECTURE & IMPLEMENTATION accuracy:
+1. **Built vs visible** — The conclusion says "make the invisible visible." Which features are truly built but not surfaced vs not built at all?
+2. **Exercise database UI** — Report says 5/10. But there IS an AdminExerciseCommandCenter with search/filter. Is this a false gap?
+3. **Voice pipeline** — DictationOrb scored 4/10. Is the backend pipeline (Gemini Flash transcription → GPT-4o-mini parsing) built even if UI feedback is missing?
+4. **Gamification backend** — Is the Octalysis engine backend complete even if UI is partial?
+5. **Content Studio** — Scored 5/10. Are Remotion templates actually built? What's the real state?
+6. **Social platform** — The "0 posts vs 8 posts" data mismatch — is this a real bug or a caching issue?
+
+For each finding provide severity and specific corrections.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+
+    {
+      name: 'Document Quality & Completeness',
+      model: MODELS.claudeSonnet45,
+      prompt: `You are a technical documentation quality reviewer. ${ctx}
+
+Review this QA report for DOCUMENT QUALITY:
+1. **Methodology** — Was the testing methodology sound? What should have been tested differently?
+2. **Evidence quality** — Are claims backed by specific observations? Any unsupported assertions?
+3. **Bias detection** — Does the report show any bias (overly positive, overly negative, missing context)?
+4. **Actionability** — Are the recommendations specific enough to act on? Or too vague?
+5. **Completeness** — What major areas were NOT assessed? (performance, accessibility, mobile, security, SEO)
+6. **Follow-up plan** — Does the report provide a clear path forward? Can this be used as a sprint planning doc?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown.
+
+DOCUMENT TO REVIEW:
+${documentContent}`,
+    },
+  ];
+}
+
+// Document-mode debate prompt builders
+
+function buildDocDebateCodePrompt(documentContent, ctx, phase1Summary) {
+  return `You are the CTO (Chief Technology Officer) reviewing a Vision Alignment QA Report for SwanStudios. ${ctx}
+
+## YOUR ROLE — CTO (Technical Authority)
+
+A QA report has been generated comparing the live SwanStudios application against the product vision. You must evaluate whether the report's technical assessments are accurate and the priority recommendations are correct.
+
+The CEO will challenge your findings. Defend with evidence or concede.
+
+## Phase 1 Context (9 document validators already ran)
+
+${phase1Summary}
+
+## Your Analysis — Round 1
+
+For each assessment in the QA report:
+- **Agree/Disagree:** Do you agree with the score?
+- **Correction:** What should the score or assessment be?
+- **Priority Reorder:** Should any recommendations move up or down in priority?
+- **Missing Items:** What does the report miss entirely?
+
+Focus on technical accuracy, implementation feasibility, and business impact.
+
+DOCUMENT UNDER REVIEW:
+${documentContent}`;
+}
+
+function buildDocDebateDesignPrompt(documentContent, ctx, phase1UXReport) {
+  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+
+## YOUR ROLE — Creative Director (Design Authority)
+
+A QA report has assessed the visual and UX quality of the SwanStudios platform. You must evaluate whether the design-related assessments are accurate and the design recommendations are the right ones.
+
+## Crystalline Swan Design Tokens (MANDATORY)
+- Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0
+- Wing Purple #8B5CF6, Gilded Fern #C6A84B, Frost White #E0ECF4
+- Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24
+- Dual-Button Glow: Blue → Purple glow. Purple → Cyan glow.
+
+## UX Phase 1 Report
+${phase1UXReport || '_No Phase 1 UX report available._'}
+
+## Your Analysis — Round 1
+
+Evaluate the QA report's design assessments:
+- **Voice logging UI (4/10)** — Is the recording state really missing? What should it look like?
+- **Client dashboard sidebar** — Is the sidebar complaint valid? What's the ideal navigation?
+- **Gamification UI** — What should the badge gallery and tier progression look like?
+- **Exercise library** — How should 840+ exercises be browsed? Card grid? Virtual list?
+- **Overall design impression** — Does the report capture the Crystalline Swan aesthetic accurately?
+
+Provide specific pixel measurements, color codes, animation specs for all recommendations.
+
+DOCUMENT UNDER REVIEW:
+${documentContent}`;
 }
 
 // ─────────────────────────────────────────────
@@ -893,6 +1145,178 @@ async function main() {
   console.log('');
 
   const opts = parseArgs();
+
+  // ── Document Review Mode ──
+  if (opts.document) {
+    const docPath = resolve(ROOT, opts.document);
+    if (!docPath.startsWith(resolve(ROOT))) {
+      console.error('  ERROR: Document path must be within the project directory.');
+      process.exit(1);
+    }
+    if (!existsSync(docPath)) {
+      console.error(`  ERROR: Document not found: ${docPath}`);
+      process.exit(1);
+    }
+
+    const documentContent = readFileSync(docPath, 'utf-8');
+    console.log(`  [DOCUMENT MODE] Reviewing: ${opts.document} (${(documentContent.length / 1024).toFixed(1)} KB)`);
+    console.log('');
+
+    const files = [{ path: opts.document, content: documentContent }];
+    const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Production: sswanstudios.com. Document: ${opts.document}`;
+    const tracks = buildDocumentValidatorTracks(documentContent, opts.document);
+    const phase1Tracks = tracks;
+
+    console.log(`  Phase 1: Launching ${phase1Tracks.length} document validators (staggered 2s apart)...`);
+    if (hasGemini31) {
+      console.log(`  Phase 2: Technical Accuracy recursive debate (Gemini CTO ↔ Claude CEO)...`);
+      console.log(`  Phase 3: Design Gap recursive debate (Gemini Creative Dir ↔ Claude Collab)...`);
+    }
+    console.log('');
+
+    // ── Phase 1: Run all document tracks in parallel ──
+    const phase1Results = await Promise.all(phase1Tracks.map(async (track, index) => {
+      const tag = track.name.padEnd(40);
+      const modelShort = track.model.split('/').pop();
+      console.log(`    [P1 ${index + 1}/${phase1Tracks.length}] ${tag} -> ${modelShort}`);
+      const result = await runValidator(apiKey, track, index);
+      const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
+      console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
+      return result;
+    }));
+
+    // ── Build Phase 1 summary for Phase 2+3 ──
+    const phase1Summary = phase1Results
+      .filter(r => r.status === 'SUCCESS')
+      .map(r => `### ${r.name} (${r.model})\n${r.text.slice(0, 2000)}${r.text.length > 2000 ? '\n... (truncated)' : ''}`)
+      .join('\n\n---\n\n');
+    const uxReport = phase1Results.find(r => r.name === 'UX/Design Gap Validation' && r.status === 'SUCCESS')?.text || null;
+
+    const debateResults = [];
+    let phase2DebateLog = null;
+    let phase3DebateLog = null;
+
+    async function callModelForDebate(provider, model, prompt) {
+      if (provider === 'gemini-direct') {
+        return callGeminiDirect(getGeminiKey(), model, prompt);
+      } else {
+        return callOpenRouter(apiKey, model, prompt);
+      }
+    }
+
+    if (hasGemini31) {
+      // ── Phase 2: Technical Accuracy Debate ──
+      console.log('');
+      console.log('  ── Phase 2: Technical Accuracy Recursive Debate ──');
+      console.log('  Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)');
+      console.log('');
+
+      try {
+        const p2Start = Date.now();
+        const p2Result = await runRecursiveConsensus({
+          topic: 'Document Technical Accuracy',
+          modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'CTO' },
+          modelB: { name: 'Claude 4.5 Sonnet', model: MODELS.claudeSonnet45, provider: 'openrouter', role: 'CEO' },
+          finalAuthority: 'B',
+          initialPrompt: buildDocDebateCodePrompt(documentContent, ctx, phase1Summary),
+          callModel: callModelForDebate,
+          onRound: (round, speaker, text) => {
+            console.log(`    [P2 R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+          },
+        });
+        phase2DebateLog = p2Result.debateLog;
+        console.log(`    [${p2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2 — ${p2Result.rounds.length} rounds, ${((Date.now() - p2Start) / 1000).toFixed(1)}s`);
+        debateResults.push({
+          name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+          status: 'SUCCESS', text: p2Result.finalVerdict,
+          inputTokens: p2Result.totalTokens.input, outputTokens: p2Result.totalTokens.output,
+          costUSD: (p2Result.totalTokens.input / 1_000_000 * 2.0) + (p2Result.totalTokens.output / 1_000_000 * 12.0),
+          durationMs: Date.now() - p2Start, debateLog: p2Result.debateLog, consensusReached: p2Result.consensusReached,
+        });
+      } catch (err) {
+        console.error(`    [FAIL] Phase 2: ${err.message}`);
+        debateResults.push({ name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      }
+
+      // ── Phase 3: Design Gap Debate ──
+      console.log('');
+      console.log('  ── Phase 3: Design Gap Recursive Debate ──');
+      console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude 4.5 Sonnet (Collaborator)');
+      console.log('');
+
+      try {
+        const p3Start = Date.now();
+        const p3Result = await runRecursiveConsensus({
+          topic: 'Document Design Gap Assessment',
+          modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director' },
+          modelB: { name: 'Claude 4.5 Sonnet', model: MODELS.claudeSonnet45, provider: 'openrouter', role: 'Design Collaborator' },
+          finalAuthority: 'A',
+          initialPrompt: buildDocDebateDesignPrompt(documentContent, ctx, uxReport),
+          callModel: callModelForDebate,
+          onRound: (round, speaker, text) => {
+            console.log(`    [P3 R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+          },
+        });
+        phase3DebateLog = p3Result.debateLog;
+        console.log(`    [${p3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 3 — ${p3Result.rounds.length} rounds, ${((Date.now() - p3Start) / 1000).toFixed(1)}s`);
+        debateResults.push({
+          name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+          status: 'SUCCESS', text: p3Result.finalVerdict,
+          inputTokens: p3Result.totalTokens.input, outputTokens: p3Result.totalTokens.output,
+          costUSD: (p3Result.totalTokens.input / 1_000_000 * 2.0) + (p3Result.totalTokens.output / 1_000_000 * 12.0),
+          durationMs: Date.now() - p3Start, debateLog: p3Result.debateLog, consensusReached: p3Result.consensusReached,
+        });
+      } catch (err) {
+        console.error(`    [FAIL] Phase 3: ${err.message}`);
+        debateResults.push({ name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      }
+    }
+
+    const results = [...phase1Results, ...debateResults];
+    const { md, timestamp } = generateReport(results, files, startTime);
+    const successCount = results.filter(r => r.status === 'SUCCESS').length;
+    const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
+    const outputPaths = writeSplitOutput(results, files, md, timestamp);
+
+    if (phase2DebateLog) {
+      writeFileSync(join(outputPaths.latestDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
+    }
+    if (phase3DebateLog) {
+      writeFileSync(join(outputPaths.latestDir, 'design-debate-log.md'), phase3DebateLog, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'design-debate-log.md'), phase3DebateLog, 'utf-8');
+    }
+
+    const phase2Verdict = debateResults.find(r => r.name.includes('Phase 2'));
+    if (phase2Verdict?.status === 'SUCCESS') {
+      const fixInstructions = `# Document Review — Technical Accuracy Consensus\n\n> Generated from Phase 2 recursive debate (Gemini CTO ↔ Claude CEO)\n> Consensus: ${phase2Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2Verdict.text}\n`;
+      writeFileSync(join(outputPaths.latestDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
+    }
+    const phase3Verdict = debateResults.find(r => r.name.includes('Phase 3'));
+    if (phase3Verdict?.status === 'SUCCESS') {
+      const designRecs = `# Document Review — Design Gap Consensus\n\n> Generated from Phase 3 recursive debate (Gemini Creative Dir ↔ Claude Collab)\n> Consensus: ${phase3Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase3Verdict.text}\n`;
+      writeFileSync(join(outputPaths.latestDir, 'design-recommendations.md'), designRecs, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'design-recommendations.md'), designRecs, 'utf-8');
+    }
+
+    mkdirSync(CONFIG.legacyReportDir, { recursive: true });
+    writeFileSync(join(CONFIG.legacyReportDir, 'LATEST.md'), md, 'utf-8');
+
+    console.log('');
+    console.log('  ════════════════════════════════════════════════════════');
+    console.log(`  11-Brain Document Review System — Complete`);
+    console.log(`  Document:   ${opts.document}`);
+    console.log(`  Output:     ${outputPaths.latestDir}/`);
+    console.log(`  Validators: ${successCount}/${results.length} passed`);
+    console.log(`  Cost:       $${totalCost.toFixed(4)}`);
+    console.log(`  Time:       ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    console.log('  ════════════════════════════════════════════════════════');
+    console.log('');
+    return;
+  }
+
+  // ── Standard Code Review Mode ──
   const files = getRecentFiles(opts);
 
   if (files.length === 0) {
@@ -904,6 +1328,7 @@ async function main() {
     console.error('    node scripts/validation-orchestrator.mjs --files src/App.tsx  # specific file');
     console.error('    node scripts/validation-orchestrator.mjs --files a.tsx b.mjs  # multiple files (space-separated)');
     console.error('    node scripts/validation-orchestrator.mjs --files a.tsx,b.mjs  # multiple files (comma-separated)');
+    console.error('    node scripts/validation-orchestrator.mjs --document path/to/report.md  # review a document');
     process.exit(1);
   }
 
@@ -1148,6 +1573,7 @@ async function main() {
 
 // Track name → clean filename mapping
 const TRACK_SLUGS = {
+  // Code review tracks
   'UX & Accessibility': '01-ux-accessibility',
   'Code Quality': '02-code-quality',
   'Security': '03-security',
@@ -1155,8 +1581,20 @@ const TRACK_SLUGS = {
   'Competitive Intelligence': '05-competitive-intel',
   'User Research & Persona Alignment': '06-user-research',
   'Architecture & Bug Hunter': '07-architecture-bugs',
-  'Code Quality Debate (Phase 2)': '08-code-quality-debate',
-  'UX/UI Design Debate (Phase 3)': '09-design-debate',
+  'Frontend UX & Code Patterns': '08-frontend-ux-patterns',
+  'Data Safety & Integrity': '09-data-safety',
+  'Code Quality Debate (Phase 2)': '10-code-quality-debate',
+  'UX/UI Design Debate (Phase 3)': '11-design-debate',
+  // Document review tracks
+  'Technical Accuracy': '01-technical-accuracy',
+  'Strategic Analysis': '02-strategic-analysis',
+  'UX/Design Gap Validation': '03-ux-design-gaps',
+  'Business & Revenue Validation': '04-business-revenue',
+  'Gamification & Engagement Review': '05-gamification-engagement',
+  'NASM & Fitness Science Validation': '06-nasm-fitness-science',
+  'Security & Privacy Assessment': '07-security-privacy',
+  'Architecture & Implementation Gap': '08-architecture-implementation',
+  'Document Quality & Completeness': '09-document-quality',
 };
 
 function writeSplitOutput(results, files, fullReport, timestamp) {

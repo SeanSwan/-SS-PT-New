@@ -159,6 +159,70 @@ export function validateRules(plan) {
   };
 }
 
+// ── NASM Self-Healing Corrections ────────────────────────────────────────────
+
+/**
+ * NASM OPT phase-appropriate tempo defaults.
+ * Used when AI output is missing or has invalid tempo values.
+ */
+const OPT_PHASE_TEMPOS = {
+  1: '4/2/1',  // Stabilization Endurance
+  2: '2/0/2',  // Strength Endurance
+  3: '2/0/2',  // Hypertrophy / Muscular Development
+  4: 'X/0/X',  // Maximal Strength (explosive)
+  5: 'X/0/X',  // Power (explosive)
+};
+
+const TEMPO_REGEX_STRICT = /^\d+\/\d+\/\d+$|^[Xx]\/\d+\/[Xx]$/;
+
+/**
+ * Attempt to auto-correct common NASM validation issues in a parsed workout plan.
+ * Returns the corrected plan and a list of corrections applied.
+ *
+ * @param {Object} plan - Zod-validated workout plan
+ * @param {Object} [opts]
+ * @param {number} [opts.optPhase] - Client's current OPT phase (1-5)
+ * @returns {{ plan: Object, corrections: string[] }}
+ */
+export function selfHealPlan(plan, opts = {}) {
+  const corrections = [];
+  const phase = opts.optPhase || 2; // Default to Phase 2 if unknown
+  const defaultTempo = OPT_PHASE_TEMPOS[phase] || '2/0/2';
+
+  for (const day of (plan.days || [])) {
+    for (const ex of (day.exercises || [])) {
+      // Fix missing tempo
+      if (!ex.tempo || ex.tempo.trim() === '') {
+        ex.tempo = defaultTempo;
+        corrections.push(`Day ${day.dayNumber}, "${ex.name}": missing tempo → set to ${defaultTempo} (Phase ${phase})`);
+      }
+      // Fix text-only tempos like "Explosive", "Slow", "Controlled"
+      else if (!TEMPO_REGEX_STRICT.test(ex.tempo) && typeof ex.tempo === 'string') {
+        const lower = ex.tempo.toLowerCase();
+        if (lower.includes('explo') || lower.includes('fast') || lower.includes('power')) {
+          ex.tempo = 'X/0/X';
+          corrections.push(`Day ${day.dayNumber}, "${ex.name}": non-standard tempo "${ex.tempo}" → corrected to X/0/X`);
+        } else if (lower.includes('slow') || lower.includes('control')) {
+          ex.tempo = '4/2/1';
+          corrections.push(`Day ${day.dayNumber}, "${ex.name}": non-standard tempo "${ex.tempo}" → corrected to 4/2/1`);
+        } else {
+          ex.tempo = defaultTempo;
+          corrections.push(`Day ${day.dayNumber}, "${ex.name}": invalid tempo "${ex.tempo}" → fallback to ${defaultTempo}`);
+        }
+      }
+
+      // Fix missing rest periods based on phase
+      if (ex.restPeriod == null) {
+        const restDefaults = { 1: 60, 2: 45, 3: 45, 4: 180, 5: 180 };
+        ex.restPeriod = restDefaults[phase] || 60;
+        corrections.push(`Day ${day.dayNumber}, "${ex.name}": missing rest period → set to ${ex.restPeriod}s (Phase ${phase})`);
+      }
+    }
+  }
+
+  return { plan, corrections };
+}
+
 // ── Full Validation Pipeline ─────────────────────────────────────────────────
 
 /**
@@ -206,15 +270,26 @@ export function runValidationPipeline(rawText, opts = {}) {
     };
   }
 
-  // Stage 3: Rule-engine validation
-  const rulesResult = validateRules(schemaResult.data);
+  // Stage 2.5: Self-healing corrections (auto-fix tempos, rest periods)
+  const { plan: healedPlan, corrections } = selfHealPlan(schemaResult.data, {
+    optPhase: opts.optPhase,
+  });
+  if (corrections.length > 0) {
+    logger.info('[Self-Heal] Applied corrections to AI output', {
+      correctionCount: corrections.length,
+      corrections,
+    });
+  }
+
+  // Stage 3: Rule-engine validation (runs on healed plan)
+  const rulesResult = validateRules(healedPlan);
   if (!rulesResult.ok) {
     return {
       ok: false,
       failStage: 'validation_error',
       failReason: `Rule engine: ${rulesResult.errors.join('; ')}`,
       data: null,
-      warnings: rulesResult.warnings,
+      warnings: [...rulesResult.warnings, ...corrections],
     };
   }
 
@@ -222,8 +297,8 @@ export function runValidationPipeline(rawText, opts = {}) {
     ok: true,
     failStage: null,
     failReason: null,
-    data: schemaResult.data,
-    warnings: rulesResult.warnings,
+    data: healedPlan,
+    warnings: [...rulesResult.warnings, ...corrections],
   };
 }
 
