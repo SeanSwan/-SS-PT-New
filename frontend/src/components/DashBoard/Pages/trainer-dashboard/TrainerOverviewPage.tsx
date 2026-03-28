@@ -49,8 +49,10 @@
  */
 import React, { useEffect, useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Eye, Calendar } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import { AICommandBar } from '../../../Shared/AICommandBar';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -203,6 +205,7 @@ const ActionButton = styled.button`
 // ─────────────────────────────────────────────────────────────
 const TrainerOverviewPage: React.FC = () => {
   const { user, authAxios } = useAuth();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -239,6 +242,9 @@ const TrainerOverviewPage: React.FC = () => {
 
   return (
     <PageWrapper>
+      {/* SwanStudios Coach's Assistant — embedded at top */}
+      <AICommandBar context="workout_generation" />
+
       <WelcomeHeader>
         Welcome back, <AccentSpan>{trainerName}</AccentSpan>
       </WelcomeHeader>
@@ -283,13 +289,13 @@ const TrainerOverviewPage: React.FC = () => {
 
       <SectionTitle>Quick Actions</SectionTitle>
       <ActionsGrid>
-        <ActionButton onClick={() => console.warn('TODO: navigate to workout log')}>
+        <ActionButton onClick={() => navigate('/dashboard/trainer/log-workout')}>
           <Dumbbell size={20} /> Log Workout
         </ActionButton>
-        <ActionButton onClick={() => console.warn('TODO: navigate to client list')}>
-          <Eye size={20} /> View Client
+        <ActionButton onClick={() => navigate('/dashboard/trainer/clients')}>
+          <Eye size={20} /> View Clients
         </ActionButton>
-        <ActionButton onClick={() => console.warn('TODO: navigate to schedule')}>
+        <ActionButton onClick={() => navigate('/dashboard/trainer/schedule')}>
           <Calendar size={20} /> Check Schedule
         </ActionButton>
       </ActionsGrid>
