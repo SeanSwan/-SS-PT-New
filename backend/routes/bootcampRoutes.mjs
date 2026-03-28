@@ -35,7 +35,7 @@ import logger from '../utils/logger.mjs';
 const router = Router();
 
 router.use(protect);
-router.use(authorize('admin', 'trainer'));
+router.use(authorize(['admin', 'trainer']));
 
 const VALID_FORMATS = ['stations_4x', 'stations_3x5', 'stations_2x7', 'full_group', 'custom'];
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
@@ -226,7 +226,7 @@ router.get('/trends', async (req, res) => {
 });
 
 // POST /api/bootcamp/trends/:id/approve
-router.post('/trends/:id/approve', authorize('admin'), async (req, res) => {
+router.post('/trends/:id/approve', authorize(['admin']), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id) || id < 1) {

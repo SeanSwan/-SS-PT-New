@@ -28,7 +28,7 @@ import eventBus from '../services/eventBus.mjs';
 const router = express.Router();
 
 // All routes require authentication + trainer/admin role
-router.use(protect, authorize('admin', 'trainer'));
+router.use(protect, authorize(['admin', 'trainer']));
 
 // POST /api/variation/suggest — Generate SWITCH workout suggestions
 router.post('/suggest', async (req, res) => {

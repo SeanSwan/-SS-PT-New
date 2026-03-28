@@ -273,7 +273,7 @@ router.get('/templates/:key', (req, res) => {
 // --- CRUD Routes (trainer/admin only) ---
 
 // POST / — Create new custom exercise
-router.post('/', authorize('admin', 'trainer'), async (req, res) => {
+router.post('/', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const { name, category, baseExerciseKey, mechanicsSchema, isPublic, description } = req.body;
@@ -337,7 +337,7 @@ router.post('/', authorize('admin', 'trainer'), async (req, res) => {
 });
 
 // GET / — List trainer's custom exercises
-router.get('/', authorize('admin', 'trainer'), async (req, res) => {
+router.get('/', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const { status, category, search, page = 1, limit = 50 } = req.query;
@@ -414,7 +414,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /:id — Update custom exercise (append-only: creates new version)
-router.put('/:id', authorize('admin', 'trainer'), async (req, res) => {
+router.put('/:id', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const original = await CustomExercise.findByPk(req.params.id);
@@ -469,7 +469,7 @@ router.put('/:id', authorize('admin', 'trainer'), async (req, res) => {
 });
 
 // DELETE /:id — Archive a custom exercise (soft delete)
-router.delete('/:id', authorize('admin', 'trainer'), async (req, res) => {
+router.delete('/:id', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const exercise = await CustomExercise.findByPk(req.params.id);
@@ -492,7 +492,7 @@ router.delete('/:id', authorize('admin', 'trainer'), async (req, res) => {
 });
 
 // POST /:id/duplicate — Fork/duplicate an exercise
-router.post('/:id/duplicate', authorize('admin', 'trainer'), async (req, res) => {
+router.post('/:id/duplicate', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const source = await CustomExercise.findByPk(req.params.id);
@@ -538,7 +538,7 @@ router.post('/:id/duplicate', authorize('admin', 'trainer'), async (req, res) =>
 });
 
 // POST /from-template/:key — Create from built-in template
-router.post('/from-template/:key', authorize('admin', 'trainer'), async (req, res) => {
+router.post('/from-template/:key', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const template = BUILT_IN_TEMPLATES.find(t => t.key === req.params.key);
     if (!template) {
@@ -576,7 +576,7 @@ router.post('/from-template/:key', authorize('admin', 'trainer'), async (req, re
 });
 
 // POST /:id/validate — Validate mechanicsSchema without saving
-router.post('/:id/validate', authorize('admin', 'trainer'), async (req, res) => {
+router.post('/:id/validate', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const CustomExercise = getCustomExercise();
     const exercise = await CustomExercise.findByPk(req.params.id);
@@ -602,7 +602,7 @@ router.post('/:id/validate', authorize('admin', 'trainer'), async (req, res) => 
 });
 
 // POST /validate-schema — Validate a mechanicsSchema without an exercise record
-router.post('/validate-schema', authorize('admin', 'trainer'), (req, res) => {
+router.post('/validate-schema', authorize(['admin', 'trainer']), (req, res) => {
   const { mechanicsSchema } = req.body;
   if (!mechanicsSchema) {
     return res.status(400).json({ success: false, error: 'mechanicsSchema is required' });

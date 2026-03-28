@@ -22,7 +22,7 @@ router.use(protect);
  * Returns unified context for a specific client.
  * Trainers can only access their own clients; admins can access any.
  */
-router.get('/:clientId', authorize('admin', 'trainer'), async (req, res) => {
+router.get('/:clientId', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const clientId = parseInt(req.params.clientId, 10);
     if (isNaN(clientId) || clientId < 1) {
@@ -46,7 +46,7 @@ router.get('/:clientId', authorize('admin', 'trainer'), async (req, res) => {
  * GET /api/admin/intelligence/overview
  * Returns admin-level overview for dashboard widgets.
  */
-router.get('/', authorize('admin', 'trainer'), async (req, res) => {
+router.get('/', authorize(['admin', 'trainer']), async (req, res) => {
   try {
     const trainerId = req.user.id;
     const overview = await getAdminIntelligenceOverview(trainerId);

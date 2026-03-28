@@ -346,13 +346,13 @@ const ActionButton = styled.button<{
   ${(p) =>
     p.$variant === 'contained'
       ? css`
-          background: linear-gradient(135deg, #60C0F0, #00c8ff);
-          color: #002060;
+          background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+          color: #E0ECF4;
           border: none;
           &:hover {
-            background: linear-gradient(135deg, #00e6ff, #00b3ff);
+            background: linear-gradient(135deg, #9D6FFF, #70D0FF);
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+            box-shadow: 0 8px 24px rgba(96, 192, 240, 0.4);
           }
         `
       : css`
@@ -1049,8 +1049,8 @@ const FABButton = styled.button`
   height: 56px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, #60C0F0, #00c8ff);
-  color: #002060;
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  color: #E0ECF4;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1060,9 +1060,9 @@ const FABButton = styled.button`
   min-height: 44px;
 
   &:hover {
-    background: linear-gradient(135deg, #00e6ff, #00b3ff);
+    background: linear-gradient(135deg, #9D6FFF, #70D0FF);
     transform: scale(1.05);
-    box-shadow: 0 8px 28px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 8px 28px rgba(96, 192, 240, 0.5);
   }
 `;
 

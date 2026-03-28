@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 import { Exercise } from '../../../../services/exercise-service';
 import styled, { keyframes, css } from 'styled-components';
+
+// Victory-powered progress charts (lazy-loaded for bundle optimization)
+const ClientProgressCharts = lazy(() => import('../../../ClientProgressCharts/ClientProgressCharts'));
 
 // Import icons (lucide-react only)
 import {
@@ -382,6 +385,22 @@ const EmptyState = styled.div`
   height: 300px;
   color: ${theme.textMuted};
   font-size: 0.9375rem;
+`;
+
+const ChartLoadingWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  margin-top: 24px;
+  border-radius: 12px;
+  background: var(--bg-surface, #1A1A24);
+`;
+
+const ChartLoadingText = styled.span`
+  color: var(--text-muted, rgba(255,255,255,0.5));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.875rem;
 `;
 
 const ProgressHeader = styled.div`
@@ -954,6 +973,19 @@ const AdminClientProgressView: React.FC = () => {
             </NotesBody>
           </MainCard>
         </TwoCol>
+
+        {/* Victory-powered workout analytics charts */}
+        <Suspense fallback={
+          <ChartLoadingWrap role="status" aria-live="polite" aria-label="Loading charts">
+            <ChartLoadingText>Loading progress charts…</ChartLoadingText>
+          </ChartLoadingWrap>
+        }>
+          <ClientProgressCharts
+            clientId={Number(selectedClientId)}
+            isTrainerView
+            showControls
+          />
+        </Suspense>
       </div>
     );
   };

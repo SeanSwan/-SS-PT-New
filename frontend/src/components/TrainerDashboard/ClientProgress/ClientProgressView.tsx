@@ -44,27 +44,33 @@ const SelectorRow = styled.div`
 `;
 
 const ClientSelect = styled.select`
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 0.65rem 0.9rem;
-  color: var(--text-primary, ${theme.colors.text.primary});
+  background: var(--bg-surface, #003080);
+  border: 1px solid var(--border-soft, #4070C0);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary, #E0ECF4);
   min-width: 280px;
   min-height: 44px;
   font-family: 'Sora', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
 
-  &:focus {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-    border-color: rgba(139, 92, 246, 0.6);
+  &:focus,
+  &:hover {
+    outline: none;
+    border-color: #8B5CF6;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+    background: var(--bg-base, #002060);
   }
 
   option {
-    background: #141419;
-    color: var(--text-primary, #E0ECF4);
-    padding: 8px;
+    background: #0A0A0F;
+    color: #E0ECF4;
+    padding: 12px;
+    font-family: 'Sora', sans-serif;
   }
 `;
 
@@ -146,7 +152,7 @@ const GoalBar = styled.div`
 const GoalFill = styled.div<{ $progress: number }>`
   height: 100%;
   width: ${(props) => Math.min(100, Math.max(0, props.$progress))}%;
-  background: linear-gradient(90deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(90deg, ${theme.colors.brand.cyan || '#60C0F0'}, ${theme.colors.brand.purple || '#8B5CF6'});
 `;
 
 const MeasurementList = styled.div`
@@ -204,9 +210,13 @@ const buildSparklinePath = (points: number[], width: number, height: number) => 
 };
 
 const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurements }) => {
-  const points = measurements
-    .map((measurement) => measurement.weight)
-    .filter((value): value is number => typeof value === 'number');
+  // Memoize points to prevent useless recalculations on every render
+  const points = useMemo(() =>
+    measurements
+      .map((measurement) => measurement.weight)
+      .filter((value): value is number => typeof value === 'number'),
+    [measurements]
+  );
 
   const path = useMemo(() => buildSparklinePath(points, 240, 80), [points]);
 
@@ -214,9 +224,23 @@ const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurem
     return <EmptyState>No weight trend data yet.</EmptyState>;
   }
 
+  // Arctic Cyan #50A0F0 for data viz (NOT Ice Wing — that's for gaming/glow only)
   return (
-    <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none">
-      <path d={path} fill="none" stroke="#60C0F0" strokeWidth="3" />
+    <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+      <defs>
+        <filter id="sparkGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#50A0F0" floodOpacity="0.3" />
+        </filter>
+      </defs>
+      <path
+        d={path}
+        fill="none"
+        stroke="#50A0F0"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#sparkGlow)"
+      />
     </svg>
   );
 };
@@ -232,12 +256,21 @@ const ClientProgressView: React.FC = () => {
   });
 
   // Auto-load client when global active client changes (trainer/admin selects from sidebar)
+  // Guard: only update URL if clientId actually changed (prevents history pollution)
   useEffect(() => {
     if (activeClient?.id && user?.role !== 'client') {
-      setSelectedClientId(activeClient.id);
-      setSearchParams({ clientId: String(activeClient.id) });
+      const currentClientId = searchParams.get('clientId');
+      const newClientId = String(activeClient.id);
+      if (currentClientId !== newClientId) {
+        setSelectedClientId(activeClient.id);
+        setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.set('clientId', newClientId);
+          return next;
+        }, { replace: true });
+      }
     }
-  }, [activeClient?.id, user?.role, setSearchParams]);
+  }, [activeClient?.id, user?.role, searchParams, setSearchParams]);
 
   const resolvedClientId = user?.role === 'client' ? user?.id : selectedClientId;
   const { data, isLoading, error } = useClientProgress(resolvedClientId, true);
@@ -297,7 +330,9 @@ const ClientProgressView: React.FC = () => {
       )}
 
       {resolvedClientId && error && (
-        <EmptyState>{String(error)}</EmptyState>
+        <EmptyState>
+          {error instanceof Error ? error.message : typeof error === 'string' ? error : 'An unexpected error occurred loading progress.'}
+        </EmptyState>
       )}
 
       {resolvedClientId && data && (

@@ -96,6 +96,9 @@ const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
 const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'));
 const VideoLibraryPageLazy = React.lazy(() => import('../../pages/VideoLibraryV3'));
+const ContentStudioHub = React.lazy(() => import('./Pages/content-studio/ContentStudioHub'));
+const FeatureAccessPage = React.lazy(() => import('./Pages/admin-feature-access/FeatureAccessPage'));
+const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planner/WorkoutPlannerPage'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -393,14 +396,20 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 🎨 DESIGN SYSTEM & DEVELOPMENT
       { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
 
-      // 🎬 CONTENT MANAGEMENT
-      { path: '/content', component: VideoLibraryPageLazy, title: 'Content Studio', description: 'Video and content management' },
+      // 🎬 CONTENT MANAGEMENT — Two-tier hub (Bootstrap + Full Arsenal)
+      { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
+
+      // 🔐 FEATURE ACCESS CONTROL (admin-only)
+      { path: '/feature-access', component: FeatureAccessPage, title: 'Feature Access', description: 'Per-user feature flag management' },
 
       // 🍁 ADMIN-ONLY: Canada Immigration
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
 
       // 💪 WORKOUT LOGGING (admin can log workouts too)
-      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' }
+      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
+
+      // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' }
     ],
     defaultPath: '/overview'
   },
@@ -413,6 +422,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
       { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'AI workout generation' },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }

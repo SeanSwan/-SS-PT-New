@@ -20,9 +20,14 @@
  *   5. Match NASM progression level
  *   6. Rank by novelty + muscle match quality
  */
-import { getVariationLog } from '../models/index.mjs';
+import { getVariationLog, getModel } from '../models/index.mjs';
 
 import logger from '../utils/logger.mjs';
+
+// ── Safe model getter for optional tables ──────────────────────
+function safeGetExerciseModel() {
+  try { return getModel('Exercise'); } catch { return null; }
+}
 
 // ── Rotation Pattern Config ────────────────────────────────────────
 
@@ -371,6 +376,72 @@ export function getRotationPatterns() {
   }));
 }
 
+/**
+ * Get exercise registry from DB (840+ exercises).
+ * Falls back to hardcoded 81 if DB is unavailable.
+ * Returns array of { key, name, muscles, category, equipment, nasmLevel, movementPattern }.
+ */
+export async function getExerciseRegistryFromDB() {
+  const Exercise = safeGetExerciseModel();
+  if (!Exercise) {
+    logger.warn('[VariationEngine] Exercise model unavailable, using hardcoded registry');
+    return getExerciseRegistry();
+  }
+
+  try {
+    const exercises = await Exercise.findAll({
+      where: { isActive: true },
+      attributes: [
+        'id', 'name', 'exercise_key', 'exerciseType', 'bodyPartCategory',
+        'primaryMuscles', 'secondaryMuscles', 'equipmentNeeded',
+        'difficulty', 'nasmMovementPattern', 'force', 'source',
+      ],
+      raw: true,
+    });
+
+    if (!exercises || exercises.length === 0) {
+      logger.warn('[VariationEngine] No exercises in DB, using hardcoded registry');
+      return getExerciseRegistry();
+    }
+
+    return exercises.map(ex => {
+      // Safe parse for raw query results (getters don't run with raw: true)
+      let muscles = [];
+      try { muscles = typeof ex.primaryMuscles === 'string' ? JSON.parse(ex.primaryMuscles) : (ex.primaryMuscles || []); } catch { muscles = []; }
+      let equipment = [];
+      try { equipment = typeof ex.equipmentNeeded === 'string' ? JSON.parse(ex.equipmentNeeded) : (ex.equipmentNeeded || []); } catch { equipment = []; }
+
+      // Map difficulty (0-1000) to NASM level (1-5)
+      const nasmLevel = ex.difficulty <= 200 ? 1
+        : ex.difficulty <= 400 ? 2
+        : ex.difficulty <= 600 ? 3
+        : ex.difficulty <= 800 ? 4
+        : 5;
+
+      // Map bodyPartCategory to variation engine category
+      const categoryMap = {
+        chest: 'push', back: 'pull', shoulders: 'push', arms: 'push',
+        legs: 'squat', core: 'core', full_body: 'compound',
+        cardio: 'cardio', recovery: 'corrective',
+      };
+
+      return {
+        key: ex.exercise_key || `db-${ex.id}`,
+        name: ex.name,
+        muscles: Array.isArray(muscles) ? muscles : [],
+        category: categoryMap[(ex.bodyPartCategory || '').toLowerCase()] || ex.force || 'compound',
+        equipment: Array.isArray(equipment) ? equipment : [],
+        nasmLevel,
+        movementPattern: ex.nasmMovementPattern || null,
+        source: ex.source || 'unknown',
+      };
+    });
+  } catch (err) {
+    logger.warn('[VariationEngine] DB registry query failed, using hardcoded:', err.message);
+    return getExerciseRegistry();
+  }
+}
+
 export default {
   getNextSessionType,
   generateSwapSuggestions,
@@ -378,6 +449,7 @@ export default {
   recordVariation,
   acceptVariation,
   getExerciseRegistry,
+  getExerciseRegistryFromDB,
   getRotationPatterns,
   EXERCISE_REGISTRY,
   ROTATION_PATTERNS,

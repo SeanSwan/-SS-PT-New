@@ -1,42 +1,50 @@
 /**
- * Admin Client Progress View V2 - GOLDEN STANDARD
- * ================================================
- * Refactored to use UI Kit compound components + useTable hook
- * 
- * Features:
- * ✅ Table compound component
- * ✅ Pagination compound component
- * ✅ Badge component with getStatusVariant
- * ✅ EmptyState and LoadingState components
- * ✅ useTable hook for leaderboard logic
- * ✅ Zero local table components
- * ✅ Zero MUI dependencies
+ * ============================================================================
+ * FILE: admin-client-progress-view.V2.tsx
+ * PURPOSE: Admin page for monitoring client progress with Victory charts
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * AI VILLAGE VALIDATED: 2026-03-28
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Shows a client list sidebar + stats cards + 8 Victory
+ * progress charts (volume, 1RM, form quality, NASM radar, body comp, strength,
+ * consistency heatmap, muscle group radar) for the selected client.
+ * HOW IT FITS IN THE APP: Admin Dashboard → Clients → Client Progress Tracking
+ *
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: AdminClientProgressView                          ║
+ * ║  PURPOSE: Admin progress monitoring with Victory analytics   ║
+ * ║  OWNER: Claude Opus 4.6                                      ║
+ * ║  LAST VALIDATED: 2026-03-28                                   ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * WIREFRAME:
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ Client Progress Dashboard              [Assignments] [Refresh]│
+ * ├──────────┬─────────────────────────────────────────────────┤
+ * │ Clients  │  [Client Progress] [Leaderboard]               │
+ * │ [Search] │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐             │
+ * │ ● Sean   │  │ Wkts│ │Strk │ │Exer │ │Level│             │
+ * │ ○ Jackie │  └─────┘ └─────┘ └─────┘ └─────┘             │
+ * │ ○ Anand  │  [XP Progress Bar]                              │
+ * │          │  ┌──────────────────────────────────┐           │
+ * │          │  │ Victory Charts (8 panels)         │           │
+ * │          │  └──────────────────────────────────┘           │
+ * └──────────┴─────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { useTable } from '../../../../hooks/useTable';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 
-// Import icons
 import {
-  Search,
-  Users,
-  Trophy,
-  UserCheck,
-  RefreshCw,
-  TrendingUp,
-  Award,
-  Target,
-  Activity,
-  ChevronRight,
-  Inbox
+  Search, Users, Trophy, UserCheck, RefreshCw,
+  TrendingUp, ChevronRight
 } from 'lucide-react';
 
-// Import UI Kit components
 import { PageTitle, SectionTitle, BodyText, SmallText, Caption } from '../../../ui-kit/Typography';
 import { PrimaryButton, OutlinedButton } from '../../../ui-kit/Button';
 import { Card, CardHeader, CardBody, GridContainer, FlexBox } from '../../../ui-kit/Card';
@@ -46,63 +54,82 @@ import Pagination from '../../../ui-kit/Pagination';
 import Badge, { getStatusVariant } from '../../../ui-kit/Badge';
 import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
 import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-kit/Container';
-import { logger } from '@/utils/logger';
 
-// ==========================================
-// PAGE-SPECIFIC STYLED COMPONENTS
-// ==========================================
+// Victory Charts — lazy-loaded for bundle optimization
+const ClientProgressCharts = lazy(() => import('../../../ClientProgressCharts/ClientProgressCharts'));
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Frost Shimmer Skeleton
+// ─────────────────────────────────────────────────────────────
+const iceShimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const ChartSkeleton = styled.div`
+  height: 400px;
+  border-radius: 16px;
+  background: linear-gradient(90deg,
+    var(--bg-elevated, #141419) 25%,
+    rgba(96, 192, 240, 0.05) 50%,
+    var(--bg-elevated, #141419) 75%
+  );
+  background-size: 200% 100%;
+  animation: ${iceShimmer} 2.5s infinite linear;
+  border: 1px solid rgba(96, 192, 240, 0.08);
+`;
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Styled Components (Crystalline Swan tokens)
+// ─────────────────────────────────────────────────────────────
 const PageContainer = styled(UIPageContainer)`
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: var(--bg-base, #030712);
 `;
 
 const HeaderCard = styled(Card)`
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.05));
-  border-color: rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, rgba(0, 32, 96, 0.4), rgba(139, 92, 246, 0.08));
+  border-color: rgba(96, 192, 240, 0.15);
   margin-bottom: 2rem;
 `;
 
-// Avatar component
 const Avatar = styled.div<{ src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.src ? `url(${props.src})` : 'linear-gradient(135deg, #3b82f6, #8b5cf6)'};
+  background: ${props => props.src ? `url(${props.src})` : 'linear-gradient(135deg, #002060, #8B5CF6)'};
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   font-size: 0.875rem;
   flex-shrink: 0;
 `;
 
-// Progress bar component
-const ProgressContainer = styled.div`
+const ProgressBarContainer = styled.div`
   width: 100%;
 `;
 
 const ProgressBar = styled.div`
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(96, 192, 240, 0.1);
   border-radius: 4px;
   overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ value: number; color?: string }>`
-  width: ${props => props.value}%;
+  width: ${props => Math.min(props.value, 100)}%;
   height: 100%;
-  background: ${props => props.color || 'linear-gradient(90deg, #3b82f6, #8b5cf6)'};
+  background: ${props => props.color || 'linear-gradient(90deg, #002060, #8B5CF6)'};
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 `;
 
-// Tab system
 const TabContainer = styled.div`
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(96, 192, 240, 0.1);
   margin-bottom: 2rem;
 `;
 
@@ -115,8 +142,9 @@ const TabButton = styled.button<{ isActive: boolean }>`
   padding: 1rem 1.5rem;
   background: transparent;
   border: none;
-  border-bottom: 3px solid ${props => props.isActive ? '#3b82f6' : 'transparent'};
-  color: ${props => props.isActive ? '#ffffff' : '#94a3b8'};
+  border-bottom: 3px solid ${props => props.isActive ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
+  color: ${props => props.isActive ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
+  font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -126,67 +154,63 @@ const TabButton = styled.button<{ isActive: boolean }>`
   gap: 0.5rem;
   position: relative;
   top: 2px;
-  
+  min-height: 44px;
+
   &:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary, #E0ECF4);
+    background: rgba(96, 192, 240, 0.04);
   }
-  
+
   &:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
+    outline: 2px solid #60C0F0;
+    outline-offset: 4px;
   }
-  
-  svg {
-    flex-shrink: 0;
-  }
+
+  svg { flex-shrink: 0; }
 `;
 
 const TabPanel = styled.div<{ isActive: boolean }>`
   display: ${props => props.isActive ? 'block' : 'none'};
 `;
 
-// Stats card
 const StatsCard = styled(Card)`
   text-align: center;
 `;
 
 const StatValue = styled.div`
+  font-family: 'Fira Code', monospace;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--accent-primary, #60C0F0);
   line-height: 1;
   margin-bottom: 0.5rem;
 `;
 
 const StatLabel = styled.div`
+  font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
 
-// Search container
 const SearchContainer = styled.div`
   position: relative;
   width: 100%;
   max-width: 400px;
-  
+
   svg {
     position: absolute;
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(224, 236, 244, 0.5);
     pointer-events: none;
   }
-  
-  input {
-    padding-left: 2.75rem;
-  }
+
+  input { padding-left: 2.75rem; }
 `;
 
-// Client list sidebar
 const ClientListContainer = styled(Card)`
   height: 600px;
   display: flex;
@@ -195,43 +219,51 @@ const ClientListContainer = styled(Card)`
 
 const ClientListHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
 `;
 
-const ClientList = styled.div`
+const ClientListScroll = styled.div`
   flex: 1;
   overflow-y: auto;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(96, 192, 240, 0.03); }
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(96, 192, 240, 0.15);
     border-radius: 3px;
   }
 `;
 
-const ClientItem = styled.div<{ isActive: boolean }>`
+const ClientItem = styled.button<{ $isActive: boolean }>`
+  width: 100%;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: ${props => props.isActive ? 'rgba(59, 130, 246, 0.1)' : 'transparent'};
+  border: none;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.05);
+  background: ${props => props.$isActive ? 'rgba(96, 192, 240, 0.08)' : 'transparent'};
   cursor: pointer;
   transition: background 0.2s ease;
-  
-  &:hover {
-    background: rgba(59, 130, 246, 0.08);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  min-height: 44px;
+  display: block;
+
+  &:hover { background: rgba(96, 192, 240, 0.06); }
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: -2px;
   }
 `;
 
-// ==========================================
-// TYPES
-// ==========================================
+const ChartsSection = styled.div`
+  margin-top: 2rem;
+  border-radius: 16px;
+  overflow: hidden;
+`;
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Types
+// ─────────────────────────────────────────────────────────────
 interface Client {
   id: string;
   firstName: string;
@@ -241,15 +273,13 @@ interface Client {
   availableSessions: number;
 }
 
-// ==========================================
-// COMPONENT
-// ==========================================
-
+// ─────────────────────────────────────────────────────────────
+// SECTION: Component
+// ─────────────────────────────────────────────────────────────
 const AdminClientProgressView: React.FC = () => {
   const { authAxios, services } = useAuth();
   const { toast } = useToast();
 
-  // State
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -259,21 +289,14 @@ const AdminClientProgressView: React.FC = () => {
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Table hook for leaderboard with search, sort, and pagination
   const {
     paginatedData: paginatedLeaderboard,
-    currentPage,
-    totalPages,
-    rowsPerPage,
-    hasNextPage,
-    hasPrevPage,
-    totalItems,
+    currentPage, totalPages, rowsPerPage,
+    hasNextPage, hasPrevPage, totalItems,
     searchTerm: leaderboardSearch,
-    handlePageChange,
-    handleRowsPerPageChange,
+    handlePageChange, handleRowsPerPageChange,
     handleSearch: handleLeaderboardSearch,
-    goToNextPage,
-    goToPrevPage
+    goToNextPage, goToPrevPage
   } = useTable<LeaderboardEntry>({
     data: leaderboard,
     initialRowsPerPage: 10,
@@ -282,51 +305,42 @@ const AdminClientProgressView: React.FC = () => {
     initialSortOrder: 'desc'
   });
 
-  // Fetch data on mount
   useEffect(() => {
     fetchClients();
     fetchLeaderboard();
   }, []);
 
-  // Fetch client progress when selected client changes
   useEffect(() => {
     if (selectedClientId) {
       fetchClientProgress(selectedClientId);
     }
   }, [selectedClientId]);
 
-  // Fetch clients
   const fetchClients = async () => {
     setLoading(true);
     try {
       const response = await authAxios.get('/api/auth/clients');
-      if (response.data && response.data.success) {
+      if (response.data?.success) {
         setClients(response.data.clients);
         if (response.data.clients.length > 0 && !selectedClientId) {
           setSelectedClientId(response.data.clients[0].id);
         }
       } else {
-        useFallbackClientData();
+        setClients([]);
+        setError('Unable to load clients.');
       }
-    } catch (err) {
-      logger.warn('API unavailable, using fallback data:', err);
-      useFallbackClientData();
+    } catch {
+      setClients([]);
+      setError('Unable to load clients. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Show empty state with error instead of fake data
-  const useFallbackClientData = () => {
-    setClients([]);
-    setError('Unable to load clients. Please check your connection and try again.');
-  };
-
-  // Fetch client progress
   const fetchClientProgress = async (clientId: string) => {
     try {
       const result = await services.clientProgress.getClientProgressById(clientId);
-      if (result && result.success) {
+      if (result?.success) {
         setClientProgress(result.progress);
       }
     } catch (err) {
@@ -334,11 +348,10 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Fetch leaderboard
   const fetchLeaderboard = async () => {
     try {
       const result = await services.clientProgress.getLeaderboard();
-      if (result && result.success) {
+      if (result?.success) {
         setLeaderboard(result.leaderboard);
       }
     } catch (err) {
@@ -346,20 +359,14 @@ const AdminClientProgressView: React.FC = () => {
     }
   };
 
-  // Get filtered clients (manual filter for sidebar)
-  const getFilteredClients = () => {
-    return clients.filter(client => {
-      const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
-      const username = client.username.toLowerCase();
-      const search = clientSearchTerm.toLowerCase();
-      return fullName.includes(search) || username.includes(search);
-    });
-  };
+  const filteredClients = clients.filter(client => {
+    const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
+    const username = client.username.toLowerCase();
+    const search = clientSearchTerm.toLowerCase();
+    return fullName.includes(search) || username.includes(search);
+  });
 
-  // Get selected client
-  const getSelectedClient = () => {
-    return clients.find(client => client.id === selectedClientId);
-  };
+  const selectedClient = clients.find(c => c.id === selectedClientId);
 
   if (loading) {
     return (
@@ -371,9 +378,6 @@ const AdminClientProgressView: React.FC = () => {
     );
   }
 
-  const selectedClient = getSelectedClient();
-  const filteredClients = getFilteredClients();
-
   return (
     <PageContainer>
       <ContentContainer>
@@ -383,7 +387,7 @@ const AdminClientProgressView: React.FC = () => {
             <FlexBox justify="space-between" align="center">
               <div>
                 <PageTitle style={{ marginBottom: '0.5rem' }}>Client Progress Dashboard</PageTitle>
-                <BodyText style={{ color: '#94a3b8' }}>
+                <BodyText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
                   Monitor and manage client progression through the NASM protocol system
                 </BodyText>
               </div>
@@ -442,12 +446,12 @@ const AdminClientProgressView: React.FC = () => {
                     />
                   </SearchContainer>
                 </ClientListHeader>
-                <ClientList>
+                <ClientListScroll>
                   {filteredClients.length > 0 ? (
                     filteredClients.map((client) => (
                       <ClientItem
                         key={client.id}
-                        isActive={selectedClientId === client.id}
+                        $isActive={selectedClientId === client.id}
                         onClick={() => setSelectedClientId(client.id)}
                       >
                         <FlexBox align="center" gap="0.75rem">
@@ -458,24 +462,29 @@ const AdminClientProgressView: React.FC = () => {
                             <SmallText style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
                               {client.firstName} {client.lastName}
                             </SmallText>
-                            <Caption style={{ color: '#94a3b8' }}>@{client.username}</Caption>
+                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                              @{client.username}
+                            </Caption>
                           </div>
                         </FlexBox>
                       </ClientItem>
                     ))
                   ) : (
                     <div style={{ padding: '2rem', textAlign: 'center' }}>
-                      <BodyText style={{ color: '#94a3b8' }}>No clients found</BodyText>
+                      <BodyText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                        No clients found
+                      </BodyText>
                     </div>
                   )}
-                </ClientList>
+                </ClientListScroll>
               </ClientListContainer>
             </div>
 
-            {/* Progress Details */}
+            {/* Progress Details + Victory Charts */}
             <div style={{ gridColumn: 'span 9' }}>
               {clientProgress && selectedClient ? (
                 <div>
+                  {/* Stats Cards */}
                   <Card>
                     <CardHeader>
                       <SectionTitle>
@@ -515,22 +524,34 @@ const AdminClientProgressView: React.FC = () => {
                           <BodyText style={{ fontWeight: 600 }}>Overall Progress</BodyText>
                           <Badge variant="primary">{getLevelName(clientProgress.overallLevel)}</Badge>
                         </FlexBox>
-                        <ProgressContainer>
+                        <ProgressBarContainer>
                           <ProgressBar>
                             <ProgressFill value={clientProgress.experiencePoints} />
                           </ProgressBar>
                           <FlexBox justify="space-between" style={{ marginTop: '0.5rem' }}>
-                            <Caption style={{ color: '#94a3b8' }}>
+                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
                               {clientProgress.experiencePoints} XP
                             </Caption>
-                            <Caption style={{ color: '#94a3b8' }}>
+                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
                               Next Level: {clientProgress.overallLevel + 1}
                             </Caption>
                           </FlexBox>
-                        </ProgressContainer>
+                        </ProgressBarContainer>
                       </div>
                     </CardBody>
                   </Card>
+
+                  {/* Victory Charts Section */}
+                  <ChartsSection>
+                    <Suspense fallback={<ChartSkeleton role="status" aria-live="polite" aria-label="Loading charts" />}>
+                      <ClientProgressCharts
+                        clientId={Number(selectedClientId)}
+                        isTrainerView={true}
+                        showControls={true}
+                        defaultTimeRange="30d"
+                      />
+                    </Suspense>
+                  </ChartsSection>
                 </div>
               ) : (
                 <Card>
@@ -548,7 +569,7 @@ const AdminClientProgressView: React.FC = () => {
           </GridContainer>
         </TabPanel>
 
-        {/* Leaderboard Tab - GOLDEN STANDARD IMPLEMENTATION */}
+        {/* Leaderboard Tab */}
         <TabPanel isActive={tabValue === 1} role="tabpanel">
           <Card>
             <CardHeader>
@@ -594,7 +615,7 @@ const AdminClientProgressView: React.FC = () => {
                                 <SmallText style={{ fontWeight: 600 }}>
                                   {entry.client?.firstName} {entry.client?.lastName}
                                 </SmallText>
-                                <Caption style={{ color: '#94a3b8' }}>
+                                <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
                                   @{entry.client?.username}
                                 </Caption>
                               </div>
@@ -605,12 +626,12 @@ const AdminClientProgressView: React.FC = () => {
                           </Table.Cell>
                           <Table.Cell>
                             <Badge variant={getProgressStatus(entry.overallLevel)}>
-                              {entry.overallLevel > 40 ? 'Advanced' : 
+                              {entry.overallLevel > 40 ? 'Advanced' :
                                entry.overallLevel > 20 ? 'Intermediate' : 'Beginner'}
                             </Badge>
                           </Table.Cell>
                           <Table.Cell align="right">
-                            <OutlinedButton 
+                            <OutlinedButton
                               onClick={() => {
                                 setSelectedClientId(entry.userId);
                                 setTabValue(0);
@@ -625,24 +646,23 @@ const AdminClientProgressView: React.FC = () => {
                     </Table.Body>
                   </Table>
 
-                  {/* Pagination */}
-                  <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(96, 192, 240, 0.05)' }}>
                     <FlexBox justify="space-between" align="center">
-                      <SmallText style={{ color: '#94a3b8' }}>
+                      <SmallText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
                         Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalItems)} of {totalItems} clients
                       </SmallText>
-                      
+
                       <Pagination>
-                        <Pagination.PrevButton 
-                          onClick={goToPrevPage} 
-                          disabled={!hasPrevPage} 
+                        <Pagination.PrevButton
+                          onClick={goToPrevPage}
+                          disabled={!hasPrevPage}
                         />
                         <Pagination.PageNumber>
                           Page {currentPage} of {totalPages}
                         </Pagination.PageNumber>
-                        <Pagination.NextButton 
-                          onClick={goToNextPage} 
-                          disabled={!hasNextPage} 
+                        <Pagination.NextButton
+                          onClick={goToNextPage}
+                          disabled={!hasNextPage}
                         />
                         <Pagination.PageSizeSelector
                           value={rowsPerPage}
@@ -676,16 +696,15 @@ const AdminClientProgressView: React.FC = () => {
 
 export default AdminClientProgressView;
 
-// ==========================================
-// HELPER FUNCTIONS
-// ==========================================
-
+// ─────────────────────────────────────────────────────────────
+// SECTION: Helpers
+// ─────────────────────────────────────────────────────────────
 const getLevelName = (level: number): string => {
-  if (level < 10) return 'Fitness Novice';
-  if (level < 25) return 'Fitness Beginner';
-  if (level < 50) return 'Fitness Enthusiast';
-  if (level < 100) return 'Fitness Adept';
-  return 'Fitness Expert';
+  if (level < 10) return 'Bronze Forge';
+  if (level < 25) return 'Silver Edge';
+  if (level < 50) return 'Titanium Core';
+  if (level < 100) return 'Obsidian Warrior';
+  return 'Crystalline Swan';
 };
 
 const getProgressStatus = (level: number): 'success' | 'info' | 'default' => {

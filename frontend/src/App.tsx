@@ -18,6 +18,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './hooks/use-toast'; // FIXED: Use correct ToastProvider with toast() function
 import { SwanToastProvider } from './components/ui/Toast/ToastContainer';
 import { CartProvider } from './context/CartContext';
+import { FeatureAccessProvider } from './context/FeatureAccessContext';
 import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
@@ -240,6 +241,7 @@ const App = () => {
                 <ConfigProvider>
                   <MenuStateProvider>
                     <AuthProvider>
+                      <FeatureAccessProvider>
                       <ToastProvider>
                         <SwanToastProvider>
                         <CartProvider>
@@ -255,6 +257,7 @@ const App = () => {
                         </CartProvider>
                         </SwanToastProvider>
                       </ToastProvider>
+                      </FeatureAccessProvider>
                     </AuthProvider>
                   </MenuStateProvider>
                 </ConfigProvider>

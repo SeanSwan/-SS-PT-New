@@ -11,11 +11,28 @@ import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import logger from '../utils/logger.mjs';
+import { sequelize } from '../models/index.mjs';
+
+// Client-trainer ownership check — admins bypass, trainers must be assigned
+async function verifyClientAccess(userId, userRole, clientId) {
+  if (userRole === 'admin') return true;
+  try {
+    const [rows] = await sequelize.query(
+      `SELECT 1 FROM "ClientTrainerAssignments" WHERE "trainerId" = :trainerId AND "clientId" = :clientId AND "isActive" = true LIMIT 1`,
+      { replacements: { trainerId: userId, clientId }, type: sequelize.QueryTypes.SELECT }
+    );
+    return !!rows;
+  } catch {
+    // Table may not exist yet — fail open for trainers to avoid blocking
+    logger.warn('[WorkoutBuilder] ClientTrainerAssignment check failed, allowing access');
+    return true;
+  }
+}
 
 const router = Router();
 
 router.use(protect);
-router.use(authorize('admin', 'trainer'));
+router.use(authorize(['admin', 'trainer']));
 
 /**
  * POST /api/workout-builder/generate
@@ -28,6 +45,12 @@ router.post('/generate', async (req, res) => {
     const parsedClientId = parseInt(clientId, 10);
     if (isNaN(parsedClientId) || parsedClientId < 1) {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
+    }
+
+    // Verify trainer is assigned to this client (admins bypass)
+    const hasAccess = await verifyClientAccess(req.user.id, req.user.role, parsedClientId);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: 'Not authorized for this client' });
     }
 
     const VALID_CATEGORIES = ['full_body', 'chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
@@ -65,9 +88,15 @@ router.post('/plan', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
 
-    const VALID_GOALS = ['general_fitness', 'hypertrophy', 'strength', 'fat_loss', 'athletic_performance'];
+    // Verify trainer is assigned to this client (admins bypass)
+    const hasAccess = await verifyClientAccess(req.user.id, req.user.role, parsedClientId);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: 'Not authorized for this client' });
+    }
+
+    const VALID_GOALS = ['general_fitness', 'hypertrophy', 'strength', 'fat_loss', 'athletic_performance', 'golf_performance'];
     const safeGoal = VALID_GOALS.includes(primaryGoal) ? primaryGoal : 'general_fitness';
-    const safeDuration = Math.min(Math.max(parseInt(durationWeeks, 10) || 12, 4), 52);
+    const safeDuration = Math.min(Math.max(parseInt(durationWeeks, 10) || 12, 1), 52);
     const safeSessions = Math.min(Math.max(parseInt(sessionsPerWeek, 10) || 3, 1), 7);
 
     const plan = await generatePlan({

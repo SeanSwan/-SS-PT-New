@@ -12,7 +12,7 @@ import logger from '../utils/logger.mjs';
 const router = Router();
 
 // All routes require admin/trainer auth
-router.use(protect, authorize('admin', 'trainer'));
+router.use(protect, authorize(['admin', 'trainer']));
 
 /**
  * GET /api/admin/compliance/at-risk

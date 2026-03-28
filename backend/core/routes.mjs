@@ -65,6 +65,7 @@ import equipmentRoutes from '../routes/equipmentRoutes.mjs';
 import variationRoutes from '../routes/variationRoutes.mjs';
 import clientIntelligenceRoutes from '../routes/clientIntelligenceRoutes.mjs';
 import workoutBuilderRoutes from '../routes/workoutBuilderRoutes.mjs';
+import oracleRoutes from '../routes/oracleRoutes.mjs';
 import bootcampRoutes from '../routes/bootcampRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
@@ -323,6 +324,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/variation', variationRoutes);
   app.use('/api/client-intelligence', clientIntelligenceRoutes);
   app.use('/api/workout-builder', workoutBuilderRoutes);
+  app.use('/api/oracle', oracleRoutes);
   app.use('/api/bootcamp', bootcampRoutes);
   app.use('/api/workout-logs', workoutLogUploadRoutes);
 

@@ -41,7 +41,7 @@ import { Mic, MicOff, Loader, Volume2, AlertTriangle } from 'lucide-react';
 // SECTION: Types & Constants
 // ─────────────────────────────────────────────────────────────
 
-type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
+type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'unavailable';
 
 interface CrystallineVoicePillProps {
   /** Called with final transcript text */
@@ -88,6 +88,11 @@ const STATE_CONFIG: Record<VoiceState, { label: string; color: string; glow: str
     label: 'Tap to retry',
     color: '#C92A54',
     glow: 'rgba(201, 42, 84, 0.3)',
+  },
+  unavailable: {
+    label: 'Mic unavailable',
+    color: 'rgba(224, 236, 244, 0.35)',
+    glow: 'transparent',
   },
 };
 
@@ -261,7 +266,7 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
   disabled = false,
   compact = false,
 }) => {
-  const [localState, setLocalState] = useState<'idle' | 'listening' | 'error'>('idle');
+  const [localState, setLocalState] = useState<'idle' | 'listening' | 'error' | 'unavailable'>('idle');
   const [interim, setInterim] = useState('');
   const [supported, setSupported] = useState(true);
 
@@ -356,14 +361,16 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
       clearSilenceTimer();
       setInterim('');
       if (event.error === 'not-allowed' || event.error === 'audio-capture') {
-        setLocalState('error');
+        // Permanent issue — mic blocked or no mic hardware. Show subtle disabled state, not alarming error.
+        setLocalState('unavailable');
       } else if (event.error !== 'aborted') {
+        // Transient error — show retry state
         setLocalState('error');
       }
     };
 
     recognition.onend = () => {
-      setLocalState((prev) => (prev === 'listening' ? 'idle' : prev));
+      setLocalState((prev) => (prev === 'listening' ? 'idle' : prev === 'unavailable' ? 'unavailable' : prev));
       setInterim('');
       // If there's accumulated text and timer hasn't fired, send it now
       if (accumulatedRef.current.trim()) {
@@ -412,6 +419,13 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
       return;
     }
 
+    // If mic unavailable (permission denied / no hardware), explain gently
+    if (localState === 'unavailable') {
+      // Try again — browser may re-prompt for permission
+      startListening();
+      return;
+    }
+
     // If error, retry → go to idle
     if (localState === 'error') {
       setLocalState('idle');
@@ -441,6 +455,8 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
         return <Volume2 size={18} />;
       case 'error':
         return <AlertTriangle size={18} />;
+      case 'unavailable':
+        return <MicOff size={18} />;
       default:
         return <Mic size={18} />;
     }
@@ -462,9 +478,9 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
         $state={voiceState}
         $compact={compact}
         disabled={disabled}
-        aria-label={config.label}
+        aria-label={voiceState === 'unavailable' ? 'Microphone unavailable — check browser permissions' : config.label}
         aria-pressed={voiceState === 'listening'}
-        title={config.label}
+        title={voiceState === 'unavailable' ? 'Mic blocked — click to retry or check browser permissions' : config.label}
       >
         <IconWrap $state={voiceState}>{stateIcon()}</IconWrap>
 

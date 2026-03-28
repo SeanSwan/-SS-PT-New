@@ -20,7 +20,8 @@
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
-import { getExerciseRegistry, generateSwapSuggestions } from './variationEngine.mjs';
+import { getExerciseRegistry, getExerciseRegistryFromDB, generateSwapSuggestions } from './variationEngine.mjs';
+import { getRecommendedWeight } from './oneRepMaxService.mjs';
 import logger from '../utils/logger.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
@@ -160,7 +161,8 @@ function filterExercises(exercises, constraints, equipmentItems) {
 
   return exercises.filter(ex => {
     // Exclude if targets pain-affected muscles
-    const hasPainConflict = ex.muscles.some(m => excludedSet.has(m));
+    // Issue #4 FIX: null-safe muscles array (custom exercises may have undefined)
+    const hasPainConflict = ex.muscles?.some(m => excludedSet.has(m)) ?? false;
     if (hasPainConflict) return false;
 
     // Check equipment availability (if equipment list provided)
@@ -176,13 +178,28 @@ function filterExercises(exercises, constraints, equipmentItems) {
 // ── Helper: Select exercises for category ────────────────────────────
 
 function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase) {
-  // Get exercises for this category
-  const categoryExercises = Object.entries(registry)
-    .filter(([, ex]) => ex.category === category || category === 'full_body')
-    .map(([key, ex]) => ({ key, ...ex }));
+  // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
+  // Filter exercises for this category (movement type match)
+  const categoryExercises = registry
+    .filter(ex => ex.category === category || category === 'full_body');
 
   // Apply constraints
   const available = filterExercises(categoryExercises, constraints, equipmentItems);
+
+  // CEO Directive: Monitor Phase 2 stabilization pairing availability
+  // Tracks exercises missing nasmLevel for ops monitoring (structured logging)
+  if (nasmPhase === 2 && available.length > 0) {
+    const missingTier = available.filter(ex => !ex.nasmLevel);
+    if (missingTier.length > 0) {
+      logger.warn('[Workout] Phase 2 stabilization data gap', {
+        category,
+        totalAvailable: available.length,
+        missingNasmLevel: missingTier.length,
+        fallbackRate: `${((missingTier.length / available.length) * 100).toFixed(1)}%`,
+        sampleKeys: missingTier.slice(0, 3).map(ex => ex.key),
+      });
+    }
+  }
 
   // Sort by NASM level match, then by not-recently-used
   const recentSet = new Set(constraints.recentlyUsedExercises);
@@ -208,10 +225,11 @@ function applyOPTParams(exercise, phase) {
   return {
     exerciseKey: exercise.key,
     exerciseName: formatExerciseName(exercise.key),
-    muscles: exercise.muscles,
+    muscles: exercise.muscles || [],
     category: exercise.category,
-    equipment: exercise.equipment,
+    equipment: exercise.equipment || [],
     nasmLevel: exercise.nasmLevel,
+    movementPattern: exercise.movementPattern || null,
     sets: params.sets[0],
     reps: `${params.reps[0]}-${params.reps[1]}`,
     tempo: params.tempo,
@@ -260,13 +278,20 @@ export async function generateWorkout(options) {
     throw new Error('Unable to generate workout: client context unavailable');
   }
 
+  // Step 1b: Surface critical data failure warnings
+  if (context.criticalDataUnavailable) {
+    logger.warn('[WorkoutBuilder] Critical data unavailable for client', {
+      clientId, failures: context.criticalFailures,
+    });
+  }
+
   // Step 2: Determine rotation (BUILD or SWITCH)
   const sessionType = context.variation.lastSessionType
     ? (context.variation.lastSessionType === 'build' ? 'switch' : 'build')
     : 'build';
 
-  // Step 3: Get exercise registry and filter
-  const registry = getExerciseRegistry();
+  // Step 3: Get exercise registry from DB (840+) with hardcoded fallback (81)
+  const registry = await getExerciseRegistryFromDB();
   const nasmPhase = context.constraints.nasmPhase || 2;
 
   // Get equipment for selected location
@@ -349,8 +374,38 @@ export async function generateWorkout(options) {
 
   const cooldown = [...COOLDOWN_TEMPLATES.general];
 
+  // Step 7b: Calculate recommended weights from 1RM data via OneRepMaxService
+  if (context.constraints.estimated1RMs) {
+    const phaseIntensityMap = { 1: [0.50, 0.70], 2: [0.70, 0.80], 3: [0.75, 0.85], 4: [0.85, 1.00], 5: [0.30, 0.45] };
+    const [minPct, maxPct] = phaseIntensityMap[nasmPhase] || [0.70, 0.80];
+
+    for (const ex of workoutExercises) {
+      const rec = getRecommendedWeight({
+        movementPattern: ex.movementPattern || null,
+        exerciseKey: ex.exerciseKey,
+        estimated1RMs: context.constraints.estimated1RMs,
+        intensityMin: minPct,
+        intensityMax: maxPct,
+      });
+      if (rec) {
+        ex.recommendedWeightMin = rec.min;
+        ex.recommendedWeightMax = rec.max;
+        ex.basedOn1RM = rec.basedOn;
+      }
+    }
+  }
+
   // Step 8: Build explanations
   const explanations = [];
+
+  // Safety warning if critical data (pain entries) failed to load
+  if (context.criticalDataUnavailable) {
+    explanations.push({
+      type: 'safety_warning',
+      message: 'Pain/injury data could not be loaded. Review this workout carefully before assigning — exercises may target areas with active pain entries.',
+      details: `Failed subsystems: ${context.criticalFailures.join(', ')}`,
+    });
+  }
 
   if (context.pain.exclusions.length > 0) {
     explanations.push({
@@ -392,6 +447,43 @@ export async function generateWorkout(options) {
     message: `NASM OPT Phase ${nasmPhase}: ${OPT_PHASE_PARAMS[nasmPhase]?.name || 'Strength Endurance'}`,
   });
 
+  // Goal-aware explanations
+  if (context.goals?.primaryGoal) {
+    explanations.push({
+      type: 'client_goal',
+      message: `Primary goal: ${context.goals.primaryGoal}. Exercise selection prioritized for this objective.`,
+    });
+  }
+
+  if (context.baseline?.nasmAssessmentScore) {
+    explanations.push({
+      type: 'assessment_score',
+      message: `NASM assessment score: ${context.baseline.nasmAssessmentScore}/100. ${
+        context.baseline.nasmAssessmentScore < 60
+          ? 'Emphasis on corrective exercises and stability work.'
+          : 'Client cleared for progressive loading.'
+      }`,
+    });
+  }
+
+  if (context.body?.weight) {
+    explanations.push({
+      type: 'body_composition',
+      message: `Current weight: ${context.body.weight} ${context.body.weightUnit || 'lbs'}${
+        context.body.bodyFatPercentage ? ` | Body fat: ${context.body.bodyFatPercentage}%` : ''
+      }${context.body.recentTrend !== null ? ` | Recent trend: ${context.body.recentTrend > 0 ? '+' : ''}${context.body.recentTrend} ${context.body.weightUnit || 'lbs'}` : ''}`,
+    });
+  }
+
+  if (context.streak?.currentCount > 0) {
+    explanations.push({
+      type: 'streak_motivation',
+      message: `🔥 ${context.streak.currentCount}-day workout streak! ${
+        context.streak.currentCount >= 7 ? 'Excellent consistency — pushing progressive overload.' : 'Building momentum.'
+      }`,
+    });
+  }
+
   const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
 
   return {
@@ -419,12 +511,25 @@ export async function generateWorkout(options) {
     explanations,
 
     context: {
+      criticalDataUnavailable: context.criticalDataUnavailable || false,
+      criticalFailures: context.criticalFailures || [],
       painExclusions: context.pain.exclusions.length,
       painWarnings: context.pain.warnings.length,
       compensations: context.movement.compensations.length,
       recentWorkouts: context.workouts.sessionsLast2Weeks,
       avgFormRating: context.workouts.avgFormRating,
       equipmentProfileId,
+    },
+
+    // Deep client intelligence (for Coach AI display)
+    clientIntelligence: {
+      goals: context.goals || null,
+      body: context.body || null,
+      baseline: context.baseline || null,
+      nutrition: context.nutrition || null,
+      progressLevels: context.progressLevels || null,
+      streak: context.streak || null,
+      activeProgram: context.activeProgram || null,
     },
   };
 }
@@ -452,6 +557,10 @@ export async function generatePlan(options) {
     primaryGoal = 'general_fitness',
     equipmentProfileId = null,
   } = options;
+
+  // L6 FIX: Validate inputs
+  if (!clientId) throw new Error('clientId is required');
+  if (!trainerId) throw new Error('trainerId is required');
 
   const context = await getClientContext(clientId, trainerId);
   const startingPhase = context.constraints.nasmPhase || 1;
@@ -543,6 +652,25 @@ export async function generatePlan(options) {
         : null,
       `Start at NASM OPT Phase ${startingPhase} and progress based on assessment scores`,
       `Use ${context.variation.currentPattern} rotation pattern for exercise variation`,
+      context.goals?.primaryGoal
+        ? `Plan aligned with primary goal: ${context.goals.primaryGoal}`
+        : null,
+      context.baseline?.nasmAssessmentScore
+        ? `NASM assessment: ${context.baseline.nasmAssessmentScore}/100 — ${context.baseline.nasmAssessmentScore < 60 ? 'prioritize corrective phases' : 'ready for progressive loading'}`
+        : null,
+      context.nutrition?.dailyCalories
+        ? `Nutrition plan: ${context.nutrition.dailyCalories} kcal/day (${context.nutrition.proteinGrams}g protein) — adjust volume for recovery capacity`
+        : null,
     ].filter(Boolean),
+
+    // Deep client intelligence for plan review
+    clientIntelligence: {
+      goals: context.goals || null,
+      body: context.body || null,
+      baseline: context.baseline || null,
+      nutrition: context.nutrition || null,
+      progressLevels: context.progressLevels || null,
+      streak: context.streak || null,
+    },
   };
 }

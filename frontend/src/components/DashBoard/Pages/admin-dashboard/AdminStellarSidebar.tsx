@@ -29,8 +29,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
+import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
-import { WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
+import { WORKSPACE_CONFIG, WorkspaceConfig } from '../../../../config/dashboard-tabs';
 import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
@@ -239,10 +240,10 @@ const MobileCloseBtn = styled.button`
   min-width: 44px;
   min-height: 44px;
   border-radius: 12px;
-  /* Crimson Frost — official error token */
-  border: 1px solid rgba(201, 42, 84, 0.2);
-  background: rgba(201, 42, 84, 0.08);
-  color: #C92A54;
+  /* Wing Purple — Crystalline Swan close action */
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
   display: none;
   align-items: center;
   justify-content: center;
@@ -250,8 +251,8 @@ const MobileCloseBtn = styled.button`
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: rgba(201, 42, 84, 0.15);
-    box-shadow: 0 0 12px rgba(201, 42, 84, 0.2);
+    background: rgba(139, 92, 246, 0.15);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
   }
 
   @media (max-width: 1024px) {
@@ -277,9 +278,16 @@ const NavScroll = styled.nav`
 `;
 
 const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
-  all: unset;
-  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
+  appearance: none;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -397,9 +405,8 @@ const SidebarFooter = styled.div<{ $collapsed: boolean }>`
 const FooterVersion = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 10px;
-  color: var(--text-muted, #4070C0);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
   text-align: center;
-  opacity: 0.6;
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -427,6 +434,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { hasFeature, isAdmin } = useFeatureAccess();
   const sidebarRef = useRef<HTMLElement>(null);
 
   const [internalCollapsed, setInternalCollapsed] = useState(false);
@@ -475,6 +483,14 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   const isActive = useCallback((prefix: string) => {
     return location.pathname === prefix || location.pathname.startsWith(prefix + '/');
   }, [location.pathname]);
+
+  // Filter workspace tabs by feature access — admin sees all, others only see
+  // tabs where featureKey is absent OR they have the feature enabled
+  const visibleWorkspaces = WORKSPACE_CONFIG.filter((ws: WorkspaceConfig) => {
+    if (isAdmin) return true;
+    if (!ws.featureKey) return true;
+    return hasFeature(ws.featureKey);
+  });
 
   const showLabel = !collapsed || isMobile;
 
@@ -529,7 +545,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
 
         {/* Navigation items */}
         <NavScroll>
-          {WORKSPACE_CONFIG.map((ws, i) => (
+          {visibleWorkspaces.map((ws, i) => (
             <NavItem
               key={ws.id}
               $active={isActive(ws.prefix)}

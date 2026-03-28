@@ -97,12 +97,13 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-soft, #003080);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: 0 4px 12px rgba(96, 192, 240, 0.08);
 `;
 
 const IconCircle = styled.div<{ $color?: string }>`
@@ -124,8 +125,11 @@ const StatValue = styled.div`
   color: var(--text-primary, #E0ECF4);
 `;
 const StatLabel = styled.div`
-  font-size: 0.8rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  letter-spacing: 0.02em;
   margin-top: 2px;
 `;
 
@@ -186,17 +190,39 @@ const ActionButton = styled.button`
   gap: 10px;
   min-height: 48px;
   padding: 12px 20px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-soft, #003080);
   border-radius: 10px;
-  background: var(--bg-elevated, #141419);
-  color: var(--accent-primary, #60C0F0);
+  background: var(--bg-elevated, #002060);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  &:hover {
-    background: rgba(96, 192, 240, 0.08);
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.15);
+  will-change: transform, box-shadow;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    color: #60C0F0;
+    transition: color 0.3s ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: var(--bg-surface, #003080);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.6),
+                0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+  }
+
+  &:hover svg,
+  &:focus-visible svg {
+    color: #E0ECF4;
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
 
@@ -208,14 +234,17 @@ const TrainerOverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchToday = async () => {
       try {
+        setFetchError(null);
         const today = new Date().toISOString().split('T')[0];
         const res = await authAxios.get(`/api/sessions?date=${today}`);
         setSessions(Array.isArray(res.data) ? res.data : res.data?.sessions || []);
       } catch {
+        setFetchError('Failed to load today\'s schedule. Please refresh or check your connection.');
         setSessions([]);
       } finally {
         setLoading(false);
@@ -272,6 +301,8 @@ const TrainerOverviewPage: React.FC = () => {
       <ScheduleCard>
         {loading ? (
           <EmptyState>Loading sessions...</EmptyState>
+        ) : fetchError ? (
+          <EmptyState>{fetchError}</EmptyState>
         ) : sessions.length === 0 ? (
           <EmptyState>No sessions scheduled for today. Enjoy the break!</EmptyState>
         ) : (

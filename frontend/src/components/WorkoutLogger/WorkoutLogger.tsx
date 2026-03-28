@@ -324,13 +324,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: unknown) {
       console.error('Failed to load client data:', error);
-      // Use null for unknown session state — prevents blocking ALL submissions on network failure
+      // Fail-closed: set sessions to 0 on network error to prevent unlimited submissions.
+      // Admins bypass the session check (line 482), so they can still submit if needed.
       setClient({
         id: clientId,
         firstName: 'Client',
         lastName: `#${clientId}`,
         email: '',
-        availableSessions: null,
+        availableSessions: 0,
         phone: ''
       });
       toast.error(getErrorMessage(error, 'Failed to load client information'));

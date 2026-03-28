@@ -16,6 +16,8 @@ import contactRoutes from './contactRoutes.mjs';
 // NEW GENESIS CHECKOUT SYSTEM:
 import v2PaymentRoutes from './v2PaymentRoutes.mjs';
 import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
+import featureFlagRoutes from './featureFlagRoutes.mjs';
+import contentStudioRoutes from './contentStudioRoutes.mjs';
 
 const router = Router();
 
@@ -70,5 +72,11 @@ router.use('/v2/payments', v2PaymentRoutes);
 
 // Mount admin finance routes (admin only)
 router.use('/admin/finance', adminFinanceRoutes);
+
+// Mount feature flag routes (per-user access control)
+router.use('/feature-flags', featureFlagRoutes);
+
+// Mount Content Studio routes (service config + API keys)
+router.use('/content-studio', contentStudioRoutes);
 
 export default router;

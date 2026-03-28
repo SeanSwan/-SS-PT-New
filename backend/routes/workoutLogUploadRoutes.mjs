@@ -78,7 +78,7 @@ router.use(protect);
 /**
  * POST /upload -- Upload voice memo or text file, get parsed workout
  */
-router.post('/upload', authorize('admin', 'trainer'), rateLimiter, upload.single('file'), async (req, res) => {
+router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });

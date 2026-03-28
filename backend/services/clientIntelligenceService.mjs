@@ -30,10 +30,34 @@ import {
   getOrder,
   getOrderItem,
   getStorefrontItem,
+  getGoal,
+  getClientProgress,
+  getBodyMeasurement,
+  getLongTermProgramPlan,
+  getModel,
   Op,
 } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+
+// ── Safe model getter (non-fatal for optional tables) ────────────────
+function safeGetModel(name) {
+  try { return getModel(name); } catch { return null; }
+}
+
+// ── Safe Brzycki 1RM calculator (C3 FIX: guards against div-by-zero) ─
+function safeBrzycki1RM(weight, reps) {
+  if (!weight || !reps || weight <= 0 || reps < 1 || reps > 15) return null;
+  const denominator = 1.0278 - 0.0278 * reps;
+  if (denominator <= 0.01) return null; // Guard near-zero denominator
+  return Math.round(weight / denominator);
+}
+
+// ── Safe JSON.parse (H3 FIX: prevents crash on malformed data) ───────
+function safeJsonParse(value, fallback = []) {
+  if (typeof value !== 'string') return value ?? fallback;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
 
 // ── Body Region to NASM Muscle Taxonomy ──────────────────────────────
 
@@ -194,9 +218,33 @@ function mapPackageToHorizon(totalSessions, sessionsPerWeek) {
  * @returns {Promise<Object>} ClientContext
  */
 export async function getClientContext(clientId, trainerId) {
+  if (!clientId || !trainerId) {
+    throw new Error('clientId and trainerId are required');
+  }
+
+  // C2 FIX: Validate trainer has access to this client
+  // Admins can access any client; trainers need a relationship
+  const requestingUser = await getUser().findByPk(trainerId, { attributes: ['id', 'role'] }).catch(() => null);
+  if (!requestingUser) {
+    throw new Error('Invalid trainer ID');
+  }
+  if (requestingUser.role === 'trainer') {
+    const ClientTrainerAssignment = safeGetModel('ClientTrainerAssignment');
+    if (ClientTrainerAssignment) {
+      const assignment = await ClientTrainerAssignment.findOne({
+        where: { clientId, trainerId, isActive: true },
+      }).catch(() => null);
+      if (!assignment) {
+        throw new Error('Trainer does not have an active assignment with this client');
+      }
+    }
+  }
+
   const now = new Date();
   const seventyTwoHoursAgo = new Date(now.getTime() - PAIN_AUTO_EXCLUDE_HOURS * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  // Issue #5 FIX: 7-day window covers 72h business requirement + timezone buffer
+  const painQueryWindow = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Parallel queries to all subsystems
   const [
@@ -207,14 +255,28 @@ export async function getClientContext(clientId, trainerId) {
     equipmentProfiles,
     recentVariations,
     clientUser,
+    activeGoals,
+    clientProgress,
+    bodyMeasurements,
+    activeProgramPlan,
+    baselineMeasurements,
+    nutritionPlan,
+    onboardingQuestionnaire,
+    workoutStreak,
   ] = await Promise.all([
-    // 1. Active pain entries
+    // 1. Active pain entries (SAFETY-CRITICAL: failure is tracked)
+    // Issue #5 FIX: 7-day window + limit:100 prevents unbounded memory growth
     getClientPainEntry().findAll({
-      where: { userId: clientId, isActive: true },
+      where: {
+        userId: clientId,
+        isActive: true,
+        createdAt: { [Op.gte]: painQueryWindow },
+      },
       order: [['createdAt', 'DESC']],
+      limit: 100,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Pain entries fetch failed:', err.message);
-      return [];
+      logger.error('[ClientIntelligence] CRITICAL: Pain entries fetch failed:', err.message);
+      return { __failed: true, data: [] };
     }),
 
     // 2. Movement profile (aggregated)
@@ -280,14 +342,98 @@ export async function getClientContext(clientId, trainerId) {
       return [];
     }),
 
-    // 7. Client user record
+    // 7. Client user record (with fitnessGoal)
     getUser().findByPk(clientId, {
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'fitnessGoal', 'trainingExperience'],
     }).catch(err => {
       logger.warn('[ClientIntelligence] User fetch failed:', err.message);
       return null;
     }),
+
+    // 8. Active goals
+    getGoal().findAll({
+      where: { userId: clientId, status: 'active' },
+      attributes: ['id', 'title', 'category', 'targetValue', 'currentValue', 'progressPercentage', 'deadline', 'startDate'],
+      order: [['createdAt', 'DESC']],
+      limit: 10,
+    }).catch(err => {
+      logger.warn('[ClientIntelligence] Goals fetch failed:', err.message);
+      return [];
+    }),
+
+    // 9. Client progress levels (NASM body-part-specific)
+    getClientProgress().findOne({
+      where: { userId: clientId },
+    }).catch(err => {
+      logger.warn('[ClientIntelligence] ClientProgress fetch failed:', err.message);
+      return null;
+    }),
+
+    // 10. Latest body measurements (most recent 3)
+    getBodyMeasurement().findAll({
+      where: { userId: clientId },
+      order: [['measurementDate', 'DESC']],
+      limit: 3,
+    }).catch(err => {
+      logger.warn('[ClientIntelligence] BodyMeasurement fetch failed:', err.message);
+      return [];
+    }),
+
+    // 11. Active long-term program plan
+    getLongTermProgramPlan().findOne({
+      where: { clientId, status: 'active' },
+      order: [['createdAt', 'DESC']],
+    }).catch(err => {
+      logger.warn('[ClientIntelligence] LongTermProgramPlan fetch failed:', err.message);
+      return null;
+    }),
+
+    // 12. Client baseline measurements (1RM, NASM assessment, PAR-Q+)
+    (safeGetModel('ClientBaselineMeasurements')?.findOne({
+      where: { userId: clientId },
+      order: [['createdAt', 'DESC']],
+    }) ?? Promise.resolve(null)).catch(err => {
+      logger.warn('[ClientIntelligence] Baseline fetch failed:', err.message);
+      return null;
+    }),
+
+    // 13. Active nutrition plan
+    (safeGetModel('ClientNutritionPlan')?.findOne({
+      where: { clientId, isActive: true },
+      order: [['createdAt', 'DESC']],
+    }) ?? Promise.resolve(null)).catch(err => {
+      logger.warn('[ClientIntelligence] NutritionPlan fetch failed:', err.message);
+      return null;
+    }),
+
+    // 14. Onboarding questionnaire (initial intake goals)
+    (safeGetModel('ClientOnboardingQuestionnaire')?.findOne({
+      where: { userId: clientId },
+      order: [['createdAt', 'DESC']],
+    }) ?? Promise.resolve(null)).catch(err => {
+      logger.warn('[ClientIntelligence] Onboarding questionnaire fetch failed:', err.message);
+      return null;
+    }),
+
+    // 15. Current workout streak
+    (safeGetModel('Streak')?.findOne({
+      where: { userId: clientId, streakType: 'workout', isActive: true },
+      order: [['currentCount', 'DESC']],
+    }) ?? Promise.resolve(null)).catch(err => {
+      logger.warn('[ClientIntelligence] Streak fetch failed:', err.message);
+      return null;
+    }),
   ]);
+
+  // ── Critical Data Failure Tracking ─────────────────────────────
+  // If pain data fetch failed, we track it so the workout builder
+  // can warn the trainer rather than silently generating unsafe workouts
+  const criticalFailures = [];
+  let safePainEntries = painEntries;
+  if (painEntries && painEntries.__failed) {
+    criticalFailures.push('pain_entries');
+    safePainEntries = painEntries.data;
+  }
 
   // ── Process Pain Data ──────────────────────────────────────────
 
@@ -295,7 +441,7 @@ export async function getClientContext(clientId, trainerId) {
   const painWarnings = [];
   const excludedMuscles = new Set();
 
-  for (const entry of painEntries) {
+  for (const entry of safePainEntries) {
     const muscles = REGION_TO_MUSCLE_MAP[entry.bodyRegion] || [];
     const isRecent = entry.createdAt >= seventyTwoHoursAgo;
     const severity = entry.painLevel || 0;
@@ -327,11 +473,7 @@ export async function getClientContext(clientId, trainerId) {
   // ── Process Movement Profile ───────────────────────────────────
 
   const compensations = movementProfile?.commonCompensations
-    ? analyzeCompensationTrend(
-        typeof movementProfile.commonCompensations === 'string'
-          ? JSON.parse(movementProfile.commonCompensations)
-          : movementProfile.commonCompensations
-      )
+    ? analyzeCompensationTrend(safeJsonParse(movementProfile.commonCompensations, []))
     : [];
 
   const nasmPhaseRecommendation = movementProfile?.nasmPhaseRecommendation ?? null;
@@ -352,9 +494,7 @@ export async function getClientContext(clientId, trainerId) {
   let totalIntensity = 0;
 
   for (const workout of recentWorkouts) {
-    const formData = typeof workout.formData === 'string'
-      ? JSON.parse(workout.formData)
-      : workout.formData;
+    const formData = safeJsonParse(workout.formData, {});
 
     if (formData?.exercises) {
       for (const ex of formData.exercises) {
@@ -405,9 +545,7 @@ export async function getClientContext(clientId, trainerId) {
 
   const recentVarExercises = new Set();
   for (const log of recentVariations) {
-    const exercises = typeof log.exercisesUsed === 'string'
-      ? JSON.parse(log.exercisesUsed)
-      : log.exercisesUsed;
+    const exercises = safeJsonParse(log.exercisesUsed, []);
     if (Array.isArray(exercises)) {
       exercises.forEach(e => recentVarExercises.add(e));
     }
@@ -432,9 +570,7 @@ export async function getClientContext(clientId, trainerId) {
       totalScore += analysis.overallScore;
       scoreCount++;
     }
-    const findings = typeof analysis.findings === 'string'
-      ? JSON.parse(analysis.findings)
-      : analysis.findings;
+    const findings = safeJsonParse(analysis.findings, {});
     if (findings?.compensations) {
       findings.compensations.forEach(c => detectedComps.add(c));
     }
@@ -452,6 +588,98 @@ export async function getClientContext(clientId, trainerId) {
     ? Math.round(totalScore / scoreCount)
     : 0;
 
+  // ── Process Goals ──────────────────────────────────────────────
+
+  const goalsSummary = {
+    activeCount: activeGoals.length,
+    primaryGoal: clientUser?.fitnessGoal || onboardingQuestionnaire?.primaryGoal || null,
+    goals: activeGoals.map(g => ({
+      id: g.id,
+      title: g.title,
+      category: g.category,
+      progressPercent: g.progressPercentage || 0,
+      targetValue: g.targetValue,
+      currentValue: g.currentValue,
+      deadline: g.deadline,
+    })),
+    onboardingGoal: onboardingQuestionnaire?.primaryGoal || null,
+    commitmentLevel: onboardingQuestionnaire?.commitmentLevel || null,
+    trainingTier: onboardingQuestionnaire?.trainingTier || null,
+    trainingExperience: clientUser?.trainingExperience || null,
+  };
+
+  // ── Process Body Composition ─────────────────────────────────
+
+  const latestMeasurement = bodyMeasurements[0] || null;
+  const bodySummary = latestMeasurement ? {
+    weight: latestMeasurement.weight,
+    weightUnit: latestMeasurement.weightUnit || 'lbs',
+    bodyFatPercentage: latestMeasurement.bodyFatPercentage,
+    bmi: latestMeasurement.bmi,
+    measurementDate: latestMeasurement.measurementDate,
+    recentTrend: bodyMeasurements.length >= 2
+      ? (bodyMeasurements[0].weight - bodyMeasurements[1].weight)
+      : null,
+  } : null;
+
+  // ── Process Baseline (1RM, NASM Assessment) ──────────────────
+
+  const baselineSummary = baselineMeasurements ? {
+    benchPress1RM: safeBrzycki1RM(baselineMeasurements.benchPressWeight, baselineMeasurements.benchPressReps),
+    squat1RM: safeBrzycki1RM(baselineMeasurements.squatWeight, baselineMeasurements.squatReps),
+    deadlift1RM: safeBrzycki1RM(baselineMeasurements.deadliftWeight, baselineMeasurements.deadliftReps),
+    overheadPress1RM: safeBrzycki1RM(baselineMeasurements.overheadPressWeight, baselineMeasurements.overheadPressReps),
+    pullUps: baselineMeasurements.pullUpsReps || null,
+    plankDuration: baselineMeasurements.plankDuration || null,
+    nasmAssessmentScore: baselineMeasurements.nasmAssessmentScore || null,
+    correctiveStrategy: baselineMeasurements.correctiveExerciseStrategy || null,
+    parqCleared: !!baselineMeasurements.parqScreening,
+  } : null;
+
+  // ── Process Nutrition ────────────────────────────────────────
+
+  const nutritionSummary = nutritionPlan ? {
+    dailyCalories: nutritionPlan.dailyCalories,
+    proteinGrams: nutritionPlan.proteinGrams,
+    carbsGrams: nutritionPlan.carbsGrams,
+    fatGrams: nutritionPlan.fatGrams,
+    dietaryRestrictions: nutritionPlan.dietaryRestrictions || [],
+    allergies: nutritionPlan.allergies || [],
+  } : null;
+
+  // ── Process Progress Levels ──────────────────────────────────
+
+  const progressLevels = clientProgress ? {
+    overallLevel: clientProgress.overallLevel || 0,
+    coreLevel: clientProgress.coreLevel || 0,
+    balanceLevel: clientProgress.balanceLevel || 0,
+    stabilityLevel: clientProgress.stabilityLevel || 0,
+    flexibilityLevel: clientProgress.flexibilityLevel || 0,
+    squatsLevel: clientProgress.squatsLevel || 0,
+    lungesLevel: clientProgress.lungesLevel || 0,
+    planksLevel: clientProgress.planksLevel || 0,
+    experiencePoints: clientProgress.experiencePoints || 0,
+    unlockedExercises: clientProgress.unlockedExercises || [],
+  } : null;
+
+  // ── Process Streak ───────────────────────────────────────────
+
+  const streakSummary = workoutStreak ? {
+    currentCount: workoutStreak.currentCount || 0,
+    longestCount: workoutStreak.longestCount || 0,
+    lastActivityDate: workoutStreak.lastActivityDate,
+  } : { currentCount: 0, longestCount: 0, lastActivityDate: null };
+
+  // ── Process Active Program ───────────────────────────────────
+
+  const activeProgramSummary = activeProgramPlan ? {
+    id: activeProgramPlan.id,
+    horizonMonths: activeProgramPlan.horizonMonths,
+    goalProfile: activeProgramPlan.goalProfile,
+    status: activeProgramPlan.status,
+    sourceType: activeProgramPlan.sourceType,
+  } : null;
+
   // ── Build ClientContext ────────────────────────────────────────
 
   return {
@@ -462,8 +690,13 @@ export async function getClientContext(clientId, trainerId) {
       : `Client #${clientId}`,
     fetchedAt: now.toISOString(),
 
+    // Safety flag: if critical subsystems failed to load, the workout builder
+    // should warn the trainer before generating potentially unsafe workouts
+    criticalDataUnavailable: criticalFailures.length > 0,
+    criticalFailures,
+
     pain: {
-      activeEntries: painEntries.length,
+      activeEntries: safePainEntries.length,
       exclusions: painExclusions,
       warnings: painWarnings,
       excludedMuscles: Array.from(excludedMuscles),
@@ -484,11 +717,30 @@ export async function getClientContext(clientId, trainerId) {
 
     variation: variationSummary,
 
+    // New deep intelligence data
+    goals: goalsSummary,
+    body: bodySummary,
+    baseline: baselineSummary,
+    nutrition: nutritionSummary,
+    progressLevels,
+    streak: streakSummary,
+    activeProgram: activeProgramSummary,
+
     constraints: {
       excludedMuscles: Array.from(excludedMuscles),
       compensationTypes: compensations.map(c => c.type),
       recentlyUsedExercises: variationSummary.recentlyUsedExercises,
       nasmPhase: nasmPhaseRecommendation,
+      // Enhanced constraints from deep data
+      primaryGoal: goalsSummary.primaryGoal,
+      trainingExperience: goalsSummary.trainingExperience,
+      bodyWeight: bodySummary?.weight || null,
+      estimated1RMs: baselineSummary ? {
+        bench: baselineSummary.benchPress1RM,
+        squat: baselineSummary.squat1RM,
+        deadlift: baselineSummary.deadlift1RM,
+        overheadPress: baselineSummary.overheadPress1RM,
+      } : null,
     },
   };
 }

@@ -201,6 +201,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
 }) => {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(true);
+  const [micBlocked, setMicBlocked] = useState(false);
   const [interim, setInterim] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const holdingRef = useRef(false);
@@ -268,7 +269,8 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       setListening(false);
       setInterim('');
       holdingRef.current = false;
-      if (event.error === 'not-allowed') {
+      if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+        setMicBlocked(true);
         logger.warn('Microphone permission denied — enable in browser settings');
       }
     };
@@ -363,6 +365,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
   if (!supported) return null;
 
   const isHoldMode = holdToTalk;
+  const isUnavailable = micBlocked && !listening;
 
   return (
     <OrbWrapper>
@@ -381,16 +384,23 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
         onPointerLeave={isHoldMode ? handlePointerUp : undefined}
         $listening={listening}
         disabled={disabled}
-        aria-label={listening ? 'Stop dictation' : (isHoldMode ? 'Hold to dictate' : 'Start dictation')}
+        aria-label={
+          isUnavailable
+            ? 'Microphone unavailable — check browser permissions'
+            : listening ? 'Stop dictation' : (isHoldMode ? 'Hold to dictate' : 'Start dictation')
+        }
         aria-pressed={listening}
         aria-describedby="dictation-orb-status"
         title={
-          listening
-            ? 'Listening... ' + (isHoldMode ? 'release to send' : 'tap to stop')
-            : (isHoldMode ? 'Hold to dictate' : 'Tap to dictate (Ctrl+Shift+K)')
+          isUnavailable
+            ? 'Mic blocked — click to retry or check browser permissions'
+            : listening
+              ? 'Listening... ' + (isHoldMode ? 'release to send' : 'tap to stop')
+              : (isHoldMode ? 'Hold to dictate' : 'Tap to dictate (Ctrl+Shift+K)')
         }
+        style={isUnavailable ? { opacity: 0.4 } : undefined}
       >
-        {listening ? <MicOff size={20} /> : <Mic size={20} />}
+        {isUnavailable ? <MicOff size={20} /> : listening ? <MicOff size={20} /> : <Mic size={20} />}
       </OrbButton>
 
       {/* Waveform indicator when listening */}

@@ -68,7 +68,7 @@ const upload = multer({
 });
 
 // All routes require authentication + trainer/admin role
-router.use(protect, authorize('admin', 'trainer'));
+router.use(protect, authorize(['admin', 'trainer']));
 
 // Rate limit tracking for AI scans (in-memory, per-trainer)
 const scanRateMap = new Map();

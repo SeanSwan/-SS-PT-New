@@ -238,6 +238,17 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     isNew: true,
   },
   {
+    key: 'workout-planner',
+    label: 'NASM Workout Planner',
+    icon: 'Dumbbell',
+    order: 9.25,
+    status: 'real',
+    section: 'management',
+    route: '/dashboard/admin/workout-planner',
+    description: 'AI-powered NASM workout builder with Teach Mode',
+    isNew: true,
+  },
+  {
     key: 'client-notes',
     label: 'Client Notes',
     icon: 'FileText',
@@ -456,6 +467,17 @@ export const TRAINER_DASHBOARD_TABS: DashboardTab[] = [
     icon: 'ShoppingBag',
     order: 9,
   },
+  {
+    key: 'workout-planner',
+    label: 'NASM Workout Planner',
+    icon: 'Dumbbell',
+    order: 9.25,
+    status: 'real',
+    section: 'management',
+    route: '/dashboard/trainer/workout-planner',
+    description: 'AI-powered NASM workout builder with Teach Mode',
+    isNew: true,
+  },
 ];
 
 // Client-specific tabs
@@ -488,18 +510,19 @@ export interface WorkspaceConfig {
   icon: string;
   prefix: string;
   description: string;
+  featureKey?: string; // Per-user feature flag — hides tab for non-admin users without access
 }
 
 // Workspace prefixes must match the actual admin route paths in UniversalDashboardLayout
 // Routes are mounted at /dashboard/admin/{path}, so prefixes must use that namespace
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
-  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
+  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
   { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/log-workout', description: 'Workout logger, plans & AI protocols' },
   { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
   { id: 'gamification', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
   { id: 'store', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },
-  { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management' },
+  { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management', featureKey: 'content-studio' },
   { id: 'analytics', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/admin/revenue', description: 'Data analytics and insights' },
   { id: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
   { id: 'immigration', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },

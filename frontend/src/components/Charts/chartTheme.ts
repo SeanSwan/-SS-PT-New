@@ -124,7 +124,7 @@ export const victoryTheme = {
       fontFamily: "'Fira Code', monospace",
     },
     flyoutStyle: {
-      fill: hexAlpha(CHART_COLORS.royalDepth, 0.9),
+      fill: hexAlpha('#1A1A24', 0.95), // Graphite per Gemini spec
       stroke: hexAlpha(CHART_COLORS.wingPurple, 0.3),
       strokeWidth: 1,
     },
@@ -274,7 +274,7 @@ export const ChartContainer = styled.div`
 `;
 
 export const TooltipBox = styled.div`
-  background: ${hexAlpha(CHART_COLORS.royalDepth, 0.9)};
+  background: ${hexAlpha('#1A1A24', 0.95)}; /* Graphite per Gemini spec */
   backdrop-filter: blur(12px) saturate(120%);
   -webkit-backdrop-filter: blur(12px) saturate(120%);
   border: 1px solid ${hexAlpha(CHART_COLORS.wingPurple, 0.3)};
