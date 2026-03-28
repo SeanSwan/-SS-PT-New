@@ -9,9 +9,19 @@
 
 import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
+import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import logger from '../utils/logger.mjs';
 import { sequelize } from '../models/index.mjs';
+
+// Workout builder rate limiter: 10 requests/minute per IP (DB-intensive operations)
+const workoutBuilderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'Too many generation requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Client-trainer ownership check — admins bypass, trainers must be assigned
 async function verifyClientAccess(userId, userRole, clientId) {
@@ -33,6 +43,7 @@ const router = Router();
 
 router.use(protect);
 router.use(authorize(['admin', 'trainer']));
+router.use(workoutBuilderLimiter);
 
 /**
  * POST /api/workout-builder/generate

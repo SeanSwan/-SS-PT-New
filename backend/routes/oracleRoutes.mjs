@@ -20,6 +20,7 @@
 
 import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
+import rateLimit from 'express-rate-limit';
 import {
   searchScholar,
   searchFitnessNews,
@@ -28,11 +29,23 @@ import {
 } from '../services/serpApiService.mjs';
 import logger from '../utils/logger.mjs';
 
+// Oracle-specific rate limiter: 30 requests/minute per IP (protects SerpAPI quota)
+const oracleLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { success: false, error: 'Too many Oracle requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const MAX_QUERY_LENGTH = 500;
+
 const router = Router();
 
-// All oracle endpoints require authentication (admin or trainer)
+// All oracle endpoints require auth (admin/trainer) + rate limiting
 router.use(protect);
 router.use(authorize(['admin', 'trainer']));
+router.use(oracleLimiter);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Google Scholar — Exercise Science Research
@@ -41,8 +54,10 @@ router.get('/scholar', async (req, res) => {
   try {
     const { q, num } = req.query;
     if (!q) return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
+    if (String(q).length > MAX_QUERY_LENGTH) return res.status(400).json({ success: false, error: 'Query too long' });
 
-    const result = await searchScholar(q, Math.max(1, Math.min(parseInt(num) || 5, 10)));
+    logger.info(`[Oracle] Scholar query by user ${req.user.id}: "${String(q).slice(0, 80)}"`);
+    const result = await searchScholar(String(q).slice(0, MAX_QUERY_LENGTH), Math.max(1, Math.min(parseInt(num) || 5, 10)));
     if (!result.ok) return res.status(502).json({ success: false, error: result.error });
 
     return res.json({ success: true, articles: result.data, fromCache: result.fromCache });
@@ -59,8 +74,10 @@ router.get('/news', async (req, res) => {
   try {
     const { q, num } = req.query;
     if (!q) return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
+    if (String(q).length > MAX_QUERY_LENGTH) return res.status(400).json({ success: false, error: 'Query too long' });
 
-    const result = await searchFitnessNews(q, Math.max(1, Math.min(parseInt(num) || 8, 15)));
+    logger.info(`[Oracle] News query by user ${req.user.id}: "${String(q).slice(0, 80)}"`);
+    const result = await searchFitnessNews(String(q).slice(0, MAX_QUERY_LENGTH), Math.max(1, Math.min(parseInt(num) || 8, 15)));
     if (!result.ok) return res.status(502).json({ success: false, error: result.error });
 
     return res.json({ success: true, articles: result.data, fromCache: result.fromCache });
@@ -77,8 +94,10 @@ router.get('/youtube', async (req, res) => {
   try {
     const { q, num } = req.query;
     if (!q) return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
+    if (String(q).length > MAX_QUERY_LENGTH) return res.status(400).json({ success: false, error: 'Query too long' });
 
-    const result = await searchYouTube(q, Math.max(1, Math.min(parseInt(num) || 5, 10)));
+    logger.info(`[Oracle] YouTube query by user ${req.user.id}: "${String(q).slice(0, 80)}"`);
+    const result = await searchYouTube(String(q).slice(0, MAX_QUERY_LENGTH), Math.max(1, Math.min(parseInt(num) || 5, 10)));
     if (!result.ok) return res.status(502).json({ success: false, error: result.error });
 
     return res.json({ success: true, videos: result.data, fromCache: result.fromCache });
@@ -95,8 +114,10 @@ router.get('/trends', async (req, res) => {
   try {
     const { q } = req.query;
     if (!q) return res.status(400).json({ success: false, error: 'Query parameter "q" is required' });
+    if (String(q).length > MAX_QUERY_LENGTH) return res.status(400).json({ success: false, error: 'Query too long' });
 
-    const result = await searchTrends(q);
+    logger.info(`[Oracle] Trends query by user ${req.user.id}: "${String(q).slice(0, 80)}"`);
+    const result = await searchTrends(String(q).slice(0, MAX_QUERY_LENGTH));
     if (!result.ok) return res.status(502).json({ success: false, error: result.error });
 
     return res.json({ success: true, trends: result.data, fromCache: result.fromCache });

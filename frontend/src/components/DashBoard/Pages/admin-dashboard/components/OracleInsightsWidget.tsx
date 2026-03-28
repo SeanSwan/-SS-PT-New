@@ -180,7 +180,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
         ) : activeTab === 'news' ? (
           newsResults.length === 0 ? <EmptyState>No fitness news found.</EmptyState> : (
             newsResults.map((a, i) => (
-              <ArticleRow key={i} href={a.link} target="_blank" rel="noopener noreferrer">
+              <ArticleRow key={i} href={a.link?.startsWith('http') ? a.link : '#'} target="_blank" rel="noopener noreferrer">
                 <ArticleContent>
                   <ArticleTitle>{a.title}</ArticleTitle>
                   <ArticleMeta>{a.source} {a.date && `· ${a.date}`}</ArticleMeta>
@@ -192,7 +192,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
         ) : activeTab === 'scholar' ? (
           scholarResults.length === 0 ? <EmptyState>No research articles found.</EmptyState> : (
             scholarResults.map((a, i) => (
-              <ArticleRow key={i} href={a.link} target="_blank" rel="noopener noreferrer">
+              <ArticleRow key={i} href={a.link?.startsWith('http') ? a.link : '#'} target="_blank" rel="noopener noreferrer">
                 <ArticleContent>
                   <ArticleTitle>{a.title}</ArticleTitle>
                   <ArticleMeta>
@@ -207,7 +207,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
         ) : (
           youtubeResults.length === 0 ? <EmptyState>No training videos found.</EmptyState> : (
             youtubeResults.map((v, i) => (
-              <VideoRow key={i} href={v.link} target="_blank" rel="noopener noreferrer">
+              <VideoRow key={i} href={v.link?.startsWith('http') ? v.link : '#'} target="_blank" rel="noopener noreferrer">
                 {v.thumbnail && <VideoThumb src={v.thumbnail} alt="" loading="lazy" />}
                 <ArticleContent>
                   <ArticleTitle>{v.title}</ArticleTitle>

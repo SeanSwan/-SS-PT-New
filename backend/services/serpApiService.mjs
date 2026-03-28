@@ -59,7 +59,7 @@ function buildFitnessQuery(userQuery) {
 async function cachedFetch(cacheKey, ttl, params) {
   const apiKey = getApiKey();
   if (!apiKey) {
-    return { ok: false, error: 'SWAN_ORACLE_API_KEY not configured' };
+    return { ok: false, error: 'Oracle service unavailable' };
   }
 
   // Check cache first — wrap parse in try/catch to survive corrupted entries
