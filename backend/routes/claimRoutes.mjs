@@ -23,6 +23,7 @@
  *   ClaimForm -->|POST /activate| ActivateEndpoint
  */
 import express from 'express';
+import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { generateClaimToken, verifyClaimToken, isTokenExpired } from '../services/claimTokenService.mjs';
 import { getUser } from '../models/index.mjs';
@@ -110,7 +111,7 @@ router.get('/verify/:token', async (req, res) => {
     // Find users with non-null claim tokens that haven't expired
     const candidates = await User.findAll({
       where: {
-        claimTokenHash: { [require('sequelize').Op.ne]: null },
+        claimTokenHash: { [Op.ne]: null },
         accountStatus: 'invited',
       },
       attributes: ['id', 'firstName', 'claimTokenHash', 'claimTokenExpires', 'clientSource'],
@@ -163,7 +164,6 @@ router.post('/activate', async (req, res) => {
     }
 
     const User = getUser();
-    const { Op } = require('sequelize');
 
     const candidates = await User.findAll({
       where: {
