@@ -751,7 +751,7 @@ class AdminClientController {
       const allowedFields = [
         'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender',
         'weight', 'height', 'fitnessGoal', 'trainingExperience',
-        'healthConcerns', 'emergencyContact'
+        'healthConcerns', 'emergencyContact', 'clientSource', 'accountStatus'
       ];
       const safeUpdates = {};
       for (const field of allowedFields) {
