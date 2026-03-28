@@ -53,15 +53,19 @@ class AdminClientService {
   async getClients(params = {}) {
     try {
       const response = await api.get('/admin/clients', { params });
+      // API returns { success, data: { clients, count, ... } }
+      // Axios unwraps once, so response.data = { success, data: { clients } }
+      const payload = response.data?.data || response.data || {};
+      const clients = payload.clients || [];
       return {
-        clients: response.data.clients || [],
+        clients,
         stats: {
-          totalClients: response.data.count || 0,
-          activeClients: response.data.clients?.filter(c => c.isActive)?.length || 0,
-          newThisMonth: response.data.newThisMonth || 0,
-          totalRevenue: response.data.totalRevenue || 0,
-          sessionsBooked: response.data.sessionsBooked || 0,
-          averageSessionsPerClient: response.data.averageSessionsPerClient || 0
+          totalClients: payload.count || clients.length || 0,
+          activeClients: clients.filter((c: any) => c.isActive)?.length || 0,
+          newThisMonth: payload.newThisMonth || 0,
+          totalRevenue: payload.totalRevenue || 0,
+          sessionsBooked: payload.sessionsBooked || 0,
+          averageSessionsPerClient: payload.averageSessionsPerClient || 0
         }
       };
     } catch (error) {
