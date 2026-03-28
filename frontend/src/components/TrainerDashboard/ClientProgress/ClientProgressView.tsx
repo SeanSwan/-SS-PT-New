@@ -43,28 +43,29 @@ const SelectorRow = styled.div`
   align-items: center;
 `;
 
-const Input = styled.input`
+const ClientSelect = styled.select`
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 0.65rem 0.9rem;
-  color: ${theme.colors.text.primary};
-  min-width: 220px;
+  color: var(--text-primary, ${theme.colors.text.primary});
+  min-width: 280px;
+  min-height: 44px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
 
   &:focus {
-    outline: none;
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
     border-color: rgba(139, 92, 246, 0.6);
   }
-`;
 
-const Button = styled.button`
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
-  border: none;
-  color: #002060;
-  padding: 0.65rem 1.2rem;
-  border-radius: 999px;
-  font-weight: ${theme.typography.weight.semibold};
-  cursor: pointer;
+  option {
+    background: #141419;
+    color: var(--text-primary, #E0ECF4);
+    padding: 8px;
+  }
 `;
 
 const CardGrid = styled.div`
@@ -222,10 +223,9 @@ const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurem
 
 const ClientProgressView: React.FC = () => {
   const { user } = useAuth();
-  const { activeClient } = useGlobalClient();
+  const { activeClient, clientList, loadingClients, setActiveClient } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialClientId = searchParams.get('clientId') || '';
-  const [clientIdInput, setClientIdInput] = useState(initialClientId);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() => {
     const parsed = Number(initialClientId);
     return Number.isFinite(parsed) ? parsed : undefined;
@@ -234,22 +234,25 @@ const ClientProgressView: React.FC = () => {
   // Auto-load client when global active client changes (trainer/admin selects from sidebar)
   useEffect(() => {
     if (activeClient?.id && user?.role !== 'client') {
-      setClientIdInput(String(activeClient.id));
       setSelectedClientId(activeClient.id);
       setSearchParams({ clientId: String(activeClient.id) });
     }
   }, [activeClient?.id, user?.role, setSearchParams]);
 
   const resolvedClientId = user?.role === 'client' ? user?.id : selectedClientId;
-  // Trainer/admin always selects a client to view, and clients view their own data
-  // So the target is always a client when resolvedClientId is set
   const { data, isLoading, error } = useClientProgress(resolvedClientId, true);
 
-  const handleLoadClient = () => {
-    const parsed = Number(clientIdInput);
-    if (!Number.isFinite(parsed)) return;
-    setSelectedClientId(parsed);
-    setSearchParams(parsed ? { clientId: String(parsed) } : {});
+  const handleClientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = Number(e.target.value);
+    if (!id) {
+      setSelectedClientId(undefined);
+      setSearchParams({});
+      return;
+    }
+    setSelectedClientId(id);
+    setSearchParams({ clientId: String(id) });
+    const client = clientList.find(c => c.id === id);
+    if (client) setActiveClient(client);
   };
 
   const showSelector = user?.role !== 'client';
@@ -259,22 +262,27 @@ const ClientProgressView: React.FC = () => {
       <Header>
         <Title>Client Progress</Title>
         <Subtitle>
-          Review client progress, NASM scores, and recent measurements. Trainers and admins can
-          load any assigned client by ID.
+          Review client progress, NASM scores, and recent measurements. Select a client below
+          to view their training analytics.
         </Subtitle>
       </Header>
 
       {showSelector && (
         <SelectorRow>
-          <Input
-            type="number"
-            placeholder="Enter client ID"
-            value={clientIdInput}
-            onChange={(event) => setClientIdInput(event.target.value)}
-          />
-          <Button type="button" onClick={handleLoadClient}>
-            Load Client
-          </Button>
+          <ClientSelect
+            value={selectedClientId || ''}
+            onChange={handleClientSelect}
+            aria-label="Select a client to view progress"
+          >
+            <option value="">
+              {loadingClients ? 'Loading clients...' : '— Select a Client —'}
+            </option>
+            {clientList.map(client => (
+              <option key={client.id} value={client.id}>
+                {client.firstName} {client.lastName}
+              </option>
+            ))}
+          </ClientSelect>
         </SelectorRow>
       )}
 
