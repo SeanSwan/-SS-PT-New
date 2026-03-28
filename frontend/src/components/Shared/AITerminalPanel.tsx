@@ -351,6 +351,8 @@ const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const AiBadge = styled.div`
@@ -368,6 +370,9 @@ const HeaderTitle = styled.span`
   font-size: 14px;
   font-weight: 600;
   color: #f0f0ff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const HeaderToggle = styled.div`

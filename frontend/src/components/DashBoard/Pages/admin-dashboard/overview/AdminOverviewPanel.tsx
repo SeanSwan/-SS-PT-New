@@ -253,6 +253,7 @@ const BentoWrapper = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
 
@@ -270,6 +271,7 @@ const BentoWrapper = styled.div`
 const BentoFull = styled.div`
   grid-column: 1 / -1;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 `;
 
@@ -277,6 +279,7 @@ const BentoFull = styled.div`
 const BentoHalf = styled.div`
   grid-column: span 1;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 
   @media (min-width: 1280px) {
@@ -292,6 +295,7 @@ const BentoHalf = styled.div`
 const BentoThird = styled.div`
   grid-column: span 1;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 
   @media (min-width: 1280px) {
@@ -313,6 +317,10 @@ const ControlsHeader = styled.div`
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
   box-shadow: var(--shadow-elevation, 0 4px 24px rgba(0, 0, 0, 0.2));
+
+  @media (max-width: 430px) {
+    padding: 12px 16px;
+  }
 `;
 
 const ControlsInner = styled.div`
