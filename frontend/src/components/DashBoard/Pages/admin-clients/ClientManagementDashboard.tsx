@@ -124,10 +124,16 @@ const ClientManagementDashboard: React.FC = () => {
           onClick={() => setShowOnboarding(true)}
         />
         <GlowButton
-          text="Open Advanced Client Workspace"
+          text="Client Table & Details"
           variant="primary"
           size="large"
           onClick={() => navigate('/dashboard/admin/client-details')}
+        />
+        <GlowButton
+          text="Trainer Assignments"
+          variant="primary"
+          size="large"
+          onClick={() => navigate('/dashboard/people/assignments')}
         />
       </ActionRow>
 

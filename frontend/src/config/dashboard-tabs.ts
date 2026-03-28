@@ -494,7 +494,7 @@ export interface WorkspaceConfig {
 // Routes are mounted at /dashboard/admin/{path}, so prefixes must use that namespace
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
-  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
+  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
   { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/log-workout', description: 'Workout logger, plans & AI protocols' },
   { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
   { id: 'gamification', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
