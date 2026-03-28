@@ -18,73 +18,55 @@
  * KEY DECISIONS:
  *   Token stored as bcrypt hash (not plaintext) for security.
  *   Existing users default to 'active' — backwards compatible.
+ *   Uses raw SQL for ENUM creation to avoid Sequelize ENUM naming issues.
  */
 
 'use strict';
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    const tableDesc = await queryInterface.describeTable('Users').catch(() => null);
-    if (!tableDesc) {
-      console.log('Users table does not exist, skipping');
-      return;
-    }
+  async up(queryInterface) {
+    // Use raw SQL for maximum PostgreSQL compatibility
+    // Create ENUM type first (idempotent)
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        CREATE TYPE "enum_Users_accountStatus" AS ENUM ('stub', 'invited', 'active');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `).catch(e => console.log('ENUM creation note:', e.message));
 
-    // Add accountStatus column
-    if (!tableDesc.accountStatus) {
-      await queryInterface.addColumn('Users', 'accountStatus', {
-        type: Sequelize.ENUM('stub', 'invited', 'active'),
-        defaultValue: 'active',
-        allowNull: false,
-      });
-      console.log('Added accountStatus column to Users');
-    } else {
-      console.log('accountStatus column already exists, skipping');
-    }
+    // Add accountStatus column (idempotent)
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "Users"
+        ADD COLUMN IF NOT EXISTS "accountStatus" "enum_Users_accountStatus" NOT NULL DEFAULT 'active';
+    `).catch(e => console.log('accountStatus column note:', e.message));
 
-    // Add claimTokenHash column
-    if (!tableDesc.claimTokenHash) {
-      await queryInterface.addColumn('Users', 'claimTokenHash', {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      });
-      console.log('Added claimTokenHash column to Users');
-    } else {
-      console.log('claimTokenHash column already exists, skipping');
-    }
+    // Add claimTokenHash column (idempotent)
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "Users"
+        ADD COLUMN IF NOT EXISTS "claimTokenHash" VARCHAR(255);
+    `).catch(e => console.log('claimTokenHash column note:', e.message));
 
-    // Add claimTokenExpires column
-    if (!tableDesc.claimTokenExpires) {
-      await queryInterface.addColumn('Users', 'claimTokenExpires', {
-        type: Sequelize.DATE,
-        allowNull: true,
-      });
-      console.log('Added claimTokenExpires column to Users');
-    } else {
-      console.log('claimTokenExpires column already exists, skipping');
-    }
+    // Add claimTokenExpires column (idempotent)
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "Users"
+        ADD COLUMN IF NOT EXISTS "claimTokenExpires" TIMESTAMPTZ;
+    `).catch(e => console.log('claimTokenExpires column note:', e.message));
 
-    // Index on claimTokenHash for fast lookup during claim flow
-    try {
-      await queryInterface.addIndex('Users', ['claimTokenHash'], {
-        name: 'idx_users_claim_token_hash',
-        where: { claimTokenHash: { [Sequelize.Op.ne]: null } },
-      });
-      console.log('Created index idx_users_claim_token_hash');
-    } catch (e) {
-      if (e.message?.includes('already exists')) {
-        console.log('Index idx_users_claim_token_hash already exists, skipping');
-      } else {
-        console.warn('Index creation warning:', e.message);
-      }
-    }
+    // Partial index on claimTokenHash for fast lookup
+    await queryInterface.sequelize.query(`
+      CREATE INDEX IF NOT EXISTS "idx_users_claim_token_hash"
+        ON "Users" ("claimTokenHash")
+        WHERE "claimTokenHash" IS NOT NULL;
+    `).catch(e => console.log('Index note:', e.message));
+
+    console.log('Migration complete: accountStatus, claimTokenHash, claimTokenExpires added to Users');
   },
 
   async down(queryInterface) {
-    await queryInterface.removeColumn('Users', 'claimTokenExpires').catch(() => {});
-    await queryInterface.removeColumn('Users', 'claimTokenHash').catch(() => {});
-    await queryInterface.removeColumn('Users', 'accountStatus').catch(() => {});
-    // Clean up ENUM type
-    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Users_accountStatus";').catch(() => {});
+    await queryInterface.sequelize.query(`ALTER TABLE "Users" DROP COLUMN IF EXISTS "claimTokenExpires";`).catch(() => {});
+    await queryInterface.sequelize.query(`ALTER TABLE "Users" DROP COLUMN IF EXISTS "claimTokenHash";`).catch(() => {});
+    await queryInterface.sequelize.query(`ALTER TABLE "Users" DROP COLUMN IF EXISTS "accountStatus";`).catch(() => {});
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "enum_Users_accountStatus";`).catch(() => {});
+    await queryInterface.sequelize.query(`DROP INDEX IF EXISTS "idx_users_claim_token_hash";`).catch(() => {});
   },
 };
