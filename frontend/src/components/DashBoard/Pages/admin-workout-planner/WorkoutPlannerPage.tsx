@@ -345,7 +345,12 @@ const WorkoutPlannerPage: React.FC = () => {
       <ControlRow>
         <Select
           value={selectedClientId ?? ''}
-          onChange={e => setSelectedClientId(Number(e.target.value))}
+          onChange={e => {
+            setSelectedClientId(Number(e.target.value));
+            setPlanExercises([]);
+            setGeneratedPlan(null);
+            setExplanations([]);
+          }}
           aria-label="Select client"
         >
           {clientsLoading ? (
@@ -403,6 +408,7 @@ const WorkoutPlannerPage: React.FC = () => {
           onChange={e => {
             setPlanDuration(e.target.value as PlanDuration);
             setGeneratedPlan(null);
+            setPlanExercises([]);
           }}
           aria-label="Select plan duration"
         >

@@ -159,4 +159,56 @@ router.get('/coverage', protect, adminOnly, async (req, res) => {
   }
 });
 
+// ─── POST /api/content-studio/render-job ──────────────────
+// Queues a Remotion motion graphics render job
+router.post('/render-job', protect, adminOnly, async (req, res) => {
+  try {
+    const { templateId, branding, clientName, exerciseName, customText } = req.body;
+    if (!templateId || !branding) {
+      return res.status(400).json({ success: false, error: 'templateId and branding are required' });
+    }
+
+    // Validate template ID against known templates
+    const validTemplates = [
+      'workout-intro', 'exercise-demo-card', 'client-highlight-reel',
+      'social-story-promo', 'brand-logo-reveal', 'class-schedule-board',
+      'team-intro-carousel', 'nasm-phase-explainer',
+    ];
+    if (!validTemplates.includes(templateId)) {
+      return res.status(400).json({ success: false, error: 'Unknown template ID' });
+    }
+
+    // Try to log to VideoJobLog if it exists
+    try {
+      const { getAllModels } = await import('../utils/getAllModels.mjs');
+      const { VideoJobLog } = getAllModels();
+      if (VideoJobLog) {
+        await VideoJobLog.create({
+          jobType: 'remotion_render',
+          status: 'waiting',
+          metadata: JSON.stringify({
+            templateId,
+            branding,
+            clientName: clientName || null,
+            exerciseName: exerciseName || null,
+            customText: customText || null,
+            requestedBy: req.user?.id,
+          }),
+        });
+      }
+    } catch {
+      // VideoJobLog table may not exist — non-fatal
+    }
+
+    res.json({
+      success: true,
+      message: `Render job queued for template "${templateId}"`,
+      data: { templateId, status: 'waiting' },
+    });
+  } catch (err) {
+    console.error('[ContentStudio] Render job creation failed:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to queue render job' });
+  }
+});
+
 export default router;

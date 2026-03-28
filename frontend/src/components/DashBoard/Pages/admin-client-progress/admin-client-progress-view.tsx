@@ -39,23 +39,23 @@ import {
 import MainCard from '../../../ui/MainCard';
 import { logger } from '@/utils/logger';
 
-/* ─── Crystalline Swan Theme Tokens ─── */
+/* ─── Crystalline Swan Theme Tokens (uses CSS vars with approved fallbacks) ─── */
 const theme = {
-  bg: 'rgba(15,23,42,0.95)',
-  bgDeep: '#121420',
-  bgCard: '#1d1f2b',
-  bgCardAlt: '#1A1C33',
-  border: 'rgba(14,165,233,0.2)',
-  borderLight: 'rgba(255,255,255,0.1)',
-  text: '#e2e8f0',
-  textMuted: '#A0A0A0',
-  accent: '#0ea5e9',
+  bg: 'var(--bg-base, #030712)',
+  bgDeep: 'var(--bg-base, #0A0A0F)',
+  bgCard: 'var(--bg-elevated, #141419)',
+  bgCardAlt: 'var(--bg-surface, #1A1A24)',
+  border: 'rgba(96, 192, 240, 0.15)',
+  borderLight: 'rgba(96, 192, 240, 0.08)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.6))',
+  accent: 'var(--accent-primary, #60C0F0)',
   cyan: '#60C0F0',
-  gradientPrimary: 'linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%)',
-  gradientPrimaryHover: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)',
-  gradientLevel: 'linear-gradient(135deg, #60C0F0, #00B4D8)',
-  shadow: '0 4px 12px rgba(0, 0, 20, 0.2)',
-  shadowCyan: '0 4px 12px rgba(139, 92, 246, 0.1)',
+  gradientPrimary: 'linear-gradient(45deg, #002060 0%, #60C0F0 100%)',
+  gradientPrimaryHover: 'linear-gradient(45deg, #003080 0%, #8B5CF6 100%)',
+  gradientLevel: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
+  shadow: '0 4px 12px rgba(0, 0, 20, 0.3)',
+  shadowCyan: '0 4px 12px rgba(139, 92, 246, 0.15)',
 };
 
 /* ─── Keyframes ─── */
@@ -967,7 +967,7 @@ const AdminClientProgressView: React.FC = () => {
           </MainCard>
 
           {/* Progress Notes */}
-          <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+          <MainCard title="Trainer Notes">
             <NotesBody>
               {clientProgress.progressNotes || 'No notes available.'}
             </NotesBody>
@@ -981,7 +981,7 @@ const AdminClientProgressView: React.FC = () => {
           </ChartLoadingWrap>
         }>
           <ClientProgressCharts
-            clientId={Number(selectedClientId)}
+            clientId={parseInt(String(selectedClientId), 10) || 0}
             isTrainerView
             showControls
           />

@@ -331,7 +331,7 @@ export const Chip = styled.button<{ $active?: boolean }>`
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
-  min-height: 28px;
+  min-height: 44px;
   transition: all 0.2s ease;
 
   &:hover {
@@ -430,17 +430,18 @@ export const MiniInput = styled.input`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
   text-align: center;
-  min-height: 32px;
+  min-height: 44px;
 
-  &:focus {
-    outline: none;
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 2px;
     border-color: #60C0F0;
   }
 `;
 
 export const RemoveBtn = styled.button`
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: rgba(201, 42, 84, 0.15);
@@ -744,7 +745,7 @@ export const SmallSelect = styled.select`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
-  min-height: 36px;
+  min-height: 44px;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2360C0F0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");

@@ -96,6 +96,13 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState<OracleTab>(defaultTab);
   const [query, setQuery] = useState(defaultQuery || DEFAULT_QUERIES[defaultTab]);
+  // Sync query when parent passes a new defaultQuery (e.g., Teach Mode exercise change)
+  useEffect(() => {
+    if (defaultQuery) {
+      setQuery(defaultQuery);
+      fetchData(activeTab, defaultQuery);
+    }
+  }, [defaultQuery]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newsResults, setNewsResults] = useState<NewsArticle[]>([]);
@@ -273,8 +280,8 @@ const TabRow = styled.div`
 `;
 
 const TabBtn = styled.button<{ $active?: boolean }>`
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.4)' : 'rgba(96, 192, 240, 0.1)'};
   background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
@@ -297,8 +304,8 @@ const TabBtn = styled.button<{ $active?: boolean }>`
 `;
 
 const RefreshBtn = styled.button`
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: none;
   background: transparent;

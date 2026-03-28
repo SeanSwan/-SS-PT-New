@@ -46,10 +46,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
+import { AICommandBar } from '../../../Shared/AICommandBar';
 
 // Lazy-load heavy tab components
 const VideoLibraryV3 = React.lazy(() => import('../../../../pages/VideoLibraryV3'));
 const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverageTracker'));
+const RemotionTemplateGallery = React.lazy(() => import('./RemotionTemplateGallery'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -287,7 +289,7 @@ const LoadingFallback = styled.div`
 const TABS: { id: StudioTab; label: string; icon: React.ReactNode; requiresService?: string }[] = [
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
-  { id: 'ai-video', label: 'AI Video Creator', icon: <Wand2 size={16} />, requiresService: 'kling' },
+  { id: 'ai-video', label: 'Motion Templates', icon: <Wand2 size={16} /> },
   { id: 'voice', label: 'Voice Studio', icon: <Mic2 size={16} />, requiresService: 'elevenlabs' },
   { id: 'distribution', label: 'Distribution', icon: <Share2 size={16} />, requiresService: 'blotato' },
   { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
@@ -393,22 +395,9 @@ const ContentStudioHub: React.FC = () => {
 
       case 'ai-video':
         return (
-          <CrystallineLockOverlay
-            isLocked={!serviceConfig.kling}
-            featureName="AI Video Creator"
-            description="Generate AI-powered training videos with Kling. Add your API key in Settings to unlock."
-            onConfigure={() => setActiveTab('settings')}
-            ctaLabel="Configure Kling API"
-          >
-            <PlaceholderPanel>
-              <PlaceholderIcon><Wand2 size={28} /></PlaceholderIcon>
-              <PlaceholderTitle>AI Video Creator</PlaceholderTitle>
-              <PlaceholderDesc>
-                Create AI-generated exercise demonstration videos, promotional
-                content, and social media clips with Kling AI.
-              </PlaceholderDesc>
-            </PlaceholderPanel>
-          </CrystallineLockOverlay>
+          <Suspense fallback={<LoadingFallback>Loading motion templates...</LoadingFallback>}>
+            <RemotionTemplateGallery />
+          </Suspense>
         );
 
       case 'voice':
@@ -470,6 +459,11 @@ const ContentStudioHub: React.FC = () => {
           </TierBadge>
         </TitleGroup>
       </Header>
+
+      {/* AI Command Bar — content context */}
+      <div style={{ padding: '16px 24px 0' }}>
+        <AICommandBar context="content" />
+      </div>
 
       {/* Service Status Cards */}
       <ServiceGrid>
