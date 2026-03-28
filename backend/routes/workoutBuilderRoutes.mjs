@@ -12,7 +12,7 @@ import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import logger from '../utils/logger.mjs';
-import { sequelize } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 
 // Workout builder rate limiter: 10 requests/minute per IP (DB-intensive operations)
 const workoutBuilderLimiter = rateLimit({
