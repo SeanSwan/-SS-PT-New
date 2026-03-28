@@ -500,6 +500,8 @@ const WidgetHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -523,6 +525,7 @@ const HeaderActions = styled.div`
 
 const FilterButtons = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
 `;
 
