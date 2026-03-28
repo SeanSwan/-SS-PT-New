@@ -1413,26 +1413,124 @@ const EnhancedAdminClientManagementView: React.FC = () => {
     }
   ];
 
-  // Initialize with mock data
+  // ─── Fetch real clients from API ─────────────────────────────
+  // Maps API response to EnhancedAdminClient interface with sensible defaults
+  // for fields the API doesn't yet return (gamification, assessments, etc.)
+  const mapApiClientToEnhanced = useCallback((apiClient: any): EnhancedAdminClient => ({
+    id: String(apiClient.id),
+    firstName: apiClient.firstName || '',
+    lastName: apiClient.lastName || '',
+    email: apiClient.email || '',
+    username: apiClient.username || '',
+    phone: apiClient.phone || '',
+    profileImageUrl: apiClient.profileImageUrl || apiClient.photo || '',
+    dateOfBirth: apiClient.dateOfBirth || '',
+    gender: apiClient.gender || '',
+    weight: apiClient.weight || 0,
+    height: apiClient.height || 0,
+    fitnessGoal: apiClient.fitnessGoal || '',
+    trainingExperience: apiClient.trainingExperience || 'beginner',
+    healthConcerns: apiClient.healthConcerns || '',
+    emergencyContact: apiClient.emergencyContact || '',
+    availableSessions: apiClient.availableSessions ?? 0,
+    isActive: apiClient.isActive !== false,
+    role: apiClient.role || 'client',
+    createdAt: apiClient.createdAt || '',
+    updatedAt: apiClient.updatedAt || '',
+    clientSource: apiClient.clientSource || 'swanstudios',
+    accountStatus: apiClient.accountStatus || 'active',
+    totalWorkouts: apiClient.totalWorkouts || 0,
+    workoutStreak: apiClient.workoutStreak || 0,
+    lastWorkoutDate: apiClient.lastWorkoutDate || '',
+    nextSessionDate: apiClient.nextSessionDate || '',
+    totalOrders: apiClient.totalOrders || 0,
+    achievements: apiClient.achievements || [],
+    currentProgram: apiClient.currentProgram || '',
+    trainerName: apiClient.trainerName || '',
+    socialScore: apiClient.socialScore || 0,
+    engagementLevel: apiClient.engagementLevel || 'low',
+    riskFactors: apiClient.riskFactors || [],
+    aiInsights: apiClient.aiInsights || [],
+    customFields: apiClient.customFields || {},
+    level: apiClient.level || 1,
+    xp: apiClient.xp || 0,
+    badges: apiClient.badges || [],
+    rank: apiClient.rank || 'Unranked',
+    initialAssessment: apiClient.initialAssessment,
+    latestAssessment: apiClient.latestAssessment,
+    progressScore: apiClient.progressScore || 0,
+    bodyComposition: apiClient.bodyComposition,
+    lastContactDate: apiClient.lastContactDate || '',
+    preferredContactMethod: apiClient.preferredContactMethod || 'app',
+    communicationNotes: apiClient.communicationNotes || '',
+    injuryHistory: apiClient.injuryHistory || [],
+    medicationList: apiClient.medicationList || [],
+    allergies: apiClient.allergies || [],
+    formAnalysisScore: apiClient.formAnalysisScore,
+    lastFormCheck: apiClient.lastFormCheck,
+  }), []);
+
+  // Fetch clients from API on mount
   useEffect(() => {
-    const mockData = generateMockClients();
-    setClients(mockData);
-    setTotalCount(mockData.length);
-    setLoading(false);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const result = await adminClientService.getClients({ page: 1, limit: 100 });
+        const apiClients = (result.clients || []).map(mapApiClientToEnhanced);
 
-    // Set mock quick stats
-    setQuickStats({
-      totalClients: mockData.length,
-      activeClients: mockData.filter(c => c.isActive).length,
-      newThisMonth: 5,
-      avgProgress: 82,
-      totalWorkouts: mockData.reduce((sum, c) => sum + c.totalWorkouts, 0),
-      totalRevenue: 45680,
-      retentionRate: 94.5,
-      avgRating: 4.8
-    });
+        // If API returns clients, use them; otherwise fall back to mock data for demo
+        if (apiClients.length > 0) {
+          setClients(apiClients);
+          setTotalCount(apiClients.length);
+          setQuickStats({
+            totalClients: apiClients.length,
+            activeClients: apiClients.filter(c => c.isActive).length,
+            newThisMonth: result.stats?.newThisMonth || 0,
+            avgProgress: 0,
+            totalWorkouts: apiClients.reduce((sum, c) => sum + c.totalWorkouts, 0),
+            totalRevenue: result.stats?.totalRevenue || 0,
+            retentionRate: 0,
+            avgRating: 0
+          });
+        } else {
+          // Fallback to mock data if no real clients exist
+          const mockData = generateMockClients();
+          setClients(mockData);
+          setTotalCount(mockData.length);
+          setQuickStats({
+            totalClients: mockData.length,
+            activeClients: mockData.filter(c => c.isActive).length,
+            newThisMonth: 0,
+            avgProgress: 82,
+            totalWorkouts: mockData.reduce((sum, c) => sum + c.totalWorkouts, 0),
+            totalRevenue: 0,
+            retentionRate: 0,
+            avgRating: 0
+          });
+        }
+      } catch (err) {
+        console.error('[ClientManagement] Failed to fetch clients, using mock data:', err);
+        const mockData = generateMockClients();
+        setClients(mockData);
+        setTotalCount(mockData.length);
+        setQuickStats({
+          totalClients: mockData.length,
+          activeClients: mockData.filter(c => c.isActive).length,
+          newThisMonth: 0,
+          avgProgress: 82,
+          totalWorkouts: mockData.reduce((sum, c) => sum + c.totalWorkouts, 0),
+          totalRevenue: 0,
+          retentionRate: 0,
+          avgRating: 0
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Mock MCP status
+    fetchData();
+
+    // MCP status (placeholder until real health checks are wired)
     setMcpStatus({
       servers: [
         { name: 'Workout MCP', status: 'online', health: 98, responseTime: 45 },
@@ -1444,7 +1542,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       ],
       summary: { online: 5, offline: 0, error: 0, warning: 1 }
     });
-  }, []);
+  }, [mapApiClientToEnhanced]);
 
   // Handle search
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2306,10 +2404,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               description: `Client ${data.firstName} ${data.lastName} created successfully`,
               variant: "default"
             });
-            // Refresh client list
+            // Refresh client list with proper mapping
             const refreshed = await adminClientService.getClients({ page: currentPage + 1, limit: rowsPerPage });
             if (refreshed.clients?.length) {
-              setClients(refreshed.clients as any);
+              setClients(refreshed.clients.map(mapApiClientToEnhanced));
               setTotalCount(refreshed.stats?.totalClients || refreshed.clients.length);
             }
           } catch (error: any) {
