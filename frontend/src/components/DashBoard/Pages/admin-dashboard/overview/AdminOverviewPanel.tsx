@@ -253,6 +253,8 @@ const BentoWrapper = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
 
   @media (min-width: 1280px) {
     grid-template-columns: repeat(6, 1fr);
@@ -267,11 +269,15 @@ const BentoWrapper = styled.div`
 // Full width (spans all columns)
 const BentoFull = styled.div`
   grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 // Half width (1 of 2 columns, or 3 of 6 on wide screens)
 const BentoHalf = styled.div`
   grid-column: span 1;
+  min-width: 0;
+  overflow: hidden;
 
   @media (min-width: 1280px) {
     grid-column: span 3;
@@ -285,6 +291,8 @@ const BentoHalf = styled.div`
 // Third width (1 of 3 on wide screens, stacks on mobile)
 const BentoThird = styled.div`
   grid-column: span 1;
+  min-width: 0;
+  overflow: hidden;
 
   @media (min-width: 1280px) {
     grid-column: span 2;
