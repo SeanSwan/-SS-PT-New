@@ -129,7 +129,6 @@ import {
   Send,
   ChevronRight,
   Home,
-  Zap,
   Sparkles,
   Bot,
   Lightbulb,
@@ -419,19 +418,6 @@ const StatsGrid = styled.div`
   margin-bottom: 24px;
 
   @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  @media (max-width: 430px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const MCPGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-
-  @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
   }
   @media (max-width: 430px) {
@@ -1285,7 +1271,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
   // Quick stats state
   const [quickStats, setQuickStats] = useState<Record<string, any>>({});
-  const [mcpStatus, setMcpStatus] = useState<any>(null);
+  // mcpStatus removed — no real MCP servers in production
 
   // Create mock enhanced client data
   const generateMockClients = (): EnhancedAdminClient[] => [
@@ -1530,18 +1516,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
     fetchData();
 
-    // MCP status (placeholder until real health checks are wired)
-    setMcpStatus({
-      servers: [
-        { name: 'Workout MCP', status: 'online', health: 98, responseTime: 45 },
-        { name: 'Gamification MCP', status: 'online', health: 95, responseTime: 52 },
-        { name: 'YOLO MCP', status: 'online', health: 92, responseTime: 78 },
-        { name: 'Social Media MCP', status: 'warning', health: 85, responseTime: 120 },
-        { name: 'Food Scanner MCP', status: 'online', health: 97, responseTime: 38 },
-        { name: 'Video Processing MCP', status: 'online', health: 90, responseTime: 95 }
-      ],
-      summary: { online: 5, offline: 0, error: 0, warning: 1 }
-    });
+    // MCP health panel removed — no real MCP servers running in production
   }, [mapApiClientToEnhanced]);
 
   // Handle search
@@ -1655,13 +1630,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       case 'rare': return '#2196f3';
       default: return '#4caf50';
     }
-  };
-
-  // Helper: MCP server border color
-  const serverBorderColor = (status: string): string => {
-    if (status === 'online') return 'rgba(76, 175, 80, 0.3)';
-    if (status === 'warning') return 'rgba(255, 152, 0, 0.3)';
-    return 'rgba(244, 67, 54, 0.3)';
   };
 
   // Pagination helpers
@@ -2025,58 +1993,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           </CardPanel>
         </StatsGrid>
 
-        {/* MCP System Health */}
-        {mcpStatus && (
-          <GlassPanel style={{ marginBottom: 24 }}>
-            <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
-              <SectionTitle>
-                <Zap size={24} />
-                AI &amp; MCP System Health
-              </SectionTitle>
-              <ActionButton
-                $variant="outlined"
-                $size="small"
-                onClick={() => window.location.reload()}
-              >
-                <RefreshCw size={16} />
-                Refresh Status
-              </ActionButton>
-            </FlexRow>
-
-            <MCPGrid>
-              {mcpStatus.servers.map((server: any, index: number) => (
-                <CardPanel key={index} $borderColor={serverBorderColor(server.status)} style={{ padding: 16 }}>
-                  <FlexRow $justify="space-between" $align="center">
-                    <BodyText $bold>{server.name}</BodyText>
-                    <StatusChip
-                      $small
-                      $status={
-                        server.status === 'online' ? 'success' :
-                        server.status === 'warning' ? 'warning' : 'error'
-                      }
-                    >
-                      {server.status}
-                    </StatusChip>
-                  </FlexRow>
-                  <FlexRow $gap={24} style={{ marginTop: 8 }}>
-                    <FlexCol $gap={0}>
-                      <Label $size="0.75rem">Health</Label>
-                      <MetricValue $color={server.health > 90 ? theme.success : theme.warning}>
-                        {server.health}%
-                      </MetricValue>
-                    </FlexCol>
-                    <FlexCol $gap={0}>
-                      <Label $size="0.75rem">Response</Label>
-                      <MetricValue $color={server.responseTime < 100 ? theme.success : theme.warning}>
-                        {server.responseTime}ms
-                      </MetricValue>
-                    </FlexCol>
-                  </FlexRow>
-                </CardPanel>
-              ))}
-            </MCPGrid>
-          </GlassPanel>
-        )}
+        {/* MCP System Health — removed (no real MCP servers in production) */}
 
         {/* Enhanced Search and Filter Bar */}
         <SearchFilterRow>

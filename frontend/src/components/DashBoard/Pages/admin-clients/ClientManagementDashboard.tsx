@@ -127,7 +127,7 @@ const ClientManagementDashboard: React.FC = () => {
           text="Open Advanced Client Workspace"
           variant="primary"
           size="large"
-          onClick={() => navigate('/client-details')}
+          onClick={() => navigate('/dashboard/admin/client-details')}
         />
       </ActionRow>
 
