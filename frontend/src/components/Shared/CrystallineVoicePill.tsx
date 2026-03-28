@@ -363,9 +363,13 @@ const CrystallineVoicePill: React.FC<CrystallineVoicePillProps> = ({
       if (event.error === 'not-allowed' || event.error === 'audio-capture') {
         // Permanent issue — mic blocked or no mic hardware. Show subtle disabled state, not alarming error.
         setLocalState('unavailable');
-      } else if (event.error !== 'aborted') {
-        // Transient error — show retry state
+      } else if (event.error === 'no-speech' || event.error === 'network' || event.error === 'aborted' || event.error === 'service-not-allowed') {
+        // Non-alarming: no speech detected, network hiccup, or service unavailable — just go back to idle
+        setLocalState('idle');
+      } else {
+        // Unexpected transient error — show brief retry state, then auto-clear after 3s
         setLocalState('error');
+        setTimeout(() => setLocalState((prev) => prev === 'error' ? 'idle' : prev), 3000);
       }
     };
 

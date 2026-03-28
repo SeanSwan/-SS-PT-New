@@ -273,6 +273,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
         setMicBlocked(true);
         logger.warn('Microphone permission denied — enable in browser settings');
       }
+      // no-speech, network, aborted, service-not-allowed — silently return to idle (no alarming UI)
     };
 
     recognition.onend = () => {
