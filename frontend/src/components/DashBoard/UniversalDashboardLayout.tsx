@@ -27,6 +27,7 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
+import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
@@ -183,12 +184,32 @@ const UniversalGlobalStyles = createGlobalStyle`
     overflow-x: hidden;
   }
 
+  /* Lock body scroll when mobile sidebar is open */
+  body.mobile-sidebar-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-primary, #E0ECF4);
     background: var(--bg-base, #0A0A0F);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mobile font size boost for readability on small phones */
+  @media (max-width: 430px) {
+    body { font-size: 15px; }
+    h1 { font-size: clamp(1.2rem, 5vw, 1.5rem); }
+    h2 { font-size: clamp(1.05rem, 4vw, 1.25rem); }
+    h3 { font-size: clamp(0.95rem, 3.5vw, 1.1rem); }
+  }
+
+  @media (max-width: 375px) {
+    body { font-size: 14px; }
   }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -246,6 +267,8 @@ const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }
   @media (max-width: 430px) {
     padding: 12px;
     padding-top: 68px;
+    /* Bump base font size for readability on small phones */
+    font-size: 15px;
   }
 
   @media (max-width: 375px) {
@@ -265,6 +288,48 @@ const UniversalPageContainer = styled(motion.div)`
   margin: 0 auto;
   position: relative;
   z-index: 1;
+`;
+
+// ─── Mobile Back/Close Button ────────────────────────────
+// Shows on mobile when user navigates into a sub-page (not overview)
+// Provides a persistent way to return to the main dashboard
+const MobileBackBtn = styled.button`
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 999;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: var(--bg-surface, #141419);
+  color: var(--text-primary, #E0ECF4);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: all 200ms ease;
+
+  &:hover {
+    background: var(--bg-elevated, #1A1A24);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 1024px) {
+    display: flex;
+  }
 `;
 
 const UniversalLoadingContainer = styled.div`
@@ -637,6 +702,17 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         <UniversalLayoutContainer>
           {/* Role-specific Stellar Sidebar */}
           {renderSidebar()}
+
+          {/* Mobile back/close button — returns to dashboard overview */}
+          {!location.pathname.endsWith('/overview') && (
+            <MobileBackBtn
+              onClick={() => navigate(`/dashboard/${activeRole}/overview`)}
+              aria-label="Back to dashboard overview"
+              title="Back to overview"
+            >
+              <X size={20} />
+            </MobileBackBtn>
+          )}
 
           {/* Universal Main Content Area */}
           <UniversalMainContent

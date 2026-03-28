@@ -457,6 +457,16 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileOpen && isMobile) {
+      document.body.classList.add('mobile-sidebar-open');
+    } else {
+      document.body.classList.remove('mobile-sidebar-open');
+    }
+    return () => document.body.classList.remove('mobile-sidebar-open');
+  }, [isMobileOpen, isMobile]);
+
   useEffect(() => {
     if (!isMobileOpen) return;
     const onKey = (e: KeyboardEvent) => {

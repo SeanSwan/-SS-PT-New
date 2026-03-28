@@ -465,6 +465,16 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // ── Lock body scroll when mobile sidebar is open ──
+  useEffect(() => {
+    if (mobileOpen && isMobile) {
+      document.body.classList.add('mobile-sidebar-open');
+    } else {
+      document.body.classList.remove('mobile-sidebar-open');
+    }
+    return () => document.body.classList.remove('mobile-sidebar-open');
+  }, [mobileOpen, isMobile]);
+
   // ── Keyboard: Escape closes mobile ──
   useEffect(() => {
     if (!mobileOpen) return;

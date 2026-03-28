@@ -28,10 +28,10 @@ interface WorkspaceContainerProps {
 // ─── Styled Components ───────────────────────────────
 const WorkspaceWrapper = styled.div`
   min-height: 100dvh;
-  background: radial-gradient(circle at top right, #120d26 0%, #002060 100%);
+  background: var(--bg-base, #0A0A0F);
   padding: 24px;
-  color: rgba(255, 255, 255, 0.9);
-  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
 
   @media (max-width: 768px) {
     padding: 12px;
@@ -81,6 +81,10 @@ const PageSubtitle = styled.p`
   font-size: 14px;
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
+
+  @media (max-width: 430px) {
+    font-size: 13px;
+  }
 `;
 
 const TabBar = styled.div`
@@ -164,11 +168,11 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 768px) {
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
     gap: 6px;
     border-radius: 18px;
-    min-height: 36px;
+    min-height: 44px;
 
     &::after {
       display: none;
@@ -184,10 +188,10 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 430px) {
-    padding: 6px 10px;
-    font-size: 11px;
-    min-height: 32px;
-    gap: 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 44px;
+    gap: 6px;
 
     svg {
       width: 14px;
@@ -196,8 +200,9 @@ const TabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 375px) {
-    padding: 6px 8px;
-    font-size: 11px;
+    padding: 8px 10px;
+    font-size: 12px;
+    min-height: 44px;
   }
 `;
 
