@@ -394,8 +394,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
     logger.error('Error fetching assignments:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch assignments',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || 'Failed to fetch assignments',
     });
   }
 });
@@ -625,31 +624,35 @@ router.post('/', protect, adminOnly, async (req, res) => {
     });
 
     // Fetch the complete assignment with related data
-    const completeAssignment = await ClientTrainerAssignment.findByPk(assignment.id, {
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      },
-      include: [
-        {
-          model: User,
-          as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-          required: false
-        },
-        {
-          model: User,
-          as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-          required: false
-        },
-        {
-          model: User,
-          as: 'assignedByUser',
-          attributes: ['id', 'firstName', 'lastName'],
-          required: false // Make optional in case assignedBy column is missing or null
-        }
-      ]
-    });
+    // Wrapped in try-catch so the assignment still succeeds if re-fetch fails
+    let completeAssignment = assignment;
+    try {
+      const fetched = await ClientTrainerAssignment.findByPk(assignment.id, {
+        include: [
+          {
+            model: User,
+            as: 'client',
+            attributes: ['id', 'firstName', 'lastName', 'email'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'trainer',
+            attributes: ['id', 'firstName', 'lastName', 'email'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'assignedByUser',
+            attributes: ['id', 'firstName', 'lastName'],
+            required: false
+          }
+        ]
+      });
+      if (fetched) completeAssignment = fetched;
+    } catch (fetchErr) {
+      logger.warn('Could not re-fetch assignment with includes:', fetchErr.message);
+    }
 
     logger.info(`Admin ${assignedBy} assigned client ${clientId} to trainer ${trainerId}`, {
       assignmentId: assignment.id,
@@ -665,10 +668,10 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error creating assignment:', error);
+    // Always return the error message so we can debug in production
     res.status(500).json({
       success: false,
-      message: 'Failed to create assignment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message || 'Failed to create assignment',
     });
   }
 });
