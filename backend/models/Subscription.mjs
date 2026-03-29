@@ -1,8 +1,8 @@
 /**
  * ============================================================================
  * FILE: Subscription.mjs
- * PURPOSE: SwanStudios 3-tier subscription model (Free/Supporter/Premium)
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
+ * PURPOSE: SwanStudios 3-tier subscription model (Free/Pro/Elite)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Defines the Subscription Sequelize model that tracks
@@ -67,8 +67,8 @@ Subscription.init(
       type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'free',
-      comment: 'Subscription tier: free (limited AI), supporter (unlimited AI, pay-what-you-want), premium (+ human trainer)',
-      validate: { isIn: [['free', 'supporter', 'premium']] },
+      comment: 'Subscription tier: free ($0, basic logging), pro ($9.99/mo, 30 AI msgs), elite ($24.99/mo, unlimited AI)',
+      validate: { isIn: [['free', 'pro', 'elite']] },
     },
     status: {
       type: DataTypes.STRING(20),
@@ -80,7 +80,7 @@ Subscription.init(
     amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
-      comment: 'Actual monthly amount (Supporter: pay-what-you-want min $1, Premium: fixed $10)',
+      comment: 'Monthly amount (Pro: $9.99/mo, Elite: $24.99/mo)',
     },
     trialStartDate: {
       type: DataTypes.DATE,

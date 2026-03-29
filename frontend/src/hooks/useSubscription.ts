@@ -29,7 +29,7 @@ export interface TierDefinition {
 }
 
 export interface SubscriptionStatus {
-  tier: 'free' | 'supporter' | 'premium';
+  tier: 'free' | 'pro' | 'elite' | 'supporter' | 'premium'; // supporter/premium kept for migration compat
   tierName: string;
   status: 'active' | 'trial' | 'past_due' | 'cancelled' | 'paused';
   hasFullAIAccess: boolean;
@@ -121,7 +121,7 @@ export function useSubscription() {
   }, [fetchStatus]);
 
   /** Create Stripe checkout session for subscription */
-  const checkout = useCallback(async (tier: 'supporter' | 'premium', amount?: number) => {
+  const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number) => {
     const res = await fetch(`${API_BASE}/api/subscriptions/checkout`, {
       method: 'POST',
       headers: getHeaders(),
@@ -166,7 +166,10 @@ export function useSubscription() {
 
   const isFreeTier = subscription?.tier === 'free' && !subscription?.isInTrial;
   const isTrial = subscription?.isInTrial || false;
-  const isPaid = subscription?.tier === 'supporter' || subscription?.tier === 'premium';
+  const isPaid = subscription?.tier === 'pro' || subscription?.tier === 'elite' ||
+    subscription?.tier === 'supporter' || subscription?.tier === 'premium'; // migration compat
+  const isElite = subscription?.tier === 'elite' || subscription?.tier === 'premium';
+  const isPro = subscription?.tier === 'pro' || subscription?.tier === 'supporter';
 
   useEffect(() => {
     if (!fetchedRef.current) {
@@ -194,6 +197,8 @@ export function useSubscription() {
     isFreeTier,
     isTrial,
     isPaid,
+    isPro,
+    isElite,
   };
 }
 

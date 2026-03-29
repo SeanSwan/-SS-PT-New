@@ -296,8 +296,8 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
     }
   };
 
-  const handleSubscribe = (tier: 'supporter' | 'premium') => {
-    checkout(tier);
+  const handleSubscribe = (tier: 'pro' | 'elite', amount?: number) => {
+    checkout(tier, amount);
   };
 
   const trialExpired = subscription && !subscription.isInTrial && subscription.trialDaysRemaining === 0;
@@ -319,10 +319,11 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
           </svg>
         </LockIcon>
 
-        <Title>Unlock Unlimited {featureName}</Title>
+        <Title>Unlock {featureName}</Title>
         <Subtitle>
-          Join <strong>Swan Guardian</strong> to access unlimited AI-powered workout generation,
-          NASM calculators, and advanced analytics. Your support keeps SwanStudios free for everyone.
+          Upgrade to <strong>Swan Pro</strong> for AI-powered workout generation, NASM calculators,
+          and advanced analytics. Pay what you can — suggested $9.99/mo. Your support keeps
+          SwanStudios accessible for everyone.
         </Subtitle>
 
         {/* Trial status badge */}
@@ -357,17 +358,22 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
             </PrimaryBtn>
           )}
 
-          <PrimaryBtn onClick={() => handleSubscribe('supporter')}>
-            Swan Guardian — $5/mo
+          <PrimaryBtn onClick={() => handleSubscribe('pro', 0)}>
+            Swan Pro — Free Donation
           </PrimaryBtn>
 
-          <SecondaryBtn onClick={() => handleSubscribe('premium')}>
-            Swan Elite — $10/mo
+          <PrimaryBtn onClick={() => handleSubscribe('pro', 9.99)}>
+            Swan Pro — $9.99/mo
+          </PrimaryBtn>
+
+          <SecondaryBtn onClick={() => handleSubscribe('elite')}>
+            Crystalline Swan — $24.99/mo
           </SecondaryBtn>
         </ButtonRow>
 
         <DonationNote>
-          Swan Guardian is pay-what-you-want (min $1). You choose what feels right.
+          Swan Pro is donation-based — pay what you can. More you give, more AI messages you get.
+          Crystalline Swan = unlimited AI coaching.
         </DonationNote>
       </Card>
     </Backdrop>

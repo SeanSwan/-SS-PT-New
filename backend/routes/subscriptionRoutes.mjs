@@ -44,64 +44,76 @@ const TIER_DEFINITIONS = {
   free: {
     id: 'free',
     name: 'Swan Starter',
-    tagline: 'Start your fitness journey — free forever',
+    tagline: 'Log workouts, track nutrition — free forever',
     price: 0,
     priceDisplay: 'Free',
+    donationEnabled: true,
     features: [
       'Workout logging (unlimited)',
-      'Exercise library (840+ exercises)',
+      'Nutrition & macro counter',
+      'Exercise library (900+ exercises)',
       'Social feed & community',
       'Gamification (XP, levels, badges)',
-      'Basic progress tracking',
-      '3 AI chat messages/month',
-      '1 AI workout generation/month',
+      'Basic progress charts',
       'BMI calculator',
+      '3 AI chat messages/month (taste test)',
+      '1 AI workout generation/month',
     ],
     limits: {
       aiMessagesPerMonth: 3,
       aiGenerationsPerMonth: 1,
     },
   },
-  supporter: {
-    id: 'supporter',
-    name: 'Swan Guardian',
-    tagline: 'Your support keeps SwanStudios free for everyone',
-    price: 5.00,
-    priceDisplay: '$5/mo suggested',
-    payWhatYouWant: true,
-    minimumPrice: 1.00,
+  pro: {
+    id: 'pro',
+    name: 'Swan Pro',
+    tagline: 'AI-powered coaching — pay what you can, suggested $9.99/mo',
+    price: 9.99,
+    priceDisplay: '$9.99/mo suggested',
+    donationBased: true,
+    minimumPrice: 0,
     maximumPrice: 50.00,
+    suggestedPrice: 9.99,
     features: [
       'Everything in Swan Starter',
-      'Unlimited AI chat',
-      'Unlimited AI workout generation',
+      'AI Coach messages (amount scales with donation)',
+      'AI workout generations (amount scales with donation)',
       'All 4 NASM calculators (1RM, TDEE, Body Fat %, BMI)',
-      'Advanced Victory charts on profile',
-      'Swan Guardian supporter badge (Rare)',
+      'Full Victory chart gallery on profile',
+      'Advanced progress analytics',
+      'Swan Pro badge (Rare)',
       'Priority in community challenges',
-      'Ad-free experience',
     ],
+    // Limits scale by donation amount — see donationTiers below
     limits: {
-      aiMessagesPerMonth: Infinity,
-      aiGenerationsPerMonth: Infinity,
+      aiMessagesPerMonth: 40,       // At suggested price ($9.99+)
+      aiGenerationsPerMonth: 10,    // At suggested price ($9.99+)
     },
+    donationTiers: [
+      { minAmount: 0,    maxAmount: 0.99,  aiMessagesPerMonth: 10, aiGenerationsPerMonth: 2, label: 'Free Donation' },
+      { minAmount: 1,    maxAmount: 4.99,  aiMessagesPerMonth: 15, aiGenerationsPerMonth: 3, label: 'Supporter' },
+      { minAmount: 5,    maxAmount: 9.98,  aiMessagesPerMonth: 25, aiGenerationsPerMonth: 4, label: 'Champion' },
+      { minAmount: 9.99, maxAmount: 50,    aiMessagesPerMonth: 40, aiGenerationsPerMonth: 10, label: 'Hero' },
+    ],
   },
-  premium: {
-    id: 'premium',
-    name: 'Swan Elite',
-    tagline: 'Personal trainer guidance meets AI power',
-    price: 10.00,
-    priceDisplay: '$10/mo',
-    payWhatYouWant: false,
+  elite: {
+    id: 'elite',
+    name: 'Crystalline Swan',
+    tagline: 'Unlimited AI coaching — your personal trainer in your pocket',
+    price: 24.99,
+    priceDisplay: '$24.99/mo',
+    stripePriceId: null, // Set via Stripe dashboard
     features: [
-      'Everything in Swan Guardian',
+      'Everything in Swan Pro',
+      'Unlimited AI Coach messages',
+      'Unlimited AI workout generation',
+      'Voice AI Coach (when available)',
+      'Content Studio access',
+      'Advanced analytics & insights',
       'Direct trainer messaging',
-      'Monthly custom workout plan review',
-      'Video form check submissions (48h response)',
+      'Video form check submissions',
+      'Crystalline Swan badge (Epic)',
       'Priority scheduling for sessions',
-      'Swan Elite badge (Epic)',
-      'Exclusive trainer Q&A sessions',
-      '1 free virtual session per quarter',
     ],
     limits: {
       aiMessagesPerMonth: Infinity,
@@ -133,7 +145,7 @@ router.get('/status', protect, async (req, res) => {
       return res.json({
         success: true,
         subscription: {
-          tier: 'premium',
+          tier: 'elite',
           status: 'active',
           isAdmin: true,
           hasFullAIAccess: true,
@@ -261,32 +273,55 @@ router.post('/checkout', protect, async (req, res) => {
       });
     }
 
-    if (!tier || !['supporter', 'premium'].includes(tier)) {
+    if (!tier || !['pro', 'elite'].includes(tier)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid tier. Choose supporter or premium.',
+        message: 'Invalid tier. Choose pro or elite.',
       });
     }
 
     const tierDef = TIER_DEFINITIONS[tier];
 
-    // Validate amount for pay-what-you-want
+    // Pro tier: donation-based (pay what you can, $0-$50)
     let checkoutAmount = tierDef.price;
-    if (tier === 'supporter' && amount) {
+    if (tier === 'pro' && amount !== undefined) {
       const parsedAmount = parseFloat(amount);
-      if (parsedAmount < tierDef.minimumPrice) {
-        return res.status(400).json({
-          success: false,
-          message: `Minimum amount for Swan Guardian is $${tierDef.minimumPrice}`,
-        });
+      if (isNaN(parsedAmount) || parsedAmount < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid donation amount.' });
       }
       if (parsedAmount > tierDef.maximumPrice) {
-        return res.status(400).json({
-          success: false,
-          message: `Maximum amount is $${tierDef.maximumPrice}`,
-        });
+        return res.status(400).json({ success: false, message: `Maximum donation is $${tierDef.maximumPrice}/mo.` });
       }
       checkoutAmount = parsedAmount;
+    }
+
+    // $0 donation = skip Stripe, create directly as active
+    if (checkoutAmount === 0) {
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+      await Subscription.upsert({
+        userId,
+        tier: 'pro',
+        status: 'active',
+        amount: 0,
+        paymentMethod: 'manual',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+        cancelledAt: null,
+        cancelReason: null,
+      });
+
+      const UserModel = (await import('../models/User.mjs')).default;
+      await UserModel.update({ subscriptionTier: 'pro' }, { where: { id: userId } });
+
+      return res.json({
+        success: true,
+        message: 'Swan Pro activated! Your AI limits are based on your donation level.',
+        tier: 'pro',
+        donationAmount: 0,
+      });
     }
 
     // Get or create Stripe customer
@@ -426,8 +461,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const session = event.data.object;
         if (session.mode === 'subscription') {
           const userId = parseInt(session.metadata?.userId, 10);
-          const tier = session.metadata?.tier || 'supporter';
-          const amount = parseFloat(session.metadata?.amount || '5');
+          const tier = session.metadata?.tier || 'pro';
+          const amount = parseFloat(session.metadata?.amount || '9.99');
 
           if (userId) {
             const now = new Date();
@@ -561,10 +596,10 @@ router.post('/admin/grant', protect, adminOnly, async (req, res) => {
   try {
     const { userId, tier, amount, paymentMethod, durationMonths = 1 } = req.body;
 
-    if (!userId || !tier || !['supporter', 'premium'].includes(tier)) {
+    if (!userId || !tier || !['pro', 'elite'].includes(tier)) {
       return res.status(400).json({
         success: false,
-        message: 'userId and tier (supporter/premium) are required',
+        message: 'userId and tier (pro/elite) are required',
       });
     }
 

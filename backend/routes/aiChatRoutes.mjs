@@ -225,7 +225,7 @@ router.get('/conversations/:id', async (req, res) => {
  * - Outbound PII stripping: client names replaced with Client #ID before AI sees the message
  * - Inbound PII stripping: AI responses scrubbed for any leaked identity data
  */
-router.post('/conversations/:id/messages', requireSubscription('supporter', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
+router.post('/conversations/:id/messages', requireSubscription('pro', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
   try {
     const { message } = req.body;
 

@@ -10,7 +10,7 @@
  * monthly usage caps for free tier, and auto-creates trial subscriptions.
  *
  * HOW IT FITS IN THE APP: Inserted into AI route middleware chain:
- *   protect → aiKillSwitch → requireSubscription('supporter') → aiRateLimiter → controller
+ *   protect → aiKillSwitch → requireSubscription('pro') → aiRateLimiter → controller
  *
  * KEY DECISIONS: Admins and trainers always pass (they manage the platform).
  * Free tier gets 3 AI chats + 1 workout generation per month. Trial users
@@ -24,20 +24,36 @@ import logger from '../utils/logger.mjs';
 // PURPOSE: Monthly caps for non-paying users
 // WHY: Generous enough to demonstrate value, limited enough to drive conversion
 // ─────────────────────────────────────────────────────────────
-const FREE_TIER_LIMITS = {
-  aiMessagesPerMonth: 3,
-  aiGenerationsPerMonth: 1,
+const TIER_LIMITS = {
+  free:  { aiMessagesPerMonth: 3,  aiGenerationsPerMonth: 1 },
+  elite: { aiMessagesPerMonth: Infinity, aiGenerationsPerMonth: Infinity },
 };
+
+// Pro tier limits scale by donation amount — benevolent model
+// $0 donation still gets AI access but very limited to prevent abuse
+const PRO_DONATION_TIERS = [
+  { minAmount: 0,    maxAmount: 0.99,  aiMessagesPerMonth: 10, aiGenerationsPerMonth: 2 },
+  { minAmount: 1,    maxAmount: 4.99,  aiMessagesPerMonth: 15, aiGenerationsPerMonth: 3 },
+  { minAmount: 5,    maxAmount: 9.98,  aiMessagesPerMonth: 25, aiGenerationsPerMonth: 4 },
+  { minAmount: 9.99, maxAmount: 9999,  aiMessagesPerMonth: 40, aiGenerationsPerMonth: 10 },
+];
+
+/** Get Pro tier limits based on donation amount */
+function getProLimits(donationAmount) {
+  const amount = parseFloat(donationAmount) || 0;
+  const tier = PRO_DONATION_TIERS.find(t => amount >= t.minAmount && amount <= t.maxAmount);
+  return tier || PRO_DONATION_TIERS[0]; // Default to lowest if no match
+}
 
 /**
  * Middleware factory for subscription-gated routes.
  *
- * @param {string} minimumTier - Minimum tier required: 'supporter' or 'premium'
+ * @param {string} minimumTier - Minimum tier required: 'pro' or 'elite'
  * @param {object} options - Additional options
  * @param {string} options.feature - Feature name for usage tracking ('chat' | 'generation')
  * @returns {Function} Express middleware
  */
-export function requireSubscription(minimumTier = 'supporter', options = {}) {
+export function requireSubscription(minimumTier = 'pro', options = {}) {
   const { feature = 'chat' } = options;
 
   return async (req, res, next) => {
@@ -115,33 +131,44 @@ export function requireSubscription(minimumTier = 'supporter', options = {}) {
 
       // ─────────────────────────────────────────────────────────────
       // SECTION: Paid Tier Check
-      // PURPOSE: Supporter and Premium tiers get full access
+      // PURPOSE: Pro and Elite tiers get full access to AI features
       // ─────────────────────────────────────────────────────────────
-      const tierHierarchy = { free: 0, supporter: 1, premium: 2 };
+      // Support both old (supporter/premium) and new (pro/elite) tier names
+      // during migration transition period
+      const tierHierarchy = { free: 0, supporter: 1, pro: 1, premium: 2, elite: 2 };
       const userTierLevel = tierHierarchy[subscription.tier] || 0;
       const requiredTierLevel = tierHierarchy[minimumTier] || 1;
 
+      // ─────────────────────────────────────────────────────────────
+      // SECTION: Usage-Limited Access Check
+      // PURPOSE: All tiers (free, pro, elite) have monthly caps
+      // WHY: Pro has 30 msgs/month, Elite is unlimited, Free gets a taste
+      // ─────────────────────────────────────────────────────────────
       if (userTierLevel >= requiredTierLevel && subscription.status === 'active') {
-        req.subscription = subscription;
-        req.subscriptionAccess = 'paid';
-        return next();
-      }
+        const tier = subscription.tier;
 
-      // ─────────────────────────────────────────────────────────────
-      // SECTION: Free Tier Usage Check
-      // PURPOSE: Allow limited AI access within monthly caps
-      // ─────────────────────────────────────────────────────────────
-      if (subscription.tier === 'free') {
-        // Reset monthly counters if needed
+        // Determine limits: Elite = unlimited, Pro = donation-scaled
+        const limits = tier === 'elite'
+          ? TIER_LIMITS.elite
+          : tier === 'pro'
+            ? getProLimits(subscription.amount)
+            : TIER_LIMITS.free;
+
+        // Elite tier — unlimited, skip usage tracking
+        if (limits.aiMessagesPerMonth === Infinity) {
+          req.subscription = subscription;
+          req.subscriptionAccess = 'paid';
+          return next();
+        }
+
+        // Pro tier — enforce monthly limits
         const now = new Date();
         const UserModel = (await import('../models/User.mjs')).default;
         const userData = await UserModel.findByPk(user.id);
 
         if (userData) {
           const resetDate = userData.aiUsageResetDate ? new Date(userData.aiUsageResetDate) : null;
-
           if (!resetDate || now >= resetDate) {
-            // Reset counters — new month
             const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             await userData.update({
               aiMessagesUsedThisMonth: 0,
@@ -150,29 +177,85 @@ export function requireSubscription(minimumTier = 'supporter', options = {}) {
             });
           }
 
-          // Check limits based on feature type
           const messagesUsed = userData.aiMessagesUsedThisMonth || 0;
           const generationsUsed = userData.aiGenerationsUsedThisMonth || 0;
 
-          if (feature === 'chat' && messagesUsed < FREE_TIER_LIMITS.aiMessagesPerMonth) {
-            // Increment usage counter
+          if (feature === 'chat' && messagesUsed < limits.aiMessagesPerMonth) {
             await userData.increment('aiMessagesUsedThisMonth');
             req.subscription = subscription;
-            req.subscriptionAccess = 'free_limited';
+            req.subscriptionAccess = 'paid';
             req.aiUsageRemaining = {
-              messages: FREE_TIER_LIMITS.aiMessagesPerMonth - messagesUsed - 1,
-              generations: FREE_TIER_LIMITS.aiGenerationsPerMonth - generationsUsed,
+              messages: limits.aiMessagesPerMonth - messagesUsed - 1,
+              generations: limits.aiGenerationsPerMonth - generationsUsed,
             };
             return next();
           }
 
-          if (feature === 'generation' && generationsUsed < FREE_TIER_LIMITS.aiGenerationsPerMonth) {
+          if (feature === 'generation' && generationsUsed < limits.aiGenerationsPerMonth) {
+            await userData.increment('aiGenerationsUsedThisMonth');
+            req.subscription = subscription;
+            req.subscriptionAccess = 'paid';
+            req.aiUsageRemaining = {
+              messages: limits.aiMessagesPerMonth - messagesUsed,
+              generations: limits.aiGenerationsPerMonth - generationsUsed - 1,
+            };
+            return next();
+          }
+        }
+
+        // Pro tier limit reached — upsell to Elite
+        return res.status(402).json({
+          success: false,
+          message: `You've reached your ${tier === 'pro' ? 'Swan Pro' : 'monthly'} AI limit. Upgrade to Crystalline Swan ($24.99/mo) for unlimited AI!`,
+          code: 'AI_LIMIT_REACHED',
+          tier,
+          limits,
+          upgradeUrl: '/store/subscriptions',
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // SECTION: Free Tier Usage Check
+      // PURPOSE: Give free users a taste of AI (3 msgs, 1 generation/month)
+      // ─────────────────────────────────────────────────────────────
+      if (subscription.tier === 'free') {
+        const limits = TIER_LIMITS.free;
+        const now = new Date();
+        const UserModel = (await import('../models/User.mjs')).default;
+        const userData = await UserModel.findByPk(user.id);
+
+        if (userData) {
+          const resetDate = userData.aiUsageResetDate ? new Date(userData.aiUsageResetDate) : null;
+          if (!resetDate || now >= resetDate) {
+            const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            await userData.update({
+              aiMessagesUsedThisMonth: 0,
+              aiGenerationsUsedThisMonth: 0,
+              aiUsageResetDate: nextReset,
+            });
+          }
+
+          const messagesUsed = userData.aiMessagesUsedThisMonth || 0;
+          const generationsUsed = userData.aiGenerationsUsedThisMonth || 0;
+
+          if (feature === 'chat' && messagesUsed < limits.aiMessagesPerMonth) {
+            await userData.increment('aiMessagesUsedThisMonth');
+            req.subscription = subscription;
+            req.subscriptionAccess = 'free_limited';
+            req.aiUsageRemaining = {
+              messages: limits.aiMessagesPerMonth - messagesUsed - 1,
+              generations: limits.aiGenerationsPerMonth - generationsUsed,
+            };
+            return next();
+          }
+
+          if (feature === 'generation' && generationsUsed < limits.aiGenerationsPerMonth) {
             await userData.increment('aiGenerationsUsedThisMonth');
             req.subscription = subscription;
             req.subscriptionAccess = 'free_limited';
             req.aiUsageRemaining = {
-              messages: FREE_TIER_LIMITS.aiMessagesPerMonth - messagesUsed,
-              generations: FREE_TIER_LIMITS.aiGenerationsPerMonth - generationsUsed - 1,
+              messages: limits.aiMessagesPerMonth - messagesUsed,
+              generations: limits.aiGenerationsPerMonth - generationsUsed - 1,
             };
             return next();
           }
@@ -181,10 +264,10 @@ export function requireSubscription(minimumTier = 'supporter', options = {}) {
         // Free tier limit reached
         return res.status(402).json({
           success: false,
-          message: 'You\'ve reached your free tier AI limit for this month. Upgrade to Swan Guardian for unlimited AI access!',
+          message: 'You\'ve reached your free tier AI limit for this month. Upgrade to Swan Pro ($9.99/mo) for 30 AI messages!',
           code: 'AI_SUBSCRIPTION_REQUIRED',
           tier: 'free',
-          limits: FREE_TIER_LIMITS,
+          limits,
           trialExpired: subscription.isTrialExpired(),
           trialDaysRemaining: subscription.trialDaysRemaining(),
           upgradeUrl: '/store/subscriptions',

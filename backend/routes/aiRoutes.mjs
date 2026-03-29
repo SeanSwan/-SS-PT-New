@@ -60,7 +60,7 @@ router.post(
   '/workout-generation',
   protect,
   aiKillSwitch,
-  requireSubscription('supporter', { feature: 'generation' }),
+  requireSubscription('pro', { feature: 'generation' }),
   aiRateLimiter,
   generateWorkoutPlan
 );
@@ -85,7 +85,7 @@ router.post(
   '/long-horizon/generate',
   protect,
   aiKillSwitch,
-  requireSubscription('supporter', { feature: 'generation' }),
+  requireSubscription('pro', { feature: 'generation' }),
   aiRateLimiter,
   generateLongHorizonPlan
 );
