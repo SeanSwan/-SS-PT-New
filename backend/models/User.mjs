@@ -396,20 +396,23 @@ User.init(
     },
 
     // Per-chart visibility toggles (privacy-first: all default OFF)
+    // Keys aligned with ProfileChartsSection chart registry + backend validation
     chartVisibility: {
       type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: {
+        workoutFrequency: false,
         weightProgression: false,
-        workoutHeatmap: false,
         muscleRadar: false,
-        goalProgress: false,
-        exerciseRolodex: false,
-        strengthProgression: false,
-        bodyComposition: false,
-        volumeProgression: false,
+        macroSplit: false,
+        cardioEndurance: false,
         sessionFrequency: false,
-        nasmProgress: false,
+        bodyFatTrend: false,
+        muscleRecovery: false,
+        rpeByExercise: false,
+        exerciseRolodex: false,
+        workoutHeatmap: false,
+        goalProgress: false,
       },
       comment: 'Per-chart visibility on public profile (opt-in, all default false)'
     },

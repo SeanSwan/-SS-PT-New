@@ -27,49 +27,50 @@ import { SectionHeading } from './EditProfileModalStyles';
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
+// Aligned with ProfileChartsSection chart registry + backend validation
 export interface ProfileChartVisibility {
+  workoutFrequency: boolean;
   weightProgression: boolean;
-  workoutHeatmap: boolean;
   muscleRadar: boolean;
-  goalProgress: boolean;
-  bodyFatTrend: boolean;
-  strength1RM: boolean;
-  calorieBurn: boolean;
-  sessionFrequency: boolean;
-  trainingLoad: boolean;
-  weeklyVolume: boolean;
-  exerciseComparison: boolean;
+  macroSplit: boolean;
   cardioEndurance: boolean;
+  sessionFrequency: boolean;
+  bodyFatTrend: boolean;
+  muscleRecovery: boolean;
+  rpeByExercise: boolean;
+  exerciseRolodex: boolean;
+  workoutHeatmap: boolean;
+  goalProgress: boolean;
 }
 
 export const DEFAULT_CHART_VISIBILITY: ProfileChartVisibility = {
+  workoutFrequency: false,
   weightProgression: true,
-  workoutHeatmap: true,
   muscleRadar: true,
-  goalProgress: true,
-  bodyFatTrend: false,
-  strength1RM: false,
-  calorieBurn: false,
-  sessionFrequency: false,
-  trainingLoad: false,
-  weeklyVolume: false,
-  exerciseComparison: false,
+  macroSplit: false,
   cardioEndurance: false,
+  sessionFrequency: false,
+  bodyFatTrend: false,
+  muscleRecovery: false,
+  rpeByExercise: false,
+  exerciseRolodex: false,
+  workoutHeatmap: true,
+  goalProgress: true,
 };
 
 const CHART_LABELS: Record<keyof ProfileChartVisibility, string> = {
+  workoutFrequency: 'Workout Frequency',
   weightProgression: 'Weight Progression',
-  workoutHeatmap: 'Workout Heatmap',
   muscleRadar: 'Muscle Group Radar',
-  goalProgress: 'Goal Progress',
-  bodyFatTrend: 'Body Fat Trend',
-  strength1RM: 'Strength 1RM',
-  calorieBurn: 'Calorie Burn',
-  sessionFrequency: 'Session Frequency',
-  trainingLoad: 'Training Load',
-  weeklyVolume: 'Weekly Volume',
-  exerciseComparison: 'Exercise Comparison',
+  macroSplit: 'Macro Split',
   cardioEndurance: 'Cardio Endurance',
+  sessionFrequency: 'Session Frequency',
+  bodyFatTrend: 'Body Fat Trend',
+  muscleRecovery: 'Muscle Recovery',
+  rpeByExercise: 'RPE by Exercise',
+  exerciseRolodex: 'Exercise History',
+  workoutHeatmap: 'Workout Heatmap',
+  goalProgress: 'Goal Progress',
 };
 
 interface EditProfileChartTogglesProps {
