@@ -74,7 +74,7 @@ router.put('/api-keys', protect, adminOnly, async (req, res) => {
 // Returns exercise-to-video coverage statistics for the tracker
 router.get('/coverage', protect, adminOnly, async (req, res) => {
   try {
-    const { getAllModels } = await import('../utils/getAllModels.mjs');
+    const { getAllModels } = await import('../models/index.mjs');
     const models = getAllModels();
     const { Exercise, VideoCatalog } = models;
 
@@ -180,7 +180,7 @@ router.post('/render-job', protect, adminOnly, async (req, res) => {
 
     // Try to log to VideoJobLog if it exists
     try {
-      const { getAllModels } = await import('../utils/getAllModels.mjs');
+      const { getAllModels } = await import('../models/index.mjs');
       const { VideoJobLog } = getAllModels();
       if (VideoJobLog) {
         await VideoJobLog.create({
@@ -208,6 +208,150 @@ router.post('/render-job', protect, adminOnly, async (req, res) => {
   } catch (err) {
     console.error('[ContentStudio] Render job creation failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to queue render job' });
+  }
+});
+
+// ─── POST /api/content-studio/generate-badge ─────────────────
+// Generate a badge image using Gemini's image generation API (Nano Banana II)
+router.post('/generate-badge', protect, adminOnly, async (req, res) => {
+  try {
+    const { prompt, achievementName, style, rarity } = req.body;
+
+    if (!prompt || !achievementName) {
+      return res.status(400).json({ success: false, message: 'Prompt and achievement name required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({
+        success: false,
+        message: 'Gemini API key not configured. Add GEMINI_API_KEY to .env',
+      });
+    }
+
+    // Use Gemini Flash image generation model
+    const model = 'gemini-2.0-flash-exp';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }],
+        }],
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[NanoBanana] Gemini API error:', response.status, errText);
+      return res.status(502).json({
+        success: false,
+        message: `Gemini API returned ${response.status}. Check your API key and quota.`,
+      });
+    }
+
+    const data = await response.json();
+
+    // Extract image data from Gemini response
+    const images = [];
+    const candidates = data?.candidates || [];
+
+    for (const candidate of candidates) {
+      const parts = candidate?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.mimeType?.startsWith('image/')) {
+          // Convert base64 to data URL for frontend display
+          const dataUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          images.push(dataUrl);
+        }
+      }
+    }
+
+    if (images.length === 0) {
+      return res.json({
+        success: false,
+        message: 'No images generated. The model may not support image generation with this prompt. Try a different prompt or model.',
+      });
+    }
+
+    res.json({
+      success: true,
+      images,
+      metadata: { achievementName, style, rarity, model },
+    });
+  } catch (err) {
+    console.error('[NanoBanana] Badge generation failed:', err.message);
+    res.status(500).json({ success: false, message: 'Badge generation failed' });
+  }
+});
+
+// ─── POST /api/content-studio/save-badge ──────────────────────
+// Save a generated badge to the local badge manifest
+router.post('/save-badge', protect, adminOnly, async (req, res) => {
+  try {
+    const { achievementName, imageUrl, style, rarity } = req.body;
+
+    if (!achievementName || !imageUrl) {
+      return res.status(400).json({ success: false, message: 'Achievement name and image URL required' });
+    }
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const badgesDir = path.join(__dirname, '..', '..', 'frontend', 'public', 'badges', 'generated');
+    const manifestPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'badges', 'generated-manifest.json');
+
+    // Ensure directory exists
+    if (!fs.existsSync(badgesDir)) {
+      fs.mkdirSync(badgesDir, { recursive: true });
+    }
+
+    // Save image from data URL to file
+    const slug = achievementName.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
+    const filename = `${slug}-${style}-${rarity}-${Date.now()}.png`;
+    const filePath = path.join(badgesDir, filename);
+
+    if (imageUrl.startsWith('data:image/')) {
+      const base64Data = imageUrl.split(',')[1];
+      fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    }
+
+    // Update manifest
+    let manifest = {};
+    if (fs.existsSync(manifestPath)) {
+      try {
+        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      } catch { /* start fresh */ }
+    }
+
+    if (!manifest.badges) manifest.badges = [];
+    manifest.badges.push({
+      achievementName,
+      style,
+      rarity,
+      filename,
+      path: `/badges/generated/${filename}`,
+      createdAt: new Date().toISOString(),
+      createdBy: req.user?.id,
+    });
+
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+
+    res.json({
+      success: true,
+      message: `Badge saved: ${filename}`,
+      data: { filename, path: `/badges/generated/${filename}` },
+    });
+  } catch (err) {
+    console.error('[NanoBanana] Badge save failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to save badge' });
   }
 });
 

@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Award,
   Play,
+  MessageCircle,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +22,7 @@ import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
 const ExploreView = lazy(() => import('../../components/Social/Explore/ExploreView'));
+const MessagingView = lazy(() => import('../../components/Social/Messaging/MessagingView'));
 import styled from 'styled-components';
 
 // Styled components
@@ -309,7 +311,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
  * Main Social Page Component
  * Displays the social feed and provides navigation to other social features
  */
-const VALID_TABS = ['feed', 'explore', 'reels', 'friends', 'challenges'] as const;
+const VALID_TABS = ['feed', 'explore', 'reels', 'friends', 'challenges', 'messaging'] as const;
 type SocialTab = typeof VALID_TABS[number];
 
 const SocialPage: React.FC = () => {
@@ -352,6 +354,12 @@ const SocialPage: React.FC = () => {
         return <FriendsList />;
       case 'challenges':
         return <ChallengesView />;
+      case 'messaging':
+        return (
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading Messages...</div>}>
+            <MessagingView />
+          </Suspense>
+        );
       default:
         return <SocialFeed />;
     }
@@ -397,6 +405,13 @@ const SocialPage: React.FC = () => {
         >
           <Trophy size={20} />
           Challenges
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'messaging'}
+          onClick={() => handleTabChange('messaging')}
+        >
+          <MessageCircle size={20} />
+          Messages
         </TabButton>
       </TabBar>
 
@@ -484,6 +499,13 @@ const SocialPage: React.FC = () => {
               >
                 <Trophy size={20} />
                 Challenges
+              </MenuButton>
+              <MenuButton
+                onClick={() => handleTabChange('messaging')}
+                $active={activeTab === 'messaging'}
+              >
+                <MessageCircle size={20} />
+                Messages
               </MenuButton>
               <MenuButton
                 disabled

@@ -105,6 +105,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           bodyPartCategory: String(ex?.bodyPartCategory ?? 'Full Body'),
           primaryMuscles: Array.isArray(ex?.primaryMuscles) ? ex.primaryMuscles as string[] : [],
           difficulty: Number(ex?.difficulty) || 1,
+          equipment: Array.isArray(ex?.equipment) ? ex.equipment as string[] : [],
         }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);
@@ -113,9 +114,9 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
         // Send to worker
         workerRef.current?.postMessage({ type: 'CACHE', exercises });
 
-        // Set initial results (no query = show first 50)
+        // Set initial results (no query = show all for browsing)
         if (!query) {
-          setResults(exercises.slice(0, 50));
+          setResults(exercises);
         }
       }
     } catch (err) {

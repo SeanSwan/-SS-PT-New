@@ -54,11 +54,12 @@
  */
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import styled from 'styled-components';
-import { 
-  Trophy, 
-  Gift, 
+import {
+  Trophy,
+  Gift,
   Settings,
-  Users
+  Users,
+  Sparkles
 } from 'lucide-react';
 
 // Import custom UI components (reusing from UniversalMasterSchedule)
@@ -78,6 +79,9 @@ const GamificationSettings = lazy(() => import('./components/GamificationSetting
 
 // New component for system analytics
 const SystemAnalytics = lazy(() => import('./components/SystemAnalytics'));
+
+// V2 RPG Components
+const RPGFeaturesPanel = lazy(() => import('./components/RPGFeaturesPanel'));
 
 // Import types and mock data
 import { useAuth } from '../../../../context/AuthContext';
@@ -755,6 +759,17 @@ const AdminGamificationView: React.FC = () => {
           <Users size={16} />
           Analytics
         </TabButton>
+        <TabButton
+          role="tab"
+          aria-selected={tabValue === 4}
+          {...a11yProps(4)}
+          onClick={() => handleTabChange(4)}
+          active={tabValue === 4}
+          aria-label="RPG features: Aegis HUD, Vault, Ghost Mode, Fortress"
+        >
+          <Sparkles size={16} />
+          RPG Features
+        </TabButton>
       </TabsContainer>
       
       {/* Achievement Management Tab */}
@@ -806,6 +821,13 @@ const AdminGamificationView: React.FC = () => {
       <TabPanel value={tabValue} index={3}>
         <Suspense fallback={<TabLoadingFallback />}>
           <SystemAnalytics data={analyticsData} />
+        </Suspense>
+      </TabPanel>
+
+      {/* RPG Features Tab */}
+      <TabPanel value={tabValue} index={4}>
+        <Suspense fallback={<TabLoadingFallback />}>
+          <RPGFeaturesPanel />
         </Suspense>
       </TabPanel>
     </PageContainer>

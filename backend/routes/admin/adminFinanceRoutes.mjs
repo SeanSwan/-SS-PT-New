@@ -768,10 +768,13 @@ router.get('/trainers', async (req, res) => {
     // Format trainers data for admin dashboard
     const formattedTrainers = trainers.map(trainer => ({
       id: trainer.id,
+      firstName: trainer.firstName,
+      lastName: trainer.lastName,
       name: `${trainer.firstName} ${trainer.lastName}`,
       email: trainer.email,
       phone: trainer.phone,
       photo: trainer.photo,
+      isActive: true,
       specialty: trainer.specialties ? trainer.specialties.split(',').map(s => s.trim()) : [],
       certifications: ['NASM-CPT'], // Mock for now - can be enhanced later
       verified: true, // Mock for now - can be enhanced later

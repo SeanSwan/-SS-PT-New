@@ -21,7 +21,8 @@
  */
 import React from 'react';
 import styled from 'styled-components';
-import { Star, Award, Gift, TrendingUp, Trophy, Heart, Target, Zap, Calendar, Clock, Dumbbell, Medal, CheckCircle, Users, Edit } from 'lucide-react';
+import { Award, Trophy } from 'lucide-react';
+import { getBadgeImage } from '../../../../../utils/badgeImageResolver';
 import {
   AchievementGrid as StyledAchievementGrid,
   AchievementItem,
@@ -69,26 +70,13 @@ interface AchievementGridProps {
  * Displays a grid of achievements with their details
  */
 const AchievementGrid: React.FC<AchievementGridProps> = ({ achievements }) => {
-  // Helper function to get icon component
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'Award': return <Award />;
-      case 'Gift': return <Gift />;
-      case 'TrendingUp': return <TrendingUp />;
-      case 'Star': return <Star />;
-      case 'Trophy': return <Trophy />;
-      case 'Heart': return <Heart />;
-      case 'Target': return <Target />;
-      case 'Zap': return <Zap />;
-      case 'Calendar': return <Calendar />;
-      case 'Clock': return <Clock />;
-      case 'Dumbbell': return <Dumbbell />;
-      case 'Medal': return <Medal />;
-      case 'CheckCircle': return <CheckCircle />;
-      case 'Users': return <Users />;
-      case 'Edit': return <Edit />;
-      default: return <Award />;
+  // Render badge image from manifest — 729 badge images available
+  const renderBadgeIcon = (achievement: Achievement) => {
+    const badgeUrl = getBadgeImage(achievement.name, 'glass');
+    if (badgeUrl) {
+      return <img src={badgeUrl} alt={achievement.name} style={{ width: 36, height: 36, objectFit: 'contain' }} />;
     }
+    return achievement.icon === 'Trophy' ? <Trophy /> : <Award />;
   };
 
   return (
@@ -107,7 +95,7 @@ const AchievementGrid: React.FC<AchievementGridProps> = ({ achievements }) => {
           </AchievementBadge>
 
           <AchievementIcon tier={achievement.tier}>
-            {getIconComponent(achievement.icon)}
+            {renderBadgeIcon(achievement)}
           </AchievementIcon>
 
           <AchievementName>{achievement.name}</AchievementName>

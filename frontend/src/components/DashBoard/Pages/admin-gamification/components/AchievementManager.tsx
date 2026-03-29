@@ -81,6 +81,7 @@ import {
   getSwanTierLabel
 } from '../styled-gamification-system';
 import { logger } from '@/utils/logger';
+import { getBadgeImage } from '../../../../../utils/badgeImageResolver';
 
 // ─── Styled Components ───────────────────────────────────────────────
 
@@ -685,12 +686,20 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
     setDialogOpen(false);
   };
 
-  // Helper function to get icon component or emoji
-  const getIconComponent = (iconName: string) => {
-    // If it's an emoji (not a Lucide icon name), render it directly
+  // Render badge image from manifest, with icon/emoji fallback
+  const getIconComponent = (iconName: string, achievementName?: string) => {
+    // Priority 1: Badge manifest lookup (729 badge images)
+    if (achievementName) {
+      const badgeUrl = getBadgeImage(achievementName, 'glass');
+      if (badgeUrl) {
+        return <img src={badgeUrl} alt={achievementName} style={{ width: 36, height: 36, objectFit: 'contain' }} />;
+      }
+    }
+    // Priority 2: Emoji
     if (iconName && !iconName.match(/^[A-Z]/)) {
       return <span style={{ fontSize: 28 }}>{iconName}</span>;
     }
+    // Priority 3: Lucide icon
     const icon = icons.find(i => i.name === iconName);
     return icon ? icon.component : <Award />;
   };
@@ -779,7 +788,7 @@ const AchievementManager: React.FC<AchievementManagerProps> = ({
             </StatusPositioner>
 
             <AchievementIcon tier={achievement.tier}>
-              {getIconComponent(achievement.icon)}
+              {getIconComponent(achievement.icon, achievement.name)}
             </AchievementIcon>
 
             <AchievementName>{achievement.name}</AchievementName>

@@ -55,6 +55,7 @@ const RemotionTemplateGallery = React.lazy(() => import('./RemotionTemplateGalle
 const VoiceStudioPanel = React.lazy(() => import('./VoiceStudioPanel'));
 const ContentCalendarPanel = React.lazy(() => import('./ContentCalendarPanel'));
 const DistributionHubPanel = React.lazy(() => import('./DistributionHubPanel'));
+const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -68,7 +69,7 @@ interface ServiceStatus {
   tier: 'bootstrap' | 'full';
 }
 
-type StudioTab = 'library' | 'coverage' | 'ai-video' | 'voice' | 'calendar' | 'distribution' | 'settings';
+type StudioTab = 'library' | 'coverage' | 'ai-video' | 'nano-banana' | 'voice' | 'calendar' | 'distribution' | 'settings';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -293,6 +294,7 @@ const TABS: { id: StudioTab; label: string; icon: React.ReactNode; requiresServi
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'ai-video', label: 'Motion Templates', icon: <Wand2 size={16} /> },
+  { id: 'nano-banana', label: 'Badge Creator', icon: <Sparkles size={16} /> },
   { id: 'voice', label: 'Voice Studio', icon: <Mic2 size={16} />, requiresService: 'elevenlabs' },
   { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
   { id: 'distribution', label: 'Distribution', icon: <Share2 size={16} />, requiresService: 'blotato' },
@@ -401,6 +403,13 @@ const ContentStudioHub: React.FC = () => {
         return (
           <Suspense fallback={<LoadingFallback>Loading motion templates...</LoadingFallback>}>
             <RemotionTemplateGallery />
+          </Suspense>
+        );
+
+      case 'nano-banana':
+        return (
+          <Suspense fallback={<LoadingFallback>Loading badge creator...</LoadingFallback>}>
+            <NanoBananaBadgeCreator />
           </Suspense>
         );
 

@@ -60,6 +60,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGamificationData, Achievement, UserAchievement } from '../../../../../hooks/gamification/useGamificationData';
+import { getBadgeImage } from '../../../../../utils/badgeImageResolver';
 
 /* ─── Crystalline Swan Theme Tokens ─── */
 const THEME = {
@@ -671,10 +672,19 @@ const AchievementGallery: React.FC<AchievementGalleryProps> = ({
     });
   };
 
-  // Get icon component
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'Award': return <Award />;
+  // Render badge image from manifest, falling back to lucide icon
+  const renderBadgeIcon = (achievement: Achievement) => {
+    // Priority 1: Direct badgeImageUrl from backend
+    if (achievement.badgeImageUrl) {
+      return <img src={achievement.badgeImageUrl} alt={achievement.name} style={{ width: 36, height: 36, objectFit: 'contain' }} />;
+    }
+    // Priority 2: Badge manifest lookup by name (729 badge images available)
+    const badgeUrl = getBadgeImage(achievement.name, 'glass');
+    if (badgeUrl) {
+      return <img src={badgeUrl} alt={achievement.name} style={{ width: 36, height: 36, objectFit: 'contain' }} />;
+    }
+    // Priority 3: Lucide fallback for unmapped achievements
+    switch (achievement.icon) {
       case 'Trophy': return <Trophy />;
       case 'Star': return <Star />;
       case 'Medal': return <Medal />;
@@ -972,7 +982,7 @@ const AchievementGallery: React.FC<AchievementGalleryProps> = ({
               >
                 <CardTopRow>
                   <IconCircle $tierColor={tierColor}>
-                    {getIconComponent(achievement.icon)}
+                    {renderBadgeIcon(achievement)}
                   </IconCircle>
 
                   <TierBadge
@@ -1052,7 +1062,7 @@ const AchievementGallery: React.FC<AchievementGalleryProps> = ({
             <DialogBody>
               <DialogTopSection>
                 <LargeIconCircle $tierColor={getTierColor(selectedAchievement.achievement.tier)}>
-                  {getIconComponent(selectedAchievement.achievement.icon)}
+                  {renderBadgeIcon(selectedAchievement.achievement)}
                 </LargeIconCircle>
 
                 <DialogDescriptionArea>

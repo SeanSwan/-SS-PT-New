@@ -186,6 +186,8 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import workoutController from '../controllers/workoutController.mjs';
+import { getAllModels } from '../models/index.mjs';
+import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
@@ -288,9 +290,41 @@ router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']),
  * @desc Get all workout plans for the current user
  * @access Private
  */
-router.get('/plans', protect, (req, res) => {
-  // Placeholder for future implementation
-  res.status(501).json({ message: 'Not implemented yet' });
+router.get('/plans', protect, async (req, res) => {
+  try {
+    const models = getAllModels();
+    const { WorkoutPlan } = models;
+    if (!WorkoutPlan) {
+      return res.status(503).json({ success: false, message: 'WorkoutPlan model not available' });
+    }
+
+    // Build query — trainers/admins can filter by clientId
+    const where = {};
+    const { clientId } = req.query;
+    if (clientId) {
+      where.clientId = parseInt(clientId, 10);
+    }
+    // Non-admin users can only see their own plans (as trainer or client)
+    if (req.user.role !== 'admin') {
+      const { Op } = await import('../database.mjs');
+      where[Op.or] = [
+        { trainerId: req.user.id },
+        { clientId: req.user.id },
+      ];
+    }
+
+    const plans = await WorkoutPlan.findAll({
+      where,
+      attributes: ['id', 'name', 'status', 'goal', 'createdAt', 'updatedAt'],
+      order: [['createdAt', 'DESC']],
+      limit: 50,
+    });
+
+    res.json({ success: true, plans });
+  } catch (err) {
+    logger.error('Failed to fetch workout plans:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch plans' });
+  }
 });
 
 /**

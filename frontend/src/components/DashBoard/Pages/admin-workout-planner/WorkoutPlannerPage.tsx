@@ -40,15 +40,18 @@
  * Children:  TeachModeSidebar
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import {
-  Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar,
-  Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
+  Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
+  Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info, Eye,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import TeachModeSidebar from './TeachModeSidebar';
+
+// AI Terminal — lazy since it's optional UI
+const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
 import {
   type PlanExercise, type PlannerClient, type WorkoutCategory,
   type GeneratedWorkout, type GeneratedPlan, type PlanDuration,
@@ -82,6 +85,28 @@ const BODY_PARTS = [
   'Core', 'Full Body', 'Cardio', 'Recovery',
 ];
 
+const EXERCISE_TYPES = [
+  'All Types', 'Compound', 'Isolation', 'Calisthenics',
+  'Stability', 'Flexibility', 'Core',
+];
+
+const EQUIPMENT_FILTERS = [
+  'All Equipment', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine',
+  'Cable', 'Resistance Band', 'Kettlebell', 'Sliders',
+  'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX',
+];
+
+// Joint impact derived from exerciseType + difficulty
+const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
+
+function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
+  const lowTypes = ['flexibility', 'stability', 'balance'];
+  const highTypes = ['calisthenics', 'compound'];
+  if (lowTypes.includes(ex.exerciseType) || ex.difficulty <= 200) return 'Low Impact';
+  if (highTypes.includes(ex.exerciseType) && ex.difficulty >= 500) return 'High Impact';
+  return 'Medium Impact';
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -103,6 +128,16 @@ const WorkoutPlannerPage: React.FC = () => {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseSlim | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [selectedMesoDay, setSelectedMesoDay] = useState(1);
+
+  // ── Saved Plans State ──
+  const [savedPlans, setSavedPlans] = useState<{ id: string; name: string; status: string; createdAt: string; goal: string }[]>([]);
+  const [savedPlansLoading, setSavedPlansLoading] = useState(false);
+
+  // ── Advanced Filter State ──
+  const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
+  const [impactFilter, setImpactFilter] = useState<string | null>(null);
 
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
@@ -127,6 +162,33 @@ const WorkoutPlannerPage: React.FC = () => {
     () => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1],
     [phaseNumber]
   );
+
+  // ── Apply advanced filters on top of search results ──
+  const filteredExercises = useMemo(() => {
+    let pool = exerciseResults;
+    // Filter by exercise type
+    if (exerciseTypeFilter) {
+      const norm = exerciseTypeFilter.toLowerCase();
+      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === norm);
+    }
+    // Filter by equipment
+    if (equipmentFilter) {
+      const norm = equipmentFilter.toLowerCase();
+      if (norm === 'bodyweight') {
+        pool = pool.filter(ex => !ex.equipment || ex.equipment.length === 0
+          || ex.equipment.some(e => e.toLowerCase().includes('body') || e.toLowerCase() === 'none'));
+      } else {
+        pool = pool.filter(ex =>
+          ex.equipment && ex.equipment.some(e => e.toLowerCase().includes(norm))
+        );
+      }
+    }
+    // Filter by joint impact
+    if (impactFilter) {
+      pool = pool.filter(ex => getJointImpact(ex) === impactFilter);
+    }
+    return pool;
+  }, [exerciseResults, exerciseTypeFilter, equipmentFilter, impactFilter]);
 
   // ── Fetch Clients ──
   useEffect(() => {
@@ -153,13 +215,22 @@ const WorkoutPlannerPage: React.FC = () => {
     setPlanExercises(prev => {
       if (prev.some(p => p.exerciseSlim.id === ex.id)) return prev;
       const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
+      // Parse rest: "3-5min" → 180s (use low end of range in seconds)
+      const restStr = phase.rest.toLowerCase();
+      let restSec = 60;
+      if (restStr.includes('min')) {
+        const minVal = parseInt(restStr) || 3;
+        restSec = minVal * 60;
+      } else {
+        restSec = parseInt(restStr.replace(/[^0-9]/g, '')) || 60;
+      }
       return [...prev, {
         id: `${ex.id}-${Date.now()}`,
         exerciseSlim: ex,
         sets: defaultSets,
         reps: phase.reps,
         tempo: phase.tempo,
-        restSeconds: parseInt(phase.rest.replace(/[^0-9]/g, '')) || 60,
+        restSeconds: restSec,
         intensityPercent: parseInt(phase.intensity.split('-')[0]) || 70,
         notes: '',
       }];
@@ -225,9 +296,14 @@ const WorkoutPlannerPage: React.FC = () => {
           sets: ex.sets,
           reps: String(ex.reps),
           tempo: ex.tempo,
-          // H5 FIX: Backend returns strings like "0-90s" / "70-80%" — parse to display
-          restSeconds: typeof ex.rest === 'string' ? ex.rest.replace(/s$/, '') : String(ex.rest || ''),
-          intensityPercent: typeof ex.intensity === 'string' ? ex.intensity : String(ex.intensity || ''),
+          // Parse rest: backend may return number (seconds) or string like "3-5min"
+          restSeconds: (() => {
+            if (typeof ex.rest === 'number') return ex.rest;
+            const s = String(ex.rest || '60').toLowerCase();
+            if (s.includes('min')) return (parseInt(s) || 3) * 60;
+            return parseInt(s.replace(/[^0-9]/g, '')) || 60;
+          })(),
+          intensityPercent: typeof ex.intensity === 'number' ? ex.intensity : (parseInt(String(ex.intensity).replace(/[^0-9]/g, '')) || 70),
           notes: ex.recommendedWeightMin
             ? `Recommended: ${ex.recommendedWeightMin}-${ex.recommendedWeightMax} lbs (based on ${ex.basedOn1RM} lb 1RM)`
             : '',
@@ -292,25 +368,40 @@ const WorkoutPlannerPage: React.FC = () => {
     setSaving(true);
     try {
       const client = clients.find(c => c.id === selectedClientId);
+      // Map to backend workoutService.createWorkoutPlan schema:
+      // { name, description, clientId, trainerId, goal, status, days: [{ exercises }] }
+      const phaseToOpt: Record<number, string> = {
+        1: 'stabilization_endurance', 2: 'strength_endurance',
+        3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
+      };
       await authAxios.post('/api/workout/plans', {
-        userId: selectedClientId,
-        title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
+        name: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
         description: `${WORKOUT_CATEGORIES.find(c => c.value === category)?.label} — ${goal}`,
-        durationWeeks: planDuration === 'single' ? 1 : Number(planDuration),
+        clientId: selectedClientId,
+        trainerId: user?.id,
+        goal,
         status: 'draft',
-        exercises: planExercises.map((p, i) => ({
-          exerciseKey: p.exerciseSlim.exerciseKey,
-          exerciseName: p.exerciseSlim.name,
-          orderInWorkout: i + 1,
-          sets: p.sets,
-          reps: p.reps,
-          tempo: p.tempo,
-          restSeconds: p.restSeconds,
-          intensityPercent: p.intensityPercent,
-          notes: p.notes,
-        })),
+        days: [{
+          dayNumber: 1,
+          name: `${phase.name} Workout`,
+          focus: WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body',
+          dayType: 'training',
+          optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
+          exercises: planExercises.map((p, i) => ({
+            exerciseId: p.exerciseSlim.id,
+            orderInWorkout: i + 1,
+            setScheme: `${p.sets}x${p.reps}`,
+            repGoal: p.reps,
+            restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
+            tempo: p.tempo,
+            intensityGuideline: `${p.intensityPercent}% 1RM`,
+            notes: p.notes || '',
+          })),
+        }],
       });
       setStatusMsg({ type: 'success', text: 'Workout plan saved successfully!' });
+      // Refresh saved plans list
+      fetchSavedPlans(selectedClientId);
     } catch (err) {
       console.error('Save failed:', err);
       setStatusMsg({ type: 'error', text: 'Failed to save plan. Please try again.' });
@@ -318,6 +409,36 @@ const WorkoutPlannerPage: React.FC = () => {
       setSaving(false);
     }
   }, [authAxios, selectedClientId, planExercises, phase, category, goal, clients, planDuration]);
+
+  // ── Fetch Saved Plans for Client ──
+  const fetchSavedPlans = useCallback(async (clientId: number | null) => {
+    if (!clientId) { setSavedPlans([]); return; }
+    setSavedPlansLoading(true);
+    try {
+      const res = await authAxios.get(`/api/workout/plans?clientId=${clientId}`);
+      const data = res.data;
+      if (data?.success && Array.isArray(data.plans)) {
+        setSavedPlans(data.plans.map((p: Record<string, unknown>) => ({
+          id: String(p.id || ''),
+          name: String(p.name || 'Untitled Plan'),
+          status: String(p.status || 'draft'),
+          createdAt: String(p.createdAt || ''),
+          goal: String(p.goal || ''),
+        })));
+      } else {
+        setSavedPlans([]);
+      }
+    } catch {
+      setSavedPlans([]);
+    } finally {
+      setSavedPlansLoading(false);
+    }
+  }, [authAxios]);
+
+  // Fetch saved plans when client changes
+  useEffect(() => {
+    fetchSavedPlans(selectedClientId);
+  }, [selectedClientId, fetchSavedPlans]);
 
   // ── Filter chip handler ──
   const handleChipClick = useCallback((bodyPart: string) => {
@@ -451,6 +572,18 @@ const WorkoutPlannerPage: React.FC = () => {
         </DegradedBanner>
       )}
 
+      {/* Embedded AI Terminal — workout generation context */}
+      <Suspense fallback={null}>
+        <AITerminalPanel
+          context="workout_generation"
+          clientId={selectedClientId ?? undefined}
+          label="Workout AI Assistant"
+          placeholder="Ask me about exercise selection, periodization, NASM protocols..."
+          compact
+          defaultOpen={false}
+        />
+      </Suspense>
+
       {/* Three-Panel Layout */}
       <ThreePanel $teachModeOpen={teachModeOpen}>
         {/* Left: Exercise Rolodex */}
@@ -462,7 +595,7 @@ const WorkoutPlannerPage: React.FC = () => {
               fontSize: '0.7rem',
               color: 'rgba(224, 236, 244, 0.5)',
             }}>
-              {exerciseResults.length} results
+              {filteredExercises.length} results
             </span>
           </PanelHeader>
           <PanelBody>
@@ -471,10 +604,11 @@ const WorkoutPlannerPage: React.FC = () => {
               <SearchInput
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search 840+ exercises..."
+                placeholder="Search exercises..."
                 aria-label="Search exercises"
               />
             </SearchWrapper>
+            {/* Body Part filter */}
             <ChipRow>
               {BODY_PARTS.map(bp => (
                 <Chip
@@ -486,12 +620,48 @@ const WorkoutPlannerPage: React.FC = () => {
                 </Chip>
               ))}
             </ChipRow>
+            {/* Exercise Type filter */}
+            <ChipRow>
+              {EXERCISE_TYPES.map(et => (
+                <Chip
+                  key={et}
+                  $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()}
+                  onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}
+                >
+                  {et}
+                </Chip>
+              ))}
+            </ChipRow>
+            {/* Equipment filter */}
+            <ChipRow>
+              {EQUIPMENT_FILTERS.map(eq => (
+                <Chip
+                  key={eq}
+                  $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()}
+                  onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}
+                >
+                  {eq}
+                </Chip>
+              ))}
+            </ChipRow>
+            {/* Joint Impact filter */}
+            <ChipRow>
+              {IMPACT_LEVELS.map(il => (
+                <Chip
+                  key={il}
+                  $active={impactFilter === null ? il === 'All Impact' : impactFilter === il}
+                  onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}
+                >
+                  {il}
+                </Chip>
+              ))}
+            </ChipRow>
             {exercisesLoading ? (
               Array.from({ length: 6 }, (_, i) => <SkeletonBlock key={i} />)
-            ) : exerciseResults.length === 0 ? (
-              <EmptyMessage>No exercises match your search.</EmptyMessage>
+            ) : filteredExercises.length === 0 ? (
+              <EmptyMessage>No exercises match your filters.</EmptyMessage>
             ) : (
-              exerciseResults.slice(0, 50).map(ex => (
+              filteredExercises.slice(0, 200).map(ex => (
                 <ExerciseItem
                   key={ex.id}
                   $selected={selectedExercise?.id === ex.id}
@@ -506,9 +676,11 @@ const WorkoutPlannerPage: React.FC = () => {
                   <ExerciseMeta>
                     <span>{ex.bodyPartCategory}</span>
                     <span>|</span>
-                    <span>{ex.primaryMuscles.slice(0, 2).join(', ') || ex.exerciseType}</span>
+                    <span>{ex.exerciseType}</span>
                     <span>|</span>
-                    <span>Diff: {ex.difficulty}</span>
+                    <span>{ex.equipment && ex.equipment.length > 0 ? ex.equipment.slice(0, 2).join(', ') : 'Bodyweight'}</span>
+                    <span>|</span>
+                    <span>{getJointImpact(ex)}</span>
                   </ExerciseMeta>
                 </ExerciseItem>
               ))
@@ -668,6 +840,7 @@ const WorkoutPlannerPage: React.FC = () => {
           <TeachModeSidebar
             exercise={selectedExercise}
             phaseNumber={phaseNumber}
+            onPhaseChange={setPhaseNumber}
           />
         )}
       </ThreePanel>
@@ -681,22 +854,82 @@ const WorkoutPlannerPage: React.FC = () => {
             — {generatedPlan.planSummary.totalSessions} Total Sessions
           </MesocycleSectionTitle>
 
-          {/* Weekly Schedule */}
+          {/* Weekly Schedule — clickable day tabs */}
           <PlanModeLabel style={{ marginBottom: 8, display: 'block' }}>Weekly Schedule</PlanModeLabel>
           <ScheduleRow>
             {generatedPlan.weeklySchedule.map(day => (
-              <ScheduleDay key={day.dayNumber}>
-                <ScheduleDayNumber>Day {day.dayNumber}</ScheduleDayNumber>
+              <ScheduleDay
+                key={day.dayNumber}
+                as="button"
+                type="button"
+                onClick={() => setSelectedMesoDay(day.dayNumber)}
+                style={{
+                  cursor: 'pointer',
+                  outline: selectedMesoDay === day.dayNumber
+                    ? '2px solid var(--accent-secondary, #8B5CF6)'
+                    : 'none',
+                  background: selectedMesoDay === day.dayNumber
+                    ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, var(--bg-elevated, #1A1A24))'
+                    : undefined,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <ScheduleDayNumber
+                  style={selectedMesoDay === day.dayNumber
+                    ? { color: 'var(--accent-secondary, #8B5CF6)' }
+                    : undefined}
+                >
+                  Day {day.dayNumber}
+                </ScheduleDayNumber>
                 <ScheduleDayFocus>{day.focus}</ScheduleDayFocus>
               </ScheduleDay>
             ))}
           </ScheduleRow>
 
-          {/* Mesocycle Cards */}
+          {/* Active Day Detail */}
+          {(() => {
+            const activeDay = generatedPlan.weeklySchedule.find(d => d.dayNumber === selectedMesoDay);
+            if (!activeDay) return null;
+            return (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: 8,
+                background: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, var(--bg-surface, #141419))',
+                border: '1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)',
+                marginBottom: 16,
+                fontFamily: "'Fira Code', monospace",
+                fontSize: '0.8rem',
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--accent-secondary, #8B5CF6)' }}>
+                  Day {activeDay.dayNumber}: {activeDay.focus}
+                </div>
+                <div style={{ color: 'var(--text-muted, rgba(224,236,244,0.5))', fontSize: '0.7rem' }}>
+                  Category: {activeDay.category} — Click exercises in the Rolodex to populate this day
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Mesocycle Cards — clickable to switch OPT phase */}
           <PlanModeLabel style={{ marginBottom: 8, display: 'block' }}>Mesocycles (4-Week Blocks)</PlanModeLabel>
           <MesocycleGrid>
             {generatedPlan.mesocycles.map(mc => (
-              <MesocycleCard key={mc.mesocycle} $phase={mc.nasmPhase}>
+              <MesocycleCard
+                key={mc.mesocycle}
+                $phase={mc.nasmPhase}
+                as="button"
+                type="button"
+                onClick={() => setPhaseNumber(mc.nasmPhase)}
+                style={{
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  outline: mc.nasmPhase === phaseNumber
+                    ? '2px solid var(--accent-secondary, #8B5CF6)'
+                    : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                title={`Click to switch to Phase ${mc.nasmPhase}: ${mc.phaseName}`}
+              >
                 <MesocycleHeader>
                   <MesocycleTitle>Block {mc.mesocycle}</MesocycleTitle>
                   <MesocycleWeeks>Wk {mc.weeks}</MesocycleWeeks>
@@ -731,6 +964,70 @@ const WorkoutPlannerPage: React.FC = () => {
                 ))}
               </RecommendationList>
             </>
+          )}
+        </MesocycleSection>
+      )}
+
+      {/* Saved Plans for Selected Client */}
+      {selectedClientId && (
+        <MesocycleSection>
+          <MesocycleSectionTitle>
+            <ClipboardList size={18} />
+            Saved Plans
+            {savedPlans.length > 0 && (
+              <span style={{
+                marginLeft: 8,
+                fontFamily: "'Fira Code', monospace",
+                fontSize: '0.75rem',
+                color: 'var(--text-muted, rgba(224,236,244,0.5))',
+              }}>
+                ({savedPlans.length} plan{savedPlans.length !== 1 ? 's' : ''})
+              </span>
+            )}
+          </MesocycleSectionTitle>
+          {savedPlansLoading ? (
+            <div style={{ padding: 16 }}>
+              {Array.from({ length: 2 }, (_, i) => <SkeletonBlock key={i} />)}
+            </div>
+          ) : savedPlans.length === 0 ? (
+            <EmptyMessage style={{ padding: 16 }}>
+              No saved plans for this client yet. Generate and save a workout plan above.
+            </EmptyMessage>
+          ) : (
+            <MesocycleGrid>
+              {savedPlans.map(plan => (
+                <MesocycleCard key={plan.id} $phase={1} style={{ cursor: 'default' }}>
+                  <MesocycleHeader>
+                    <MesocycleTitle style={{ fontSize: '0.85rem' }}>{plan.name}</MesocycleTitle>
+                    <MesocycleWeeks style={{
+                      background: plan.status === 'active'
+                        ? 'color-mix(in srgb, #22c55e 20%, transparent)'
+                        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
+                      color: plan.status === 'active' ? '#22c55e' : undefined,
+                    }}>
+                      {plan.status}
+                    </MesocycleWeeks>
+                  </MesocycleHeader>
+                  {plan.goal && (
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--text-muted, rgba(224,236,244,0.5))',
+                      fontFamily: "'Fira Code', monospace",
+                      marginBottom: 4,
+                    }}>
+                      Goal: {plan.goal.replace(/_/g, ' ')}
+                    </div>
+                  )}
+                  <div style={{
+                    fontSize: '0.65rem',
+                    color: 'var(--text-muted, rgba(224,236,244,0.4))',
+                    fontFamily: "'Fira Code', monospace",
+                  }}>
+                    Created: {new Date(plan.createdAt).toLocaleDateString()}
+                  </div>
+                </MesocycleCard>
+              ))}
+            </MesocycleGrid>
           )}
         </MesocycleSection>
       )}

@@ -626,8 +626,9 @@ const AdminPackagesView: React.FC = () => {
     try {
       const response = await authAxios.get('/api/auth/clients');
 
-      if (response.data && Array.isArray(response.data)) {
-        setClients(response.data);
+      const clientsData = response.data?.clients || response.data;
+      if (clientsData && Array.isArray(clientsData)) {
+        setClients(clientsData);
       } else {
         logger.warn('Received unexpected data structure for clients:', response.data);
         toast({

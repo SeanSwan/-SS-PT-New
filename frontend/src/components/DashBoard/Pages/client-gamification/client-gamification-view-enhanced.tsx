@@ -88,6 +88,9 @@ import { StreakFortress } from '../../../AdvancedGamification/components/StreakF
 import { JobClassSelector } from '../../../AdvancedGamification/components/JobClassSelector';
 import { CrystallineAvatar } from '../../../AdvancedGamification/components/CrystallineAvatar';
 import { CompanionPet } from '../../../AdvancedGamification/components/CompanionPet';
+import { GhostModeBanner } from '../../../AdvancedGamification/components/GhostMode';
+import { VaultDecryptionAnimation } from '../../../AdvancedGamification/components/VaultDecryption';
+import { useVaultDecryption } from '../../../AdvancedGamification/components/VaultDecryption';
 
 // Lazy load the progress chart component to improve initial load time
 const ProgressChart = lazy(() => import('./components/ProgressChart'));
@@ -1223,6 +1226,14 @@ const EnhancedClientGamificationView: React.FC = () => {
             <JobClassSelector
               userId={user.id}
               currentJobClass={profile?.data?.jobClass || null}
+            />
+          )}
+
+          {/* Ghost Mode — Gran Turismo-style personal competition */}
+          {user?.id && (
+            <GhostModeBanner
+              userId={user.id}
+              compact={false}
             />
           )}
 

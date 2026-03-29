@@ -204,7 +204,7 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
       exercises = await Exercise.findAll({
         attributes: [
           'id', 'name', 'exerciseType', 'primaryMuscles',
-          'exercise_key', 'bodyPartCategory', 'difficulty',
+          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded',
         ],
         where: { isActive: true },
         order: [['name', 'ASC']],
@@ -219,15 +219,25 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
       });
     }
 
-    const formatted = exercises.map(ex => ({
-      id: ex.id,
-      name: ex.name,
-      exerciseKey: ex.exercise_key || '',
-      exerciseType: ex.exerciseType || '',
-      bodyPartCategory: ex.bodyPartCategory || 'Full Body',
-      primaryMuscles: ex.primaryMuscles || [],
-      difficulty: ex.difficulty || 0,
-    }));
+    const formatted = exercises.map(ex => {
+      // Parse equipmentNeeded — stored as JSON string in raw mode
+      let equipment = [];
+      try {
+        equipment = typeof ex.equipmentNeeded === 'string'
+          ? JSON.parse(ex.equipmentNeeded)
+          : (ex.equipmentNeeded || []);
+      } catch { equipment = []; }
+      return {
+        id: ex.id,
+        name: ex.name,
+        exerciseKey: ex.exercise_key || '',
+        exerciseType: ex.exerciseType || '',
+        bodyPartCategory: ex.bodyPartCategory || 'Full Body',
+        primaryMuscles: ex.primaryMuscles || [],
+        difficulty: ex.difficulty || 0,
+        equipment,
+      };
+    });
 
     // Cache for 5 minutes — exercise list doesn't change often
     res.set('Cache-Control', 'private, max-age=300');

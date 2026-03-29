@@ -47,7 +47,7 @@
  *   A --> D[AwardPointsDialog]
  *   A --> E[AwardAchievementDialog]
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 
 // Import icons
@@ -55,6 +55,7 @@ import {
   Trophy,
   Search,
   User,
+  Sparkles,
 } from 'lucide-react';
 
 // Import styled components
@@ -71,6 +72,20 @@ import ClientTable from './components/ClientTable';
 import AchievementGrid from './components/AchievementGrid';
 import AwardPointsDialog from './components/AwardPointsDialog';
 import AwardAchievementDialog from './components/AwardAchievementDialog';
+
+// V2 RPG Components (lazy loaded)
+const AegisHud = lazy(() =>
+  import('../../../AdvancedGamification/components/AegisHud').then(m => ({ default: m.AegisHud }))
+);
+const StreakFortress = lazy(() =>
+  import('../../../AdvancedGamification/components/StreakFortress').then(m => ({ default: m.StreakFortress }))
+);
+const CompanionPet = lazy(() =>
+  import('../../../AdvancedGamification/components/CompanionPet').then(m => ({ default: m.CompanionPet }))
+);
+const GhostModeBanner = lazy(() =>
+  import('../../../AdvancedGamification/components/GhostMode').then(m => ({ default: m.GhostModeBanner }))
+);
 
 // Styled components replacing MUI
 const Spinner = styled.div`
@@ -363,6 +378,17 @@ const TrainerGamificationView: React.FC = () => {
           <Trophy size={16} />
           Achievement Management
         </TabButton>
+        <TabButton
+          role="tab"
+          $active={tabValue === 2}
+          onClick={() => setTabValue(2)}
+          id="trainer-gamification-tab-2"
+          aria-controls="trainer-gamification-tabpanel-2"
+          aria-selected={tabValue === 2}
+        >
+          <Sparkles size={16} />
+          RPG Features
+        </TabButton>
       </TabBar>
 
       {/* Client Management Tab */}
@@ -405,6 +431,25 @@ const TrainerGamificationView: React.FC = () => {
         </DescriptionText>
 
         <AchievementGrid achievements={achievements} />
+      </TabPanel>
+
+      {/* RPG Features Tab */}
+      <TabPanel value={tabValue} index={2}>
+        <Suspense fallback={<div style={{ padding: 24, textAlign: 'center', color: 'rgba(224,236,244,0.5)' }}>Loading RPG features...</div>}>
+          {selectedClient?.id ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <SectionTitle>RPG Status: {selectedClient.firstName} {selectedClient.lastName}</SectionTitle>
+              <AegisHud userId={selectedClient.id} showMoodlet />
+              <StreakFortress streakDays={selectedClient.streakDays || 0} streakFreezes={0} maxFreezes={3} />
+              <GhostModeBanner userId={selectedClient.id} />
+              <CompanionPet userId={selectedClient.id} size={150} showControls={false} />
+            </div>
+          ) : (
+            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(224,236,244,0.5)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              Select a client from the Client Management tab to view their RPG status.
+            </div>
+          )}
+        </Suspense>
       </TabPanel>
 
       {/* Award Points Dialog */}

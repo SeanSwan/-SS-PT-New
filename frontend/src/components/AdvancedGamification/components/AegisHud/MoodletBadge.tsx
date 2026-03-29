@@ -16,7 +16,7 @@
 import React from 'react';
 import {
   Crown, Zap, Sparkles, Shield, Moon,
-  Scale, Bandage, BatteryLow, Ghost, Minus,
+  Scale, HeartPulse, BatteryLow, Ghost, Minus,
 } from 'lucide-react';
 import type { MoodletBadgeProps } from './AegisHudTypes';
 import { MoodletPill } from './AegisHudStyles';
@@ -32,7 +32,7 @@ const MOODLET_ICONS: Record<string, React.ElementType> = {
   shield: Shield,
   moon: Moon,
   scale: Scale,
-  bandage: Bandage,
+  bandage: HeartPulse,
   'battery-low': BatteryLow,
   ghost: Ghost,
   minus: Minus,

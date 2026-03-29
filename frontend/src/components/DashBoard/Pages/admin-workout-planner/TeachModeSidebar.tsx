@@ -47,6 +47,7 @@ import {
 interface TeachModeSidebarProps {
   exercise: ExerciseSlim | null;
   phaseNumber: number;
+  onPhaseChange?: (phase: number) => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ const generateWisdom = (exercise: ExerciseSlim, phase: OPTPhaseParams): string =
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
-const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumber }) => {
+const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumber, onPhaseChange }) => {
   const phase = useMemo(
     () => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1],
     [phaseNumber]
@@ -185,13 +186,19 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
               </PanelTitle>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {OPT_PHASES.map(p => (
-                  <div
+                  <button
                     key={p.phase}
+                    type="button"
+                    onClick={() => onPhaseChange?.(p.phase)}
+                    title={`Switch to Phase ${p.phase}: ${p.name}`}
                     style={{
                       padding: '4px 10px',
                       borderRadius: 6,
                       fontSize: '0.7rem',
                       fontFamily: "'Fira Code', monospace",
+                      cursor: onPhaseChange ? 'pointer' : 'default',
+                      minHeight: 44,
+                      minWidth: 44,
                       background: p.phase === phaseNumber
                         ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)'
                         : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent)',
@@ -201,10 +208,11 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
                       color: p.phase === phaseNumber
                         ? 'var(--text-primary, #E0ECF4)'
                         : 'var(--text-muted, rgba(224, 236, 244, 0.5))',
+                      transition: 'all 0.2s ease',
                     }}
                   >
                     Ph {p.phase}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

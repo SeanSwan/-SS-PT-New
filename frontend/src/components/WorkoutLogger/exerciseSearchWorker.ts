@@ -26,6 +26,7 @@ export interface ExerciseSlim {
   bodyPartCategory: string;
   primaryMuscles: string[];
   difficulty: number;
+  equipment?: string[];
 }
 
 interface CacheMessage { type: 'CACHE'; exercises: ExerciseSlim[] }
@@ -76,9 +77,9 @@ const WORKER_CODE = `
       });
     }
 
-    // No query — return all in category (alphabetical)
+    // No query — return all in category (alphabetical), no artificial cap
     if (!query || query.trim().length < 1) {
-      self.postMessage({ type: 'RESULTS', exercises: pool.slice(0, 50), query: query || '' });
+      self.postMessage({ type: 'RESULTS', exercises: pool, query: query || '' });
       return;
     }
 
@@ -101,7 +102,7 @@ const WORKER_CODE = `
     }
 
     scored.sort((a, b) => b.score - a.score);
-    self.postMessage({ type: 'RESULTS', exercises: scored.slice(0, 30).map(s => s.ex), query: q });
+    self.postMessage({ type: 'RESULTS', exercises: scored.slice(0, 100).map(s => s.ex), query: q });
   }
 
   self.onmessage = function(e) {
@@ -150,7 +151,7 @@ export function searchExercisesSync(
     });
   }
   if (!query || query.trim().length < 1) {
-    return pool.slice(0, 50);
+    return pool;
   }
 
   const q = query.trim().toLowerCase();
@@ -199,5 +200,5 @@ export function searchExercisesSync(
   }
 
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, 30).map(s => s.ex);
+  return scored.slice(0, 100).map(s => s.ex);
 }

@@ -34,7 +34,8 @@ export type AICommandContext =
   | 'training'
   | 'biometrics'
   | 'overview'
-  | 'settings';
+  | 'settings'
+  | 'content';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component Props
@@ -73,4 +74,5 @@ export const CONTEXT_LABELS: Record<AICommandContext, string> = {
   biometrics: 'Body Analytics',
   overview: 'Dashboard AI',
   settings: 'Settings Help',
+  content: 'Content Studio',
 };
