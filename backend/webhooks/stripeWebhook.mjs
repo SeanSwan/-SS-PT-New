@@ -13,6 +13,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { upgradeToClient } from '../services/roleService.mjs';
 import axios from 'axios';
 import { sendNotification } from '../services/notificationService.mjs';
+import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 
 const router = express.Router();
 
@@ -301,6 +302,19 @@ async function processCompletedOrder(cartId) {
     // Process subscriptions sequentially (rare, usually 1)
     for (const subItem of subscriptionItems) {
       await createSubscription(userId, subItem);
+    }
+
+    // Create trainer commission record (non-critical, non-blocking)
+    if (totalSessionsAdded > 0) {
+      const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      await createCommissionForPurchase({
+        userId,
+        grossAmount: totalAmount,
+        taxAmount: 0, // Tax calculated separately in checkout
+        sessionsGranted: totalSessionsAdded,
+        storefrontItemId: cart.cartItems[0]?.storefrontItemId,
+        leadSource: 'platform', // Default for Stripe checkout; admin grants can specify
+      }).catch(err => logger.warn(`[Webhook] Commission creation failed (non-fatal): ${err.message}`));
     }
 
     // Fire gamification rewards in parallel (non-critical, external calls)

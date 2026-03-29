@@ -172,6 +172,8 @@ import aiBffRoutes from '../routes/aiBffRoutes.mjs';
 import aiVillageRoutes from '../routes/aiVillageRoutes.mjs';
 import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
 import subscriptionRoutes from '../routes/subscriptionRoutes.mjs';
+import creditsRoutes from '../routes/creditsRoutes.mjs';
+import commissionRoutes from '../routes/commissionRoutes.mjs';
 import freeApiRoutes from '../routes/freeApiRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
 import customPackageRoutes from '../routes/customPackageRoutes.mjs';
@@ -521,6 +523,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
+  app.use('/api', creditsRoutes);
+  app.use('/api/commissions', commissionRoutes);
   app.use('/api/master-prompt', masterPromptRoutes);
 
   // ===================== CUSTOM PACKAGES =====================

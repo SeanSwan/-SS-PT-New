@@ -1,23 +1,39 @@
 /**
- * Commission Calculator Utility
- * Calculates trainer/business commission splits based on lead source and package details
+ * ============================================================================
+ * FILE: commissionCalculator.mjs
+ * PURPOSE: Trainer/business revenue split calculator with two-tier trainer model
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * ============================================================================
  *
- * Commission Rules:
- * - Platform leads: 55% business / 45% trainer
- * - Resign leads (renewals): 50% business / 50% trainer
- * - Trainer-brought leads: 20% business / 80% trainer
- * - Loyalty bump: +5% to trainer for packages >100 sessions (after client completes 100 sessions)
+ * WHAT THIS FILE DOES: Calculates revenue splits between SwanStudios and trainers
+ * based on trainer type (independent vs hired) and lead source. Supports loyalty
+ * bumps for high-volume clients.
+ *
+ * TWO-TIER TRAINER MODEL:
+ * - Independent trainers: 10% platform fee (trainer keeps 90%)
+ * - Hired trainers (Sean's clients via Move Fitness etc.): 40% to business (trainer keeps 60%)
+ *
+ * LEAD SOURCE MODIFIERS (applied on top of trainer type base):
+ * - Platform lead: Base rates apply as-is
+ * - Trainer-brought lead: -5% from business cut (trainer reward for sourcing)
+ * - Resign/renewal: -2% from business cut (retention reward)
+ *
+ * LOYALTY BUMP: +5% to trainer for clients who completed >100 sessions
  */
 
 /**
- * Calculate commission split for a purchase
+ * Calculate commission split for a purchase.
+ * Uses the two-tier trainer model with lead source modifiers.
+ *
  * @param {string} leadSource - 'platform', 'trainer_brought', or 'resign'
  * @param {number} grossAmount - Total package cost before tax
  * @param {number} sessionsGranted - Number of sessions in package
  * @param {boolean} applyLoyaltyBump - Whether to apply +5% loyalty bump
+ * @param {Object} options - Additional options
+ * @param {string} options.trainerType - 'independent' or 'hired' (default: 'hired')
  * @returns {Object} Commission split details
  */
-export function calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false) {
+export function calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false, options = {}) {
   if (!leadSource || !['platform', 'trainer_brought', 'resign'].includes(leadSource)) {
     throw new Error(`Invalid lead source: ${leadSource}. Must be 'platform', 'trainer_brought', or 'resign'.`);
   }
@@ -30,30 +46,44 @@ export function calculateCommissionSplit(leadSource, grossAmount, sessionsGrante
     throw new Error(`Invalid sessions granted: ${sessionsGranted}. Must be a positive number.`);
   }
 
-  // Base commission rates
+  const trainerType = options.trainerType || 'hired';
+
+  // ── Base rates from trainer type ──
   let businessRate = 0;
   let trainerRate = 0;
 
+  if (trainerType === 'independent') {
+    // Independent trainers: 15% platform fee, trainer keeps 85%
+    businessRate = 15;
+    trainerRate = 85;
+  } else {
+    // Hired trainers (default): 35% to business, trainer keeps 65%
+    businessRate = 35;
+    trainerRate = 65;
+  }
+
+  // ── Lead source modifiers ──
   switch (leadSource) {
     case 'platform':
-      businessRate = 55;
-      trainerRate = 45;
-      break;
-    case 'resign':
-      businessRate = 50;
-      trainerRate = 50;
+      // No modifier — base rates apply
       break;
     case 'trainer_brought':
-      businessRate = 20;
-      trainerRate = 80;
+      // Reward trainer for sourcing the client: -5% from business
+      businessRate = Math.max(5, businessRate - 5);
+      trainerRate = 100 - businessRate;
+      break;
+    case 'resign':
+      // Reward trainer for client retention: -3% from business
+      businessRate = Math.max(5, businessRate - 3);
+      trainerRate = 100 - businessRate;
       break;
   }
 
   // Apply loyalty bump if eligible
   let loyaltyBump = false;
   if (applyLoyaltyBump && sessionsGranted > 100) {
-    trainerRate += 5;
-    businessRate -= 5;
+    businessRate = Math.max(5, businessRate - 5);
+    trainerRate = 100 - businessRate;
     loyaltyBump = true;
   }
 
@@ -88,8 +118,9 @@ export function isEligibleForLoyaltyBump(completedSessions, newPackageSessions) 
 }
 
 /**
- * Calculate commission for multiple packages/orders
- * @param {Array} orders - Array of order objects with leadSource, grossAmount, sessionsGranted
+ * Calculate commission for multiple packages/orders.
+ * Supports trainerType per-order for mixed portfolios.
+ * @param {Array} orders - Array of order objects with leadSource, grossAmount, sessionsGranted, trainerType?
  * @returns {Object} Aggregated commission data
  */
 export function calculateBulkCommissions(orders) {
@@ -103,9 +134,9 @@ export function calculateBulkCommissions(orders) {
   const commissionDetails = [];
 
   for (const order of orders) {
-    const {leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false} = order;
+    const {leadSource, grossAmount, sessionsGranted, applyLoyaltyBump = false, trainerType} = order;
 
-    const commission = calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump);
+    const commission = calculateCommissionSplit(leadSource, grossAmount, sessionsGranted, applyLoyaltyBump, { trainerType });
 
     totalBusinessCut += commission.businessCut;
     totalTrainerCut += commission.trainerCut;

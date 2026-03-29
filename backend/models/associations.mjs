@@ -87,6 +87,9 @@ const setupAssociations = async () => {
     const BusinessMetricsModule = await import('./financial/BusinessMetrics.mjs');
     const AdminNotificationModule = await import('./financial/AdminNotification.mjs');
     
+    // Trainer Revenue Models (Sequelize)
+    const TrainerCommissionModule = await import('./TrainerCommission.mjs');
+
     // NASM Workout Tracking Models (Sequelize)
     const ClientTrainerAssignmentModule = await import('./ClientTrainerAssignment.mjs');
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
@@ -263,6 +266,9 @@ const setupAssociations = async () => {
     const BusinessMetrics = BusinessMetricsModule.default;
     const AdminNotification = AdminNotificationModule.default;
     
+    // Trainer Revenue Models
+    const TrainerCommission = TrainerCommissionModule.default;
+
     // NASM Workout Tracking Models
     const ClientTrainerAssignment = ClientTrainerAssignmentModule.default;
     const TrainerPermissions = TrainerPermissionsModule.default;
@@ -417,7 +423,7 @@ const setupAssociations = async () => {
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutLog, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
-        FinancialTransaction, BusinessMetrics, AdminNotification,
+        FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
@@ -802,6 +808,14 @@ const setupAssociations = async () => {
     ClientTrainerAssignment.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     ClientTrainerAssignment.belongsTo(User, { foreignKey: 'assignedBy', as: 'assignedByUser' });
     
+    // Trainer Commission Associations
+    User.hasMany(TrainerCommission, { foreignKey: 'trainerId', as: 'trainerCommissions', constraints: false });
+    User.hasMany(TrainerCommission, { foreignKey: 'clientId', as: 'clientCommissions', constraints: false });
+    TrainerCommission.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    TrainerCommission.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+    Order.hasMany(TrainerCommission, { foreignKey: 'orderId', as: 'commissions', constraints: false });
+    TrainerCommission.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+
     // Trainer Permission Associations
     User.hasMany(TrainerPermissions, { foreignKey: 'trainerId', as: 'trainerPermissions' });
     TrainerPermissions.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });

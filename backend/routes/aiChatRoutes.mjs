@@ -21,6 +21,7 @@ import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
+import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
@@ -224,7 +225,7 @@ router.get('/conversations/:id', async (req, res) => {
  * - Outbound PII stripping: client names replaced with Client #ID before AI sees the message
  * - Inbound PII stripping: AI responses scrubbed for any leaked identity data
  */
-router.post('/conversations/:id/messages', requireSubscription('supporter', { feature: 'chat' }), aiRateLimiter, async (req, res) => {
+router.post('/conversations/:id/messages', requireSubscription('supporter', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
   try {
     const { message } = req.body;
 

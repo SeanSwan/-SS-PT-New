@@ -8,6 +8,9 @@
  *
  * Exercises chosen from the seeded NASM Rolodex. Each workout has 4-6 exercises
  * with realistic sets, reps, weights, and form ratings.
+ *
+ * IMPORTANT: daily_workout_forms uses snake_case columns (underscored model).
+ * progress_data uses camelCase columns (no underscored).
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -95,17 +98,17 @@ module.exports = {
     const CLIENT_USER_ID = 61; // Jackie — first test client
     const TRAINER_USER_ID = 1; // Admin/trainer
 
-    // Check if DailyWorkoutForms table exists
+    // Check if daily_workout_forms table exists
     try {
-      await queryInterface.sequelize.query('SELECT 1 FROM "DailyWorkoutForms" LIMIT 1');
+      await queryInterface.sequelize.query('SELECT 1 FROM "daily_workout_forms" LIMIT 1');
     } catch {
-      console.log('DailyWorkoutForms table does not exist yet — skipping workout history seed');
+      console.log('daily_workout_forms table does not exist yet — skipping workout history seed');
       return;
     }
 
-    // Check if we already have data for this client
+    // Check if we already have data for this client (use snake_case column name)
     const [existing] = await queryInterface.sequelize.query(
-      `SELECT COUNT(*) as count FROM "DailyWorkoutForms" WHERE "userId" = ${CLIENT_USER_ID}`
+      `SELECT COUNT(*) as count FROM "daily_workout_forms" WHERE "client_id" = ${CLIENT_USER_ID}`
     );
     if (existing[0]?.count > 5) {
       console.log(`Client ${CLIENT_USER_ID} already has ${existing[0].count} workout forms — skipping seed`);
@@ -113,6 +116,7 @@ module.exports = {
     }
 
     const workouts = [];
+    const workoutDates = []; // Track dates for progress data
     const now = new Date();
     const dayTypes = [PUSH_EXERCISES, PULL_EXERCISES, LEG_EXERCISES];
 
@@ -137,32 +141,35 @@ module.exports = {
       const formData = buildFormData(allExercises, 30 - dayOffset);
       const duration = 45 + Math.floor(Math.random() * 30); // 45-75 min
 
+      // Use snake_case columns matching the actual DB schema
       workouts.push({
-        userId: CLIENT_USER_ID,
-        trainerId: TRAINER_USER_ID,
-        formData: JSON.stringify(formData),
-        sessionDate: date,
-        sessionType: 'in_person',
-        status: 'completed',
-        duration,
-        caloriesBurned: Math.floor(duration * 7.5 + Math.random() * 100),
-        exerciseCount: allExercises.length,
-        totalSets: allExercises.length * 3,
-        sessionDeducted: true,
-        notes: formData.sessionNotes,
-        createdAt: date,
-        updatedAt: date,
+        id: uuidv4(),
+        client_id: CLIENT_USER_ID,
+        trainer_id: TRAINER_USER_ID,
+        form_data: JSON.stringify(formData),
+        date: date.toISOString().split('T')[0], // DATEONLY format
+        session_deducted: true,
+        total_points_earned: 50 + Math.floor(Math.random() * 30),
+        mcp_processed: false,
+        submitted_at: date,
+        estimated_duration: duration,
+        form_version: '1.0',
+        created_at: date,
+        updated_at: date,
       });
+
+      workoutDates.push(date);
     }
 
     if (workouts.length > 0) {
-      await queryInterface.bulkInsert('DailyWorkoutForms', workouts);
-      console.log(`✅ Seeded ${workouts.length} workout forms for client ${CLIENT_USER_ID}`);
+      await queryInterface.bulkInsert('daily_workout_forms', workouts);
+      console.log(`Seeded ${workouts.length} workout forms for client ${CLIENT_USER_ID}`);
     }
 
-    // Also seed ProgressData entries for gamification/insights
+    // Also seed progress_data entries for gamification/insights
+    // progress_data uses camelCase columns (no underscored in model)
     try {
-      await queryInterface.sequelize.query('SELECT 1 FROM "ProgressData" LIMIT 1');
+      await queryInterface.sequelize.query('SELECT 1 FROM "progress_data" LIMIT 1');
 
       const progressEntries = [];
       let cumulativeXp = 500; // Start with some base XP
@@ -172,10 +179,7 @@ module.exports = {
         const date = new Date(now);
         date.setDate(date.getDate() - dayOffset);
 
-        const didWorkout = workouts.some(w => {
-          const wDate = new Date(w.sessionDate);
-          return wDate.toDateString() === date.toDateString();
-        });
+        const didWorkout = workoutDates.some(w => w.toDateString() === date.toDateString());
 
         if (didWorkout) {
           streak++;
@@ -204,21 +208,21 @@ module.exports = {
 
       // Check for existing progress data
       const [existingProgress] = await queryInterface.sequelize.query(
-        `SELECT COUNT(*) as count FROM "ProgressData" WHERE "userId" = ${CLIENT_USER_ID}`
+        `SELECT COUNT(*) as count FROM "progress_data" WHERE "userId" = ${CLIENT_USER_ID}`
       );
       if (!existingProgress[0]?.count || existingProgress[0].count < 5) {
-        await queryInterface.bulkInsert('ProgressData', progressEntries);
-        console.log(`✅ Seeded ${progressEntries.length} progress entries for client ${CLIENT_USER_ID}`);
+        await queryInterface.bulkInsert('progress_data', progressEntries);
+        console.log(`Seeded ${progressEntries.length} progress entries for client ${CLIENT_USER_ID}`);
       }
     } catch (err) {
-      console.log('ProgressData table not available — skipping progress seed:', err.message);
+      console.log('progress_data table not available — skipping progress seed:', err.message);
     }
   },
 
   async down(queryInterface) {
-    await queryInterface.bulkDelete('DailyWorkoutForms', { userId: 61 });
+    await queryInterface.bulkDelete('daily_workout_forms', { client_id: 61 });
     try {
-      await queryInterface.bulkDelete('ProgressData', { userId: 61 });
+      await queryInterface.bulkDelete('progress_data', { userId: 61 });
     } catch { /* table may not exist */ }
   }
 };
