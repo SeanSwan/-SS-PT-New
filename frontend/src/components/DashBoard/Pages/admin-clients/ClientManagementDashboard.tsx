@@ -133,7 +133,7 @@ const ClientManagementDashboard: React.FC = () => {
           text="Trainer Assignments"
           variant="primary"
           size="large"
-          onClick={() => navigate('/dashboard/people/assignments')}
+          onClick={() => navigate('/dashboard/admin/client-trainer-assignments')}
         />
       </ActionRow>
 
