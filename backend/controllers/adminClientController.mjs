@@ -674,9 +674,13 @@ class AdminClientController {
       if (trainerId && availableSessions > 0) {
         const sessions = [];
         for (let i = 0; i < availableSessions; i++) {
+          // sessionDate is NOT NULL — set to a future placeholder date offset by session index
+          const placeholderDate = new Date();
+          placeholderDate.setDate(placeholderDate.getDate() + i + 1);
           sessions.push({
             trainerId,
             userId: newClient.id,
+            sessionDate: placeholderDate,
             status: 'available',
             sessionType: 'personal_training'
           });
@@ -950,9 +954,12 @@ class AdminClientController {
       // Create sessions for client with trainer
       const sessions = [];
       for (let i = 0; i < sessionCount; i++) {
+        const placeholderDate = new Date();
+        placeholderDate.setDate(placeholderDate.getDate() + i + 1);
         sessions.push({
           trainerId,
           userId: clientId,
+          sessionDate: placeholderDate,
           status: 'available',
           sessionType: 'personal_training'
         });
@@ -1056,13 +1063,76 @@ class AdminClientController {
   }
 
   /**
-   * Generate workout plan for client (MCP decommissioned)
+   * Generate workout plan for client using NASM workout builder service.
+   * Supports single workout or multi-week periodized plan.
    */
   async generateWorkoutPlan(req, res) {
-    return res.status(503).json({
-      success: false,
-      message: 'Workout plan generation requires MCP servers (disabled in production)'
-    });
+    try {
+      ensureModels();
+      const { clientId } = req.params;
+      const trainerId = req.user?.id;
+      const {
+        durationWeeks,
+        sessionsPerWeek = 3,
+        primaryGoal = 'general_fitness',
+        category = 'full_body',
+        exerciseCount = 6,
+        equipmentProfileId = null,
+      } = req.body;
+
+      // Validate client exists
+      const client = await User.findOne({
+        where: { id: clientId, role: 'client' },
+        attributes: ['id', 'firstName', 'lastName'],
+      });
+
+      if (!client) {
+        return res.status(404).json({ success: false, message: 'Client not found' });
+      }
+
+      // Lazy-import to avoid circular deps
+      const { generateWorkout, generatePlan } = await import('../services/workoutBuilderService.mjs');
+
+      if (durationWeeks && durationWeeks > 1) {
+        // Multi-week periodized plan
+        const plan = await generatePlan({
+          clientId: Number(clientId),
+          trainerId: Number(trainerId),
+          durationWeeks,
+          sessionsPerWeek,
+          primaryGoal,
+          equipmentProfileId,
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: `Generated ${durationWeeks}-week periodized plan`,
+          plan,
+        });
+      } else {
+        // Single workout session
+        const workout = await generateWorkout({
+          clientId: Number(clientId),
+          trainerId: Number(trainerId),
+          category,
+          exerciseCount,
+          equipmentProfileId,
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: 'Workout generated successfully',
+          workout,
+        });
+      }
+    } catch (error) {
+      console.error('Error generating workout plan:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error generating workout plan',
+        error: error.message,
+      });
+    }
   }
 
   /**
