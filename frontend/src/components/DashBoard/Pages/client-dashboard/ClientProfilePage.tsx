@@ -1,47 +1,52 @@
 /**
  * ============================================================================
  * FILE: ClientProfilePage.tsx
- * PURPOSE: Client profile display with personal info, goals, and preferences
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
- * AI VILLAGE VALIDATED: 2026-03-24
+ * PURPOSE: Client profile settings + chart visibility + pet preview
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
+ * AI VILLAGE VALIDATED: 2026-03-28
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Displays client profile information including avatar,
- * personal details, fitness goals, and notification/theme preferences.
- * HOW IT FITS IN THE APP: ClientDashboard → ClientProfilePage (Profile tab)
- * KEY DECISIONS: Read-only toggles for now; edit functionality is a future sprint.
+ * WHAT THIS FILE DOES: Profile settings page where clients manage personal info,
+ * fitness goals, notification prefs, chart visibility toggles, and see their pet.
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: ClientProfilePage                                 ║
- * ║  PURPOSE: Profile & settings display for authenticated client ║
+ * ║  PURPOSE: Profile settings + chart toggle + live chart preview║
  * ║  OWNER: Claude Opus 4.6                                       ║
- * ║  LAST VALIDATED: 2026-03-24                                   ║
+ * ║  LAST VALIDATED: 2026-03-28                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * WIREFRAME:
  * ┌────────────────────────────────────────────────────────────┐
- * │  [Avatar Circle]  Name / Email / Role                      │
+ * │  [Avatar] Name / Role                                      │
  * ├────────────────────────────────────────────────────────────┤
  * │ Personal Info: Name, Email, Phone, Member Since            │
  * ├────────────────────────────────────────────────────────────┤
- * │ Fitness Goals: editable text area                          │
+ * │ Companion Pet (compact, no controls)                       │
  * ├────────────────────────────────────────────────────────────┤
- * │ Notifications: Email ☑  Push ☑  SMS ☐                     │
+ * │ Chart Visibility: [x] Weight [x] Heatmap [ ] Body Fat ... │
  * ├────────────────────────────────────────────────────────────┤
- * │ Theme: references theme changer                            │
+ * │ [Live Chart Preview — renders visible charts]              │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ Fitness Goals | Notifications | Theme                      │
  * └────────────────────────────────────────────────────────────┘
- *
- * DATA FLOW:
- * Props In:  none
- * State:     { goalText, notifPrefs }
- * API Calls: none (reads from AuthContext)
- * Children:  none
  */
-
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import styled from 'styled-components';
-import { User as UserIcon, Mail, Phone, CalendarDays, Target, Bell, Palette } from 'lucide-react';
+import { User as UserIcon, Mail, Target, Bell, Palette, BarChart3, Save } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import EditProfileChartToggles, {
+  DEFAULT_CHART_VISIBILITY,
+  type ProfileChartVisibility,
+} from '../../../UserDashboard/components/EditProfileChartToggles';
+
+// Lazy-load heavy chart components
+const ProfileChartsGrid = React.lazy(
+  () => import('../../../UserDashboard/components/ProfileChartsGrid')
+);
+const CompanionPet = React.lazy(
+  () => import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -51,7 +56,7 @@ const PageWrap = styled.div`
   padding: 1.5rem;
   min-height: 100%;
   color: var(--text-primary, #E0ECF4);
-  max-width: 720px;
+  max-width: 800px;
 `;
 
 const Card = styled.div`
@@ -145,6 +150,30 @@ const Toggle = styled.button<{ $active: boolean }>`
   }
 `;
 
+const SaveButton = styled.button`
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 0.625rem 1.25rem;
+  border-radius: 10px; border: none;
+  background: var(--accent-secondary, #8B5CF6);
+  color: var(--text-heading, #E0ECF4);
+  font-family: 'Sora', sans-serif; font-size: 0.8125rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover:not(:disabled) { box-shadow: 0 0 16px rgba(139, 92, 246, 0.35); transform: scale(1.02); }
+  &:active:not(:disabled) { transform: scale(0.97); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 4px; }
+`;
+
+const SaveStatus = styled.span<{ $success?: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $success }) => $success ? '#4CAF50' : 'var(--text-muted, rgba(224, 236, 244, 0.45))'};
+  margin-left: 0.5rem;
+`;
+
+const ChartPreviewWrap = styled.div`
+  margin-top: 1rem;
+`;
+
 const ThemeNote = styled.p`
   font-size: 0.875rem; color: var(--text-secondary, #94a3b8);
   margin: 0;
@@ -156,22 +185,60 @@ const ThemeNote = styled.p`
 
 const ClientProfilePage: React.FC = () => {
   const { user } = useAuth();
-  const [goalText, setGoalText] = useState('');
+  const [goalText, setGoalText] = useState(user?.fitnessGoal || '');
   const [notifPrefs, setNotifPrefs] = useState({ email: true, push: true, sms: false });
+  const [chartVisibility, setChartVisibility] = useState<ProfileChartVisibility>(
+    () => (user as any)?.chartVisibility || DEFAULT_CHART_VISIBILITY
+  );
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   const initials = `${(user?.firstName || '')[0] || ''}${(user?.lastName || '')[0] || ''}`.toUpperCase() || '?';
-  const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : 'N/A';
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    : 'N/A';
 
   const toggleNotif = (key: keyof typeof notifPrefs) => {
     setNotifPrefs(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleChartToggle = useCallback((key: keyof ProfileChartVisibility) => {
+    setChartVisibility(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleSaveCharts = useCallback(async () => {
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ chartVisibility }),
+      });
+      if (res.ok) {
+        setSaveStatus('Saved');
+        setTimeout(() => setSaveStatus(null), 3000);
+      } else {
+        setSaveStatus('Error saving');
+      }
+    } catch {
+      setSaveStatus('Error saving');
+    } finally {
+      setSaving(false);
+    }
+  }, [chartVisibility]);
+
   return (
     <PageWrap>
+      {/* Avatar + Name */}
       <Card>
         <AvatarRow>
-          {user?.profileImageUrl
-            ? <AvatarImg src={user.profileImageUrl} alt="Profile" />
+          {(user as any)?.photo
+            ? <AvatarImg src={(user as any).photo} alt="Profile" />
             : <Avatar>{initials}</Avatar>
           }
           <NameBlock>
@@ -181,6 +248,7 @@ const ClientProfilePage: React.FC = () => {
         </AvatarRow>
       </Card>
 
+      {/* Personal Info */}
       <Card>
         <SectionTitle><UserIcon size={18} /> Personal Information</SectionTitle>
         <InfoGrid>
@@ -191,6 +259,47 @@ const ClientProfilePage: React.FC = () => {
         </InfoGrid>
       </Card>
 
+      {/* Companion Pet (compact preview) */}
+      {user?.id && (
+        <Card>
+          <SectionTitle>Your Companion</SectionTitle>
+          <Suspense fallback={<div style={{ color: 'var(--text-muted)', padding: '1rem', textAlign: 'center' }}>Loading...</div>}>
+            <CompanionPet userId={user.id as number} size={140} compact showControls={false} />
+          </Suspense>
+        </Card>
+      )}
+
+      {/* Chart Visibility Toggles */}
+      <Card>
+        <EditProfileChartToggles
+          chartVisibility={chartVisibility}
+          onToggle={handleChartToggle}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+          <SaveButton onClick={handleSaveCharts} disabled={saving}>
+            <Save size={14} />
+            {saving ? 'Saving...' : 'Save Chart Settings'}
+          </SaveButton>
+          {saveStatus && (
+            <SaveStatus $success={saveStatus === 'Saved'}>{saveStatus}</SaveStatus>
+          )}
+        </div>
+
+        {/* Live Preview */}
+        <ChartPreviewWrap>
+          {user?.id && (
+            <Suspense fallback={<div style={{ color: 'var(--text-muted)', padding: '2rem', textAlign: 'center' }}>Loading charts...</div>}>
+              <ProfileChartsGrid
+                userId={user.id}
+                chartVisibility={chartVisibility}
+                isOwnProfile={true}
+              />
+            </Suspense>
+          )}
+        </ChartPreviewWrap>
+      </Card>
+
+      {/* Fitness Goals */}
       <Card>
         <SectionTitle><Target size={18} /> Fitness Goals</SectionTitle>
         <GoalTextArea
@@ -200,22 +309,24 @@ const ClientProfilePage: React.FC = () => {
         />
       </Card>
 
+      {/* Notification Preferences */}
       <Card>
         <SectionTitle><Bell size={18} /> Notification Preferences</SectionTitle>
         <ToggleRow>
           <ToggleLabel>Email Notifications</ToggleLabel>
-          <Toggle $active={notifPrefs.email} onClick={() => toggleNotif('email')} aria-label="Toggle email notifications" />
+          <Toggle $active={notifPrefs.email} onClick={() => toggleNotif('email')} aria-label="Toggle email" />
         </ToggleRow>
         <ToggleRow>
           <ToggleLabel>Push Notifications</ToggleLabel>
-          <Toggle $active={notifPrefs.push} onClick={() => toggleNotif('push')} aria-label="Toggle push notifications" />
+          <Toggle $active={notifPrefs.push} onClick={() => toggleNotif('push')} aria-label="Toggle push" />
         </ToggleRow>
         <ToggleRow>
           <ToggleLabel>SMS Notifications</ToggleLabel>
-          <Toggle $active={notifPrefs.sms} onClick={() => toggleNotif('sms')} aria-label="Toggle SMS notifications" />
+          <Toggle $active={notifPrefs.sms} onClick={() => toggleNotif('sms')} aria-label="Toggle SMS" />
         </ToggleRow>
       </Card>
 
+      {/* Theme */}
       <Card>
         <SectionTitle><Palette size={18} /> Theme Preference</SectionTitle>
         <ThemeNote>

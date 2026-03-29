@@ -80,6 +80,10 @@ import sessionTypeRoutes from '../routes/sessionTypeRoutes.mjs';
 // app.use('/api/gamification', gamificationRoutes);
 // app.use('/api/gamification', gamificationApiRoutes);
 
+// ===================== LIVE STREAMING & CREATOR ECONOMY =====================
+import liveStreamRoutes from '../routes/liveStreamRoutes.mjs';
+import creatorEconomyRoutes from '../routes/creatorEconomyRoutes.mjs';
+
 // ===================== GAMIFICATION V1 API SYSTEM =====================
 import gamificationV1Routes from '../routes/gamificationV1Routes.mjs';
 import badgeRoutes from '../routes/badgeRoutes.mjs';
@@ -347,6 +351,10 @@ export const setupRoutes = async (app) => {
   app.use('/api/goals', goalRoutes);
   app.use('/api/goals', socialGoalRoutes); // Social features: supporters, comments, likes, milestones
   app.use('/api/streaks', streakRoutes);
+
+  // Live Streaming & Creator Economy (Phase 2 — routes ready, features coming soon)
+  app.use('/api/live-streams', liveStreamRoutes);
+  app.use('/api/creators', creatorEconomyRoutes);
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin', adminRoutes);

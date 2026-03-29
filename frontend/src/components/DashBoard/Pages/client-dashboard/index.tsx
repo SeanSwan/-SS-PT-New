@@ -81,6 +81,7 @@ import AchievementNotification from './components/gamification/AchievementNotifi
 
 // Aegis HUD — RPG Needs Panel (V2 Gamification)
 import { AegisHud } from '../../../AdvancedGamification/components/AegisHud';
+import { CompanionPet } from '../../../AdvancedGamification/components/CompanionPet';
 
 // Import types
 import {
@@ -843,6 +844,11 @@ const EnhancedClientDashboard: React.FC = () => {
       {/* Aegis HUD — RPG Needs Panel */}
       {user?.id && (
         <AegisHud userId={user.id} showMoodlet />
+      )}
+
+      {/* Companion Pet — compact view on dashboard */}
+      {user?.id && (
+        <CompanionPet userId={user.id} size={140} compact showControls={false} />
       )}
 
       {/* Achievements Card */}

@@ -100,6 +100,8 @@ const VideoLibraryPageLazy = React.lazy(() => import('../../pages/VideoLibraryV3
 const ContentStudioHub = React.lazy(() => import('./Pages/content-studio/ContentStudioHub'));
 const FeatureAccessPage = React.lazy(() => import('./Pages/admin-feature-access/FeatureAccessPage'));
 const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planner/WorkoutPlannerPage'));
+const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
+const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -397,7 +399,12 @@ const UniversalButton = styled(motion.button)`
   }
 `;
 
-// Wrapper component for client progress — needs auth context for user ID
+// Lazy load the new client progress dashboard page
+const ClientProgressDashboardPage = React.lazy(
+  () => import('./Pages/client-dashboard/ClientProgressDashboardPage')
+);
+
+// Wrapper component for detailed NASM analytics — kept for deep-link access
 const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
   return <NASMProgressCharts clientId={user?.id || 0} />;
@@ -495,6 +502,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },
+      { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
+      { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
     ],
     defaultPath: '/overview'
@@ -504,12 +513,15 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
-      { path: '/progress', component: ClientProgressWrapper, title: 'My Progress', description: 'NASM progress visualization dashboard' },
+      { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },
+      { path: '/progress/detailed', component: ClientProgressWrapper, title: 'Detailed Analytics', description: 'NASM 14-chart analytics dashboard' },
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
+      { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Watch and join live workout streams' },
+      { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/profile', component: ClientProfilePage, title: 'Profile', description: 'Personal settings and preferences' },
       { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' }
     ],

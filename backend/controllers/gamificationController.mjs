@@ -3156,6 +3156,89 @@ const gamificationController = {
       console.error('getAegisHudConfig error:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to load Aegis HUD config' });
     }
+  },
+
+  // ── COMPANION PET ENDPOINTS ──
+
+  getPet: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const data = await CompanionPetService.getPetData(parseInt(req.params.userId));
+      return res.json({ success: true, data });
+    } catch (error) {
+      console.error('getPet error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  adoptPet: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const { species, petName } = req.body;
+      const data = await CompanionPetService.adoptPet(parseInt(req.params.userId), species, petName);
+      return res.status(201).json({ success: true, data });
+    } catch (error) {
+      console.error('adoptPet error:', error.message);
+      return res.status(error.message.includes('already') ? 409 : 500).json({
+        success: false, error: error.message,
+      });
+    }
+  },
+
+  interactWithPet: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const { interactionType } = req.body;
+      const data = await CompanionPetService.interact(parseInt(req.params.userId), interactionType || 'pet');
+      return res.json({ success: true, data });
+    } catch (error) {
+      console.error('interactWithPet error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  recordPetActivity: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const { activityType, amount } = req.body;
+      const data = await CompanionPetService.recordActivity(parseInt(req.params.userId), activityType, amount || 1);
+      return res.json({ success: true, data });
+    } catch (error) {
+      console.error('recordPetActivity error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  renamePet: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const data = await CompanionPetService.renamePet(parseInt(req.params.userId), req.body.name);
+      return res.json({ success: true, data });
+    } catch (error) {
+      console.error('renamePet error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  releasePet: async (req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const data = await CompanionPetService.releasePet(parseInt(req.params.userId));
+      return res.json({ success: true, data });
+    } catch (error) {
+      console.error('releasePet error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  getPetConfig: async (_req, res) => {
+    try {
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      return res.json({ success: true, data: CompanionPetService.getEvolutionConfig() });
+    } catch (error) {
+      console.error('getPetConfig error:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to load pet config' });
+    }
   }
 };
 

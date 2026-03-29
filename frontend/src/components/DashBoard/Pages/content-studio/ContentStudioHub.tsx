@@ -42,7 +42,7 @@ import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
 import {
   Video, Wand2, Mic2, Share2, Settings, Hexagon,
-  CheckCircle2, Lock, Zap, Sparkles,
+  CheckCircle2, Lock, Zap, Sparkles, CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
@@ -52,6 +52,9 @@ import { AICommandBar } from '../../../Shared/AICommandBar';
 const VideoLibraryV3 = React.lazy(() => import('../../../../pages/VideoLibraryV3'));
 const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverageTracker'));
 const RemotionTemplateGallery = React.lazy(() => import('./RemotionTemplateGallery'));
+const VoiceStudioPanel = React.lazy(() => import('./VoiceStudioPanel'));
+const ContentCalendarPanel = React.lazy(() => import('./ContentCalendarPanel'));
+const DistributionHubPanel = React.lazy(() => import('./DistributionHubPanel'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -65,7 +68,7 @@ interface ServiceStatus {
   tier: 'bootstrap' | 'full';
 }
 
-type StudioTab = 'library' | 'coverage' | 'ai-video' | 'voice' | 'distribution' | 'settings';
+type StudioTab = 'library' | 'coverage' | 'ai-video' | 'voice' | 'calendar' | 'distribution' | 'settings';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -291,6 +294,7 @@ const TABS: { id: StudioTab; label: string; icon: React.ReactNode; requiresServi
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'ai-video', label: 'Motion Templates', icon: <Wand2 size={16} /> },
   { id: 'voice', label: 'Voice Studio', icon: <Mic2 size={16} />, requiresService: 'elevenlabs' },
+  { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
   { id: 'distribution', label: 'Distribution', icon: <Share2 size={16} />, requiresService: 'blotato' },
   { id: 'settings', label: 'Settings', icon: <Settings size={16} /> },
 ];
@@ -409,15 +413,17 @@ const ContentStudioHub: React.FC = () => {
             onConfigure={() => setActiveTab('settings')}
             ctaLabel="Configure ElevenLabs"
           >
-            <PlaceholderPanel>
-              <PlaceholderIcon><Mic2 size={28} /></PlaceholderIcon>
-              <PlaceholderTitle>Voice Studio</PlaceholderTitle>
-              <PlaceholderDesc>
-                Generate professional voiceovers for training videos, exercise
-                narration, and motivational content.
-              </PlaceholderDesc>
-            </PlaceholderPanel>
+            <Suspense fallback={<LoadingFallback>Loading voice studio...</LoadingFallback>}>
+              <VoiceStudioPanel />
+            </Suspense>
           </CrystallineLockOverlay>
+        );
+
+      case 'calendar':
+        return (
+          <Suspense fallback={<LoadingFallback>Loading content calendar...</LoadingFallback>}>
+            <ContentCalendarPanel />
+          </Suspense>
         );
 
       case 'distribution':
@@ -429,14 +435,9 @@ const ContentStudioHub: React.FC = () => {
             onConfigure={() => setActiveTab('settings')}
             ctaLabel="Configure Blotato"
           >
-            <PlaceholderPanel>
-              <PlaceholderIcon><Share2 size={28} /></PlaceholderIcon>
-              <PlaceholderTitle>Distribution Hub</PlaceholderTitle>
-              <PlaceholderDesc>
-                Publish content to YouTube, TikTok, Instagram, and other
-                platforms in one click with Blotato.
-              </PlaceholderDesc>
-            </PlaceholderPanel>
+            <Suspense fallback={<LoadingFallback>Loading distribution hub...</LoadingFallback>}>
+              <DistributionHubPanel />
+            </Suspense>
           </CrystallineLockOverlay>
         );
 

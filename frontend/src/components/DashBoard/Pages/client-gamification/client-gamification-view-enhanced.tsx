@@ -87,6 +87,7 @@ import { AegisHud } from '../../../AdvancedGamification/components/AegisHud';
 import { StreakFortress } from '../../../AdvancedGamification/components/StreakFortress';
 import { JobClassSelector } from '../../../AdvancedGamification/components/JobClassSelector';
 import { CrystallineAvatar } from '../../../AdvancedGamification/components/CrystallineAvatar';
+import { CompanionPet } from '../../../AdvancedGamification/components/CompanionPet';
 
 // Lazy load the progress chart component to improve initial load time
 const ProgressChart = lazy(() => import('./components/ProgressChart'));
@@ -1223,6 +1224,14 @@ const EnhancedClientGamificationView: React.FC = () => {
               userId={user.id}
               currentJobClass={profile?.data?.jobClass || null}
             />
+          )}
+
+          {/* Companion Pet — Tamagotchi System */}
+          {user?.id && (
+            <GlassCard>
+              <SubTitle style={{ marginBottom: 16 }}>Your Companion</SubTitle>
+              <CompanionPet userId={user.id} size={180} showControls />
+            </GlassCard>
           )}
 
           {/* Crystalline Avatar Preview */}

@@ -20,6 +20,7 @@ import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
+const ExploreView = lazy(() => import('../../components/Social/Explore/ExploreView'));
 import styled from 'styled-components';
 
 // Styled components
@@ -308,7 +309,7 @@ const TabButton = styled.button<{ $active?: boolean }>`
  * Main Social Page Component
  * Displays the social feed and provides navigation to other social features
  */
-const VALID_TABS = ['feed', 'reels', 'friends', 'challenges'] as const;
+const VALID_TABS = ['feed', 'explore', 'reels', 'friends', 'challenges'] as const;
 type SocialTab = typeof VALID_TABS[number];
 
 const SocialPage: React.FC = () => {
@@ -335,6 +336,12 @@ const SocialPage: React.FC = () => {
     switch (activeTab) {
       case 'feed':
         return <SocialFeed />;
+      case 'explore':
+        return (
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading Explore...</div>}>
+            <ExploreView />
+          </Suspense>
+        );
       case 'reels':
         return (
           <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading Reels...</div>}>
@@ -362,6 +369,13 @@ const SocialPage: React.FC = () => {
         >
           <Home size={20} />
           Feed
+        </TabButton>
+        <TabButton
+          $active={activeTab === 'explore'}
+          onClick={() => handleTabChange('explore')}
+        >
+          <TrendingUp size={20} />
+          Explore
         </TabButton>
         <TabButton
           $active={activeTab === 'reels'}
@@ -442,6 +456,13 @@ const SocialPage: React.FC = () => {
               >
                 <Home size={20} />
                 Feed
+              </MenuButton>
+              <MenuButton
+                onClick={() => handleTabChange('explore')}
+                $active={activeTab === 'explore'}
+              >
+                <TrendingUp size={20} />
+                Explore
               </MenuButton>
               <MenuButton
                 onClick={() => handleTabChange('reels')}

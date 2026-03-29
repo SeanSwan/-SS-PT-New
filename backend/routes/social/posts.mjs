@@ -413,6 +413,131 @@ router.get('/feed', async (req, res) => {
 });
 
 /**
+ * Get trending/popular posts (sorted by engagement)
+ * Used by Social Explore tab
+ */
+router.get('/trending', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const offset = parseInt(req.query.offset) || 0;
+    const timeframe = req.query.timeframe || '7d'; // 7d, 30d, all
+
+    // Calculate date cutoff
+    let dateCutoff = null;
+    if (timeframe === '7d') dateCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    else if (timeframe === '30d') dateCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // Try legacy SocialPost table first
+    try {
+      const where = { visibility: 'public' };
+      if (dateCutoff) where.createdAt = { [Op.gte]: dateCutoff };
+
+      const posts = await SocialPost.findAndCountAll({
+        where,
+        order: [
+          [sequelize.literal('"likesCount" + "commentsCount"'), 'DESC'],
+          ['createdAt', 'DESC'],
+        ],
+        limit,
+        offset,
+      });
+
+      const userIds = [...new Set(posts.rows.map(p => p.userId))].filter(Boolean);
+      const User = getUser();
+      const users = userIds.length > 0
+        ? await User.findAll({
+            where: { id: { [Op.in]: userIds } },
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            raw: true,
+          })
+        : [];
+      const userMap = new Map(users.map(u => [u.id, u]));
+
+      // Check if current user liked each post
+      const postIds = posts.rows.map(p => p.id);
+      const userLikes = postIds.length > 0
+        ? await SocialLike.findAll({
+            where: { postId: { [Op.in]: postIds }, userId: req.user.id },
+            attributes: ['postId'],
+            raw: true,
+          })
+        : [];
+      const likedSet = new Set(userLikes.map(l => l.postId));
+
+      return res.json({
+        success: true,
+        posts: posts.rows.map(p => ({
+          ...p.toJSON(),
+          user: userMap.get(p.userId) || null,
+          isLiked: likedSet.has(p.id),
+        })),
+        pagination: { total: posts.count, limit, offset },
+      });
+    } catch (err) {
+      if (!isLegacySocialTableMissingError(err)) throw err;
+
+      // Fallback to EnhancedSocialPost
+      const where = {
+        status: 'published',
+        moderationStatus: 'approved',
+        visibility: 'public',
+      };
+      if (dateCutoff) where.createdAt = { [Op.gte]: dateCutoff };
+
+      const posts = await EnhancedSocialPost.findAll({
+        where,
+        order: [
+          [sequelize.literal('"likesCount" + "commentsCount"'), 'DESC'],
+          ['createdAt', 'DESC'],
+        ],
+        limit,
+        offset,
+        raw: true,
+      });
+      const total = await EnhancedSocialPost.count({ where });
+
+      const userIds = [...new Set(posts.map(p => p.userId).filter(id => /^\d+$/.test(String(id))))].map(Number);
+      const User = getUser();
+      const users = userIds.length > 0
+        ? await User.findAll({
+            where: { id: { [Op.in]: userIds } },
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            raw: true,
+          })
+        : [];
+      const userMap = new Map(users.map(u => [String(u.id), u]));
+
+      return res.json({
+        success: true,
+        posts: posts.map(p => ({
+          id: p.id,
+          userId: p.userId,
+          content: p.content,
+          type: p.contentType || 'general',
+          visibility: p.visibility || 'public',
+          mediaUrl: Array.isArray(p.mediaItems) && p.mediaItems[0]?.url || null,
+          likesCount: p.likesCount || 0,
+          commentsCount: p.commentsCount || 0,
+          isLiked: false,
+          createdAt: p.publishedAt || p.createdAt,
+          updatedAt: p.updatedAt,
+          user: userMap.get(String(p.userId)) || null,
+        })),
+        pagination: { total, limit, offset },
+        fallback: 'enhanced_social_posts',
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching trending posts:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trending posts',
+      error: error.message,
+    });
+  }
+});
+
+/**
  * Get user's posts
  */
 router.get('/user/:userId', async (req, res) => {

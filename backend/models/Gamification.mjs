@@ -149,6 +149,32 @@ const Gamification = db.define('Gamification', {
     type: DataTypes.STRING(50),
     allowNull: true,
     defaultValue: 'neutral'
+  },
+  // ── Tamagotchi Companion Pet (V2 Feature) ──
+  // Species chosen at adoption, state evolves from Aegis HUD + activity
+  petSpecies: {
+    type: DataTypes.STRING(30),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Pet species: crystal_dragon, iron_wolf, ember_phoenix, frost_swan, shadow_panther'
+  },
+  petName: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'User-chosen pet name'
+  },
+  petState: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Full pet state: evolution, health, mood, appearance mods, birth date'
+  },
+  petInventory: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Cosmetic items earned for pet (armor, wings, weapons, auras)'
   }
 }, {
   timestamps: true

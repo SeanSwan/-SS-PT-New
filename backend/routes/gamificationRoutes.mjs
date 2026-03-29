@@ -506,4 +506,27 @@ router.post('/users/:userId/aegis-hud/replenish', authenticate, authorizeTrainer
  */
 router.put('/users/:userId/aegis-hud/:needKey', authenticate, authorizeAdmin, gamificationController.setAegisHudNeed);
 
+// ── COMPANION PET ROUTES ──
+
+/** @route GET /api/gamification/pet/config — Species catalog + evolution stages */
+router.get('/pet/config', authenticate, gamificationController.getPetConfig);
+
+/** @route GET /api/gamification/users/:userId/pet — Get pet state */
+router.get('/users/:userId/pet', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getPet);
+
+/** @route POST /api/gamification/users/:userId/pet/adopt — Adopt a new pet */
+router.post('/users/:userId/pet/adopt', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.adoptPet);
+
+/** @route POST /api/gamification/users/:userId/pet/interact — Pet/feed/play */
+router.post('/users/:userId/pet/interact', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.interactWithPet);
+
+/** @route POST /api/gamification/users/:userId/pet/activity — Record activity */
+router.post('/users/:userId/pet/activity', authenticate, authorizeTrainer, gamificationController.recordPetActivity);
+
+/** @route PUT /api/gamification/users/:userId/pet/rename — Rename pet */
+router.put('/users/:userId/pet/rename', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.renamePet);
+
+/** @route DELETE /api/gamification/users/:userId/pet — Release pet */
+router.delete('/users/:userId/pet', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.releasePet);
+
 export default router;
