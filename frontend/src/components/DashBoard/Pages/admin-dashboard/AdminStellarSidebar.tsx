@@ -35,7 +35,7 @@ import { WORKSPACE_CONFIG, WorkspaceConfig } from '../../../../config/dashboard-
 import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
-  ChevronRight, ChevronLeft, Menu, X, UserCircle,
+  ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -574,10 +574,23 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
             </NavItem>
           ))}
 
-          {/* My Training link for admin/trainer */}
+          {/* My Clients + My Training links for admin/trainer */}
           {(user?.role === 'admin' || user?.role === 'trainer') && (
             <>
               <Divider $collapsed={collapsed && !isMobile} />
+              <NavItem
+                $active={isActive('/dashboard/admin/my-clients')}
+                $collapsed={collapsed && !isMobile}
+                onClick={() => handleNav('/dashboard/admin/my-clients')}
+                role="menuitem"
+                aria-label="My Clients"
+              >
+                <NavIcon><UsersRound size={20} /></NavIcon>
+                <NavLabel $visible={showLabel}>My Clients</NavLabel>
+                {collapsed && !isMobile && (
+                  <NavTooltip>My Clients</NavTooltip>
+                )}
+              </NavItem>
               <NavItem
                 $active={isActive('/client-dashboard')}
                 $collapsed={collapsed && !isMobile}

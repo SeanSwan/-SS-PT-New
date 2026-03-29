@@ -46,18 +46,49 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { ClipboardCheck, ChevronDown, Send, FileText } from 'lucide-react';
+import { ClipboardCheck, ChevronDown, Send, FileText, BookOpen } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import NASMTeachMode from './components/NASMTeachMode';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
 // ─────────────────────────────────────────────────────────────
-interface Assessment { id: number; clientName?: string; type?: string; score?: number; notes?: string; date?: string; }
+interface Assessment { id: number; clientName?: string; type?: string; score?: number; notes?: string; date?: string; fullName?: string; nasmAssessmentScore?: number; }
 const ASSESSMENT_TYPES = [
   { value: 'movement_screen', label: 'Movement Screen' },
   { value: 'postural_analysis', label: 'Postural Analysis' },
   { value: 'performance_test', label: 'Performance Test' },
 ] as const;
+
+// OHSA checkpoint keys — maps to NASM kinetic chain checkpoints
+const OHSA_CHECKPOINTS = [
+  { key: 'feetFlatten', label: 'Feet Flatten / Turn Out', view: 'anterior' },
+  { key: 'kneesValgus', label: 'Knees Move Inward (Valgus)', view: 'anterior' },
+  { key: 'excessiveForwardLean', label: 'Excessive Forward Lean', view: 'lateral' },
+  { key: 'lowBackArches', label: 'Low Back Arches (Extension)', view: 'lateral' },
+  { key: 'armsFallForward', label: 'Arms Fall Forward', view: 'lateral' },
+] as const;
+
+// Postural checkpoints
+const POSTURAL_CHECKPOINTS = [
+  { key: 'forwardHead', label: 'Forward Head Posture', view: 'lateral' },
+  { key: 'roundedShoulders', label: 'Rounded Shoulders', view: 'lateral' },
+  { key: 'kyphosis', label: 'Thoracic Kyphosis', view: 'lateral' },
+  { key: 'anteriorPelvicTilt', label: 'Anterior Pelvic Tilt', view: 'lateral' },
+  { key: 'kneeValgusVarus', label: 'Knee Valgus / Varus', view: 'anterior' },
+  { key: 'footPronation', label: 'Foot Pronation', view: 'anterior' },
+] as const;
+
+// Performance test fields
+const PERFORMANCE_TESTS = [
+  { key: 'pushUpReps', label: 'Push-Up Test (reps in 60s)', unit: 'reps' },
+  { key: 'daviesScore', label: 'Davies Test (touches in 15s)', unit: 'touches' },
+  { key: 'sharkSkillTime', label: 'Shark Skill Test (seconds)', unit: 'seconds' },
+  { key: 'singleLegSquatScore', label: 'Single-Leg Squat (1-5 scale)', unit: 'score' },
+  { key: 'cardioHR', label: 'YMCA Step Test (recovery HR)', unit: 'bpm' },
+] as const;
+
+type CompensationLevel = 'none' | 'minor' | 'significant';
 
 // NASM OPT Assessment Protocols — criteria per assessment type
 const TYPE_CRITERIA: Record<string, { description: string; criteria: string[]; checkpoints: string[] }> = {
@@ -214,21 +245,6 @@ const Textarea = styled.textarea`
   &:focus { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
 
-const ScoreRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  input[type="range"] { flex: 1; accent-color: var(--accent-primary, #60C0F0); }
-`;
-const ScoreValue = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent-primary, #60C0F0);
-  min-width: 32px;
-  text-align: center;
-`;
-
 const SubmitButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -308,21 +324,131 @@ const CriteriaTag = styled.span`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
+const TeachModeToggle = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96,192,240,0.12))'};
+  background: ${({ $active }) => $active ? 'rgba(139,92,246,0.15)' : 'var(--bg-surface, #1A1A24)'};
+  color: ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-primary, #E0ECF4)'};
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover { border-color: var(--accent-secondary, #8B5CF6); }
+`;
+
+// Checkpoint scoring pill selector
+const CheckpointRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.06));
+  gap: 12px;
+  flex-wrap: wrap;
+  &:last-child { border-bottom: none; }
+`;
+const CheckpointLabel = styled.span`
+  font-size: 0.82rem;
+  color: var(--text-primary, #E0ECF4);
+  flex: 1;
+  min-width: 150px;
+`;
+const PillGroup = styled.div`display: flex; gap: 6px;`;
+const Pill = styled.button<{ $level: CompensationLevel; $active?: boolean }>`
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid ${({ $active, $level }) =>
+    $active
+      ? $level === 'none' ? 'rgba(96,192,240,0.5)' : $level === 'minor' ? 'rgba(198,168,75,0.5)' : 'rgba(201,42,84,0.5)'
+      : 'var(--border-soft, rgba(96,192,240,0.12))'};
+  background: ${({ $active, $level }) =>
+    $active
+      ? $level === 'none' ? 'rgba(96,192,240,0.15)' : $level === 'minor' ? 'rgba(198,168,75,0.15)' : 'rgba(201,42,84,0.15)'
+      : 'transparent'};
+  color: ${({ $active, $level }) =>
+    $active
+      ? $level === 'none' ? '#60C0F0' : $level === 'minor' ? '#C6A84B' : '#C92A54'
+      : 'var(--text-muted, rgba(224,236,244,0.4))'};
+`;
+const CheckpointCard = styled.div`
+  background: var(--bg-surface, #1A1A24);
+  border: 1px solid var(--border-soft, rgba(96,192,240,0.08));
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+`;
+const CheckpointCardTitle = styled.div`
+  padding: 10px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent-primary, #60C0F0);
+  background: var(--bg-elevated, #141419);
+`;
+const PerfInput = styled.input`
+  width: 100px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
+  background: var(--bg-surface, #1A1A24);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  text-align: center;
+  &:focus { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
+`;
+const SubmitStatus = styled.span<{ $success?: boolean }>`
+  font-size: 0.8rem;
+  color: ${({ $success }) => $success ? '#60C0F0' : '#C92A54'};
+  margin-left: 12px;
+`;
+
 const TrainerAssessmentsPage: React.FC = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const [assessmentType, setAssessmentType] = useState(ASSESSMENT_TYPES[0].value);
+  const [teachMode, setTeachMode] = useState(false);
   const [clientId, setClientId] = useState('');
-  const [score, setScore] = useState(5);
   const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [history, setHistory] = useState<Assessment[]>([]);
   const [clients, setClients] = useState<{ id: number; name: string }[]>([]);
+  const [submitStatus, setSubmitStatus] = useState<{ msg: string; success: boolean } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Per-checkpoint compensation scoring for OHSA
+  const [ohsaScores, setOhsaScores] = useState<Record<string, CompensationLevel>>(
+    Object.fromEntries(OHSA_CHECKPOINTS.map(c => [c.key, 'none']))
+  );
+
+  // Per-checkpoint scoring for Postural Analysis
+  const [posturalScores, setPosturalScores] = useState<Record<string, CompensationLevel>>(
+    Object.fromEntries(POSTURAL_CHECKPOINTS.map(c => [c.key, 'none']))
+  );
+
+  // Performance test values
+  const [perfScores, setPerfScores] = useState<Record<string, string>>(
+    Object.fromEntries(PERFORMANCE_TESTS.map(t => [t.key, '']))
+  );
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await authAxios.get('/api/movement-analysis');
-        setHistory(Array.isArray(res.data) ? res.data : res.data?.assessments || []);
+        const list = res.data?.data || res.data?.assessments || [];
+        setHistory(Array.isArray(list) ? list : []);
       } catch { setHistory([]); }
       try {
         const res = await authAxios.get('/api/admin/clients');
@@ -333,37 +459,101 @@ const TrainerAssessmentsPage: React.FC = () => {
     load();
   }, [authAxios]);
 
+  // Build the payload in the format MovementAnalysis controller expects
+  const buildPayload = useCallback(() => {
+    const selectedClient = clients.find(c => c.id === Number(clientId));
+    const base = {
+      userId: Number(clientId),
+      fullName: selectedClient?.name || 'Client',
+      status: 'completed',
+      source: 'trainer_assessment',
+      trainerNotes: notes || null,
+    };
+
+    if (assessmentType === 'movement_screen') {
+      // Build OHSA JSONB — maps checkpoint keys to compensation levels
+      return {
+        ...base,
+        overheadSquatAssessment: {
+          ...ohsaScores,
+          assessmentDate: date,
+          conductedBy: user?.id,
+        },
+      };
+    }
+
+    if (assessmentType === 'postural_analysis') {
+      return {
+        ...base,
+        posturalAssessment: {
+          ...posturalScores,
+          assessmentDate: date,
+          conductedBy: user?.id,
+        },
+      };
+    }
+
+    // performance_test — build movementQualityAssessments
+    const parsedScores: Record<string, number | null> = {};
+    for (const t of PERFORMANCE_TESTS) {
+      const val = perfScores[t.key];
+      parsedScores[t.key] = val ? Number(val) : null;
+    }
+    return {
+      ...base,
+      movementQualityAssessments: {
+        ...parsedScores,
+        assessmentDate: date,
+        conductedBy: user?.id,
+      },
+    };
+  }, [assessmentType, clientId, clients, date, notes, ohsaScores, posturalScores, perfScores, user]);
+
   const handleSubmit = useCallback(async () => {
     if (!authAxios || !clientId || !assessmentType) return;
+    setSubmitting(true);
+    setSubmitStatus(null);
     try {
-      await authAxios.post('/api/movement-analysis', {
-        assessmentType,
-        clientId: Number(clientId),
-        score: Number(score) || 0,
-        notes,
-        date: date || new Date().toISOString().split('T')[0],
-      });
-      // Reset form on success
-      setScore(5);
+      const payload = buildPayload();
+      await authAxios.post('/api/movement-analysis', payload);
+      setSubmitStatus({ msg: 'Assessment saved — AI hive mind updated', success: true });
+      // Reset form
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);
-      // Reload assessments list
+      setOhsaScores(Object.fromEntries(OHSA_CHECKPOINTS.map(c => [c.key, 'none'])));
+      setPosturalScores(Object.fromEntries(POSTURAL_CHECKPOINTS.map(c => [c.key, 'none'])));
+      setPerfScores(Object.fromEntries(PERFORMANCE_TESTS.map(t => [t.key, ''])));
+      // Reload history
       try {
         const res = await authAxios.get('/api/movement-analysis');
-        const list = Array.isArray(res.data) ? res.data : res.data?.assessments || [];
-        setHistory(list);
-      } catch { /* list refresh failed, non-critical */ }
+        const list = res.data?.data || res.data?.assessments || [];
+        setHistory(Array.isArray(list) ? list : []);
+      } catch { /* non-critical */ }
     } catch (err: any) {
       console.error('Failed to submit assessment:', err);
+      setSubmitStatus({ msg: err?.response?.data?.message || 'Submission failed', success: false });
+    } finally {
+      setSubmitting(false);
     }
-  }, [authAxios, assessmentType, clientId, score, notes, date]);
+  }, [authAxios, assessmentType, clientId, buildPayload]);
 
   return (
     <PageWrapper>
       <Header>
-        <Title><ClipboardCheck size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Form Assessments</Title>
-        <Subtitle>Record movement screens, postural analyses, and performance tests for your clients.</Subtitle>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <Title><ClipboardCheck size={24} style={{ verticalAlign: 'middle', marginRight: 8 }} />Form Assessments</Title>
+            <Subtitle>Record movement screens, postural analyses, and performance tests for your clients.</Subtitle>
+          </div>
+          <TeachModeToggle $active={teachMode} onClick={() => setTeachMode(!teachMode)}>
+            <BookOpen size={18} />
+            {teachMode ? 'Hide Teach Mode' : 'Teach Mode'}
+          </TeachModeToggle>
+        </div>
       </Header>
+
+      {/* NASM Teach Mode — step-by-step execution guides */}
+      {teachMode && <NASMTeachMode assessmentType={assessmentType} />}
 
       <FormCard>
         <FieldGroup>
@@ -405,13 +595,62 @@ const TrainerAssessmentsPage: React.FC = () => {
           </Select>
         </FieldGroup>
 
-        <FieldGroup>
-          <Label>Score (1–10)</Label>
-          <ScoreRow>
-            <input type="range" min={1} max={10} value={score} onChange={e => setScore(Number(e.target.value))} />
-            <ScoreValue>{score}</ScoreValue>
-          </ScoreRow>
-        </FieldGroup>
+        {/* Type-specific checkpoint scoring — OHSA */}
+        {assessmentType === 'movement_screen' && (
+          <CheckpointCard>
+            <CheckpointCardTitle>OHSA Compensation Scoring</CheckpointCardTitle>
+            {OHSA_CHECKPOINTS.map(cp => (
+              <CheckpointRow key={cp.key}>
+                <CheckpointLabel>{cp.label} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({cp.view})</span></CheckpointLabel>
+                <PillGroup>
+                  {(['none', 'minor', 'significant'] as CompensationLevel[]).map(level => (
+                    <Pill key={level} $level={level} $active={ohsaScores[cp.key] === level}
+                      onClick={() => setOhsaScores(prev => ({ ...prev, [cp.key]: level }))}>
+                      {level}
+                    </Pill>
+                  ))}
+                </PillGroup>
+              </CheckpointRow>
+            ))}
+          </CheckpointCard>
+        )}
+
+        {/* Postural Analysis checkpoint scoring */}
+        {assessmentType === 'postural_analysis' && (
+          <CheckpointCard>
+            <CheckpointCardTitle>Postural Deviation Scoring</CheckpointCardTitle>
+            {POSTURAL_CHECKPOINTS.map(cp => (
+              <CheckpointRow key={cp.key}>
+                <CheckpointLabel>{cp.label} <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({cp.view})</span></CheckpointLabel>
+                <PillGroup>
+                  {(['none', 'minor', 'significant'] as CompensationLevel[]).map(level => (
+                    <Pill key={level} $level={level} $active={posturalScores[cp.key] === level}
+                      onClick={() => setPosturalScores(prev => ({ ...prev, [cp.key]: level }))}>
+                      {level}
+                    </Pill>
+                  ))}
+                </PillGroup>
+              </CheckpointRow>
+            ))}
+          </CheckpointCard>
+        )}
+
+        {/* Performance test value inputs */}
+        {assessmentType === 'performance_test' && (
+          <CheckpointCard>
+            <CheckpointCardTitle>Performance Test Results</CheckpointCardTitle>
+            {PERFORMANCE_TESTS.map(t => (
+              <CheckpointRow key={t.key}>
+                <CheckpointLabel>{t.label}</CheckpointLabel>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <PerfInput type="number" min={0} placeholder="—"
+                    value={perfScores[t.key]} onChange={e => setPerfScores(prev => ({ ...prev, [t.key]: e.target.value }))} />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{t.unit}</span>
+                </div>
+              </CheckpointRow>
+            ))}
+          </CheckpointCard>
+        )}
 
         <FieldGroup>
           <Label>Date</Label>
@@ -419,24 +658,34 @@ const TrainerAssessmentsPage: React.FC = () => {
         </FieldGroup>
 
         <FieldGroup>
-          <Label>Notes</Label>
-          <Textarea placeholder="Observations, compensations, recommendations..." value={notes} onChange={e => setNotes(e.target.value)} />
+          <Label>Trainer Notes</Label>
+          <Textarea placeholder="Observations, compensations, corrective exercise recommendations..." value={notes} onChange={e => setNotes(e.target.value)} />
         </FieldGroup>
 
-        <SubmitButton onClick={handleSubmit}><Send size={18} /> Submit Assessment</SubmitButton>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <SubmitButton onClick={handleSubmit} disabled={submitting || !clientId}>
+            <Send size={18} /> {submitting ? 'Saving...' : 'Submit Assessment'}
+          </SubmitButton>
+          {submitStatus && <SubmitStatus $success={submitStatus.success}>{submitStatus.msg}</SubmitStatus>}
+        </div>
       </FormCard>
 
       <SectionTitle><FileText size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />Recent Assessments</SectionTitle>
       {history.length === 0 ? (
         <EmptyState>No assessments recorded yet. Complete the form above to get started.</EmptyState>
       ) : (
-        history.slice(0, 10).map(a => (
+        history.slice(0, 10).map((a: any) => (
           <HistoryCard key={a.id}>
             <HistoryInfo>
-              <HistoryType>{a.type || 'Assessment'}</HistoryType>
-              <HistoryMeta>{a.clientName} &middot; {a.date ? new Date(a.date).toLocaleDateString() : '—'}</HistoryMeta>
+              <HistoryType>{a.fullName || a.clientName || 'Assessment'}</HistoryType>
+              <HistoryMeta>
+                {a.source === 'trainer_assessment' ? 'Trainer Assessment' : a.source || 'Assessment'}
+                {' '}&middot;{' '}
+                {a.assessmentDate ? new Date(a.assessmentDate).toLocaleDateString() : a.date ? new Date(a.date).toLocaleDateString() : '—'}
+                {a.status && <> &middot; <span style={{ color: a.status === 'completed' ? '#60C0F0' : '#C6A84B' }}>{a.status}</span></>}
+              </HistoryMeta>
             </HistoryInfo>
-            <HistoryScore>{a.score ?? '—'}/10</HistoryScore>
+            <HistoryScore>{a.nasmAssessmentScore ?? a.score ?? '—'}</HistoryScore>
           </HistoryCard>
         ))
       )}

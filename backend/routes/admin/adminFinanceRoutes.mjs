@@ -746,17 +746,21 @@ router.get('/export', async (req, res) => {
 
 /**
  * GET /api/admin/trainers
- * Get all trainers for admin management
+ * Get all trainers for admin management.
+ * Includes admin users because admins can also function as trainers
+ * (e.g., Sean Swan is both admin AND a trainer who takes clients).
  * @access Private (Admin Only)
  */
 router.get('/trainers', async (req, res) => {
   try {
     // Get models
     const User = getUser();
-    
+
+    // Include both trainer-role AND admin-role users so admins
+    // can assign clients to themselves and see them in My Training
     const trainers = await User.findAll({
       where: {
-        role: 'trainer'
+        role: { [Op.in]: ['trainer', 'admin'] }
       },
       attributes: [
         'id', 'firstName', 'lastName', 'email', 'phone', 'photo', 
