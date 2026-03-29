@@ -825,32 +825,39 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
 
     // Calculate date range
     let dateRange = {};
+    const now = new Date();
+    let resolvedStartDate = startDate ? new Date(startDate) : null;
+    let resolvedEndDate = endDate ? new Date(endDate) : now;
+
     if (startDate && endDate) {
       dateRange = {
         [Op.between]: [new Date(startDate), new Date(endDate)]
       };
     } else {
-      const now = new Date();
-      let startDateCalc;
-      
       switch (timeRange) {
+        case '7d':
+          resolvedStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+          break;
+        case '30d':
         case '1month':
-          startDateCalc = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          resolvedStartDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
           break;
         case '6months':
-          startDateCalc = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          resolvedStartDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
           break;
+        case '1y':
         case '1year':
-          startDateCalc = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          resolvedStartDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
           break;
+        case '90d':
         case '3months':
         default:
-          startDateCalc = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+          resolvedStartDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
           break;
       }
-      
+
       dateRange = {
-        [Op.gte]: startDateCalc
+        [Op.gte]: resolvedStartDate
       };
     }
 
@@ -859,8 +866,7 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
     const forms = await DailyWorkoutForm.findAll({
       where: {
         clientId: parseInt(clientId),
-        date: dateRange,
-        mcpProcessed: true
+        date: dateRange
       },
       order: [['date', 'ASC']]
     });
@@ -923,7 +929,7 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
       success: true,
       progressData,
       totalWorkouts: forms.length,
-      dateRange: { startDate: startDate || dateRange[Op.gte], endDate: endDate || new Date() }
+      dateRange: { startDate: resolvedStartDate, endDate: resolvedEndDate }
     });
 
   } catch (error) {
@@ -998,14 +1004,27 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
 
     // --- Single query: all workout forms in range (uses composite index clientId+date) ---
     const DailyWorkoutForm = getDailyWorkoutForm();
-    const forms = await DailyWorkoutForm.findAll({
-      where: {
-        clientId: parsedClientId,
-        date: { [Op.gte]: startDate }
-      },
-      order: [['date', 'ASC']],
-      attributes: ['id', 'date', 'formData', 'totalPointsEarned', 'submittedAt', 'createdAt']
-    });
+    let forms;
+    try {
+      forms = await DailyWorkoutForm.findAll({
+        where: {
+          clientId: parsedClientId,
+          date: { [Op.gte]: startDate }
+        },
+        order: [['date', 'ASC']],
+        attributes: ['id', 'date', 'formData', 'totalPointsEarned', 'submittedAt', 'createdAt']
+      });
+    } catch (queryErr) {
+      // Fallback: if specific attributes fail (column may not exist in prod), query without attribute filter
+      logger.warn('Progress-detailed attribute query failed, retrying without attribute filter:', queryErr.message);
+      forms = await DailyWorkoutForm.findAll({
+        where: {
+          clientId: parsedClientId,
+          date: { [Op.gte]: startDate }
+        },
+        order: [['date', 'ASC']]
+      });
+    }
 
     // ========== Helper: Epley 1RM ==========
     const calcEpley1RM = (weight, reps) => {
