@@ -110,12 +110,15 @@ const ClearButton = styled.button`
 const Dropdown = styled.div<{ $visible: boolean }>`
   position: fixed;
   max-height: 280px;
+  background-color: #141419;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--accent-primary, #60C0F0);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 8px rgba(96, 192, 240, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 8px rgba(96, 192, 240, 0.15);
   z-index: 99999;
   overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
 

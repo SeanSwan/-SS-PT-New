@@ -256,12 +256,18 @@ export const SendButton = styled.button<{ $visible: boolean }>`
 // ─────────────────────────────────────────────────────────────
 
 export const ExpandedPanel = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   margin-top: 4px;
   border-radius: 12px;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
   overflow: hidden;
   animation: ${slideDown} 0.2s ease-out;
+  z-index: 100;
+  max-height: 500px;
 
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

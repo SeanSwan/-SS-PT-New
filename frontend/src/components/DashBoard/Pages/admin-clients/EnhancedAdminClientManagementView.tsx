@@ -2097,7 +2097,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
           <ActionButton
             $variant="outlined"
-            onClick={() => {/* TODO: Open analytics view */}}
+            onClick={() => navigate('/dashboard/reports')}
           >
             <ClipboardList size={18} />
             View Analytics
@@ -2105,7 +2105,19 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
           <ActionButton
             $variant="outlined"
-            onClick={() => {/* TODO: Export functionality */}}
+            onClick={() => {
+              const csvHeaders = 'Name,Email,Phone,Sessions,Created\n';
+              const csvRows = filteredClients.map(c =>
+                `"${c.firstName || ''} ${c.lastName || ''}","${c.email || ''}","${c.phone || ''}",${c.availableSessions || 0},"${c.createdAt || ''}"`
+              ).join('\n');
+              const blob = new Blob([csvHeaders + csvRows], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `swanstudios-clients-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
           >
             <Download size={18} />
             Export Client Data
@@ -2113,7 +2125,13 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
           <ActionButton
             $variant="outlined"
-            onClick={() => {/* TODO: AI insights modal */}}
+            onClick={() => {
+              if (selectedClient) {
+                navigate(`/dashboard/people/view-as/${selectedClient.id}`);
+              } else {
+                alert('Please select a client first to view AI insights.');
+              }
+            }}
           >
             <Brain size={18} />
             AI Insights

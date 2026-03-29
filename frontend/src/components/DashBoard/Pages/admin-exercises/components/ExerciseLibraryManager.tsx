@@ -787,7 +787,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
   }, [exercises, searchQuery, filterType, sortField, sortDirection]);
   
   // Pagination
-  const exercisesPerPage = 12;
+  const exercisesPerPage = 48;
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = filteredExercises.slice(
     (currentPage - 1) * exercisesPerPage,

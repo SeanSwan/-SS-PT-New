@@ -37,6 +37,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { Activity, Flame, Trophy, Zap, Calendar, TrendingUp, Dumbbell, Loader } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -167,6 +168,7 @@ const getTier = (level: number) => {
 
 const ClientOverviewPage: React.FC = () => {
   const { user, authAxios } = useAuth();
+  const navigate = useNavigate();
   const [gamData, setGamData] = useState<any>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,9 +227,9 @@ const ClientOverviewPage: React.FC = () => {
       </StatsGrid>
 
       <ActionsRow>
-        <ActionBtn onClick={() => console.warn('TODO: navigate to booking')}><Calendar size={18} /> Book Session</ActionBtn>
-        <ActionBtn onClick={() => console.warn('TODO: navigate to progress')}><TrendingUp size={18} /> View Progress</ActionBtn>
-        <ActionBtn onClick={() => console.warn('TODO: navigate to workout log')}><Dumbbell size={18} /> Log Workout</ActionBtn>
+        <ActionBtn onClick={() => navigate('/dashboard/client/schedule')}><Calendar size={18} /> Book Session</ActionBtn>
+        <ActionBtn onClick={() => navigate('/dashboard/client/progress')}><TrendingUp size={18} /> View Progress</ActionBtn>
+        <ActionBtn onClick={() => navigate('/dashboard/client/workouts')}><Dumbbell size={18} /> Log Workout</ActionBtn>
       </ActionsRow>
 
       <TwoCol>

@@ -404,11 +404,11 @@ router.get('/clients', protect, adminOnly, async (req, res) => {
       order: [['lastName', 'ASC'], ['firstName', 'ASC']]
     });
     
-    res.status(200).json(clients);
+    res.status(200).json({ success: true, clients });
   } catch (error) {
     logger.error(`Error fetching clients: ${error.message}`);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Server error fetching clients'
     });
   }

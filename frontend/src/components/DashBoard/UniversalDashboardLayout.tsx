@@ -116,6 +116,7 @@ const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/Tra
 const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
 const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
+const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Universal Theme — CSS Custom Property Bridge
@@ -474,7 +475,10 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
 
       // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' }
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
+
+      // 🔧 EQUIPMENT MANAGER — Upload gym/park/home photos, manage equipment profiles
+      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
     ],
     defaultPath: '/overview'
   },
@@ -490,7 +494,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
-      { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' }
+      { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },
+      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
     ],
     defaultPath: '/overview'
   },
@@ -498,8 +503,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
     routes: [
       { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
+      { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
       { path: '/progress', component: ClientProgressWrapper, title: 'My Progress', description: 'NASM progress visualization dashboard' },
-      // Workout Intelligence REMOVED for clients — trainers create plans, clients receive them
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },

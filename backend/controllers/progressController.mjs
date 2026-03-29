@@ -529,17 +529,17 @@ const progressController = {
       }
 
       // Get progress data for timeframe
-      const progressData = await this.getProgressDataForTimeframe(userId, timeframe, models);
-      
+      const progressData = await progressController.getProgressDataForTimeframe(userId, timeframe, models);
+
       // Generate comprehensive insights
       const insights = {
-        overview: await this.generateOverviewInsights(user, progressData),
-        trends: this.calculateDetailedTrends(progressData),
-        achievements: await this.getAchievementInsights(userId, models),
-        challenges: await this.getChallengeInsights(userId, models),
-        recommendations: await this.generateRecommendations(userId, progressData, models),
-        goals: await this.getGoalInsights(userId, models),
-        social: await this.getSocialInsights(userId, models)
+        overview: progressController.generateOverviewInsights(user, progressData),
+        trends: progressController.calculateDetailedTrends(progressData),
+        achievements: await progressController.getAchievementInsights(userId, models),
+        challenges: await progressController.getChallengeInsights(userId, models),
+        recommendations: progressController.generateRecommendations(progressData),
+        goals: await progressController.getGoalInsights(userId, models),
+        social: await progressController.getSocialInsights(userId, models)
       };
 
       return res.status(200).json({
@@ -666,6 +666,133 @@ const progressController = {
     }
 
     return insights;
+  },
+
+  // ── Missing helper methods for getProgressInsights ──────────────────────
+
+  getProgressDataForTimeframe: async (userId, timeframe, models) => {
+    const { ProgressData } = models;
+    if (!ProgressData) return [];
+
+    const now = new Date();
+    const startDate = new Date();
+    if (timeframe === 'weekly') startDate.setDate(now.getDate() - 7);
+    else if (timeframe === 'monthly') startDate.setMonth(now.getMonth() - 1);
+    else if (timeframe === 'quarterly') startDate.setMonth(now.getMonth() - 3);
+    else startDate.setMonth(now.getMonth() - 1); // default monthly
+
+    try {
+      const data = await ProgressData.findAll({
+        where: {
+          userId,
+          date: { [Op.gte]: startDate }
+        },
+        order: [['date', 'ASC']],
+        raw: true,
+      });
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  generateOverviewInsights: (user, progressData) => {
+    const totalWorkouts = progressData.reduce((sum, p) => sum + (p.workoutsCompleted || 0), 0);
+    const totalXp = progressData.reduce((sum, p) => sum + (p.xpGained || 0), 0);
+    const totalCalories = progressData.reduce((sum, p) => sum + (p.caloriesBurned || 0), 0);
+    const activeDays = progressData.filter(p => (p.workoutsCompleted || 0) > 0).length;
+
+    return {
+      totalWorkouts,
+      totalXp,
+      totalCalories,
+      activeDays,
+      totalDays: progressData.length,
+      consistencyRate: progressData.length > 0 ? Math.round((activeDays / progressData.length) * 100) : 0,
+    };
+  },
+
+  calculateDetailedTrends: (progressData) => {
+    if (progressData.length < 2) {
+      return { xp: 'stable', workouts: 'stable', calories: 'stable', streak: 'stable' };
+    }
+
+    const mid = Math.floor(progressData.length / 2);
+    const firstHalf = progressData.slice(0, mid);
+    const secondHalf = progressData.slice(mid);
+
+    const avg = (arr, field) => arr.length > 0 ? arr.reduce((s, p) => s + (p[field] || 0), 0) / arr.length : 0;
+    const trend = (a, b) => b > a * 1.1 ? 'up' : b < a * 0.9 ? 'down' : 'stable';
+
+    return {
+      xp: trend(avg(firstHalf, 'xpGained'), avg(secondHalf, 'xpGained')),
+      workouts: trend(avg(firstHalf, 'workoutsCompleted'), avg(secondHalf, 'workoutsCompleted')),
+      calories: trend(avg(firstHalf, 'caloriesBurned'), avg(secondHalf, 'caloriesBurned')),
+      streak: trend(avg(firstHalf, 'currentStreak'), avg(secondHalf, 'currentStreak')),
+    };
+  },
+
+  getAchievementInsights: async (userId, models) => {
+    try {
+      const { UserAchievement } = models;
+      if (!UserAchievement) return { total: 0, recent: [] };
+      const achievements = await UserAchievement.findAll({
+        where: { userId, isUnlocked: true },
+        order: [['unlockedAt', 'DESC']],
+        limit: 5,
+        raw: true,
+      });
+      return { total: achievements.length, recent: achievements };
+    } catch {
+      return { total: 0, recent: [] };
+    }
+  },
+
+  getChallengeInsights: async (userId, models) => {
+    try {
+      const { ChallengeParticipant } = models;
+      if (!ChallengeParticipant) return { active: 0, completed: 0 };
+      const active = await ChallengeParticipant.count({ where: { userId, status: 'active' } });
+      const completed = await ChallengeParticipant.count({ where: { userId, status: 'completed' } });
+      return { active, completed };
+    } catch {
+      return { active: 0, completed: 0 };
+    }
+  },
+
+  generateRecommendations: (progressData) => {
+    const recommendations = [];
+    if (progressData.length === 0) {
+      recommendations.push({ type: 'start', message: 'Start logging workouts to track your progress!', priority: 'high' });
+      return recommendations;
+    }
+
+    const activeDays = progressData.filter(p => (p.workoutsCompleted || 0) > 0).length;
+    const rate = activeDays / progressData.length;
+
+    if (rate < 0.3) {
+      recommendations.push({ type: 'consistency', message: 'Try to work out at least 3 times per week for best results.', priority: 'high' });
+    } else if (rate >= 0.7) {
+      recommendations.push({ type: 'recovery', message: 'Great consistency! Make sure you include rest days for recovery.', priority: 'medium' });
+    }
+
+    return recommendations;
+  },
+
+  getGoalInsights: async (userId, models) => {
+    // Goals feature not yet fully implemented — return safe default
+    return { activeGoals: 0, completedGoals: 0, goals: [] };
+  },
+
+  getSocialInsights: async (userId, models) => {
+    try {
+      const SocialPost = models.SocialPost;
+      if (!SocialPost) return { postCount: 0, engagementScore: 0 };
+      const postCount = await SocialPost.count({ where: { userId } });
+      return { postCount, engagementScore: Math.min(postCount * 5, 100) };
+    } catch {
+      return { postCount: 0, engagementScore: 0 };
+    }
   },
 
   getWeekNumber: (date) => {
