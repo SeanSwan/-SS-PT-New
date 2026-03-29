@@ -117,6 +117,38 @@ const Gamification = db.define('Gamification', {
   lastStreakFreezeEarned: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  // ── Aegis HUD: RPG Needs System (V2 Feature) ──
+  // 5 needs bars: athletic, recovery, social, discipline, vitality
+  // Each stores { value: 0-100, lastUpdated: ISO string }
+  // Decay calculated on read — no cron needed
+  needsState: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {
+      athletic:   { value: 50, lastUpdated: new Date().toISOString() },
+      recovery:   { value: 50, lastUpdated: new Date().toISOString() },
+      social:     { value: 50, lastUpdated: new Date().toISOString() },
+      discipline: { value: 50, lastUpdated: new Date().toISOString() },
+      vitality:   { value: 50, lastUpdated: new Date().toISOString() },
+    }
+  },
+  lastNeedsCalculation: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  // ── Job Class System (V2 Feature) ──
+  // FFXIV-style: paladin, monk, ranger, white_mage, dark_knight
+  jobClass: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null
+  },
+  // ── Moodlet: derived from needs state ──
+  currentMoodlet: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: 'neutral'
   }
 }, {
   timestamps: true

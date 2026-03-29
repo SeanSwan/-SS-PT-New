@@ -2824,6 +2824,338 @@ const gamificationController = {
       console.error('acceptComebackChallenge error:', error.message);
       return res.status(500).json({ success: false, error: safeError(req, error) });
     }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Aegis HUD — RPG Needs System (V2)
+  // PURPOSE: 5 needs bars with time-based decay and action replenishment
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/users/:userId/aegis-hud
+   * Returns current needs state with decay applied.
+   */
+  getAegisHud: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
+      const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      let record = await Gamification.findOne({ where: { userId } });
+
+      // Auto-create gamification record if none exists
+      if (!record) {
+        record = await Gamification.create({ userId });
+      }
+
+      const hudData = await AegisHudService.getNeeds(record);
+      return res.json({ success: true, data: hudData });
+    } catch (error) {
+      console.error('getAegisHud error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * POST /api/gamification/users/:userId/aegis-hud/replenish
+   * Manually replenish needs from an action (called after gamification awards).
+   * Body: { actionType: 'workout_completed' | 'social_post' | etc. }
+   */
+  replenishAegisHud: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { actionType } = req.body;
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!actionType) return res.status(400).json({ success: false, error: 'actionType required' });
+
+      const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      let record = await Gamification.findOne({ where: { userId } });
+      if (!record) record = await Gamification.create({ userId });
+
+      const hudData = await AegisHudService.replenishFromAction(record, actionType);
+      if (!hudData) {
+        return res.status(400).json({ success: false, error: `Unknown action type: ${actionType}` });
+      }
+
+      return res.json({ success: true, data: hudData });
+    } catch (error) {
+      console.error('replenishAegisHud error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * PUT /api/gamification/users/:userId/aegis-hud/:needKey
+   * Admin override: set a specific need value.
+   * Body: { value: 0-100 }
+   */
+  setAegisHudNeed: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { needKey } = req.params;
+      const { value } = req.body;
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (value === undefined || value === null) return res.status(400).json({ success: false, error: 'value required (0-100)' });
+
+      const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      let record = await Gamification.findOne({ where: { userId } });
+      if (!record) record = await Gamification.create({ userId });
+
+      const hudData = await AegisHudService.setNeed(record, needKey, parseFloat(value));
+      return res.json({ success: true, data: hudData });
+    } catch (error) {
+      console.error('setAegisHudNeed error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * GET /api/gamification/aegis-hud/config
+   * Returns the needs configuration (labels, icons, colors, decay rates).
+   * Public endpoint for frontend to render the HUD correctly.
+   */
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Vault Decryption — Loot Drop System (V2)
+  // PURPOSE: Variable-ratio reinforcement loot drops after actions
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/gamification/users/:userId/vault/roll
+   * Roll for a loot drop after a qualifying action.
+   * Body: { actionType: 'workout_completed' | 'personal_record' | etc. }
+   */
+  rollVaultDrop: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { actionType } = req.body;
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!actionType) return res.status(400).json({ success: false, error: 'actionType required' });
+
+      const { default: VaultDecryptionService } = await import('../services/gamification/VaultDecryptionService.mjs');
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      let record = await Gamification.findOne({ where: { userId } });
+      if (!record) record = await Gamification.create({ userId });
+
+      const drop = VaultDecryptionService.rollForDrop(actionType, userId);
+      if (!drop) {
+        return res.json({ success: true, data: { dropped: false, message: 'No drop this time' } });
+      }
+
+      // Record the drop
+      await VaultDecryptionService.recordDrop(record, drop);
+
+      // If drop has xpBonus, award it
+      if (drop.xpBonus > 0) {
+        const currentXP = record.totalXP || 0;
+        await record.update({ totalXP: currentXP + drop.xpBonus });
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          dropped: true,
+          drop,
+        },
+      });
+    } catch (error) {
+      console.error('rollVaultDrop error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * GET /api/gamification/users/:userId/vault/inventory
+   * Get user's loot drop history.
+   */
+  getVaultInventory: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
+      const { default: VaultDecryptionService } = await import('../services/gamification/VaultDecryptionService.mjs');
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      const record = await Gamification.findOne({ where: { userId } });
+      if (!record) return res.json({ success: true, data: { inventory: [] } });
+
+      const inventory = await VaultDecryptionService.getUserInventory(record);
+      return res.json({ success: true, data: { inventory } });
+    } catch (error) {
+      console.error('getVaultInventory error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * GET /api/gamification/vault/config
+   * Get vault configuration (rarity tiers, drop triggers, etc.) for frontend.
+   */
+  getVaultConfig: async (_req, res) => {
+    try {
+      const { default: VaultDecryptionService } = await import('../services/gamification/VaultDecryptionService.mjs');
+      return res.json({ success: true, data: VaultDecryptionService.getConfig() });
+    } catch (error) {
+      console.error('getVaultConfig error:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to load vault config' });
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Ghost Mode — Personal Competition (V2)
+  // PURPOSE: Race against your own previous workout performance
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/gamification/users/:userId/ghost
+   * Get the ghost (best previous workout) for comparison.
+   * Query: ?category=full_body
+   */
+  getGhost: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { category } = req.query;
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
+      const { default: GhostModeService } = await import('../services/gamification/GhostModeService.mjs');
+      const result = await GhostModeService.getGhost(userId, { category });
+
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('getGhost error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * POST /api/gamification/users/:userId/ghost/compare
+   * Compare completed workout against ghost and award bonuses.
+   * Body: { ghostData, currentWorkoutData }
+   */
+  compareGhost: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { ghostData, currentWorkoutData } = req.body;
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
+      const { default: GhostModeService } = await import('../services/gamification/GhostModeService.mjs');
+      const comparison = GhostModeService.compareWithGhost(ghostData, currentWorkoutData);
+
+      // Award bonus XP if any
+      if (comparison.bonusXP > 0) {
+        const { default: Gamification } = await import('../models/Gamification.mjs');
+        const record = await Gamification.findOne({ where: { userId } });
+        if (record) {
+          await record.update({ totalXP: (record.totalXP || 0) + comparison.bonusXP });
+        }
+      }
+
+      return res.json({ success: true, data: comparison });
+    } catch (error) {
+      console.error('compareGhost error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * GET /api/gamification/ghost/config
+   * Get ghost mode configuration and bonus structure.
+   */
+  getGhostConfig: async (_req, res) => {
+    try {
+      const { default: GhostModeService } = await import('../services/gamification/GhostModeService.mjs');
+      return res.json({ success: true, data: GhostModeService.getConfig() });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: 'Failed to load ghost config' });
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // SECTION: Job Class System (V2)
+  // PURPOSE: FFXIV-style fitness job classes with XP bonus multipliers
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * PUT /api/gamification/users/:userId/job-class
+   * Set or change user's job class.
+   * Body: { jobClass: 'paladin' | 'monk' | 'ranger' | 'white_mage' | 'dark_knight' }
+   */
+  setJobClass: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { jobClass } = req.body;
+      const validClasses = ['paladin', 'monk', 'ranger', 'white_mage', 'dark_knight'];
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!validClasses.includes(jobClass)) {
+        return res.status(400).json({ success: false, error: `Invalid job class. Must be one of: ${validClasses.join(', ')}` });
+      }
+
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+      let record = await Gamification.findOne({ where: { userId } });
+      if (!record) record = await Gamification.create({ userId });
+
+      await record.update({ jobClass });
+
+      return res.json({
+        success: true,
+        message: `Job class set to ${jobClass}`,
+        data: { jobClass },
+      });
+    } catch (error) {
+      console.error('setJobClass error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  /**
+   * GET /api/gamification/users/:userId/job-class
+   * Get user's current job class.
+   */
+  getJobClass: async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+      const record = await Gamification.findOne({ where: { userId }, attributes: ['jobClass'] });
+
+      return res.json({
+        success: true,
+        data: { jobClass: record?.jobClass || null },
+      });
+    } catch (error) {
+      console.error('getJobClass error:', error.message);
+      return res.status(500).json({ success: false, error: safeError(req, error) });
+    }
+  },
+
+  getAegisHudConfig: async (_req, res) => {
+    try {
+      const { NEED_CONFIG, ACTION_REPLENISH, MOODLETS } = await import('../services/gamification/AegisHudService.mjs');
+      return res.json({
+        success: true,
+        data: {
+          needs: NEED_CONFIG,
+          actions: ACTION_REPLENISH,
+          moodlets: MOODLETS.map(m => ({ id: m.id, label: m.label, icon: m.icon })),
+        },
+      });
+    } catch (error) {
+      console.error('getAegisHudConfig error:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to load Aegis HUD config' });
+    }
   }
 };
 

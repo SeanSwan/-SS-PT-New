@@ -406,4 +406,104 @@ router.get('/comeback-challenge/:userId', authenticate, authorizeClientOrTrainer
  */
 router.post('/comeback-challenge/accept', authenticate, authorizeClientOrTrainer, gamificationController.acceptComebackChallenge);
 
+/**
+ * Job Class routes (FFXIV-style fitness classes — V2)
+ */
+
+/**
+ * @route   GET /api/gamification/users/:userId/job-class
+ * @desc    Get user's current job class
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.get('/users/:userId/job-class', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getJobClass);
+
+/**
+ * @route   PUT /api/gamification/users/:userId/job-class
+ * @desc    Set or change user's job class
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.put('/users/:userId/job-class', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.setJobClass);
+
+/**
+ * Ghost Mode routes (Personal Competition — V2)
+ */
+
+/**
+ * @route   GET /api/gamification/ghost/config
+ * @desc    Get ghost mode configuration and bonus structure
+ * @access  Public
+ */
+router.get('/ghost/config', gamificationController.getGhostConfig);
+
+/**
+ * @route   GET /api/gamification/users/:userId/ghost
+ * @desc    Get the ghost (best previous workout) for comparison
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.get('/users/:userId/ghost', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getGhost);
+
+/**
+ * @route   POST /api/gamification/users/:userId/ghost/compare
+ * @desc    Compare completed workout against ghost, award bonuses
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.post('/users/:userId/ghost/compare', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.compareGhost);
+
+/**
+ * Vault Decryption routes (Loot Drop System — V2)
+ */
+
+/**
+ * @route   GET /api/gamification/vault/config
+ * @desc    Get vault configuration (rarity tiers, drop triggers)
+ * @access  Public
+ */
+router.get('/vault/config', gamificationController.getVaultConfig);
+
+/**
+ * @route   POST /api/gamification/users/:userId/vault/roll
+ * @desc    Roll for a loot drop after a qualifying action
+ * @access  Trainer, Admin
+ */
+router.post('/users/:userId/vault/roll', authenticate, authorizeTrainer, gamificationController.rollVaultDrop);
+
+/**
+ * @route   GET /api/gamification/users/:userId/vault/inventory
+ * @desc    Get user's loot drop history/inventory
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.get('/users/:userId/vault/inventory', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getVaultInventory);
+
+/**
+ * Aegis HUD routes (RPG Needs System — V2)
+ */
+
+/**
+ * @route   GET /api/gamification/aegis-hud/config
+ * @desc    Get needs configuration (labels, icons, colors, decay rates)
+ * @access  Public
+ */
+router.get('/aegis-hud/config', gamificationController.getAegisHudConfig);
+
+/**
+ * @route   GET /api/gamification/users/:userId/aegis-hud
+ * @desc    Get current needs state with decay applied
+ * @access  Client, Trainer, Admin (IDOR protected)
+ */
+router.get('/users/:userId/aegis-hud', authenticate, authorizeClientOrTrainer, authorizeOwnerOrAdmin, gamificationController.getAegisHud);
+
+/**
+ * @route   POST /api/gamification/users/:userId/aegis-hud/replenish
+ * @desc    Replenish needs from an action (workout, social, etc.)
+ * @access  Trainer, Admin
+ */
+router.post('/users/:userId/aegis-hud/replenish', authenticate, authorizeTrainer, gamificationController.replenishAegisHud);
+
+/**
+ * @route   PUT /api/gamification/users/:userId/aegis-hud/:needKey
+ * @desc    Admin override: set a specific need value
+ * @access  Admin only
+ */
+router.put('/users/:userId/aegis-hud/:needKey', authenticate, authorizeAdmin, gamificationController.setAegisHudNeed);
+
 export default router;

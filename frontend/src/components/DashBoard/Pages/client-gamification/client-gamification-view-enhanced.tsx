@@ -82,6 +82,12 @@ import Leaderboard from './components/Leaderboard';
 import ActivityFeed from './components/ActivityFeed';
 import AchievementGallery from './components/AchievementGallery';
 
+// V2 Gamification RPG Components
+import { AegisHud } from '../../../AdvancedGamification/components/AegisHud';
+import { StreakFortress } from '../../../AdvancedGamification/components/StreakFortress';
+import { JobClassSelector } from '../../../AdvancedGamification/components/JobClassSelector';
+import { CrystallineAvatar } from '../../../AdvancedGamification/components/CrystallineAvatar';
+
 // Lazy load the progress chart component to improve initial load time
 const ProgressChart = lazy(() => import('./components/ProgressChart'));
 
@@ -743,6 +749,11 @@ const EnhancedClientGamificationView: React.FC = () => {
     <PageWrapper>
       <PageTitle>Your Fitness Journey</PageTitle>
 
+      {/* Aegis HUD — RPG Needs Panel */}
+      {profile?.data?.userId && (
+        <AegisHud userId={profile.data.userId} showMoodlet />
+      )}
+
       {/* Profile Summary Card */}
       <GlassCard $gradient style={{ marginBottom: 32 }}>
         <ProfileGrid>
@@ -908,6 +919,7 @@ const EnhancedClientGamificationView: React.FC = () => {
           { label: 'Activity',     icon: <Clock size={18} /> },
           { label: 'Leaderboard',  icon: <Users size={18} /> },
           { label: 'Progress',     icon: <TrendingUp size={18} /> },
+          { label: 'RPG',          icon: <Sparkles size={18} /> },
         ].map((tab, i) => (
           <TabButton
             key={tab.label}
@@ -1188,6 +1200,46 @@ const EnhancedClientGamificationView: React.FC = () => {
             </BodyText>
           </CenteredSection>
         )}
+      </TabPanel>
+
+      {/* RPG Tab — V2 Gamification Features */}
+      <TabPanel value={tabValue} index={5}>
+        <FlexCol $gap={24}>
+          {/* Aegis HUD (also shown at top, but full version here) */}
+          {profile?.data?.userId && (
+            <AegisHud userId={profile.data.userId} showMoodlet />
+          )}
+
+          {/* Streak Fortress */}
+          <StreakFortress
+            streakDays={profile?.data?.streakDays || 0}
+            streakFreezes={profile?.data?.streakFreezes || 0}
+            maxFreezes={3}
+          />
+
+          {/* Job Class Selector */}
+          {user?.id && (
+            <JobClassSelector
+              userId={user.id}
+              currentJobClass={profile?.data?.jobClass || null}
+            />
+          )}
+
+          {/* Crystalline Avatar Preview */}
+          <GlassCard>
+            <SubTitle style={{ marginBottom: 16 }}>Your Crystalline Avatar</SubTitle>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+              <CrystallineAvatar
+                tier={profile?.data?.tier || 'bronze_forge'}
+                level={profile?.data?.level || 1}
+                jobClass={profile?.data?.jobClass || null}
+                size={120}
+                animated
+                showTierLabel
+              />
+            </div>
+          </GlassCard>
+        </FlexCol>
       </TabPanel>
     </PageWrapper>
   );

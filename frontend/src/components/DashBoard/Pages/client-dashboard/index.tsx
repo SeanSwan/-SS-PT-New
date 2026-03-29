@@ -79,6 +79,9 @@ import ChallengesCard from './components/gamification/ChallengesCard';
 import RewardsCard from './components/gamification/RewardsCard';
 import AchievementNotification from './components/gamification/AchievementNotification';
 
+// Aegis HUD — RPG Needs Panel (V2 Gamification)
+import { AegisHud } from '../../../AdvancedGamification/components/AegisHud';
+
 // Import types
 import {
   ProgressLevel,
@@ -837,11 +840,16 @@ const EnhancedClientDashboard: React.FC = () => {
         onStartTraining={handleStartFocusedTraining}
       />
       
+      {/* Aegis HUD — RPG Needs Panel */}
+      {user?.id && (
+        <AegisHud userId={user.id} showMoodlet />
+      )}
+
       {/* Achievements Card */}
-      <AchievementsCard 
+      <AchievementsCard
         achievements={achievements}
       />
-      
+
       {/* Recommended Exercises Card */}
       <RecommendedExercises 
         exercises={recommendedExercises}
