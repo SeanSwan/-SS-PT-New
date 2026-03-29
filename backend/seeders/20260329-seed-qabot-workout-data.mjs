@@ -19,8 +19,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
-// Seed for both admin (2) and client (4) so progress charts populate for any test user
-const SEED_USERS = [2, 4, 6]; // admin, client, SwanStudios
+// Seed for test users so progress charts populate
+const SEED_USERS = [2, 4, 57]; // admin, client, QABot
 const TRAINER_ID = 2; // Admin who "logged" these
 
 // ─────────────────────────────────────────────────────────────

@@ -59,6 +59,22 @@ const ASSESSMENT_TYPES = [
   { value: 'performance_test', label: 'Performance Test' },
 ] as const;
 
+// Type-specific assessment criteria for each tab
+const TYPE_CRITERIA: Record<string, { description: string; criteria: string[] }> = {
+  movement_screen: {
+    description: 'Evaluate functional movement patterns using NASM overhead squat assessment protocol.',
+    criteria: ['Overhead Squat', 'Single-Leg Squat', 'Pushing Assessment', 'Pulling Assessment', 'Rotation'],
+  },
+  postural_analysis: {
+    description: 'Identify postural deviations and muscle imbalances from static assessment.',
+    criteria: ['Anterior View', 'Lateral View', 'Posterior View', 'Upper Crossed Syndrome', 'Lower Crossed Syndrome'],
+  },
+  performance_test: {
+    description: 'Measure baseline fitness metrics for program design and progress tracking.',
+    criteria: ['Push-Up Test', 'Plank Hold', 'Sit & Reach', 'Single-Leg Balance', 'Davies Test'],
+  },
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
@@ -223,6 +239,33 @@ const EmptyState = styled.div`
   color: var(--text-muted, rgba(224,236,244,0.5));
 `;
 
+const TypeDescription = styled.div`
+  font-size: 0.85rem;
+  color: var(--text-secondary, rgba(224,236,244,0.6));
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: rgba(96, 192, 240, 0.05);
+  border-left: 3px solid var(--accent-primary, #60C0F0);
+  border-radius: 0 8px 8px 0;
+`;
+
+const CriteriaList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+`;
+
+const CriteriaTag = styled.span`
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--bg-surface, #1A1A24);
+  border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
+  color: var(--text-primary, #E0ECF4);
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -291,6 +334,17 @@ const TrainerAssessmentsPage: React.FC = () => {
               <TypeChip key={t.value} $active={assessmentType === t.value} onClick={() => setAssessmentType(t.value)}>{t.label}</TypeChip>
             ))}
           </TypeSelector>
+        </FieldGroup>
+
+        {/* Type-specific description and criteria — changes when tab is clicked */}
+        <TypeDescription>{TYPE_CRITERIA[assessmentType]?.description}</TypeDescription>
+        <FieldGroup>
+          <Label>Criteria Evaluated</Label>
+          <CriteriaList>
+            {TYPE_CRITERIA[assessmentType]?.criteria.map(c => (
+              <CriteriaTag key={c}>{c}</CriteriaTag>
+            ))}
+          </CriteriaList>
         </FieldGroup>
 
         <FieldGroup>
