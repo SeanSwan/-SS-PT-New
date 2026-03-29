@@ -254,6 +254,49 @@ const SecondaryBtn = styled.button`
   }
 `;
 
+const AnnualSection = styled.div`
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(96, 192, 240, 0.15);
+`;
+
+const AnnualTitle = styled.p`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-gold, #C6A84B);
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+// Annual CTA: Gilded Fern border to call out the savings
+const AnnualBtn = styled.button`
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 48px;
+  border-radius: 0.75rem;
+  border: 1px solid var(--accent-gold, #C6A84B);
+  cursor: pointer;
+  color: var(--accent-gold, #C6A84B);
+  background: rgba(198, 168, 75, 0.08);
+  transition: box-shadow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              background 0.2s,
+              transform 0.2s;
+
+  &:hover {
+    background: rgba(198, 168, 75, 0.15);
+    box-shadow: 0 0 16px 2px rgba(198, 168, 75, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
 const DonationNote = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
@@ -296,8 +339,8 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
     }
   };
 
-  const handleSubscribe = (tier: 'pro' | 'elite', amount?: number) => {
-    checkout(tier, amount);
+  const handleSubscribe = (tier: 'pro' | 'elite', amount?: number, billingInterval: 'month' | 'year' = 'month') => {
+    checkout(tier, amount, billingInterval);
   };
 
   const trialExpired = subscription && !subscription.isInTrial && subscription.trialDaysRemaining === 0;
@@ -371,9 +414,21 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
           </SecondaryBtn>
         </ButtonRow>
 
+        <AnnualSection>
+          <AnnualTitle>Save with Annual Plans — 2 months free</AnnualTitle>
+          <ButtonRow>
+            <AnnualBtn onClick={() => handleSubscribe('pro', 9.99, 'year')}>
+              Swan Pro Annual — $99.99/yr
+            </AnnualBtn>
+            <AnnualBtn onClick={() => handleSubscribe('elite', undefined, 'year')}>
+              Crystalline Swan Annual — $249.99/yr
+            </AnnualBtn>
+          </ButtonRow>
+        </AnnualSection>
+
         <DonationNote>
           Swan Pro is donation-based — pay what you can. More you give, more AI messages you get.
-          Crystalline Swan = unlimited AI coaching.
+          Crystalline Swan = unlimited AI coaching. Annual plans save you 2 months.
         </DonationNote>
       </Card>
     </Backdrop>

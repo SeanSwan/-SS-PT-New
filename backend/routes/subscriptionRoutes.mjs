@@ -70,6 +70,8 @@ const TIER_DEFINITIONS = {
     tagline: 'AI-powered coaching — pay what you can, suggested $9.99/mo',
     price: 9.99,
     priceDisplay: '$9.99/mo suggested',
+    annualPrice: 99.99,           // ~$8.33/mo — save $19.89/year (2 months free)
+    annualPriceDisplay: '$99.99/yr (save $20)',
     donationBased: true,
     minimumPrice: 0,
     maximumPrice: 50.00,
@@ -102,6 +104,8 @@ const TIER_DEFINITIONS = {
     tagline: 'Unlimited AI coaching — your personal trainer in your pocket',
     price: 24.99,
     priceDisplay: '$24.99/mo',
+    annualPrice: 249.99,          // ~$20.83/mo — save $49.89/year (2 months free)
+    annualPriceDisplay: '$249.99/yr (save $50)',
     stripePriceId: null, // Set via Stripe dashboard
     features: [
       'Everything in Swan Pro',
@@ -262,7 +266,7 @@ router.post('/start-trial', protect, async (req, res) => {
 /** POST /api/subscriptions/checkout - Create Stripe subscription checkout session */
 router.post('/checkout', protect, async (req, res) => {
   try {
-    const { tier, amount } = req.body;
+    const { tier, amount, billingInterval = 'month' } = req.body;
     const userId = req.user.id;
     const s = getStripe();
 
@@ -280,11 +284,19 @@ router.post('/checkout', protect, async (req, res) => {
       });
     }
 
+    if (!['month', 'year'].includes(billingInterval)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid billing interval. Choose month or year.',
+      });
+    }
+
     const tierDef = TIER_DEFINITIONS[tier];
+    const isAnnual = billingInterval === 'year';
 
     // Pro tier: donation-based (pay what you can, $0-$50)
-    let checkoutAmount = tierDef.price;
-    if (tier === 'pro' && amount !== undefined) {
+    let checkoutAmount = isAnnual ? tierDef.annualPrice : tierDef.price;
+    if (tier === 'pro' && amount !== undefined && !isAnnual) {
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount) || parsedAmount < 0) {
         return res.status(400).json({ success: false, message: 'Invalid donation amount.' });
@@ -293,6 +305,14 @@ router.post('/checkout', protect, async (req, res) => {
         return res.status(400).json({ success: false, message: `Maximum donation is $${tierDef.maximumPrice}/mo.` });
       }
       checkoutAmount = parsedAmount;
+    }
+
+    // For annual Pro donation: multiply monthly donation × 10 (2 months free discount)
+    if (tier === 'pro' && isAnnual && amount !== undefined) {
+      const monthlyDonation = parseFloat(amount);
+      if (!isNaN(monthlyDonation) && monthlyDonation > 0) {
+        checkoutAmount = Math.round(monthlyDonation * 10 * 100) / 100; // 10 months = 2 free
+      }
     }
 
     // $0 donation = skip Stripe, create directly as active
@@ -339,6 +359,10 @@ router.post('/checkout', protect, async (req, res) => {
       await user.update({ stripeCustomerId: customerId });
     }
 
+    // Build product name with billing interval
+    const intervalLabel = isAnnual ? 'Annual' : 'Monthly';
+    const savingsNote = isAnnual ? ' (2 months free!)' : '';
+
     // Create Stripe Checkout Session in subscription mode
     const session = await s.checkout.sessions.create({
       customer: customerId,
@@ -349,11 +373,11 @@ router.post('/checkout', protect, async (req, res) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `SwanStudios ${tierDef.name}`,
+              name: `SwanStudios ${tierDef.name} — ${intervalLabel}${savingsNote}`,
               description: tierDef.tagline,
             },
             unit_amount: Math.round(checkoutAmount * 100),
-            recurring: { interval: 'month' },
+            recurring: { interval: billingInterval },
           },
           quantity: 1,
         },
@@ -362,6 +386,7 @@ router.post('/checkout', protect, async (req, res) => {
         metadata: {
           userId: String(userId),
           tier,
+          billingInterval,
           requestedAmount: String(checkoutAmount),
         },
       },
@@ -370,6 +395,7 @@ router.post('/checkout', protect, async (req, res) => {
       metadata: {
         userId: String(userId),
         tier,
+        billingInterval,
         amount: String(checkoutAmount),
       },
     });
@@ -463,17 +489,27 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           const userId = parseInt(session.metadata?.userId, 10);
           const tier = session.metadata?.tier || 'pro';
           const amount = parseFloat(session.metadata?.amount || '9.99');
+          const interval = session.metadata?.billingInterval || 'month';
 
           if (userId) {
             const now = new Date();
             const periodEnd = new Date(now);
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
+            if (interval === 'year') {
+              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+            } else {
+              periodEnd.setMonth(periodEnd.getMonth() + 1);
+            }
+
+            // For annual, store the effective monthly amount for donation tier calc
+            const effectiveMonthlyAmount = interval === 'year'
+              ? Math.round((amount / 12) * 100) / 100
+              : amount;
 
             await Subscription.upsert({
               userId,
               tier,
               status: 'active',
-              amount,
+              amount: effectiveMonthlyAmount, // Store monthly equivalent for donation tier calc
               stripeSubscriptionId: session.subscription,
               stripeCustomerId: session.customer,
               currentPeriodStart: now,

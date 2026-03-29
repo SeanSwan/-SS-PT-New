@@ -121,11 +121,11 @@ export function useSubscription() {
   }, [fetchStatus]);
 
   /** Create Stripe checkout session for subscription */
-  const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number) => {
+  const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number, billingInterval: 'month' | 'year' = 'month') => {
     const res = await fetch(`${API_BASE}/api/subscriptions/checkout`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ tier, amount }),
+      body: JSON.stringify({ tier, amount, billingInterval }),
     });
     const data = await res.json();
     if (data.success && data.checkoutUrl) {
