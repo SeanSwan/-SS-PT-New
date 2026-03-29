@@ -33,9 +33,11 @@ import {
   Calendar, Filter, RefreshCw, Eye, EyeOff,
   ChevronLeft, ChevronRight, Settings, Download,
   Dumbbell, Heart, Flame, Radar, Printer, FileDown,
-  Timer, Gauge, Trophy, BarChart2, Crosshair
+  Timer, Gauge, Trophy, BarChart2, Crosshair, Share2
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
+import { captureChartAsImage } from '../../utils/chartCapture';
+import ShareChartModal from './ShareChartModal';
 
 // Chart Components (lazy-loaded for bundle optimization per AI Village feedback)
 import VolumeOverTimeChart from './charts/VolumeOverTimeChart';
@@ -358,6 +360,40 @@ const ChartFallback = styled.div`
   font-family: 'Sora', sans-serif;
 `;
 
+const ShareIconBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 10px;
+  color: rgba(224, 236, 244, 0.6);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #8B5CF6;
+    transform: scale(1.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  @media print { display: none; }
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -426,7 +462,12 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     sessionIntensity: true,
   });
   const [refreshing, setRefreshing] = useState(false);
-  
+  // Chart sharing state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareImage, setShareImage] = useState<File | null>(null);
+  const [shareTitle, setShareTitle] = useState('');
+  const [isCapturing, setIsCapturing] = useState<string | null>(null);
+
   const { user } = useAuth();
   const targetUserId = userId || clientId || user?.id;
 
@@ -644,6 +685,19 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     window.print();
   }, []);
 
+  const handleShareChart = useCallback(async (element: HTMLElement, title: string) => {
+    setIsCapturing(title);
+    const image = await captureChartAsImage(element, title);
+    setIsCapturing(null);
+    if (image) {
+      setShareImage(image);
+      setShareTitle(title);
+      setShareModalOpen(true);
+    } else {
+      toast({ title: 'Capture failed', description: 'Could not capture chart image.', variant: 'destructive' });
+    }
+  }, [toast]);
+
   // ==================== EFFECTS ====================
   
   useEffect(() => {
@@ -779,6 +833,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <TrendingUp size={20} />
                 Total Volume Over Time
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Total Volume Over Time')} disabled={isCapturing === 'Total Volume Over Time'} aria-label="Share chart">
+                <Share2 size={16} />
+              </ShareIconBtn>
             </ChartHeader>
             <VolumeOverTimeChart data={progressData.volumeData} />
           </ChartCard>
@@ -795,6 +852,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <BarChart3 size={20} />
                 1-Rep Max Projections
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, '1-Rep Max Projections')} disabled={isCapturing === '1-Rep Max Projections'} aria-label="Share chart">
+                <Share2 size={16} />
+              </ShareIconBtn>
             </ChartHeader>
             <OneRepMaxChart data={progressData.oneRepMaxData} />
           </ChartCard>
@@ -811,6 +871,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Target size={20} />
                 Form Quality Trend
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Form Quality Trend')} disabled={isCapturing === 'Form Quality Trend'} aria-label="Share chart">
+                <Share2 size={16} />
+              </ShareIconBtn>
             </ChartHeader>
             <FormQualityChart data={progressData.formQualityData} />
           </ChartCard>
@@ -827,6 +890,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Zap size={20} />
                 NASM Category Focus
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'NASM Category Focus')} disabled={isCapturing === 'NASM Category Focus'} aria-label="Share chart">
+                <Share2 size={16} />
+              </ShareIconBtn>
             </ChartHeader>
             <NASMCategoryRadar data={progressData.nasmCategoryData} />
           </ChartCard>
@@ -844,6 +910,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Heart size={20} />
                 Body Composition
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Body Composition')} disabled={isCapturing === 'Body Composition'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <BodyCompositionChart data={progressData.bodyCompositionData} />
@@ -862,6 +929,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Dumbbell size={20} />
                 Strength Progression
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Strength Progression')} disabled={isCapturing === 'Strength Progression'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <StrengthProgressionChart
@@ -883,6 +951,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Flame size={20} />
                 Workout Consistency
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Workout Consistency')} disabled={isCapturing === 'Workout Consistency'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <ConsistencyHeatmap data={progressData.consistencyData} />
@@ -901,6 +970,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Radar size={20} />
                 Muscle Group Balance
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Muscle Group Balance')} disabled={isCapturing === 'Muscle Group Balance'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <MuscleGroupRadar data={progressData.muscleGroupData} />
@@ -921,6 +991,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <TrendingUp size={20} />
                 Weekly Training Load
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Weekly Training Load')} disabled={isCapturing === 'Weekly Training Load'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <TrainingLoadChart data={progressData.trainingLoadData} />
@@ -939,6 +1010,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Gauge size={20} />
                 Effort Distribution (RPE)
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Effort Distribution RPE')} disabled={isCapturing === 'Effort Distribution RPE'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <RPEDistributionChart data={progressData.rpeDistributionData} />
@@ -957,6 +1029,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Trophy size={20} />
                 Personal Records Timeline
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Personal Records Timeline')} disabled={isCapturing === 'Personal Records Timeline'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <PersonalRecordsChart data={progressData.personalRecordsData} />
@@ -975,6 +1048,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Timer size={20} />
                 Rest Period Compliance
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Rest Period Compliance')} disabled={isCapturing === 'Rest Period Compliance'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <RestComplianceChart data={progressData.restComplianceData} />
@@ -993,6 +1067,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <BarChart2 size={20} />
                 Exercise Frequency
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Exercise Frequency')} disabled={isCapturing === 'Exercise Frequency'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <ExerciseFrequencyChart data={progressData.exerciseFrequencyData} />
@@ -1011,6 +1086,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Crosshair size={20} />
                 Session Duration vs Intensity
               </ChartTitle>
+              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Session Intensity')} disabled={isCapturing === 'Session Intensity'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <SessionIntensityChart data={progressData.sessionIntensityData} />
@@ -1018,6 +1094,14 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
           </ChartCard>
         )}
       </ChartsGrid>
+
+      {/* Share Chart Modal */}
+      <ShareChartModal
+        isOpen={shareModalOpen}
+        onClose={() => { setShareModalOpen(false); setShareImage(null); }}
+        chartImage={shareImage}
+        chartTitle={shareTitle}
+      />
     </ProgressContainer>
   );
 };

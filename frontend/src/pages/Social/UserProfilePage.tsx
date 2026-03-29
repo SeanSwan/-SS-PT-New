@@ -11,6 +11,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { ArrowLeft, MapPin, Calendar, Award, Lock } from 'lucide-react';
+import MembershipBadge from '../../components/MembershipBadge/MembershipBadge';
 import api from '../../services/api';
 import { useAppSelector } from '../../store';
 import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
@@ -45,6 +46,7 @@ interface UserProfile {
   lastName: string;
   username: string;
   photo?: string;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   bannerPhoto?: string;
   bio?: string;
   location?: string;
@@ -570,6 +572,9 @@ const UserProfilePage: React.FC = () => {
           <NameBlock>
             <DisplayName>
               {profile.firstName} {profile.lastName}
+              {profile.clientSource && profile.clientSource !== 'external' && (
+                <MembershipBadge clientSource={profile.clientSource} size="sm" />
+              )}
               {canShowLevel && profile.level && (
                 <LevelBadge>Lv.{profile.level}</LevelBadge>
               )}

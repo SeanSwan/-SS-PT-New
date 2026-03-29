@@ -28,6 +28,8 @@ import React from 'react';
 import { MoreVertical, User, Link2, VolumeX, Flag, Trash2 } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
 import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
+import MembershipBadge from '../../../MembershipBadge/MembershipBadge';
+import type { ClientSource } from '../../../MembershipBadge/MembershipBadge';
 import {
   PostHeaderRelative,
   PostHeaderBar,
@@ -110,6 +112,14 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
           <div>
             <UserName>
               {post.user.firstName} {post.user.lastName}
+              {post.user.clientSource && post.user.clientSource !== 'external' && (
+                <MembershipBadge
+                  clientSource={post.user.clientSource as ClientSource}
+                  size="sm"
+                  showLabel={false}
+                  className="membership-badge-inline"
+                />
+              )}
             </UserName>
             <TimeAgoText>
               {timeAgo}

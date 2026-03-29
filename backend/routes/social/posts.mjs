@@ -57,7 +57,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
   const users = numericUserIds.length > 0
     ? await getUser().findAll({
       where: { id: { [Op.in]: numericUserIds } },
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource'],
       raw: true
     })
     : [];
@@ -320,7 +320,7 @@ router.get('/feed', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -423,7 +423,7 @@ router.get('/user/:userId', async (req, res) => {
     
     // Check if user exists
     const user = await getUser().findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
     });
     
     if (!user) {
@@ -471,7 +471,7 @@ router.get('/user/:userId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -662,7 +662,7 @@ router.post('/', upload.single('media'), async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -706,7 +706,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -753,7 +753,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -824,7 +824,7 @@ router.put('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });
@@ -1151,7 +1151,7 @@ router.post('/:postId/comments', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource']
         }
       ]
     });

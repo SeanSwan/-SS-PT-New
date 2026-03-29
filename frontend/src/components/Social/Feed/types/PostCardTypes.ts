@@ -43,6 +43,7 @@ export interface Post {
     lastName: string;
     username: string;
     photo?: string;
+    clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   };
   likesCount: number;
   commentsCount: number;
