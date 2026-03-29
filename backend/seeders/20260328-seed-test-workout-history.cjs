@@ -152,8 +152,6 @@ module.exports = {
         total_points_earned: 50 + Math.floor(Math.random() * 30),
         mcp_processed: false,
         submitted_at: date,
-        estimated_duration: duration,
-        form_version: '1.0',
         created_at: date,
         updated_at: date,
       });

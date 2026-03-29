@@ -15,7 +15,6 @@
  * Safe to re-run: uses findOrCreate by exercise_key.
  */
 
-import Exercise from '../models/Exercise.mjs';
 import { exV2 } from './helpers/exerciseSeederUtils.mjs';
 
 // ─── STRETCHING / FLEXIBILITY ──────────────────────────────────
@@ -129,23 +128,51 @@ const allExercises = [
   ...cables,
 ];
 
-export default async function seedExpandedV3() {
+export async function up(queryInterface) {
   console.log(`\n--- Exercise Expansion V3: ${allExercises.length} exercises ---`);
 
   let created = 0;
   let skipped = 0;
 
-  for (const ex of allExercises) {
+  for (const exercise of allExercises) {
     try {
-      const [, wasCreated] = await Exercise.findOrCreate({
-        where: { exercise_key: ex.exercise_key },
-        defaults: ex,
-      });
-      if (wasCreated) created++;
-      else skipped++;
+      await queryInterface.sequelize.query(
+        `INSERT INTO "exercises" (
+          id, name, description, instructions, "exerciseType",
+          "primaryMuscles", "secondaryMuscles", difficulty, "equipmentNeeded",
+          "canBePerformedAtHome", "unlockLevel", "isActive", "isPopular",
+          "experiencePointsEarned", "contraindicationNotes", "safetyTips",
+          "scientificReferences", "targetProgressionRate", "videoUrl", "imageUrl",
+          "recommendedSets", "recommendedReps", "recommendedDuration", "restInterval",
+          exercise_key, source, force, mechanic, aliases, "optPhases",
+          "nasmMovementPattern", "thumbnailUrl", "defaultTempo", "defaultRestSeconds",
+          "bodyPartCategory", "progressionPath", prerequisites, "coachingCues",
+          "createdAt", "updatedAt"
+        ) VALUES (
+          :id, :name, :description, :instructions, :exerciseType,
+          :primaryMuscles, :secondaryMuscles, :difficulty, :equipmentNeeded,
+          :canBePerformedAtHome, :unlockLevel, :isActive, :isPopular,
+          :experiencePointsEarned, :contraindicationNotes, :safetyTips,
+          :scientificReferences, :targetProgressionRate, :videoUrl, :imageUrl,
+          :recommendedSets, :recommendedReps, :recommendedDuration, :restInterval,
+          :exercise_key, :source, :force, :mechanic, :aliases, :optPhases,
+          :nasmMovementPattern, :thumbnailUrl, :defaultTempo, :defaultRestSeconds,
+          :bodyPartCategory, :progressionPath, :prerequisites, :coachingCues,
+          NOW(), NOW()
+        ) ON CONFLICT (exercise_key) DO NOTHING`,
+        {
+          replacements: exercise,
+          type: queryInterface.sequelize.QueryTypes.INSERT,
+        },
+      );
+      created++;
     } catch (err) {
-      console.warn(`  [WARN] Failed to seed "${ex.name}": ${err.message}`);
-      skipped++;
+      if (err.message?.includes('duplicate') || err.message?.includes('unique')) {
+        skipped++;
+      } else {
+        console.warn(`  [WARN] Skipped "${exercise.name}": ${err.message}`);
+        skipped++;
+      }
     }
   }
 
@@ -153,9 +180,10 @@ export default async function seedExpandedV3() {
   console.log(`--- Exercise Expansion V3 complete ---\n`);
 }
 
-// Allow running directly: node backend/seeders/20260328-seed-expanded-exercises-v3.mjs
-if (process.argv[1]?.includes('seed-expanded-exercises-v3')) {
-  import('../models/index.mjs').then(({ initModels }) => {
-    initModels().then(() => seedExpandedV3().then(() => process.exit(0)));
-  });
+export async function down(queryInterface) {
+  const keys = allExercises.map(e => e.exercise_key);
+  await queryInterface.sequelize.query(
+    `DELETE FROM "exercises" WHERE exercise_key IN (:keys)`,
+    { replacements: { keys }, type: queryInterface.sequelize.QueryTypes.DELETE }
+  );
 }
