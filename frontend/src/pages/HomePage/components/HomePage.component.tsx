@@ -18,6 +18,7 @@ const reducedMotion = css`
 import HeroSection from "./Hero-Section";
 import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection";
 import FeaturesSection from "../../../components/FeaturesSection/FeaturesSection";
+import WhySwanStudios from "../../../components/WhySwanStudios/WhySwanStudios";
 import TrainerProfilesSection from "./TrainerProfilesSection";
 import CreativeExpressionSection from "./CreativeExpressionSection";
 
@@ -526,8 +527,13 @@ const HomePage: React.FC = () => {
         </div>
       </FeaturedSection>
       
+      {renderSectionDivider(1)}
+
+      {/* Why SwanStudios — value comparison vs ChatGPT/Claude */}
+      <WhySwanStudios />
+
       {renderSectionDivider(2)}
-      
+
       {/* Creative Expression Section */}
       <CreativeExpressionSection />
       

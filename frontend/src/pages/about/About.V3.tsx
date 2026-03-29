@@ -29,6 +29,7 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import logoImg from '../../assets/Logo.png';
+import WhySwanStudios from '../../components/WhySwanStudios/WhySwanStudios';
 
 /* ═══════════════════════════════════════════════════════
    ANIMATED COUNTER HOOK
@@ -1114,6 +1115,11 @@ const AboutV3: React.FC = () => {
             </PhilosophyGrid>
           </SectionInner>
         </Section>
+
+        <SectionDivider />
+
+        {/* ── 5b. Why SwanStudios vs Generic AI ────────────── */}
+        <WhySwanStudios showCTA={false} />
 
         <SectionDivider />
 
