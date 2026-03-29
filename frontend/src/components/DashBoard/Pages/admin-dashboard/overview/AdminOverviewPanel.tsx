@@ -19,6 +19,7 @@ import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
 import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
+import OracleInsightsWidget from '../components/OracleInsightsWidget';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
 
@@ -242,6 +243,9 @@ const AdminOverviewPanel: React.FC = () => {
       {/* ── Row 7: System + Actions (2-col bento) ── */}
       <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
       <BentoHalf><AdminQuickActions actions={quickActions} /></BentoHalf>
+
+      {/* ── Row 8: Swan Oracle — Fitness Industry Intelligence ── */}
+      <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
     </BentoWrapper>
   );
 };
