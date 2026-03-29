@@ -59,19 +59,58 @@ const ASSESSMENT_TYPES = [
   { value: 'performance_test', label: 'Performance Test' },
 ] as const;
 
-// Type-specific assessment criteria for each tab
-const TYPE_CRITERIA: Record<string, { description: string; criteria: string[] }> = {
+// NASM OPT Assessment Protocols — criteria per assessment type
+const TYPE_CRITERIA: Record<string, { description: string; criteria: string[]; checkpoints: string[] }> = {
   movement_screen: {
-    description: 'Evaluate functional movement patterns using NASM overhead squat assessment protocol.',
-    criteria: ['Overhead Squat', 'Single-Leg Squat', 'Pushing Assessment', 'Pulling Assessment', 'Rotation'],
+    description: 'NASM Overhead Squat Assessment (OHSA) — Evaluate kinetic chain checkpoints from anterior, lateral, and posterior views to identify movement compensations and muscle imbalances.',
+    criteria: [
+      'Foot/Ankle Complex',
+      'Knee Complex',
+      'LPHC (Lumbo-Pelvic-Hip)',
+      'Shoulder Complex',
+      'Cervical Spine / Head',
+    ],
+    checkpoints: [
+      'Feet flatten or turn out',
+      'Knees move inward (valgus)',
+      'Excessive forward lean',
+      'Low back arches (extension)',
+      'Arms fall forward',
+    ],
   },
   postural_analysis: {
-    description: 'Identify postural deviations and muscle imbalances from static assessment.',
-    criteria: ['Anterior View', 'Lateral View', 'Posterior View', 'Upper Crossed Syndrome', 'Lower Crossed Syndrome'],
+    description: 'NASM Static Posture Assessment — Observe alignment deviations from anterior, lateral, and posterior views. Identify Upper Crossed Syndrome (forward head, rounded shoulders, kyphosis) and Lower Crossed Syndrome (anterior pelvic tilt, lordosis).',
+    criteria: [
+      'Forward Head Posture',
+      'Rounded Shoulders',
+      'Kyphosis / Lordosis',
+      'Anterior Pelvic Tilt',
+      'Knee Valgus / Varus',
+    ],
+    checkpoints: [
+      'Cervical spine extension',
+      'Scapular protraction / winging',
+      'Thoracic kyphosis increase',
+      'Lumbar lordosis increase',
+      'Foot pronation / supination',
+    ],
   },
   performance_test: {
-    description: 'Measure baseline fitness metrics for program design and progress tracking.',
-    criteria: ['Push-Up Test', 'Plank Hold', 'Sit & Reach', 'Single-Leg Balance', 'Davies Test'],
+    description: 'NASM Cardiorespiratory & Muscular Fitness Assessments — Establish baseline metrics for OPT phase selection and track client progress over time.',
+    criteria: [
+      'Push-Up Test (endurance)',
+      'Davies Test (UB agility)',
+      'Shark Skill Test (LB agility)',
+      'Single-Leg Squat',
+      'Rockport Walk / YMCA Step',
+    ],
+    checkpoints: [
+      'Max reps in 60 seconds',
+      'Alternating hand touches in 15s',
+      'Timed box pattern completion',
+      'Knee valgus / torso lean compensations',
+      'Estimated VO2max from HR recovery',
+    ],
   },
 };
 
@@ -336,13 +375,21 @@ const TrainerAssessmentsPage: React.FC = () => {
           </TypeSelector>
         </FieldGroup>
 
-        {/* Type-specific description and criteria — changes when tab is clicked */}
+        {/* Type-specific NASM protocol info — changes when tab is clicked */}
         <TypeDescription>{TYPE_CRITERIA[assessmentType]?.description}</TypeDescription>
         <FieldGroup>
-          <Label>Criteria Evaluated</Label>
+          <Label>NASM Checkpoints</Label>
           <CriteriaList>
             {TYPE_CRITERIA[assessmentType]?.criteria.map(c => (
               <CriteriaTag key={c}>{c}</CriteriaTag>
+            ))}
+          </CriteriaList>
+        </FieldGroup>
+        <FieldGroup>
+          <Label>What to Observe</Label>
+          <CriteriaList>
+            {TYPE_CRITERIA[assessmentType]?.checkpoints.map(c => (
+              <CriteriaTag key={c} style={{ borderColor: 'rgba(139,92,246,0.2)', color: 'var(--accent-secondary, #8B5CF6)' }}>{c}</CriteriaTag>
             ))}
           </CriteriaList>
         </FieldGroup>
