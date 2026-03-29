@@ -9,7 +9,7 @@
  * details, and basic CRUD. Full WebRTC/HLS integration is Phase 2.
  */
 import { Router } from 'express';
-import authenticateToken from '../middleware/auth.mjs';
+import { authenticateToken } from '../middleware/auth.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
