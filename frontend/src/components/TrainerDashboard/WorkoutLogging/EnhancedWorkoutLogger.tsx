@@ -427,8 +427,10 @@ const demoClient: Client = {
 };
 
 // === UTILITY FUNCTIONS ===
-const getInitials = (firstName: string, lastName: string): string => {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+const getInitials = (firstName?: string, lastName?: string): string => {
+  const f = firstName || '';
+  const l = lastName || '';
+  return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase() || '??';
 };
 
 // === MAIN COMPONENT ===
@@ -466,7 +468,19 @@ const EnhancedWorkoutLogger: React.FC = () => {
       const response = await authAxios.get(`/api/client-trainer-assignments/client/${clientId}`);
       
       if (response.data) {
-        setClient(response.data);
+        const d = response.data;
+        // Normalize snake_case API fields to camelCase Client interface
+        setClient({
+          ...d,
+          firstName: d.firstName || d.first_name || d.username || 'Client',
+          lastName: d.lastName || d.last_name || '',
+          email: d.email || '',
+          phone: d.phone || d.phoneNumber || '',
+          availableSessions: d.availableSessions ?? d.available_sessions ?? 0,
+          totalSessionsCompleted: d.totalSessionsCompleted ?? d.total_sessions_completed ?? 0,
+          lastSessionDate: d.lastSessionDate || d.last_session_date || null,
+          membershipLevel: d.membershipLevel || d.membership_level || 'standard',
+        });
       } else {
         throw new Error('Client not found or not assigned to you');
       }
@@ -620,7 +634,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
                 <h3>{client.firstName} {client.lastName}</h3>
                 <p>📧 {client.email}</p>
                 {client.phone && <p>📞 {client.phone}</p>}
-                <p>🏆 {client.membershipLevel.charAt(0).toUpperCase() + client.membershipLevel.slice(1)} Member</p>
+                {client.membershipLevel && <p>{client.membershipLevel.charAt(0).toUpperCase() + client.membershipLevel.slice(1)} Member</p>}
               </div>
             </div>
             
