@@ -228,10 +228,11 @@
 
 import express from 'express';
 import { protect, adminOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
-import { 
-  getClientTrainerAssignment, 
-  getUser 
+import {
+  getClientTrainerAssignment,
+  getUser
 } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 
@@ -462,7 +463,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     res.status(500).json({
       success: false,
       message: 'Failed to fetch trainer assignments',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 });
@@ -614,20 +615,44 @@ router.post('/', protect, adminOnly, async (req, res) => {
       }
     );
 
-    // Create new assignment
-    const assignment = await ClientTrainerAssignment.create({
-      clientId: parseInt(clientId),
-      trainerId: parseInt(trainerId),
-      assignedBy,
-      notes: notes || null,
-      status: 'active'
-    });
+    // Create new assignment — try ORM first, fall back to raw SQL if FK constraints fail
+    // (Production may have FK pointing to 'users' table while data is in '"Users"')
+    let assignment;
+    try {
+      assignment = await ClientTrainerAssignment.create({
+        clientId: parseInt(clientId),
+        trainerId: parseInt(trainerId),
+        assignedBy,
+        notes: notes || null,
+        status: 'active'
+      });
+    } catch (ormError) {
+      logger.warn('ORM create failed, trying raw SQL fallback:', ormError.message);
+      const [rows] = await sequelize.query(
+        `INSERT INTO client_trainer_assignments (client_id, trainer_id, assigned_by, notes, status, created_at, updated_at)
+         VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', NOW(), NOW())
+         RETURNING *`,
+        {
+          replacements: {
+            clientId: parseInt(clientId),
+            trainerId: parseInt(trainerId),
+            assignedBy: parseInt(assignedBy),
+            notes: notes || null
+          }
+        }
+      );
+      if (!rows || rows.length === 0) {
+        throw new Error('Raw SQL insert returned no rows');
+      }
+      assignment = rows[0];
+    }
+
+    const assignmentId = assignment.id;
 
     // Fetch the complete assignment with related data
-    // Wrapped in try-catch so the assignment still succeeds if re-fetch fails
     let completeAssignment = assignment;
     try {
-      const fetched = await ClientTrainerAssignment.findByPk(assignment.id, {
+      const fetched = await ClientTrainerAssignment.findByPk(assignmentId, {
         include: [
           {
             model: User,

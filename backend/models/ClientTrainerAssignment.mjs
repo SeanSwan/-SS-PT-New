@@ -133,6 +133,7 @@ ClientTrainerAssignment.init(
     modelName: 'ClientTrainerAssignment',
     tableName: 'client_trainer_assignments',
     timestamps: true, // Enables createdAt and updatedAt
+    underscored: true, // Migration uses snake_case columns (client_id, trainer_id, etc.)
     paranoid: false, // We use status instead of soft deletes for this model
     indexes: [
       // Optimize for common queries
