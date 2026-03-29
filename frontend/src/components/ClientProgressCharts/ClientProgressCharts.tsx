@@ -32,7 +32,8 @@ import {
   TrendingUp, BarChart3, Activity, Target, Zap,
   Calendar, Filter, RefreshCw, Eye, EyeOff,
   ChevronLeft, ChevronRight, Settings, Download,
-  Dumbbell, Heart, Flame, Radar
+  Dumbbell, Heart, Flame, Radar, Printer, FileDown,
+  Timer, Gauge, Trophy, BarChart2, Crosshair
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 
@@ -45,6 +46,13 @@ const BodyCompositionChart = lazy(() => import('./charts/BodyCompositionChart'))
 const StrengthProgressionChart = lazy(() => import('./charts/StrengthProgressionChart'));
 const ConsistencyHeatmap = lazy(() => import('./charts/ConsistencyHeatmap'));
 const MuscleGroupRadar = lazy(() => import('./charts/MuscleGroupRadar'));
+// New V5 charts (lazy-loaded)
+const TrainingLoadChart = lazy(() => import('./charts/TrainingLoadChart'));
+const RPEDistributionChart = lazy(() => import('./charts/RPEDistributionChart'));
+const PersonalRecordsChart = lazy(() => import('./charts/PersonalRecordsChart'));
+const RestComplianceChart = lazy(() => import('./charts/RestComplianceChart'));
+const ExerciseFrequencyChart = lazy(() => import('./charts/ExerciseFrequencyChart'));
+const SessionIntensityChart = lazy(() => import('./charts/SessionIntensityChart'));
 
 // Services and Hooks
 import { useAuth } from '../../context/AuthContext';
@@ -62,6 +70,12 @@ import {
   StrengthProgressionDataPoint,
   ConsistencyDataPoint,
   MuscleGroupDataPoint,
+  TrainingLoadDataPoint,
+  RPEDistributionDataPoint,
+  PersonalRecordDataPoint,
+  RestComplianceDataPoint,
+  ExerciseFrequencyDataPoint,
+  SessionIntensityDataPoint,
 } from './types/ClientProgressTypes';
 
 // ==================== INTERFACES ====================
@@ -87,6 +101,13 @@ interface ProgressData {
   muscleGroupData: MuscleGroupDataPoint[];
   exerciseNames: string[];
   lastUpdated: Date;
+  // V5 chart data
+  trainingLoadData: TrainingLoadDataPoint[];
+  rpeDistributionData: RPEDistributionDataPoint[];
+  personalRecordsData: PersonalRecordDataPoint[];
+  restComplianceData: RestComplianceDataPoint[];
+  exerciseFrequencyData: ExerciseFrequencyDataPoint[];
+  sessionIntensityData: SessionIntensityDataPoint[];
 }
 
 // ==================== STYLED COMPONENTS ====================
@@ -109,6 +130,13 @@ const ProgressContainer = styled(motion.div)`
   @media (max-width: 768px) {
     padding: 1rem;
     gap: 1.5rem;
+  }
+
+  @media print {
+    background: white;
+    padding: 0.5rem;
+    gap: 1rem;
+    min-height: auto;
   }
 `;
 
@@ -238,6 +266,69 @@ const ChartCard = styled(motion.div)`
     0 20px 25px -5px rgba(0, 0, 0, 0.3),
     0 10px 10px -5px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  /* 3D perspective tilt effect */
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transform: perspective(800px) rotateX(2deg);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  &:hover {
+    transform: perspective(800px) rotateX(0deg) translateY(-4px);
+    box-shadow:
+      0 30px 40px -10px rgba(0, 0, 0, 0.4),
+      0 15px 20px -5px rgba(96, 192, 240, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  @media print {
+    transform: none;
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: white;
+    padding: 1rem;
+  }
+`;
+
+const PrintToolbar = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+
+  @media print { display: none; }
+`;
+
+const PrintButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  min-height: 44px;
+  background: rgba(96, 192, 240, 0.1);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-radius: 10px;
+  color: #E0ECF4;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  &:hover {
+    background: rgba(96, 192, 240, 0.2);
+    border-color: rgba(96, 192, 240, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 2px;
+  }
+
+  @media print { display: none; }
 `;
 
 const ChartHeader = styled.div`
@@ -327,6 +418,12 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     strengthProgression: true,
     consistency: true,
     muscleGroup: true,
+    trainingLoad: true,
+    rpeDistribution: true,
+    personalRecords: true,
+    restCompliance: true,
+    exerciseFrequency: true,
+    sessionIntensity: true,
   });
   const [refreshing, setRefreshing] = useState(false);
   
@@ -379,7 +476,14 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         exerciseNames: pd.strengthProgression?.[0]
           ? Object.keys(pd.strengthProgression[0].exercises || {})
           : [],
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        // V5 chart data — processed from raw workout history
+        trainingLoadData: processTrainingLoadData(pd.volumeProgression || [], workoutLogs),
+        rpeDistributionData: processRPEDistribution(pd.rpeDistribution || workoutLogs),
+        personalRecordsData: pd.personalRecords || [],
+        restComplianceData: pd.restCompliance || [],
+        exerciseFrequencyData: pd.exerciseFrequency || processExerciseFrequency(workoutLogs),
+        sessionIntensityData: pd.sessionIntensity || processSessionIntensity(workoutLogs),
       };
 
       setProgressData(processedData);
@@ -454,6 +558,91 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       percentage: category.percentComplete || 0
     }));
   };
+
+  // ==================== V5 DATA PROCESSING FUNCTIONS ====================
+
+  const processTrainingLoadData = (volumeProgression: any[], workoutHistory: any[]): TrainingLoadDataPoint[] => {
+    if (!volumeProgression || volumeProgression.length === 0) return [];
+    // Group by week
+    const weeks: Record<string, { tonnage: number; sessions: number; intensities: number[] }> = {};
+    volumeProgression.forEach(entry => {
+      const d = new Date(entry.date);
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - d.getDay());
+      const key = weekStart.toISOString().split('T')[0];
+      if (!weeks[key]) weeks[key] = { tonnage: 0, sessions: 0, intensities: [] };
+      weeks[key].tonnage += (entry.totalWeight || 0);
+      weeks[key].sessions += 1;
+      if (entry.intensity) weeks[key].intensities.push(entry.intensity);
+    });
+    return Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b)).map(([key, val]) => ({
+      week: new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      tonnage: Math.round(val.tonnage),
+      sessions: val.sessions,
+      avgIntensity: val.intensities.length > 0
+        ? Math.round(val.intensities.reduce((s, v) => s + v, 0) / val.intensities.length * 10) / 10
+        : 5,
+    }));
+  };
+
+  const processRPEDistribution = (data: any[]): RPEDistributionDataPoint[] => {
+    const zones = { 'Easy (1-3)': 0, 'Moderate (4-6)': 0, 'Hard (7-8)': 0, 'Max Effort (9-10)': 0 };
+    const colors: Record<string, string> = {
+      'Easy (1-3)': '#50A0F0', 'Moderate (4-6)': '#60C0F0',
+      'Hard (7-8)': '#8B5CF6', 'Max Effort (9-10)': '#C6A84B',
+    };
+    if (!data || data.length === 0) return [];
+    // If backend provides pre-calculated distribution, use it
+    if (data[0]?.zone) return data as RPEDistributionDataPoint[];
+    // Otherwise derive from workout history
+    data.forEach((entry: any) => {
+      const rpe = entry.overallRPE || entry.intensity || 5;
+      if (rpe <= 3) zones['Easy (1-3)']++;
+      else if (rpe <= 6) zones['Moderate (4-6)']++;
+      else if (rpe <= 8) zones['Hard (7-8)']++;
+      else zones['Max Effort (9-10)']++;
+    });
+    const total = Object.values(zones).reduce((s, v) => s + v, 0) || 1;
+    return Object.entries(zones).map(([zone, count]) => ({
+      zone, count, percentage: (count / total) * 100, color: colors[zone],
+    }));
+  };
+
+  const processExerciseFrequency = (workoutHistory: any[]): ExerciseFrequencyDataPoint[] => {
+    if (!workoutHistory || workoutHistory.length === 0) return [];
+    const freq: Record<string, { count: number; lastPerformed: string }> = {};
+    workoutHistory.forEach((entry: any) => {
+      const name = entry.exerciseName || entry.exercise || 'Unknown';
+      if (!freq[name]) freq[name] = { count: 0, lastPerformed: entry.date || '' };
+      freq[name].count++;
+      if (entry.date && entry.date > freq[name].lastPerformed) freq[name].lastPerformed = entry.date;
+    });
+    return Object.entries(freq).map(([exercise, val]) => ({
+      exercise, count: val.count, lastPerformed: val.lastPerformed,
+    }));
+  };
+
+  const processSessionIntensity = (workoutHistory: any[]): SessionIntensityDataPoint[] => {
+    if (!workoutHistory || workoutHistory.length === 0) return [];
+    return workoutHistory.filter((e: any) => e.duration && e.intensity).map((entry: any) => ({
+      date: entry.date || entry.completedAt || '',
+      duration: entry.duration || 0,
+      intensity: entry.intensity || 5,
+      totalVolume: entry.totalVolume || 0,
+      sessionTitle: entry.title,
+    }));
+  };
+
+  // ==================== PRINT / DOWNLOAD HANDLERS ====================
+
+  const handlePrintAll = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleDownloadPDF = useCallback(() => {
+    // Use browser print dialog with PDF option
+    window.print();
+  }, []);
 
   // ==================== EFFECTS ====================
   
@@ -552,7 +741,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
               <option value="90d">Last 3 Months</option>
               <option value="1y">Last Year</option>
             </TimeRangeSelector>
-            
+
             <ActionButton
               onClick={handleRefresh}
               disabled={refreshing}
@@ -562,6 +751,17 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
               Refresh
             </ActionButton>
+
+            <PrintToolbar>
+              <PrintButton onClick={handlePrintAll} aria-label="Print all charts">
+                <Printer size={16} />
+                Print All
+              </PrintButton>
+              <PrintButton onClick={handleDownloadPDF} aria-label="Download charts as PDF">
+                <FileDown size={16} />
+                Save PDF
+              </PrintButton>
+            </PrintToolbar>
           </ControlsPanel>
         )}
       </HeaderSection>
@@ -704,6 +904,116 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
             </ChartHeader>
             <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
               <MuscleGroupRadar data={progressData.muscleGroupData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {/* ── V5 Charts: Training Intelligence ── */}
+
+        {chartVisibility.trainingLoad && progressData.trainingLoadData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.8 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <TrendingUp size={20} />
+                Weekly Training Load
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <TrainingLoadChart data={progressData.trainingLoadData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {chartVisibility.rpeDistribution && progressData.rpeDistributionData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.85 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <Gauge size={20} />
+                Effort Distribution (RPE)
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <RPEDistributionChart data={progressData.rpeDistributionData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {chartVisibility.personalRecords && progressData.personalRecordsData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.9 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <Trophy size={20} />
+                Personal Records Timeline
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <PersonalRecordsChart data={progressData.personalRecordsData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {chartVisibility.restCompliance && progressData.restComplianceData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.95 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <Timer size={20} />
+                Rest Period Compliance
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <RestComplianceChart data={progressData.restComplianceData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {chartVisibility.exerciseFrequency && progressData.exerciseFrequencyData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 1.0 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <BarChart2 size={20} />
+                Exercise Frequency
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <ExerciseFrequencyChart data={progressData.exerciseFrequencyData} />
+            </Suspense>
+          </ChartCard>
+        )}
+
+        {chartVisibility.sessionIntensity && progressData.sessionIntensityData.length > 0 && (
+          <ChartCard
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 1.05 }}
+          >
+            <ChartHeader>
+              <ChartTitle>
+                <Crosshair size={20} />
+                Session Duration vs Intensity
+              </ChartTitle>
+            </ChartHeader>
+            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
+              <SessionIntensityChart data={progressData.sessionIntensityData} />
             </Suspense>
           </ChartCard>
         )}

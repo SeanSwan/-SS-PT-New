@@ -106,6 +106,12 @@ export interface ChartVisibility {
   strengthProgression: boolean;
   consistency: boolean;
   muscleGroup: boolean;
+  trainingLoad: boolean;
+  rpeDistribution: boolean;
+  personalRecords: boolean;
+  restCompliance: boolean;
+  exerciseFrequency: boolean;
+  sessionIntensity: boolean;
 }
 
 export interface ChartTheme {
@@ -259,6 +265,76 @@ export interface ConsistencyHeatmapProps {
 
 export interface MuscleGroupRadarProps {
   data: MuscleGroupDataPoint[];
+}
+
+// ==================== NEW CHART DATA TYPES (v5.0 — 6 additional charts) ====================
+
+export interface TrainingLoadDataPoint {
+  week: string;       // "Mar 3" or "W12"
+  tonnage: number;    // total weight × reps
+  sessions: number;   // sessions that week
+  avgIntensity: number; // avg session intensity 1-10
+}
+
+export interface RPEDistributionDataPoint {
+  zone: string;       // "Easy (1-3)", "Moderate (4-6)", etc.
+  count: number;      // number of sets/sessions in this zone
+  percentage: number;
+  color: string;
+}
+
+export interface PersonalRecordDataPoint {
+  date: string;
+  exercise: string;
+  weight: number;
+  reps: number;
+  estimated1RM: number;
+}
+
+export interface RestComplianceDataPoint {
+  phase: string;       // "Phase 1", "Phase 2", etc. or exercise name
+  prescribed: number;  // target rest in seconds
+  actual: number;      // actual rest in seconds
+}
+
+export interface ExerciseFrequencyDataPoint {
+  exercise: string;
+  count: number;
+  lastPerformed: string;
+  muscleGroup?: string;
+}
+
+export interface SessionIntensityDataPoint {
+  date: string;
+  duration: number;    // minutes
+  intensity: number;   // 1-10
+  totalVolume: number;
+  sessionTitle?: string;
+}
+
+export interface TrainingLoadChartProps extends BaseChartProps {
+  data: TrainingLoadDataPoint[];
+}
+
+export interface RPEDistributionChartProps extends BaseChartProps {
+  data: RPEDistributionDataPoint[];
+}
+
+export interface PersonalRecordsChartProps extends BaseChartProps {
+  data: PersonalRecordDataPoint[];
+}
+
+export interface RestComplianceChartProps extends BaseChartProps {
+  data: RestComplianceDataPoint[];
+}
+
+export interface ExerciseFrequencyChartProps extends BaseChartProps {
+  data: ExerciseFrequencyDataPoint[];
+  maxItems?: number;
+}
+
+export interface SessionIntensityChartProps extends BaseChartProps {
+  data: SessionIntensityDataPoint[];
 }
 
 // ==================== UTILITY TYPES ====================
