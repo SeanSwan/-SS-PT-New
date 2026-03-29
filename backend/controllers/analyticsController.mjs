@@ -308,6 +308,18 @@ export async function getExerciseHistory(req, res) {
     const { userId } = req.params;
     const { muscleGroup, sort = 'timesPerformed', cursor, limit = 50 } = req.query;
 
+    const sequelize = req.app.get('sequelize');
+    if (!sequelize) {
+      return res.json({
+        success: true,
+        exercises: [],
+        totalUniqueExercises: 0,
+        totalAvailableExercises: 0,
+        varietyScore: 0,
+        usedMaterializedView: false,
+      });
+    }
+
     // Try materialized view first, fall back to direct query
     let exercises = [];
     let usedMV = false;
@@ -337,7 +349,7 @@ export async function getExerciseHistory(req, res) {
         replacements.cursorId = parseInt(cursorId);
       }
 
-      const [rows] = await req.app.get('sequelize').query(
+      const [rows] = await sequelize.query(
         `SELECT * FROM "UserExerciseStats_MV"
          WHERE "userId" = :userId ${whereClause} ${cursorClause}
          ORDER BY ${orderBy}, "exerciseId" DESC
@@ -349,31 +361,36 @@ export async function getExerciseHistory(req, res) {
       usedMV = true;
     } catch {
       // MV doesn't exist — fall back to direct query
-      const [rows] = await req.app.get('sequelize').query(
-        `SELECT
-          e.id AS "exerciseId", e.name AS "exerciseName",
-          e."primaryMuscles", e.category,
-          COUNT(DISTINCT we."workoutSessionId") AS "timesPerformed",
-          COALESCE(MAX(s."weightUsed"), 0) AS "maxWeight",
-          COALESCE(MAX(s."repsCompleted"), 0) AS "maxReps",
-          COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0) AS "totalVolume",
-          MAX(ws.date) AS "lastPerformedDate",
-          MIN(ws.date) AS "firstPerformedDate"
-        FROM "WorkoutExercises" we
-        JOIN "Exercises" e ON we."exerciseId" = e.id
-        JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-        LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-        WHERE ws."userId" = :userId AND ws.status = 'completed'
-        GROUP BY e.id, e.name, e."primaryMuscles", e.category
-        ORDER BY "timesPerformed" DESC
-        LIMIT :limit`,
-        { replacements: { userId, limit: parseInt(limit) } }
-      );
-      exercises = rows || [];
+      try {
+        const [rows] = await sequelize.query(
+          `SELECT
+            e.id AS "exerciseId", e.name AS "exerciseName",
+            e."primaryMuscles", e.category,
+            COUNT(DISTINCT we."workoutSessionId") AS "timesPerformed",
+            COALESCE(MAX(s."weightUsed"), 0) AS "maxWeight",
+            COALESCE(MAX(s."repsCompleted"), 0) AS "maxReps",
+            COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0) AS "totalVolume",
+            MAX(ws.date) AS "lastPerformedDate",
+            MIN(ws.date) AS "firstPerformedDate"
+          FROM "WorkoutExercises" we
+          JOIN "Exercises" e ON we."exerciseId" = e.id
+          JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
+          LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
+          WHERE ws."userId" = :userId AND ws.status = 'completed'
+          GROUP BY e.id, e.name, e."primaryMuscles", e.category
+          ORDER BY "timesPerformed" DESC
+          LIMIT :limit`,
+          { replacements: { userId, limit: parseInt(limit) } }
+        );
+        exercises = rows || [];
+      } catch (fallbackErr) {
+        console.warn('Exercise history fallback query failed (tables may not exist):', fallbackErr.message);
+        exercises = [];
+      }
     }
 
     // Get total unique exercises and available exercises count
-    const [totalResult] = await req.app.get('sequelize').query(
+    const [totalResult] = await sequelize.query(
       `SELECT COUNT(DISTINCT we."exerciseId") as total
        FROM "WorkoutExercises" we
        JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
@@ -381,7 +398,7 @@ export async function getExerciseHistory(req, res) {
       { replacements: { userId } }
     ).catch(() => [[{ total: 0 }]]);
 
-    const [availableResult] = await req.app.get('sequelize').query(
+    const [availableResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM "Exercises" WHERE "isActive" = true`
     ).catch(() => [[{ total: 840 }]]);
 

@@ -1,0 +1,2920 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "totalAchievements": 242,
+    "completeWith3Styles": 242,
+    "missingStyles": 0,
+    "styles": [
+      "claymation",
+      "glass",
+      "metallic"
+    ],
+    "generatedAt": "2026-03-16"
+  },
+  "achievements": {
+    "first_login": {
+      "title": "First Steps",
+      "description": "Log in for the first time",
+      "emoji": "🌅",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_login_claymation.png",
+        "glass": "/badges/achievements/first_login_glass.png",
+        "metallic": "/badges/achievements/first_login_metallic.png"
+      }
+    },
+    "complete_profile": {
+      "title": "Identity Forged",
+      "description": "Complete your profile information",
+      "emoji": "👤",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_profile_claymation.png",
+        "glass": "/badges/achievements/complete_profile_glass.png",
+        "metallic": "/badges/achievements/complete_profile_metallic.png"
+      }
+    },
+    "first_workout": {
+      "title": "Iron Initiation",
+      "description": "Log your first workout",
+      "emoji": "💪",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_workout_claymation.png",
+        "glass": "/badges/achievements/first_workout_glass.png",
+        "metallic": "/badges/achievements/first_workout_metallic.png"
+      }
+    },
+    "first_post": {
+      "title": "Voice Found",
+      "description": "Create your first social post",
+      "emoji": "📝",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_post_claymation.png",
+        "glass": "/badges/achievements/first_post_glass.png",
+        "metallic": "/badges/achievements/first_post_metallic.png"
+      }
+    },
+    "first_like": {
+      "title": "First Connection",
+      "description": "Like someone's post for the first time",
+      "emoji": "❤️",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_like_claymation.png",
+        "glass": "/badges/achievements/first_like_glass.png",
+        "metallic": "/badges/achievements/first_like_metallic.png"
+      }
+    },
+    "first_comment": {
+      "title": "Conversation Starter",
+      "description": "Comment on a post for the first time",
+      "emoji": "💬",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_comment_claymation.png",
+        "glass": "/badges/achievements/first_comment_glass.png",
+        "metallic": "/badges/achievements/first_comment_metallic.png"
+      }
+    },
+    "first_follow": {
+      "title": "Building Bonds",
+      "description": "Follow another member",
+      "emoji": "🤝",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_follow_claymation.png",
+        "glass": "/badges/achievements/first_follow_glass.png",
+        "metallic": "/badges/achievements/first_follow_metallic.png"
+      }
+    },
+    "upload_photo": {
+      "title": "Picture Perfect",
+      "description": "Upload a profile photo",
+      "emoji": "📸",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/upload_photo_claymation.png",
+        "glass": "/badges/achievements/upload_photo_glass.png",
+        "metallic": "/badges/achievements/upload_photo_metallic.png"
+      }
+    },
+    "explore_dashboard": {
+      "title": "Navigator",
+      "description": "Visit all dashboard tabs",
+      "emoji": "🧭",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/explore_dashboard_claymation.png",
+        "glass": "/badges/achievements/explore_dashboard_glass.png",
+        "metallic": "/badges/achievements/explore_dashboard_metallic.png"
+      }
+    },
+    "first_achievement": {
+      "title": "Achievement Unlocked",
+      "description": "Earn your very first achievement",
+      "emoji": "🏆",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_achievement_claymation.png",
+        "glass": "/badges/achievements/first_achievement_glass.png",
+        "metallic": "/badges/achievements/first_achievement_metallic.png"
+      }
+    },
+    "set_goal": {
+      "title": "Goal Setter",
+      "description": "Set your first fitness goal",
+      "emoji": "🎯",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/set_goal_claymation.png",
+        "glass": "/badges/achievements/set_goal_glass.png",
+        "metallic": "/badges/achievements/set_goal_metallic.png"
+      }
+    },
+    "invite_friend": {
+      "title": "Recruiter",
+      "description": "Invite a friend to join SwanStudios",
+      "emoji": "📧",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/invite_friend_claymation.png",
+        "glass": "/badges/achievements/invite_friend_glass.png",
+        "metallic": "/badges/achievements/invite_friend_metallic.png"
+      }
+    },
+    "first_week": {
+      "title": "One Week Strong",
+      "description": "Be active for 7 consecutive days",
+      "emoji": "📅",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/first_week_claymation.png",
+        "glass": "/badges/achievements/first_week_glass.png",
+        "metallic": "/badges/achievements/first_week_metallic.png"
+      }
+    },
+    "customize_profile": {
+      "title": "Personal Touch",
+      "description": "Customize your profile background",
+      "emoji": "🎨",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/customize_profile_claymation.png",
+        "glass": "/badges/achievements/customize_profile_glass.png",
+        "metallic": "/badges/achievements/customize_profile_metallic.png"
+      }
+    },
+    "read_tutorial": {
+      "title": "Knowledge Seeker",
+      "description": "Read the getting started guide",
+      "emoji": "📖",
+      "skillTree": "awakening",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/read_tutorial_claymation.png",
+        "glass": "/badges/achievements/read_tutorial_glass.png",
+        "metallic": "/badges/achievements/read_tutorial_metallic.png"
+      }
+    },
+    "complete_assessment": {
+      "title": "First Assessment",
+      "description": "Complete your first NASM assessment",
+      "emoji": "📋",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_assessment_claymation.png",
+        "glass": "/badges/achievements/complete_assessment_glass.png",
+        "metallic": "/badges/achievements/complete_assessment_metallic.png"
+      }
+    },
+    "watch_tutorial_1": {
+      "title": "Tutorial Viewer",
+      "description": "Watch your first tutorial video",
+      "emoji": "📺",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/watch_tutorial_1_claymation.png",
+        "glass": "/badges/achievements/watch_tutorial_1_glass.png",
+        "metallic": "/badges/achievements/watch_tutorial_1_metallic.png"
+      }
+    },
+    "watch_tutorial_5": {
+      "title": "Avid Learner",
+      "description": "Watch 5 tutorial videos",
+      "emoji": "📺",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/watch_tutorial_5_claymation.png",
+        "glass": "/badges/achievements/watch_tutorial_5_glass.png",
+        "metallic": "/badges/achievements/watch_tutorial_5_metallic.png"
+      }
+    },
+    "watch_tutorial_10": {
+      "title": "Knowledge Hungry",
+      "description": "Watch 10 tutorial videos",
+      "emoji": "📺",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/watch_tutorial_10_claymation.png",
+        "glass": "/badges/achievements/watch_tutorial_10_glass.png",
+        "metallic": "/badges/achievements/watch_tutorial_10_metallic.png"
+      }
+    },
+    "watch_tutorial_25": {
+      "title": "Video Scholar",
+      "description": "Watch 25 tutorial videos",
+      "emoji": "📺",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/watch_tutorial_25_claymation.png",
+        "glass": "/badges/achievements/watch_tutorial_25_glass.png",
+        "metallic": "/badges/achievements/watch_tutorial_25_metallic.png"
+      }
+    },
+    "watch_tutorial_50": {
+      "title": "Tutorial Master",
+      "description": "Watch 50 tutorial videos",
+      "emoji": "📺",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/watch_tutorial_50_claymation.png",
+        "glass": "/badges/achievements/watch_tutorial_50_glass.png",
+        "metallic": "/badges/achievements/watch_tutorial_50_metallic.png"
+      }
+    },
+    "complete_module_1": {
+      "title": "First Module",
+      "description": "Complete your first learning module",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_1_claymation.png",
+        "glass": "/badges/achievements/complete_module_1_glass.png",
+        "metallic": "/badges/achievements/complete_module_1_metallic.png"
+      }
+    },
+    "complete_module_3": {
+      "title": "Committed Learner",
+      "description": "Complete 3 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_3_claymation.png",
+        "glass": "/badges/achievements/complete_module_3_glass.png",
+        "metallic": "/badges/achievements/complete_module_3_metallic.png"
+      }
+    },
+    "complete_module_5": {
+      "title": "Module Collector",
+      "description": "Complete 5 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_5_claymation.png",
+        "glass": "/badges/achievements/complete_module_5_glass.png",
+        "metallic": "/badges/achievements/complete_module_5_metallic.png"
+      }
+    },
+    "complete_module_10": {
+      "title": "Course Conqueror",
+      "description": "Complete 10 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_10_claymation.png",
+        "glass": "/badges/achievements/complete_module_10_glass.png",
+        "metallic": "/badges/achievements/complete_module_10_metallic.png"
+      }
+    },
+    "complete_module_15": {
+      "title": "Education Enthusiast",
+      "description": "Complete 15 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_15_claymation.png",
+        "glass": "/badges/achievements/complete_module_15_glass.png",
+        "metallic": "/badges/achievements/complete_module_15_metallic.png"
+      }
+    },
+    "complete_module_20": {
+      "title": "Study Champion",
+      "description": "Complete 20 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_20_claymation.png",
+        "glass": "/badges/achievements/complete_module_20_glass.png",
+        "metallic": "/badges/achievements/complete_module_20_metallic.png"
+      }
+    },
+    "complete_module_25": {
+      "title": "Curriculum Master",
+      "description": "Complete 25 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_25_claymation.png",
+        "glass": "/badges/achievements/complete_module_25_glass.png",
+        "metallic": "/badges/achievements/complete_module_25_metallic.png"
+      }
+    },
+    "complete_module_30": {
+      "title": "Module Maven",
+      "description": "Complete 30 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_30_claymation.png",
+        "glass": "/badges/achievements/complete_module_30_glass.png",
+        "metallic": "/badges/achievements/complete_module_30_metallic.png"
+      }
+    },
+    "complete_module_40": {
+      "title": "Academic Elite",
+      "description": "Complete 40 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_40_claymation.png",
+        "glass": "/badges/achievements/complete_module_40_glass.png",
+        "metallic": "/badges/achievements/complete_module_40_metallic.png"
+      }
+    },
+    "complete_module_50": {
+      "title": "Module Grandmaster",
+      "description": "Complete 50 learning modules",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/complete_module_50_claymation.png",
+        "glass": "/badges/achievements/complete_module_50_glass.png",
+        "metallic": "/badges/achievements/complete_module_50_metallic.png"
+      }
+    },
+    "pass_quiz_1": {
+      "title": "First Quiz",
+      "description": "Pass your first quiz",
+      "emoji": "✅",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/pass_quiz_1_claymation.png",
+        "glass": "/badges/achievements/pass_quiz_1_glass.png",
+        "metallic": "/badges/achievements/pass_quiz_1_metallic.png"
+      }
+    },
+    "pass_quiz_5": {
+      "title": "Quiz Pro",
+      "description": "Pass 5 quizzes",
+      "emoji": "✅",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/pass_quiz_5_claymation.png",
+        "glass": "/badges/achievements/pass_quiz_5_glass.png",
+        "metallic": "/badges/achievements/pass_quiz_5_metallic.png"
+      }
+    },
+    "pass_quiz_10": {
+      "title": "Quiz Champion",
+      "description": "Pass 10 quizzes",
+      "emoji": "✅",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/pass_quiz_10_claymation.png",
+        "glass": "/badges/achievements/pass_quiz_10_glass.png",
+        "metallic": "/badges/achievements/pass_quiz_10_metallic.png"
+      }
+    },
+    "pass_quiz_25": {
+      "title": "Quiz Dominator",
+      "description": "Pass 25 quizzes",
+      "emoji": "✅",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/pass_quiz_25_claymation.png",
+        "glass": "/badges/achievements/pass_quiz_25_glass.png",
+        "metallic": "/badges/achievements/pass_quiz_25_metallic.png"
+      }
+    },
+    "pass_quiz_50": {
+      "title": "Quiz Grandmaster",
+      "description": "Pass 50 quizzes",
+      "emoji": "✅",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/pass_quiz_50_claymation.png",
+        "glass": "/badges/achievements/pass_quiz_50_glass.png",
+        "metallic": "/badges/achievements/pass_quiz_50_metallic.png"
+      }
+    },
+    "study_streak_3": {
+      "title": "Study Habit",
+      "description": "Maintain a 3-day study streak",
+      "emoji": "📖",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/study_streak_3_claymation.png",
+        "glass": "/badges/achievements/study_streak_3_glass.png",
+        "metallic": "/badges/achievements/study_streak_3_metallic.png"
+      }
+    },
+    "study_streak_7": {
+      "title": "Weekly Scholar",
+      "description": "Maintain a 7-day study streak",
+      "emoji": "📖",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/study_streak_7_claymation.png",
+        "glass": "/badges/achievements/study_streak_7_glass.png",
+        "metallic": "/badges/achievements/study_streak_7_metallic.png"
+      }
+    },
+    "study_streak_14": {
+      "title": "Two-Week Thinker",
+      "description": "Maintain a 14-day study streak",
+      "emoji": "📖",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/study_streak_14_claymation.png",
+        "glass": "/badges/achievements/study_streak_14_glass.png",
+        "metallic": "/badges/achievements/study_streak_14_metallic.png"
+      }
+    },
+    "study_streak_30": {
+      "title": "Monthly Mind",
+      "description": "Maintain a 30-day study streak",
+      "emoji": "📖",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/study_streak_30_claymation.png",
+        "glass": "/badges/achievements/study_streak_30_glass.png",
+        "metallic": "/badges/achievements/study_streak_30_metallic.png"
+      }
+    },
+    "cert_progress_25": {
+      "title": "Certification Started",
+      "description": "Complete 25% of certification curriculum",
+      "emoji": "📜",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/cert_progress_25_claymation.png",
+        "glass": "/badges/achievements/cert_progress_25_glass.png",
+        "metallic": "/badges/achievements/cert_progress_25_metallic.png"
+      }
+    },
+    "cert_progress_50": {
+      "title": "Halfway Certified",
+      "description": "Complete 50% of certification curriculum",
+      "emoji": "📜",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/cert_progress_50_claymation.png",
+        "glass": "/badges/achievements/cert_progress_50_glass.png",
+        "metallic": "/badges/achievements/cert_progress_50_metallic.png"
+      }
+    },
+    "cert_progress_75": {
+      "title": "Almost Certified",
+      "description": "Complete 75% of certification curriculum",
+      "emoji": "📜",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/cert_progress_75_claymation.png",
+        "glass": "/badges/achievements/cert_progress_75_glass.png",
+        "metallic": "/badges/achievements/cert_progress_75_metallic.png"
+      }
+    },
+    "cert_progress_100": {
+      "title": "Fully Certified",
+      "description": "Complete 100% of certification curriculum",
+      "emoji": "📜",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/cert_progress_100_claymation.png",
+        "glass": "/badges/achievements/cert_progress_100_glass.png",
+        "metallic": "/badges/achievements/cert_progress_100_metallic.png"
+      }
+    },
+    "share_knowledge": {
+      "title": "Knowledge Sharer",
+      "description": "Share an educational insight with the community",
+      "emoji": "📢",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/share_knowledge_claymation.png",
+        "glass": "/badges/achievements/share_knowledge_glass.png",
+        "metallic": "/badges/achievements/share_knowledge_metallic.png"
+      }
+    },
+    "mentor_session": {
+      "title": "Mentor",
+      "description": "Complete a mentor session with another member",
+      "emoji": "🧑‍🏫",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/mentor_session_claymation.png",
+        "glass": "/badges/achievements/mentor_session_glass.png",
+        "metallic": "/badges/achievements/mentor_session_metallic.png"
+      }
+    },
+    "nutrition_cert": {
+      "title": "Nutrition Expert",
+      "description": "Complete the nutrition certification track",
+      "emoji": "🍎",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/nutrition_cert_claymation.png",
+        "glass": "/badges/achievements/nutrition_cert_glass.png",
+        "metallic": "/badges/achievements/nutrition_cert_metallic.png"
+      }
+    },
+    "exercise_science_cert": {
+      "title": "Exercise Scientist",
+      "description": "Complete the exercise science certification track",
+      "emoji": "🔬",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/exercise_science_cert_claymation.png",
+        "glass": "/badges/achievements/exercise_science_cert_glass.png",
+        "metallic": "/badges/achievements/exercise_science_cert_metallic.png"
+      }
+    },
+    "behavior_change_cert": {
+      "title": "Behavior Change Pro",
+      "description": "Complete the behavior change certification track",
+      "emoji": "🧠",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/behavior_change_cert_claymation.png",
+        "glass": "/badges/achievements/behavior_change_cert_glass.png",
+        "metallic": "/badges/achievements/behavior_change_cert_metallic.png"
+      }
+    },
+    "program_design_cert": {
+      "title": "Program Designer",
+      "description": "Complete the program design certification track",
+      "emoji": "📐",
+      "skillTree": "forge_nasm",
+      "category": "milestone",
+      "images": {
+        "claymation": "/badges/achievements/program_design_cert_claymation.png",
+        "glass": "/badges/achievements/program_design_cert_glass.png",
+        "metallic": "/badges/achievements/program_design_cert_metallic.png"
+      }
+    },
+    "workout_count_10": {
+      "title": "Getting Started",
+      "description": "Complete 10 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_10_claymation.png",
+        "glass": "/badges/achievements/workout_count_10_glass.png",
+        "metallic": "/badges/achievements/workout_count_10_metallic.png"
+      }
+    },
+    "workout_count_25": {
+      "title": "Gym Regular",
+      "description": "Complete 25 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_25_claymation.png",
+        "glass": "/badges/achievements/workout_count_25_glass.png",
+        "metallic": "/badges/achievements/workout_count_25_metallic.png"
+      }
+    },
+    "workout_count_50": {
+      "title": "Dedicated Lifter",
+      "description": "Complete 50 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_50_claymation.png",
+        "glass": "/badges/achievements/workout_count_50_glass.png",
+        "metallic": "/badges/achievements/workout_count_50_metallic.png"
+      }
+    },
+    "workout_count_100": {
+      "title": "Century Club",
+      "description": "Complete 100 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_100_claymation.png",
+        "glass": "/badges/achievements/workout_count_100_glass.png",
+        "metallic": "/badges/achievements/workout_count_100_metallic.png"
+      }
+    },
+    "workout_count_250": {
+      "title": "Iron Veteran",
+      "description": "Complete 250 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_250_claymation.png",
+        "glass": "/badges/achievements/workout_count_250_glass.png",
+        "metallic": "/badges/achievements/workout_count_250_metallic.png"
+      }
+    },
+    "workout_count_500": {
+      "title": "Half-Thousand",
+      "description": "Complete 500 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_500_claymation.png",
+        "glass": "/badges/achievements/workout_count_500_glass.png",
+        "metallic": "/badges/achievements/workout_count_500_metallic.png"
+      }
+    },
+    "workout_count_1000": {
+      "title": "Thousand Strong",
+      "description": "Complete 1000 workouts",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_count_1000_claymation.png",
+        "glass": "/badges/achievements/workout_count_1000_glass.png",
+        "metallic": "/badges/achievements/workout_count_1000_metallic.png"
+      }
+    },
+    "exercise_variety_5": {
+      "title": "Explorer",
+      "description": "Try 5 different exercises",
+      "emoji": "🔍",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/exercise_variety_5_claymation.png",
+        "glass": "/badges/achievements/exercise_variety_5_glass.png",
+        "metallic": "/badges/achievements/exercise_variety_5_metallic.png"
+      }
+    },
+    "exercise_variety_10": {
+      "title": "Diverse Mover",
+      "description": "Try 10 different exercises",
+      "emoji": "🔍",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/exercise_variety_10_claymation.png",
+        "glass": "/badges/achievements/exercise_variety_10_glass.png",
+        "metallic": "/badges/achievements/exercise_variety_10_metallic.png"
+      }
+    },
+    "exercise_variety_20": {
+      "title": "Variety King",
+      "description": "Try 20 different exercises",
+      "emoji": "🔍",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/exercise_variety_20_claymation.png",
+        "glass": "/badges/achievements/exercise_variety_20_glass.png",
+        "metallic": "/badges/achievements/exercise_variety_20_metallic.png"
+      }
+    },
+    "exercise_variety_30": {
+      "title": "Exercise Encyclopedia",
+      "description": "Try 30 different exercises",
+      "emoji": "🔍",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/exercise_variety_30_claymation.png",
+        "glass": "/badges/achievements/exercise_variety_30_glass.png",
+        "metallic": "/badges/achievements/exercise_variety_30_metallic.png"
+      }
+    },
+    "personal_record_1": {
+      "title": "First PR",
+      "description": "Set your first personal record",
+      "emoji": "📈",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/personal_record_1_claymation.png",
+        "glass": "/badges/achievements/personal_record_1_glass.png",
+        "metallic": "/badges/achievements/personal_record_1_metallic.png"
+      }
+    },
+    "personal_record_5": {
+      "title": "Record Breaker",
+      "description": "Set 5 personal records",
+      "emoji": "📈",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/personal_record_5_claymation.png",
+        "glass": "/badges/achievements/personal_record_5_glass.png",
+        "metallic": "/badges/achievements/personal_record_5_metallic.png"
+      }
+    },
+    "personal_record_10": {
+      "title": "PR Machine",
+      "description": "Set 10 personal records",
+      "emoji": "📈",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/personal_record_10_claymation.png",
+        "glass": "/badges/achievements/personal_record_10_glass.png",
+        "metallic": "/badges/achievements/personal_record_10_metallic.png"
+      }
+    },
+    "personal_record_25": {
+      "title": "Record Collector",
+      "description": "Set 25 personal records",
+      "emoji": "📈",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/personal_record_25_claymation.png",
+        "glass": "/badges/achievements/personal_record_25_glass.png",
+        "metallic": "/badges/achievements/personal_record_25_metallic.png"
+      }
+    },
+    "personal_record_50": {
+      "title": "PR Legend",
+      "description": "Set 50 personal records",
+      "emoji": "📈",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/personal_record_50_claymation.png",
+        "glass": "/badges/achievements/personal_record_50_glass.png",
+        "metallic": "/badges/achievements/personal_record_50_metallic.png"
+      }
+    },
+    "total_reps_1k": {
+      "title": "Rep Rookie",
+      "description": "Perform 1,000 total reps",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_reps_1k_claymation.png",
+        "glass": "/badges/achievements/total_reps_1k_glass.png",
+        "metallic": "/badges/achievements/total_reps_1k_metallic.png"
+      }
+    },
+    "total_reps_5k": {
+      "title": "Rep Builder",
+      "description": "Perform 5,000 total reps",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_reps_5k_claymation.png",
+        "glass": "/badges/achievements/total_reps_5k_glass.png",
+        "metallic": "/badges/achievements/total_reps_5k_metallic.png"
+      }
+    },
+    "total_reps_10k": {
+      "title": "Ten Thousand Reps",
+      "description": "Perform 10,000 total reps",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_reps_10k_claymation.png",
+        "glass": "/badges/achievements/total_reps_10k_glass.png",
+        "metallic": "/badges/achievements/total_reps_10k_metallic.png"
+      }
+    },
+    "total_reps_50k": {
+      "title": "Rep Monster",
+      "description": "Perform 50,000 total reps",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_reps_50k_claymation.png",
+        "glass": "/badges/achievements/total_reps_50k_glass.png",
+        "metallic": "/badges/achievements/total_reps_50k_metallic.png"
+      }
+    },
+    "total_reps_100k": {
+      "title": "Hundred-K Reps",
+      "description": "Perform 100,000 total reps",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_reps_100k_claymation.png",
+        "glass": "/badges/achievements/total_reps_100k_glass.png",
+        "metallic": "/badges/achievements/total_reps_100k_metallic.png"
+      }
+    },
+    "total_sets_500": {
+      "title": "Set Builder",
+      "description": "Complete 500 total sets",
+      "emoji": "🧱",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_sets_500_claymation.png",
+        "glass": "/badges/achievements/total_sets_500_glass.png",
+        "metallic": "/badges/achievements/total_sets_500_metallic.png"
+      }
+    },
+    "total_sets_2000": {
+      "title": "Set Machine",
+      "description": "Complete 2,000 total sets",
+      "emoji": "🧱",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_sets_2000_claymation.png",
+        "glass": "/badges/achievements/total_sets_2000_glass.png",
+        "metallic": "/badges/achievements/total_sets_2000_metallic.png"
+      }
+    },
+    "total_sets_5000": {
+      "title": "Set Legend",
+      "description": "Complete 5,000 total sets",
+      "emoji": "🧱",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_sets_5000_claymation.png",
+        "glass": "/badges/achievements/total_sets_5000_glass.png",
+        "metallic": "/badges/achievements/total_sets_5000_metallic.png"
+      }
+    },
+    "total_weight_10k": {
+      "title": "Ton Lifter",
+      "description": "Lift 10,000 cumulative pounds",
+      "emoji": "🪨",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_weight_10k_claymation.png",
+        "glass": "/badges/achievements/total_weight_10k_glass.png",
+        "metallic": "/badges/achievements/total_weight_10k_metallic.png"
+      }
+    },
+    "total_weight_50k": {
+      "title": "Heavy Hitter",
+      "description": "Lift 50,000 cumulative pounds",
+      "emoji": "🪨",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_weight_50k_claymation.png",
+        "glass": "/badges/achievements/total_weight_50k_glass.png",
+        "metallic": "/badges/achievements/total_weight_50k_metallic.png"
+      }
+    },
+    "total_weight_100k": {
+      "title": "Iron Mountain",
+      "description": "Lift 100,000 cumulative pounds",
+      "emoji": "🪨",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_weight_100k_claymation.png",
+        "glass": "/badges/achievements/total_weight_100k_glass.png",
+        "metallic": "/badges/achievements/total_weight_100k_metallic.png"
+      }
+    },
+    "total_weight_500k": {
+      "title": "Gravity Defier",
+      "description": "Lift 500,000 cumulative pounds",
+      "emoji": "🪨",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/total_weight_500k_claymation.png",
+        "glass": "/badges/achievements/total_weight_500k_glass.png",
+        "metallic": "/badges/achievements/total_weight_500k_metallic.png"
+      }
+    },
+    "workout_hours_10": {
+      "title": "Ten Hour Athlete",
+      "description": "Spend 10 total hours working out",
+      "emoji": "⏱️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_hours_10_claymation.png",
+        "glass": "/badges/achievements/workout_hours_10_glass.png",
+        "metallic": "/badges/achievements/workout_hours_10_metallic.png"
+      }
+    },
+    "workout_hours_50": {
+      "title": "Fifty Hour Grinder",
+      "description": "Spend 50 total hours working out",
+      "emoji": "⏱️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_hours_50_claymation.png",
+        "glass": "/badges/achievements/workout_hours_50_glass.png",
+        "metallic": "/badges/achievements/workout_hours_50_metallic.png"
+      }
+    },
+    "workout_hours_100": {
+      "title": "Hundred Hour Hero",
+      "description": "Spend 100 total hours working out",
+      "emoji": "⏱️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/workout_hours_100_claymation.png",
+        "glass": "/badges/achievements/workout_hours_100_glass.png",
+        "metallic": "/badges/achievements/workout_hours_100_metallic.png"
+      }
+    },
+    "squat_master": {
+      "title": "Squat Master",
+      "description": "Complete 100 squat sets with progressive overload",
+      "emoji": "🧎",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/squat_master_claymation.png",
+        "glass": "/badges/achievements/squat_master_glass.png",
+        "metallic": "/badges/achievements/squat_master_metallic.png"
+      }
+    },
+    "bench_master": {
+      "title": "Bench Press King",
+      "description": "Complete 100 bench press sets",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/bench_master_claymation.png",
+        "glass": "/badges/achievements/bench_master_glass.png",
+        "metallic": "/badges/achievements/bench_master_metallic.png"
+      }
+    },
+    "deadlift_master": {
+      "title": "Deadlift Titan",
+      "description": "Complete 100 deadlift sets",
+      "emoji": "🪨",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/deadlift_master_claymation.png",
+        "glass": "/badges/achievements/deadlift_master_glass.png",
+        "metallic": "/badges/achievements/deadlift_master_metallic.png"
+      }
+    },
+    "ohp_master": {
+      "title": "Overhead Champion",
+      "description": "Complete 100 overhead press sets",
+      "emoji": "🏋️",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/ohp_master_claymation.png",
+        "glass": "/badges/achievements/ohp_master_glass.png",
+        "metallic": "/badges/achievements/ohp_master_metallic.png"
+      }
+    },
+    "bodyweight_master": {
+      "title": "Bodyweight Boss",
+      "description": "Complete 50 bodyweight-only workouts",
+      "emoji": "🤸",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/bodyweight_master_claymation.png",
+        "glass": "/badges/achievements/bodyweight_master_glass.png",
+        "metallic": "/badges/achievements/bodyweight_master_metallic.png"
+      }
+    },
+    "cardio_king": {
+      "title": "Cardio King",
+      "description": "Complete 50 cardio workouts",
+      "emoji": "🏃",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/cardio_king_claymation.png",
+        "glass": "/badges/achievements/cardio_king_glass.png",
+        "metallic": "/badges/achievements/cardio_king_metallic.png"
+      }
+    },
+    "flexibility_pro": {
+      "title": "Flexibility Pro",
+      "description": "Complete 30 flexibility/mobility sessions",
+      "emoji": "🧘",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/flexibility_pro_claymation.png",
+        "glass": "/badges/achievements/flexibility_pro_glass.png",
+        "metallic": "/badges/achievements/flexibility_pro_metallic.png"
+      }
+    },
+    "morning_warrior": {
+      "title": "Morning Warrior",
+      "description": "Complete 25 workouts before 8 AM",
+      "emoji": "🌅",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/morning_warrior_claymation.png",
+        "glass": "/badges/achievements/morning_warrior_glass.png",
+        "metallic": "/badges/achievements/morning_warrior_metallic.png"
+      }
+    },
+    "weekend_warrior": {
+      "title": "Weekend Warrior",
+      "description": "Complete 20 weekend workouts",
+      "emoji": "💪",
+      "skillTree": "iron_gravity",
+      "category": "fitness",
+      "images": {
+        "claymation": "/badges/achievements/weekend_warrior_claymation.png",
+        "glass": "/badges/achievements/weekend_warrior_glass.png",
+        "metallic": "/badges/achievements/weekend_warrior_metallic.png"
+      }
+    },
+    "post_count_5": {
+      "title": "New Poster",
+      "description": "Create 5 social posts",
+      "emoji": "📝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/post_count_5_claymation.png",
+        "glass": "/badges/achievements/post_count_5_glass.png",
+        "metallic": "/badges/achievements/post_count_5_metallic.png"
+      }
+    },
+    "post_count_10": {
+      "title": "Active Poster",
+      "description": "Create 10 social posts",
+      "emoji": "📝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/post_count_10_claymation.png",
+        "glass": "/badges/achievements/post_count_10_glass.png",
+        "metallic": "/badges/achievements/post_count_10_metallic.png"
+      }
+    },
+    "post_count_25": {
+      "title": "Prolific Writer",
+      "description": "Create 25 social posts",
+      "emoji": "📝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/post_count_25_claymation.png",
+        "glass": "/badges/achievements/post_count_25_glass.png",
+        "metallic": "/badges/achievements/post_count_25_metallic.png"
+      }
+    },
+    "post_count_50": {
+      "title": "Content Creator",
+      "description": "Create 50 social posts",
+      "emoji": "📝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/post_count_50_claymation.png",
+        "glass": "/badges/achievements/post_count_50_glass.png",
+        "metallic": "/badges/achievements/post_count_50_metallic.png"
+      }
+    },
+    "post_count_100": {
+      "title": "Publishing Legend",
+      "description": "Create 100 social posts",
+      "emoji": "📝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/post_count_100_claymation.png",
+        "glass": "/badges/achievements/post_count_100_glass.png",
+        "metallic": "/badges/achievements/post_count_100_metallic.png"
+      }
+    },
+    "like_given_10": {
+      "title": "Generous Heart",
+      "description": "Give 10 likes to others",
+      "emoji": "👍",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_given_10_claymation.png",
+        "glass": "/badges/achievements/like_given_10_glass.png",
+        "metallic": "/badges/achievements/like_given_10_metallic.png"
+      }
+    },
+    "like_given_50": {
+      "title": "Encourager",
+      "description": "Give 50 likes to others",
+      "emoji": "👍",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_given_50_claymation.png",
+        "glass": "/badges/achievements/like_given_50_glass.png",
+        "metallic": "/badges/achievements/like_given_50_metallic.png"
+      }
+    },
+    "like_given_100": {
+      "title": "Cheerleader",
+      "description": "Give 100 likes to others",
+      "emoji": "👍",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_given_100_claymation.png",
+        "glass": "/badges/achievements/like_given_100_glass.png",
+        "metallic": "/badges/achievements/like_given_100_metallic.png"
+      }
+    },
+    "like_given_500": {
+      "title": "Like Machine",
+      "description": "Give 500 likes to others",
+      "emoji": "👍",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_given_500_claymation.png",
+        "glass": "/badges/achievements/like_given_500_glass.png",
+        "metallic": "/badges/achievements/like_given_500_metallic.png"
+      }
+    },
+    "like_received_10": {
+      "title": "Getting Noticed",
+      "description": "Receive 10 likes on your posts",
+      "emoji": "❤️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_received_10_claymation.png",
+        "glass": "/badges/achievements/like_received_10_glass.png",
+        "metallic": "/badges/achievements/like_received_10_metallic.png"
+      }
+    },
+    "like_received_50": {
+      "title": "Community Favorite",
+      "description": "Receive 50 likes on your posts",
+      "emoji": "❤️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_received_50_claymation.png",
+        "glass": "/badges/achievements/like_received_50_glass.png",
+        "metallic": "/badges/achievements/like_received_50_metallic.png"
+      }
+    },
+    "like_received_100": {
+      "title": "Beloved Member",
+      "description": "Receive 100 likes on your posts",
+      "emoji": "❤️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_received_100_claymation.png",
+        "glass": "/badges/achievements/like_received_100_glass.png",
+        "metallic": "/badges/achievements/like_received_100_metallic.png"
+      }
+    },
+    "like_received_500": {
+      "title": "Heart Magnet",
+      "description": "Receive 500 likes on your posts",
+      "emoji": "❤️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/like_received_500_claymation.png",
+        "glass": "/badges/achievements/like_received_500_glass.png",
+        "metallic": "/badges/achievements/like_received_500_metallic.png"
+      }
+    },
+    "comment_count_10": {
+      "title": "Commenter",
+      "description": "Write 10 comments",
+      "emoji": "💬",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/comment_count_10_claymation.png",
+        "glass": "/badges/achievements/comment_count_10_glass.png",
+        "metallic": "/badges/achievements/comment_count_10_metallic.png"
+      }
+    },
+    "comment_count_50": {
+      "title": "Discussion Leader",
+      "description": "Write 50 comments",
+      "emoji": "💬",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/comment_count_50_claymation.png",
+        "glass": "/badges/achievements/comment_count_50_glass.png",
+        "metallic": "/badges/achievements/comment_count_50_metallic.png"
+      }
+    },
+    "comment_count_100": {
+      "title": "Commentator Pro",
+      "description": "Write 100 comments",
+      "emoji": "💬",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/comment_count_100_claymation.png",
+        "glass": "/badges/achievements/comment_count_100_glass.png",
+        "metallic": "/badges/achievements/comment_count_100_metallic.png"
+      }
+    },
+    "follower_count_5": {
+      "title": "Small Following",
+      "description": "Gain 5 followers",
+      "emoji": "👥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/follower_count_5_claymation.png",
+        "glass": "/badges/achievements/follower_count_5_glass.png",
+        "metallic": "/badges/achievements/follower_count_5_metallic.png"
+      }
+    },
+    "follower_count_10": {
+      "title": "Growing Influence",
+      "description": "Gain 10 followers",
+      "emoji": "👥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/follower_count_10_claymation.png",
+        "glass": "/badges/achievements/follower_count_10_glass.png",
+        "metallic": "/badges/achievements/follower_count_10_metallic.png"
+      }
+    },
+    "follower_count_25": {
+      "title": "Community Leader",
+      "description": "Gain 25 followers",
+      "emoji": "👥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/follower_count_25_claymation.png",
+        "glass": "/badges/achievements/follower_count_25_glass.png",
+        "metallic": "/badges/achievements/follower_count_25_metallic.png"
+      }
+    },
+    "follower_count_50": {
+      "title": "Influencer",
+      "description": "Gain 50 followers",
+      "emoji": "👥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/follower_count_50_claymation.png",
+        "glass": "/badges/achievements/follower_count_50_glass.png",
+        "metallic": "/badges/achievements/follower_count_50_metallic.png"
+      }
+    },
+    "follower_count_100": {
+      "title": "SwanStudios Celebrity",
+      "description": "Gain 100 followers",
+      "emoji": "👥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/follower_count_100_claymation.png",
+        "glass": "/badges/achievements/follower_count_100_glass.png",
+        "metallic": "/badges/achievements/follower_count_100_metallic.png"
+      }
+    },
+    "following_count_10": {
+      "title": "Network Builder",
+      "description": "Follow 10 members",
+      "emoji": "🔗",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/following_count_10_claymation.png",
+        "glass": "/badges/achievements/following_count_10_glass.png",
+        "metallic": "/badges/achievements/following_count_10_metallic.png"
+      }
+    },
+    "following_count_25": {
+      "title": "Connected",
+      "description": "Follow 25 members",
+      "emoji": "🔗",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/following_count_25_claymation.png",
+        "glass": "/badges/achievements/following_count_25_glass.png",
+        "metallic": "/badges/achievements/following_count_25_metallic.png"
+      }
+    },
+    "following_count_50": {
+      "title": "Deeply Connected",
+      "description": "Follow 50 members",
+      "emoji": "🔗",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/following_count_50_claymation.png",
+        "glass": "/badges/achievements/following_count_50_glass.png",
+        "metallic": "/badges/achievements/following_count_50_metallic.png"
+      }
+    },
+    "share_workout": {
+      "title": "Workout Sharer",
+      "description": "Share a workout summary with the community",
+      "emoji": "📤",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/share_workout_claymation.png",
+        "glass": "/badges/achievements/share_workout_glass.png",
+        "metallic": "/badges/achievements/share_workout_metallic.png"
+      }
+    },
+    "share_progress_photo": {
+      "title": "Progress Photographer",
+      "description": "Share a progress photo",
+      "emoji": "📷",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/share_progress_photo_claymation.png",
+        "glass": "/badges/achievements/share_progress_photo_glass.png",
+        "metallic": "/badges/achievements/share_progress_photo_metallic.png"
+      }
+    },
+    "event_attendance_1": {
+      "title": "Event Goer",
+      "description": "Attend your first community event",
+      "emoji": "🎉",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/event_attendance_1_claymation.png",
+        "glass": "/badges/achievements/event_attendance_1_glass.png",
+        "metallic": "/badges/achievements/event_attendance_1_metallic.png"
+      }
+    },
+    "event_attendance_5": {
+      "title": "Event Regular",
+      "description": "Attend 5 community events",
+      "emoji": "🎉",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/event_attendance_5_claymation.png",
+        "glass": "/badges/achievements/event_attendance_5_glass.png",
+        "metallic": "/badges/achievements/event_attendance_5_metallic.png"
+      }
+    },
+    "event_attendance_10": {
+      "title": "Event Enthusiast",
+      "description": "Attend 10 community events",
+      "emoji": "🎉",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/event_attendance_10_claymation.png",
+        "glass": "/badges/achievements/event_attendance_10_glass.png",
+        "metallic": "/badges/achievements/event_attendance_10_metallic.png"
+      }
+    },
+    "group_join_1": {
+      "title": "Team Player",
+      "description": "Join your first group",
+      "emoji": "👫",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/group_join_1_claymation.png",
+        "glass": "/badges/achievements/group_join_1_glass.png",
+        "metallic": "/badges/achievements/group_join_1_metallic.png"
+      }
+    },
+    "group_join_3": {
+      "title": "Social Butterfly",
+      "description": "Join 3 groups",
+      "emoji": "👫",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/group_join_3_claymation.png",
+        "glass": "/badges/achievements/group_join_3_glass.png",
+        "metallic": "/badges/achievements/group_join_3_metallic.png"
+      }
+    },
+    "group_join_5": {
+      "title": "Group Collector",
+      "description": "Join 5 groups",
+      "emoji": "👫",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/group_join_5_claymation.png",
+        "glass": "/badges/achievements/group_join_5_glass.png",
+        "metallic": "/badges/achievements/group_join_5_metallic.png"
+      }
+    },
+    "help_newbie": {
+      "title": "Helpful Hand",
+      "description": "Help a new member get started",
+      "emoji": "🤝",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/help_newbie_claymation.png",
+        "glass": "/badges/achievements/help_newbie_glass.png",
+        "metallic": "/badges/achievements/help_newbie_metallic.png"
+      }
+    },
+    "motivate_others": {
+      "title": "Motivator",
+      "description": "Send 10 motivational messages",
+      "emoji": "💪",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/motivate_others_claymation.png",
+        "glass": "/badges/achievements/motivate_others_glass.png",
+        "metallic": "/badges/achievements/motivate_others_metallic.png"
+      }
+    },
+    "popular_post": {
+      "title": "Popular Post",
+      "description": "Get 10 or more likes on a single post",
+      "emoji": "🔥",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/popular_post_claymation.png",
+        "glass": "/badges/achievements/popular_post_glass.png",
+        "metallic": "/badges/achievements/popular_post_metallic.png"
+      }
+    },
+    "viral_post": {
+      "title": "Viral Post",
+      "description": "Get 50 or more likes on a single post",
+      "emoji": "🚀",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/viral_post_claymation.png",
+        "glass": "/badges/achievements/viral_post_glass.png",
+        "metallic": "/badges/achievements/viral_post_metallic.png"
+      }
+    },
+    "conversation_leader": {
+      "title": "Conversation Leader",
+      "description": "Start 25 discussions that get 5+ replies",
+      "emoji": "🗣️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/conversation_leader_claymation.png",
+        "glass": "/badges/achievements/conversation_leader_glass.png",
+        "metallic": "/badges/achievements/conversation_leader_metallic.png"
+      }
+    },
+    "community_pillar": {
+      "title": "Community Pillar",
+      "description": "Be active every day for 30 days and help 10 members",
+      "emoji": "🏛️",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/community_pillar_claymation.png",
+        "glass": "/badges/achievements/community_pillar_glass.png",
+        "metallic": "/badges/achievements/community_pillar_metallic.png"
+      }
+    },
+    "first_group_post": {
+      "title": "Group Voice",
+      "description": "Create your first post in a group",
+      "emoji": "📣",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/first_group_post_claymation.png",
+        "glass": "/badges/achievements/first_group_post_glass.png",
+        "metallic": "/badges/achievements/first_group_post_metallic.png"
+      }
+    },
+    "profile_visitor": {
+      "title": "Profile Visitor",
+      "description": "Visit 20 other members' profiles",
+      "emoji": "👀",
+      "skillTree": "tribe_social",
+      "category": "social",
+      "images": {
+        "claymation": "/badges/achievements/profile_visitor_claymation.png",
+        "glass": "/badges/achievements/profile_visitor_glass.png",
+        "metallic": "/badges/achievements/profile_visitor_metallic.png"
+      }
+    },
+    "log_nutrition_1": {
+      "title": "First Fuel Log",
+      "description": "Log your nutrition for the first time",
+      "emoji": "🍎",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_nutrition_1_claymation.png",
+        "glass": "/badges/achievements/log_nutrition_1_glass.png",
+        "metallic": "/badges/achievements/log_nutrition_1_metallic.png"
+      }
+    },
+    "log_nutrition_7": {
+      "title": "Week of Fuel",
+      "description": "Log your nutrition for 7 days",
+      "emoji": "🍎",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_nutrition_7_claymation.png",
+        "glass": "/badges/achievements/log_nutrition_7_glass.png",
+        "metallic": "/badges/achievements/log_nutrition_7_metallic.png"
+      }
+    },
+    "log_nutrition_30": {
+      "title": "Month of Mindful Eating",
+      "description": "Log your nutrition for 30 days",
+      "emoji": "🍎",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_nutrition_30_claymation.png",
+        "glass": "/badges/achievements/log_nutrition_30_glass.png",
+        "metallic": "/badges/achievements/log_nutrition_30_metallic.png"
+      }
+    },
+    "log_nutrition_90": {
+      "title": "Quarterly Nutrition",
+      "description": "Log your nutrition for 90 days",
+      "emoji": "🍎",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_nutrition_90_claymation.png",
+        "glass": "/badges/achievements/log_nutrition_90_glass.png",
+        "metallic": "/badges/achievements/log_nutrition_90_metallic.png"
+      }
+    },
+    "log_sleep_1": {
+      "title": "Sleep Tracker",
+      "description": "Log your sleep for the first time",
+      "emoji": "😴",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_sleep_1_claymation.png",
+        "glass": "/badges/achievements/log_sleep_1_glass.png",
+        "metallic": "/badges/achievements/log_sleep_1_metallic.png"
+      }
+    },
+    "log_sleep_7": {
+      "title": "Sleep Conscious",
+      "description": "Log your sleep for 7 days",
+      "emoji": "😴",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_sleep_7_claymation.png",
+        "glass": "/badges/achievements/log_sleep_7_glass.png",
+        "metallic": "/badges/achievements/log_sleep_7_metallic.png"
+      }
+    },
+    "log_sleep_30": {
+      "title": "Sleep Scientist",
+      "description": "Log your sleep for 30 days",
+      "emoji": "😴",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/log_sleep_30_claymation.png",
+        "glass": "/badges/achievements/log_sleep_30_glass.png",
+        "metallic": "/badges/achievements/log_sleep_30_metallic.png"
+      }
+    },
+    "recovery_day_1": {
+      "title": "Rest Respected",
+      "description": "Log your first recovery day",
+      "emoji": "🛏️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/recovery_day_1_claymation.png",
+        "glass": "/badges/achievements/recovery_day_1_glass.png",
+        "metallic": "/badges/achievements/recovery_day_1_metallic.png"
+      }
+    },
+    "recovery_day_10": {
+      "title": "Recovery Rhythm",
+      "description": "Log 10 recovery days",
+      "emoji": "🛏️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/recovery_day_10_claymation.png",
+        "glass": "/badges/achievements/recovery_day_10_glass.png",
+        "metallic": "/badges/achievements/recovery_day_10_metallic.png"
+      }
+    },
+    "recovery_day_30": {
+      "title": "Recovery Master",
+      "description": "Log 30 recovery days",
+      "emoji": "🛏️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/recovery_day_30_claymation.png",
+        "glass": "/badges/achievements/recovery_day_30_glass.png",
+        "metallic": "/badges/achievements/recovery_day_30_metallic.png"
+      }
+    },
+    "hydration_streak_3": {
+      "title": "Hydration Start",
+      "description": "Track hydration for 3 consecutive days",
+      "emoji": "💧",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/hydration_streak_3_claymation.png",
+        "glass": "/badges/achievements/hydration_streak_3_glass.png",
+        "metallic": "/badges/achievements/hydration_streak_3_metallic.png"
+      }
+    },
+    "hydration_streak_7": {
+      "title": "Water Week",
+      "description": "Track hydration for 7 consecutive days",
+      "emoji": "💧",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/hydration_streak_7_claymation.png",
+        "glass": "/badges/achievements/hydration_streak_7_glass.png",
+        "metallic": "/badges/achievements/hydration_streak_7_metallic.png"
+      }
+    },
+    "hydration_streak_30": {
+      "title": "Hydration Hero",
+      "description": "Track hydration for 30 consecutive days",
+      "emoji": "💧",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/hydration_streak_30_claymation.png",
+        "glass": "/badges/achievements/hydration_streak_30_glass.png",
+        "metallic": "/badges/achievements/hydration_streak_30_metallic.png"
+      }
+    },
+    "balanced_week": {
+      "title": "Balanced Week",
+      "description": "Complete workout, nutrition, and recovery in one week",
+      "emoji": "⚖️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/balanced_week_claymation.png",
+        "glass": "/badges/achievements/balanced_week_glass.png",
+        "metallic": "/badges/achievements/balanced_week_metallic.png"
+      }
+    },
+    "mind_body_connection": {
+      "title": "Mind-Body Connection",
+      "description": "Complete a combined mindfulness and workout session",
+      "emoji": "🕊️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/mind_body_connection_claymation.png",
+        "glass": "/badges/achievements/mind_body_connection_glass.png",
+        "metallic": "/badges/achievements/mind_body_connection_metallic.png"
+      }
+    },
+    "outdoor_workout_1": {
+      "title": "Fresh Air",
+      "description": "Complete your first outdoor workout",
+      "emoji": "🌲",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/outdoor_workout_1_claymation.png",
+        "glass": "/badges/achievements/outdoor_workout_1_glass.png",
+        "metallic": "/badges/achievements/outdoor_workout_1_metallic.png"
+      }
+    },
+    "outdoor_workout_10": {
+      "title": "Nature Athlete",
+      "description": "Complete 10 outdoor workouts",
+      "emoji": "🌲",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/outdoor_workout_10_claymation.png",
+        "glass": "/badges/achievements/outdoor_workout_10_glass.png",
+        "metallic": "/badges/achievements/outdoor_workout_10_metallic.png"
+      }
+    },
+    "outdoor_workout_25": {
+      "title": "Outdoor Champion",
+      "description": "Complete 25 outdoor workouts",
+      "emoji": "🌲",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/outdoor_workout_25_claymation.png",
+        "glass": "/badges/achievements/outdoor_workout_25_glass.png",
+        "metallic": "/badges/achievements/outdoor_workout_25_metallic.png"
+      }
+    },
+    "stretching_routine_10": {
+      "title": "Stretch Starter",
+      "description": "Complete 10 stretching routines",
+      "emoji": "🤸‍♀️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/stretching_routine_10_claymation.png",
+        "glass": "/badges/achievements/stretching_routine_10_glass.png",
+        "metallic": "/badges/achievements/stretching_routine_10_metallic.png"
+      }
+    },
+    "stretching_routine_30": {
+      "title": "Flexibility Fanatic",
+      "description": "Complete 30 stretching routines",
+      "emoji": "🤸‍♀️",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/stretching_routine_30_claymation.png",
+        "glass": "/badges/achievements/stretching_routine_30_glass.png",
+        "metallic": "/badges/achievements/stretching_routine_30_metallic.png"
+      }
+    },
+    "rest_day_honored": {
+      "title": "Rest Day Honored",
+      "description": "Take a scheduled rest day instead of overtraining",
+      "emoji": "🛑",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/rest_day_honored_claymation.png",
+        "glass": "/badges/achievements/rest_day_honored_glass.png",
+        "metallic": "/badges/achievements/rest_day_honored_metallic.png"
+      }
+    },
+    "stress_management": {
+      "title": "Stress Slayer",
+      "description": "Log 10 stress management activities",
+      "emoji": "🧧",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/stress_management_claymation.png",
+        "glass": "/badges/achievements/stress_management_glass.png",
+        "metallic": "/badges/achievements/stress_management_metallic.png"
+      }
+    },
+    "healthy_meal_prep_5": {
+      "title": "Meal Prepper",
+      "description": "Log 5 meal prep sessions",
+      "emoji": "🥗",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/healthy_meal_prep_5_claymation.png",
+        "glass": "/badges/achievements/healthy_meal_prep_5_glass.png",
+        "metallic": "/badges/achievements/healthy_meal_prep_5_metallic.png"
+      }
+    },
+    "healthy_meal_prep_20": {
+      "title": "Meal Prep Pro",
+      "description": "Log 20 meal prep sessions",
+      "emoji": "🥗",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/healthy_meal_prep_20_claymation.png",
+        "glass": "/badges/achievements/healthy_meal_prep_20_glass.png",
+        "metallic": "/badges/achievements/healthy_meal_prep_20_metallic.png"
+      }
+    },
+    "supplement_tracking_7": {
+      "title": "Supplement Starter",
+      "description": "Track supplements for 7 days",
+      "emoji": "💊",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/supplement_tracking_7_claymation.png",
+        "glass": "/badges/achievements/supplement_tracking_7_glass.png",
+        "metallic": "/badges/achievements/supplement_tracking_7_metallic.png"
+      }
+    },
+    "supplement_tracking_30": {
+      "title": "Supplement Consistent",
+      "description": "Track supplements for 30 days",
+      "emoji": "💊",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/supplement_tracking_30_claymation.png",
+        "glass": "/badges/achievements/supplement_tracking_30_glass.png",
+        "metallic": "/badges/achievements/supplement_tracking_30_metallic.png"
+      }
+    },
+    "wellness_journal_7": {
+      "title": "Journal Beginner",
+      "description": "Write in your wellness journal for 7 days",
+      "emoji": "📓",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/wellness_journal_7_claymation.png",
+        "glass": "/badges/achievements/wellness_journal_7_glass.png",
+        "metallic": "/badges/achievements/wellness_journal_7_metallic.png"
+      }
+    },
+    "wellness_journal_30": {
+      "title": "Journal Master",
+      "description": "Write in your wellness journal for 30 days",
+      "emoji": "📓",
+      "skillTree": "free_spirit",
+      "category": "special",
+      "images": {
+        "claymation": "/badges/achievements/wellness_journal_30_claymation.png",
+        "glass": "/badges/achievements/wellness_journal_30_glass.png",
+        "metallic": "/badges/achievements/wellness_journal_30_metallic.png"
+      }
+    },
+    "login_streak_3": {
+      "title": "Three-Day Spark",
+      "description": "Log in for 3 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_3_claymation.png",
+        "glass": "/badges/achievements/login_streak_3_glass.png",
+        "metallic": "/badges/achievements/login_streak_3_metallic.png"
+      }
+    },
+    "login_streak_7": {
+      "title": "Weekly Ritual",
+      "description": "Log in for 7 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_7_claymation.png",
+        "glass": "/badges/achievements/login_streak_7_glass.png",
+        "metallic": "/badges/achievements/login_streak_7_metallic.png"
+      }
+    },
+    "login_streak_14": {
+      "title": "Two-Week Flame",
+      "description": "Log in for 14 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_14_claymation.png",
+        "glass": "/badges/achievements/login_streak_14_glass.png",
+        "metallic": "/badges/achievements/login_streak_14_metallic.png"
+      }
+    },
+    "login_streak_30": {
+      "title": "Monthly Blaze",
+      "description": "Log in for 30 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_30_claymation.png",
+        "glass": "/badges/achievements/login_streak_30_glass.png",
+        "metallic": "/badges/achievements/login_streak_30_metallic.png"
+      }
+    },
+    "login_streak_60": {
+      "title": "Two-Month Inferno",
+      "description": "Log in for 60 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_60_claymation.png",
+        "glass": "/badges/achievements/login_streak_60_glass.png",
+        "metallic": "/badges/achievements/login_streak_60_metallic.png"
+      }
+    },
+    "login_streak_90": {
+      "title": "Quarterly Dedication",
+      "description": "Log in for 90 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_90_claymation.png",
+        "glass": "/badges/achievements/login_streak_90_glass.png",
+        "metallic": "/badges/achievements/login_streak_90_metallic.png"
+      }
+    },
+    "login_streak_180": {
+      "title": "Half-Year Hero",
+      "description": "Log in for 180 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_180_claymation.png",
+        "glass": "/badges/achievements/login_streak_180_glass.png",
+        "metallic": "/badges/achievements/login_streak_180_metallic.png"
+      }
+    },
+    "login_streak_365": {
+      "title": "Year of Fire",
+      "description": "Log in for 365 consecutive days",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/login_streak_365_claymation.png",
+        "glass": "/badges/achievements/login_streak_365_glass.png",
+        "metallic": "/badges/achievements/login_streak_365_metallic.png"
+      }
+    },
+    "workout_streak_3": {
+      "title": "Three-Day Push",
+      "description": "Work out for 3 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_3_claymation.png",
+        "glass": "/badges/achievements/workout_streak_3_glass.png",
+        "metallic": "/badges/achievements/workout_streak_3_metallic.png"
+      }
+    },
+    "workout_streak_7": {
+      "title": "Iron Week",
+      "description": "Work out for 7 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_7_claymation.png",
+        "glass": "/badges/achievements/workout_streak_7_glass.png",
+        "metallic": "/badges/achievements/workout_streak_7_metallic.png"
+      }
+    },
+    "workout_streak_14": {
+      "title": "Fortnight of Iron",
+      "description": "Work out for 14 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_14_claymation.png",
+        "glass": "/badges/achievements/workout_streak_14_glass.png",
+        "metallic": "/badges/achievements/workout_streak_14_metallic.png"
+      }
+    },
+    "workout_streak_30": {
+      "title": "Monthly Grind",
+      "description": "Work out for 30 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_30_claymation.png",
+        "glass": "/badges/achievements/workout_streak_30_glass.png",
+        "metallic": "/badges/achievements/workout_streak_30_metallic.png"
+      }
+    },
+    "workout_streak_60": {
+      "title": "Two-Month Machine",
+      "description": "Work out for 60 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_60_claymation.png",
+        "glass": "/badges/achievements/workout_streak_60_glass.png",
+        "metallic": "/badges/achievements/workout_streak_60_metallic.png"
+      }
+    },
+    "workout_streak_90": {
+      "title": "Quarterly Beast",
+      "description": "Work out for 90 consecutive days",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/workout_streak_90_claymation.png",
+        "glass": "/badges/achievements/workout_streak_90_glass.png",
+        "metallic": "/badges/achievements/workout_streak_90_metallic.png"
+      }
+    },
+    "posting_streak_3": {
+      "title": "Chat Streak",
+      "description": "Post for 3 consecutive days",
+      "emoji": "📝",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/posting_streak_3_claymation.png",
+        "glass": "/badges/achievements/posting_streak_3_glass.png",
+        "metallic": "/badges/achievements/posting_streak_3_metallic.png"
+      }
+    },
+    "posting_streak_7": {
+      "title": "Voice of the Week",
+      "description": "Post for 7 consecutive days",
+      "emoji": "📝",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/posting_streak_7_claymation.png",
+        "glass": "/badges/achievements/posting_streak_7_glass.png",
+        "metallic": "/badges/achievements/posting_streak_7_metallic.png"
+      }
+    },
+    "posting_streak_30": {
+      "title": "Daily Voice",
+      "description": "Post every day for 30 days",
+      "emoji": "📝",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/posting_streak_30_claymation.png",
+        "glass": "/badges/achievements/posting_streak_30_glass.png",
+        "metallic": "/badges/achievements/posting_streak_30_metallic.png"
+      }
+    },
+    "nutrition_streak_3": {
+      "title": "Fuel Streak",
+      "description": "Log nutrition for 3 consecutive days",
+      "emoji": "🍎",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/nutrition_streak_3_claymation.png",
+        "glass": "/badges/achievements/nutrition_streak_3_glass.png",
+        "metallic": "/badges/achievements/nutrition_streak_3_metallic.png"
+      }
+    },
+    "nutrition_streak_7": {
+      "title": "Nutrition Week",
+      "description": "Log nutrition for 7 consecutive days",
+      "emoji": "🍎",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/nutrition_streak_7_claymation.png",
+        "glass": "/badges/achievements/nutrition_streak_7_glass.png",
+        "metallic": "/badges/achievements/nutrition_streak_7_metallic.png"
+      }
+    },
+    "nutrition_streak_30": {
+      "title": "Nutrition Month",
+      "description": "Log nutrition for 30 consecutive days",
+      "emoji": "🍎",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/nutrition_streak_30_claymation.png",
+        "glass": "/badges/achievements/nutrition_streak_30_glass.png",
+        "metallic": "/badges/achievements/nutrition_streak_30_metallic.png"
+      }
+    },
+    "perfect_week": {
+      "title": "Perfect Week",
+      "description": "Be active all 7 days of the week",
+      "emoji": "⭐",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/perfect_week_claymation.png",
+        "glass": "/badges/achievements/perfect_week_glass.png",
+        "metallic": "/badges/achievements/perfect_week_metallic.png"
+      }
+    },
+    "perfect_month": {
+      "title": "Perfect Month",
+      "description": "Be active every day for an entire month",
+      "emoji": "🌟",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/perfect_month_claymation.png",
+        "glass": "/badges/achievements/perfect_month_glass.png",
+        "metallic": "/badges/achievements/perfect_month_metallic.png"
+      }
+    },
+    "early_bird_streak_3": {
+      "title": "Early Riser",
+      "description": "Work out before 6 AM for 3 days",
+      "emoji": "🌅",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/early_bird_streak_3_claymation.png",
+        "glass": "/badges/achievements/early_bird_streak_3_glass.png",
+        "metallic": "/badges/achievements/early_bird_streak_3_metallic.png"
+      }
+    },
+    "early_bird_streak_7": {
+      "title": "Dawn Warrior",
+      "description": "Work out before 6 AM for 7 days",
+      "emoji": "🌅",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/early_bird_streak_7_claymation.png",
+        "glass": "/badges/achievements/early_bird_streak_7_glass.png",
+        "metallic": "/badges/achievements/early_bird_streak_7_metallic.png"
+      }
+    },
+    "early_bird_streak_30": {
+      "title": "Sunrise Legend",
+      "description": "Work out before 6 AM for 30 days",
+      "emoji": "🌅",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/early_bird_streak_30_claymation.png",
+        "glass": "/badges/achievements/early_bird_streak_30_glass.png",
+        "metallic": "/badges/achievements/early_bird_streak_30_metallic.png"
+      }
+    },
+    "consistency_king": {
+      "title": "Consistency King",
+      "description": "Maintain any streak for 60+ days",
+      "emoji": "👑",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/consistency_king_claymation.png",
+        "glass": "/badges/achievements/consistency_king_glass.png",
+        "metallic": "/badges/achievements/consistency_king_metallic.png"
+      }
+    },
+    "iron_will": {
+      "title": "Iron Will",
+      "description": "Never miss a scheduled workout for 30 days",
+      "emoji": "🦾",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/iron_will_claymation.png",
+        "glass": "/badges/achievements/iron_will_glass.png",
+        "metallic": "/badges/achievements/iron_will_metallic.png"
+      }
+    },
+    "unstoppable": {
+      "title": "Unstoppable",
+      "description": "Maintain a 100-day activity streak",
+      "emoji": "⚡",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/unstoppable_claymation.png",
+        "glass": "/badges/achievements/unstoppable_glass.png",
+        "metallic": "/badges/achievements/unstoppable_metallic.png"
+      }
+    },
+    "phoenix": {
+      "title": "Phoenix Rising",
+      "description": "Resume activity after a 14+ day break",
+      "emoji": "🐦‍🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/phoenix_claymation.png",
+        "glass": "/badges/achievements/phoenix_glass.png",
+        "metallic": "/badges/achievements/phoenix_metallic.png"
+      }
+    },
+    "comeback_kid": {
+      "title": "Comeback Kid",
+      "description": "Hit a new PR after returning from a break",
+      "emoji": "💥",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/comeback_kid_claymation.png",
+        "glass": "/badges/achievements/comeback_kid_glass.png",
+        "metallic": "/badges/achievements/comeback_kid_metallic.png"
+      }
+    },
+    "discipline_master": {
+      "title": "Discipline Master",
+      "description": "Complete 200 days of tracked activity in a year",
+      "emoji": "🏅",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/discipline_master_claymation.png",
+        "glass": "/badges/achievements/discipline_master_glass.png",
+        "metallic": "/badges/achievements/discipline_master_metallic.png"
+      }
+    },
+    "yearly_champion": {
+      "title": "Yearly Champion",
+      "description": "Be active 365 days in a single calendar year",
+      "emoji": "🏆",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/yearly_champion_claymation.png",
+        "glass": "/badges/achievements/yearly_champion_glass.png",
+        "metallic": "/badges/achievements/yearly_champion_metallic.png"
+      }
+    },
+    "evening_warrior_7": {
+      "title": "Night Owl",
+      "description": "Work out after 8 PM for 7 consecutive days",
+      "emoji": "🌙",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/evening_warrior_7_claymation.png",
+        "glass": "/badges/achievements/evening_warrior_7_glass.png",
+        "metallic": "/badges/achievements/evening_warrior_7_metallic.png"
+      }
+    },
+    "weekend_streak_4": {
+      "title": "Weekend Regular",
+      "description": "Work out every weekend for 4 weeks",
+      "emoji": "💪",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/weekend_streak_4_claymation.png",
+        "glass": "/badges/achievements/weekend_streak_4_glass.png",
+        "metallic": "/badges/achievements/weekend_streak_4_metallic.png"
+      }
+    },
+    "double_streak": {
+      "title": "Double Threat",
+      "description": "Maintain workout + nutrition streaks simultaneously for 14 days",
+      "emoji": "💫",
+      "skillTree": "unbroken_streaks",
+      "category": "streak",
+      "images": {
+        "claymation": "/badges/achievements/double_streak_claymation.png",
+        "glass": "/badges/achievements/double_streak_glass.png",
+        "metallic": "/badges/achievements/double_streak_metallic.png"
+      }
+    },
+    "midnight_warrior": {
+      "title": "Midnight Warrior",
+      "description": "Complete a workout between midnight and 4 AM",
+      "emoji": "🌙",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/midnight_warrior_claymation.png",
+        "glass": "/badges/achievements/midnight_warrior_glass.png",
+        "metallic": "/badges/achievements/midnight_warrior_metallic.png"
+      }
+    },
+    "holiday_hero": {
+      "title": "Holiday Hero",
+      "description": "Complete a workout on Christmas Day",
+      "emoji": "🎄",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/holiday_hero_claymation.png",
+        "glass": "/badges/achievements/holiday_hero_glass.png",
+        "metallic": "/badges/achievements/holiday_hero_metallic.png"
+      }
+    },
+    "leap_day_warrior": {
+      "title": "Leap Day Warrior",
+      "description": "Complete a workout on February 29",
+      "emoji": "🐸",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/leap_day_warrior_claymation.png",
+        "glass": "/badges/achievements/leap_day_warrior_glass.png",
+        "metallic": "/badges/achievements/leap_day_warrior_metallic.png"
+      }
+    },
+    "new_year_new_me": {
+      "title": "New Year New Me",
+      "description": "Work out on January 1st",
+      "emoji": "🎆",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/new_year_new_me_claymation.png",
+        "glass": "/badges/achievements/new_year_new_me_glass.png",
+        "metallic": "/badges/achievements/new_year_new_me_metallic.png"
+      }
+    },
+    "valentines_sweat": {
+      "title": "Valentine's Sweat",
+      "description": "Work out on Valentine's Day",
+      "emoji": "💘",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/valentines_sweat_claymation.png",
+        "glass": "/badges/achievements/valentines_sweat_glass.png",
+        "metallic": "/badges/achievements/valentines_sweat_metallic.png"
+      }
+    },
+    "independence_day": {
+      "title": "Independence Day Iron",
+      "description": "Work out on July 4th",
+      "emoji": "🇺🇸",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/independence_day_claymation.png",
+        "glass": "/badges/achievements/independence_day_glass.png",
+        "metallic": "/badges/achievements/independence_day_metallic.png"
+      }
+    },
+    "halloween_workout": {
+      "title": "Spooky Gains",
+      "description": "Work out on Halloween",
+      "emoji": "🎃",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/halloween_workout_claymation.png",
+        "glass": "/badges/achievements/halloween_workout_glass.png",
+        "metallic": "/badges/achievements/halloween_workout_metallic.png"
+      }
+    },
+    "friday_13th": {
+      "title": "Lucky Lifter",
+      "description": "Work out on a Friday the 13th",
+      "emoji": "🏴‍☠️",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/friday_13th_claymation.png",
+        "glass": "/badges/achievements/friday_13th_glass.png",
+        "metallic": "/badges/achievements/friday_13th_metallic.png"
+      }
+    },
+    "century_club": {
+      "title": "Century Club",
+      "description": "Complete your 100th workout",
+      "emoji": "💯",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/century_club_claymation.png",
+        "glass": "/badges/achievements/century_club_glass.png",
+        "metallic": "/badges/achievements/century_club_metallic.png"
+      }
+    },
+    "thousand_club": {
+      "title": "Thousand Club",
+      "description": "Complete your 1,000th workout",
+      "emoji": "🏆",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/thousand_club_claymation.png",
+        "glass": "/badges/achievements/thousand_club_glass.png",
+        "metallic": "/badges/achievements/thousand_club_metallic.png"
+      }
+    },
+    "perfect_form": {
+      "title": "Perfect Form",
+      "description": "Receive a perfect form rating from your trainer",
+      "emoji": "🥇",
+      "skillTree": "forge_nasm",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/perfect_form_claymation.png",
+        "glass": "/badges/achievements/perfect_form_glass.png",
+        "metallic": "/badges/achievements/perfect_form_metallic.png"
+      }
+    },
+    "speed_demon": {
+      "title": "Speed Demon",
+      "description": "Complete a workout in under 20 minutes",
+      "emoji": "⚡",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/speed_demon_claymation.png",
+        "glass": "/badges/achievements/speed_demon_glass.png",
+        "metallic": "/badges/achievements/speed_demon_metallic.png"
+      }
+    },
+    "marathon_session": {
+      "title": "Marathon Session",
+      "description": "Complete a workout lasting 3+ hours",
+      "emoji": "🏃",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/marathon_session_claymation.png",
+        "glass": "/badges/achievements/marathon_session_glass.png",
+        "metallic": "/badges/achievements/marathon_session_metallic.png"
+      }
+    },
+    "social_butterfly_30": {
+      "title": "Social Butterfly",
+      "description": "Post every single day for a month",
+      "emoji": "🦋",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/social_butterfly_30_claymation.png",
+        "glass": "/badges/achievements/social_butterfly_30_glass.png",
+        "metallic": "/badges/achievements/social_butterfly_30_metallic.png"
+      }
+    },
+    "triple_digit_streak": {
+      "title": "Triple Digit Streak",
+      "description": "Reach a 100-day login streak",
+      "emoji": "💯",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/triple_digit_streak_claymation.png",
+        "glass": "/badges/achievements/triple_digit_streak_glass.png",
+        "metallic": "/badges/achievements/triple_digit_streak_metallic.png"
+      }
+    },
+    "round_number": {
+      "title": "Nice Round Number",
+      "description": "Have exactly 1,000 XP at any point",
+      "emoji": "💰",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/round_number_claymation.png",
+        "glass": "/badges/achievements/round_number_glass.png",
+        "metallic": "/badges/achievements/round_number_metallic.png"
+      }
+    },
+    "palindrome_streak": {
+      "title": "Palindrome Streak",
+      "description": "Reach a streak of exactly 11, 22, 33, 44, or 55 days",
+      "emoji": "🔀",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/palindrome_streak_claymation.png",
+        "glass": "/badges/achievements/palindrome_streak_glass.png",
+        "metallic": "/badges/achievements/palindrome_streak_metallic.png"
+      }
+    },
+    "early_adopter": {
+      "title": "Early Adopter",
+      "description": "Join SwanStudios within the first 90 days of launch",
+      "emoji": "🚀",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/early_adopter_claymation.png",
+        "glass": "/badges/achievements/early_adopter_glass.png",
+        "metallic": "/badges/achievements/early_adopter_metallic.png"
+      }
+    },
+    "night_owl_50": {
+      "title": "Night Owl",
+      "description": "Complete 50 workouts after 9 PM",
+      "emoji": "🦉",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/night_owl_50_claymation.png",
+        "glass": "/badges/achievements/night_owl_50_glass.png",
+        "metallic": "/badges/achievements/night_owl_50_metallic.png"
+      }
+    },
+    "rain_or_shine": {
+      "title": "Rain or Shine",
+      "description": "Work out on a day with severe weather alerts",
+      "emoji": "🌧️",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/rain_or_shine_claymation.png",
+        "glass": "/badges/achievements/rain_or_shine_glass.png",
+        "metallic": "/badges/achievements/rain_or_shine_metallic.png"
+      }
+    },
+    "full_moon_workout": {
+      "title": "Lunar Lifter",
+      "description": "Work out during a full moon",
+      "emoji": "🌕",
+      "skillTree": "free_spirit",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/full_moon_workout_claymation.png",
+        "glass": "/badges/achievements/full_moon_workout_glass.png",
+        "metallic": "/badges/achievements/full_moon_workout_metallic.png"
+      }
+    },
+    "first_viral": {
+      "title": "Gone Viral",
+      "description": "Get 100+ likes on a single post",
+      "emoji": "💣",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/first_viral_claymation.png",
+        "glass": "/badges/achievements/first_viral_glass.png",
+        "metallic": "/badges/achievements/first_viral_metallic.png"
+      }
+    },
+    "reply_chain_10": {
+      "title": "Thread Master",
+      "description": "Create a comment thread with 10+ replies",
+      "emoji": "🧵",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/reply_chain_10_claymation.png",
+        "glass": "/badges/achievements/reply_chain_10_glass.png",
+        "metallic": "/badges/achievements/reply_chain_10_metallic.png"
+      }
+    },
+    "mutual_follow_10": {
+      "title": "Mutual Respect",
+      "description": "Have 10 mutual follows",
+      "emoji": "🤝",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/mutual_follow_10_claymation.png",
+        "glass": "/badges/achievements/mutual_follow_10_glass.png",
+        "metallic": "/badges/achievements/mutual_follow_10_metallic.png"
+      }
+    },
+    "every_group": {
+      "title": "Everywhere At Once",
+      "description": "Join every available group",
+      "emoji": "🌍",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/every_group_claymation.png",
+        "glass": "/badges/achievements/every_group_glass.png",
+        "metallic": "/badges/achievements/every_group_metallic.png"
+      }
+    },
+    "first_to_comment": {
+      "title": "First!",
+      "description": "Be the first to comment on 10 different posts",
+      "emoji": "☝️",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/first_to_comment_claymation.png",
+        "glass": "/badges/achievements/first_to_comment_glass.png",
+        "metallic": "/badges/achievements/first_to_comment_metallic.png"
+      }
+    },
+    "sleep_8_hours_7": {
+      "title": "Well Rested",
+      "description": "Log 8+ hours of sleep for 7 consecutive days",
+      "emoji": "🛌",
+      "skillTree": "free_spirit",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/sleep_8_hours_7_claymation.png",
+        "glass": "/badges/achievements/sleep_8_hours_7_glass.png",
+        "metallic": "/badges/achievements/sleep_8_hours_7_metallic.png"
+      }
+    },
+    "no_sugar_7": {
+      "title": "Sugar Free",
+      "description": "Log zero added sugar for 7 consecutive days",
+      "emoji": "🍬",
+      "skillTree": "free_spirit",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/no_sugar_7_claymation.png",
+        "glass": "/badges/achievements/no_sugar_7_glass.png",
+        "metallic": "/badges/achievements/no_sugar_7_metallic.png"
+      }
+    },
+    "gallon_a_day": {
+      "title": "Gallon Gang",
+      "description": "Drink a gallon of water in a single day",
+      "emoji": "💧",
+      "skillTree": "free_spirit",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/gallon_a_day_claymation.png",
+        "glass": "/badges/achievements/gallon_a_day_glass.png",
+        "metallic": "/badges/achievements/gallon_a_day_metallic.png"
+      }
+    },
+    "mindful_eating_14": {
+      "title": "Mindful Eater",
+      "description": "Practice mindful eating for 14 consecutive days",
+      "emoji": "🍽️",
+      "skillTree": "free_spirit",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/mindful_eating_14_claymation.png",
+        "glass": "/badges/achievements/mindful_eating_14_glass.png",
+        "metallic": "/badges/achievements/mindful_eating_14_metallic.png"
+      }
+    },
+    "unbreakable_180": {
+      "title": "Unbreakable",
+      "description": "Maintain a 180-day workout streak",
+      "emoji": "💎",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/unbreakable_180_claymation.png",
+        "glass": "/badges/achievements/unbreakable_180_glass.png",
+        "metallic": "/badges/achievements/unbreakable_180_metallic.png"
+      }
+    },
+    "never_skip_leg_day": {
+      "title": "Never Skip Leg Day",
+      "description": "Include legs in every workout for 30 days",
+      "emoji": "🦵",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/never_skip_leg_day_claymation.png",
+        "glass": "/badges/achievements/never_skip_leg_day_glass.png",
+        "metallic": "/badges/achievements/never_skip_leg_day_metallic.png"
+      }
+    },
+    "five_am_club_30": {
+      "title": "5 AM Club",
+      "description": "Work out before 5 AM for 30 days",
+      "emoji": "⏰",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/five_am_club_30_claymation.png",
+        "glass": "/badges/achievements/five_am_club_30_glass.png",
+        "metallic": "/badges/achievements/five_am_club_30_metallic.png"
+      }
+    },
+    "same_time_7": {
+      "title": "Creature of Habit",
+      "description": "Work out at the same time for 7 days",
+      "emoji": "⏱️",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/same_time_7_claymation.png",
+        "glass": "/badges/achievements/same_time_7_glass.png",
+        "metallic": "/badges/achievements/same_time_7_metallic.png"
+      }
+    },
+    "binge_learner": {
+      "title": "Binge Learner",
+      "description": "Complete 5 learning modules in a single day",
+      "emoji": "📚",
+      "skillTree": "forge_nasm",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/binge_learner_claymation.png",
+        "glass": "/badges/achievements/binge_learner_glass.png",
+        "metallic": "/badges/achievements/binge_learner_metallic.png"
+      }
+    },
+    "perfect_score": {
+      "title": "Perfect Score",
+      "description": "Score 100% on any quiz",
+      "emoji": "💯",
+      "skillTree": "forge_nasm",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/perfect_score_claymation.png",
+        "glass": "/badges/achievements/perfect_score_glass.png",
+        "metallic": "/badges/achievements/perfect_score_metallic.png"
+      }
+    },
+    "quiz_speed_run": {
+      "title": "Speed Reader",
+      "description": "Complete a quiz in under 60 seconds with 80%+ score",
+      "emoji": "⚡",
+      "skillTree": "forge_nasm",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/quiz_speed_run_claymation.png",
+        "glass": "/badges/achievements/quiz_speed_run_glass.png",
+        "metallic": "/badges/achievements/quiz_speed_run_metallic.png"
+      }
+    },
+    "all_trees_started": {
+      "title": "Skill Tree Explorer",
+      "description": "Earn at least one achievement in every skill tree",
+      "emoji": "🌳",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/all_trees_started_claymation.png",
+        "glass": "/badges/achievements/all_trees_started_glass.png",
+        "metallic": "/badges/achievements/all_trees_started_metallic.png"
+      }
+    },
+    "fifty_achievements": {
+      "title": "Achievement Hunter",
+      "description": "Unlock 50 different achievements",
+      "emoji": "🎯",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/fifty_achievements_claymation.png",
+        "glass": "/badges/achievements/fifty_achievements_glass.png",
+        "metallic": "/badges/achievements/fifty_achievements_metallic.png"
+      }
+    },
+    "hundred_achievements": {
+      "title": "Completionist",
+      "description": "Unlock 100 different achievements",
+      "emoji": "💎",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/hundred_achievements_claymation.png",
+        "glass": "/badges/achievements/hundred_achievements_glass.png",
+        "metallic": "/badges/achievements/hundred_achievements_metallic.png"
+      }
+    },
+    "max_level": {
+      "title": "Crystalline Swan",
+      "description": "Reach the maximum level (Level 100)",
+      "emoji": "🦢",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/max_level_claymation.png",
+        "glass": "/badges/achievements/max_level_glass.png",
+        "metallic": "/badges/achievements/max_level_metallic.png"
+      }
+    },
+    "first_hour": {
+      "title": "First Hour",
+      "description": "Be active within the first hour of joining",
+      "emoji": "⏰",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/first_hour_claymation.png",
+        "glass": "/badges/achievements/first_hour_glass.png",
+        "metallic": "/badges/achievements/first_hour_metallic.png"
+      }
+    },
+    "share_milestone": {
+      "title": "Milestone Sharer",
+      "description": "Share a milestone achievement on social",
+      "emoji": "📣",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/share_milestone_claymation.png",
+        "glass": "/badges/achievements/share_milestone_glass.png",
+        "metallic": "/badges/achievements/share_milestone_metallic.png"
+      }
+    },
+    "invite_accepted_5": {
+      "title": "Talent Scout",
+      "description": "Have 5 invited friends join and complete their first workout",
+      "emoji": "🔎",
+      "skillTree": "tribe_social",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/invite_accepted_5_claymation.png",
+        "glass": "/badges/achievements/invite_accepted_5_glass.png",
+        "metallic": "/badges/achievements/invite_accepted_5_metallic.png"
+      }
+    },
+    "trainer_favorite": {
+      "title": "Trainer's Favorite",
+      "description": "Receive 10 trainer endorsements",
+      "emoji": "⭐",
+      "skillTree": "forge_nasm",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/trainer_favorite_claymation.png",
+        "glass": "/badges/achievements/trainer_favorite_glass.png",
+        "metallic": "/badges/achievements/trainer_favorite_metallic.png"
+      }
+    },
+    "comeback_phoenix": {
+      "title": "Triple Phoenix",
+      "description": "Come back from a break three separate times",
+      "emoji": "🔥",
+      "skillTree": "unbroken_streaks",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/comeback_phoenix_claymation.png",
+        "glass": "/badges/achievements/comeback_phoenix_glass.png",
+        "metallic": "/badges/achievements/comeback_phoenix_metallic.png"
+      }
+    },
+    "birthday_workout": {
+      "title": "Birthday Gains",
+      "description": "Work out on your birthday",
+      "emoji": "🎂",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/birthday_workout_claymation.png",
+        "glass": "/badges/achievements/birthday_workout_glass.png",
+        "metallic": "/badges/achievements/birthday_workout_metallic.png"
+      }
+    },
+    "anniversary_workout": {
+      "title": "Anniversary Iron",
+      "description": "Work out on your SwanStudios anniversary date",
+      "emoji": "🎉",
+      "skillTree": "awakening",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/anniversary_workout_claymation.png",
+        "glass": "/badges/achievements/anniversary_workout_glass.png",
+        "metallic": "/badges/achievements/anniversary_workout_metallic.png"
+      }
+    },
+    "two_am_grind": {
+      "title": "2 AM Grind",
+      "description": "Log a workout at exactly 2 AM",
+      "emoji": "🌙",
+      "skillTree": "iron_gravity",
+      "category": "hidden",
+      "images": {
+        "claymation": "/badges/achievements/two_am_grind_claymation.png",
+        "glass": "/badges/achievements/two_am_grind_glass.png",
+        "metallic": "/badges/achievements/two_am_grind_metallic.png"
+      }
+    }
+  }
+}

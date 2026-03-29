@@ -863,13 +863,44 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
 
     const DailyWorkoutForm = getDailyWorkoutForm();
 
-    const forms = await DailyWorkoutForm.findAll({
-      where: {
-        clientId: parseInt(clientId),
-        date: dateRange
-      },
-      order: [['date', 'ASC']]
-    });
+    if (!DailyWorkoutForm) {
+      logger.warn('DailyWorkoutForm model not available — returning empty progress data');
+      return res.json({
+        success: true,
+        progressData: {
+          categories: [],
+          workoutHistory: [],
+          formTrends: [],
+          volumeProgression: []
+        },
+        totalWorkouts: 0,
+        dateRange: { startDate: resolvedStartDate, endDate: resolvedEndDate }
+      });
+    }
+
+    let forms = [];
+    try {
+      forms = await DailyWorkoutForm.findAll({
+        where: {
+          clientId: parseInt(clientId),
+          date: dateRange
+        },
+        order: [['date', 'ASC']]
+      });
+    } catch (queryErr) {
+      logger.warn('DailyWorkoutForm progress query failed (table may not exist):', queryErr.message);
+      return res.json({
+        success: true,
+        progressData: {
+          categories: [],
+          workoutHistory: [],
+          formTrends: [],
+          volumeProgression: []
+        },
+        totalWorkouts: 0,
+        dateRange: { startDate: resolvedStartDate, endDate: resolvedEndDate }
+      });
+    }
 
     // Process data for charts (null-safe: formData may be null/undefined)
     const workoutHistory = forms.map(form => ({
@@ -1004,6 +1035,20 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
 
     // --- Single query: all workout forms in range (uses composite index clientId+date) ---
     const DailyWorkoutForm = getDailyWorkoutForm();
+
+    if (!DailyWorkoutForm) {
+      logger.warn('DailyWorkoutForm model not available — returning empty detailed progress data');
+      return res.json({
+        success: true,
+        progressData: {
+          volumeProgression: [], oneRepMaxes: [], formTrends: [],
+          nasmCategories: [], bodyComposition: [], strengthProgression: [],
+          consistencyData: [], muscleGroupVolume: [],
+          summary: { totalWorkouts: 0, totalVolume: 0, averageFormScore: 0, strongestLift: null, mostImproved: null, currentStreak: 0, weeklyAverage: 0 }
+        }
+      });
+    }
+
     let forms;
     try {
       forms = await DailyWorkoutForm.findAll({
@@ -1017,13 +1062,18 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     } catch (queryErr) {
       // Fallback: if specific attributes fail (column may not exist in prod), query without attribute filter
       logger.warn('Progress-detailed attribute query failed, retrying without attribute filter:', queryErr.message);
-      forms = await DailyWorkoutForm.findAll({
-        where: {
-          clientId: parsedClientId,
-          date: { [Op.gte]: startDate }
-        },
-        order: [['date', 'ASC']]
-      });
+      try {
+        forms = await DailyWorkoutForm.findAll({
+          where: {
+            clientId: parsedClientId,
+            date: { [Op.gte]: startDate }
+          },
+          order: [['date', 'ASC']]
+        });
+      } catch (fallbackErr) {
+        logger.warn('DailyWorkoutForm table may not exist in production:', fallbackErr.message);
+        forms = [];
+      }
     }
 
     // ========== Helper: Epley 1RM ==========

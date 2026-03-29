@@ -43,6 +43,7 @@ frontend/logs/
 *.sqlite3
 *.db
 data/
+!frontend/src/data/
 
 # Temporary files
 *.tmp

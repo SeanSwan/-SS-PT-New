@@ -7,6 +7,22 @@ const getModels = () => ({
   Set: getModel('Set'),
 });
 
+// Empty defaults when models/tables aren't available
+const EMPTY_TOTALS = {
+  categories: {
+    chest: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    back: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    shoulders: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    arms: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    legs: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    core: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+    cardio: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
+  },
+  totalSessions: 0, totalExercises: 0, totalVolume: 0, totalReps: 0
+};
+const EMPTY_FREQUENCY = { period: '30 days', totalWorkouts: 0, avgPerWeek: 0, currentStreak: 0, longestStreak: 0, uniqueWorkoutDays: 0 };
+const EMPTY_SESSION_USAGE = { total: 0, solo: { count: 0, percentage: 0 }, trainerLed: { count: 0, percentage: 0 } };
+
 /**
  * Analytics Service
  * Processes workout data for visualization and insights
@@ -24,6 +40,10 @@ const getModels = () => ({
 export async function calculateExerciseTotals(userId, options = {}) {
   try {
     const { WorkoutSession, WorkoutExercise, Set } = getModels();
+    if (!WorkoutSession || !WorkoutExercise || !Set) {
+      console.warn('Analytics: WorkoutSession/WorkoutExercise/Set models not available — returning empty totals');
+      return EMPTY_TOTALS;
+    }
     const whereClause = {
       userId,
       status: 'completed'
@@ -195,6 +215,7 @@ function categorizeExercise(exerciseName) {
 export async function calculateVolumeOverTime(userId, options = {}) {
   try {
     const { WorkoutSession, WorkoutExercise, Set } = getModels();
+    if (!WorkoutSession || !WorkoutExercise || !Set) return [];
     const { startDate, endDate, groupBy = 'week' } = options;
 
     const whereClause = {
@@ -334,6 +355,7 @@ function getWeekNumber(date) {
 export async function calculateSessionUsageStats(userId, options = {}) {
   try {
     const { WorkoutSession } = getModels();
+    if (!WorkoutSession) return EMPTY_SESSION_USAGE;
     const whereClause = {
       userId,
       status: 'completed'
@@ -386,6 +408,7 @@ export async function calculateSessionUsageStats(userId, options = {}) {
 export async function getPersonalRecords(userId) {
   try {
     const { WorkoutSession, WorkoutExercise, Set } = getModels();
+    if (!WorkoutSession || !WorkoutExercise || !Set) return [];
     const workoutSessions = await WorkoutSession.findAll({
       where: {
         userId,
@@ -453,6 +476,7 @@ export async function getPersonalRecords(userId) {
 export async function getWorkoutFrequency(userId, days = 30) {
   try {
     const { WorkoutSession } = getModels();
+    if (!WorkoutSession) return { ...EMPTY_FREQUENCY, period: `${days} days` };
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
