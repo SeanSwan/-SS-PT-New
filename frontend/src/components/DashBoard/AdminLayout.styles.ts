@@ -21,17 +21,31 @@ export const ExecutiveLayoutContainer = styled.div`
 export const ExecutiveMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
   flex: 1;
   margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '64px' : '280px')};
-  padding: 24px;
+  display: flex;
+  flex-direction: row;
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
   background: var(--bg-base, #0A0A0F);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   @media (max-width: 1024px) {
     margin-left: 0;
+  }
+`;
+
+// Dashboard scroll area — holds routes, takes the padding that was on ExecutiveMainContent
+export const ExecutiveDashboardScroll = styled.div`
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px;
+  height: 100vh;
+  height: 100dvh;
+
+  @media (max-width: 1024px) {
     padding: 16px;
     padding-top: 72px; /* space for mobile menu button */
   }

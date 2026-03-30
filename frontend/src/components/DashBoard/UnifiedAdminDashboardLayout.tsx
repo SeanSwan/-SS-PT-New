@@ -12,17 +12,21 @@ import { useAuth } from '../../context/AuthContext';
 
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import UnifiedAdminRoutes from './UnifiedAdminRoutes';
-// AIAssistantFAB REMOVED — SwanStudios Assistant is now embedded via AICommandBar
-// in each workspace (Dashboard, Clients, Scheduling, Workouts)
 import { executiveCommandTheme, ExecutiveGlobalStyles } from './AdminLayoutTheme';
 import {
   ExecutiveLayoutContainer,
   ExecutiveMainContent,
+  ExecutiveDashboardScroll,
   ExecutiveLoadingContainer,
   ExecutiveLoadingSpinner,
   ExecutiveErrorContainer,
   ExecutiveButton,
 } from './AdminLayout.styles';
+
+// Persistent AI panel — lazy-loaded (>30KB component)
+const AIPersistentPanel = React.lazy(
+  () => import('../Shared/AIPersistentPanel/AIPersistentPanel')
+);
 
 // === MAIN COMPONENT ===
 const UnifiedAdminDashboardLayout: React.FC = () => {
@@ -153,11 +157,16 @@ const UnifiedAdminDashboardLayout: React.FC = () => {
           role="main"
           aria-label="Admin dashboard main content"
         >
-          <AnimatePresence mode="wait">
-            <Suspense fallback={<LoadingState />}>
-              <UnifiedAdminRoutes />
-            </Suspense>
-          </AnimatePresence>
+          <ExecutiveDashboardScroll>
+            <AnimatePresence mode="wait">
+              <Suspense fallback={<LoadingState />}>
+                <UnifiedAdminRoutes />
+              </Suspense>
+            </AnimatePresence>
+          </ExecutiveDashboardScroll>
+          <Suspense fallback={null}>
+            <AIPersistentPanel />
+          </Suspense>
         </ExecutiveMainContent>
       </ExecutiveLayoutContainer>
     </ThemeProvider>
