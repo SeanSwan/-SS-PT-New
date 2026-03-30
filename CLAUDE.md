@@ -27,11 +27,32 @@ SwanStudios (SS-PT) is a production personal training SaaS platform deployed on 
 - **Rarity System:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient (sapphire→purple→cyan→gold)
 
 ## Build & Run
-- **Frontend:** `cd frontend && npm run build` (Vite)
-- **Backend:** `cd backend && node server.mjs`
+- **Local dev (MANDATORY workflow):** `npm run dev` (from project root — runs backend + frontend concurrently, auto-opens browser)
+- **Local dev + MCP:** `npm run dev:full` (backend + frontend + MCP servers)
+- **Frontend build:** `cd frontend && npm run build` (Vite)
+- **Backend only:** `cd backend && node server.mjs`
 - **Tests (frontend):** `cd frontend && npx vitest run --reporter verbose`
 - **Tests (backend):** `cd backend && npm test`
 - **Type check:** `cd frontend && npx tsc --noEmit`
+
+## Local-First Development Workflow (MANDATORY)
+**All changes MUST be tested locally before committing.** This is the standard workflow:
+
+1. **Develop locally** — Run `npm run dev` from project root. Backend (nodemon:10000) + Frontend (vite:5173) start together with hot-reload. Browser opens automatically.
+2. **Test & verify** — Fix bugs, test features, confirm everything works at `http://localhost:5173`. Local dev connects to the production Render PostgreSQL database via `DATABASE_URL` for full data parity.
+3. **Commit only when working** — Only commit and push once the fix/feature is verified locally. No pushing broken code to trigger 7-minute Render deploys for testing.
+
+### Local Dev Architecture
+- **Frontend:** Vite dev server on port 5173 with `/api` proxy to backend
+- **Backend:** Nodemon on port 10000 with auto-restart on file changes
+- **Database:** Connects to production Render PostgreSQL via `DATABASE_URL` (same data as production)
+- **CORS:** `localhost:5173` is whitelisted in backend CORS config
+- **Parity guarantee:** Local dev hits the same database as production — if it works locally, it works in production
+
+### Database-Only vs Code Fixes
+- **Database fixes** (ALTER TABLE, FK constraints, adding columns) apply directly to production DB and take effect immediately — no commit/deploy needed
+- **Code fixes** (route logic, model changes, frontend components) require commit + push + Render deploy (~7 minutes)
+- When fixing issues, identify whether the fix is database-level or code-level to choose the fastest path
 
 ## Co-Orchestrator: Gemini 3.1 Pro (Lead Design Authority)
 Gemini 3.1 Pro is the Lead Design Authority for SwanStudios. Claude Opus 4.6 is the CEO with FINAL authority:

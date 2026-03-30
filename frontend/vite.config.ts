@@ -8,6 +8,16 @@ export default defineConfig({
   plugins: [
     react()
   ],
+  server: {
+    port: 5173,
+    open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:10000',
+        changeOrigin: true,
+      },
+    },
+  },
   optimizeDeps: {
     // Force Vite to pre-bundle and dedupe these packages
     include: ['styled-components', 'react', 'react-dom'],

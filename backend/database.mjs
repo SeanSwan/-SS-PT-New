@@ -92,7 +92,30 @@ try {
     
     console.log('Production database configuration applied');
   } 
-  // DEVELOPMENT: Use local PostgreSQL configuration
+  // DEVELOPMENT: Use DATABASE_URL if available (connects to production DB for parity),
+  // otherwise fall back to local PostgreSQL configuration
+  else if (process.env.DATABASE_URL) {
+    console.log('Development mode: using DATABASE_URL (production DB for local/prod parity)');
+
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        }
+      },
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+      logging: dbLogger,
+    });
+
+    console.log('Development database configuration applied (via DATABASE_URL)');
+  }
   else {
     // Log connection parameters (without showing the actual password)
     console.log('Development database connection parameters:');
@@ -105,10 +128,10 @@ try {
     // CRITICAL: Ensure password is explicitly a string to avoid SCRAM authentication issues
     // This is especially important for the pg driver's SASL authentication
     const pgPassword = process.env.PG_PASSWORD;
-    const stringPassword = pgPassword !== undefined && pgPassword !== null 
-      ? String(pgPassword) 
+    const stringPassword = pgPassword !== undefined && pgPassword !== null
+      ? String(pgPassword)
       : '';
-    
+
     sequelize = new Sequelize(
       process.env.PG_DB || 'swanstudios',
       process.env.PG_USER || 'swanadmin',
@@ -126,8 +149,8 @@ try {
         },
       }
     );
-    
-    console.log('Development database configuration applied');
+
+    console.log('Development database configuration applied (local PostgreSQL)');
   }
 } catch (error) {
   console.error('❌ ERROR during database configuration:', error.message);
