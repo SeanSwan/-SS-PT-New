@@ -545,21 +545,35 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
 
+    logger.info('[ASSIGN-DEBUG] Step 1: Looking up client=%d trainer=%d', parseInt(clientId), parseInt(trainerId));
+
     // Verify users exist and have correct roles
-    const [client, trainer] = await Promise.all([
-      User.findOne({
-        where: {
-          id: parseInt(clientId),
-          role: { [Op.in]: ['client', 'user'] }
-        }
-      }),
-      User.findOne({
-        where: {
-          id: parseInt(trainerId),
-          role: { [Op.in]: ['trainer', 'admin'] }
-        }
-      })
-    ]);
+    let client, trainer;
+    try {
+      [client, trainer] = await Promise.all([
+        User.findOne({
+          where: {
+            id: parseInt(clientId),
+            role: { [Op.in]: ['client', 'user'] }
+          }
+        }),
+        User.findOne({
+          where: {
+            id: parseInt(trainerId),
+            role: { [Op.in]: ['trainer', 'admin'] }
+          }
+        })
+      ]);
+      logger.info('[ASSIGN-DEBUG] Step 1 done: client=%s trainer=%s',
+        client ? `${client.firstName} (role=${client.role})` : 'NOT FOUND',
+        trainer ? `${trainer.firstName} (role=${trainer.role})` : 'NOT FOUND');
+    } catch (lookupErr) {
+      logger.error('[ASSIGN-DEBUG] Step 1 FAILED:', lookupErr.message);
+      return res.status(500).json({
+        success: false,
+        message: `User lookup failed: ${lookupErr.message}`
+      });
+    }
 
     if (!client) {
       return res.status(404).json({
@@ -575,14 +589,26 @@ router.post('/', protect, adminOnly, async (req, res) => {
       });
     }
 
+    logger.info('[ASSIGN-DEBUG] Step 2: Checking existing assignment');
+
     // Check if assignment already exists
-    const existingAssignment = await ClientTrainerAssignment.findOne({
-      where: {
-        clientId: parseInt(clientId),
-        trainerId: parseInt(trainerId),
-        status: 'active'
-      }
-    });
+    let existingAssignment;
+    try {
+      existingAssignment = await ClientTrainerAssignment.findOne({
+        where: {
+          clientId: parseInt(clientId),
+          trainerId: parseInt(trainerId),
+          status: 'active'
+        }
+      });
+      logger.info('[ASSIGN-DEBUG] Step 2 done: existing=%s', existingAssignment ? 'YES' : 'NO');
+    } catch (findErr) {
+      logger.error('[ASSIGN-DEBUG] Step 2 FAILED:', findErr.message);
+      return res.status(500).json({
+        success: false,
+        message: `Existing check failed: ${findErr.message}`
+      });
+    }
 
     if (existingAssignment) {
       return res.status(409).json({
@@ -591,31 +617,33 @@ router.post('/', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Deactivate any existing active assignments for this client
-    await ClientTrainerAssignment.update(
-      { status: 'inactive' },
-      {
-        where: {
-          clientId: parseInt(clientId),
-          status: 'active'
-        }
-      }
-    );
+    logger.info('[ASSIGN-DEBUG] Step 3: Deactivating old assignments');
 
-    // Create new assignment — try ORM first, fall back to raw SQL if FK constraints fail
-    // (Production may have FK pointing to 'users' table while data is in '"Users"')
+    // Deactivate any existing active assignments for this client
+    try {
+      await ClientTrainerAssignment.update(
+        { status: 'inactive' },
+        {
+          where: {
+            clientId: parseInt(clientId),
+            status: 'active'
+          }
+        }
+      );
+      logger.info('[ASSIGN-DEBUG] Step 3 done');
+    } catch (deactivateErr) {
+      logger.error('[ASSIGN-DEBUG] Step 3 FAILED:', deactivateErr.message);
+      return res.status(500).json({
+        success: false,
+        message: `Deactivate old assignments failed: ${deactivateErr.message}`
+      });
+    }
+
+    logger.info('[ASSIGN-DEBUG] Step 4: Creating new assignment');
+
+    // Create new assignment — raw SQL only (ORM may fail due to FK table name mismatch)
     let assignment;
     try {
-      assignment = await ClientTrainerAssignment.create({
-        clientId: parseInt(clientId),
-        trainerId: parseInt(trainerId),
-        assignedBy,
-        notes: notes || null,
-        status: 'active'
-      });
-    } catch (ormError) {
-      logger.warn('ORM create failed, trying raw SQL fallback:', ormError.message);
-      // HYBRID column naming: first migration (20250714) created camelCase columns
       const [rows] = await sequelize.query(
         `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
          VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', NOW(), NOW())
@@ -633,6 +661,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
         throw new Error('Raw SQL insert returned no rows');
       }
       assignment = rows[0];
+      logger.info('[ASSIGN-DEBUG] Step 4 done: assignment id=%d', assignment.id);
+    } catch (createErr) {
+      logger.error('[ASSIGN-DEBUG] Step 4 FAILED:', createErr.message);
+      return res.status(500).json({
+        success: false,
+        message: `Create assignment failed: ${createErr.message}`
+      });
     }
 
     const assignmentId = assignment.id;
@@ -663,8 +698,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
         ]
       });
       if (fetched) completeAssignment = fetched;
+      logger.info('[ASSIGN-DEBUG] Step 5: Re-fetch done');
     } catch (fetchErr) {
-      logger.warn('Could not re-fetch assignment with includes:', fetchErr.message);
+      logger.warn('[ASSIGN-DEBUG] Step 5: Re-fetch failed (non-fatal):', fetchErr.message);
     }
 
     logger.info(`Admin ${assignedBy} assigned client ${clientId} to trainer ${trainerId}`, {
