@@ -143,12 +143,11 @@ WorkoutPlan.init({
   modelName: 'WorkoutPlan',
   tableName: 'workout_plans',
   timestamps: true,
-  underscored: true,
   indexes: [
-    { fields: ['user_id'], name: 'idx_workout_plans_user_id' },
-    { fields: ['trainer_id'], name: 'idx_workout_plans_trainer_id' },
+    { fields: ['userId'], name: 'idx_workout_plans_user_id' },
+    { fields: ['trainerId'], name: 'idx_workout_plans_trainer_id' },
     { fields: ['status'], name: 'idx_workout_plans_status' },
-    { fields: ['user_id', 'status'], name: 'idx_workout_plans_user_status' }
+    { fields: ['userId', 'status'], name: 'idx_workout_plans_user_status' }
   ]
 });
 

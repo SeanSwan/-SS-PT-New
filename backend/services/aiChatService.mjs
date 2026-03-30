@@ -869,14 +869,14 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       Promise.resolve([]),
       // 21. Active workout plans (for "what's next?" queries)
       safeQuery(
-        `SELECT id, title, description, nasm_phase, status,
-                current_week, current_day, duration_weeks,
-                plan_data, progress_notes, created_by,
-                start_date, end_date, created_at
+        `SELECT id, title, description, "nasmPhase", status,
+                "currentWeek", "currentDay", "durationWeeks",
+                "planData", "progressNotes", "createdBy",
+                "startDate", "endDate", "createdAt"
          FROM workout_plans
-         WHERE user_id = :userId AND status IN ('active', 'paused')
+         WHERE "userId" = :userId AND status IN ('active', 'paused')
          ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END,
-                  created_at DESC LIMIT 3`, { userId }),
+                  "createdAt" DESC LIMIT 3`, { userId }),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
@@ -1095,9 +1095,9 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     try {
       if (workoutPlans.length > 0) {
         const planLines = workoutPlans.map(plan => {
-          const pd = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
-          const week = Number(plan.current_week) || 1;
-          const day = Number(plan.current_day) || 1;
+          const pd = typeof plan.planData === 'string' ? JSON.parse(plan.planData) : plan.planData;
+          const week = Number(plan.currentWeek) || 1;
+          const day = Number(plan.currentDay) || 1;
 
           // Extract current session from plan data
           let currentSessionStr = 'No session data';
@@ -1116,13 +1116,13 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
 
           // Count total sessions and completed
           const totalSessions = pd?.weeks?.reduce((sum, w) => sum + (w.sessions?.length || 0), 0) || 0;
-          const pn = typeof plan.progress_notes === 'string' ? JSON.parse(plan.progress_notes) : plan.progress_notes;
+          const pn = typeof plan.progressNotes === 'string' ? JSON.parse(plan.progressNotes) : plan.progressNotes;
           const completedSessions = Array.isArray(pn) ? pn.filter(n => n.type === 'session_complete').length : 0;
 
           return `Plan: "${plan.title}" [${plan.status.toUpperCase()}]
-NASM Phase: ${plan.nasm_phase} | Duration: ${plan.duration_weeks} weeks | Progress: Week ${week}, Day ${day}
+NASM Phase: ${plan.nasmPhase} | Duration: ${plan.durationWeeks} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${totalSessions}
-Created: ${plan.created_at ? new Date(plan.created_at).toLocaleDateString() : '?'} by ${plan.created_by || 'unknown'}
+Created: ${plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : '?'} by ${plan.createdBy || 'unknown'}
 --- CURRENT SESSION (Week ${week}, Day ${day}) ---
 ${currentSessionStr}`;
         });
