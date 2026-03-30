@@ -10,6 +10,7 @@
  *   UPDATE_MEASUREMENTS — Body measurements → Save to profile
  *   ADD_NOTE        — Trainer note → Save to client record
  *   CREATE_PLAN     — Multi-week plan → Save as program
+ *   ONBOARD_CLIENT  — Parsed client intake → Pre-fill onboarding form
  *
  * Format in AI responses:
  *   ```json
@@ -22,7 +23,8 @@ export type AIActionType =
   | 'LOG_NUTRITION'
   | 'UPDATE_MEASUREMENTS'
   | 'ADD_NOTE'
-  | 'CREATE_PLAN';
+  | 'CREATE_PLAN'
+  | 'ONBOARD_CLIENT';
 
 export interface AIAction {
   type: AIActionType;
@@ -37,9 +39,10 @@ export const ACTION_META: Record<AIActionType, { label: string; icon: string; co
   UPDATE_MEASUREMENTS: { label: 'Measurements', icon: 'Ruler', confirmLabel: 'Save Measurements', color: '#50A0F0' },
   ADD_NOTE: { label: 'Trainer Note', icon: 'FileText', confirmLabel: 'Save Note', color: '#C6A84B' },
   CREATE_PLAN: { label: 'Training Plan', icon: 'Calendar', confirmLabel: 'Save Plan', color: '#8B5CF6' },
+  ONBOARD_CLIENT: { label: 'Client Onboarding', icon: 'UserPlus', confirmLabel: 'Confirm & Create Client', color: '#8B5CF6' },
 };
 
-const VALID_ACTIONS = new Set<string>(['CREATE_WORKOUT', 'LOG_NUTRITION', 'UPDATE_MEASUREMENTS', 'ADD_NOTE', 'CREATE_PLAN']);
+const VALID_ACTIONS = new Set<string>(['CREATE_WORKOUT', 'LOG_NUTRITION', 'UPDATE_MEASUREMENTS', 'ADD_NOTE', 'CREATE_PLAN', 'ONBOARD_CLIENT']);
 
 /**
  * Parse AI response text for action blocks.

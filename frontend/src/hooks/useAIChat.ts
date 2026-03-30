@@ -45,7 +45,7 @@ interface ConversationSummary {
   createdAt: string;
 }
 
-type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification';
+type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
 type ResponseStyle = 'phd_only' | 'simple_only' | 'both';
 
 function getHeaders(): Record<string, string> {

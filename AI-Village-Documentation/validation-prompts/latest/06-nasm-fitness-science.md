@@ -1,66 +1,63 @@
 # NASM & Fitness Science Validation — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 10.0s
-> **Files:** docs/qa-reports/comprehensive-vision-qa-2026-03-28.md
-> **Generated:** 3/28/2026, 5:44:08 PM
+> **Status:** PASS | **Model:** google/gemini-3-flash-preview-20251217 | **Duration:** 9.1s
+> **Files:** docs/ai-workflow/ai-onboard-plan.md
+> **Generated:** 3/29/2026, 5:19:14 PM
 
 ---
 
-As a certified fitness professional and exercise science reviewer, I have evaluated the **SwanStudios Comprehensive Vision & QA Report (2026-03-28)**. Below is the fitness science validation of your platform’s current state and roadmap.
+As a certified fitness professional and exercise science reviewer, I have evaluated the **AI-Powered Client Onboarding Enhancement Plan** for SwanStudios. While the technical architecture for the AI-driven onboarding is robust, there are several critical gaps regarding the application of the **NASM Optimum Performance Training (OPT™) Model** and exercise science standards.
 
-### 1. NASM OPT™ Protocol Validation
-**Finding:** The report scores AI generation 9/10, but the bug list (BUG-A03) shows the Workout Builder is "stuck at Phase 2."
-*   **Scientific Accuracy:** To be a true NASM OPT platform, the AI must strictly adhere to the 5-phase progression: 1. Stabilization Endurance, 2. Strength Endurance, 3. Muscular Development/Hypertrophy, 4. Maximal Strength, and 5. Power.
-*   **Validation:** If the builder cannot toggle between these, the 9/10 score is **inflated**. Phase 2 (Strength Endurance) specifically requires supersets (a strength move followed by a stabilization move). If the AI isn't pairing these correctly, it fails the protocol.
-*   **Rating:** **CRITICAL** (The core differentiator is currently non-functional).
+### 1. NASM OPT Protocol Validation
+**Rating: HIGH**
+*   **The Finding:** The document mentions "Phase 1 workout plan" and "OPT phase recommendation" but fails to define the specific physiological adaptations required for a valid NASM-compliant onboarding.
+*   **Correction:** The AI must distinguish between the three levels (Stabilization, Strength, Power). For a "Phase 1" (Stabilization Endurance) plan, the AI must prioritize **proprioceptively enriched environments** over load.
+*   **Validation:** The report scores AI generation 9/10, but if the AI suggests a "Phase 1" workout using heavy 5x5 bench presses, it is a 0/10 for safety and science. The onboarding logic must explicitly check for "Stabilization" parameters in Phase 1.
 
-### 2. Exercise Database & Admin Command Center
-**Finding:** The report claims 840+ exercises aren't browsable (BUG-A02), showing only 50.
-*   **Reviewer Insight:** The "Admin Exercise Command Center" and "Autocomplete" in the builder are likely pulling from the same API/Sequelize source. If the Rolodex is capped at 50, the Autocomplete likely suffers from the same pagination/limit logic in the backend.
-*   **Fitness Impact:** A trainer cannot prescribe "Stability Ball Cobra" (Phase 1) if the search terminates at "Bicep Curls" (Phase 3). The database depth is useless if the UI/UX restricts access to specific OPT-phase-appropriate movements.
-*   **Rating:** **HIGH**
+### 2. Exercise Database & Command Center
+**Rating: MEDIUM**
+*   **The Finding:** The report claims 840+ exercises aren't "browsable."
+*   **Correction:** In a 4-dashboard architecture (Admin/Trainer/Client/Social), the **Admin Exercise Command Center** is the source of truth. If the AI cannot "browse" these, it cannot accurately map the `create_movement_analysis` (Point 4) to specific corrective exercises.
+*   **Recommendation:** The AI onboarding context must have read-access to the exercise library metadata (specifically the `target_muscle` and `nasm_phase` tags) to ensure the "initial 3-month periodization plan" (Enhancement Opportunities) uses valid library IDs rather than hallucinated exercise names.
 
 ### 3. Periodization Accuracy (Tempo, Reps, Rest)
-**Finding:** The report mentions "Workout Intelligence" is missing NASM Rolodex connections (BUG-T05).
-*   **Scientific Correction:** For the platform to be scientifically accurate, the following must be hard-coded into the AI logic for each phase:
-    *   **Phase 1:** 4-2-1-1 Tempo | 12-20 Reps | 0-90s Rest.
-    *   **Phase 2:** 2-0-2-0 (Strength) + 4-2-1-1 (Stabilization) | 8-12 Reps | 0-60s Rest.
-    *   **Phase 5:** Explosive Tempo | 1-5 Reps | 3-5 min Rest.
-*   **Gap:** The report focuses on "exercise names" but lacks a QA check on **Tempo and Rest intervals**, which are the physiological drivers of the OPT model.
-*   **Rating:** **MEDIUM**
+**Rating: CRITICAL**
+*   **The Finding:** The document proposes "auto-calculating NASM score" and "initial 3-month periodization" but lacks the hard-coded constraints required for NASM compliance.
+*   **Scientific Requirements:**
+    *   **Phase 1 (Stabilization):** Reps: 12-20, Tempo: 4-2-1 (Slow), Rest: 0-90s.
+    *   **Phase 2 (Strength Endurance):** Supersets (Strength + Stabilization), Tempo: 2-0-2 / 4-2-1.
+    *   **Phase 5 (Power):** Reps: 1-5 (Heavy) + 8-10 (Explosive), Tempo: Fast/Explosive.
+*   **Risk:** If the AI generates a Phase 1 plan with "Fast" tempo, it violates the core tenet of the OPT model (developing connective tissue integrity).
 
-### 4. Voice Logging vs. NASM AI
-**Finding:** The report prioritizes Voice AI (Gemini 3.1 Flash) as a primary UX goal.
-*   **Scientific Perspective:** While Voice AI is a "cool" tech differentiator, the **NASM AI is the #1 scientific differentiator**. Voice logging is a *convenience*; the OPT periodization is the *result*.
-*   **Risk:** If the Voice AI logs "Bench Press" but the system doesn't know if that fits the client's current Phase 1 (Stabilization) status, the platform is just a "digital notebook," not an "AI Coach."
-*   **Rating:** **LOW** (UX priority) / **HIGH** (Scientific priority).
+### 4. Voice Logging vs. NASM AI Differentiator
+**Rating: LOW**
+*   **The Finding:** Is voice-first the #1 differentiator?
+*   **Professional Opinion:** In the current market, **NASM OPT 5-Phase Periodization** is the #1 scientific differentiator, while **Voice-First Logging** is the #1 UX differentiator.
+*   **Integration:** The onboarding plan should leverage voice for the *Movement Analysis*. A trainer saying, "Client has knee valgus during overhead squat," should trigger the AI to automatically flag "Overactive: Adductor Complex" and "Underactive: Gluteus Medius" per NASM guidelines.
 
 ### 5. Nutrition Integration
-**Finding:** Section 10 notes missing fast food/coffee chains.
-*   **Scientific Accuracy:** From a metabolic standpoint (CICO), tracking "Starbucks" is less important than tracking **Macronutrient Ratios** (Protein/Carb/Fat) that align with the OPT phases (e.g., higher protein for Phase 3 Hypertrophy).
-*   **Gap:** The report misses the "Nutrition-to-Workout" bridge. The AI should suggest higher carb intake on Phase 5 (Power) days and higher protein on Phase 3 days.
-*   **Rating:** **MEDIUM**
+**Rating: MEDIUM**
+*   **The Finding:** The plan mentions `macro_log` and `goals` but misses the **Thermic Effect of Food (TEF)** and **Activity Factor** based on the OPT Phase.
+*   **Correction:** A client in Phase 5 (Power) has significantly different metabolic demands than Phase 1. The AI onboarding should calculate the **Total Daily Energy Expenditure (TDEE)** using the Mifflin-St Jeor equation, adjusted by the planned training frequency defined in the onboarding chat.
 
 ### 6. Recovery & Mobility
-**Finding:** Section 5 identifies gaps in "Stretches" and "Balance."
-*   **Scientific Accuracy:** NASM requires **SMR (Self-Myofascial Release)** and **Static Stretching** for Phase 1, and **Dynamic Stretching** for Phase 5.
-*   **Missing Feature:** The report does not mention a "Recovery Tracker" (Sleep, HRV, or Soreness levels). If a client is "In the Dark Place" (per Mission Statement), the AI should automatically pivot the workout to a "Recovery/Mobility" session.
-*   **Rating:** **HIGH** (Crucial for the "Benevolent/Health" mission).
+**Rating: HIGH**
+*   **The Finding:** The plan focuses on "Movement Analysis" but misses **SMR (Self-Myofascial Release)** and **Static Stretching** protocols.
+*   **Correction:** Per NASM, every Phase 1-4 workout *must* include a flexibility component. The `create_movement_analysis` action (Point 4) should not just recommend a "Phase," but a specific **Corrective Exercise Protocol** (Inhibit, Lengthen, Activate, Integrate).
+*   **Missing Feature:** The AI should generate a "Recovery Day" schedule (Active Recovery) for the days between the 3-day split it creates during onboarding.
 
 ---
 
-### SUMMARY OF RATINGS
+### Summary of Ratings & Recommendations
 
-| Feature | Rating | Reason |
+| Feature | Rating | Recommendation |
 | :--- | :--- | :--- |
-| **OPT Phase Logic** | **CRITICAL** | System is stuck in Phase 2; breaks the 5-phase periodization promise. |
-| **Workout Logger** | **CRITICAL** | BUG-U08: Users cannot log workouts. No data = No science. |
-| **Exercise Metadata** | **HIGH** | "Impact Level" and "Sport Specificity" are missing; vital for senior/athlete safety. |
-| **Equipment Module** | **HIGH** | AI cannot prescribe a "Cable Row" if it doesn't know the user is at a "Park." |
-| **Recovery Tracking** | **MEDIUM** | Platform lacks SMR/Stretching protocols required by NASM. |
-| **Voice AI** | **LOW** | High UX value, but secondary to the accuracy of the fitness programming. |
+| **OPT Phase Logic** | **CRITICAL** | Hard-code Tempo (4-2-1) and Rep ranges (12-20) into the Phase 1 prompt. |
+| **Movement Analysis** | **HIGH** | Ensure the AI maps "Postural Distortions" to specific "Corrective Exercises" in the 840+ database. |
+| **Nutrition Connection** | **MEDIUM** | Auto-adjust Macro targets based on the selected OPT Phase intensity. |
+| **Exercise Browsing** | **LOW** | Sync the AI Context with the Admin Exercise Command Center IDs to prevent "ghost" exercises. |
 
-**Final Professional Recommendation:** Fix **BUG-T02** and **BUG-U08** immediately. A fitness platform that cannot log a workout or calculate progress (Victory Charts) is a marketing site, not a training tool. Prioritize the **NASM Phase Dropdown (BUG-A03)** to reclaim scientific credibility.
+**Final Verdict:** The technical workflow is excellent for a SaaS product. However, to maintain "Certified Fitness Professional" standards, the AI must be constrained by the **mathematical constants of the OPT Model** (Tempo/Reps/Rest) rather than being allowed to "creatively" generate workouts.
 
 ---
 

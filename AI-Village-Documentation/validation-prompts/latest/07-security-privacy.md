@@ -1,161 +1,138 @@
 # Security & Privacy Assessment — Validation Report
 
-> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 32.3s
-> **Files:** docs/qa-reports/comprehensive-vision-qa-2026-03-28.md
-> **Generated:** 3/28/2026, 5:44:08 PM
+> **Status:** PASS | **Model:** stepfun/step-3.5-flash:free | **Duration:** 44.6s
+> **Files:** docs/ai-workflow/ai-onboard-plan.md
+> **Generated:** 3/29/2026, 5:19:14 PM
 
 ---
 
-# Security & Privacy Assessment: SwanStudios QA Report (2026-03-28)
+# Security & Privacy Review: SwanStudios AI Onboarding Plan
 
 ## Executive Summary
-The QA report is **functionally focused** with zero security or privacy testing documented. Critical gaps exist in PII handling validation, data protection for health-adjacent information, payment security, and third-party integrations. The "Identity-Blind AI Privacy" claim is **unsubstantiated** without technical evidence.
+The proposed AI onboarding enhancement introduces **significant security and privacy risks** primarily due to the AI's direct handling of raw PII/health data and the absence of a dedicated security assessment. Critical gaps exist around data minimization, access controls, and compliance frameworks. Immediate remediation is required before implementation.
 
 ---
 
 ## 1. PII Handling — "Identity-Blind AI Privacy" Claim
-**Rating:** CRITICAL  
-**Finding:** The claim is **unvalidated and potentially misleading**.  
-**Evidence from Document:**
-- Voice AI section states: *"AI must respect privacy clause — no client name/address/identity exposed to cloud"*
-- Requires AI to access client data (workout history, assessments) for functionality
-- "Hive mind setup" allows AI to see data from all components
 
-**Gaps:**
-- No technical description of how PII is "blinded" (e.g., tokenization, differential privacy, local processing)
-- No evidence that cloud-bound AI queries are stripped of direct identifiers
-- No data flow diagrams showing PII boundaries
-- Risk: If AI processes identifiable health/workout data in cloud (Gemini), it violates the claim and may breach privacy laws
+**Finding:** The claim of "Identity-Blind AI Privacy" is **unsubstantiated and misleading** based on the document.
 
-**Required Validation:**
-1. Demonstrate that PII never leaves the application boundary before anonymization
-2. Audit Gemini API prompts/responses for residual identifiers
-3. Prove that "hive mind" data aggregation doesn't create re-identifiable profiles
+*   **Evidence:** The new `client_onboarding` context explicitly instructs the AI to parse **unstructured client info** containing `firstName, lastName, dateOfBirth, gender, healthConcerns, trainingExperience`. The `create_client` action requires these same PII/PHI fields. The AI model (likely an LLM like GPT-4) will process this raw data in its prompt and context window.
+*   **Risk:** This is **not identity-blind**. It is **identity-exposing**. The AI provider (e.g., OpenAI, Anthropic) may log, use for training, or have this data accessible to their personnel unless a strict zero-data-retention/enterprise agreement is in place and configured. The document provides no evidence of such an agreement or technical controls (e.g., local/on-premise model, strict API data handling policies).
+*   **Rating:** **CRITICAL**
+*   **Recommendation:**
+    *   **Immediately cease** development of any feature that sends raw PII/PHI to a third-party LLM without a legally binding, auditable agreement prohibiting data logging/use.
+    *   Implement **data minimization**: The AI should only receive **non-identifiable tokens or hashes** for existing clients. For new clients, the AI should output a **structured JSON schema** for validation, which the backend then uses to create the record *without* the AI ever seeing the full PII.
+    *   If third-party AI must see data, use a **vetted, HIPAA-compliant/BAA-supported** provider (e.g., Azure OpenAI with HIPAA BAA) and document the configuration.
 
 ---
 
 ## 2. Missing Security Assessment
-**Rating:** HIGH  
-**Finding:** The QA report contains **zero security testing** — a critical oversight for a health-adjacent SaaS handling payments and personal data.
 
-**Security Gaps Not Assessed:**
-| Category | Specific Gaps |
-|----------|---------------|
-| **Application Security** | OWASP Top 10 (especially A01: Broken Access Control given 4-dashboard roles), injection flaws, insecure deserialization (Node.js/Express) |
-| **Authentication/Authorization** | Role-based access control (RBAC) validation across Admin/Trainer/Client/Social dashboards; session management; password policies |
-| **API Security** | Sequelize ORM query safety; rate limiting; CORS misconfigurations; GraphQL/ REST endpoint exposure |
-| **Data Security** | Encryption at rest (PostgreSQL), in transit (TLS), column-level encryption for sensitive fields (health metrics, payment data) |
-| **Infrastructure** | Cloud configuration (AWS/GCP/Azure), container security (Docker), secret management (environment variables) |
-| **Dependency Security** | `npm audit` for Node.js dependencies; `styled-components` XSS risks; React/TypeScript security misconfigurations |
-| **Logging & Monitoring** | Audit logs for data access (especially health data), SIEM integration, breach detection |
+**Finding:** The complete absence of a security assessment for these new features is a **major oversight**.
 
-**Impact:** Without these assessments, the platform is vulnerable to data breaches, account takeover, and compliance failures.
+*   **Evidence:** The "Security Considerations" section is a superficial checklist (role checks, rate limits). There is no mention of:
+    *   **Threat Modeling:** How could an attacker abuse `create_client`, `generate_claim_code`, or `assign_trainer`?
+    *   **Input Validation & Sanitization:** Are all fields (especially `healthConcerns`, `goals`) validated and sanitized to prevent NoSQL/Sequelize injection, XSS, or command injection?
+    *   **Authentication/Authorization:** The document states "Only admin and trainer roles can trigger create_client." This must be enforced **server-side** in the new AI action handlers and the underlying `adminClientController`. Is the AI service's own authentication to the backend robust?
+    *   **Rate Limiting:** "max 5 per hour" is mentioned but not specified where (API layer? AI service layer?). Is it per user, per IP, per trainer? This is trivial to bypass if not implemented at the correct layer.
+    *   **Audit Logging:** "Audit trail: log who created the client and when." This is insufficient. Must log: **what data was created, by which AI action, triggered by which user (trainer/admin), from which chat session, with the full AI prompt/response** for forensic analysis.
+    *   **Dependency & Supply Chain:** No mention of scanning new npm packages or updates for known vulnerabilities.
+*   **Rating:** **CRITICAL**
+*   **Recommendation:**
+    *   **Halt development** until a formal security assessment is completed.
+    *   Conduct an **OWASP Top 10 review** specifically for the new endpoints (`/api/ai/action` handlers) and the AI service's internal logic.
+    *   Implement **automated security testing** (SAST, DAST, SCA) in the CI/CD pipeline for all changes.
+    *   Perform **penetration testing** on the new AI workflow, focusing on privilege escalation (e.g., can a trainer create an admin client?), mass creation, and injection.
 
 ---
 
 ## 3. Data Privacy Controls
-**Rating:** HIGH  
-**Finding:** Privacy controls for **social fitness data, workout history, and health metrics** are inadequately addressed.
 
-**Risks:**
-- **Social Fitness Data:** Community feed, challenges, posts — no mention of:
-  - User consent for data sharing in social features
-  - Granular privacy settings (e.g., "hide workout history from community")
-  - Hashtag implementation (BUG-U11) could expose location/health trends
-- **Workout History/Health Metrics:** Considered **sensitive personal data** under GDPR/CPRA. Document lacks:
-  - Data minimization principles (is all health metric collection necessary?)
-  - User rights implementation (access, deletion, portability)
-  - Retention policies (how long is workout data stored?)
-  - Third-party sharing disclosures (e.g., analytics, AI processing)
+**Finding:** Privacy controls for sensitive social and health data are **inadequate and unspecified**.
 
-**Required Controls:**
-1. Privacy-by-design: Default maximum privacy for health/workout data
-2. Social feature opt-ins with clear explanations of data visibility
-3. Data deletion workflows for account closure (including backups)
-4. Regular privacy impact assessments (PIA) for new features
+*   **Evidence:** The plan handles `healthConcerns`, `movementQualityAssessments`, `trainingExperience`, `goals`, and full `workout history`. There is no discussion of:
+    *   **Data Encryption:** Is this data encrypted at rest (PostgreSQL TDE?) and in transit (TLS 1.3+)? The document is silent.
+    *   **Granular Access Control:** Beyond "admin/trainer," can a trainer see data of clients not assigned to them? Can a client see their own sensitive health metrics? The 4-dashboard architecture implies different views, but RBAC implementation is not described.
+    *   **Data Retention & Deletion:** What is the retention policy for `MovementAnalysis` records or `healthConcerns`? How is a client's right to erasure (GDPR/CCPA) implemented across the AI chat logs, audit trails, and database?
+    *   **Consent:** How is explicit, granular consent obtained from the client for processing their health data via AI? The "claim code" flow suggests the client joins later, but their data is created *before* they consent.
+*   **Rating:** **HIGH**
+*   **Recommendation:**
+    *   Implement **field-level encryption** for highly sensitive health data (e.g., `healthConcerns`, specific assessment scores).
+    *   Design and document a **strict RBAC matrix** for all 4 dashboards, ensuring least privilege.
+    *   Create and publish a **clear data retention policy**. Ensure AI chat logs are included in deletion workflows.
+    *   **Redesign the onboarding flow:** The AI should create a **minimal, placeholder client record** (name, temp password). The **client must first log in, authenticate, and explicitly consent** to the processing of their detailed health data before the trainer/AI can populate the full profile.
 
 ---
 
 ## 4. HIPAA-Adjacent Concerns
-**Rating:** HIGH  
-**Finding:** **No acknowledgment** that personal training data may constitute Protected Health Information (PHI) under HIPAA or state laws (e.g., California's CCPA/CPRA for health data).
 
-**Why This Is HIPAA-Adjacent:**
-- Workout history + health metrics (body measurements, assessments) can identify health conditions
-- Trainers are "health care providers" under some state laws if they provide fitness advice related to medical conditions
-- Platform could be a **Business Associate** if trainers are covered entities
+**Finding:** The plan **fails to address** the legal and ethical obligations of handling health-adjacent data.
 
-**Missing Elements:**
-- No Business Associate Agreements (BAAs) with trainers handling health data
-- No encryption standards for PHI (AES-256 at rest, TLS 1.3 in transit)
-- No access logs for PHI viewing (who accessed which client's health data?)
-- No breach notification plan (<72 hours for HIPAA)
-- No secure messaging for trainer-client health communications
-
-**Recommendation:** Conduct HIPAA readiness assessment even if not currently regulated — many states have similar health data laws.
+*   **Evidence:** `healthConcerns`, `movementQualityAssessments`, `trainingExperience` (especially if it includes injuries/conditions) constitute **Protected Health Information (PHI)** under HIPAA if SwanStudios is a "covered entity" or "business associate" (which it likely is, as a personal training service providing health plans). The document shows no awareness of:
+    *   **HIPAA Security Rule:** Requirements for administrative, physical, and technical safeguards.
+    *   **Business Associate Agreements (BAAs):** Is the AI provider (e.g., OpenAI) a signed BAA? Is the Stripe payment processor?
+    *   **Minimum Necessary Standard:** The AI is processing *all* provided data, not just the minimum necessary for onboarding.
+    *   **State Laws:** Laws like California's CCPA/CPRA or Texas' HB 300 may have stricter requirements.
+*   **Rating:** **HIGH**
+*   **Recommendation:**
+    *   **Consult legal counsel** immediately to determine HIPAA applicability and other jurisdictional laws.
+    *   If HIPAA applies, **halt** any feature sending PHI to non-BAA-covered AI providers.
+    *   Implement **HIPAA-compliant workflows**: secure messaging for trainer-client communication, strict access logs, contingency planning.
+    *   Treat all health-adjacent data as PHI by default and apply the highest safeguards.
 
 ---
 
-## 5. Payment Security — Stripe Integration
-**Rating:** CRITICAL  
-**Finding:** **No security assessment** of Stripe integration despite handling trainer payouts and supplement affiliate revenue.
+## 5. Payment Security
 
-**Unanswered Questions:**
-- Are Stripe **Elements** or **Checkout** used? (Avoids card data touching SwanStudios servers)
-- Is **Stripe webhook** signature verification implemented? (Prevents fraudulent payment events)
-- Are **Payouts** to trainers using Stripe Connect with proper KYC?
-- Is **PCI DSS** scope minimized? (Should be SAQ A if using Elements/Checkout)
-- Are **refund/dispute** processes secured against enumeration attacks?
-- Is **sensitive data** (bank accounts) stored? (Should be tokenized by Stripe only)
+**Finding:** **No assessment** of Stripe integration security in the context of the new AI flow.
 
-**Critical Gap:** Without validation, the platform risks:
-- Card data exposure (if not using Elements/Checkout)
-- Payout fraud (attackers manipulating trainer bank details)
-- Revenue manipulation via unsecured webhooks
+*   **Evidence:** The plan distinguishes `clientSource='swanstudios'` (paid) from `move_fitness` (free). The `create_client` action for SwanStudios clients likely needs to interface with billing/subscription systems. There is **zero mention** of:
+    *   How payment method tokens are handled (if collected during onboarding).
+    *   Whether the AI has any access to billing data or Stripe customer IDs.
+    *   PCI DSS scope: Does this new flow expand the cardholder data environment (CDE)? Is the backend properly segmented?
+    *   Secure handling of any billing-related errors or webhooks from Stripe.
+*   **Rating:** **HIGH** (Conditional on billing integration)
+*   **Recommendation:**
+    *   **Explicitly scope** the payment flow: The AI **must never** see or process raw payment details (card numbers, CVC). It should only receive/return **Stripe PaymentMethod IDs or Customer IDs**.
+    *   Ensure all Stripe API calls are made **server-side** from a backend service that is **in-scope for PCI DSS** (even if using Stripe Elements to stay SAQ A).
+    *   Include the **entire subscription creation/assignment flow** in the security assessment (Question #2).
+    *   Verify Stripe webhook signatures rigorously to prevent fraudulent status updates.
 
 ---
 
 ## 6. Wearable Data Risks
-**Rating:** MEDIUM  
-**Finding:** **Wearable integration recommended** but security implications **not considered**.
 
-**Risks if Implemented:**
-| Risk | Impact |
-|------|--------|
-| **API Key Leakage** | Wearable APIs (Apple Health, Google Fit, Fitbit) require OAuth tokens. Insecure storage in DB or client-side code leads to account takeover. |
-| **Data Over-Collection** | Wearables provide granular health data (heart rate variability, sleep stages, GPS). Is all this necessary? Increases breach impact. |
-| **Third-Party Trust** | Wearable APIs have their own security. SwanStudios must validate their data integrity and consent flows. |
-| **Re-identification** | Combining wearable data (unique patterns) with social features could deanonymize users. |
-| **Insecure Sync** | If wearable data syncs via mobile app (future React Native), need certificate pinning, secure local storage. |
+**Finding:** While not in the current plan, **recommending wearable integration introduces severe risks** that must be pre-emptively designed against.
 
-**Required Safeguards:**
-1. **Least privilege:** Request only necessary wearable data scopes
-2. **Token security:** Store OAuth tokens encrypted, refresh securely
-3. **User consent:** Granular opt-in per data type (heart rate vs. location)
-4. **Data minimization:** Process wearable data in backend only, discard raw streams after aggregation
-5. **Vendor assessment:** Review wearable API provider's security compliance (SOC 2, ISO 27001)
+*   **Evidence:** The "Enhancement Opportunities" section suggests future wearable integration. This would ingest continuous, high-volume health data (heart rate, sleep, activity).
+*   **Risks:**
+    *   **Third-Party API Security:** OAuth flows with Apple Health, Google Fit, Fitbit, etc. Must validate tokens, scope permissions, and handle provider breaches.
+    *   **Data Volume & Sensitivity:** Wearable data is a rich PHI source. Encryption, access control, and retention policies become more critical.
+    *   **Inference Attacks:** Aggregated wearable data can infer health conditions (e.g., irregular heart rate patterns).
+    *   **Consent Granularity:** Can users opt-in/out of specific wearable data streams?
+    *   **Vendor Lock-in & Data Portability:** How is data exported if the user leaves?
+*   **Rating:** **MEDIUM** (Current risk is future potential; becomes HIGH upon implementation)
+*   **Recommendation:**
+    *   **Do not proceed** with wearable integration without a dedicated security & privacy design document.
+    *   Adopt a **"privacy by design"** approach: store wearable data in a separate, highly encrypted table with strict access logs.
+    *   Implement **fine-grained consent management** for each data source (Apple Health, Strava, etc.) and data type (heart rate, sleep).
+    *   Plan for **secure data deletion** and export in standard formats (e.g., JSON, CSV).
 
 ---
 
-## Summary of Severity Distribution
-| Finding | Rating | Rationale |
-|---------|--------|-----------|
-| PII Handling Claim | CRITICAL | Unvalidated claim about cloud AI processing of health data |
-| Payment Security | CRITICAL | Financial data handling without assessment |
-| Missing Security Assessment | HIGH | Complete absence of security testing in QA |
-| Data Privacy Controls | HIGH | Inadequate protections for sensitive fitness/health data |
-| HIPAA-Adjacent Concerns | HIGH | Ignoring health data regulations |
-| Wearable Data Risks | MEDIUM | Future integration with unaddressed risks |
+## Summary of Ratings
 
-## Immediate Action Items
-1. **Halt** any AI feature processing PII in cloud until "identity-blind" mechanism is audited
-2. **Commission** full security assessment (penetration test + code review) before production launch
-3. **Implement** Stripe using Elements/Checkout and verify webhook security
-4. **Classify** all data types (PII, health, payment) and apply encryption/access controls accordingly
-5. **Develop** privacy policy and consent flows for social features and wearable integration
-6. **Engage** legal counsel for HIPAA/state health data compliance review
+| # | Concern | Rating | Rationale |
+|---|---------|--------|-----------|
+| 1 | PII Handling (AI Privacy Claim) | **CRITICAL** | Direct exposure of raw PII/PHI to third-party AI without verified safeguards. |
+| 2 | Missing Security Assessment | **CRITICAL** | New attack surface introduced with no OWASP, threat modeling, or penetration testing. |
+| 3 | Data Privacy Controls | **HIGH** | Inadequate specification for encryption, RBAC, retention, and consent for sensitive data. |
+| 4 | HIPAA-Adjacent Concerns | **HIGH** | Complete disregard for potential HIPAA obligations and PHI handling requirements. |
+| 5 | Payment Security | **HIGH** | Stripe integration in new flow completely unassessed; PCI DSS scope unclear. |
+| 6 | Wearable Data Risks | **MEDIUM** | Future risk requiring proactive design; not yet implemented but highly dangerous. |
 
-**Conclusion:** The platform is **not security-ready** for handling sensitive health and payment data. The QA report's functional focus misses foundational security and privacy requirements that could lead to breaches, regulatory fines, and loss of user trust.
+**Overall Posture:** The project is in **dangerous territory**. Implementing the current plan as described would likely result in a **reportable data breach** (due to PII exposure to AI), **regulatory fines** (HIPAA, GDPR, CCPA), and **loss of customer trust**. **Stop. Assess. Redesign.**
 
 ---
 

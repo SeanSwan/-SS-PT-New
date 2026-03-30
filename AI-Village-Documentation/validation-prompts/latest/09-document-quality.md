@@ -1,342 +1,280 @@
 # Document Quality & Completeness — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 89.6s
-> **Files:** docs/qa-reports/comprehensive-vision-qa-2026-03-28.md
-> **Generated:** 3/28/2026, 5:44:08 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 60.3s
+> **Files:** docs/ai-workflow/ai-onboard-plan.md
+> **Generated:** 3/29/2026, 5:19:14 PM
 
 ---
 
-# QA Report Quality Review
-**SwanStudios Comprehensive Vision & QA Report — 2026-03-28**  
-**Reviewer:** Technical Documentation Quality Assurance  
-**Review Date:** 2026-03-28  
-
----
+# QA Report Review: AI-Powered Client Onboarding Enhancement Plan
 
 ## Executive Summary
-
-**Overall Document Quality: 4.5/10**
-
-This document conflates **CEO vision/product roadmap** with **QA testing report**. While it contains valuable strategic direction and bug cataloging, it fails fundamental QA documentation standards. The report lacks testing methodology, reproduction steps, evidence, environment specifications, and clear acceptance criteria.
-
-**Primary Issues:**
-- No testing methodology or test plan documented
-- Zero reproduction steps for any bug
-- No screenshots, logs, or technical evidence
-- Mixes strategic vision with bug reports (should be separate documents)
-- Missing critical QA domains (performance, security, accessibility)
-- Vague severity ratings without impact analysis
+This is a **design specification document**, not a QA test report. The review below assesses it as technical documentation for implementation planning.
 
 ---
 
-## 1. METHODOLOGY ASSESSMENT
+## 1. Methodology Assessment
 
-### Rating: **2/10 — CRITICAL DEFICIENCY**
+**Rating: N/A - Not a Test Report**
 
-#### What's Missing:
+**Findings:**
+- This document proposes new features rather than testing existing functionality
+- No test cases, test execution, or validation results present
+- Should be titled "Technical Specification" or "Feature Design Document"
 
-| Missing Element | Impact | Severity |
-|----------------|--------|----------|
-| **Test Plan** | No documented testing scope, approach, or coverage | CRITICAL |
-| **Test Environment** | No browser versions, OS, device specs, database state | CRITICAL |
-| **Reproduction Steps** | Impossible to verify or reproduce any bug | CRITICAL |
-| **Test Data Setup** | Acknowledges missing test data but doesn't document what was used | HIGH |
-| **Entry/Exit Criteria** | No definition of "done" for testing phase | HIGH |
-| **Test Case Traceability** | No mapping to requirements or user stories | MEDIUM |
-| **Regression Scope** | No indication if this is smoke, regression, or exploratory testing | HIGH |
+**What Should Have Been Tested:**
+If this were a proper QA document, it should have included:
+- **Integration testing** of existing AI action types to establish baseline
+- **Security testing** of current admin client creation endpoint
+- **Load testing** of AI assistant under concurrent user scenarios
+- **User acceptance criteria** with pass/fail conditions
+- **Edge case documentation** (duplicate names, invalid data, concurrent creation)
 
-#### What Should Have Been Tested Differently:
+---
 
-**1. Structured Test Execution**
-```markdown
-❌ Current: "Trainer Assignments link navigates to dashboard"
-✅ Should be:
-**BUG-A01: Trainer Assignments Navigation Failure**
-- **Preconditions:** Logged in as admin user (admin@swanstudios.com)
-- **Steps to Reproduce:**
-  1. Navigate to Admin Dashboard (https://swanstudios.com/admin)
-  2. Click "Trainer Assignments" in left sidebar
-  3. Observe navigation result
-- **Expected:** Navigate to /admin/trainer-assignments
-- **Actual:** Redirects to /admin/dashboard
-- **Browser:** Chrome 122.0.6261.112 / Safari 17.3.1
-- **Frequency:** 100% reproducible
-- **First Observed:** 2026-03-25
+## 2. Evidence Quality
+
+**Rating: LOW**
+
+### Unsupported Assertions:
+| Claim | Evidence Provided | Issue |
+|-------|------------------|-------|
+| "AI Assistant has 10 data update action types" | Lists 8 types only | **CRITICAL** - Count mismatch, incomplete enumeration |
+| "Admin CRUD endpoint exists: POST /api/admin/clients" | No verification shown | **HIGH** - Should reference actual file/line numbers |
+| "Claim code system exists: SWAN-XXXX tokens" | No implementation details | **MEDIUM** - Format assumption unverified |
+| "Onboarding wizard exists" | No current flow documented | **HIGH** - Missing baseline documentation |
+| "Rate limit: max 5 client creations per hour" | No justification for limit | **MEDIUM** - Arbitrary threshold |
+
+### Missing Evidence:
+- No API endpoint documentation or OpenAPI specs referenced
+- No database schema validation (does `clientSource` enum exist?)
+- No current AI prompt examples or response formats
+- No performance benchmarks for existing AI actions
+- No user research supporting the "paste client info" workflow
+
+---
+
+## 3. Bias Detection
+
+**Rating: MEDIUM BIAS (Overly Optimistic)**
+
+### Positive Bias Indicators:
+- **Assumes AI parsing accuracy** without acknowledging NLP error rates
+- **No failure scenarios documented** (What if AI misidentifies clientSource?)
+- **Enhancement Opportunities section** lists aspirational features as if trivial
+- **Security Considerations** listed but not validated against OWASP Top 10
+
+### Missing Context:
+- **No discussion of AI hallucination risks** when parsing unstructured data
+- **No mention of GDPR/HIPAA compliance** for health data processing
+- **No acknowledgment of existing technical debt** that might block implementation
+- **No cost analysis** (OpenAI API calls for onboarding could be expensive)
+
+### Overlooked Risks:
 ```
-
-**2. Missing Test Types:**
-- **Integration testing** (API → UI data flow)
-- **Cross-browser testing** (Chrome, Safari, Firefox, Edge)
-- **Mobile responsive testing** (despite "mobile-first" being critical)
-- **Load testing** (Victory charts with large datasets)
-- **API testing** (500 errors suggest backend issues)
-- **Database state validation** (workout logger data persistence)
-
-**3. No Test Automation Strategy**
-- For a production SaaS with 840+ exercises and 4 dashboards, manual-only testing is insufficient
-- No mention of Playwright, Cypress, or Jest test coverage
-
----
-
-## 2. EVIDENCE QUALITY ASSESSMENT
-
-### Rating: **1/10 — CRITICAL DEFICIENCY**
-
-#### Unsupported Assertions:
-
-| Claim | Evidence Provided | Rating |
-|-------|-------------------|--------|
-| "Exercise Rolodex shows only 50 results" | None — no screenshot, no count verification | **UNSUPPORTED** |
-| "Client Progress — 500 error" | No error logs, stack traces, or network tab evidence | **UNSUPPORTED** |
-| "Equipment Module has disappeared" | No before/after comparison, no git history reference | **UNSUPPORTED** |
-| "Victory charts critical selling point" | No customer feedback, sales data, or user research cited | **UNSUPPORTED** |
-| "Gamification using old emoji icons" | No visual comparison of expected vs actual | **UNSUPPORTED** |
-| "AI Assistant shifts page down" | No screenshot, no CSS inspection, no layout metrics | **UNSUPPORTED** |
-
-#### What's Missing:
-
-**For Every Bug:**
-- [ ] Screenshot or screen recording
-- [ ] Browser console errors
-- [ ] Network tab (failed API calls)
-- [ ] Database query results (for data issues)
-- [ ] Git commit where regression occurred
-- [ ] Affected user count (if production)
-
-**Example of Proper Evidence:**
-```markdown
-**BUG-T02: Log Client Workout Application Error**
-
-**Evidence:**
-- Console Error: `TypeError: Cannot read properties of undefined (reading 'VictoryChart')`
-- Stack Trace: `at WorkoutLogger.tsx:247:18`
-- Network: `GET /api/workouts/client/123` → 200 OK (data received)
-- Network: `GET /api/charts/victory-config` → 404 Not Found
-- Screenshot: [Attached - error-modal-2026-03-28.png]
-- Video: [Loom recording of full reproduction]
-
-**Root Cause Hypothesis:**
-Victory chart component import path broken after recent refactor (commit abc123?)
+CRITICAL GAPS:
+- What if AI creates duplicate clients?
+- How to handle partial failures (client created but trainer assignment fails)?
+- What if trainer pastes PII that shouldn't be stored?
+- No rollback strategy documented
 ```
 
 ---
 
-## 3. BIAS DETECTION
+## 4. Actionability
 
-### Rating: **6/10 — MODERATE BIAS DETECTED**
+**Rating: MEDIUM**
 
-#### Bias Type: **Overly Optimistic Framing + Missing Context**
+### Specific Enough:
+✅ File names provided (`aiDataWriteService.mjs`, `aiChatService.mjs`)  
+✅ Field names specified (`firstName`, `lastName`, `clientSource`)  
+✅ Enum values defined (`'move_fitness'`, `'swanstudios'`)  
 
-| Section | Bias Detected | Missing Context |
-|---------|---------------|-----------------|
-| **Mission Statement** | Inspirational but not QA-relevant; belongs in marketing docs | No user research validating "everyone" can use the platform |
-| **"MANDATORY" Language** | CEO directive framed as QA finding; conflates stakeholder requirements with test results | No feasibility analysis or technical debt assessment |
-| **"Critical Selling Point"** | Victory charts labeled critical without customer validation data | No A/B test results, churn analysis, or sales funnel data |
-| **Exercise Database** | "840+ exercises" presented as strength | No competitive analysis (Trainerize: 1,000+, TrueCoach: 1,500+) |
-| **Severity Ratings** | Inconsistent — "AI Assistant shifts page" rated HIGH, but "System tab useless" rated LOW | No impact analysis (affected users, revenue impact, workaround availability) |
+### Too Vague:
+| Recommendation | Issue | Actionable Alternative |
+|----------------|-------|----------------------|
+| "Add handler that calls adminClientController logic internally" | **HIGH** - No function signature | Specify: `async function createClientAction(data: CreateClientDTO): Promise<ClientCreationResult>` |
+| "Auto-generates username from firstName+lastName" | **CRITICAL** - Collision handling undefined | Define: "Append random 4-digit suffix if username exists" |
+| "Auto-calculates NASM score" | **HIGH** - Algorithm not specified | Reference: "Use existing `calculateNASMScore()` from movementAnalysisService.mjs" |
+| "System prompt that instructs AI how to..." | **CRITICAL** - No actual prompt text | Include: Draft prompt in appendix or separate doc |
+| "Show new client info card" | **MEDIUM** - No mockup/wireframe | Attach: Figma link or ASCII wireframe |
 
-#### Positive Bias Examples:
-
-**Example 1: Gamification**
-> "Final Fantasy / Overwatch style reward system"
-
-**Missing Context:**
-- No user research showing clients want gamification
-- No data on current engagement with existing gamification
-- No analysis of gamification fatigue in fitness apps (Fitocracy shutdown, Pact failure)
-
-**Example 2: Voice AI**
-> "Conversational voice AI using Gemini 3.1 Flash"
-
-**Missing Context:**
-- No cost analysis (Gemini API pricing at scale)
-- No accuracy benchmarks (fitness terminology recognition rates)
-- No privacy impact assessment (HIPAA compliance for health data)
-- No fallback plan if voice recognition fails in noisy gym environments
-
-#### Negative Bias Examples:
-
-**Example 1: Nutrition API**
-> "API has weird/uncommon foods"
-
-**Missing Context:**
-- Which API? (Nutritionix, Edamam, USDA?)
-- What % of searches fail?
-- What's the actual user complaint rate?
-- Comparison to competitor nutrition databases?
+### Missing Implementation Details:
+- No API request/response schemas
+- No database migration scripts referenced
+- No error message specifications
+- No validation rules (email format, phone format, age ranges)
 
 ---
 
-## 4. ACTIONABILITY ASSESSMENT
+## 5. Completeness - Untested Areas
 
-### Rating: **3/10 — MOSTLY VAGUE**
+**Rating: CRITICAL GAPS**
 
-#### Actionable Items (Well-Defined):
+### Not Assessed:
 
-| Item | Why It's Actionable | Severity |
-|------|---------------------|----------|
-| BUG-A01: Trainer Assignments link | Clear navigation issue, specific component | **HIGH** |
-| BUG-U08: No workout logger in user dashboard | Binary feature presence check | **CRITICAL** |
-| Add client type field (Swan Studios vs Move Fitness) | Specific field requirement | **HIGH** |
+| Area | Risk Level | Specific Gaps |
+|------|-----------|---------------|
+| **Performance** | 🔴 CRITICAL | - No latency targets for AI onboarding flow<br>- No database query optimization plan<br>- No caching strategy for repeated AI calls |
+| **Accessibility** | 🟡 HIGH | - No WCAG compliance mention for new UI components<br>- No screen reader testing for claim code display<br>- No keyboard navigation spec for AIContextSelector |
+| **Mobile Responsiveness** | 🟡 HIGH | - No mobile layout for "client info card"<br>- QR code rendering on small screens not addressed<br>- Copy-to-clipboard mobile UX undefined |
+| **Security** | 🔴 CRITICAL | - **No authentication flow for claim URLs**<br>- **Temp password transmission security not specified**<br>- **No mention of SQL injection prevention in AI-generated queries**<br>- **Missing RBAC validation details** |
+| **SEO** | 🟢 LOW | - Not applicable for authenticated SaaS features |
+| **Data Privacy** | 🔴 CRITICAL | - **No PII handling policy**<br>- **AI training data retention not addressed**<br>- **Right to deletion (GDPR) not considered** |
+| **Error Handling** | 🟡 HIGH | - No retry logic for failed AI actions<br>- No user-facing error messages defined<br>- No partial success handling |
+| **Monitoring/Observability** | 🟡 HIGH | - No logging strategy for AI actions<br>- No metrics/dashboards for onboarding success rate<br>- No alerting for rate limit violations |
+| **Internationalization** | 🟢 MEDIUM | - Assumes English-only client data<br>- No locale handling for date formats |
+| **Backward Compatibility** | 🟡 HIGH | - Impact on existing onboarding wizard not analyzed<br>- Migration plan for existing clients missing |
 
-#### Vague/Unactionable Items:
+---
 
-| Item | Why It's Vague | What's Needed |
-|------|----------------|---------------|
-| "Victory charts must be working and visible" | No definition of "working" — which charts? What data? | Acceptance criteria: "User dashboard displays Top 10 Exercises chart with accurate counts from workout_logs table" |
-| "Simple enough for senior citizens" | No usability metrics, no accessibility standards cited | WCAG 2.1 AA compliance, font size ≥16px, touch targets ≥44px, usability test with 5 users aged 65+ |
-| "Nextdoor + Meetup hybrid" | No feature breakdown, no wireframes | User stories: "As a user, I can create a group workout event with date/time/location" |
-| "Equipment Module disappeared" | No specification of what to restore | Link to original PRD, design mockups, or git commit (e.g., "Restore functionality from v2.3.0") |
-| "Nutrition intelligence upgrade" | No API vendor specified, no data requirements | "Integrate Nutritionix API v2, ensure 95% coverage of top 50 US restaurant chains" |
-| "Exercise database expansion to 2,000+" | No source, no timeline, no quality criteria | "Add 1,160 exercises from NASM CPT 7th edition, Appendix B, by Q3 2026" |
+## 6. Follow-Up Plan
 
-#### Recommendations Needing Refinement:
+**Rating: LOW - Not Sprint-Ready**
 
-**Example: "Voice AI — Gemini 3.1 Flash Integration"**
+### Can This Be Used for Sprint Planning?
+**❌ NO** - Requires significant refinement before story creation.
 
-**Current (Vague):**
-> "Conversational voice AI using Gemini 3.1 Flash voice module. Talk back and forth with AI coach."
+### Missing for Sprint Readiness:
 
-**Actionable Version:**
-```markdown
-**FEATURE: Voice-Activated Workout Logging**
+#### A. Acceptance Criteria
+```
+EXAMPLE MISSING CRITERIA:
+- [ ] Given a trainer pastes "John Doe, 35, bad knees, wants to lose 20lbs"
+      When AI processes the input
+      Then a client record is created with firstName="John", lastName="Doe", age=35
+      And a goal is created with type="weight_loss", target="-20 lbs"
+      And a health concern is logged with description="bad knees"
+```
 
-**Acceptance Criteria:**
-1. User taps microphone icon in Trainer Dashboard → Workout Logger
-2. System activates Gemini 3.1 Flash voice input (streaming mode)
-3. User says: "Log 3 sets of 10 reps barbell squat at 185 pounds"
-4. System transcribes to text in real-time (displayed in chat UI)
-5. System parses exercise name, sets, reps, weight
-6. System confirms: "Logged 3 sets of barbell squat. Anything else?"
-7. User says: "No, that's it" → System saves to database
-8. Fallback: If speech recognition confidence <80%, show text input
+#### B. Story Breakdown
+No epics/stories/tasks defined. Should include:
+- **Epic**: AI-Powered Client Onboarding
+  - **Story 1**: Backend - Implement `create_client` AI action (5 pts)
+  - **Story 2**: Backend - Add client onboarding system prompt (3 pts)
+  - **Story 3**: Frontend - Add onboarding context selector (2 pts)
+  - **Story 4**: Security - Implement rate limiting (3 pts)
+  - **Story 5**: Testing - E2E onboarding flow tests (5 pts)
 
-**Technical Requirements:**
-- Gemini API: `gemini-1.5-flash-latest` model
-- Max latency: 2 seconds from speech end to transcription display
-- Privacy: Audio not stored; only transcription saved to workout_logs table
-- Error handling: Network failure → queue locally, sync when reconnected
+#### C. Dependencies
+Not documented:
+- Does `adminClientController.mjs` need refactoring first?
+- Is the AI model capable of structured output (JSON mode)?
+- Are there database schema changes required?
 
-**Dependencies:**
-- Google Cloud account with Gemini API enabled
-- Backend endpoint: POST /api/voice/transcribe
-- Frontend: WebSpeech API or Gemini SDK integration
+#### D. Rollout Plan
+Missing:
+- Feature flag strategy
+- Phased rollout (beta testers → all trainers)
+- Rollback procedure
+- Success metrics (% of clients onboarded via AI vs manual)
 
-**Testing:**
-- Unit tests: Exercise name parsing (95% accuracy on 840 exercises)
-- Integration tests: End-to-end voice → database flow
-- User testing: 10 trainers log 5 workouts each via voice, measure success rate
-
-**Cost Estimate:**
-- Gemini Flash: $0.00001875/1K characters
-- Estimated 500 voice logs/day × 200 characters = $0.19/day = $5.70/month
+#### E. Testing Strategy
+Should include:
+```
+REQUIRED TEST PLANS:
+1. Unit tests for each new AI action handler
+2. Integration tests for full onboarding flow
+3. Security tests for rate limiting and RBAC
+4. AI prompt testing with 50+ sample inputs
+5. Load testing with 100 concurrent onboarding requests
+6. Accessibility audit of new UI components
 ```
 
 ---
 
-## 5. COMPLETENESS ASSESSMENT
+## Severity-Rated Findings
 
-### Rating: **4/10 — MAJOR GAPS**
+### 🔴 CRITICAL Issues
 
-#### What WAS Assessed:
-- ✅ Functional bugs (navigation, buttons, dropdowns)
-- ✅ Data display issues (charts, client lists)
-- ✅ Missing features (workout logger, equipment module)
-- ✅ UI/UX issues (transparent backgrounds, icon styles)
+1. **Username collision handling undefined** - Could create duplicate accounts or fail silently
+2. **No authentication mechanism for claim URLs** - Security vulnerability
+3. **AI hallucination risks not addressed** - Could create clients with incorrect data
+4. **No PII handling policy** - GDPR/HIPAA compliance risk
+5. **Temp password transmission security unspecified** - Could expose credentials
+6. **No rollback strategy** - Failed onboarding could leave orphaned records
 
-#### What was NOT Assessed:
+### 🟡 HIGH Issues
 
-| Domain | Why It Matters | Risk if Ignored |
-|--------|----------------|-----------------|
-| **Performance** | Victory charts with 840 exercises could cause browser crashes | User churn, bad reviews, support tickets |
-| **Accessibility (WCAG)** | "Made for everyone" includes users with disabilities | Legal risk (ADA lawsuits), excludes 15% of population |
-| **Mobile Responsiveness** | "Mobile-first priority" stated but no mobile testing documented | Unusable on phones (60% of traffic) |
-| **Security** | Trainer revenue splits, client health data, payment processing | Data breach, PCI-DSS non-compliance, HIPAA violations |
-| **SEO** | "SwanStudios YouTube brand" requires discoverability | Zero organic traffic, failed content strategy |
-| **API Performance** | Multiple 500 errors suggest backend issues | Database deadlocks, memory leaks, downtime |
-| **Cross-Browser** | No browser matrix tested | Broken on Safari (30% of mobile users) |
-| **Load Testing** | 840 exercises, 4 dashboards, real-time charts | Site crashes during peak hours (6-8pm gym time) |
-| **Data Integrity** | Workout logs, revenue splits, gamification points | Incorrect trainer payments, lost user data |
-| **Backup/Recovery** | Production database mentioned but no DR plan | Catastrophic data loss |
+7. **Admin endpoint verification missing** - Implementation may not exist as described
+8. **No API schemas provided** - Frontend/backend contract undefined
+9. **Error handling strategy absent** - Poor user experience on failures
+10. **No current state documentation** - Baseline for comparison missing
+11. **Accessibility requirements omitted** - Legal compliance risk
+12. **No monitoring/observability plan** - Production issues will be hard to debug
 
-#### Missing Test Coverage by Dashboard:
+### 🟠 MEDIUM Issues
 
-**Admin Dashboard:**
-- [ ] Bulk operations (assign 50 clients to trainer)
-- [ ] Revenue calculation accuracy (60/40 vs 90/10 splits)
-- [ ] Exercise database import/export
-- [ ] User role permissions (can trainer access admin features?)
+13. **Rate limit threshold unjustified** - May be too restrictive or too permissive
+14. **No mobile responsiveness specs** - UX degradation on mobile likely
+15. **Enhancement opportunities conflated with core requirements** - Scope creep risk
+16. **No internationalization consideration** - Limits global expansion
+17. **Backward compatibility not analyzed** - May break existing workflows
 
-**Trainer Dashboard:**
-- [ ] Concurrent client logging (2 trainers log same client simultaneously)
-- [ ] Offline mode (gym has poor WiFi)
-- [ ] Voice AI accuracy with background noise
-- [ ] Form assessment data persistence
+### 🟢 LOW Issues
 
-**User Dashboard:**
-- [ ] Workout history pagination (user with 500 workouts)
-- [ ] Chart rendering with 2,000 exercises
-- [ ] Social feed with 10,000 posts
-- [ ] Photo upload size limits and formats
-
-**Social Dashboard:**
-- [ ] Not tested at all (no bugs reported)
-- [ ] Hashtag search performance
-- [ ] Post editing race conditions
-- [ ] Community moderation tools
+18. **Action type count discrepancy** (10 vs 8 listed) - Documentation inconsistency
+19. **No cost analysis** - Budget impact unknown
+20. **SEO not considered** - Not applicable but should be explicitly stated
 
 ---
 
-### 5.1 PERFORMANCE (Not Assessed)
+## Recommended Actions
 
-**Critical Missing Tests:**
+### Immediate (Before Implementation):
 
-| Test Type | Why Critical | How to Test |
-|-----------|--------------|-------------|
-| **Victory Chart Rendering** | "Critical selling point" — must load fast | Lighthouse score ≥90, FCP <1.5s with 840 exercises |
-| **Exercise Rolodex Load Time** | 840 exercises → potential DOM bloat | Measure TTI with React DevTools Profiler, virtualize list if >3s |
-| **Workout Logger Submission** | Real-time use during training | API response time <500ms, optimistic UI updates |
-| **Database Query Performance** | 500 errors suggest slow queries | Log all queries >100ms, add indexes on workout_logs.client_id |
-| **Mobile Performance** | "Must work on slow phones" | Test on throttled 3G, older devices (iPhone 8, Galaxy S9) |
+1. **Rename document** to "Technical Specification: AI Client Onboarding"
+2. **Add "Current State Analysis" section** with:
+   - Verified endpoint documentation
+   - Database schema screenshots
+   - Current AI prompt examples
+3. **Create security threat model** addressing:
+   - OWASP Top 10 risks
+   - PII handling procedures
+   - Authentication flow for claim URLs
+4. **Define acceptance criteria** for each proposed change
+5. **Add API contract specifications** (request/response schemas)
 
-**Recommended Tools:**
-- Lighthouse CI (automated performance regression testing)
-- WebPageTest (real-world mobile performance)
-- New Relic / Datadog (backend API monitoring)
+### Before Sprint Planning:
 
----
+6. **Break down into user stories** with story points
+7. **Create dependency graph** showing implementation order
+8. **Define success metrics** (e.g., "80% of onboarding via AI within 3 months")
+9. **Write test plan** covering unit, integration, E2E, security, accessibility
+10. **Add wireframes/mockups** for all UI changes
 
-### 5.2 ACCESSIBILITY (Not Assessed)
+### Before Production:
 
-**Critical Missing Tests:**
-
-| WCAG 2.1 Criterion | Why Critical for SwanStudios | Test Method |
-|--------------------|------------------------------|-------------|
-| **1.4.3 Contrast (AA)** | Midnight Sapphire #002060 on black may fail | Use Contrast Checker, ensure 4.5:1 ratio |
-| **2.1.1 Keyboard Navigation** | Voice AI users may have motor disabilities | Tab through all dashboards, no keyboard traps |
-| **2.4.7 Focus Visible** | "Simple for seniors" requires clear focus indicators | Test with keyboard only, visible focus rings |
-| **3.2.4 Consistent Navigation** | 4 dashboards need consistent patterns | Audit navigation across Admin/Trainer/User/Social |
-| **4.1.2 Name, Role, Value** | Screen readers must announce buttons correctly | Test with NVDA/JAWS, all buttons have aria-labels |
-
-**Legal Risk:**
-- ADA Title III applies to SaaS platforms
-- Recent settlements: $10K-$50K for inaccessible fitness apps
-- **Recommendation:** WCAG 2.1 AA audit before public launch
-
-**Recommended Tools:**
-- axe DevTools (automated accessibility scanning)
-- NVDA / JAWS (screen reader testing)
-- Keyboard navigation checklist
+11. **Conduct AI prompt testing** with 100+ real-world examples
+12. **Perform security audit** by external firm
+13. **Complete accessibility audit** (WCAG 2.1 AA)
+14. **Set up monitoring dashboards** for onboarding funnel
+15. **Create runbook** for common failure scenarios
 
 ---
 
-### 5.3 MOBILE RESPONSIVENESS (Not Assessed)
+## Overall Document Quality Score
 
-**Critical Gap:** Document states "mobile-first priority" and "7-point responsive matrix MANDATORY," but **zero mobile testing documented**.
+| Category | Score | Weight | Weighted Score |
+|----------|-------|--------|----------------|
+| Methodology | N/A | 15% | 0% |
+| Evidence Quality | 3/10 | 20% | 6% |
+| Bias Detection | 5/10 | 15% | 7.5% |
+| Actionability | 5/10 | 25% | 12.5% |
+| Completeness | 4/10 | 15% | 6% |
+| Follow-Up Plan | 3/10 | 10% | 3% |
 
-| Breakpoint | Device Examples | Critical Tests Missing |
-|------------|-----------------|------------------------|
-| **320px** | iPhone SE (1st gen) | Can workout logger fit
+**Total: 35/100** ⚠️ **NEEDS MAJOR REVISION**
+
+---
+
+## Conclusion
+
+This document is a **preliminary feature brainstorm**, not a QA report or implementation-ready specification. It demonstrates good domain knowledge of the SwanStudios architecture but lacks the rigor needed for production development.
+
+**Recommendation**: **DO NOT USE FOR SPRINT PLANNING** until critical gaps are addressed. Assign a senior engineer and product manager to refine this into a proper technical specification with security review, acceptance criteria, and test plans.
+
+**Estimated Refinement Effort**: 16-24 hours of additional documentation work before development can begin safely.
 
 ---
 

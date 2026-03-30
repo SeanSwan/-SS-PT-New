@@ -21,7 +21,7 @@ import React, { useMemo, memo } from 'react';
 import {
   MessageSquare, Utensils, Dumbbell, Brain,
   Sparkles, Database, Plus, Calendar, TrendingUp,
-  BookOpen, Trophy,
+  BookOpen, Trophy, UserPlus,
 } from 'lucide-react';
 import type { AIContext, ResponseStyle } from '../../hooks/useAIChat';
 import {
@@ -57,6 +57,7 @@ export const CONTEXTS: Record<AIContext, ContextConfig> = {
   progress_analysis: { label: 'Progress', icon: TrendingUp, description: 'Analyze client progress and chart data', roles: ['trainer', 'admin'] },
   exercise_library: { label: 'Exercises', icon: BookOpen, description: 'Search and explore the 840+ exercise database', roles: ['trainer', 'admin'] },
   gamification: { label: 'Gamification', icon: Trophy, description: 'Manage achievements, badges, and XP system', roles: ['admin'] },
+  client_onboarding: { label: 'Onboarding', icon: UserPlus, description: 'Dictate new client info — AI builds the intake form', roles: ['trainer', 'admin'] },
 };
 
 export const RESPONSE_STYLES: { key: ResponseStyle; label: string; emoji: string }[] = [

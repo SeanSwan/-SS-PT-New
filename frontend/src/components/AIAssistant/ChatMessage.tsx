@@ -28,6 +28,7 @@ import {
   ActionHeader,
   ActionConfirmBtn,
 } from './AIDrawerStyles';
+import OnboardClientCard from './OnboardClientCard';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -40,6 +41,7 @@ const ACTION_EMOJI: Record<string, string> = {
   UPDATE_MEASUREMENTS: '📏',
   ADD_NOTE: '📝',
   CREATE_PLAN: '📋',
+  ONBOARD_CLIENT: '👤',
 };
 
 const ChatMessage = React.memo<ChatMessageProps>(({ role, content }) => {
@@ -120,6 +122,11 @@ const ChatMessage = React.memo<ChatMessageProps>(({ role, content }) => {
 
       {/* Structured action cards */}
       {actions.map((action, idx) => {
+        // Onboarding gets its own dedicated card with full confirmation flow
+        if (action.type === 'ONBOARD_CLIENT') {
+          return <OnboardClientCard key={idx} action={action} />;
+        }
+
         const meta = ACTION_META[action.type];
         return (
           <ActionCard key={idx} $color={meta.color}>

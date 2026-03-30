@@ -149,6 +149,7 @@ import orientationRoutes from '../routes/orientationRoutes.mjs';
 import movementAnalysisRoutes from '../routes/movementAnalysisRoutes.mjs';
 import onboardingRoutes from '../routes/onboardingRoutes.mjs';
 import clientOnboardingRoutes from '../routes/clientOnboardingRoutes.mjs';
+import clientOnboardRoutes from '../routes/clientOnboardRoutes.mjs';
 import clientDataRoutes from '../routes/clientDataRoutes.mjs';
 import recommendationRoutes from '../routes/recommendationRoutes.mjs';
 import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
@@ -262,6 +263,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/onboarding', onboardingRoutes);
   // Phase 1 onboarding endpoints (questionnaire + NASM movement screen)
   app.use('/api/onboarding', clientOnboardingRoutes);
+  // AI-powered client onboarding (single transactional endpoint)
+  app.use('/api/clients/onboard', clientOnboardRoutes);
   app.use('/api/client-data', clientDataRoutes);
   // Temporarily disabled for deployment hotfix - will re-enable after verification
   // app.use('/api/training-sessions', trainingSessionRoutes);
