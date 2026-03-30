@@ -868,15 +868,16 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       // 20. Check-in data placeholder (for when check-in scheduling is built out)
       Promise.resolve([]),
       // 21. Active workout plans (for "what's next?" queries)
+      // Column names use snake_case (matching 20260330 migration)
       safeQuery(
-        `SELECT id, title, description, "nasmPhase", status,
-                "currentWeek", "currentDay", "durationWeeks",
-                "planData", "progressNotes", "createdBy",
-                "startDate", "endDate", "createdAt"
+        `SELECT id, title, description, nasm_phase, status,
+                current_week, current_day, duration_weeks,
+                plan_data, progress_notes, created_by,
+                start_date, end_date, created_at
          FROM workout_plans
-         WHERE "userId" = :userId AND status IN ('active', 'paused')
+         WHERE user_id = :userId AND status IN ('active', 'paused')
          ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END,
-                  "createdAt" DESC LIMIT 3`, { userId }),
+                  created_at DESC LIMIT 3`, { userId }),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
@@ -1092,12 +1093,14 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     }
 
     // ── 20. ACTIVE WORKOUT PLANS (enables "what's next?" voice queries) ──
+    // NOTE: Raw SQL returns snake_case column names (plan_data, current_week, etc.)
     try {
       if (workoutPlans.length > 0) {
         const planLines = workoutPlans.map(plan => {
-          const pd = typeof plan.planData === 'string' ? JSON.parse(plan.planData) : plan.planData;
-          const week = Number(plan.currentWeek) || 1;
-          const day = Number(plan.currentDay) || 1;
+          const rawPd = plan.plan_data || plan.planData;
+          const pd = typeof rawPd === 'string' ? JSON.parse(rawPd) : rawPd;
+          const week = Number(plan.current_week || plan.currentWeek) || 1;
+          const day = Number(plan.current_day || plan.currentDay) || 1;
 
           // Extract current session from plan data
           let currentSessionStr = 'No session data';
@@ -1116,13 +1119,18 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
 
           // Count total sessions and completed
           const totalSessions = pd?.weeks?.reduce((sum, w) => sum + (w.sessions?.length || 0), 0) || 0;
-          const pn = typeof plan.progressNotes === 'string' ? JSON.parse(plan.progressNotes) : plan.progressNotes;
+          const rawPn = plan.progress_notes || plan.progressNotes;
+          const pn = typeof rawPn === 'string' ? JSON.parse(rawPn) : rawPn;
           const completedSessions = Array.isArray(pn) ? pn.filter(n => n.type === 'session_complete').length : 0;
+          const nasmPhase = plan.nasm_phase || plan.nasmPhase;
+          const durWeeks = plan.duration_weeks || plan.durationWeeks;
+          const createdBy = plan.created_by || plan.createdBy;
+          const createdAt = plan.created_at || plan.createdAt;
 
           return `Plan: "${plan.title}" [${plan.status.toUpperCase()}]
-NASM Phase: ${plan.nasmPhase} | Duration: ${plan.durationWeeks} weeks | Progress: Week ${week}, Day ${day}
+NASM Phase: ${nasmPhase} | Duration: ${durWeeks} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${totalSessions}
-Created: ${plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : '?'} by ${plan.createdBy || 'unknown'}
+Created: ${createdAt ? new Date(createdAt).toLocaleDateString() : '?'} by ${createdBy || 'unknown'}
 --- CURRENT SESSION (Week ${week}, Day ${day}) ---
 ${currentSessionStr}`;
         });

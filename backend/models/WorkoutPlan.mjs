@@ -18,7 +18,7 @@
  *   - JSONB planData instead of normalized child tables: simpler for AI to
  *     read/write entire programs in one shot, avoids N+1 queries
  *   - INTEGER PK (not UUID) to match Users FK pattern across the codebase
- *   - underscored: true for snake_case DB columns (user_id, trainer_id, etc.)
+ *   - underscored: true + explicit field mappings for snake_case DB columns
  *
  * NASM PROTOCOL CONTEXT:
  *   nasmPhase (1-5) maps directly to OPT periodization phases. AI uses this
@@ -45,6 +45,7 @@ WorkoutPlan.init({
   },
   userId: {
     type: DataTypes.INTEGER,
+    field: 'user_id',
     allowNull: false,
     references: {
       model: 'Users',
@@ -54,6 +55,7 @@ WorkoutPlan.init({
   },
   trainerId: {
     type: DataTypes.INTEGER,
+    field: 'trainer_id',
     allowNull: true,
     references: {
       model: 'Users',
@@ -73,22 +75,26 @@ WorkoutPlan.init({
   },
   nasmPhase: {
     type: DataTypes.INTEGER,
+    field: 'nasm_phase',
     allowNull: true,
     validate: { min: 1, max: 5 },
     comment: 'NASM OPT phase (1=Stab End, 2=Str End, 3=Hyp, 4=Max Str, 5=Power)'
   },
   startDate: {
     type: DataTypes.DATEONLY,
+    field: 'start_date',
     allowNull: true,
     comment: 'Planned start date'
   },
   endDate: {
     type: DataTypes.DATEONLY,
+    field: 'end_date',
     allowNull: true,
     comment: 'Planned end date'
   },
   durationWeeks: {
     type: DataTypes.INTEGER,
+    field: 'duration_weeks',
     allowNull: false,
     defaultValue: 4,
     validate: { min: 1, max: 52 },
@@ -102,6 +108,7 @@ WorkoutPlan.init({
   },
   currentWeek: {
     type: DataTypes.INTEGER,
+    field: 'current_week',
     defaultValue: 1,
     allowNull: false,
     validate: { min: 1 },
@@ -109,6 +116,7 @@ WorkoutPlan.init({
   },
   currentDay: {
     type: DataTypes.INTEGER,
+    field: 'current_day',
     defaultValue: 1,
     allowNull: false,
     validate: { min: 1 },
@@ -116,18 +124,21 @@ WorkoutPlan.init({
   },
   planData: {
     type: DataTypes.JSONB,
+    field: 'plan_data',
     allowNull: true,
     defaultValue: { weeks: [] },
     comment: 'Full plan structure: weeks → sessions → exercises with sets/reps/tempo/rest'
   },
   progressNotes: {
     type: DataTypes.JSONB,
+    field: 'progress_notes',
     allowNull: true,
     defaultValue: [],
     comment: 'Array of trainer notes per week: [{ week, note, date }]'
   },
   createdBy: {
     type: DataTypes.STRING(50),
+    field: 'created_by',
     allowNull: true,
     defaultValue: 'trainer',
     comment: 'Who created this plan: "ai", "trainer", or "admin"'
@@ -143,11 +154,12 @@ WorkoutPlan.init({
   modelName: 'WorkoutPlan',
   tableName: 'workout_plans',
   timestamps: true,
+  underscored: true,
   indexes: [
-    { fields: ['userId'], name: 'idx_workout_plans_user_id' },
-    { fields: ['trainerId'], name: 'idx_workout_plans_trainer_id' },
+    { fields: ['user_id'], name: 'idx_workout_plans_user_id' },
+    { fields: ['trainer_id'], name: 'idx_workout_plans_trainer_id' },
     { fields: ['status'], name: 'idx_workout_plans_status' },
-    { fields: ['userId', 'status'], name: 'idx_workout_plans_user_status' }
+    { fields: ['user_id', 'status'], name: 'idx_workout_plans_user_status' }
   ]
 });
 
