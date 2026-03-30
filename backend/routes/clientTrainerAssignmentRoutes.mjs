@@ -240,27 +240,54 @@ const router = express.Router();
 
 /**
  * @route   GET /api/assignments/test
- * @desc    Test endpoint to verify client-trainer assignment routes are working
- * @access  Admin Only
+ * @desc    Test endpoint — returns table schema for debugging
+ * @access  Public (temporary diagnostic — remove after fix confirmed)
  */
-router.get('/test', protect, adminOnly, async (req, res) => {
+router.get('/test', async (req, res) => {
   try {
+    // Check actual column names in the DB
+    const [columns] = await sequelize.query(
+      `SELECT column_name, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_name = 'client_trainer_assignments'
+       ORDER BY ordinal_position`
+    );
+
+    // Check FK constraints
+    const [fks] = await sequelize.query(
+      `SELECT tc.constraint_name, kcu.column_name, ccu.table_name AS foreign_table_name
+       FROM information_schema.table_constraints AS tc
+       JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+       JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
+       WHERE tc.table_name = 'client_trainer_assignments' AND tc.constraint_type = 'FOREIGN KEY'`
+    );
+
+    // Try a simple raw insert test (dry run — rollback)
+    let insertTest = 'not tested';
+    try {
+      await sequelize.query('BEGIN');
+      await sequelize.query(
+        `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
+         VALUES (1, 2, 1, 'test', 'active', NOW(), NOW())`
+      );
+      insertTest = 'INSERT succeeded (rolled back)';
+      await sequelize.query('ROLLBACK');
+    } catch (insertErr) {
+      insertTest = `INSERT failed: ${insertErr.message}`;
+      try { await sequelize.query('ROLLBACK'); } catch (_) { /* ignore */ }
+    }
+
     res.json({
       success: true,
-      message: 'Client-trainer assignment routes are working correctly',
-      timestamp: new Date().toISOString(),
-      availableEndpoints: [
-        'GET /api/client-trainer-assignments',
-        'GET /api/assignments',
-        'POST /api/client-trainer-assignments',
-        'PUT /api/client-trainer-assignments/:id'
-      ]
+      columns,
+      foreignKeys: fks,
+      insertTest,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Route test failed',
-      error: error.message
+      message: error.message
     });
   }
 });
