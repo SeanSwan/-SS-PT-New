@@ -49,10 +49,11 @@ const getWorkoutPlan = () => getModel('WorkoutPlan');
 router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
-    const { userId, status, trainerId } = req.query;
+    const { userId, clientId, status, trainerId } = req.query;
 
     const where = {};
-    if (userId) where.userId = parseInt(userId, 10);
+    // Support both userId and clientId query params (frontend may use either)
+    if (userId || clientId) where.userId = parseInt(userId || clientId, 10);
     if (trainerId) where.trainerId = parseInt(trainerId, 10);
     if (status) where.status = status;
 
