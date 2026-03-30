@@ -547,16 +547,16 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
     // Verify users exist and have correct roles
     const [client, trainer] = await Promise.all([
-      User.findOne({ 
-        where: { 
-          id: parseInt(clientId), 
-          role: ['client', 'user'] // Support both client and user roles
-        } 
+      User.findOne({
+        where: {
+          id: parseInt(clientId),
+          role: { [Op.in]: ['client', 'user'] }
+        }
       }),
       User.findOne({
         where: {
           id: parseInt(trainerId),
-          role: ['trainer', 'admin']
+          role: { [Op.in]: ['trainer', 'admin'] }
         }
       })
     ]);

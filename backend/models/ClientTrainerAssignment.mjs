@@ -63,28 +63,16 @@ ClientTrainerAssignment.init(
     clientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { 
-        model: 'users',
-        key: 'id' 
-      },
       comment: 'ID of the client being assigned'
     },
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { 
-        model: 'users',
-        key: 'id' 
-      },
       comment: 'ID of the trainer receiving the assignment'
     },
     assignedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { 
-        model: 'users',
-        key: 'id' 
-      },
       comment: 'ID of the admin who created this assignment'
     },
     assignedAt: {
