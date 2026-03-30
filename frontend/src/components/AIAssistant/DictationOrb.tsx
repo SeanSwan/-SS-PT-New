@@ -111,6 +111,8 @@ const OrbButton = styled.button<{ $listening: boolean }>`
   height: 44px;
   min-width: 44px;
   min-height: 44px;
+  padding: 0;
+  line-height: 1;
   border-radius: 50%;
   border: 2px solid ${({ $listening }) => $listening ? CS.wingPurple : CS.glassBorder};
   background: ${({ $listening }) => $listening ? CS.wingPurple : CS.glassOverlayStrong};
