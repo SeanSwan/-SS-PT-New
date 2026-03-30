@@ -628,8 +628,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
       });
     } catch (ormError) {
       logger.warn('ORM create failed, trying raw SQL fallback:', ormError.message);
+      // HYBRID column naming: first migration (20250714) created camelCase columns
       const [rows] = await sequelize.query(
-        `INSERT INTO client_trainer_assignments (client_id, trainer_id, assigned_by, notes, status, created_at, updated_at)
+        `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
          VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', NOW(), NOW())
          RETURNING *`,
         {
