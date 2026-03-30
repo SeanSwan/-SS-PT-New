@@ -26,9 +26,7 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import { getModel } from '../models/index.mjs';
-import { Op } from '../database.mjs';
 import logger from '../utils/logger.mjs';
-import sequelize from '../database.mjs';
 
 const router = express.Router();
 
@@ -37,54 +35,6 @@ const router = express.Router();
 // PURPOSE: Lazy-load from model cache to avoid circular imports
 // ─────────────────────────────────────────────────────────────
 const getWorkoutPlan = () => getModel('WorkoutPlan');
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: GET /api/workout-plans/debug-schema
-// PURPOSE: TEMPORARY — diagnose column names in production table
-// TODO: Remove after debugging is complete
-// ─────────────────────────────────────────────────────────────
-router.get('/debug-schema', protect, trainerOrAdminOnly, async (req, res) => {
-  try {
-    // Check if table exists and what columns it has
-    const [tableCheck] = await sequelize.query(
-      `SELECT to_regclass('workout_plans') AS exists`
-    );
-    const tableExists = !!tableCheck?.[0]?.exists;
-
-    if (!tableExists) {
-      return res.json({ success: true, tableExists: false, columns: [] });
-    }
-
-    const [columns] = await sequelize.query(
-      `SELECT column_name, data_type, is_nullable FROM information_schema.columns
-       WHERE table_name = 'workout_plans' ORDER BY ordinal_position`
-    );
-
-    // Try a raw count
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM workout_plans`
-    );
-
-    // Try the Sequelize model
-    let modelError = null;
-    try {
-      const WP = getWorkoutPlan();
-      await WP.findAll({ limit: 1 });
-    } catch (e) {
-      modelError = e.message;
-    }
-
-    res.json({
-      success: true,
-      tableExists,
-      columns: columns.map(c => ({ name: c.column_name, type: c.data_type })),
-      rowCount: countResult?.[0]?.total,
-      modelError
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message, stack: error.stack?.split('\n').slice(0, 5) });
-  }
-});
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: GET /api/workout-plans
