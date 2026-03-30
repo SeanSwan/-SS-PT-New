@@ -100,22 +100,9 @@ ClientTrainerAssignment.init(
         }
       }
     },
-    lastModifiedBy: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'last_modified_by',
-      references: {
-        model: 'users',
-        key: 'id'
-      },
-      comment: 'ID of the admin who last modified this assignment'
-    },
-    deactivatedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'deactivated_at',
-      comment: 'Timestamp when assignment was deactivated'
-    },
+    // NOTE: lastModifiedBy and deactivatedAt were planned but never migrated
+    // to production. Removed from model to prevent "column does not exist" errors.
+    // If needed, add a migration first, then re-add these fields.
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'pending'),
       defaultValue: 'active',

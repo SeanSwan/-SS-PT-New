@@ -312,9 +312,6 @@ router.get('/', protect, adminOnly, async (req, res) => {
     try {
       const result = await ClientTrainerAssignment.findAndCountAll({
         where: whereConditions,
-        attributes: {
-          exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-        },
         include: [
           {
             model: User,
@@ -332,7 +329,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
             model: User,
             as: 'assignedByUser',
             attributes: ['id', 'firstName', 'lastName'],
-            required: false // Make optional in case assignedBy column is missing
+            required: false
           }
         ],
         order: [['createdAt', 'DESC']],
@@ -346,9 +343,6 @@ router.get('/', protect, adminOnly, async (req, res) => {
       logger.warn('Full association query failed, trying without assignedByUser:', includeError.message);
       const result = await ClientTrainerAssignment.findAndCountAll({
         where: whereConditions,
-        attributes: {
-          exclude: ['lastModifiedBy', 'assignedBy'] // Exclude potentially missing fields
-        },
         include: [
           {
             model: User,
@@ -427,9 +421,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
         trainerId: parseInt(trainerId),
         status: 'active'
       },
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      },
+      // lastModifiedBy removed from model — no exclude needed,
       include: [
         {
           model: User,
@@ -485,9 +477,7 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
         clientId: parseInt(clientId),
         status: 'active'
       },
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      },
+      // lastModifiedBy removed from model — no exclude needed,
       include: [
         {
           model: User,
@@ -591,9 +581,6 @@ router.post('/', protect, adminOnly, async (req, res) => {
         clientId: parseInt(clientId),
         trainerId: parseInt(trainerId),
         status: 'active'
-      },
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       }
     });
 
@@ -717,9 +704,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
     const assignment = await ClientTrainerAssignment.findByPk(id, {
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      }
+      // lastModifiedBy removed from model — no exclude needed
     });
     if (!assignment) {
       return res.status(404).json({
@@ -747,9 +732,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     // Fetch updated assignment with related data
     const User = getUser();
     const updatedAssignment = await ClientTrainerAssignment.findByPk(id, {
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      },
+      // lastModifiedBy removed from model — no exclude needed,
       include: [
         {
           model: User,
@@ -806,9 +789,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
     const assignment = await ClientTrainerAssignment.findByPk(id, {
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      }
+      // lastModifiedBy removed from model — no exclude needed
     });
     if (!assignment) {
       return res.status(404).json({
