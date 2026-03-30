@@ -60,6 +60,11 @@ ClientTrainerAssignment.init(
       primaryKey: true,
       autoIncrement: true,
     },
+    // ── Columns verified against production DB (2026-03-30 diagnostic) ──
+    // DB reality: clientId(int), trainerId(int), assignedBy(int nullable),
+    //   assignedAt(timestamptz), status(varchar), notes(text),
+    //   deactivated_at(timestamptz), last_modified_by(int),
+    //   createdAt(timestamptz), updatedAt(timestamptz)
     clientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -72,35 +77,36 @@ ClientTrainerAssignment.init(
     },
     assignedBy: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       comment: 'ID of the admin who created this assignment'
     },
     assignedAt: {
-      // Compatibility shim: legacy DBs may not have a physical assignedAt column.
-      // Expose assignedAt from createdAt so reads/writes do not break.
-      type: DataTypes.VIRTUAL(DataTypes.DATE),
-      get() {
-        return this.getDataValue('createdAt') || null;
-      },
-      set(value) {
-        if (value) {
-          this.setDataValue('createdAt', value);
-        }
-      }
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Timestamp when the assignment was created'
     },
-    // NOTE: lastModifiedBy and deactivatedAt were planned but never migrated
-    // to production. Removed from model to prevent "column does not exist" errors.
-    // If needed, add a migration first, then re-add these fields.
     status: {
-      type: DataTypes.ENUM('active', 'inactive', 'pending'),
+      type: DataTypes.STRING,
       defaultValue: 'active',
-      allowNull: false,
-      comment: 'Current status of the assignment relationship'
+      allowNull: true,
+      comment: 'Current status: active, inactive, pending'
     },
     notes: {
       type: DataTypes.TEXT,
       allowNull: true,
       comment: 'Optional notes about the assignment context or special instructions'
+    },
+    lastModifiedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'last_modified_by',
+      comment: 'ID of the admin who last modified this assignment'
+    },
+    deactivatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'deactivated_at',
+      comment: 'Timestamp when assignment was deactivated'
     }
   },
   {
