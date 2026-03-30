@@ -310,7 +310,8 @@ export const setupRoutes = async (app) => {
 
   // ===================== FITNESS & WELLNESS ROUTES =====================
   app.use('/api/workout', workoutRoutes);
-  app.use('/api/workout/plans', workoutPlanRoutes);
+  app.use('/api/workout-plans', workoutPlanRoutes);
+  app.use('/api/workout/plans', workoutPlanRoutes); // Legacy mount point for backward compat
   app.use('/api/workout/sessions', workoutSessionRoutes);
   
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================

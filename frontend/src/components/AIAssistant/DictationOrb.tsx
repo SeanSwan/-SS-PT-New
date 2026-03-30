@@ -32,10 +32,15 @@ declare global {
  * Cmd/Ctrl+Shift+K → keyboard shortcut to toggle
  *
  * DATA FLOW:
- * Props In:  { onTranscript, disabled?, holdToTalk? }
+ * Props In:  { onTranscript, onInterimTranscript?, holdToTalk?, disabled?, autoSend?, onAutoSend? }
  * State:     { listening, supported, interim }
  * API:       Web Speech API (SpeechRecognition)
- * Events:    onTranscript(finalText)
+ * Events:    onTranscript(finalText), onAutoSend(fullSessionText)
+ *
+ * AUTO-SEND FLOW:
+ * User taps orb → listening starts → final transcripts accumulate →
+ * User taps orb again (or speech ends) → recognition.onend fires →
+ * 750ms delay → onAutoSend(fullSessionText) fires → parent sends message
  *
  * ARCHITECTURE:
  * graph TD
@@ -189,6 +194,10 @@ interface DictationOrbProps {
   /** If true, hold-to-talk mode: press=start, release=stop+send */
   holdToTalk?: boolean;
   disabled?: boolean;
+  /** If true, auto-send final transcript when speech ends (default: true) */
+  autoSend?: boolean;
+  /** Called with complete transcript text when auto-send fires */
+  onAutoSend?: (text: string) => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -198,6 +207,8 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
   onInterimTranscript,
   holdToTalk = false,
   disabled = false,
+  autoSend = true,
+  onAutoSend,
 }) => {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(true);
@@ -207,17 +218,28 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
   const holdingRef = useRef(false);
   const accumulatedRef = useRef('');
 
+  // Tracks all final transcript text accumulated during a tap-to-toggle session
+  // so auto-send can fire the complete dictation when speech ends
+  const sessionAccumulatedRef = useRef('');
+
+  // Timer ref for delayed auto-send (gives speech API time to finalize last words)
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Use refs for values accessed inside recognition callbacks and keyboard handler
   // to avoid stale closures and unnecessary recognition recreation
   const holdToTalkRef = useRef(holdToTalk);
   const onTranscriptRef = useRef(onTranscript);
   const onInterimTranscriptRef = useRef(onInterimTranscript);
   const disabledRef = useRef(disabled);
+  const autoSendRef = useRef(autoSend);
+  const onAutoSendRef = useRef(onAutoSend);
 
   useEffect(() => { holdToTalkRef.current = holdToTalk; }, [holdToTalk]);
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
   useEffect(() => { onInterimTranscriptRef.current = onInterimTranscript; }, [onInterimTranscript]);
   useEffect(() => { disabledRef.current = disabled; }, [disabled]);
+  useEffect(() => { autoSendRef.current = autoSend; }, [autoSend]);
+  useEffect(() => { onAutoSendRef.current = onAutoSend; }, [onAutoSend]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -254,6 +276,11 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
           }
         } else {
           onTranscriptRef.current(trimmedFinal);
+
+          // Track accumulated session text for auto-send in tap-to-toggle mode
+          if (trimmedFinal) {
+            sessionAccumulatedRef.current += (sessionAccumulatedRef.current ? ' ' : '') + trimmedFinal;
+          }
         }
       }
 
@@ -281,8 +308,31 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       setInterim('');
 
       if (holdToTalkRef.current && accumulatedRef.current) {
-        onTranscriptRef.current(accumulatedRef.current);
+        // Hold-to-talk: send accumulated text via onTranscript (existing behavior)
+        // and also auto-send if enabled
+        const accumulated = accumulatedRef.current;
         accumulatedRef.current = '';
+        onTranscriptRef.current(accumulated);
+
+        if (autoSendRef.current && onAutoSendRef.current && accumulated.trim()) {
+          // Small delay to let the transcript populate the input field first
+          setTimeout(() => {
+            onAutoSendRef.current?.(accumulated.trim());
+          }, 300);
+        }
+      } else if (!holdToTalkRef.current && autoSendRef.current && onAutoSendRef.current) {
+        // Tap-to-toggle mode: auto-send the full session transcript
+        const sessionText = sessionAccumulatedRef.current.trim();
+        sessionAccumulatedRef.current = '';
+
+        if (sessionText) {
+          // 750ms delay after speech ends — catches trailing final words from the
+          // speech API and gives the user a moment to see what was transcribed
+          autoSendTimerRef.current = setTimeout(() => {
+            autoSendTimerRef.current = null;
+            onAutoSendRef.current?.(sessionText);
+          }, 750);
+        }
       }
     };
 
@@ -295,6 +345,11 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       recognition.onerror = null;
       recognition.onend = null;
       recognitionRef.current = null;
+      // Clear any pending auto-send timer
+      if (autoSendTimerRef.current) {
+        clearTimeout(autoSendTimerRef.current);
+        autoSendTimerRef.current = null;
+      }
     };
   }, []); // No deps — recognition created once, refs handle changing values
 
@@ -302,6 +357,12 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
     if (!recognitionRef.current || disabledRef.current) return;
     try {
       accumulatedRef.current = '';
+      sessionAccumulatedRef.current = '';
+      // Cancel any pending auto-send from a previous session
+      if (autoSendTimerRef.current) {
+        clearTimeout(autoSendTimerRef.current);
+        autoSendTimerRef.current = null;
+      }
       recognitionRef.current.start();
       setListening(true);
     } catch {
@@ -322,11 +383,18 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       if (prev) {
         recognitionRef.current?.stop();
         setInterim('');
+        // Note: auto-send logic runs in recognition.onend handler
         return false;
       } else {
         if (!recognitionRef.current || disabledRef.current) return false;
         try {
           accumulatedRef.current = '';
+          sessionAccumulatedRef.current = '';
+          // Cancel any pending auto-send from a previous session
+          if (autoSendTimerRef.current) {
+            clearTimeout(autoSendTimerRef.current);
+            autoSendTimerRef.current = null;
+          }
           recognitionRef.current.start();
           return true;
         } catch {

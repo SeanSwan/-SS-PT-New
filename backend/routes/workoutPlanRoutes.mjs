@@ -1,363 +1,426 @@
 /**
- * Workout Plan Routes
- * =================
- * API routes for workout plans
+ * ============================================================================
+ * FILE: workoutPlanRoutes.mjs
+ * PURPOSE: REST API for multi-week workout plan CRUD + session advancement
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-29
+ * AI VILLAGE VALIDATED: 2026-03-29
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Provides endpoints for creating, reading, updating,
+ * and advancing through planned workout programs. The /advance endpoint is
+ * the critical piece — it marks the current session complete and moves the
+ * cursor to the next day/week so the AI can answer "what's next?"
+ *
+ * HOW IT FITS IN THE APP:
+ *   AI generates plan → POST /api/workout-plans → stored in DB
+ *   Trainer asks "what's next?" → AI reads GET /api/workout-plans/client/:userId
+ *   Session done → PUT /api/workout-plans/:id/advance → cursor moves forward
+ *
+ * KEY DECISIONS:
+ *   - All routes require protect + trainerOrAdminOnly (plans are trainer-managed)
+ *   - Soft delete via status='completed' (no hard deletes)
+ *   - /advance is atomic: marks session complete + advances cursor in one call
  */
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { validationMiddleware } from '../middleware/validationMiddleware.mjs';
-import { z } from 'zod';
+import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { getModel } from '../models/index.mjs';
+import { Op } from '../database.mjs';
+import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
-// Import models
-import WorkoutPlan from '../models/WorkoutPlan.mjs';
-import User from '../models/User.mjs';
+// ─────────────────────────────────────────────────────────────
+// SECTION: Helper — get WorkoutPlan model safely
+// PURPOSE: Lazy-load from model cache to avoid circular imports
+// ─────────────────────────────────────────────────────────────
+const getWorkoutPlan = () => getModel('WorkoutPlan');
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: GET /api/workout-plans
+// PURPOSE: List workout plans with optional filters
+// ─────────────────────────────────────────────────────────────
 
 /**
- * @route   GET /api/workout/plans
- * @desc    Get all workout plans for a user
- * @access  Private
+ * List workout plans. Filters: userId, status, trainerId.
+ * @route GET /api/workout-plans
+ * @access Trainer/Admin
  */
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const { 
-      userId, 
-      status = 'active', 
-      page = 1, 
-      limit = 10,
-      sortBy = 'updatedAt',
-      sortDirection = 'desc',
-      searchTerm = ''
-    } = req.query;
-    
-    // Build query
-    const query = {};
-    
-    // Add userId filter if provided, otherwise use current user
-    if (userId) {
-      // Allow trainers and admins to view other users' plans
-      if (userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-        return res.status(403).json({ 
-          message: 'You are not authorized to view this user\'s workout plans' 
-        });
-      }
-      query.userId = userId;
-    } else {
-      query.userId = req.user.id;
+    const WorkoutPlan = getWorkoutPlan();
+    const { userId, status, trainerId } = req.query;
+
+    const where = {};
+    if (userId) where.userId = parseInt(userId, 10);
+    if (trainerId) where.trainerId = parseInt(trainerId, 10);
+    if (status) where.status = status;
+
+    const plans = await WorkoutPlan.findAll({
+      where,
+      order: [['updatedAt', 'DESC']],
+      limit: 50
+    });
+
+    res.json({ success: true, plans, count: plans.length });
+  } catch (error) {
+    logger.error('[WorkoutPlan] GET / error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch workout plans' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: GET /api/workout-plans/client/:userId
+// PURPOSE: Get the active plan for a specific client
+// WHY: This is what the AI calls to answer "what's next in the workout?"
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Get a client's active workout plan. Returns the most recent active plan.
+ * @route GET /api/workout-plans/client/:userId
+ * @access Trainer/Admin
+ */
+router.get('/client/:userId', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const WorkoutPlan = getWorkoutPlan();
+    const userId = parseInt(req.params.userId, 10);
+
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ success: false, message: 'Valid userId required' });
     }
-    
-    // Add status filter if not 'all'
-    if (status !== 'all') {
-      query.status = status;
+
+    const plan = await WorkoutPlan.findOne({
+      where: { userId, status: 'active' },
+      order: [['updatedAt', 'DESC']]
+    });
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active workout plan found for this client'
+      });
     }
-    
-    // Add search term filter if provided
-    if (searchTerm) {
-      query.$or = [
-        { title: { $regex: searchTerm, $options: 'i' } },
-        { description: { $regex: searchTerm, $options: 'i' } },
-        { tags: { $in: [new RegExp(searchTerm, 'i')] } }
-      ];
-    }
-    
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Determine sort direction
-    const sort = {};
-    sort[sortBy] = sortDirection === 'asc' ? 1 : -1;
-    
-    // Execute query with pagination
-    const plans = await WorkoutPlan.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    // Get total count for pagination
-    const totalCount = await WorkoutPlan.countDocuments(query);
-    
-    res.json({ 
-      plans,
-      totalCount,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalCount / parseInt(limit))
+
+    // Extract current session info for the AI
+    const currentSession = extractCurrentSession(plan);
+
+    res.json({
+      success: true,
+      plan,
+      currentSession
     });
   } catch (error) {
-    console.error('Error fetching workout plans:', error);
-    res.status(500).json({ message: 'Server error' });
+    logger.error('[WorkoutPlan] GET /client/:userId error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch client plan' });
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: GET /api/workout-plans/:id
+// PURPOSE: Get a single plan by ID with full detail
+// ─────────────────────────────────────────────────────────────
+
 /**
- * @route   GET /api/workout/plans/:id
- * @desc    Get a specific workout plan
- * @access  Private
+ * Get a specific workout plan by ID.
+ * @route GET /api/workout-plans/:id
+ * @access Trainer/Admin
  */
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const plan = await WorkoutPlan.findById(req.params.id);
-    
+    const WorkoutPlan = getWorkoutPlan();
+    const plan = await WorkoutPlan.findByPk(req.params.id);
+
     if (!plan) {
-      return res.status(404).json({ message: 'Workout plan not found' });
+      return res.status(404).json({ success: false, message: 'Workout plan not found' });
     }
-    
-    // Check authorization
-    if (plan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to view this workout plan' 
+
+    const currentSession = extractCurrentSession(plan);
+
+    res.json({ success: true, plan, currentSession });
+  } catch (error) {
+    logger.error('[WorkoutPlan] GET /:id error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch workout plan' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: POST /api/workout-plans
+// PURPOSE: Create a new workout plan
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Create a new workout plan for a client.
+ * @route POST /api/workout-plans
+ * @access Trainer/Admin
+ */
+router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const WorkoutPlan = getWorkoutPlan();
+    const {
+      userId, title, description, nasmPhase,
+      startDate, endDate, durationWeeks, status,
+      planData, progressNotes, createdBy, metadata
+    } = req.body;
+
+    if (!userId || !title) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and title are required'
       });
     }
-    
-    res.json({ plan });
+
+    // Validate nasmPhase range if provided
+    if (nasmPhase !== undefined && (nasmPhase < 1 || nasmPhase > 5)) {
+      return res.status(400).json({
+        success: false,
+        message: 'nasmPhase must be 1-5 (NASM OPT phases)'
+      });
+    }
+
+    const plan = await WorkoutPlan.create({
+      userId: parseInt(userId, 10),
+      trainerId: req.user.id,
+      title,
+      description: description || null,
+      nasmPhase: nasmPhase || null,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      durationWeeks: durationWeeks || 4,
+      status: status || 'active',
+      currentWeek: 1,
+      currentDay: 1,
+      planData: planData || { weeks: [] },
+      progressNotes: progressNotes || [],
+      createdBy: createdBy || 'trainer',
+      metadata: metadata || {}
+    });
+
+    logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
+      plan.id, userId, req.user.id);
+
+    res.status(201).json({ success: true, plan });
   } catch (error) {
-    console.error('Error fetching workout plan:', error);
-    res.status(500).json({ message: 'Server error' });
+    logger.error('[WorkoutPlan] POST / error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to create workout plan' });
   }
 });
 
-// Validation schema for creating/updating a workout plan
-const planExerciseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  sets: z.number().int().positive(),
-  reps: z.string(),
-  rest: z.number().int().min(0),
-  notes: z.string().optional()
-});
-
-const planDaySchema = z.object({
-  dayNumber: z.number().int().positive(),
-  title: z.string(),
-  exercises: z.array(planExerciseSchema)
-});
-
-const workoutPlanSchema = z.object({
-  userId: z.string(),
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string(),
-  durationWeeks: z.number().int().positive(),
-  status: z.enum(['active', 'archived', 'draft']),
-  tags: z.array(z.string()).optional(),
-  days: z.array(planDaySchema)
-});
+// ─────────────────────────────────────────────────────────────
+// SECTION: PUT /api/workout-plans/:id
+// PURPOSE: Update plan fields (title, planData, status, etc.)
+// ─────────────────────────────────────────────────────────────
 
 /**
- * @route   POST /api/workout/plans
- * @desc    Create a new workout plan
- * @access  Private
+ * Update a workout plan. Accepts partial updates.
+ * @route PUT /api/workout-plans/:id
+ * @access Trainer/Admin
  */
-router.post('/', 
-  protect, 
-  validationMiddleware(workoutPlanSchema), 
-  async (req, res) => {
-    try {
-      const planData = req.body;
-      
-      // Override userId with authenticated user if not admin/trainer
-      if (!['admin', 'trainer'].includes(req.user.role)) {
-        planData.userId = req.user.id;
-      } else {
-        // Verify the target user exists if admin/trainer is creating for someone else
-        if (planData.userId !== req.user.id) {
-          const userExists = await User.findById(planData.userId);
-          if (!userExists) {
-            return res.status(404).json({ message: 'Target user not found' });
-          }
+router.put('/:id', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const WorkoutPlan = getWorkoutPlan();
+    const plan = await WorkoutPlan.findByPk(req.params.id);
+
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Workout plan not found' });
+    }
+
+    // Whitelist updatable fields to prevent mass-assignment
+    const allowedFields = [
+      'title', 'description', 'nasmPhase', 'startDate', 'endDate',
+      'durationWeeks', 'status', 'currentWeek', 'currentDay',
+      'planData', 'progressNotes', 'metadata'
+    ];
+
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    await plan.update(updates);
+
+    logger.info('[WorkoutPlan] Updated plan #%d by user %d', plan.id, req.user.id);
+
+    res.json({ success: true, plan });
+  } catch (error) {
+    logger.error('[WorkoutPlan] PUT /:id error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to update workout plan' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: PUT /api/workout-plans/:id/advance
+// PURPOSE: Mark current session complete and advance to the next one
+// WHY: This is the critical endpoint the AI calls after "we finished that"
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Advance to the next session in the plan. Marks current session as
+ * completed in the planData JSONB, then increments currentDay (and
+ * currentWeek if needed). If the plan is fully done, sets status
+ * to 'completed'.
+ *
+ * @route PUT /api/workout-plans/:id/advance
+ * @access Trainer/Admin
+ * @body { trainerNotes?: string } — optional notes for the completed session
+ */
+router.put('/:id/advance', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const WorkoutPlan = getWorkoutPlan();
+    const plan = await WorkoutPlan.findByPk(req.params.id);
+
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Workout plan not found' });
+    }
+
+    if (plan.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot advance a ${plan.status} plan. Only active plans can be advanced.`
+      });
+    }
+
+    const planData = plan.planData || { weeks: [] };
+    const { currentWeek, currentDay } = plan;
+    const { trainerNotes } = req.body;
+
+    // Mark the current session as completed in planData
+    const weekIndex = currentWeek - 1;
+    const dayIndex = currentDay - 1;
+
+    if (planData.weeks && planData.weeks[weekIndex]) {
+      const week = planData.weeks[weekIndex];
+      if (week.sessions && week.sessions[dayIndex]) {
+        week.sessions[dayIndex].completed = true;
+        week.sessions[dayIndex].completedAt = new Date().toISOString();
+        if (trainerNotes) {
+          week.sessions[dayIndex].trainerNotes = trainerNotes;
         }
       }
-      
-      // Create the plan
-      const plan = await WorkoutPlan.create(planData);
-      
-      res.status(201).json({ plan });
-    } catch (error) {
-      console.error('Error creating workout plan:', error);
-      res.status(500).json({ message: 'Server error' });
     }
-  }
-);
 
-/**
- * @route   PUT /api/workout/plans/:id
- * @desc    Update a workout plan
- * @access  Private
- */
-router.put('/:id', 
-  protect, 
-  validationMiddleware(workoutPlanSchema), 
-  async (req, res) => {
-    try {
-      const planData = req.body;
-      
-      // Find the plan
-      const existingPlan = await WorkoutPlan.findById(req.params.id);
-      
-      if (!existingPlan) {
-        return res.status(404).json({ message: 'Workout plan not found' });
+    // Calculate next position
+    let nextWeek = currentWeek;
+    let nextDay = currentDay + 1;
+    let planCompleted = false;
+
+    // Check if we need to advance to next week
+    const currentWeekData = planData.weeks?.[weekIndex];
+    const sessionsInWeek = currentWeekData?.sessions?.length || 0;
+
+    if (nextDay > sessionsInWeek) {
+      // Move to next week, day 1
+      nextWeek = currentWeek + 1;
+      nextDay = 1;
+
+      // Check if plan is fully completed
+      const totalWeeks = planData.weeks?.length || 0;
+      if (nextWeek > totalWeeks) {
+        planCompleted = true;
       }
-      
-      // Check authorization
-      if (existingPlan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-        return res.status(403).json({ 
-          message: 'You are not authorized to update this workout plan' 
-        });
-      }
-      
-      // Update the plan
-      const updatedPlan = await WorkoutPlan.findByIdAndUpdate(
-        req.params.id,
-        { $set: planData },
-        { new: true }
-      );
-      
-      res.json({ plan: updatedPlan });
-    } catch (error) {
-      console.error('Error updating workout plan:', error);
-      res.status(500).json({ message: 'Server error' });
     }
-  }
-);
 
-/**
- * @route   DELETE /api/workout/plans/:id
- * @desc    Delete a workout plan
- * @access  Private
- */
-router.delete('/:id', protect, async (req, res) => {
-  try {
-    // Find the plan
-    const plan = await WorkoutPlan.findById(req.params.id);
-    
-    if (!plan) {
-      return res.status(404).json({ message: 'Workout plan not found' });
-    }
-    
-    // Check authorization
-    if (plan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to delete this workout plan' 
-      });
-    }
-    
-    // Delete the plan
-    await WorkoutPlan.findByIdAndDelete(req.params.id);
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting workout plan:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-/**
- * @route   POST /api/workout/plans/clone
- * @desc    Clone an existing workout plan
- * @access  Private
- */
-router.post('/clone', protect, async (req, res) => {
-  try {
-    const { sourcePlanId, overrides = {} } = req.body;
-    
-    // Find the source plan
-    const sourcePlan = await WorkoutPlan.findById(sourcePlanId);
-    
-    if (!sourcePlan) {
-      return res.status(404).json({ message: 'Source workout plan not found' });
-    }
-    
-    // Check authorization
-    if (sourcePlan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to clone this workout plan' 
-      });
-    }
-    
-    // Create a new plan based on the source plan
-    const newPlan = {
-      ...sourcePlan.toObject(),
-      _id: undefined,
-      userId: req.user.id, // Set to current user
-      title: overrides.title || `Copy of ${sourcePlan.title}`,
-      description: overrides.description || sourcePlan.description,
-      durationWeeks: overrides.durationWeeks || sourcePlan.durationWeeks,
-      createdAt: undefined,
-      updatedAt: undefined
+    // Apply updates
+    const updates = {
+      planData,
+      currentWeek: planCompleted ? currentWeek : nextWeek,
+      currentDay: planCompleted ? currentDay : nextDay,
+      status: planCompleted ? 'completed' : 'active'
     };
-    
-    // Create the cloned plan
-    const plan = await WorkoutPlan.create(newPlan);
-    
-    res.status(201).json({ plan });
+
+    await plan.update(updates);
+
+    // Extract the new current session (or null if completed)
+    const nextSession = planCompleted ? null : extractCurrentSession(plan);
+
+    logger.info('[WorkoutPlan] Advanced plan #%d: week %d day %d → %s',
+      plan.id, currentWeek, currentDay,
+      planCompleted ? 'COMPLETED' : `week ${nextWeek} day ${nextDay}`);
+
+    res.json({
+      success: true,
+      plan,
+      advanced: true,
+      planCompleted,
+      previousSession: { week: currentWeek, day: currentDay },
+      nextSession
+    });
   } catch (error) {
-    console.error('Error cloning workout plan:', error);
-    res.status(500).json({ message: 'Server error' });
+    logger.error('[WorkoutPlan] PUT /:id/advance error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to advance workout plan' });
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: DELETE /api/workout-plans/:id
+// PURPOSE: Soft-delete by setting status to 'completed'
+// WHY: Never hard-delete user workout data (audit trail)
+// ─────────────────────────────────────────────────────────────
+
 /**
- * @route   POST /api/workout/plans/:id/archive
- * @desc    Archive a workout plan
- * @access  Private
+ * Soft-delete a workout plan (sets status to 'completed').
+ * @route DELETE /api/workout-plans/:id
+ * @access Trainer/Admin
  */
-router.post('/:id/archive', protect, async (req, res) => {
+router.delete('/:id', protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    // Find the plan
-    const plan = await WorkoutPlan.findById(req.params.id);
-    
+    const WorkoutPlan = getWorkoutPlan();
+    const plan = await WorkoutPlan.findByPk(req.params.id);
+
     if (!plan) {
-      return res.status(404).json({ message: 'Workout plan not found' });
+      return res.status(404).json({ success: false, message: 'Workout plan not found' });
     }
-    
-    // Check authorization
-    if (plan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to archive this workout plan' 
-      });
-    }
-    
-    // Update the plan status
-    plan.status = 'archived';
-    await plan.save();
-    
-    res.json({ plan });
+
+    await plan.update({ status: 'completed' });
+
+    logger.info('[WorkoutPlan] Soft-deleted plan #%d by user %d', plan.id, req.user.id);
+
+    res.json({ success: true, message: 'Workout plan archived' });
   } catch (error) {
-    console.error('Error archiving workout plan:', error);
-    res.status(500).json({ message: 'Server error' });
+    logger.error('[WorkoutPlan] DELETE /:id error: %s', error.message);
+    res.status(500).json({ success: false, message: 'Failed to delete workout plan' });
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Helper Functions
+// PURPOSE: Extract current session data from planData JSONB
+// ─────────────────────────────────────────────────────────────
+
 /**
- * @route   POST /api/workout/plans/:id/restore
- * @desc    Restore an archived workout plan
- * @access  Private
+ * Extract the current session from plan's JSONB planData based on
+ * currentWeek and currentDay cursors. Returns null if no session found.
+ *
+ * @param {Object} plan - WorkoutPlan model instance
+ * @returns {Object|null} Current session with week context
  */
-router.post('/:id/restore', protect, async (req, res) => {
-  try {
-    // Find the plan
-    const plan = await WorkoutPlan.findById(req.params.id);
-    
-    if (!plan) {
-      return res.status(404).json({ message: 'Workout plan not found' });
-    }
-    
-    // Check authorization
-    if (plan.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to restore this workout plan' 
-      });
-    }
-    
-    // Update the plan status
-    plan.status = 'active';
-    await plan.save();
-    
-    res.json({ plan });
-  } catch (error) {
-    console.error('Error restoring workout plan:', error);
-    res.status(500).json({ message: 'Server error' });
+function extractCurrentSession(plan) {
+  const planData = plan.planData || { weeks: [] };
+  const weekIndex = plan.currentWeek - 1;
+  const dayIndex = plan.currentDay - 1;
+
+  if (!planData.weeks || !planData.weeks[weekIndex]) {
+    return null;
   }
-});
+
+  const week = planData.weeks[weekIndex];
+  const session = week.sessions?.[dayIndex] || null;
+
+  if (!session) return null;
+
+  return {
+    weekNumber: plan.currentWeek,
+    weekFocus: week.focus || null,
+    dayNumber: plan.currentDay,
+    dayLabel: session.dayLabel || `Day ${plan.currentDay}`,
+    session,
+    totalWeeks: planData.weeks.length,
+    totalSessionsThisWeek: week.sessions?.length || 0,
+    isLastSessionOfWeek: plan.currentDay >= (week.sessions?.length || 0),
+    isLastWeek: plan.currentWeek >= planData.weeks.length
+  };
+}
 
 export default router;

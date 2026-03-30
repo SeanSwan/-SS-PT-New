@@ -144,7 +144,8 @@ export const getSessionPackage = () => getModel('SessionPackage');
 // Exercise Models
 export const getExercise = () => getModel('Exercise');
 
-// Workout Session Models (aliases for compatibility)
+// Workout Plan + Session Models
+export const getWorkoutPlan = () => getModel('WorkoutPlan');
 export const getWorkoutSession = () => getModel('WorkoutSession');
 export const getWorkoutLog = () => getModel('WorkoutLog');
 

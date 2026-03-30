@@ -309,6 +309,16 @@ WHEN REVIEWING A CLIENT:
 
 When the trainer asks you to update client data, you can modify: body measurements, goals, client notes, macro logs, and progress levels. Use the data management action format.
 
+WORKOUT PLAN NAVIGATION (VOICE-FIRST):
+If the client has an ACTIVE WORKOUT PLAN, you can navigate it hands-free:
+- "What's next?" → Tell the trainer the next exercise from the current session (name, sets, reps, weight, tempo, rest)
+- "Next exercise" / "What do we do now?" → Move to the next exercise in the list
+- "Done" / "We finished that" → Acknowledge and advance to next exercise
+- "What's today's workout?" → Read the full current session
+- "Skip" → Skip current exercise, move to next
+- "What week/day are we on?" → Report plan position
+Always be concise when navigating during a workout — the trainer is mid-session and needs quick answers.
+
 ${NASM_OPT_REFERENCE}
 ${NUTRITION_REFERENCE}`,
 
@@ -374,6 +384,22 @@ PERIODIZATION:
 - Mesocycle: 4-6 weeks per OPT phase
 - Macrocycle: 12+ week progression plan through multiple phases
 - Deload: every 4th week (reduce volume 40-50%, maintain intensity)
+
+ACTIVE WORKOUT PLAN NAVIGATION:
+If the client has an ACTIVE WORKOUT PLAN in their data, you can navigate it:
+- "What's next?" → Read the CURRENT SESSION from the plan data and tell the trainer the next exercise (name, sets, reps, weight, tempo, rest)
+- "Next exercise" → Move to the next exercise in the current session's list
+- "We finished that" / "Done with [exercise]" → Acknowledge completion, move to next exercise
+- "What's the plan for today?" → Read the full current session from the plan
+- "Skip this one" → Acknowledge skip, move to next exercise
+- "What week are we on?" → Report current_week and current_day from the plan
+
+When navigating a plan, also emit a save_workout_plan action to update the cursor position:
+\`\`\`json
+{"action": "save_workout_plan", "data": {"advanceSession": true}}
+\`\`\`
+
+If NO active workout plan exists, offer to create one based on the client's OPT phase and goals.
 
 ${NASM_OPT_REFERENCE}
 ${SQUAT_UNIVERSITY_REFERENCE}`,
@@ -685,7 +711,7 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       workouts, measurements, gamification, streaks, goals,
       notes, progress, macros, movementProfile, waivers,
       analyses, painEntries, sessions,
-      complianceData, businessKpis, checkInData,
+      complianceData, businessKpis, checkInData, workoutPlans,
     ] = await Promise.all([
       // 1. User profile (includes clientSource for Move Fitness vs SwanStudios context)
       safeQuery(
@@ -841,6 +867,16 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
         {}) : Promise.resolve([]),
       // 20. Check-in data placeholder (for when check-in scheduling is built out)
       Promise.resolve([]),
+      // 21. Active workout plans (for "what's next?" queries)
+      safeQuery(
+        `SELECT id, title, description, nasm_phase, status,
+                current_week, current_day, duration_weeks,
+                plan_data, progress_notes, created_by,
+                start_date, end_date, created_at
+         FROM workout_plans
+         WHERE user_id = :userId AND status IN ('active', 'paused')
+         ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END,
+                  created_at DESC LIMIT 3`, { userId }),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
@@ -1055,6 +1091,48 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- BUSINESS KPIs (Platform) ---\nActive Clients: ${bk.activeClients || 0} | New This Month: ${bk.newClientsThisMonth || 0}\nRevenue (30d): $${Number(bk.revenueThisMonth || 0).toLocaleString()} | Platform Workouts (7d): ${bk.platformWorkouts7d || 0}`);
     }
 
+    // ── 20. ACTIVE WORKOUT PLANS (enables "what's next?" voice queries) ──
+    try {
+      if (workoutPlans.length > 0) {
+        const planLines = workoutPlans.map(plan => {
+          const pd = typeof plan.plan_data === 'string' ? JSON.parse(plan.plan_data) : plan.plan_data;
+          const week = Number(plan.current_week) || 1;
+          const day = Number(plan.current_day) || 1;
+
+          // Extract current session from plan data
+          let currentSessionStr = 'No session data';
+          if (pd?.weeks) {
+            const weekData = pd.weeks.find(w => w.weekNumber === week) || pd.weeks[week - 1];
+            if (weekData?.sessions) {
+              const sessionData = weekData.sessions.find(s => s.dayNumber === day) || weekData.sessions[day - 1];
+              if (sessionData) {
+                const exercises = (sessionData.exercises || []).map(ex =>
+                  `  • ${ex.name}: ${ex.sets}×${ex.reps}${ex.weight ? ` @${ex.weight}` : ''}${ex.tempo ? ` tempo:${ex.tempo}` : ''}${ex.rest ? ` rest:${ex.rest}` : ''}`
+                ).join('\n');
+                currentSessionStr = `${sessionData.name || `Day ${day}`}${sessionData.focus ? ` (${sessionData.focus})` : ''}\n${exercises || '  No exercises listed'}`;
+              }
+            }
+          }
+
+          // Count total sessions and completed
+          const totalSessions = pd?.weeks?.reduce((sum, w) => sum + (w.sessions?.length || 0), 0) || 0;
+          const pn = typeof plan.progress_notes === 'string' ? JSON.parse(plan.progress_notes) : plan.progress_notes;
+          const completedSessions = Array.isArray(pn) ? pn.filter(n => n.type === 'session_complete').length : 0;
+
+          return `Plan: "${plan.title}" [${plan.status.toUpperCase()}]
+NASM Phase: ${plan.nasm_phase} | Duration: ${plan.duration_weeks} weeks | Progress: Week ${week}, Day ${day}
+Sessions Completed: ${completedSessions}/${totalSessions}
+Created: ${plan.created_at ? new Date(plan.created_at).toLocaleDateString() : '?'} by ${plan.created_by || 'unknown'}
+--- CURRENT SESSION (Week ${week}, Day ${day}) ---
+${currentSessionStr}`;
+        });
+
+        dataParts.push(`\n--- ACTIVE WORKOUT PLANS ---
+${planLines.join('\n\n')}
+--- VOICE HINT: If the trainer asks "what's next?" or "next exercise", read the CURRENT SESSION above and guide them through it. When they say an exercise is done, acknowledge and move to the next one in the list. ---`);
+      }
+    } catch { /* workout_plans table may not exist yet — non-fatal */ }
+
     // ── 21. ANALYTICS: Exercise history + variety (from MV or direct query) ──
     try {
       const [exerciseStats] = await Promise.all([
@@ -1096,7 +1174,7 @@ If the trainer mentions a name, it has been replaced with "[Client #${userId}]" 
 NEVER ask for or reference personal identifying information. Focus solely on their fitness data.
 === END PRIVACY ===`;
 
-    return '\n\n' + privacyHeader + '\n\n=== CLIENT DATA (21 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
+    return '\n\n' + privacyHeader + '\n\n=== CLIENT DATA (22 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';

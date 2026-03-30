@@ -12,6 +12,7 @@
  *   - macro_log: Log nutrition entries
  *   - progress_level: Update NASM category levels
  *   - daily_workout_form: Create workout form from AI-transcribed exercise data
+ *   - save_workout_plan: Create a multi-week workout program from AI-generated plan
  */
 import logger from '../utils/logger.mjs';
 
@@ -63,6 +64,11 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
 
         case 'daily_workout_form':
           await insertDailyWorkoutForm(targetUserId, performedBy, update.data, sequelize);
+          results.successful++;
+          break;
+
+        case 'save_workout_plan':
+          await saveWorkoutPlan(targetUserId, performedBy, update.data, sequelize);
           results.successful++;
           break;
 
@@ -356,6 +362,66 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
 
   logger.info('[AIDataWrite] Workout form created for client %d by trainer %d: %d exercises',
     clientId, trainerId, sanitizedExercises.length);
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Workout Plan Creator
+// PURPOSE: AI creates a multi-week workout program stored as a WorkoutPlan
+// WHY: Enables AI to generate full programs and persist them so it can
+//      later answer "what's next?" by reading the stored plan
+// ─────────────────────────────────────────────────────────────
+async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
+  if (!data.title) throw new Error('Workout plan title is required');
+
+  const title = String(data.title).slice(0, 255);
+  const description = data.description ? String(data.description).slice(0, 5000) : null;
+  const nasmPhase = data.nasmPhase ? Math.max(1, Math.min(5, parseInt(data.nasmPhase))) : null;
+  const durationWeeks = data.durationWeeks ? Math.max(1, Math.min(52, parseInt(data.durationWeeks))) : 4;
+  const startDate = data.startDate || null;
+  const endDate = data.endDate || null;
+
+  // Validate planData structure if provided
+  let planData = { weeks: [] };
+  if (data.planData && typeof data.planData === 'object') {
+    planData = data.planData;
+    // Ensure weeks array exists
+    if (!Array.isArray(planData.weeks)) {
+      planData.weeks = [];
+    }
+    // Cap at 52 weeks to prevent abuse
+    planData.weeks = planData.weeks.slice(0, 52);
+  }
+
+  const replacements = {
+    clientId,
+    trainerId,
+    title,
+    description,
+    nasmPhase,
+    startDate,
+    endDate,
+    durationWeeks,
+    planData: JSON.stringify(planData),
+    createdBy: 'ai',
+    metadata: JSON.stringify(data.metadata || {}),
+  };
+
+  await sequelize.query(
+    `INSERT INTO workout_plans (user_id, trainer_id, title, description,
+                                nasm_phase, start_date, end_date, duration_weeks,
+                                status, current_week, current_day,
+                                plan_data, progress_notes, created_by, metadata,
+                                created_at, updated_at)
+     VALUES (:clientId, :trainerId, :title, :description,
+             :nasmPhase, :startDate, :endDate, :durationWeeks,
+             'active', 1, 1,
+             :planData::jsonb, '[]'::jsonb, :createdBy, :metadata::jsonb,
+             NOW(), NOW())`,
+    { replacements, type: sequelize.QueryTypes.INSERT }
+  );
+
+  logger.info('[AIDataWrite] Workout plan created for client %d by trainer %d: %s (%d weeks, phase %s)',
+    clientId, trainerId, title, durationWeeks, nasmPhase || 'unset');
 }
 
 // ─────────────────────────────────────────────────────────────

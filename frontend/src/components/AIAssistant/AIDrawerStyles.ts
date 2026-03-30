@@ -562,3 +562,32 @@ export const ResponseStyleIndicator = styled.div`
   gap: 6px;
   flex-shrink: 0;
 `;
+
+// ── Auto-Send Visual Indicator ───────────────────────────
+
+const autoSendFlash = keyframes`
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1); }
+`;
+
+export const AutoSendBadge = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, ${CS.wingPurple}, ${CS.iceWing});
+  color: ${CS.midnightSapphire};
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: ${FONTS.ui};
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transition: opacity 0.2s;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${({ $visible }) => $visible ? autoSendFlash : 'none'} 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+`;

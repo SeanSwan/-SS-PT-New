@@ -54,6 +54,7 @@ import {
   MessagesArea, TypingIndicator, Dot,
   InputArea, ChatInput, SendBtn, Spinner,
   EmptyState, EmptyIcon, WelcomeText, ErrorBanner,
+  AutoSendBadge,
 } from './AIDrawerStyles';
 
 // ── Component ──────────────────────────────────────────────
@@ -83,10 +84,25 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const [selectedResponseStyle, setSelectedResponseStyle] = useState<ResponseStyle>('both');
   const [view, setView] = useState<'chat' | 'list'>('chat');
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
+  const [autoSendFlash, setAutoSendFlash] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  // Ref-based send to avoid stale closure in auto-send callback
+  const sendMessageRef = useRef(sendMessage);
+  const createConversationRef = useRef(createConversation);
+  const selectedContextRef = useRef(selectedContext);
+  const selectedResponseStyleRef = useRef(selectedResponseStyle);
+  const getTargetClientIdRef = useRef<() => string | null>(() => null);
+  const activeConversationRef = useRef(activeConversation);
+
+  useEffect(() => { sendMessageRef.current = sendMessage; }, [sendMessage]);
+  useEffect(() => { createConversationRef.current = createConversation; }, [createConversation]);
+  useEffect(() => { selectedContextRef.current = selectedContext; }, [selectedContext]);
+  useEffect(() => { selectedResponseStyleRef.current = selectedResponseStyle; }, [selectedResponseStyle]);
+  useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
 
   // ── Effects ──
 
@@ -141,6 +157,44 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     if (userRole !== 'admin' && userRole !== 'trainer') return null;
     return selectedClient ? String(selectedClient.id) : null;
   }, [userRole, selectedClient]);
+
+  // Keep ref in sync for auto-send closure
+  useEffect(() => { getTargetClientIdRef.current = getTargetClientId; }, [getTargetClientId]);
+
+  // ── Auto-Send Handler ──
+  // Called by DictationOrb when speech ends and autoSend is enabled.
+  // Directly sends the full transcribed text without requiring manual interaction.
+  const handleAutoSend = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+
+    // Flash the auto-send badge so user sees it was voice-triggered
+    setAutoSendFlash(true);
+    setTimeout(() => setAutoSendFlash(false), 1400);
+
+    // Ensure a conversation exists before sending
+    if (!activeConversationRef.current) {
+      const conv = await createConversationRef.current(
+        selectedContextRef.current,
+        undefined,
+        getTargetClientIdRef.current(),
+        selectedResponseStyleRef.current,
+      );
+      if (!conv) {
+        // Conversation creation failed — put text in input so user can retry manually
+        setInputValue(trimmed);
+        return;
+      }
+    }
+
+    // Clear input (it may have interim/final text from onTranscript) and send
+    setInputValue('');
+    const result = await sendMessageRef.current(trimmed);
+    if (result?.failed) {
+      // Put the text back so user can retry manually
+      setInputValue(result.originalMessage || trimmed);
+    }
+  }, [sending]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
@@ -336,8 +390,18 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             </MessagesArea>
 
             {/* Input */}
-            <InputArea>
-              <DictationOrb onTranscript={handleDictation} onInterimTranscript={() => {}} disabled={sending} />
+            <InputArea style={{ position: 'relative' }}>
+              {/* Auto-send visual indicator — flashes when voice message is being sent */}
+              <AutoSendBadge $visible={autoSendFlash} aria-live="polite">
+                Sending voice message...
+              </AutoSendBadge>
+              <DictationOrb
+                onTranscript={handleDictation}
+                onInterimTranscript={() => {}}
+                disabled={sending}
+                autoSend={true}
+                onAutoSend={handleAutoSend}
+              />
               <Suspense fallback={null}>
                 <VoiceUpload onTranscript={handleDictation} disabled={sending} />
               </Suspense>
