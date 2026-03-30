@@ -28,7 +28,7 @@ router.get('/', protect, async (req, res) => {
       userId, 
       page = 1, 
       limit = 10,
-      sortBy = 'workoutDate',
+      sortBy = 'date',
       sortDirection = 'desc',
       startDate,
       endDate,
@@ -53,12 +53,12 @@ router.get('/', protect, async (req, res) => {
     
     // Add date range filters if provided
     if (startDate || endDate) {
-      where.workoutDate = {};
+      where.date = {};
       if (startDate) {
-        where.workoutDate[Op.gte] = new Date(startDate);
+        where.date[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        where.workoutDate[Op.lte] = new Date(endDate);
+        where.date[Op.lte] = new Date(endDate);
       }
     }
     
@@ -85,7 +85,7 @@ router.get('/', protect, async (req, res) => {
       include: [
         {
           model: User,
-          as: 'user',
+          as: 'client',
           attributes: ['id', 'firstName', 'lastName', 'email']
         },
         {
@@ -123,7 +123,7 @@ router.get('/:id', protect, async (req, res) => {
     const session = await WorkoutSession.findByPk(req.params.id, {
       include: [{
         model: User,
-        as: 'user',
+        as: 'client',
         attributes: ['id', 'firstName', 'lastName', 'email']
       }]
     });
@@ -427,19 +427,19 @@ router.get('/statistics/:userId', protect, async (req, res) => {
 
     // Add date range filters if provided
     if (startDate || endDate) {
-      where.workoutDate = {};
+      where.date = {};
       if (startDate) {
-        where.workoutDate[Op.gte] = new Date(startDate);
+        where.date[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        where.workoutDate[Op.lte] = new Date(endDate);
+        where.date[Op.lte] = new Date(endDate);
       }
     }
 
     // FIXED: Use Sequelize findAll instead of Mongoose find
     const sessions = await WorkoutSession.findAll({
       where,
-      order: [['workoutDate', 'DESC']]
+      order: [['date', 'DESC']]
     });
     
     // Calculate basic statistics
@@ -516,16 +516,16 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       
       // Weekday breakdown
       if (includeWeekdayBreakdown) {
-        // FIXED: Use workoutDate instead of date (Sequelize field name)
-        const sessionDate = new Date(session.workoutDate);
+        // Model field is 'date' (not workoutDate)
+        const sessionDate = new Date(session.date);
         const weekday = sessionDate.getDay(); // 0 = Sunday, 6 = Saturday
         weekdayCounts[weekday]++;
       }
 
       // Intensity trends
       if (includeIntensityTrends) {
-        // FIXED: Use workoutDate instead of date (Sequelize field name)
-        const sessionDate = new Date(session.workoutDate);
+        // Model field is 'date' (not workoutDate)
+        const sessionDate = new Date(session.date);
         // Calculate ISO week number from the session date
         const startOfYear = new Date(sessionDate.getFullYear(), 0, 1);
         const daysSinceStart = Math.floor((sessionDate - startOfYear) / (24 * 60 * 60 * 1000));
