@@ -36,31 +36,30 @@ import sequelize from '../database.mjs';
 
 class WorkoutPlan extends Model {}
 
+// IMPORTANT: The production table has HYBRID column naming:
+// - Original columns (2025): camelCase — id (UUID), userId, title, description,
+//   durationWeeks, status, tags, difficulty, isTemplate, isPublic, createdAt, updatedAt
+// - Added columns (2026 migration): snake_case — trainer_id, nasm_phase, start_date,
+//   end_date, current_week, current_day, plan_data, progress_notes, created_by, metadata
+// We use explicit `field:` on every column to map correctly. NO underscored: true.
+
 WorkoutPlan.init({
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
-    autoIncrement: true,
-    comment: 'Auto-incrementing primary key'
+    comment: 'UUID primary key (original table schema)'
   },
   userId: {
     type: DataTypes.INTEGER,
-    field: 'user_id',
+    field: 'userId',
     allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
     comment: 'The client this workout plan is assigned to'
   },
   trainerId: {
     type: DataTypes.INTEGER,
     field: 'trainer_id',
     allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
     comment: 'The trainer who created or assigned this plan'
   },
   title: {
@@ -94,7 +93,7 @@ WorkoutPlan.init({
   },
   durationWeeks: {
     type: DataTypes.INTEGER,
-    field: 'duration_weeks',
+    field: 'durationWeeks',
     allowNull: false,
     defaultValue: 4,
     validate: { min: 1, max: 52 },
@@ -154,12 +153,12 @@ WorkoutPlan.init({
   modelName: 'WorkoutPlan',
   tableName: 'workout_plans',
   timestamps: true,
-  underscored: true,
+  // NO underscored — original columns use camelCase (createdAt, updatedAt, userId, etc.)
   indexes: [
-    { fields: ['user_id'], name: 'idx_workout_plans_user_id' },
+    { fields: ['userId'], name: 'idx_workout_plans_user_id' },
     { fields: ['trainer_id'], name: 'idx_workout_plans_trainer_id' },
     { fields: ['status'], name: 'idx_workout_plans_status' },
-    { fields: ['user_id', 'status'], name: 'idx_workout_plans_user_status' }
+    { fields: ['userId', 'status'], name: 'idx_workout_plans_user_status' }
   ]
 });
 

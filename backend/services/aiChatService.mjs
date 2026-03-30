@@ -868,16 +868,17 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       // 20. Check-in data placeholder (for when check-in scheduling is built out)
       Promise.resolve([]),
       // 21. Active workout plans (for "what's next?" queries)
-      // Column names use snake_case (matching 20260330 migration)
+      // HYBRID column naming: original 2025 cols are camelCase, 2026 migration cols are snake_case
+      // camelCase cols MUST be double-quoted in PostgreSQL to preserve case
       safeQuery(
         `SELECT id, title, description, nasm_phase, status,
-                current_week, current_day, duration_weeks,
+                current_week, current_day, "durationWeeks",
                 plan_data, progress_notes, created_by,
-                start_date, end_date, created_at
+                start_date, end_date, "createdAt"
          FROM workout_plans
-         WHERE user_id = :userId AND status IN ('active', 'paused')
+         WHERE "userId" = :userId AND status IN ('active', 'paused')
          ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END,
-                  created_at DESC LIMIT 3`, { userId }),
+                  "createdAt" DESC LIMIT 3`, { userId }),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
