@@ -67,6 +67,24 @@ FoodIngredient.init(
       type: DataTypes.JSON, // Array of reference strings
       allowNull: true,
     },
+    // IARC carcinogen classification (Group 1, 2A, 2B, 3, or null)
+    iarcGroup: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
+      comment: '1=Carcinogenic, 2A=Probably, 2B=Possibly, 3=Not classifiable',
+    },
+    // Whether banned in the EU
+    isEUBanned: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    // Regions where this ingredient is banned (JSON array)
+    bannedRegions: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'e.g., ["EU", "Japan", "Canada", "UK"]',
+    },
     // Notes for internal use
     notes: {
       type: DataTypes.TEXT,

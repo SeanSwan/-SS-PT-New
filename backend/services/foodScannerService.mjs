@@ -5,6 +5,7 @@ import FoodProduct from '../models/FoodProduct.mjs';
 import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodScanHistory from '../models/FoodScanHistory.mjs';
 import { Op } from 'sequelize';
+import { isFatSecretConfigured, findByBarcode as fatSecretBarcode } from './fatSecretService.mjs';
 
 /**
  * Service to handle food product scanning and ingredient analysis
@@ -267,6 +268,8 @@ class FoodScannerService {
       let badCount = 0;
       let okayCount = 0;
       const concerns = new Set();
+      let iarcCount = 0;
+      let euBannedCount = 0;
 
       for (const name of ingredientNames) {
         const ingredient = await FoodIngredient.findOne({
@@ -279,11 +282,27 @@ class FoodScannerService {
         });
 
         if (ingredient) {
-          ingredients.push(ingredient);
-          
+          // Build enriched ingredient object with safety fields
+          const enriched = {
+            name: ingredient.name,
+            healthRating: ingredient.healthRating,
+            isGMO: ingredient.isGMO,
+            isProcessed: ingredient.isProcessed,
+            category: ingredient.category || null,
+            description: ingredient.description || null,
+            iarcGroup: ingredient.iarcGroup || null,
+            isEUBanned: ingredient.isEUBanned || false,
+            bannedRegions: ingredient.bannedRegions || [],
+            healthConcerns: ingredient.healthConcerns || [],
+            healthierAlternatives: ingredient.healthierAlternatives || [],
+          };
+          ingredients.push(enriched);
+
           if (ingredient.isGMO) gmoCount++;
           if (ingredient.isProcessed) processedCount++;
-          
+          if (ingredient.iarcGroup && ['1', '2A'].includes(ingredient.iarcGroup)) iarcCount++;
+          if (ingredient.isEUBanned) euBannedCount++;
+
           if (ingredient.healthRating === 'good') goodCount++;
           else if (ingredient.healthRating === 'bad') badCount++;
           else okayCount++;
@@ -294,23 +313,38 @@ class FoodScannerService {
               concerns.add(concern);
             }
           }
+
+          // Flag IARC carcinogens and EU-banned in concerns
+          if (ingredient.iarcGroup === '1') {
+            concerns.add(`${ingredient.name}: IARC Group 1 carcinogen (confirmed)`);
+          } else if (ingredient.iarcGroup === '2A') {
+            concerns.add(`${ingredient.name}: IARC Group 2A (probably carcinogenic)`);
+          }
+          if (ingredient.isEUBanned) {
+            concerns.add(`${ingredient.name}: Banned in the EU`);
+          }
         } else {
           // If ingredient not found, add a placeholder with unknown status
           ingredients.push({
             name,
             healthRating: 'okay',
             isGMO: false,
-            isProcessed: false
+            isProcessed: false,
+            iarcGroup: null,
+            isEUBanned: false,
+            bannedRegions: [],
+            healthConcerns: [],
+            healthierAlternatives: [],
           });
-          
+
           okayCount++;
         }
       }
 
-      // Determine overall rating based on ingredient analysis
+      // Determine overall rating — IARC 1/2A or EU-banned forces 'bad'
       let overallRating = 'okay';
-      
-      if (badCount > 0 || gmoCount / ingredientNames.length > 0.3) {
+
+      if (badCount > 0 || iarcCount > 0 || euBannedCount > 0 || gmoCount / ingredientNames.length > 0.3) {
         overallRating = 'bad';
       } else if (goodCount > badCount && goodCount / ingredientNames.length > 0.7) {
         overallRating = 'good';
@@ -324,7 +358,9 @@ class FoodScannerService {
         processedCount,
         goodCount,
         badCount,
-        okayCount
+        okayCount,
+        iarcCount,
+        euBannedCount,
       };
     } catch (error) {
       logger.error(`Error analyzing ingredients: ${error.message}`, error);
@@ -350,7 +386,38 @@ class FoodScannerService {
         return response.data.product;
       }
       
-      logger.warn(`Product with barcode ${barcode} not found in Open Food Facts API`);
+      logger.info(`Product with barcode ${barcode} not found in Open Food Facts, trying FatSecret`);
+
+      // Fallback: try FatSecret barcode lookup
+      if (isFatSecretConfigured()) {
+        const fsProduct = await fatSecretBarcode(barcode);
+        if (fsProduct) {
+          logger.info(`Found product via FatSecret barcode: ${fsProduct.name}`);
+          // Convert FatSecret format to Open Food Facts-like shape for saveProductToDatabase
+          return {
+            code: barcode,
+            product_name: fsProduct.name,
+            brands: fsProduct.brand,
+            ingredients_text: null, // FatSecret doesn't provide ingredients list
+            categories: null,
+            image_url: null,
+            nutriments: fsProduct.primaryServing ? {
+              'energy-kcal_100g': fsProduct.primaryServing.calories,
+              fat_100g: fsProduct.primaryServing.fat,
+              'saturated-fat_100g': fsProduct.primaryServing.saturatedFat,
+              carbohydrates_100g: fsProduct.primaryServing.carbs,
+              sugars_100g: fsProduct.primaryServing.sugar,
+              proteins_100g: fsProduct.primaryServing.protein,
+              fiber_100g: fsProduct.primaryServing.fiber,
+              sodium_100g: fsProduct.primaryServing.sodium,
+            } : null,
+            labels: null,
+            _source: 'FatSecret',
+          };
+        }
+      }
+
+      logger.warn(`Product with barcode ${barcode} not found in any external API`);
       return null;
     } catch (error) {
       logger.error(`Error fetching product from external API: ${error.message}`, error);
@@ -404,7 +471,7 @@ class FoodScannerService {
         isNonGMO,
         category: categories ? categories.split(', ')[0] : null,
         imageUrl,
-        dataSource: 'Open Food Facts',
+        dataSource: externalProduct._source || 'Open Food Facts',
         lastVerified: new Date(),
         scanCount: 1
       });
@@ -469,7 +536,12 @@ class FoodScannerService {
             name: i.name,
             healthRating: i.healthRating,
             isGMO: i.isGMO,
-            isProcessed: i.isProcessed
+            isProcessed: i.isProcessed,
+            iarcGroup: i.iarcGroup || null,
+            isEUBanned: i.isEUBanned || false,
+            bannedRegions: i.bannedRegions || [],
+            healthConcerns: i.healthConcerns || [],
+            healthierAlternatives: i.healthierAlternatives || [],
           })),
           overallRating: ingredientAnalysis.overallRating,
           healthConcerns: ingredientAnalysis.concerns

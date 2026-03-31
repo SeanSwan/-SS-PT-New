@@ -33,7 +33,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2 } from 'lucide-react';
+import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
@@ -47,13 +47,15 @@ const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
 const NutritionHydrationTab = lazy(() => import('./NutritionHydrationTab'));
 const NutritionLearnTab = lazy(() => import('./NutritionLearnTab'));
 const RestaurantTab = lazy(() => import('../../FoodTracker/RestaurantTab'));
+const GardeningTab = lazy(() => import('../../FoodTracker/GardeningTab'));
+const FarmFinderTab = lazy(() => import('../../FoodTracker/FarmFinderTab'));
 const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
 const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Tab config
 // ─────────────────────────────────────────────────────────────
-type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn';
+type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn' | 'garden' | 'farms';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'log', label: 'Log Meal', icon: <Utensils size={16} /> },
@@ -61,6 +63,8 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
   { id: 'hydration', label: 'Hydration', icon: <Droplets size={16} /> },
   { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
+  { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
+  { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
   { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
   { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
 ];
@@ -125,6 +129,8 @@ const NutritionWorkspace: React.FC = () => {
                 />
               </MacroGrid>
             )}
+            {activeTab === 'garden' && <GardeningTab />}
+            {activeTab === 'farms' && <FarmFinderTab />}
             {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}
             {activeTab === 'learn' && <NutritionLearnTab />}
           </Suspense>

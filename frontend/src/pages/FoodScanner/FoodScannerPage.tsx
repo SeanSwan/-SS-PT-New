@@ -293,7 +293,8 @@ const FoodScannerPage: React.FC = () => {
   const [scannedProduct, setScannedProduct] = useState<FoodProduct | null>(null);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [searchInput, setSearchInput] = useState('');
-  
+  const [logLoading, setLogLoading] = useState(false);
+
   const { isAuthenticated, authAxios } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -453,7 +454,38 @@ const FoodScannerPage: React.FC = () => {
     setScannedProduct(product);
     setActiveTab('scan');
   };
-  
+
+  // Handle adding scanned product to daily food log
+  const handleAddToLog = async (mealType: string) => {
+    if (!isAuthenticated || !scannedProduct) return;
+
+    try {
+      setLogLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+
+      await authAxios.post('/api/food-scanner/log-scan', {
+        barcode: scannedProduct.barcode,
+        mealType,
+        date: today,
+        servingSizeGrams: 100,
+      });
+
+      toast({
+        title: 'Added to Food Log',
+        description: `${scannedProduct.name} logged as ${mealType}`,
+      });
+    } catch (error: any) {
+      console.error('Error logging scanned product:', error);
+      toast({
+        title: 'Log Error',
+        description: error.response?.data?.message || 'Failed to log product',
+        variant: 'destructive',
+      });
+    } finally {
+      setLogLoading(false);
+    }
+  };
+
   return (
     <PageContainer>
       <Header>
@@ -565,10 +597,12 @@ const FoodScannerPage: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5 }}
                     >
-                      <ProductAnalysis 
-                        product={scannedProduct} 
+                      <ProductAnalysis
+                        product={scannedProduct}
                         onSave={handleSaveProduct}
-                        isFavorite={scanHistory.some(item => 
+                        onAddToLog={isAuthenticated ? handleAddToLog : undefined}
+                        logLoading={logLoading}
+                        isFavorite={scanHistory.some(item =>
                           item.product.id === scannedProduct.id && item.isFavorite
                         )}
                       />

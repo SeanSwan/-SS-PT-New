@@ -286,9 +286,33 @@ function parseDescription(desc) {
   return result;
 }
 
+/**
+ * Find a food by barcode (UPC/EAN). Returns normalized detail or null.
+ * Uses food.find_id_for_barcode → food.get.v4 two-step lookup.
+ * @param {string} barcode - UPC/EAN barcode string
+ * @returns {Object|null} Normalized food detail or null
+ */
+export async function findByBarcode(barcode) {
+  if (!isFatSecretConfigured()) return null;
+
+  try {
+    const idData = await apiCall('food.find_id_for_barcode', { barcode });
+    const foodId = idData?.food_id?.value;
+    if (!foodId) {
+      logger.info(`[FatSecret] No food found for barcode: ${barcode}`);
+      return null;
+    }
+    return getFoodDetails(foodId);
+  } catch (err) {
+    logger.error('[FatSecret] Barcode lookup error:', err.message);
+    return null;
+  }
+}
+
 export default {
   isFatSecretConfigured,
   searchFoods,
   getFoodDetails,
   autocomplete,
+  findByBarcode,
 };

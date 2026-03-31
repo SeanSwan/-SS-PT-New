@@ -18,6 +18,13 @@ interface Ingredient {
   healthRating: 'good' | 'bad' | 'okay';
   isGMO: boolean;
   isProcessed: boolean;
+  iarcGroup?: string | null;
+  isEUBanned?: boolean;
+  bannedRegions?: string[];
+  healthConcerns?: string[];
+  healthierAlternatives?: string[];
+  description?: string | null;
+  category?: string | null;
 }
 
 interface NutritionalInfo {
@@ -53,7 +60,9 @@ export interface FoodProduct {
 interface ProductAnalysisProps {
   product: FoodProduct;
   onSave?: (isFavorite: boolean) => void;
+  onAddToLog?: (mealType: string) => void;
   isFavorite?: boolean;
+  logLoading?: boolean;
 }
 
 // Styled components
@@ -250,6 +259,99 @@ const IngredientTag = styled.span`
   color: rgba(255, 255, 255, 0.7);
 `;
 
+const IngredientExpandBtn = styled.button`
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  &:hover { color: rgba(255, 255, 255, 0.9); }
+`;
+
+const IngredientDetail = styled(motion.div)`
+  padding: 0.6rem 0.8rem 0.6rem 2.8rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  align-items: flex-start;
+`;
+
+const DetailLabel = styled.span`
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 60px;
+  flex-shrink: 0;
+`;
+
+const IarcBadge = styled.span<{ $group: string }>`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: ${({ $group }) =>
+    $group === '1' ? 'rgba(201, 42, 84, 0.25)' :
+    $group === '2A' ? 'rgba(201, 42, 84, 0.15)' :
+    $group === '2B' ? 'rgba(198, 168, 75, 0.15)' :
+    'rgba(255, 255, 255, 0.06)'};
+  color: ${({ $group }) =>
+    $group === '1' ? '#C92A54' :
+    $group === '2A' ? '#E06080' :
+    $group === '2B' ? '#C6A84B' :
+    'rgba(255, 255, 255, 0.5)'};
+`;
+
+const EuBadge = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(201, 42, 84, 0.2);
+  color: #C92A54;
+`;
+
+const SummaryBar = styled.div`
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+`;
+
+const SummaryChip = styled.div<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: ${({ $color }) => $color};
+`;
+
+const SummaryDot = styled.div<{ $color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+`;
+
 const ConcernsList = styled.div`
   margin-bottom: 1.5rem;
 `;
@@ -346,6 +448,34 @@ const InfoMessage = styled.div`
   font-size: 0.9rem;
 `;
 
+const MealPickerOverlay = styled(motion.div)`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 12px 16px;
+  background: rgba(20, 20, 36, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const MealChip = styled.button`
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(96, 192, 240, 0.3);
+  background: rgba(96, 192, 240, 0.08);
+  color: #60C0F0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+  transition: all 0.2s;
+  text-transform: capitalize;
+  &:hover { background: rgba(96, 192, 240, 0.2); }
+  &:active { transform: scale(0.95); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 const ActionButtons = styled.div`
   display: flex;
   justify-content: center;
@@ -382,18 +512,28 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
 `;
 
 // Main component
-const ProductAnalysis: React.FC<ProductAnalysisProps> = ({ 
-  product, 
+const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
+  product,
   onSave,
-  isFavorite = false
+  onAddToLog,
+  isFavorite = false,
+  logLoading = false,
 }) => {
   const [activeTab, setActiveTab] = useState('ingredients');
   const [favorite, setFavorite] = useState(isFavorite);
-  
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [showMealPicker, setShowMealPicker] = useState(false);
+
   // Get ingredient counts
   const goodIngredients = product.ingredients?.filter(i => i.healthRating === 'good').length || 0;
   const badIngredients = product.ingredients?.filter(i => i.healthRating === 'bad').length || 0;
+  const okayIngredients = product.ingredients?.filter(i => i.healthRating === 'okay').length || 0;
   const totalIngredients = product.ingredients?.length || 0;
+
+  // Check for IARC/EU flagged ingredients
+  const hasDetailData = (i: Ingredient) =>
+    i.iarcGroup || i.isEUBanned || (i.healthConcerns && i.healthConcerns.length > 0) ||
+    (i.healthierAlternatives && i.healthierAlternatives.length > 0) || i.description;
   
   // Toggle favorite status
   const handleToggleFavorite = () => {
@@ -460,34 +600,89 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
               <LegendItem><LegendDot $color={SAFETY_COLORS.okay.icon} />{SAFETY_COLORS.okay.label} — processed / Group 2</LegendItem>
               <LegendItem><LegendDot $color={SAFETY_COLORS.bad.icon} />{SAFETY_COLORS.bad.label} — IARC Group 1 / EU-banned</LegendItem>
             </SafetyLegend>
+            {totalIngredients > 0 && (
+              <SummaryBar>
+                <SummaryChip $color={SAFETY_COLORS.good.icon}>
+                  <SummaryDot $color={SAFETY_COLORS.good.icon} />{goodIngredients} safe
+                </SummaryChip>
+                <SummaryChip $color={SAFETY_COLORS.okay.icon}>
+                  <SummaryDot $color={SAFETY_COLORS.okay.icon} />{okayIngredients} caution
+                </SummaryChip>
+                <SummaryChip $color={SAFETY_COLORS.bad.icon}>
+                  <SummaryDot $color={SAFETY_COLORS.bad.icon} />{badIngredients} concern
+                </SummaryChip>
+              </SummaryBar>
+            )}
+
             {product.ingredients && product.ingredients.length > 0 ? (
               <IngredientsList>
                 {product.ingredients.map((ingredient, index) => (
-                  <Ingredient key={index} rating={ingredient.healthRating}>
-                    <IngredientIcon rating={ingredient.healthRating}>
-                      {ingredient.healthRating === 'good' ? '✓' : 
-                        ingredient.healthRating === 'bad' ? '✗' : '?'}
-                    </IngredientIcon>
-                    <IngredientName>{ingredient.name}</IngredientName>
-                    <IngredientTags>
-                      {ingredient.isGMO && <IngredientTag>GMO</IngredientTag>}
-                      {ingredient.isProcessed && <IngredientTag>Processed</IngredientTag>}
-                    </IngredientTags>
-                  </Ingredient>
+                  <div key={index}>
+                    <Ingredient
+                      rating={ingredient.healthRating}
+                      style={{ cursor: hasDetailData(ingredient) ? 'pointer' : 'default' }}
+                      onClick={() => hasDetailData(ingredient) && setExpandedIdx(expandedIdx === index ? null : index)}
+                    >
+                      <IngredientIcon rating={ingredient.healthRating}>
+                        {ingredient.healthRating === 'good' ? '✓' :
+                          ingredient.healthRating === 'bad' ? '✗' : '?'}
+                      </IngredientIcon>
+                      <IngredientName>{ingredient.name}</IngredientName>
+                      <IngredientTags>
+                        {ingredient.iarcGroup && <IarcBadge $group={ingredient.iarcGroup}>IARC {ingredient.iarcGroup}</IarcBadge>}
+                        {ingredient.isEUBanned && <EuBadge>EU Ban</EuBadge>}
+                        {ingredient.isGMO && <IngredientTag>GMO</IngredientTag>}
+                        {ingredient.isProcessed && <IngredientTag>Processed</IngredientTag>}
+                      </IngredientTags>
+                      {hasDetailData(ingredient) && (
+                        <IngredientExpandBtn onClick={(e) => { e.stopPropagation(); setExpandedIdx(expandedIdx === index ? null : index); }}>
+                          {expandedIdx === index ? '▲' : '▼'}
+                        </IngredientExpandBtn>
+                      )}
+                    </Ingredient>
+                    <AnimatePresence>
+                      {expandedIdx === index && (
+                        <IngredientDetail
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {ingredient.description && (
+                            <DetailRow><DetailLabel>Info</DetailLabel><span>{ingredient.description}</span></DetailRow>
+                          )}
+                          {ingredient.iarcGroup && (
+                            <DetailRow>
+                              <DetailLabel>IARC</DetailLabel>
+                              <span>
+                                Group {ingredient.iarcGroup}
+                                {ingredient.iarcGroup === '1' && ' — Confirmed carcinogen'}
+                                {ingredient.iarcGroup === '2A' && ' — Probably carcinogenic'}
+                                {ingredient.iarcGroup === '2B' && ' — Possibly carcinogenic'}
+                                {ingredient.iarcGroup === '3' && ' — Not classifiable'}
+                              </span>
+                            </DetailRow>
+                          )}
+                          {ingredient.isEUBanned && (
+                            <DetailRow><DetailLabel>Status</DetailLabel><span style={{ color: '#C92A54' }}>Banned in the European Union</span></DetailRow>
+                          )}
+                          {ingredient.bannedRegions && ingredient.bannedRegions.length > 0 && (
+                            <DetailRow><DetailLabel>Banned</DetailLabel><span>{ingredient.bannedRegions.join(', ')}</span></DetailRow>
+                          )}
+                          {ingredient.healthConcerns && ingredient.healthConcerns.length > 0 && (
+                            <DetailRow><DetailLabel>Risks</DetailLabel><span>{ingredient.healthConcerns.join('; ')}</span></DetailRow>
+                          )}
+                          {ingredient.healthierAlternatives && ingredient.healthierAlternatives.length > 0 && (
+                            <DetailRow><DetailLabel>Try</DetailLabel><span style={{ color: '#60C0F0' }}>{ingredient.healthierAlternatives.join(', ')}</span></DetailRow>
+                          )}
+                        </IngredientDetail>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 ))}
               </IngredientsList>
             ) : (
               <InfoMessage>No ingredient information available</InfoMessage>
-            )}
-            
-            {totalIngredients > 0 && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <SectionTitle>Summary</SectionTitle>
-                <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>
-                  This product contains {goodIngredients} good, {badIngredients} concerning, 
-                  and {totalIngredients - goodIngredients - badIngredients} neutral ingredients.
-                </div>
-              </div>
             )}
             
             {product.healthConcerns && product.healthConcerns.length > 0 && (
@@ -661,10 +856,33 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
         <ActionButton onClick={handleToggleFavorite}>
           {favorite ? '★ Saved' : '☆ Save'}
         </ActionButton>
-        <ActionButton $primary>
-          Share
-        </ActionButton>
+        {onAddToLog && (
+          <ActionButton $primary onClick={() => setShowMealPicker(!showMealPicker)} disabled={logLoading}>
+            {logLoading ? 'Logging...' : '+ Add to Food Log'}
+          </ActionButton>
+        )}
       </ActionButtons>
+
+      <AnimatePresence>
+        {showMealPicker && onAddToLog && (
+          <MealPickerOverlay
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
+              <MealChip
+                key={meal}
+                disabled={logLoading}
+                onClick={() => { onAddToLog(meal); setShowMealPicker(false); }}
+              >
+                {meal}
+              </MealChip>
+            ))}
+          </MealPickerOverlay>
+        )}
+      </AnimatePresence>
     </AnalysisContainer>
   );
 };
