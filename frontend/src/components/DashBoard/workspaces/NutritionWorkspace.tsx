@@ -12,11 +12,11 @@
  * in a scrollable tab bar. Available to all roles.
  *
  * HOW IT FITS IN THE APP: UniversalDashboardLayout → NutritionWorkspace
- * KEY DECISIONS: 6 tabs (Log, Search, Hydration, Macros, Intelligence, Learn)
+ * KEY DECISIONS: 11 tabs (Log, Search, Restaurant, Hydration, Macros, Garden, Farms, Supplements, AI Meal Plan, Intelligence, Learn)
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: NutritionWorkspace                               ║
- * ║  PURPOSE: Unified nutrition hub with 6 tabs                   ║
+ * ║  PURPOSE: Unified nutrition hub with 10 tabs                  ║
  * ║  OWNER: Claude Opus 4.6                                       ║
  * ║  LAST VALIDATED: 2026-03-26                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
@@ -33,7 +33,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin } from 'lucide-react';
+import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin, Pill, Brain } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
@@ -49,13 +49,15 @@ const NutritionLearnTab = lazy(() => import('./NutritionLearnTab'));
 const RestaurantTab = lazy(() => import('../../FoodTracker/RestaurantTab'));
 const GardeningTab = lazy(() => import('../../FoodTracker/GardeningTab'));
 const FarmFinderTab = lazy(() => import('../../FoodTracker/FarmFinderTab'));
+const SupplementsTab = lazy(() => import('../../FoodTracker/SupplementsTab'));
+const MealPlanTab = lazy(() => import('../../FoodTracker/MealPlanTab'));
 const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
 const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Tab config
 // ─────────────────────────────────────────────────────────────
-type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn' | 'garden' | 'farms';
+type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn' | 'garden' | 'farms' | 'supplements' | 'meal-plan';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'log', label: 'Log Meal', icon: <Utensils size={16} /> },
@@ -65,6 +67,8 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
   { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
   { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
+  { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
+  { id: 'meal-plan', label: 'AI Meal Plan', icon: <Brain size={16} /> },
   { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
   { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
 ];
@@ -131,6 +135,8 @@ const NutritionWorkspace: React.FC = () => {
             )}
             {activeTab === 'garden' && <GardeningTab />}
             {activeTab === 'farms' && <FarmFinderTab />}
+            {activeTab === 'supplements' && <SupplementsTab />}
+            {activeTab === 'meal-plan' && <MealPlanTab />}
             {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}
             {activeTab === 'learn' && <NutritionLearnTab />}
           </Suspense>

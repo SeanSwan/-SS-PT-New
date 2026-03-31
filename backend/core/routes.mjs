@@ -180,6 +180,8 @@ import hydrationRoutes from '../routes/hydrationRoutes.mjs';
 import restaurantRoutes from '../routes/restaurantRoutes.mjs';
 import gardeningRoutes from '../routes/gardeningRoutes.mjs';
 import farmFinderRoutes from '../routes/farmFinderRoutes.mjs';
+import supplementRoutes from '../routes/supplementRoutes.mjs';
+import mealPlanRoutes from '../routes/mealPlanRoutes.mjs';
 import subscriptionRoutes from '../routes/subscriptionRoutes.mjs';
 import creditsRoutes from '../routes/creditsRoutes.mjs';
 import commissionRoutes from '../routes/commissionRoutes.mjs';
@@ -539,6 +541,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/restaurant', restaurantRoutes);
   app.use('/api/gardening', gardeningRoutes);
   app.use('/api/farms', farmFinderRoutes);
+  app.use('/api/supplements', supplementRoutes);
+  app.use('/api/meal-plans', mealPlanRoutes);
   app.use('/api/free', freeApiRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
