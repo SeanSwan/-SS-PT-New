@@ -11,7 +11,7 @@
  * TYPOGRAPHY: 16px mobile → 15px 1200px+ (AI Village design consensus).
  */
 
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -455,7 +455,7 @@ export const VoiceOrbWrap = styled.button<{ $listening?: boolean; $size?: number
               border-color 0.3s ease;
   will-change: transform, box-shadow;
 
-  ${({ $listening }) => $listening && `animation: ${pulseGlow} 1.5s ease-in-out infinite;`}
+  ${({ $listening }) => $listening && css`animation: ${pulseGlow} 1.5s ease-in-out infinite;`}
 
   &:hover {
     transform: scale(1.05);
