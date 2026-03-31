@@ -132,6 +132,13 @@ const RestaurantTab: React.FC<RestaurantTabProps> = ({ onAddFood }) => {
         </QuickSection>
       )}
 
+      {/* Attribution (required by FatSecret free tier) */}
+      {results.length > 0 && (
+        <Attribution>
+          Powered by <a href="https://www.fatsecret.com" target="_blank" rel="noopener noreferrer">FatSecret</a>
+        </Attribution>
+      )}
+
       {/* Not configured fallback */}
       {showNotConfigured && (
         <InfoBox>
@@ -610,4 +617,15 @@ const LoadMoreBtn = styled.button`
     color: var(--text-primary, #E0ECF4);
   }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const Attribution = styled.div`
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(224,236,244,0.3));
+  a {
+    color: var(--text-secondary, rgba(224,236,244,0.5));
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
 `;
