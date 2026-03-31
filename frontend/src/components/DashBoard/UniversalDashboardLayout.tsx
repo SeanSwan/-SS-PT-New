@@ -494,7 +494,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 🔧 EQUIPMENT MANAGER — Upload gym/park/home photos, manage equipment profiles
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
     ],
-    defaultPath: '/overview'
+    defaultPath: '/coach-assistant'
   },
   trainer: {
     routes: [

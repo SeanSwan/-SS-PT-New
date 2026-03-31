@@ -344,7 +344,7 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
                   onClick={() => {
                     const role = user?.role;
                     if (role === 'admin') {
-                      navigate('/dashboard/admin/overview');
+                      navigate('/dashboard/admin/coach-assistant');
                     } else if (role === 'trainer') {
                       navigate('/dashboard/trainer/overview');
                     } else {
@@ -429,7 +429,7 @@ const CinematicNavbar: React.FC<CinematicNavbarProps> = ({
                 <MobileNavLink
                   to={
                     user?.role === 'admin'
-                      ? '/dashboard/admin/overview'
+                      ? '/dashboard/admin/coach-assistant'
                       : user?.role === 'trainer'
                         ? '/dashboard/trainer/overview'
                         : '/dashboard/client/overview'

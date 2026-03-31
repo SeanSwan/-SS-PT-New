@@ -553,6 +553,129 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
 });
 
 /**
+ * POST /api/ai-chat/tts
+ * Text-to-speech using Gemini 2.5 Flash TTS (native AI voice).
+ * Uses GEMINI_API_KEY or GOOGLE_API_KEY — same key as chat.
+ * 30 voice options, returns WAV audio.
+ * Rate limited to 20 TTS requests per hour per user.
+ *
+ * Gemini TTS voices (female-sounding, warm picks):
+ * Kore — warm, confident female (default)
+ * Aoede — smooth, gentle female
+ * Leda — bright, energetic female
+ * Fenrir — deeper, authoritative
+ * Puck — playful, youthful
+ */
+router.post('/tts', aiRateLimiter, async (req, res) => {
+  try {
+    const { text, voice = 'Kore' } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ success: false, error: 'Text is required' });
+    }
+    if (text.length > 5000) {
+      return res.status(400).json({ success: false, error: 'Text too long (max 5000 chars)' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return res.status(501).json({ success: false, error: 'Gemini API key not configured' });
+    }
+
+    // Validate voice name from Gemini's 30 available voices
+    const validVoices = [
+      'Zephyr', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede',
+      'Callirrhoe', 'Autonoe', 'Enceladus', 'Iapetus', 'Umbriel', 'Algieba',
+      'Despina', 'Erinome', 'Algenib', 'Rasalgethi', 'Laomedeia', 'Achernar',
+      'Alnilam', 'Schedar', 'Gacrux', 'Pulcherrima', 'Achird', 'Zubenelgenubi',
+      'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat',
+    ];
+    const voiceName = validVoices.includes(voice) ? voice : 'Kore';
+
+    logger.info('[AI Chat] Gemini TTS request', {
+      userId: req.user?.id,
+      textLength: text.length,
+      voice: voiceName,
+    });
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: text.slice(0, 5000) }],
+          }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName },
+              },
+            },
+          },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text().catch(() => 'Unknown error');
+      logger.error('[AI Chat] Gemini TTS failed', { status: geminiRes.status, error: errText });
+      return res.status(502).json({ success: false, error: 'Gemini TTS provider error' });
+    }
+
+    const data = await geminiRes.json();
+
+    // Extract base64 audio from Gemini response
+    const audioPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (!audioPart?.inlineData?.data) {
+      logger.error('[AI Chat] Gemini TTS: no audio in response', { data: JSON.stringify(data).slice(0, 500) });
+      return res.status(502).json({ success: false, error: 'No audio generated' });
+    }
+
+    const pcmBase64 = audioPart.inlineData.data;
+    const mimeType = audioPart.inlineData.mimeType || 'audio/L16;rate=24000';
+    const pcmBuffer = Buffer.from(pcmBase64, 'base64');
+
+    // Convert raw PCM (24kHz, 16-bit, mono) to WAV for browser playback
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    const dataSize = pcmBuffer.length;
+    const wavHeaderSize = 44;
+
+    const wavBuffer = Buffer.alloc(wavHeaderSize + dataSize);
+    // RIFF header
+    wavBuffer.write('RIFF', 0);
+    wavBuffer.writeUInt32LE(36 + dataSize, 4);
+    wavBuffer.write('WAVE', 8);
+    // fmt chunk
+    wavBuffer.write('fmt ', 12);
+    wavBuffer.writeUInt32LE(16, 16);           // chunk size
+    wavBuffer.writeUInt16LE(1, 20);            // PCM format
+    wavBuffer.writeUInt16LE(numChannels, 22);
+    wavBuffer.writeUInt32LE(sampleRate, 24);
+    wavBuffer.writeUInt32LE(byteRate, 28);
+    wavBuffer.writeUInt16LE(blockAlign, 32);
+    wavBuffer.writeUInt16LE(bitsPerSample, 34);
+    // data chunk
+    wavBuffer.write('data', 36);
+    wavBuffer.writeUInt32LE(dataSize, 40);
+    pcmBuffer.copy(wavBuffer, 44);
+
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Length', wavBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.send(wavBuffer);
+  } catch (err) {
+    logger.error('[AI Chat] TTS error', { error: err.message, userId: req.user?.id });
+    return res.status(500).json({ success: false, error: 'TTS failed' });
+  }
+});
+
+/**
  * Generate a short title from the first user message
  */
 function generateTitle(message) {

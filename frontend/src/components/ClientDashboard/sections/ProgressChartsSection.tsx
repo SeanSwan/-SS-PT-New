@@ -222,11 +222,17 @@ export default ProgressChartsSection;
 
 const Container = styled.div`
   width: 100%;
-  padding: 0;
+  padding: 1.5rem;
+  perspective: 1200px;
+
+  @media (max-width: 430px) {
+    padding: 0.75rem;
+  }
 `;
 
 const SectionHeader = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-left: 0.25rem;
 `;
 
 const SectionTitle = styled.h3`
@@ -252,21 +258,13 @@ const SectionSubtitle = styled.p`
 
 const ChartGrid = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
 
   /* 10-breakpoint responsive matrix */
   grid-template-columns: 1fr;
 
-  @media (min-width: 375px) {
-    grid-template-columns: 1fr;
-  }
-
   @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -276,12 +274,30 @@ const ChartGrid = styled.div`
 
   @media (min-width: 1920px) {
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.25rem;
+    gap: 1.5rem;
+  }
+
+  /* Staggered entrance — each chart card fades in sequentially */
+  & > * {
+    &:nth-child(1) { animation-delay: 0s; }
+    &:nth-child(2) { animation-delay: 0.08s; }
+    &:nth-child(3) { animation-delay: 0.16s; }
+    &:nth-child(4) { animation-delay: 0.24s; }
+    &:nth-child(5) { animation-delay: 0.32s; }
+    &:nth-child(6) { animation-delay: 0.4s; }
   }
 `;
 
 const Divider = styled.hr`
   border: none;
-  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-  margin: 1.5rem 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent) 20%,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent) 50%,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent) 80%,
+    transparent 100%
+  );
+  margin: 2rem 0;
 `;

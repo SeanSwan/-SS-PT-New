@@ -63,14 +63,14 @@ const MODELS = {
   gemini25Flash:  'google/gemini-2.5-flash',              // FREE — fast, great at structured analysis
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
   gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — latest Flash lite, strong at code review
-  deepseekV3:     'deepseek/deepseek-v3.2-20251201',      // FREE — user research / personas
+  deepseekV3:     'deepseek/deepseek-v3.2',                // ~$0.26/$0.38 per M — user research / personas
   step35Flash:    'stepfun/step-3.5-flash:free',           // FREE — 256K ctx, 74.4% SWE-bench, security specialist
   minimaxM21:     'minimax/minimax-m2.1',                  // FREE
-  minimaxM25Free: 'minimax/minimax-m2.5:free',             // FREE — same model as M2.5, $0 variant
-  nemotron3Super: 'nvidia/nemotron-3-super:free',          // FREE — 120B MoE, security + data safety specialist
-  qwen36Plus:     'qwen/qwen-3.6-plus:free',              // FREE — 1M context, code architecture specialist
+  minimaxM25Free: 'minimax/minimax-m2.7',                   // $0.30/$1.20 per M — replaces M2.5:free (data policy blocks)
+  nemotron3Super: 'nvidia/nemotron-3-super-120b-a12b:free', // FREE — 120B MoE, security + data safety specialist
+  qwen36Plus:     'qwen/qwen3.6-plus-preview:free',        // FREE — 1M context, code architecture specialist
   // ── PAID models (clearly marked) ──
-  claudeSonnet46: 'anthropic/claude-sonnet-4-6-20260514',  // $3/$15 per M tokens — premium code quality + data safety
+  claudeSonnet46: 'anthropic/claude-sonnet-4.6',            // $3/$15 per M tokens — premium code quality + data safety
   // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
   mercury2:       'inception/mercury-2-small',             // $0.25/$0.75 per M — fastest reasoning, escalation only
   minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — #3 overall, CRITICAL escalation only
@@ -88,7 +88,7 @@ const CONFIG = {
   promptDir: join(ROOT, 'AI-Village-Documentation', 'validation-prompts'),
   // Legacy mirror (kept for backwards compat)
   legacyReportDir: join(ROOT, 'docs', 'ai-workflow', 'validation-reports'),
-  timeout: 180_000,  // 3 min — free models can be slower
+  timeout: 240_000,  // 4 min — free models can be slower, DeepSeek needs extra time
   // Stagger delay (ms) between launches to respect rate limits
   staggerMs: 2000,
   // Max archived validation runs before oldest gets deleted
@@ -134,7 +134,7 @@ function getGeminiKey() {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { files: [], since: null, staged: false, document: null };
+  const opts = { files: [], since: null, staged: false, document: null, mode: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--files' && args[i + 1]) {
       i++;
@@ -151,6 +151,8 @@ function parseArgs() {
       opts.staged = true;
     } else if (args[i] === '--document' && args[i + 1]) {
       opts.document = args[++i];
+    } else if (args[i] === '--mode' && args[i + 1]) {
+      opts.mode = args[++i];
     }
   }
   return opts;
@@ -828,6 +830,372 @@ ${documentContent}`;
 }
 
 // ─────────────────────────────────────────────
+// Planning Mode Validator Tracks (--mode plan)
+// ─────────────────────────────────────────────
+
+function buildPlanningValidatorTracks(planContent, planPath) {
+  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Key differentiators: NASM OPT 5-phase periodization, voice-first AI coach, Octalysis gamification, 840+ exercise database, social fitness platform. Target market: wealthy golf clients, working professionals 30-55, NASM-certified trainer with 25+ years experience. Production: sswanstudios.com. Plan document: ${planPath}`;
+
+  return [
+    {
+      name: 'UX Research & Competitor Analysis',
+      model: MODELS.gemini25Flash,
+      prompt: `You are a UX researcher analyzing a feature upgrade plan for a premium fitness SaaS platform. ${ctx}
+
+Review this PLAN and provide UX research insights:
+1. **Competitor benchmark** — How do Claude.ai, ChatGPT, Google Gemini, Strava, and Strong app handle similar features? What specific interaction patterns should we adopt?
+2. **User journey gaps** — Walk through each proposed feature as a trainer using their phone at the gym. What's missing? What would frustrate them?
+3. **Mobile-first critique** — Will these features work on 320-375px screens? Flag any desktop-biased designs.
+4. **Interaction patterns** — For each new UI element (sidebar, markdown, voice overlay), suggest the exact gesture/click flow.
+5. **Accessibility risks** — Screen reader compatibility, keyboard navigation, color contrast for proposed components.
+6. **Onboarding for new features** — How will existing users discover conversation history, voice upgrade, etc.?
+
+Rate each insight: CRITICAL / HIGH / MEDIUM / LOW priority.
+Output as structured markdown with actionable recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Architecture & Component Design',
+      model: MODELS.claudeSonnet46,
+      prompt: `You are a senior React/TypeScript architect reviewing a feature implementation plan. ${ctx}
+
+Review this PLAN for architectural soundness:
+1. **Component decomposition** — Are the proposed files/components correctly scoped? Any that should be split further or merged?
+2. **State management** — Is the hook composition (useCoachAssistant → useAIChat → useConversationSidebar) correct? Any circular dependencies or prop drilling?
+3. **Data flow** — Trace the conversation loading flow: sidebar click → loadConversation → messages render. Any race conditions or stale state risks?
+4. **React patterns** �� Are React.memo, useMemo, useCallback used where needed? Any unnecessary re-renders from the proposed design?
+5. **File budget** — Will each proposed file stay under 300 lines? Flag any that will likely exceed.
+6. **Hook design** — Are custom hooks properly separated (data fetching vs UI state vs business logic)?
+7. **Error boundaries** — Where should error boundaries go for the new features?
+
+For each finding: severity, specific file/component, issue, recommended fix.
+Output as structured markdown.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Security & Privacy Planning',
+      model: MODELS.step35Flash,
+      prompt: `You are a security engineer reviewing a feature plan for a platform that handles personal health data. CRITICAL: This platform has a ZERO PII TO LLMs policy — no client names, emails, or personal data may reach external AI providers. ${ctx}
+
+Review this PLAN for security implications:
+1. **PII exposure in new features** — Conversation history could contain PII in titles/previews. Is it properly sanitized?
+2. **File attachment risks** — Image uploads to R2 for AI analysis. Malicious file upload vectors? SSRF via image URLs?
+3. **Voice data privacy** — Audio recordings sent to Gemini for transcription. Are recordings stored? For how long? Privacy policy implications?
+4. **Conversation data at rest** — JSONB messages in PostgreSQL. Encryption? Access controls? Who can see whose conversations?
+5. **RBAC enforcement** — Admin sees all conversations. Trainer sees only assigned clients. Client sees only own. Is this enforced in the plan?
+6. **MediaRecorder API risks** — Browser microphone access. Permission handling, stream cleanup, data leak prevention.
+7. **Markdown rendering XSS** — react-markdown with user-generated content. XSS vectors through markdown injection?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown with specific mitigations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Performance & Bundle Impact',
+      model: MODELS.gemini3Flash,
+      prompt: `You are a web performance engineer reviewing a feature plan. ${ctx}
+
+Review this PLAN for performance impact:
+1. **Bundle size** — react-markdown (~50KB gzip), remark-gfm, rehype-highlight. Total added weight? Should they be lazy-loaded?
+2. **Render performance** — Conversation sidebar re-renders on every message. React.memo strategy? Virtual scrolling needed?
+3. **Voice recording memory** — MediaRecorder audio buffers. Memory management during long recordings?
+4. **Markdown parsing** — Parsing markdown on every render vs memoizing parsed output. Cost analysis.
+5. **Network waterfall** — Loading conversation list + conversation messages. Parallel or sequential? Caching strategy?
+6. **Image attachments** — Image preview generation. Canvas-based thumbnails vs CSS object-fit? Memory for large images?
+7. **Code splitting** — Which new components should be React.lazy()? Proposed split boundaries.
+8. **Animation budget** — New thinking indicator, voice orb amplitude viz, sidebar slide animation. GPU-composited only?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown with specific optimizations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Competitive Intelligence',
+      model: MODELS.minimaxM21,
+      prompt: `You are a fitness SaaS product strategist. ${ctx}
+
+Review this AI Coach Assistant upgrade plan against the competitive landscape:
+1. **Feature gap vs competitors** — Trainerize, TrueCoach, My PT Hub, Future, Caliber, Hevy, Strong, JEFIT — do any of them have AI chat with conversation history? Voice logging? How does this plan position SwanStudios?
+2. **Differentiation** — What makes this implementation UNIQUE vs just copying ChatGPT UI? The NASM integration, 21 data sources, privacy-first approach — are these highlighted enough?
+3. **Monetization angle** — Which of these features should be behind a paywall vs free? (conversation history = free, voice = premium, file attachments = premium?)
+4. **Golf client appeal** — How do these features serve the wealthy golf client persona specifically?
+5. **Mobile gym usage** — A trainer at the gym needs quick voice logging between sets. Does this plan optimize for that workflow?
+6. **Missing competitive features** — What are competitors doing that this plan DOESN'T address? (wearable integration, video form analysis, nutrition photo logging?)
+
+Output as structured markdown with market-informed recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'User Persona Alignment',
+      model: MODELS.deepseekV3,
+      prompt: `You are a user researcher specializing in fitness applications. ${ctx}
+
+Target personas:
+- **Sean (Admin/Trainer):** NASM-certified, 25+ years, uses phone at gym, wants voice-first workflow, wealthy golf clients
+- **Golf Client:** 45-60, high income, wants premium experience, may be less tech-savvy, values privacy
+- **Working Professional:** 30-50, busy, needs quick sessions, values efficiency, mobile-first
+- **Move Fitness Client:** Free tier, basic tracking, may convert to SwanStudios paid
+
+Review this plan through each persona's eyes:
+1. **Sean at the gym** — Can he voice-log a client's workout between sets? Load a previous conversation to check last session's notes? How many taps?
+2. **Golf client onboarding** — Will the Coach Assistant feel premium enough? Does the conversation history look sophisticated or basic?
+3. **Working professional** — They have 5 minutes to check their program. Is the sidebar fast? Can they search for "leg day" in past conversations?
+4. **Accessibility for 40-60 year olds** — Font sizes, touch targets, voice UX — will this work for the less tech-savvy demographic?
+5. **Trust signals** — Does the thinking indicator + provider badge build trust? Or create confusion about "which AI am I talking to?"
+6. **Emotional response** — Does the dark-theme Crystalline Swan aesthetic feel premium and motivating? Or cold and intimidating?
+
+Output as structured markdown with persona-specific recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Implementation Risk Assessment',
+      model: MODELS.minimaxM25Free,
+      prompt: `You are a project manager and risk assessor for a software project. ${ctx}
+
+Review this implementation plan for risks and feasibility:
+1. **Dependency risks** — Which phases block other phases? What happens if Phase 4 (voice) takes longer than expected?
+2. **Technical unknowns** — Gemini SDK version for voice, MediaRecorder browser compatibility, react-markdown bundle size accuracy
+3. **Scope creep indicators** — Which features are most likely to expand beyond estimates? (markdown rendering with all edge cases? voice with all browsers?)
+4. **Effort accuracy** — 22 new files, 300 lines max each. Are the line count estimates realistic? Which files will likely exceed?
+5. **Testing gaps** — What's the testing strategy? Unit tests for hooks? E2E for sidebar? Visual regression for markdown?
+6. **Rollback plan** — If any phase breaks production, can it be feature-flagged off?
+7. **Database migration risks** — Any schema changes needed? The plan says "zero backend work" for Phase 1 — verify this claim.
+8. **Phase ordering** — Is the proposed order (0→1→2→3→4→5) optimal? Could anything be reordered for faster value delivery?
+
+Rate each risk: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown with mitigations for each risk.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Frontend Patterns & React Best Practices',
+      model: MODELS.gemini31Flash,
+      prompt: `You are a React specialist reviewing a component architecture plan. ${ctx}
+
+Review the proposed component structure:
+1. **Styled-components organization** — Splitting SwanCoachStyles.ts into 5 sub-files with barrel re-export. Good pattern? Any issues?
+2. **Hook composition** — useCoachAssistant wraps useAIChat wraps useState. Is this nesting depth okay? Alternatives?
+3. **Markdown component customization** — Custom react-markdown components for code blocks, tables, links. Performance of custom component map?
+4. **Animation strategy** — framer-motion AnimatePresence for sidebar, CSS keyframes for thinking indicator. Mixing animation libraries — good or bad?
+5. **Responsive patterns** — Desktop sidebar (280px fixed) vs mobile drawer (85vw). CSS approach vs JS approach?
+6. **Form handling** — Rename input in ConversationItem, search input in sidebar. Controlled vs uncontrolled? Debounce strategy?
+7. **Code block component** — Syntax highlighting with rehype-highlight. Should code blocks be their own lazy-loaded component?
+8. **Touch gestures** — Swipe-to-reveal actions on mobile conversation items. CSS-only or need a gesture library?
+
+Output as structured markdown with implementation-ready recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Data Safety & Schema Impact',
+      model: MODELS.claudeSonnet46,
+      prompt: `You are a DATA SAFETY AUDITOR for a production SaaS platform with real paying customers. ${ctx}
+
+TREAT EVERY FINDING AS IF IT COULD AFFECT REAL USER DATA IN PRODUCTION.
+
+Review this plan for data safety:
+1. **Conversation JSONB growth** — Messages stored as JSONB array. With file attachments, how large can this get? PostgreSQL JSONB size limits?
+2. **Soft delete integrity** — Plan uses existing soft-delete (status='deleted'). Are deleted conversations properly excluded from sidebar listing?
+3. **R2 storage for attachments** — New file uploads to ai-chat/ bucket path. Cleanup strategy when conversations are deleted?
+4. **Voice recording storage** — Audio sent to Gemini for transcription then discarded? Or stored? Privacy implications?
+5. **Migration safety** — Plan claims "zero backend changes" for Phase 1. Verify: does the existing API handle all sidebar operations without schema changes?
+6. **Concurrent access** — Two browser tabs sending messages to the same conversation. Race condition on JSONB messages array?
+7. **Token usage tracking** — Already exists in message metadata. Any data integrity risk from the new features?
+8. **Rate limiting adequacy** — Existing rate limiter for messages. New sidebar list/load calls — do they need separate rate limiting?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown with specific database-safe recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'API Design & Backend Contracts',
+      model: MODELS.nemotron3Super,
+      prompt: `You are a backend API architect reviewing a feature plan. ${ctx}
+
+Review the plan's API surface:
+1. **Existing API sufficiency** — Plan claims Phase 1 needs zero backend changes. Verify: GET /api/ai-chat/conversations returns enough data for sidebar (title, context, messageCount, lastMessageAt)?
+2. **Search endpoint** — Plan uses client-side filtering of 20 conversations. Is this adequate? When should server-side search (ILIKE on title + JSONB content) be added?
+3. **File attachment endpoint** — Plan proposes POST /api/ai-chat/conversations/:id/attachments. REST design correct? Multipart form data handling?
+4. **Multimodal message API** — Sending images with messages to Gemini. How should the message API change? New field in request body? Separate upload-then-reference flow?
+5. **Rate limiting for new operations** — Sidebar list (every page load), conversation rename, file upload — appropriate rate limits?
+6. **WebSocket integration** — Plan mentions Socket.io exists. Should conversation updates be pushed via WebSocket instead of polling?
+7. **Response contract** — Are the existing API response shapes adequate for the sidebar (ConversationSummary type)?
+8. **Caching strategy** — 5-minute cache on conversation list. Appropriate? Should it invalidate on new message?
+
+Output as structured markdown with specific API design recommendations.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Module Architecture & File Budget',
+      model: MODELS.qwen36Plus,
+      prompt: `You are a code architecture specialist with expertise in large-scale React applications. ${ctx}
+
+MANDATORY CONSTRAINT: No file may exceed 300 lines of code (excluding comments and blank lines).
+
+Review this plan's file organization:
+1. **22 new files** — Is this the right decomposition? Any files that should be merged? Any that are too thin?
+2. **styles/ directory** — 5 style files from the split + 4 new style files = 9 total. Too many? Consolidation opportunities?
+3. **hooks/ directory** — useCoachAssistant, useConversationSidebar, useVoiceRecorder, useGeminiTranscription, useFileAttachment = 5 hooks. Proper separation of concerns?
+4. **300-line budget** — Given the estimated line counts, which files are at risk of exceeding 300 lines? Specifically:
+   - ConversationSidebar.tsx (est. 250) — includes search, list, actions
+   - MarkdownRenderer.tsx (est. 180) — includes 8+ custom components
+   - CoachInputBar.tsx (will grow to est. 295) — voice + attachments + input
+5. **Import graph** — Draw the dependency tree. Any circular risks? Deep import chains?
+6. **Barrel exports** — SwanCoachStyles.ts becomes a barrel. Should other directories (hooks/, styles/) also have index.ts barrels?
+7. **Shared vs local** — useAIChat is in shared hooks. New hooks are local to coach-assistant. Is this the right boundary?
+
+Output as structured markdown with a proposed file tree and line budget.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Mobile & Edge Case Analysis',
+      model: MODELS.step35Flash,
+      prompt: `You are a mobile web specialist and edge case hunter. ${ctx}
+
+MANDATORY: 10-breakpoint responsive matrix: 320px, 375px, 430px, 768px, 1024px, 1280px, 1440px, 1920px, 2560px, 3840px
+MANDATORY: 44px min touch targets (56px on mobile <768px)
+
+Review this plan for mobile and edge cases:
+1. **Sidebar on 320px** — 85vw = 272px. Is this enough for conversation titles + timestamps + action buttons? Layout squeeze risk?
+2. **Voice recording on iOS Safari** — MediaRecorder support? WebKit prefix requirements? Auto-play policy for TTS?
+3. **Keyboard on mobile** — When chat input is focused, does the sidebar get pushed off screen? Virtual keyboard height management?
+4. **Offline/slow network** — What happens when conversations list fails to load? Empty state UX?
+5. **Long conversation titles** — Auto-generated from first message. Truncation strategy? 2 lines max with ellipsis?
+6. **Large message history** — Conversation with 100+ messages. Virtual scrolling needed? Memory impact?
+7. **RTL languages** — Not immediately needed but: does the sidebar flip correctly? CSS logical properties used?
+8. **Reduced motion** — Voice orb pulsing, sidebar slide, thinking indicator. All respect prefers-reduced-motion?
+9. **Screen reader** — Sidebar landmark, conversation list navigation, message bubble roles, voice recording status announcements?
+10. **4K ultrawide** — Max-width constraints on sidebar and chat area? Or full-width stretch?
+
+Rate each: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown with specific CSS/React solutions.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+  ];
+}
+
+// ─────────────────────────────────────────────
+// Planning Mode Debate Prompt Builders
+// ─────────────────────────────────────────────
+
+function buildPlanDebateSecurityPrompt(planContent, ctx, phase1Summary) {
+  return `You are the PRIMARY security auditor reviewing a feature implementation plan. ${ctx}
+
+## YOUR ROLE — Security Lead
+
+A plan for upgrading the AI Coach Assistant has been analyzed by 12 planning specialists. Review their findings and debate security implications.
+
+## Phase 1 Context (12 planning validators already ran)
+${phase1Summary}
+
+## Your Analysis — Round 1
+
+Focus on:
+- PII risks in conversation history, voice recordings, file attachments
+- XSS vectors in markdown rendering
+- RBAC enforcement gaps
+- File upload attack vectors
+- Voice data privacy concerns
+
+Provide specific mitigations for each risk.
+
+PLAN UNDER REVIEW:
+${planContent}`;
+}
+
+function buildPlanDebateArchPrompt(planContent, ctx, phase1Summary) {
+  return `You are a Senior Code Quality Lead reviewing a feature implementation plan. ${ctx}
+
+## YOUR ROLE — Architecture Authority
+
+Review the component decomposition, state management, and hook design proposed in this plan. The plan has been analyzed by 12 specialists.
+
+## Phase 1 Context (12 planning validators already ran)
+${phase1Summary}
+
+## Your Analysis — Round 1
+
+Focus on:
+- Is the hook composition (useCoachAssistant → useAIChat → useConversationSidebar) correct?
+- Are the 22 proposed files the right decomposition? Over-engineering? Under-engineering?
+- State management: single source of truth vs duplicated state risks
+- React performance: memoization strategy, re-render prevention
+- File budget: which files will exceed 300 lines?
+- Error handling: where do error boundaries go?
+
+For each finding: severity, specific component, issue, fix.
+
+PLAN UNDER REVIEW:
+${planContent}`;
+}
+
+function buildPlanDebateDesignPrompt(planContent, ctx, phase1UXReport) {
+  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+
+## YOUR ROLE — Creative Director (Design Authority)
+
+Design the visual specification for the Coach Assistant upgrade. Create from your OWN design vision. Be bold, opinionated, and prescriptive.
+
+## Crystalline Swan Design Tokens (MANDATORY)
+- Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0
+- Wing Purple #8B5CF6, Gilded Fern #C6A84B, Frost White #E0ECF4
+- Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24
+- Dual-Button Glow: Blue → Purple glow. Purple → Cyan glow.
+- RETIRED: Galaxy-Swan (#0a0a1a, #00FFFF, #7851A9) — NEVER USE
+
+## UX Research from Phase 1
+${phase1UXReport || '_No Phase 1 UX report available._'}
+
+## Your Analysis — Round 1
+
+For EACH new component in the plan, provide EXACT design specs:
+1. **Conversation Sidebar** — width, bg color, item height, hover state, active state, transition timing, mobile drawer animation
+2. **Markdown Renderer** — code block bg, syntax highlighting colors, table style, blockquote border, heading sizes
+3. **Thinking Indicator** — bubble shape, shimmer animation spec, timing, easing
+4. **Voice Recording Overlay** — orb size, amplitude ring specs, duration label style, color transitions
+5. **Provider Badge** — size, font, color, placement relative to message
+6. **Attachment Preview** — thumbnail size, border radius, remove button placement
+
+Include: exact pixel values, hex colors, animation durations, easing curves, CSS custom property names.
+
+PLAN UNDER REVIEW:
+${planContent}`;
+}
+
+// ─────────────────────────────────────────────
 // Phase 2 & 3 Debate Prompt Builders
 // ─────────────────────────────────────────────
 
@@ -1147,7 +1515,7 @@ ${extractFindings(results, 'HIGH')}
 ---
 
 *SwanStudios 14-Brain Recursive Consensus System v14.0*
-*Phase 1: 12 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.5:free + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude)*
+*Phase 1: 12 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.7 + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude)*
 *Phase 2: 3 Specialty Debates — Security (Step ↔ Nemotron) + Code Quality (Claude ↔ Qwen) + UX/UI (Gemini 3.1 Pro ↔ M2.5:free)*
 *Phase 3: Smart Escalation — Mercury 2 + MiniMax M2.7 (CRITICAL only)*
 `;
@@ -1196,14 +1564,14 @@ async function main() {
   console.log('  ║    Phase 1: 12 Parallel Validators (OpenRouter)         ║');
   console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
   console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
-  console.log('  ║    MiniMax M2.1 · MiniMax M2.5:free · Nemotron 3     ║');
+  console.log('  ║    MiniMax M2.1 · MiniMax M2.7 · Nemotron 3     ║');
   console.log('  ║    Qwen 3.6 Plus · Step Bug Hunter II · Data Safety   ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
     console.log('  ║    A. Security: Step 3.5 ↔ Nemotron 3 Super (FREE)   ║');
     console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus       ║');
-    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.5:free     ║');
+    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7     ║');
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
     console.log('  ║    Mercury 2 + MiniMax M2.7 — skip if not needed      ║');
@@ -1231,8 +1599,8 @@ async function main() {
 
   const opts = parseArgs();
 
-  // ── Document Review Mode ──
-  if (opts.document) {
+  // ── Document Review Mode (skip if --mode plan) ──
+  if (opts.document && opts.mode !== 'plan') {
     const docPath = resolve(ROOT, opts.document);
     if (!docPath.startsWith(resolve(ROOT))) {
       console.error('  ERROR: Document path must be within the project directory.');
@@ -1397,6 +1765,279 @@ async function main() {
     console.log(`  Cost:       $${totalCost.toFixed(4)}`);
     console.log(`  Time:       ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
     console.log('  ════════════════════════════════════════════════════════');
+    console.log('');
+    return;
+  }
+
+  // ── Planning Mode (--mode plan --document plan.md) ──
+  if (opts.mode === 'plan' && opts.document) {
+    const docPath = resolve(ROOT, opts.document);
+    if (!docPath.startsWith(resolve(ROOT))) {
+      console.error('  ERROR: Document path must be within the project directory.');
+      process.exit(1);
+    }
+    if (!existsSync(docPath)) {
+      console.error(`  ERROR: Plan document not found: ${docPath}`);
+      process.exit(1);
+    }
+
+    const planContent = readFileSync(docPath, 'utf-8');
+    console.log('  ╔══════════════════════════════════════════════════════════╗');
+    console.log('  ║         14-Brain PLANNING MODE                           ║');
+    console.log('  ║    Feature Plan Analysis & Design Consensus              ║');
+    console.log('  ╚══════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log(`  [PLAN MODE] Analyzing: ${opts.document} (${(planContent.length / 1024).toFixed(1)} KB)`);
+    console.log('');
+
+    const files = [{ path: opts.document, content: planContent }];
+    const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Production: sswanstudios.com. Plan: ${opts.document}`;
+    const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
+
+    console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
+    if (hasGemini31) {
+      console.log(`  Phase 2: 3 Planning Specialty Debates...`);
+      console.log(`    A. Security Planning: Step 3.5 ↔ Nemotron 3 Super (FREE)`);
+      console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus`);
+      console.log(`    C. UX/UI Design: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7`);
+      console.log(`  Phase 3: Smart Escalation (only if CRITICAL gaps or stalled debates)`);
+    }
+    console.log('');
+
+    // ── Phase 1: Run all planning tracks in parallel ──
+    const phase1Results = await Promise.all(phase1Tracks.map(async (track, index) => {
+      const tag = track.name.padEnd(45);
+      const modelShort = track.model.split('/').pop();
+      console.log(`    [P1 ${String(index + 1).padStart(2)}/${phase1Tracks.length}] ${tag} -> ${modelShort}`);
+      const result = await runValidator(apiKey, track, index);
+      const badge = result.status === 'SUCCESS' ? 'OK  ' : 'FAIL';
+      console.log(`    [${badge}] ${tag} ${(result.durationMs / 1000).toFixed(1)}s`);
+      return result;
+    }));
+
+    // ── Build Phase 1 summary for debates ──
+    const phase1Summary = phase1Results
+      .filter(r => r.status === 'SUCCESS')
+      .map(r => `### ${r.name} (${r.model})\n${r.text.slice(0, 2000)}${r.text.length > 2000 ? '\n... (truncated)' : ''}`)
+      .join('\n\n---\n\n');
+    const uxReport = phase1Results.find(r => r.name === 'UX Research & Competitor Analysis' && r.status === 'SUCCESS')?.text || null;
+
+    const debateResults = [];
+    let securityDebateLog = null;
+    let archDebateLog = null;
+    let designDebateLog = null;
+
+    async function callModelForDebate(provider, model, prompt) {
+      if (provider === 'gemini-direct') {
+        return callGeminiDirect(getGeminiKey(), model, prompt);
+      } else {
+        return callOpenRouter(apiKey, model, prompt);
+      }
+    }
+
+    if (hasGemini31) {
+      // ── Phase 2A: Security Planning Debate (FREE) ──
+      console.log('');
+      console.log('  ── Phase 2A: Security Planning Debate ──');
+      console.log('  Step 3.5 Flash ↔ Nvidia Nemotron 3 Super (both FREE)');
+      console.log('');
+
+      try {
+        const p2aStart = Date.now();
+        const secReport = phase1Results.find(r => r.name === 'Security & Privacy Planning' && r.status === 'SUCCESS')?.text || '';
+        const p2aResult = await runRecursiveConsensus({
+          topic: 'Security Planning Analysis',
+          modelA: { name: 'Step 3.5 Flash', model: MODELS.step35Flash, provider: 'openrouter', role: 'Primary Security Planner' },
+          modelB: { name: 'Nemotron 3 Super', model: MODELS.nemotron3Super, provider: 'openrouter', role: 'Secondary Security Planner (120B MoE)' },
+          finalAuthority: 'A',
+          initialPrompt: buildPlanDebateSecurityPrompt(planContent, ctx, phase1Summary),
+          callModel: callModelForDebate,
+          onRound: (round, speaker, text) => {
+            console.log(`    [P2A R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+          },
+        });
+        securityDebateLog = p2aResult.debateLog;
+        console.log(`    [${p2aResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2A — ${p2aResult.rounds.length} rounds, ${((Date.now() - p2aStart) / 1000).toFixed(1)}s`);
+        debateResults.push({
+          name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`,
+          status: 'SUCCESS', text: p2aResult.finalVerdict,
+          inputTokens: p2aResult.totalTokens.input, outputTokens: p2aResult.totalTokens.output,
+          costUSD: 0, durationMs: Date.now() - p2aStart,
+          debateLog: p2aResult.debateLog, consensusReached: p2aResult.consensusReached,
+        });
+      } catch (err) {
+        console.error(`    [FAIL] Phase 2A: ${err.message}`);
+        debateResults.push({ name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      }
+
+      // ── Phase 2B: Architecture Planning Debate ──
+      console.log('');
+      console.log('  ── Phase 2B: Architecture Planning Debate ──');
+      console.log('  Claude Sonnet 4.6 ↔ Qwen 3.6 Plus:free');
+      console.log('');
+
+      try {
+        const p2bStart = Date.now();
+        const p2bResult = await runRecursiveConsensus({
+          topic: 'Architecture & Component Planning',
+          modelA: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'Senior Architecture Lead' },
+          modelB: { name: 'Qwen 3.6 Plus', model: MODELS.qwen36Plus, provider: 'openrouter', role: 'Code Architecture Specialist (1M context)' },
+          finalAuthority: 'A',
+          initialPrompt: buildPlanDebateArchPrompt(planContent, ctx, phase1Summary),
+          callModel: callModelForDebate,
+          onRound: (round, speaker, text) => {
+            console.log(`    [P2B R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+          },
+        });
+        archDebateLog = p2bResult.debateLog;
+        console.log(`    [${p2bResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2B — ${p2bResult.rounds.length} rounds, ${((Date.now() - p2bStart) / 1000).toFixed(1)}s`);
+        debateResults.push({
+          name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`,
+          status: 'SUCCESS', text: p2bResult.finalVerdict,
+          inputTokens: p2bResult.totalTokens.input, outputTokens: p2bResult.totalTokens.output,
+          costUSD: (p2bResult.totalTokens.input / 1_000_000 * 1.5) + (p2bResult.totalTokens.output / 1_000_000 * 7.5),
+          durationMs: Date.now() - p2bStart,
+          debateLog: p2bResult.debateLog, consensusReached: p2bResult.consensusReached,
+        });
+      } catch (err) {
+        console.error(`    [FAIL] Phase 2B: ${err.message}`);
+        debateResults.push({ name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      }
+
+      // ── Phase 2C: UX/UI Design Planning Debate ──
+      console.log('');
+      console.log('  ── Phase 2C: UX/UI Design Planning Debate ──');
+      console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.7');
+      console.log('');
+
+      try {
+        const p2cStart = Date.now();
+        const p2cResult = await runRecursiveConsensus({
+          topic: 'UX/UI Design Specification',
+          modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director (Lead Design Authority)' },
+          modelB: { name: 'MiniMax M2.7', model: MODELS.minimaxM25Free, provider: 'openrouter', role: 'Design Implementation Reviewer' },
+          finalAuthority: 'A',
+          initialPrompt: buildPlanDebateDesignPrompt(planContent, ctx, uxReport),
+          callModel: callModelForDebate,
+          onRound: (round, speaker, text) => {
+            console.log(`    [P2C R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+          },
+        });
+        designDebateLog = p2cResult.debateLog;
+        console.log(`    [${p2cResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${p2cResult.rounds.length} rounds, ${((Date.now() - p2cStart) / 1000).toFixed(1)}s`);
+        debateResults.push({
+          name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`,
+          status: 'SUCCESS', text: p2cResult.finalVerdict,
+          inputTokens: p2cResult.totalTokens.input, outputTokens: p2cResult.totalTokens.output,
+          costUSD: (p2cResult.totalTokens.input / 1_000_000 * 1.0) + (p2cResult.totalTokens.output / 1_000_000 * 6.0),
+          durationMs: Date.now() - p2cStart,
+          debateLog: p2cResult.debateLog, consensusReached: p2cResult.consensusReached,
+        });
+      } catch (err) {
+        console.error(`    [FAIL] Phase 2C: ${err.message}`);
+        debateResults.push({ name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      }
+
+      // ── Phase 3: Smart Escalation ──
+      const allDebateTexts = debateResults.map(r => r.text || '').join('\n');
+      const hasCritical = allDebateTexts.toUpperCase().includes('CRITICAL');
+      const hasStalled = debateResults.some(r => r.consensusReached === false);
+
+      if (hasCritical || hasStalled) {
+        console.log('');
+        console.log('  ── Phase 3: Smart Escalation (CRITICAL gaps or stalled debates detected) ──');
+
+        if (hasStalled) {
+          console.log('  Mercury 2 — resolving stalled planning debate...');
+          try {
+            const mercStart = Date.now();
+            const stalledDebates = debateResults.filter(r => r.consensusReached === false).map(r => `### ${r.name}\n${r.text}`).join('\n\n');
+            const mercResult = await callOpenRouter(apiKey, MODELS.mercury2, `You are Mercury 2 — the fastest reasoning model. A planning debate between AI models has stalled. Review the contested design/architecture decisions and provide a FINAL RULING on each.\n\nStalled Debates:\n${stalledDebates}\n\nFor each: AGREE with Model A, AGREE with Model B, or provide your OWN recommendation with reasoning.`);
+            console.log(`    [OK] Mercury 2 — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
+            debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'SUCCESS', text: mercResult.text, inputTokens: mercResult.inputTokens, outputTokens: mercResult.outputTokens, costUSD: (mercResult.inputTokens / 1_000_000 * 0.25) + (mercResult.outputTokens / 1_000_000 * 0.75), durationMs: Date.now() - mercStart });
+          } catch (err) {
+            console.error(`    [FAIL] Mercury 2: ${err.message}`);
+            debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+          }
+        }
+
+        if (hasCritical) {
+          console.log('  MiniMax M2.7 — deep-diving CRITICAL planning gaps...');
+          try {
+            const m27Start = Date.now();
+            const criticalFindings = allDebateTexts.split('\n').filter(l => l.toUpperCase().includes('CRITICAL')).slice(0, 20).join('\n');
+            const m27Result = await callOpenRouter(apiKey, MODELS.minimaxM27, `You are MiniMax M2.7 — #3 ranked AI overall. CRITICAL gaps have been found in a feature implementation plan. Deep-dive each one:\n1. Is this truly CRITICAL or over-classified?\n2. Specific mitigation strategy\n3. Should this block implementation or be addressed in parallel?\n4. Priority order\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull plan:\n${planContent}`);
+            console.log(`    [OK] MiniMax M2.7 — ${((Date.now() - m27Start) / 1000).toFixed(1)}s`);
+            debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'SUCCESS', text: m27Result.text, inputTokens: m27Result.inputTokens, outputTokens: m27Result.outputTokens, costUSD: (m27Result.inputTokens / 1_000_000 * 0.30) + (m27Result.outputTokens / 1_000_000 * 1.20), durationMs: Date.now() - m27Start });
+          } catch (err) {
+            console.error(`    [FAIL] MiniMax M2.7: ${err.message}`);
+            debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+          }
+        }
+      } else {
+        console.log('');
+        console.log('  ── Phase 3: Smart Escalation — SKIPPED (no CRITICAL gaps, all debates reached consensus) ──');
+      }
+    }
+
+    // ── Generate report ──
+    const results = [...phase1Results, ...debateResults];
+    const { md, timestamp } = generateReport(results, files, startTime);
+    const successCount = results.filter(r => r.status === 'SUCCESS').length;
+    const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
+    const outputPaths = writeSplitOutput(results, files, md, timestamp);
+
+    // Write debate logs
+    if (securityDebateLog) {
+      writeFileSync(join(outputPaths.latestDir, 'security-planning-debate-log.md'), securityDebateLog, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'security-planning-debate-log.md'), securityDebateLog, 'utf-8');
+    }
+    if (archDebateLog) {
+      writeFileSync(join(outputPaths.latestDir, 'architecture-planning-debate-log.md'), archDebateLog, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'architecture-planning-debate-log.md'), archDebateLog, 'utf-8');
+    }
+    if (designDebateLog) {
+      writeFileSync(join(outputPaths.latestDir, 'design-planning-debate-log.md'), designDebateLog, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'design-planning-debate-log.md'), designDebateLog, 'utf-8');
+    }
+
+    // Write actionable outputs
+    const archVerdict = debateResults.find(r => r.name.includes('Architecture Planning'));
+    if (archVerdict?.status === 'SUCCESS') {
+      const archPlan = `# Architecture Planning Consensus\n\n> Phase 2B: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus\n> Consensus: ${archVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${archVerdict.text}\n`;
+      writeFileSync(join(outputPaths.latestDir, 'architecture-plan.md'), archPlan, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'architecture-plan.md'), archPlan, 'utf-8');
+    }
+    const designVerdict = debateResults.find(r => r.name.includes('UX/UI Design Planning'));
+    if (designVerdict?.status === 'SUCCESS') {
+      const designSpec = `# Design Specification Consensus\n\n> Phase 2C: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7\n> Consensus: ${designVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${designVerdict.text}\n`;
+      writeFileSync(join(outputPaths.latestDir, 'design-specification.md'), designSpec, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'design-specification.md'), designSpec, 'utf-8');
+    }
+    const secVerdict = debateResults.find(r => r.name.includes('Security Planning Debate'));
+    if (secVerdict?.status === 'SUCCESS') {
+      const secPlan = `# Security Planning Consensus\n\n> Phase 2A: Step 3.5 Flash ↔ Nemotron 3 Super (FREE)\n> Consensus: ${secVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${secVerdict.text}\n`;
+      writeFileSync(join(outputPaths.latestDir, 'security-plan.md'), secPlan, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'security-plan.md'), secPlan, 'utf-8');
+    }
+
+    mkdirSync(CONFIG.legacyReportDir, { recursive: true });
+    writeFileSync(join(CONFIG.legacyReportDir, 'LATEST.md'), md, 'utf-8');
+
+    console.log('');
+    console.log('  ════════════════════════════════════════════════════════');
+    console.log(`  14-Brain PLANNING MODE — Complete`);
+    console.log(`  Plan:       ${opts.document}`);
+    console.log(`  Output:     ${outputPaths.latestDir}/`);
+    console.log(`  Validators: ${successCount}/${results.length} passed`);
+    if (archVerdict?.status === 'SUCCESS') console.log(`  Arch Plan:  latest/architecture-plan.md`);
+    if (designVerdict?.status === 'SUCCESS') console.log(`  Design:     latest/design-specification.md`);
+    if (secVerdict?.status === 'SUCCESS') console.log(`  Security:   latest/security-plan.md`);
+    console.log(`  Cost:       $${totalCost.toFixed(4)}`);
+    console.log(`  Time:       ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+    console.log('  ════════════════════════════════════════════════════════');
+    console.log('');
+    console.log('  Next step: Review output as Opus CEO, then implement.');
     console.log('');
     return;
   }
@@ -1567,7 +2208,7 @@ async function main() {
     // ── Phase 2C: UX/UI Design Specialty Debate ──
     console.log('');
     console.log('  ── Phase 2C: UX/UI Design Specialty Debate ──');
-    console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.5:free');
+    console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.7');
     console.log('  Max 5 rounds · Gemini = final authority on design');
     console.log('');
 
@@ -1582,7 +2223,7 @@ async function main() {
           role: 'Creative Director (Lead Design Authority)',
         },
         modelB: {
-          name: 'MiniMax M2.5:free',
+          name: 'MiniMax M2.7',
           model: MODELS.minimaxM25Free,
           provider: 'openrouter',
           role: 'Design Implementation Reviewer',
@@ -1696,7 +2337,7 @@ async function main() {
   // ── Write design-recommendations.md (actionable from Phase 2C UX/UI consensus) ──
   const phase2cVerdict = debateResults.find(r => r.name.includes('UX/UI'));
   if (phase2cVerdict?.status === 'SUCCESS') {
-    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 2C specialty debate (Gemini 3.1 Pro ↔ MiniMax M2.5:free)\n> Consensus: ${phase2cVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2cVerdict.text}\n`;
+    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 2C specialty debate (Gemini 3.1 Pro ↔ MiniMax M2.7)\n> Consensus: ${phase2cVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2cVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'design-recommendations.md'), designRecs, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'design-recommendations.md'), designRecs, 'utf-8');
   }
@@ -1770,6 +2411,22 @@ const TRACK_SLUGS = {
   'Security & Privacy Assessment': '07-security-privacy',
   'Architecture & Implementation Gap': '08-architecture-implementation',
   'Document Quality & Completeness': '09-document-quality',
+  // Planning mode tracks
+  'UX Research & Competitor Analysis': '01-ux-research',
+  'Architecture & Component Design': '02-architecture-design',
+  'Security & Privacy Planning': '03-security-planning',
+  'Performance & Bundle Impact': '04-performance-planning',
+  'Competitive Intelligence': '05-competitive-intel',
+  'User Persona Alignment': '06-persona-alignment',
+  'Implementation Risk Assessment': '07-risk-assessment',
+  'Frontend Patterns & React Best Practices': '08-frontend-patterns',
+  'Data Safety & Schema Impact': '09-data-safety-planning',
+  'API Design & Backend Contracts': '10-api-design',
+  'Module Architecture & File Budget': '11-module-architecture',
+  'Mobile & Edge Case Analysis': '12-mobile-edge-cases',
+  'Security Planning Debate (Phase 2A)': '13-security-planning-debate',
+  'Architecture Planning Debate (Phase 2B)': '14-architecture-planning-debate',
+  'UX/UI Design Planning Debate (Phase 2C)': '15-design-planning-debate',
 };
 
 function writeSplitOutput(results, files, fullReport, timestamp) {

@@ -169,16 +169,28 @@ export const ChartCard = styled.article<{ $span?: number }>`
   position: relative;
   display: flex;
   flex-direction: column;
-  background: ${hexAlpha(CHART_COLORS.royalDepth, 0.6)};
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  border: 1px solid ${hexAlpha(CHART_COLORS.iceWing, 0.15)};
+  background:
+    linear-gradient(
+      168deg,
+      ${hexAlpha(CHART_COLORS.royalDepth, 0.75)} 0%,
+      ${hexAlpha(CHART_COLORS.midnightSapphire, 0.65)} 55%,
+      ${hexAlpha('#0A0A0F', 0.7)} 100%
+    );
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid ${hexAlpha(CHART_COLORS.iceWing, 0.12)};
+  border-top-color: ${hexAlpha(CHART_COLORS.iceWing, 0.25)};
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 8px 32px ${CHART_COLORS.vaultShadow};
+  box-shadow:
+    0 2px 4px ${hexAlpha('#000', 0.3)},
+    0 8px 24px ${hexAlpha('#000', 0.25)},
+    0 16px 48px ${CHART_COLORS.vaultShadow};
   box-sizing: border-box;
   height: 320px;
   grid-column: span 1;
+  transform: perspective(800px) rotateX(1deg);
+  transform-origin: center bottom;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.4s ease,
               border-color 0.3s ease;
@@ -187,30 +199,58 @@ export const ChartCard = styled.article<{ $span?: number }>`
   animation: ${fadeUp} 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
 
+  /* Top-edge highlight — simulates overhead light source for 3D depth */
   &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      ${hexAlpha(CHART_COLORS.iceWing, 0.35)} 30%,
+      ${hexAlpha(CHART_COLORS.frostWhite, 0.2)} 50%,
+      ${hexAlpha(CHART_COLORS.iceWing, 0.35)} 70%,
+      transparent 100%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Inner depth shadow — creates recessed panel effect */
+  &::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 20px ${hexAlpha(CHART_COLORS.wingPurple, 0.05)};
+    box-shadow:
+      inset 0 1px 0 ${hexAlpha(CHART_COLORS.frostWhite, 0.04)},
+      inset 0 -8px 24px ${hexAlpha('#000', 0.15)},
+      inset 0 0 20px ${hexAlpha(CHART_COLORS.wingPurple, 0.04)};
     pointer-events: none;
   }
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      transform: translateY(-4px) translateZ(0);
-      box-shadow: 0 12px 40px ${hexAlpha(CHART_COLORS.midnightSapphire, 0.8)},
-                  0 0 20px ${hexAlpha(CHART_COLORS.iceWing, 0.2)};
+      transform: perspective(800px) rotateX(0deg) translateY(-6px) translateZ(0);
+      box-shadow:
+        0 4px 8px ${hexAlpha('#000', 0.3)},
+        0 16px 48px ${hexAlpha(CHART_COLORS.midnightSapphire, 0.8)},
+        0 0 24px ${hexAlpha(CHART_COLORS.iceWing, 0.15)};
       border-color: ${hexAlpha(CHART_COLORS.iceWing, 0.4)};
+      border-top-color: ${hexAlpha(CHART_COLORS.iceWing, 0.5)};
     }
   }
 
   &:focus-within {
-    transform: translateY(-4px) translateZ(0);
+    transform: perspective(800px) rotateX(0deg) translateY(-4px) translateZ(0);
     border: 1px solid ${CHART_COLORS.wingPurple};
     box-shadow: 0 0 0 2px ${CHART_COLORS.midnightSapphire},
                 0 0 0 4px ${CHART_COLORS.wingPurple},
-                0 12px 40px ${hexAlpha(CHART_COLORS.wingPurple, 0.3)};
+                0 16px 48px ${hexAlpha(CHART_COLORS.wingPurple, 0.3)};
   }
 
   @media (min-width: ${BREAKPOINTS.tablet}) {
@@ -228,11 +268,19 @@ export const ChartCard = styled.article<{ $span?: number }>`
   @media (max-width: ${BREAKPOINTS.mobile}) {
     padding: 1rem;
     border-radius: 12px;
+    /* Reduce perspective effect on small screens for usability */
+    transform: perspective(800px) rotateX(0.5deg);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: ${hexAlpha('#0A0A0F', 0.95)};
+    box-shadow: 0 8px 32px ${hexAlpha('#000', 0.5)};
   }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     opacity: 1;
+    transform: none;
     &:hover, &:focus-within {
       transform: none;
       transition: none;

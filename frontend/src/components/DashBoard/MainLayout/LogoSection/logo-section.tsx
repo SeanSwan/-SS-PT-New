@@ -47,7 +47,7 @@ const LogoSection = () => {
   // Determine the dashboard path based on user role
   const dashboardPath = useMemo(() => {
     if (!user) return '/';
-    return user.role === 'admin' ? '/dashboard/admin/overview' : user.role === 'trainer' ? '/dashboard/trainer/overview' : '/dashboard/client/overview';
+    return user.role === 'admin' ? '/dashboard/admin/coach-assistant' : user.role === 'trainer' ? '/dashboard/trainer/overview' : '/dashboard/client/overview';
   }, [user]);
 
   return (

@@ -588,7 +588,7 @@ const EnhancedLoginModal: React.FC = () => {
         const { login: contextLogin } = { login };
         // Re-login to set context state since forceChangePassword returns tokens
         // The api.service already stored them, we just need to update React state
-        window.location.href = result.user.role === 'admin' ? '/dashboard/admin/overview' : result.user.role === 'trainer' ? '/dashboard/trainer/overview' : '/dashboard/client/overview';
+        window.location.href = result.user.role === 'admin' ? '/dashboard/admin/coach-assistant' : result.user.role === 'trainer' ? '/dashboard/trainer/overview' : '/dashboard/client/overview';
       } else {
         setError("Password change failed. Please try again.");
         setIsLoading(false);
