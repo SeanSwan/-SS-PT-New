@@ -2,22 +2,22 @@
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║         SwanStudios 11-Brain Recursive Consensus System         ║
+ * ║         SwanStudios 14-Brain Recursive Consensus System         ║
  * ║           OpenRouter + Google GenAI + Recursive Debates          ║
  * ║                                                                  ║
  * ║  Phase 1 — 9 parallel analysts (OpenRouter):                      ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
- * ║  2. Claude 4.5 Sonnet   → Code Quality               (FREE)    ║
+ * ║  2. Claude Sonnet 4.6   → Code Quality               (FREE)    ║
  * ║  3. Step 3.5 Flash       → Security scan              (FREE)    ║
  * ║  4. Gemini 3 Flash       → Performance review         (FREE)    ║
  * ║  5. MiniMax M2.1         → Competitive intelligence   (FREE)    ║
  * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
  * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
  * ║  8. Gemini 3.1 Flash     → Frontend UX & Code Patterns (FREE)  ║
- * ║  9. Claude 4.5 Sonnet   → Data Safety & Integrity     (FREE)  ║
+ * ║  9. Claude Sonnet 4.6   → Data Safety & Integrity     (FREE)  ║
  * ║                                                                  ║
  * ║  Phase 2 — RECURSIVE CODE QUALITY DEBATE:                       ║
- * ║  10. Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)            ║
+ * ║  10. Gemini 3.1 Pro (CTO) ↔ Claude Sonnet 4.6 (CEO)            ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
  * ║     Claude = final authority on code decisions                  ║
  * ║                                                                  ║
@@ -60,19 +60,26 @@ const ROOT = join(__dirname, '..');
 // PAID models are clearly marked with cost estimates
 const MODELS = {
   // ── VERIFIED FREE on OpenRouter ──
-  gemini25Flash:  'google/gemini-2.5-flash',           // FREE — fast, great at structured analysis
+  gemini25Flash:  'google/gemini-2.5-flash',              // FREE — fast, great at structured analysis
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
-  gemini31Flash:  'google/gemini-3.1-flash-lite-preview', // FREE — latest Flash lite, strong at code review
-  deepseekV3:     'deepseek/deepseek-v3.2-20251201',  // FREE — user research / personas
-  step35Flash:    'stepfun/step-3.5-flash:free',       // FREE — 256K ctx, 74.4% SWE-bench, security specialist
-  minimaxM21:     'minimax/minimax-m2.1',              // FREE
-  claudeSonnet45: 'anthropic/claude-4.5-sonnet-20250929', // FREE on OpenRouter — also used in Phase 2 debate
+  gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — latest Flash lite, strong at code review
+  deepseekV3:     'deepseek/deepseek-v3.2-20251201',      // FREE — user research / personas
+  step35Flash:    'stepfun/step-3.5-flash:free',           // FREE — 256K ctx, 74.4% SWE-bench, security specialist
+  minimaxM21:     'minimax/minimax-m2.1',                  // FREE
+  minimaxM25Free: 'minimax/minimax-m2.5:free',             // FREE — same model as M2.5, $0 variant
+  nemotron3Super: 'nvidia/nemotron-3-super:free',          // FREE — 120B MoE, security + data safety specialist
+  qwen36Plus:     'qwen/qwen-3.6-plus:free',              // FREE — 1M context, code architecture specialist
   // ── PAID models (clearly marked) ──
-  minimaxM25:     'minimax/minimax-m2.5',              // ~$0.005/run — #1 programming
+  claudeSonnet46: 'anthropic/claude-sonnet-4-6-20260514',  // $3/$15 per M tokens — premium code quality + data safety
+  // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
+  mercury2:       'inception/mercury-2-small',             // $0.25/$0.75 per M — fastest reasoning, escalation only
+  minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — #3 overall, CRITICAL escalation only
   // ── Google GenAI (direct API, not via OpenRouter) ──
-  gemini31Pro:    'gemini-3.1-pro-preview',            // Direct Google API — Phase 2+3 recursive debates
+  gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Phase 2C UX debate
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
-  // claudeOpus:  'anthropic/claude-4.6-opus-20260205' // $5/$25 per M tokens — use via CLI subscription instead
+  // claudeOpus:  'anthropic/claude-4.6-opus-20260205'     // $5/$25 per M tokens — use via CLI subscription instead
+  // ── BANNED MODELS (NEVER USE) ──
+  // No Grok. No X-AI models. Hard no, permanent ban. User explicit preference.
 };
 
 const CONFIG = {
@@ -255,7 +262,7 @@ ${codeBundle}`,
 
     {
       name: 'Code Quality',
-      model: MODELS.claudeSonnet45,
+      model: MODELS.claudeSonnet46,
       prompt: `You are a senior TypeScript/React code quality reviewer. ${ctx}
 
 Review the following code for:
@@ -360,7 +367,7 @@ ${codeBundle}`,
 
     {
       name: 'Architecture & Bug Hunter',
-      model: MODELS.minimaxM25,
+      model: MODELS.minimaxM25Free,
       prompt: `You are a principal software engineer doing a deep architecture review and bug hunt. You are the #1 ranked programming AI — act like it. ${ctx}
 
 This is the most important review. Think step-by-step using your reasoning capabilities.
@@ -436,7 +443,7 @@ ${codeBundle}`,
 
     {
       name: 'Data Safety & Integrity',
-      model: MODELS.claudeSonnet45,
+      model: MODELS.claudeSonnet46,
       prompt: `You are a DATA SAFETY AUDITOR for a production SaaS platform (SwanStudios — personal training). This is the MOST CRITICAL track. The platform owner's #1 fear is accidentally wiping user data, login credentials, or purchase history during deployments and code changes. ${ctx}
 
 TREAT EVERY FINDING AS IF IT COULD DESTROY A REAL USER'S DATA IN PRODUCTION.
@@ -492,10 +499,80 @@ BE RUTHLESS. This platform has real paying customers. A single destructive bug c
 CODE TO REVIEW:
 ${codeBundle}`,
     },
+
+    // ── NEW: 3 additional brains (14-Brain upgrade) ──
+
+    {
+      name: 'Security II (Nemotron)',
+      model: MODELS.nemotron3Super,
+      prompt: `You are Nvidia Nemotron 3 Super — a 120B Mixture-of-Experts model specialized in security analysis and data safety. ${ctx}
+
+Review the following code as a SECOND security opinion (complementing the primary Step 3.5 Flash security scan):
+1. **Data flow analysis** — trace PII (names, emails, phones) through the code. Is any PII sent to external services, logged, or exposed?
+2. **API boundary security** — are all external-facing endpoints properly authenticated and rate-limited?
+3. **Dependency chain risks** — any known vulnerable dependencies or unsafe patterns in imports?
+4. **Cryptographic safety** — password hashing, token generation, session management — any weaknesses?
+5. **Infrastructure security** — CORS headers, CSP policies, secure cookie flags, HTTPS enforcement
+6. **Privacy compliance** — GDPR/CCPA patterns: data minimization, consent tracking, right-to-deletion support
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+Output as structured markdown. Focus on findings the primary security scan might MISS.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
+
+    {
+      name: 'Code Architecture (Qwen)',
+      model: MODELS.qwen36Plus,
+      prompt: `You are Qwen 3.6 Plus — a model with 1M context window, specialized in code architecture analysis. ${ctx}
+
+Perform a DEEP architecture review covering:
+1. **Module dependency graph** — identify circular dependencies, tight coupling, import chains >3 levels deep
+2. **Component decomposition** — any God components >300 lines? Extract candidates for sub-components/hooks/utils
+3. **State management patterns** — Redux vs Context vs local state — is each used appropriately? Any over-engineering?
+4. **API contract consistency** — do frontend API calls match backend route signatures? Any drift?
+5. **Type safety gaps** — places where \`any\` is used, missing generics, or type assertions that could fail at runtime
+6. **Code reuse opportunities** — duplicated logic across 2+ files that should be extracted into shared utilities
+7. **File organization** — does the directory structure follow the project conventions? Misplaced files?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+For each finding, suggest the specific refactoring needed.
+Output as structured markdown.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
+
+    {
+      name: 'Bug Hunter II (Step)',
+      model: MODELS.step35Flash,
+      prompt: `You are Step 3.5 Flash — deployed as a SECOND bug hunter (the primary Bug Hunter is MiniMax M2.5). Use your 74.4% SWE-bench accuracy to find bugs the primary hunter missed. ${ctx}
+
+This is a SECONDARY bug hunt. Focus on DIFFERENT bug categories than a typical architecture review:
+
+1. **Edge case bugs** — what happens with empty arrays, null users, 0-length strings, negative numbers?
+2. **Async race conditions** — concurrent API calls that modify the same state, missing abort controllers
+3. **UI state desync** — loading states that don't reset on error, success toasts on failed operations
+4. **Browser compatibility** — CSS features that need fallbacks, API usage without polyfills
+5. **Memory pressure** — large arrays held in state, images not cleaned up, WebSocket connections without limits
+6. **Timezone bugs** — date comparisons without timezone normalization, display format inconsistencies
+7. **Mobile-specific bugs** — touch events vs click events, viewport resize issues, keyboard covering inputs
+
+For each bug found, provide:
+- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
+- **File & Line:** Exact location
+- **Reproduction steps:** How to trigger the bug
+- **Fix:** Specific code change
+
+Output as structured markdown. Find what others miss.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
   ];
 
-  // Phase 2 + 3 are now recursive debates — handled in main() via runRecursiveConsensus()
-  // The old single-pass Gemini track is replaced by debate loops.
+  // Phase 2 specialty debates + Phase 3 smart escalation — handled in main()
 
   return tracks;
 }
@@ -510,7 +587,7 @@ function buildDocumentValidatorTracks(documentContent, documentPath) {
   return [
     {
       name: 'Technical Accuracy',
-      model: MODELS.claudeSonnet45,
+      model: MODELS.claudeSonnet46,
       prompt: `You are a senior technical reviewer for a fitness SaaS platform. ${ctx}
 
 Review this QA/vision alignment document for TECHNICAL ACCURACY:
@@ -670,7 +747,7 @@ ${documentContent}`,
 
     {
       name: 'Document Quality & Completeness',
-      model: MODELS.claudeSonnet45,
+      model: MODELS.claudeSonnet46,
       prompt: `You are a technical documentation quality reviewer. ${ctx}
 
 Review this QA report for DOCUMENT QUALITY:
@@ -958,8 +1035,15 @@ async function runValidator(apiKey, track, index) {
 
     // Cost tracking
     let costUSD = 0;
-    if (track.model === MODELS.minimaxM25) {
-      costUSD = (result.inputTokens / 1_000_000 * 0.295) +
+    if (track.model === MODELS.claudeSonnet46) {
+      // Claude Sonnet 4.6: $3/$15 per M tokens
+      costUSD = (result.inputTokens / 1_000_000 * 3.0) +
+                (result.outputTokens / 1_000_000 * 15.0);
+    } else if (track.model === MODELS.mercury2) {
+      costUSD = (result.inputTokens / 1_000_000 * 0.25) +
+                (result.outputTokens / 1_000_000 * 0.75);
+    } else if (track.model === MODELS.minimaxM27) {
+      costUSD = (result.inputTokens / 1_000_000 * 0.30) +
                 (result.outputTokens / 1_000_000 * 1.20);
     } else if (track.model === MODELS.gemini31Pro) {
       // Gemini 3.1 Pro: $2/M input, $12/M output (estimate)
@@ -967,8 +1051,8 @@ async function runValidator(apiKey, track, index) {
                 (result.outputTokens / 1_000_000 * 12.0);
     }
     // Safety: warn if a "free" model somehow reports cost
-    const isPaidModel = track.model === MODELS.minimaxM25 || track.model === MODELS.gemini31Pro || track.model === MODELS.step35Flash;
-    if (!isPaidModel && costUSD > 0.01) {
+    const paidModels = [MODELS.claudeSonnet46, MODELS.mercury2, MODELS.minimaxM27, MODELS.gemini31Pro];
+    if (!paidModels.includes(track.model) && costUSD > 0.01) {
       console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
 
@@ -1062,10 +1146,10 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios 11-Brain Recursive Consensus System v11.0*
-*Phase 1: Gemini 2.5 Flash + Claude 4.5 Sonnet + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.5*
-*Phase 2: Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO) recursive debate*
-*Phase 3: Gemini 3.1 Pro (Creative Dir) ↔ Claude Sonnet (Collaborator) recursive debate*
+*SwanStudios 14-Brain Recursive Consensus System v14.0*
+*Phase 1: 12 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.5:free + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude)*
+*Phase 2: 3 Specialty Debates — Security (Step ↔ Nemotron) + Code Quality (Claude ↔ Qwen) + UX/UI (Gemini 3.1 Pro ↔ M2.5:free)*
+*Phase 3: Smart Escalation — Mercury 2 + MiniMax M2.7 (CRITICAL only)*
 `;
 
   return { md, timestamp };
@@ -1099,29 +1183,30 @@ async function main() {
   loadEnv();
 
   const hasGemini31 = !!getGeminiKey();
-  const brainCount = hasGemini31 ? 11 : 9;
+  const brainCount = hasGemini31 ? 14 : 12;
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios 11-Brain Recursive Consensus System      ║');
+  console.log('  ║    SwanStudios 14-Brain Recursive Consensus System      ║');
   const subtitle = hasGemini31
-    ? `${brainCount}-Brain — Recursive Debates ENABLED`
-    : `9-Brain — Phase 1 only (add GEMINI_API_KEY for 11-Brain)`;
+    ? `${brainCount}-Brain — Specialty Debates + Smart Escalation`
+    : `12-Brain — Phase 1 only (add GEMINI_API_KEY for 14-Brain)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Phase 1: 9 Parallel Validators (OpenRouter)          ║');
-  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet · Step 3.5 Flash   ║');
+  console.log('  ║    Phase 1: 12 Parallel Validators (OpenRouter)         ║');
+  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
   console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
-  console.log('  ║    MiniMax M2.1 · MiniMax M2.5 · Data Safety (Claude) ║');
+  console.log('  ║    MiniMax M2.1 · MiniMax M2.5:free · Nemotron 3     ║');
+  console.log('  ║    Qwen 3.6 Plus · Step Bug Hunter II · Data Safety   ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
-    console.log('  ║    Phase 2: Code Quality Recursive Debate              ║');
-    console.log('  ║    Gemini 3.1 Pro (CTO) ↔ Claude Sonnet (CEO)         ║');
-    console.log('  ║    Claude = final authority · max 5 rounds             ║');
+    console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
+    console.log('  ║    A. Security: Step 3.5 ↔ Nemotron 3 Super (FREE)   ║');
+    console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus       ║');
+    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.5:free     ║');
     console.log('  ║                                                          ║');
-    console.log('  ║    Phase 3: UX/UI Design Recursive Debate              ║');
-    console.log('  ║    Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collab)    ║');
-    console.log('  ║    Gemini = final authority · max 5 rounds             ║');
+    console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
+    console.log('  ║    Mercury 2 + MiniMax M2.7 — skip if not needed      ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
@@ -1208,7 +1293,7 @@ async function main() {
       // ── Phase 2: Technical Accuracy Debate ──
       console.log('');
       console.log('  ── Phase 2: Technical Accuracy Recursive Debate ──');
-      console.log('  Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)');
+      console.log('  Gemini 3.1 Pro (CTO) ↔ Claude Sonnet 4.6 (CEO)');
       console.log('');
 
       try {
@@ -1216,7 +1301,7 @@ async function main() {
         const p2Result = await runRecursiveConsensus({
           topic: 'Document Technical Accuracy',
           modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'CTO' },
-          modelB: { name: 'Claude 4.5 Sonnet', model: MODELS.claudeSonnet45, provider: 'openrouter', role: 'CEO' },
+          modelB: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'CEO' },
           finalAuthority: 'B',
           initialPrompt: buildDocDebateCodePrompt(documentContent, ctx, phase1Summary),
           callModel: callModelForDebate,
@@ -1227,7 +1312,7 @@ async function main() {
         phase2DebateLog = p2Result.debateLog;
         console.log(`    [${p2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2 — ${p2Result.rounds.length} rounds, ${((Date.now() - p2Start) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+          name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`,
           status: 'SUCCESS', text: p2Result.finalVerdict,
           inputTokens: p2Result.totalTokens.input, outputTokens: p2Result.totalTokens.output,
           costUSD: (p2Result.totalTokens.input / 1_000_000 * 2.0) + (p2Result.totalTokens.output / 1_000_000 * 12.0),
@@ -1235,13 +1320,13 @@ async function main() {
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 2: ${err.message}`);
-        debateResults.push({ name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'Code Quality Debate (Phase 2)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
 
       // ── Phase 3: Design Gap Debate ──
       console.log('');
       console.log('  ── Phase 3: Design Gap Recursive Debate ──');
-      console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude 4.5 Sonnet (Collaborator)');
+      console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet 4.6 (Collaborator)');
       console.log('');
 
       try {
@@ -1249,7 +1334,7 @@ async function main() {
         const p3Result = await runRecursiveConsensus({
           topic: 'Document Design Gap Assessment',
           modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director' },
-          modelB: { name: 'Claude 4.5 Sonnet', model: MODELS.claudeSonnet45, provider: 'openrouter', role: 'Design Collaborator' },
+          modelB: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'Design Collaborator' },
           finalAuthority: 'A',
           initialPrompt: buildDocDebateDesignPrompt(documentContent, ctx, uxReport),
           callModel: callModelForDebate,
@@ -1260,7 +1345,7 @@ async function main() {
         phase3DebateLog = p3Result.debateLog;
         console.log(`    [${p3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 3 — ${p3Result.rounds.length} rounds, ${((Date.now() - p3Start) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
+          name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`,
           status: 'SUCCESS', text: p3Result.finalVerdict,
           inputTokens: p3Result.totalTokens.input, outputTokens: p3Result.totalTokens.output,
           costUSD: (p3Result.totalTokens.input / 1_000_000 * 2.0) + (p3Result.totalTokens.output / 1_000_000 * 12.0),
@@ -1268,7 +1353,7 @@ async function main() {
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 3: ${err.message}`);
-        debateResults.push({ name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
     }
 
@@ -1347,8 +1432,8 @@ async function main() {
 
   console.log(`  Phase 1: Launching ${phase1Tracks.length} validators (staggered 2s apart)...`);
   if (hasGemini31) {
-    console.log(`  Phase 2: Code Quality recursive debate (Gemini CTO ↔ Claude CEO)...`);
-    console.log(`  Phase 3: UX/UI Design recursive debate (Gemini Creative Dir ↔ Claude Collab)...`);
+    console.log(`  Phase 2: 3 Specialty Debates (Security, Code Quality, UX/UI)...`);
+    console.log(`  Phase 3: Smart Escalation (only if CRITICAL findings or stalled debates)...`);
   }
   console.log('');
 
@@ -1386,74 +1471,108 @@ async function main() {
   }
 
   if (hasGemini31) {
+    // ── Phase 2A: Security Specialty Debate (FREE) ──
     console.log('');
-    console.log('  ── Phase 2: Code Quality Recursive Debate ──');
-    console.log('  Gemini 3.1 Pro (CTO) ↔ Claude 4.5 Sonnet (CEO)');
-    console.log('  Max 5 rounds · Claude has final authority');
+    console.log('  ── Phase 2A: Security Specialty Debate ──');
+    console.log('  Step 3.5 Flash ↔ Nvidia Nemotron 3 Super (both FREE)');
+    console.log('  Max 5 rounds');
     console.log('');
 
     try {
-      const phase2Start = Date.now();
+      const p2aStart = Date.now();
+      const securityReport = phase1Results.find(r => r.name === 'Security' && r.status === 'SUCCESS')?.text || '';
+      const nemotronReport = phase1Results.find(r => r.name === 'Security II (Nemotron)' && r.status === 'SUCCESS')?.text || '';
+      const p2aResult = await runRecursiveConsensus({
+        topic: 'Security Analysis',
+        modelA: {
+          name: 'Step 3.5 Flash',
+          model: MODELS.step35Flash,
+          provider: 'openrouter',
+          role: 'Primary Security Auditor',
+        },
+        modelB: {
+          name: 'Nemotron 3 Super',
+          model: MODELS.nemotron3Super,
+          provider: 'openrouter',
+          role: 'Secondary Security Auditor (120B MoE)',
+        },
+        finalAuthority: 'A', // Step 3.5 = primary security authority (74.4% SWE-bench)
+        initialPrompt: `You are the PRIMARY security auditor. Here are both security scan results from Phase 1. Identify areas of agreement and disagreement. For disagreements, provide evidence.\n\n## Your Phase 1 Report:\n${securityReport}\n\n## Nemotron's Phase 1 Report:\n${nemotronReport}\n\n## CODE:\n${codeBundle}`,
+        callModel: callModelForDebate,
+        onRound: (round, speaker, text) => {
+          console.log(`    [P2A R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
+        },
+      });
+      const p2aDuration = Date.now() - p2aStart;
+      console.log(`    [${p2aResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2A — ${p2aResult.rounds.length} rounds, ${(p2aDuration / 1000).toFixed(1)}s`);
+      debateResults.push({
+        name: 'Security Debate (Phase 2A)',
+        model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`,
+        status: 'SUCCESS', text: p2aResult.finalVerdict,
+        inputTokens: p2aResult.totalTokens.input, outputTokens: p2aResult.totalTokens.output,
+        costUSD: 0, // Both models are FREE
+        durationMs: p2aDuration, debateLog: p2aResult.debateLog, consensusReached: p2aResult.consensusReached,
+      });
+    } catch (err) {
+      console.error(`    [FAIL] Phase 2A: ${err.message}`);
+      debateResults.push({ name: 'Security Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+    }
+
+    // ── Phase 2B: Code Quality Specialty Debate (mixed cost) ──
+    console.log('');
+    console.log('  ── Phase 2B: Code Quality Specialty Debate ──');
+    console.log('  Claude Sonnet 4.6 ↔ Qwen 3.6 Plus:free');
+    console.log('  Max 5 rounds · Claude = final authority');
+    console.log('');
+
+    try {
+      const p2bStart = Date.now();
       const phase2Result = await runRecursiveConsensus({
         topic: 'Code Quality & Architecture',
         modelA: {
-          name: 'Gemini 3.1 Pro',
-          model: MODELS.gemini31Pro,
-          provider: 'gemini-direct',
-          role: 'CTO (Chief Technology Officer)',
+          name: 'Claude Sonnet 4.6',
+          model: MODELS.claudeSonnet46,
+          provider: 'openrouter',
+          role: 'Senior Code Quality Lead',
         },
         modelB: {
-          name: 'Claude 4.5 Sonnet',
-          model: MODELS.claudeSonnet45,
+          name: 'Qwen 3.6 Plus',
+          model: MODELS.qwen36Plus,
           provider: 'openrouter',
-          role: 'CEO (Chief Executive Officer)',
+          role: 'Code Architecture Specialist (1M context)',
         },
-        finalAuthority: 'B', // Claude = CEO = final say on code
+        finalAuthority: 'A', // Claude Sonnet = final say on code quality
         initialPrompt: buildPhase2DebatePrompt(codeBundle, ctx, phase1Summary),
         callModel: callModelForDebate,
         onRound: (round, speaker, text) => {
-          const preview = text.slice(0, 80).replace(/\n/g, ' ');
-          console.log(`    [P2 R${round}] ${speaker.padEnd(20)} ${preview}...`);
+          console.log(`    [P2B R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
         },
       });
-
-      const phase2Duration = Date.now() - phase2Start;
+      const p2bDuration = Date.now() - p2bStart;
       phase2DebateLog = phase2Result.debateLog;
-      const consensusTag = phase2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY DECIDED';
-      console.log(`    [${consensusTag}] Phase 2 complete — ${phase2Result.rounds.length} rounds, ${(phase2Duration / 1000).toFixed(1)}s`);
-
+      console.log(`    [${phase2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2B — ${phase2Result.rounds.length} rounds, ${(p2bDuration / 1000).toFixed(1)}s`);
       debateResults.push({
-        name: 'Code Quality Debate (Phase 2)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
-        status: 'SUCCESS',
-        text: phase2Result.finalVerdict,
-        inputTokens: phase2Result.totalTokens.input,
-        outputTokens: phase2Result.totalTokens.output,
-        costUSD: (phase2Result.totalTokens.input / 1_000_000 * 2.0) + (phase2Result.totalTokens.output / 1_000_000 * 12.0),
-        durationMs: phase2Duration,
-        debateLog: phase2Result.debateLog,
-        consensusReached: phase2Result.consensusReached,
+        name: 'Code Quality Debate (Phase 2B)',
+        model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`,
+        status: 'SUCCESS', text: phase2Result.finalVerdict,
+        inputTokens: phase2Result.totalTokens.input, outputTokens: phase2Result.totalTokens.output,
+        costUSD: (phase2Result.totalTokens.input / 1_000_000 * 1.5) + (phase2Result.totalTokens.output / 1_000_000 * 7.5), // Only Claude costs, Qwen is free
+        durationMs: p2bDuration, debateLog: phase2Result.debateLog, consensusReached: phase2Result.consensusReached,
       });
     } catch (err) {
-      console.error(`    [FAIL] Phase 2 debate error: ${err.message}`);
-      debateResults.push({
-        name: 'Code Quality Debate (Phase 2)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
-        status: 'ERROR',
-        text: `Error: ${err.message}`,
-        inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0,
-      });
+      console.error(`    [FAIL] Phase 2B: ${err.message}`);
+      debateResults.push({ name: 'Code Quality Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
     }
 
-    // ── Phase 3: UX/UI Design Recursive Debate ──
+    // ── Phase 2C: UX/UI Design Specialty Debate ──
     console.log('');
-    console.log('  ── Phase 3: UX/UI Design Recursive Debate ──');
-    console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude 4.5 Sonnet (Collaborator)');
-    console.log('  Max 5 rounds · Gemini has final authority');
+    console.log('  ── Phase 2C: UX/UI Design Specialty Debate ──');
+    console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.5:free');
+    console.log('  Max 5 rounds · Gemini = final authority on design');
     console.log('');
 
     try {
-      const phase3Start = Date.now();
+      const p2cStart = Date.now();
       const phase3Result = await runRecursiveConsensus({
         topic: 'UX/UI Design Quality',
         modelA: {
@@ -1463,46 +1582,85 @@ async function main() {
           role: 'Creative Director (Lead Design Authority)',
         },
         modelB: {
-          name: 'Claude 4.5 Sonnet',
-          model: MODELS.claudeSonnet45,
+          name: 'MiniMax M2.5:free',
+          model: MODELS.minimaxM25Free,
           provider: 'openrouter',
-          role: 'Design Collaborator',
+          role: 'Design Implementation Reviewer',
         },
         finalAuthority: 'A', // Gemini = Creative Director = final say on design
         initialPrompt: buildPhase3DesignPrompt(codeBundle, ctx, uxReport),
         callModel: callModelForDebate,
         onRound: (round, speaker, text) => {
-          const preview = text.slice(0, 80).replace(/\n/g, ' ');
-          console.log(`    [P3 R${round}] ${speaker.padEnd(20)} ${preview}...`);
+          console.log(`    [P2C R${round}] ${speaker.padEnd(20)} ${text.slice(0, 80).replace(/\n/g, ' ')}...`);
         },
       });
-
-      const phase3Duration = Date.now() - phase3Start;
+      const p2cDuration = Date.now() - p2cStart;
       phase3DebateLog = phase3Result.debateLog;
-      const consensusTag = phase3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY DECIDED';
-      console.log(`    [${consensusTag}] Phase 3 complete — ${phase3Result.rounds.length} rounds, ${(phase3Duration / 1000).toFixed(1)}s`);
-
+      console.log(`    [${phase3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${phase3Result.rounds.length} rounds, ${(p2cDuration / 1000).toFixed(1)}s`);
       debateResults.push({
-        name: 'UX/UI Design Debate (Phase 3)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
-        status: 'SUCCESS',
-        text: phase3Result.finalVerdict,
-        inputTokens: phase3Result.totalTokens.input,
-        outputTokens: phase3Result.totalTokens.output,
-        costUSD: (phase3Result.totalTokens.input / 1_000_000 * 2.0) + (phase3Result.totalTokens.output / 1_000_000 * 12.0),
-        durationMs: phase3Duration,
-        debateLog: phase3Result.debateLog,
-        consensusReached: phase3Result.consensusReached,
+        name: 'UX/UI Design Debate (Phase 2C)',
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`,
+        status: 'SUCCESS', text: phase3Result.finalVerdict,
+        inputTokens: phase3Result.totalTokens.input, outputTokens: phase3Result.totalTokens.output,
+        costUSD: (phase3Result.totalTokens.input / 1_000_000 * 1.0) + (phase3Result.totalTokens.output / 1_000_000 * 6.0), // Only Gemini costs, M2.5 is free
+        durationMs: p2cDuration, debateLog: phase3Result.debateLog, consensusReached: phase3Result.consensusReached,
       });
     } catch (err) {
-      console.error(`    [FAIL] Phase 3 debate error: ${err.message}`);
-      debateResults.push({
-        name: 'UX/UI Design Debate (Phase 3)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet45}`,
-        status: 'ERROR',
-        text: `Error: ${err.message}`,
-        inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0,
-      });
+      console.error(`    [FAIL] Phase 2C: ${err.message}`);
+      debateResults.push({ name: 'UX/UI Design Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+    }
+
+    // ── Phase 3: Smart Escalation (only for CRITICAL findings or stalled debates) ──
+    const allDebateTexts = debateResults.map(r => r.text || '').join('\n');
+    const hasCritical = allDebateTexts.toUpperCase().includes('CRITICAL');
+    const hasStalled = debateResults.some(r => r.consensusReached === false);
+
+    if (hasCritical || hasStalled) {
+      console.log('');
+      console.log('  ── Phase 3: Smart Escalation (CRITICAL/stalled detected) ──');
+
+      if (hasStalled) {
+        console.log('  Mercury 2 — resolving stalled debate...');
+        try {
+          const mercStart = Date.now();
+          const stalledDebates = debateResults.filter(r => r.consensusReached === false).map(r => `### ${r.name}\n${r.text}`).join('\n\n');
+          const mercResult = await callOpenRouter(apiKey, MODELS.mercury2, `You are Mercury 2 — the fastest reasoning model. A debate between AI models has stalled without consensus. Review the contested points and provide a FINAL RULING on each one.\n\nStalled Debates:\n${stalledDebates}\n\nFor each contested point: AGREE with Model A, AGREE with Model B, or provide your OWN ruling with evidence.`);
+          console.log(`    [OK] Mercury 2 escalation — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
+          debateResults.push({
+            name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2,
+            status: 'SUCCESS', text: mercResult.text,
+            inputTokens: mercResult.inputTokens, outputTokens: mercResult.outputTokens,
+            costUSD: (mercResult.inputTokens / 1_000_000 * 0.25) + (mercResult.outputTokens / 1_000_000 * 0.75),
+            durationMs: Date.now() - mercStart,
+          });
+        } catch (err) {
+          console.error(`    [FAIL] Mercury 2: ${err.message}`);
+          debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        }
+      }
+
+      if (hasCritical) {
+        console.log('  MiniMax M2.7 — deep-diving CRITICAL findings...');
+        try {
+          const m27Start = Date.now();
+          const criticalFindings = allDebateTexts.split('\n').filter(l => l.toUpperCase().includes('CRITICAL')).slice(0, 20).join('\n');
+          const m27Result = await callOpenRouter(apiKey, MODELS.minimaxM27, `You are MiniMax M2.7 — the #3 ranked AI overall, #2 in Programming. CRITICAL security and code findings have been detected by the AI Village. Deep-dive into each one and provide:\n1. Is this truly CRITICAL or over-classified?\n2. Exact fix with code snippet\n3. Blast radius — how many users affected?\n4. Priority order for fixing\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull context:\n${codeBundle}`);
+          console.log(`    [OK] MiniMax M2.7 escalation — ${((Date.now() - m27Start) / 1000).toFixed(1)}s`);
+          debateResults.push({
+            name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27,
+            status: 'SUCCESS', text: m27Result.text,
+            inputTokens: m27Result.inputTokens, outputTokens: m27Result.outputTokens,
+            costUSD: (m27Result.inputTokens / 1_000_000 * 0.30) + (m27Result.outputTokens / 1_000_000 * 1.20),
+            durationMs: Date.now() - m27Start,
+          });
+        } catch (err) {
+          console.error(`    [FAIL] MiniMax M2.7: ${err.message}`);
+          debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        }
+      }
+    } else {
+      console.log('');
+      console.log('  ── Phase 3: Smart Escalation — SKIPPED (no CRITICAL findings, all debates reached consensus) ──');
     }
   }
 
@@ -1527,20 +1685,28 @@ async function main() {
     writeFileSync(join(outputPaths.archiveDir, 'design-debate-log.md'), phase3DebateLog, 'utf-8');
   }
 
-  // ── Write fix-instructions.md (actionable from Phase 2 consensus) ──
-  const phase2Verdict = debateResults.find(r => r.name.includes('Phase 2'));
-  if (phase2Verdict?.status === 'SUCCESS') {
-    const fixInstructions = `# Fix Instructions — Code Quality Consensus\n\n> Generated from Phase 2 recursive debate (Gemini CTO ↔ Claude CEO)\n> Consensus: ${phase2Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2Verdict.text}\n`;
+  // ── Write fix-instructions.md (actionable from Phase 2B code quality consensus) ──
+  const phase2bVerdict = debateResults.find(r => r.name.includes('Code Quality'));
+  if (phase2bVerdict?.status === 'SUCCESS') {
+    const fixInstructions = `# Fix Instructions — Code Quality Consensus\n\n> Generated from Phase 2B specialty debate (Claude Sonnet 4.6 ↔ Qwen 3.6 Plus)\n> Consensus: ${phase2bVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2bVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
   }
 
-  // ── Write design-recommendations.md (actionable from Phase 3 consensus) ──
-  const phase3Verdict = debateResults.find(r => r.name.includes('Phase 3'));
-  if (phase3Verdict?.status === 'SUCCESS') {
-    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 3 recursive debate (Gemini Creative Director ↔ Claude Collaborator)\n> Consensus: ${phase3Verdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase3Verdict.text}\n`;
+  // ── Write design-recommendations.md (actionable from Phase 2C UX/UI consensus) ──
+  const phase2cVerdict = debateResults.find(r => r.name.includes('UX/UI'));
+  if (phase2cVerdict?.status === 'SUCCESS') {
+    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 2C specialty debate (Gemini 3.1 Pro ↔ MiniMax M2.5:free)\n> Consensus: ${phase2cVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2cVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'design-recommendations.md'), designRecs, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'design-recommendations.md'), designRecs, 'utf-8');
+  }
+
+  // ── Write security-consensus.md (actionable from Phase 2A security debate) ──
+  const phase2aVerdict = debateResults.find(r => r.name.includes('Security Debate'));
+  if (phase2aVerdict?.status === 'SUCCESS') {
+    const securityRecs = `# Security Consensus\n\n> Generated from Phase 2A specialty debate (Step 3.5 Flash ↔ Nemotron 3 Super)\n> Consensus: ${phase2aVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2aVerdict.text}\n`;
+    writeFileSync(join(outputPaths.latestDir, 'security-consensus.md'), securityRecs, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'security-consensus.md'), securityRecs, 'utf-8');
   }
 
   // ── Legacy mirror (backwards compat) ──
@@ -1549,7 +1715,7 @@ async function main() {
 
   const totalValidators = phase1Tracks.length + debateResults.length;
   console.log('  ════════════════════════════════════════════════════════');
-  console.log(`  11-Brain Recursive Consensus System — Complete`);
+  console.log(`  14-Brain Recursive Consensus System — Complete`);
   console.log(`  AI Village Output:`);
   console.log(`    Latest:     ${outputPaths.latestDir}/`);
   console.log(`    Summary:    ${outputPaths.summary}`);
@@ -1559,7 +1725,7 @@ async function main() {
   console.log(`  Phase 1:  ${successCount}/${phase1Tracks.length} validators passed`);
   if (debateResults.length > 0) {
     const debateSuccess = debateResults.filter(r => r.status === 'SUCCESS').length;
-    console.log(`  Phase 2+3: ${debateSuccess}/${debateResults.length} debates completed`);
+    console.log(`  Phase 2:  ${debateSuccess}/${debateResults.length} specialty debates + escalations`);
   }
   console.log(`  Cost:     $${totalCost.toFixed(4)}`);
   console.log(`  Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
@@ -1583,8 +1749,17 @@ const TRACK_SLUGS = {
   'Architecture & Bug Hunter': '07-architecture-bugs',
   'Frontend UX & Code Patterns': '08-frontend-ux-patterns',
   'Data Safety & Integrity': '09-data-safety',
-  'Code Quality Debate (Phase 2)': '10-code-quality-debate',
-  'UX/UI Design Debate (Phase 3)': '11-design-debate',
+  'Security II (Nemotron)': '10-security-nemotron',
+  'Code Architecture (Qwen)': '11-code-architecture-qwen',
+  'Bug Hunter II (Step)': '12-bug-hunter-step',
+  'Security Debate (Phase 2A)': '13-security-debate',
+  'Code Quality Debate (Phase 2B)': '14-code-quality-debate',
+  'UX/UI Design Debate (Phase 2C)': '15-design-debate',
+  'Smart Escalation (Mercury 2)': '16-escalation-mercury',
+  'Smart Escalation (MiniMax M2.7)': '17-escalation-minimax',
+  // Legacy slugs (backwards compat)
+  'Code Quality Debate (Phase 2)': '14-code-quality-debate',
+  'UX/UI Design Debate (Phase 3)': '15-design-debate',
   // Document review tracks
   'Technical Accuracy': '01-technical-accuracy',
   'Strategic Analysis': '02-strategic-analysis',
@@ -1623,7 +1798,7 @@ ${r.text}
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+*Part of SwanStudios 14-Brain Recursive Consensus System*
 `;
     writeFileSync(join(latestDir, `${slug}.md`), content, 'utf-8');
     writeFileSync(join(archiveDir, `${slug}.md`), content, 'utf-8');
@@ -1704,14 +1879,21 @@ Each track has its own file — read only the ones relevant to your task:
 | \`05-competitive-intel.md\` | Feature gaps, market positioning |
 | \`06-user-research.md\` | User flows, persona alignment, onboarding |
 | \`07-architecture-bugs.md\` | Bugs, architecture issues, tech debt |
-| \`08-code-quality-debate.md\` | Phase 2 recursive debate verdict (Gemini CTO ↔ Claude CEO) |
-| \`09-design-debate.md\` | Phase 3 recursive debate verdict (Gemini Creative Dir ↔ Claude Collab) |
-| \`debate-log.md\` | Full Phase 2 debate transcript (all rounds) |
-| \`design-debate-log.md\` | Full Phase 3 debate transcript (all rounds) |
-| \`fix-instructions.md\` | Actionable code fixes from Phase 2 consensus |
-| \`design-recommendations.md\` | Actionable design fixes from Phase 3 consensus |
+| \`08-frontend-ux-patterns.md\` | React patterns, styled-components, animations |
+| \`09-data-safety.md\` | Data integrity, destructive operations, PII |
+| \`10-security-nemotron.md\` | Security II — Nemotron 3 Super deep scan |
+| \`11-code-architecture-qwen.md\` | Code Architecture — Qwen 3.6 Plus review |
+| \`12-bug-hunter-step.md\` | Bug Hunter II — edge cases, race conditions |
+| \`13-security-debate.md\` | Phase 2A: Security debate (Step ↔ Nemotron) |
+| \`14-code-quality-debate.md\` | Phase 2B: Code quality debate (Claude ↔ Qwen) |
+| \`15-design-debate.md\` | Phase 2C: UX/UI debate (Gemini ↔ M2.5:free) |
+| \`debate-log.md\` | Full Phase 2B code quality debate transcript |
+| \`design-debate-log.md\` | Full Phase 2C design debate transcript |
+| \`fix-instructions.md\` | Actionable code fixes from Phase 2B consensus |
+| \`design-recommendations.md\` | Actionable design fixes from Phase 2C consensus |
+| \`security-consensus.md\` | Security consensus from Phase 2A debate |
 
-*SwanStudios 11-Brain Recursive Consensus System v11.0*
+*SwanStudios 14-Brain Recursive Consensus System v14.0*
 `;
 }
 

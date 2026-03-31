@@ -1,0 +1,212 @@
+/**
+ * ┌─── SUB-COMPONENT: CoachInputBar ───────────────────────────┐
+ * │ PARENT: SwanCoachAssistantPage                              │
+ * │ PURPOSE: Text input + 64px voice orb + send button          │
+ * │ WIREFRAME:                                                  │
+ * │ ┌───────────────────┐  🎤  📤                              │
+ * │ │ Type or tap mic... │  ○   →                              │
+ * │ └───────────────────┘                                      │
+ * │ Props: { onSend, sending, onVoiceStart, onVoiceEnd, ... }  │
+ * └─────────────────────────────────────────────────────────────┘
+ */
+
+import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
+import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoachStyles';
+import { ORB_SIZE_MAP, ORB_ICON_SIZE_MAP } from './SwanCoachConstants';
+import type { OrbSize } from './SwanCoachTypes';
+
+interface CoachInputBarProps {
+  onSend: (text: string) => void;
+  sending?: boolean;
+  ttsEnabled?: boolean;
+  ttsSupported?: boolean;
+  onTtsToggle?: () => void;
+}
+
+// Web Speech API type
+const SpeechRecognition = typeof window !== 'undefined'
+  ? (window as unknown as { SpeechRecognition?: typeof globalThis.SpeechRecognition; webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).SpeechRecognition
+    || (window as unknown as { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).webkitSpeechRecognition
+  : null;
+
+const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
+  onSend,
+  sending = false,
+  ttsEnabled = false,
+  ttsSupported = false,
+  onTtsToggle,
+}) => {
+  const [text, setText] = useState('');
+  const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedRef = useRef('');
+
+  // Determine orb size: primary (64px) on mobile, standard (56px) on desktop
+  const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 'primary' : 'standard';
+
+  // ── Handle send ──
+  const handleSend = useCallback(() => {
+    const msg = text.trim();
+    if (!msg || sending) return;
+    onSend(msg);
+    setText('');
+    setInterim('');
+    inputRef.current?.focus();
+  }, [text, sending, onSend]);
+
+  // ── Keyboard: Enter to send, Shift+Enter for newline ──
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
+
+  // ── Auto-resize textarea ──
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }, []);
+
+  // ── Voice recognition ──
+  const toggleListening = useCallback(() => {
+    if (!SpeechRecognition) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      setInterim('');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      accumulatedRef.current = '';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let finalText = '';
+        let interimText = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalText += result[0].transcript;
+          } else {
+            interimText += result[0].transcript;
+          }
+        }
+        if (finalText) {
+          accumulatedRef.current += finalText;
+          setText(prev => prev + finalText);
+        }
+        setInterim(interimText);
+
+        // Auto-send after 750ms of silence
+        if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+        if (accumulatedRef.current.trim() || (finalText + interimText).trim()) {
+          autoSendTimerRef.current = setTimeout(() => {
+            const msg = (accumulatedRef.current || '').trim();
+            if (msg) {
+              onSend(msg);
+              setText('');
+              accumulatedRef.current = '';
+            }
+            recognitionRef.current?.stop();
+            setListening(false);
+            setInterim('');
+          }, 750);
+        }
+      };
+
+      recognition.onerror = () => {
+        setListening(false);
+        setInterim('');
+      };
+
+      recognition.onend = () => {
+        setListening(false);
+        setInterim('');
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }, [listening, onSend]);
+
+  // ── Cleanup on unmount ──
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    };
+  }, []);
+
+  const hasVoice = !!SpeechRecognition;
+  const displayText = text || interim;
+
+  return (
+    <InputBar>
+      {/* TTS Toggle */}
+      {ttsSupported && onTtsToggle && (
+        <TtsToggle
+          $active={ttsEnabled}
+          onClick={onTtsToggle}
+          aria-label={ttsEnabled ? 'Disable voice readback' : 'Enable voice readback'}
+          title={ttsEnabled ? 'Voice readback ON' : 'Voice readback OFF'}
+        >
+          {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+        </TtsToggle>
+      )}
+
+      {/* Text Input */}
+      <ChatInput
+        ref={inputRef}
+        value={displayText}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder={listening ? 'Listening...' : 'Type or tap mic...'}
+        disabled={sending}
+        aria-label="Message input"
+        rows={1}
+      />
+
+      {/* Voice Orb */}
+      {hasVoice && (
+        <VoiceOrbWrap
+          $listening={listening}
+          $size={ORB_SIZE_MAP[orbSize]}
+          onClick={toggleListening}
+          aria-label={listening ? 'Stop listening' : 'Start voice input'}
+          title={listening ? 'Tap to stop' : 'Tap to speak'}
+        >
+          {listening
+            ? <MicOff size={ORB_ICON_SIZE_MAP[orbSize]} />
+            : <Mic size={ORB_ICON_SIZE_MAP[orbSize]} />}
+        </VoiceOrbWrap>
+      )}
+
+      {/* Send Button */}
+      <SendBtn
+        onClick={handleSend}
+        disabled={!text.trim() || sending}
+        aria-label="Send message"
+      >
+        <Send size={20} />
+      </SendBtn>
+    </InputBar>
+  );
+};
+
+export const CoachInputBar = memo(CoachInputBarComponent);

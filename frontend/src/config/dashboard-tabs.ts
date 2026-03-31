@@ -516,6 +516,7 @@ export interface WorkspaceConfig {
 // Workspace prefixes must match the actual admin route paths in UniversalDashboardLayout
 // Routes are mounted at /dashboard/admin/{path}, so prefixes must use that namespace
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
+  { id: 'coach', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — AI training assistant' },
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
   { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
   { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'NASM workout planner, logger & AI protocols' },

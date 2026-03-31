@@ -60,8 +60,8 @@ router.get('/diagnostics', (req, res) => {
 // Context permissions by role
 const ROLE_CONTEXTS = {
   client: ['general', 'macro_logging', 'form_tips', 'workout_suggestions'],
-  trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'scheduling', 'progress_analysis', 'exercise_library'],
-  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management', 'scheduling', 'progress_analysis', 'exercise_library', 'gamification'],
+  trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'scheduling', 'progress_analysis', 'exercise_library', 'client_onboarding', 'coach_assistant'],
+  admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management', 'scheduling', 'progress_analysis', 'exercise_library', 'gamification', 'client_onboarding', 'coach_assistant'],
 };
 
 /**
@@ -83,8 +83,8 @@ router.post('/conversations', async (req, res) => {
     }
 
     // Validate response style
-    const validStyles = ['phd_only', 'simple_only', 'both'];
-    const resolvedStyle = validStyles.includes(responseStyle) ? responseStyle : 'both';
+    const validStyles = ['phd_only', 'simple_only', 'balanced', 'both'];
+    const resolvedStyle = validStyles.includes(responseStyle) ? responseStyle : 'balanced';
 
     // Only trainers/admins can set a target client
     const resolvedTargetUserId = (userRole === 'admin' || userRole === 'trainer') && targetUserId

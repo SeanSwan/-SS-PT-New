@@ -45,7 +45,8 @@ interface ContextConfig {
   roles: string[];
 }
 
-export const CONTEXTS: Record<AIContext, ContextConfig> = {
+export const CONTEXTS: Record<string, ContextConfig> = {
+  coach_assistant: { label: 'Coach Assistant', icon: Sparkles, description: 'Master AI with access to all contexts', roles: ['trainer', 'admin'] },
   general: { label: 'General', icon: MessageSquare, description: 'Ask me anything about fitness and wellness', roles: ['client', 'trainer', 'admin'] },
   macro_logging: { label: 'Macros', icon: Utensils, description: 'Log food — just tell me what you ate', roles: ['client', 'trainer', 'admin'] },
   form_tips: { label: 'Form Tips', icon: Dumbbell, description: 'Get exercise form guidance', roles: ['client', 'trainer', 'admin'] },
@@ -60,10 +61,11 @@ export const CONTEXTS: Record<AIContext, ContextConfig> = {
   client_onboarding: { label: 'Onboarding', icon: UserPlus, description: 'Dictate new client info — AI builds the intake form', roles: ['trainer', 'admin'] },
 };
 
-export const RESPONSE_STYLES: { key: ResponseStyle; label: string; emoji: string }[] = [
-  { key: 'both', label: 'Both', emoji: '🎓💯' },
+export const RESPONSE_STYLES: { key: string; label: string; emoji: string }[] = [
   { key: 'phd_only', label: 'PhD Mode', emoji: '🎓' },
+  { key: 'balanced', label: 'Balanced', emoji: '⚖️' },
   { key: 'simple_only', label: 'Keep It 100', emoji: '💯' },
+  { key: 'both', label: 'Both', emoji: '🎓💯' },
 ];
 
 // ── Component ───────────────────────────────────────────────

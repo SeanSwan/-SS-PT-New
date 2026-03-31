@@ -102,6 +102,7 @@ const FeatureAccessPage = React.lazy(() => import('./Pages/admin-feature-access/
 const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planner/WorkoutPlannerPage'));
 const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
+const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -425,7 +426,10 @@ const roleConfigurations: Record<string, RoleConfig> = {
   admin: {
     routes: [
       { path: '/overview', component: RevolutionaryAdminDashboard, title: 'Command Center', description: 'Administrative oversight' },
-      
+
+      // 🤖 SWAN COACH ASSISTANT — Master AI with full context access
+      { path: '/coach-assistant', component: SwanCoachAssistantPage, title: 'Coach Assistant', description: 'Swan Studios AI training assistant' },
+
       // 🏢 COMPREHENSIVE USER DATA MANAGEMENT SUITE
       { path: '/user-management', component: EnhancedUserDataManagement, title: 'User Data Management', description: 'Complete user data collection & lifecycle management' },
       { path: '/user-management-legacy', component: ModernUserManagementSystem, title: 'User Management (Legacy)', description: 'Traditional user management interface' },
