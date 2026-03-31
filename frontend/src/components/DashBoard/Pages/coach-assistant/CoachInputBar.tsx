@@ -11,10 +11,35 @@
  */
 
 import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
+import styled from 'styled-components';
 import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoachStyles';
 import { ORB_SIZE_MAP, ORB_ICON_SIZE_MAP } from './SwanCoachConstants';
 import type { OrbSize } from './SwanCoachTypes';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Character Count
+// ─────────────────────────────────────────────────────────────
+const MAX_CHARS = 4000;
+
+const InputWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 0;
+`;
+
+const CharCount = styled.span<{ $near: boolean }>`
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: ${({ $near }) => $near
+    ? 'var(--accent-gold, #C6A84B)'
+    : 'var(--text-muted, rgba(224, 236, 244, 0.25))'};
+  pointer-events: none;
+  transition: color 0.2s ease;
+`;
 
 interface CoachInputBarProps {
   onSend: (text: string) => void;
@@ -22,6 +47,8 @@ interface CoachInputBarProps {
   ttsEnabled?: boolean;
   ttsSupported?: boolean;
   onTtsToggle?: () => void;
+  onVoiceOverlay?: () => void;
+  attachButton?: React.ReactNode;
 }
 
 // Web Speech API type
@@ -36,6 +63,8 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   ttsEnabled = false,
   ttsSupported = false,
   onTtsToggle,
+  onVoiceOverlay,
+  attachButton,
 }) => {
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
@@ -58,9 +87,12 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     inputRef.current?.focus();
   }, [text, sending, onSend]);
 
-  // ── Keyboard: Enter to send, Shift+Enter for newline ──
+  // ── Keyboard: Enter to send, Shift+Enter for newline, Cmd/Ctrl+Enter always sends ──
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSend();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -153,8 +185,17 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     };
   }, []);
 
-  const hasVoice = !!SpeechRecognition;
+  const hasVoice = !!SpeechRecognition || !!onVoiceOverlay;
   const displayText = text || interim;
+
+  // Prefer server transcription overlay over browser Web Speech API
+  const handleVoiceClick = useCallback(() => {
+    if (onVoiceOverlay) {
+      onVoiceOverlay();
+    } else {
+      toggleListening();
+    }
+  }, [onVoiceOverlay, toggleListening]);
 
   return (
     <InputBar>
@@ -170,24 +211,35 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
         </TtsToggle>
       )}
 
+      {/* File Attachment */}
+      {attachButton}
+
       {/* Text Input */}
-      <ChatInput
-        ref={inputRef}
-        value={displayText}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={listening ? 'Listening...' : 'Type or tap mic...'}
-        disabled={sending}
-        aria-label="Message input"
-        rows={1}
-      />
+      <InputWrap>
+        <ChatInput
+          ref={inputRef}
+          value={displayText}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder={listening ? 'Listening...' : 'Type or tap mic...'}
+          disabled={sending}
+          aria-label="Message input"
+          rows={1}
+          maxLength={MAX_CHARS}
+        />
+        {text.length > 100 && (
+          <CharCount $near={text.length > MAX_CHARS * 0.9}>
+            {text.length}/{MAX_CHARS}
+          </CharCount>
+        )}
+      </InputWrap>
 
       {/* Voice Orb */}
       {hasVoice && (
         <VoiceOrbWrap
           $listening={listening}
           $size={ORB_SIZE_MAP[orbSize]}
-          onClick={toggleListening}
+          onClick={handleVoiceClick}
           aria-label={listening ? 'Stop listening' : 'Start voice input'}
           title={listening ? 'Tap to stop' : 'Tap to speak'}
         >

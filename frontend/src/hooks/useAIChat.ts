@@ -351,6 +351,52 @@ export function useAIChat() {
     setError(null);
   }, []);
 
+  /**
+   * Rename a conversation title via PATCH
+   */
+  const renameConversation = useCallback(async (id: number, title: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ title }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to rename');
+      // Update in conversations list
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
+      // Update active if same conversation
+      setActiveConversation(prev => prev?.id === id ? { ...prev, title } : prev);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to rename conversation';
+      setError(msg);
+    }
+  }, []);
+
+  /**
+   * Archive a conversation (set status to 'archived')
+   */
+  const archiveConversation = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'archived' }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to archive');
+      // Remove from active conversations list
+      setConversations(prev => prev.filter(c => c.id !== id));
+      // Clear active if same conversation
+      if (activeConversation?.id === id) {
+        setActiveConversation(null);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to archive conversation';
+      setError(msg);
+    }
+  }, [activeConversation]);
+
   return {
     // State
     conversations,
@@ -367,6 +413,8 @@ export function useAIChat() {
     sendMessage,
     sendMessageWithConversation,
     deleteConversation,
+    renameConversation,
+    archiveConversation,
     newChat,
     clearError,
   };

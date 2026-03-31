@@ -186,6 +186,105 @@ router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {
 });
 
 /**
+ * @route GET /api/exercises
+ * @desc Root exercise list with optional ?search= filtering.
+ *       Supports: ?search=bench&limit=20&type=Strength&muscleGroup=chest
+ *       Without ?search, returns all exercises (paginated).
+ * @access Private (Trainer/Admin only)
+ */
+router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const { search, limit = 50, type, muscleGroup } = req.query;
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({ success: false, message: 'Exercise model not available' });
+    }
+
+    const whereClause = {};
+    // Add isActive filter (graceful fallback if column missing)
+    try {
+      whereClause.isActive = true;
+    } catch { /* column may not exist */ }
+
+    if (search && search.trim().length >= 2) {
+      const q = search.trim().toLowerCase();
+      whereClause[Op.or] = [
+        { name: { [Op.iLike]: `%${q}%` } },
+        sequelize.where(
+          sequelize.cast(sequelize.col('exerciseType'), 'TEXT'),
+          { [Op.iLike]: `%${q}%` }
+        ),
+      ];
+    }
+
+    if (type) whereClause.exerciseType = type;
+    if (muscleGroup) {
+      if (!whereClause[Op.or]) whereClause[Op.or] = [];
+      whereClause[Op.or].push(
+        { primaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } },
+        { secondaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } }
+      );
+    }
+
+    let exercises;
+    try {
+      exercises = await Exercise.findAll({
+        where: whereClause,
+        attributes: [
+          'id', 'name', 'exerciseType', 'primaryMuscles', 'secondaryMuscles',
+          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
+          'description',
+        ],
+        order: [['name', 'ASC']],
+        limit: Math.min(parseInt(limit) || 50, 500),
+        raw: true,
+      });
+    } catch {
+      // Fallback if V2 columns don't exist
+      delete whereClause.isActive;
+      exercises = await Exercise.findAll({
+        where: whereClause,
+        attributes: ['id', 'name', 'exerciseType', 'primaryMuscles', 'difficulty', 'description'],
+        order: [['name', 'ASC']],
+        limit: Math.min(parseInt(limit) || 50, 500),
+        raw: true,
+      });
+    }
+
+    // Parse JSON string fields safely (equipmentNeeded, primaryMuscles, secondaryMuscles)
+    const parseJsonField = (val) => {
+      if (Array.isArray(val)) return val;
+      if (!val) return [];
+      try {
+        let parsed = typeof val === 'string' ? JSON.parse(val) : val;
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        return Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch { return typeof val === 'string' ? [val] : []; }
+    };
+
+    const formatted = exercises.map(ex => ({
+      id: ex.id,
+      name: ex.name,
+      exerciseKey: ex.exercise_key || '',
+      exerciseType: ex.exerciseType || '',
+      bodyPartCategory: ex.bodyPartCategory || 'Full Body',
+      primaryMuscles: parseJsonField(ex.primaryMuscles),
+      secondaryMuscles: parseJsonField(ex.secondaryMuscles),
+      difficulty: ex.difficulty || 0,
+      equipment: parseJsonField(ex.equipmentNeeded),
+      source: ex.source || '',
+      description: ex.description || '',
+    }));
+
+    res.set('Cache-Control', 'private, max-age=60');
+    res.json({ success: true, exercises: formatted, count: formatted.length });
+  } catch (error) {
+    logger.error('Exercise list/search error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch exercises' });
+  }
+});
+
+/**
  * @route GET /api/exercises/all
  * @desc Lightweight list of all exercises for client-side search cache.
  *       Returns minimal fields to keep payload small (~500 exercises ≈ 40KB).
@@ -254,6 +353,92 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
 });
 
 /**
+ * @route GET /api/exercises/:id/teach-mode
+ * @desc Deep exercise data for Teach Mode (instructions, cues, safety, biomechanics, progression)
+ *       Separate from /:id to avoid bloating the standard exercise response.
+ *       Cached for 10 minutes — exercise content doesn't change often.
+ * @access Private (Trainer/Admin only)
+ */
+router.get('/:id/teach-mode', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({ success: false, message: 'Exercise model not available' });
+    }
+
+    const exercise = await Exercise.findByPk(id);
+    if (!exercise) {
+      return res.status(404).json({ success: false, message: 'Exercise not found' });
+    }
+
+    // Parse JSON fields safely — handles double-encoded strings from raw mode
+    const safeParseJSON = (val) => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val;
+      try {
+        let parsed = typeof val === 'string' ? JSON.parse(val) : val;
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch { return []; }
+    };
+
+    res.set('Cache-Control', 'private, max-age=600');
+    res.json({
+      success: true,
+      teachData: {
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description || '',
+        exerciseKey: exercise.exercise_key || '',
+        exerciseType: exercise.exerciseType || '',
+        bodyPartCategory: exercise.bodyPartCategory || '',
+        source: exercise.source || '',
+        difficulty: exercise.difficulty || 0,
+        // Deep instruction data
+        instructions: exercise.instructions || '',
+        coachingCues: safeParseJSON(exercise.coachingCues),
+        safetyTips: exercise.safetyTips || '',
+        contraindicationNotes: exercise.contraindicationNotes || '',
+        // Muscle data
+        primaryMuscles: exercise.primaryMuscles || [],
+        secondaryMuscles: exercise.secondaryMuscles || [],
+        // Biomechanics
+        force: exercise.force || null,
+        mechanic: exercise.mechanic || null,
+        nasmMovementPattern: exercise.nasmMovementPattern || null,
+        // Equipment & setting
+        equipmentNeeded: exercise.equipmentNeeded || [],
+        canBePerformedAtHome: exercise.canBePerformedAtHome || false,
+        // Progression
+        progressionPath: safeParseJSON(exercise.progressionPath),
+        prerequisites: safeParseJSON(exercise.prerequisites),
+        optPhases: safeParseJSON(exercise.optPhases),
+        // Visual & learning
+        videoUrl: exercise.videoUrl || null,
+        imageUrl: exercise.imageUrl || null,
+        thumbnailUrl: exercise.thumbnailUrl || null,
+        scientificReferences: exercise.scientificReferences || '',
+        // Training defaults
+        defaultTempo: exercise.defaultTempo || null,
+        defaultRestSeconds: exercise.defaultRestSeconds || null,
+        recommendedSets: exercise.recommendedSets || null,
+        recommendedReps: exercise.recommendedReps || null,
+        // Gamification
+        experiencePointsEarned: exercise.experiencePointsEarned || 10,
+      },
+    });
+  } catch (error) {
+    logger.error('Exercise teach-mode fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch exercise teach data',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
  * @route GET /api/exercises/:id
  * @desc Get detailed exercise information
  * @access Private (Trainer/Admin only)
@@ -262,9 +447,9 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const Exercise = getExercise();
-    
+
     const exercise = await Exercise.findByPk(id);
-    
+
     if (!exercise) {
       return res.status(404).json({
         success: false,

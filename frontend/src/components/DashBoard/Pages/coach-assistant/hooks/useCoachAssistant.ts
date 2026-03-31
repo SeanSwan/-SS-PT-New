@@ -100,14 +100,14 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     setContext(newContext);
     // Start a new conversation with the new context on next message
     if (chat.activeConversation) {
-      chat.setActiveConversation(null);
+      chat.newChat();
       setLocalMessages([]);
     }
   }, [chat]);
 
   // ── Clear conversation ──
   const clearConversation = useCallback(() => {
-    chat.setActiveConversation(null);
+    chat.newChat();
     setLocalMessages([]);
   }, [chat]);
 

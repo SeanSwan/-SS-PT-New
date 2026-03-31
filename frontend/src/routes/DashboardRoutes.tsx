@@ -93,7 +93,7 @@ const DashboardRoutes: React.FC = () => {
             allowedRoles={['admin']} 
             fallbackPath="/unauthorized"
           >
-            <Navigate to="/dashboard/admin/overview" replace />
+            <Navigate to="/dashboard/admin/coach-assistant" replace />
           </ProtectedRoute>
         } 
       />

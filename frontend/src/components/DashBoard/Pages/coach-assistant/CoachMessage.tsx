@@ -21,6 +21,8 @@ import {
   MessageActions,
   MessageActionBtn,
 } from './SwanCoachStyles';
+import MarkdownRenderer from './MarkdownRenderer';
+import ProviderBadge from './ProviderBadge';
 import type { CoachMessageData } from './SwanCoachTypes';
 
 interface CoachMessageProps {
@@ -61,7 +63,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({ message, onReadAlo
 
   return (
     <MessageBubbleAI>
-      {message.content}
+      <MarkdownRenderer content={message.content} />
       <MessageActions>
         {onReadAloud && (
           <MessageActionBtn onClick={handleReadAloud} aria-label="Read aloud">
@@ -73,7 +75,12 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({ message, onReadAlo
           {copied ? 'Copied' : 'Copy'}
         </MessageActionBtn>
       </MessageActions>
-      <MessageTime>{timeStr}</MessageTime>
+      <MessageTime>
+        {timeStr}
+        {message.metadata?.model && (
+          <ProviderBadge provider={message.metadata.provider} model={message.metadata.model} />
+        )}
+      </MessageTime>
     </MessageBubbleAI>
   );
 };
