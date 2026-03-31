@@ -11,6 +11,11 @@
  * @returns {string}
  */
 export function buildNutritionSpecialistPrompt(clientContext) {
+  const conditions = clientContext.healthConditions || [];
+  const conditionText = conditions.length > 0
+    ? `\n- ⚕️ HEALTH CONDITIONS: ${conditions.join(', ')} — YOU MUST apply condition-specific dietary protocols`
+    : '';
+
   return `You are a PhD-level sports nutritionist specializing in body composition and athletic performance nutrition. Design a nutrition plan.
 
 CLIENT PROFILE (de-identified):
@@ -21,6 +26,7 @@ CLIENT PROFILE (de-identified):
 - Current Macros (7-day avg): ${formatMacros(clientContext.macroAverages)}
 - Measurement Trend: ${clientContext.measurementTrends || 'unknown'}
 - Training Experience: ${clientContext.trainingExperience || 'beginner'}
+- Health Concerns: ${clientContext.healthConcerns || 'None noted'}${conditionText}
 
 GUIDELINES:
 1. Calculate TDEE based on available data (Harris-Benedict or Mifflin-St Jeor)
@@ -29,6 +35,7 @@ GUIDELINES:
 4. Suggest a sample meal plan with 4-5 meals
 5. Flag any FDA warnings for common allergens or sodium
 6. Consider NASM phase — Phase 1 recovery needs vs Phase 4 energy demands
+${conditions.includes('HYPERTENSION') ? '7. HYPERTENSION: Apply DASH diet — sodium <1,500mg/day, emphasize potassium-rich foods, avoid processed meats\n' : ''}${conditions.includes('DIABETES') ? '8. DIABETES: Low-GI carbs only, pair carbs with protein/fat, limit added sugar <25g/day, steady meal timing\n' : ''}${conditions.includes('HIGH_CHOLESTEROL') ? '9. HIGH CHOLESTEROL: Saturated fat <7% calories, cholesterol <200mg/day, emphasize soluble fiber, omega-3\n' : ''}${conditions.includes('FIBROMYALGIA') ? '10. FIBROMYALGIA: Anti-inflammatory focus — omega-3, turmeric, avoid aspartame/MSG, small frequent meals for energy\n' : ''}
 
 OUTPUT FORMAT (JSON only):
 {
@@ -52,12 +59,31 @@ OUTPUT FORMAT (JSON only):
  * @returns {string}
  */
 export function buildNutritionSafetyPrompt(clientContext, previousPlan) {
+  const conditions = clientContext.healthConditions || [];
+  const conditionChecks = [];
+  if (conditions.includes('HYPERTENSION')) conditionChecks.push(
+    '8. HYPERTENSION CHECK: Verify total daily sodium <1,500mg. Flag any meal >500mg. Verify potassium intake 3,500-4,700mg. Check for DASH diet compliance.',
+    '9. If on ACE inhibitors/ARBs: warn about potassium over-supplementation. If on beta-blockers: note hypoglycemia masking risk.'
+  );
+  if (conditions.includes('DIABETES')) conditionChecks.push(
+    '10. DIABETES CHECK: Verify carbs are low-GI (<55). Total added sugar <25g/day. Verify carbs paired with protein/fat. Check meal spacing (3-4hr intervals).',
+    '11. If on Metformin: ensure B12 supplementation noted. If on insulin: verify carb timing coordinates with injection schedule.'
+  );
+  if (conditions.includes('HIGH_CHOLESTEROL')) conditionChecks.push(
+    '12. CHOLESTEROL CHECK: Verify saturated fat <7% total calories. Trans fat = ZERO. Dietary cholesterol <200mg/day. Verify soluble fiber intake (oats, beans, psyllium).',
+    '13. If on statins: flag grapefruit in meal plan. Recommend CoQ10 supplementation.'
+  );
+  if (conditions.includes('FIBROMYALGIA')) conditionChecks.push(
+    '14. FIBROMYALGIA CHECK: Verify anti-inflammatory food focus. Flag aspartame, MSG, nitrates. Verify omega-3 intake 3-4g/day. Check vitamin D and magnesium levels addressed.',
+    '15. Verify small frequent meals (5-6x/day) for energy management. Flag any ultra-processed foods (NOVA Group 4).'
+  );
+
   return `You are a registered dietitian and food safety specialist. Review this nutrition plan for health risks and suitability.
 
 CLIENT: ${clientContext.clientAlias}
 Age: ${clientContext.age || 'unknown'}, Gender: ${clientContext.gender || 'unknown'}
 Goals: ${(clientContext.fitnessGoals || []).join(', ') || 'general fitness'}
-
+${conditions.length > 0 ? `⚕️ HEALTH CONDITIONS: ${conditions.join(', ')} — CRITICAL: Verify the plan addresses ALL condition-specific requirements\n` : ''}
 PROPOSED NUTRITION PLAN:
 ${previousPlan}
 
@@ -69,6 +95,7 @@ REVIEW CRITERIA:
 5. Check sodium levels against FDA daily guidelines (2300mg)
 6. Verify meal timing supports training schedule
 7. Flag any food interactions with common medications
+${conditionChecks.join('\n')}
 
 OUTPUT FORMAT (JSON only):
 {

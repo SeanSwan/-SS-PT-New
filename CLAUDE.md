@@ -749,6 +749,37 @@ This hierarchy applies to:
 - **MANDATORY:** Before merging PRs with >100 lines changed
 - **RECOMMENDED:** After major refactors or new features
 
+### Planning Mode with Web Research (--mode plan)
+The AI Village supports a planning mode that analyzes feature plans before implementation:
+```bash
+node scripts/validation-orchestrator.mjs --mode plan --document docs/ai-workflow/blueprints/PLAN.md
+```
+- **13 planning brains** analyze the plan from 13 different angles (UX, architecture, security, performance, competitive intel, user personas, risk, frontend patterns, data safety, API design, module architecture, mobile/edge cases, strategic research)
+- **3 grounded research brains** (Brain #1, #5, #13) use **Google Search Grounding** (FREE) for real-time web research:
+  - Brain #1 (UX Research): Searches for competitor features, UI/UX trends, onboarding patterns
+  - Brain #5 (Competitive Intel): Searches for competitor pricing, market sizing, fitness tech trends
+  - Brain #13 (Strategic Research & Gap Analysis): Deep research on technology gaps, regulatory compliance, industry trends, monetization strategies, future-proofing opportunities
+- Grounding is FREE — uses Google's built-in search via Gemini direct API, no SerpAPI credits consumed
+- Report output includes **Web Research Sources** section with all cited URLs
+- **Gap Finding (MANDATORY):** Every planning run MUST include Brain #13 which identifies what the plan is MISSING, not just what it already covers. This ensures no blind spots.
+
+### Gemini CTO Consult with Research
+```bash
+node scripts/consult-gemini.mjs --plan --file plan.md --research   # Plan review with web search
+node scripts/consult-gemini.mjs --ask "question" --research         # Question with web search
+```
+- `--research` flag enables Google Search Grounding on Gemini 3.1 Pro consultations
+- Use for competitive analysis, market research, technology trend evaluation
+
+### Gap Finding & Strategic Enhancement (MANDATORY for Planning)
+When running `--mode plan`, the AI Village MUST:
+1. **Identify missing features** — What competitors have that the plan doesn't address
+2. **Surface regulatory risks** — Health data laws, AI guidance, accessibility requirements
+3. **Find technology gaps** — New APIs, SDKs, or patterns the plan should leverage
+4. **Recommend future-proofing** — Platform trends, emerging standards, cross-platform considerations
+5. **Cite sources** — Every claim must be backed by a real URL from web research
+This requirement ensures the AI Village adds strategic value beyond code review.
+
 ### Model Audit Protocol (Weekly)
 OpenRouter model rankings shift weekly. Run `node scripts/openrouter-model-audit.mjs` (or check manually at https://openrouter.ai/rankings) every Monday to:
 - Check if any current free models lost free status

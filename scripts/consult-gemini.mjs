@@ -63,7 +63,7 @@ function getGeminiKey() {
 // Gemini API
 // ─────────────────────────────────────────────
 
-async function callGemini(prompt) {
+async function callGemini(prompt, opts = {}) {
   const apiKey = getGeminiKey();
   if (!apiKey) {
     throw new Error('No GEMINI_API_KEY found in .env');
@@ -72,16 +72,23 @@ async function callGemini(prompt) {
   const model = 'gemini-3.1-pro-preview';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 16384,
+    },
+  };
+
+  // Enable Google Search grounding for real-time web research (FREE)
+  if (opts.useGrounding) {
+    body.tools = [{ googleSearch: {} }];
+  }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 16384,
-      },
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(300_000), // 5 min for thorough plans
   });
 
@@ -98,10 +105,17 @@ async function callGemini(prompt) {
   }
 
   const usage = data.usageMetadata || {};
+
+  // Extract grounding metadata if present
+  const groundingMeta = data.candidates?.[0]?.groundingMetadata || null;
+  const searchQueries = groundingMeta?.webSearchQueries || [];
+  const groundingSources = groundingMeta?.groundingChunks?.map(c => c.web?.uri).filter(Boolean) || [];
+
   return {
     text,
     inputTokens: usage.promptTokenCount || 0,
     outputTokens: usage.candidatesTokenCount || 0,
+    groundingMeta: opts.useGrounding ? { searchQueries, sources: groundingSources } : null,
   };
 }
 
@@ -295,7 +309,7 @@ Provide your expert answer with specific, actionable guidance. Include exact val
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { mode: null, input: '' };
+  const opts = { mode: null, input: '', useGrounding: false };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--plan') {
@@ -310,6 +324,8 @@ function parseArgs() {
     } else if (args[i] === '--ask') {
       opts.mode = 'ask';
       opts.input = args[++i] || '';
+    } else if (args[i] === '--research') {
+      opts.useGrounding = true;
     } else if (args[i] === '--file') {
       opts.file = args[++i] || '';
     } else if (args[i] === '--help' || args[i] === '-h') {
@@ -355,6 +371,7 @@ function printHelp() {
 
   Options:
     --file      Read input from a file instead of command line
+    --research  Enable Google Search grounding for real-time web research (FREE)
     --help      Show this help message
 
   Output:
@@ -419,6 +436,7 @@ async function main() {
   console.log('  SwanStudios Co-Orchestrator');
   console.log(`  Mode:   ${modeLabels[opts.mode]}`);
   console.log('  Model:  Gemini 3.1 Pro (Lead Design Authority)');
+  if (opts.useGrounding) console.log('  Research: Google Search Grounding ENABLED (real-time web search)');
   console.log(`  Input:  ${opts.input.length > 80 ? opts.input.slice(0, 77) + '...' : opts.input}`);
   console.log('');
   console.log('  Consulting Gemini 3.1 Pro...');
@@ -426,7 +444,7 @@ async function main() {
   const start = Date.now();
 
   try {
-    const result = await callGemini(prompt);
+    const result = await callGemini(prompt, { useGrounding: opts.useGrounding });
     const duration = ((Date.now() - start) / 1000).toFixed(1);
 
     // Save to file
@@ -434,10 +452,21 @@ async function main() {
     mkdirSync(outputDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const groundingSection = result.groundingMeta?.sources?.length ? `
+## Web Research Sources
+
+> Google Search Grounding — ${result.groundingMeta.sources.length} sources cited
+${result.groundingMeta.searchQueries?.length ? `\n**Search queries:** ${result.groundingMeta.searchQueries.join(', ')}\n` : ''}
+**Sources:**
+${result.groundingMeta.sources.map(s => `- ${s}`).join('\n')}
+
+---
+` : '';
+
     const outputContent = `# Gemini 3.1 Pro — ${modeLabels[opts.mode]}
 
 > **Generated:** ${new Date().toLocaleString()}
-> **Mode:** ${opts.mode}
+> **Mode:** ${opts.mode}${opts.useGrounding ? ' (with web research)' : ''}
 > **Duration:** ${duration}s
 > **Tokens:** ${result.inputTokens} in / ${result.outputTokens} out
 
@@ -448,7 +477,7 @@ async function main() {
 ${opts.mode === 'review' ? `File: \`${opts.reviewPath || 'unknown'}\`` : opts.input.slice(0, 500)}
 
 ---
-
+${groundingSection}
 ## Gemini 3.1 Pro Response
 
 ${result.text}

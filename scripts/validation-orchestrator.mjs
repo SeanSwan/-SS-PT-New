@@ -839,19 +839,22 @@ function buildPlanningValidatorTracks(planContent, planPath) {
   return [
     {
       name: 'UX Research & Competitor Analysis',
-      model: MODELS.gemini25Flash,
-      prompt: `You are a UX researcher analyzing a feature upgrade plan for a premium fitness SaaS platform. ${ctx}
+      model: 'gemini-2.5-flash',
+      provider: 'gemini-direct',
+      useGrounding: true,
+      prompt: `You are a UX researcher analyzing a feature upgrade plan for a premium fitness SaaS platform. You have access to Google Search — USE IT to look up current competitor features, recent UI/UX trends, and real-world examples. ${ctx}
 
 Review this PLAN and provide UX research insights:
-1. **Competitor benchmark** — How do Claude.ai, ChatGPT, Google Gemini, Strava, and Strong app handle similar features? What specific interaction patterns should we adopt?
+1. **Competitor benchmark** — SEARCH for the latest features on Trainerize, TrueCoach, My PT Hub, Hevy, Strong, JEFIT, Strava, Caliber, Future.fit, and Trainiac. How do they handle similar features? What specific interaction patterns should we adopt?
 2. **User journey gaps** — Walk through each proposed feature as a trainer using their phone at the gym. What's missing? What would frustrate them?
 3. **Mobile-first critique** — Will these features work on 320-375px screens? Flag any desktop-biased designs.
-4. **Interaction patterns** — For each new UI element (sidebar, markdown, voice overlay), suggest the exact gesture/click flow.
+4. **Interaction patterns** — For each new UI element, suggest the exact gesture/click flow based on real-world patterns from top apps.
 5. **Accessibility risks** — Screen reader compatibility, keyboard navigation, color contrast for proposed components.
-6. **Onboarding for new features** — How will existing users discover conversation history, voice upgrade, etc.?
+6. **Onboarding for new features** — How will existing users discover new features? Search for best-in-class onboarding patterns (Duolingo, Notion, Linear).
+7. **2026 UX trends** — Search for the latest UX/UI trends relevant to this feature set. What's cutting edge right now?
 
 Rate each insight: CRITICAL / HIGH / MEDIUM / LOW priority.
-Output as structured markdown with actionable recommendations.
+Output as structured markdown with actionable recommendations. CITE your sources with URLs.
 
 PLAN TO REVIEW:
 ${planContent}`,
@@ -923,18 +926,21 @@ ${planContent}`,
 
     {
       name: 'Competitive Intelligence',
-      model: MODELS.minimaxM21,
-      prompt: `You are a fitness SaaS product strategist. ${ctx}
+      model: 'gemini-3-flash-preview-20251217',
+      provider: 'gemini-direct',
+      useGrounding: true,
+      prompt: `You are a fitness SaaS product strategist with access to Google Search. USE SEARCH to find REAL, CURRENT competitive data — pricing, features, recent launches, app store reviews. ${ctx}
 
-Review this AI Coach Assistant upgrade plan against the competitive landscape:
-1. **Feature gap vs competitors** — Trainerize, TrueCoach, My PT Hub, Future, Caliber, Hevy, Strong, JEFIT — do any of them have AI chat with conversation history? Voice logging? How does this plan position SwanStudios?
-2. **Differentiation** — What makes this implementation UNIQUE vs just copying ChatGPT UI? The NASM integration, 21 data sources, privacy-first approach — are these highlighted enough?
-3. **Monetization angle** — Which of these features should be behind a paywall vs free? (conversation history = free, voice = premium, file attachments = premium?)
-4. **Golf client appeal** — How do these features serve the wealthy golf client persona specifically?
-5. **Mobile gym usage** — A trainer at the gym needs quick voice logging between sets. Does this plan optimize for that workflow?
-6. **Missing competitive features** — What are competitors doing that this plan DOESN'T address? (wearable integration, video form analysis, nutrition photo logging?)
+Review this plan against the competitive landscape:
+1. **Feature gap vs competitors** — SEARCH for latest features on Trainerize, TrueCoach, My PT Hub, Future.fit, Caliber, Hevy, Strong, JEFIT, Trainiac, ABC Fitness, Mindbody, Gymdesk. Do any have AI chat? Voice logging? Nutrition barcode scanning? How does this plan position SwanStudios?
+2. **Differentiation** — What makes this implementation UNIQUE? Search for other fitness apps with AI coaching. How do they compare?
+3. **Monetization angle** — SEARCH for competitor pricing tiers. Which features should be paywalled vs free?
+4. **Golf client appeal** — SEARCH for golf-specific fitness apps (TPI, Titleist Performance, Golfforever). What golf-specific features are we missing?
+5. **Mobile gym usage** — SEARCH for "gym workout app UX" reviews. What do users love/hate about existing apps?
+6. **Missing competitive features** — SEARCH for the latest fitness tech trends (wearable integration, AI form analysis, nutrition photo logging, Apple Health/Google Fit sync). What are we missing?
+7. **Market sizing** — SEARCH for fitness app market size 2025-2026, personal training software market, PT SaaS growth.
 
-Output as structured markdown with market-informed recommendations.
+Output as structured markdown with market-informed recommendations. CITE all sources with URLs.
 
 PLAN TO REVIEW:
 ${planContent}`,
@@ -1100,6 +1106,66 @@ Review this plan for mobile and edge cases:
 
 Rate each: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with specific CSS/React solutions.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
+
+    {
+      name: 'Strategic Research & Gap Analysis',
+      model: 'gemini-3.1-pro-preview',
+      provider: 'gemini-direct',
+      useGrounding: true,
+      prompt: `You are a strategic product researcher and futurist for a premium fitness SaaS platform. You have access to Google Search — you MUST use it extensively. Your job is to find GAPS, ENHANCEMENTS, and FUTURE-PROOFING opportunities that the plan authors may have missed. ${ctx}
+
+This is NOT a review of what the plan already contains. Your job is to find what's MISSING and what could make it 10x better.
+
+RESEARCH EACH OF THESE AREAS (use Google Search for EVERY section):
+
+1. **Technology Gap Analysis** — SEARCH for the latest APIs, SDKs, and services relevant to this feature set:
+   - New AI/ML APIs launched in 2025-2026 (OpenAI, Google, Anthropic, open-source)
+   - New browser APIs (Web Speech, MediaRecorder improvements, WebGPU, Web NFC)
+   - New React/Node.js patterns and libraries gaining traction
+   - Any game-changing open-source tools the plan should integrate
+
+2. **Regulatory & Compliance Gaps** — SEARCH for:
+   - Health data privacy regulations (HIPAA, GDPR for fitness apps, state-level laws)
+   - FDA guidance on fitness/nutrition apps (especially AI-generated advice)
+   - FTC regulations on AI claims and endorsements in fitness apps
+   - Accessibility compliance (WCAG 2.2, ADA for digital fitness tools)
+
+3. **Industry Trend Gaps** — SEARCH for 2025-2026 fitness technology trends:
+   - Wearable integration trends (Apple Watch, Garmin, Whoop, Oura)
+   - AI coaching trends in fitness apps
+   - Social fitness trends (community challenges, live workouts, gamification)
+   - Nutrition technology trends (computer vision food logging, CGM integration)
+
+4. **User Experience Innovation** — SEARCH for:
+   - Best-in-class fitness app onboarding flows (2025-2026)
+   - Voice UI best practices for mobile fitness apps
+   - Accessibility innovations in health/fitness apps
+   - Gamification patterns that drive retention (beyond points/badges)
+
+5. **Monetization & Business Model Gaps** — SEARCH for:
+   - Fitness app monetization strategies that work in 2025-2026
+   - Affiliate/partnership models in fitness (supplement, equipment, apparel)
+   - B2B opportunities (gym partnerships, corporate wellness)
+   - Creator economy models in fitness
+
+6. **Future-Proofing Recommendations** — SEARCH for:
+   - Emerging platforms (Vision Pro, AR fitness, connected equipment APIs)
+   - AI agent trends that could transform fitness coaching
+   - Cross-platform framework trends (React Native, Expo, Capacitor)
+   - Data portability standards (Apple Health export, FHIR for fitness)
+
+For EVERY gap you find, provide:
+- **What's missing** from the current plan
+- **Why it matters** (with data/evidence from your research)
+- **How to implement** (specific technical approach)
+- **Priority**: CRITICAL (do now) / HIGH (next sprint) / MEDIUM (roadmap) / LOW (future)
+- **Source URL** for the supporting evidence
+
+Output as structured markdown. This is the most important brain in the planning pipeline — be thorough.
 
 PLAN TO REVIEW:
 ${planContent}`,
@@ -1342,19 +1408,35 @@ function estimateTokens(text) {
 // Google GenAI API Caller (direct, for Gemini 3.1 Pro)
 // ─────────────────────────────────────────────
 
-async function callGeminiDirect(apiKey, model, prompt) {
+/**
+ * Call Google GenAI (Gemini) directly.
+ * @param {string} apiKey - Gemini API key
+ * @param {string} model - Model name (e.g. 'gemini-3.1-pro-preview')
+ * @param {string} prompt - The prompt text
+ * @param {object} [opts] - Optional config
+ * @param {boolean} [opts.useGrounding=false] - Enable Google Search grounding (FREE real-time web research)
+ */
+async function callGeminiDirect(apiKey, model, prompt, opts = {}) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 8192,
+    },
+  };
+
+  // Enable Google Search grounding for real-time web research
+  // This is FREE — no additional cost beyond base model usage
+  if (opts.useGrounding) {
+    body.tools = [{ googleSearch: {} }];
+  }
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 8192,
-      },
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(CONFIG.timeout),
   });
 
@@ -1372,11 +1454,17 @@ async function callGeminiDirect(apiKey, model, prompt) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '(no response)';
   const usage = data.usageMetadata || {};
 
+  // Extract grounding metadata if present (search queries + sources used)
+  const groundingMeta = data.candidates?.[0]?.groundingMetadata || null;
+  const searchQueries = groundingMeta?.webSearchQueries || [];
+  const groundingSources = groundingMeta?.groundingChunks?.map(c => c.web?.uri).filter(Boolean) || [];
+
   return {
     text,
     inputTokens: usage.promptTokenCount || estimateTokens(prompt),
     outputTokens: usage.candidatesTokenCount || estimateTokens(text),
     model: `google/${model}`,
+    groundingMeta: opts.useGrounding ? { searchQueries, sources: groundingSources } : null,
   };
 }
 
@@ -1396,7 +1484,9 @@ async function runValidator(apiKey, track, index) {
     let result;
     if (track.provider === 'gemini-direct') {
       const geminiKey = getGeminiKey();
-      result = await callGeminiDirect(geminiKey, track.model, track.prompt);
+      result = await callGeminiDirect(geminiKey, track.model, track.prompt, {
+        useGrounding: !!track.useGrounding,
+      });
     } else {
       result = await callOpenRouter(apiKey, track.model, track.prompt);
     }
@@ -1433,6 +1523,7 @@ async function runValidator(apiKey, track, index) {
       outputTokens: result.outputTokens,
       costUSD,
       durationMs: Date.now() - start,
+      groundingMeta: result.groundingMeta || null,
     };
   } catch (err) {
     return {
@@ -1492,10 +1583,28 @@ ${results.map((r, i) => `| ${i + 1} | ${r.name} | ${r.model} | ${r.inputTokens.t
 
 `;
 
+  // Collect all grounding sources across results
+  const allGroundingSources = [];
+  for (const r of results) {
+    if (r.groundingMeta?.sources?.length) {
+      allGroundingSources.push({ brain: r.name, queries: r.groundingMeta.searchQueries, sources: r.groundingMeta.sources });
+    }
+  }
+  if (allGroundingSources.length > 0) {
+    md += `## Web Research Sources\n\n`;
+    md += `> ${allGroundingSources.length} brain(s) performed real-time web research via Google Search Grounding\n\n`;
+    for (const g of allGroundingSources) {
+      md += `### ${g.brain}\n`;
+      if (g.queries?.length) md += `**Search queries:** ${g.queries.join(', ')}\n`;
+      md += `**Sources cited:**\n${g.sources.map(s => `- ${s}`).join('\n')}\n\n`;
+    }
+    md += `---\n\n`;
+  }
+
   for (const r of results) {
     const badge = r.status === 'SUCCESS' ? 'PASS' : 'FAIL';
     md += `## [${badge}] ${r.name}
-**Model:** ${r.model} | **Duration:** ${(r.durationMs / 1000).toFixed(1)}s
+**Model:** ${r.model} | **Duration:** ${(r.durationMs / 1000).toFixed(1)}s${r.groundingMeta?.sources?.length ? ` | **Web Research:** ${r.groundingMeta.sources.length} sources cited` : ''}
 
 ${r.text}
 
@@ -1783,8 +1892,9 @@ async function main() {
 
     const planContent = readFileSync(docPath, 'utf-8');
     console.log('  ╔══════════════════════════════════════════════════════════╗');
-    console.log('  ║         14-Brain PLANNING MODE                           ║');
+    console.log('  ║         14-Brain PLANNING MODE (with Web Research)       ║');
     console.log('  ║    Feature Plan Analysis & Design Consensus              ║');
+    console.log('  ║    3 brains use Google Search Grounding (FREE)           ║');
     console.log('  ╚══════════════════════════════════════════════════════════╝');
     console.log('');
     console.log(`  [PLAN MODE] Analyzing: ${opts.document} (${(planContent.length / 1024).toFixed(1)} KB)`);
@@ -1794,7 +1904,11 @@ async function main() {
     const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Production: sswanstudios.com. Plan: ${opts.document}`;
     const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
 
+    const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
+    if (groundedCount > 0) {
+      console.log(`           ${groundedCount} brain(s) with Google Search Grounding (real-time web research)`);
+    }
     if (hasGemini31) {
       console.log(`  Phase 2: 3 Planning Specialty Debates...`);
       console.log(`    A. Security Planning: Step 3.5 ↔ Nemotron 3 Super (FREE)`);
@@ -1987,6 +2101,19 @@ async function main() {
     const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
     const outputPaths = writeSplitOutput(results, files, md, timestamp);
 
+    // Write web research sources report
+    const groundedResults = results.filter(r => r.groundingMeta?.sources?.length);
+    if (groundedResults.length > 0) {
+      let researchMd = `# Web Research Sources Report\n\n> ${groundedResults.length} brain(s) performed real-time web research via Google Search Grounding\n\n---\n\n`;
+      for (const r of groundedResults) {
+        researchMd += `## ${r.name}\n**Model:** ${r.model}\n\n`;
+        if (r.groundingMeta.searchQueries?.length) researchMd += `**Search queries:**\n${r.groundingMeta.searchQueries.map(q => `- "${q}"`).join('\n')}\n\n`;
+        researchMd += `**Sources cited:**\n${r.groundingMeta.sources.map(s => `- ${s}`).join('\n')}\n\n---\n\n`;
+      }
+      writeFileSync(join(outputPaths.latestDir, 'web-research-sources.md'), researchMd, 'utf-8');
+      writeFileSync(join(outputPaths.archiveDir, 'web-research-sources.md'), researchMd, 'utf-8');
+    }
+
     // Write debate logs
     if (securityDebateLog) {
       writeFileSync(join(outputPaths.latestDir, 'security-planning-debate-log.md'), securityDebateLog, 'utf-8');
@@ -2026,8 +2153,13 @@ async function main() {
 
     console.log('');
     console.log('  ════════════════════════════════════════════════════════');
-    console.log(`  14-Brain PLANNING MODE — Complete`);
+    console.log(`  14-Brain PLANNING MODE (with Web Research) — Complete`);
     console.log(`  Plan:       ${opts.document}`);
+    const groundedSummary = results.filter(r => r.groundingMeta?.sources?.length);
+    if (groundedSummary.length > 0) {
+      const totalSources = groundedSummary.reduce((sum, r) => sum + r.groundingMeta.sources.length, 0);
+      console.log(`  Research:   ${groundedSummary.length} brain(s) cited ${totalSources} web sources`);
+    }
     console.log(`  Output:     ${outputPaths.latestDir}/`);
     console.log(`  Validators: ${successCount}/${results.length} passed`);
     if (archVerdict?.status === 'SUCCESS') console.log(`  Arch Plan:  latest/architecture-plan.md`);

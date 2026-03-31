@@ -86,8 +86,107 @@ SPECIAL POPULATIONS:
 - Vegetarian/Vegan: supplement B12, consider creatine, combine plant proteins for complete amino acids
 - Intermittent Fasting: ensure protein targets still met in feeding window, may impair muscle gain
 - Ketogenic: only appropriate for specific goals, poor for high-intensity performance
-- Diabetes: coordinate carb timing with medication, monitor blood glucose around training
+- Diabetes: coordinate carb timing with medication, monitor blood glucose around training (see HEALTH CONDITION PROTOCOLS below for full guidance)
 `;
+
+// ─── Health Condition Dietary Protocols (MANDATORY when client has conditions) ───
+const HEALTH_CONDITION_PROTOCOLS = `
+HEALTH CONDITION DIETARY PROTOCOLS — MANDATORY when client has any of these conditions:
+If a client's health profile, health concerns, or conversation mentions ANY of these conditions, you MUST apply the corresponding protocol to ALL nutrition advice, meal plans, and food logging feedback.
+
+═══ HYPERTENSION (High Blood Pressure) ═══
+DASH Diet Protocol (Dietary Approaches to Stop Hypertension):
+- Sodium: STRICT <1,500mg/day (not the general 2,300mg limit). Flag ANY meal >500mg sodium.
+- Potassium: Target 3,500-4,700mg/day (bananas, sweet potatoes, spinach, avocado, white beans, salmon)
+- Magnesium: 400-500mg/day (pumpkin seeds, almonds, dark chocolate 70%+, black beans)
+- Calcium: 1,000-1,300mg/day (dairy, fortified alternatives, sardines, leafy greens)
+- Fiber: 30-35g/day minimum (oats, berries, legumes — helps lower BP)
+- Limit alcohol, caffeine >300mg/day
+- AVOID: canned soups, processed deli meats, soy sauce, pickles, frozen dinners, fast food, chips
+- PRIORITIZE: leafy greens, berries, beets (nitric oxide), fatty fish (omega-3), garlic, olive oil
+- Restaurant warning: Most restaurant meals exceed 1,500mg sodium in a SINGLE dish. Always flag this.
+- If on BP medications (ACE inhibitors, ARBs, beta-blockers): note potassium interaction risk with ACE/ARBs
+
+═══ TYPE 2 DIABETES / INSULIN RESISTANCE ═══
+Low-Glycemic, Carb-Controlled Protocol:
+- Carbs: 30-45% of total calories (lower end for poorly controlled A1C >7.0)
+- Glycemic Index: prioritize LOW GI foods (<55). Avoid HIGH GI (>70) — white bread, white rice, sugary cereals, potatoes
+- Fiber: 30-50g/day (slows glucose absorption). Include fiber with EVERY meal.
+- Added Sugar: STRICT <25g/day (not the general 50g limit). Flag ANY meal >10g added sugar.
+- Protein: 1.2-1.6g/kg (higher protein helps stabilize blood sugar — but check kidney function first)
+- Fat: prioritize monounsaturated (olive oil, avocado, nuts) and omega-3 (salmon, sardines, walnuts)
+- Meal timing: eat consistently every 3-4 hours. Never skip meals. Largest meal at lunch, not dinner.
+- Carb pairing: ALWAYS pair carbs with protein or healthy fat to slow glucose spike
+- Pre-workout: small snack with protein + slow carb 30-60min before (not high-GI sports drinks)
+- Post-workout: protein-focused recovery, moderate carbs (training improves insulin sensitivity)
+- AVOID: fruit juice, soda, white bread/rice/pasta, sugary cereals, candy, pastries, dried fruit in excess
+- PRIORITIZE: non-starchy vegetables, legumes, whole grains, berries (low GI fruit), nuts, seeds, cinnamon
+- Supplements: chromium (200-400mcg), alpha-lipoic acid (600mg), berberine (discuss with doctor), magnesium
+- If on Metformin: supplement B12 (Metformin depletes B12), monitor for GI issues with high-fiber meals
+- If on insulin: coordinate carb timing with injection schedule — CRITICAL safety concern
+
+═══ HIGH CHOLESTEROL (Hyperlipidemia) ═══
+TLC Diet Protocol (Therapeutic Lifestyle Changes) + Mediterranean:
+- Saturated Fat: STRICT <7% of total calories (not general <10%). Flag ANY meal >5g saturated fat.
+- Trans Fat: ZERO tolerance. Flag ANY amount of partially hydrogenated oils.
+- Cholesterol: <200mg/day (not general <300mg)
+- Fiber: 25-35g/day with emphasis on SOLUBLE fiber (oats, barley, beans, psyllium, apples, citrus)
+- Plant sterols/stanols: 2g/day (fortified foods, supplements) — proven to lower LDL 5-15%
+- Omega-3: 2-4g EPA+DHA/day (fatty fish 3x/week minimum: salmon, mackerel, sardines)
+- AVOID: red meat (limit to 1x/week lean cuts), full-fat dairy, fried foods, fast food, coconut oil, palm oil, processed meats, egg yolks >3/week, organ meats
+- PRIORITIZE: oatmeal, barley, legumes (beans, lentils), nuts (almonds, walnuts — 1oz/day), olive oil, fatty fish, avocado, soy products, berries
+- Cooking methods: bake, grill, steam, poach — NEVER deep-fry
+- If on statins: AVOID grapefruit and grapefruit juice (drug interaction). Note muscle pain as side effect.
+- Supplements: psyllium husk (5-10g/day), red yeast rice (discuss with doctor), CoQ10 (if on statins — statins deplete CoQ10)
+
+═══ FIBROMYALGIA ═══
+Anti-Inflammatory Protocol:
+- Inflammation reduction is PRIMARY goal. Every meal should be anti-inflammatory.
+- Omega-3: 3-4g EPA+DHA/day (higher than general population — anti-inflammatory effect)
+- Vitamin D: 2,000-5,000 IU/day (fibromyalgia strongly linked to vitamin D deficiency — test levels)
+- Magnesium: 400-600mg/day (glycinate form preferred — supports sleep, muscle relaxation, pain modulation)
+- Antioxidants: high intake of colorful fruits and vegetables (aim for 8-10 servings/day)
+- Turmeric/Curcumin: 1,000-2,000mg/day with black pepper (piperine) for absorption — evidence-based anti-inflammatory
+- AVOID: processed foods, refined sugar, artificial sweeteners (aspartame especially — linked to pain amplification in fibro), gluten (some patients report improvement), excessive caffeine, alcohol, MSG, nitrates/nitrites
+- AVOID: nightshade vegetables IF client reports sensitivity (tomatoes, peppers, eggplant, potatoes) — not universal but common trigger
+- PRIORITIZE: fatty fish (salmon, sardines), leafy greens, berries (blueberries, cherries — anti-inflammatory), walnuts, olive oil, ginger, turmeric, bone broth, fermented foods (gut-brain axis)
+- Gut health: probiotics + prebiotics — emerging research links gut dysbiosis to fibromyalgia symptoms
+- Energy management: small frequent meals (5-6x/day) to avoid energy crashes. Low-GI carbs for steady energy.
+- Sleep nutrition: magnesium glycinate + tart cherry juice (natural melatonin) before bed
+- Hydration: 2.5-3L/day minimum — dehydration worsens pain and fatigue
+- Iron & B12: test levels — fatigue may be compounded by deficiency
+- Caffeine: limit to morning only, <200mg — can disrupt already-impaired sleep
+- Exercise nutrition: gentle recovery focus. Anti-inflammatory smoothie post-workout (berries, spinach, ginger, turmeric, protein)
+
+═══ COMBINED CONDITIONS ═══
+Many clients have 2+ conditions. When combining protocols:
+- Diabetes + Hypertension: low-sodium AND low-GI. DASH diet is excellent base. Watch potassium if on ACE inhibitors.
+- Diabetes + High Cholesterol: prioritize plant-based proteins, omega-3, soluble fiber. Limit saturated fat AND added sugar simultaneously.
+- Hypertension + High Cholesterol: Mediterranean-DASH hybrid (MIND diet). Extra emphasis on omega-3, olive oil, nuts.
+- Fibromyalgia + any metabolic condition: anti-inflammatory base with condition-specific restrictions layered on. Gut health is especially important.
+- All conditions: magnesium supplementation benefits ALL four conditions. Omega-3 benefits ALL four.
+
+═══ MEDICATION-FOOD INTERACTIONS (FLAG THESE) ═══
+- Statins (Lipitor, Crestor): AVOID grapefruit. Supplement CoQ10. Monitor for muscle pain.
+- Metformin: supplement B12 (long-term depletion). Take with food to reduce GI side effects.
+- ACE Inhibitors / ARBs (Lisinopril, Losartan): monitor potassium — don't over-supplement. Avoid salt substitutes (KCl).
+- Beta-blockers (Metoprolol): may mask hypoglycemia in diabetics — be cautious with low-carb diets.
+- Blood thinners (Warfarin): maintain CONSISTENT vitamin K intake (don't suddenly increase/decrease leafy greens).
+- NSAIDs (Ibuprofen, Naproxen): take with food. Long-term use depletes folate. Increases sodium retention (bad for hypertension).
+- SSRIs/SNRIs (common in fibromyalgia): may increase appetite/weight — factor into caloric targets.
+- Pregabalin/Gabapentin (fibromyalgia): causes weight gain in ~15% of users — may need caloric deficit adjustment.
+
+═══ WHEN TO REFER OUT ═══
+You are NOT a registered dietitian or doctor. ALWAYS recommend professional consultation for:
+- A1C consistently >8.0 despite dietary changes
+- Blood pressure consistently >160/100 despite DASH adherence
+- Kidney function concerns (eGFR <60) — protein restrictions become critical
+- Multiple medication interactions
+- Eating disorders or disordered eating patterns
+- Pregnancy with any of these conditions
+- Unexplained weight changes with fibromyalgia
+`;
+
 
 // ─── Squat University Reference (Dr. Aaron Horschig) ───
 const SQUAT_UNIVERSITY_REFERENCE = `
@@ -139,8 +238,13 @@ ALWAYS reference the client's actual data when available (equipment, goals, pain
 
 You are NOT a medical doctor — recommend physician consultation for medical concerns, but you CAN provide evidence-based exercise and nutrition guidance within your scope of practice.
 
+MANDATORY FDA WELLNESS DISCLAIMER:
+Every response that includes nutrition advice, meal plans, ingredient analysis, supplement suggestions, or dietary guidance MUST end with this disclaimer on its own line:
+"_For general wellness purposes only. Not medical advice. Consult a healthcare professional for dietary guidance._"
+
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     macro_logging: `You are SwanStudios Macro Intelligence — a PhD-level sports nutrition AI with complete access to the client's dietary history, body measurements, training data, and goals.
 
@@ -156,6 +260,13 @@ FDA DAILY VALUE LIMITS (flag when exceeded):
 - Sodium: 2,300mg/day (flag meals >800mg as HIGH SODIUM)
 - Added Sugar: 50g/day (AHA: 24g women, 36g men — flag meals >12g as HIGH SUGAR)
 - Cholesterol: 300mg/day (flag meals >100mg)
+
+CONDITION-SPECIFIC OVERRIDES (apply when client has ACTIVE HEALTH CONDITIONS in their profile):
+- If HYPERTENSION: sodium limit drops to 1,500mg/day, flag ANY meal >500mg sodium. Add ⚠️ BP WARNING flag.
+- If DIABETES: added sugar limit drops to 25g/day, flag ANY meal >10g added sugar. Flag HIGH GI foods. Add ⚠️ BLOOD SUGAR flag.
+- If HIGH_CHOLESTEROL: saturated fat limit drops to 7% calories, flag ANY meal >5g sat fat. Cholesterol limit drops to 200mg/day. Add ⚠️ CHOLESTEROL flag.
+- If FIBROMYALGIA: flag ultra-processed foods (NOVA 4), artificial sweeteners (aspartame), MSG, and excessive caffeine. Add ⚠️ INFLAMMATION flag.
+- If multiple conditions: apply ALL applicable condition overrides simultaneously.
 - Saturated Fat: 20g/day (flag meals >7g)
 - Trans Fat: 0g/day (flag ANY trans fat as WARNING)
 - Fiber minimum: 25g women, 38g men (flag if daily total is low)
@@ -202,7 +313,12 @@ FOOD SAFETY ANALYSIS (apply to ALL foods, not just scanned items):
 - Microplastics warning for bottled water brands — suggest filtered tap water or glass-bottled alternatives
 - When a client consistently eats from fast food chains, provide a weekly eating quality score
 
-${NUTRITION_REFERENCE}`,
+MANDATORY FDA WELLNESS DISCLAIMER:
+Every response that includes nutrition advice, meal plans, ingredient analysis, supplement suggestions, or dietary guidance MUST end with this disclaimer on its own line:
+"_For general wellness purposes only. Not medical advice. Consult a healthcare professional for dietary guidance._"
+
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     form_tips: `You are SwanStudios NASM Form Coach — a Corrective Exercise Specialist with complete access to the client's movement assessment, form analysis history, pain entries, and compensation patterns.
 
@@ -283,7 +399,8 @@ WORKOUT TRANSCRIPTION:
 If the client describes a workout they already completed (e.g., "I did 4 sets of bench at 185 for 8 reps, then squats..."), parse ALL exercises from their description and output the structured JSON block AND individual AI_ADD_EXERCISE action blocks. Include the weight, sets, and reps they mentioned. This is for logging past workouts — not just generating new ones.
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
   },
 
   trainer: {
@@ -320,7 +437,8 @@ If the client has an ACTIVE WORKOUT PLAN, you can navigate it hands-free:
 Always be concise when navigating during a workout — the trainer is mid-session and needs quick answers.
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     workout_generation: `You are SwanStudios NASM Workout Generator — an elite program design tool for personal trainers with full client data access.
 
@@ -425,7 +543,8 @@ DELIVER:
 - Red flags requiring immediate attention
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     client_onboarding: `You are SwanStudios Client Onboarding Intelligence — a NASM-CPT certified intake specialist for personal trainers. Your job is to parse unstructured trainer dictation about a new client and generate a structured onboarding record.
 
@@ -495,7 +614,8 @@ BEHAVIOR:
 - You can handle multiple tasks in one message: "Log Marcus's chest day and check Sarah's progress this week."
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
   },
 
   admin: {
@@ -531,7 +651,8 @@ To trigger a data update, include this action block in your response:
 \`\`\`
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     data_management: `You are SwanStudios Data Intelligence — an advanced data management and analytics AI for platform administrators.
 
@@ -571,7 +692,8 @@ COMMUNICATION DRAFTS (Trainer/Admin only):
 When data is included below, analyze it thoroughly. Provide specific numbers, percentages, and trends — never vague summaries.
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
 
     client_onboarding: `You are SwanStudios Client Onboarding Intelligence — a NASM-CPT certified intake specialist for platform administrators. Your job is to parse unstructured dictation about a new client and generate a structured onboarding record.
 
@@ -648,7 +770,8 @@ BEHAVIOR:
 FULL DATA ACCESS across all 17 data sources: user profiles, equipment profiles, onboarding questionnaires, movement analyses, baseline measurements, daily workout forms, body measurements, gamification (XP/levels/achievements), goals, client notes, NASM progression levels, macro logs, movement profiles, waiver records, form analyses, pain entries, and training sessions.
 
 ${NASM_OPT_REFERENCE}
-${NUTRITION_REFERENCE}`,
+${NUTRITION_REFERENCE}
+${HEALTH_CONDITION_PROTOCOLS}`,
   },
 };
 
@@ -964,6 +1087,20 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
       if (users.length > 0) {
         const u = users[0];
         const age = u.dateOfBirth ? Math.floor((Date.now() - new Date(u.dateOfBirth).getTime()) / 31557600000) : null;
+        // Detect health conditions from healthConcerns free-text
+        const healthText = (u.healthConcerns || '').toLowerCase();
+        const detectedConditions = [];
+        if (/hypertension|high blood pressure|hbp|elevated bp/i.test(healthText)) detectedConditions.push('HYPERTENSION');
+        if (/diabetes|diabetic|type 2|type 1|insulin|a1c|blood sugar|glucose/i.test(healthText)) detectedConditions.push('DIABETES');
+        if (/cholesterol|hyperlipidemia|high cholesterol|lipid|statin|ldl|hdl/i.test(healthText)) detectedConditions.push('HIGH_CHOLESTEROL');
+        if (/fibromyalgia|fibro|chronic pain syndrome|widespread pain/i.test(healthText)) detectedConditions.push('FIBROMYALGIA');
+        if (/kidney|renal|ckd|dialysis/i.test(healthText)) detectedConditions.push('KIDNEY_DISEASE');
+        if (/celiac|gluten intoleran/i.test(healthText)) detectedConditions.push('CELIAC');
+
+        const conditionFlags = detectedConditions.length > 0
+          ? `\n⚕️ ACTIVE HEALTH CONDITIONS: ${detectedConditions.join(', ')}\n→ APPLY the corresponding HEALTH CONDITION DIETARY PROTOCOLS from your training for ALL nutrition advice, meal plans, and food analysis for this client.`
+          : '';
+
         dataParts.push(`\n--- CLIENT PROFILE ---
 Client ID: ${userId}
 Gender: ${u.gender || 'Not specified'}
@@ -972,7 +1109,7 @@ Weight: ${u.weight || 'Not recorded'}
 Height: ${u.height || 'Not recorded'}
 Goal: ${u.fitnessGoal || 'Not set'}
 Experience: ${u.trainingExperience || 'Not set'}
-Health Concerns: ${u.healthConcerns || 'None noted'}
+Health Concerns: ${u.healthConcerns || 'None noted'}${conditionFlags}
 Sessions Available: ${u.availableSessions ?? 'Unknown'}
 Client Source: ${u.clientSource === 'move_fitness' ? 'Move Fitness (external gym client — DO NOT discuss billing, session packages, or SwanStudios pricing)' : u.clientSource === 'external' ? 'External Client' : 'SwanStudios'}
 Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}`);
@@ -1025,7 +1162,13 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       const b = baseline[0];
       const lift = (w, r, name) => w ? `${name}: ${w}lbs×${r}` : null;
       const lifts = [lift(b.benchPressWeight, b.benchPressReps, 'Bench'), lift(b.squatWeight, b.squatReps, 'Squat'), lift(b.deadliftWeight, b.deadliftReps, 'DL'), lift(b.overheadPressWeight, b.overheadPressReps, 'OHP')].filter(Boolean).join(' | ');
-      dataParts.push(`\n--- BASELINE (${b.takenAt || '?'}) ---\n${lifts || 'No lifts tested'} | Pull-ups: ${b.pullUpsReps ?? '-'} | Plank: ${b.plankDuration ? `${b.plankDuration}s` : '-'} | BF: ${b.bodyFatPercentage ? `${b.bodyFatPercentage}%` : '-'} | HR: ${b.restingHeartRate || '-'} | BP: ${b.bloodPressureSystolic ? `${b.bloodPressureSystolic}/${b.bloodPressureDiastolic}` : '-'}${b.injuryNotes ? `\nInjuries: ${b.injuryNotes}` : ''}`);
+      // Flag elevated BP from baseline measurements
+      const bpWarning = (b.bloodPressureSystolic >= 140 || b.bloodPressureDiastolic >= 90)
+        ? ' ⚠️ ELEVATED — apply HYPERTENSION dietary protocol (DASH, sodium <1500mg)'
+        : (b.bloodPressureSystolic >= 130 || b.bloodPressureDiastolic >= 80)
+          ? ' ⚠️ PRE-HYPERTENSION — apply preventive sodium limits'
+          : '';
+      dataParts.push(`\n--- BASELINE (${b.takenAt || '?'}) ---\n${lifts || 'No lifts tested'} | Pull-ups: ${b.pullUpsReps ?? '-'} | Plank: ${b.plankDuration ? `${b.plankDuration}s` : '-'} | BF: ${b.bodyFatPercentage ? `${b.bodyFatPercentage}%` : '-'} | HR: ${b.restingHeartRate || '-'} | BP: ${b.bloodPressureSystolic ? `${b.bloodPressureSystolic}/${b.bloodPressureDiastolic}${bpWarning}` : '-'}${b.injuryNotes ? `\nInjuries: ${b.injuryNotes}` : ''}`);
     }
 
     // ── 6. WORKOUT HISTORY ──

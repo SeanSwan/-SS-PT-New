@@ -9,8 +9,9 @@
 
 import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { ScanBarcode, Search, Plus, Loader2, AlertCircle } from 'lucide-react';
+import { ScanBarcode, Search, Plus, Loader2, AlertCircle, Camera, CameraOff } from 'lucide-react';
 import { theme } from '../../theme/tokens';
+import { useBarcodeCamera } from '../../hooks/useBarcodeCamera';
 
 interface ScannedProduct {
   id?: string;
@@ -79,6 +80,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
     }
   }, []);
 
+  // Camera auto-scan: when barcode detected, auto-lookup and stop camera
+  const handleCameraDetected = useCallback((code: string) => {
+    setBarcode(code);
+    stopCamera();
+    scanBarcode(code);
+  }, [scanBarcode]);
+
+  const { videoRef, isScanning, startCamera, stopCamera, cameraError, supported } =
+    useBarcodeCamera(handleCameraDetected);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     scanBarcode(barcode.trim());
@@ -108,15 +119,38 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
         </div>
       </ScannerHeader>
 
-      {/* Scan Reticle Visual */}
+      {/* Camera / Scan Reticle */}
       <ReticleBox>
+        {isScanning && (
+          <CameraVideo ref={videoRef} autoPlay playsInline muted />
+        )}
         <ReticleCorner $position="top-left" />
         <ReticleCorner $position="top-right" />
         <ReticleCorner $position="bottom-left" />
         <ReticleCorner $position="bottom-right" />
-        <LaserLine />
-        <ReticleText>Position barcode in frame</ReticleText>
+        {isScanning && <LaserLine />}
+        {!isScanning && <ReticleText>Position barcode in frame</ReticleText>}
       </ReticleBox>
+
+      {/* Camera Controls */}
+      {supported && (
+        <CameraButtonRow>
+          <CameraButton
+            type="button"
+            onClick={isScanning ? stopCamera : startCamera}
+            $active={isScanning}
+          >
+            {isScanning ? <CameraOff size={18} /> : <Camera size={18} />}
+            {isScanning ? 'Stop Camera' : 'Scan with Camera'}
+          </CameraButton>
+        </CameraButtonRow>
+      )}
+      {cameraError && (
+        <ErrorBox>
+          <AlertCircle size={16} />
+          {cameraError}
+        </ErrorBox>
+      )}
 
       {/* Manual Input Fallback */}
       <form onSubmit={handleSubmit}>
@@ -218,6 +252,48 @@ const Subtitle = styled.p`
   font-size: 0.8rem;
   color: ${theme.colors.text.secondary};
   margin: 2px 0 0;
+`;
+
+const CameraVideo = styled.video`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+`;
+
+const CameraButtonRow = styled.div`
+  display: flex;
+  justify-content: center;
+`;
+
+const CameraButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: ${({ $active }) => $active
+    ? 'rgba(201, 42, 84, 0.8)'
+    : theme.colors.brand.purple};
+  color: ${theme.colors.text.primary};
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px ${({ $active }) => $active
+    ? 'rgba(201, 42, 84, 0.3)'
+    : 'rgba(96, 192, 240, 0.3)'};
+
+  &:hover {
+    box-shadow: 0 0 20px ${({ $active }) => $active
+      ? 'rgba(201, 42, 84, 0.5)'
+      : 'rgba(96, 192, 240, 0.5)'};
+  }
 `;
 
 const ReticleBox = styled.div`

@@ -36,6 +36,7 @@ import { motion } from 'framer-motion';
 import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
+import { useMacroSummary } from '../../../hooks/useMacroSummary';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Lazy imports
@@ -67,6 +68,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 // ─────────────────────────────────────────────────────────────
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('log');
+  const { summary, loading: macroLoading } = useMacroSummary();
 
   return (
     <WorkspaceRoot>
@@ -104,8 +106,20 @@ const NutritionWorkspace: React.FC = () => {
             {activeTab === 'hydration' && <NutritionHydrationTab />}
             {activeTab === 'macros' && (
               <MacroGrid>
-                <MacroDonut />
-                <NutritionBalanceRadar />
+                <MacroDonut
+                  protein={summary?.totalProtein}
+                  carbs={summary?.totalCarbs}
+                  fat={summary?.totalFat}
+                  totalCalories={summary?.totalCalories}
+                  loading={macroLoading}
+                />
+                <NutritionBalanceRadar
+                  protein={summary?.totalProtein}
+                  carbs={summary?.totalCarbs}
+                  fat={summary?.totalFat}
+                  fiber={summary?.totalFiber}
+                  loading={macroLoading}
+                />
               </MacroGrid>
             )}
             {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}

@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ── Ingredient Safety Color System (IARC conservative defaults) ──
+// "red" = IARC Group 1 carcinogen + EU-banned additives ONLY
+// "yellow" = IARC Group 2A/2B, highly processed, excessive sugar/sodium
+// "green" = Generally recognized as safe (GRAS), whole food ingredients
+const SAFETY_COLORS = {
+  good:  { bg: 'rgba(96, 192, 240, 0.1)', border: 'rgba(96, 192, 240, 0.2)', icon: '#60C0F0', label: 'Safe' },
+  okay:  { bg: 'rgba(198, 168, 75, 0.1)', border: 'rgba(198, 168, 75, 0.2)', icon: '#C6A84B', label: 'Caution' },
+  bad:   { bg: 'rgba(201, 42, 84, 0.1)', border: 'rgba(201, 42, 84, 0.2)', icon: '#C92A54', label: 'Concern' },
+} as const;
+
 // Types
 interface Ingredient {
   name: string;
@@ -183,17 +193,17 @@ const Ingredient = styled.div<{ rating: string }>`
   margin-bottom: 0.5rem;
   background: ${({ rating }) => {
     switch (rating) {
-      case 'good': return 'rgba(0, 200, 83, 0.1)';
-      case 'bad': return 'rgba(255, 70, 70, 0.1)';
-      case 'okay': return 'rgba(255, 193, 7, 0.1)';
+      case 'good': return SAFETY_COLORS.good.bg;
+      case 'bad': return SAFETY_COLORS.bad.bg;
+      case 'okay': return SAFETY_COLORS.okay.bg;
       default: return 'rgba(100, 100, 100, 0.1)';
     }
   }};
   border: 1px solid ${({ rating }) => {
     switch (rating) {
-      case 'good': return 'rgba(0, 200, 83, 0.2)';
-      case 'bad': return 'rgba(255, 70, 70, 0.2)';
-      case 'okay': return 'rgba(255, 193, 7, 0.2)';
+      case 'good': return SAFETY_COLORS.good.border;
+      case 'bad': return SAFETY_COLORS.bad.border;
+      case 'okay': return SAFETY_COLORS.okay.border;
       default: return 'rgba(100, 100, 100, 0.2)';
     }
   }};
@@ -206,9 +216,9 @@ const IngredientIcon = styled.div<{ rating: string }>`
   margin-right: 1rem;
   background: ${({ rating }) => {
     switch (rating) {
-      case 'good': return '#00c853';
-      case 'bad': return '#ff4646';
-      case 'okay': return '#ffc107';
+      case 'good': return SAFETY_COLORS.good.icon;
+      case 'bad': return SAFETY_COLORS.bad.icon;
+      case 'okay': return SAFETY_COLORS.okay.icon;
       default: return '#888';
     }
   }};
@@ -445,6 +455,11 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
             transition={{ duration: 0.2 }}
           >
             <SectionTitle>Ingredients Analysis</SectionTitle>
+            <SafetyLegend>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.good.icon} />{SAFETY_COLORS.good.label} — GRAS / whole food</LegendItem>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.okay.icon} />{SAFETY_COLORS.okay.label} — processed / Group 2</LegendItem>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.bad.icon} />{SAFETY_COLORS.bad.label} — IARC Group 1 / EU-banned</LegendItem>
+            </SafetyLegend>
             {product.ingredients && product.ingredients.length > 0 ? (
               <IngredientsList>
                 {product.ingredients.map((ingredient, index) => (
@@ -495,6 +510,12 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
                 <span>Non-GMO</span>
               </Certification>
             </CertificationList>
+            <FdaDisclaimer>
+              For general wellness purposes only. Not medical advice. Ingredient
+              safety ratings use conservative IARC/EU classifications and may not
+              reflect individual sensitivities. Consult a healthcare professional
+              for dietary guidance.
+            </FdaDisclaimer>
           </TabContent>
         )}
         
@@ -647,5 +668,45 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
     </AnalysisContainer>
   );
 };
+
+// ── Safety Legend ──
+const SafetyLegend = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const LegendDot = styled.div<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  flex-shrink: 0;
+`;
+
+const FdaDisclaimer = styled.div`
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(198, 168, 75, 0.06);
+  border-left: 3px solid rgba(198, 168, 75, 0.4);
+  font-size: 0.75rem;
+  color: rgba(224, 236, 244, 0.6);
+  line-height: 1.5;
+  font-style: italic;
+`;
 
 export default ProductAnalysis;
