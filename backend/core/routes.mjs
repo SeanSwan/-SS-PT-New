@@ -176,6 +176,8 @@ import aiDebateRoutes from '../routes/aiDebateRoutes.mjs';
 import aiBffRoutes from '../routes/aiBffRoutes.mjs';
 import aiVillageRoutes from '../routes/aiVillageRoutes.mjs';
 import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
+import hydrationRoutes from '../routes/hydrationRoutes.mjs';
+import restaurantRoutes from '../routes/restaurantRoutes.mjs';
 import subscriptionRoutes from '../routes/subscriptionRoutes.mjs';
 import creditsRoutes from '../routes/creditsRoutes.mjs';
 import commissionRoutes from '../routes/commissionRoutes.mjs';
@@ -531,6 +533,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/ai-bff', aiBffRoutes);
   app.use('/api/ai-village', aiVillageRoutes);
   app.use('/api/macros', dailyMacroRoutes);
+  app.use('/api/hydration', hydrationRoutes);
+  app.use('/api/restaurant', restaurantRoutes);
   app.use('/api/free', freeApiRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);

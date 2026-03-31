@@ -65,8 +65,10 @@ import {
   DollarSign,
   Camera,
   StickyNote,
-  History
+  History,
+  Apple
 } from 'lucide-react';
+import NutritionSummaryWidget from './NutritionSummaryWidget';
 
 // Services
 import { adminClientService } from '../../../../services/adminClientService';
@@ -1286,6 +1288,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
     { icon: <Dumbbell size={18} />, label: 'Health & Fitness' },
     { icon: <Clock size={18} />, label: isMoveFitness ? 'Workout Log' : 'Sessions' },
     { icon: <CreditCard size={18} />, label: 'Payments' },
+    { icon: <Apple size={18} />, label: 'Nutrition' },
     { icon: <TrendingUp size={18} />, label: 'Progress' },
     { icon: <MessageSquare size={18} />, label: 'Notes' },
   ];
@@ -1398,6 +1401,12 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
 
         <TabPanel value={activeTab} index={4}>
           <SectionPadding>
+            <NutritionSummaryWidget clientId={client.id} />
+          </SectionPadding>
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={5}>
+          <SectionPadding>
             <SectionTitle>Progress Tracking</SectionTitle>
             <BodyText>
               Progress tracking features will be implemented here.
@@ -1405,7 +1414,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
           </SectionPadding>
         </TabPanel>
 
-        <TabPanel value={activeTab} index={5}>
+        <TabPanel value={activeTab} index={6}>
           <SectionPadding>
             <SectionTitle>Client Notes</SectionTitle>
             <BodyText>

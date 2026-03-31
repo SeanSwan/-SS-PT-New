@@ -20,33 +20,21 @@
  * │ [Reset] → Clear today's intake → Reset all glasses           │
  * └──────────────────────────────────────────────────────────────┘
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import styled from 'styled-components';
 import { Droplets, RotateCcw, Trophy } from 'lucide-react';
+import { useHydration } from '../../../hooks/useHydration';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
 // ─────────────────────────────────────────────────────────────
-const DAILY_GOAL = 8; // 8 glasses (64 oz / ~2L)
 const GLASS_OZ = 8;
-
-const getStorageKey = () => `ss-hydration-${new Date().toISOString().split('T')[0]}`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const NutritionHydrationTab: React.FC = () => {
-  const [filled, setFilled] = useState(0);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(getStorageKey());
-    if (saved) setFilled(Number(saved) || 0);
-  }, []);
-
-  const updateFilled = useCallback((count: number) => {
-    setFilled(count);
-    localStorage.setItem(getStorageKey(), String(count));
-  }, []);
+  const { filled, dailyGoal: DAILY_GOAL, updateFilled } = useHydration();
 
   const toggleGlass = useCallback((index: number) => {
     // If clicking the last filled glass, unfill it; otherwise fill up to index
@@ -111,7 +99,7 @@ const NutritionHydrationTab: React.FC = () => {
       </TipCard>
 
       {filled > 0 && (
-        <ResetBtn onClick={() => updateFilled(0)}>
+        <ResetBtn type="button" onClick={() => updateFilled(0)}>
           <RotateCcw size={14} /> Reset Today
         </ResetBtn>
       )}

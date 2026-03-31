@@ -33,7 +33,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart } from 'lucide-react';
+import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2 } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
@@ -46,17 +46,19 @@ const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntel
 const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
 const NutritionHydrationTab = lazy(() => import('./NutritionHydrationTab'));
 const NutritionLearnTab = lazy(() => import('./NutritionLearnTab'));
+const RestaurantTab = lazy(() => import('../../FoodTracker/RestaurantTab'));
 const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
 const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Tab config
 // ─────────────────────────────────────────────────────────────
-type Tab = 'log' | 'search' | 'hydration' | 'macros' | 'intelligence' | 'learn';
+type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'log', label: 'Log Meal', icon: <Utensils size={16} /> },
   { id: 'search', label: 'Food Search', icon: <ScanBarcode size={16} /> },
+  { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
   { id: 'hydration', label: 'Hydration', icon: <Droplets size={16} /> },
   { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
   { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
@@ -103,6 +105,7 @@ const NutritionWorkspace: React.FC = () => {
           <Suspense fallback={<CosmicSuspenseLoader />}>
             {activeTab === 'log' && <FoodIntakeForm />}
             {activeTab === 'search' && <FoodSearchPanel />}
+            {activeTab === 'restaurant' && <RestaurantTab />}
             {activeTab === 'hydration' && <NutritionHydrationTab />}
             {activeTab === 'macros' && (
               <MacroGrid>

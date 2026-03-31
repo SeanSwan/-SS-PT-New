@@ -188,6 +188,7 @@ const setupAssociations = async () => {
     // AI Chat & Macro Logging Models
     const AiConversationModule = await import('./AiConversation.mjs');
     const DailyMacroLogModule = await import('./DailyMacroLog.mjs').catch(() => ({ default: null }));
+    const DailyHydrationModule = await import('./DailyHydration.mjs').catch(() => ({ default: null }));
 
     // Subscription Models
     const SubscriptionModule = await import('./Subscription.mjs').catch(() => ({ default: null }));
@@ -364,6 +365,7 @@ const setupAssociations = async () => {
     // AI Chat & Macro Logging
     const AiConversation = AiConversationModule.default;
     const DailyMacroLog = DailyMacroLogModule?.default || null;
+    const DailyHydration = DailyHydrationModule?.default || null;
 
     // Subscription
     const Subscription = SubscriptionModule?.default || null;
@@ -1306,6 +1308,7 @@ const setupAssociations = async () => {
       // AI Chat & Macro Logging Models
       AiConversation,
       ...(DailyMacroLog ? { DailyMacroLog } : {}),
+      ...(DailyHydration ? { DailyHydration } : {}),
 
       // Subscription Models
       ...(Subscription ? { Subscription } : {}),

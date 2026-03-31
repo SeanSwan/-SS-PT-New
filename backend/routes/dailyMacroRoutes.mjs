@@ -150,15 +150,23 @@ router.get('/summary', async (req, res) => {
     const rawDate = req.query.date || new Date().toISOString().split('T')[0];
     const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
 
+    // Admin/trainer can view any client's macros via ?userId=123
+    let targetUserId = req.user.id;
+    if (req.query.userId && ['admin', 'trainer'].includes(req.user.role)) {
+      const qId = parseInt(req.query.userId, 10);
+      if (Number.isFinite(qId) && qId > 0) targetUserId = qId;
+    }
+
     const entries = await DailyMacroLog.findAll({
       where: {
-        userId: req.user.id,
+        userId: targetUserId,
         date,
       },
     });
 
     const summary = {
       date,
+      userId: targetUserId,
       totalCalories: 0,
       totalProtein: 0,
       totalCarbs: 0,
@@ -226,9 +234,16 @@ router.get('/weekly', async (req, res) => {
       return res.status(400).json({ success: false, error: `Date range must be within ${MAX_WEEKLY_RANGE_DAYS} days` });
     }
 
+    // Admin/trainer can view any client's macros via ?userId=123
+    let weeklyUserId = req.user.id;
+    if (req.query.userId && ['admin', 'trainer'].includes(req.user.role)) {
+      const qId = parseInt(req.query.userId, 10);
+      if (Number.isFinite(qId) && qId > 0) weeklyUserId = qId;
+    }
+
     const entries = await DailyMacroLog.findAll({
       where: {
-        userId: req.user.id,
+        userId: weeklyUserId,
         date: { [Op.between]: [startDate, endDate] },
       },
       order: [['date', 'ASC'], ['createdAt', 'ASC']],
