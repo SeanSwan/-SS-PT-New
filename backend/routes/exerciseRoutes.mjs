@@ -204,7 +204,7 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
       exercises = await Exercise.findAll({
         attributes: [
           'id', 'name', 'exerciseType', 'primaryMuscles',
-          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded',
+          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
         ],
         where: { isActive: true },
         order: [['name', 'ASC']],
@@ -220,12 +220,16 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
     }
 
     const formatted = exercises.map(ex => {
-      // Parse equipmentNeeded — stored as JSON string in raw mode
+      // Parse equipmentNeeded — may be double-encoded JSON string in raw mode
       let equipment = [];
       try {
-        equipment = typeof ex.equipmentNeeded === 'string'
-          ? JSON.parse(ex.equipmentNeeded)
-          : (ex.equipmentNeeded || []);
+        let parsed = ex.equipmentNeeded;
+        // Unwrap up to 2 levels of JSON string encoding
+        if (typeof parsed === 'string') {
+          parsed = JSON.parse(parsed);
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        }
+        equipment = Array.isArray(parsed) ? parsed : [];
       } catch { equipment = []; }
       return {
         id: ex.id,
@@ -236,6 +240,7 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
         primaryMuscles: ex.primaryMuscles || [],
         difficulty: ex.difficulty || 0,
         equipment,
+        source: ex.source || 'swanstudios',
       };
     });
 

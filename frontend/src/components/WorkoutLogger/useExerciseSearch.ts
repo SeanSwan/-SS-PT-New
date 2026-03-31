@@ -105,7 +105,12 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           bodyPartCategory: String(ex?.bodyPartCategory ?? 'Full Body'),
           primaryMuscles: Array.isArray(ex?.primaryMuscles) ? ex.primaryMuscles as string[] : [],
           difficulty: Number(ex?.difficulty) || 1,
-          equipment: Array.isArray(ex?.equipment) ? ex.equipment as string[] : [],
+          equipment: Array.isArray(ex?.equipment)
+            ? ex.equipment as string[]
+            : typeof ex?.equipment === 'string'
+              ? (() => { try { const p = JSON.parse(ex.equipment as string); return Array.isArray(p) ? p : []; } catch { return [ex.equipment as string]; } })()
+              : [],
+          source: String(ex?.source ?? 'swanstudios'),
         }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);

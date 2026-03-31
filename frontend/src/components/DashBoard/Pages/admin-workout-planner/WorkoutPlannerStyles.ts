@@ -220,11 +220,15 @@ export const ThreePanel = styled.div<{ $teachModeOpen?: boolean }>`
   display: grid;
   gap: 16px;
   grid-template-columns: ${({ $teachModeOpen }) =>
-    $teachModeOpen ? '320px 1fr 360px' : '320px 1fr'};
+    $teachModeOpen ? 'minmax(280px, 360px) 1fr minmax(280px, 360px)' : 'minmax(280px, 360px) 1fr'};
   transition: grid-template-columns 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 
   @media (max-width: 1279px) {
     grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 430px) {
+    gap: 10px;
   }
 `;
 
@@ -238,6 +242,7 @@ export const Panel = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 `;
 
 export const PanelHeader = styled.div`
@@ -319,29 +324,48 @@ export const ChipRow = styled.div`
   gap: 6px;
   flex-wrap: wrap;
   margin-bottom: 12px;
+
+  @media (max-width: 430px) {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
 `;
 
 export const Chip = styled.button<{ $active?: boolean }>`
-  padding: 4px 10px;
-  border-radius: 16px;
+  padding: 6px 12px;
+  border-radius: 20px;
   border: 1px solid ${({ $active }) => $active ? '#8B5CF6' : 'rgba(96, 192, 240, 0.12)'};
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.2)' : 'transparent'};
+  background: ${({ $active }) => $active
+    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(96, 192, 240, 0.15) 100%)'
+    : 'rgba(255, 255, 255, 0.03)'};
   color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
-  min-height: 44px;
-  transition: all 0.2s ease;
+  min-height: 36px;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  ${({ $active }) => $active ? 'box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);' : ''}
 
   &:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.3);
     color: #E0ECF4;
+    transform: translateY(-1px);
   }
+
+  &:active { transform: translateY(0); }
 
   &:focus-visible {
     outline: 2px solid #60C0F0;
     outline-offset: 2px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 5px 10px;
+    font-size: 0.65rem;
+    min-height: 32px;
   }
 `;
 
@@ -351,43 +375,94 @@ export const Chip = styled.button<{ $active?: boolean }>`
 export const ExerciseItem = styled.button<{ $selected?: boolean }>`
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border: 1px solid ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.4)' : 'rgba(96, 192, 240, 0.06)'};
   border-radius: 10px;
-  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.08)' : 'transparent'};
+  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.08)' : 'rgba(255, 255, 255, 0.015)'};
   color: inherit;
   font: inherit;
   cursor: pointer;
-  margin-bottom: 4px;
-  transition: all 0.15s ease;
+  margin-bottom: 6px;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   min-height: 44px;
+  overflow: hidden;
+  border-left: 3px solid ${({ $selected }) => $selected ? '#8B5CF6' : 'transparent'};
 
   &:hover {
-    background: rgba(96, 192, 240, 0.04);
-    border-color: rgba(96, 192, 240, 0.15);
+    background: rgba(96, 192, 240, 0.05);
+    border-color: rgba(96, 192, 240, 0.18);
+    border-left-color: rgba(96, 192, 240, 0.4);
+    transform: translateX(2px);
   }
+
+  &:active { transform: translateX(0); }
 
   &:focus-visible {
     outline: 2px solid #60C0F0;
     outline-offset: 2px;
   }
+
+  @media (max-width: 430px) {
+    padding: 8px 10px;
+  }
 `;
 
 export const ExerciseName = styled.div`
-  font-family: 'Sora', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-primary, #E0ECF4);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 export const ExerciseMeta = styled.div`
-  font-family: 'Fira Code', monospace;
+  font-family: 'Sora', sans-serif;
   font-size: 0.65rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
   display: flex;
-  gap: 8px;
+  gap: 0;
   align-items: center;
+  flex-wrap: wrap;
+  overflow: hidden;
+
+  /* Pipe separators and tag spans */
+  & > span {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+`;
+
+export const MetaTag = styled.span<{ $impact?: string }>`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: ${({ $impact }) => {
+    if ($impact === 'Low Impact') return 'rgba(96, 192, 240, 0.1)';
+    if ($impact === 'Medium Impact') return 'rgba(198, 168, 75, 0.12)';
+    if ($impact === 'High Impact') return 'rgba(201, 42, 84, 0.12)';
+    return 'rgba(96, 192, 240, 0.06)';
+  }};
+  color: ${({ $impact }) => {
+    if ($impact === 'Low Impact') return '#60C0F0';
+    if ($impact === 'Medium Impact') return '#C6A84B';
+    if ($impact === 'High Impact') return '#C92A54';
+    return 'rgba(224, 236, 244, 0.55)';
+  }};
+  border: 1px solid ${({ $impact }) => {
+    if ($impact === 'Low Impact') return 'rgba(96, 192, 240, 0.15)';
+    if ($impact === 'Medium Impact') return 'rgba(198, 168, 75, 0.2)';
+    if ($impact === 'High Impact') return 'rgba(201, 42, 84, 0.2)';
+    return 'rgba(96, 192, 240, 0.08)';
+  }};
+  margin: 2px 3px 2px 0;
 `;
 
 // ─────────────────────────────────────────────────────────────

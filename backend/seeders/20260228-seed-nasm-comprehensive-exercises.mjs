@@ -292,7 +292,7 @@ export async function up(queryInterface) {
   for (const exercise of ALL_EXERCISES) {
     try {
       const [, wasCreated] = await queryInterface.sequelize.query(
-        `INSERT INTO "exercises" (id, name, description, instructions, "exerciseType", "primaryMuscles", "secondaryMuscles", difficulty, "equipmentNeeded", "canBePerformedAtHome", "coachingCues", "contraindicationNotes", "safetyTips", "recommendedSets", "recommendedReps", "recommendedDuration", "restInterval", "unlockLevel", "isActive", "isPopular", "experiencePointsEarned", "progressionPath", prerequisites, "createdAt", "updatedAt")
+        `INSERT INTO "Exercises" (id, name, description, instructions, "exerciseType", "primaryMuscles", "secondaryMuscles", difficulty, "equipmentNeeded", "canBePerformedAtHome", "coachingCues", "contraindicationNotes", "safetyTips", "recommendedSets", "recommendedReps", "recommendedDuration", "restInterval", "unlockLevel", "isActive", "isPopular", "experiencePointsEarned", "progressionPath", prerequisites, "createdAt", "updatedAt")
          VALUES (:id, :name, :description, :instructions, :exerciseType, :primaryMuscles, :secondaryMuscles, :difficulty, :equipmentNeeded, :canBePerformedAtHome, :coachingCues, :contraindicationNotes, :safetyTips, :recommendedSets, :recommendedReps, :recommendedDuration, :restInterval, :unlockLevel, :isActive, :isPopular, :experiencePointsEarned, :progressionPath, :prerequisites, NOW(), NOW())
          ON CONFLICT (name) DO NOTHING`,
         {
@@ -326,7 +326,7 @@ export async function up(queryInterface) {
 export async function down(queryInterface) {
   const names = ALL_EXERCISES.map(e => e.name);
   await queryInterface.sequelize.query(
-    `DELETE FROM "exercises" WHERE name IN (:names)`,
+    `DELETE FROM "Exercises" WHERE name IN (:names)`,
     { replacements: { names }, type: queryInterface.sequelize.QueryTypes.DELETE }
   );
 }

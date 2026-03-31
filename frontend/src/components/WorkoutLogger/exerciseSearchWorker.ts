@@ -27,6 +27,7 @@ export interface ExerciseSlim {
   primaryMuscles: string[];
   difficulty: number;
   equipment?: string[];
+  source?: string;
 }
 
 interface CacheMessage { type: 'CACHE'; exercises: ExerciseSlim[] }

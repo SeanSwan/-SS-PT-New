@@ -137,7 +137,7 @@ export async function up(queryInterface) {
   for (const exercise of allExercises) {
     try {
       await queryInterface.sequelize.query(
-        `INSERT INTO "exercises" (
+        `INSERT INTO "Exercises" (
           id, name, description, instructions, "exerciseType",
           "primaryMuscles", "secondaryMuscles", difficulty, "equipmentNeeded",
           "canBePerformedAtHome", "unlockLevel", "isActive", "isPopular",
@@ -183,7 +183,7 @@ export async function up(queryInterface) {
 export async function down(queryInterface) {
   const keys = allExercises.map(e => e.exercise_key);
   await queryInterface.sequelize.query(
-    `DELETE FROM "exercises" WHERE exercise_key IN (:keys)`,
+    `DELETE FROM "Exercises" WHERE exercise_key IN (:keys)`,
     { replacements: { keys }, type: queryInterface.sequelize.QueryTypes.DELETE }
   );
 }

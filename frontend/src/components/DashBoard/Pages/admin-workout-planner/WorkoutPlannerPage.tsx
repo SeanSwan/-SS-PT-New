@@ -63,7 +63,7 @@ import {
   ControlRow, Select, ActionBtn, ThreePanel,
   Panel, PanelHeader, PanelTitle, PanelBody,
   SearchWrapper, SearchInput, ChipRow, Chip,
-  ExerciseItem, ExerciseName, ExerciseMeta,
+  ExerciseItem, ExerciseName, ExerciseMeta, MetaTag,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
   SkeletonBlock, EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
@@ -96,6 +96,8 @@ const EQUIPMENT_FILTERS = [
   'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX',
 ];
 
+const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
+
 // Joint impact derived from exerciseType + difficulty
 const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
 
@@ -105,6 +107,26 @@ function getJointImpact(ex: { exerciseType: string; difficulty: number }): strin
   if (lowTypes.includes(ex.exerciseType) || ex.difficulty <= 200) return 'Low Impact';
   if (highTypes.includes(ex.exerciseType) && ex.difficulty >= 500) return 'High Impact';
   return 'Medium Impact';
+}
+
+/**
+ * Parse equipment field — handles JSON strings, arrays, and null/empty.
+ * DB stores equipment as JSON string '["Cable Machine"]' but some records have arrays.
+ */
+function parseEquipment(eq: unknown): string[] {
+  if (!eq) return [];
+  if (Array.isArray(eq)) return eq.filter(Boolean);
+  if (typeof eq === 'string') {
+    if (eq === '[]' || eq === '') return [];
+    try {
+      const parsed = JSON.parse(eq);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      // Not JSON — treat as single equipment name
+      return [eq];
+    }
+  }
+  return [];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -138,6 +160,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [impactFilter, setImpactFilter] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
 
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
@@ -175,20 +198,33 @@ const WorkoutPlannerPage: React.FC = () => {
     if (equipmentFilter) {
       const norm = equipmentFilter.toLowerCase();
       if (norm === 'bodyweight') {
-        pool = pool.filter(ex => !ex.equipment || ex.equipment.length === 0
-          || ex.equipment.some(e => e.toLowerCase().includes('body') || e.toLowerCase() === 'none'));
+        pool = pool.filter(ex => {
+          const eqArr = parseEquipment(ex.equipment);
+          return eqArr.length === 0
+            || eqArr.some(e => e.toLowerCase().includes('body') || e.toLowerCase() === 'none');
+        });
       } else {
-        pool = pool.filter(ex =>
-          ex.equipment && ex.equipment.some(e => e.toLowerCase().includes(norm))
-        );
+        pool = pool.filter(ex => {
+          const eqArr = parseEquipment(ex.equipment);
+          return eqArr.length > 0 && eqArr.some(e => e.toLowerCase().includes(norm));
+        });
       }
+    }
+    // Filter by source/program
+    if (sourceFilter) {
+      pool = pool.filter(ex => {
+        const src = (ex.source || 'swanstudios').toLowerCase();
+        if (sourceFilter === 'nasm') return src.startsWith('nasm');
+        if (sourceFilter === 'swanstudios') return src === 'swanstudios';
+        return true;
+      });
     }
     // Filter by joint impact
     if (impactFilter) {
       pool = pool.filter(ex => getJointImpact(ex) === impactFilter);
     }
     return pool;
-  }, [exerciseResults, exerciseTypeFilter, equipmentFilter, impactFilter]);
+  }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
 
   // ── Fetch Clients ──
   useEffect(() => {
@@ -453,7 +489,7 @@ const WorkoutPlannerPage: React.FC = () => {
           <HeaderIcon><Dumbbell size={22} /></HeaderIcon>
           <div>
             <Title>NASM Workout Planner</Title>
-            <Subtitle>Build intelligent, periodized training programs with 840+ exercises</Subtitle>
+            <Subtitle>Build intelligent, periodized training programs with 880+ exercises</Subtitle>
           </div>
         </HeaderLeft>
         <TeachToggle $active={teachModeOpen} onClick={() => setTeachModeOpen(v => !v)}>
@@ -620,6 +656,18 @@ const WorkoutPlannerPage: React.FC = () => {
                 </Chip>
               ))}
             </ChipRow>
+            {/* Program/Source filter */}
+            <ChipRow>
+              {SOURCE_FILTERS.map(sf => (
+                <Chip
+                  key={sf}
+                  $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()}
+                  onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}
+                >
+                  {sf}
+                </Chip>
+              ))}
+            </ChipRow>
             {/* Exercise Type filter */}
             <ChipRow>
               {EXERCISE_TYPES.map(et => (
@@ -674,13 +722,10 @@ const WorkoutPlannerPage: React.FC = () => {
                 >
                   <ExerciseName>{ex.name}</ExerciseName>
                   <ExerciseMeta>
-                    <span>{ex.bodyPartCategory}</span>
-                    <span>|</span>
-                    <span>{ex.exerciseType}</span>
-                    <span>|</span>
-                    <span>{ex.equipment && ex.equipment.length > 0 ? ex.equipment.slice(0, 2).join(', ') : 'Bodyweight'}</span>
-                    <span>|</span>
-                    <span>{getJointImpact(ex)}</span>
+                    <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                    <MetaTag>{ex.exerciseType}</MetaTag>
+                    <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
+                    <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
                   </ExerciseMeta>
                 </ExerciseItem>
               ))
