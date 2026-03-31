@@ -49,8 +49,8 @@ export const HeaderIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+  color: var(--accent-secondary, #8B5CF6);
 `;
 
 export const Title = styled.h1`
@@ -93,8 +93,8 @@ export const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #60C0F0;
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.3);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
   }
 
   option {
@@ -120,25 +120,25 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'cosmic' }>`
 
   background: ${({ $variant }) =>
     $variant === 'cosmic'
-      ? 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%)'
+      ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%)'
       : 'var(--bg-surface, #002060)'};
   box-shadow: ${({ $variant }) =>
     $variant === 'cosmic'
-      ? '0 4px 15px rgba(139, 92, 246, 0.3)'
+      ? '0 4px 15px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)'
       : 'none'};
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: ${({ $variant }) =>
       $variant === 'cosmic'
-        ? '0 0 20px rgba(96, 192, 240, 0.5)'
-        : '0 0 12px rgba(139, 92, 246, 0.3)'};
+        ? '0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)'
+        : '0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)'};
   }
 
   &:active { transform: translateY(0); }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
   }
 
@@ -164,7 +164,7 @@ export const StatusBanner = styled.div<{ $type: 'success' | 'error' }>`
   background: ${({ $type }) => $type === 'error'
     ? 'rgba(26, 26, 36, 0.95)'
     : 'rgba(26, 26, 36, 0.95)'};
-  border-left: 4px solid ${({ $type }) => $type === 'error' ? '#C92A54' : '#C6A84B'};
+  border-left: 4px solid ${({ $type }) => $type === 'error' ? 'var(--danger, #C92A54)' : 'var(--accent-gold, #C6A84B)'};
   color: var(--text-primary, #E0ECF4);
 
   button {
@@ -237,7 +237,7 @@ export const ThreePanel = styled.div<{ $teachModeOpen?: boolean }>`
 // ─────────────────────────────────────────────────────────────
 export const Panel = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid rgba(96, 192, 240, 0.08);
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -247,7 +247,7 @@ export const Panel = styled.div`
 
 export const PanelHeader = styled.div`
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.06);
+  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -273,7 +273,7 @@ export const PanelBody = styled.div`
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb {
-    background: rgba(96, 192, 240, 0.12);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
     border-radius: 3px;
   }
 `;
@@ -290,7 +290,7 @@ export const SearchWrapper = styled.div`
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(224, 236, 244, 0.5);
+    color: var(--text-muted, rgba(224, 236, 244, 0.5));
     pointer-events: none;
   }
 `;
@@ -298,7 +298,7 @@ export const SearchWrapper = styled.div`
 export const SearchInput = styled.input`
   width: 100%;
   background: var(--bg-base, #030712);
-  border: 1px solid rgba(96, 192, 240, 0.1);
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
   border-radius: 8px;
   padding: 0.6rem 1rem 0.6rem 36px;
   color: var(--text-primary, #E0ECF4);
@@ -307,12 +307,12 @@ export const SearchInput = styled.input`
   min-height: 44px;
   box-sizing: border-box;
 
-  &::placeholder { color: rgba(224, 236, 244, 0.5); }
+  &::placeholder { color: var(--text-muted, rgba(224, 236, 244, 0.5)); }
 
   &:focus {
     outline: none;
-    border-color: #60C0F0;
-    box-shadow: 0 0 8px rgba(96, 192, 240, 0.2);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 `;
 
@@ -334,11 +334,11 @@ export const ChipRow = styled.div`
 export const Chip = styled.button<{ $active?: boolean }>`
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid ${({ $active }) => $active ? '#8B5CF6' : 'rgba(96, 192, 240, 0.12)'};
+  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
   background: ${({ $active }) => $active
-    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(96, 192, 240, 0.15) 100%)'
+    ? 'linear-gradient(135deg, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent) 0%, color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent) 100%)'
     : 'rgba(255, 255, 255, 0.03)'};
-  color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
+  color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
@@ -346,19 +346,19 @@ export const Chip = styled.button<{ $active?: boolean }>`
   min-height: 36px;
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  ${({ $active }) => $active ? 'box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);' : ''}
+  ${({ $active }) => $active ? 'box-shadow: 0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);' : ''}
 
   &:hover {
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: #E0ECF4;
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
+    color: var(--text-primary, #E0ECF4);
     transform: translateY(-1px);
   }
 
   &:active { transform: translateY(0); }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 
@@ -376,9 +376,9 @@ export const ExerciseItem = styled.button<{ $selected?: boolean }>`
   width: 100%;
   text-align: left;
   padding: 10px 14px;
-  border: 1px solid ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.4)' : 'rgba(96, 192, 240, 0.06)'};
+  border: 1px solid ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)' : 'var(--border-soft, rgba(96, 192, 240, 0.06))'};
   border-radius: 10px;
-  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.08)' : 'rgba(255, 255, 255, 0.015)'};
+  background: ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)' : 'rgba(255, 255, 255, 0.015)'};
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -386,19 +386,19 @@ export const ExerciseItem = styled.button<{ $selected?: boolean }>`
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   min-height: 44px;
   overflow: hidden;
-  border-left: 3px solid ${({ $selected }) => $selected ? '#8B5CF6' : 'transparent'};
+  border-left: 3px solid ${({ $selected }) => $selected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
 
   &:hover {
-    background: rgba(96, 192, 240, 0.05);
-    border-color: rgba(96, 192, 240, 0.18);
-    border-left-color: rgba(96, 192, 240, 0.4);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+    border-left-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
     transform: translateX(2px);
   }
 
   &:active { transform: translateX(0); }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 
@@ -445,22 +445,22 @@ export const MetaTag = styled.span<{ $impact?: string }>`
   letter-spacing: 0.02em;
   white-space: nowrap;
   background: ${({ $impact }) => {
-    if ($impact === 'Low Impact') return 'rgba(96, 192, 240, 0.1)';
-    if ($impact === 'Medium Impact') return 'rgba(198, 168, 75, 0.12)';
-    if ($impact === 'High Impact') return 'rgba(201, 42, 84, 0.12)';
-    return 'rgba(96, 192, 240, 0.06)';
+    if ($impact === 'Low Impact') return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
+    if ($impact === 'Medium Impact') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent)';
+    if ($impact === 'High Impact') return 'color-mix(in srgb, var(--danger, #C92A54) 12%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)';
   }};
   color: ${({ $impact }) => {
-    if ($impact === 'Low Impact') return '#60C0F0';
-    if ($impact === 'Medium Impact') return '#C6A84B';
-    if ($impact === 'High Impact') return '#C92A54';
-    return 'rgba(224, 236, 244, 0.55)';
+    if ($impact === 'Low Impact') return 'var(--accent-primary, #60C0F0)';
+    if ($impact === 'Medium Impact') return 'var(--accent-gold, #C6A84B)';
+    if ($impact === 'High Impact') return 'var(--danger, #C92A54)';
+    return 'var(--text-muted, rgba(224, 236, 244, 0.55))';
   }};
   border: 1px solid ${({ $impact }) => {
-    if ($impact === 'Low Impact') return 'rgba(96, 192, 240, 0.15)';
-    if ($impact === 'Medium Impact') return 'rgba(198, 168, 75, 0.2)';
-    if ($impact === 'High Impact') return 'rgba(201, 42, 84, 0.2)';
-    return 'rgba(96, 192, 240, 0.08)';
+    if ($impact === 'Low Impact') return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)';
+    if ($impact === 'Medium Impact') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)';
+    if ($impact === 'High Impact') return 'color-mix(in srgb, var(--danger, #C92A54) 20%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)';
   }};
   margin: 2px 3px 2px 0;
 `;
@@ -473,13 +473,13 @@ export const BuilderRow = styled.div`
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid rgba(96, 192, 240, 0.08);
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 12px;
   margin-bottom: 8px;
   background: var(--bg-base, #030712);
   transition: border-color 0.2s ease;
 
-  &:hover { border-color: rgba(96, 192, 240, 0.2); }
+  &:hover { border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent); }
 `;
 
 export const BuilderRowNumber = styled.span`
@@ -498,7 +498,7 @@ export const BuilderRowInfo = styled.div`
 export const MiniInput = styled.input`
   width: 56px;
   background: var(--bg-elevated, #141419);
-  border: 1px solid rgba(96, 192, 240, 0.1);
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
   border-radius: 6px;
   padding: 4px 8px;
   color: var(--text-primary, #E0ECF4);
@@ -508,9 +508,9 @@ export const MiniInput = styled.input`
   min-height: 44px;
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
-    border-color: #60C0F0;
+    border-color: var(--accent-primary, #60C0F0);
   }
 `;
 
@@ -519,8 +519,8 @@ export const RemoveBtn = styled.button`
   height: 44px;
   border-radius: 8px;
   border: none;
-  background: rgba(201, 42, 84, 0.15);
-  color: #E14B67;
+  background: color-mix(in srgb, var(--danger, #C92A54) 15%, transparent);
+  color: var(--danger, #E14B67);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -528,9 +528,9 @@ export const RemoveBtn = styled.button`
   flex-shrink: 0;
   transition: background 0.2s ease;
 
-  &:hover { background: rgba(201, 42, 84, 0.3); }
+  &:hover { background: color-mix(in srgb, var(--danger, #C92A54) 30%, transparent); }
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 `;
@@ -544,8 +544,8 @@ export const PhaseBadge = styled.div`
   gap: 8px;
   padding: 8px 16px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
   margin-bottom: 16px;
 `;
 
@@ -553,13 +553,13 @@ export const PhaseLabel = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8B5CF6;
+  color: var(--accent-secondary, #8B5CF6);
 `;
 
 export const PhaseParams = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
-  color: rgba(224, 236, 244, 0.6);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -581,7 +581,7 @@ export const SkeletonBlock = styled.div`
 export const EmptyMessage = styled.div`
   text-align: center;
   padding: 48px 24px;
-  color: rgba(224, 236, 244, 0.4);
+  color: var(--text-muted, rgba(224, 236, 244, 0.4));
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
 `;
@@ -675,7 +675,7 @@ export const ExplanationsToggle = styled.button`
   min-height: 44px;
 
   &:hover { color: var(--text-primary, #E0ECF4); }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 4px; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 4px; }
 `;
 
 export const ExplanationItem = styled.div<{ $type?: string }>`
@@ -687,11 +687,11 @@ export const ExplanationItem = styled.div<{ $type?: string }>`
   background: var(--bg-base, #030712);
   border-left: 3px solid ${({ $type }) => {
     switch ($type) {
-      case 'safety_warning': return '#C92A54';
-      case 'pain_exclusion': return '#C6A84B';
-      case 'pain_warning': return '#D4AF37';
-      case 'compensation': return '#8B5CF6';
-      default: return '#60C0F0';
+      case 'safety_warning': return 'var(--danger, #C92A54)';
+      case 'pain_exclusion': return 'var(--accent-gold, #C6A84B)';
+      case 'pain_warning': return 'var(--warning, #D4AF37)';
+      case 'compensation': return 'var(--accent-secondary, #8B5CF6)';
+      default: return 'var(--accent-primary, #60C0F0)';
     }
   }};
   font-family: 'Sora', sans-serif;
@@ -714,20 +714,20 @@ export const ExplanationBadge = styled.span<{ $type?: string }>`
   margin-top: 2px;
   background: ${({ $type }) => {
     switch ($type) {
-      case 'safety_warning': return 'rgba(201, 42, 84, 0.15)';
-      case 'pain_exclusion': return 'rgba(198, 168, 75, 0.15)';
-      case 'pain_warning': return 'rgba(212, 175, 55, 0.15)';
-      case 'compensation': return 'rgba(139, 92, 246, 0.15)';
-      default: return 'rgba(96, 192, 240, 0.1)';
+      case 'safety_warning': return 'color-mix(in srgb, var(--danger, #C92A54) 15%, transparent)';
+      case 'pain_exclusion': return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 15%, transparent)';
+      case 'pain_warning': return 'color-mix(in srgb, var(--warning, #D4AF37) 15%, transparent)';
+      case 'compensation': return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)';
+      default: return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
     }
   }};
   color: ${({ $type }) => {
     switch ($type) {
-      case 'safety_warning': return '#E14B67';
-      case 'pain_exclusion': return '#C6A84B';
-      case 'pain_warning': return '#D4AF37';
-      case 'compensation': return '#8B5CF6';
-      default: return '#60C0F0';
+      case 'safety_warning': return 'var(--danger, #E14B67)';
+      case 'pain_exclusion': return 'var(--accent-gold, #C6A84B)';
+      case 'pain_warning': return 'var(--warning, #D4AF37)';
+      case 'compensation': return 'var(--accent-secondary, #8B5CF6)';
+      default: return 'var(--accent-primary, #60C0F0)';
     }
   }};
 `;
@@ -742,17 +742,17 @@ export const TeachToggle = styled.button<{ $active?: boolean }>`
   padding: 0 16px;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid ${({ $active }) => $active ? '#8B5CF6' : 'rgba(96, 192, 240, 0.15)'};
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
+  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.15))'};
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)' : 'transparent'};
+  color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 
-  &:hover { border-color: #8B5CF6; color: #E0ECF4; }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 4px; }
+  &:hover { border-color: var(--accent-secondary, #8B5CF6); color: var(--text-primary, #E0ECF4); }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 4px; }
 `;
 
 export const WisdomText = styled.div`
@@ -776,7 +776,7 @@ export const DataRow = styled.div`
 export const DataLabel = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.5));
 `;
 
 export const DataValue = styled.span`
@@ -796,7 +796,7 @@ export const PlanModeBar = styled.div`
   gap: 12px;
   padding: 12px 16px;
   background: var(--bg-surface, #1A1A24);
-  border: 1px solid rgba(139, 92, 246, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
   border-radius: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -829,8 +829,8 @@ export const SmallSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #60C0F0;
-    box-shadow: 0 0 8px rgba(96, 192, 240, 0.2);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 `;
 
@@ -862,10 +862,10 @@ export const MesocycleGrid = styled.div`
 export const MesocycleCard = styled.div<{ $phase: number }>`
   background: var(--bg-surface, #1A1A24);
   border: 1px solid ${({ $phase }) =>
-    $phase <= 2 ? 'rgba(96, 192, 240, 0.15)' :
-    $phase <= 3 ? 'rgba(139, 92, 246, 0.2)' :
-    $phase === 4 ? 'rgba(198, 168, 75, 0.2)' :
-    'rgba(201, 42, 84, 0.2)'
+    $phase <= 2 ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)' :
+    $phase <= 3 ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)' :
+    $phase === 4 ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)' :
+    'color-mix(in srgb, var(--danger, #C92A54) 20%, transparent)'
   };
   border-radius: 12px;
   padding: 16px;
@@ -881,9 +881,9 @@ export const MesocycleCard = styled.div<{ $phase: number }>`
     height: 3px;
     background: ${({ $phase }) =>
       $phase <= 2 ? 'var(--accent-primary, #60C0F0)' :
-      $phase <= 3 ? '#8B5CF6' :
-      $phase === 4 ? '#C6A84B' :
-      '#C92A54'
+      $phase <= 3 ? 'var(--accent-secondary, #8B5CF6)' :
+      $phase === 4 ? 'var(--accent-gold, #C6A84B)' :
+      'var(--danger, #C92A54)'
     };
   }
 `;
@@ -917,9 +917,9 @@ export const MesocyclePhase = styled.div<{ $phase: number }>`
   font-weight: 600;
   color: ${({ $phase }) =>
     $phase <= 2 ? 'var(--accent-primary, #60C0F0)' :
-    $phase <= 3 ? '#8B5CF6' :
-    $phase === 4 ? '#C6A84B' :
-    '#C92A54'
+    $phase <= 3 ? 'var(--accent-secondary, #8B5CF6)' :
+    $phase === 4 ? 'var(--accent-gold, #C6A84B)' :
+    'var(--danger, #C92A54)'
   };
   margin-bottom: 8px;
 `;
@@ -934,7 +934,7 @@ export const MesocycleParams = styled.div`
 export const MesocycleParam = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 0.65rem;
-  color: rgba(224, 236, 244, 0.6);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
 
   span {
     color: var(--text-primary, #E0ECF4);
@@ -945,10 +945,10 @@ export const MesocycleParam = styled.div`
 export const MesocycleOverload = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 0.65rem;
-  color: rgba(224, 236, 244, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.5));
   font-style: italic;
   padding-top: 8px;
-  border-top: 1px solid rgba(96, 192, 240, 0.06);
+  border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
 `;
 
 export const DeloadBadge = styled.span`
@@ -956,9 +956,9 @@ export const DeloadBadge = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.6rem;
   font-weight: 600;
-  color: #C6A84B;
-  background: rgba(198, 168, 75, 0.1);
-  border: 1px solid rgba(198, 168, 75, 0.2);
+  color: var(--accent-gold, #C6A84B);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent);
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;
@@ -1008,10 +1008,10 @@ export const RecommendationList = styled.ul`
 export const RecommendationItem = styled.li`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
-  color: rgba(224, 236, 244, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
   padding: 6px 0 6px 16px;
   position: relative;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.04);
+  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.04));
 
   &::before {
     content: '→';
