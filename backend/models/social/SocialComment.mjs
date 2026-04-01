@@ -27,6 +27,16 @@ const SocialComment = db.define('SocialComment', {
     type: DataTypes.TEXT,
     allowNull: false
   },
+  parentCommentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    references: {
+      model: 'SocialComments',
+      key: 'id'
+    },
+    comment: 'Parent comment ID for threading (1 level deep)'
+  },
   // === CONTENT MODERATION FIELDS ===
   moderationStatus: {
     type: DataTypes.ENUM('pending', 'approved', 'flagged', 'rejected', 'hidden'),
@@ -120,6 +130,10 @@ const SocialComment = db.define('SocialComment', {
     {
       fields: ['userId'],
       name: 'socialcomment_user_idx'
+    },
+    {
+      fields: ['parentCommentId'],
+      name: 'socialcomment_parent_idx'
     },
     // === NEW MODERATION INDEXES ===
     {

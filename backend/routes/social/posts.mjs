@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
 import PointTransaction from '../../models/PointTransaction.mjs';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
+import { getIO } from '../../socket/socketManager.mjs';
 
 const router = express.Router();
 
@@ -806,6 +807,26 @@ router.post('/', upload.single('media'), async (req, res) => {
       responseData.pointMessage = `You earned ${pointResult.pointsAwarded} points for creating a ${type} post!`;
     }
 
+    // Broadcast to all connected clients for live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'post_created',
+          userId: req.user.id,
+          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+          userPhoto: req.user.photo,
+          postType: type,
+          postId: fullPost.id,
+          preview: content.substring(0, 80),
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) {
+      // Non-fatal: don't fail the response if socket broadcast fails
+      console.warn('Socket broadcast failed:', socketErr.message);
+    }
+
     return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating post:', error);
@@ -936,10 +957,21 @@ router.put('/:postId', async (req, res) => {
         message: 'You do not have permission to edit this post'
       });
     }
-    
+
+    // 24-hour edit window — posts older than 24h cannot be edited (admin exempt)
+    const postAgeMs = Date.now() - new Date(post.createdAt).getTime();
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    if (postAgeMs > TWENTY_FOUR_HOURS && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Posts can only be edited within 24 hours of creation'
+      });
+    }
+
     // Update fields
     if (content) post.content = content;
     if (visibility) post.visibility = visibility;
+    post.isEdited = true;
     
     await post.save();
     
@@ -1169,6 +1201,21 @@ router.post('/:postId/like', async (req, res) => {
       responseData.ownerPointsAwarded = likeReceivedResult.pointsAwarded;
     }
 
+    // Broadcast reaction to live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'reaction_added',
+          userId: req.user.id,
+          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+          postId: parseInt(postId),
+          reactionType,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+
     return res.status(200).json(responseData);
   } catch (error) {
     console.error('Error reacting to post:', error);
@@ -1246,7 +1293,8 @@ router.post('/:postId/comments', async (req, res) => {
     const comment = await SocialComment.create({
       postId,
       userId: req.user.id,
-      content
+      content,
+      parentCommentId: req.body.parentCommentId || null
     });
     
     // Update post's comment count
@@ -1297,6 +1345,21 @@ router.post('/:postId/comments', async (req, res) => {
       responseData.ownerPointsAwarded = commentReceivedResult.pointsAwarded;
     }
     
+    // Broadcast comment to live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'comment_added',
+          userId: req.user.id,
+          userName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+          postId: parseInt(postId),
+          preview: content.substring(0, 60),
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) { console.warn('Socket broadcast failed:', socketErr.message); }
+
     return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error adding comment:', error);

@@ -8,6 +8,7 @@
 
 import SocialPost from '../models/social/SocialPost.mjs';
 import logger from '../utils/logger.mjs';
+import { getIO } from '../socket/socketManager.mjs';
 
 const STREAK_MILESTONES = [7, 14, 30, 60, 90, 180, 365];
 
@@ -46,6 +47,19 @@ export async function createWorkoutAutoPost(userId, workoutData) {
     });
 
     logger.info(`Auto-post: workout post created for user ${userId}`);
+
+    // Broadcast celebration to live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'workout_completed',
+          userId,
+          preview: content,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) { /* non-fatal */ }
   } catch (err) {
     logger.error(`Auto-post: failed to create workout post for user ${userId}: ${err.message}`);
   }
@@ -72,6 +86,19 @@ export async function createStreakAutoPost(userId, streakDays) {
     });
 
     logger.info(`Auto-post: streak ${streakDays}d post created for user ${userId}`);
+
+    // Broadcast streak milestone to live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'streak_milestone',
+          userId,
+          preview: content,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) { /* non-fatal */ }
   } catch (err) {
     logger.error(`Auto-post: failed to create streak post for user ${userId}: ${err.message}`);
   }
@@ -96,6 +123,19 @@ export async function createAchievementAutoPost(userId, achievement) {
     });
 
     logger.info(`Auto-post: achievement post created for user ${userId} -- ${achievement.name}`);
+
+    // Broadcast achievement to live activity ticker
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('social:activity', {
+          type: 'achievement_unlocked',
+          userId,
+          preview: content,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (socketErr) { /* non-fatal */ }
   } catch (err) {
     logger.error(`Auto-post: failed to create achievement post for user ${userId}: ${err.message}`);
   }

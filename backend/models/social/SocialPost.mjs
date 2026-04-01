@@ -98,6 +98,12 @@ const SocialPost = db.define('SocialPost', {
     },
     comment: 'Last admin who reviewed the post'
   },
+  isEdited: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    comment: 'Whether the post has been edited'
+  },
   // === ORIGINAL FIELDS ===
   // Optional references to other entities
   workoutSessionId: {
