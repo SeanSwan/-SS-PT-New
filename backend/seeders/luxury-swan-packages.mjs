@@ -1,21 +1,9 @@
 /**
- * SwanStudios Session Packages - Luxury Swan & Rare Elements Theme
- * =============================================================
- * ⚠️  WARNING: This seeder is for DEVELOPMENT ONLY
+ * ⚠️  LEGACY SEEDER — DO NOT RUN (contains old volume-discount pricing)
  * ⚠️  For PRODUCTION, use luxury-swan-packages-production.mjs instead
- * ⚠️  Theme field has been removed for database compatibility
- * Creates 8 session packages with elegant names that combine rare elements
- * with swan themes, creating subtle aspiration toward higher tiers.
- * 
- * Package Progression (Subtle Value Ladder):
- * 1. Silver Swan Wing - 1 session @ $175 = $175
- * 2. Golden Swan Flight - 8 sessions @ $170 = $1,360
- * 3. Sapphire Swan Soar - 20 sessions @ $165 = $3,300
- * 4. Platinum Swan Grace - 50 sessions @ $160 = $8,000
- * 5. Emerald Swan Evolution - 3 months @ $155 = $8,060
- * 6. Diamond Swan Dynasty - 6 months @ $150 = $15,600
- * 7. Ruby Swan Reign - 9 months @ $145 = $22,620
- * 8. Rhodium Swan Royalty - 12 months @ $140 = $29,120
+ *
+ * Current pricing (2026-03-31): ALL sessions $175 flat, no discounts.
+ * Packages: 1, 10, 24 sessions + 3/6/12 month + 30-min 10-pack
  */
 
 // Create the main function and export it

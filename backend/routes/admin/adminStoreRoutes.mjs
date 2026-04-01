@@ -91,11 +91,11 @@ router.post('/seed', async (req, res) => {
       });
     }
 
-    // Create your EXACT luxury SwanStudios collection
+    // Current packages: $175/session (1-hour), no volume discounts
     const luxurySwanPackages = [
       {
-        name: 'Silver Swan Wing',
-        description: 'Your elegant introduction to premium personal training with Sean Swan',
+        name: 'Single Session',
+        description: 'One premium 1-hour personal training session with Sean Swan',
         packageType: 'fixed',
         sessions: 1,
         pricePerSession: 175.00,
@@ -105,89 +105,76 @@ router.post('/seed', async (req, res) => {
         displayOrder: 1
       },
       {
-        name: 'Golden Swan Flight',
-        description: 'Begin your transformation journey with 8 sessions of expert guidance',
+        name: '10-Session Pack',
+        description: 'Ten 1-hour personal training sessions',
         packageType: 'fixed',
-        sessions: 8,
-        pricePerSession: 170.00,
-        totalCost: 1360.00,
-        price: 1360.00,
+        sessions: 10,
+        pricePerSession: 175.00,
+        totalCost: 1750.00,
+        price: 1750.00,
         isActive: true,
         displayOrder: 2
       },
       {
-        name: 'Sapphire Swan Soar',
-        description: 'Elevate your fitness with 20 sessions of premium training excellence',
+        name: '24-Session Pack',
+        description: 'Twenty-four 1-hour personal training sessions',
         packageType: 'fixed',
-        sessions: 20,
-        pricePerSession: 165.00,
-        totalCost: 3300.00,
-        price: 3300.00,
+        sessions: 24,
+        pricePerSession: 175.00,
+        totalCost: 4200.00,
+        price: 4200.00,
         isActive: true,
         displayOrder: 3
       },
       {
-        name: 'Platinum Swan Grace',
-        description: 'Master your potential with 50 sessions of elite personal training',
-        packageType: 'fixed',
-        sessions: 50,
-        pricePerSession: 160.00,
-        totalCost: 8000.00,
-        price: 8000.00,
+        name: '3-Month Program',
+        description: 'Consistent training over 3 months at $175 per session',
+        packageType: 'monthly',
+        months: 3,
+        sessionsPerWeek: 4,
+        totalSessions: 48,
+        pricePerSession: 175.00,
+        totalCost: 8400.00,
+        price: 8400.00,
         isActive: true,
         displayOrder: 4
       },
       {
-        name: 'Emerald Swan Evolution',
-        description: 'Transform your life with 3 months of dedicated training (4x per week)',
+        name: '6-Month Program',
+        description: 'Build lasting habits with 6 months of dedicated training',
         packageType: 'monthly',
-        months: 3,
+        months: 6,
         sessionsPerWeek: 4,
-        totalSessions: 52,
-        pricePerSession: 155.00,
-        totalCost: 8060.00,
-        price: 8060.00,
+        totalSessions: 96,
+        pricePerSession: 175.00,
+        totalCost: 16800.00,
+        price: 16800.00,
         isActive: true,
         displayOrder: 5
       },
       {
-        name: 'Diamond Swan Dynasty',
-        description: 'Build lasting strength with 6 months of premium training mastery',
+        name: '12-Month Program',
+        description: 'Full year commitment for maximum transformation',
         packageType: 'monthly',
-        months: 6,
+        months: 12,
         sessionsPerWeek: 4,
-        totalSessions: 104,
-        pricePerSession: 150.00,
-        totalCost: 15600.00,
-        price: 15600.00,
+        totalSessions: 192,
+        pricePerSession: 175.00,
+        totalCost: 33600.00,
+        price: 33600.00,
         isActive: true,
         displayOrder: 6
       },
       {
-        name: 'Ruby Swan Reign',
-        description: 'Command your fitness destiny with 9 months of elite transformation',
-        packageType: 'monthly',
-        months: 9,
-        sessionsPerWeek: 4,
-        totalSessions: 156,
-        pricePerSession: 145.00,
-        totalCost: 22620.00,
-        price: 22620.00,
+        name: '30-Minute Sessions (10-Pack)',
+        description: 'Ten focused 30-minute personal training sessions',
+        packageType: 'fixed',
+        sessions: 10,
+        pricePerSession: 110.00,
+        totalCost: 1100.00,
+        price: 1100.00,
         isActive: true,
         displayOrder: 7
-      },
-      {
-        name: 'Rhodium Swan Royalty',
-        description: 'The ultimate year-long journey to peak performance and royal fitness',
-        packageType: 'monthly',
-        months: 12,
-        sessionsPerWeek: 4,
-        totalSessions: 208,
-        pricePerSession: 140.00,
-        totalCost: 29120.00,
-        price: 29120.00,
-        isActive: true,
-        displayOrder: 8
       }
     ];
 
@@ -263,19 +250,10 @@ router.post('/fix-pricing', async (req, res) => {
     const fixedPackages = [];
 
     for (const item of brokenItems) {
-      // Use luxury pricing based on sessions
+      // Flat rate: $175/session (1-hour), $87.50 (30-min) — no volume discounts
       const sessions = item.sessions || item.totalSessions || 1;
-      let baseRate = 175; // Start with highest rate
-      
-      // Determine rate based on package tier
-      if (sessions >= 200) baseRate = 140; // Rhodium
-      else if (sessions >= 150) baseRate = 145; // Ruby
-      else if (sessions >= 100) baseRate = 150; // Diamond
-      else if (sessions >= 50) baseRate = 155; // Emerald
-      else if (sessions >= 40) baseRate = 160; // Platinum
-      else if (sessions >= 15) baseRate = 165; // Sapphire
-      else if (sessions >= 5) baseRate = 170; // Golden
-      else baseRate = 175; // Silver
+      const is30Min = (item.name || '').toLowerCase().includes('30-minute') || (item.name || '').toLowerCase().includes('30 min');
+      const baseRate = is30Min ? 110 : 175;
       
       const newPrice = sessions * baseRate;
 

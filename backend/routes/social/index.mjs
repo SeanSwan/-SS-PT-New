@@ -6,6 +6,7 @@ import challengesRoutes from './challenges.mjs';
 import hashtagsRoutes from './hashtags.mjs';
 import factionsRoutes from './factions.mjs';
 import partiesRoutes from './parties.mjs';
+import eventsRoutes from './events.mjs';
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/challenges', challengesRoutes);
 router.use('/hashtags', hashtagsRoutes);
 router.use('/factions', protect, factionsRoutes);
 router.use('/parties', protect, partiesRoutes);
+router.use('/events', protect, eventsRoutes);
 
 export default router;

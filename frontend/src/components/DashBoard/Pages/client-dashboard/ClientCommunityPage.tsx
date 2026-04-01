@@ -56,6 +56,7 @@ import React, { useState, useMemo } from 'react';
 import { Send, Clock, Swords, MessageSquare, Hash, Users, Shield } from 'lucide-react';
 import { FeedFilterBar, type FeedFilters } from '../../../Social/Hashtags';
 import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../../Social/RPG';
+import { EventsList } from '../../../Social/Events';
 import { useFaction } from '../../../../hooks/social/useFaction';
 import { useParty } from '../../../../hooks/social/useParty';
 import {
@@ -179,6 +180,11 @@ const ClientCommunityPage: React.FC = () => {
           )}
         </SectionCard>
       </TwoCol>
+
+      {/* Community Events */}
+      <SectionCard>
+        <EventsList />
+      </SectionCard>
 
       {/* Challenges + Leaderboard Side-by-Side */}
       <TwoCol>

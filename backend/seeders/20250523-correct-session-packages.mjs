@@ -1,19 +1,17 @@
 /**
- * SwanStudios Session Packages - Final Correct Pricing
- * ==================================================
- * Creates the exact 8 session packages with correct pricing as specified.
- * 
- * Fixed Session Packages:
- * - 1 session @ $175/session = $175 total
- * - 8 sessions @ $170/session = $1,360 total  
- * - 20 sessions @ $165/session = $3,300 total
- * - 50 sessions @ $160/session = $8,000 total
- * 
- * Monthly Packages (4x per week):
- * - 3 month package @ $155/session = 52 sessions = $8,060 total
- * - 6 month package @ $150/session = 104 sessions = $15,600 total
- * - 9 month package @ $145/session = 156 sessions = $22,620 total
- * - 12 month package @ $140/session = 208 sessions = $29,120 total
+ * ⚠️  LEGACY SEEDER — DO NOT RUN
+ * ================================
+ * This seeder contains OLD pricing with volume discounts ($170-$140/session).
+ * Current pricing: ALL sessions are $175/session flat, no discounts.
+ * Use luxury-swan-packages-production.mjs for current packages.
+ *
+ * OLD Fixed Session Packages (RETIRED):
+ * - 8 sessions @ $170, 20 @ $165, 50 @ $160
+ * OLD Monthly Packages (RETIRED):
+ * - 3mo @ $155, 6mo @ $150, 9mo @ $145, 12mo @ $140
+ *
+ * CURRENT (2026-03-31): 1, 10, 24 sessions + 3/6/12 month + 30-min 10-pack
+ * All at $175/session (1hr) or $87.50/session (30min)
  */
 
 import StorefrontItem from '../models/StorefrontItem.mjs';
