@@ -42,6 +42,8 @@ import { CoachMessage } from './CoachMessage';
 import { ResponseStyleSelector } from './ResponseStyleSelector';
 import { CoachInputBar } from './CoachInputBar';
 import ConversationSidebar from './ConversationSidebar';
+import ClientPicker from '../../../AIAssistant/ClientPicker';
+import type { ClientInfo } from '../../../AIAssistant/ClientPicker';
 import ThinkingIndicator from './ThinkingIndicator';
 import SuggestedPrompts from './SuggestedPrompts';
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
@@ -134,7 +136,8 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
-  const coach = useCoachAssistant({ chat });
+  const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
+  const coach = useCoachAssistant({ chat, targetClientId: selectedClient?.id ?? null });
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -246,6 +249,15 @@ const SwanCoachAssistantPage: React.FC = () => {
             <BookOpen size={18} />
           </TeachModeToggle>
         </CoachHeader>
+
+        {/* Client Picker — trainer/admin only, routes AI data to selected client */}
+        {(userRole === 'trainer' || userRole === 'admin') && (
+          <ClientPicker
+            selectedClient={selectedClient}
+            onSelectClient={setSelectedClient}
+            userRole={userRole}
+          />
+        )}
 
         {/* Context Chips */}
         <ContextChipBar

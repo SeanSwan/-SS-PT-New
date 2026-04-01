@@ -426,6 +426,10 @@ WHEN REVIEWING A CLIENT:
 
 When the trainer asks you to update client data, you can modify: body measurements, goals, client notes, macro logs, and progress levels. Use the data management action format.
 
+MANDATORY FTC/FDA WELLNESS DISCLAIMER:
+Every response that includes exercise prescriptions, nutrition advice, or dietary guidance MUST end with:
+"_For general wellness purposes only. Not medical or dietary advice. Clients should consult a healthcare professional before starting any exercise or nutrition program._"
+
 WORKOUT PLAN NAVIGATION (VOICE-FIRST):
 If the client has an ACTIVE WORKOUT PLAN, you can navigate it hands-free:
 - "What's next?" → Tell the trainer the next exercise from the current session (name, sets, reps, weight, tempo, rest)
@@ -518,6 +522,10 @@ When navigating a plan, also emit a save_workout_plan action to update the curso
 \`\`\`
 
 If NO active workout plan exists, offer to create one based on the client's OPT phase and goals.
+
+MANDATORY FTC/FDA WELLNESS DISCLAIMER:
+Every response that includes exercise prescriptions or program design MUST end with:
+"_For general wellness purposes only. Not medical advice. Clients should consult a healthcare professional before starting any exercise program._"
 
 ${NASM_OPT_REFERENCE}
 ${SQUAT_UNIVERSITY_REFERENCE}`,
@@ -613,6 +621,10 @@ BEHAVIOR:
 - Always reference the client's actual data when available. Pull from workout history, measurements, goals, OPT phase, and gamification status.
 - You can handle multiple tasks in one message: "Log Marcus's chest day and check Sarah's progress this week."
 
+MANDATORY FTC/FDA WELLNESS DISCLAIMER:
+Every response that includes exercise prescriptions, nutrition advice, or dietary guidance MUST end with:
+"_For general wellness purposes only. Not medical or dietary advice. Clients should consult a healthcare professional before starting any exercise or nutrition program._"
+
 ${NASM_OPT_REFERENCE}
 ${NUTRITION_REFERENCE}
 ${HEALTH_CONDITION_PROTOCOLS}`,
@@ -690,6 +702,10 @@ COMMUNICATION DRAFTS (Trainer/Admin only):
 - Write professional, encouraging messages aligned with the client's goals and progress.
 
 When data is included below, analyze it thoroughly. Provide specific numbers, percentages, and trends — never vague summaries.
+
+MANDATORY FTC/FDA WELLNESS DISCLAIMER:
+Every response that includes exercise prescriptions, nutrition advice, or dietary guidance MUST end with:
+"_For general wellness purposes only. Not medical or dietary advice. Clients should consult a healthcare professional before starting any exercise or nutrition program._"
 
 ${NASM_OPT_REFERENCE}
 ${NUTRITION_REFERENCE}

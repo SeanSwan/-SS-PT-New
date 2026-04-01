@@ -21,6 +21,8 @@ interface UseCoachAssistantOptions {
   defaultStyle?: ResponseStyle;
   /** Pass an external useAIChat instance to share state with the page */
   chat?: ReturnType<typeof useAIChat>;
+  /** Target client ID for trainer/admin — routes AI data writes to this client */
+  targetClientId?: number | null;
 }
 
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
@@ -28,6 +30,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     defaultContext = 'coach_assistant',
     defaultStyle = DEFAULT_RESPONSE_STYLE,
     chat: externalChat,
+    targetClientId = null,
   } = options || {};
 
   const internalChat = useAIChat();
@@ -75,13 +78,13 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       text.trim(),
       context as Parameters<typeof chat.sendMessageWithConversation>[1],
       'Swan Coach Session',
-      null,
+      targetClientId,
       backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
     );
 
     // Clear local messages once real ones come in
     setLocalMessages([]);
-  }, [chat, context, responseStyle]);
+  }, [chat, context, responseStyle, targetClientId]);
 
   // ── Switch context ──
   const switchContext = useCallback((newContext: CoachContext) => {

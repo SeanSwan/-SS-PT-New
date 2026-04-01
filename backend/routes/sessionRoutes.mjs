@@ -1743,9 +1743,11 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     }
     
     // Check if user is authorized to reschedule
-    if (session.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: "You can only reschedule your own sessions." 
+    const isOwner = session.userId === req.user.id;
+    const isAssignedTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    if (!isOwner && !isAssignedTrainer && req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: "You can only reschedule your own sessions."
       });
     }
 
@@ -1996,10 +1998,12 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
       });
     }
 
-    // Check authorization
-    if (session.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: "You can only cancel your own sessions." 
+    // Check authorization — owner, assigned trainer, or admin
+    const isSessionOwner = session.userId === req.user.id;
+    const isSessionTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    if (!isSessionOwner && !isSessionTrainer && req.user.role !== 'admin') {
+      return res.status(403).json({
+        message: "You can only cancel your own sessions."
       });
     }
 
@@ -2881,6 +2885,14 @@ router.delete("/block/:id", protect, async (req, res) => {
       });
     }
 
+    // Trainers can only remove their own blocked time
+    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only remove blocked time you created"
+      });
+    }
+
     if (makeAvailable === true) {
       session.status = 'available';
       session.isBlocked = false;
@@ -2923,7 +2935,12 @@ router.put("/notes/:sessionId", protect, async (req, res) => {
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
-    
+
+    // Trainers can only add notes to their own sessions
+    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+      return res.status(403).json({ message: "You can only add notes to sessions assigned to you" });
+    }
+
     session.privateNotes = notes;
     await session.save();
     
@@ -2953,7 +2970,12 @@ router.put("/complete/:sessionId", protect, async (req, res) => {
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
-    
+
+    // Trainers can only complete their own sessions
+    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+      return res.status(403).json({ message: "You can only complete sessions assigned to you" });
+    }
+
     session.status = "completed";
     if (notes) {
       session.privateNotes = notes;
