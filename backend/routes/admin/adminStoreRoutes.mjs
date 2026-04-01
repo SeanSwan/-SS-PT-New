@@ -250,7 +250,7 @@ router.post('/fix-pricing', async (req, res) => {
     const fixedPackages = [];
 
     for (const item of brokenItems) {
-      // Flat rate: $175/session (1-hour), $87.50 (30-min) — no volume discounts
+      // Flat rate: $175/session (1-hour), $110 (30-min) — no volume discounts
       const sessions = item.sessions || item.totalSessions || 1;
       const is30Min = (item.name || '').toLowerCase().includes('30-minute') || (item.name || '').toLowerCase().includes('30 min');
       const baseRate = is30Min ? 110 : 175;

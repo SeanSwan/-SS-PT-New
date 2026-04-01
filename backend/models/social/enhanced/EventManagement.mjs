@@ -20,13 +20,8 @@ const SocialEvent = db.define('SocialEvent', {
   // EVENT OWNERSHIP
   // ===============
   organizerId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   coOrganizers: {
     type: DataTypes.JSON, // Array of co-organizer user IDs
@@ -421,21 +416,11 @@ const EventAttendance = db.define('EventAttendance', {
   
   eventId: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'SocialEvents',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
+    allowNull: false
   },
   userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    },
-    onDelete: 'CASCADE'
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   
   // ATTENDANCE STATUS
@@ -655,12 +640,8 @@ const EventDiscussion = db.define('EventDiscussion', {
     onDelete: 'CASCADE'
   },
   userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   parentId: {
     type: DataTypes.UUID,
@@ -785,14 +766,10 @@ const EventPhoto = db.define('EventPhoto', {
     onDelete: 'CASCADE'
   },
   userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'Users',
-      key: 'id'
-    }
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
-  
+
   // PHOTO DETAILS
   // =============
   imageUrl: {
