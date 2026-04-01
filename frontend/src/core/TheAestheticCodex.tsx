@@ -171,7 +171,9 @@ const ColorGroupTitle = styled.h4`
   font-weight: 600;
 `;
 
-const ColorSwatch = styled.div<{ color: string; textColor?: string }>`
+const ColorSwatch = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['textColor'].includes(prop)
+})<{ color: string; textColor?: string }>`
   background: ${props => props.color};
   color: ${props => props.textColor || '#fff'};
   padding: ${swanStudiosTheme.spacing.md};

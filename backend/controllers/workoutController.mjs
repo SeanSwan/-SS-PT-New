@@ -233,6 +233,10 @@ export async function getWorkoutSessions(req, res) {
     
     return successResponse(res, { sessions });
   } catch (error) {
+    // Non-fatal: table may not exist yet (workout_sessions not migrated)
+    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
+      return successResponse(res, { sessions: [], total: 0 });
+    }
     logger.error(`Error getting workout sessions: ${error.message}`, { stack: error.stack });
     return errorResponse(res, 500, 'Failed to get workout sessions', error);
   }

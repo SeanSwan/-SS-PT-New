@@ -162,8 +162,10 @@ export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
         params: { limit: params.limit || 50, page: params.page || 1 },
         signal,
       });
-      const payload = res.data?.data;
-      const list = Array.isArray(payload?.workouts)
+      const payload = res.data?.data || res.data;
+      const list = Array.isArray(payload?.sessions)
+        ? payload.sessions
+        : Array.isArray(payload?.workouts)
         ? payload.workouts
         : Array.isArray(payload) ? payload : [];
       return list;

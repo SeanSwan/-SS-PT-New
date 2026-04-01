@@ -93,7 +93,9 @@ export const BodyText = styled.p<{ secondary?: boolean }>`
 `;
 
 // Small body text
-export const SmallText = styled.p<{ secondary?: boolean }>`
+export const SmallText = styled.p.withConfig({
+  shouldForwardProp: (prop) => prop !== 'secondary'
+})<{ secondary?: boolean }>`
   margin: 0;
   font-size: 0.875rem;
   font-weight: 400;

@@ -312,7 +312,9 @@ const generateButtonVars = (
 `;
 
 // Main button container
-const ButtonContainer = styled.div<{ fullWidth?: boolean; $haptic?: boolean }>`
+const ButtonContainer = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['fullWidth'].includes(prop)
+})<{ fullWidth?: boolean; $haptic?: boolean }>`
   display: inline-block;
   position: relative;
   transition: transform 0.2s ease;

@@ -184,7 +184,10 @@ const ClientOverviewPage: React.FC = () => {
           authAxios.get('/api/workout/sessions', { params: { limit: 5 } })
         ]);
         if (gamRes.status === 'fulfilled') setGamData(gamRes.value?.data?.data || gamRes.value?.data);
-        if (workoutRes.status === 'fulfilled') setRecentWorkouts(workoutRes.value?.data?.data || workoutRes.value?.data || []);
+        if (workoutRes.status === 'fulfilled') {
+          const wData = workoutRes.value?.data;
+          setRecentWorkouts(Array.isArray(wData?.sessions) ? wData.sessions : Array.isArray(wData?.data) ? wData.data : Array.isArray(wData) ? wData : []);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load dashboard data');
       } finally {

@@ -208,6 +208,10 @@ router.get('/summary', async (req, res) => {
 
     return res.json({ success: true, summary });
   } catch (err) {
+    // Non-fatal: table may not exist yet (daily_macro_logs not migrated)
+    if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
+      return res.json({ success: true, summary: { date: req.query.date || new Date().toISOString().split('T')[0], totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0, totalFiber: 0, totalSugar: 0, totalSodium: 0, mealCount: 0, meals: {} } });
+    }
     logger.error('[DailyMacroRoutes] Get summary error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to get summary' });
   }

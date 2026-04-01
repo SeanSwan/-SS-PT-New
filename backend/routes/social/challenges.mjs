@@ -41,24 +41,39 @@ router.get('/active', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
     
-    // Get active challenges
-    const challenges = await Challenge.findAll({
-      where: {
-        status: 'active',
-        startDate: { [Op.lte]: new Date() },
-        endDate: { [Op.gte]: new Date() }
-      },
-      limit,
-      offset,
-      order: [['startDate', 'DESC']],
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
-        }
-      ]
-    });
+    // Get active challenges — try with creator include, fall back without if association missing
+    let challenges;
+    try {
+      challenges = await Challenge.findAll({
+        where: {
+          status: 'active',
+          startDate: { [Op.lte]: new Date() },
+          endDate: { [Op.gte]: new Date() }
+        },
+        limit,
+        offset,
+        order: [['startDate', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+          }
+        ]
+      });
+    } catch (includeErr) {
+      // Association may not be set up — query without include
+      challenges = await Challenge.findAll({
+        where: {
+          status: 'active',
+          startDate: { [Op.lte]: new Date() },
+          endDate: { [Op.gte]: new Date() }
+        },
+        limit,
+        offset,
+        order: [['startDate', 'DESC']]
+      });
+    }
     
     // Get challenge IDs
     const challengeIds = challenges.map(challenge => challenge.id);

@@ -259,7 +259,9 @@ const KPILabel = styled.div`
   letter-spacing: 0.05em;
 `;
 
-const KPIChange = styled.div<{ isPositive: boolean }>`
+const KPIChange = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'isPositive'
+})<{ isPositive: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.25rem;

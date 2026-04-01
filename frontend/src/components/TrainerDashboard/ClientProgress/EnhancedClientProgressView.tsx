@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
+import { useGlobalClient } from '../../../context/GlobalClientContext';
 import {
   Activity,
   Trophy,
@@ -370,15 +371,16 @@ const EnhancedClientProgressView: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [advancedMode, setAdvancedMode] = useState(false);
   const { authAxios } = useAuth();
+  const { activeClient } = useGlobalClient();
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryEntry[]>([]);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
 
-  const clientId = searchParams.get('clientId') || '1';
+  const clientId = searchParams.get('clientId') || activeClient?.id?.toString() || '';
 
   // Fetch real client data from API
   const loadClientData = useCallback(async () => {
-    if (!authAxios) return;
+    if (!authAxios || !clientId) return;
     setIsLoadingClient(true);
     try {
       const [clientRes, progressRes] = await Promise.allSettled([

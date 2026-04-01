@@ -866,7 +866,9 @@ const TabsContainer = styled.div`
   &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
 `;
 
-const TabButton = styled.button<{ active: boolean }>`
+const TabButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => prop !== 'active'
+})<{ active: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
