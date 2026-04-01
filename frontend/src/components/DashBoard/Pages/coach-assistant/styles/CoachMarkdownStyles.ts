@@ -26,7 +26,8 @@ export const MarkdownWrap = styled.div`
     margin: 16px 0 8px;
   }
   h1 { font-size: 1.25em; }
-  h2 { font-size: 1.15em; }
+  /* Design consensus: H2 = Ice Wing #60C0F0 (9.88:1 contrast ratio) */
+  h2 { font-size: 1.15em; color: var(--accent-primary, #60C0F0); }
   h3 { font-size: 1.05em; }
   h4 { font-size: 1em; }
   & > h1:first-child, & > h2:first-child, & > h3:first-child {

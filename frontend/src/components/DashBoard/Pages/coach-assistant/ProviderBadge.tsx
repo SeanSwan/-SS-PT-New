@@ -4,12 +4,13 @@
  * │ PURPOSE: Shows which AI model responded (Gemini/Qwen/etc)  │
  * │ Props: { provider, model }                                  │
  * │ CLICK-OUTCOMES: None (display only)                         │
+ * │ AI VILLAGE VALIDATED: 2026-03-31                            │
+ * │ DESIGN CONSENSUS: 4-point astral spark SVG icon             │
  * └─────────────────────────────────────────────────────────────┘
  */
 
 import React, { memo, useMemo } from 'react';
 import styled from 'styled-components';
-import { Cpu } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Model Display Names
@@ -25,19 +26,49 @@ const MODEL_LABELS: Record<string, string> = {
 function getDisplayLabel(provider?: string, model?: string): string {
   if (!model && !provider) return '';
   if (model) {
-    // Check exact match first
     if (MODEL_LABELS[model]) return MODEL_LABELS[model];
-    // Check partial match
     for (const [key, label] of Object.entries(MODEL_LABELS)) {
       if (model.includes(key)) return label;
     }
-    // Extract meaningful name from model string
     const parts = model.split('/');
     const modelName = parts[parts.length - 1];
     return modelName.split(':')[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
   return provider || '';
 }
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 4-Point Astral Spark SVG (Design Consensus)
+// 4 cardinal points with tapered diamond shapes
+// ─────────────────────────────────────────────────────────────
+const AstralSpark: React.FC<{ size?: number }> = ({ size = 12 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {/* 4-point star: top, right, bottom, left with tapered curves */}
+    <path
+      d="M8 1C8 1 8.8 5.5 8 8C7.2 5.5 8 1 8 1Z
+         M15 8C15 8 10.5 8.8 8 8C10.5 7.2 15 8 15 8Z
+         M8 15C8 15 7.2 10.5 8 8C8.8 10.5 8 15 8 15Z
+         M1 8C1 8 5.5 7.2 8 8C5.5 8.8 1 8 1 8Z"
+      fill="currentColor"
+      opacity="0.7"
+    />
+    {/* Sharp 4-point cross for clarity */}
+    <path
+      d="M8 0.5L8.6 6.5L8 8L7.4 6.5Z
+         M15.5 8L9.5 8.6L8 8L9.5 7.4Z
+         M8 15.5L7.4 9.5L8 8L8.6 9.5Z
+         M0.5 8L6.5 7.4L8 8L6.5 8.6Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -70,7 +101,7 @@ const ProviderBadge: React.FC<ProviderBadgeProps> = memo(({ provider, model }) =
 
   return (
     <BadgeWrap title={model || provider || ''}>
-      <Cpu size={10} />
+      <AstralSpark size={10} />
       {label}
     </BadgeWrap>
   );

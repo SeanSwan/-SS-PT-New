@@ -159,15 +159,14 @@ export const GroupLabel = styled.div`
 `;
 
 export const ConvItemRow = styled.div<{ $active?: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 14px 10px 18px;
   min-height: 48px;
   border: none;
-  border-left: 3px solid ${({ $active }) =>
-    $active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
   background: ${({ $active }) =>
     $active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'transparent'};
   color: var(--text-primary, #E0ECF4);
@@ -175,8 +174,24 @@ export const ConvItemRow = styled.div<{ $active?: boolean }>`
   cursor: pointer;
   transition: background 0.15s ease;
 
+  /* Design consensus: ::before pseudo-element with transform: scaleY() */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 60%;
+    border-radius: 0 2px 2px 0;
+    background: var(--accent-secondary, #8B5CF6);
+    transform: translateY(-50%) scaleY(${({ $active }) => $active ? '1' : '0'});
+    transform-origin: center;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
   &:hover {
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
+    &::before { transform: translateY(-50%) scaleY(1); }
   }
 
   &:focus-visible {
