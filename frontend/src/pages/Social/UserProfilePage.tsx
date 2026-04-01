@@ -18,6 +18,7 @@ import ProfileChartsGrid from '../../components/UserDashboard/components/Profile
 import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
 import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
 import type { ChartVisibility } from './components/ChartVisibilityToggle';
+import RPGProfileHeader from '../../components/Social/RPGProfileHeader';
 
 // ── Crystalline Swan Tokens ──
 const TOKENS = {
@@ -57,6 +58,8 @@ interface UserProfile {
   totalWorkouts?: number;
   points?: number;
   level?: number;
+  tier?: string;
+  jobClass?: string | null;
   streakDays?: number;
   profileVisibility?: string;
   showBadges?: boolean;
@@ -575,8 +578,13 @@ const UserProfilePage: React.FC = () => {
               {profile.clientSource && profile.clientSource !== 'external' && (
                 <MembershipBadge clientSource={profile.clientSource} size="sm" />
               )}
-              {canShowLevel && profile.level && (
-                <LevelBadge>Lv.{profile.level}</LevelBadge>
+              {canShowLevel && profile.level && profile.tier && (
+                <RPGProfileHeader
+                  level={profile.level}
+                  tier={profile.tier as any}
+                  xp={profile.points}
+                  jobClass={profile.jobClass}
+                />
               )}
             </DisplayName>
             <Username>@{profile.username}</Username>

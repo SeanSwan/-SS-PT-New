@@ -44,6 +44,10 @@ export interface Post {
     username: string;
     photo?: string;
     clientSource?: 'swanstudios' | 'move_fitness' | 'external';
+    level?: number;
+    tier?: string;
+    points?: number;
+    jobClass?: string | null;
   };
   likesCount: number;
   commentsCount: number;

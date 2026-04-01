@@ -11,6 +11,11 @@ interface User {
   username: string;
   photo?: string;
   role?: string;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
+  level?: number;
+  tier?: string;
+  points?: number;
+  jobClass?: string | null;
 }
 
 interface Comment {

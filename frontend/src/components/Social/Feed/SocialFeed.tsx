@@ -22,6 +22,8 @@ import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import PostCard from './PostCard';
 import CreatePostCard from './CreatePostCard';
+import ActivityTicker from './ActivityTicker';
+import { useActivityTicker } from '../../../hooks/social/useActivityTicker';
 import styled, { keyframes } from 'styled-components';
 
 // ─── Keyframes ──────────────────────────────────────────────
@@ -347,6 +349,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
   } = useSocialFeed();
 
   const { profile } = useGamificationData();
+  const { events: activityEvents, isConnected: tickerConnected } = useActivityTicker();
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string | null>(null);
 
@@ -497,6 +500,11 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
             </CaptionText>
           </StatCard>
         </FeedStats>
+      )}
+
+      {/* Live Activity Ticker */}
+      {activityEvents.length > 0 && (
+        <ActivityTicker events={activityEvents} />
       )}
 
       {/* Create Post Card */}

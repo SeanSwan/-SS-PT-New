@@ -30,6 +30,7 @@ import type { PostHeaderProps } from '../types/PostCardTypes';
 import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import MembershipBadge from '../../../MembershipBadge/MembershipBadge';
 import type { ClientSource } from '../../../MembershipBadge/MembershipBadge';
+import RPGProfileHeader from '../../../Social/RPGProfileHeader';
 import {
   PostHeaderRelative,
   PostHeaderBar,
@@ -124,6 +125,15 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
             <TimeAgoText>
               {timeAgo}
             </TimeAgoText>
+            {post.user.level && post.user.tier && (
+              <RPGProfileHeader
+                level={post.user.level}
+                tier={post.user.tier as any}
+                xp={post.user.points}
+                jobClass={post.user.jobClass}
+                compact
+              />
+            )}
           </div>
         </UserInfo>
 
