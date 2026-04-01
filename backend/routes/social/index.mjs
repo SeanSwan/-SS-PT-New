@@ -1,4 +1,5 @@
 import express from 'express';
+import { protect } from '../../middleware/authMiddleware.mjs';
 import friendshipsRoutes from './friendships.mjs';
 import postsRoutes from './posts.mjs';
 import challengesRoutes from './challenges.mjs';
@@ -13,7 +14,7 @@ router.use('/friendships', friendshipsRoutes);
 router.use('/posts', postsRoutes);
 router.use('/challenges', challengesRoutes);
 router.use('/hashtags', hashtagsRoutes);
-router.use('/factions', factionsRoutes);
-router.use('/parties', partiesRoutes);
+router.use('/factions', protect, factionsRoutes);
+router.use('/parties', protect, partiesRoutes);
 
 export default router;

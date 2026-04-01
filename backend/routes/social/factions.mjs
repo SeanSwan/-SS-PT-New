@@ -233,7 +233,7 @@ router.get('/:slug/feed', async (req, res) => {
       include: [{
         model: db.models.User || (await import('../../models/User.mjs')).default,
         as: 'user',
-        attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'level', 'tier', 'points', 'jobClass'],
+        attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'level', 'tier', 'points'],
       }],
     });
 

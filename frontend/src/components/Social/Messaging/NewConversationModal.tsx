@@ -16,14 +16,96 @@
  * │ [X] -> onClose()                                            │
  * └─────────────────────────────────────────────────────────────┘
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { X, Search, Users, GraduationCap } from 'lucide-react';
+import styled from 'styled-components';
 import type { SearchUserResult } from './MessagingTypes';
+import { useSocialFriends } from '../../../hooks/social/useSocialFriends';
 import {
   ModalOverlay, ModalContent, ModalHeader, ModalTitle, CloseButton,
   SearchInput, UserList, UserItem, Avatar, UserName, UserRole,
   EmptyState, EmptySubtext, SkeletonLine,
 } from './MessagingStyles';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Quick-Access Styles
+// ─────────────────────────────────────────────────────────────
+
+const QuickSection = styled.div`
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
+`;
+
+const QuickLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 6px;
+  font-family: 'Sora', sans-serif;
+`;
+
+const QuickRow = styled.div`
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  &::-webkit-scrollbar { height: 3px; }
+  &::-webkit-scrollbar-thumb { background: var(--accent-primary, #60C0F0); border-radius: 2px; }
+`;
+
+const QuickChip = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
+  background: var(--bg-surface, #1A1A24);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 44px;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  &:hover {
+    background: var(--accent-primary-10, rgba(96, 192, 240, 0.1));
+    border-color: var(--accent-primary, #60C0F0);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+const ChipAvatar = styled.span`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-primary-10, rgba(96, 192, 240, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--accent-primary, #60C0F0);
+  overflow: hidden;
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+const RoleBadge = styled.span<{ $role: string }>`
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: ${({ $role }) =>
+    $role === 'trainer' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(96, 192, 240, 0.15)'};
+  color: ${({ $role }) =>
+    $role === 'trainer' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--accent-primary, #60C0F0)'};
+`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -51,6 +133,11 @@ const NewConversationModal: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { friends, isLoading: friendsLoading } = useSocialFriends();
+
+  // Split friends into trainers and regular friends for quick access
+  const trainers = useMemo(() => friends.filter(f => f.role === 'trainer'), [friends]);
+  const friendsList = useMemo(() => friends.filter(f => f.role !== 'trainer'), [friends]);
 
   // Load default users on open
   useEffect(() => {
@@ -107,6 +194,43 @@ const NewConversationModal: React.FC<Props> = ({
           placeholder="Search by name or username..."
           aria-label="Search users"
         />
+
+        {/* Quick-Access: Trainers + Friends */}
+        {!query && !friendsLoading && (trainers.length > 0 || friendsList.length > 0) && (
+          <>
+            {trainers.length > 0 && (
+              <QuickSection>
+                <QuickLabel><GraduationCap size={12} /> Your Trainers</QuickLabel>
+                <QuickRow>
+                  {trainers.map(t => (
+                    <QuickChip key={t.friendshipId} onClick={() => { onStartConversation(Number(t.id)); onClose(); }}>
+                      <ChipAvatar>
+                        {t.photo ? <img src={t.photo} alt="" /> : `${(t.firstName?.[0] || '').toUpperCase()}${(t.lastName?.[0] || '').toUpperCase()}`}
+                      </ChipAvatar>
+                      {t.firstName} {t.lastName?.[0]}.
+                      <RoleBadge $role="trainer">Trainer</RoleBadge>
+                    </QuickChip>
+                  ))}
+                </QuickRow>
+              </QuickSection>
+            )}
+            {friendsList.length > 0 && (
+              <QuickSection>
+                <QuickLabel><Users size={12} /> Friends</QuickLabel>
+                <QuickRow>
+                  {friendsList.slice(0, 10).map(f => (
+                    <QuickChip key={f.friendshipId} onClick={() => { onStartConversation(Number(f.id)); onClose(); }}>
+                      <ChipAvatar>
+                        {f.photo ? <img src={f.photo} alt="" /> : `${(f.firstName?.[0] || '').toUpperCase()}${(f.lastName?.[0] || '').toUpperCase()}`}
+                      </ChipAvatar>
+                      {f.firstName} {f.lastName?.[0]}.
+                    </QuickChip>
+                  ))}
+                </QuickRow>
+              </QuickSection>
+            )}
+          </>
+        )}
 
         <UserList>
           {loading ? (

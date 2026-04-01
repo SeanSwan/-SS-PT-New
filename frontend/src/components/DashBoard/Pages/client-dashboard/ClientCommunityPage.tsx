@@ -53,8 +53,11 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Send, Clock, Swords, MessageSquare, Hash } from 'lucide-react';
+import { Send, Clock, Swords, MessageSquare, Hash, Users, Shield } from 'lucide-react';
 import { FeedFilterBar, type FeedFilters } from '../../../Social/Hashtags';
+import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../../Social/RPG';
+import { useFaction } from '../../../../hooks/social/useFaction';
+import { useParty } from '../../../../hooks/social/useParty';
 import {
   useSocialFeed, useSocialChallenges, useLeaderboard, useCreatePost,
 } from '../../../../hooks/useDashboardQueries';
@@ -94,6 +97,8 @@ const ClientCommunityPage: React.FC = () => {
   });
   const { data: leaderboard = [] } = useLeaderboard({ limit: 5 });
   const createPost = useCreatePost();
+  const { factions } = useFaction();
+  const { party, myRole, leaveParty, createParty, joinParty } = useParty();
 
   const loading = feedLoading;
   const fetchError = feedError?.message || challengesError?.message || null;
@@ -135,7 +140,7 @@ const ClientCommunityPage: React.FC = () => {
         <div style={{ flex: 1 }}>
           <PostInput
             value={postText}
-            onChange={e => { setPostText(e.target.value); setPostError(null); }}
+            onChange={e => setPostText(e.target.value)}
             placeholder="Share an update... use #hashtags to categorize! #fitness #dance"
             maxLength={MAX_POST_LENGTH}
             aria-label="Write a post"
@@ -154,6 +159,26 @@ const ClientCommunityPage: React.FC = () => {
           <Send size={16} aria-hidden="true" /> Post
         </PostBtn>
       </PostBox>
+
+      {/* Faction & Party RPG Widgets */}
+      <TwoCol>
+        <SectionCard>
+          <h3><Shield size={18} aria-hidden="true" /> Faction War</h3>
+          {factions.length > 0 ? (
+            <FactionLeaderboard factions={factions} />
+          ) : (
+            <EmptyState>Factions loading... Join a faction to compete!</EmptyState>
+          )}
+        </SectionCard>
+        <SectionCard>
+          <h3><Users size={18} aria-hidden="true" /> Party</h3>
+          {party ? (
+            <PartyHPBar party={party} myRole={myRole} onLeave={leaveParty} />
+          ) : (
+            <PartyCreateJoin onCreate={createParty} onJoin={joinParty} />
+          )}
+        </SectionCard>
+      </TwoCol>
 
       {/* Challenges + Leaderboard Side-by-Side */}
       <TwoCol>
