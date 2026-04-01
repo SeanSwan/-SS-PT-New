@@ -212,6 +212,7 @@ export const sessionController = async (req, res) => {
 };
 
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
+import { getModel } from '../models/index.mjs';
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -931,7 +932,44 @@ export const completeSession = async (req, res) => {
     }
     
     await session.save();
-    
+
+    // Auto-create a WorkoutSession record linked to this scheduled session
+    // This provides an audit trail connecting scheduled session → workout data
+    let linkedWorkoutSession = null;
+    try {
+      const WorkoutSession = getModel('WorkoutSession');
+      if (WorkoutSession) {
+        // Check if a WorkoutSession already exists for this scheduled session
+        const existing = await WorkoutSession.findOne({
+          where: { sessionId: session.id }
+        });
+        if (!existing && session.client) {
+          const trainerName = req.user.firstName
+            ? `${req.user.firstName} ${req.user.lastName || ''}`.trim()
+            : 'Trainer';
+          linkedWorkoutSession = await WorkoutSession.create({
+            userId: session.client.id,
+            trainerId: session.trainerId || req.user.id,
+            sessionId: session.id,
+            title: `Training Session with ${trainerName}`,
+            date: session.sessionDate || new Date(),
+            duration: session.duration || 60,
+            intensity: 5,
+            totalWeight: 0,
+            totalReps: 0,
+            totalSets: 0,
+            status: 'completed',
+            sessionType: 'trainer-led',
+            completedAt: new Date(),
+          });
+          logger.info(`[Session] Auto-created WorkoutSession ${linkedWorkoutSession.id} for completed session ${session.id}`);
+        }
+      }
+    } catch (wsErr) {
+      // Non-fatal — don't block session completion if WorkoutSession creation fails
+      logger.warn('[Session] Auto-create WorkoutSession failed (non-fatal):', wsErr.message);
+    }
+
     // Deduct session if it hasn't been deducted yet and client has available sessions
     let deductionResult = null;
     if (!session.sessionDeducted && session.client && session.client.availableSessions > 0) {
@@ -956,7 +994,11 @@ export const completeSession = async (req, res) => {
         id: session.id,
         status: session.status
       },
-      deductionResult: deductionResult
+      deductionResult: deductionResult,
+      linkedWorkoutSession: linkedWorkoutSession ? {
+        id: linkedWorkoutSession.id,
+        title: linkedWorkoutSession.title,
+      } : null,
     });
   } catch (error) {
     console.error('Error completing session:', error);

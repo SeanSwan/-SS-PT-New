@@ -1,5 +1,2 @@
-import EnhancedClientDashboard from './index';
-
-export default EnhancedClientDashboard;
+export { default } from './index';
 export * from './types';
-export * from './components/styled-components';

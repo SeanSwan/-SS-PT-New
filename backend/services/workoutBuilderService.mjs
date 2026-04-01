@@ -565,6 +565,15 @@ export async function generatePlan(options) {
   const context = await getClientContext(clientId, trainerId);
   const startingPhase = context.constraints.nasmPhase || 1;
 
+  // Extract equipment items for plan context
+  let equipmentItems = [];
+  if (equipmentProfileId && context.equipment) {
+    const profile = context.equipment.find(p => p.id === equipmentProfileId);
+    if (profile) {
+      equipmentItems = profile.items || [];
+    }
+  }
+
   // Build mesocycles (4-week blocks)
   const mesocycleCount = Math.ceil(durationWeeks / 4);
   const mesocycles = [];
@@ -643,7 +652,18 @@ export async function generatePlan(options) {
       trend: c.trend,
     })),
 
+    equipmentContext: equipmentItems.length > 0
+      ? {
+          profileId: equipmentProfileId,
+          availableEquipment: equipmentItems.map(i => `${i.name} (${i.category})`),
+          resistanceTypes: [...new Set(equipmentItems.map(i => i.resistanceType).filter(Boolean))],
+        }
+      : null,
+
     recommendations: [
+      equipmentItems.length > 0
+        ? `Available equipment: ${equipmentItems.map(i => i.name).join(', ')} — constrain exercises to this equipment`
+        : null,
       context.pain.exclusions.length > 0
         ? `Avoid exercises targeting: ${context.pain.exclusions.map(e => e.bodyRegion).join(', ')}`
         : null,

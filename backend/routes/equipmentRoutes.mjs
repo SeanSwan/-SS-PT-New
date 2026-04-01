@@ -35,6 +35,7 @@ import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { getEquipmentProfile, getEquipmentItem, getEquipmentExerciseMap } from '../models/index.mjs';
 import { scanEquipmentImage } from '../services/equipmentScanService.mjs';
+import { uploadPhoto } from '../services/photoStorageService.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 
@@ -488,10 +489,25 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
 
     const scanResult = await scanEquipmentImage(req.file.buffer, req.file.mimetype);
 
+    // Save the photo to R2/local storage before creating the item
+    let photoUrl = null;
+    try {
+      const photoUpload = await uploadPhoto(req.file.buffer, {
+        userId: req.user.id,
+        category: 'equipment',
+        originalFilename: req.file.originalname || `scan-${Date.now()}.jpg`,
+        contentType: req.file.mimetype,
+      });
+      photoUrl = photoUpload.url;
+    } catch (uploadErr) {
+      logger.warn('[EquipmentRoutes] Photo upload failed (non-fatal):', uploadErr.message);
+    }
+
     // Create pending equipment item with AI scan data
     const EquipmentItem = getEquipmentItem();
     const item = await EquipmentItem.create({
       profileId: profile.id,
+      photoUrl,
       name: scanResult.suggestedName,
       category: scanResult.suggestedCategory,
       resistanceType: scanResult.resistanceType,

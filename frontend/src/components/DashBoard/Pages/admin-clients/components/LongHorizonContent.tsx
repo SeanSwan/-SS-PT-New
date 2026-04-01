@@ -334,6 +334,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       const resp = await service.generateLongHorizonDraft({
         userId: clientId,
         horizonMonths,
+        equipmentProfileId: equipmentProfileId || undefined,
         overrideReason: overrideReason.trim() || undefined,
       });
 
