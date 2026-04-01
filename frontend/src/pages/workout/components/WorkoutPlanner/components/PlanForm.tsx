@@ -61,19 +61,23 @@ const PlanForm: React.FC<PlanFormProps> = ({ state }) => {
       </FormGroup>
       
       <FormGroup>
-        <InputLabel htmlFor="planDuration">Duration (weeks)</InputLabel>
+        <InputLabel htmlFor="planDuration">Duration</InputLabel>
         <Select
           id="planDuration"
           value={planDuration}
           onChange={(e) => setPlanDuration(e.target.value)}
           disabled={savingPlan}
         >
+          <option value="single">Single Session</option>
           <option value="1">1 Week</option>
           <option value="2">2 Weeks</option>
-          <option value="4">4 Weeks</option>
+          <option value="4">4 Weeks (1 Month)</option>
           <option value="6">6 Weeks</option>
-          <option value="8">8 Weeks</option>
-          <option value="12">12 Weeks</option>
+          <option value="8">8 Weeks (2 Months)</option>
+          <option value="12">12 Weeks (3 Months)</option>
+          <option value="24">24 Weeks (6 Months)</option>
+          <option value="36">36 Weeks (9 Months)</option>
+          <option value="52">52 Weeks (12 Months)</option>
         </Select>
       </FormGroup>
     </>

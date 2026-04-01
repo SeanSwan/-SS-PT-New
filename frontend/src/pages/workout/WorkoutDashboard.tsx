@@ -9,6 +9,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import ClientProgress from './components/ClientProgress';
+import WorkoutPlanner from './components/WorkoutPlanner';
+import RecentSessions from './components/RecentSessions';
 
 // Types
 interface User {
@@ -248,11 +250,11 @@ const WorkoutDashboard: React.FC = () => {
       )}
       
       {activeTab === 'planner' && (
-        <div>Workout Planner - Coming Soon</div>
+        <WorkoutPlanner />
       )}
-      
+
       {activeTab === 'sessions' && (
-        <div>Recent Sessions - Coming Soon</div>
+        <RecentSessions />
       )}
     </DashboardContainer>
   );

@@ -147,6 +147,10 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
       }
     }
     prevMessageCountRef.current = messages.length;
+
+    return () => {
+      if (tts.speaking) tts.stop();
+    };
   }, [messages, tts]);
 
   const handleSend = useCallback(async () => {
@@ -510,9 +514,13 @@ const ChatInput = styled.textarea`
   border-radius: 8px;
   background: rgba(0, 32, 96, 0.4);
   color: #f0f0ff;
-  font-size: 13px;
+  font-size: 16px; /* iOS Safari requires 16px minimum to prevent auto-zoom */
   font-family: inherit;
   resize: none;
+
+  @media (min-width: 1280px) {
+    font-size: 13px; /* Desktop density */
+  }
 
   &:focus {
     outline: none;
@@ -520,7 +528,7 @@ const ChatInput = styled.textarea`
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5);
   }
 `;
 
