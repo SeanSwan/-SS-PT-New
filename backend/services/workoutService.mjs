@@ -38,32 +38,34 @@ async function getWorkoutSessions(userId, options = {}) {
     };
   }
   
+  // Build Exercise sub-includes — only add associations whose join tables exist
+  const exerciseIncludes = [];
+  if (MuscleGroup) {
+    exerciseIncludes.push({
+      model: MuscleGroup,
+      as: 'muscleGroups',
+      through: {
+        attributes: ['activationType', 'activationLevel'],
+        where: { activationType: 'primary' },
+        required: false
+      },
+      required: false
+    });
+  }
+  // Equipment association skipped — exercise_equipment join table does not exist in production
+
   return WorkoutSession.findAll({
     where: whereClause,
     include: [{
       model: WorkoutExercise,
       as: 'exercises',
+      required: false,
       include: [
         {
           model: Exercise,
           as: 'exercise',
           attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
-          include: [
-            {
-              model: MuscleGroup,
-              as: 'muscleGroups',
-              through: { 
-                attributes: ['activationType', 'activationLevel'],
-                where: { activationType: 'primary' },
-                required: false
-              }
-            },
-            {
-              model: Equipment,
-              as: 'equipment',
-              through: { attributes: ['required'] }
-            }
-          ]
+          include: exerciseIncludes
         },
         {
           model: Set,
@@ -88,6 +90,17 @@ async function getWorkoutSessionById(sessionId) {
   const models = getAllModels();
   const { WorkoutSession, User, WorkoutExercise, Exercise, MuscleGroup, Equipment, Set, WorkoutPlan } = models;
   
+  // Build Exercise sub-includes — skip Equipment (join table missing in prod)
+  const exerciseIncludes = [];
+  if (MuscleGroup) {
+    exerciseIncludes.push({
+      model: MuscleGroup,
+      as: 'muscleGroups',
+      through: { attributes: ['activationType', 'activationLevel'] },
+      required: false
+    });
+  }
+
   return WorkoutSession.findByPk(sessionId, {
     include: [
       {
@@ -98,23 +111,13 @@ async function getWorkoutSessionById(sessionId) {
       {
         model: WorkoutExercise,
         as: 'exercises',
+        required: false,
         include: [
           {
             model: Exercise,
             as: 'exercise',
             attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
-            include: [
-              {
-                model: MuscleGroup,
-                as: 'muscleGroups',
-                through: { attributes: ['activationType', 'activationLevel'] }
-              },
-              {
-                model: Equipment,
-                as: 'equipment',
-                through: { attributes: ['required'] }
-              }
-            ]
+            include: exerciseIncludes
           },
           {
             model: Set,
@@ -123,11 +126,12 @@ async function getWorkoutSessionById(sessionId) {
           }
         ]
       },
-      {
+      ...(WorkoutPlan ? [{
         model: WorkoutPlan,
         as: 'workoutPlan',
-        attributes: ['id', 'name', 'description']
-      }
+        attributes: ['id', 'title', 'description'],
+        required: false
+      }] : [])
     ]
   });
 }

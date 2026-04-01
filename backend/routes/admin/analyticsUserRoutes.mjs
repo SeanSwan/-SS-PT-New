@@ -101,14 +101,16 @@ router.get('/statistics/users', async (req, res) => {
     const { startDate, endDate, prevStart, prevEnd } = getDateRangeFromTimeRange(timeRange);
 
     const [totalUsers, activeUsers, previousActiveUsers, trendRows] = await Promise.all([
-      User.count(),
+      User.count({ where: { role: 'client' } }),
       User.count({
         where: {
-          updatedAt: { [Op.between]: [startDate, endDate] },
+          role: 'client',
+          isActive: true,
         },
       }),
       User.count({
         where: {
+          role: 'client',
           updatedAt: { [Op.between]: [prevStart, prevEnd] },
         },
       }),

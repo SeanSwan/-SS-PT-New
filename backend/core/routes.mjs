@@ -352,6 +352,8 @@ export const setupRoutes = async (app) => {
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
   app.use('/api/v1/gamification', gamificationV1Routes);
+  // Mount at legacy path too — frontend components use /api/gamification/*
+  app.use('/api/gamification', gamificationV1Routes);
 
   // Enhanced Badge Management System (Phase 1)
   app.use('/api/badges', badgeRoutes);

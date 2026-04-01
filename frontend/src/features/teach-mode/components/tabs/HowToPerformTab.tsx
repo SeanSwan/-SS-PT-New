@@ -21,6 +21,13 @@ import {
   Wrench, ChevronDown, Home, Star,
 } from 'lucide-react';
 import type { ExerciseTeachData } from '../../types/TeachModeContracts';
+
+const ensureArray = (val: unknown): string[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+};
+
 import {
   AccordionHeader, AccordionBody, InstructionStep,
   CueChip, BiomechanicsGrid, BioMetric, EquipmentTag,
@@ -132,10 +139,10 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
             letterSpacing: '0.5px',
           }}>Primary</span>
           <div style={{ marginTop: 4, fontSize: '0.78rem', fontFamily: "'Sora', sans-serif", color: 'var(--accent-primary, #60C0F0)' }}>
-            {data.primaryMuscles.join(', ') || 'General'}
+            {ensureArray(data.primaryMuscles).join(', ') || 'General'}
           </div>
         </div>
-        {data.secondaryMuscles.length > 0 && (
+        {ensureArray(data.secondaryMuscles).length > 0 && (
           <div>
             <span style={{
               fontFamily: "'Sora', sans-serif",
@@ -146,7 +153,7 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
               letterSpacing: '0.5px',
             }}>Secondary</span>
             <div style={{ marginTop: 4, fontSize: '0.78rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-secondary, rgba(224,236,244,0.7))' }}>
-              {data.secondaryMuscles.join(', ')}
+              {ensureArray(data.secondaryMuscles).join(', ')}
             </div>
           </div>
         )}

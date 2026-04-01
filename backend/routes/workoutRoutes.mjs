@@ -298,24 +298,24 @@ router.get('/plans', protect, async (req, res) => {
       return res.status(503).json({ success: false, message: 'WorkoutPlan model not available' });
     }
 
-    // Build query — trainers/admins can filter by clientId
+    // Build query — trainers/admins can filter by clientId (maps to userId column)
     const where = {};
     const { clientId } = req.query;
     if (clientId) {
-      where.clientId = parseInt(clientId, 10);
+      where.userId = parseInt(clientId, 10);
     }
     // Non-admin users can only see their own plans (as trainer or client)
     if (req.user.role !== 'admin') {
       const { Op } = await import('../database.mjs');
       where[Op.or] = [
         { trainerId: req.user.id },
-        { clientId: req.user.id },
+        { userId: req.user.id },
       ];
     }
 
     const plans = await WorkoutPlan.findAll({
       where,
-      attributes: ['id', 'name', 'status', 'goal', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'title', 'status', 'description', 'nasmPhase', 'createdAt', 'updatedAt'],
       order: [['createdAt', 'DESC']],
       limit: 50,
     });

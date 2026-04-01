@@ -761,4 +761,13 @@ router.get('/activity-feed', authenticate, requireUser, gamificationController.g
  */
 router.get('/users/:userId/weekly-recap', authenticate, ensureOwnerOrStaff, gamificationController.getWeeklyRecap);
 
+// ===================== COMPANION PET ENDPOINTS =====================
+router.get('/pet/config', authenticate, requireUser, gamificationController.getPetConfig);
+router.get('/users/:userId/pet', authenticate, ensureOwnerOrStaff, gamificationController.getPet);
+router.post('/users/:userId/pet/adopt', authenticate, ensureOwnerOrStaff, gamificationController.adoptPet);
+router.post('/users/:userId/pet/interact', authenticate, ensureOwnerOrStaff, gamificationController.interactWithPet);
+router.post('/users/:userId/pet/activity', authenticate, ensureOwnerOrStaff, gamificationController.recordPetActivity);
+router.put('/users/:userId/pet/rename', authenticate, ensureOwnerOrStaff, gamificationController.renamePet);
+router.delete('/users/:userId/pet', authenticate, ensureOwnerOrStaff, gamificationController.releasePet);
+
 export default router;

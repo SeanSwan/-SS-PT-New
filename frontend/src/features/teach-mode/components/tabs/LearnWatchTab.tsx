@@ -32,9 +32,16 @@ interface LearnWatchTabProps {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Wisdom Generator (NASM context-specific prose)
 // ─────────────────────────────────────────────────────────────
+const ensureArray = (val: unknown): string[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+};
+
 const generateWisdom = (exercise: ExerciseTeachData, phase: OPTPhaseParams): string => {
-  const muscles = exercise.primaryMuscles.length > 0
-    ? exercise.primaryMuscles.join(', ')
+  const arr = ensureArray(exercise.primaryMuscles);
+  const muscles = arr.length > 0
+    ? arr.join(', ')
     : exercise.bodyPartCategory || 'target muscles';
 
   const phaseContext: Record<number, string> = {

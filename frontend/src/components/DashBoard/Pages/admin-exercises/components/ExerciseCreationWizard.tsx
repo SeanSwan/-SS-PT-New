@@ -1119,7 +1119,7 @@ const ExerciseCreationWizard: React.FC<ExerciseCreationWizardProps> = ({
                 <p>{formData.description}</p>
                 <p><strong>Type:</strong> {formData.exerciseType}</p>
                 <p><strong>Difficulty:</strong> {formData.difficulty}/1000</p>
-                <p><strong>Primary Muscles:</strong> {formData.primaryMuscles.join(', ')}</p>
+                <p><strong>Primary Muscles:</strong> {(Array.isArray(formData.primaryMuscles) ? formData.primaryMuscles : []).join(', ')}</p>
                 {formData.videoFile && <p><strong>Video:</strong> ✅ Uploaded</p>}
               </div>
             </FormSection>

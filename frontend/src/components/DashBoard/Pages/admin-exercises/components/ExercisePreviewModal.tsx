@@ -791,7 +791,7 @@ const ExercisePreviewModal: React.FC<ExercisePreviewModalProps> = ({
             <ExerciseTitle>{exercise.name}</ExerciseTitle>
             <ExerciseCategory>
               <Target size={16} />
-              {exercise.exerciseType} • {exercise.primaryMuscles.join(', ')}
+              {exercise.exerciseType} • {(Array.isArray(exercise.primaryMuscles) ? exercise.primaryMuscles : []).join(', ')}
             </ExerciseCategory>
           </HeaderInfo>
           
