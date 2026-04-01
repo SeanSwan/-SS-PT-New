@@ -1069,6 +1069,42 @@ export async function enrichWithUserData(userId, role, context, sequelize) {
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
 
+    // ── COACH ASSISTANT: Inject assigned client roster for trainer/admin ──
+    if (context === 'coach_assistant' && isAdminOrTrainer) {
+      try {
+        const assignedClients = await safeQuery(
+          `SELECT u.id, u."firstName", u."lastName", u."availableSessions",
+                  u."fitnessGoal", u."clientSource", u."accountStatus",
+                  cta.status AS "assignmentStatus",
+                  (SELECT COUNT(*) FROM workout_sessions ws WHERE ws."userId" = u.id) AS "totalWorkouts",
+                  (SELECT MAX(ws.date) FROM workout_sessions ws WHERE ws."userId" = u.id) AS "lastWorkoutDate"
+           FROM client_trainer_assignments cta
+           JOIN "Users" u ON cta."clientId" = u.id
+           WHERE cta."trainerId" = :trainerId AND cta.status = 'active'
+           ORDER BY u."firstName"`,
+          { trainerId: userId }
+        );
+
+        if (assignedClients.length > 0) {
+          const clientLines = assignedClients.map((c, i) => {
+            const source = c.clientSource === 'move_fitness' ? ' [Move Fitness - FREE]' : ' [SwanStudios]';
+            const sessions = c.availableSessions != null ? `${c.availableSessions} sessions` : 'unknown sessions';
+            const lastWorkout = c.lastWorkoutDate ? new Date(c.lastWorkoutDate).toLocaleDateString() : 'never';
+            return `  ${i + 1}. Client #${c.id}: ${c.firstName} ${c.lastName}${source} | ${sessions} available | ${c.totalWorkouts || 0} workouts | Last: ${lastWorkout} | Goal: ${c.fitnessGoal || 'not set'}`;
+          });
+          dataParts.push(`\n--- YOUR ASSIGNED CLIENTS (${assignedClients.length}) ---
+${clientLines.join('\n')}
+--- END CLIENT ROSTER ---
+IMPORTANT: When the trainer mentions a client by name, match to the client roster above.
+Use their Client #ID for all data operations. You can log workouts, check progress, and manage plans for ANY of these clients.`);
+        } else {
+          dataParts.push(`\n--- YOUR ASSIGNED CLIENTS (0) ---\nNo clients currently assigned. Ask your administrator to assign clients via the Client-Trainer Assignments page.`);
+        }
+      } catch (rosterErr) {
+        logger.warn('[AIChatService] Client roster fetch failed (non-fatal):', rosterErr.message);
+      }
+    }
+
     // ── PROCESS RESULTS: Build data parts from parallel query results ──
 
     // ── PRIVACY: Fetch client identity for PII stripping in notes/sessions ──

@@ -117,7 +117,7 @@ const creditsController = {
       }
 
       // 7. Check if client is eligible for loyalty bump
-      const clientCompletedSessions = (client.sessionsRemaining || 0); // TODO: Track actual completed sessions
+      const clientCompletedSessions = (client.availableSessions || 0); // TODO: Track actual completed sessions
       const applyLoyaltyBump = isEligibleForLoyaltyBump(clientCompletedSessions, sessionsGranted);
 
       // 8. Calculate commission split
@@ -185,8 +185,8 @@ const creditsController = {
       }
 
       // 12. **INSTANT CREDIT GRANT** - Add sessions to client
-      const newCreditsBalance = (client.sessionsRemaining || 0) + sessionsGranted;
-      await client.update({ sessionsRemaining: newCreditsBalance }, { transaction });
+      const newCreditsBalance = (client.availableSessions || 0) + sessionsGranted;
+      await client.update({ availableSessions: newCreditsBalance }, { transaction });
 
       await transaction.commit();
 

@@ -35,7 +35,7 @@ const adminController = {
           'id',
           'firstName',
           'lastName',
-          'sessionsRemaining'
+          'availableSessions'
         ],
         order: [
           ['lastName', 'ASC'],
@@ -47,7 +47,7 @@ const adminController = {
       const formattedClients = clients.map(client => ({
         id: client.id,
         name: `${client.firstName} ${client.lastName}`,
-        credits: client.sessionsRemaining ?? 0 // Ensure credits is a number
+        credits: client.availableSessions ?? 0 // Ensure credits is a number
       }));
 
       res.status(200).json(formattedClients);
@@ -83,7 +83,7 @@ const adminController = {
         return res.status(404).json({ success: false, message: 'Client not found.' });
       }
 
-      await client.update({ sessionsRemaining: credits }, { transaction });
+      await client.update({ availableSessions: credits }, { transaction });
 
       await transaction.commit();
 

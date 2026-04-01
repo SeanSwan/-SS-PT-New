@@ -49,8 +49,7 @@ const sessionPackageController = {
       // --- Update client's session counts ---
       // Using Sequelize.literal to perform atomic update in the database
       await client.update({
-        sessionsRemaining: sequelize.literal(`"sessionsRemaining" + ${sessionsToAdd}`),
-        totalSessionsAllocated: sequelize.literal(`"totalSessionsAllocated" + ${sessionsToAdd}`),
+        availableSessions: sequelize.literal(`"availableSessions" + ${sessionsToAdd}`),
       }, { transaction });
 
       await transaction.commit();
@@ -62,8 +61,7 @@ const sessionPackageController = {
         success: true,
         message: `${sessionsToAdd} sessions added successfully to ${client.firstName} ${client.lastName}.`,
         data: {
-          sessionsRemaining: updatedClient.sessionsRemaining,
-          totalSessionsAllocated: updatedClient.totalSessionsAllocated,
+          sessionsRemaining: updatedClient.availableSessions,
         }
       });
 
