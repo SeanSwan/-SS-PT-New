@@ -373,10 +373,10 @@ router.post('/:id/end', protect, async (req, res) => {
     let totalReps = 0;
     let totalSets = 0;
     
-    session.exercises.forEach(exercise => {
-      exercise.sets.forEach(set => {
-        totalWeight += set.weight * set.reps;
-        totalReps += set.reps;
+    (session.exercises || []).forEach(exercise => {
+      (exercise.sets || []).forEach(set => {
+        totalWeight += (set.weight || 0) * (set.reps || 0);
+        totalReps += (set.reps || 0);
         totalSets++;
       });
     });

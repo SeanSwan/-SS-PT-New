@@ -121,7 +121,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
           )}
 
           {/* Trainer Filter (admin global view only) */}
-          {mode === 'admin' && adminViewScope === 'global' && trainers.length > 0 && onTrainerFilterChange && (
+          {mode === 'admin' && adminViewScope === 'global' && onTrainerFilterChange && (
             <TrainerSelect
               value={selectedTrainerId?.toString() || ''}
               onChange={(e) => onTrainerFilterChange(e.target.value ? parseInt(e.target.value, 10) : null)}

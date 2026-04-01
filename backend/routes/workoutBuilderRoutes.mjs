@@ -32,10 +32,10 @@ async function verifyClientAccess(userId, userRole, clientId) {
       { replacements: { trainerId: userId, clientId }, type: sequelize.QueryTypes.SELECT }
     );
     return !!rows;
-  } catch {
-    // Table may not exist yet — fail open for trainers to avoid blocking
-    logger.warn('[WorkoutBuilder] ClientTrainerAssignment check failed, allowing access');
-    return true;
+  } catch (err) {
+    // Table may not exist yet — fail closed for security
+    logger.warn('[WorkoutBuilder] ClientTrainerAssignment check failed, denying access', err?.message);
+    return false;
   }
 }
 

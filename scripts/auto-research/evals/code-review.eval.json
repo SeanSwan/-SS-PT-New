@@ -1,0 +1,37 @@
+{
+  "skill": "requesting-code-review",
+  "description": "Ensures agent performs thorough pre-merge code review",
+  "criteria": [
+    {
+      "id": "checks-diff",
+      "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+      "weight": 2
+    },
+    {
+      "id": "security-scan",
+      "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+      "weight": 2
+    },
+    {
+      "id": "perf-check",
+      "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+      "weight": 1
+    },
+    {
+      "id": "test-coverage",
+      "description": "Skill prompt requires verifying test coverage for changed code",
+      "weight": 2
+    },
+    {
+      "id": "breaking-changes",
+      "description": "Skill prompt requires checking for breaking API or interface changes",
+      "weight": 2
+    },
+    {
+      "id": "style-consistency",
+      "description": "Skill prompt checks that new code follows project conventions",
+      "weight": 1
+    }
+  ],
+  "iterations": 10
+}

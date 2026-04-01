@@ -301,11 +301,21 @@ const formatHour = (hour: number) => {
 
 const DayViewWrapper = styled.div`
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     padding-bottom: 0.75rem;
+  }
+
+  &::-webkit-scrollbar { height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(96, 192, 240, 0.15);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(96, 192, 240, 0.3);
   }
 `;
 
@@ -313,10 +323,10 @@ const DayViewContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  min-width: max-content;
 
   @media (max-width: 768px) {
     gap: 0.5rem;
-    min-width: max-content;
   }
 
   @media (max-width: 480px) {

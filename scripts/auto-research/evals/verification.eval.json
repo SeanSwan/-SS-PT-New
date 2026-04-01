@@ -1,0 +1,37 @@
+{
+  "skill": "verification-before-completion",
+  "description": "Ensures agent verifies work before claiming done",
+  "criteria": [
+    {
+      "id": "checks-tests",
+      "description": "Skill prompt causes agent to run tests before claiming done",
+      "weight": 2
+    },
+    {
+      "id": "checks-build",
+      "description": "Skill prompt causes agent to verify build/compilation succeeds",
+      "weight": 2
+    },
+    {
+      "id": "no-false-done",
+      "description": "Agent does not claim done when tests or build fail",
+      "weight": 3
+    },
+    {
+      "id": "visual-verify",
+      "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+      "weight": 1
+    },
+    {
+      "id": "regression-check",
+      "description": "Skill prompt instructs checking for regressions in related components",
+      "weight": 1
+    },
+    {
+      "id": "error-handling",
+      "description": "Skill prompt requires checking error states and edge cases",
+      "weight": 1
+    }
+  ],
+  "iterations": 10
+}

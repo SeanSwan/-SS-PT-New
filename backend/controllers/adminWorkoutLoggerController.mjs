@@ -59,6 +59,23 @@ export const logWorkout = async (req, res) => {
       return res.status(400).json({ success: false, message: 'date cannot be in the future' });
     }
 
+    // Check for duplicate session on same date for same client
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const existingSession = await WorkoutSession.findOne({
+      where: {
+        userId: clientId,
+        date: { [Op.between]: [startOfDay, endOfDay] },
+      },
+      transaction,
+    });
+    if (existingSession) {
+      await transaction.rollback();
+      return res.status(409).json({ success: false, message: 'A workout session already exists for this client on this date' });
+    }
+
     const parsedDuration = Number(duration);
     if (!Number.isInteger(parsedDuration) || parsedDuration < 0) {
       await transaction.rollback();
@@ -74,12 +91,6 @@ export const logWorkout = async (req, res) => {
     if (!Array.isArray(exercises) || exercises.length === 0) {
       await transaction.rollback();
       return res.status(400).json({ success: false, message: 'exercises must be a non-empty array' });
-    }
-
-    // --- Strict integer validation for intensity ---
-    if (!Number.isInteger(parsedIntensity)) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'intensity must be an integer between 1 and 10' });
     }
 
     // --- Create WorkoutSession ---

@@ -46,7 +46,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({
 
       try {
         setIsLoading(true);
-        const response = await axios.get('/api/workouts/sessions', {
+        const response = await axios.get('/api/workout/sessions', {
           params: {
             clientId,
             status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -74,7 +74,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({
   const fetchSessionDetails = async (sessionId: string) => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`/api/workouts/sessions/${sessionId}`);
+      const response = await axios.get(`/api/workout/sessions/${sessionId}`);
       setSelectedSession(response.data.workoutSession || null);
       setViewMode('detail');
       setIsLoading(false);
@@ -108,7 +108,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({
 
     try {
       setIsLoading(true);
-      await axios.put(`/api/workouts/sessions/${sessionId}`, {
+      await axios.put(`/api/workout/sessions/${sessionId}`, {
         status: 'completed',
         completionPercentage: 100
       });
@@ -118,7 +118,7 @@ const RecentSessions: React.FC<RecentSessionsProps> = ({
         await fetchSessionDetails(sessionId);
       } else {
         // Otherwise refetch the list
-        const response = await axios.get('/api/workouts/sessions', {
+        const response = await axios.get('/api/workout/sessions', {
           params: {
             clientId,
             status: statusFilter !== 'all' ? statusFilter : undefined,

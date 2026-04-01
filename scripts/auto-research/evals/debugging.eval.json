@@ -1,0 +1,37 @@
+{
+  "skill": "systematic-debugging",
+  "description": "Ensures agent uses root-cause-first debugging methodology",
+  "criteria": [
+    {
+      "id": "reproduces-first",
+      "description": "Skill prompt requires reproducing the bug before attempting fixes",
+      "weight": 2
+    },
+    {
+      "id": "root-cause",
+      "description": "Skill prompt prioritizes identifying root cause over quick patches",
+      "weight": 3
+    },
+    {
+      "id": "no-shotgun",
+      "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+      "weight": 2
+    },
+    {
+      "id": "hypothesis-driven",
+      "description": "Skill prompt requires forming and testing hypotheses",
+      "weight": 1
+    },
+    {
+      "id": "documents-findings",
+      "description": "Skill prompt requires documenting what was found and why the fix works",
+      "weight": 1
+    },
+    {
+      "id": "verifies-fix",
+      "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+      "weight": 2
+    }
+  ],
+  "iterations": 10
+}

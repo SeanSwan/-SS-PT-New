@@ -1,0 +1,42 @@
+{
+  "skill": "design-taste-frontend",
+  "description": "Ensures agent produces high-quality, non-generic UI designs",
+  "criteria": [
+    {
+      "id": "no-ai-tells",
+      "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+      "weight": 3
+    },
+    {
+      "id": "interaction-states",
+      "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+      "weight": 2
+    },
+    {
+      "id": "motion-quality",
+      "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+      "weight": 1
+    },
+    {
+      "id": "typography-hierarchy",
+      "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+      "weight": 2
+    },
+    {
+      "id": "color-system",
+      "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+      "weight": 2
+    },
+    {
+      "id": "spacing-consistency",
+      "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+      "weight": 1
+    },
+    {
+      "id": "accessibility",
+      "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+      "weight": 2
+    }
+  ],
+  "iterations": 10
+}

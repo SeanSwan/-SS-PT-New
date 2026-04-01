@@ -892,18 +892,71 @@ Sean's Phone (Telegram — gym, travel, anywhere)
 - **AI status files:** `docs/ai-workflow/AI-HANDOFF/[AI-NAME]-STATUS.md`
 - **Master handbook:** `docs/MASTER-HANDBOOK.md`
 
-## AI Agent Skills (10 installed)
-Skills are in `.agents/skills/` (symlinked to `.claude/skills/`). Key process skills:
+## AI Agent Skills (17 installed)
+Skills are in `.agents/skills/` (symlinked to `.claude/skills/` and `.continue/skills/`).
+
+### Core Process Skills (10)
 - `verification-before-completion` — MANDATORY before any "done" or "fixed" claim
 - `systematic-debugging` — MANDATORY for any bug investigation (root-cause-first)
 - `requesting-code-review` — MANDATORY before merge to main
 - `test-driven-development` — write tests before production code
 - `webapp-testing` — Playwright-based frontend testing
-- `web-design-guidelines` — UI accessibility/contrast audit
-- `audit-website` — comprehensive site audit (SEO, perf, security, a11y)
+- `web-design-guidelines` — UI accessibility/contrast audit (Vercel)
+- `audit-website` — comprehensive site audit (SEO, perf, security, a11y via squirrelscan)
 - `agent-browser` — browser automation for visual verification
-- `frontend-design` + `ui-ux-pro-max` — design and styling skills
-- **Maintenance:** `npx skills check` | `npx skills update` | `npx skills find <keyword>`
+- `frontend-design` — distinctive, production-grade frontend interfaces
+- `ui-ux-pro-max` — 50 styles, 21 palettes, 50 font pairings, 9 stacks
+
+### Design Enhancement Skills (7, from taste-skill)
+- `design-taste-frontend` — anti-AI-slop design rules, 3 tunable dials (NOTE: its ban on "AI purple/blue" is OVERRIDDEN — Wing Purple + Ice Wing are our brand)
+- `high-end-visual-design` — $150k agency look, spring physics
+- `redesign-existing-projects` — design audit + fix priority
+- `full-output-enforcement` — anti-truncation, no `// TODO` placeholders
+- `minimalist-ui` — editorial clean (NOT for SwanStudios — our brand is maximalist dark-luxury)
+- `industrial-brutalist-ui` — Swiss typographic + terminal (NOT for SwanStudios)
+- `stitch-design-taste` — Google Stitch compatibility (only if using Stitch)
+
+### Maintenance
+`npx skills check` | `npx skills update` | `npx skills find <keyword>`
+
+---
+
+## Auto Research Protocol (Karpathy-Style Skill Optimization)
+
+Autonomous skill optimization loop based on Andrej Karpathy's auto-research methodology.
+
+### Three Ingredients
+1. **Objective metric** — Binary yes/no eval criteria per skill (`scripts/auto-research/evals/*.eval.json`)
+2. **Measurement tool** — LLM judge (Gemini Flash) scores skill prompts against criteria
+3. **Something to change** — The skill SKILL.md prompt itself (iterated until optimal)
+
+### Usage
+```bash
+node scripts/auto-research/runner.mjs --skill verification-before-completion --generations 3 --runs 5
+node scripts/auto-research/runner.mjs --list        # list available evals
+node scripts/auto-research/runner.mjs --skill systematic-debugging --dry-run  # score without mutating
+```
+
+### Architecture
+```
+scripts/auto-research/
+├── runner.mjs              — Main loop: run skill → eval → mutate → repeat
+├── eval-suite.mjs          — Eval framework (LLM judge, binary criteria)
+├── prompt-mutator.mjs      — AI-powered prompt mutation (anti-collapse safeguards)
+├── results/                — Historical run results for analysis
+│   └── {skill}-gen{N}-{timestamp}.json
+└── evals/                  — Per-skill eval definitions
+    ├── verification.eval.json   (6 criteria, weight 10)
+    ├── debugging.eval.json      (6 criteria, weight 11)
+    ├── code-review.eval.json    (6 criteria, weight 10)
+    └── design-taste.eval.json   (7 criteria, weight 13)
+```
+
+### Safeguards
+- **Anti-collapse:** Mutations rejected if prompt shrinks >50%, grows >100%, or loses section headings
+- **Backup:** Original prompt backed up to `results/{skill}-original-backup.md` before first mutation
+- **Best-wins:** Only the highest-scoring prompt variant is written back; no improvement = no change
+- **Cost:** ~$0.00-0.02/run (all free models via OpenRouter)
 
 ## Build Hardening Checklist (MANDATORY)
 Every component and endpoint must pass these checks BEFORE commit. These rules exist because AI Village repeatedly caught these same patterns post-build.
