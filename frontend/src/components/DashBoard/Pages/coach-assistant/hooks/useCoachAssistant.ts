@@ -19,15 +19,19 @@ import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoach
 interface UseCoachAssistantOptions {
   defaultContext?: CoachContext;
   defaultStyle?: ResponseStyle;
+  /** Pass an external useAIChat instance to share state with the page */
+  chat?: ReturnType<typeof useAIChat>;
 }
 
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const {
     defaultContext = 'coach_assistant',
     defaultStyle = DEFAULT_RESPONSE_STYLE,
+    chat: externalChat,
   } = options || {};
 
-  const chat = useAIChat();
+  const internalChat = useAIChat();
+  const chat = externalChat || internalChat;
   const [context, setContext] = useState<CoachContext>(defaultContext);
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>(defaultStyle);
   const [localMessages, setLocalMessages] = useState<CoachMessageData[]>([]);
@@ -61,38 +65,22 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || chat.sending) return;
 
-    // Optimistic user message
-    const userMsg: CoachMessageData = {
-      id: `local-${Date.now()}`,
-      role: 'user',
-      content: text.trim(),
-      timestamp: new Date().toISOString(),
-    };
+    // Map 'balanced' to 'both' for backend compatibility
+    const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
 
-    setLocalMessages(prev => [...prev, userMsg]);
+    // Use sendMessageWithConversation which atomically creates + sends
+    // This avoids the stale closure bug where createConversation sets
+    // activeConversation but sendMessage still sees null from its closure
+    await chat.sendMessageWithConversation(
+      text.trim(),
+      context as Parameters<typeof chat.sendMessageWithConversation>[1],
+      'Swan Coach Session',
+      null,
+      backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
+    );
 
-    try {
-      // Create conversation if needed
-      if (!chat.activeConversation) {
-        // Map 'balanced' to 'both' for backend compatibility until backend supports 'balanced'
-        const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
-        await chat.createConversation(
-          context as Parameters<typeof chat.createConversation>[0],
-          'Swan Coach Session',
-          null,
-          backendStyle as Parameters<typeof chat.createConversation>[3]
-        );
-      }
-
-      // Send the message
-      const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
-      await chat.sendMessage(text.trim(), backendStyle as Parameters<typeof chat.sendMessage>[1]);
-
-      // Clear local messages once real ones come in
-      setLocalMessages([]);
-    } catch {
-      // Error is handled by useAIChat
-    }
+    // Clear local messages once real ones come in
+    setLocalMessages([]);
   }, [chat, context, responseStyle]);
 
   // ── Switch context ──

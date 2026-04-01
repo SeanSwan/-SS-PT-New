@@ -29,8 +29,17 @@ export const CoachHeader = styled.div`
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   flex-shrink: 0;
 
+  @media (max-width: 375px) {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
   @media (min-width: 1024px) {
     padding: 16px 24px;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 20px 32px;
   }
 `;
 
@@ -44,8 +53,20 @@ export const CoachTitle = styled.h1`
   overflow: hidden;
   text-overflow: ellipsis;
 
+  @media (max-width: 375px) {
+    font-size: 1rem;
+  }
+
   @media (min-width: 768px) {
     font-size: 1.25rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.5rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.75rem;
   }
 `;
 

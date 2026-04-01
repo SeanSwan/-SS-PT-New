@@ -23,6 +23,7 @@
  */
 
 import React, { useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, MessageSquareOff, Search } from 'lucide-react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import ConversationItem from './ConversationItem';
@@ -75,7 +76,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
   const handleNewChat = useCallback(() => {
     onNewChat();
-    onClose();
+    // Only close sidebar on mobile — desktop keeps sidebar open
+    if (window.innerWidth < 1024) onClose();
   }, [onNewChat, onClose]);
 
   const handleSelect = useCallback((id: number) => {
@@ -86,7 +88,9 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
   const isEmpty = !Array.isArray(groupedConversations) || groupedConversations.length === 0;
 
-  return (
+  // Portal to document.body to escape parent stacking contexts
+  // (dashboard layout creates z-index:1 context that traps the sidebar below the header)
+  return createPortal(
     <>
       <SidebarOverlay $isOpen={isOpen} onClick={onClose} />
       <SidebarContainer
@@ -140,7 +144,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           )}
         </ConversationList>
       </SidebarContainer>
-    </>
+    </>,
+    document.body
   );
 };
 

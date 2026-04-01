@@ -22,9 +22,19 @@ export const ChipBarWrap = styled.div`
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 
+  @media (max-width: 375px) {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
   @media (min-width: 1024px) {
     padding: 10px 24px;
     gap: 8px;
+  }
+
+  @media (min-width: 2560px) {
+    padding: 12px 32px;
+    gap: 10px;
   }
 `;
 
@@ -38,7 +48,7 @@ export const ContextChipBtn = styled.button<{ $active?: boolean }>`
     $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.1))'};
   background: ${({ $active }) =>
     $active
-      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent)'
       : 'transparent'};
   color: ${({ $active }) =>
     $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
@@ -49,6 +59,16 @@ export const ContextChipBtn = styled.button<{ $active?: boolean }>`
   white-space: nowrap;
   flex-shrink: 0;
   min-height: 44px;
+  ${({ $active }) => $active ? `
+    box-shadow: inset 0 0 0 1px var(--accent-secondary, #8B5CF6),
+                0 0 8px rgba(139, 92, 246, 0.2);
+  ` : ''}
+
+  @media (max-width: 375px) {
+    font-size: 12px;
+    padding: 6px 10px;
+    gap: 4px;
+  }
 
   @media (min-width: 768px) {
     font-size: 13px;
@@ -57,12 +77,28 @@ export const ContextChipBtn = styled.button<{ $active?: boolean }>`
   @media (min-width: 1200px) {
     font-size: 12px;
   }
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+  @media (min-width: 2560px) {
+    font-size: 14px;
+    padding: 10px 18px;
+    min-height: 48px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 16px;
+    padding: 12px 22px;
+    min-height: 56px;
+  }
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 
   &:hover {
-    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent);
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);
     color: var(--text-primary, #E0ECF4);
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 
   &:focus-visible {

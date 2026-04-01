@@ -35,6 +35,7 @@ import { useAIChat } from '../../../../hooks/useAIChat';
 import { useCoachAssistant } from './hooks/useCoachAssistant';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { useConversationSidebar } from './hooks/useConversationSidebar';
+import { useScrollLock } from './hooks/useScrollLock';
 import { useCoachTeachMode } from './hooks/useCoachTeachMode';
 import { ContextChipBar } from './ContextChipBar';
 import { CoachMessage } from './CoachMessage';
@@ -133,7 +134,7 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
-  const coach = useCoachAssistant();
+  const coach = useCoachAssistant({ chat });
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -147,6 +148,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   const sidebar = useConversationSidebar({
     conversations: chat.conversations,
   });
+
+  // Lock background scroll when sidebar overlay is open (iOS fix)
+  useScrollLock(sidebar.isOpen);
 
   // ── Get user role from localStorage ──
   const userRole = useMemo(() => {
@@ -173,7 +177,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── New chat from sidebar ──
   const handleNewChat = useCallback(() => {
     coach.clearConversation();
-  }, [coach]);
+    // Force-refresh conversation list so the sidebar is up to date
+    chat.listConversations('active', true);
+  }, [coach, chat]);
 
   // ── Auto-read new AI messages when TTS enabled ──
   const lastMsgRef = React.useRef<string>('');

@@ -22,6 +22,11 @@ export const InputBar = styled.div`
   background: var(--bg-elevated, #141419);
   flex-shrink: 0;
 
+  @media (max-width: 375px) {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
   @media (min-width: 1024px) {
     padding: 14px 24px;
     max-width: 900px;
@@ -31,6 +36,16 @@ export const InputBar = styled.div`
     background: var(--bg-base, #030712);
     border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
     border-bottom: none;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1200px;
+    padding: 16px 32px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 1600px;
+    padding: 20px 48px;
   }
 `;
 
@@ -59,9 +74,26 @@ export const ChatInput = styled.textarea`
     box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 
+  @media (max-width: 375px) {
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+
   @media (min-width: 1200px) {
     font-size: 15px;
     min-height: 44px;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 17px;
+    min-height: 52px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 20px;
+    min-height: 60px;
+    padding: 16px 18px;
   }
 `;
 

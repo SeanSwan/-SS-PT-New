@@ -47,7 +47,7 @@ AiConversation.init({
     allowNull: false,
     defaultValue: 'general',
     validate: {
-      isIn: [['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management']],
+      isIn: [['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management', 'scheduling', 'progress_analysis', 'exercise_library', 'gamification', 'client_onboarding', 'coach_assistant']],
     },
     comment: 'Conversation context determines AI system prompt and permissions',
   },

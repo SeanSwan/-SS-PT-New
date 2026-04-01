@@ -16,10 +16,10 @@ export const SidebarOverlay = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 90;
+  z-index: 1100;
 
   @media (min-width: 1024px) {
-    display: none;
+    background: rgba(0, 0, 0, 0.3);
   }
 `;
 
@@ -28,18 +28,22 @@ export const SidebarContainer = styled.aside<{ $isOpen: boolean }>`
   top: 0;
   left: 0;
   bottom: 0;
-  width: min(280px, 75vw);
+  width: min(280px, 85vw);
+  max-height: 100vh;
   background: var(--bg-elevated, #141419);
   border-right: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 1101;
   transform: translateX(${({ $isOpen }) => $isOpen ? '0' : '-100%'});
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
+  @media (min-width: 769px) and (max-width: 1023px) {
+    width: 280px;
+  }
+
   @media (min-width: 1024px) {
-    position: relative;
-    transform: none;
+    position: fixed;
     width: 280px;
     flex-shrink: 0;
   }
@@ -100,10 +104,6 @@ export const CloseSidebarBtn = styled.button`
   transition: color 0.2s ease;
 
   &:hover { color: var(--text-primary, #E0ECF4); }
-
-  @media (min-width: 1024px) {
-    display: none;
-  }
 `;
 
 // ─────────────────────────────────────────────────────────────

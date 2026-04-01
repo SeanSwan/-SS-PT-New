@@ -29,11 +29,28 @@ export const MessagesArea = styled.div`
     border-radius: 2px;
   }
 
+  @media (max-width: 375px) {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+
   @media (min-width: 1024px) {
     padding: 20px 24px;
     max-width: 900px;
     margin: 0 auto;
     width: 100%;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1200px;
+    padding: 24px 32px;
+    gap: 16px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 1600px;
+    padding: 32px 48px;
+    gap: 20px;
   }
 `;
 
@@ -61,9 +78,25 @@ export const MessageBubbleAI = styled.div`
     font-size: 0.9em;
   }
 
+  @media (max-width: 375px) {
+    font-size: 15px;
+    padding: 10px 12px;
+    max-width: 96%;
+  }
+
   @media (min-width: 1200px) {
     font-size: 15px;
     max-width: 80%;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 17px;
+    padding: 16px 20px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 20px;
+    padding: 20px 24px;
   }
 `;
 
@@ -82,9 +115,25 @@ export const MessageBubbleUser = styled.div`
   word-wrap: break-word;
   overflow-wrap: break-word;
 
+  @media (max-width: 375px) {
+    font-size: 15px;
+    padding: 10px 12px;
+    max-width: 92%;
+  }
+
   @media (min-width: 1200px) {
     font-size: 15px;
     max-width: 70%;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 17px;
+    padding: 16px 20px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 20px;
+    padding: 20px 24px;
   }
 `;
 
