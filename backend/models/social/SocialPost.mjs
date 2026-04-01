@@ -104,6 +104,23 @@ const SocialPost = db.define('SocialPost', {
     allowNull: false,
     comment: 'Whether the post has been edited'
   },
+  isRepost: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    comment: 'Whether this post is a repost/share of another post'
+  },
+  originalPostId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'ID of the original post being reposted'
+  },
+  repostCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Number of times this post has been reposted'
+  },
   // === ORIGINAL FIELDS ===
   // Optional references to other entities
   workoutSessionId: {

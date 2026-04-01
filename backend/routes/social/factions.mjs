@@ -25,26 +25,26 @@ const router = Router();
 
 const FACTION_SEEDS = [
   {
-    name: 'The Vanguard',
-    slug: 'vanguard',
-    description: 'Strength through discipline. The Vanguard leads from the front — heavy lifters, powerlifters, and iron warriors who believe the barbell is the ultimate teacher.',
-    motto: 'First to rise, last to fall.',
-    color: '#60C0F0',
+    name: 'The Black Swans',
+    slug: 'black-swans',
+    description: 'Rare, powerful, unexpected. The Black Swans lead from the front — heavy lifters, powerlifters, and iron warriors who believe the barbell is the ultimate teacher.',
+    motto: 'Rare breeds don\'t follow — they forge.',
+    color: '#8B5CF6',
     icon: 'shield',
   },
   {
-    name: 'The Syndicate',
-    slug: 'syndicate',
-    description: 'Speed, agility, and cunning. The Syndicate values functional fitness, HIIT mastery, and adaptive training. Outsmart, outlast, overcome.',
-    motto: 'Adapt or be left behind.',
-    color: '#8B5CF6',
+    name: 'The Glacial Edge',
+    slug: 'glacial-edge',
+    description: 'Sharp, swift, cold precision. The Glacial Edge values functional fitness, HIIT mastery, and adaptive training. Every movement calculated, every rep deliberate.',
+    motto: 'Cut through. Never melt.',
+    color: '#60C0F0',
     icon: 'zap',
   },
   {
-    name: 'The Sentinels',
-    slug: 'sentinels',
-    description: 'Balance in all things. The Sentinels pursue holistic wellness — mind, body, and community. Flexibility, recovery, and longevity are their creed.',
-    motto: 'Endure beyond the storm.',
+    name: 'The Crystal Flock',
+    slug: 'crystal-flock',
+    description: 'Balanced, clear, enduring. The Crystal Flock pursues holistic wellness — mind, body, and community. Flexibility, recovery, and longevity are their creed.',
+    motto: 'Clarity endures when force fades.',
     color: '#C6A84B',
     icon: 'star',
   },
@@ -54,6 +54,19 @@ async function ensureFactions() {
   const count = await Faction.count();
   if (count === 0) {
     await Faction.bulkCreate(FACTION_SEEDS);
+  } else {
+    // Ensure current faction names match seeds (handles renames)
+    const existing = await Faction.findAll();
+    const existingSlugs = existing.map(f => f.slug);
+    const seedSlugs = FACTION_SEEDS.map(s => s.slug);
+    // If seeds don't match existing, reset (safe when no memberships exist)
+    if (!seedSlugs.every(s => existingSlugs.includes(s))) {
+      const memberCount = await FactionMembership.count();
+      if (memberCount === 0) {
+        await Faction.destroy({ where: {} });
+        await Faction.bulkCreate(FACTION_SEEDS);
+      }
+    }
   }
 }
 

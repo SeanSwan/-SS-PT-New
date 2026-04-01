@@ -23,6 +23,8 @@ export interface Comment {
   id: string;
   content: string;
   createdAt: string;
+  parentCommentId?: string | null;
+  replies?: Comment[];
   user: {
     id: string;
     firstName: string;
@@ -54,6 +56,10 @@ export interface Post {
   isLiked: boolean;
   reactionCounts?: { thumbs_up: number; heart: number; swan: number };
   userReactions?: string[];
+  isRepost?: boolean;
+  originalPostId?: string;
+  repostCount?: number;
+  isEdited?: boolean;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | null;
   comments?: Comment[];
@@ -94,6 +100,7 @@ export interface PostCardProps {
   onComment: (postId: string, content: string) => void;
   onDelete?: (postId: string) => Promise<boolean>;
   onReport?: (postId: string, reason: string, description?: string) => Promise<boolean>;
+  onRepost?: (postId: string, content?: string) => Promise<boolean>;
 }
 
 export interface PostHeaderProps {

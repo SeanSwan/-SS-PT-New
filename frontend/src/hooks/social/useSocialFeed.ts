@@ -460,6 +460,21 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user, toast]);
 
+  // Repost/share a post
+  const repostPost = useCallback(async (postId: string, content?: string) => {
+    if (!user || !authAxios) return false;
+    try {
+      await authAxios.post(`/api/social/posts/${postId}/repost`, { content });
+      toast({ title: 'Shared!', description: 'Post shared to your feed.', variant: 'default' });
+      fetchPosts(true);
+      return true;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Unable to share post.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      return false;
+    }
+  }, [authAxios, user, toast, fetchPosts]);
+
   // Get a single post with full details
   const getPostDetails = useCallback(async (postId: string) => {
     if (!user) return null;
@@ -499,6 +514,7 @@ export const useSocialFeed = () => {
     addComment,
     deletePost,
     reportPost,
+    repostPost,
     getPostDetails
   };
 };

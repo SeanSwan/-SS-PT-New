@@ -1143,6 +1143,66 @@ router.post('/:postId/report', async (req, res) => {
 });
 
 /**
+ * Repost/share a post — creates a new post referencing the original
+ */
+router.post('/:postId/repost', async (req, res) => {
+  try {
+    if (!req.user?.id) return res.status(401).json({ error: 'Not authenticated' });
+
+    const original = await SocialPost.findByPk(req.params.postId);
+    if (!original) return res.status(404).json({ error: 'Post not found' });
+
+    // Don't repost your own post
+    if (original.userId === req.user.id) {
+      return res.status(400).json({ error: 'Cannot repost your own post' });
+    }
+
+    // Don't repost a repost — repost the original
+    const sourceId = original.isRepost && original.originalPostId
+      ? original.originalPostId
+      : original.id;
+
+    // Check if already reposted
+    const existing = await SocialPost.findOne({
+      where: { userId: req.user.id, originalPostId: sourceId, isRepost: true },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'Already reposted' });
+    }
+
+    const commentary = (req.body.content || '').trim();
+    const repost = await SocialPost.create({
+      userId: req.user.id,
+      content: commentary || original.content,
+      type: original.type,
+      visibility: 'public',
+      isRepost: true,
+      originalPostId: sourceId,
+    });
+
+    // Increment repost count on original
+    await SocialPost.increment('repostCount', { where: { id: sourceId } });
+
+    // Broadcast repost activity
+    try {
+      const io = getIO();
+      io.emit('social:activity', {
+        type: 'repost',
+        userId: req.user.id,
+        postId: repost.id,
+        originalPostId: sourceId,
+        timestamp: new Date().toISOString(),
+      });
+    } catch {}
+
+    res.status(201).json({ repost, originalPostId: sourceId });
+  } catch (err) {
+    console.error('[Social] POST /:postId/repost error:', err.message);
+    res.status(500).json({ error: 'Failed to repost' });
+  }
+});
+
+/**
  * React to a post (thumbs_up, heart, or swan)
  */
 router.post('/:postId/like', async (req, res) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   MessageSquare,
   Heart,
@@ -25,6 +25,8 @@ import CreatePostCard from './CreatePostCard';
 import ActivityTicker from './ActivityTicker';
 import { useActivityTicker } from '../../../hooks/social/useActivityTicker';
 import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../Social/RPG';
+import TrendingHashtags from './TrendingHashtags';
+import NotificationBell from './NotificationBell';
 import { useFaction } from '../../../hooks/social/useFaction';
 import { useParty } from '../../../hooks/social/useParty';
 import styled, { keyframes } from 'styled-components';
@@ -83,6 +85,19 @@ const LoadMoreButton = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+`;
+
+const FeedTopBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+`;
+
+const InfiniteScrollSentinel = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  min-height: 48px;
 `;
 
 const EmptyFeedMessage = styled.div`
@@ -349,6 +364,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     addComment,
     deletePost,
     reportPost,
+    repostPost,
   } = useSocialFeed();
 
   const { profile } = useGamificationData();
@@ -357,6 +373,19 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
   const { party, myRole, createParty, joinParty, leaveParty } = useParty();
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Infinite scroll — IntersectionObserver triggers loadMore
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && !isLoadingMore) loadMore(); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, loadMore]);
 
   // Calculate feed stats — single-pass reduce, memoized on posts reference
   const feedStats = useMemo(() => {
@@ -426,6 +455,13 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
 
   return (
     <FeedContainer>
+      {/* Notification Bell — top right */}
+      {variant === 'full' && (
+        <FeedTopBar>
+          <NotificationBell />
+        </FeedTopBar>
+      )}
+
       {/* Gamification Header — full variant only */}
       {variant === 'full' && profile.data && (
         <GamificationHeader>
@@ -522,6 +558,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
       {variant === 'full' && !party && (
         <PartyCreateJoin onCreate={createParty} onJoin={joinParty} />
       )}
+      {variant === 'full' && <TrendingHashtags />}
 
       {/* Create Post Card */}
       <CreatePostCard />
@@ -539,17 +576,15 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
               onComment={addComment}
               onDelete={deletePost}
               onReport={reportPost}
+              onRepost={repostPost}
             />
           ))}
 
+          {/* Infinite scroll sentinel */}
           {hasMore && (
-            <LoadMoreButton
-              onClick={loadMore}
-              disabled={isLoadingMore}
-            >
-              {isLoadingMore ? <Spinner $size={20} /> : <Clock size={20} />}
-              {isLoadingMore ? 'Loading more posts...' : 'Load more posts'}
-            </LoadMoreButton>
+            <InfiniteScrollSentinel ref={sentinelRef}>
+              {isLoadingMore && <Spinner $size={20} />}
+            </InfiniteScrollSentinel>
           )}
         </>
       ) : (

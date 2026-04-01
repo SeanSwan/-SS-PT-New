@@ -89,7 +89,7 @@ import { logger } from '@/utils/logger';
 // PURPOSE: Manages state and composes all sub-components
 // ─────────────────────────────────────────────────────────────
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport, onRepost }) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
@@ -218,6 +218,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     return onReport(post.id, reason, description);
   }, [onReport, post.id]);
 
+  const handleRepost = useCallback(async () => {
+    if (!onRepost) return;
+    await onRepost(post.id);
+    setShareDialogOpen(false);
+  }, [onRepost, post.id]);
+
   // ─── Render ───────────────────────────────────────────────
 
   return (
@@ -289,6 +295,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
                 <PlainButton onClick={() => setShareDialogOpen(false)}>
                   Cancel
                 </PlainButton>
+                {onRepost && !isOwnPost && (
+                  <ContainedButton onClick={handleRepost}>
+                    Repost to Feed
+                  </ContainedButton>
+                )}
                 <ContainedButton
                   onClick={() => {
                     navigator.clipboard.writeText(`https://swanstudios.com/social/posts/${post.id}`);
