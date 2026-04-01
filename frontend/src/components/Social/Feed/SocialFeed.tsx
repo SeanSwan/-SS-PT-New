@@ -24,6 +24,9 @@ import PostCard from './PostCard';
 import CreatePostCard from './CreatePostCard';
 import ActivityTicker from './ActivityTicker';
 import { useActivityTicker } from '../../../hooks/social/useActivityTicker';
+import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../Social/RPG';
+import { useFaction } from '../../../hooks/social/useFaction';
+import { useParty } from '../../../hooks/social/useParty';
 import styled, { keyframes } from 'styled-components';
 
 // ─── Keyframes ──────────────────────────────────────────────
@@ -350,6 +353,8 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
 
   const { profile } = useGamificationData();
   const { events: activityEvents, isConnected: tickerConnected } = useActivityTicker();
+  const { factions, membership: factionMembership } = useFaction();
+  const { party, myRole, createParty, joinParty, leaveParty } = useParty();
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string | null>(null);
 
@@ -505,6 +510,17 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
       {/* Live Activity Ticker */}
       {activityEvents.length > 0 && (
         <ActivityTicker events={activityEvents} />
+      )}
+
+      {/* RPG: Faction Leaderboard + Party HP */}
+      {variant === 'full' && factions.length > 0 && (
+        <FactionLeaderboard factions={factions} />
+      )}
+      {variant === 'full' && party && (
+        <PartyHPBar party={party} myRole={myRole} onLeave={leaveParty} />
+      )}
+      {variant === 'full' && !party && (
+        <PartyCreateJoin onCreate={createParty} onJoin={joinParty} />
       )}
 
       {/* Create Post Card */}

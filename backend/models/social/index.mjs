@@ -10,6 +10,10 @@ import ModerationAction from './ModerationAction.mjs';
 import Hashtag from './Hashtag.mjs';
 import PostHashtag from './PostHashtag.mjs';
 import UserHashtagFollow from './UserHashtagFollow.mjs';
+import Faction from './Faction.mjs';
+import FactionMembership from './FactionMembership.mjs';
+import Party from './Party.mjs';
+import PartyMember from './PartyMember.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hashtag Associations
@@ -34,6 +38,16 @@ Hashtag.belongsToMany(SocialPost, {
 UserHashtagFollow.belongsTo(Hashtag, { foreignKey: 'hashtagId', as: 'hashtag', constraints: false });
 Hashtag.hasMany(UserHashtagFollow, { foreignKey: 'hashtagId', as: 'followers', constraints: false });
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Faction & Party Associations
+// PURPOSE: RPG faction allegiance + party/linkshell groups
+// ─────────────────────────────────────────────────────────────
+Faction.hasMany(FactionMembership, { foreignKey: 'factionId', as: 'memberships', constraints: false });
+FactionMembership.belongsTo(Faction, { foreignKey: 'factionId', as: 'faction', constraints: false });
+
+Party.hasMany(PartyMember, { foreignKey: 'partyId', as: 'members', constraints: false });
+PartyMember.belongsTo(Party, { foreignKey: 'partyId', as: 'party', constraints: false });
+
 // Export all models individually
 export {
   Friendship,
@@ -47,7 +61,11 @@ export {
   ModerationAction,
   Hashtag,
   PostHashtag,
-  UserHashtagFollow
+  UserHashtagFollow,
+  Faction,
+  FactionMembership,
+  Party,
+  PartyMember
 };
 
 // Export as default
@@ -63,5 +81,9 @@ export default {
   ModerationAction,
   Hashtag,
   PostHashtag,
-  UserHashtagFollow
+  UserHashtagFollow,
+  Faction,
+  FactionMembership,
+  Party,
+  PartyMember
 };

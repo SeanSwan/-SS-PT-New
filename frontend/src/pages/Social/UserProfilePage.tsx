@@ -19,6 +19,8 @@ import TransformationPhotoShowcase from '../../components/UserDashboard/componen
 import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
 import type { ChartVisibility } from './components/ChartVisibilityToggle';
 import RPGProfileHeader from '../../components/Social/RPGProfileHeader';
+import { FactionSelector, BadgeShowcase } from '../../components/Social/RPG';
+import type { ShowcaseBadge } from '../../components/Social/RPG';
 
 // ── Crystalline Swan Tokens ──
 const TOKENS = {
@@ -647,6 +649,11 @@ const UserProfilePage: React.FC = () => {
                 </StatCard>
               )}
             </StatsGrid>
+          )}
+
+          {/* RPG Faction Selector — own profile only */}
+          {isOwnProfile && (
+            <FactionSelector />
           )}
 
           {canShowBadges && badges.length > 0 && (
