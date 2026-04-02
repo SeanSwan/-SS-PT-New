@@ -24,6 +24,7 @@ import {
   Activity, Users, ClipboardCheck, BarChart3, Target,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame, Wrench,
+  HeartPulse, Zap,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -404,6 +405,7 @@ const trainerNavConfig = [
       { label: 'My Clients', path: '/dashboard/trainer/clients', icon: Users },
       { label: 'Log Client Workout', path: '/dashboard/trainer/log-workout', icon: ClipboardCheck },
       { label: 'Client Progress', path: '/dashboard/trainer/client-progress', icon: BarChart3 },
+      { label: 'Client Pain Charts', path: '/dashboard/trainer/body-map', icon: HeartPulse },
       { label: 'Form Assessments', path: '/dashboard/trainer/assessments', icon: Target },
     ],
   },
@@ -411,6 +413,7 @@ const trainerNavConfig = [
     section: 'CLASS BUILDER',
     items: [
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
+      { label: 'Sprint Planner', path: '/dashboard/workouts/sprint-planner', icon: Zap },
       { label: 'Equipment Profiles', path: '/dashboard/trainer/equipment', icon: Wrench },
     ],
   },

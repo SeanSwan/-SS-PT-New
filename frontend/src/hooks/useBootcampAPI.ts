@@ -25,6 +25,13 @@ export interface BootcampExercise {
   backMod: string | null;
   equipmentRequired: string | null;
   stationIndex?: number;
+  board?: 'main' | 'alternative';
+  setupTimeSec?: number;
+  pyramidStartWeight?: string | null;
+  pyramidDrops?: number | null;
+  supersetOrder?: number | null;
+  supersetGroupId?: number | null;
+  exerciseLibraryId?: number | null;
 }
 
 export interface BootcampStation {
@@ -32,6 +39,18 @@ export interface BootcampStation {
   stationName: string;
   equipmentNeeded: string;
   sortOrder: number;
+  setupTimeSec?: number;
+  flowScore?: number;
+  bottleneck?: boolean;
+}
+
+export interface StationFlowData {
+  station: number;
+  name: string;
+  maxSetupSec: number;
+  avgSetupSec: number;
+  flowScore: number;
+  bottleneck: boolean;
 }
 
 export interface OverflowPlan {
@@ -46,20 +65,36 @@ export interface BootcampExplanation {
   message: string;
 }
 
+export type ClassStyle = 'standard' | 'pyramid' | 'superset' | 'mixed';
+export type IntensityCategory = 'high_impact' | 'medium_impact' | 'calisthenics' | 'stability' | 'flexibility' | 'cardio';
+
+export interface BootcampStretch {
+  exerciseName: string;
+  targetMuscles: string;
+  durationSec: number;
+  sortOrder: number;
+}
+
 export interface GeneratedBootcamp {
   name: string;
   classFormat: ClassFormat;
+  classStyle?: ClassStyle;
   dayType: DayType;
+  intensityCategory?: IntensityCategory;
   stationCount: number;
   targetDuration: number;
   totalWorkoutMin: number;
   demoDuration: number;
   clearDuration: number;
+  stretchDurationMin?: number;
   totalClassMin: number;
   expectedParticipants: number;
+  includeStretch?: boolean;
   stations: BootcampStation[];
   exercises: BootcampExercise[];
+  stretches?: BootcampStretch[];
   overflowPlan: OverflowPlan | null;
+  flowData?: StationFlowData[];
   explanations: BootcampExplanation[];
   aiGenerated: boolean;
 }
@@ -134,13 +169,17 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 export function useBootcampAPI() {
   const generateClass = useCallback(async (params: {
     classFormat: ClassFormat;
+    classStyle?: ClassStyle;
     dayType: DayType;
+    intensityCategory?: IntensityCategory;
     targetDuration?: number;
     expectedParticipants?: number;
     spaceProfileId?: number;
     equipmentProfileId?: number;
     name?: string;
     optPhase?: number;
+    includeStretch?: boolean;
+    stretchDurationMin?: number;
   }): Promise<GeneratedBootcamp> => {
     const data = await apiFetch<{ success: boolean; bootcamp: GeneratedBootcamp }>(
       '/api/bootcamp/generate',

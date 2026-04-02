@@ -67,6 +67,7 @@ import clientIntelligenceRoutes from '../routes/clientIntelligenceRoutes.mjs';
 import workoutBuilderRoutes from '../routes/workoutBuilderRoutes.mjs';
 import oracleRoutes from '../routes/oracleRoutes.mjs';
 import bootcampRoutes from '../routes/bootcampRoutes.mjs';
+import sprintRoutes from '../routes/sprintRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
@@ -342,6 +343,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/workout-builder', workoutBuilderRoutes);
   app.use('/api/oracle', oracleRoutes);
   app.use('/api/bootcamp', bootcampRoutes);
+  app.use('/api/bootcamp/sprints', sprintRoutes);
   app.use('/api/workout-logs', workoutLogUploadRoutes);
 
   // ===================== CLIENT ANALYTICS (IDOR-PROTECTED) =====================

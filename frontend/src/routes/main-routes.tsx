@@ -271,6 +271,11 @@ const BootcampBuilder = lazyLoadWithErrorHandling(
   'Bootcamp Builder'
 );
 
+const SprintPlanner = lazyLoadWithErrorHandling(
+  () => import('../components/SprintPlanner/SprintPlannerPage'),
+  'Sprint Planner'
+);
+
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -671,6 +676,18 @@ const MainRoutes: RouteObject = {
         <ProtectedRoute allowedRoles={['trainer', 'admin']}>
           <Suspense fallback={<PageLoader />}>
             <BootcampBuilder />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Sprint Planner — 3-month bootcamp sprint planning + calendar (trainer/admin)
+    {
+      path: 'sprint-planner',
+      element: (
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
+          <Suspense fallback={<PageLoader />}>
+            <SprintPlanner />
           </Suspense>
         </ProtectedRoute>
       )

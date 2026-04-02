@@ -170,6 +170,13 @@ const setupAssociations = async () => {
     const BootcampClassLogModule = await import('./BootcampClassLog.mjs');
     const BootcampSpaceProfileModule = await import('./BootcampSpaceProfile.mjs');
     const ExerciseTrendModule = await import('./ExerciseTrend.mjs');
+    const BootcampStretchModule = await import('./BootcampStretch.mjs');
+
+    // Boot Camp Sprint Planner (Phase 10B)
+    const BootcampSprintModule = await import('./BootcampSprint.mjs');
+    const SprintWeekModule = await import('./SprintWeek.mjs');
+    const SprintClassSlotModule = await import('./SprintClassSlot.mjs');
+    const SprintExerciseMemoryModule = await import('./SprintExerciseMemory.mjs');
 
     // Photo Gallery & Lead Generation Models
     const GalleryEventModule = await import('./GalleryEvent.mjs');
@@ -347,6 +354,13 @@ const setupAssociations = async () => {
     const BootcampClassLog = BootcampClassLogModule.default;
     const BootcampSpaceProfile = BootcampSpaceProfileModule.default;
     const ExerciseTrend = ExerciseTrendModule.default;
+    const BootcampStretch = BootcampStretchModule.default;
+
+    // Boot Camp Sprint Planner (Phase 10B)
+    const BootcampSprint = BootcampSprintModule.default;
+    const SprintWeek = SprintWeekModule.default;
+    const SprintClassSlot = SprintClassSlotModule.default;
+    const SprintExerciseMemory = SprintExerciseMemoryModule.default;
 
     // Photo Gallery & Lead Generation Models
     const GalleryEvent = GalleryEventModule.default;
@@ -457,6 +471,8 @@ const setupAssociations = async () => {
         BootcampTemplate, BootcampStation, BootcampExercise,
         BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
         ExerciseTrend,
+        // Boot Camp Sprint Planner (Phase 10B)
+        BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage
       };
@@ -1071,6 +1087,9 @@ const setupAssociations = async () => {
     BootcampTemplate.hasMany(BootcampExercise, { foreignKey: 'templateId', as: 'exercises', onDelete: 'CASCADE' });
     BootcampTemplate.hasMany(BootcampOverflowPlan, { foreignKey: 'templateId', as: 'overflowPlans', onDelete: 'CASCADE' });
     BootcampTemplate.hasMany(BootcampClassLog, { foreignKey: 'templateId', as: 'classLogs' });
+    BootcampTemplate.hasMany(BootcampStretch, { foreignKey: 'templateId', as: 'stretches', onDelete: 'CASCADE' });
+
+    BootcampStretch.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
 
     BootcampStation.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template' });
     BootcampStation.hasMany(BootcampExercise, { foreignKey: 'stationId', as: 'exercises', onDelete: 'CASCADE' });
@@ -1090,6 +1109,30 @@ const setupAssociations = async () => {
     User.hasMany(ExerciseTrend, { foreignKey: 'approvedBy', as: 'approvedTrends' });
     ExerciseTrend.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
     console.log('✅ Boot Camp Class Builder models integrated');
+
+    // ── Boot Camp Sprint Planner Associations (Phase 10B) ────────────
+    User.hasMany(BootcampSprint, { foreignKey: 'trainerId', as: 'bootcampSprints' });
+    BootcampSprint.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    BootcampSprint.belongsTo(BootcampSpaceProfile, { foreignKey: 'spaceProfileId', as: 'spaceProfile', constraints: false });
+    BootcampSprint.belongsTo(BootcampSprint, { foreignKey: 'previousSprintId', as: 'previousSprint', constraints: false });
+
+    BootcampSprint.hasMany(SprintWeek, { foreignKey: 'sprintId', as: 'weeks', onDelete: 'CASCADE' });
+    SprintWeek.belongsTo(BootcampSprint, { foreignKey: 'sprintId', as: 'sprint' });
+
+    BootcampSprint.hasMany(SprintClassSlot, { foreignKey: 'sprintId', as: 'classSlots', onDelete: 'CASCADE' });
+    SprintClassSlot.belongsTo(BootcampSprint, { foreignKey: 'sprintId', as: 'sprint' });
+
+    SprintWeek.hasMany(SprintClassSlot, { foreignKey: 'weekId', as: 'classSlots', onDelete: 'CASCADE' });
+    SprintClassSlot.belongsTo(SprintWeek, { foreignKey: 'weekId', as: 'week' });
+
+    SprintClassSlot.belongsTo(BootcampTemplate, { foreignKey: 'templateId', as: 'template', constraints: false });
+    SprintClassSlot.belongsTo(BootcampClassLog, { foreignKey: 'classLogId', as: 'classLog', constraints: false });
+
+    BootcampSprint.hasMany(SprintExerciseMemory, { foreignKey: 'sprintId', as: 'exerciseMemory', onDelete: 'CASCADE' });
+    SprintExerciseMemory.belongsTo(BootcampSprint, { foreignKey: 'sprintId', as: 'sprint' });
+    SprintExerciseMemory.belongsTo(SprintClassSlot, { foreignKey: 'slotId', as: 'classSlot', constraints: false });
+
+    console.log('✅ Boot Camp Sprint Planner models integrated');
 
     // ── Photo Gallery & Lead Generation Associations ─────────────────
     GalleryEvent.hasMany(GalleryPhoto, { foreignKey: 'eventId', as: 'photos' });
@@ -1297,7 +1340,10 @@ const setupAssociations = async () => {
       // Boot Camp Class Builder (Phase 10)
       BootcampTemplate, BootcampStation, BootcampExercise,
       BootcampOverflowPlan, BootcampClassLog, BootcampSpaceProfile,
-      ExerciseTrend,
+      BootcampStretch, ExerciseTrend,
+
+      // Boot Camp Sprint Planner (Phase 10B)
+      BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
 
       // Photo Gallery & Lead Generation Models
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,

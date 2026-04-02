@@ -76,6 +76,31 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
   notes: {
     type: DataTypes.TEXT,
   },
+  // ── Upgrade Phase 0a: two-board, pyramid, superset, flow, rolodex ──
+  board: {
+    type: DataTypes.ENUM('main', 'alternative'),
+    defaultValue: 'main',
+  },
+  setupTimeSec: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  pyramidStartWeight: {
+    type: DataTypes.STRING(50),
+  },
+  pyramidDrops: {
+    type: DataTypes.INTEGER,
+  },
+  supersetOrder: {
+    type: DataTypes.INTEGER,
+  },
+  supersetGroupId: {
+    type: DataTypes.INTEGER,
+  },
+  exerciseLibraryId: {
+    type: DataTypes.INTEGER,
+    references: { model: 'exercise_library', key: 'id' },
+  },
 }, {
   tableName: 'bootcamp_exercises',
   timestamps: false,

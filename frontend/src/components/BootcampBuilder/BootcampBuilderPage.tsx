@@ -1,357 +1,63 @@
 /**
- * BootcampBuilderPage -- Boot Camp Class Builder
- * ================================================
- * Phase 10f: AI-powered group fitness class generation.
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: BootcampBuilderPage                              ║
+ * ║  PURPOSE: AI-powered group fitness class builder             ║
+ * ║  OWNER: Claude Opus 4.6                                      ║
+ * ���  LAST VALIDATED: 2026-04-01                                  ║
+ * ╚══════════════════════════════════════════════════════════════╝
  *
- * 3-pane layout: Config | Class Preview | AI Insights
- * Crystalline Swan theme with Floor Mode toggle (high contrast for gym use).
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────────────────────────┐
+ * │ [Title: Boot Camp Class Builder] [PDF] [Floor Mode]          │
+ * ├─────────────┬──────────────────────┬────────────────────────┤
+ * │ Config      │ Class Preview        │ Exercise Detail        │
+ * │ - Format    │ - Timing badges      │ - Difficulty tiers     │
+ * │ - Style     │ - Station cards      │ - Pain mods            │
+ * │ - Day type  │ - Exercise rows      │ - Muscle targets       │
+ * │ - Intensity │ - Overflow plan      │ - AI Reasoning         │
+ * │ - OPT phase │ - Save button        │ - AI Assistant         │
+ * │ - Duration  │                      │                        │
+ * │ - Generate  │                      │                        │
+ * └─────────────┴──────────────────────┴────────────────────────┘
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   A[BootcampBuilderPage] --> B[ConfigPanel]
+ *   A --> C[ClassPreviewPanel]
+ *   A --> D[ExerciseDetailPanel]
+ *   B --> E[EquipmentProfilePicker]
+ *   D --> F[AITerminalPanel]
  */
 import React, { useCallback, useState } from 'react';
-import styled, { css } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useBootcampAPI } from '../../hooks/useBootcampAPI';
-import type {
-  GeneratedBootcamp,
-  BootcampExercise,
-  ClassFormat,
-  DayType,
-} from '../../hooks/useBootcampAPI';
 import { Download } from 'lucide-react';
 import { toast } from 'react-toastify';
-import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
-import AITerminalPanel from '../Shared/AITerminalPanel';
+import { useBootcampAPI } from '../../hooks/useBootcampAPI';
+import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
+import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
 import { exportBootcampPDF } from '../../services/pdfExportService';
+import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle, ThreePane } from './BootcampBuilderStyles';
+import ConfigPanel from './ConfigPanel';
+import ClassPreviewPanel from './ClassPreviewPanel';
+import ExerciseDetailPanel from './ExerciseDetailPanel';
 
-// ── Styled Components ─────────────────────────────────────────────────
-
-const PageWrapper = styled.div<{ $floorMode?: boolean }>`
-  min-height: 100vh;
-  padding: 20px;
-  ${({ $floorMode }) => $floorMode
-    ? css`background: #000; color: #F8F9FA;`
-    : css`background: #0A0A0F; color: #e0ecf4;`
-  }
-
-  @media (max-width: 430px) {
-    padding: 12px;
-  }
-
-  @media (max-width: 375px) {
-    padding: 8px;
-  }
-`;
-
-const TopBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
-
-  @media (max-width: 430px) {
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 12px;
-    gap: 8px;
-  }
-`;
-
-const Title = styled.h1`
-  font-size: 22px;
-  font-weight: 700;
-  margin: 0;
-
-  @media (max-width: 430px) {
-    font-size: 18px;
-  }
-`;
-
-const Subtitle = styled.p`
-  font-size: 14px;
-  opacity: 0.7;
-  margin: 4px 0 0 0;
-`;
-
-const FloorModeToggle = styled.button<{ $active?: boolean }>`
-  min-height: 44px;
-  padding: 8px 20px;
-  border-radius: 8px;
-  border: 2px solid ${({ $active }) => $active ? '#FF6B35' : 'rgba(96,192,240,0.3)'};
-  background: ${({ $active }) => $active ? 'rgba(255,107,53,0.2)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#FF6B35' : '#60c0f0'};
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-`;
-
-const ThreePane = styled.div`
-  display: grid;
-  grid-template-columns: 300px 1fr 320px;
-  gap: 16px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  @media (max-width: 430px) {
-    gap: 8px;
-  }
-`;
-
-const Panel = styled.div`
-  background: rgba(20, 20, 25, 0.6);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 12px;
-  padding: 16px;
-
-  @media (max-width: 430px) {
-    padding: 12px;
-    border-radius: 8px;
-  }
-`;
-
-const PanelTitle = styled.h2`
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #60c0f0;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 12px;
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  opacity: 0.7;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 6px;
-  color: #e0ecf4;
-  font-size: 14px;
-  &:focus { border-color: #60c0f0; outline: none; }
-
-  @media (max-width: 430px) {
-    font-size: 16px;
-    padding: 10px 14px;
-  }
-`;
-
-const Input = styled.input`
-  width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 6px;
-  color: #e0ecf4;
-  font-size: 14px;
-  &:focus { border-color: #60c0f0; outline: none; }
-
-  @media (max-width: 430px) {
-    font-size: 16px;
-    padding: 10px 14px;
-  }
-`;
-
-const PrimaryButton = styled.button<{ $floorMode?: boolean }>`
-  width: 100%;
-  min-height: ${({ $floorMode }) => $floorMode ? '64px' : '44px'};
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-weight: 600;
-  font-size: ${({ $floorMode }) => $floorMode ? '18px' : '14px'};
-  cursor: pointer;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const ErrorBanner = styled.div`
-  background: rgba(255, 71, 87, 0.1);
-  border: 1px solid rgba(255, 71, 87, 0.3);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #FF4757;
-  font-size: 13px;
-`;
-
-const SectionDivider = styled.div`
-  font-size: 13px;
-  font-weight: 600;
-  color: #60c0f0;
-  margin: 16px 0 8px 0;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.15);
-`;
-
-const StationCard = styled.div`
-  background: rgba(20, 20, 25, 0.7);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-`;
-
-const StationHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-`;
-
-const StationName = styled.span`
-  font-weight: 600;
-  font-size: 14px;
-`;
-
-const ExerciseRow = styled.button<{ $isCardio?: boolean }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 4px;
-  font-size: 13px;
-  min-height: 44px;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-left: 3px solid transparent;
-  color: inherit;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  ${({ $isCardio }) => $isCardio && css`
-    color: #00FF88;
-    font-style: italic;
-  `}
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.03);
-    border-left-color: rgba(96, 192, 240, 0.3);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #60c0f0;
-    outline-offset: -2px;
-    border-radius: 4px;
-  }
-
-  @media (max-width: 430px) {
-    padding: 10px 4px;
-    font-size: 14px;
-  }
-`;
-
-const DifficultyChip = styled.span<{ $tier: string }>`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  ${({ $tier }) => {
-    switch ($tier) {
-      case 'easy': return css`background: rgba(0,255,136,0.1); color: #00FF88;`;
-      case 'hard': return css`background: rgba(255,71,87,0.1); color: #FF4757;`;
-      default: return css`background: rgba(96,192,240,0.1); color: #60c0f0;`;
-    }
-  }}
-`;
-
-const TimingBadge = styled.span`
-  background: rgba(96, 192, 240, 0.1);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #60c0f0;
-`;
-
-const InsightCard = styled.div<{ $type?: string }>`
-  background: ${({ $type }) => {
-    switch ($type) {
-      case 'overflow': return 'rgba(255, 184, 0, 0.08)';
-      case 'freshness': return 'rgba(0, 255, 136, 0.06)';
-      default: return 'rgba(96, 192, 240, 0.06)';
-    }
-  }};
-  border: 1px solid ${({ $type }) => {
-    switch ($type) {
-      case 'overflow': return 'rgba(255, 184, 0, 0.2)';
-      case 'freshness': return 'rgba(0, 255, 136, 0.2)';
-      default: return 'rgba(96, 192, 240, 0.15)';
-    }
-  }};
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  font-size: 13px;
-`;
-
-const ModGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 4px;
-  margin-top: 4px;
-`;
-
-const ModChip = styled.span`
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
-  color: rgba(224, 236, 244, 0.7);
-`;
-
-// ── Helpers ───────────────────────────────────────────────────────────
-
-function formatMuscle(name: string): string {
-  return name.trim().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-// ── Constants ─────────────────────────────────────────────────────────
-
-const CLASS_FORMATS: Array<{ value: ClassFormat; label: string }> = [
-  { value: 'stations_4x', label: '4 Exercises x N Stations (35s)' },
-  { value: 'stations_3x5', label: '3 Exercises x 5 Stations (40s)' },
-  { value: 'stations_2x7', label: '2 Exercises x 7 Stations (30s)' },
-  { value: 'full_group', label: 'Full Group (15 exercises x 2 rounds)' },
-];
-
-const DAY_TYPES: Array<{ value: DayType; label: string }> = [
-  { value: 'lower_body', label: 'Lower Body' },
-  { value: 'upper_body', label: 'Upper Body' },
-  { value: 'cardio', label: 'Cardio / Conditioning' },
-  { value: 'full_body', label: 'Full Body' },
-];
-
-// ── Component ─────────────────────────────────────────────────────────
+// ── Main Component ───────────────────────────────────────────
 
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI();
 
-  // Config
+  // Config state
   const [classFormat, setClassFormat] = useState<ClassFormat>('stations_4x');
+  const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
+  const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [targetDuration, setTargetDuration] = useState('50');
   const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
   const [optPhase, setOptPhase] = useState(1);
+  const [includeStretch, setIncludeStretch] = useState(true);
 
-  // State
+  // UI state
   const [bootcamp, setBootcamp] = useState<GeneratedBootcamp | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -364,7 +70,6 @@ const BootcampBuilderPage: React.FC = () => {
     setError(null);
     setBootcamp(null);
     setSelectedExercise(null);
-
     try {
       const result = await api.generateClass({
         classFormat,
@@ -381,13 +86,14 @@ const BootcampBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, classFormat, dayType, targetDuration, expectedParticipants, className]);
+  }, [api, classFormat, dayType, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase]);
 
   const handleSave = useCallback(async () => {
     if (!bootcamp || saving) return;
     setSaving(true);
     try {
       await api.saveTemplate(bootcamp);
+      toast.success('Template saved successfully');
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -396,13 +102,23 @@ const BootcampBuilderPage: React.FC = () => {
     }
   }, [api, bootcamp, saving]);
 
-  // Group exercises by station
-  const stationExercises = bootcamp?.exercises.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
-    const key = ex.stationIndex ?? -1;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(ex);
-    return acc;
-  }, {}) ?? {};
+  const handleExportPDF = useCallback(() => {
+    if (!bootcamp) return;
+    exportBootcampPDF({
+      name: bootcamp.name,
+      classFormat: bootcamp.classFormat,
+      dayType: bootcamp.dayType,
+      stationCount: bootcamp.stationCount,
+      targetDuration: bootcamp.targetDuration,
+      totalWorkoutMin: bootcamp.totalWorkoutMin,
+      totalClassMin: bootcamp.totalClassMin,
+      expectedParticipants: bootcamp.expectedParticipants,
+      stations: bootcamp.stations,
+      exercises: bootcamp.exercises,
+      overflowPlan: bootcamp.overflowPlan,
+    });
+    toast.success('Bootcamp PDF exported');
+  }, [bootcamp]);
 
   return (
     <PageWrapper $floorMode={floorMode}>
@@ -413,25 +129,7 @@ const BootcampBuilderPage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {bootcamp && (
-            <FloorModeToggle
-              onClick={() => {
-                exportBootcampPDF({
-                  name: bootcamp.name,
-                  classFormat: bootcamp.classFormat,
-                  dayType: bootcamp.dayType,
-                  stationCount: bootcamp.stationCount,
-                  targetDuration: bootcamp.targetDuration,
-                  totalWorkoutMin: bootcamp.totalWorkoutMin,
-                  totalClassMin: bootcamp.totalClassMin,
-                  expectedParticipants: bootcamp.expectedParticipants,
-                  stations: bootcamp.stations,
-                  exercises: bootcamp.exercises,
-                  overflowPlan: bootcamp.overflowPlan,
-                });
-                toast.success('Bootcamp PDF exported');
-              }}
-              title="Export class plan as PDF"
-            >
+            <FloorModeToggle onClick={handleExportPDF} title="Export class plan as PDF">
               <Download size={16} /> Export PDF
             </FloorModeToggle>
           )}
@@ -448,242 +146,41 @@ const BootcampBuilderPage: React.FC = () => {
       </TopBar>
 
       <ThreePane>
-        {/* Left: Config */}
-        <Panel>
-          <PanelTitle>Class Configuration</PanelTitle>
-
-          <FormGroup>
-            <Label>Class Format</Label>
-            <Select value={classFormat} onChange={e => setClassFormat(e.target.value as ClassFormat)}>
-              {CLASS_FORMATS.map(f => (
-                <option key={f.value} value={f.value}>{f.label}</option>
-              ))}
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Day Type</Label>
-            <Select value={dayType} onChange={e => setDayType(e.target.value as DayType)}>
-              {DAY_TYPES.map(d => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>NASM OPT Phase</Label>
-            <Select value={optPhase} onChange={e => setOptPhase(Number(e.target.value))}>
-              <option value={1}>Phase 1 — Stabilization Endurance</option>
-              <option value={2}>Phase 2 — Strength Endurance</option>
-              <option value={3}>Phase 3 — Hypertrophy</option>
-              <option value={4}>Phase 4 — Maximal Strength</option>
-              <option value={5}>Phase 5 — Power</option>
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Workout Duration (min)</Label>
-            <Input type="number" value={targetDuration} onChange={e => setTargetDuration(e.target.value)} />
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Expected Participants</Label>
-            <Input type="number" value={expectedParticipants} onChange={e => setExpectedParticipants(e.target.value)} />
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Class Name (optional)</Label>
-            <Input type="text" placeholder="Auto-generated if empty" value={className} onChange={e => setClassName(e.target.value)} />
-          </FormGroup>
-
-          <FormGroup>
-            <EquipmentProfilePicker
-              selectedProfileId={equipmentProfileId}
-              onSelect={setEquipmentProfileId}
-              compact
-              label="Equipment Profile"
-            />
-          </FormGroup>
-
-          <PrimaryButton $floorMode={floorMode} onClick={handleGenerate} disabled={loading}>
-            {loading ? 'Generating...' : 'Generate Class'}
-          </PrimaryButton>
-
-          {error && <ErrorBanner style={{ marginTop: 12 }}>{error}</ErrorBanner>}
-        </Panel>
-
-        {/* Center: Class Preview */}
-        <Panel>
-          <PanelTitle>Class Preview</PanelTitle>
-
-          <AnimatePresence>
-            {bootcamp && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                  <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>
-                  <TimingBadge>{bootcamp.demoDuration} min demo</TimingBadge>
-                  <TimingBadge>{bootcamp.totalWorkoutMin} min workout</TimingBadge>
-                  <TimingBadge>{bootcamp.clearDuration} min clear</TimingBadge>
-                  <TimingBadge>{bootcamp.stationCount || 'No'} stations</TimingBadge>
-                </div>
-
-                {bootcamp.stations.length > 0 ? (
-                  bootcamp.stations.map((station, si) => (
-                    <StationCard key={station.stationNumber}>
-                      <StationHeader>
-                        <StationName>{station.stationName}</StationName>
-                        {station.equipmentNeeded && (
-                          <TimingBadge>{station.equipmentNeeded}</TimingBadge>
-                        )}
-                      </StationHeader>
-                      {(stationExercises[si] ?? []).map((ex) => (
-                        <ExerciseRow
-                          key={`${si}-${ex.sortOrder}`}
-                          $isCardio={ex.isCardioFinisher}
-                          onClick={() => setSelectedExercise(ex)}
-                          type="button"
-                        >
-                          <span>
-                            {ex.sortOrder}. {ex.exerciseName}
-                            {ex.isCardioFinisher && ' (cardio finisher)'}
-                          </span>
-                          <span>{ex.durationSec}s</span>
-                        </ExerciseRow>
-                      ))}
-                    </StationCard>
-                  ))
-                ) : bootcamp.classFormat === 'full_group' ? (
-                  <StationCard>
-                    <StationHeader>
-                      <StationName>Full Group Workout</StationName>
-                      <TimingBadge>2 rounds</TimingBadge>
-                    </StationHeader>
-                    {bootcamp.exercises.map((ex) => (
-                      <ExerciseRow
-                        key={ex.sortOrder}
-                        $isCardio={ex.isCardioFinisher}
-                        onClick={() => setSelectedExercise(ex)}
-                        type="button"
-                      >
-                        <span>
-                          {ex.sortOrder}. {ex.exerciseName}
-                        </span>
-                        <span>{ex.durationSec}s</span>
-                      </ExerciseRow>
-                    ))}
-                  </StationCard>
-                ) : null}
-
-                {bootcamp.overflowPlan && (
-                  <>
-                    <SectionDivider>Overflow Plan</SectionDivider>
-                    <InsightCard $type="overflow">
-                      <strong>Lap Rotation</strong> (triggers at {bootcamp.overflowPlan.triggerCount}+ participants)
-                      <div style={{ marginTop: 6 }}>
-                        {bootcamp.overflowPlan.lapExercises.map((lap, i) => (
-                          <span key={i} style={{ marginRight: 8 }}>
-                            {lap.name} ({lap.durationMin}min)
-                          </span>
-                        ))}
-                      </div>
-                    </InsightCard>
-                  </>
-                )}
-
-                <div style={{ marginTop: 12 }}>
-                  <PrimaryButton $floorMode={floorMode} onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save as Template'}
-                  </PrimaryButton>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {!bootcamp && !loading && (
-            <div style={{ textAlign: 'center', padding: 40, opacity: 0.5 }}>
-              Configure your class and click Generate
-            </div>
-          )}
-        </Panel>
-
-        {/* Right: Exercise Detail + AI Insights */}
-        <Panel>
-          <PanelTitle>Exercise Detail</PanelTitle>
-
-          {selectedExercise ? (
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                {selectedExercise.exerciseName}
-              </div>
-
-              <SectionDivider>Difficulty Tiers</SectionDivider>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                {selectedExercise.easyVariation && (
-                  <DifficultyChip $tier="easy">Easy: {selectedExercise.easyVariation}</DifficultyChip>
-                )}
-                {selectedExercise.mediumVariation && (
-                  <DifficultyChip $tier="medium">Medium: {selectedExercise.mediumVariation}</DifficultyChip>
-                )}
-                {selectedExercise.hardVariation && (
-                  <DifficultyChip $tier="hard">Hard: {selectedExercise.hardVariation}</DifficultyChip>
-                )}
-              </div>
-
-              <SectionDivider>Pain Modifications</SectionDivider>
-              {(selectedExercise.kneeMod || selectedExercise.shoulderMod || selectedExercise.ankleMod || selectedExercise.wristMod || selectedExercise.backMod) ? (
-                <ModGrid>
-                  {selectedExercise.kneeMod && <ModChip>Knee: {selectedExercise.kneeMod}</ModChip>}
-                  {selectedExercise.shoulderMod && <ModChip>Shoulder: {selectedExercise.shoulderMod}</ModChip>}
-                  {selectedExercise.ankleMod && <ModChip>Ankle: {selectedExercise.ankleMod}</ModChip>}
-                  {selectedExercise.wristMod && <ModChip>Wrist: {selectedExercise.wristMod}</ModChip>}
-                  {selectedExercise.backMod && <ModChip>Back: {selectedExercise.backMod}</ModChip>}
-                </ModGrid>
-              ) : (
-                <div style={{ fontSize: 12, opacity: 0.5 }}>No modifications available for this exercise</div>
-              )}
-
-              {selectedExercise.muscleTargets && (
-                <>
-                  <SectionDivider>Muscle Targets</SectionDivider>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {selectedExercise.muscleTargets.split(',').map((m, i) => (
-                      <ModChip key={i}>{formatMuscle(m)}</ModChip>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 24, opacity: 0.5, fontSize: 13 }}>
-              Click an exercise to see difficulty tiers and pain modifications
-            </div>
-          )}
-
-          {bootcamp && bootcamp.explanations.length > 0 && (
-            <>
-              <SectionDivider>AI Reasoning</SectionDivider>
-              {bootcamp.explanations.map((exp, i) => (
-                <InsightCard key={i} $type={exp.type}>
-                  {exp.message}
-                </InsightCard>
-              ))}
-            </>
-          )}
-
-          <SectionDivider>AI Assistant</SectionDivider>
-          <AITerminalPanel
-            context="workout_generation"
-            equipmentProfileId={equipmentProfileId}
-            placeholder="Ask AI to modify this bootcamp class..."
-            defaultOpen={false}
-          />
-        </Panel>
+        <ConfigPanel
+          classFormat={classFormat} setClassFormat={setClassFormat}
+          classStyle={classStyle} setClassStyle={setClassStyle}
+          dayType={dayType} setDayType={setDayType}
+          intensityCategory={intensityCategory} setIntensityCategory={setIntensityCategory}
+          optPhase={optPhase} setOptPhase={setOptPhase}
+          targetDuration={targetDuration} setTargetDuration={setTargetDuration}
+          expectedParticipants={expectedParticipants} setExpectedParticipants={setExpectedParticipants}
+          className={className} setClassName={setClassName}
+          equipmentProfileId={equipmentProfileId} setEquipmentProfileId={setEquipmentProfileId}
+          includeStretch={includeStretch} setIncludeStretch={setIncludeStretch}
+          floorMode={floorMode}
+          loading={loading}
+          error={error}
+          onGenerate={handleGenerate}
+        />
+        <ClassPreviewPanel
+          bootcamp={bootcamp}
+          loading={loading}
+          floorMode={floorMode}
+          saving={saving}
+          onSave={handleSave}
+          onSelectExercise={setSelectedExercise}
+        />
+        <ExerciseDetailPanel
+          selectedExercise={selectedExercise}
+          bootcamp={bootcamp}
+          equipmentProfileId={equipmentProfileId}
+        />
       </ThreePane>
     </PageWrapper>
   );
 };
 
-// Error Boundary
+// ── Error Boundary ───────────────────────────────────────────
 
 class BootcampBuilderErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -703,9 +200,12 @@ class BootcampBuilderErrorBoundary extends React.Component<
             <p style={{ opacity: 0.5, marginBottom: 16 }}>
               The Boot Camp Builder encountered an error.
             </p>
-            <PrimaryButton style={{ width: 'auto', padding: '10px 24px' }} onClick={() => this.setState({ hasError: false })}>
+            <button
+              style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #60c0f0, #8B5CF6)', border: 'none', borderRadius: 8, color: 'white', fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => this.setState({ hasError: false })}
+            >
               Try Again
-            </PrimaryButton>
+            </button>
           </div>
         </PageWrapper>
       );

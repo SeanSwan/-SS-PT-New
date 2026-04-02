@@ -29,6 +29,7 @@ import {
   updateSpaceProfile,
   getExerciseTrends,
   approveExerciseTrend,
+  queryExercisesForBootcamp,
 } from '../services/bootcampService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -43,7 +44,15 @@ const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'cus
 // POST /api/bootcamp/generate
 router.post('/generate', async (req, res) => {
   try {
-    const { classFormat, dayType, targetDuration, expectedParticipants, spaceProfileId, equipmentProfileId, name } = req.body;
+    const {
+      classFormat, classStyle, dayType, intensityCategory,
+      targetDuration, expectedParticipants,
+      spaceProfileId, equipmentProfileId,
+      name, includeStretch, stretchDurationMin,
+    } = req.body;
+
+    const VALID_STYLES = ['standard', 'pyramid', 'superset', 'mixed'];
+    const VALID_INTENSITIES = ['high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'];
 
     const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : 'stations_4x';
     const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
@@ -53,12 +62,16 @@ router.post('/generate', async (req, res) => {
     const result = await generateBootcampClass({
       trainerId: req.user.id,
       classFormat: safeFormat,
+      classStyle: VALID_STYLES.includes(classStyle) ? classStyle : 'standard',
       dayType: safeDayType,
+      intensityCategory: VALID_INTENSITIES.includes(intensityCategory) ? intensityCategory : undefined,
       targetDuration: safeDuration,
       expectedParticipants: safeParticipants,
       spaceProfileId: spaceProfileId ? parseInt(spaceProfileId, 10) : undefined,
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : undefined,
       name: typeof name === 'string' ? name.slice(0, 200) : undefined,
+      includeStretch: includeStretch !== false,
+      stretchDurationMin: Math.min(Math.max(parseInt(stretchDurationMin, 10) || 3, 1), 10),
     });
 
     return res.json({ success: true, bootcamp: result });
@@ -239,6 +252,28 @@ router.post('/trends/:id/approve', authorize(['admin']), async (req, res) => {
     const status = err.message.includes('not found') ? 404 : 500;
     logger.error('[Bootcamp] Trend approve failed:', err.message);
     return res.status(status).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/bootcamp/exercises — Search Exercise Rolodex for bootcamp use
+router.get('/exercises', async (req, res) => {
+  try {
+    const { muscleGroups, equipment, minDifficulty, maxDifficulty, optPhase, bodyPart, limit } = req.query;
+
+    const exercises = await queryExercisesForBootcamp({
+      muscleGroups: muscleGroups ? String(muscleGroups).split(',').map(s => s.trim()) : [],
+      availableEquipment: equipment ? String(equipment).split(',').map(s => s.trim()) : [],
+      minDifficulty: minDifficulty ? parseInt(minDifficulty, 10) : 0,
+      maxDifficulty: maxDifficulty ? parseInt(maxDifficulty, 10) : 1000,
+      optPhase: optPhase ? parseInt(optPhase, 10) : undefined,
+      bodyPartCategory: bodyPart || undefined,
+      limit: Math.min(parseInt(limit, 10) || 50, 200),
+    });
+
+    return res.json({ success: true, exercises, count: exercises.length });
+  } catch (err) {
+    logger.error('[Bootcamp] Exercise search failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to search exercises' });
   }
 });
 

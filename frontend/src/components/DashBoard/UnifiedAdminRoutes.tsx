@@ -68,6 +68,7 @@ const MovementAnalysisWizard = React.lazy(() => import('./Pages/admin-movement-a
 const FormAnalysisPage = React.lazy(() => import('../FormAnalysis/FormAnalysisPage'));
 const BodyMap = React.lazy(() => import('../BodyMap'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
+const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 // FoodIntelligenceDashboard removed — merged into NutritionWorkspace
 const NutritionWorkspace = React.lazy(() => import('./workspaces/NutritionWorkspace'));
@@ -250,9 +251,10 @@ const UnifiedAdminRoutes: React.FC = () => (
       {/* Default: redirect to Boot Camp (first tab in Global Studio Library) */}
       <Route index element={<Navigate to="/dashboard/workouts/bootcamp" replace />} />
       <Route path="bootcamp" element={<S><BootcampBuilderPage /></S>} />
+      <Route path="sprint-planner" element={<S><SprintPlannerPage /></S>} />
       <Route path="equipment" element={<S><EquipmentManagerPage /></S>} />
       <Route path="nutrition" element={<S><NutritionWorkspace /></S>} />
-      <Route path="calendar" element={<div style={{ padding: 24, color: '#E0ECF4', fontFamily: "'Sora', sans-serif" }}>Global Session Calendar — Coming Soon</div>} />
+      <Route path="calendar" element={<S><SprintPlannerPage /></S>} />
       {/* Legacy redirects: client-specific tools moved to Client Detail View */}
       <Route path="logger" element={<Navigate to="/dashboard/people" replace />} />
       <Route path="ai" element={<Navigate to="/dashboard/people" replace />} />

@@ -217,7 +217,14 @@ export const getBootcampExercise = () => getModel('BootcampExercise');
 export const getBootcampOverflowPlan = () => getModel('BootcampOverflowPlan');
 export const getBootcampClassLog = () => getModel('BootcampClassLog');
 export const getBootcampSpaceProfile = () => getModel('BootcampSpaceProfile');
+export const getBootcampStretch = () => getModel('BootcampStretch');
 export const getExerciseTrend = () => getModel('ExerciseTrend');
+
+// Boot Camp Sprint Planner (Phase 10B)
+export const getBootcampSprint = () => getModel('BootcampSprint');
+export const getSprintWeek = () => getModel('SprintWeek');
+export const getSprintClassSlot = () => getModel('SprintClassSlot');
+export const getSprintExerciseMemory = () => getModel('SprintExerciseMemory');
 
 // Gallery Message Model
 export const getGalleryMessage = () => getModel('GalleryMessage');

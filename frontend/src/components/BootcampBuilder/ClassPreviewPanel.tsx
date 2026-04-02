@@ -1,0 +1,379 @@
+/**
+ * ┌─── SUB-COMPONENT: ClassPreviewPanel ────────────────────────┐
+ * │ PARENT: BootcampBuilderPage                                  │
+ * │ PURPOSE: Center panel — two-board station/exercise preview   │
+ * │ CLICK-OUTCOMES:                                              │
+ * │ [Board Toggle] → Switches between Board 1 (main) / Board 2  │
+ * │ [Exercise Row] → onSelectExercise → shows detail in right    │
+ * │ [Save Button] → onSave → POST /api/bootcamp/save            │
+ * └──────────────────────────────────────────────────────────────┘
+ */
+import React, { useMemo, useState } from 'react';
+import styled, { css } from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Panel, PanelTitle, StationCard, StationHeader, StationName,
+  ExerciseRow, TimingBadge, SectionDivider, InsightCard, PrimaryButton,
+} from './BootcampBuilderStyles';
+import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
+
+// ── Board Toggle Styled Components ────────────────────────────────────
+
+const BoardToggleBar = styled.div`
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border-soft, rgba(96, 192, 240, 0.2));
+`;
+
+const BoardTab = styled.button<{ $active: boolean; $board: 'main' | 'alternative' }>`
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${({ $active, $board }) => {
+    if ($active && $board === 'main') {
+      return css`
+        background: var(--accent-primary, #60c0f0);
+        color: #000;
+      `;
+    }
+    if ($active && $board === 'alternative') {
+      return css`
+        background: #FF6B35;
+        color: #000;
+      `;
+    }
+    return css`
+      background: transparent;
+      color: var(--text-secondary, rgba(224, 236, 244, 0.65));
+      &:hover { background: rgba(255, 255, 255, 0.05); }
+    `;
+  }}
+`;
+
+const BoardLabel = styled.span<{ $board: 'main' | 'alternative' }>`
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+  ${({ $board }) => $board === 'alternative'
+    ? css`background: rgba(255, 107, 53, 0.15); color: #FF6B35;`
+    : css`background: rgba(96, 192, 240, 0.15); color: var(--accent-primary, #60c0f0);`
+  }
+`;
+
+const StretchSection = styled.div`
+  background: rgba(0, 255, 136, 0.04);
+  border: 1px solid rgba(0, 255, 136, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+`;
+
+const StretchItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.8));
+`;
+
+const FlowBadge = styled.span<{ $score: number }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Fira Code', monospace;
+  ${({ $score }) => {
+    if ($score >= 80) return css`background: rgba(0,255,136,0.12); color: #00ff88;`;
+    if ($score >= 50) return css`background: rgba(255,200,0,0.12); color: #ffc800;`;
+    return css`background: rgba(255,60,60,0.12); color: #ff3c3c;`;
+  }}
+`;
+
+const FlowInsightBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  background: rgba(96, 192, 240, 0.06);
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  font-size: 12px;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.65));
+`;
+
+const FlowMeter = styled.div<{ $score: number }>`
+  width: 60px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: ${({ $score }) => $score}%;
+    border-radius: 3px;
+    background: ${({ $score }) => {
+      if ($score >= 80) return '#00ff88';
+      if ($score >= 50) return '#ffc800';
+      return '#ff3c3c';
+    }};
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+`;
+
+// ── Component ─────────────────────────────────────────────────────────
+
+interface ClassPreviewPanelProps {
+  bootcamp: GeneratedBootcamp | null;
+  loading: boolean;
+  floorMode: boolean;
+  saving: boolean;
+  onSave: () => void;
+  onSelectExercise: (ex: BootcampExercise) => void;
+}
+
+const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
+  bootcamp, loading, floorMode, saving, onSave, onSelectExercise,
+}) => {
+  const [activeBoard, setActiveBoard] = useState<'main' | 'alternative'>('main');
+
+  const { board1Exercises, board2Exercises, stationExercises, hasBoard2 } = useMemo(() => {
+    if (!bootcamp) return { board1Exercises: [], board2Exercises: [], stationExercises: {}, hasBoard2: false };
+
+    const b1 = bootcamp.exercises.filter(ex => (ex as any).board !== 'alternative');
+    const b2 = bootcamp.exercises.filter(ex => (ex as any).board === 'alternative');
+
+    const currentBoard = activeBoard === 'main' ? b1 : b2;
+    const grouped = currentBoard.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
+      const key = ex.stationIndex ?? -1;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(ex);
+      return acc;
+    }, {});
+
+    return {
+      board1Exercises: b1,
+      board2Exercises: b2,
+      stationExercises: grouped,
+      hasBoard2: b2.length > 0,
+    };
+  }, [bootcamp, activeBoard]);
+
+  const stretches = (bootcamp as any)?.stretches ?? [];
+  const flowData: Array<{ station: number; flowScore: number; maxSetupSec: number; bottleneck: boolean }> =
+    (bootcamp as any)?.flowData ?? [];
+  const avgFlowScore = flowData.length > 0
+    ? Math.round(flowData.reduce((sum, f) => sum + f.flowScore, 0) / flowData.length)
+    : 100;
+
+  return (
+    <Panel>
+      <PanelTitle>Class Preview</PanelTitle>
+
+      <AnimatePresence>
+        {bootcamp && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            {/* Timing Badges */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>
+              <TimingBadge>{bootcamp.demoDuration} min demo</TimingBadge>
+              {stretches.length > 0 && <TimingBadge>{(bootcamp as any).stretchDurationMin ?? 3} min stretch</TimingBadge>}
+              <TimingBadge>{bootcamp.totalWorkoutMin} min workout</TimingBadge>
+              <TimingBadge>{bootcamp.clearDuration} min clear</TimingBadge>
+              <TimingBadge>{bootcamp.stationCount || 'No'} stations</TimingBadge>
+              {(bootcamp as any).classStyle && (bootcamp as any).classStyle !== 'standard' && (
+                <TimingBadge>{(bootcamp as any).classStyle}</TimingBadge>
+              )}
+            </div>
+
+            {/* Flow Optimization Insight */}
+            {flowData.length > 0 && activeBoard === 'main' && (
+              <FlowInsightBar>
+                <span>Flow</span>
+                <FlowMeter $score={avgFlowScore} />
+                <FlowBadge $score={avgFlowScore}>{avgFlowScore}/100</FlowBadge>
+                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
+                  {flowData.filter(f => f.bottleneck).length === 0
+                    ? 'All stations optimized'
+                    : `${flowData.filter(f => f.bottleneck).length} bottleneck${flowData.filter(f => f.bottleneck).length > 1 ? 's' : ''}`
+                  }
+                </span>
+              </FlowInsightBar>
+            )}
+
+            {/* Board Toggle */}
+            {hasBoard2 && (
+              <BoardToggleBar>
+                <BoardTab
+                  $active={activeBoard === 'main'}
+                  $board="main"
+                  onClick={() => setActiveBoard('main')}
+                  type="button"
+                >
+                  Board 1 — Main Intensity
+                </BoardTab>
+                <BoardTab
+                  $active={activeBoard === 'alternative'}
+                  $board="alternative"
+                  onClick={() => setActiveBoard('alternative')}
+                  type="button"
+                >
+                  Board 2 — Modified
+                </BoardTab>
+              </BoardToggleBar>
+            )}
+
+            {/* Warm-Up Stretches */}
+            {stretches.length > 0 && activeBoard === 'main' && (
+              <>
+                <SectionDivider>Warm-Up Stretch</SectionDivider>
+                <StretchSection>
+                  {stretches.map((s: any, i: number) => (
+                    <StretchItem key={i}>
+                      <span>{s.sortOrder ?? i + 1}. {s.exerciseName}</span>
+                      <span style={{ opacity: 0.6 }}>{s.durationSec}s</span>
+                    </StretchItem>
+                  ))}
+                </StretchSection>
+              </>
+            )}
+
+            {/* Station Cards */}
+            {bootcamp.stations.length > 0 ? (
+              bootcamp.stations.map((station, si) => {
+                const exercises = stationExercises[si] ?? [];
+                if (exercises.length === 0 && activeBoard === 'alternative') return null;
+
+                return (
+                  <StationCard key={station.stationNumber} style={
+                    activeBoard === 'alternative'
+                      ? { borderColor: 'rgba(255, 107, 53, 0.3)', background: 'rgba(255, 107, 53, 0.04)' }
+                      : undefined
+                  }>
+                    <StationHeader>
+                      <StationName>
+                        {station.stationName}
+                        {activeBoard === 'alternative' && (
+                          <BoardLabel $board="alternative">MODIFIED</BoardLabel>
+                        )}
+                      </StationName>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {station.equipmentNeeded && (
+                          <TimingBadge>{station.equipmentNeeded}</TimingBadge>
+                        )}
+                        {activeBoard === 'main' && flowData[si] && (
+                          <FlowBadge $score={flowData[si].flowScore}>
+                            {flowData[si].flowScore}
+                            {flowData[si].bottleneck && ' ⚠'}
+                          </FlowBadge>
+                        )}
+                      </div>
+                    </StationHeader>
+                    {exercises.map((ex) => (
+                      <ExerciseRow
+                        key={`${si}-${ex.sortOrder}-${activeBoard}`}
+                        $isCardio={ex.isCardioFinisher}
+                        onClick={() => onSelectExercise(ex)}
+                        type="button"
+                      >
+                        <span>
+                          {ex.sortOrder}. {ex.exerciseName}
+                          {ex.isCardioFinisher && ' (cardio finisher)'}
+                          {(ex as any).pyramidStartWeight && (
+                            <BoardLabel $board="main">{(ex as any).pyramidStartWeight}</BoardLabel>
+                          )}
+                          {(ex as any).supersetOrder && (
+                            <BoardLabel $board="main">S{(ex as any).supersetOrder}</BoardLabel>
+                          )}
+                        </span>
+                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          {(ex as any).setupTimeSec > 5 && (
+                            <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                          )}
+                          {ex.durationSec}s
+                        </span>
+                      </ExerciseRow>
+                    ))}
+                  </StationCard>
+                );
+              })
+            ) : bootcamp.classFormat === 'full_group' ? (
+              <StationCard>
+                <StationHeader>
+                  <StationName>Full Group Workout</StationName>
+                  <TimingBadge>2 rounds</TimingBadge>
+                </StationHeader>
+                {(activeBoard === 'main' ? board1Exercises : board2Exercises)
+                  .filter(ex => (ex.stationIndex ?? -1) === -1)
+                  .map((ex) => (
+                    <ExerciseRow
+                      key={`${ex.sortOrder}-${activeBoard}`}
+                      $isCardio={ex.isCardioFinisher}
+                      onClick={() => onSelectExercise(ex)}
+                      type="button"
+                    >
+                      <span>{ex.sortOrder}. {ex.exerciseName}</span>
+                      <span>{ex.durationSec}s</span>
+                    </ExerciseRow>
+                  ))}
+              </StationCard>
+            ) : null}
+
+            {/* Overflow Plan */}
+            {bootcamp.overflowPlan && (
+              <>
+                <SectionDivider>Overflow Plan</SectionDivider>
+                <InsightCard $type="overflow">
+                  <strong>Lap Rotation</strong> (triggers at {bootcamp.overflowPlan.triggerCount}+ participants)
+                  <div style={{ marginTop: 6 }}>
+                    {bootcamp.overflowPlan.lapExercises.map((lap, i) => (
+                      <span key={i} style={{ marginRight: 8 }}>
+                        {lap.name} ({lap.durationMin}min)
+                      </span>
+                    ))}
+                  </div>
+                </InsightCard>
+              </>
+            )}
+
+            <div style={{ marginTop: 12 }}>
+              <PrimaryButton $floorMode={floorMode} onClick={onSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save as Template'}
+              </PrimaryButton>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!bootcamp && !loading && (
+        <div style={{ textAlign: 'center', padding: 40, opacity: 0.5 }}>
+          Configure your class and click Generate
+        </div>
+      )}
+    </Panel>
+  );
+};
+
+export default React.memo(ClassPreviewPanel);

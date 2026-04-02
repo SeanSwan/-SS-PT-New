@@ -22,7 +22,7 @@
 
 import React, { Suspense } from 'react';
 import styled from 'styled-components';
-import { Users, Camera, Apple, Calendar } from 'lucide-react';
+import { Users, Camera, Apple, Calendar, Zap } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import { AICommandBar } from '../../Shared/AICommandBar';
@@ -34,9 +34,10 @@ import { AICommandBar } from '../../Shared/AICommandBar';
 
 const TABS = [
   { id: 'bootcamp', label: 'Boot Camp', icon: <Users size={16} />, path: '/dashboard/workouts/bootcamp' },
+  { id: 'sprint-planner', label: 'Sprint Planner', icon: <Zap size={16} />, path: '/dashboard/workouts/sprint-planner' },
   { id: 'equipment', label: 'Equipment', icon: <Camera size={16} />, path: '/dashboard/workouts/equipment' },
   { id: 'nutrition', label: 'Nutrition', icon: <Apple size={16} />, path: '/dashboard/workouts/nutrition' },
-  { id: 'calendar', label: 'Session Calendar', icon: <Calendar size={16} />, path: '/dashboard/workouts/calendar' },
+  { id: 'calendar', label: 'Calendar', icon: <Calendar size={16} />, path: '/dashboard/workouts/calendar' },
 ];
 
 // ─────────────────────────────────────────────────────────────

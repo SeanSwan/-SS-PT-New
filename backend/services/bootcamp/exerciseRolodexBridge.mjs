@@ -1,0 +1,213 @@
+/**
+ * ============================================================================
+ * FILE: exerciseRolodexBridge.mjs
+ * PURPOSE: Bridge between Exercise Rolodex (840+ exercises) and Bootcamp Builder
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-01
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Queries the Exercise model (exercise_library table)
+ * with bootcamp-specific filters: muscle group, equipment availability,
+ * difficulty range, OPT phase, and setup time estimation.
+ * HOW IT FITS: bootcampGenerator → exerciseRolodexBridge → Exercise model
+ */
+
+import sequelize from '../../database.mjs';
+import { Op } from 'sequelize';
+import logger from '../../utils/logger.mjs';
+
+// ── Setup Time Estimates by Equipment ─────────────────────────────────
+// How long (seconds) it takes a participant to set up each equipment type
+
+const EQUIPMENT_SETUP_TIMES = {
+  bodyweight: 0,
+  none: 0,
+  mat: 2,
+  foam_roller: 3,
+  medicine_ball: 3,
+  dumbbell: 5,
+  kettlebell: 5,
+  bosu: 8,
+  stability_ball: 8,
+  trx: 10,
+  bench: 10,
+  resistance_band: 15,
+  mini_band: 12,
+  slider: 5,
+  cable: 15,
+  barbell: 20,
+  machine: 25,
+  landmine: 20,
+  other: 10,
+};
+
+/**
+ * Query the Exercise Rolodex for bootcamp-compatible exercises.
+ * @param {Object} filters
+ * @param {string[]} [filters.muscleGroups] - Target muscle groups (e.g., ['quads', 'glutes'])
+ * @param {string[]} [filters.availableEquipment] - Equipment available at location
+ * @param {number} [filters.minDifficulty] - Min difficulty (0-1000)
+ * @param {number} [filters.maxDifficulty] - Max difficulty (0-1000)
+ * @param {number} [filters.optPhase] - NASM OPT phase (1-5)
+ * @param {string} [filters.bodyPartCategory] - legs, chest, back, etc.
+ * @param {string[]} [filters.excludeNames] - Exercise names to exclude (freshness)
+ * @param {number} [filters.limit] - Max results
+ * @returns {Promise<Array>} Exercises formatted for bootcamp use
+ */
+export async function queryExercisesForBootcamp(filters = {}) {
+  const {
+    muscleGroups = [],
+    availableEquipment = [],
+    minDifficulty = 0,
+    maxDifficulty = 1000,
+    optPhase,
+    bodyPartCategory,
+    excludeNames = [],
+    limit = 100,
+  } = filters;
+
+  try {
+    // Check if exercise_library/Exercises table exists
+    const [tableCheck] = await sequelize.query(
+      `SELECT to_regclass('exercise_library') AS t`,
+    );
+    const tableName = tableCheck[0]?.t ? 'exercise_library' : 'Exercises';
+
+    // Build WHERE conditions
+    const conditions = [`"isActive" = true OR "isActive" IS NULL`];
+    const replacements = {};
+
+    // Muscle group filter (JSON array contains)
+    if (muscleGroups.length > 0) {
+      const muscleConditions = muscleGroups.map((m, i) => {
+        replacements[`muscle_${i}`] = `%${m}%`;
+        return `("primaryMuscles"::text ILIKE :muscle_${i} OR "secondaryMuscles"::text ILIKE :muscle_${i})`;
+      });
+      conditions.push(`(${muscleConditions.join(' OR ')})`);
+    }
+
+    // Equipment filter — only exercises using available equipment
+    if (availableEquipment.length > 0) {
+      const eqNames = [...availableEquipment, 'bodyweight', 'none'];
+      const eqConditions = eqNames.map((e, i) => {
+        replacements[`equip_${i}`] = `%${e}%`;
+        return `COALESCE("equipmentNeeded"::text, "equipment"::text, '["bodyweight"]') ILIKE :equip_${i}`;
+      });
+      conditions.push(`(${eqConditions.join(' OR ')})`);
+    }
+
+    // Difficulty range
+    if (minDifficulty > 0 || maxDifficulty < 1000) {
+      replacements.minDiff = minDifficulty;
+      replacements.maxDiff = maxDifficulty;
+      conditions.push(`COALESCE(difficulty, 500) BETWEEN :minDiff AND :maxDiff`);
+    }
+
+    // OPT phase filter
+    if (optPhase) {
+      replacements.optPhase = `%${optPhase}%`;
+      conditions.push(`COALESCE("optPhases"::text, '[1,2,3,4,5]') ILIKE :optPhase`);
+    }
+
+    // Body part category
+    if (bodyPartCategory) {
+      replacements.bodyPart = bodyPartCategory;
+      conditions.push(`"bodyPartCategory" = :bodyPart`);
+    }
+
+    // Exclude recently used exercises
+    if (excludeNames.length > 0) {
+      replacements.excludeNames = excludeNames;
+      conditions.push(`name NOT IN (:excludeNames)`);
+    }
+
+    const whereClause = conditions.length > 0
+      ? `WHERE ${conditions.join(' AND ')}`
+      : '';
+
+    const query = `
+      SELECT
+        id, name, description,
+        "primaryMuscles", "secondaryMuscles",
+        "equipmentNeeded", equipment,
+        difficulty, "exerciseType",
+        "bodyPartCategory", "nasmMovementPattern",
+        "optPhases", source,
+        "exercise_key",
+        "easyVariation", "mediumVariation", "hardVariation",
+        "kneeMod", "shoulderMod", "ankleMod", "wristMod", "backMod"
+      FROM "${tableName}"
+      ${whereClause}
+      ORDER BY COALESCE(difficulty, 500) ASC, name ASC
+      LIMIT :limit
+    `;
+
+    replacements.limit = limit;
+
+    const [exercises] = await sequelize.query(query, {
+      replacements,
+      type: sequelize.constructor.QueryTypes.SELECT,
+    }).catch(() => [[]]);
+
+    // Transform to bootcamp format
+    return (Array.isArray(exercises) ? exercises : []).map(ex => formatForBootcamp(ex));
+  } catch (err) {
+    logger.warn('Exercise Rolodex query failed, falling back to variation engine:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Estimate setup time for an exercise based on its equipment.
+ */
+export function estimateSetupTime(exercise) {
+  const equipment = exercise.equipmentNeeded ?? exercise.equipment ?? ['bodyweight'];
+  const eqList = Array.isArray(equipment) ? equipment : [equipment];
+
+  let maxSetup = 0;
+  for (const eq of eqList) {
+    const normalized = String(eq).toLowerCase().replace(/\s+/g, '_');
+    const setupTime = EQUIPMENT_SETUP_TIMES[normalized] ?? 10;
+    if (setupTime > maxSetup) maxSetup = setupTime;
+  }
+  return maxSetup;
+}
+
+/**
+ * Format a raw exercise record for bootcamp use.
+ */
+function formatForBootcamp(ex) {
+  const primaryMuscles = parseJsonField(ex.primaryMuscles);
+  const secondaryMuscles = parseJsonField(ex.secondaryMuscles);
+  const equipment = parseJsonField(ex.equipmentNeeded ?? ex.equipment) || ['bodyweight'];
+
+  return {
+    exerciseLibraryId: ex.id,
+    key: ex.exercise_key ?? ex.name?.toLowerCase().replace(/\s+/g, '_') ?? 'unknown',
+    name: ex.name,
+    muscles: [...primaryMuscles, ...secondaryMuscles],
+    primaryMuscle: primaryMuscles[0] ?? null,
+    equipment,
+    difficulty: ex.difficulty ?? 500,
+    exerciseType: ex.exerciseType ?? 'compound',
+    bodyPartCategory: ex.bodyPartCategory ?? 'full_body',
+    optPhases: parseJsonField(ex.optPhases) || [1, 2, 3, 4, 5],
+    source: ex.source ?? 'unknown',
+    setupTimeSec: estimateSetupTime(ex),
+    // Difficulty tiers
+    easy: ex.easyVariation ?? null,
+    medium: ex.name,
+    hard: ex.hardVariation ?? null,
+    // Pain modifications
+    kneeMod: ex.kneeMod ?? null,
+    shoulderMod: ex.shoulderMod ?? null,
+    ankleMod: ex.ankleMod ?? null,
+    wristMod: ex.wristMod ?? null,
+    backMod: ex.backMod ?? null,
+  };
+}
+
+function parseJsonField(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try { return JSON.parse(value); } catch { return []; }
+}

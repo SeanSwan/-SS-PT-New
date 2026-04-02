@@ -88,6 +88,28 @@ const BootcampTemplate = sequelize.define('BootcampTemplate', {
   metadata: {
     type: DataTypes.JSONB,
   },
+  // ── Upgrade Phase 0a: class style, intensity, stretch ──
+  classStyle: {
+    type: DataTypes.ENUM('standard', 'pyramid', 'superset', 'mixed'),
+    defaultValue: 'standard',
+  },
+  intensityCategory: {
+    type: DataTypes.ENUM('high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'),
+  },
+  rounds: {
+    type: DataTypes.INTEGER,
+  },
+  exerciseDurationSec: {
+    type: DataTypes.INTEGER,
+  },
+  includeStretch: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  stretchDurationMin: {
+    type: DataTypes.INTEGER,
+    defaultValue: 3,
+  },
 }, {
   tableName: 'bootcamp_templates',
   timestamps: true,

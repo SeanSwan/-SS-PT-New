@@ -21,7 +21,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import {
   Home, Dumbbell, TrendingUp, Brain, UtensilsCrossed, Shield,
-  Calendar, Users, MessageSquare, User, Award, Star,
+  Calendar, Users, MessageSquare, User, Award, Star, HeartPulse,
   ChevronRight, ChevronLeft, Menu, X,
 } from 'lucide-react';
 
@@ -397,6 +397,12 @@ const clientNavConfig = [
       { label: 'Overview', path: '/dashboard/client/overview', icon: Home },
       { label: 'My Workouts', path: '/dashboard/client/workouts', icon: Dumbbell },
       { label: 'My Progress', path: '/dashboard/client/progress', icon: TrendingUp },
+    ],
+  },
+  {
+    section: 'HEALTH',
+    items: [
+      { label: 'Pain & Injury Chart', path: '/dashboard/client/body-map', icon: HeartPulse },
     ],
   },
   {

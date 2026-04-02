@@ -111,6 +111,7 @@ const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/Clie
 const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
 const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));
 const ClientWorkoutForgePage = React.lazy(() => import('./Pages/client-dashboard/ClientWorkoutForgePage'));
+const BodyMapPage = React.lazy(() => import('../BodyMap'));
 
 // Trainer dashboard pages (replacing stubs)
 const TrainerOverviewPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerOverviewPage'));
@@ -516,7 +517,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
-      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder' }
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder' },
+      { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' }
     ],
     defaultPath: '/overview'
   },
@@ -535,7 +537,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Watch and join live workout streams' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/profile', component: ClientProfilePage, title: 'Profile', description: 'Personal settings and preferences' },
-      { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' }
+      { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' },
+      { path: '/body-map', component: BodyMapPage, title: 'Pain & Injury Chart', description: 'Track pain areas and injury recovery' }
     ],
     defaultPath: '/overview'
   }

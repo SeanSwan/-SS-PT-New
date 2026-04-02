@@ -1,0 +1,305 @@
+/**
+ * ============================================================================
+ * FILE: useSprintAPI.ts
+ * PURPOSE: Frontend hook for Sprint Planner API operations
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-01
+ * ============================================================================
+ */
+
+import { useState, useCallback } from 'react';
+
+// ── Types ─────────────────────────────────────────────────────────────
+
+export interface SprintClassSlot {
+  id: number;
+  weekId: number;
+  sprintId: number;
+  templateId?: number;
+  classLogId?: number;
+  dayOfWeek: number;
+  scheduledDate: string;
+  dayType: string;
+  classFormat: string;
+  classStyle: string;
+  status: 'planned' | 'generated' | 'taught' | 'skipped';
+  wasUsed: boolean;
+  usedDate?: string;
+  trainerConfirmedAt?: string;
+  exerciseKeys: string[];
+  generatedClassData?: Record<string, unknown>;
+  notes?: string;
+}
+
+export interface SprintWeek {
+  id: number;
+  sprintId: number;
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  theme?: string;
+  isDeloadWeek: boolean;
+  intensityModifier: number;
+  notes?: string;
+  classSlots: SprintClassSlot[];
+}
+
+export interface BootcampSprint {
+  id: number;
+  trainerId: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  durationWeeks: number;
+  classesPerWeek: number;
+  frequencyPattern: string[];
+  focusRotation: string[];
+  defaultFormat: string;
+  defaultStyle: string;
+  status: 'draft' | 'generating' | 'active' | 'completed' | 'archived';
+  progressionStrategy: string;
+  totalClassesPlanned: number;
+  totalClassesCompleted: number;
+  previousSprintId?: number;
+  notes?: string;
+  createdAt: string;
+  weeks?: SprintWeek[];
+}
+
+export interface GenerationProgress {
+  type: 'started' | 'progress' | 'complete' | 'error';
+  completedSlots?: number;
+  totalSlots?: number;
+  failedSlots?: number;
+  currentWeek?: number;
+  percent?: number;
+  sprintId?: number;
+  status?: string;
+  exerciseMemorySize?: number;
+  error?: string;
+}
+
+export interface CreateSprintParams {
+  name: string;
+  startDate: string;
+  durationWeeks?: number;
+  classesPerWeek?: number;
+  frequencyPattern?: string[];
+  focusRotation?: string[];
+  defaultFormat?: string;
+  defaultStyle?: string;
+  spaceProfileId?: number;
+  progressionStrategy?: string;
+  previousSprintId?: number;
+  notes?: string;
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────
+
+export function useSprintAPI() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  }, []);
+
+  const createSprint = useCallback(async (params: CreateSprintParams): Promise<BootcampSprint | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/bootcamp/sprints', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create sprint');
+      return data.sprint;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const listSprints = useCallback(async (): Promise<BootcampSprint[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/bootcamp/sprints', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.sprints || [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const getSprint = useCallback(async (id: number): Promise<BootcampSprint | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bootcamp/sprints/${id}`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return data.sprint;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const updateSprint = useCallback(async (id: number, updates: Partial<BootcampSprint>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bootcamp/sprints/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const archiveSprint = useCallback(async (id: number): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bootcamp/sprints/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const generateSprint = useCallback((
+    sprintId: number,
+    onProgress: (evt: GenerationProgress) => void,
+  ): (() => void) => {
+    const token = localStorage.getItem('token');
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: controller.signal,
+        });
+
+        const reader = res.body?.getReader();
+        if (!reader) return;
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const evt = JSON.parse(line.slice(6));
+                onProgress(evt);
+              } catch { /* skip malformed */ }
+            }
+          }
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          onProgress({ type: 'error', error: err.message });
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
+
+  const confirmSlot = useCallback(async (
+    sprintId: number, slotId: number, usedDate?: string,
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ usedDate }),
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  const regenerateSlot = useCallback(async (
+    sprintId: number, slotId: number,
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setError(msg);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  return {
+    loading, error,
+    createSprint, listSprints, getSprint,
+    updateSprint, archiveSprint,
+    generateSprint, confirmSlot, regenerateSlot,
+  };
+}

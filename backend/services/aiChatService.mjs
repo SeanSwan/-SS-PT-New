@@ -612,6 +612,28 @@ YOU HAVE ACCESS TO ALL CONTEXTS:
 - Nutrition planning & macro logging
 - Exercise library (840+ exercises across 12 sources)
 - Client onboarding (voice/text dictation → structured intake)
+- Boot camp class planning & generation (station-based, full group, pyramid, superset formats)
+
+BOOTCAMP CLASS PLANNING:
+When a trainer asks about boot camp / group fitness classes, you can help with:
+- Designing class layouts (4-station, 3x5, 2x7, full group, custom formats)
+- Class styles: standard, pyramid (heavy→drop weight→lighter→failure), superset (compound→bodyweight→banded), mixed
+- Day types: lower body, upper body, cardio, full body, custom
+- Intensity categories: high impact, medium impact, calisthenics, stability, flexibility, cardio
+- Two-board system: Board 1 (main intensity) + Board 2 (modified for injuries/lower fitness)
+- Warm-up stretching sequences (3-5 minutes, day-type specific)
+- Overflow plans for large classes (lap rotation when stations are full)
+- Flow optimization (interleaving fast-setup and slow-setup exercises so nobody waits)
+- Equipment awareness (setup times, space constraints, available gear)
+
+When the trainer describes a class (e.g., "Give me a lower body pyramid for 15 people"), suggest:
+1. The format, style, and day type
+2. Station layout with exercises, equipment, and timing
+3. Board 2 modifications for participants with limitations
+4. Warm-up stretch sequence
+5. Overflow plan if participant count exceeds station capacity
+
+Reference their recent bootcamp history to avoid repeating exercises. If space profiles exist, respect their station/equipment constraints.
 
 BEHAVIOR:
 - You are proactive. If a trainer says "I just finished a session with Marcus," you should ask what they did and offer to log it.
@@ -774,6 +796,20 @@ YOU ARE THE MASTER AI WITH ACCESS TO ALL CONTEXTS:
 - Data management (update client measurements, goals, notes, progress)
 - Business analytics (revenue, retention, session utilization, growth metrics)
 - Platform administration (user management, content moderation)
+- Boot camp class planning & generation (station-based, full group, pyramid, superset formats)
+
+BOOTCAMP CLASS PLANNING:
+When asked about boot camp / group fitness classes, you can help with:
+- Designing class layouts (4-station, 3x5, 2x7, full group, custom formats)
+- Class styles: standard, pyramid (heavy→drop weight→lighter→failure), superset (compound→bodyweight→banded), mixed
+- Day types: lower body, upper body, cardio, full body, custom
+- Intensity categories: high impact, medium impact, calisthenics, stability, flexibility, cardio
+- Two-board system: Board 1 (main intensity) + Board 2 (modified for injuries/lower fitness)
+- Warm-up stretching sequences (3-5 minutes, day-type specific)
+- Overflow plans for large classes (lap rotation when stations are full)
+- Flow optimization (interleaving fast-setup and slow-setup exercises so nobody waits)
+- Equipment awareness (setup times, space constraints, available gear)
+Reference recent bootcamp history to avoid repeating exercises. Respect space profile constraints.
 
 BEHAVIOR:
 - You are proactive. If someone says "I just finished a session with Marcus," ask what they did and offer to log it.
@@ -1118,6 +1154,90 @@ Use their Client #ID for all data operations. You can log workouts, check progre
         }
       } catch (rosterErr) {
         logger.warn('[AIChatService] Client roster fetch failed (non-fatal):', rosterErr.message);
+      }
+    }
+
+    // ── COACH ASSISTANT: Inject bootcamp class history & space profiles ──
+    if (context === 'coach_assistant' && isAdminOrTrainer) {
+      try {
+        const [recentClasses, spaceProfiles, savedTemplates] = await Promise.all([
+          safeQuery(
+            `SELECT bcl.id, bcl."classDate", bcl."dayType", bcl."actualParticipants",
+                    bcl."classRating", bcl."energyLevel",
+                    bt.name AS "templateName", bt."classFormat", bt."classStyle"
+             FROM bootcamp_class_logs bcl
+             LEFT JOIN bootcamp_templates bt ON bcl."templateId" = bt.id
+             WHERE bcl."trainerId" = :trainerId
+             ORDER BY bcl."classDate" DESC LIMIT 5`,
+            { trainerId: userId }
+          ).catch(() => []),
+          safeQuery(
+            `SELECT id, name, "locationName", "maxStations", "maxPerStation", "hasOutdoorAccess"
+             FROM bootcamp_space_profiles
+             WHERE "trainerId" = :trainerId
+             ORDER BY name`,
+            { trainerId: userId }
+          ).catch(() => []),
+          safeQuery(
+            `SELECT id, name, "classFormat", "classStyle", "dayType", "stationCount",
+                    "targetDuration", "expectedParticipants"
+             FROM bootcamp_templates
+             WHERE "trainerId" = :trainerId AND "isActive" = true
+             ORDER BY "updatedAt" DESC LIMIT 5`,
+            { trainerId: userId }
+          ).catch(() => []),
+        ]);
+
+        const bootcampParts = [];
+
+        if (recentClasses.length > 0) {
+          const classLines = recentClasses.map((c, i) => {
+            const date = c.classDate ? new Date(c.classDate).toLocaleDateString() : 'unknown';
+            const rating = c.classRating ? `${c.classRating}/5` : 'unrated';
+            return `  ${i + 1}. ${date}: ${c.templateName || 'Untitled'} | ${c.classFormat || '?'} ${c.classStyle || 'standard'} | ${c.dayType || '?'} | ${c.actualParticipants || '?'} people | ${rating} | energy: ${c.energyLevel || '?'}`;
+          });
+          bootcampParts.push(`Recent Classes (${recentClasses.length}):\n${classLines.join('\n')}`);
+        }
+
+        if (spaceProfiles.length > 0) {
+          const spaceLines = spaceProfiles.map(s =>
+            `  - ${s.name}${s.locationName ? ` (${s.locationName})` : ''}: ${s.maxStations || '?'} stations, ${s.maxPerStation || 4}/station${s.hasOutdoorAccess ? ', outdoor access' : ''}`
+          );
+          bootcampParts.push(`Space Profiles:\n${spaceLines.join('\n')}`);
+        }
+
+        if (savedTemplates.length > 0) {
+          const templateLines = savedTemplates.map(t =>
+            `  - "${t.name}": ${t.classFormat} ${t.classStyle || 'standard'} | ${t.dayType} | ${t.stationCount} stations | ${t.targetDuration}min | ${t.expectedParticipants} people`
+          );
+          bootcampParts.push(`Saved Templates:\n${templateLines.join('\n')}`);
+        }
+
+        // Query active pain entries across ALL assigned clients for pain-aware generation
+        try {
+          const clientPainData = await safeQuery(
+            `SELECT cpe.body_region, cpe.pain_level, cpe.pain_type, cpe.side, cpe.user_id
+             FROM client_pain_entries cpe
+             JOIN client_trainer_assignments cta ON cpe.user_id = cta."clientId"
+             WHERE cta."trainerId" = :trainerId AND cta.status = 'active'
+               AND cpe.status = 'active' AND cpe.pain_level >= 5
+             ORDER BY cpe.pain_level DESC LIMIT 20`,
+            { trainerId: userId }
+          );
+          if (clientPainData.length > 0) {
+            const painLines = clientPainData.map(p =>
+              `  Client #${p.user_id}: ${p.body_region}${p.side ? ` (${p.side})` : ''} — ${p.pain_level}/10 ${p.pain_type || ''}`
+            );
+            bootcampParts.push(`Active Client Pain Entries (severity 5+):\n${painLines.join('\n')}\nUse Board 2 wellness modifications for exercises targeting these areas. Use "wellness modifications" language, not "medical treatments".`);
+          }
+        } catch { /* non-fatal */ }
+
+        if (bootcampParts.length > 0) {
+          dataParts.push(`\n--- BOOTCAMP CLASS DATA ---\n${bootcampParts.join('\n\n')}\n--- END BOOTCAMP DATA ---
+Use this data to avoid repeating recent exercises and to respect space/equipment constraints when planning new classes.`);
+        }
+      } catch (bootcampErr) {
+        logger.warn('[AIChatService] Bootcamp data fetch failed (non-fatal):', bootcampErr.message);
       }
     }
 

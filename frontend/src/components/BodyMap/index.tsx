@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import BodyMapSVG from './BodyMapSVG';
+import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
 import PainEntryPanel from './PainEntryPanel';
 import { getSeverityColor } from './bodyRegions';
 import {
@@ -171,6 +172,8 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [gender, setGender] = useState<AnatomyGender>('male');
+  const [labelMode, setLabelMode] = useState<LabelMode>('off');
 
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
@@ -318,10 +321,18 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
 
       {!loading && (
         <>
+          <BodyMapToolbar
+            gender={gender}
+            labelMode={labelMode}
+            onGenderChange={setGender}
+            onLabelModeChange={setLabelMode}
+          />
           <BodyMapSVG
             painEntries={entries}
             selectedRegion={selectedRegion}
             onRegionClick={handleRegionClick}
+            gender={gender}
+            labelMode={labelMode}
           />
 
           {entries.length > 0 && (
