@@ -7,9 +7,37 @@
 
 import { Op } from 'sequelize';
 import db from '../database.mjs';
+import logger from '../utils/logger.mjs';
 
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
+
+/**
+ * Verify the requesting user has access to a goal.
+ * Owner, admin, or trainer assigned to the goal's client may proceed.
+ * Public goals are readable by anyone authenticated.
+ * @throws {Object} Error with statusCode 403 if unauthorized
+ */
+async function assertGoalAccess(goal, requestingUser, { allowPublic = false, transaction = null } = {}) {
+  if (goal.userId === requestingUser.id) return;
+  if (requestingUser.role === 'admin') return;
+  if (allowPublic && goal.isPublic === true) return;
+
+  if (requestingUser.role === 'trainer') {
+    const models = await getModels();
+    if (models.ClientTrainerAssignment) {
+      const assignment = await models.ClientTrainerAssignment.findOne({
+        where: { trainerId: requestingUser.id, clientId: goal.userId, status: 'active' },
+        transaction
+      });
+      if (assignment) return;
+    }
+  }
+
+  const err = new Error('Not authorized to access this goal');
+  err.statusCode = 403;
+  throw err;
+}
 
 const goalController = {
   /**
@@ -54,9 +82,9 @@ const goalController = {
         });
       }
 
-      // Build where clause
-      const whereClause = { userId };
-      
+      // Build where clause — exclude soft-deleted goals by default
+      const whereClause = { userId, status: { [Op.ne]: 'deleted' } };
+
       if (status && status !== 'all') whereClause.status = status;
       if (category && category !== 'all') whereClause.category = category;
       if (priority && priority !== 'all') whereClause.priority = priority;
@@ -73,9 +101,9 @@ const goalController = {
         offset
       });
 
-      // Calculate summary statistics
+      // Calculate summary statistics (exclude soft-deleted)
       const summaryStats = await Goal.findAll({
-        where: { userId },
+        where: { userId, status: { [Op.ne]: 'deleted' } },
         attributes: [
           'status',
           [db.fn('COUNT', db.col('id')), 'count'],
@@ -115,11 +143,11 @@ const goalController = {
         summary
       });
     } catch (error) {
-      console.error('Error fetching user goals:', error);
+      logger.error('[GoalController] Error fetching user goals:', { error: error.message, stack: error.stack });
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch user goals',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -150,6 +178,9 @@ const goalController = {
           message: 'Goal not found'
         });
       }
+
+      // Authorization check — owner, trainer (assigned), admin, or public goal
+      await assertGoalAccess(goal, req.user, { allowPublic: true });
 
       // Calculate additional metrics
       const now = new Date();
@@ -192,7 +223,7 @@ const goalController = {
           progressDifference: Math.round(progressDifference * 100) / 100,
           isAheadOfSchedule: progressDifference > 5,
           isBehindSchedule: progressDifference < -5,
-          estimatedCompletion: goal.progressPercentage > 0 ? this.calculateEstimatedCompletion(goal, daysElapsed) : null
+          estimatedCompletion: goal.progressPercentage > 0 ? calculateEstimatedCompletion(goal, daysElapsed) : null
         },
         statusInfo: {
           current: status,
@@ -206,11 +237,14 @@ const goalController = {
         goal: goalWithMetrics
       });
     } catch (error) {
-      console.error('Error fetching goal:', error);
+      if (error.statusCode === 403) {
+        return res.status(403).json({ success: false, message: error.message });
+      }
+      logger.error('[GoalController] Error fetching goal:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch goal',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -221,12 +255,17 @@ const goalController = {
    * POST /api/v1/gamification/goals
    */
   createGoal: async (req, res) => {
-    const transaction = await db.transaction();
-    
+    const models = await getModels();
+    const { Goal } = models;
+
+    if (!Goal) {
+      return res.status(503).json({ success: false, message: 'Goals feature is not yet available' });
+    }
+
+    let transaction;
     try {
-      const models = await getModels();
-      const { Goal } = models;
-      
+      transaction = await db.transaction();
+
       const {
         title,
         description,
@@ -246,48 +285,67 @@ const goalController = {
 
       const userId = req.user.id;
 
-      // Validation
-      if (!title || !targetValue || !unit || !deadline) {
+      // Input validation
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
         await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Title, target value, unit, and deadline are required'
-        });
+        return res.status(400).json({ success: false, message: 'Title is required' });
       }
+      if (!unit || typeof unit !== 'string') {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Unit is required' });
+      }
+      if (!deadline) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Deadline is required' });
+      }
+
+      // Validate targetValue is a positive finite number
+      const numTarget = Number(targetValue);
+      if (!Number.isFinite(numTarget) || numTarget <= 0) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Target value must be a positive number' });
+      }
+
+      // Cap XP rewards to prevent point inflation
+      const safeXpReward = Math.min(Math.max(0, Number(xpReward) || 0), 10000);
+      const safeCompletionBonus = Math.min(Math.max(0, Number(completionBonus) || 0), 50000);
 
       // Validate deadline
       const deadlineDate = new Date(deadline);
       const now = new Date();
-      
-      if (deadlineDate <= now) {
+
+      if (isNaN(deadlineDate.getTime()) || deadlineDate <= now) {
         await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Deadline must be in the future'
-        });
+        return res.status(400).json({ success: false, message: 'Deadline must be a valid future date' });
       }
 
-      // Process milestones
-      const processedMilestones = milestones.map(m => ({
-        percentage: m.percentage || 50,
-        description: m.description || `${m.percentage}% milestone`,
-        xpBonus: m.xpBonus || 0,
+      // Validate and process milestones (max 10, percentage 1-99)
+      const safeMilestones = Array.isArray(milestones) ? milestones.slice(0, 10) : [];
+      const processedMilestones = safeMilestones.map(m => ({
+        percentage: Math.min(99, Math.max(1, Number(m.percentage) || 50)),
+        description: (typeof m.description === 'string' ? m.description : '').substring(0, 500) || `${m.percentage}% milestone`,
+        xpBonus: Math.min(5000, Math.max(0, Number(m.xpBonus) || 0)),
         achieved: false
       }));
 
-      // Create goal
+      // Validate category and priority
+      const validCategories = ['fitness', 'nutrition', 'wellness', 'performance', 'social', 'other'];
+      const validPriorities = ['low', 'medium', 'high'];
+      const safeCategory = validCategories.includes(category) ? category : 'fitness';
+      const safePriority = validPriorities.includes(priority) ? priority : 'medium';
+
       const goal = await Goal.create({
         userId,
-        title,
-        description,
-        targetValue,
-        unit,
-        category,
-        priority,
+        title: title.trim().substring(0, 200),
+        description: typeof description === 'string' ? description.trim().substring(0, 2000) : '',
+        targetValue: numTarget,
+        unit: unit.trim().substring(0, 50),
+        category: safeCategory,
+        priority: safePriority,
         deadline: deadlineDate,
-        xpReward,
-        completionBonus,
-        isPublic,
+        xpReward: safeXpReward,
+        completionBonus: safeCompletionBonus,
+        isPublic: isPublic === true,
         trackingMethod,
         trackingFrequency,
         reminderSettings: reminderSettings || {
@@ -309,12 +367,12 @@ const goalController = {
         goal
       });
     } catch (error) {
-      await transaction.rollback();
-      console.error('Error creating goal:', error);
+      if (transaction) await transaction.rollback();
+      logger.error('[GoalController] Error creating goal:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to create goal',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -325,25 +383,32 @@ const goalController = {
    * PUT /api/v1/gamification/goals/:id/progress
    */
   updateGoalProgress: async (req, res) => {
-    const transaction = await db.transaction();
-    
+    const models = await getModels();
+    const { Goal, User, PointTransaction } = models;
+
+    if (!Goal) {
+      return res.status(503).json({ success: false, message: 'Goals feature is not yet available' });
+    }
+
+    let transaction;
     try {
-      const models = await getModels();
-      const { Goal, User, PointTransaction } = models;
-      
+      transaction = await db.transaction();
+
       const { id } = req.params;
       const { currentValue, notes } = req.body;
 
-      if (currentValue === undefined) {
+      // Validate currentValue is a finite number
+      const numCurrentValue = Number(currentValue);
+      if (currentValue === undefined || !Number.isFinite(numCurrentValue) || numCurrentValue < 0) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: 'Current value is required'
+          message: 'Current value must be a non-negative number'
         });
       }
 
-      // Get goal
-      const goal = await Goal.findByPk(id, { transaction });
+      // Get goal with lock to prevent concurrent updates
+      const goal = await Goal.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
       if (!goal) {
         await transaction.rollback();
         return res.status(404).json({
@@ -352,14 +417,8 @@ const goalController = {
         });
       }
 
-      // Check authorization
-      if (goal.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-        await transaction.rollback();
-        return res.status(403).json({
-          success: false,
-          message: 'Not authorized to update this goal'
-        });
-      }
+      // Check authorization — owner, admin, or assigned trainer
+      await assertGoalAccess(goal, req.user, { transaction });
 
       if (goal.status !== 'active') {
         await transaction.rollback();
@@ -369,21 +428,23 @@ const goalController = {
         });
       }
 
-      // Calculate progress
+      // Calculate progress (safe against division by zero)
       const oldValue = goal.currentValue;
-      const newValue = Math.max(0, currentValue);
-      const progressPercentage = Math.min(100, (newValue / goal.targetValue) * 100);
+      const newValue = Math.max(0, numCurrentValue);
+      const safeTargetValue = Math.max(0.001, Number(goal.targetValue) || 1);
+      const progressPercentage = Math.min(100, (newValue / safeTargetValue) * 100);
       const wasCompleted = progressPercentage >= 100 && goal.status === 'active';
 
-      // Update progress history
-      const progressHistory = goal.progressHistory || [];
-      progressHistory.push({
+      // Update progress history — cap at 100 entries to prevent unbounded growth
+      const MAX_HISTORY = 100;
+      const existingHistory = goal.progressHistory || [];
+      const progressHistory = [...existingHistory.slice(-(MAX_HISTORY - 1)), {
         date: new Date().toISOString(),
         value: newValue,
         change: newValue - oldValue,
         percentage: progressPercentage,
-        notes: notes
-      });
+        notes: typeof notes === 'string' ? notes.substring(0, 500) : undefined
+      }];
 
       // Check milestones
       let milestonesAchieved = [];
@@ -412,20 +473,27 @@ const goalController = {
 
       await goal.update(updatedFields, { transaction });
 
-      // Award XP for milestones and completion
+      // Award XP for milestones and completion with correct running balance
+      // Use SELECT FOR UPDATE to prevent concurrent XP corruption
       let totalXpAwarded = 0;
-      const user = await User.findByPk(goal.userId, { transaction });
+      const user = await User.findByPk(goal.userId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
 
       if (user) {
+        let runningBalance = Number(user.points) || 0;
+
         // Award milestone XP
         for (const milestone of milestonesAchieved) {
           if (milestone.xpBonus > 0) {
+            runningBalance += milestone.xpBonus;
             totalXpAwarded += milestone.xpBonus;
-            
+
             await PointTransaction.create({
               userId: goal.userId,
               points: milestone.xpBonus,
-              balance: user.points + totalXpAwarded,
+              balance: runningBalance,
               transactionType: 'earn',
               source: 'goal_milestone',
               sourceId: goal.id,
@@ -439,12 +507,13 @@ const goalController = {
         if (wasCompleted) {
           const completionXp = goal.xpReward + goal.completionBonus;
           if (completionXp > 0) {
+            runningBalance += completionXp;
             totalXpAwarded += completionXp;
-            
+
             await PointTransaction.create({
               userId: goal.userId,
               points: completionXp,
-              balance: user.points + totalXpAwarded,
+              balance: runningBalance,
               transactionType: 'earn',
               source: 'goal_completed',
               sourceId: goal.id,
@@ -454,9 +523,9 @@ const goalController = {
           }
         }
 
-        // Update user points
+        // Update user points to final running balance
         if (totalXpAwarded > 0) {
-          await user.update({ points: user.points + totalXpAwarded }, { transaction });
+          await user.update({ points: runningBalance }, { transaction });
         }
       }
 
@@ -474,12 +543,15 @@ const goalController = {
         completed: wasCompleted
       });
     } catch (error) {
-      await transaction.rollback();
-      console.error('Error updating goal progress:', error);
+      if (transaction) await transaction.rollback();
+      if (error.statusCode === 403) {
+        return res.status(403).json({ success: false, message: error.message });
+      }
+      logger.error('[GoalController] Error updating goal progress:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to update goal progress',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -490,10 +562,17 @@ const goalController = {
    * PUT /api/v1/gamification/goals/:id
    */
   updateGoal: async (req, res) => {
+    const models = await getModels();
+    const { Goal } = models;
+
+    if (!Goal) {
+      return res.status(503).json({ success: false, message: 'Goals feature is not yet available' });
+    }
+
+    let transaction;
     try {
-      const models = await getModels();
-      const { Goal } = models;
-      
+      transaction = await db.transaction();
+
       const { id } = req.params;
       // Whitelist allowed fields — never allow userId injection
       const allowedGoalFields = [
@@ -506,37 +585,43 @@ const goalController = {
         if (req.body[field] !== undefined) updates[field] = req.body[field];
       }
 
-      const goal = await Goal.findByPk(id);
+      const goal = await Goal.findByPk(id, { transaction });
       if (!goal) {
-        return res.status(404).json({
-          success: false,
-          message: 'Goal not found'
-        });
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Goal not found' });
       }
 
-      // Check authorization
+      // Check authorization — owner or admin only (trainers cannot edit goals)
       if (goal.userId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Not authorized to update this goal'
-        });
+        await transaction.rollback();
+        return res.status(403).json({ success: false, message: 'Not authorized to update this goal' });
+      }
+
+      // Validate targetValue if being updated
+      if (updates.targetValue !== undefined) {
+        const numTarget = Number(updates.targetValue);
+        if (!Number.isFinite(numTarget) || numTarget <= 0) {
+          await transaction.rollback();
+          return res.status(400).json({ success: false, message: 'Target value must be a positive number' });
+        }
+        updates.targetValue = numTarget;
       }
 
       // Validate deadline if being updated
       if (updates.deadline) {
         const newDeadline = new Date(updates.deadline);
-        const now = new Date();
-
-        if (newDeadline <= now && goal.status === 'active') {
-          return res.status(400).json({
-            success: false,
-            message: 'Deadline must be in the future for active goals'
-          });
+        if (isNaN(newDeadline.getTime()) || (newDeadline <= new Date() && goal.status === 'active')) {
+          await transaction.rollback();
+          return res.status(400).json({ success: false, message: 'Deadline must be a valid future date for active goals' });
         }
       }
 
-      // Update goal
-      await goal.update(updates);
+      // Sanitize string fields
+      if (updates.title) updates.title = String(updates.title).trim().substring(0, 200);
+      if (updates.description) updates.description = String(updates.description).trim().substring(0, 2000);
+
+      await goal.update(updates, { transaction });
+      await transaction.commit();
 
       return res.status(200).json({
         success: true,
@@ -544,11 +629,12 @@ const goalController = {
         goal
       });
     } catch (error) {
-      console.error('Error updating goal:', error);
+      if (transaction) await transaction.rollback();
+      logger.error('[GoalController] Error updating goal:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to update goal',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -559,12 +645,16 @@ const goalController = {
    * DELETE /api/v1/gamification/goals/:id
    */
   deleteGoal: async (req, res) => {
-    const transaction = await db.transaction();
-    
+    const models = await getModels();
+    const { Goal, PointTransaction } = models;
+
+    if (!Goal) {
+      return res.status(503).json({ success: false, message: 'Goals feature is not yet available' });
+    }
+
+    let transaction;
     try {
-      const models = await getModels();
-      const { Goal, PointTransaction } = models;
-      
+      transaction = await db.transaction();
       const { id } = req.params;
 
       const goal = await Goal.findByPk(id, { transaction });
@@ -585,17 +675,26 @@ const goalController = {
         });
       }
 
-      // Delete related point transactions
-      await PointTransaction.destroy({
+      // Void related point transactions (preserve audit trail — never hard-delete)
+      const txnsToVoid = await PointTransaction.findAll({
         where: {
           source: ['goal_milestone', 'goal_completed'],
-          sourceId: id
+          sourceId: id,
+          status: { [Op.ne]: 'voided' }
         },
         transaction
       });
 
-      // Delete goal
-      await goal.destroy({ transaction });
+      if (txnsToVoid.length > 0) {
+        await Promise.all(txnsToVoid.map(t => t.update({
+          status: 'voided',
+          voidedAt: new Date(),
+          metadata: { ...(t.metadata || {}), voidedByGoalDeletion: true, voidedBy: req.user.id }
+        }, { transaction })));
+      }
+
+      // Soft-delete goal
+      await goal.update({ status: 'deleted', deletedAt: new Date() }, { transaction });
 
       await transaction.commit();
 
@@ -604,12 +703,12 @@ const goalController = {
         message: 'Goal deleted successfully'
       });
     } catch (error) {
-      await transaction.rollback();
-      console.error('Error deleting goal:', error);
+      if (transaction) await transaction.rollback();
+      logger.error('[GoalController] Error deleting goal:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to delete goal',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -626,6 +725,10 @@ const goalController = {
       
       const { id } = req.params;
 
+      if (!Goal) {
+        return res.status(200).json({ success: true, analytics: {}, message: 'Goals feature not yet initialized' });
+      }
+
       const goal = await Goal.findByPk(id);
       if (!goal) {
         return res.status(404).json({
@@ -634,13 +737,16 @@ const goalController = {
         });
       }
 
+      // Authorization check — owner, assigned trainer, or admin
+      await assertGoalAccess(goal, req.user);
+
       // Generate comprehensive analytics
       const analytics = {
         progressHistory: goal.progressHistory || [],
         milestones: goal.milestones || [],
-        insights: this.generateGoalInsights(goal),
-        predictions: this.generateGoalPredictions(goal),
-        recommendations: this.generateGoalRecommendations(goal)
+        insights: generateGoalInsights(goal),
+        predictions: generateGoalPredictions(goal),
+        recommendations: generateGoalRecommendations(goal)
       };
 
       return res.status(200).json({
@@ -648,11 +754,14 @@ const goalController = {
         analytics
       });
     } catch (error) {
-      console.error('Error fetching goal analytics:', error);
+      if (error.statusCode === 403) {
+        return res.status(403).json({ success: false, message: error.message });
+      }
+      logger.error('[GoalController] Error fetching goal analytics:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch goal analytics',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
@@ -694,138 +803,142 @@ const goalController = {
         categories
       });
     } catch (error) {
-      console.error('Error fetching goal categories stats:', error);
+      logger.error('[GoalController] Error fetching goal categories stats:', { error: error.message });
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch goal categories statistics',
-        error: error.message
+        /* error detail omitted */
       });
     }
   },
 
-  // Helper methods for analytics and insights
-
-  calculateEstimatedCompletion: (goal, daysElapsed) => {
-    if (goal.progressPercentage === 0) return null;
-    
-    const progressPerDay = goal.progressPercentage / Math.max(1, daysElapsed);
-    if (progressPerDay <= 0) return null;
-    
-    const remainingProgress = 100 - goal.progressPercentage;
-    const daysToComplete = remainingProgress / progressPerDay;
-    
-    const estimatedDate = new Date();
-    estimatedDate.setDate(estimatedDate.getDate() + daysToComplete);
-    
-    return estimatedDate;
-  },
-
-  generateGoalInsights: (goal) => {
-    const insights = [];
-    const now = new Date();
-    const deadline = new Date(goal.deadline);
-    const startDate = new Date(goal.startDate);
-    
-    const daysElapsed = Math.ceil((now - startDate) / (1000 * 60 * 60 * 24));
-    const totalDays = Math.ceil((deadline - startDate) / (1000 * 60 * 60 * 24));
-    const expectedProgress = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 0;
-    
-    // Progress insights
-    if (goal.progressPercentage > expectedProgress + 10) {
-      insights.push({
-        type: 'positive',
-        message: 'You are ahead of schedule! Keep up the great work!',
-        priority: 'high'
-      });
-    } else if (goal.progressPercentage < expectedProgress - 15) {
-      insights.push({
-        type: 'warning',
-        message: 'Consider adjusting your approach to get back on track.',
-        priority: 'high'
-      });
-    }
-    
-    // Milestone insights
-    const achievedMilestones = (goal.milestones || []).filter(m => m.achieved).length;
-    const totalMilestones = (goal.milestones || []).length;
-    
-    if (totalMilestones > 0 && achievedMilestones > totalMilestones / 2) {
-      insights.push({
-        type: 'achievement',
-        message: `Great progress! You've achieved ${achievedMilestones} out of ${totalMilestones} milestones.`,
-        priority: 'medium'
-      });
-    }
-    
-    return insights;
-  },
-
-  generateGoalPredictions: (goal) => {
-    const now = new Date();
-    const startDate = new Date(goal.startDate);
-    const daysElapsed = Math.max(1, Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)));
-    
-    const progressPerDay = goal.progressPercentage / daysElapsed;
-    const daysToComplete = progressPerDay > 0 ? (100 - goal.progressPercentage) / progressPerDay : null;
-    
-    let estimatedCompletion = null;
-    if (daysToComplete) {
-      estimatedCompletion = new Date();
-      estimatedCompletion.setDate(estimatedCompletion.getDate() + daysToComplete);
-    }
-    
-    return {
-      estimatedCompletion,
-      onTrack: goal.progressPercentage >= (daysElapsed / Math.ceil((new Date(goal.deadline) - startDate) / (1000 * 60 * 60 * 24))) * 100,
-      progressPerDay: Math.round(progressPerDay * 100) / 100,
-      daysToComplete: daysToComplete ? Math.ceil(daysToComplete) : null
-    };
-  },
-
-  generateGoalRecommendations: (goal) => {
-    const recommendations = [];
-    const now = new Date();
-    const deadline = new Date(goal.deadline);
-    
-    // Time-based recommendations
-    const daysRemaining = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
-    
-    if (daysRemaining <= 7 && goal.progressPercentage < 80) {
-      recommendations.push({
-        type: 'urgency',
-        title: 'Focus on Daily Progress',
-        description: 'With less than a week remaining, consider making daily progress to reach your goal.'
-      });
-    }
-    
-    // Progress-based recommendations
-    if (goal.progressPercentage === 0 && daysRemaining > 0) {
-      recommendations.push({
-        type: 'start',
-        title: 'Get Started',
-        description: 'Take the first step today, even if it\'s small. Starting is often the hardest part.'
-      });
-    }
-    
-    // Consistency recommendations
-    const progressHistory = goal.progressHistory || [];
-    if (progressHistory.length >= 3) {
-      const recentUpdates = progressHistory.slice(-3);
-      const hasRegularUpdates = recentUpdates.every(update => 
-        (new Date() - new Date(update.date)) / (1000 * 60 * 60 * 24) <= 7
-      );
-      
-      if (!hasRegularUpdates) {
-        recommendations.push({
-          type: 'consistency',
-          title: 'Track Progress Regularly',
-          description: 'Regular tracking helps maintain momentum and identify issues early.'
-        });
-      }
-    }
-    
-    return recommendations;
-  }
+  // Helper methods reference standalone functions below
+  calculateEstimatedCompletion: (goal, daysElapsed) => calculateEstimatedCompletion(goal, daysElapsed),
+  generateGoalInsights: (goal) => generateGoalInsights(goal),
+  generateGoalPredictions: (goal) => generateGoalPredictions(goal),
+  generateGoalRecommendations: (goal) => generateGoalRecommendations(goal)
 };
+
+// ─────────────────────────────────────────────────────────────
+// STANDALONE HELPER FUNCTIONS
+// Extracted from object literal to avoid fragile `this` binding in ESM
+// ─────────────────────────────────────────────────────────────
+
+function calculateEstimatedCompletion(goal, daysElapsed) {
+  if (goal.progressPercentage === 0) return null;
+
+  const progressPerDay = goal.progressPercentage / Math.max(1, daysElapsed);
+  if (progressPerDay <= 0) return null;
+
+  const remainingProgress = 100 - goal.progressPercentage;
+  const daysToComplete = remainingProgress / progressPerDay;
+
+  const estimatedDate = new Date();
+  estimatedDate.setDate(estimatedDate.getDate() + daysToComplete);
+
+  return estimatedDate;
+}
+
+function generateGoalInsights(goal) {
+  const insights = [];
+  const now = new Date();
+  const deadline = new Date(goal.deadline);
+  const startDate = new Date(goal.startDate);
+
+  const daysElapsed = Math.ceil((now - startDate) / (1000 * 60 * 60 * 24));
+  const totalDays = Math.ceil((deadline - startDate) / (1000 * 60 * 60 * 24));
+  const expectedProgress = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 0;
+
+  if (goal.progressPercentage > expectedProgress + 10) {
+    insights.push({
+      type: 'positive',
+      message: 'You are ahead of schedule! Keep up the great work!',
+      priority: 'high'
+    });
+  } else if (goal.progressPercentage < expectedProgress - 15) {
+    insights.push({
+      type: 'warning',
+      message: 'Consider adjusting your approach to get back on track.',
+      priority: 'high'
+    });
+  }
+
+  const achievedMilestones = (goal.milestones || []).filter(m => m.achieved).length;
+  const totalMilestones = (goal.milestones || []).length;
+
+  if (totalMilestones > 0 && achievedMilestones > totalMilestones / 2) {
+    insights.push({
+      type: 'achievement',
+      message: `Great progress! You've achieved ${achievedMilestones} out of ${totalMilestones} milestones.`,
+      priority: 'medium'
+    });
+  }
+
+  return insights;
+}
+
+function generateGoalPredictions(goal) {
+  const now = new Date();
+  const startDate = new Date(goal.startDate);
+  const daysElapsed = Math.max(1, Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)));
+
+  const progressPerDay = goal.progressPercentage / daysElapsed;
+  const daysToComplete = progressPerDay > 0 ? (100 - goal.progressPercentage) / progressPerDay : null;
+
+  let estimatedCompletion = null;
+  if (daysToComplete) {
+    estimatedCompletion = new Date();
+    estimatedCompletion.setDate(estimatedCompletion.getDate() + daysToComplete);
+  }
+
+  return {
+    estimatedCompletion,
+    onTrack: goal.progressPercentage >= (daysElapsed / Math.ceil((new Date(goal.deadline) - startDate) / (1000 * 60 * 60 * 24))) * 100,
+    progressPerDay: Math.round(progressPerDay * 100) / 100,
+    daysToComplete: daysToComplete ? Math.ceil(daysToComplete) : null
+  };
+}
+
+function generateGoalRecommendations(goal) {
+  const recommendations = [];
+  const now = new Date();
+  const deadline = new Date(goal.deadline);
+
+  const daysRemaining = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+
+  if (daysRemaining <= 7 && goal.progressPercentage < 80) {
+    recommendations.push({
+      type: 'urgency',
+      title: 'Focus on Daily Progress',
+      description: 'With less than a week remaining, consider making daily progress to reach your goal.'
+    });
+  }
+
+  if (goal.progressPercentage === 0 && daysRemaining > 0) {
+    recommendations.push({
+      type: 'start',
+      title: 'Get Started',
+      description: 'Take the first step today, even if it\'s small. Starting is often the hardest part.'
+    });
+  }
+
+  const progressHistory = goal.progressHistory || [];
+  if (progressHistory.length >= 3) {
+    const recentUpdates = progressHistory.slice(-3);
+    const hasRegularUpdates = recentUpdates.every(update =>
+      (new Date() - new Date(update.date)) / (1000 * 60 * 60 * 24) <= 7
+    );
+
+    if (!hasRegularUpdates) {
+      recommendations.push({
+        type: 'consistency',
+        title: 'Track Progress Regularly',
+        description: 'Regular tracking helps maintain momentum and identify issues early.'
+      });
+    }
+  }
+
+  return recommendations;
+}
 
 export default goalController;

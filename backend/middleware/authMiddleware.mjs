@@ -536,6 +536,15 @@ export const trainerOrAdminOnly = (req, res, next) => {
   }
 };
 
+// Flexible role check — any authenticated user with one of the specified roles
+export const requireAnyRole = (...roles) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+  if (roles.includes(req.user.role)) return next();
+  return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+};
+
 // Aliases for backwards compatibility
 export const admin = adminOnly;
 export const isAdmin = adminOnly;

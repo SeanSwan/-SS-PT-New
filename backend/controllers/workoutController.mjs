@@ -622,11 +622,21 @@ export async function generateWorkoutSessions(req, res) {
     
     // Extract generation options
     const { startDate, weeks, userId } = req.body;
-    
+
+    // Validate target userId — prevent generating sessions attributed to another user
+    const targetUserId = userId || req.user.id;
+    if (targetUserId !== req.user.id && existingPlan.trainerId !== req.user.id && req.user.role !== 'admin') {
+      return errorResponse(res, 403, 'You are not authorized to generate sessions for this user');
+    }
+    // Ensure target user matches the plan's client (if plan has a clientId)
+    if (existingPlan.clientId && targetUserId !== existingPlan.clientId && req.user.role !== 'admin') {
+      return errorResponse(res, 400, 'Target user does not match the plan client');
+    }
+
     const sessions = await workoutService.generateWorkoutSessions(planId, {
       startDate,
       weeks: weeks ? parseInt(weeks) : undefined,
-      userId: userId || req.user.id
+      userId: targetUserId
     });
     
     return successResponse(res, { sessions });

@@ -16,7 +16,11 @@ import goalController from '../controllers/goalController.mjs';
 import socialController from '../controllers/socialController.mjs';
 
 // Import middleware
-import { protect, adminOnly, trainerOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly, trainerOnly, trainerOrAdminOnly, authorizeResourceAccess, requireAnyRole } from '../middleware/authMiddleware.mjs';
+import logger from '../utils/logger.mjs';
+
+// Import service layer (replaces mock-res controller calls)
+import { getDashboardData, getFeaturedData, searchGamification } from '../services/gamificationDashboardService.mjs';
 
 const router = express.Router();
 
@@ -24,39 +28,7 @@ const router = express.Router();
 const authenticate = protect;
 const requireAdmin = adminOnly;
 const requireTrainer = trainerOrAdminOnly;
-const requireUser = (req, res, next) => {
-  if (req.user && (req.user.role === 'client' || req.user.role === 'trainer' || req.user.role === 'admin')) {
-    next();
-  } else {
-    res.status(403).json({
-      success: false,
-      message: 'Authentication required'
-    });
-  }
-};
-
-// Ownership middleware: ensures :userId param matches authenticated user (or staff bypass)
-const ensureOwnerOrStaff = (req, res, next) => {
-  if (!/^\d+$/.test(req.params.userId)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid user ID'
-    });
-  }
-  const targetUserId = parseInt(req.params.userId, 10);
-  if (targetUserId <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid user ID'
-    });
-  }
-  if (req.user.role === 'admin' || req.user.role === 'trainer') return next();
-  if (Number(req.user.id) === targetUserId) return next();
-  return res.status(403).json({
-    success: false,
-    message: 'Forbidden: You can only access your own data'
-  });
-};
+const requireUser = requireAnyRole('client', 'trainer', 'admin');
 
 // Rate limiter for point-earning actions (20 per hour per user)
 const pointActionLimiter = rateLimit({
@@ -75,28 +47,28 @@ const pointActionLimiter = rateLimit({
  * @desc    Get comprehensive user statistics (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/stats', authenticate, ensureOwnerOrStaff, progressController.getUserStats);
+router.get('/users/:userId/stats', authenticate, authorizeResourceAccess('userId'), progressController.getUserStats);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/progress
  * @desc    Get user progress data with analytics (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/progress', authenticate, ensureOwnerOrStaff, progressController.getUserProgress);
+router.get('/users/:userId/progress', authenticate, authorizeResourceAccess('userId'), progressController.getUserProgress);
 
 /**
  * @route   POST /api/v1/gamification/users/:userId/progress
  * @desc    Record new progress entry
  * @access  Authenticated users
  */
-router.post('/users/:userId/progress', authenticate, ensureOwnerOrStaff, progressController.recordProgressEntry);
+router.post('/users/:userId/progress', authenticate, authorizeResourceAccess('userId'), progressController.recordProgressEntry);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/insights
  * @desc    Get detailed progress insights and recommendations
  * @access  Authenticated users
  */
-router.get('/users/:userId/insights', authenticate, ensureOwnerOrStaff, progressController.getProgressInsights);
+router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('userId'), progressController.getProgressInsights);
 
 // ============================================================================
 // 🏆 LEADERBOARD ENDPOINTS
@@ -167,7 +139,7 @@ router.get('/challenges/:id/leaderboard', challengeController.getChallengeLeader
  * @desc    Get user's challenges (active/completed)
  * @access  Authenticated users
  */
-router.get('/users/:userId/challenges', authenticate, ensureOwnerOrStaff, challengeController.getUserChallenges);
+router.get('/users/:userId/challenges', authenticate, authorizeResourceAccess('userId'), challengeController.getUserChallenges);
 
 // ============================================================================
 // 🏅 ACHIEVEMENT SYSTEM ENDPOINTS
@@ -185,19 +157,9 @@ router.get('/achievements', gamificationController.getAllAchievements);
  * @desc    Get user's achievements (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/achievements', authenticate, ensureOwnerOrStaff, async (req, res) => {
-  try {
-    // This is a wrapper to get user-specific achievements
-    req.params.userId = req.params.userId;
-    return await gamificationController.getUserProfile(req, res);
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch user achievements',
-      error: error.message
-    });
-  }
-});
+router.get('/users/:userId/achievements', authenticate, authorizeResourceAccess('userId'),
+  gamificationController.getUserProfile
+);
 
 /**
  * @route   GET /api/v1/gamification/achievements/:id
@@ -264,7 +226,7 @@ router.post('/users/:userId/points', authenticate, requireTrainer, gamificationC
  * @desc    Get user point transaction history
  * @access  Authenticated users
  */
-router.get('/users/:userId/transactions', authenticate, ensureOwnerOrStaff, gamificationController.getUserTransactions);
+router.get('/users/:userId/transactions', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserTransactions);
 
 /**
  * @route   GET /api/v1/gamification/rewards
@@ -306,7 +268,7 @@ router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController
  * @desc    Redeem reward for user
  * @access  Authenticated users
  */
-router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, ensureOwnerOrStaff, pointActionLimiter, gamificationController.redeemReward);
+router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, pointActionLimiter, authorizeResourceAccess('userId'), gamificationController.redeemReward);
 
 // ============================================================================
 // 🎖️ MILESTONES SYSTEM
@@ -363,7 +325,7 @@ router.post('/users/:userId/check-milestones', authenticate, requireTrainer, gam
  * @desc    Get user's goals with filtering (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/goals', authenticate, ensureOwnerOrStaff, goalController.getUserGoals);
+router.get('/users/:userId/goals', authenticate, authorizeResourceAccess('userId'), goalController.getUserGoals);
 
 /**
  * @route   GET /api/v1/gamification/goals/:id
@@ -412,7 +374,7 @@ router.get('/goals/:id/analytics', authenticate, requireUser, goalController.get
  * @desc    Get goal categories statistics
  * @access  Authenticated users
  */
-router.get('/users/:userId/goals/categories', authenticate, ensureOwnerOrStaff, goalController.getGoalCategoriesStats);
+router.get('/users/:userId/goals/categories', authenticate, authorizeResourceAccess('userId'), goalController.getGoalCategoriesStats);
 
 // ============================================================================
 // 👥 SOCIAL FEATURES & USER INTERACTIONS
@@ -533,7 +495,7 @@ router.get('/profile', authenticate, requireUser, (req, res) => {
  * @desc    Get user gamification profile
  * @access  Authenticated users
  */
-router.get('/users/:userId/profile', authenticate, ensureOwnerOrStaff, gamificationController.getUserProfile);
+router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserProfile);
 
 // ============================================================================
 // 🎯 ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY
@@ -546,50 +508,11 @@ router.get('/users/:userId/profile', authenticate, ensureOwnerOrStaff, gamificat
  */
 router.get('/dashboard', authenticate, requireUser, async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    // Fetch data from multiple endpoints
-    const [statsRes, progressRes, challengesRes] = await Promise.allSettled([
-      // Get user stats
-      new Promise((resolve, reject) => {
-        req.params.userId = userId;
-        progressController.getUserStats(req, { 
-          status: (code) => ({ json: (data) => code === 200 ? resolve(data) : reject(data) }) 
-        });
-      }),
-      // Get recent progress
-      new Promise((resolve, reject) => {
-        req.params.userId = userId;
-        req.query = { timeframe: 'weekly', limit: 7 };
-        progressController.getUserProgress(req, {
-          status: (code) => ({ json: (data) => code === 200 ? resolve(data) : reject(data) })
-        });
-      }),
-      // Get user challenges
-      new Promise((resolve, reject) => {
-        req.params.userId = userId;
-        req.query = { status: 'active', limit: 5 };
-        challengeController.getUserChallenges(req, {
-          status: (code) => ({ json: (data) => code === 200 ? resolve(data) : reject(data) })
-        });
-      })
-    ]);
-
-    return res.status(200).json({
-      success: true,
-      dashboard: {
-        stats: statsRes.status === 'fulfilled' ? statsRes.value.stats : null,
-        progress: progressRes.status === 'fulfilled' ? progressRes.value : null,
-        challenges: challengesRes.status === 'fulfilled' ? challengesRes.value.challenges : []
-      }
-    });
+    const dashboard = await getDashboardData(req.user.id);
+    return res.status(200).json({ success: true, dashboard });
   } catch (error) {
-    console.error('❌ Error fetching dashboard data:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch dashboard data',
-      error: error.message
-    });
+    logger.error('[Gamification] Dashboard error:', { error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch dashboard data' });
   }
 });
 
@@ -600,33 +523,11 @@ router.get('/dashboard', authenticate, requireUser, async (req, res) => {
  */
 router.get('/featured', async (req, res) => {
   try {
-    const featuredChallenges = await challengeController.getAllChallenges({
-      query: { featured: 'true', limit: 6, status: 'active' }
-    }, { 
-      status: (code) => ({ json: (data) => data }),
-      json: (data) => data
-    });
-
-    const featuredAchievements = await gamificationController.getAllAchievements({
-      query: { limit: 8 }
-    }, {
-      status: (code) => ({ json: (data) => data }),
-      json: (data) => data
-    });
-
-    return res.status(200).json({
-      success: true,
-      featured: {
-        challenges: featuredChallenges.challenges || [],
-        achievements: featuredAchievements.achievements || []
-      }
-    });
+    const featured = await getFeaturedData();
+    return res.status(200).json({ success: true, featured });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch featured content',
-      error: error.message
-    });
+    logger.error('[Gamification] Featured error:', { error: error.message });
+    return res.status(500).json({ success: false, message: 'Failed to fetch featured content' });
   }
 });
 
@@ -638,72 +539,26 @@ router.get('/featured', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { q, type = 'all', limit = 20 } = req.query;
-    
-    if (!q) {
-      return res.status(400).json({
-        success: false,
-        message: 'Search query is required'
-      });
+
+    if (!q || typeof q !== 'string' || q.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Search query is required' });
     }
 
-    const results = {
-      challenges: [],
-      achievements: [],
-      rewards: []
-    };
+    const sanitizedQuery = q.trim().substring(0, 200);
+    const sanitizedLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
+    const validTypes = ['all', 'challenges', 'achievements', 'rewards'];
+    const sanitizedType = validTypes.includes(type) ? type : 'all';
 
-    if (type === 'all' || type === 'challenges') {
-      const challengeResults = await challengeController.getAllChallenges({
-        query: { search: q, limit: Math.floor(limit / 3) }
-      }, {
-        status: (code) => ({ json: (data) => data }),
-        json: (data) => data
-      });
-      results.challenges = challengeResults.challenges || [];
-    }
-
-    if (type === 'all' || type === 'achievements') {
-      const achievementResults = await gamificationController.getAllAchievements({
-        query: { limit: Math.floor(limit / 3) }
-      }, {
-        status: (code) => ({ json: (data) => data }),
-        json: (data) => data
-      });
-      // Filter achievements by search query
-      results.achievements = (achievementResults.achievements || [])
-        .filter(a => 
-          a.name.toLowerCase().includes(q.toLowerCase()) || 
-          a.description.toLowerCase().includes(q.toLowerCase())
-        );
-    }
-
-    if (type === 'all' || type === 'rewards') {
-      const rewardResults = await gamificationController.getAllRewards({
-        query: { limit: Math.floor(limit / 3) }
-      }, {
-        status: (code) => ({ json: (data) => data }),
-        json: (data) => data
-      });
-      // Filter rewards by search query
-      results.rewards = (rewardResults.rewards || [])
-        .filter(r => 
-          r.name.toLowerCase().includes(q.toLowerCase()) || 
-          r.description.toLowerCase().includes(q.toLowerCase())
-        );
-    }
-
+    const results = await searchGamification(sanitizedQuery, sanitizedType, sanitizedLimit);
     return res.status(200).json({
       success: true,
-      query: q,
+      query: sanitizedQuery,
       results,
-      total: results.challenges.length + results.achievements.length + results.rewards.length
+      total: (results.challenges?.length || 0) + (results.achievements?.length || 0) + (results.rewards?.length || 0)
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Search failed',
-      error: error.message
-    });
+    logger.error('[Gamification] Search error:', { error: error.message });
+    return res.status(500).json({ success: false, message: 'Search failed' });
   }
 });
 
@@ -716,7 +571,7 @@ router.get('/search', async (req, res) => {
  * @desc    Get user's streak freeze status (available, max, used)
  * @access  Authenticated users (own data or staff)
  */
-router.get('/streak-freeze/:userId', authenticate, ensureOwnerOrStaff, gamificationController.getStreakFreezeStatus);
+router.get('/streak-freeze/:userId', authenticate, authorizeResourceAccess('userId'), gamificationController.getStreakFreezeStatus);
 
 /**
  * @route   POST /api/v1/gamification/streak-freeze/use
@@ -734,7 +589,7 @@ router.post('/streak-freeze/use', authenticate, requireUser, gamificationControl
  * @desc    Get active comeback challenge for user
  * @access  Authenticated users (own data or staff)
  */
-router.get('/comeback-challenge/:userId', authenticate, ensureOwnerOrStaff, gamificationController.getComebackChallenge);
+router.get('/comeback-challenge/:userId', authenticate, authorizeResourceAccess('userId'), gamificationController.getComebackChallenge);
 
 /**
  * @route   POST /api/v1/gamification/comeback-challenge/accept
@@ -759,15 +614,15 @@ router.get('/activity-feed', authenticate, requireUser, gamificationController.g
  * @desc    Get weekly recap stats (this week vs last week)
  * @access  Authenticated users (own data or staff)
  */
-router.get('/users/:userId/weekly-recap', authenticate, ensureOwnerOrStaff, gamificationController.getWeeklyRecap);
+router.get('/users/:userId/weekly-recap', authenticate, authorizeResourceAccess('userId'), gamificationController.getWeeklyRecap);
 
 // ===================== COMPANION PET ENDPOINTS =====================
 router.get('/pet/config', authenticate, requireUser, gamificationController.getPetConfig);
-router.get('/users/:userId/pet', authenticate, ensureOwnerOrStaff, gamificationController.getPet);
-router.post('/users/:userId/pet/adopt', authenticate, ensureOwnerOrStaff, gamificationController.adoptPet);
-router.post('/users/:userId/pet/interact', authenticate, ensureOwnerOrStaff, gamificationController.interactWithPet);
-router.post('/users/:userId/pet/activity', authenticate, ensureOwnerOrStaff, gamificationController.recordPetActivity);
-router.put('/users/:userId/pet/rename', authenticate, ensureOwnerOrStaff, gamificationController.renamePet);
-router.delete('/users/:userId/pet', authenticate, ensureOwnerOrStaff, gamificationController.releasePet);
+router.get('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.getPet);
+router.post('/users/:userId/pet/adopt', authenticate, authorizeResourceAccess('userId'), gamificationController.adoptPet);
+router.post('/users/:userId/pet/interact', authenticate, authorizeResourceAccess('userId'), gamificationController.interactWithPet);
+router.post('/users/:userId/pet/activity', authenticate, authorizeResourceAccess('userId'), gamificationController.recordPetActivity);
+router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('userId'), gamificationController.renamePet);
+router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.releasePet);
 
 export default router;
