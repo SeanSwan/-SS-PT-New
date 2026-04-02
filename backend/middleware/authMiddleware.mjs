@@ -682,6 +682,64 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
   }
 };
 
+/**
+ * Flexible resource access authorization middleware.
+ * Checks that the authenticated user is allowed to access a resource
+ * identified by a userId-style route param. Admins always pass.
+ * Trainers must have an active ClientTrainerAssignment. Clients may
+ * only access their own data.
+ *
+ * @param {string} paramName - Route parameter that holds the target user ID (default: 'userId')
+ * @returns Express middleware
+ */
+export const authorizeResourceAccess = (paramName = 'userId') => {
+  return async (req, res, next) => {
+    try {
+      const targetId = parseInt(req.params[paramName] || req.body[paramName], 10);
+
+      if (!targetId || isNaN(targetId)) {
+        return res.status(400).json({ success: false, message: 'Invalid or missing user ID' });
+      }
+
+      // Own data — always allowed
+      if (req.user.id === targetId) {
+        return next();
+      }
+
+      // Admins — always allowed
+      if (req.user.role === 'admin') {
+        return next();
+      }
+
+      // Trainers — only if assigned to this client
+      if (req.user.role === 'trainer') {
+        const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+        const assignment = await ClientTrainerAssignment.findOne({
+          where: { trainerId: req.user.id, clientId: targetId, status: 'active' }
+        });
+        if (assignment) {
+          return next();
+        }
+
+        logger.warn('Trainer IDOR blocked — not assigned to client', {
+          trainerId: req.user.id,
+          targetUserId: targetId,
+          path: req.path,
+          method: req.method
+        });
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this user\'s data'
+      });
+    } catch (error) {
+      logger.error('authorizeResourceAccess error', { error: error.message, path: req.path });
+      return res.status(500).json({ success: false, message: 'Authorization check failed' });
+    }
+  };
+};
+
 // Rate limiting middleware - simplified in-memory version
 export const rateLimiter = (options = {}) => {
   const {

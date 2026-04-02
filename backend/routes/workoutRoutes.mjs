@@ -184,7 +184,7 @@
  */
 
 import express from 'express';
-import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { protect, authorize, authorizeResourceAccess } from '../middleware/authMiddleware.mjs';
 import workoutController from '../controllers/workoutController.mjs';
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
@@ -205,7 +205,7 @@ router.get('/sessions', protect, workoutController.getWorkoutSessions);
  * @desc Get all workout sessions for a specific user
  * @access Private (Admin/Trainer only)
  */
-router.get('/sessions/user/:userId', protect, authorize(['admin', 'trainer']), workoutController.getWorkoutSessions);
+router.get('/sessions/user/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getWorkoutSessions);
 
 /**
  * @route GET /api/workout/sessions/:sessionId
@@ -249,7 +249,7 @@ router.get('/progress', protect, workoutController.getClientProgress);
  * @desc Get progress for a specific user
  * @access Private (Admin/Trainer only)
  */
-router.get('/progress/:userId', protect, workoutController.getClientProgress);
+router.get('/progress/:userId', protect, authorizeResourceAccess('userId'), workoutController.getClientProgress);
 
 // --- Statistics Routes ---
 
@@ -265,7 +265,7 @@ router.get('/statistics', protect, workoutController.getWorkoutStatistics);
  * @desc Get workout statistics for a specific user
  * @access Private (Admin/Trainer only)
  */
-router.get('/statistics/:userId', protect, workoutController.getWorkoutStatistics);
+router.get('/statistics/:userId', protect, authorizeResourceAccess('userId'), workoutController.getWorkoutStatistics);
 
 // --- Exercise Recommendation Routes ---
 
@@ -281,7 +281,7 @@ router.get('/recommendations', protect, workoutController.getExerciseRecommendat
  * @desc Get exercise recommendations for a specific user
  * @access Private (Admin/Trainer only)
  */
-router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']), workoutController.getExerciseRecommendations);
+router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);
 
 // --- Plan Routes ---
 

@@ -298,7 +298,7 @@ router.get('/weekly', async (req, res) => {
  * PATCH /api/macros/:id
  * Update a macro entry
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id(\\d+)', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id) || id <= 0) {
@@ -359,7 +359,7 @@ router.patch('/:id', async (req, res) => {
  * DELETE /api/macros/:id
  * Delete a macro entry
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id(\\d+)', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id) || id <= 0) {

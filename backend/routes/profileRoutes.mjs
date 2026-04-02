@@ -14,7 +14,7 @@ import {
   getUserAchievements,
   getUserFollowStats
 } from '../controllers/profileController.mjs';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, authorizeResourceAccess } from '../middleware/authMiddleware.mjs';
 import { rateLimiter } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -163,13 +163,13 @@ router.get('/follow-stats', protect, getUserFollowStats);
  * @desc    Get specific user's posts (visibility-scoped)
  * @access  Private
  */
-router.get('/:userId/posts', protect, getUserPosts);
+router.get('/:userId/posts', protect, authorizeResourceAccess('userId'), getUserPosts);
 
 /**
  * @route   GET /api/profile/:userId
- * @desc    Get specific user profile (public view)
- * @access  Private
+ * @desc    Get specific user profile (public view, scoped by relationship)
+ * @access  Private — own data, assigned trainers, or admins
  */
-router.get('/:userId', protect, getUserProfile);
+router.get('/:userId', protect, authorizeResourceAccess('userId'), getUserProfile);
 
 export default router;

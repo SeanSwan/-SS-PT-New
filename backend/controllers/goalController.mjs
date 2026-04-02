@@ -495,7 +495,16 @@ const goalController = {
       const { Goal } = models;
       
       const { id } = req.params;
-      const updates = req.body;
+      // Whitelist allowed fields — never allow userId injection
+      const allowedGoalFields = [
+        'title', 'description', 'goal', 'targetValue', 'currentValue',
+        'category', 'deadline', 'status', 'priority', 'notes',
+        'unit', 'type', 'milestones'
+      ];
+      const updates = {};
+      for (const field of allowedGoalFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      }
 
       const goal = await Goal.findByPk(id);
       if (!goal) {
@@ -517,7 +526,7 @@ const goalController = {
       if (updates.deadline) {
         const newDeadline = new Date(updates.deadline);
         const now = new Date();
-        
+
         if (newDeadline <= now && goal.status === 'active') {
           return res.status(400).json({
             success: false,

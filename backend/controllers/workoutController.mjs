@@ -275,16 +275,22 @@ export async function getWorkoutSessionById(req, res) {
  */
 export async function createWorkoutSession(req, res) {
   try {
-    const sessionData = {
-      ...req.body,
-      userId: req.body.userId || req.user.id
-    };
-    
+    // Whitelist allowed fields to prevent mass assignment
+    const allowedFields = [
+      'title', 'description', 'plannedStartTime', 'actualStartTime', 'actualEndTime',
+      'status', 'notes', 'workoutPlanId', 'exercises', 'duration', 'sessionDate',
+      'nasmPhase', 'targetMuscleGroups', 'difficulty', 'type'
+    ];
+    const sessionData = { userId: req.body.userId || req.user.id };
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) sessionData[field] = req.body[field];
+    }
+
     // Check if the user is authorized to create a session for another user
     if (sessionData.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to create sessions for other users');
     }
-    
+
     const session = await workoutService.createWorkoutSession(sessionData);
     
     return successResponse(res, { session }, 201);
@@ -315,7 +321,16 @@ export async function updateWorkoutSession(req, res) {
       return errorResponse(res, 403, 'You are not authorized to update this session');
     }
     
-    const sessionData = req.body;
+    // Whitelist allowed fields — never allow userId/trainerId injection
+    const updateAllowed = [
+      'title', 'description', 'status', 'notes', 'duration', 'sessionDate',
+      'actualStartTime', 'actualEndTime', 'exercises', 'nasmPhase',
+      'targetMuscleGroups', 'difficulty', 'type', 'completedAt'
+    ];
+    const sessionData = {};
+    for (const field of updateAllowed) {
+      if (req.body[field] !== undefined) sessionData[field] = req.body[field];
+    }
     const session = await workoutService.updateWorkoutSession(sessionId, sessionData);
     
     return successResponse(res, { session });
@@ -472,16 +487,22 @@ export async function getExerciseRecommendations(req, res) {
  */
 export async function createWorkoutPlan(req, res) {
   try {
-    const planData = {
-      ...req.body,
-      trainerId: req.body.trainerId || req.user.id
-    };
-    
+    // Whitelist allowed fields — force trainerId to current user (never from req.body)
+    const planAllowed = [
+      'title', 'name', 'description', 'goal', 'difficulty', 'durationWeeks',
+      'workoutsPerWeek', 'template', 'active', 'nasmPhase', 'exercises',
+      'clientId', 'status'
+    ];
+    const planData = { trainerId: req.user.id };
+    for (const field of planAllowed) {
+      if (req.body[field] !== undefined) planData[field] = req.body[field];
+    }
+
     // Check if the user is authorized to create a plan
     if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to create workout plans');
     }
-    
+
     const plan = await workoutService.createWorkoutPlan(planData);
     
     return successResponse(res, { plan }, 201);

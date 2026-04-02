@@ -122,7 +122,16 @@ export const updateSpecial = async (req, res) => {
   try {
     const AdminSpecial = getAdminSpecialModel();
     const { id } = req.params;
-    const updates = req.body;
+    // Whitelist allowed fields to prevent mass assignment
+    const allowedSpecialFields = [
+      'name', 'description', 'bonusSessions', 'bonusDuration',
+      'applicablePackageIds', 'assignedClientIds', 'startDate', 'endDate',
+      'isActive', 'type', 'value', 'conditions'
+    ];
+    const updates = {};
+    for (const field of allowedSpecialFields) {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
 
     const special = await AdminSpecial.findByPk(id);
     if (!special) {

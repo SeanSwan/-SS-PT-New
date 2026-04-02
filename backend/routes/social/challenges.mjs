@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
+import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
 
@@ -127,11 +128,10 @@ router.get('/active', async (req, res) => {
     if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
       return res.status(200).json({ success: true, challenges: [], pagination: { limit: 10, offset: 0, total: 0 } });
     }
-    console.error('Error fetching active challenges:', error);
+    logger.error('Error fetching active challenges:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch active challenges',
-      error: error.message
+      message: 'Failed to fetch active challenges'
     });
   }
 });
@@ -184,11 +184,10 @@ router.get('/my-challenges', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching user challenges:', error);
+    logger.error('Error fetching user challenges:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch user challenges',
-      error: error.message
+      message: 'Failed to fetch user challenges'
     });
   }
 });
@@ -276,11 +275,10 @@ router.get('/:challengeId', async (req, res) => {
       userTeam: userTeam || null
     });
   } catch (error) {
-    console.error('Error fetching challenge details:', error);
+    logger.error('Error fetching challenge details:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch challenge details',
-      error: error.message
+      message: 'Failed to fetch challenge details'
     });
   }
 });
@@ -355,7 +353,7 @@ router.post('/', upload.single('image'), async (req, res) => {
         });
         challengeData.imageUrl = result.url;
       } catch (uploadErr) {
-        console.error('R2 upload failed for challenge image:', uploadErr.message);
+        logger.warn('R2 upload failed for challenge image:', { error: uploadErr.message });
       }
     }
 
@@ -378,13 +376,10 @@ router.post('/', upload.single('image'), async (req, res) => {
       challenge
     });
   } catch (error) {
-    console.error('Error creating challenge:', error);
-    // With memory storage, no temp file cleanup needed
-
+    logger.error('Error creating challenge:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to create challenge',
-      error: error.message
+      message: 'Failed to create challenge'
     });
   }
 });
@@ -452,11 +447,10 @@ router.post('/:challengeId/join', async (req, res) => {
       participation
     });
   } catch (error) {
-    console.error('Error joining challenge:', error);
+    logger.error('Error joining challenge:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to join challenge',
-      error: error.message
+      message: 'Failed to join challenge'
     });
   }
 });
@@ -493,19 +487,20 @@ router.post('/:challengeId/leave', async (req, res) => {
       });
     }
     
-    // Remove participation
-    await participation.destroy();
-    
+    // Soft-delete: mark as withdrawn instead of hard delete (audit trail)
+    participation.status = 'inactive';
+    participation.withdrawnAt = new Date();
+    await participation.save();
+
     return res.status(200).json({
       success: true,
       message: 'Successfully left the challenge'
     });
   } catch (error) {
-    console.error('Error leaving challenge:', error);
+    logger.error('Error leaving challenge:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to leave challenge',
-      error: error.message
+      message: 'Failed to leave challenge'
     });
   }
 });
@@ -517,65 +512,81 @@ router.post('/:challengeId/progress', async (req, res) => {
   try {
     const { challengeId } = req.params;
     const { progress, overwrite = false } = req.body;
-    
+
     if (progress === undefined) {
       return res.status(400).json({
         success: false,
         message: 'Progress value is required'
       });
     }
-    
-    // Find the user's participation in this challenge
-    const participation = await ChallengeParticipant.findOne({
-      where: {
-        challengeId,
-        userId: req.user.id,
-        status: 'active'
-      }
-    });
-    
-    if (!participation) {
-      return res.status(404).json({
-        success: false,
-        message: 'You are not an active participant in this challenge'
+
+    // Wrap in transaction with pessimistic lock to prevent race conditions
+    const result = await sequelize.transaction(async (t) => {
+      // Lock the participation row to prevent concurrent updates
+      const participation = await ChallengeParticipant.findOne({
+        where: {
+          challengeId,
+          userId: req.user.id,
+          status: 'active'
+        },
+        lock: t.LOCK.UPDATE,
+        transaction: t
       });
+
+      if (!participation) {
+        return { error: true, status: 404, message: 'You are not an active participant in this challenge' };
+      }
+
+      const challenge = await Challenge.findByPk(challengeId, { transaction: t });
+      if (!challenge) {
+        return { error: true, status: 404, message: 'Challenge not found' };
+      }
+
+      // Calculate new progress (capped at goal)
+      const newProgress = overwrite
+        ? Math.min(parseFloat(progress), challenge.goal)
+        : Math.min(participation.progress + parseFloat(progress), challenge.goal);
+
+      // Determine if this update triggers completion
+      const justCompleted = participation.status === 'active' && newProgress >= challenge.goal;
+
+      // Single, consistent points calculation (no double-bonus)
+      const pointsFromProgress = Math.floor(newProgress * challenge.pointsPerUnit);
+      const totalPoints = pointsFromProgress + (justCompleted ? challenge.bonusPoints : 0);
+
+      participation.progress = newProgress;
+      participation.pointsEarned = totalPoints;
+      if (justCompleted) {
+        participation.status = 'completed';
+      }
+
+      await participation.save({ transaction: t });
+
+      return {
+        error: false,
+        participation,
+        isCompleted: participation.status === 'completed',
+        pointsEarned: participation.pointsEarned,
+        progress: participation.progress,
+        goal: challenge.goal,
+        progressPercentage: Math.min(100, Math.round((participation.progress / challenge.goal) * 100))
+      };
+    });
+
+    if (result.error) {
+      return res.status(result.status).json({ success: false, message: result.message });
     }
-    
-    // Get the challenge
-    const challenge = await Challenge.findByPk(challengeId);
-    
-    // Update progress
-    const newProgress = overwrite ? parseFloat(progress) : participation.progress + parseFloat(progress);
-    participation.progress = Math.min(newProgress, challenge.goal);
-    
-    // Check if completed
-    if (participation.progress >= challenge.goal && participation.status === 'active') {
-      participation.status = 'completed';
-      participation.pointsEarned += challenge.bonusPoints;
-    }
-    
-    // Calculate points earned
-    const pointsFromProgress = Math.floor(participation.progress * challenge.pointsPerUnit);
-    participation.pointsEarned = pointsFromProgress + (participation.status === 'completed' ? challenge.bonusPoints : 0);
-    
-    await participation.save();
-    
+
     return res.status(200).json({
       success: true,
       message: 'Progress updated successfully',
-      participation,
-      isCompleted: participation.status === 'completed',
-      pointsEarned: participation.pointsEarned,
-      progress: participation.progress,
-      goal: challenge.goal,
-      progressPercentage: Math.min(100, Math.round((participation.progress / challenge.goal) * 100))
+      ...result
     });
   } catch (error) {
-    console.error('Error updating challenge progress:', error);
+    logger.error('Error updating challenge progress:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to update progress',
-      error: error.message
+      message: 'Failed to update progress'
     });
   }
 });
@@ -664,11 +675,10 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error fetching challenge leaderboard:', error);
+    logger.error('Error fetching challenge leaderboard:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch challenge leaderboard',
-      error: error.message
+      message: 'Failed to fetch challenge leaderboard'
     });
   }
 });
@@ -720,11 +730,10 @@ router.post('/:challengeId/teams', async (req, res) => {
       team
     });
   } catch (error) {
-    console.error('Error creating team:', error);
+    logger.error('Error creating team:', { error: error.message, stack: error.stack });
     return res.status(500).json({
       success: false,
-      message: 'Failed to create team',
-      error: error.message
+      message: 'Failed to create team'
     });
   }
 });
