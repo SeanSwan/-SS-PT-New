@@ -398,36 +398,40 @@ const setupAssociations = async () => {
       console.log('🔒 DUPLICATE PREVENTION: Associations already exist, performing detailed verification...');
       console.log('🔍 User associations found:', hasUserAssociations ? Object.keys(User.associations) : 'none');
       console.log('🔍 ClientProgress alias exists:', hasClientProgressAlias);
-      
+
       // Critical verification for P0 checkout fix
       const criticalAssociationStatus = {
         userToClientProgress: hasClientProgressAlias,
+        userToClientSessions: !!(User.associations && User.associations.clientSessions),
         cartToStorefront: !!(CartItem.associations && CartItem.associations.storefrontItem),
         cartToShoppingCart: !!(CartItem.associations && CartItem.associations.cart),
         shoppingCartToItems: !!(ShoppingCart.associations && ShoppingCart.associations.cartItems),
         userToCart: !!(User.associations && User.associations.shoppingCarts)
       };
-      
+
       console.log('🎯 CRITICAL ASSOCIATIONS STATUS:', criticalAssociationStatus);
-      
+
       // Verify all critical associations exist
       const allCriticalExist = Object.values(criticalAssociationStatus).every(status => status === true);
-      
+
       if (allCriticalExist) {
         console.log('✅ DUPLICATE PREVENTION VERIFIED: All critical associations confirmed - safely returning existing models');
       } else {
-        console.warn('⚠️ DUPLICATE PREVENTION WARNING: Some critical associations missing');
+        console.warn('⚠️ DUPLICATE PREVENTION WARNING: Some critical associations missing — falling through to full setup');
         console.log('Missing associations:', Object.entries(criticalAssociationStatus)
           .filter(([key, value]) => !value)
           .map(([key]) => key));
-        
-        // If clientProgress alias exists but other associations are missing, we might have a partial setup
-        if (hasClientProgressAlias) {
-          console.log('🔒 CRITICAL: clientProgress alias exists - preventing duplicate setup');
-        }
+
+        // CRITICAL FIX: Do NOT return early when associations are missing.
+        // Fall through to the full setup below so missing associations get created.
+        // Sequelize safely overwrites duplicate associations, so re-running is safe.
       }
-      
-      return {
+
+      // Only return early if ALL critical associations are confirmed
+      if (!allCriticalExist) {
+        console.log('🔧 Falling through to full association setup to repair missing associations...');
+      } else {
+        return {
         User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
@@ -476,7 +480,8 @@ const setupAssociations = async () => {
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage
       };
-    }
+      } // end: if (allCriticalExist) return early
+    } // end: if (hasUserAssociations || ...)
 
     // USER ASSOCIATIONS (only with Sequelize models)
     // ============================================

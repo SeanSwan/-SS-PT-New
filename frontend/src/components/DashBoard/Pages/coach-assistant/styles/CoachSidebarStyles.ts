@@ -15,11 +15,11 @@ export const SidebarOverlay = styled.div<{ $isOpen: boolean }>`
   display: ${({ $isOpen }) => $isOpen ? 'block' : 'none'};
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 1100;
 
   @media (min-width: 1024px) {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.5);
   }
 `;
 
@@ -37,6 +37,16 @@ export const SidebarContainer = styled.aside<{ $isOpen: boolean }>`
   z-index: 1101;
   transform: translateX(${({ $isOpen }) => $isOpen ? '0' : '-100%'});
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+
+  /* Guaranteed opaque base — prevents theme variables with alpha from leaking */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #0A0A0F;
+    z-index: -1;
+  }
 
   @media (min-width: 769px) and (max-width: 1023px) {
     width: 280px;

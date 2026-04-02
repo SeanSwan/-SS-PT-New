@@ -395,14 +395,31 @@ class AdminClientController {
         });
       }
 
-      const { count, rows: clients } = await User.findAndCountAll({
-        where: whereClause,
-        include: includeOptions,
-        limit: safeLimit,
-        offset,
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        attributes: { exclude: ['password', 'refreshTokenHash'] }
-      });
+      let count, clients;
+      try {
+        const result = await User.findAndCountAll({
+          where: whereClause,
+          include: includeOptions,
+          limit: safeLimit,
+          offset,
+          order: [[sortBy, sortOrder.toUpperCase()]],
+          attributes: { exclude: ['password', 'refreshTokenHash'] }
+        });
+        count = result.count;
+        clients = result.rows;
+      } catch (includeErr) {
+        // Defensive: if includes fail (e.g., association not set up), fall back to basic query
+        logger.warn(`Client query with includes failed (${includeErr.message}), falling back to basic query`);
+        const result = await User.findAndCountAll({
+          where: whereClause,
+          limit: safeLimit,
+          offset,
+          order: [[sortBy, sortOrder.toUpperCase()]],
+          attributes: { exclude: ['password', 'refreshTokenHash'] }
+        });
+        count = result.count;
+        clients = result.rows;
+      }
 
       // Batch-fetch workout and order counts for ALL clients in 2 queries
       // (replaces N+1 pattern that ran 2 COUNT queries per client)

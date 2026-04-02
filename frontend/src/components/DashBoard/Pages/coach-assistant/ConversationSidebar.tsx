@@ -76,8 +76,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
   const handleNewChat = useCallback(() => {
     onNewChat();
-    // Only close sidebar on mobile — desktop keeps sidebar open
-    if (window.innerWidth < 1024) onClose();
+    // Always close sidebar after new chat so user sees the fresh conversation
+    onClose();
   }, [onNewChat, onClose]);
 
   const handleSelect = useCallback((id: number) => {

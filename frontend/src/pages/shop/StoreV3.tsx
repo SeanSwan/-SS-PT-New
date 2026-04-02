@@ -664,7 +664,7 @@ const StoreV3: React.FC = () => {
       // ── Current packages: $175/session (1-hour), no volume discounts ──
       const fallbackPackages: StoreItem[] = [
         {
-          id: 50,
+          id: 6232,
           name: 'Single Session',
           description: 'One premium 1-hour personal training session.',
           packageType: 'fixed',
@@ -679,7 +679,7 @@ const StoreV3: React.FC = () => {
           displayOrder: 1,
         },
         {
-          id: 51,
+          id: 6233,
           name: '10-Session Pack',
           description: 'Ten 1-hour personal training sessions.',
           packageType: 'fixed',
@@ -694,7 +694,7 @@ const StoreV3: React.FC = () => {
           displayOrder: 2,
         },
         {
-          id: 52,
+          id: 6234,
           name: '24-Session Pack',
           description: 'Twenty-four 1-hour personal training sessions.',
           packageType: 'fixed',
@@ -709,7 +709,7 @@ const StoreV3: React.FC = () => {
           displayOrder: 3,
         },
         {
-          id: 53,
+          id: 6235,
           name: '3-Month Program',
           description: 'Consistent training over 3 months at $175 per session.',
           packageType: 'monthly',
@@ -725,7 +725,7 @@ const StoreV3: React.FC = () => {
           displayOrder: 4,
         },
         {
-          id: 54,
+          id: 6236,
           name: '6-Month Program',
           description: 'Build lasting habits with 6 months of dedicated training.',
           packageType: 'monthly',
@@ -741,7 +741,7 @@ const StoreV3: React.FC = () => {
           displayOrder: 5,
         },
         {
-          id: 55,
+          id: 6237,
           name: '12-Month Program',
           description: 'Full year commitment for maximum transformation.',
           packageType: 'monthly',
@@ -757,9 +757,9 @@ const StoreV3: React.FC = () => {
           displayOrder: 6,
         },
         {
-          id: 56,
+          id: 6238,
           name: '30-Minute Sessions (10-Pack)',
-          description: 'Ten 30-minute focused training sessions.',
+          description: 'Ten focused 30-minute personal training sessions.',
           packageType: 'fixed',
           sessions: 10,
           pricePerSession: 110,
