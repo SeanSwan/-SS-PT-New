@@ -120,6 +120,7 @@ const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerWorkoutForgePage'));
 const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
+const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Universal Theme — CSS Custom Property Bridge
@@ -492,7 +493,10 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
 
       // 🔧 EQUIPMENT MANAGER — Upload gym/park/home photos, manage equipment profiles
-      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
+      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
+
+      // 🔥 BOOTCAMP CREATOR — AI-powered group fitness class builder
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder with pyramids, supersets, and flow optimization' }
     ],
     defaultPath: '/coach-assistant'
   },
@@ -511,7 +515,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
-      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
+      { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder' }
     ],
     defaultPath: '/overview'
   },

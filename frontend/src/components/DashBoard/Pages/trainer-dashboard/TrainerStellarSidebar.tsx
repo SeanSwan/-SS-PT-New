@@ -410,8 +410,8 @@ const trainerNavConfig = [
   {
     section: 'CLASS BUILDER',
     items: [
-      { label: 'Bootcamp Creator', path: '/dashboard/workouts/bootcamp', icon: Flame },
-      { label: 'Equipment Profiles', path: '/dashboard/workouts/equipment', icon: Wrench },
+      { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
+      { label: 'Equipment Profiles', path: '/dashboard/trainer/equipment', icon: Wrench },
     ],
   },
   {

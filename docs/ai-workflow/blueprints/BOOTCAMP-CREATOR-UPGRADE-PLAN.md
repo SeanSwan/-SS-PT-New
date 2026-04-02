@@ -282,13 +282,107 @@ Every main exercise needs COMPLETE modification data:
 
 ---
 
-## 7. Implementation Phases
+## 7. Exercise Rolodex Integration (CRITICAL — All Three Systems Merge)
 
-### Phase 0: Decomposition (Pre-requisite)
+The Bootcamp Creator, Equipment Manager, and Exercise Rolodex (840+ exercises in the NASM database) MUST be seamlessly blended into one unified system. The trainer should never leave the Bootcamp Creator to find exercises.
+
+### Exercise Rolodex as the Exercise Source
+- **The Exercise Rolodex IS the exercise database** — 840+ exercises across 12 sources (free-exercise-db, nasm-advanced, nasm, beachbody, p90x, taebo, squat-university, etc.)
+- The Bootcamp Creator MUST pull exercises directly from this database, not from hardcoded arrays
+- The current `bootcampService.mjs` uses `getExerciseRegistry()` from `variationEngine.mjs` — this needs to also query the Exercise DB for the full 840+ exercise catalog
+- **Autocomplete search** — When manually adding/swapping exercises, the trainer gets the same Rolodex autocomplete (react-window virtualized dropdown) that exists in `admin-exercises/`
+
+### Exercise Categories as Class Types
+The Exercise Rolodex categories map directly to bootcamp class intensity options:
+
+| Class Intensity | Exercise Categories Used | Description |
+|----------------|--------------------------|-------------|
+| **High Impact** | Plyometrics, Olympic lifts, HIIT, Power exercises | Pyramid/superset capable, advanced clients |
+| **Medium Impact** | Strength training, compound movements, moderate cardio | Standard station format, most clients |
+| **Low Impact / Calisthenics** | Bodyweight, stability, balance, controlled movements | Board 2 alternatives, beginners |
+| **Stability / Corrective** | NASM corrective exercises, BOSU, stability ball, foam roller | Injury modifications, warm-up |
+| **Flexibility / Stretching** | Stretching, mobility, yoga-adjacent, cool-down | Quick stretch module auto-selection |
+| **Cardio** | Running, jumping, cycling, rowing, Insanity/T25 moves | Cardio finishers, HIIT circuits |
+
+The AI and the trainer can select a class intensity level, and the system filters the 840+ exercise database to only show appropriate exercises for that intensity.
+
+### Equipment Manager as the Location Context
+- When creating a bootcamp class, the trainer selects an Equipment Profile (gym, park, home, etc.)
+- The Equipment Profile tells the system what equipment is available at that location
+- **Exercise filtering:** Only show exercises whose `equipmentRequired` matches what's available at the selected location
+- **AI generation:** The AI Hive Mind receives the equipment list and ONLY generates exercises using available equipment
+- Example: Park profile has "Pull-Up Bar, Park Bench, Open Ground" → AI generates bodyweight + bench exercises only, no cable/machine exercises
+
+### The Three-System Merge Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    BOOTCAMP CREATOR                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │ Config Panel  │  │ Class Preview │  │ AI Coach (Hive)  │  │
+│  │              │  │              │  │                  │  │
+│  │ Format       │  │ Board 1      │  │ "Make me a       │  │
+│  │ Intensity    │  │ Board 2      │  │  pyramid leg     │  │
+│  │ Day Type     │  │ Stretch      │  │  day for the     │  │
+│  │ Duration     │  │ Timeline     │  │  park with 15    │  │
+│  │              │  │              │  │  people"          │  │
+│  │ ┌──────────┐│  │              │  │                  │  │
+│  │ │Equipment ││  │ ┌──────────┐ │  │ AI uses:         │  │
+│  │ │Profile   ││──│─│Exercises ││─│─│ • Equipment DB   │  │
+│  │ │Picker    ││  │ │from      ││  │ • Exercise DB    │  │
+│  │ └──────────┘│  │ │Rolodex   ││  │ • Class history  │  │
+│  │              │  │ └──────────┘ │  │ • Injury flags   │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│         │                  │                   │            │
+│         ▼                  ▼                   ▼            │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              EXERCISE ROLODEX (840+)                  │   │
+│  │  Filtered by: location equipment + intensity + day    │   │
+│  │  Autocomplete search for manual swap/add              │   │
+│  └──────────────────────────────────────────────────────┘   │
+│         │                                                   │
+│         ▼                                                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │           EQUIPMENT MANAGER                           │   │
+│  │  Gym | Park | Home | Client Home | Custom             │   │
+│  │  AI Photo Scan → Available equipment list             │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Coach Assistant Voice Command Integration
+The Coach Assistant (AI Hive Mind) should be able to generate a full bootcamp class from a single conversational command:
+
+- **"Make me a high-impact pyramid leg day at Move Fitness for 15 people, 3 have knee issues"**
+  → AI selects Move Fitness equipment profile
+  → Filters exercises to leg day + available equipment
+  → Generates pyramid format with Board 1 (pyramids) + Board 2 (modified)
+  → Applies knee modifications for 3 participants
+  → Flow-optimizes setup times
+  → Returns complete class with stretch warm-up
+
+- **"Quick HIIT circuit for the park, 8 exercises, 1 round, 40 seconds each"**
+  → AI selects Park equipment profile (bodyweight + bench + pull-up bar)
+  → Generates 8 bodyweight/park-friendly exercises
+  → Board 2 with low-impact alternatives
+  → 3-minute stretch warm-up
+
+- **"Swap station 3 for cable exercises — we're inside today"**
+  → AI checks gym equipment profile for cable availability
+  → Replaces station 3 exercises with cable alternatives from Rolodex
+  → Recalculates flow timing (cable setup = 30s)
+
+---
+
+## 8. Implementation Phases
+
+### Phase 0: Decomposition + Rolodex Wiring (Pre-requisite)
 - Break `BootcampBuilderPage.tsx` (723 lines) into 12 files under 300 lines each
 - Break `bootcampService.mjs` (569 lines) into 6 files under 300 lines each
 - Add sidebar entries for admin + trainer dashboards ✅ (DONE)
-- No feature changes — pure structural decomposition
+- Wire exercise selection to the Exercise Rolodex database (840+ exercises) instead of hardcoded `variationEngine` only
+- Add Rolodex autocomplete search (react-window virtualized) for manual exercise swap/add
+- Add exercise intensity category filtering (high/medium/low impact, stability, flexibility, cardio)
 
 ### Phase 1: New Formats + Two-Board System
 - Add `pyramid` and `superset` class formats to backend
@@ -328,7 +422,7 @@ Every main exercise needs COMPLETE modification data:
 
 ---
 
-## 8. Key Technical Decisions for AI Village Review
+## 9. Key Technical Decisions for AI Village Review
 
 1. **Should pyramid/superset be new class formats or modifiers on existing formats?**
    - Option A: New `classFormat` values (pyramid, superset)
@@ -358,7 +452,7 @@ Every main exercise needs COMPLETE modification data:
 
 ---
 
-## 9. Success Criteria
+## 10. Success Criteria
 
 - [ ] Trainer can generate a pyramid class with 2 boards in under 30 seconds
 - [ ] Trainer can generate a superset class with flow-optimized sequencing
@@ -372,10 +466,17 @@ Every main exercise needs COMPLETE modification data:
 - [ ] All files under 300 lines
 - [ ] Mobile-responsive (trainer uses iPad/phone at gym)
 - [ ] Trainer can switch between standard/pyramid/superset on the fly
+- [ ] Exercise Rolodex autocomplete search works inline (no page navigation)
+- [ ] Exercises filter by Equipment Profile (only show what's available at location)
+- [ ] Exercises filter by intensity level (high/medium/low impact, stability, flexibility)
+- [ ] Coach Assistant can generate a full class from a single conversational command
+- [ ] "Make me a pyramid leg day at the park for 15 people" works end-to-end
+- [ ] All 840+ exercises in the Rolodex are available as exercise sources
+- [ ] Equipment Manager, Exercise Rolodex, and Bootcamp Creator are one unified flow
 
 ---
 
-## 10. Files to Analyze (AI Village Input)
+## 11. Files to Analyze (AI Village Input)
 
 ### Existing files to review:
 - `frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx` (723 lines)
@@ -398,6 +499,13 @@ Every main exercise needs COMPLETE modification data:
 - `backend/models/EquipmentProfile.mjs`
 - `backend/models/EquipmentItem.mjs`
 - `backend/models/EquipmentExerciseMap.mjs`
+
+### Exercise Rolodex files (840+ exercise database):
+- `frontend/src/components/DashBoard/Pages/admin-exercises/` (full directory)
+- `backend/services/variationEngine.mjs` (current exercise registry used by bootcamp)
+- `backend/models/Exercise.mjs`
+- `backend/models/CustomExercise.mjs`
+- Exercise seeders: `backend/seeders/20260321-seed-expanded-exercises.mjs`, `20260321-seed-free-exercise-db.mjs`, `20260322-seed-nasm-advanced-equipment.mjs`
 
 ---
 
