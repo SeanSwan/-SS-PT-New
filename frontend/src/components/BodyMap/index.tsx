@@ -155,12 +155,14 @@ const EntriesLabel = styled.div`
 // ── Component ───────────────────────────────────────────────────────────
 
 interface BodyMapProps {
-  userId: number;
+  userId?: number;
   mode?: 'trainer' | 'client';
 }
 
-const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
+const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const { user, authAxios } = useAuth() as any;
+  // Fall back to authenticated user's ID when rendered as a standalone page
+  const userId = userIdProp ?? user?.id;
   const painService = useMemo(
     () => (authAxios ? createPainEntryService(authAxios) : null),
     [authAxios],
@@ -188,7 +190,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId, mode }) => {
 
   // Fetch entries on mount
   const fetchEntries = useCallback(async () => {
-    if (!painService) return;
+    if (!painService || !userId) return;
     try {
       setLoading(true);
       setError(null);
