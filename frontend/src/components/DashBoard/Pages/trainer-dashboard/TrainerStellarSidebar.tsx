@@ -23,7 +23,7 @@ import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import {
   Activity, Users, ClipboardCheck, BarChart3, Target,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
-  ChevronRight, ChevronLeft, Menu, X,
+  ChevronRight, ChevronLeft, Menu, X, Flame, Wrench,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -405,6 +405,13 @@ const trainerNavConfig = [
       { label: 'Log Client Workout', path: '/dashboard/trainer/log-workout', icon: ClipboardCheck },
       { label: 'Client Progress', path: '/dashboard/trainer/client-progress', icon: BarChart3 },
       { label: 'Form Assessments', path: '/dashboard/trainer/assessments', icon: Target },
+    ],
+  },
+  {
+    section: 'CLASS BUILDER',
+    items: [
+      { label: 'Bootcamp Creator', path: '/dashboard/workouts/bootcamp', icon: Flame },
+      { label: 'Equipment Profiles', path: '/dashboard/workouts/equipment', icon: Wrench },
     ],
   },
   {

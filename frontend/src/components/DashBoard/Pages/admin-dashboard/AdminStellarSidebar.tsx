@@ -36,6 +36,7 @@ import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
+  Flame, Wrench, MessageCircle,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -43,9 +44,11 @@ import {
 // PURPOSE: Maps WORKSPACE_CONFIG icon strings to Lucide components
 // ─────────────────────────────────────────────────────────────
 
-const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
+  Flame, Wrench, MessageCircle,
 };
 
 const getIcon = (name: string, size = 20) => {
