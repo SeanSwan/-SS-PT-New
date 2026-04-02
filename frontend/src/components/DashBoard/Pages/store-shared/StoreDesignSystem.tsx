@@ -28,7 +28,7 @@ export const fadeIn = keyframes`
 
 export const STORE_TOKENS = {
   bg: {
-    app: 'radial-gradient(circle at top right, #120d26 0%, #002060 100%)',
+    app: 'radial-gradient(circle at top right, var(--bg-base, #0A0A0F) 0%, var(--bg-elevated, #002060) 100%)',
     glass: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
     glassHover: 'rgba(255,255,255,0.05)',
     dark: 'rgba(0,0,0,0.2)',
@@ -37,18 +37,18 @@ export const STORE_TOKENS = {
     subtle: 'rgba(255,255,255,0.08)',
     glass: 'rgba(255,255,255,0.08)',
     purple: 'rgba(139,92,246,0.3)',
-    cyan: 'rgba(139, 92, 246,0.2)',
+    cyan: 'rgba(96,192,240,0.2)',
   },
   color: {
-    cyan: '#8B5CF6',
-    purple: '#8B5CF6',
-    white: '#FFFFFF',
-    muted: '#A0A0B0',
-    completed: '#00FF88',
-    pending: '#FFB800',
-    inactive: '#FF3366',
-    revenue: '#10b981',
-    tax: '#ff6b6b',
+    cyan: 'var(--accent-primary, #60C0F0)',
+    purple: 'var(--accent-secondary, #8B5CF6)',
+    white: 'var(--text-primary, #E0ECF4)',
+    muted: 'var(--text-muted, #A0A0B0)',
+    completed: '#60C0F0',    // Ice Wing — replaces neon green #00FF88
+    pending: '#C6A84B',      // Gilded Fern — replaces bright amber #FFB800
+    inactive: '#C92A54',     // Crimson Frost — replaces hot pink #FF3366
+    revenue: '#60C0F0',      // Ice Wing — replaces emerald #10b981
+    tax: '#C92A54',          // Crimson Frost — replaces bright red #ff6b6b
   },
   radius: {
     card: '16px',
@@ -229,21 +229,21 @@ export const StatusBadge = styled.span<{ $status: 'completed' | 'pending' | 'ina
       case 'completed':
       case 'active':
         return css`
-          background: rgba(0,255,136,0.1);
-          color: #00FF88;
-          border: 1px solid rgba(0,255,136,0.2);
+          background: color-mix(in srgb, #60C0F0 10%, transparent);
+          color: #60C0F0;
+          border: 1px solid color-mix(in srgb, #60C0F0 20%, transparent);
         `;
       case 'pending':
         return css`
-          background: rgba(255,184,0,0.1);
-          color: #FFB800;
-          border: 1px solid rgba(255,184,0,0.2);
+          background: color-mix(in srgb, #C6A84B 10%, transparent);
+          color: #C6A84B;
+          border: 1px solid color-mix(in srgb, #C6A84B 20%, transparent);
         `;
       case 'inactive':
         return css`
-          background: rgba(255,51,102,0.1);
-          color: #FF3366;
-          border: 1px solid rgba(255,51,102,0.2);
+          background: color-mix(in srgb, #C92A54 10%, transparent);
+          color: #C92A54;
+          border: 1px solid color-mix(in srgb, #C92A54 20%, transparent);
         `;
     }
   }}
@@ -389,10 +389,10 @@ export const StoreButton = styled.button<{ $variant?: 'primary' | 'danger' | 'gh
     switch ($variant) {
       case 'danger':
         return css`
-          background: rgba(255,51,102,0.1);
-          border: 1px solid rgba(255,51,102,0.3);
-          color: #FF3366;
-          &:hover { background: rgba(255,51,102,0.2); border-color: rgba(255,51,102,0.5); }
+          background: color-mix(in srgb, #C92A54 10%, transparent);
+          border: 1px solid color-mix(in srgb, #C92A54 30%, transparent);
+          color: #C92A54;
+          &:hover { background: color-mix(in srgb, #C92A54 20%, transparent); border-color: color-mix(in srgb, #C92A54 50%, transparent); }
         `;
       case 'ghost':
         return css`
@@ -560,11 +560,12 @@ export const ShimmerBlock = styled.div<{ $width?: string; $height?: string }>`
 // ── Error Banner ────────────────────────────────────────
 
 export const ErrorBanner = styled.div`
-  background: rgba(239,68,68,0.1);
-  border: 1px solid rgba(239,68,68,0.3);
+  background: color-mix(in srgb, #C92A54 10%, transparent);
+  border: 1px solid color-mix(in srgb, #C92A54 30%, transparent);
   border-radius: ${STORE_TOKENS.radius.button};
   padding: 1rem;
-  color: #ef4444;
+  color: var(--text-primary, #E0ECF4);
+  border-left: 4px solid #C92A54;
   text-align: center;
   display: flex;
   align-items: center;
@@ -577,15 +578,15 @@ export const ErrorBanner = styled.div`
 export const DisclaimerBox = styled.div`
   margin-top: 1.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(245,158,11,0.08);
-  border: 1px solid rgba(245,158,11,0.2);
+  background: color-mix(in srgb, #C6A84B 8%, transparent);
+  border: 1px solid color-mix(in srgb, #C6A84B 20%, transparent);
   border-radius: ${STORE_TOKENS.radius.button};
   font-size: 0.75rem;
   color: rgba(255,255,255,0.5);
   line-height: 1.5;
 
   strong {
-    color: #f59e0b;
+    color: #C6A84B;
   }
 `;
 

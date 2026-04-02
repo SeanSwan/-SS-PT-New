@@ -1,527 +1,263 @@
 # UX/UI Design Quality — Recursive Consensus Debate Log
 
 > **Consensus:** YES — Models agreed
-> **Rounds:** 4
-> **Tokens:** 35,015 input / 6,224 output
+> **Rounds:** 2
+> **Tokens:** 24,356 input / 4,077 output
 
 ---
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me carefully. As the Creative Director of SwanStudios, I am looking at a blueprint that explicitly demands a **mobile-first, premium, gym-floor-ready experience**, and then I am looking at implementation code that completely ignores it. 
+Listen to me closely. We are building a luxury vault and a high-end competitive arena, not a discount gym app. SwanStudios charges a premium, and every single pixel must justify that price tag. 
 
-13px fonts on a mobile device for a personal trainer who is mid-session, sweating, and trying to read an AI response? **Absolutely unacceptable.** That is a fast track to user churn. Furthermore, our Crystalline Swan aesthetic relies on high-contrast luxury, not muddy, illegible opacities that fail WCAG AA standards. 
+I have reviewed the UX/Accessibility audit and the codebase. The foundation is there, but the execution is currently failing our Crystalline Swan standard. We have WCAG violations, microscopic touch targets, lazy loading states, and sloppy inline styles. 
 
-Premium means *effortless*. If Sean has to squint, tap twice because a button is too small, or manually focus an input, we have failed.
-
-Here is my Round 1 Design Directive. Implement these changes exactly as specified.
+Here is my definitive, prescriptive design vision to fix these issues. Implement these exact specifications.
 
 ---
 
-### 1. CRITICAL: Typography & Mobile Legibility Violation
-**Severity:** CRITICAL
-**File & Location:** `frontend/src/components/Shared/AITerminalPanel.tsx` (Styled Components: `MessageBubble`, `BubbleContent`, `ChatInput`, `HeaderTitle`, `EmptyHint`)
-**Design Problem:** The code hardcodes `font-size: 13px;` across the board. This violates the blueprint's strict 16px minimum for mobile, which is required to prevent iOS Safari from auto-zooming and to ensure legibility on the gym floor.
+### 1. CRITICAL: Color Contrast & Typography Hierarchy
+**File & Location:** `frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx` (CardSubtext) & `MasterDetailLayout.tsx` (Loading/Empty states)
+**Design Problem:** You are using `rgba(224, 236, 244, 0.45)` (45% Frost White) and `#4070C0` (Swan Lavender) for text on `#141419` (Carbon) backgrounds. This is a massive WCAG AA failure. It looks muddy and is illegible. Swan Lavender is a *tertiary accent*, not a body text color.
 **Design Solution:** 
-Enforce the `Sora` font family for UI elements and implement a mobile-first responsive scale.
-**Implementation Notes:**
-1. Update `BubbleContent`:
-   ```css
-   font-family: 'Sora', sans-serif;
-   font-size: 16px; /* Mobile first */
-   line-height: 1.6;
-   
-   @media (min-width: 768px) {
-     max-width: 85%;
-   }
-   
-   @media (min-width: 1024px) {
-     font-size: 14px;
-     max-width: 800px;
-   }
-   ```
-2. Update `ChatInput`:
-   ```css
-   font-family: 'Sora', sans-serif;
-   font-size: 16px; /* Prevents iOS Zoom */
-   min-height: 56px; /* Blueprint requirement */
-   ```
-3. Update `HeaderTitle` to `font-size: 16px;` and `EmptyHint` `p` to `font-size: 15px;`.
+Secondary text must be Frost White at exactly 70% opacity. Tertiary text (if absolutely necessary) is 60%. 
 
-### 2. HIGH: Premium Contrast & Color Token Failures
-**Severity:** HIGH
-**File & Location:** `frontend/src/components/Shared/AITerminalPanel.tsx` & `frontend/src/components/AIAssistant/DictationOrb.tsx`
-**Design Problem:** Muddy opacities (`rgba(255,255,255,0.3)`) look cheap and fail WCAG AA contrast ratios. The `DictationOrb` listening state uses Frost White on Wing Purple, which fails contrast (3.5:1).
-**Design Solution:** 
-Use our exact Crystalline Swan tokens. For the Dictation Orb, we will use the "Dual-Button Glow" rule: Blue button (`#002060`) with a Purple glow (`#8B5CF6`).
 **Implementation Notes:**
-1. **In `DictationOrb.tsx` (`OrbButton`):**
-   Change the `$listening` background to Midnight Sapphire, keep the text Frost White (11.5:1 contrast - AAA pass), and use Wing Purple for the border and glow.
-   ```css
-   background: ${({ $listening }) => $listening ? '#002060' : 'rgba(0, 32, 96, 0.85)'};
-   border: 2px solid ${({ $listening }) => $listening ? '#8B5CF6' : 'rgba(224, 236, 244, 0.3)'};
-   color: #E0ECF4;
-   box-shadow: ${({ $listening }) => $listening ? '0 0 24px rgba(139, 92, 246, 0.6)' : 'none'};
-   ```
-2. **In `AITerminalPanel.tsx` (`ChatInput`):**
-   ```css
-   &::placeholder {
-     color: rgba(224, 236, 244, 0.6); /* Frost White at 60% = PASS */
-   }
-   ```
-3. **In `AITerminalPanel.tsx` (`EmptyHint` & `TtsToggle` inactive):**
-   Change `rgba(255, 255, 255, 0.4)` to `rgba(224, 236, 244, 0.7)` (Frost White 70%).
-
-### 3. HIGH: Touch Target Starvation
-**Severity:** HIGH
-**File & Location:** `frontend/src/components/Shared/AITerminalPanel.tsx` & `frontend/src/components/AIAssistant/DictationOrb.tsx`
-**Design Problem:** `TtsToggle` is a microscopic 36x36px. The `DictationOrb` is hardcoded to 44px, ignoring the blueprint's mandate for a 64px primary CTA on mobile.
-**Design Solution:** 
-All interactive elements must be a minimum of 44x44px. The DictationOrb needs a size prop to scale up for the main Coach Assistant view.
-**Implementation Notes:**
-1. **In `AITerminalPanel.tsx`:** Update `TtsToggle` to `width: 44px; height: 44px;`.
-2. **In `DictationOrb.tsx`:** Add a `$size` prop to `OrbButton`.
-   ```tsx
-   // Add to props: size?: 44 | 64;
-   // In OrbButton styled component:
-   width: ${({ $size }) => $size || 44}px;
-   height: ${({ $size }) => $size || 44}px;
-   min-width: ${({ $size }) => $size || 44}px;
-   min-height: ${({ $size }) => $size || 44}px;
-   ```
-   *(Ensure the parent `SwanCoachAssistantPage` passes `size={64}` when rendering the full-screen mobile view).*
-
-### 4. MEDIUM: ARIA & Focus Management Negligence
-**Severity:** MEDIUM
-**File & Location:** `frontend/src/components/Shared/AITerminalPanel.tsx`
-**Design Problem:** Screen readers are completely blind to new AI messages, and keyboard users lose focus after sending a message. This is sloppy engineering.
-**Design Solution:** 
-Implement strict ARIA roles and React `ref` focus management.
-**Implementation Notes:**
-1. **Focus Management:** In `handleSend`, after `sendMessageWithConversation` resolves, return focus to the input so the user can keep typing.
-   ```tsx
-   await sendMessageWithConversation(...);
-   setTimeout(() => inputRef.current?.focus(), 50);
-   ```
-2. **ARIA Roles:**
-   * Update `PanelHeader`: `<PanelHeader aria-label="Toggle AI Assistant Panel" aria-expanded={isOpen} onClick={...}>`
-   * Update `MessagesArea`: `<MessagesArea role="log" aria-live="polite">`
-   * Update `SendButton`: `<SendButton aria-label="Send message" ...>`
-   * Update `CompactTrigger`: `<CompactTrigger aria-label="Toggle AI Assistant" aria-expanded={isOpen} ...>`
-
-### 5. LOW: Motion Accessibility
-**Severity:** LOW
-**File & Location:** `frontend/src/components/Shared/AITerminalPanel.tsx` (`TypingDots`)
-**Design Problem:** The typing indicator bounces infinitely regardless of user OS preferences.
-**Design Solution:** 
-Respect `prefers-reduced-motion`.
-**Implementation Notes:**
-Wrap the animation in the `TypingDots` styled component:
+*   **In `OverviewTabContent.tsx`:** Update `CardSubtext`.
 ```css
-@media (prefers-reduced-motion: no-preference) {
-  animation: ${typingBounce} 1.2s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  animation: none;
-  opacity: 0.7; /* Static fallback state */
+const CardSubtext = styled.p`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.7); /* Frost White @ 70% */
+  margin: 0;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+`;
+```
+*   **In `MasterDetailLayout.tsx`:** Remove the inline `color: 'var(--text-secondary, #4070C0)'` from the loading states. Replace it with Frost White at 70% opacity.
+
+### 2. HIGH: Keyboard Navigation & The "Dual-Glow" Focus State
+**File & Location:** Global interactive elements, specifically `ClientMiniCard.tsx` (`ClientCardButton`, `QuickActionBtn`) and `MasterDetailLayout.tsx` (`PillarButton`).
+**Design Problem:** Keyboard users are flying blind. There are no `:focus-visible` styles. 
+**Design Solution:** We must implement the Crystalline Swan **Dual-Button Glow** rule. 
+*   Standard UI elements (Carbon/Graphite bg) get a Wing Purple (`#8B5CF6`) focus ring.
+*   Primary Blue buttons get a Wing Purple glow.
+*   Purple buttons get an Ice Wing (`#60C0F0`) glow.
+
+**Implementation Notes:**
+Inject this exact CSS into the styled-components for `ClientCardButton`, `QuickActionBtn`, and `PillarButton`:
+```css
+&:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #141419, /* Carbon gap */
+              0 0 12px 2px #8B5CF6, /* Wing Purple Glow */
+              inset 0 0 0 1px #8B5CF6;
+  transition: box-shadow 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 ```
 
----
+### 3. MEDIUM: Microscopic Touch Targets
+**File & Location:** `frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx` (`QuickActionBtn`)
+**Design Problem:** The quick action buttons use a 14px icon and rely on padding. On mobile, users will fat-finger these actions, accidentally logging a workout when they meant to message the client. Unacceptable friction.
+**Design Solution:** Enforce a strict 44x44px minimum touch target without blowing up the visual weight of the icon.
 
-### Final Word from the Director
-Do not treat the blueprint as a "suggestion." The 16px mobile font size and the 64px voice orb are the **entire reason** we are building this specific interface for Sean. 
-
-Fix these immediately. I want to see the updated code reflecting true Crystalline Swan luxury—bold, legible, and accessible.
-
----
-
-## Design Collaborator — Round 2
-
-## Design Collaborator Response — Round 1
-
-I appreciate the thoroughness of your design audit, and I **agree with the fundamental premise**: we are building a premium, mobile-first experience that must be effortlessly usable on the gym floor. However, I have **specific technical concerns and alternative proposals** for several directives that will better serve our users while maintaining the Crystalline Swan aesthetic.
-
----
-
-## AGREEMENTS
-
-I **fully agree** with and will implement:
-
-### ✅ Issue #4: ARIA & Focus Management
-**Status:** AGREED — Implementation as specified is correct and necessary.
-
-### ✅ Issue #5: Motion Accessibility  
-**Status:** AGREED — `prefers-reduced-motion` implementation is essential and well-specified.
-
----
-
-## DISAGREEMENTS & ALTERNATIVE PROPOSALS
-
-### ⚠️ Issue #1: Typography — PARTIAL DISAGREEMENT
-
-**What I Agree With:**
-- 16px minimum on mobile is correct for iOS Safari zoom prevention
-- `Sora` font family enforcement is correct
-- Line-height improvements are valid
-
-**What I Dispute:**
-The proposed desktop scaling to 14px at 1024px+ **contradicts the mobile-first principle** and creates a **readability regression** for desktop users who may also be using the app during training sessions on tablets or larger devices.
-
-**Alternative Proposal:**
+**Implementation Notes:**
+Update `QuickActionBtn` in your styles file to include:
 ```css
-/* BubbleContent */
-font-family: 'Sora', sans-serif;
-font-size: 16px; /* Mobile baseline */
-line-height: 1.6;
-
-@media (min-width: 768px) {
-  max-width: 85%;
-  font-size: 16px; /* Maintain readability */
-}
-
-@media (min-width: 1200px) {
-  font-size: 15px; /* Modest reduction only on large displays */
-  max-width: 800px;
-}
+  /* Visual size can be smaller, but the clickable area MUST be 44px */
+  position: relative;
+  min-width: 32px; 
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    /* Invisible hit area */
+  }
 ```
 
-**Rationale:** A trainer using an iPad Pro (1024px) in landscape is still on the gym floor. We should only scale down on true desktop displays (1200px+), and even then, only to 15px to maintain the premium legibility standard.
+### 4. HIGH: Sloppy Inline Styles & Hardcoded Colors
+**File & Location:** `frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx` (Collapsed Avatar Buttons)
+**Design Problem:** You have hardcoded `background: 'linear-gradient(135deg, #002060, #003080)'` and `border: selectedClientId === client.id ? '2px solid #8B5CF6' : '2px solid transparent'` directly in the JSX. This violates our design system architecture.
+**Design Solution:** Move this to a styled-component (`CollapsedAvatarBtn`) and use the exact Crystalline Swan tokens. Add a hover state that utilizes the Ice Wing glow.
 
----
-
-### ⚠️ Issue #2: Premium Contrast — PARTIAL DISAGREEMENT
-
-**What I Agree With:**
-- Muddy opacities must be replaced with proper color tokens
-- WCAG AA compliance is non-negotiable
-- Frost White token usage is correct
-
-**What I Dispute:**
-The `DictationOrb` listening state proposal uses `#002060` (Midnight Sapphire) background, which creates a **visual hierarchy problem**. The orb will visually recede when it should be **most prominent** during active listening.
-
-**Alternative Proposal:**
-```css
-/* DictationOrb.tsx - OrbButton */
-background: ${({ $listening }) => 
-  $listening 
-    ? 'linear-gradient(135deg, #002060 0%, #003080 100%)' /* Richer depth */
-    : 'rgba(0, 32, 96, 0.85)'
-};
-border: 2px solid ${({ $listening }) => $listening ? '#8B5CF6' : 'rgba(224, 236, 244, 0.3)'};
-color: #E0ECF4;
-box-shadow: ${({ $listening }) => 
-  $listening 
-    ? '0 0 32px rgba(139, 92, 246, 0.8), 0 0 64px rgba(139, 92, 246, 0.4)' /* Stronger glow */
-    : 'none'
-};
-transform: ${({ $listening }) => $listening ? 'scale(1.05)' : 'scale(1)'};
-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-```
-
-**Rationale:** 
-- Gradient adds premium depth while maintaining contrast
-- Stronger dual-layer glow increases visual prominence
-- Subtle scale transform provides tactile feedback
-- Still passes WCAG AAA (11.5:1 contrast maintained)
-
----
-
-### ⚠️ Issue #3: Touch Targets — SIGNIFICANT DISAGREEMENT
-
-**What I Agree With:**
-- 44px minimum is correct per WCAG 2.5.5
-- `TtsToggle` needs to be enlarged
-- `DictationOrb` needs context-aware sizing
-
-**What I Dispute:**
-The proposed implementation **hardcodes two arbitrary sizes** (44px and 64px) without considering the actual usage contexts. The blueprint specifies 64px for **primary CTAs**, but the orb serves different roles:
-
-1. **In AITerminalPanel (compact mode):** Secondary control — 48px is appropriate
-2. **In SwanCoachAssistantPage (full-screen):** Primary CTA — 64px is correct
-3. **In future tablet layouts:** May need 56px
-
-**Alternative Proposal:**
+**Implementation Notes:**
+Create this styled component and replace the inline `<button>`:
 ```tsx
-// DictationOrb.tsx
-interface DictationOrbProps {
-  isListening: boolean;
-  onToggle: () => void;
-  size?: 'compact' | 'standard' | 'primary'; // Semantic sizing
-  disabled?: boolean;
-}
+const CollapsedAvatarBtn = styled.button<{ $isSelected: boolean }>`
+  width: 44px; /* Fixed touch target */
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid ${({ $isSelected }) => $isSelected ? '#8B5CF6' : 'transparent'};
+  background: linear-gradient(135deg, #002060 0%, #003080 100%); /* Midnight Sapphire to Royal Depth */
+  color: #E0ECF4; /* Frost White */
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 6px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: ${({ $isSelected }) => $isSelected ? '0 0 15px rgba(139, 92, 246, 0.4)' : 'none'};
 
-const sizeMap = {
-  compact: 48,
-  standard: 56,
-  primary: 64
-} as const;
-
-// In OrbButton:
-width: ${({ $size }) => sizeMap[$size || 'standard']}px;
-height: ${({ $size }) => sizeMap[$size || 'standard']}px;
+  &:hover {
+    border-color: #60C0F0; /* Ice Wing hover */
+    box-shadow: 0 0 12px rgba(96, 192, 240, 0.3);
+    transform: translateY(-2px);
+  }
+`;
 ```
 
-**Rationale:**
-- Semantic naming prevents arbitrary pixel values scattered across components
-- Provides flexibility for future layouts (tablet, landscape, etc.)
-- Default to 'standard' (56px) balances prominence and space efficiency
-- Aligns with design system scalability principles
+### 5. MEDIUM: Cheap Loading States (Skeleton Screens)
+**File & Location:** `frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx` (ClientList loading state)
+**Design Problem:** `<div>Loading clients...</div>` is what a junior dev builds. We are building a premium experience. The perceived performance is terrible.
+**Design Solution:** Implement a "Crystalline Pulse" skeleton loader that mimics the `ClientMiniCard` layout.
 
----
-
-### 📋 ADDITIONAL CONCERN: Missing Specification
-
-**Issue:** The directive doesn't address **`ChatInput` padding and line-height** for multi-line input scenarios.
-
-**Proposed Addition:**
-```css
-/* AITerminalPanel.tsx - ChatInput */
-font-family: 'Sora', sans-serif;
-font-size: 16px;
-min-height: 56px;
-padding: 16px 52px 16px 16px; /* Prevents text overlap with send button */
-line-height: 1.5; /* Optimal for multi-line readability */
-max-height: 120px; /* Prevents excessive expansion */
-```
-
----
-
-## Summary of Required Changes
-
-**Implement Immediately (Agreed):**
-- ✅ ARIA roles and focus management (Issue #4)
-- ✅ `prefers-reduced-motion` support (Issue #5)
-- ✅ `TtsToggle` to 44x44px
-- ✅ Frost White color token replacements
-
-**Implement with Modifications (Disputed):**
-- ⚠️ Typography: Use 16px/16px/15px breakpoints (not 16px/14px)
-- ⚠️ DictationOrb: Use gradient + stronger glow for listening state
-- ⚠️ Touch targets: Use semantic size prop system (not hardcoded 44/64)
-
-**Awaiting Your Approval:**
-- 📋 ChatInput padding/line-height specification
-
----
-
-**3 rounds remaining.** I'm ready to refine these proposals based on your feedback, but I believe these modifications better serve Sean's actual usage patterns while maintaining the Crystalline Swan premium standard.
-
----
-
-## Creative Director (Lead Design Authority) — Round 3
-
-This is exactly the kind of rigorous design dialogue I expect at SwanStudios. You have successfully defended the gym-floor context for tablet users and caught a critical oversight regarding the input padding. 
-
-I am approving your typography breakpoints (16px/16px/15px) and your `ChatInput` padding/max-height additions. They are excellent.
-
-However, while I agree with the *direction* of your DictationOrb proposals, the execution has technical flaws that will degrade performance and visual harmony. Here are my Round 2 directives to finalize these components.
-
----
-
-### 1. REFINEMENT: DictationOrb Animation Performance
-**File & Location:** `frontend/src/components/AIAssistant/DictationOrb.tsx` (`OrbButton`)
-**Design Problem:** You proposed `transition: all 0.3s cubic-bezier(...)`. As a rule, we **never** transition `all`. It triggers layout recalculations and repaints that cause jank, especially on mobile devices rendering dual-layer box-shadows and gradients. 
-**Design Solution:** Hardware-accelerate the specific properties. I accept your gradient, dual-layer glow, and scale transform, but the CSS must be strictly optimized.
 **Implementation Notes:**
-Update the `OrbButton` transition rule:
+Replace the "Loading clients..." text with a skeleton array.
 ```css
-/* DictationOrb.tsx - OrbButton */
-background: ${({ $listening }) => 
-  $listening 
-    ? 'linear-gradient(135deg, #002060 0%, #003080 100%)' 
-    : 'rgba(0, 32, 96, 0.85)'
-};
-border: 2px solid ${({ $listening }) => $listening ? '#8B5CF6' : 'rgba(224, 236, 244, 0.3)'};
-color: #E0ECF4;
-box-shadow: ${({ $listening }) => 
-  $listening 
-    ? '0 0 32px rgba(139, 92, 246, 0.8), 0 0 64px rgba(139, 92, 246, 0.4)' 
-    : 'none'
-};
-transform: ${({ $listening }) => $listening ? 'scale(1.05)' : 'scale(1)'};
-/* STRICT TRANSITION RULE */
-transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            background 0.3s ease,
-            border-color 0.3s ease;
-will-change: transform, box-shadow;
-```
+/* Add to MasterDetailStyles.ts */
+@keyframes crystallinePulse {
+  0% { background-color: #141419; border-color: rgba(224, 236, 244, 0.02); }
+  50% { background-color: #1A1A24; border-color: rgba(96, 192, 240, 0.1); } /* Graphite + Ice Wing hint */
+  100% { background-color: #141419; border-color: rgba(224, 236, 244, 0.02); }
+}
 
-### 2. REFINEMENT: DictationOrb Semantic Sizing & Icon Proportion
-**File & Location:** `frontend/src/components/AIAssistant/DictationOrb.tsx`
-**Design Problem:** I fully endorse your semantic sizing system (`compact`, `standard`, `primary`). It is scalable and intelligent. However, if we scale the button from 48px to 64px without scaling the SVG icon inside it, the icon will look completely lost in a sea of negative space. The internal visual balance will be destroyed.
-**Design Solution:** We must map the icon size to the button size.
+export const SkeletonCard = styled.div`
+  height: 80px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  animation: crystallinePulse 2s infinite ease-in-out;
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+  
+  &::before {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(224, 236, 244, 0.05);
+  }
+  
+  &::after {
+    content: '';
+    width: 60%;
+    height: 14px;
+    border-radius: 4px;
+    background: rgba(224, 236, 244, 0.05);
+  }
+`;
+```
+Render 5 of these `<SkeletonCard />` components when `loading === true`.
+
+### 6. HIGH: Missing Suspense Fallbacks
+**File & Location:** `frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx`
+**Design Problem:** You used `React.lazy` for `WorkoutPlanBuilder` and `WorkoutCopilotPanel` but didn't provide the `Suspense` boundary with a fallback in the snippet. If this throws or hangs, the UI breaks.
+**Design Solution:** Wrap the lazy-loaded components in a `<Suspense>` block that utilizes a branded loading spinner (Midnight Sapphire and Ice Wing).
+
 **Implementation Notes:**
-Implement a dual-map system in `DictationOrb.tsx`:
-
 ```tsx
-// DictationOrb.tsx
-interface DictationOrbProps {
-  isListening: boolean;
-  onToggle: () => void;
-  size?: 'compact' | 'standard' | 'primary';
-  disabled?: boolean;
-}
-
-const sizeMap = {
-  compact: 48,
-  standard: 56,
-  primary: 64
-} as const;
-
-const iconSizeMap = {
-  compact: 20,
-  standard: 24,
-  primary: 28
-} as const;
-
-// Inside the component render:
-const currentSize = size || 'standard';
-const iconSize = iconSizeMap[currentSize];
-
-// Pass iconSize to the SVG/Icon component:
-<MicIcon width={iconSize} height={iconSize} />
+// Inside TrainingTabContent.tsx render method
+<Suspense fallback={
+  <div style={{ 
+    display: 'flex', 
+    flexDirection: 'column',
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    height: '100%', 
+    minHeight: '400px',
+    color: '#60C0F0', // Ice Wing
+    fontFamily: "'Sora', sans-serif"
+  }}>
+    <Wand2 size={32} className="animate-pulse mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(96,192,240,0.5))' }} />
+    <span style={{ color: '#E0ECF4', opacity: 0.7, fontSize: '14px' }}>Summoning Architect...</span>
+  </div>
+}>
+  {/* Lazy loaded component here */}
+</Suspense>
 ```
-*And ensure the `OrbButton` styled component uses the `sizeMap` exactly as you proposed.*
 
 ---
 
-### Summary of Round 2
-We are very close to a flawless implementation. 
-1. I have **accepted** your Typography breakpoints and ChatInput padding.
-2. I require the **performance optimization** on the Orb transition.
-3. I require the **proportional icon scaling** to accompany your semantic size map.
-
-If you agree to these two refinements, we have a complete, production-ready blueprint for this feature. Let me know if you align.
+**Final Directive:** 
+Do not deviate from these hex codes. Do not use standard blue or standard purple. Use Midnight Sapphire, Royal Depth, Ice Wing, and Wing Purple exactly as prescribed. Make these updates and push to staging.
 
 ---
 
-## Design Collaborator — Round 4
+## Design Implementation Reviewer — Round 2
 
-## Design Collaborator Response — Round 2
+# Design Implementation Reviewer — Round 1 Response
 
-I'm pleased we've reached alignment on the core typography and input specifications. Your performance optimization and proportional scaling requirements are **absolutely correct** — these are the kinds of details that separate premium execution from amateur implementation.
+## CONSENSUS REACHED
 
----
-
-## CONSENSUS REACHED ON PREVIOUS DISPUTES
-
-✅ **Typography breakpoints:** 16px/16px/15px approved  
-✅ **ChatInput padding/max-height:** Specification accepted  
-✅ **DictationOrb visual treatment:** Gradient + dual-layer glow approved  
-✅ **Semantic sizing system:** `compact`/`standard`/`primary` approved  
+On all six points presented by the Creative Director. Each recommendation addresses legitimate UX/UI failures and aligns with Crystalline Swan premium design principles.
 
 ---
 
-## ROUND 2 AGREEMENTS
+## Merged Findings & Implementation Notes
 
-### ✅ Issue #1: Animation Performance Optimization
-**Status:** FULLY AGREED
+### ✅ Agreed: Point 1 — Color Contrast (WCAG AA Compliance)
 
-Your catch on `transition: all` is **critical**. This is a textbook performance anti-pattern that would cause frame drops during the listening state transition, especially on mid-range Android devices.
+The identified violations are correct. `rgba(224, 236, 244, 0.45)` on `#141419` fails WCAG AA 4.5:1 contrast ratio requirement for normal text. Swan Lavender (`#4070C0`) as secondary text is also inappropriate per design system hierarchy.
 
-**Implementation Accepted:**
+**Accepting the proposed styled-component solution.** Frost White at 70% opacity (`rgba(224, 236, 244, 0.7)`) provides approximately 7.2:1 contrast on Carbon, exceeding the 4.5:1 threshold.
+
+### ✅ Agreed: Point 2 — Keyboard Navigation & Dual-Glow Focus State
+
+The `:focus-visible` implementation is essential for accessibility. The Wing Purple (`#8B5CF6`) dual-glow specification with Carbon gap is consistent with the Crystalline Swan aesthetic.
+
+**Minor Enhancement:** Add `-webkit-box-shadow` vendor prefix for Safari/WebKit compatibility:
+
 ```css
-transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            background 0.3s ease,
-            border-color 0.3s ease;
-will-change: transform, box-shadow;
-```
-
-**Additional Note:** The `will-change` declaration is perfectly placed here — it hints to the browser's compositor without over-applying (which would waste memory). This will ensure 60fps transitions even during concurrent audio processing.
-
----
-
-### ✅ Issue #2: Proportional Icon Scaling
-**Status:** FULLY AGREED
-
-You're absolutely right that a fixed icon size would create visual imbalance across size variants. The proportional scaling maintains optical harmony.
-
-**Implementation Accepted:**
-```tsx
-const sizeMap = {
-  compact: 48,
-  standard: 56,
-  primary: 64
-} as const;
-
-const iconSizeMap = {
-  compact: 20,
-  standard: 24,
-  primary: 28
-} as const;
-
-const currentSize = size || 'standard';
-const iconSize = iconSizeMap[currentSize];
-```
-
----
-
-## MINOR REFINEMENT PROPOSAL
-
-While reviewing the implementation for production readiness, I identified **one additional consideration** that should be addressed:
-
-### 📋 Accessibility: Reduced Motion for Scale Transform
-
-**File & Location:** `frontend/src/components/AIAssistant/DictationOrb.tsx` (`OrbButton`)
-
-**Issue:** The `scale(1.05)` transform provides excellent tactile feedback, but users with vestibular disorders may find scaling animations disorienting. We should respect `prefers-reduced-motion` here as well.
-
-**Proposed Addition:**
-```css
-/* DictationOrb.tsx - OrbButton */
-transform: ${({ $listening }) => $listening ? 'scale(1.05)' : 'scale(1)'};
-transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            background 0.3s ease,
-            border-color 0.3s ease;
-will-change: transform, box-shadow;
-
-@media (prefers-reduced-motion: reduce) {
-  transform: scale(1) !important; /* Disable scale animation */
-  transition: box-shadow 0.3s ease,
-              background 0.3s ease,
-              border-color 0.3s ease;
-  will-change: box-shadow; /* Remove transform from will-change */
+&:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #141419,
+              0 0 12px 2px #8B5CF6,
+              inset 0 0 0 1px #8B5CF6;
+  -webkit-box-shadow: 0 0 0 2px #141419,
+                      0 0 12px 2px #8B5CF6,
+                      inset 0 0 0 1px #8B5CF6;
+  transition: box-shadow 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 ```
 
-**Rationale:** This maintains the visual prominence through the enhanced glow and gradient while removing the motion component for users who need it. The `!important` is justified here as it's a user preference override, not a specificity hack.
+### ✅ Agreed: Point 3 — Touch Targets (44x44px Minimum)
+
+The 14px icon with inadequate padding creates serious mobile usability issues. The `::after` pseudo-element technique is an elegant invisible hit-area solution.
+
+### ✅ Agreed: Point 4 — Inline Styles Refactor
+
+Hardcoded gradient and border values directly in JSX violate design system architecture. The `CollapsedAvatarBtn` styled-component is the correct approach.
+
+### ✅ Agreed: Point 5 — Skeleton Loader
+
+The "Crystalline Pulse" animation with `ClientMiniCard`-mimicking pseudo-elements transforms perceived performance. Accepting as proposed.
+
+### ✅ Agreed: Point 6 — Suspense Boundary
+
+Lazy-loaded component fallbacks are mandatory. The branded "Summoning Architect..." spinner with Ice Wing glow is consistent with premium positioning.
+
+**Minor Note:** The inline `style` attribute in the Suspense fallback is technically acceptable for one-off components, but consider extracting to a `SuspenseFallback` styled-component for consistency with Point 4's architecture directive. This is optional—not a blocker.
 
 ---
 
-## FINAL IMPLEMENTATION CHECKLIST
+## Summary
 
-### Approved for Immediate Implementation:
-1. ✅ Typography: 16px mobile, 15px at 1200px+ breakpoint
-2. ✅ ChatInput: 16px font, 56px min-height, proper padding
-3. ✅ DictationOrb: Gradient background + dual-layer glow
-4. ✅ DictationOrb: Semantic sizing with proportional icons
-5. ✅ DictationOrb: Performance-optimized transitions
-6. ✅ ARIA roles and focus management
-7. ✅ TypingDots: `prefers-reduced-motion` support
-8. ✅ TtsToggle: 44x44px touch target
-9. ✅ Color tokens: Frost White replacements throughout
+All six points are valid. Proceed with implementation as specified, incorporating the WebKit vendor prefix from Point 2's enhancement.
 
-### Awaiting Your Approval:
-- 📋 DictationOrb: `prefers-reduced-motion` for scale transform
-
----
-
-## Production-Ready Code Summary
-
-If you approve the reduced-motion refinement, we have a **complete, production-ready implementation** that:
-
-- ✅ Meets WCAG 2.1 Level AA (AAA for contrast)
-- ✅ Performs at 60fps on mobile devices
-- ✅ Maintains Crystalline Swan visual premium
-- ✅ Scales semantically across device contexts
-- ✅ Respects user accessibility preferences
-- ✅ Provides effortless gym-floor usability
-
-**2 rounds remaining.** This refinement is minor — if you approve, I recommend we declare consensus and move to implementation. If you have concerns about the reduced-motion approach for the scale transform, I'm open to alternatives.
+**Awaiting Round 2 from Creative Director.**
 
 ---
 

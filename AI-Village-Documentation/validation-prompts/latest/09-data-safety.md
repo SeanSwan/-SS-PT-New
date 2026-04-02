@@ -1,421 +1,381 @@
 # Data Safety & Integrity — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 79.3s
-> **Files:** docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md, frontend/src/components/Shared/AITerminalPanel.tsx, frontend/src/components/AIAssistant/AIContextSelector.tsx, frontend/src/components/AIAssistant/DictationOrb.tsx, frontend/src/config/dashboard-tabs.ts
-> **Generated:** 3/30/2026, 5:26:33 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.6-sonnet-20260217 | **Duration:** 73.8s
+> **Files:** frontend/src/config/dashboard-tabs.ts, frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientDetailView.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx
+> **Generated:** 4/1/2026, 7:10:00 PM
 
 ---
 
-# 🚨 DATA SAFETY AUDIT REPORT — SWAN STUDIOS
+# DATA SAFETY AUDIT REPORT — SwanStudios Frontend Components
 
-**Auditor:** DATA SAFETY AUDITOR  
-**Date:** 2026-03-30  
-**Severity Scale:** CRITICAL (data loss) | HIGH (corruption risk) | MEDIUM (exposure) | LOW (best practice)
+**Audit Date:** 2026-03-25 | **Auditor:** Data Safety Auditor | **Platform:** sswanstudios.com
 
 ---
 
-## ⚠️ EXECUTIVE SUMMARY
+## EXECUTIVE SUMMARY
 
-**CRITICAL FINDINGS:** 0  
-**HIGH FINDINGS:** 3  
-**MEDIUM FINDINGS:** 4  
-**LOW FINDINGS:** 2
+These files are **frontend-only** (React/TypeScript configuration and UI components). They contain **zero direct database operations**, no Sequelize calls, no migrations, and no destructive SQL. However, several findings warrant serious attention from a data safety perspective — particularly around **data exposure**, **unguarded API calls**, **missing authorization checks**, and **architectural patterns that could enable future data destruction**.
 
-**Overall Risk Level:** 🟡 **MODERATE** — No immediate data-loss vulnerabilities found in reviewed code, but **architectural gaps** exist that could lead to data corruption or loss in production scenarios not covered by these files.
-
-**Key Concern:** The blueprint describes a system that will interact with user data (workouts, clients, sessions, macros) but the reviewed code **does not show database operations**. The real risk lies in the **backend implementation** (not provided) and **missing safeguards** in the architecture.
+**Overall Risk Level: MEDIUM** (no immediate data destruction risk, but several HIGH-severity exposure and safety gaps)
 
 ---
 
-## 🔴 CRITICAL FINDINGS
+## FINDING #1 — UNPROTECTED CLIENT PII EXPOSURE IN RENDERED UI
 
-### None in reviewed code
-The files reviewed are **frontend UI components and documentation**. No direct database operations (`DELETE`, `TRUNCATE`, `sync({ force: true })`, etc.) are present.
-
----
-
-## 🟠 HIGH FINDINGS
-
-### HIGH-1: Unvalidated Client Context Injection Could Corrupt Data
-**Severity:** HIGH  
-**Data at Risk:** Client workout plans, session logs, macro entries  
-**Blast Radius:** 1 client per incident, but repeatable across all clients  
-**File & Line:** `frontend/src/components/Shared/AITerminalPanel.tsx:144-151`
+**Severity:** HIGH
+**Data at Risk:** Client email addresses, engagement scores, session counts, tier classification
+**Blast Radius:** All clients visible to any user who can access the admin dashboard
+**File & Line:** `ClientDetailView.tsx` line ~115, `ClientMiniCard.tsx` line ~95
 
 **What's Wrong:**
+
 ```tsx
-let enrichedMessage = text;
-if (clientId) {
-  enrichedMessage += `\n[Context: clientId=${clientId}]`;
-}
-if (equipmentProfileId) {
-  enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
-}
+// ClientDetailView.tsx — email rendered directly with no masking
+<DetailSubtext>
+  {client.email || 'No email'} · {client.status} · {client.tier || 'starter'}
+</DetailSubtext>
+
+// ClientMiniCard.tsx — full name + session count visible in list
+<ClientName>{client.firstName} {client.lastName}</ClientName>
+<ClientMeta>
+  {client.sessionsLeft != null && `${client.sessionsLeft} sessions`}
+  {client.workoutCount != null && ` · ${client.workoutCount} wkts`}
+</ClientMeta>
 ```
 
-The `clientId` and `equipmentProfileId` are **appended to the user's message without validation**. If the backend AI service uses this context to perform database operations (e.g., "log this workout for client 123"), a malicious or buggy frontend could:
-- Send `clientId=-1` or `clientId=null` → backend writes to wrong client or crashes
-- Send `clientId=999999` (non-existent) → orphaned records
-- Send `clientId` of a different user → **cross-client data corruption**
-
-**Scenario:**
-1. Admin opens AITerminalPanel with `clientId={5}` (Jackie)
-2. Browser extension or XSS modifies the prop to `clientId={8}` (Marcus)
-3. Admin says "Log today's workout: Bench Press 3x10"
-4. Backend writes workout to Marcus's account instead of Jackie's
-5. **Data corruption:** Marcus now has Jackie's workout in his history
+The `MasterDetailLayout.tsx` fetches up to 100 clients with `includeStats: true`, `includeRevenue: true`, `includeSubscription: true` and stores ALL of that data in React state. This means **every client's PII, revenue data, and subscription status is loaded into browser memory simultaneously** — visible in React DevTools, browser memory dumps, and any XSS attack.
 
 **Fix:**
+
 ```tsx
-// AITerminalPanel.tsx
-const handleSend = useCallback(async () => {
-  const text = inputValue.trim();
-  if (!text || sending) return;
-
-  // ✅ VALIDATE clientId before sending
-  if (clientId !== undefined && (clientId <= 0 || !Number.isInteger(clientId))) {
-    console.error('[AITerminalPanel] Invalid clientId:', clientId);
-    // Show error to user: "Invalid client context. Please refresh and try again."
-    return;
-  }
-
-  // ✅ VALIDATE equipmentProfileId
-  if (equipmentProfileId !== undefined && equipmentProfileId !== null && equipmentProfileId <= 0) {
-    console.error('[AITerminalPanel] Invalid equipmentProfileId:', equipmentProfileId);
-    return;
-  }
-
-  let enrichedMessage = text;
-  if (clientId && clientId > 0) {
-    enrichedMessage += `\n[Context: clientId=${clientId}]`;
-  }
-  if (equipmentProfileId && equipmentProfileId > 0) {
-    enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
-  }
-
-  setInputValue('');
-  await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
-}, [inputValue, sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
-```
-
-**Backend Mitigation (REQUIRED):**
-```javascript
-// backend/services/aiChatService.mjs
-async function processAIMessage(message, userId, context) {
-  // ✅ Extract clientId from message context
-  const clientIdMatch = message.match(/\[Context: clientId=(\d+)\]/);
-  const clientId = clientIdMatch ? parseInt(clientIdMatch[1], 10) : null;
-
-  if (clientId) {
-    // ✅ VERIFY the requesting user has permission to access this client
-    const hasAccess = await db.ClientTrainerAssignments.findOne({
-      where: { clientId, trainerId: userId }
-    });
-
-    if (!hasAccess && userRole !== 'admin') {
-      throw new Error('Unauthorized: You do not have access to this client');
-    }
-
-    // ✅ VERIFY the client exists
-    const client = await db.Users.findByPk(clientId);
-    if (!client) {
-      throw new Error(`Client ID ${clientId} does not exist`);
-    }
-  }
-
-  // ... proceed with AI processing
-}
-```
-
----
-
-### HIGH-2: Voice Auto-Send Could Trigger Unintended Destructive Commands
-**Severity:** HIGH  
-**Data at Risk:** Any data the AI has permission to modify (workouts, sessions, client records)  
-**Blast Radius:** 1 user per incident, but high frequency risk (voice is always-on)  
-**File & Line:** `frontend/src/components/Shared/AITerminalPanel.tsx:156-167` and `frontend/src/components/AIAssistant/DictationOrb.tsx:228-237`
-
-**What's Wrong:**
-Voice auto-send fires **750ms after speech ends** with no confirmation. If the AI backend has destructive capabilities (e.g., "delete all workouts for this client"), a misheard phrase could trigger data loss.
-
-**Scenario:**
-1. Trainer says: "Show me Jackie's **last** workout"
-2. Speech API mishears as: "**Delete** Jackie's last workout"
-3. Auto-send fires → backend AI interprets as delete command
-4. **Data loss:** Jackie's most recent workout is deleted with no undo
-
-**Current Code:**
-```tsx
-// DictationOrb.tsx:228-237
-recognition.onend = () => {
-  // ...
-  if (sessionText) {
-    autoSendTimerRef.current = setTimeout(() => {
-      autoSendTimerRef.current = null;
-      onAutoSendRef.current?.(sessionText); // ⚠️ NO CONFIRMATION
-    }, 750);
-  }
-};
-```
-
-**Fix — Add Destructive Command Detection:**
-```tsx
-// DictationOrb.tsx
-const DESTRUCTIVE_KEYWORDS = ['delete', 'remove', 'clear', 'wipe', 'erase', 'drop'];
-
-recognition.onend = () => {
-  setListening(false);
-  setInterim('');
-
-  if (!holdToTalkRef.current && autoSendRef.current && onAutoSendRef.current) {
-    const sessionText = sessionAccumulatedRef.current.trim();
-    sessionAccumulatedRef.current = '';
-
-    if (sessionText) {
-      // ✅ CHECK for destructive keywords
-      const lowerText = sessionText.toLowerCase();
-      const hasDestructiveKeyword = DESTRUCTIVE_KEYWORDS.some(kw => lowerText.includes(kw));
-
-      if (hasDestructiveKeyword) {
-        // ✅ REQUIRE manual confirmation for destructive commands
-        // Fill the input field but DO NOT auto-send
-        onTranscriptRef.current(sessionText);
-        // Show warning toast: "Destructive command detected. Please review and send manually."
-        return;
-      }
-
-      // Safe command → auto-send as normal
-      autoSendTimerRef.current = setTimeout(() => {
-        autoSendTimerRef.current = null;
-        onAutoSendRef.current?.(sessionText);
-      }, 750);
-    }
-  }
-};
-```
-
-**Backend Mitigation (REQUIRED):**
-```javascript
-// backend/services/aiChatService.mjs
-const DESTRUCTIVE_ACTIONS = ['delete', 'remove', 'clear', 'drop', 'truncate'];
-
-async function executeAIAction(action, params, userId) {
-  const actionLower = action.toLowerCase();
-  const isDestructive = DESTRUCTIVE_ACTIONS.some(kw => actionLower.includes(kw));
-
-  if (isDestructive) {
-    // ✅ REQUIRE explicit confirmation token from frontend
-    if (!params.confirmationToken || params.confirmationToken !== 'USER_CONFIRMED') {
-      return {
-        requiresConfirmation: true,
-        message: `This action will ${action}. Please confirm to proceed.`,
-        confirmationRequired: true
-      };
-    }
-
-    // ✅ LOG all destructive actions
-    await db.AuditLog.create({
-      userId,
-      action: `AI_DESTRUCTIVE_ACTION: ${action}`,
-      params: JSON.stringify(params),
-      timestamp: new Date()
-    });
-  }
-
-  // ... execute action
-}
-```
-
----
-
-### HIGH-3: Missing Transaction Wrappers for Multi-Step AI Actions
-**Severity:** HIGH  
-**Data at Risk:** Workout plans, client assignments, session bookings  
-**Blast Radius:** 1 client per incident, leaves data in inconsistent state  
-**File & Line:** Blueprint Section 13 (Data Flow) — backend implementation not provided
-
-**What's Wrong:**
-The blueprint describes AI actions that will involve **multiple database writes**:
-- "Generate workout plan" → creates WorkoutPlan + WorkoutExercises + sets ClientWorkoutPlan
-- "Book session" → creates Session + updates trainer availability + sends notification
-- "Log meal" → creates MacroLog + updates daily totals + recalculates weekly averages
-
-If any step fails mid-operation, **partial data is left in the database**.
-
-**Scenario:**
-1. AI generates a 6-exercise workout plan for Jackie
-2. Backend writes WorkoutPlan (ID 501)
-3. Backend writes 3 WorkoutExercises successfully
-4. **Network timeout** on exercise 4
-5. Backend crashes before writing exercises 5-6
-6. **Data corruption:** Jackie has a workout plan with only 3 exercises (incomplete)
-7. Trainer sees the plan, thinks it's complete, assigns it to Jackie
-8. Jackie trains with an incomplete plan
-
-**Fix (Backend — CRITICAL):**
-```javascript
-// backend/services/aiWorkoutService.mjs
-async function generateWorkoutPlan(clientId, exercises, optPhase, trainerId) {
-  const transaction = await db.sequelize.transaction();
-
-  try {
-    // ✅ ALL writes happen inside transaction
-    const plan = await db.WorkoutPlans.create({
-      name: `AI Generated - ${new Date().toISOString()}`,
-      clientId,
-      trainerId,
-      optPhase,
-      status: 'draft'
-    }, { transaction });
-
-    const exerciseRecords = await Promise.all(
-      exercises.map(ex => db.WorkoutExercises.create({
-        workoutPlanId: plan.id,
-        exerciseId: ex.exerciseId,
-        sets: ex.sets,
-        reps: ex.reps,
-        tempo: ex.tempo,
-        rest: ex.rest
-      }, { transaction }))
-    );
-
-    await db.ClientWorkoutPlans.create({
-      clientId,
-      workoutPlanId: plan.id,
-      assignedAt: new Date()
-    }, { transaction });
-
-    // ✅ COMMIT only if all steps succeed
-    await transaction.commit();
-
-    return { success: true, planId: plan.id };
-
-  } catch (error) {
-    // ✅ ROLLBACK on any failure
-    await transaction.rollback();
-    logger.error('[AI Workout] Transaction failed:', error);
-    throw new Error('Failed to generate workout plan. No data was saved.');
-  }
-}
-```
-
----
-
-## 🟡 MEDIUM FINDINGS
-
-### MEDIUM-1: Client PII Exposure in AI Message Context
-**Severity:** MEDIUM  
-**Data at Risk:** Client names, IDs, equipment profiles  
-**Blast Radius:** 1 client per message, but logged in browser console and backend logs  
-**File & Line:** `frontend/src/components/Shared/AITerminalPanel.tsx:144-151`
-
-**What's Wrong:**
-```tsx
-enrichedMessage += `\n[Context: clientId=${clientId}]`;
-```
-
-Client IDs are appended to **every AI message**. If backend logs these messages (common for debugging), client IDs are stored in plaintext logs. If logs are compromised, attacker can map IDs to users.
-
-**Fix:**
-```tsx
-// ✅ Use opaque tokens instead of raw IDs
-const clientToken = clientId ? await hashClientId(clientId) : null;
-enrichedMessage += `\n[Context: clientToken=${clientToken}]`;
-```
-
-Backend decodes the token to retrieve the actual ID.
-
----
-
-### MEDIUM-2: No Rate Limiting on AI Requests
-**Severity:** MEDIUM  
-**Data at Risk:** API quota exhaustion, cost overruns, denial of service  
-**Blast Radius:** All users (if quota exhausted, AI stops working for everyone)  
-**File & Line:** `frontend/src/components/Shared/AITerminalPanel.tsx:138-152`
-
-**What's Wrong:**
-No frontend or backend rate limiting is mentioned. A user (or bug) could spam AI requests, exhausting Gemini/OpenAI quota and racking up costs.
-
-**Fix (Frontend):**
-```tsx
-const [requestCount, setRequestCount] = useState(0);
-const [lastRequestTime, setLastRequestTime] = useState(0);
-
-const handleSend = useCallback(async () => {
-  const now = Date.now();
-  
-  // ✅ RATE LIMIT: max 10 requests per minute
-  if (now - lastRequestTime < 60000 && requestCount >= 10) {
-    // Show error: "Too many requests. Please wait a moment."
-    return;
-  }
-
-  if (now - lastRequestTime >= 60000) {
-    setRequestCount(1);
-  } else {
-    setRequestCount(prev => prev + 1);
-  }
-  setLastRequestTime(now);
-
-  // ... proceed with send
-}, [requestCount, lastRequestTime, ...]);
-```
-
-**Fix (Backend — REQUIRED):**
-```javascript
-// backend/middleware/rateLimiter.mjs
-import rateLimit from 'express-rate-limit';
-
-export const aiChatLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 requests per minute per user
-  keyGenerator: (req) => req.user.id,
-  handler: (req, res) => {
-    res.status(429).json({
-      error: 'Too many AI requests. Please wait a moment.'
-    });
-  }
+// 1. Limit the fetch to only what the UI actually needs
+const response = await authAxios.get('/api/admin/clients', {
+  params: { 
+    limit: 100, 
+    // REMOVE: includeRevenue: true — only fetch when a specific client is selected
+    // REMOVE: includeSubscription: true — same reason
+    includeStats: true,  // Keep only what the list view needs
+  },
 });
 
-// Apply to AI routes
-app.use('/api/ai-chat', aiChatLimiter);
+// 2. Mask email in list view — only show full email in detail view
+// ClientMiniCard.tsx — show masked email only
+const maskedEmail = client.email 
+  ? `${client.email[0]}***@${client.email.split('@')[1]}` 
+  : 'No email';
+
+// 3. In ClientDetailView.tsx — only show full email to admin role
+// Add role check before rendering full PII
+const { user } = useAuth();
+const canViewFullPII = user?.role === 'admin';
+
+<DetailSubtext>
+  {canViewFullPII ? client.email : maskedEmail} · {client.status}
+</DetailSubtext>
 ```
 
 ---
 
-### MEDIUM-3: Voice Transcript Stored in Browser Memory Indefinitely
-**Severity:** MEDIUM  
-**Data at Risk:** Sensitive voice transcripts (client health info, payment details)  
-**Blast Radius:** 1 user, but persistent across sessions if not cleared  
-**File & Line:** `frontend/src/components/AIAssistant/DictationOrb.tsx:90-92`
+## FINDING #2 — BULK CLIENT DATA LOADED WITHOUT PAGINATION GUARD
+
+**Severity:** HIGH
+**Data at Risk:** All client records, revenue data, subscription data
+**Blast Radius:** All users (entire client database loaded at once)
+**File & Line:** `MasterDetailLayout.tsx` lines ~107-130
 
 **What's Wrong:**
+
 ```tsx
-const accumulatedRef = useRef('');
-const sessionAccumulatedRef = useRef('');
+// This fetches ALL clients with full financial data in one request
+const response = await authAxios.get('/api/admin/clients', {
+  params: { 
+    limit: 100,           // ← Hard-coded 100 — what if there are 500 clients?
+    includeStats: true, 
+    includeRevenue: true,  // ← Revenue data for ALL 100 clients simultaneously
+    includeSubscription: true 
+  },
+});
 ```
 
-Voice transcripts accumulate in refs and are never explicitly cleared. If a user dictates sensitive info ("Jackie's credit card is 4111..."), it stays in memory until page refresh.
+The `limit: 100` is a soft guard, but there is **no server-side enforcement visible here**. If the backend ignores the limit parameter (or if it's overridden), this single API call could return the entire users table with financial data. Additionally, loading revenue data for 100 clients simultaneously is a significant over-fetch — this data is only needed when a specific client is selected.
 
 **Fix:**
-```tsx
-// ✅ Clear sensitive data after send
-const handleSend = useCallback(async () => {
-  // ... send logic
-  
-  // Clear accumulated transcripts
-  accumulatedRef.current = '';
-  sessionAccumulatedRef.current = '';
-  setInterim('');
-}, [...]);
 
-// ✅ Clear on unmount
-useEffect(() => {
-  return () => {
-    accumulatedRef.current = '';
-    sessionAccumulatedRef.current = '';
-  };
+```tsx
+// MasterDetailLayout.tsx — fetch minimal data for list, load details on demand
+const fetchClients = async () => {
+  try {
+    setLoading(true);
+    // Step 1: Fetch ONLY list-view data (no revenue, no subscription)
+    const response = await authAxios.get('/api/admin/clients', {
+      params: { 
+        limit: 50,           // Reduce to reasonable page size
+        page: 1,
+        fields: 'id,firstName,lastName,email,isActive,availableSessions,totalWorkouts,lastMeasurement',
+        // REMOVED: includeRevenue, includeSubscription
+      },
+    });
+    
+    // Step 2: Revenue/subscription data fetched separately when client is selected
+    // See handleSelectClient below
+  }
+};
+
+// Fetch full client detail only when selected
+const handleSelectClient = useCallback(async (clientId: number | string) => {
+  setSelectedClientId(clientId);
+  setMobileDetailOpen(true);
+  
+  // Lazy-load full client detail (revenue, subscription, etc.)
+  try {
+    const detail = await authAxios.get(`/api/admin/clients/${clientId}`, {
+      params: { includeRevenue: true, includeSubscription: true }
+    });
+    // Update only the selected client's data in state
+    setClientDetails(prev => ({ ...prev, [clientId]: detail.data }));
+  } catch (err) {
+    logger.warn('Failed to fetch client detail:', err);
+  }
+}, [authAxios, navigate, location.pathname]);
+```
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+## FINDING #3 — NO ROLE VERIFICATION BEFORE RENDERING ADMIN CLIENT DATA
+
+**Severity:** HIGH
+**Data at Risk:** All client PII, session counts, engagement scores, revenue data
+**Blast Radius:** Any authenticated user who navigates to `/dashboard/admin/client-management`
+**File & Line:** `MasterDetailLayout.tsx` lines ~90-95
+
+**What's Wrong:**
+
+```tsx
+const MasterDetailLayout: React.FC = () => {
+  const { authAxios } = useAuth();
+  // ← NO role check here. Any authenticated user reaching this component
+  //   will immediately trigger the client data fetch.
+  
+  useEffect(() => {
+    if (!authAxios) return;
+    const fetchClients = async () => {
+      // This fires for ANY authenticated user — trainer, client, admin
+      const response = await authAxios.get('/api/admin/clients', ...);
+```
+
+The component assumes that if it renders, the user is authorized. But React Router route guards can be bypassed, and there is no in-component role verification. A client-role user who somehow reaches this route would trigger a fetch of all other clients' data.
+
+**Fix:**
+
+```tsx
+import { useAuth } from '../../../../context/AuthContext';
+import { Navigate } from 'react-router-dom';
+
+const MasterDetailLayout: React.FC = () => {
+  const { authAxios, user } = useAuth();
+  
+  // CRITICAL: Verify admin/trainer role before rendering ANY client data
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user.role !== 'admin' && user.role !== 'trainer') {
+    // Log unauthorized access attempt
+    logger.warn(`Unauthorized access attempt to client management by user ${user.id} (role: ${user.role})`);
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  // ... rest of component
+};
+```
+
+---
+
+## FINDING #4 — CLIENT ID EXPOSED IN ARIA LABELS (PII LEAKAGE VECTOR)
+
+**Severity:** MEDIUM
+**Data at Risk:** Internal client IDs (database primary keys)
+**Blast Radius:** Any user who inspects the DOM
+**File & Line:** `ClientMiniCard.tsx` lines ~95-100, `ClientDetailView.tsx` lines ~105-115
+
+**What's Wrong:**
+
+```tsx
+// ClientMiniCard.tsx — client name in aria-label (accessible to screen readers + DOM)
+aria-label={`Select ${client.firstName} ${client.lastName}`}
+aria-label={`Message ${client.firstName}`}
+aria-label={`Log workout for ${client.firstName}`}
+aria-label={`Record weigh-in for ${client.firstName} (overdue)`}
+
+// ClientDetailView.tsx — tab panel ID contains active tab name (minor)
+id={`detail-panel-${activeTab}`}
+```
+
+While aria-labels are necessary for accessibility, the combination of full client names in aria-labels + the `key={client.id}` prop means database primary keys are visible in the rendered HTML. An attacker with DOM access (XSS) can enumerate all client IDs and names.
+
+**Fix:**
+
+```tsx
+// Use anonymized references in aria-labels where possible
+// Or accept this as a necessary accessibility trade-off but document it
+
+// For the key prop — use a non-sequential identifier if possible
+// (This requires backend to provide UUIDs instead of sequential integers)
+
+// Minimum fix: ensure client IDs are UUIDs, not sequential integers
+// In the mapping code in MasterDetailLayout.tsx:
+const mapped: MiniCardClient[] = (response.data.data?.clients || []).map((c: any) => ({
+  id: c.uuid || c.id,  // Prefer UUID over sequential integer
+  // ...
+}));
+```
+
+---
+
+## FINDING #5 — ENGAGEMENT SCORE CALCULATION IS LOSSY AND COULD MISREPRESENT CLIENT DATA
+
+**Severity:** MEDIUM
+**Data at Risk:** Client engagement records (misrepresentation, not deletion)
+**Blast Radius:** All clients
+**File & Line:** `MasterDetailLayout.tsx` lines ~118-122
+
+**What's Wrong:**
+
+```tsx
+engagementScore: Math.min(100, Math.round(
+  ((c.totalWorkouts || 0) * 5 + (c.clientSessions?.length || 0) * 10) / 2
+)),
+```
+
+This formula is computed **client-side in the frontend** from raw data. Problems:
+
+1. **Integer overflow risk**: A client with 1000 workouts gets `(1000 * 5) / 2 = 2500`, clamped to 100 — but the formula is wrong (dividing by 2 after multiplying both terms separately doesn't normalize correctly)
+2. **Data misrepresentation**: A client with 0 workouts but 10 sessions gets score `50`, while a client with 10 workouts and 0 sessions gets score `25` — this asymmetry could cause trainers to deprioritize active clients
+3. **`clientSessions?.length`**: This is the length of the sessions array loaded in the API response — if the API paginates sessions, this will always be wrong
+
+**Fix:**
+
+```tsx
+// Move engagement score calculation to the backend where it has access to full data
+// Frontend should receive pre-computed score from API
+
+// If must compute frontend-side, use a correct formula:
+const computeEngagementScore = (workouts: number, sessions: number): number => {
+  if (workouts === 0 && sessions === 0) return 0;
+  // Weighted score: sessions worth 2x workouts, normalized to 100
+  const raw = (workouts * 1) + (sessions * 2);
+  const maxExpected = 50; // Adjust based on business logic
+  return Math.min(100, Math.round((raw / maxExpected) * 100));
+};
+
+engagementScore: computeEngagementScore(
+  c.totalWorkouts || 0, 
+  c.totalSessions || 0  // Use pre-aggregated count, not array length
+),
+```
+
+---
+
+## FINDING #6 — WEIGH-IN DATE CALCULATION USES CLIENT-SIDE TIME (TIMEZONE VULNERABILITY)
+
+**Severity:** MEDIUM
+**Data at Risk:** Weigh-in overdue status — could incorrectly flag clients as overdue
+**Blast Radius:** All clients with weigh-in records
+**File & Line:** `ClientMiniCard.tsx` lines ~55-68
+
+**What's Wrong:**
+
+```tsx
+const isWeighInOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;  // ← null treated as overdue — correct
+  const last = new Date(lastWeighIn);
+  const now = new Date();  // ← Uses CLIENT'S local time, not server time
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 30;
+};
+```
+
+Issues:
+1. `new Date()` uses the client's local timezone. A trainer in UTC-8 viewing a client whose weigh-in was recorded in UTC+5 could see incorrect overdue status
+2. `new Date(lastWeighIn)` — if `lastWeighIn` is a date string without timezone info (e.g., `"2026-02-20"`), JavaScript parses it as UTC midnight, causing a 1-day offset in some timezones
+3. No validation that `lastWeighIn` is a valid date string — `new Date("invalid")` returns `Invalid Date`, and `Invalid Date.getTime()` returns `NaN`, causing `NaN > 30` to be `false` (incorrectly shows as NOT overdue)
+
+**Fix:**
+
+```tsx
+const isWeighInOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;
+  
+  const last = new Date(lastWeighIn);
+  
+  // Guard against invalid date strings
+  if (isNaN(last.getTime())) {
+    logger.warn(`Invalid lastWeighIn date: ${lastWeighIn}`);
+    return true; // Treat invalid date as overdue (safer default)
+  }
+  
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 30;
+};
+
+// Better: have the backend send a pre-computed boolean
+// API response: { ...client, isWeighInOverdue: true, daysSinceWeighIn: 45 }
+```
+
+---
+
+## FINDING #7 — DESIGN PLAYGROUND TAB USES `import.meta.env` AT MODULE LOAD TIME
+
+**Severity:** LOW
+**Data at Risk:** Potential exposure of dev-only features in production if env var is misconfigured
+**Blast Radius:** All admin users
+**File & Line:** `dashboard-tabs.ts` lines ~235-245
+
+**What's Wrong:**
+
+```tsx
+...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
+  key: 'design-playground',
+  // ...
+}] : []),
+```
+
+This is evaluated at **module load time**, not at runtime. If `VITE_DESIGN_PLAYGROUND=true` is accidentally set in a production build (e.g., copied from a `.env.local` file into a CI/CD pipeline), the design playground tab will appear in production for all admin users. The playground likely contains experimental UI that could confuse or mislead the platform owner.
+
+**Fix:**
+
+```tsx
+// Add an additional runtime guard
+...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' && import.meta.env.DEV ? [{
+  key: 'design-playground',
+  label: 'Design Playground',
+  // ...
+}] : []),
+
+// Also add to CI/CD pipeline: explicitly assert VITE_DESIGN_PLAYGROUND is unset in prod builds
+// In your build script:
+// if [ "$NODE_ENV" = "production" ] && [ "$VITE_DESIGN_PLAYGROUND" = "true" ]; then
+//   echo "ERROR: VITE_DESIGN_PLAYGROUND must not be true in production"
+//   exit 1
+// fi
+```
+
+---
+
+## FINDING #8 — DEPRECATED `ADMIN_DASHBOARD_TABS` STILL EXPORTED AND USED
+
+**Severity:** LOW
+**Data at Risk:** Route misconfiguration could expose admin routes to wrong roles
+**Blast Radius:** Admin users
+**File & Line:** `dashboard-tabs.ts` lines ~65-70
+
+**What's Wrong:**
+
+```tsx
+/**
+ * @deprecated Use WORKSPACE_CONFIG
+
+---
+
+*Part of SwanStudios 14-Brain Recursive Consensus System*

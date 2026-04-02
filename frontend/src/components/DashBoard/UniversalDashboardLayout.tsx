@@ -489,7 +489,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
 
       // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
 
       // 🔧 EQUIPMENT MANAGER — Upload gym/park/home photos, manage equipment profiles
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' }
@@ -505,7 +505,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
       { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'AI workout generation' },
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'NASM Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },

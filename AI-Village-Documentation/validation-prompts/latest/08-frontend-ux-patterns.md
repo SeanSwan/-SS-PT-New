@@ -1,69 +1,59 @@
 # Frontend UX & Code Patterns — Validation Report
 
 > **Status:** PASS | **Model:** google/gemini-3.1-flash-lite-preview-20260303 | **Duration:** 6.3s
-> **Files:** docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md, frontend/src/components/Shared/AITerminalPanel.tsx, frontend/src/components/AIAssistant/AIContextSelector.tsx, frontend/src/components/AIAssistant/DictationOrb.tsx, frontend/src/config/dashboard-tabs.ts
-> **Generated:** 3/30/2026, 5:26:33 PM
+> **Files:** frontend/src/config/dashboard-tabs.ts, frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientDetailView.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx
+> **Generated:** 4/1/2026, 7:10:00 PM
 
 ---
 
-This review evaluates the **Swan Studios Coach Assistant** implementation against the provided blueprint and technical requirements.
+This review evaluates the **SwanStudios** client-management workspace against the specified *Crystalline Swan* design system and React best practices.
 
 ### 1. React Component Patterns
-*   **Finding:** `AITerminalPanel` is currently 453 lines, violating the 300-line rule.
-    *   **Rating:** **MEDIUM**
-    *   **Recommendation:** Extract `MessageBubble`, `InputArea`, and `Header` into sub-components within the `coach-assistant/` directory.
-*   **Finding:** `useEffect` in `AITerminalPanel` for auto-scrolling is prone to race conditions if messages update rapidly.
-    *   **Rating:** **LOW**
-    *   **Recommendation:** Use `useLayoutEffect` or a dedicated `useScrollToBottom` hook to ensure the DOM has painted the new message before scrolling.
-*   **Finding:** `DictationOrb` uses `useEffect` with an empty dependency array for `recognition` setup, which is excellent for performance but relies heavily on `useRef` for state synchronization.
-    *   **Rating:** **HIGH (Positive)**
-    *   **Recommendation:** Keep this pattern; it prevents unnecessary re-initialization of the Web Speech API.
+*   **Finding:** **High** — The `MasterDetailLayout` is becoming a "God Component." It handles data fetching, routing logic, keyboard event listeners, and layout state.
+    *   **Recommendation:** Extract the `useClients` hook into a custom hook (e.g., `useClientRoster`) to encapsulate the `authAxios` logic and state. Move the keyboard navigation logic into a dedicated `useMasterDetailKeyboard` hook to keep the component body clean.
+*   **Finding:** **Medium** — `TabErrorBoundary` is implemented, which is excellent, but ensure it logs to your `logger` utility so you can track which specific client tabs are failing in production.
 
 ### 2. styled-components Best Practices
-*   **Finding:** Theme tokens (e.g., `var(--bg-base)`) are correctly identified in the blueprint but `AITerminalPanel` uses hardcoded hex values (e.g., `#002060`).
-    *   **Rating:** **HIGH**
-    *   **Recommendation:** Move all hardcoded colors to the central `theme` object or CSS variables defined in the blueprint to ensure consistency across the "Crystalline Swan" theme.
-*   **Finding:** Glassmorphism patterns are well-implemented with `backdrop-filter: blur(12px)`.
-    *   **Rating:** **HIGH (Positive)**
+*   **Finding:** **High** — You are using `color-mix` for dynamic transparency, which is great for the *Crystalline Swan* theme. However, ensure you have a fallback for older browsers if your target audience uses legacy systems (though unlikely for a SaaS).
+*   **Finding:** **Low** — The `MasterDetailLayout` uses inline styles for the `h2` and `div` wrappers.
+    *   **Recommendation:** Move these to your `MasterDetailStyles.ts` file. Inline styles break the ability to easily theme or override styles via the `styled-components` `ThemeProvider`.
 
 ### 3. Animation & Interaction
-*   **Finding:** `DictationOrb` correctly respects `prefers-reduced-motion`.
-    *   **Rating:** **CRITICAL (Positive)**
-    *   **Recommendation:** Ensure the `crystallinePulse` animation is also wrapped in a media query for `prefers-reduced-motion` in all components.
-*   **Finding:** The "Send" button in `AITerminalPanel` lacks a loading state visual feedback beyond `disabled`.
-    *   **Rating:** **MEDIUM**
-    *   **Recommendation:** Add a `Spinner` icon or a subtle pulse animation when `sending` is true to provide immediate feedback.
+*   **Finding:** **Medium** — The `ClientMiniCard` uses a CSS variable `--stagger-idx` for animation, but there is no `framer-motion` implementation for the list entry.
+    *   **Recommendation:** Use `framer-motion`'s `AnimatePresence` and `layout` prop for the `ClientList`. This will make the transition between "Search" filtering and "Default" state feel fluid rather than jarring.
+*   **Finding:** **Low** — The `CollapseButton` lacks a transition duration on the icon rotation. Add `transition: transform 0.3s ease` to the icon wrapper.
 
 ### 4. Form UX
-*   **Finding:** `ChatInput` uses `textarea` with `rows={1}`. On mobile, this can cause the keyboard to cover the input area if the viewport isn't handled correctly.
-    *   **Rating:** **HIGH**
-    *   **Recommendation:** Ensure the `InputArea` uses `padding-bottom: env(safe-area-inset-bottom)` to prevent the iOS home indicator/notch from obscuring the UI.
-*   **Finding:** The "Balanced" mode is missing from the `AITerminalPanel` UI, despite being a requirement in the blueprint.
-    *   **Rating:** **CRITICAL**
-    *   **Recommendation:** Add the `ResponseStyleSelector` component to the `AITerminalPanel` header or input area.
+*   **Finding:** **Medium** — The `SearchInput` uses `data-search-input` for focus, which is a good "escape hatch," but ensure the input has `autoComplete="off"` to prevent browser autofill UI from obscuring your custom search styling.
+*   **Finding:** **Low** — The "Weigh-in" alert is a great UX touch. Ensure the `QuickActionBtn` has a `tooltip` or `aria-describedby` that explains *why* it is red (e.g., "Overdue by 30+ days").
 
 ### 5. State Management
-*   **Finding:** `AITerminalPanel` uses local `useState` for `isOpen` and `inputValue`. This is appropriate for a UI-heavy component.
-    *   **Rating:** **HIGH (Positive)**
-*   **Finding:** The `useAIChat` hook is used for state, but there is no explicit "optimistic UI" update for the user message.
-    *   **Rating:** **MEDIUM**
-    *   **Recommendation:** Update the `messages` array locally before the API call returns to make the interface feel "instant" for the trainer.
+*   **Finding:** **High** — The `activePillar` state and `location.pathname` are currently fighting for control in `MasterDetailLayout`.
+    *   **Recommendation:** Use a single source of truth. Since you are using React Router, derive the `activePillar` from the `location.pathname` using a `useMemo` hook rather than syncing it via `useEffect`. This prevents "flicker" where the UI updates after the route changes.
 
 ### 6. Accessibility Gaps
-*   **Finding:** `DictationOrb` uses `aria-live="polite"`, which is good. However, the `AITerminalPanel` message list lacks a `role="log"` attribute.
-    *   **Rating:** **HIGH**
-    *   **Recommendation:** Add `role="log"` to `MessagesArea` to ensure screen readers announce new AI responses as they arrive.
-*   **Finding:** Color-only indicators for "active" states (e.g., `TtsToggle`) need a secondary indicator (like an icon change or text label).
-    *   **Rating:** **MEDIUM**
-    *   **Recommendation:** The current implementation uses `Volume2` vs `VolumeX`, which is excellent. Ensure this is documented for screen reader users via `aria-label`.
-
-### Summary of Action Items
-1.  **Refactor:** Break `AITerminalPanel` into smaller files (Styles, Types, Components).
-2.  **Theme:** Replace hardcoded hex values in `AITerminalPanel` with CSS variables defined in the blueprint.
-3.  **Feature:** Implement the `ResponseStyleSelector` (PhD/Balanced/Simple) in the `AITerminalPanel`.
-4.  **UX:** Add `env(safe-area-inset-bottom)` to `InputArea` to ensure mobile-first compliance.
-5.  **Accessibility:** Add `role="log"` to the message container.
+*   **Finding:** **CRITICAL** — The `ClientMiniCard` uses a `button` for the card, but it contains multiple nested `button` elements (Message, Log, View).
+    *   **Recommendation:** **This is a violation of HTML specs.** A `<button>` cannot contain other interactive elements. Change the `ClientCardButton` to a `div` with `role="button"` and `tabIndex={0}`, or keep the card as a `div` and only make the specific action areas buttons.
+*   **Finding:** **Medium** — The `DetailTabBar` uses `role="tablist"`, which is perfect. Ensure the `DetailTabButton` has `aria-selected` correctly toggled (which you have done). Add `onKeyDown` support for arrow-key navigation between tabs to meet WCAG standards.
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+### Summary of Ratings
+
+| Category | Rating | Priority |
+| :--- | :--- | :--- |
+| **React Patterns** | MEDIUM | Medium |
+| **Styled Components** | LOW | Low |
+| **Animation** | MEDIUM | Low |
+| **Form UX** | MEDIUM | Medium |
+| **State Management** | HIGH | High |
+| **Accessibility** | **CRITICAL** | **Immediate** |
+
+### Action Plan for the Team:
+1.  **Immediate:** Refactor `ClientMiniCard` to remove nested buttons. Use a `div` for the card container and keep the `QuickActionBtn` as the only interactive elements.
+2.  **Short-term:** Refactor `MasterDetailLayout` to derive `activePillar` from the URL to eliminate the `useEffect` sync logic.
+3.  **Cleanup:** Move the inline styles in `MasterDetailLayout` to `MasterDetailStyles.ts`.
+
+---
+
+*Part of SwanStudios 14-Brain Recursive Consensus System*

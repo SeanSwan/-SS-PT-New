@@ -76,6 +76,10 @@ Section.displayName = 'Section';
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
+  // Defensively ensure array fields are actually arrays (API may return strings/null)
+  const coachingCues = useMemo(() => ensureArray(data.coachingCues), [data.coachingCues]);
+  const equipmentNeeded = useMemo(() => ensureArray(data.equipmentNeeded), [data.equipmentNeeded]);
+
   // Parse instructions into steps (split on numbered patterns or newlines)
   const instructionSteps = useMemo(() => {
     if (!data.instructions) return [];
@@ -117,10 +121,10 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
       </Section>
 
       {/* Coaching Cues */}
-      {data.coachingCues.length > 0 && (
+      {coachingCues.length > 0 && (
         <Section id="cues" title="Coaching Cues" icon={<MessageCircle size={15} />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {data.coachingCues.map((cue, i) => (
+            {coachingCues.map((cue, i) => (
               <CueChip key={i}>{cue}</CueChip>
             ))}
           </div>
@@ -134,7 +138,7 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
             fontFamily: "'Sora', sans-serif",
             fontSize: '0.68rem',
             fontWeight: 600,
-            color: 'var(--text-muted, rgba(224,236,244,0.45))',
+            color: 'var(--text-muted, rgba(224,236,244,0.65))',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
           }}>Primary</span>
@@ -148,7 +152,7 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
               fontFamily: "'Sora', sans-serif",
               fontSize: '0.68rem',
               fontWeight: 600,
-              color: 'var(--text-muted, rgba(224,236,244,0.45))',
+              color: 'var(--text-muted, rgba(224,236,244,0.65))',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}>Secondary</span>
@@ -203,9 +207,9 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
 
       {/* Equipment */}
       <Section id="equipment" title="Equipment Needed" icon={<Wrench size={15} />}>
-        {data.equipmentNeeded.length > 0 ? (
+        {equipmentNeeded.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {data.equipmentNeeded.map((eq, i) => (
+            {equipmentNeeded.map((eq, i) => (
               <EquipmentTag key={i}>{eq}</EquipmentTag>
             ))}
           </div>
@@ -214,7 +218,7 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
             <span>Bodyweight — No equipment needed</span>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.72rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-muted, rgba(224,236,244,0.45))' }}>
+        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.72rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-muted, rgba(224,236,244,0.65))' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Home size={13} /> {data.canBePerformedAtHome ? 'Home-friendly' : 'Gym required'}
           </span>

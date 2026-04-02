@@ -239,7 +239,7 @@ const MasterDetailLayout: React.FC = () => {
   }, [navigate]);
 
   const handleMessage = useCallback((clientId: number | string) => {
-    navigate('/dashboard/people/messages');
+    navigate(`/dashboard/people/messages?clientId=${clientId}`);
   }, [navigate]);
 
   const handleLogWorkout = useCallback((clientId: number | string) => {
@@ -257,6 +257,33 @@ const MasterDetailLayout: React.FC = () => {
     setSelectedClientId(clientId);
     setMobileDetailOpen(true);
   }, []);
+
+  // Memoized render props for ClientDetailView — prevents re-renders on parent state changes
+  const clientFullName = selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : '';
+
+  const renderTraining = useCallback((cid: number | string) => (
+    <TabErrorBoundary tabName="Training">
+      <TrainingTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ), [clientFullName]);
+
+  const renderBiometrics = useCallback((cid: number | string) => (
+    <TabErrorBoundary tabName="Biometrics">
+      <BiometricsTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ), [clientFullName]);
+
+  const renderOverview = useCallback((cid: number | string) => (
+    <TabErrorBoundary tabName="Overview">
+      <OverviewTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ), [clientFullName]);
+
+  const renderSettings = useCallback((cid: number | string) => (
+    <TabErrorBoundary tabName="Settings">
+      <SettingsTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ), [clientFullName]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -470,38 +497,10 @@ const MasterDetailLayout: React.FC = () => {
           <ClientDetailView
             client={selectedClient}
             onBack={handleBack}
-            renderTraining={(cid) => (
-              <TabErrorBoundary tabName="Training">
-                <TrainingTabContent
-                  clientId={cid}
-                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
-                />
-              </TabErrorBoundary>
-            )}
-            renderBiometrics={(cid) => (
-              <TabErrorBoundary tabName="Biometrics">
-                <BiometricsTabContent
-                  clientId={cid}
-                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
-                />
-              </TabErrorBoundary>
-            )}
-            renderOverview={(cid) => (
-              <TabErrorBoundary tabName="Overview">
-                <OverviewTabContent
-                  clientId={cid}
-                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
-                />
-              </TabErrorBoundary>
-            )}
-            renderSettings={(cid) => (
-              <TabErrorBoundary tabName="Settings">
-                <SettingsTabContent
-                  clientId={cid}
-                  clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
-                />
-              </TabErrorBoundary>
-            )}
+            renderTraining={renderTraining}
+            renderBiometrics={renderBiometrics}
+            renderOverview={renderOverview}
+            renderSettings={renderSettings}
           />
         ) : (
           // Empty state: Apex Command Center

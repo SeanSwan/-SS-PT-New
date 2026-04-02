@@ -1,472 +1,452 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.5-sonnet-20250929 | **Duration:** 67.7s
-> **Files:** docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md, frontend/src/components/Shared/AITerminalPanel.tsx, frontend/src/components/AIAssistant/AIContextSelector.tsx, frontend/src/components/AIAssistant/DictationOrb.tsx, frontend/src/config/dashboard-tabs.ts
-> **Generated:** 3/30/2026, 5:26:33 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.6-sonnet-20260217 | **Duration:** 72.0s
+> **Files:** frontend/src/config/dashboard-tabs.ts, frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientDetailView.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx
+> **Generated:** 4/1/2026, 7:10:00 PM
 
 ---
 
-# Code Review: Swan Studios Coach Assistant & AI Components
+# SwanStudios Dashboard Code Review
 
 ## Executive Summary
-**Overall Grade: B+ (83/100)**
 
-The codebase demonstrates strong architectural vision and thoughtful UX design, but suffers from **critical technical debt** in component size, type safety, and theme integration. The blueprint is excellent, but implementation needs refactoring before production deployment.
+Overall code quality is **good** — clear architecture, reasonable separation of concerns, and consistent patterns. However, there are several issues spanning TypeScript safety, React performance, styled-components discipline, and error handling that need attention before production hardening.
 
 ---
 
 ## 1. TypeScript Best Practices
 
-### ❌ CRITICAL: Unsafe `any` usage in DictationOrb.tsx
-**Lines 2-6:**
-```typescript
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-```
-**Issue:** Using `any` defeats TypeScript's purpose. Web Speech API types exist in `@types/dom-speech-recognition`.
+### 🔴 CRITICAL — `any` in API mapping (MasterDetailLayout.tsx)
 
-**Fix:**
-```typescript
-/// <reference types="dom-speech-recognition" />
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
+```tsx
+// Line ~95
+const mapped: MiniCardClient[] = (response.data.data?.clients || []).map((c: any) => ({
 ```
 
----
+**Problem:** `any` defeats TypeScript entirely. A malformed API response will silently produce runtime errors with no compile-time protection.
 
-### 🟡 MEDIUM: Missing discriminated unions for message types
-**AITerminalPanel.tsx (lines 60-70):**
-```typescript
-export interface AITerminalPanelProps {
-  context?: AIContext;
-  clientId?: number;
-  equipmentProfileId?: number | null;
-  // ... 8 more optional props
-}
-```
-**Issue:** All-optional props make it unclear which combinations are valid. A message could be `role: 'user'` but have no content validation.
+**Fix:** Define a typed API response interface:
 
-**Fix:**
-```typescript
-type MessageRole = 'user' | 'assistant' | 'system';
-
-interface BaseMessage {
-  id: string;
-  timestamp: Date;
-  content: string;
+```ts
+interface ApiClient {
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  isActive: boolean;
+  availableSessions: number;
+  totalWorkouts: number | null;
+  lastMeasurement: string | null;
+  clientSessions?: unknown[];
 }
 
-interface UserMessage extends BaseMessage {
-  role: 'user';
-  clientId?: number;
+interface ClientsApiResponse {
+  success: boolean;
+  data?: {
+    clients: ApiClient[];
+  };
 }
-
-interface AssistantMessage extends BaseMessage {
-  role: 'assistant';
-  actions?: QuickAction[];
-}
-
-type ChatMessage = UserMessage | AssistantMessage;
 ```
 
 ---
 
-### 🟡 MEDIUM: Weak enum types
-**AIContextSelector.tsx (line 18):**
-```typescript
-export const CONTEXTS: Record<AIContext, ContextConfig> = {
-  general: { label: 'General', icon: MessageSquare, ... },
+### 🔴 CRITICAL — Floating-point `order` values in config (dashboard-tabs.ts)
+
+```ts
+order: 7.5,   // movement-screen
+order: 9.05,  // pricing-sheet
+order: 9.06,  // sales-scripts
+```
+
+**Problem:** `order` is typed as `number`, but floating-point keys are fragile for sorting and create implicit ordering contracts that are invisible to consumers. Two tabs with `order: 9.05` and `order: 9.06` differ by 0.01 — a future developer adding `order: 9.055` creates a silent collision.
+
+**Fix:** Use integer ordering with explicit gaps (10, 20, 30...) or add a `subOrder?: number` field:
+
+```ts
+export type DashboardTab = {
+  key: string;
+  label: string;
+  icon: string;
+  order: number;
+  subOrder?: number; // for fine-grained ordering within a section
   // ...
 };
 ```
-**Issue:** `AIContext` is a string union, but `CONTEXTS` object keys aren't validated at compile time. Adding a new context type without updating `CONTEXTS` causes runtime errors.
 
-**Fix:**
-```typescript
-const CONTEXTS = {
-  general: { label: 'General', icon: MessageSquare, ... },
-  macro_logging: { ... },
-  // ...
-} as const satisfies Record<AIContext, ContextConfig>;
+---
 
-type AIContext = keyof typeof CONTEXTS; // Derived from source of truth
+### 🟠 HIGH — `status: 'new' as TabStatus` redundant casts (dashboard-tabs.ts)
+
+```ts
+status: 'new' as TabStatus,
+section: 'system' as const,
+```
+
+**Problem:** `'new'` is already a member of `TabStatus`. The cast is noise that signals the developer wasn't confident in the type. `as const` on `section` is inconsistent — other entries don't need it because the object literal is already typed.
+
+**Fix:** Remove redundant casts. If the spread array type inference is the issue, type the spread explicitly:
+
+```ts
+...(condition ? [{
+  key: 'design-playground',
+  status: 'new',
+  section: 'system',
+} satisfies DashboardTab] : []),
+```
+
+Using `satisfies` instead of `as` gives compile-time validation without widening.
+
+---
+
+### 🟠 HIGH — `selectedClientId` typed as `number | string | null` (MasterDetailLayout.tsx)
+
+**Problem:** The union `number | string` propagates throughout the component and into child props. Every comparison (`c.id === selectedClientId`) works but is semantically ambiguous. If the API always returns numeric IDs, the string branch is dead code. If IDs can be UUIDs, document it.
+
+**Fix:** Decide on one type. If IDs are always numbers from the DB:
+
+```ts
+const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+```
+
+If UUIDs are possible, use `string` only and coerce at the API boundary.
+
+---
+
+### 🟡 MEDIUM — `DetailTab` and `TrainingSection` are local string unions not exported
+
+**Problem:** `ClientDetailView.tsx` defines `type DetailTab = 'training' | 'biometrics' | 'overview' | 'settings'` locally. If a parent ever needs to control the active tab (deep-link, URL sync), it can't reference this type.
+
+**Fix:** Export from a shared types file or from the component file:
+
+```ts
+// ClientDetailView.tsx
+export type DetailTab = 'training' | 'biometrics' | 'overview' | 'settings';
+```
+
+---
+
+### 🟡 MEDIUM — `WorkspaceConfig.featureKey` is unvalidated string
+
+```ts
+featureKey?: string; // Per-user feature flag
+```
+
+**Problem:** Any string is accepted. A typo like `'content-studoi'` silently disables the feature with no error.
+
+**Fix:** Use a discriminated union or const enum:
+
+```ts
+export type FeatureKey = 'content-studio' | 'immigration-tracker' | 'design-playground';
+
+export interface WorkspaceConfig {
+  featureKey?: FeatureKey;
+}
 ```
 
 ---
 
 ## 2. React Patterns
 
-### ❌ CRITICAL: Stale closure in DictationOrb keyboard handler
-**Lines 270-281:**
-```typescript
-useEffect(() => {
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
-      e.preventDefault();
-      if (!disabledRef.current && recognitionRef.current) {
-        toggleListening(); // ← Captures initial toggleListening reference
-      }
-    }
-  };
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [toggleListening]); // ← Dependency causes handler re-registration on every render
-```
-**Issue:** `toggleListening` is recreated on every render (no `useCallback` deps), causing the effect to re-run constantly. The comment claims "no deps that change" but `toggleListening` is in the dep array.
+### 🔴 CRITICAL — Inline render props create new function references on every render (MasterDetailLayout.tsx)
 
-**Fix:**
-```typescript
-// Stabilize toggleListening with useCallback
-const toggleListening = useCallback(() => {
-  setListening(prev => {
-    if (prev) {
-      recognitionRef.current?.stop();
-      return false;
-    } else {
-      recognitionRef.current?.start();
-      return true;
-    }
-  });
-}, []); // ← Now stable
-
-useEffect(() => {
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
-      e.preventDefault();
-      toggleListening();
-    }
-  };
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
-}, [toggleListening]); // ← Now only runs once
+```tsx
+renderTraining={(cid) => (
+  <TabErrorBoundary tabName="Training">
+    <TrainingTabContent
+      clientId={cid}
+      clientName={`${selectedClient.firstName} ${selectedClient.lastName}`}
+    />
+  </TabErrorBoundary>
+)}
 ```
 
----
+**Problem:** These arrow functions are recreated on every render of `MasterDetailLayout`. Since `ClientDetailView` receives them as props, it will re-render even when `selectedClient` hasn't changed. With `React.memo` on child components, this defeats memoization entirely.
 
-### 🟠 HIGH: Missing memoization in AIContextSelector
-**Lines 77-82:**
-```typescript
-const availableContexts = useMemo(() =>
-  Object.entries(CONTEXTS)
-    .filter(([, cfg]) => cfg.roles.includes(userRole))
-    .map(([key]) => key as AIContext),
-  [userRole]
+**Fix:** Use `useCallback` or restructure to avoid render props:
+
+```tsx
+const clientFullName = useMemo(
+  () => selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : '',
+  [selectedClient]
+);
+
+const renderTraining = useCallback(
+  (cid: number | string) => (
+    <TabErrorBoundary tabName="Training">
+      <TrainingTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ),
+  [clientFullName]
 );
 ```
-**Good:** Memoized computation.
 
-**But then lines 88-103:**
-```typescript
-{availableContexts.map(ctx => {
-  const cfg = CONTEXTS[ctx]; // ← Lookup on every render
-  const Icon = cfg.icon;      // ← Component reference extracted inline
-  return (
-    <ContextPill
-      key={ctx}
-      $active={selectedContext === ctx}
-      onClick={() => onContextChange(ctx)} // ← Inline function creation
+---
+
+### 🔴 CRITICAL — `handleMessage` ignores its argument (MasterDetailLayout.tsx)
+
+```tsx
+const handleMessage = useCallback((clientId: number | string) => {
+  navigate('/dashboard/people/messages');
+}, [navigate]);
 ```
-**Issue:** 
-1. `onClick` creates a new function on every render for every chip
-2. `Icon` component is extracted inline (minor, but adds noise)
 
-**Fix:**
-```typescript
-const handleContextChange = useCallback((ctx: AIContext) => {
-  onContextChange(ctx);
-}, [onContextChange]);
+**Problem:** The `clientId` parameter is accepted but never used. The messages route receives no context about which client to open. This is a functional bug — clicking "Message" for any client opens the same blank messages page.
 
-// In render:
-<ContextPill
-  key={ctx}
-  $active={selectedContext === ctx}
-  onClick={handleContextChange.bind(null, ctx)} // ← Stable reference
+**Fix:** Pass the client ID as route state or query param:
+
+```tsx
+const handleMessage = useCallback((clientId: number | string) => {
+  navigate('/dashboard/people/messages', { state: { clientId } });
+}, [navigate]);
 ```
 
 ---
 
-### 🟡 MEDIUM: Unnecessary re-renders in AITerminalPanel
-**Lines 120-126:**
-```typescript
+### 🟠 HIGH — `handleLogWorkout`, `handleViewWorkouts`, `handleWeighIn` are functionally identical (MasterDetailLayout.tsx)
+
+```tsx
+const handleLogWorkout = useCallback((clientId: number | string) => {
+  setSelectedClientId(clientId);
+  setMobileDetailOpen(true);
+}, []);
+
+const handleViewWorkouts = useCallback((clientId: number | string) => {
+  setSelectedClientId(clientId);
+  setMobileDetailOpen(true);
+}, []);
+
+const handleWeighIn = useCallback((clientId: number | string) => {
+  setSelectedClientId(clientId);
+  setMobileDetailOpen(true);
+}, []);
+```
+
+**Problem:** Three handlers with identical bodies. The intent was presumably to navigate to different tabs within the detail view, but the tab-switching logic is missing. This is both a DRY violation and a functional bug.
+
+**Fix:** Create a single handler with an action parameter:
+
+```tsx
+type QuickAction = 'log-workout' | 'view-workouts' | 'weigh-in';
+
+const handleQuickAction = useCallback((clientId: number | string, action: QuickAction) => {
+  setSelectedClientId(clientId);
+  setMobileDetailOpen(true);
+  // Map action to detail tab
+  const tabMap: Record<QuickAction, DetailTab> = {
+    'log-workout': 'training',
+    'view-workouts': 'training',
+    'weigh-in': 'biometrics',
+  };
+  setInitialDetailTab(tabMap[action]);
+}, []);
+```
+
+This requires `ClientDetailView` to accept an `initialTab` prop.
+
+---
+
+### 🟠 HIGH — Keyboard handler captures stale `filteredClients` (MasterDetailLayout.tsx)
+
+```tsx
 useEffect(() => {
-  if (messages.length > prevMessageCountRef.current) {
-    const latest = messages[messages.length - 1];
-    if (latest?.role === 'assistant' && tts.enabled) {
-      tts.speak(latest.content);
-    }
-  }
-  prevMessageCountRef.current = messages.length;
-}, [messages, tts]); // ← `tts` object changes on every render
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // ...
+    const currentIdx = filteredClients.findIndex(c => c.id === selectedClientId);
+  };
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [selectedClientId, activePillar, filteredClients, handleBack, handleSelectClient]);
 ```
-**Issue:** `tts` from `useTextToSpeech()` is likely a new object reference on every render, causing this effect to run constantly.
 
-**Fix:**
-```typescript
-// In useTextToSpeech hook:
-return useMemo(() => ({
-  enabled,
-  speaking,
-  speak,
-  stop,
-  toggleEnabled,
-  supported,
-}), [enabled, speaking, speak, stop, toggleEnabled, supported]);
+**Problem:** The dependency array is correct, but `document.querySelector('[data-search-input]')` inside the handler is an imperative DOM query that bypasses React's ref system. This is fragile — the attribute could be renamed, the element could be unmounted, and there's no TypeScript safety.
 
-// Or in AITerminalPanel:
-}, [messages, tts.enabled, tts.speak]); // ← Depend on stable primitives/functions
+**Fix:** Use a `useRef`:
+
+```tsx
+const searchInputRef = useRef<HTMLInputElement>(null);
+
+// In JSX:
+<input ref={searchInputRef} data-search-input ... />
+
+// In handler:
+searchInputRef.current?.focus();
 ```
 
 ---
 
-## 3. Styled-Components & Theme Integration
+### 🟡 MEDIUM — `CARDS` array defined at module level in OverviewTabContent.tsx contains JSX
 
-### ❌ CRITICAL: Hardcoded colors violate theme system
-**AITerminalPanel.tsx lines 350-450 (styled components section):**
-```typescript
-const PanelWrapper = styled.div`
-  border: 1px solid rgba(96, 192, 240, 0.15); // ← Hardcoded Ice Wing
-  background: rgba(0, 20, 60, 0.6);           // ← Hardcoded Midnight Sapphire
-  backdrop-filter: blur(12px);
-`;
-
-const AiBadge = styled.div`
-  background: linear-gradient(135deg, #8b5cf6 0%, #60c0f0 100%); // ← Hardcoded
-  color: #002060; // ← Hardcoded
-`;
-```
-**Issue:** Blueprint mandates CSS custom properties with fallbacks (Section 6), but implementation uses hardcoded hex/rgba values. This breaks:
-- Theme switching (14 themes mentioned in blueprint)
-- Dark mode support
-- Accessibility (high contrast mode)
-
-**Fix (per blueprint example):**
-```typescript
-const PanelWrapper = styled.div`
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  background: var(--bg-elevated, #141419);
-  backdrop-filter: blur(12px);
-`;
-
-const AiBadge = styled.div`
-  background: linear-gradient(
-    135deg,
-    var(--accent-secondary, #8B5CF6) 0%,
-    var(--accent-gaming, #60C0F0) 100%
-  );
-  color: var(--text-on-accent, #002060);
-`;
-```
-
----
-
-### 🟠 HIGH: DRY violation in message bubble styles
-**AITerminalPanel.tsx lines 410-440:**
-```typescript
-const BubbleContent = styled.div<{ $role: string }>`
-  max-width: 80%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: ${(p) =>
-    p.$role === 'user'
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(96, 192, 240, 0.2))'
-      : 'rgba(255, 255, 255, 0.06)'};
-  color: ${(p) => (p.$role === 'user' ? '#f0f0ff' : '#cbd5e1')};
-`;
-```
-**Issue:** 
-1. Ternary logic for role-based styling is repeated
-2. Blueprint specifies separate `MessageBubbleAI` and `MessageBubbleUser` components (Section 6)
-3. Font size is 13px, but blueprint mandates **16px minimum on mobile** (Section 3.2)
-
-**Fix:**
-```typescript
-const MessageBubbleBase = styled.div`
-  max-width: 80%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 16px; // ← Blueprint requirement
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-
-  @media (min-width: 1024px) {
-    font-size: 14px;
-  }
-`;
-
-const MessageBubbleUser = styled(MessageBubbleBase)`
-  background: color-mix(
-    in srgb,
-    var(--accent-secondary, #8B5CF6) 15%,
-    var(--bg-elevated, #141419)
-  );
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent);
-  color: var(--text-primary, #E0ECF4);
-  margin-left: auto;
-`;
-
-const MessageBubbleAI = styled(MessageBubbleBase)`
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  color: var(--text-primary, #E0ECF4);
-`;
-```
-
----
-
-### 🟡 MEDIUM: Missing responsive breakpoints
-**DictationOrb.tsx lines 90-110 (OrbButton):**
-```typescript
-const OrbButton = styled.button<{ $listening: boolean }>`
-  width: 44px;
-  height: 44px;
-  // ... no media queries
-`;
-```
-**Issue:** Blueprint specifies 64px voice orb on mobile (Section 3.2), but component is hardcoded to 44px.
-
-**Fix:**
-```typescript
-const OrbButton = styled.button<{ $listening: boolean }>`
-  width: 64px;
-  height: 64px;
-  min-width: 64px;
-  min-height: 64px;
-
-  @media (min-width: 768px) {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
-  }
-
-  @media (min-width: 1024px) {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-  }
-`;
-```
-
----
-
-## 4. DRY Violations
-
-### 🟠 HIGH: Duplicated context configuration
-**AIContextSelector.tsx lines 18-32 vs. Blueprint Section 2:**
-
-Blueprint defines context labels in a table, but code redefines them in `CONTEXTS` object. Then `AITerminalPanel.tsx` lines 75-85 has **another** `CONTEXT_LABELS` object:
-
-```typescript
-const CONTEXT_LABELS: Record<string, string> = {
-  general: 'AI Assistant',
-  macro_logging: 'Nutrition Assistant',
-  form_tips: 'Form Coach',
-  // ... duplicates AIContextSelector.CONTEXTS
-};
-```
-
-**Fix:** Create a single source of truth:
-```typescript
-// src/config/ai-contexts.ts
-export const AI_CONTEXTS = {
-  general: {
-    key: 'general' as const,
-    label: 'AI Assistant',
-    shortLabel: 'General',
-    icon: MessageSquare,
-    description: 'Ask me anything about fitness and wellness',
-    roles: ['client', 'trainer', 'admin'],
-  },
-  // ...
-} as const;
-
-export type AIContext = keyof typeof AI_CONTEXTS;
-```
-
-Then import in both components.
-
----
-
-### 🟡 MEDIUM: Repeated theme token definitions
-**DictationOrb.tsx lines 30-45:**
-```typescript
-const CS = {
-  wingPurple: '#8B5CF6',
-  wingPurpleAlpha15: 'rgba(139, 92, 246, 0.15)',
-  wingPurpleAlpha08: 'rgba(139, 92, 246, 0.08)',
-  // ... 12 more hardcoded tokens
-};
-```
-
-**AITerminalPanel.tsx** doesn't define tokens but uses hardcoded values inline.
-
-**Issue:** Theme tokens should be centralized in a theme provider, not redefined per component.
-
-**Fix:**
-```typescript
-// src/theme/tokens.ts
-export const crystallineSwanTokens = {
-  colors: {
-    wingPurple: '#8B5CF6',
-    midnightSapphire: '#002060',
+```ts
+const CARDS: CardDef[] = [
+  {
+    id: 'ai-protocol',
+    icon: <Brain size={18} />,  // JSX at module level
     // ...
   },
-  alpha: (color: string, opacity: number) => `${color}${Math.round(opacity * 255).toString(16)}`,
+];
+```
+
+**Problem:** JSX elements at module level are created once and shared across all instances. While `React.memo` on the component helps, the icon elements are never recreated — this is actually fine for static icons, but it means the icons can't respond to theme changes or context. More importantly, it creates a subtle coupling between module initialization and React's reconciler.
+
+**Fix:** Either keep icons as component references and render them in JSX, or accept this as an intentional optimization and document it:
+
+```ts
+// Option A: Store component type, not element
+interface CardDef {
+  IconComponent: React.ComponentType<{ size: number }>;
+}
+
+// Option B: Document the intentional optimization
+/** @note Icons are static elements created at module init — intentional for perf */
+const CARDS: CardDef[] = [...];
+```
+
+---
+
+### 🟡 MEDIUM — `DetailContentWrapper` uses `key={client.id}` to reset tab state (ClientDetailView.tsx)
+
+```tsx
+<DetailContentWrapper key={client.id}>
+```
+
+**Problem:** Using `key` to reset component state is a valid React pattern, but it's implicit and surprising. When `client.id` changes, the entire subtree unmounts and remounts, losing scroll position, any in-progress form state, and triggering layout shifts.
+
+**Fix:** Either document this explicitly or use `useEffect` to reset `activeTab` when `client.id` changes:
+
+```tsx
+useEffect(() => {
+  setActiveTab('training');
+}, [client.id]);
+
+// Remove key={client.id} from wrapper
+<DetailContentWrapper>
+```
+
+---
+
+### 🟡 MEDIUM — `isWeighInOverdue` and `isCriticallyOverdue` duplicate date logic (ClientMiniCard.tsx)
+
+```ts
+const isWeighInOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;
+  const last = new Date(lastWeighIn);
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 30;
 };
 
-// In styled-components:
-import { crystallineSwanTokens as tokens } from '@/theme/tokens';
+const isCriticallyOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;
+  const last = new Date(lastWeighIn);
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 60;
+};
+```
 
-const OrbButton = styled.button`
-  border-color: var(--accent-secondary, ${tokens.colors.wingPurple});
+**Problem:** Identical logic, different threshold. DRY violation.
+
+**Fix:** Extract a shared utility:
+
+```ts
+// utils/dateUtils.ts
+export const daysSince = (dateStr: string | null | undefined): number => {
+  if (!dateStr) return Infinity;
+  return (Date.now() - new Date(dateStr).getTime()) / 86_400_000;
+};
+
+// ClientMiniCard.tsx
+const isWeighInOverdue = (d: string | null | undefined) => daysSince(d) > 30;
+const isCriticallyOverdue = (d: string | null | undefined) => daysSince(d) > 60;
+```
+
+---
+
+## 3. Styled-Components
+
+### 🔴 CRITICAL — Hardcoded retired Galaxy-Swan colors in collapsed avatar buttons (MasterDetailLayout.tsx)
+
+```tsx
+style={{
+  border: selectedClientId === client.id ? '2px solid #8B5CF6' : '2px solid transparent',
+  background: 'linear-gradient(135deg, #002060, #003080)',
+  color: '#E0ECF4',
+  fontFamily: "'Plus Jakarta Sans', sans-serif",
+  fontWeight: 700,
+  fontSize: '12px',
+}}
+```
+
+**Problem:** Inline styles with hardcoded hex values bypass the theme system entirely. `#8B5CF6` (Wing Purple) is correct per the active palette, but it's hardcoded rather than using a CSS custom property. `#002060` and `#003080` are Midnight Sapphire and Royal Depth — correct colors but wrong delivery mechanism.
+
+**Fix:** Extract to a styled component:
+
+```tsx
+const CollapsedAvatar = styled.button<{ $isSelected: boolean }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid ${({ $isSelected }) =>
+    $isSelected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
+  background: linear-gradient(
+    135deg,
+    var(--color-primary, #002060),
+    var(--color-surface, #003080)
+  );
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 4px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms ease;
 `;
 ```
 
 ---
 
-## 5. Error Handling
+### 🟠 HIGH — Inline styles throughout MasterDetailLayout.tsx (pervasive)
 
-### 🟠 HIGH: Silent error swallowing in DictationOrb
-**Lines 210-220:**
-```typescript
-recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-  setListening(false);
-  setInterim('');
-  holdingRef.current = false;
-  if (event.error === 'not-allowed' || event.error === 'audio-capture') {
-    setMicBlocked(true);
-    logger.warn('Microphone permission denied — enable in browser settings');
-  }
-  // no-speech, network, aborted, service-not-allowed — silently return to idle (no alarming UI)
-};
+Multiple instances:
+
+```tsx
+<div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary, #4070C0)', fontFamily: "'Sora', sans-serif", fontSize: '13px' }}>
+  Loading clients...
+</div>
+
+<div style={{ padding: '24px' }}>
+  <Outlet />
+</div>
+
+<div style={{ marginTop: '32px', display: 'flex', gap: '24px' }}>
 ```
-**Issue:** 
-1. `network` errors are silently ignored — user has no idea their dictation failed
-2. `logger.warn` doesn't surface to UI
-3. No retry mechanism
 
-**Fix:**
-```typescript
-const [errorMessage, setErrorMessage] = useState<string | null>(null);
+**Problem:** Inline styles create specificity issues, can't be overridden by themes, don't support media queries, and create performance overhead (new object on every render).
 
-recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-  setListening(false);
-  setInterim('');
+**Fix:** Extract to named styled components. The loading/empty states especially should be reusable:
+
+```tsx
+// Already have EmptyStateContainer — use it consistently
+const LoadingMessage = styled.p`
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, #4070C0);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+`;
+
+const OutletWrapper = styled.div`
+  padding: 24px;
+`;
+```
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+### 🟠 HIGH — `BentoCard` uses string interpolation for CSS with `$heroAccent` (OverviewTab
+
+---
+
+*Part of SwanStudios 14-Brain Recursive Consensus System*

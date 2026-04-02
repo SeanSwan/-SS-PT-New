@@ -1,218 +1,258 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.5-20260211 | **Duration:** 95.5s
-> **Files:** docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md, frontend/src/components/Shared/AITerminalPanel.tsx, frontend/src/components/AIAssistant/AIContextSelector.tsx, frontend/src/components/AIAssistant/DictationOrb.tsx, frontend/src/config/dashboard-tabs.ts
-> **Generated:** 3/30/2026, 5:26:33 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.7-20260318 | **Duration:** 67.5s
+> **Files:** frontend/src/config/dashboard-tabs.ts, frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientDetailView.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx
+> **Generated:** 4/1/2026, 7:10:00 PM
 
 ---
 
-# Deep Code Review: SwanStudios AI Assistant Components
+# Deep Architecture Review — SwanStudios Clients & Team Workspace
 
 ## Executive Summary
 
-This review identifies **3 CRITICAL bugs**, **4 HIGH severity issues**, **5 MEDIUM issues**, and **3 LOW issues** across the provided codebase. The most critical finding is the **incomplete dashboard-tabs.ts file** which will cause runtime crashes, followed by **memory leaks in TTS** and **blueprint-to-code mismatches** that will break the mobile experience.
+| Category | Count | Critical Blockers |
+|----------|-------|-------------------|
+| Bugs | 7 | 1 CRITICAL |
+| Architecture Flaws | 5 | 1 HIGH |
+| Integration Issues | 6 | 1 HIGH |
+| Dead Code / Tech Debt | 8 | — |
+| Production Readiness | 4 | 1 CRITICAL |
 
 ---
 
-## 1. Bug Detection
+## 1. BUG DETECTION
 
-### CRITICAL — Incomplete File Causes Runtime Crash
+### BUG-001 — CRITICAL: Race Condition + Memory Leak in Client Fetch
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `dashboard-tabs.ts` ~Line 85 | File is truncated mid-object: `description: 'Manage` — this will cause JSON parse errors and crash the entire dashboard on load. The `ADMIN_DASHBOARD_TABS` array is never closed. | Complete the truncated object and close all arrays properly. The file ends abruptly with no closing brackets. |
+**File:** `MasterDetailLayout.tsx` — lines 138–162
 
-```typescript
-// CURRENT (BROKEN):
-description: 'Manage 
+**What's Wrong:** The `useEffect` that fetches clients has no cleanup mechanism. If the component unmounts (e.g., user navigates away) before the async `authAxios.get()` resolves, the `setClients(mapped)` call fires on a fully unmounted React tree. This causes a React state update on an unmounted component warning, potential crashes in StrictMode double-invocation, and a silent memory leak.
 
-// SHOULD BE:
-description: 'Manage users, roles, and permissions',
-  },
-];
+```tsx
+// CURRENT — BROKEN
+useEffect(() => {
+  if (!authAxios) return;
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const response = await authAxios.get('/api/admin/clients', { ... });
+      // ...
+      setClients(mapped);  // ❌ Fires even if component unmounted
+    } catch (err) {
+      logger.warn(...);
+    } finally {
+      setLoading(false);   // ❌ Same issue
+    }
+  };
+  fetchClients();          // ❌ No AbortController, no mount guard
+}, [authAxios]);
 ```
 
-### CRITICAL — Memory Leak: TTS Not Stopped on Unmount
+**Fix:**
+```tsx
+useEffect(() => {
+  if (!authAxios) return;
+  let isMounted = true;  // Mount guard
+  
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const response = await authAxios.get('/api/admin/clients', {
+        params: { limit: 100, includeStats: true, includeRevenue: true, includeSubscription: true },
+      });
+      if (isMounted && response.data.success) {
+        const mapped: MiniCardClient[] = (response.data.data?.clients || []).map((c: any) => ({
+          // ...
+        }));
+        setClients(mapped);
+      }
+    } catch (err) {
+      if (isMounted) logger.warn('Failed to fetch clients for master pane:', err);
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  };
+  fetchClients();
+  
+  return () => { isMounted = false; };  // Cleanup
+}, [authAxios]);
+```
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `AITerminalPanel.tsx` ~Lines 108-120 | The `useEffect` that auto-speaks new AI messages has no cleanup. If the component unmounts while TTS is playing, `tts.stop()` is never called, leaving the speech engine in an inconsistent state and potentially causing memory leaks. | Add cleanup function to the useEffect: |
+---
 
-```typescript
-// Add to useEffect at line 108:
-return () => {
-  if (tts.speaking) {
-    tts.stop();
-  }
+### BUG-002 — HIGH: `handleMessage` Navigates Away Without Using `clientId`
+
+**File:** `MasterDetailLayout.tsx` — lines 179–181
+
+**What's Wrong:** `handleMessage` accepts `clientId` as a parameter but ignores it completely. It always navigates to `/dashboard/people/messages` without passing any client context. This means messaging a specific client is broken — the message view has no idea which client you're messaging.
+
+```tsx
+// CURRENT — BROKEN
+const handleMessage = useCallback((clientId: number | string) => {
+  navigate('/dashboard/people/messages');  // ❌ clientId unused
+}, [navigate]);
+```
+
+**Fix:** Either navigate with clientId as a query param/route param, or open a modal:
+```tsx
+const handleMessage = useCallback((clientId: number | string) => {
+  navigate(`/dashboard/people/messages?clientId=${clientId}`);
+}, [navigate]);
+
+// OR if using a modal:
+const handleMessage = useCallback((clientId: number | string) => {
+  setMessagingClientId(clientId);
+  setIsMessageModalOpen(true);
+}, []);
+```
+
+---
+
+### BUG-003 — HIGH: Null/Undefined `lastWeighIn` Treated as "Not Overdue"
+
+**File:** `ClientMiniCard.tsx` — lines 64–79
+
+**What's Wrong:** `isWeighInOverdue` returns `true` when `lastWeighIn` is `null`, which seems correct. However, `new Date(null)` in JavaScript returns the **current date** (not epoch), not an invalid date. This means the daysSince calculation produces ~0, so null data will **never** show the Scale icon — it shows Eye (View Workouts) instead. A client with no weigh-in data is treated as "up to date," which is the opposite of what you want.
+
+```tsx
+// CURRENT — LOGIC BUG
+const isWeighInOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;  // ✓ Returns true for null
+  const last = new Date(lastWeighIn);  // new Date(null) === new Date() === NOW
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 30;  // ❌ daysSince ≈ 0, so false — null treated as current
 };
 ```
 
-### HIGH — Race Condition in Voice Auto-Send Timer
+**Fix:**
+```tsx
+const isWeighInOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;  // Explicit null/undefined = overdue
+  const last = new Date(lastWeighIn);
+  if (isNaN(last.getTime())) return true;  // Invalid date = overdue
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 30;
+};
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `DictationOrb.tsx` ~Lines 280-290 | The `autoSendTimerRef` is cleared in `startListening` and `toggleListening`, but NOT in the main `useEffect` cleanup. If the component unmounts while waiting for the 750ms auto-send delay, the timer continues running and will call `onAutoSendRef.current?.(sessionText)` on a null/unmounted component, causing runtime errors. | Add cleanup to the main useEffect that creates the recognition object: |
-
-```typescript
-// Add to the useEffect return cleanup:
-if (autoSendTimerRef.current) {
-  clearTimeout(autoSendTimerRef.current);
-  autoSendTimerRef.current = null;
-}
-```
-
-### HIGH — Stale Closure in TTS Effect
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `AITerminalPanel.tsx` ~Lines 108-120 | The effect depends on `tts` from `useTextToSpeech`. If the hook returns a new object reference on every render (common pattern), this effect runs on every render, potentially causing duplicate TTS calls. The `prevMessageCountRef` guard helps but is fragile. | Stabilize the dependency by using only the specific properties needed: |
-
-```typescript
-// Change dependency array to:
-}, [messages, tts.enabled, tts.speak, tts.speaking]);
+const isCriticallyOverdue = (lastWeighIn: string | null | undefined): boolean => {
+  if (!lastWeighIn) return true;  // Same fix
+  const last = new Date(lastWeighIn);
+  if (isNaN(last.getTime())) return true;
+  const now = new Date();
+  const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince > 60;
+};
 ```
 
 ---
 
-## 2. Architecture Flaws
+### BUG-004 — MEDIUM: Stale `activePillar` in Keyboard Navigation Effect
 
-### HIGH — God Component Exceeds Size Limit
+**File:** `MasterDetailLayout.tsx` — lines 186–216
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `AITerminalPanel.tsx` Lines 1-453 | Component is **453 lines** — exceeds the 300-line threshold noted in the component's own TODO comment. It handles panel collapse, message display, voice input, TTS, error handling, and API communication all in one file. | Extract to separate files as the TODO suggests: `AITerminalPanelStyles.ts`, `AITerminalPanelTypes.ts`, and split into sub-components (`PanelHeader`, `MessagesArea`, `InputArea`). |
+**What's Wrong:** The keyboard navigation `useEffect` includes `activePillar` in its dependency array (`[selectedClientId, activePillar, filteredClients, handleBack, handleSelectClient]`), which means the event listener is removed and re-added every time `activePillar` changes. However, `handleBack` and `handleSelectClient` are stable `useCallback`s that don't change. The real issue: if `activePillar` changes while a key is held down, the stale closure could cause arrow navigation to use the wrong pillar's data. This is a subtle stale closure bug.
 
-### HIGH — DictationOrb Also Exceeds Size Limit
+**Fix:**
+```tsx
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Only handle roster navigation
+    if (activePillar !== 'roster') return;
+    
+    if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+      e.preventDefault();
+      const input = document.querySelector('[data-search-input]') as HTMLInputElement;
+      input?.focus();
+      return;
+    }
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `DictationOrb.tsx` Lines 1-387 | Component is **387 lines** with its own TODO noting this violation. Contains styled components, types, Web Speech API logic, keyboard handlers, and pointer event handlers all in one file. | Extract to `DictationOrbStyles.ts` and create a custom hook `useDictation.ts` to separate the speech recognition logic from the UI. |
+    if (e.key === 'Escape' && selectedClientId) {
+      handleBack();
+      return;
+    }
 
-### MEDIUM — Prop Drilling Without Context
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const currentIdx = filteredClients.findIndex(c => c.id === selectedClientId);
+      let nextIdx = e.key === 'ArrowDown'
+        ? currentIdx < filteredClients.length - 1 ? currentIdx + 1 : 0
+        : currentIdx > 0 ? currentIdx - 1 : filteredClients.length - 1;
+      if (filteredClients[nextIdx]) {
+        handleSelectClient(filteredClients[nextIdx].id);
+      }
+    }
+  };
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `AITerminalPanel.tsx` | The component receives `context`, `clientId`, `equipmentProfileId` as props but these could be derived from `GlobalClientContext` and `AIContext`. This creates tight coupling and makes the component harder to test in isolation. | Introduce `useAIContext` hook or context provider to eliminate prop drilling for these values. |
-
-### MEDIUM — Missing Error Boundaries
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `AITerminalPanel.tsx`, `DictationOrb.tsx` | Neither component wraps its content in an error boundary. If the Web Speech API fails or the AI chat hook throws, the entire panel crashes without graceful degradation. | Add try-catch blocks around async operations and consider wrapping in React error boundary. |
-
----
-
-## 3. Integration Issues
-
-### CRITICAL — Missing "balanced" Response Style
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `AIContextSelector.tsx` ~Lines 45-50 | The blueprint (Section 3.3) specifies three response styles: `phd_only`, `balanced`, `simple_only`. The code implements `both`, `phd_only`, `simple_only`. The **"balanced" style is missing** — this is the DEFAULT style that should be used. The UI will never show "balanced" as an option. | Add the missing style: |
-
-```typescript
-export const RESPONSE_STYLES: { key: ResponseStyle; label: string; emoji: string }[] = [
-  { key: 'both', label: 'Both', emoji: '🎓💯' },
-  { key: 'phd_only', label: 'PhD Mode', emoji: '🎓' },
-  { key: 'balanced', label: 'Balanced', emoji: '⚖️' },  // ADD THIS
-  { key: 'simple_only', label: 'Keep It 100', emoji: '💯' },
-];
-```
-
-### CRITICAL — Voice Orb Size Mismatch (Mobile Breakage)
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **CRITICAL** | `DictationOrb.tsx` ~Lines 110-115 | Blueprint Section 3.2 specifies **64px × 64px** voice orb for mobile (320-430px). The code implements **44px × 44px**. This violates the core mobile-first requirement and will make the voice button too small for gym use with sweaty hands. | Update styled component: |
-
-```typescript
-// Change OrbButton to:
-const OrbButton = styled.button<{ $listening: boolean }>`
-  // ... existing styles ...
-  width: 64px;    // Was: 44px
-  height: 64px;   // Was: 44px
-  min-width: 64px; // Was: 44px
-  min-height: 64px; // Was: 44px
-  
-  @media (min-width: 768px) {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-  }
-`;
-```
-
-### HIGH — Missing Coach Assistant Tab Configuration
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `dashboard-tabs.ts` | The blueprint specifies adding a new tab at position 0 with `id: 'coach'`, but this is completely missing from `dashboard-tabs.ts`. The routing redirect from `/dashboard/home` → `/dashboard/admin/coach-assistant` is also not implemented. | Add to the tab configuration: |
-
-```typescript
-{
-  key: 'coach',
-  label: 'Coach Assistant',
-  icon: 'MessageCircle',
-  order: 0,  // First position
-  status: 'real',
-  section: 'command',
-  route: '/dashboard/admin/coach-assistant',
-  description: 'Swan Studios Coach — AI-powered training assistant',
-}
-```
-
-### MEDIUM — Font Size Violation (iOS Zoom Risk)
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **MEDIUM** | `AITerminalPanel.tsx` ~Lines 350-360 | Blueprint Section 3.2 mandates **16px minimum** for input fields on mobile to prevent iOS Safari auto-zoom. The code uses `font-size: 13px` in the `ChatInput` styled component. This will cause iOS to zoom in when the input is focused, breaking the mobile experience. | Update ChatInput styled component: |
-
-```typescript
-const ChatInput = styled.textarea`
-  font-size: 16px;  // Was: 13px — prevents iOS zoom
-  
-  @media (min-width: 768px) {
-    font-size: 14px;
-  }
-  
-  @media (min-width: 1024px) {
-    font-size: 13px;
-  }
-`;
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [selectedClientId, activePillar, filteredClients, handleBack, handleSelectClient]);
 ```
 
 ---
 
-## 4. Dead Code & Tech Debt
+### BUG-005 — MEDIUM: Missing `Suspense` Fallback Boundaries in `TrainingTabContent`
 
-### LOW — TODO Comments Indicating Known Issues
+**File:** `TrainingTabContent.tsx` — (truncated)
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **LOW** | `AITerminalPanel.tsx` ~Line 36 | Comment states: "NOTE: 453 lines — exceeds 300-line rule. TODO: extract styled components to AITerminalPanelStyles.ts, types to shared AITypes.ts" | This is acknowledged technical debt — should be scheduled for cleanup. |
-| **LOW** | `DictationOrb.tsx` ~Line 40 | Comment states: "NOTE: 387 lines — exceeds 300-line rule. TODO: extract styled components to DictationOrbStyles.ts and hook to useDictation.ts" | Same as above — acknowledged debt. |
+**What's Wrong:** `TrainingTabContent` uses `React.lazy` for `WorkoutPlanBuilder`, `WorkoutLogger`, and `WorkoutCopilotPanel`, and wraps with `Suspense`, but the `Suspense` fallback is likely a generic spinner. Since tab content switching happens inside the detail pane (which is already rendering), a lazy-load failure inside the `Suspense` boundary will crash the entire detail pane with no visible recovery path.
 
-### LOW — Unused Imports
-
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **LOW** | `AIContextSelector.tsx` ~Lines 9-20 | Several icons imported but not used in the current implementation: `Database`, `Calendar`, `TrendingUp`, `BookOpen`, `Trophy`, `UserPlus`. These are defined in `CONTEXTS` but the component only renders pills for `availableContexts`. | Either remove unused imports or ensure all contexts are rendered. |
+**Fix:** Ensure `Suspense` has a meaningful fallback and consider adding `React.lazy` error boundaries per lazy-loaded component.
 
 ---
 
-## 5. Production Readiness
+### BUG-006 — MEDIUM: API Response Assumes `clientSessions` is Always an Array
 
-### HIGH — Console.log in Production Code
+**File:** `MasterDetailLayout.tsx` — line 152
 
-| Severity | File & Line | What's Wrong | Fix |
-|----------|-------------|--------------|-----|
-| **HIGH** | `DictationOrb.tsx` ~Line 260 | `logger.warn('Microphone permission denied — enable in browser settings')` — This will pollute production logs. While using a logger (not console.log) is better, warn-level logs should still be reviewed. | Either remove the log or wrap in environment check: |
+**What's Wrong:**
+```tsx
+engagementScore: Math.min(100, Math.round(
+  ((c.totalWorkouts || 0) * 5 + (c.clientSessions?.length || 0) * 10) / 2
+)),
+```
+The backend API endpoint `/api/admin/clients` with `includeStats: true` may not include `clientSessions` at all — or it may be `null` instead of `[]`. While the `?.length || 0` guard handles `null`, if the endpoint returns `undefined` for a client that hasn't started sessions, the calculation silently degrades. Additionally, if a client has 10 workouts and 5 sessions, the score is `Math.min(100, Math.round((50 + 50) / 2)) = 50`, which seems wrong — the formula itself is suspicious (dividing by 2 at the end halves the total).
 
-```typescript
-if (process.env.NODE_ENV === 'development') {
-  logger.warn
+**Fix:**
+```tsx
+engagementScore: Math.min(100, Math.round(
+  ((c.totalWorkouts || 0) * 5 + ((c.clientSessions?.length || 0) * 10))
+)),
+```
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+### BUG-007 — LOW: `MiniCardClient` Type Uses String Union `'active' | 'inactive' | 'pending'` but API May Return `'active'` Boolean
+
+**File:** `MasterDetailLayout.tsx` — line 150, `ClientMiniCard.tsx` — lines 37–38
+
+**What's Wrong:** The mapping code does `status: c.isActive ? 'active' as const : 'inactive' as const`. If the API returns `null` for `isActive` (newly created client with no activity), the ternary produces `'inactive'`, which may be misleading — the client isn't inactive, they just have no recorded activity. Additionally, `'pending'` from the type is never produced by the mapping.
+
+**Fix:** Add explicit handling for null/undefined:
+```tsx
+status: c.isActive === true ? 'active' as const 
+  : c.isActive === false ? 'inactive' as const 
+  : 'pending' as const,
+```
+
+---
+
+## 2. ARCHITECTURE FLAWS
+
+### ARCH-001 — HIGH: `OverviewTabContent` and `TrainingTabContent` Accept Props But Never Use Them
+
+**Files:** 
+- `OverviewTabContent.tsx` — `clientId` and `clientName` are destructured but never referenced
+- `TrainingTabContent.tsx` — `clientId` and `clientName` are destructured but likely never referenced
+
+**What's Wrong:** These components are passed `clientId` and `clientName` from `ClientDetailView` via render props, but the components render entirely static placeholder content. This signals either:
+1. The components were scaffolded but never wired to real data (dead scaffolding)
+2. They will be wired later but the render prop pattern means the parent fetches the data (architectural mismatch — data fetching should live in the component that displays it)
+
+**Fix:** Either:
+- (Preferred) Move data fetching INTO these components using `clientId`, eliminating the render prop
+
+---
+
+*Part of SwanStudios 14-Brain Recursive Consensus System*

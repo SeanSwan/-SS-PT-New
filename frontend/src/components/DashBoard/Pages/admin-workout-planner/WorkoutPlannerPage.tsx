@@ -488,7 +488,7 @@ const WorkoutPlannerPage: React.FC = () => {
         <HeaderLeft>
           <HeaderIcon><Dumbbell size={22} /></HeaderIcon>
           <div>
-            <Title>NASM Workout Planner</Title>
+            <Title>Swan Studios Workout Planner</Title>
             <Subtitle>Build intelligent, periodized training programs with 880+ exercises</Subtitle>
           </div>
         </HeaderLeft>

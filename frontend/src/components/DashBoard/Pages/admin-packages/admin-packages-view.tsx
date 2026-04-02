@@ -89,19 +89,19 @@ const FlexCol = styled.div<{ $gap?: string }>`
 const Heading5 = styled.span`
   font-weight: 300;
   font-size: 1.25rem;
-  color: #e2e8f0;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const Heading6 = styled.span`
   font-weight: 600;
   font-size: 1.1rem;
-  color: #e2e8f0;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string }>`
   font-weight: ${p => p.$weight || 400};
   font-size: ${p => p.$size || '0.875rem'};
-  color: ${p => p.$color || '#e2e8f0'};
+  color: ${p => p.$color || 'var(--text-primary, #E0ECF4)'};
 `;
 
 const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean }>`
@@ -119,7 +119,7 @@ const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?:
 const SubtitleText = styled.span`
   font-weight: 500;
   font-size: 1rem;
-  color: #e2e8f0;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const SearchInputWrapper = styled.div`
@@ -272,8 +272,8 @@ const FormSelect = styled.select`
   }
 
   option {
-    background: #0f172a;
-    color: #e2e8f0;
+    background: var(--bg-base, #0A0A0F);
+    color: var(--text-primary, #E0ECF4);
   }
 `;
 
@@ -420,8 +420,8 @@ const PaginationSelect = styled.select`
   cursor: pointer;
 
   option {
-    background: #0f172a;
-    color: #e2e8f0;
+    background: var(--bg-base, #0A0A0F);
+    color: var(--text-primary, #E0ECF4);
   }
 `;
 
@@ -451,9 +451,9 @@ const ThemeDot = styled.div<{ $theme?: string }>`
   border-radius: 50%;
   background: ${p =>
     p.$theme === 'cosmic' ? 'linear-gradient(135deg, #8B5CF6, #60C0F0)' :
-    p.$theme === 'purple' ? 'linear-gradient(135deg, #9c27b0, #d500f9)' :
-    p.$theme === 'ruby' ? 'linear-gradient(135deg, #e91e63, #f50057)' :
-    p.$theme === 'emerald' ? 'linear-gradient(135deg, #4caf50, #00e676)' :
+    p.$theme === 'purple' ? 'linear-gradient(135deg, #8B5CF6, #4070C0)' :
+    p.$theme === 'ruby' ? 'linear-gradient(135deg, #C92A54, #8B5CF6)' :
+    p.$theme === 'emerald' ? 'linear-gradient(135deg, #60C0F0, #4070C0)' :
     'linear-gradient(135deg, #8B5CF6, #60C0F0)'
   };
   display: flex;
@@ -1674,7 +1674,7 @@ const AdminPackagesView: React.FC = () => {
                         </AvatarCircle>
                         <span>{client.firstName} {client.lastName}</span>
                         {selectedClients.includes(client.id) && (
-                          <CheckCircle size={14} style={{ marginLeft: 'auto', color: '#0ea5e9' }} />
+                          <CheckCircle size={14} style={{ marginLeft: 'auto', color: 'var(--accent-primary, #60C0F0)' }} />
                         )}
                       </ClientCheckItem>
                     ))}
@@ -1773,7 +1773,7 @@ const AdminPackagesView: React.FC = () => {
               </InfoPanel>
             )}
 
-            <BodyText $color="#ff6b6b" $size="0.875rem" style={{ display: 'block' }}>
+            <BodyText $color="#C92A54" $size="0.875rem" style={{ display: 'block' }}>
               Note: If clients have already purchased this package, the deletion may affect their access.
               Instead of deleting, consider setting the package as inactive.
             </BodyText>

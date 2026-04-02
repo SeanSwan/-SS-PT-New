@@ -127,7 +127,7 @@ const FieldLabel = styled.label`
   font-family: 'Sora', sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, rgba(224, 236, 244, 0.65));
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;

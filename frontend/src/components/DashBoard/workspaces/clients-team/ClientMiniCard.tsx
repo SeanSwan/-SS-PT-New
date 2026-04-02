@@ -126,7 +126,7 @@ const ClientMiniCard: React.FC<ClientMiniCardProps> = React.memo(({
         <ClientMeta>
           <StatusDot $status={client.status} />
           {client.sessionsLeft != null && `${client.sessionsLeft} sessions`}
-          {client.workoutCount != null && ` · ${client.workoutCount} wkts`}
+          {client.workoutCount != null && ` · ${client.workoutCount} workouts`}
         </ClientMeta>
         <EngagementTrack>
           <EngagementFill $progress={client.engagementScore || 0} />

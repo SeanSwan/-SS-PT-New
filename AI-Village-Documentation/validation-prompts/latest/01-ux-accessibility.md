@@ -1,149 +1,173 @@
 # UX & Accessibility — Validation Report
 
-> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 20.1s
-> **Files:** docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md, frontend/src/components/Shared/AITerminalPanel.tsx, frontend/src/components/AIAssistant/AIContextSelector.tsx, frontend/src/components/AIAssistant/DictationOrb.tsx, frontend/src/config/dashboard-tabs.ts
-> **Generated:** 3/30/2026, 5:26:33 PM
+> **Status:** PASS | **Model:** google/gemini-2.5-flash | **Duration:** 24.9s
+> **Files:** frontend/src/config/dashboard-tabs.ts, frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientDetailView.tsx, frontend/src/components/DashBoard/workspaces/clients-team/ClientMiniCard.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.tsx, frontend/src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx
+> **Generated:** 4/1/2026, 7:10:00 PM
 
 ---
 
-As a UX and accessibility expert auditor, I've reviewed the provided code and blueprint for SwanStudios. The Enchanted Apex: Crystalline Swan theme is ambitious and well-defined, and the focus on mobile-first and voice interaction for the Coach Assistant is commendable.
-
-Here's a detailed breakdown of findings across the requested categories:
+I will now act as a UX and accessibility expert auditor for SwanStudios. I will review the provided code snippets for WCAG 2.1 AA compliance, mobile UX, design consistency, user flow friction, and loading states.
 
 ---
 
-## Overall Impression
+## UX and Accessibility Audit: SwanStudios Client & Team Workspace
 
-The **SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md** is exceptionally thorough and demonstrates a strong understanding of the target user (Sean, the admin/trainer on the gym floor). The mobile-first approach, explicit font size requirements, and generous touch targets are excellent. The detailed wireframes, component architecture, and theme integration guidelines are also very strong.
+### 1. WCAG 2.1 AA Compliance
 
-The **AITerminalPanel.tsx** component, while exceeding the stated line limit, implements many of the blueprint's core ideas for a compact, embeddable AI chat. The **DictationOrb.tsx** is a complex but crucial component for the voice-first strategy, and its V3 fixes show attention to detail. The **AIContextSelector.tsx** provides good context management.
+#### Color Contrast
 
-However, there are areas where the implementation or blueprint details could be improved to fully meet WCAG 2.1 AA, mobile UX best practices, and design consistency.
-
----
-
-## 1. WCAG 2.1 AA Compliance
-
-### Color Contrast
-**Finding:** MEDIUM
-**Details:**
-*   **Blueprint:** States "High contrast text: 4.5:1 minimum (Frost White on dark bg = guaranteed)". This is a good intention, but needs to be verified against the actual color palette and component usage.
-    *   **Frost White (#E0ECF4) on Midnight Sapphire (#002060):** Contrast ratio is 11.5:1 (AA & AAA pass).
-    *   **Frost White (#E0ECF4) on Royal Depth (#003080):** Contrast ratio is 9.7:1 (AA & AAA pass).
-    *   **Frost White (#E0ECF4) on Wing Purple (#8B5CF6):** Contrast ratio is 3.5:1 (FAIL AA for normal text). This is used for `AiBadge` background and `SendButton` background in `AITerminalPanel.tsx`. While the text/icon on these is `Frost White` or `Midnight Sapphire`, the `Wing Purple` itself is a background.
-    *   **Gilded Fern (#C6A84B) on Midnight Sapphire (#002060):** Contrast ratio is 7.5:1 (AA & AAA pass).
-    *   **Arctic Cyan (#50A0F0) on Midnight Sapphire (#002060):** Contrast ratio is 4.5:1 (AA pass).
-    *   **`AITerminalPanel.tsx`:**
-        *   `PanelHeader` text (`#f0f0ff`) on `rgba(0, 32, 96, 0.5)` (which is `Royal Depth` with 50% opacity). This needs to be calculated against the actual background color it renders on, which appears to be `rgba(0, 20, 60, 0.6)` (Midnight Sapphire with 60% opacity). If `PanelHeader` is `Royal Depth` (003080) and text is `#f0f0ff`, contrast is 9.7:1 (PASS).
-        *   `AiBadge` background `linear-gradient(135deg, #8b5cf6 0%, #60c0f0 100%)` with `color: #002060`. The `Midnight Sapphire` text on `Wing Purple` is 3.5:1 (FAIL AA). The `Midnight Sapphire` text on `Ice Wing` is 4.5:1 (PASS AA). This gradient needs careful checking.
-        *   `EmptyHint` text `rgba(255, 255, 255, 0.4)` on `rgba(0, 20, 60, 0.6)` (Midnight Sapphire 60%). This is likely to fail. `rgba(255, 255, 255, 0.4)` on a dark background is usually too low.
-        *   `ErrorBar` text `#fca5a5` on `rgba(153, 27, 27, 0.3)`. This is a red-on-red scenario. `#fca5a5` (light red) on `rgba(153, 27, 27, 0.3)` (darker red, 30% opacity) needs to be checked against the actual background. If the background is `rgba(0, 20, 60, 0.6)`, then `#fca5a5` on `rgba(0, 20, 60, 0.6)` is 6.5:1 (PASS).
-        *   `ChatInput` placeholder `rgba(255, 255, 255, 0.3)` on `rgba(0, 32, 96, 0.4)`. This will likely fail.
-        *   `TtsToggle` inactive state `rgba(255, 255, 255, 0.4)` on `transparent` (which means it's on `rgba(0, 20, 60, 0.6)`). This will likely fail.
-    *   **`DictationOrb.tsx`:**
-        *   `OrbButton` text `CS.frostWhite` on `CS.wingPurple` (listening state): 3.5:1 (FAIL AA).
-        *   `OrbButton` text `CS.textOnGlass` (`#E0ECF4`) on `CS.glassOverlayStrong` (`rgba(0, 32, 96, 0.85)`): 9.7:1 (PASS).
-        *   `OrbButton` border `CS.glassBorder` (`rgba(224, 236, 244, 0.3)`) on `CS.glassOverlayStrong`. This is non-text contrast, but the border is thin.
-        *   `InterimBubble` text `CS.frostWhite` on `CS.midnightSapphire95`. 11.5:1 (PASS).
-*   **Recommendation:** Conduct a thorough color contrast audit for *all* text and interactive elements against their *actual rendered backgrounds*, considering transparency and layered elements. Use a tool like WebAIM Contrast Checker. Prioritize fixing elements that fail AA, especially for text. For `AiBadge` and `SendButton`, ensure the icon/text color has sufficient contrast with *both* ends of the gradient or choose a single, contrasting color. For placeholder text and inactive states, ensure a minimum 3:1 contrast for non-text elements (like icons) and 4.5:1 for text.
-
-### Aria Labels & Roles
-**Finding:** HIGH
-**Details:**
-*   **Blueprint:** Explicitly mentions `role="log"` on message list, `aria-live="polite"` on new messages, and `aria-label` on all buttons. This is excellent.
-*   **`AITerminalPanel.tsx`:**
-    *   `PanelHeader` is a `<button>` but lacks an `aria-label` or `aria-expanded` attribute. It toggles the panel's visibility.
-    *   `MessagesArea` lacks `role="log"` and `aria-live="polite"`. New messages are appended, but screen readers won't announce them automatically without these.
-    *   `MessageBubble` elements don't have explicit roles or labels, which is fine for static content, but the overall list needs the log role.
-    *   `SendButton` has `type="button"` but no `aria-label`. The `Send` icon is not sufficient on its own.
-    *   `TtsToggle` has `aria-label` and `title` attributes, which is good.
-    *   `CompactTrigger` has `type="button"` but no `aria-label` or `aria-expanded`.
-*   **`AIContextSelector.tsx`:**
-    *   `ContextPill` and `StylePill` use `aria-pressed`, which is appropriate for toggle buttons. Good.
-    *   `SendBtn` has `aria-label` and `title` attributes, which is good.
-*   **`DictationOrb.tsx`:**
-    *   `OrbButton` has comprehensive `aria-label`, `aria-pressed`, `aria-describedby`, and `title` attributes. This is excellent.
-    *   Includes a `div` with `role="status"` and `aria-live="polite"` for screen reader announcements, which is also excellent.
-    *   `InterimBubble` has `aria-hidden="true"`, which is good for content that is visually present but not critical for screen reader users to hear twice (as the final transcript will be read).
+*   **Finding:** The provided code snippets do not contain explicit color definitions for text and background combinations, relying instead on CSS variables like `--text-primary`, `--text-secondary`, `--bg-surface`, etc. While this is good practice for theme consistency, the actual contrast ratios cannot be definitively assessed without the full CSS variable definitions. However, the theme description (`Midnight Sapphire #002060`, `Royal Depth #003080`, `Frost White #E0ECF4`, `Swan Lavender #4070C0`, `Wing Purple #8B5CF6`, `Gilded Fern #C6A84B`, `Ice Wing #60C0F0`, `Arctic Cyan #50A0F0`) suggests a dark theme. Dark themes often struggle with sufficient contrast for secondary text, disabled states, and subtle borders.
+    *   **Example:** `CardSubtext` (`--text-muted, rgba(224, 236, 244, 0.45)`) on `BentoCard` (`--bg-surface, #141419`). `rgba(224, 236, 244, 0.45)` is a very light gray with 45% opacity. On a dark background like `#141419`, this is highly likely to fail WCAG AA for normal text (minimum 4.5:1).
+    *   **Example:** `StatBlock` text (`--text-secondary, #4070C0`) on `EmptyStateContainer` background (likely `--bg-surface`). `#4070C0` (Swan Lavender) on `#141419` (a dark gray) could be problematic.
+    *   **Example:** `CollapseButton` icon color on its background.
+    *   **Example:** `PillarButton` text and icon in inactive state.
+*   **Rating:** CRITICAL (Potential widespread contrast issues)
 *   **Recommendation:**
-    *   Add `aria-label="Toggle AI Assistant Panel"` and `aria-expanded={isOpen}` to `PanelHeader` in `AITerminalPanel.tsx`.
-    *   Add `role="log"` and `aria-live="polite"` to the `MessagesArea` in `AITerminalPanel.tsx`.
-    *   Add `aria-label="Send message"` to the `SendButton` in `AITerminalPanel.tsx`.
-    *   Add `aria-label="Toggle AI Assistant"` and `aria-expanded={isOpen}` to `CompactTrigger` in `AITerminalPanel.tsx`.
+    *   Conduct a full color contrast audit using a tool like WebAIM Contrast Checker or Lighthouse, testing all text/icon-on-background combinations against the defined theme colors.
+    *   Ensure all text and interactive elements meet a minimum contrast ratio of 4.5:1 for normal text and 3:1 for large text (18pt or 14pt bold).
+    *   Pay special attention to `--text-muted`, `--text-secondary`, and colors used for borders or subtle accents on dark backgrounds.
+    *   Provide explicit contrast ratios for all color tokens in the design system.
 
-### Keyboard Navigation & Focus Management
-**Finding:** MEDIUM
-**Details:**
-*   **Blueprint:** Mentions "Keyboard: Tab navigation, Escape to close, Enter to send" and "Focus management: auto-focus input after AI responds." This is a good start.
-*   **`AITerminalPanel.tsx`:**
-    *   `PanelHeader` (a button) is tabbable.
-    *   `ChatInput` (textarea) is tabbable.
-    *   `TtsToggle` (button) is tabbable.
-    *   `SendButton` (button) is tabbable.
-    *   The `DictationOrb` (button) is tabbable.
-    *   The blueprint mentions "auto-focus input after AI responds." This is not implemented in the provided `AITerminalPanel.tsx` code. The `inputRef` is there, but no `inputRef.current.focus()` call after `sendMessageWithConversation` completes.
-    *   Escape key to close modals/drawers is mentioned in the blueprint but not implemented in `AITerminalPanel.tsx` (which is a panel, not a modal, but still good to consider).
-*   **`AIContextSelector.tsx`:**
-    *   `ContextPill` and `StylePill` are buttons and are tabbable. Good.
-    *   `SendBtn` is a button and is tabbable. Good.
-*   **`DictationOrb.tsx`:**
-    *   The `OrbButton` is tabbable. Good.
-    *   Keyboard shortcut `Cmd/Ctrl+Shift+K` is implemented, which is a nice power-user feature.
+#### Aria Labels & Semantics
+
+*   **Finding:** Generally good use of `aria-label` for interactive elements like buttons (`CollapseButton`, `FilterButton`, `QuickActionBtn`, `MobileBackButton`, `ClientCardButton`).
+*   **Finding:** `PillarNav` has `aria-label="Workspace pillars"`. `DetailTabBar` has `role="tablist"` and `aria-label="Client detail tabs"`. `DetailTabButton` has `role="tab"`, `aria-selected`, and `aria-controls`. This is excellent semantic markup for tabbed interfaces.
+*   **Finding:** `SearchInput`'s `input` element has `aria-label="Search clients"`, which is good.
+*   **Finding:** The `ClientMiniCard` uses `style={{ '--stagger-idx': index } as React.CSSProperties}` which is a valid way to pass custom CSS properties. However, the `ClientCardButton` itself has `aria-label` and `aria-pressed`, which is good.
+*   **Finding:** The `MasterDetailLayout` uses `h2` for "Clients & Team" and `h4` for `CardTitle` in `OverviewTabContent`. This suggests a logical heading structure, but the full page context is needed to confirm the overall heading hierarchy.
+*   **Rating:** HIGH (Mostly good, but some areas for improvement/verification)
 *   **Recommendation:**
-    *   Implement the "auto-focus input after AI responds" feature in `AITerminalPanel.tsx`. After `sendMessageWithConversation` completes (and `sending` becomes false), call `inputRef.current?.focus()`.
-    *   Ensure all interactive elements have a clear and visible focus indicator (the default browser `outline` is often sufficient but can be styled with `:focus-visible`). The `OrbButton` has `outline` styling, which is good.
+    *   Verify the overall heading structure (`h1`, `h2`, `h3`, etc.) across the entire page to ensure a logical and accessible outline.
+    *   Ensure all custom interactive elements (if any) that are not standard HTML controls have appropriate ARIA roles, states, and properties.
+    *   For the collapsed state of `MasterPane`, the `ClientList` contains `button` elements for client avatars. These buttons have `title` attributes, but adding an `aria-label` that explicitly states "Select [Client Name]" would be more robust for screen readers. (Current code has `title={`${client.firstName} ${client.lastName}`}`, which is okay, but `aria-label` is preferred for interactive elements). *Correction: The `ClientCardButton` already has `aria-label` for the full card, and the collapsed button has `title`. An explicit `aria-label` on the collapsed button would be better.*
 
-### Other WCAG Considerations
-**Finding:** LOW
-**Details:**
-*   **Blueprint:** Mentions `prefers-reduced-motion` for animations. This is excellent.
-*   **`DictationOrb.tsx`:** Implements `prefers-reduced-motion` for `crystallinePulse` and `waveBar` animations. This is a strong positive.
-*   **`AITerminalPanel.tsx`:** `TypingDots` animation does not appear to respect `prefers-reduced-motion`.
-*   **Recommendation:** Apply `prefers-reduced-motion` to the `TypingDots` animation in `AITerminalPanel.tsx` as well.
+#### Keyboard Navigation & Focus Management
+
+*   **Finding:** `MasterDetailLayout` includes a `useEffect` for keyboard navigation:
+    *   `Cmd/Ctrl + /` to focus search input. This is a nice power-user feature.
+    *   `Escape` to deselect a client.
+    *   `ArrowDown`/`ArrowUp` to navigate client cards in the roster. This is excellent for efficiency.
+*   **Finding:** Interactive elements like `PillarButton`, `CollapseButton`, `FilterButton`, `QuickActionBtn`, `ClientCardButton`, `DetailTabButton`, `MobileBackButton` are all rendered as `<button>` elements, which inherently support keyboard focus and activation.
+*   **Finding:** The `ClientList` in the collapsed state uses `button` elements for client avatars, which is good for keyboard accessibility.
+*   **Finding:** Focus styles are not explicitly defined in the provided `styled-components` snippets. Without them, users relying on keyboard navigation might not know which element is currently focused.
+*   **Rating:** HIGH (Good keyboard support, but focus styles are crucial)
+*   **Recommendation:**
+    *   Implement clear and consistent `:focus-visible` styles for all interactive elements (buttons, links, input fields, tabs). These styles should be distinct from hover states and provide a strong visual indicator.
+    *   Test the tab order (`Tab` key) to ensure it follows a logical sequence through the master pane and then into the detail pane.
+    *   When a client is selected, ensure focus is appropriately managed, perhaps moving to the detail pane or the first interactive element within it.
+    *   When `Escape` is pressed to deselect a client, ensure focus returns to a logical place, e.g., the previously selected client card or the top of the client list.
+
+### 2. Mobile UX
+
+#### Touch Targets
+
+*   **Finding:** The `CollapseButton` uses `size={18}` for the icon, but the button's actual dimensions are not specified in the provided `MasterDetailStyles`. Similarly for `QuickActionBtn`, `PillarButton`, `FilterButton`, `MobileBackButton`, and `DetailTabButton`. Icons of `14px` or `16px` are common, but the clickable area around them must be at least 44x44 CSS pixels.
+*   **Rating:** MEDIUM (Likely insufficient touch targets)
+*   **Recommendation:**
+    *   Explicitly set `min-width: 44px; min-height: 44px;` for all interactive buttons and links, especially those with small icons or text.
+    *   Verify touch targets for `ClientMiniCard` (the entire card is clickable) and the collapsed client avatar buttons.
+
+#### Responsive Breakpoints
+
+*   **Finding:** `MasterDetailLayout` uses media queries for `MasterPane` collapse logic (`isCollapsed`), and `DetailPane` mobile visibility (`$isOpenOnMobile`).
+*   **Finding:** `TrainingTabContent` describes a responsive layout: vertical sidebar on desktop, icon-only sidebar on tablet, and horizontal pill tabs on mobile. This is a well-thought-out responsive strategy.
+*   **Finding:** `OverviewTabContent`'s `BentoGrid` uses `grid-template-columns` with breakpoints at `1024px` (2 columns) and `430px` (1 column). This is good for adapting the grid layout.
+*   **Finding:** `MobileBackButton` is specifically designed for mobile, indicating a mobile-first or mobile-aware approach.
+*   **Rating:** HIGH (Well-considered responsive design)
+*   **Recommendation:**
+    *   Thoroughly test the layout and functionality on a range of mobile devices and screen sizes (e.g., iPhone SE, larger Android phones, tablets in portrait and landscape).
+    *   Ensure that content reflows gracefully, text remains legible, and interactive elements are easily tappable at all breakpoints.
+    *   Verify that the "Back to Roster" button in `ClientDetailView` functions correctly and is prominent on mobile.
+
+#### Gesture Support
+
+*   **Finding:** No explicit gesture support (e.g., swipe to navigate tabs, pinch-to-zoom) is mentioned or implemented in the provided code.
+*   **Rating:** LOW (Not explicitly addressed, but not critical for core functionality)
+*   **Recommendation:**
+    *   Consider if common mobile gestures (e.g., horizontal swipe for tab navigation, swipe to dismiss a detail view) would enhance the user experience, particularly for the `ClientDetailView` and `TrainingTabContent` tabs. Implement only if they add clear value and don't conflict with existing interactions.
+
+### 3. Design Consistency
+
+#### Theme Tokens Usage
+
+*   **Finding:** The code consistently uses CSS variables (e.g., `var(--text-primary)`, `var(--bg-surface)`, `var(--accent-primary)`) for colors, which is excellent for theme consistency and maintainability.
+*   **Finding:** Typography is also referenced via CSS variables or explicit font-family declarations (`'Plus Jakarta Sans'`, `'Sora'`, `'Fira Code'`), aligning with the theme.
+*   **Finding:** `BentoCard` and `ClientMiniCard` use `$heroAccent` and `$tier` props to dynamically apply colors, which is a good pattern for extending theme tokens.
+*   **Finding:** The `MasterDetailLayout` has some inline styles with hardcoded colors (`color: 'var(--text-primary, #E0ECF4)'`, `color: 'var(--text-secondary, #4070C0)'`, `color: '#C6A84B'`). While these *do* reference the theme colors, using the CSS variable directly without the fallback (e.g., `color: var(--text-primary);`) or moving these to `styled-components` would be cleaner and prevent potential inconsistencies if the fallback value ever diverged from the actual variable.
+*   **Finding:** The collapsed client avatar button in `MasterDetailLayout` has hardcoded `border: selectedClientId === client.id ? '2px solid #8B5CF6' : '2px solid transparent';` and `background: 'linear-gradient(135deg, #002060, #003080)';`. These are `Wing Purple`, `Midnight Sapphire`, and `Royal Depth` respectively, which are part of the theme. However, they are hardcoded instead of using CSS variables or `styled-components` props.
+*   **Rating:** HIGH (Mostly consistent, but some minor hardcoding)
+*   **Recommendation:**
+    *   Refactor inline styles that use hardcoded theme colors to instead use the corresponding CSS variables directly (e.g., `var(--wing-purple)` if defined, or `var(--accent-secondary)` if that's its role) or move them into `styled-components` definitions. This ensures a single source of truth for all theme values.
+    *   Ensure all theme colors (Midnight Sapphire, Royal Depth, Ice Wing, Arctic Cyan, Gilded Fern, Frost White, Swan Lavender, Wing Purple) are defined as CSS variables (e.g., `--color-midnight-sapphire`, `--accent-primary`, etc.) for easy and consistent access.
+
+#### Typography
+
+*   **Finding:** Headings use `Plus Jakarta Sans`, body/UI uses `Sora`, and data/monospace uses `Fira Code`. This aligns perfectly with the specified typography.
+*   **Rating:** CRITICAL (Excellent consistency)
+
+### 4. User Flow Friction
+
+#### Unnecessary Clicks / Confusing Navigation
+
+*   **Finding:** The 4-pillar navigation (`roster`, `growth`, `studio`, `comms`) in `MasterDetailLayout` is a clear way to organize different client-related functionalities. The sub-tabs for non-roster pillars (`PILLAR_TABS`) also provide a logical hierarchy.
+*   **Finding:** The `ClientMiniCard` offers quick actions (Message, Log Workout, View Workouts, Weigh-In) directly on the card, reducing clicks to common tasks. This is a good design choice.
+*   **Finding:** The contextual swap of "View Workouts" to "Weigh-In" when overdue is a smart optimization, guiding the user to a high-priority action.
+*   **Finding:** The `MasterDetailLayout` automatically detects the active pillar from the URL, which helps maintain context if a user navigates directly to a sub-route.
+*   **Finding:** The `ClientDetailView`'s tabbed interface (Training, Biometrics, Overview, Settings) is standard and efficient for organizing detailed client information.
+*   **Finding:** The `TrainingTabContent`'s sidebar/pill-tab navigation is well-structured for managing sub-sections within a tab.
+*   **Finding:** The `MasterDetailLayout` handles the transition between client detail view and outlet routes (non-client-specific pages) gracefully, ensuring the correct content is displayed.
+*   **Rating:** CRITICAL (User flows appear well-designed and efficient)
+*   **Recommendation:**
+    *   As the application grows, ensure that the "Quick Actions" on `ClientMiniCard` remain relevant and don't become overloaded. Consider a "More Actions" menu if the list expands significantly.
+    *   For the `TrainingTabContent`, ensure that the lazy-loaded components (`WorkoutPlanBuilder`, `WorkoutLogger`, `WorkoutCopilotPanel`) provide clear navigation back to the main client detail view or other sections if needed.
+
+#### Missing Feedback States
+
+*   **Finding:** `MasterDetailLayout` includes a `loading` state for fetching clients, displaying "Loading clients..." or "No clients match your search" / "No clients found". This is good.
+*   **Finding:** `TabErrorBoundary` is used in `ClientDetailView` for rendering tab content, which is excellent for handling unexpected errors within individual tabs without crashing the entire detail view.
+*   **Finding:** `ClientMiniCard` has an `isSelected` state, providing visual feedback when a client is selected.
+*   **Finding:** `PillarButton` and `DetailTabButton` have `$active` props for visual feedback on the currently selected item.
+*   **Finding:** `QuickActionBtn` has an `$alert` prop for the overdue weigh-in, providing visual urgency.
+*   **Rating:** HIGH (Good, but could be enhanced)
+*   **Recommendation:**
+    *   Consider adding visual feedback for quick actions (e.g., a brief success message, a spinner on the button if the action is asynchronous).
+    *   For search, consider a "clearing" animation or a subtle loading indicator if the search is debounced and takes time.
+    *   Ensure that error states (e.g., API failures beyond initial loading) are clearly communicated to the user, not just logged to the console.
+
+### 5. Loading States
+
+#### Skeleton Screens
+
+*   **Finding:** The `MasterDetailLayout` displays "Loading clients..." text. While functional, this is a basic loading state.
+*   **Finding:** `OverviewTabContent` and `ClientDetailView` (via `PlaceholderContent`) use static placeholder text. This is fine for initial development but not a true skeleton screen.
+*   **Finding:** `TrainingTabContent` uses `React.lazy` and `Suspense`, which implies a loading fallback will be needed. The provided snippet doesn't show the `fallback` prop for `Suspense`.
+*   **Rating:** MEDIUM (Basic loading states, opportunities for improvement)
+*   **Recommendation:**
+    *   Implement skeleton screens for the `ClientList` in `MasterPane` while clients are loading. This provides a better perceived performance than just text.
+    *   For `ClientDetailView` and its tabs, consider skeleton screens for the content area while data for the selected client is being fetched.
+    *   Ensure that `Suspense` fallbacks for `WorkoutPlanBuilder`, `WorkoutLogger`, and `WorkoutCopilotPanel` are implemented with meaningful loading indicators (e.g., a simple spinner or a skeleton of the component's layout).
+
+#### Error Boundaries
+
+*   **Finding:** `TabErrorBoundary` is used in `ClientDetailView` to wrap the content of each tab. This is an excellent implementation of error boundaries, preventing a single tab's error from breaking the entire application.
+*   **Rating:** CRITICAL (Excellent implementation)
+
+#### Empty States
+
+*   **Finding:** `MasterDetailLayout` provides clear empty states for the `ClientList`: "No clients match your search" and "No clients found".
+*   **Finding:** The `EmptyStateContainer` in `DetailPane` when no client is selected is well-designed with a title, subtext, and relevant micro-stats. This is a good example of a helpful empty state.
+*   **Finding:** `OverviewTabContent` uses placeholder text and values like `--` or `0` for cards when data is not yet available, which serves as a basic empty/initial state.
+*   **Rating:** HIGH (Good empty states)
+*   **Recommendation:**
+    *   Ensure that the `PlaceholderContent` in `ClientDetailView` (for tabs that are not yet fully wired) is replaced with actual content or more specific empty states once those features are implemented.
+    *   For `TrainingTabContent`'s `Vault History` or other sections, ensure a clear empty state is displayed if there's no data (e.g., "No workout history available yet").
 
 ---
 
-## 2. Mobile UX
+### Overall Summary
 
-### Touch Targets (must be 44px min)
-**Finding:** MEDIUM
-**Details:**
-*   **Blueprint:** Excellent, explicit touch target requirements (Send Button 56x56, Voice Orb 64x64, Context Chips 44px height, Style Toggle 44px height, Quick Action Buttons 48px height). This is a strong foundation.
-*   **`AITerminalPanel.tsx`:**
-    *   `PanelHeader`: `min-height: 48px`. PASS.
-    *   `SendButton`: `width: 44px; height: 44px;`. This meets the *minimum* 44px, but the blueprint specifies 56x56 for the Coach Assistant's primary send button. This component is an *embeddable* panel, so 44x44 might be acceptable here, but it's a discrepancy with the blueprint's primary CTA.
-    *   `TtsToggle`: `width: 36px; height: 36px;`. FAIL. This is below the 44px minimum.
-    *   `CompactTrigger`: `min-height: 44px`. PASS.
-*   **`AIContextSelector.tsx`:**
-    *   `ContextPill` and `StylePill` are not explicitly sized in the provided `AIDrawerStyles` (which are not included). However, the blueprint specifies "Context Chips 44px height" and "Style Toggle 44px height". Assuming `AIDrawerStyles` implements this.
-*   **`DictationOrb.tsx`:**
-    *   `OrbButton`: `width: 44px; height: 44px; min-width: 44px; min-height: 44px;`. This meets the *minimum* 44px, but the blueprint specifies 64x64 for the *primary CTA on mobile*. Similar to `SendButton`, this component is embeddable, so 44x44 might be acceptable, but it's a discrepancy. The blueprint also mentions "Make the voice orb the PRIMARY CTA on mobile (center-bottom, 64px)" specifically for the *full-screen Coach Assistant*. This `DictationOrb` is likely used in the `AITerminalPanel`, which is a smaller embed.
-*   **Recommendation:**
-    *   For `AITerminalPanel.tsx`, increase `TtsToggle` to `min-width: 44px; min-height: 44px;`.
-    *   Clarify if the `AITerminalPanel`'s `SendButton` and `DictationOrb` should adhere to the 56x56 and 64x64 sizes, or if the 44x44 is acceptable for the *embeddable* version. If the latter, document this distinction. The blueprint is very clear about the *full-screen Coach Assistant* having larger targets.
-
-### Responsive Breakpoints
-**Finding:** HIGH
-**Details:**
-*   **Blueprint:** Provides a detailed responsive breakpoint matrix and explicit font size requirements for mobile (16px minimum for AI Response, User Message, Input Field). This is excellent and critical for the target user.
-*   **`AITerminalPanel.tsx`:**
-    *   `MessageBubbleUser` and `MessageBubbleAI` have `font-size: 13px;` which is a direct contradiction to the blueprint's "16px minimum" for mobile. This is a critical issue for Sean's use case.
-    *   `HeaderTitle` has `font-size: 14px;`. This is also below the 16px minimum for primary text.
-    *   `EmptyHint` `p` has `font-size: 13px;`. Also below 16px.
-    *   `ErrorBar` `font-size: 12px;`. Also below 16px.
-    *   `ChatInput` `font-size: 13px;`. Also below 16px.
-    *   The `max-width` for message bubbles is hardcoded to `80%` for AI and `85%` for user, which is fine for mobile, but the blueprint mentions "messages get max-width 85%" for tablet and "messages centered (max-width 800px)" for desktop. The current implementation doesn't seem to have these media queries for `max-width` changes.
-*   **`DictationOrb.tsx`:** The `OrbButton` is fixed at 44px, but the blueprint specifies 64px for the *primary CTA on mobile* for the full Coach Assistant. This component is likely reused, so its size might be overridden by the parent, but it's important to ensure the *final rendered size* meets the blueprint.
-*   **Recommendation:**
-    *   **CRITICAL:** Adjust all font sizes in `AITerminalPanel.tsx` to meet the blueprint's 16px minimum for mobile (320-430px). This is explicitly called out as "CRITICAL" in the blueprint.
-    *   Add media queries to `MessageBubble` styles in `AITerminalPanel.tsx` to implement the `max-width` changes for tablet and desktop as specified in the blueprint (e.g., `max-width: 85%` for tablet, `max-width: 800px` for desktop).
-    *   Ensure the `DictationOrb` is rendered at 64x64px when used as the primary CTA in the full `SwanCoachAssistantPage`.
-
-### Gesture Support
-**Finding:** LOW
-**Details:**
-*   **Blueprint:** Mentions "Voice Input (Already Built — Enhance): DictationOrb with Web Speech API (already exists)". "Enh
+The SwanStudios Client & Team workspace demonstrates a strong foundation in UX and accessibility
 
 ---
 
-*Part of SwanStudios 11-Brain Recursive Consensus System*
+*Part of SwanStudios 14-Brain Recursive Consensus System*

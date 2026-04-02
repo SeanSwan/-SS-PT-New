@@ -165,7 +165,7 @@ export const BioMetric = styled.div`
     font-family: 'Sora', sans-serif;
     font-size: 0.65rem;
     font-weight: 600;
-    color: var(--text-muted, rgba(224, 236, 244, 0.45));
+    color: var(--text-muted, rgba(224, 236, 244, 0.65));
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 2px;

@@ -13,7 +13,7 @@
  * HOW IT FITS IN THE APP: ClientsWorkspace → DetailPane → ClientDetailView
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { ArrowLeft, Activity, Heart, BarChart3, Settings } from 'lucide-react';
 import type { MiniCardClient } from './ClientMiniCard';
 import {
@@ -77,6 +77,11 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<DetailTab>('training');
 
+  // Reset tab to Training when switching clients (avoids stale tab state)
+  useEffect(() => {
+    setActiveTab('training');
+  }, [client.id]);
+
   const handleTabChange = useCallback((tab: DetailTab) => {
     setActiveTab(tab);
   }, []);
@@ -85,19 +90,19 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     switch (activeTab) {
       case 'training':
         return renderTraining ? renderTraining(client.id) : (
-          <PlaceholderContent label="Training" description="View workouts, log sessions, and access AI workout generation." />
+          <PlaceholderContent label="Training" description="Workouts, sessions, and AI generation." />
         );
       case 'biometrics':
         return renderBiometrics ? renderBiometrics(client.id) : (
-          <PlaceholderContent label="Biometrics" description="Body map, movement screen, measurements, and progress charts." />
+          <PlaceholderContent label="Biometrics" description="Measurements, body map, and progress." />
         );
       case 'overview':
         return renderOverview ? renderOverview(client.id) : (
-          <PlaceholderContent label="Overview" description="Client spending, revenue, engagement metrics, and activity feed." />
+          <PlaceholderContent label="Overview" description="Stats, engagement, and revenue." />
         );
       case 'settings':
         return renderSettings ? renderSettings(client.id) : (
-          <PlaceholderContent label="Settings" description="Edit client info, set profile photo, manage permissions." />
+          <PlaceholderContent label="Settings" description="Profile, permissions, and preferences." />
         );
       default:
         return null;
@@ -108,10 +113,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     <>
       <MobileBackButton onClick={onBack} aria-label="Back to client list">
         <ArrowLeft size={18} />
-        Back to Roster
+        Back
       </MobileBackButton>
 
-      <DetailContentWrapper key={client.id}>
+      <DetailContentWrapper>
         <DetailHeader>
           <DetailClientInfo>
             <DetailAvatar $tier={client.tier}>
@@ -120,7 +125,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             <div>
               <DetailName>{client.firstName} {client.lastName}</DetailName>
               <DetailSubtext>
-                {client.email || 'No email'} · {client.status} · {client.tier || 'starter'}
+                {client.email || '—'} · {client.status} · {client.tier || 'Bronze Forge'}
               </DetailSubtext>
             </div>
           </DetailClientInfo>

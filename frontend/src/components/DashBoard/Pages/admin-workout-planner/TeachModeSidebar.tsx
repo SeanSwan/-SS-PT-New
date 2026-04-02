@@ -221,7 +221,7 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
         ) : (
           <EmptyMessage>
             Select an exercise to see step-by-step instructions, coaching cues,
-            safety tips, biomechanics, progression paths, and NASM phase guidance.
+            safety tips, biomechanics, progression paths, and OPT phase guidance.
           </EmptyMessage>
         )}
       </PanelBody>

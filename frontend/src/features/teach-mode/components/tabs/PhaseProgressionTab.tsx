@@ -17,6 +17,12 @@
 import React, { useMemo, memo } from 'react';
 import { Zap, TrendingUp, Check, AlertTriangle, ChevronRight } from 'lucide-react';
 import type { ExerciseTeachData } from '../../types/TeachModeContracts';
+
+const ensureArray = (val: unknown): unknown[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') { try { const p = JSON.parse(val); if (Array.isArray(p)) return p; } catch {} }
+  return [];
+};
 import { OPT_PHASES } from '../../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes';
 import { DataRow, DataLabel, DataValue, PhaseBadge, PhaseLabel, PhaseParams } from '../../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStyles';
 
@@ -32,10 +38,13 @@ const PhaseProgressionTab: React.FC<PhaseProgressionTabProps> = ({ data, phaseNu
     [phaseNumber]
   );
 
+  const optPhases = useMemo(() => ensureArray(data.optPhases) as number[], [data.optPhases]);
+  const progressionPath = useMemo(() => ensureArray(data.progressionPath) as string[], [data.progressionPath]);
+
   const compatiblePhases = useMemo(() => {
-    if (data.optPhases.length > 0) return data.optPhases;
+    if (optPhases.length > 0) return optPhases;
     return [1, 2, 3, 4, 5]; // Default: compatible with all phases
-  }, [data.optPhases]);
+  }, [optPhases]);
 
   return (
     <div role="tabpanel" aria-label="Phase & Progression">
@@ -155,7 +164,7 @@ const PhaseProgressionTab: React.FC<PhaseProgressionTabProps> = ({ data, phaseNu
       </div>
 
       {/* Progression Path */}
-      {data.progressionPath.length > 0 && (
+      {progressionPath.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <div style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -170,7 +179,7 @@ const PhaseProgressionTab: React.FC<PhaseProgressionTabProps> = ({ data, phaseNu
             <TrendingUp size={15} /> Progression Path
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {data.progressionPath.map((exerciseId, i) => (
+            {progressionPath.map((exerciseId, i) => (
               <div
                 key={exerciseId}
                 style={{
