@@ -29,8 +29,8 @@ async function callJudge(systemPrompt, userPrompt) {
   const openrouterKey = process.env.OPENROUTER_API_KEY;
 
   if (geminiKey) {
-    // Use Gemini 3.1 Pro direct API (free, 15 RPM)
-    const model = process.env.EVAL_MODEL || 'gemini-2.5-flash';
+    // Use Gemini 3.1 Pro direct API (free) — smartest available judge
+    const model = process.env.EVAL_MODEL || 'gemini-3.1-pro-preview';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
     const response = await fetch(url, {
@@ -58,7 +58,7 @@ async function callJudge(systemPrompt, userPrompt) {
   }
 
   // Fallback: OpenRouter
-  const model = process.env.EVAL_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.EVAL_MODEL || 'google/gemini-3-flash-preview';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

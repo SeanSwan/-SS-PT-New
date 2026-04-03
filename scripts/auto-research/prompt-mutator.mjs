@@ -20,7 +20,7 @@ async function callMutator(systemPrompt, userPrompt) {
   const openrouterKey = process.env.OPENROUTER_API_KEY;
 
   if (geminiKey) {
-    const model = process.env.MUTATOR_MODEL || 'gemini-2.5-flash';
+    const model = process.env.MUTATOR_MODEL || 'gemini-3.1-flash-lite-preview';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
     const response = await fetch(url, {
@@ -47,7 +47,7 @@ async function callMutator(systemPrompt, userPrompt) {
   }
 
   // Fallback: OpenRouter
-  const model = process.env.MUTATOR_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.MUTATOR_MODEL || 'google/gemini-3.1-flash-lite-preview';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
