@@ -24,18 +24,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // SECTION: LLM Judge
 // ─────────────────────────────────────────────────────────────
 async function callJudge(systemPrompt, userPrompt) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY required. Set in .env or environment.');
+  // Prefer Gemini direct API (free) over OpenRouter
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+
+  if (geminiKey) {
+    // Use Gemini 3.1 Pro direct API (free, 15 RPM)
+    const model = process.env.EVAL_MODEL || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 2000 },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Judge API error (${response.status}): ${text}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return content;
   }
 
+  if (!openrouterKey) {
+    throw new Error('GEMINI_API_KEY or OPENROUTER_API_KEY required. Set in .env.');
+  }
+
+  // Fallback: OpenRouter
   const model = process.env.EVAL_MODEL || 'google/gemini-2.5-flash';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${openrouterKey}`,
       'HTTP-Referer': 'https://sswanstudios.com',
       'X-Title': 'SwanStudios Auto-Research',
     },

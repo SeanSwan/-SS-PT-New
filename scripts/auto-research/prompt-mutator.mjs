@@ -15,18 +15,45 @@
 // SECTION: Mutation via LLM
 // ─────────────────────────────────────────────────────────────
 async function callMutator(systemPrompt, userPrompt) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY required.');
+  // Prefer Gemini direct API (free) over OpenRouter
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+
+  if (geminiKey) {
+    const model = process.env.MUTATOR_MODEL || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 4000 },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Mutator API error (${response.status}): ${text}`);
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
+  if (!openrouterKey) {
+    throw new Error('GEMINI_API_KEY or OPENROUTER_API_KEY required.');
+  }
+
+  // Fallback: OpenRouter
   const model = process.env.MUTATOR_MODEL || 'google/gemini-2.5-flash';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${openrouterKey}`,
       'HTTP-Referer': 'https://sswanstudios.com',
       'X-Title': 'SwanStudios Auto-Research Mutator',
     },
