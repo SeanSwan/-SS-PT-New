@@ -474,6 +474,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       
       // 🎨 DESIGN SYSTEM & DEVELOPMENT
       { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
+      { path: '/homepage-preview', component: React.lazy(() => import('../../pages/HomePage/components/HomePage.V5')), title: 'Homepage V5 Preview', description: 'Preview redesigned homepage before going live' },
 
       // 🎬 CONTENT MANAGEMENT — Two-tier hub (Bootstrap + Full Arsenal)
       { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
