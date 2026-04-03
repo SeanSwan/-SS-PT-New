@@ -1,0 +1,294 @@
+{
+  "generation": 3,
+  "avgScore": 11,
+  "maxPossible": 11,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "systematic-debugging",
+      "scenario": "The gamification engine awards double points sometimes. It happens intermittently.",
+      "criteriaResults": [
+        {
+          "id": "reproduces-first",
+          "description": "Skill prompt requires reproducing the bug before attempting fixes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires reproducing the bug consistently in Phase 1, Step 2, stating 'If not reproducible → gather more data, don't guess'."
+        },
+        {
+          "id": "root-cause",
+          "description": "Skill prompt prioritizes identifying root cause over quick patches",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The prompt has an 'Iron Law' stating 'NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST' and emphasizes that symptom fixes are a failure."
+        },
+        {
+          "id": "no-shotgun",
+          "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 3 explicitly instructs to 'Make the SMALLEST possible change', 'One variable at a time', and 'Don't fix multiple things at once'."
+        },
+        {
+          "id": "hypothesis-driven",
+          "description": "Skill prompt requires forming and testing hypotheses",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 3 is entirely dedicated to 'Hypothesis and Testing', requiring the assistant to form a single hypothesis and test it minimally."
+        },
+        {
+          "id": "documents-findings",
+          "description": "Skill prompt requires documenting what was found and why the fix works",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 4, Step 6 explicitly requires documenting findings and the fix, including stating the root cause, explaining why the fix works, and summarizing the evidence."
+        },
+        {
+          "id": "verifies-fix",
+          "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 4, Step 3 requires verifying the fix by checking if the test passes, no other tests are broken, and the issue is actually resolved."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T20:11:38.560Z"
+    },
+    {
+      "skillName": "systematic-debugging",
+      "scenario": "API returns 500 on POST /api/sessions but only when the trainer has no availability set.",
+      "criteriaResults": [
+        {
+          "id": "reproduces-first",
+          "description": "Skill prompt requires reproducing the bug before attempting fixes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires reproducing the bug consistently in Phase 1, step 2, before attempting any fixes."
+        },
+        {
+          "id": "root-cause",
+          "description": "Skill prompt prioritizes identifying root cause over quick patches",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The prompt has an 'Iron Law' stating 'NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST' and explicitly states that symptom fixes are a failure."
+        },
+        {
+          "id": "no-shotgun",
+          "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids shotgun debugging by instructing the assistant to make the 'SMALLEST possible change', test 'One variable at a time', and 'Don't fix multiple things at once' in Phase 3 and Phase 4."
+        },
+        {
+          "id": "hypothesis-driven",
+          "description": "Skill prompt requires forming and testing hypotheses",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 3 is entirely dedicated to 'Hypothesis and Testing', requiring the assistant to form a single, specific hypothesis and test it minimally."
+        },
+        {
+          "id": "documents-findings",
+          "description": "Skill prompt requires documenting what was found and why the fix works",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 4, Step 6 explicitly requires documenting findings and the fix, including stating the root cause, explaining why the fix works, and summarizing the evidence."
+        },
+        {
+          "id": "verifies-fix",
+          "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 4, Step 3 requires verifying the fix by checking if the test passes, no other tests are broken, and the issue is actually resolved."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T20:11:45.558Z"
+    },
+    {
+      "skillName": "systematic-debugging",
+      "scenario": "A user reports that the login page shows a blank white screen on mobile Safari. No error in console.",
+      "criteriaResults": [
+        {
+          "id": "reproduces-first",
+          "description": "Skill prompt requires reproducing the bug before attempting fixes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires reproducing the bug in Phase 1, stating 'Reproduce Consistently' and 'If not reproducible → gather more data, don't guess' before attempting any fixes."
+        },
+        {
+          "id": "root-cause",
+          "description": "Skill prompt prioritizes identifying root cause over quick patches",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The prompt has an 'Iron Law' stating 'NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST' and emphasizes that symptom fixes are a failure."
+        },
+        {
+          "id": "no-shotgun",
+          "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids shotgun debugging by instructing the assistant to 'Make the SMALLEST possible change', test 'One variable at a time', and 'Don't fix multiple things at once'."
+        },
+        {
+          "id": "hypothesis-driven",
+          "description": "Skill prompt requires forming and testing hypotheses",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 3 of the prompt is entirely dedicated to the scientific method, requiring the assistant to 'Form Single Hypothesis' and test it minimally."
+        },
+        {
+          "id": "documents-findings",
+          "description": "Skill prompt requires documenting what was found and why the fix works",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 4, Step 6 explicitly requires the assistant to 'Document Findings and Fix', including stating the root cause, explaining why the fix works, and summarizing the evidence."
+        },
+        {
+          "id": "verifies-fix",
+          "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 4, Step 3 requires the assistant to 'Verify Fix' by checking if tests pass, no other tests are broken, and the issue is actually resolved."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T20:11:52.843Z"
+    },
+    {
+      "skillName": "systematic-debugging",
+      "scenario": "API returns 500 on POST /api/sessions but only when the trainer has no availability set.",
+      "criteriaResults": [
+        {
+          "id": "reproduces-first",
+          "description": "Skill prompt requires reproducing the bug before attempting fixes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires reproducing the bug consistently in Phase 1 before attempting any fixes."
+        },
+        {
+          "id": "root-cause",
+          "description": "Skill prompt prioritizes identifying root cause over quick patches",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The prompt has an 'Iron Law' stating 'NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST' and explicitly calls out that quick patches mask underlying issues."
+        },
+        {
+          "id": "no-shotgun",
+          "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids changing multiple things at once, requiring 'One variable at a time' in Phase 3 and 'ONE change at a time' in Phase 4."
+        },
+        {
+          "id": "hypothesis-driven",
+          "description": "Skill prompt requires forming and testing hypotheses",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 3 is entirely dedicated to the scientific method, requiring the assistant to form a single hypothesis and test it minimally."
+        },
+        {
+          "id": "documents-findings",
+          "description": "Skill prompt requires documenting what was found and why the fix works",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 4, Step 6 explicitly requires documenting the findings, stating the root cause, explaining why the fix works, and summarizing the evidence."
+        },
+        {
+          "id": "verifies-fix",
+          "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 4, Step 3 requires verifying the fix to ensure the test passes, no other tests are broken, and the issue is actually resolved."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T20:11:59.946Z"
+    },
+    {
+      "skillName": "systematic-debugging",
+      "scenario": "API returns 500 on POST /api/sessions but only when the trainer has no availability set.",
+      "criteriaResults": [
+        {
+          "id": "reproduces-first",
+          "description": "Skill prompt requires reproducing the bug before attempting fixes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires reproducing the bug in Phase 1, Step 2 ('Reproduce Consistently') before attempting any fixes."
+        },
+        {
+          "id": "root-cause",
+          "description": "Skill prompt prioritizes identifying root cause over quick patches",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The prompt has an 'Iron Law' stating 'NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST' and explicitly states that symptom fixes are a failure."
+        },
+        {
+          "id": "no-shotgun",
+          "description": "Skill prompt prevents shotgun debugging (changing multiple things at once)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids shotgun debugging in Phase 3 ('One variable at a time', 'Don't fix multiple things at once') and Phase 4 ('ONE change at a time')."
+        },
+        {
+          "id": "hypothesis-driven",
+          "description": "Skill prompt requires forming and testing hypotheses",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 3 is entirely dedicated to the scientific method, requiring the assistant to form a single hypothesis and test it minimally."
+        },
+        {
+          "id": "documents-findings",
+          "description": "Skill prompt requires documenting what was found and why the fix works",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Phase 4, Step 6 explicitly requires documenting the findings, including the root cause, why the fix works, the evidence, and the expected impact."
+        },
+        {
+          "id": "verifies-fix",
+          "description": "Skill prompt requires verifying the fix actually resolves the reported issue",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Phase 4, Step 3 ('Verify Fix') requires checking if the test passes, no other tests are broken, and the issue is actually resolved."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T20:12:07.724Z"
+    }
+  ],
+  "promptLength": 10412
+}

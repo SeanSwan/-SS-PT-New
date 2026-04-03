@@ -1,0 +1,228 @@
+{
+  "generation": 1,
+  "avgScore": 0.6666666666666666,
+  "maxPossible": 12,
+  "pct": 5.6,
+  "runs": [
+    {
+      "skillName": "frontend-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:01:13.056Z"
+    },
+    {
+      "skillName": "frontend-design",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids \"predictable layouts and component patterns, and cookie-cutter design\" and encourages \"Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements.\""
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not mention responsive design, breakpoints, or adapting to mobile/tablet/desktop screens."
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "While the prompt briefly lists \"accessibility\" as a technical constraint to consider, it lacks explicit guidance to include ARIA labels, focus states, keyboard navigation, or WCAG contrast."
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt encourages animations and mentions the Motion library, but does not specify restricting animations to transform/opacity, GPU compositing, or using spring easing."
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to \"Vary between light and dark themes\", which contradicts a strict requirement to design dark-first."
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt does not mention touch targets or specific pixel minimums for interactive elements."
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not mention handling loading, empty, or error states for data-driven components."
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt mentions pairing a display font with a body font, but does not explicitly guide the assistant on intentional font sizing or establishing a clear visual hierarchy."
+        }
+      ],
+      "totalScore": 2,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:01:28.717Z"
+    },
+    {
+      "skillName": "frontend-design",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:01:47.157Z"
+    }
+  ],
+  "promptLength": 4482
+}

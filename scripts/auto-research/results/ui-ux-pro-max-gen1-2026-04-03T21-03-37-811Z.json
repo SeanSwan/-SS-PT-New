@@ -1,0 +1,204 @@
+{
+  "generation": 1,
+  "avgScore": 3,
+  "maxPossible": 11,
+  "pct": 27.3,
+  "runs": [
+    {
+      "skillName": "ui-ux-pro-max",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "information_architecture",
+          "description": "Must organize content with clear hierarchy — primary actions prominent, secondary actions subordinate",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention organizing content with a clear hierarchy or making primary actions prominent and secondary actions subordinate."
+        },
+        {
+          "id": "user_flow_efficiency",
+          "description": "Must minimize clicks/taps to complete primary tasks (3-click rule)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "There is no mention of minimizing clicks/taps or following a 3-click rule for primary tasks in the prompt."
+        },
+        {
+          "id": "empty_states",
+          "description": "Must design meaningful empty states with guidance (not blank screens)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt does not provide any guidance on designing meaningful empty states."
+        },
+        {
+          "id": "progressive_disclosure",
+          "description": "Must use progressive disclosure — show essentials first, details on demand",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Progressive disclosure (showing essentials first, details on demand) is not mentioned in the skill prompt."
+        },
+        {
+          "id": "feedback_loops",
+          "description": "Every user action must have visible feedback (loading, success, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires visible feedback, mentioning 'loading-states' (skeleton screens/spinners), 'error-feedback' (clear error messages), and 'Hover feedback' (visual feedback on interaction)."
+        },
+        {
+          "id": "consistency",
+          "description": "Must maintain visual and interaction consistency across similar components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly mandates consistency, including rules like 'consistency - Use same style across all pages', 'Consistent icon sizing', and 'Consistent max-width'."
+        },
+        {
+          "id": "mobile_first",
+          "description": "Must design mobile-first, then enhance for larger screens",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions responsive design and specific breakpoints (375px, 768px, etc.), it does not explicitly instruct the assistant to use a 'mobile-first' design methodology."
+        }
+      ],
+      "totalScore": 3,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:03:07.393Z"
+    },
+    {
+      "skillName": "ui-ux-pro-max",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "information_architecture",
+          "description": "Must organize content with clear hierarchy — primary actions prominent, secondary actions subordinate",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not mention information architecture, visual hierarchy, or prioritizing primary versus secondary actions."
+        },
+        {
+          "id": "user_flow_efficiency",
+          "description": "Must minimize clicks/taps to complete primary tasks (3-click rule)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not mention user flow efficiency, minimizing clicks, or the 3-click rule."
+        },
+        {
+          "id": "empty_states",
+          "description": "Must design meaningful empty states with guidance (not blank screens)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions loading and error states, it does not provide guidance on designing meaningful empty states."
+        },
+        {
+          "id": "progressive_disclosure",
+          "description": "Must use progressive disclosure — show essentials first, details on demand",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not mention progressive disclosure or showing essentials first with details on demand."
+        },
+        {
+          "id": "feedback_loops",
+          "description": "Every user action must have visible feedback (loading, success, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires visible feedback for user actions, including hover feedback, loading states (disabling buttons, spinners), and clear error feedback."
+        },
+        {
+          "id": "consistency",
+          "description": "Must maintain visual and interaction consistency across similar components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly mandates consistency, including using the same style across all pages, consistent icon sizing, and consistent max-width containers."
+        },
+        {
+          "id": "mobile_first",
+          "description": "Must design mobile-first, then enhance for larger screens",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Although the prompt mentions responsive breakpoints and mobile font sizes, it does not explicitly mandate a mobile-first design approach."
+        }
+      ],
+      "totalScore": 3,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:03:22.305Z"
+    },
+    {
+      "skillName": "ui-ux-pro-max",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "information_architecture",
+          "description": "Must organize content with clear hierarchy — primary actions prominent, secondary actions subordinate",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly instruct the assistant to organize content with a clear hierarchy distinguishing between primary and secondary actions."
+        },
+        {
+          "id": "user_flow_efficiency",
+          "description": "Must minimize clicks/taps to complete primary tasks (3-click rule)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "There is no mention of minimizing clicks/taps or the 3-click rule in the provided instructions."
+        },
+        {
+          "id": "empty_states",
+          "description": "Must design meaningful empty states with guidance (not blank screens)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt covers loading and error states but lacks any guidance on designing meaningful empty states."
+        },
+        {
+          "id": "progressive_disclosure",
+          "description": "Must use progressive disclosure — show essentials first, details on demand",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The concept of progressive disclosure (showing essentials first, details on demand) is not mentioned in the skill prompt."
+        },
+        {
+          "id": "feedback_loops",
+          "description": "Every user action must have visible feedback (loading, success, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates visible feedback, including 'Hover feedback', 'loading-buttons', 'loading-states' (skeletons/spinners), and 'error-feedback'."
+        },
+        {
+          "id": "consistency",
+          "description": "Must maintain visual and interaction consistency across similar components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt includes specific rules for consistency, such as 'Use same style across all pages', 'Consistent icon sizing', and 'Consistent max-width'."
+        },
+        {
+          "id": "mobile_first",
+          "description": "Must design mobile-first, then enhance for larger screens",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions responsive breakpoints and mobile-specific rules (like 16px minimum font size), it does not explicitly instruct the assistant to adopt a 'mobile-first' design methodology."
+        }
+      ],
+      "totalScore": 3,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:03:37.810Z"
+    }
+  ],
+  "promptLength": 14760
+}

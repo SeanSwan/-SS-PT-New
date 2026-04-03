@@ -1,0 +1,180 @@
+{
+  "generation": 1,
+  "avgScore": 0,
+  "maxPossible": 9,
+  "pct": 0,
+  "runs": [
+    {
+      "skillName": "webapp-testing",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "user_flow_coverage",
+          "description": "Must test complete user flows (login → navigate → action → verify), not just isolated clicks",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt focuses on basic element discovery and interaction but does not instruct the assistant to test complete user flows."
+        },
+        {
+          "id": "assertions_meaningful",
+          "description": "Must assert on visible outcomes (text content, element presence), not implementation details",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt does not provide any guidance on writing assertions or focusing on visible outcomes rather than implementation details."
+        },
+        {
+          "id": "error_scenarios",
+          "description": "Must test error states (network failure, invalid input, unauthorized access)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "There is no mention of testing error states, network failures, or invalid inputs in the skill prompt."
+        },
+        {
+          "id": "wait_patterns",
+          "description": "Must use proper wait patterns (waitForSelector, waitForResponse), not arbitrary sleep/timeout",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly suggests using `page.wait_for_timeout()`, which directly violates the criterion's requirement to avoid arbitrary sleep/timeout."
+        },
+        {
+          "id": "mobile_testing",
+          "description": "Must consider mobile viewport testing or responsive behavior",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt does not mention mobile viewports, responsive behavior, or device emulation."
+        },
+        {
+          "id": "cleanup",
+          "description": "Tests must clean up after themselves (logout, reset state) to not affect other tests",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions closing the browser, it does not instruct the assistant to clean up application state (like logging out or resetting data) to prevent affecting other tests."
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:04:49.702Z"
+    },
+    {
+      "skillName": "webapp-testing",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "user_flow_coverage",
+          "description": "Must test complete user flows (login → navigate → action → verify), not just isolated clicks",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not provide guidance on testing complete user flows versus isolated clicks; it only covers basic Playwright setup and element discovery."
+        },
+        {
+          "id": "assertions_meaningful",
+          "description": "Must assert on visible outcomes (text content, element presence), not implementation details",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not mention assertions or what to assert on (visible outcomes vs implementation details)."
+        },
+        {
+          "id": "error_scenarios",
+          "description": "Must test error states (network failure, invalid input, unauthorized access)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "There is no mention of testing error states, network failures, or invalid inputs in the skill prompt."
+        },
+        {
+          "id": "wait_patterns",
+          "description": "Must use proper wait patterns (waitForSelector, waitForResponse), not arbitrary sleep/timeout",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly suggests using `page.wait_for_timeout()`, which contradicts the criterion's requirement to avoid arbitrary sleep/timeout."
+        },
+        {
+          "id": "mobile_testing",
+          "description": "Must consider mobile viewport testing or responsive behavior",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The skill prompt does not mention mobile viewport testing or responsive behavior."
+        },
+        {
+          "id": "cleanup",
+          "description": "Tests must clean up after themselves (logout, reset state) to not affect other tests",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions closing the browser, it does not instruct the assistant to clean up application state (e.g., logout, reset state) to avoid affecting other tests."
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:04:58.784Z"
+    },
+    {
+      "skillName": "webapp-testing",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "user_flow_coverage",
+          "description": "Must test complete user flows (login → navigate → action → verify), not just isolated clicks",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not mention testing complete user flows; it only provides basic instructions on how to interact with elements and run scripts."
+        },
+        {
+          "id": "assertions_meaningful",
+          "description": "Must assert on visible outcomes (text content, element presence), not implementation details",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not provide guidance on what to assert (e.g., visible outcomes vs. implementation details)."
+        },
+        {
+          "id": "error_scenarios",
+          "description": "Must test error states (network failure, invalid input, unauthorized access)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "There is no mention of testing error states, network failures, or invalid inputs in the skill prompt."
+        },
+        {
+          "id": "wait_patterns",
+          "description": "Must use proper wait patterns (waitForSelector, waitForResponse), not arbitrary sleep/timeout",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly suggests using `page.wait_for_timeout()`, which contradicts the criterion to avoid arbitrary sleep/timeout."
+        },
+        {
+          "id": "mobile_testing",
+          "description": "Must consider mobile viewport testing or responsive behavior",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The skill prompt does not mention mobile viewport testing or responsive behavior."
+        },
+        {
+          "id": "cleanup",
+          "description": "Tests must clean up after themselves (logout, reset state) to not affect other tests",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt mentions closing the browser, it does not instruct the assistant to clean up application state (e.g., logout, reset state) to avoid affecting other tests."
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:05:21.563Z"
+    }
+  ],
+  "promptLength": 3956
+}

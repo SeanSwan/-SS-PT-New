@@ -1,0 +1,180 @@
+{
+  "generation": 1,
+  "avgScore": 7,
+  "maxPossible": 10,
+  "pct": 70,
+  "runs": [
+    {
+      "skillName": "full-output-enforcement",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no_todo_placeholders",
+          "description": "Must NOT output '// TODO', '// ...', '/* rest */', or similar placeholder comments",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly lists '// TODO', '// ...', and '/* ... */' under 'Banned Output Patterns'."
+        },
+        {
+          "id": "no_truncation",
+          "description": "Must NOT truncate code with '...' or 'similar to above' or 'remaining code here'",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly bans truncation patterns like '...', '// similar to above', and 'the rest follows the same pattern'."
+        },
+        {
+          "id": "complete_functions",
+          "description": "Every function must have a complete implementation, no stubs",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly bans 'Outputting a skeleton when the request was for a full implementation' and requires 'actual runnable code, not descriptions of what code would do'."
+        },
+        {
+          "id": "all_imports",
+          "description": "Must include all necessary imports, not assume they exist",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt does not explicitly mention including all necessary imports. While it enforces completeness of requested items, it lacks specific guidance to ensure imports are not assumed or omitted unless the user explicitly asks for a 'full file'."
+        },
+        {
+          "id": "handles_long_output",
+          "description": "For large components, must split into multiple files rather than truncating",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt handles long outputs by pausing and asking the user to send 'continue' to resume, rather than instructing the assistant to split large components into multiple files."
+        },
+        {
+          "id": "no_ellipsis",
+          "description": "Must NOT use ellipsis (...) to skip code sections",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly bans 'bare `...` standing in for omitted code' in the Banned Output Patterns section."
+        }
+      ],
+      "totalScore": 7,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:01:13.124Z"
+    },
+    {
+      "skillName": "full-output-enforcement",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no_todo_placeholders",
+          "description": "Must NOT output '// TODO', '// ...', '/* rest */', or similar placeholder comments",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly lists '// TODO', '// ...', and '/* ... */' under 'Banned Output Patterns'."
+        },
+        {
+          "id": "no_truncation",
+          "description": "Must NOT truncate code with '...' or 'similar to above' or 'remaining code here'",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly bans truncation phrases like '// similar to above', '// rest of code', and 'the rest follows the same pattern'."
+        },
+        {
+          "id": "complete_functions",
+          "description": "Every function must have a complete implementation, no stubs",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt bans 'Outputting a skeleton when the request was for a full implementation' and mandates that code blocks contain 'actual runnable code, not descriptions'."
+        },
+        {
+          "id": "all_imports",
+          "description": "Must include all necessary imports, not assume they exist",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The skill prompt does not explicitly mention including all necessary imports or warn against assuming they exist."
+        },
+        {
+          "id": "handles_long_output",
+          "description": "For large components, must split into multiple files rather than truncating",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt handles long outputs by pausing and asking the user to send 'continue', rather than proactively splitting the component into multiple files."
+        },
+        {
+          "id": "no_ellipsis",
+          "description": "Must NOT use ellipsis (...) to skip code sections",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly bans 'bare ... standing in for omitted code' in the 'Banned Output Patterns' section."
+        }
+      ],
+      "totalScore": 7,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:01:25.998Z"
+    },
+    {
+      "skillName": "full-output-enforcement",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no_todo_placeholders",
+          "description": "Must NOT output '// TODO', '// ...', '/* rest */', or similar placeholder comments",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly bans placeholder comments like '// TODO', '// ...', and '/* ... */' in the 'Banned Output Patterns' section."
+        },
+        {
+          "id": "no_truncation",
+          "description": "Must NOT truncate code with '...' or 'similar to above' or 'remaining code here'",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly forbids truncation phrases such as 'similar to above', 'continue pattern', and structural shortcuts like showing only the first and last sections."
+        },
+        {
+          "id": "complete_functions",
+          "description": "Every function must have a complete implementation, no stubs",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt mandates that every deliverable must be generated completely, forbids partial drafts, and requires code blocks to contain actual runnable code rather than descriptions."
+        },
+        {
+          "id": "all_imports",
+          "description": "Must include all necessary imports, not assume they exist",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt enforces completeness of the requested deliverables, it does not explicitly instruct the assistant to always include all necessary imports unless the user specifically asked for a full file."
+        },
+        {
+          "id": "handles_long_output",
+          "description": "For large components, must split into multiple files rather than truncating",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The prompt handles long outputs by pausing generation at a clean breakpoint and waiting for a 'continue' prompt, rather than splitting large components into multiple files as the criterion requires."
+        },
+        {
+          "id": "no_ellipsis",
+          "description": "Must NOT use ellipsis (...) to skip code sections",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly bans the use of a 'bare `...` standing in for omitted code'."
+        }
+      ],
+      "totalScore": 7,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:01:40.663Z"
+    }
+  ],
+  "promptLength": 2631
+}

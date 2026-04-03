@@ -1,0 +1,16 @@
+{
+  "skill": "frontend-design",
+  "description": "Evaluates whether the skill produces distinctive, production-grade frontend interfaces",
+  "criteria": [
+    { "id": "no_generic_layout", "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts", "weight": 2 },
+    { "id": "responsive_design", "description": "Must include responsive breakpoints for mobile, tablet, desktop", "weight": 2 },
+    { "id": "accessibility", "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast", "weight": 2 },
+    { "id": "animation_quality", "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear", "weight": 1 },
+    { "id": "dark_theme", "description": "Must design dark-first with proper contrast ratios on dark backgrounds", "weight": 1 },
+    { "id": "touch_targets", "description": "Interactive elements must have 44px+ minimum touch targets", "weight": 1 },
+    { "id": "loading_states", "description": "Must include loading, empty, and error states for data-driven components", "weight": 2 },
+    { "id": "typography_hierarchy", "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)", "weight": 1 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Build a client profile card component for a fitness training app. It shows the client's name, photo, fitness goal, workout count, session count, and an onboarding progress bar. Must work on mobile and desktop with dark theme."
+}

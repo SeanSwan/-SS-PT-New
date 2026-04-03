@@ -1,0 +1,15 @@
+{
+  "skill": "ui-ux-pro-max",
+  "description": "Evaluates whether the skill produces expert-level UI/UX design decisions",
+  "criteria": [
+    { "id": "information_architecture", "description": "Must organize content with clear hierarchy — primary actions prominent, secondary actions subordinate", "weight": 2 },
+    { "id": "user_flow_efficiency", "description": "Must minimize clicks/taps to complete primary tasks (3-click rule)", "weight": 2 },
+    { "id": "empty_states", "description": "Must design meaningful empty states with guidance (not blank screens)", "weight": 1 },
+    { "id": "progressive_disclosure", "description": "Must use progressive disclosure — show essentials first, details on demand", "weight": 2 },
+    { "id": "feedback_loops", "description": "Every user action must have visible feedback (loading, success, error)", "weight": 2 },
+    { "id": "consistency", "description": "Must maintain visual and interaction consistency across similar components", "weight": 1 },
+    { "id": "mobile_first", "description": "Must design mobile-first, then enhance for larger screens", "weight": 1 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Design the UX for a workout logger that a personal trainer uses during live sessions with clients. They need to: select exercises from a library, log sets/reps/weight in real time, add notes, and mark the session complete. Must work on a phone held in one hand."
+}

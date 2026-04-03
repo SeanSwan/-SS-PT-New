@@ -1,0 +1,14 @@
+{
+  "skill": "test-driven-development",
+  "description": "Evaluates whether the skill prompt produces test-first development behavior",
+  "criteria": [
+    { "id": "tests_before_code", "description": "Must write test cases BEFORE writing implementation code", "weight": 2 },
+    { "id": "edge_cases", "description": "Must identify and test edge cases (empty inputs, null, boundaries)", "weight": 2 },
+    { "id": "failure_modes", "description": "Must test failure scenarios and error handling", "weight": 1 },
+    { "id": "assertions_specific", "description": "Test assertions must be specific (not just 'toBeTruthy')", "weight": 1 },
+    { "id": "coverage_awareness", "description": "Must mention or consider test coverage for critical paths", "weight": 1 },
+    { "id": "no_implementation_first", "description": "Must NOT write implementation before tests are defined", "weight": 2 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "I need to build a function that validates a client onboarding form. It takes an object with firstName, lastName, email, phone, dateOfBirth, and fitnessGoal. It should return { valid: boolean, errors: string[] }. Build this using TDD."
+}

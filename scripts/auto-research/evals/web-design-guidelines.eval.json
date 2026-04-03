@@ -1,0 +1,15 @@
+{
+  "skill": "web-design-guidelines",
+  "description": "Evaluates whether the skill enforces web accessibility and design best practices",
+  "criteria": [
+    { "id": "wcag_contrast", "description": "Must check and enforce 4.5:1 minimum contrast ratio for text", "weight": 2 },
+    { "id": "focus_management", "description": "Must include focus-visible styles and keyboard navigation for all interactive elements", "weight": 2 },
+    { "id": "semantic_html", "description": "Must use semantic HTML elements (nav, main, article, section) not div soup", "weight": 1 },
+    { "id": "aria_labels", "description": "Must include ARIA labels on icon-only buttons, modals, and form fields", "weight": 2 },
+    { "id": "responsive_images", "description": "Must handle images responsively (srcset, lazy loading, alt text)", "weight": 1 },
+    { "id": "form_validation", "description": "Must include accessible form validation with error messages linked to fields", "weight": 1 },
+    { "id": "motion_preferences", "description": "Must respect prefers-reduced-motion for animations", "weight": 1 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Review this component for accessibility: A modal dialog with a form containing name, email, phone inputs, a submit button, and a close button (X icon). The modal has a dark overlay background."
+}

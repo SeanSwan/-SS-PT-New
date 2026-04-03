@@ -1,0 +1,334 @@
+{
+  "generation": 1,
+  "avgScore": 7.8,
+  "maxPossible": 13,
+  "pct": 60,
+  "runs": [
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 3,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T20:10:21.192Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans pure black, neon/outer glows, generic 3-column card layouts, and the Inter font under the 'AI TELLS (Forbidden Patterns)' section."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires full interaction cycles including loading, empty states, error states, tactile feedback (:active), focus indicators (:focus-visible), and hover states."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly specifies using premium Spring Physics (stiffness: 100, damping: 20) and cubic-bezier curves, while explicitly banning linear easing."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt enforces deterministic typography with specific classes for Display/Headlines and Body/Paragraphs, and mandates specific high-end fonts like Geist, Outfit, Cabinet Grotesk, or Satoshi."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt mandates a strict color calibration rule: max 1 accent color, saturation < 80%, absolute neutral bases (Zinc/Slate), and strict color consistency across the project."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces mathematically perfect padding and margins, standardizes breakpoints, and mandates the use of Tailwind CSS which inherently enforces a consistent spacing scale."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt has a mandatory Accessibility section that explicitly requires WCAG 2.1 AA contrast ratios and clear focus-visible indicators for all interactive elements."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T20:10:37.150Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans pure black, neon glows, 3-column generic card layouts, and the Inter font in the 'AI TELLS (Forbidden Patterns)' section."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires loading, empty, error, active (tactile feedback), focus (focus-visible), and hover states across Sections 2, 3, and 6."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly mandates premium Spring Physics (stiffness: 100, damping: 20) and cubic-bezier curves, while explicitly banning linear easing."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt enforces 'Deterministic Typography' with specific classes for Display/Headlines and Body/Paragraphs, and mandates specific fonts like Geist, Outfit, Cabinet Grotesk, or Satoshi."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt includes 'Color Calibration' rules, restricting to max 1 accent color, mandating neutral bases (Zinc/Slate), and enforcing consistency without fluctuating between warm and cool grays."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces Tailwind CSS for styling (which uses a strict spacing scale) and explicitly requires mathematically perfect padding and margins, avoiding awkward gaps."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt includes a mandatory Accessibility section that explicitly requires WCAG 2.1 AA contrast ratios and clear focus-visible indicators for all interactive elements."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T20:10:52.996Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 3,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T20:11:09.334Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans pure black, neon glows, 3-column generic card layouts, and the Inter font in the 'AI TELLS (Forbidden Patterns)' section."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires loading, empty, error, active (tactile feedback), focus (focus-visible), and hover states across its 'Interactive UI States', 'Accessibility', and 'Motion Intensity' sections."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly mandates premium Spring Physics (stiffness: 100, damping: 20) or specific cubic-bezier curves, bans linear easing, and enforces hardware acceleration (transform/opacity only) to avoid jank."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt includes 'Deterministic Typography' rules, specifying exact Tailwind classes for Display/Headlines vs Body/Paragraphs, and mandates specific high-end fonts like Geist or Satoshi."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt enforces 'Color Calibration' with a maximum of 1 accent color, absolute neutral bases (Zinc/Slate), and strict color consistency across the output."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt mandates Tailwind CSS (which enforces a spacing scale), standardizes breakpoints, requires mathematically perfect padding/margins, and specifies standard gaps (e.g., gap-2 for inputs)."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt has a mandatory Accessibility section that explicitly requires WCAG 2.1 AA contrast ratios (4.5:1 and 3:1) and clear focus-visible indicators for all interactive elements."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T20:11:22.947Z"
+    }
+  ],
+  "promptLength": 15287
+}

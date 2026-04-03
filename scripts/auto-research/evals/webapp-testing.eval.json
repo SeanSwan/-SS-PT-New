@@ -1,0 +1,14 @@
+{
+  "skill": "webapp-testing",
+  "description": "Evaluates whether the skill produces thorough Playwright-based frontend testing",
+  "criteria": [
+    { "id": "user_flow_coverage", "description": "Must test complete user flows (login → navigate → action → verify), not just isolated clicks", "weight": 2 },
+    { "id": "assertions_meaningful", "description": "Must assert on visible outcomes (text content, element presence), not implementation details", "weight": 2 },
+    { "id": "error_scenarios", "description": "Must test error states (network failure, invalid input, unauthorized access)", "weight": 1 },
+    { "id": "wait_patterns", "description": "Must use proper wait patterns (waitForSelector, waitForResponse), not arbitrary sleep/timeout", "weight": 2 },
+    { "id": "mobile_testing", "description": "Must consider mobile viewport testing or responsive behavior", "weight": 1 },
+    { "id": "cleanup", "description": "Tests must clean up after themselves (logout, reset state) to not affect other tests", "weight": 1 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Write Playwright tests for a Coach Assistant chat page. The page has: a text input, a send button, AI response messages, context chips (Coach, Workouts, Clients), and a conversation sidebar. Test the core chat flow."
+}

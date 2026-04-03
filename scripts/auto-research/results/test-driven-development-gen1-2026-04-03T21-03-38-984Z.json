@@ -1,0 +1,180 @@
+{
+  "generation": 1,
+  "avgScore": 7.666666666666667,
+  "maxPossible": 9,
+  "pct": 85.2,
+  "runs": [
+    {
+      "skillName": "test-driven-development",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "tests_before_code",
+          "description": "Must write test cases BEFORE writing implementation code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly and repeatedly mandates writing tests before code, stating 'NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST'."
+        },
+        {
+          "id": "edge_cases",
+          "description": "Must identify and test edge cases (empty inputs, null, boundaries)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly includes 'Edge cases and errors covered' in its Verification Checklist and discusses how test-first forces edge case discovery."
+        },
+        {
+          "id": "failure_modes",
+          "description": "Must test failure scenarios and error handling",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt includes 'errors covered' in the checklist and provides examples of testing failure scenarios (e.g., rejecting an empty email, retrying failed operations)."
+        },
+        {
+          "id": "assertions_specific",
+          "description": "Test assertions must be specific (not just 'toBeTruthy')",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the examples show specific assertions, the prompt lacks explicit guidance or rules requiring specific assertions or warning against generic ones like 'toBeTruthy'."
+        },
+        {
+          "id": "coverage_awareness",
+          "description": "Must mention or consider test coverage for critical paths",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt focuses on behavior-driven testing and explicitly downplays coverage as a metric ('You get coverage, lose proof tests work'), without instructing the assistant to consider coverage for critical paths."
+        },
+        {
+          "id": "no_implementation_first",
+          "description": "Must NOT write implementation before tests are defined",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt strictly forbids writing implementation first, listing 'Code before test' as a red flag and instructing to 'Delete it. Start over.' if code is written before tests."
+        }
+      ],
+      "totalScore": 7,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:03:08.660Z"
+    },
+    {
+      "skillName": "test-driven-development",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "tests_before_code",
+          "description": "Must write test cases BEFORE writing implementation code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly and repeatedly mandates writing tests before any production code, emphasizing 'NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST'."
+        },
+        {
+          "id": "edge_cases",
+          "description": "Must identify and test edge cases (empty inputs, null, boundaries)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt includes 'Edge cases and errors covered' in its Verification Checklist and provides an example of testing an empty input (empty email)."
+        },
+        {
+          "id": "failure_modes",
+          "description": "Must test failure scenarios and error handling",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires covering errors in the Verification Checklist and provides examples of testing failed operations and error handling."
+        },
+        {
+          "id": "assertions_specific",
+          "description": "Test assertions must be specific (not just 'toBeTruthy')",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "While the prompt provides examples of specific assertions, it lacks explicit guidance or rules instructing the assistant to ensure assertions are specific and to avoid weak assertions like 'toBeTruthy'."
+        },
+        {
+          "id": "coverage_awareness",
+          "description": "Must mention or consider test coverage for critical paths",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The prompt mandates testing every new function but dismisses coverage as a metric ('You get coverage, lose proof tests work') and does not explicitly instruct the assistant to consider test coverage specifically for critical paths."
+        },
+        {
+          "id": "no_implementation_first",
+          "description": "Must NOT write implementation before tests are defined",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt strictly forbids writing implementation first, listing 'Code before test' as a Red Flag and instructing to 'Delete it. Start over.' if code is written before tests."
+        }
+      ],
+      "totalScore": 7,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:03:24.596Z"
+    },
+    {
+      "skillName": "test-driven-development",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "tests_before_code",
+          "description": "Must write test cases BEFORE writing implementation code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates writing tests first with the 'Iron Law': 'NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST'."
+        },
+        {
+          "id": "edge_cases",
+          "description": "Must identify and test edge cases (empty inputs, null, boundaries)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The Verification Checklist explicitly requires 'Edge cases and errors covered', and the prompt notes that tests-first force edge case discovery."
+        },
+        {
+          "id": "failure_modes",
+          "description": "Must test failure scenarios and error handling",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt includes examples of testing failure scenarios (e.g., retry operation failing, rejecting empty emails) and requires errors to be covered in the checklist."
+        },
+        {
+          "id": "assertions_specific",
+          "description": "Test assertions must be specific (not just 'toBeTruthy')",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt requires verifying that the 'Failure message is expected' and provides examples with specific assertions (e.g., expect(result).toBe('success')), strongly implying assertions must be specific enough to validate exact behavior."
+        },
+        {
+          "id": "coverage_awareness",
+          "description": "Must mention or consider test coverage for critical paths",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt mandates comprehensive coverage by requiring in the Verification Checklist that 'Every new function/method has a test' and 'Edge cases and errors covered'."
+        },
+        {
+          "id": "no_implementation_first",
+          "description": "Must NOT write implementation before tests are defined",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt strictly forbids writing implementation first, stating 'Write code before the test? Delete it. Start over.' and listing 'Code before test' as a major red flag."
+        }
+      ],
+      "totalScore": 9,
+      "maxScore": 9,
+      "timestamp": "2026-04-03T21:03:38.984Z"
+    }
+  ],
+  "promptLength": 9857
+}

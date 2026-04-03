@@ -1,0 +1,14 @@
+{
+  "skill": "full-output-enforcement",
+  "description": "Evaluates whether the skill prevents code truncation and placeholder patterns",
+  "criteria": [
+    { "id": "no_todo_placeholders", "description": "Must NOT output '// TODO', '// ...', '/* rest */', or similar placeholder comments", "weight": 2 },
+    { "id": "no_truncation", "description": "Must NOT truncate code with '...' or 'similar to above' or 'remaining code here'", "weight": 2 },
+    { "id": "complete_functions", "description": "Every function must have a complete implementation, no stubs", "weight": 2 },
+    { "id": "all_imports", "description": "Must include all necessary imports, not assume they exist", "weight": 1 },
+    { "id": "handles_long_output", "description": "For large components, must split into multiple files rather than truncating", "weight": 2 },
+    { "id": "no_ellipsis", "description": "Must NOT use ellipsis (...) to skip code sections", "weight": 1 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Build a complete WorkoutHistoryTimeline component in React with TypeScript and styled-components. It should fetch workout data from an API, display a scrollable list of workouts with expandable exercise details, support inline editing of reps/weight, and have loading/empty/error states."
+}

@@ -1,0 +1,15 @@
+{
+  "skill": "high-end-visual-design",
+  "description": "Evaluates whether the skill produces premium agency-quality visual design",
+  "criteria": [
+    { "id": "spring_physics", "description": "Animations must use spring/cubic-bezier easing, not linear or ease-in-out", "weight": 1 },
+    { "id": "depth_layering", "description": "Must create visual depth with subtle shadows, layered surfaces, or glassmorphism", "weight": 2 },
+    { "id": "micro_interactions", "description": "Must include hover, focus, active state transitions on interactive elements", "weight": 2 },
+    { "id": "whitespace", "description": "Must use intentional whitespace/padding — not cramped, not wasteful", "weight": 1 },
+    { "id": "color_restraint", "description": "Must use a restrained palette (2-3 accent colors max), not rainbow", "weight": 2 },
+    { "id": "typography_pairing", "description": "Must pair fonts intentionally (heading + body + mono), not use a single generic font", "weight": 1 },
+    { "id": "no_ai_slop", "description": "Must NOT use generic AI patterns: oversaturated neon, gradient text headers, 3-col equal grids, stock photos", "weight": 2 }
+  ],
+  "defaultIterations": 10,
+  "testPrompt": "Design a premium dashboard overview card grid for a fitness training platform. It should show: total workouts, active clients, revenue this month, next session, and a weekly activity sparkline. Dark theme, luxury aesthetic."
+}

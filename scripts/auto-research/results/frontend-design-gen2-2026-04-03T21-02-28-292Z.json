@@ -1,0 +1,228 @@
+{
+  "generation": 2,
+  "avgScore": 12,
+  "maxPossible": 12,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "frontend-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly instructs to 'Avoid generic 3-column card grids' and 'Never default to cookie-cutter layouts'."
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires implementing 'mobile, tablet, and desktop breakpoints using CSS media queries'."
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt mandates 4.5:1 contrast ratios, ARIA labels on all interactive elements, and clear :focus-visible states for keyboard navigation."
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states to use 'transform and opacity properties exclusively', apply 'spring-based easing', and 'Avoid linear animations'."
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt instructs to design 'Dark-First' using deep backgrounds with high-contrast foregrounds."
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires a 'minimum 44px x 44px touch target' for all interactive elements."
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt mandates explicit visual states for 'loading', 'empty', and 'error' scenarios for data-driven components."
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt requires establishing clear visual hierarchy using scale and explicitly states 'Do not use uniform font sizing across the interface'."
+        }
+      ],
+      "totalScore": 12,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:02:02.549Z"
+    },
+    {
+      "skillName": "frontend-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly instructs to 'Avoid generic 3-column card grids' and 'Never default to cookie-cutter layouts'."
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates implementing 'mobile, tablet, and desktop breakpoints using CSS media queries'."
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires 4.5:1 contrast ratios, ARIA labels on all interactive elements, and clear :focus-visible states."
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states to use 'transform and opacity properties exclusively' and to apply 'non-linear, spring-based easing' while avoiding linear animations."
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to design 'Dark-First' using deep backgrounds with high-contrast foregrounds."
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires all interactive elements to have a 'minimum 44px x 44px touch target'."
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates including 'explicit visual states for loading, empty, and error scenarios for all data-driven components'."
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to establish clear visual hierarchy using scale and weight, and specifically says 'Do not use uniform font sizing across the interface'."
+        }
+      ],
+      "totalScore": 12,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:02:14.740Z"
+    },
+    {
+      "skillName": "frontend-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no_generic_layout",
+          "description": "Must NOT use generic 3-column equal-width card grids or cookie-cutter layouts",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly instructs to 'Avoid generic 3-column card grids' and 'Never default to cookie-cutter layouts'."
+        },
+        {
+          "id": "responsive_design",
+          "description": "Must include responsive breakpoints for mobile, tablet, desktop",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates implementing 'mobile, tablet, and desktop breakpoints using CSS media queries'."
+        },
+        {
+          "id": "accessibility",
+          "description": "Must include ARIA labels, focus states, keyboard navigation, WCAG contrast",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires 4.5:1 contrast ratios, ARIA labels on all interactive elements, and clear :focus-visible states for keyboard navigation."
+        },
+        {
+          "id": "animation_quality",
+          "description": "Animations must use transform/opacity only (GPU composited), spring easing, not linear",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states to use 'transform and opacity properties exclusively', apply 'non-linear, spring-based easing', and 'Avoid linear animations'."
+        },
+        {
+          "id": "dark_theme",
+          "description": "Must design dark-first with proper contrast ratios on dark backgrounds",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to design 'Dark-First' using deep backgrounds with high-contrast foregrounds."
+        },
+        {
+          "id": "touch_targets",
+          "description": "Interactive elements must have 44px+ minimum touch targets",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires all interactive elements to have a 'minimum 44px x 44px touch target'."
+        },
+        {
+          "id": "loading_states",
+          "description": "Must include loading, empty, and error states for data-driven components",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly mandates including 'explicit visual states for loading, empty, and error scenarios for all data-driven components'."
+        },
+        {
+          "id": "typography_hierarchy",
+          "description": "Must use intentional font sizing with clear visual hierarchy (not all same size)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to establish clear visual hierarchy using scale and weight, and specifically says 'Do not use uniform font sizing across the interface'."
+        }
+      ],
+      "totalScore": 12,
+      "maxScore": 12,
+      "timestamp": "2026-04-03T21:02:28.292Z"
+    }
+  ],
+  "promptLength": 2876
+}

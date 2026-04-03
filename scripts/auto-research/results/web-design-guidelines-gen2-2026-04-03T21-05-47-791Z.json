@@ -1,0 +1,204 @@
+{
+  "generation": 2,
+  "avgScore": 10,
+  "maxPossible": 10,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "web-design-guidelines",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "wcag_contrast",
+          "description": "Must check and enforce 4.5:1 minimum contrast ratio for text",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires verifying that all text maintains a minimum 4.5:1 contrast ratio."
+        },
+        {
+          "id": "focus_management",
+          "description": "Must include focus-visible styles and keyboard navigation for all interactive elements",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates checking for visible `:focus-visible` states and functional keyboard navigation for all interactive elements."
+        },
+        {
+          "id": "semantic_html",
+          "description": "Must use semantic HTML elements (nav, main, article, section) not div soup",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly instructs the assistant to reject 'div soup' and enforce the use of semantic HTML elements like nav, main, article, and section."
+        },
+        {
+          "id": "aria_labels",
+          "description": "Must include ARIA labels on icon-only buttons, modals, and form fields",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires `aria-label` for icon-only buttons, modals, and form inputs lacking visible labels."
+        },
+        {
+          "id": "responsive_images",
+          "description": "Must handle images responsively (srcset, lazy loading, alt text)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly enforces checking for `alt` text, responsive attributes (`srcset`, `sizes`), and `loading=\"lazy\"` for images."
+        },
+        {
+          "id": "form_validation",
+          "description": "Must include accessible form validation with error messages linked to fields",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires ensuring error messages are programmatically linked to inputs using `aria-describedby` and `aria-invalid`."
+        },
+        {
+          "id": "motion_preferences",
+          "description": "Must respect prefers-reduced-motion for animations",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly mandates wrapping all animations in `@media (prefers-reduced-motion: reduce)`."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:05:25.081Z"
+    },
+    {
+      "skillName": "web-design-guidelines",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "wcag_contrast",
+          "description": "Must check and enforce 4.5:1 minimum contrast ratio for text",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires the assistant to ensure all text maintains a minimum 4.5:1 contrast ratio."
+        },
+        {
+          "id": "focus_management",
+          "description": "Must include focus-visible styles and keyboard navigation for all interactive elements",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates checking for visible ':focus-visible' states and functional keyboard navigation for all interactive elements."
+        },
+        {
+          "id": "semantic_html",
+          "description": "Must use semantic HTML elements (nav, main, article, section) not div soup",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly instructs to reject 'div soup' and enforce the use of semantic HTML elements like <nav>, <main>, <article>, and <section>."
+        },
+        {
+          "id": "aria_labels",
+          "description": "Must include ARIA labels on icon-only buttons, modals, and form fields",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires 'aria-label' for icon-only buttons, modals, and form inputs lacking visible labels."
+        },
+        {
+          "id": "responsive_images",
+          "description": "Must handle images responsively (srcset, lazy loading, alt text)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly enforces 'alt' text, responsive attributes ('srcset', 'sizes'), and 'loading=\"lazy\"' for images."
+        },
+        {
+          "id": "form_validation",
+          "description": "Must include accessible form validation with error messages linked to fields",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires error messages to be programmatically linked to inputs using 'aria-describedby' and 'aria-invalid'."
+        },
+        {
+          "id": "motion_preferences",
+          "description": "Must respect prefers-reduced-motion for animations",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly instructs to wrap all animations in '@media (prefers-reduced-motion: reduce)'."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:05:38.007Z"
+    },
+    {
+      "skillName": "web-design-guidelines",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "wcag_contrast",
+          "description": "Must check and enforce 4.5:1 minimum contrast ratio for text",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires verifying and reporting that all text maintains a minimum 4.5:1 contrast ratio."
+        },
+        {
+          "id": "focus_management",
+          "description": "Must include focus-visible styles and keyboard navigation for all interactive elements",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates checking for visible `:focus-visible` states and functional keyboard navigation for all interactive elements."
+        },
+        {
+          "id": "semantic_html",
+          "description": "Must use semantic HTML elements (nav, main, article, section) not div soup",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly instructs the assistant to reject 'div soup' and enforce the use of semantic HTML elements like nav, main, article, and section."
+        },
+        {
+          "id": "aria_labels",
+          "description": "Must include ARIA labels on icon-only buttons, modals, and form fields",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires `aria-label` for icon-only buttons, modals, and form inputs lacking visible labels."
+        },
+        {
+          "id": "responsive_images",
+          "description": "Must handle images responsively (srcset, lazy loading, alt text)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly enforces `alt` text, responsive attributes (`srcset`, `sizes`), and `loading=\"lazy\"` for images."
+        },
+        {
+          "id": "form_validation",
+          "description": "Must include accessible form validation with error messages linked to fields",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires ensuring error messages are programmatically linked to inputs using `aria-describedby` and `aria-invalid`."
+        },
+        {
+          "id": "motion_preferences",
+          "description": "Must respect prefers-reduced-motion for animations",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly mandates wrapping all animations in `@media (prefers-reduced-motion: reduce)`."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T21:05:47.791Z"
+    }
+  ],
+  "promptLength": 2151
+}

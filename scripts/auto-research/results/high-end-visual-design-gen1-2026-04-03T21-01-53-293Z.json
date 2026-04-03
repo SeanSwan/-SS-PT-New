@@ -1,0 +1,204 @@
+{
+  "generation": 1,
+  "avgScore": 0,
+  "maxPossible": 11,
+  "pct": 0,
+  "runs": [
+    {
+      "skillName": "high-end-visual-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "spring_physics",
+          "description": "Animations must use spring/cubic-bezier easing, not linear or ease-in-out",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "depth_layering",
+          "description": "Must create visual depth with subtle shadows, layered surfaces, or glassmorphism",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "micro_interactions",
+          "description": "Must include hover, focus, active state transitions on interactive elements",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "whitespace",
+          "description": "Must use intentional whitespace/padding — not cramped, not wasteful",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "color_restraint",
+          "description": "Must use a restrained palette (2-3 accent colors max), not rainbow",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography_pairing",
+          "description": "Must pair fonts intentionally (heading + body + mono), not use a single generic font",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "no_ai_slop",
+          "description": "Must NOT use generic AI patterns: oversaturated neon, gradient text headers, 3-col equal grids, stock photos",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:01:15.064Z"
+    },
+    {
+      "skillName": "high-end-visual-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "spring_physics",
+          "description": "Animations must use spring/cubic-bezier easing, not linear or ease-in-out",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "depth_layering",
+          "description": "Must create visual depth with subtle shadows, layered surfaces, or glassmorphism",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "micro_interactions",
+          "description": "Must include hover, focus, active state transitions on interactive elements",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "whitespace",
+          "description": "Must use intentional whitespace/padding — not cramped, not wasteful",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "color_restraint",
+          "description": "Must use a restrained palette (2-3 accent colors max), not rainbow",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography_pairing",
+          "description": "Must pair fonts intentionally (heading + body + mono), not use a single generic font",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "no_ai_slop",
+          "description": "Must NOT use generic AI patterns: oversaturated neon, gradient text headers, 3-col equal grids, stock photos",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:01:33.516Z"
+    },
+    {
+      "skillName": "high-end-visual-design",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "spring_physics",
+          "description": "Animations must use spring/cubic-bezier easing, not linear or ease-in-out",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "depth_layering",
+          "description": "Must create visual depth with subtle shadows, layered surfaces, or glassmorphism",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "micro_interactions",
+          "description": "Must include hover, focus, active state transitions on interactive elements",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "whitespace",
+          "description": "Must use intentional whitespace/padding — not cramped, not wasteful",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "color_restraint",
+          "description": "Must use a restrained palette (2-3 accent colors max), not rainbow",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "typography_pairing",
+          "description": "Must pair fonts intentionally (heading + body + mono), not use a single generic font",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "Judge response parse error"
+        },
+        {
+          "id": "no_ai_slop",
+          "description": "Must NOT use generic AI patterns: oversaturated neon, gradient text headers, 3-col equal grids, stock photos",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "Judge response parse error"
+        }
+      ],
+      "totalScore": 0,
+      "maxScore": 11,
+      "timestamp": "2026-04-03T21:01:53.293Z"
+    }
+  ],
+  "promptLength": 10643
+}

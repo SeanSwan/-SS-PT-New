@@ -1,0 +1,294 @@
+{
+  "generation": 1,
+  "avgScore": 10,
+  "maxPossible": 10,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "A PR adds a new workout generation feature with 200 lines of changes across 5 files.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires getting the BASE_SHA and HEAD_SHA and passing them to the code-reviewer subagent, which ensures the actual diff/changes are reviewed rather than just the file contents."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists checking for security vulnerabilities, including XSS, SQL/command injection, and authentication bypasses."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires checking for performance issues, specifically mentioning N+1 queries and unnecessary re-renders."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires verifying that new/changed code has adequate unit, integration, and end-to-end tests."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires identifying any breaking changes to public APIs, data schemas, or interfaces."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires checking adherence to project conventions, including coding style guides, architectural patterns, and naming conventions."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T20:10:11.037Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "A PR adds a new workout generation feature with 200 lines of changes across 5 files.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires getting the BASE_SHA and HEAD_SHA and passing them to the code-reviewer subagent, which ensures the actual diff/changes are reviewed."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly lists checking for security vulnerabilities including XSS, SQL/command injection, and authentication bypasses."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires checking for performance issues, specifically mentioning N+1 queries and unnecessary re-renders."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires verifying that new/changed code has adequate unit, integration, and end-to-end tests."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires identifying any changes to public APIs, data schemas, or interfaces that could impact dependent systems."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires checking for adherence to coding style guides, architectural patterns, naming conventions, and documentation standards."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T20:10:19.144Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "Developer has made changes to 3 files: a new React hook, a styled-component, and a route handler.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires getting the BASE_SHA and HEAD_SHA and passing them to the code-reviewer subagent, which ensures the actual diff/changes are reviewed rather than just the file contents."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly lists checking for security vulnerabilities, including XSS, SQL/command injection, and authentication bypasses."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires checking for performance issues, specifically mentioning N+1 queries and unnecessary re-renders."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires verifying that new/changed code has adequate unit, integration, and end-to-end tests."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires identifying any changes to public APIs, data schemas, or interfaces that could impact dependent systems."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires checking for adherence to coding style guides, architectural patterns, naming conventions, and documentation standards."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T20:10:26.766Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "Developer has made changes to 3 files: a new React hook, a styled-component, and a route handler.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires getting the BASE_SHA and HEAD_SHA to pass to the code-reviewer subagent, which ensures the actual diff/changes are reviewed."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly instructs to request checks for security vulnerabilities, including XSS, injection, and authentication bypasses."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly instructs to request checks for performance issues, specifically mentioning N+1 queries and unnecessary re-renders."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires verifying that new/changed code has adequate unit, integration, and end-to-end tests."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly requires identifying any changes to public APIs, data schemas, or interfaces that could impact dependent systems."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly requires checking for adherence to coding style guides, architectural patterns, naming conventions, and documentation standards."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T20:10:34.069Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "A PR adds a new workout generation feature with 200 lines of changes across 5 files.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly instructs the assistant to get the BASE_SHA and HEAD_SHA and pass them to the code-reviewer subagent, which ensures the actual diff/changes are reviewed."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires requesting checks for security vulnerabilities, including XSS, injection, and authentication bypasses."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires requesting checks for performance issues, specifically mentioning N+1 queries and unnecessary re-renders."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires verifying that new/changed code has adequate test coverage."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires identifying any breaking changes to public APIs, data schemas, or interfaces."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly requires checking for adherence to project conventions, including coding style guides and naming conventions."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T20:10:40.529Z"
+    }
+  ],
+  "promptLength": 4182
+}
