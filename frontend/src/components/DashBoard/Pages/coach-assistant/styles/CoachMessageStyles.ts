@@ -41,13 +41,13 @@ export const MessagesArea = styled.div`
   }
 
   @media (min-width: 2560px) {
-    max-width: 1200px;
+    max-width: 100%;
     padding: 24px 32px;
     gap: 16px;
   }
 
   @media (min-width: 3840px) {
-    max-width: 1600px;
+    max-width: 100%;
     padding: 32px 48px;
     gap: 20px;
   }

@@ -624,6 +624,118 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
     }
 
+    // Check if AI response contains import_workout_log action blocks (historical workout import)
+    let workoutImportResults = [];
+    if (aiResult.content && (req.user.role === 'admin' || req.user.role === 'trainer')) {
+      try {
+        const importRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"import_workout_log"[\s\S]*?\})\s*```/g;
+        let importMatch;
+        while ((importMatch = importRegex.exec(aiResult.content)) !== null) {
+          try {
+            const payload = JSON.parse(importMatch[1]);
+            const { clientId, title, date, duration, intensity, notes, exercises } = payload;
+
+            if (!clientId || !date || !exercises?.length) {
+              workoutImportResults.push({ success: false, date, reason: 'Missing clientId, date, or exercises' });
+              continue;
+            }
+
+            // Validate date is not in the future
+            const workoutDate = new Date(date);
+            if (workoutDate > new Date()) {
+              workoutImportResults.push({ success: false, date, reason: 'Date cannot be in the future' });
+              continue;
+            }
+
+            const { getAllModels } = await import('../models/index.mjs');
+            const models = getAllModels();
+            const WorkoutSession = models.WorkoutSession;
+            const WorkoutLog = models.WorkoutLog;
+
+            if (!WorkoutSession || !WorkoutLog) {
+              workoutImportResults.push({ success: false, date, reason: 'Workout models not available' });
+              continue;
+            }
+
+            // Check for duplicate (same client + same date)
+            const { Op } = await import('sequelize');
+            const dayStart = new Date(workoutDate); dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(workoutDate); dayEnd.setHours(23, 59, 59, 999);
+            const existing = await WorkoutSession.findOne({
+              where: { userId: clientId, date: { [Op.between]: [dayStart, dayEnd] } }
+            });
+            if (existing) {
+              workoutImportResults.push({ success: false, date, reason: `Workout already exists for this date (session #${existing.id})` });
+              continue;
+            }
+
+            // Calculate aggregates
+            let totalSets = 0, totalReps = 0, totalWeight = 0;
+            const logRows = [];
+            for (const ex of exercises) {
+              const sets = ex.sets || [{ setNumber: 1, reps: ex.reps || 0, weight: ex.weight || 0 }];
+              for (const s of sets) {
+                totalSets++;
+                totalReps += (s.reps || 0);
+                totalWeight += (s.reps || 0) * (s.weight || 0);
+                logRows.push({
+                  exerciseName: ex.name || ex.exerciseName,
+                  setNumber: s.setNumber || totalSets,
+                  reps: s.reps || 0,
+                  weight: s.weight || 0,
+                  tempo: s.tempo || null,
+                  rest: s.rest || null,
+                  rpe: s.rpe || null,
+                  notes: s.notes || null,
+                });
+              }
+            }
+
+            // Create session
+            const session = await WorkoutSession.create({
+              userId: clientId,
+              trainerId: req.user.id,
+              title: title || `Imported Workout — ${date}`,
+              date: workoutDate,
+              duration: duration || 60,
+              intensity: intensity || 5,
+              notes: notes || 'Imported from previous training platform',
+              status: 'completed',
+              completedAt: workoutDate,
+              sessionType: 'trainer-led',
+              totalSets,
+              totalReps,
+              totalWeight: Math.round(totalWeight),
+            });
+
+            // Bulk create log rows
+            const logsWithSession = logRows.map(r => ({ ...r, sessionId: session.id }));
+            await WorkoutLog.bulkCreate(logsWithSession);
+
+            logger.info('[AIChatRoutes] Imported workout for client %d on %s: %d exercises, %d sets',
+              clientId, date, exercises.length, totalSets);
+
+            workoutImportResults.push({
+              success: true,
+              date,
+              sessionId: session.id,
+              exerciseCount: exercises.length,
+              totalSets,
+              totalReps,
+              totalWeight: Math.round(totalWeight),
+            });
+          } catch (importErr) {
+            workoutImportResults.push({ success: false, reason: importErr.message });
+          }
+        }
+        if (workoutImportResults.length > 0) {
+          logger.info('[AIChatRoutes] Processed %d workout imports', workoutImportResults.length);
+        }
+      } catch (bulkErr) {
+        logger.warn('[AIChatRoutes] Workout import processing failed:', bulkErr.message);
+      }
+    }
+
     // Extract FRONTEND_DISPATCH action blocks (AI_ADD_EXERCISE, AI_LOAD_TEMPLATE, etc.)
     // These are passed back to the frontend which dispatches them as CustomEvents
     let frontendActions = [];
@@ -662,6 +774,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       messageCount: updatedMessages.length,
       dataUpdateResult,
       clientCreateResult: clientCreateResult || undefined,
+      workoutImportResults: workoutImportResults.length > 0 ? workoutImportResults : undefined,
       frontendActions: frontendActions.length > 0 ? frontendActions : undefined,
     });
   } catch (err) {

@@ -20,7 +20,7 @@ import type { OrbSize } from './SwanCoachTypes';
 // ─────────────────────────────────────────────────────────────
 // SECTION: Character Count
 // ─────────────────────────────────────────────────────────────
-const MAX_CHARS = 4000;
+const MAX_CHARS = 10000;
 
 const InputWrap = styled.div`
   position: relative;
@@ -103,7 +103,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     setText(e.target.value);
     const el = e.target;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   }, []);
 
   // ── Voice recognition ──

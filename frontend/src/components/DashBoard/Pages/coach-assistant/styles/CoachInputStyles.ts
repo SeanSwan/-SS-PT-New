@@ -38,18 +38,19 @@ export const InputBar = styled.div`
   }
 
   @media (min-width: 2560px) {
-    max-width: 1200px;
+    max-width: 100%;
     padding: 16px 32px;
   }
 
   @media (min-width: 3840px) {
-    max-width: 1600px;
+    max-width: 100%;
     padding: 20px 48px;
   }
 `;
 
 export const ChatInput = styled.textarea`
   flex: 1;
+  width: 100%;
   padding: 12px 14px;
   min-height: 48px;
   max-height: 200px;
