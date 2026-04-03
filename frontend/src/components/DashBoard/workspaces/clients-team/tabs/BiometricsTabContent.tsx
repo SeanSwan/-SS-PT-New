@@ -75,6 +75,10 @@ const FormAnalysisPage = React.lazy(
   () => import('../../../../FormAnalysis/FormAnalysisPage')
 );
 
+const ROMAssessment = React.lazy(
+  () => import('./ROMAssessment')
+);
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
@@ -84,7 +88,7 @@ interface BiometricsTabContentProps {
   clientName?: string;
 }
 
-type CardId = 'body-map' | 'measurements' | 'movement-analysis' | 'form-analysis';
+type CardId = 'body-map' | 'measurements' | 'movement-analysis' | 'form-analysis' | 'rom-assessment';
 
 interface BentoCardConfig {
   id: CardId;
@@ -121,6 +125,12 @@ const BIOMETRIC_CARDS: BentoCardConfig[] = [
     title: 'Form Analysis',
     description: 'AI-powered exercise form checking with video analysis and feedback.',
     icon: <Eye size={24} />,
+  },
+  {
+    id: 'rom-assessment',
+    title: 'Range of Motion',
+    description: 'Goniometer measurements for joint ROM tracking with left/right comparison.',
+    icon: <Ruler size={24} />,
   },
 ];
 
@@ -372,6 +382,12 @@ const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
         return (
           <Suspense fallback={<SuspenseFallback />}>
             <FormAnalysisPage />
+          </Suspense>
+        );
+      case 'rom-assessment':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <ROMAssessment clientId={clientId} clientName={clientName} />
           </Suspense>
         );
       default:

@@ -302,3 +302,173 @@ export const getClientWorkouts = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to retrieve workouts' });
   }
 };
+
+/**
+ * PATCH /api/admin/clients/:clientId/workouts/:sessionId
+ *
+ * Edit a completed workout: update session fields, update/add/remove exercise sets.
+ * Body: {
+ *   title?: string,
+ *   duration?: number,
+ *   intensity?: number,
+ *   notes?: string,
+ *   exercises?: [{ name, sets: [{ id?, setNumber, reps, weight, tempo?, rest?, rpe?, notes? }] }]
+ * }
+ *
+ * If exercises is provided, replaces ALL logs for this session (delete + re-create).
+ * To add an exercise mid-workout, include it in the exercises array.
+ * To remove an exercise, omit it from the array.
+ */
+export const editWorkout = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const access = await ensureClientAccess(req, req.params.clientId);
+    if (!access.allowed) {
+      await transaction.rollback();
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const { clientId, models } = access;
+    const { WorkoutSession, WorkoutLog } = models;
+    const { sessionId } = req.params;
+
+    const session = await WorkoutSession.findOne({
+      where: { id: sessionId, userId: clientId },
+      transaction,
+    });
+
+    if (!session) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Workout session not found' });
+    }
+
+    // Update session-level fields
+    const { title, duration, intensity, notes, exercises, date } = req.body;
+    const updates = {};
+    if (title != null) updates.title = title.trim();
+    if (duration != null) updates.duration = Number(duration);
+    if (intensity != null) updates.intensity = Number(intensity);
+    if (notes != null) updates.notes = notes;
+    if (date != null) {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime()) && parsedDate <= new Date()) {
+        updates.date = parsedDate;
+        updates.completedAt = parsedDate;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await session.update(updates, { transaction });
+    }
+
+    // If exercises provided, replace all logs (full edit)
+    if (Array.isArray(exercises)) {
+      // Delete existing logs
+      await WorkoutLog.destroy({ where: { sessionId: session.id }, transaction });
+
+      // Build new logs
+      const logRows = [];
+      for (const exercise of exercises) {
+        const exName = exercise.exerciseName ?? exercise.name;
+        if (!exName?.trim()) continue;
+
+        const sets = exercise.sets || [{ setNumber: 1, reps: exercise.reps || 0, weight: exercise.weight || 0 }];
+        for (const set of sets) {
+          logRows.push({
+            sessionId: session.id,
+            exerciseName: exName.trim(),
+            setNumber: Number(set.setNumber) || logRows.length + 1,
+            reps: Number(set.reps) || 0,
+            weight: Number(set.weight) || 0,
+            tempo: set.tempo || null,
+            rest: set.rest != null ? Number(set.rest) : null,
+            rpe: set.rpe != null ? Number(set.rpe) : null,
+            notes: set.notes || null,
+          });
+        }
+      }
+
+      if (logRows.length > 0) {
+        await WorkoutLog.bulkCreate(logRows, { transaction, validate: true });
+      }
+
+      // Recompute aggregates
+      const totalSets = logRows.length;
+      const totalReps = logRows.reduce((sum, r) => sum + (r.reps || 0), 0);
+      const totalWeight = logRows.reduce((sum, r) => sum + (r.reps || 0) * (r.weight || 0), 0);
+
+      await session.update({ totalSets, totalReps, totalWeight }, { transaction });
+    }
+
+    await transaction.commit();
+
+    // Fetch updated session with logs
+    const updated = await WorkoutSession.findByPk(session.id, {
+      include: [{ model: WorkoutLog, as: 'logs' }],
+    });
+
+    logger.info(`Workout edited: session ${session.id} for client ${clientId} by user ${req.user?.id}`);
+
+    return res.status(200).json({
+      success: true,
+      workout: {
+        id: updated.id,
+        title: updated.title,
+        date: updated.completedAt,
+        duration: updated.duration,
+        intensity: updated.intensity,
+        status: updated.status,
+        totalSets: updated.totalSets,
+        totalReps: updated.totalReps,
+        totalWeight: updated.totalWeight,
+        logs: updated.logs,
+      },
+    });
+  } catch (error) {
+    await transaction.rollback();
+    logger.error('Workout edit failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to edit workout' });
+  }
+};
+
+/**
+ * DELETE /api/admin/clients/:clientId/workouts/:sessionId/logs/:logId
+ *
+ * Remove a single set from a workout and recompute aggregates.
+ */
+export const deleteWorkoutLog = async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.clientId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const { models } = access;
+    const { WorkoutSession, WorkoutLog } = models;
+    const { sessionId, logId } = req.params;
+
+    const log = await WorkoutLog.findOne({ where: { id: logId, sessionId } });
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Workout log entry not found' });
+    }
+
+    await log.destroy();
+
+    // Recompute session aggregates
+    const remainingLogs = await WorkoutLog.findAll({ where: { sessionId } });
+    const totalSets = remainingLogs.length;
+    const totalReps = remainingLogs.reduce((sum, r) => sum + (r.reps || 0), 0);
+    const totalWeight = remainingLogs.reduce((sum, r) => sum + (r.reps || 0) * (r.weight || 0), 0);
+
+    await WorkoutSession.update(
+      { totalSets, totalReps, totalWeight },
+      { where: { id: sessionId } }
+    );
+
+    logger.info(`Deleted log ${logId} from session ${sessionId} by user ${req.user?.id}`);
+
+    return res.status(200).json({ success: true, message: 'Log entry deleted', totalSets, totalReps, totalWeight });
+  } catch (error) {
+    logger.error('Delete workout log failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete log entry' });
+  }
+};
