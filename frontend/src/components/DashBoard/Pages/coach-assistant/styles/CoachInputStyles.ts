@@ -53,7 +53,7 @@ export const ChatInput = styled.textarea`
   flex: 1;
   padding: 12px 14px;
   min-height: 48px;
-  max-height: 120px;
+  max-height: 200px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
   border-radius: 12px;
   background: var(--bg-base, #030712);
@@ -82,7 +82,7 @@ export const ChatInput = styled.textarea`
 
   @media (min-width: 1200px) {
     font-size: 15px;
-    min-height: 44px;
+    min-height: 56px;
   }
 
   @media (min-width: 2560px) {

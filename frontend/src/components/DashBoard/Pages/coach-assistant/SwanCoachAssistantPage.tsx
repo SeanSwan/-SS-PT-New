@@ -102,6 +102,36 @@ const SidebarToggle = styled.button`
   }
 `;
 
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin: 0 12px 8px;
+  border-radius: 8px;
+  background: rgba(201, 42, 84, 0.1);
+  border: 1px solid rgba(201, 42, 84, 0.3);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  min-height: 44px;
+
+  button {
+    margin-left: auto;
+    padding: 6px 14px;
+    min-height: 36px;
+    border-radius: 6px;
+    border: 1px solid rgba(201, 42, 84, 0.4);
+    background: transparent;
+    color: var(--text-primary, #E0ECF4);
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { background: rgba(201, 42, 84, 0.15); }
+  }
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Main Page Component
 // ─────────────────────────────────────────────────────────────
@@ -203,8 +233,13 @@ const SwanCoachAssistantPage: React.FC = () => {
     setVoiceOverlayOpen(false);
   }, [coach]);
 
+  // ── Track last attempted message for retry on error ──
+  const [lastAttempt, setLastAttempt] = useState<string | null>(null);
+
   // ── Wrap send to clear attachments after sending ──
   const handleSend = useCallback((text: string) => {
+    setLastAttempt(text);
+    coach.clearError();
     coach.sendMessage(text);
     attachments.clearFiles();
   }, [coach, attachments]);
@@ -285,6 +320,17 @@ const SwanCoachAssistantPage: React.FC = () => {
 
           {/* Thinking indicator replaces old TypingDots */}
           <ThinkingIndicator isThinking={coach.sending} />
+
+          {/* Error banner — surfaces errors that were previously silent */}
+          {coach.error && !coach.sending && (
+            <ErrorBanner>
+              <span>{coach.error}</span>
+              {lastAttempt && (
+                <button onClick={() => handleSend(lastAttempt)}>Retry</button>
+              )}
+              <button onClick={coach.clearError}>Dismiss</button>
+            </ErrorBanner>
+          )}
 
           <div ref={coach.messagesEndRef} />
         </MessagesArea>
