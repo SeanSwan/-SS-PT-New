@@ -29,7 +29,7 @@ async function callJudge(systemPrompt, userPrompt) {
     throw new Error('OPENROUTER_API_KEY required. Set in .env or environment.');
   }
 
-  const model = process.env.EVAL_MODEL || 'google/gemini-2.5-flash-preview';
+  const model = process.env.EVAL_MODEL || 'google/gemini-2.5-flash';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

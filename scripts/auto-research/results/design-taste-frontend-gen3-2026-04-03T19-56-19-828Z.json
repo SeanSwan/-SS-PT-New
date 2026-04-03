@@ -1,0 +1,334 @@
+{
+  "generation": 3,
+  "avgScore": 13,
+  "maxPossible": 13,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells such as neon/outer glows, pure black, oversaturated accents, excessive gradient text, custom mouse cursors, Inter font, oversized H1s, serif fonts on dashboards, and 3-column card layouts in Section 7 'AI TELLS (Forbidden Patterns)'."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates the implementation of full interaction cycles including Loading (skeletal loaders), Empty States, Error States, and Tactile Feedback (on :active) in Rule 5 of 'DESIGN ENGINEERING DIRECTIVES'. Default, hover, and focus states are implicitly covered by general UI design and the explicit mention of 'focus-visible' states."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly states to 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' in Section 4 'CREATIVE PROACTIVITY'."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt enforces clear typography hierarchy in Rule 1 'Deterministic Typography' by defining defaults for Display/Headlines (text-4xl md:text-6xl tracking-tighter leading-none) and Body/Paragraphs (text-base text-gray-600 leading-relaxed max-w-[65ch]). It also specifies anti-slop font choices like Geist, Outfit, Cabinet Grotesk, or Satoshi, and bans serif fonts for Dashboard/Software UIs."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt defines a deliberate color system in Rule 2 'Color Calibration', constraining to a maximum of 1 accent color with saturation < 80%, banning 'AI Purple/Blue' aesthetic, and enforcing consistency within a single palette (e.g., Zinc/Slate neutrals with high-contrast accents)."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt enforces consistent spacing by standardizing breakpoints, using `max-w-[1400px] mx-auto` or `max-w-7xl` for layout containment, and explicitly banning complex flexbox percentage math in favor of CSS Grid. It also mentions a standard `gap-2` for input blocks and discusses 'massive empty zones' for asymmetric layouts, indicating a deliberate approach to spacing."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates accessibility requirements in Section 2 'DEFAULT ARCHITECTURE & CONVENTIONS' under 'Accessibility [MANDATORY]'. It requires WCAG 2.1 AA contrast ratios (minimum 4.5:1 for small text, 3:1 for large text/UI components) with specific Tailwind color shade examples, and mandates clear `focus-visible` states for all interactive elements."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:56:02.182Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells such as neon/outer glows, pure black, oversaturated accents, excessive gradient text, custom mouse cursors, Inter font, oversized H1s, serif fonts on dashboards, 3-column card layouts, generic names/avatars/numbers, startup slop names, and filler words. It also mandates specific replacements or alternatives for these banned patterns."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates the implementation of full interaction cycles, including Loading (skeletal loaders), Empty States, Error States (inline), and Tactile Feedback (on :active). It also implicitly covers default, hover, and focus through other rules like focus-visible states and magnetic micro-physics."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly states to 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' when MOTION_INTENSITY > 5. It also specifies 'transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' for Fluid CSS motion."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt enforces deterministic typography with specific rules for Display/Headlines (e.g., `text-4xl md:text-6xl tracking-tighter leading-none`, specific font choices like Geist, Outfit, Cabinet Grotesk, Satoshi, and a ban on Inter and serif fonts for dashboards) and Body/Paragraphs (e.g., `text-base text-gray-600 leading-relaxed max-w-[65ch]`). It also mentions controlling hierarchy with weight and color, not just massive scale for H1s."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt defines a deliberate color calibration system, including a constraint of max 1 accent color with saturation < 80%, a strict ban on 'AI Purple/Blue' aesthetic, and a mandate to use absolute neutral bases (Zinc/Slate) with high-contrast, singular accents. It also emphasizes color consistency within a project and bans pure black."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt enforces consistent spacing by standardizing breakpoints, containing page layouts with `max-w-[1400px] mx-auto` or `max-w-7xl`, using CSS Grid for reliable structures instead of complex flexbox math, and specifying a standard `gap-2` for input blocks. It also defines `VISUAL_DENSITY` levels which dictate spacing, from 'Art Gallery Mode' (lots of white space) to 'Cockpit Mode' (tiny paddings)."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates accessibility requirements: WCAG Contrast (minimum 4.5:1 for small text, 3:1 for large text/UI components, with specific Tailwind color shade examples like `text-gray-700`) and Focus Indicators (clear `focus-visible` states for all interactive elements, with a specific example like `focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500`)."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:56:06.815Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells such as neon/outer glows, pure black, oversaturated accents, excessive gradient text, custom mouse cursors, Inter font, oversized H1s, serif fonts on dashboards, 3-column card layouts, generic names, generic avatars, fake numbers, startup slop names, filler words, and broken Unsplash links. It also mandates customization of shadcn/ui."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 5: Interactive UI States explicitly mandates the implementation of Loading (skeletal loaders), Empty States, Error States (inline), and Tactile Feedback (on :active). Default, hover, and focus states are implicitly covered by other rules like Accessibility (focus-visible) and Motion (magnetic micro-physics for hover)."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing.' It also specifies 'Fluid CSS' for MOTION_INTENSITY 4-7 using a specific cubic-bezier transition."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 1: Deterministic Typography defines specific styles for Display/Headlines (text-4xl md:text-6xl tracking-tighter leading-none) and Body/Paragraphs (text-base text-gray-600 leading-relaxed max-w-[65ch]). It also enforces specific font choices like Geist, Outfit, Cabinet Grotesk, or Satoshi, and bans Inter and serif fonts for dashboards, thus establishing a clear hierarchy and specific font usage."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 2: Color Calibration explicitly constrains the color system to a maximum of 1 accent color with saturation < 80%. It bans 'AI Purple/Blue' and mandates absolute neutral bases (Zinc/Slate) with high-contrast, singular accents. It also requires sticking to one palette for the entire output and avoiding fluctuation between warm and cool grays. Accessibility rules also specify exact Tailwind color shades for contrast."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces consistent spacing through several directives: 'Standardize breakpoints (sm, md, lg, xl)', 'Contain page layouts using max-w-[1400px] mx-auto or max-w-7xl', 'Grid over Flex-Math' for reliable structures, and 'Use a standard gap-2 for input blocks'. The VISUAL_DENSITY section also defines spacing characteristics for different levels (Art Gallery, Daily App, Cockpit Mode)."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The Accessibility section explicitly mandates WCAG 2.1 AA contrast ratios (minimum 4.5:1 for small text, 3:1 for large text/UI components) and requires specifying exact Tailwind color shades. It also requires implementing clear `focus-visible` states for all interactive elements, using specific Tailwind classes like `focus-visible:ring-2`."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:56:11.575Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans several AI visual tells, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Inter Font', and 'NO 3-Column Card Layouts' in Section 7. AI Tells."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 5: Interactive UI States, explicitly mandates the implementation of 'Loading', 'Empty States', 'Error States', and 'Tactile Feedback' for active states. Default, hover, and focus states are implicitly covered by other rules like accessibility and general UI design."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Section 4, 'Perpetual Micro-Interactions', explicitly states to 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing.' This ensures high-quality motion."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 1: Deterministic Typography, defines specific rules for 'Display/Headlines' (e.g., `text-4xl md:text-6xl tracking-tighter leading-none`) and 'Body/Paragraphs' (e.g., `text-base text-gray-600 leading-relaxed max-w-[65ch]`), along with specific font choices and bans."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 2: Color Calibration, enforces a constraint of 'Max 1 Accent Color. Saturation < 80%', bans 'AI Purple/Blue', and requires 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. It also emphasizes 'COLOR CONSISTENCY'."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Section 2, 'Responsiveness & Spacing', standardizes breakpoints and container widths. Section 3, Rule 6, specifies `gap-2` for input blocks. Section 7, 'Align & Space Perfectly', explicitly states to 'Ensure padding and margins are mathematically perfect. Avoid floating elements with awkward gaps.' This implies a consistent spacing scale."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 2, 'Accessibility [MANDATORY]', explicitly requires 'WCAG Contrast' (minimum 4.5:1 for small text, 3:1 for large text/UI components) and 'Focus Indicators' (`focus-visible` states)."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:56:15.380Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells such as neon/outer glows, pure black, oversaturated accents, excessive gradient text, custom mouse cursors, Inter font, oversized H1s, serif fonts on dashboards, and 3-column card layouts in Section 7 'AI TELLS (Forbidden Patterns)'."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly mandates the implementation of full interaction cycles including Loading (skeletal loaders), Empty States, Error States, and Tactile Feedback (on :active) in Rule 5 of 'DESIGN ENGINEERING DIRECTIVES'. Default, hover, and focus states are implicitly covered by general UI design and the explicit mention of 'focus-visible' states."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly states to 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' in Section 4 'CREATIVE PROACTIVITY'."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt enforces clear typography hierarchy in Rule 1 'Deterministic Typography' by specifying defaults for Display/Headlines (text-4xl md:text-6xl tracking-tighter leading-none) and Body/Paragraphs (text-base text-gray-600 leading-relaxed max-w-[65ch]). It also mandates specific font choices like Geist, Outfit, Cabinet Grotesk, or Satoshi, and bans Inter and serif fonts for Dashboard/Software UIs."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt defines a deliberate color system in Rule 2 'Color Calibration', limiting to 'Max 1 Accent Color. Saturation < 80%.' It also bans 'AI Purple/Blue' and mandates 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. It also requires sticking to one palette and not fluctuating between warm and cool grays."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt enforces spacing consistency by standardizing breakpoints, using `max-w-[1400px] mx-auto` or `max-w-7xl` for layout containment, and explicitly banning complex flexbox percentage math in favor of CSS Grid. It also specifies `gap-2` for input blocks and mentions 'Align & Space Perfectly' in 'AI TELLS'."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly requires WCAG 2.1 AA contrast ratios (minimum 4.5:1 for small text, 3:1 for large text/UI components) and mandates the use of exact Tailwind color shades. It also requires implementing clear `focus-visible` states for all interactive elements in the 'Accessibility [MANDATORY]' section."
+        }
+      ],
+      "totalScore": 13,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:56:19.828Z"
+    }
+  ],
+  "promptLength": 15252
+}

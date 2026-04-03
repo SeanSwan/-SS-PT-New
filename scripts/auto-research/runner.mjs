@@ -24,10 +24,26 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// Load .env from project root
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, '../..');
+const envPath = path.join(projectRoot, '.env');
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx > 0) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim();
+      if (!process.env[key]) process.env[key] = val;
+    }
+  }
+}
+
 import { evalSuite } from './eval-suite.mjs';
 import { mutatePrompt } from './prompt-mutator.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EVALS_DIR = path.join(__dirname, 'evals');
 const RESULTS_DIR = path.join(__dirname, 'results');
 const SKILLS_DIR = path.join(__dirname, '..', '..', '.claude', 'skills');

@@ -1,0 +1,294 @@
+{
+  "generation": 3,
+  "avgScore": 9.8,
+  "maxPossible": 10,
+  "pct": 98,
+  "runs": [
+    {
+      "skillName": "verification-before-completion",
+      "scenario": "User asks to fix a bug in a React component that causes infinite re-renders. The fix involves adding a dependency array to useEffect.",
+      "criteriaResults": [
+        {
+          "id": "checks-tests",
+          "description": "Skill prompt causes agent to run tests before claiming done",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Tests pass' requires 'Test command output: 0 failures' and lists 'Run test command' as a key pattern. It also emphasizes 'ALWAYS before: ANY variation of success/completion claims' to run verification."
+        },
+        {
+          "id": "checks-build",
+          "description": "Skill prompt causes agent to verify build/compilation succeeds",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Build succeeds' requires 'Build command: exit 0 (successful compilation)' and lists 'Run build command' as a key pattern. It also mentions 'Confirm successful compilation if applicable' in the bottom line."
+        },
+        {
+          "id": "no-false-done",
+          "description": "Agent does not claim done when tests or build fail",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt's 'Gate Function' clearly states that if verification does not confirm the claim, the agent must 'State actual status with evidence, including any error messages observed or unexpected UI states.' It also has a 'Common Failures' section and 'Red Flags - STOP' that prevent claiming success without evidence."
+        },
+        {
+          "id": "visual-verify",
+          "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly mentions 'UI change applied' requires 'Screenshot of new UI state, confirm interactive elements function as expected, check console for errors' and lists 'Take screenshot of new UI state' as a key pattern for UI Changes. It also mentions 'Inspect the UI (and take screenshots for UI changes)' in the bottom line."
+        },
+        {
+          "id": "regression-check",
+          "description": "Skill prompt instructs checking for regressions in related components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt has a dedicated 'Regression test works' entry in 'Common Failures' requiring 'Red-green cycle verified' and a 'Key Patterns' section for 'Regression tests (TDD Red-Green)' which details the steps to verify a regression test."
+        },
+        {
+          "id": "error-handling",
+          "description": "Skill prompt requires checking error states and edge cases",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt includes 'Error Handling/Edge Cases' in its 'Key Patterns' section, explicitly instructing to 'Identify potential error conditions or edge cases → Simulate each condition → Verify error message is correct/expected behavior occurs → Log observed outcome'."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:34.556Z"
+    },
+    {
+      "skillName": "verification-before-completion",
+      "scenario": "User asks to fix a bug in a React component that causes infinite re-renders. The fix involves adding a dependency array to useEffect.",
+      "criteriaResults": [
+        {
+          "id": "checks-tests",
+          "description": "Skill prompt causes agent to run tests before claiming done",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Tests pass' requires 'Test command output: 0 failures' and lists 'Run test command' as a key pattern. It also emphasizes 'ALWAYS before: ANY variation of success/completion claims' to run verification."
+        },
+        {
+          "id": "checks-build",
+          "description": "Skill prompt causes agent to verify build/compilation succeeds",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Build succeeds' requires 'Build command: exit 0 (successful compilation)' and lists 'Run build command' as a key pattern. It also mentions 'Confirm successful compilation if applicable' in the bottom line."
+        },
+        {
+          "id": "no-false-done",
+          "description": "Agent does not claim done when tests or build fail",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt's 'Gate Function' clearly states that if verification does not confirm the claim, the agent must 'State actual status with evidence, including any error messages observed or unexpected UI states.' It also has a 'Common Failures' section and 'Red Flags - STOP' that prevent claiming success without evidence."
+        },
+        {
+          "id": "visual-verify",
+          "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly mentions 'UI change applied' requires 'Screenshot of new UI state' and 'Interact with UI elements to confirm functionality'. It also lists 'UI Changes' as a key pattern requiring screenshots and interaction. For requirements, it mentions 'verification of UI changes (with screenshots)'."
+        },
+        {
+          "id": "regression-check",
+          "description": "Skill prompt instructs checking for regressions in related components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly lists 'Bug fixed' as requiring 'Test original symptom: passes, check for regressions, ensure no new errors are introduced'. It also has a 'Regression test works' section under 'Common Failures' and 'Regression tests (TDD Red-Green)' under 'Key Patterns' which details the red-green cycle for verification."
+        },
+        {
+          "id": "error-handling",
+          "description": "Skill prompt requires checking error states and edge cases",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt includes 'Error Handling/Edge Cases' as a key pattern, requiring the agent to 'Identify potential error conditions or edge cases → Simulate each condition → Verify error message is correct/expected behavior occurs → Log observed outcome'."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:37.489Z"
+    },
+    {
+      "skillName": "verification-before-completion",
+      "scenario": "User asks to refactor a 500-line component into smaller pieces.",
+      "criteriaResults": [
+        {
+          "id": "checks-tests",
+          "description": "Skill prompt causes agent to run tests before claiming done",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Tests pass' requires 'Test command output: 0 failures' and provides a clear example: '✅ [Run test command] [See: 34/34 pass] \"All tests pass\"'. It also lists 'Tests pass' as a common failure if not properly verified."
+        },
+        {
+          "id": "checks-build",
+          "description": "Skill prompt causes agent to verify build/compilation succeeds",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Build succeeds' requires 'Build command: exit 0 (successful compilation)' and provides a clear example: '✅ [Run build command] [See: non-zero exit code indicating build failure OR successful compilation message] \"Build succeeds\"'."
+        },
+        {
+          "id": "no-false-done",
+          "description": "Agent does not claim done when tests or build fail",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The 'Gate Function' clearly states that if verification does not confirm the claim, the agent must 'State actual status with evidence, including any error messages observed or unexpected UI states.' This directly prevents claiming done when tests or build fail."
+        },
+        {
+          "id": "visual-verify",
+          "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt includes 'UI change applied' in 'Common Failures' and 'Key Patterns', explicitly requiring 'Screenshot of new UI state, confirm interactive elements function as expected, check console for errors' and 'Take screenshot of relevant UI'. It also mentions 'inspect UI for expected changes or absence of errors' in the 'Gate Function'."
+        },
+        {
+          "id": "regression-check",
+          "description": "Skill prompt instructs checking for regressions in related components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly addresses regression testing under 'Common Failures' ('Bug fixed' requires 'Test original symptom: passes, check for regressions, ensure no new errors are introduced') and 'Key Patterns' ('Regression tests (TDD Red-Green)' provides a detailed red-green cycle verification process)."
+        },
+        {
+          "id": "error-handling",
+          "description": "Skill prompt requires checking error states and edge cases",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt includes 'Error Handling/Edge Cases' in 'Key Patterns', explicitly requiring the agent to 'Identify potential error conditions or edge cases → Simulate each condition → Verify error message is correct/expected behavior occurs → Log observed outcome'."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:40.301Z"
+    },
+    {
+      "skillName": "verification-before-completion",
+      "scenario": "User asks to add a new API endpoint for fetching user achievements. The route needs auth middleware.",
+      "criteriaResults": [
+        {
+          "id": "checks-tests",
+          "description": "Skill prompt causes agent to run tests before claiming done",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Tests pass' requires 'Test command output: 0 failures' and includes 'ALWAYS before: ANY variation of success/completion claims' and 'Moving to next task'. This strongly implies running tests before claiming completion."
+        },
+        {
+          "id": "checks-build",
+          "description": "Skill prompt causes agent to verify build/compilation succeeds",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Build succeeds' requires 'Build command: exit 0 (successful compilation)' and lists it as a 'Common Failure' if not done. This clearly guides the agent to verify the build."
+        },
+        {
+          "id": "no-false-done",
+          "description": "Agent does not claim done when tests or build fail",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The 'Gate Function' explicitly states 'If NO: State actual status with evidence, including any error messages observed or unexpected UI states.' and 'Skip any step = lying, not verifying'. This directly prevents claiming done if verification fails."
+        },
+        {
+          "id": "visual-verify",
+          "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+          "passed": false,
+          "score": 0,
+          "maxScore": 1,
+          "reasoning": "The scenario involves adding an API endpoint, which typically does not have a direct UI component that would require a screenshot. While the prompt does mention UI changes and screenshots for UI-related tasks, it doesn't apply to this specific scenario. The prompt doesn't explicitly instruct to look for UI changes when the task is purely backend API development."
+        },
+        {
+          "id": "regression-check",
+          "description": "Skill prompt instructs checking for regressions in related components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt lists 'Bug fixed' as requiring 'Test original symptom: passes, check for regressions, ensure no new errors are introduced'. While this scenario is adding a new feature, the 'Common Failures' and 'Key Patterns' sections emphasize checking for regressions, especially with 'Regression test works' requiring a red-green cycle. This implies a general practice of checking for regressions when making changes."
+        },
+        {
+          "id": "error-handling",
+          "description": "Skill prompt requires checking error states and edge cases",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt has a dedicated 'Key Patterns' section for 'Error Handling/Edge Cases' which states 'Identify potential error conditions or edge cases → Simulate each condition → Verify error message is correct/expected behavior occurs'. This directly instructs the agent to check error states for new functionality like an API endpoint."
+        }
+      ],
+      "totalScore": 9,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:43.710Z"
+    },
+    {
+      "skillName": "verification-before-completion",
+      "scenario": "User asks to fix a bug in a React component that causes infinite re-renders. The fix involves adding a dependency array to useEffect.",
+      "criteriaResults": [
+        {
+          "id": "checks-tests",
+          "description": "Skill prompt causes agent to run tests before claiming done",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Tests pass' requires 'Test command output: 0 failures' and lists 'Run test command' as a key pattern. It also emphasizes 'ALWAYS before: ANY variation of success/completion claims' to run verification."
+        },
+        {
+          "id": "checks-build",
+          "description": "Skill prompt causes agent to verify build/compilation succeeds",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The skill prompt explicitly states 'Build succeeds' requires 'Build command: exit 0 (successful compilation)' and lists 'Run build command' as a key pattern. It also mentions 'Confirm successful compilation if applicable' in the bottom line."
+        },
+        {
+          "id": "no-false-done",
+          "description": "Agent does not claim done when tests or build fail",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt's 'Gate Function' clearly states that if verification does not confirm the claim, the agent must 'State actual status with evidence, including any error messages observed or unexpected UI states.' It also has a 'Common Failures' section and 'Red Flags - STOP' that prevent claiming success without evidence."
+        },
+        {
+          "id": "visual-verify",
+          "description": "Skill prompt instructs agent to take screenshots or visually verify UI changes",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt explicitly mentions 'UI change applied' requires 'Screenshot of new UI state' and 'Interact with UI elements to confirm functionality'. It also lists 'UI Changes' as a key pattern requiring screenshots and interaction. The scenario involves a React component, which often has UI implications."
+        },
+        {
+          "id": "regression-check",
+          "description": "Skill prompt instructs checking for regressions in related components",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt's 'Common Failures' section for 'Bug fixed' requires 'Test original symptom: passes, check for regressions, ensure no new errors are introduced'. This directly addresses checking for regressions."
+        },
+        {
+          "id": "error-handling",
+          "description": "Skill prompt requires checking error states and edge cases",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt has a dedicated 'Error Handling/Edge Cases' key pattern that requires identifying, simulating, and verifying error conditions and messages. It also mentions 'check console for errors' for UI changes."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:47.051Z"
+    }
+  ],
+  "promptLength": 5656
+}

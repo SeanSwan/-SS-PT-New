@@ -20,7 +20,7 @@ async function callMutator(systemPrompt, userPrompt) {
     throw new Error('OPENROUTER_API_KEY required.');
   }
 
-  const model = process.env.MUTATOR_MODEL || 'google/gemini-2.5-flash-preview';
+  const model = process.env.MUTATOR_MODEL || 'google/gemini-2.5-flash';
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

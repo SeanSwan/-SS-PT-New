@@ -1,0 +1,334 @@
+{
+  "generation": 1,
+  "avgScore": 11,
+  "maxPossible": 13,
+  "pct": 84.6,
+  "runs": [
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells in Section 7, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Oversaturated Accents', 'NO Inter Font', and 'NO 3-Column Card Layouts'."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 5, 'Interactive UI States', mandates the implementation of 'full interaction cycles' including Loading, Empty States, Error States, and Tactile Feedback on :active. While default, hover, and focus are not explicitly listed as mandatory for *all* components, the prompt strongly implies their consideration through 'Tactile Feedback' and general high-agency design principles."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' in Section 4, and reiterates 'Spring Physics: No linear easing' in Section 9.B."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 1, 'Deterministic Typography', defines specific rules for Display/Headlines and Body/Paragraphs, including font sizes, leading, tracking, and max-width. It also bans specific fonts (Inter) and mandates others (Geist, Outfit, etc.) for different UI contexts, establishing a clear hierarchy."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 2, 'Color Calibration', sets constraints like 'Max 1 Accent Color. Saturation < 80%', bans 'AI Purple/Blue', and specifies using 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. Section 9.A also defines a specific palette for Bento cards. This demonstrates a deliberate color system."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces consistent spacing through several directives: 'Standardize breakpoints', 'Contain page layouts using max-w-[1400px] mx-auto or max-w-7xl', 'Use a standard gap-2 for input blocks', and 'Pixel-Perfection: Use generous p-8 or p-10 padding inside cards'. It also bans 'complex flexbox percentage math' in favor of CSS Grid, which promotes consistent spacing."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention WCAG contrast ratios or focus-visible indicators. While it promotes high-quality design, these specific accessibility requirements are not covered."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:54:47.500Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans several AI visual tells, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Oversaturated Accents', 'NO Excessive Gradient Text', 'NO Custom Mouse Cursors', 'NO Inter Font', 'NO Oversized H1s', 'Serif Constraints' for dashboards, and 'NO 3-Column Card Layouts'. It also bans generic names, avatars, numbers, and startup names."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 5: Interactive UI States mandates 'Mandatory Generation' of 'full interaction cycles' including 'Loading', 'Empty States', 'Error States', and 'Tactile Feedback' on ':active'. Hover states are also implicitly covered by other rules like 'Magnetic Micro-physics' and 'Directional Hover Aware Button'. Focus states are not explicitly mentioned as a mandatory generation, but the prompt does mention 'Lens Blur Depth' to highlight a foreground action, which could imply focus. However, the prompt doesn't explicitly list all 7 states (default, hover, active, focus, loading, empty, error) as mandatory for *every* interactive element, but covers most of them."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing.' and 'Spring Physics: No linear easing. Use type: \"spring\", stiffness: 100, damping: 20 for a premium, weighty feel.' This directly addresses the criterion."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 1: Deterministic Typography specifies defaults for 'Display/Headlines' (`text-4xl md:text-6xl tracking-tighter leading-none`) and 'Body/Paragraphs' (`text-base text-gray-600 leading-relaxed max-w-[65ch]`). It also bans 'Inter' and 'Serif fonts' for dashboards, forcing specific premium sans-serif fonts like 'Geist', 'Outfit', 'Cabinet Grotesk', or 'Satoshi'. This enforces a clear hierarchy and specific font choices."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 2: Color Calibration mandates 'Max 1 Accent Color. Saturation < 80%.' and explicitly bans 'THE LILA BAN' (AI Purple/Blue). It requires 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. It also emphasizes 'COLOR CONSISTENCY' to stick to one palette. Section 9.A also specifies a palette: 'Background in #f9fafb. Cards are pure white (#ffffff) with a 1px border of border-slate-200/50'. This indicates a deliberate color system."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces consistent spacing through several rules: 'Standardize breakpoints (sm, md, lg, xl)', 'Contain page layouts using max-w-[1400px] mx-auto or max-w-7xl', 'ALWAYS use CSS Grid (grid grid-cols-1 md:grid-cols-3 gap-6) for reliable structures' instead of complex flexbox math. For forms, it specifies 'Use a standard gap-2 for input blocks'. For Bento cards, it specifies 'Use generous p-8 or p-10 padding inside cards'. The 'Pixel-Perfection' rule also emphasizes mathematically perfect padding and margins. This indicates a consistent spacing scale."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention WCAG contrast ratios or focus-visible indicators. While it emphasizes 'cleanliness' and 'premium' design, these specific accessibility requirements are not directly addressed."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:54:52.383Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User reports a bug in the application and asks for a fix.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans several AI visual tells, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Oversaturated Accents', 'NO Excessive Gradient Text', 'NO Custom Mouse Cursors', 'NO Inter Font', 'NO Oversized H1s', 'Serif Constraints' for dashboards, and 'NO 3-Column Card Layouts'. It also bans generic names, avatars, numbers, and startup names."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 5: Interactive UI States mandates 'full interaction cycles' including Loading, Empty States, Error States, and Tactile Feedback on ':active'. While 'default', 'hover', and 'focus' are not explicitly listed as mandatory *generation* states, the prompt implies their existence through `:active` and the general focus on interactive elements. The prompt also mentions `:hover` states in other sections (e.g., Magnetic Micro-physics, Mac OS Dock Magnification)."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' and 'Spring Physics: No linear easing. Use type: \"spring\", stiffness: 100, damping: 20 for a premium, weighty feel.' It also mentions 'Fluid CSS' with a specific cubic-bezier for transitions."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 1: Deterministic Typography defines specific styles for Display/Headlines (`text-4xl md:text-6xl tracking-tighter leading-none`) and Body/Paragraphs (`text-base text-gray-600 leading-relaxed max-w-[65ch]`). It also bans 'Inter' and specifies preferred fonts like 'Geist', 'Outfit', 'Cabinet Grotesk', or 'Satoshi', and bans serif fonts for dashboard UIs. This clearly enforces a typography hierarchy and specific font choices."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Rule 2: Color Calibration mandates 'Max 1 Accent Color. Saturation < 80%.' and explicitly bans 'AI Purple/Blue' (The Lila Ban). It also requires 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents' and 'COLOR CONSISTENCY' to stick to one palette. Section 9.A also specifies a palette: 'Background in #f9fafb. Cards are pure white (#ffffff) with a 1px border of border-slate-200/50'. This indicates a deliberate color system."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces consistent spacing through several directives: 'Standardize breakpoints (sm, md, lg, xl)', 'Contain page layouts using max-w-[1400px] mx-auto or max-w-7xl', 'ALWAYS use CSS Grid (grid grid-cols-1 md:grid-cols-3 gap-6) for reliable structures' instead of complex flex math, and 'Use a standard gap-2 for input blocks'. Section 9.A also specifies 'generous p-8 or p-10 padding inside cards'. This indicates a consistent spacing approach."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention WCAG contrast ratios or focus-visible indicators. While it emphasizes 'premium' and 'meticulously refined' design, these specific accessibility requirements are not directly addressed."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:54:57.067Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells in Section 7, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Oversaturated Accents', 'NO Inter Font', and 'NO 3-Column Card Layouts'."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 5, 'Interactive UI States', explicitly mandates the implementation of 'full interaction cycles' including Loading, Empty States, Error States, and Tactile Feedback (which covers active/hover states implicitly through examples like `-translate-y-[1px]` or `scale-[0.98]`). Default and focus states are not explicitly listed as mandatory but are strongly implied by the comprehensive nature of the rule."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "Section 4, 'Perpetual Micro-Interactions', explicitly states 'Apply premium Spring Physics (`type: \"spring\", stiffness: 100, damping: 20`) to all interactive elements—no linear easing.' This directly addresses the criterion."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 1, 'Deterministic Typography', defines clear rules for Display/Headlines and Body/Paragraphs, including specific font choices ('Geist', 'Outfit', 'Cabinet Grotesk', 'Satoshi') and bans ('Inter', Serif for dashboards). It also specifies `text-4xl md:text-6xl tracking-tighter leading-none` for headlines and `text-base text-gray-600 leading-relaxed max-w-[65ch]` for body text, establishing a clear hierarchy."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 2, 'Color Calibration', explicitly defines a color system with constraints like 'Max 1 Accent Color. Saturation < 80%', 'THE LILA BAN', and 'COLOR CONSISTENCY' using 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. Section 9.A also specifies a palette for Bento cards."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The skill prompt enforces consistent spacing. Section 2, 'Responsiveness & Spacing', mentions 'Standardize breakpoints', 'Contain page layouts using `max-w-[1400px] mx-auto` or `max-w-7xl`', and 'Use a standard `gap-2` for input blocks'. Section 9.A also specifies 'generous `p-8` or `p-10` padding inside cards'. Section 3, Rule 4, 'Materiality, Shadows, and \"Anti-Card Overuse\"' also mentions 'purely negative space' and 'tiny paddings' for high visual density, indicating a deliberate approach to spacing."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention WCAG contrast ratios or `focus-visible` indicators. While it promotes good UI/UX, these specific accessibility requirements are not covered."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:55:01.750Z"
+    },
+    {
+      "skillName": "design-taste-frontend",
+      "scenario": "User asks for help implementing a new feature in a React + Node.js application.",
+      "criteriaResults": [
+        {
+          "id": "no-ai-tells",
+          "description": "Skill prompt explicitly bans AI visual tells (pure black, neon glow, generic card layouts, Inter/Roboto fonts)",
+          "passed": true,
+          "score": 3,
+          "maxScore": 3,
+          "reasoning": "The skill prompt explicitly bans numerous AI visual tells in Section 7, including 'NO Neon/Outer Glows', 'NO Pure Black', 'NO Oversaturated Accents', 'NO Inter Font', and 'NO 3-Column Card Layouts'."
+        },
+        {
+          "id": "interaction-states",
+          "description": "Skill prompt requires all 7 interaction states (default, hover, active, focus, loading, empty, error)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 5, 'Interactive UI States', explicitly mandates the implementation of 'full interaction cycles' including Loading, Empty States, Error States, and Tactile Feedback (which covers active states). While 'default', 'hover', and 'focus' aren't explicitly listed as separate items, the overall emphasis on 'full interaction cycles' and 'tactile feedback' strongly implies their inclusion for a complete UI."
+        },
+        {
+          "id": "motion-quality",
+          "description": "Skill prompt specifies spring/ease curves, not linear. Avoids janky animations.",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly states 'Apply premium Spring Physics (type: \"spring\", stiffness: 100, damping: 20) to all interactive elements—no linear easing' in Section 4, and reiterates 'Spring Physics: No linear easing' in Section 9.B."
+        },
+        {
+          "id": "typography-hierarchy",
+          "description": "Skill prompt enforces clear typography hierarchy with specific font choices",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 1, 'Deterministic Typography', defines specific rules for Display/Headlines and Body/Paragraphs, including font sizes, tracking, leading, and max-width. It also bans specific fonts (Inter) and mandates others (Geist, Outfit, etc.) for different contexts, establishing a clear hierarchy."
+        },
+        {
+          "id": "color-system",
+          "description": "Skill prompt uses a deliberate color system, not arbitrary hex values",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "Section 3, Rule 2, 'Color Calibration', sets constraints like 'Max 1 Accent Color. Saturation < 80%', bans 'AI Purple/Blue', and specifies using 'absolute neutral bases (Zinc/Slate) with high-contrast, singular accents'. Section 9.A also defines a specific palette for Bento cards. This demonstrates a deliberate color system."
+        },
+        {
+          "id": "spacing-consistency",
+          "description": "Skill prompt enforces consistent spacing scale (not random padding/margin values)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt enforces consistent spacing through several directives: 'Standardize breakpoints', 'Contain page layouts using max-w-[1400px] mx-auto or max-w-7xl', 'Use a standard gap-2 for input blocks', and 'Pixel-Perfection: Use generous p-8 or p-10 padding inside cards' in Section 9.A. Section 7 also mentions 'Align & Space Perfectly: Ensure padding and margins are mathematically perfect'."
+        },
+        {
+          "id": "accessibility",
+          "description": "Skill prompt requires WCAG contrast ratios and focus-visible indicators",
+          "passed": false,
+          "score": 0,
+          "maxScore": 2,
+          "reasoning": "The skill prompt does not explicitly mention WCAG contrast ratios, ARIA attributes, keyboard navigation, or focus-visible indicators. While it aims for 'premium' and 'clean' design, these specific accessibility requirements are not covered."
+        }
+      ],
+      "totalScore": 11,
+      "maxScore": 13,
+      "timestamp": "2026-04-03T19:55:06.178Z"
+    }
+  ],
+  "promptLength": 21361
+}

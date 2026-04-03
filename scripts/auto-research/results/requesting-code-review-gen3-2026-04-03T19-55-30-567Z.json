@@ -1,0 +1,294 @@
+{
+  "generation": 3,
+  "avgScore": 10,
+  "maxPossible": 10,
+  "pct": 100,
+  "runs": [
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "A PR adds a new workout generation feature with 200 lines of changes across 5 files.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly uses `BASE_SHA` and `HEAD_SHA` to define the range of commits for review, which implies reviewing the diff between these two points."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Security vulnerabilities: XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure' as checks to be requested."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Performance: N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers' as checks to be requested."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Test Coverage: Verify new/changed code has adequate unit, integration, and end-to-end tests' as a check to be requested."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Breaking Changes: Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems' as a check to be requested."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Project Conventions: Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards' as a check to be requested."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:21.835Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "Developer has made changes to 3 files: a new React hook, a styled-component, and a route handler.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly instructs the use of `BASE_SHA` and `HEAD_SHA` to define the range of commits for review, which inherently implies reviewing the diff between these two points."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Security vulnerabilities: XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure' as a check to be explicitly requested."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Performance: N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers' as a check to be explicitly requested."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Test Coverage: Verify new/changed code has adequate unit, integration, and end-to-end tests' as a check to be explicitly requested."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Breaking Changes: Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems' as a check to be explicitly requested."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Project Conventions: Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards' as a check to be explicitly requested."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:23.850Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "A PR adds a new workout generation feature with 200 lines of changes across 5 files.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly uses `BASE_SHA` and `HEAD_SHA` to define the range of commits for review, which implies reviewing the diff between these two points."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Security vulnerabilities: XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure' as checks to be explicitly requested."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Performance: N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers' as checks to be explicitly requested."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Test Coverage: Verify new/changed code has adequate unit, integration, and end-to-end tests' as a check to be explicitly requested."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Breaking Changes: Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems' as a check to be explicitly requested."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Project Conventions: Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards' as a check to be explicitly requested."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:26.030Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "Developer has made changes to 3 files: a new React hook, a styled-component, and a route handler.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly instructs the use of `BASE_SHA` and `HEAD_SHA` to define the range of commits for review, which inherently means reviewing the diff between these two points."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Security vulnerabilities: XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure' as a check to be explicitly requested."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Performance: N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers' as a check to be explicitly requested."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Test Coverage: Verify new/changed code has adequate unit, integration, and end-to-end tests' as a check to be explicitly requested."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Breaking Changes: Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems' as a check to be explicitly requested."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Project Conventions: Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards' as a check to be explicitly requested."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:28.269Z"
+    },
+    {
+      "skillName": "requesting-code-review",
+      "scenario": "Developer has made changes to 3 files: a new React hook, a styled-component, and a route handler.",
+      "criteriaResults": [
+        {
+          "id": "checks-diff",
+          "description": "Skill prompt requires reviewing the actual diff/changes, not just file contents",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly instructs the use of `BASE_SHA` and `HEAD_SHA` to define the range of commits for review, which inherently means reviewing the diff between these two points."
+        },
+        {
+          "id": "security-scan",
+          "description": "Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Security vulnerabilities: XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure' as a check to be explicitly requested."
+        },
+        {
+          "id": "perf-check",
+          "description": "Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Performance: N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers' as a check to be explicitly requested."
+        },
+        {
+          "id": "test-coverage",
+          "description": "Skill prompt requires verifying test coverage for changed code",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Test Coverage: Verify new/changed code has adequate unit, integration, and end-to-end tests' as a check to be explicitly requested."
+        },
+        {
+          "id": "breaking-changes",
+          "description": "Skill prompt requires checking for breaking API or interface changes",
+          "passed": true,
+          "score": 2,
+          "maxScore": 2,
+          "reasoning": "The prompt explicitly lists 'Breaking Changes: Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems' as a check to be explicitly requested."
+        },
+        {
+          "id": "style-consistency",
+          "description": "Skill prompt checks that new code follows project conventions",
+          "passed": true,
+          "score": 1,
+          "maxScore": 1,
+          "reasoning": "The prompt explicitly lists 'Project Conventions: Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards' as a check to be explicitly requested."
+        }
+      ],
+      "totalScore": 10,
+      "maxScore": 10,
+      "timestamp": "2026-04-03T19:55:30.567Z"
+    }
+  ],
+  "promptLength": 4182
+}
