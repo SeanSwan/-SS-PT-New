@@ -26,8 +26,9 @@ const userRequestsPerHour = new Map();
 /** @type {number[]} global request timestamps */
 let globalRequests = [];
 
-/** @type {Set<number>} userIds with an in-flight request */
-const concurrentUsers = new Set();
+/** @type {Map<number, number>} userId → timestamp when lock was acquired */
+const concurrentUsers = new Map();
+const CONCURRENT_LOCK_TIMEOUT_MS = 35_000; // Auto-release stuck locks after 35s (Render proxy timeout is 30s)
 
 // Periodic cleanup of stale entries
 const _cleanupTimer = setInterval(() => {
@@ -66,13 +67,21 @@ if (_cleanupTimer.unref) _cleanupTimer.unref();
 export function checkRateLimit(userId) {
   const now = Date.now();
 
-  // 1. Concurrent limit (1 per user)
+  // 1. Concurrent limit (1 per user) with stuck-lock auto-release
   if (concurrentUsers.has(userId)) {
-    return {
-      allowed: false,
-      code: 'AI_CONCURRENT_LIMIT',
-      message: 'An AI generation request is already in progress. Please wait for it to complete.',
-    };
+    const lockTime = concurrentUsers.get(userId);
+    if (now - lockTime > CONCURRENT_LOCK_TIMEOUT_MS) {
+      // Lock is stuck — auto-release and allow this request
+      logger.warn('[Rate Limiter] Auto-releasing stuck concurrent lock for user %d (held %ds)',
+        userId, Math.round((now - lockTime) / 1000));
+      concurrentUsers.delete(userId);
+    } else {
+      return {
+        allowed: false,
+        code: 'AI_CONCURRENT_LIMIT',
+        message: 'An AI generation request is already in progress. Please wait for it to complete.',
+      };
+    }
   }
 
   // 2. Per-user per-minute
@@ -112,7 +121,7 @@ export function checkRateLimit(userId) {
   globalRequests.push(now);
   userRequestsPerMinute.set(userId, minuteTimestamps);
   userRequestsPerHour.set(userId, hourTimestamps);
-  concurrentUsers.add(userId);
+  concurrentUsers.set(userId, now);
 
   return { allowed: true, code: null, message: null };
 }
