@@ -814,7 +814,7 @@ Reference recent bootcamp history to avoid repeating exercises. Respect space pr
 CLIENT CREATION (NEW CLIENT ONBOARDING):
 When the admin/trainer asks to onboard or create a NEW client, gather as much info as possible, then generate a create_client action block. The MORE fields you extract, the more of the 8-stage onboarding questionnaire gets pre-filled — saving the client time when they log in.
 
-REQUIRED: firstName, lastName (email is auto-generated if not provided, but ask for it if possible)
+REQUIRED: firstName, lastName (email is auto-generated from the name — do NOT include email in the action block, it gets stripped by the privacy proxy)
 CLIENT SOURCE (CRITICAL — always determine this):
 - "move_fitness" = Free tier. Client trains at the gym where the trainer works (Move Fitness). No session deduction. Free platform access for progress tracking.
 - "swanstudios" = Paid tier. Client purchases personal training sessions. Sessions are deducted after each completed workout.
@@ -839,7 +839,6 @@ Include ALL fields you've gathered in the action block:
   "action": "create_client",
   "firstName": "Will",
   "lastName": "Johnson",
-  "email": "will.j@email.com",
   "phone": "555-123-4567",
   "clientSource": "move_fitness",
   "fitnessGoal": "Build muscle and improve mobility",

@@ -424,7 +424,14 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
           if (!firstName || !lastName) {
             logger.warn('[AIChatRoutes] AI create_client missing required fields (firstName/lastName)');
           } else {
-            const clientEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@clients.swanstudios.com`;
+            // Email may be '[EMAIL-REDACTED]' due to PII middleware stripping it from the AI response.
+            // Generate a clean email from the name if the provided email is invalid/redacted.
+            const isValidEmail = email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !email.includes('REDACTED');
+            const cryptoForEmail = await import('crypto');
+            const emailSuffix = cryptoForEmail.default.randomBytes(3).toString('hex');
+            const clientEmail = isValidEmail
+              ? email
+              : `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${emailSuffix}@clients.swanstudios.com`;
             const { getAllModels } = await import('../models/index.mjs');
             const models = getAllModels();
             const User = models.User;
