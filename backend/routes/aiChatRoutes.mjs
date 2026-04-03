@@ -401,23 +401,30 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
     }
 
-    // Check if the AI response contains a create_client action block
+    // Check if the AI response contains a create_client / ONBOARD_CLIENT action block
     let clientCreateResult = null;
-    if (aiResult.content && req.user.role === 'admin') {
+    if (aiResult.content && (req.user.role === 'admin' || req.user.role === 'trainer')) {
       try {
         const createMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"(?:create_client|ONBOARD_CLIENT)"[\s\S]*?\})\s*```/);
         if (createMatch) {
           const rawPayload = JSON.parse(createMatch[1]);
-          // Support both flat format (create_client) and nested format (ONBOARD_CLIENT with data key)
           const payload = rawPayload.data || rawPayload;
-          const { firstName, lastName, email, phone, clientSource, fitnessGoal, healthConcerns, dateOfBirth, gender, weight, height, trainingExperience } = payload;
+          const {
+            firstName, lastName, email, phone, clientSource,
+            fitnessGoal, healthConcerns, dateOfBirth, gender,
+            weight, height, trainingExperience, trainerNotes,
+            // Questionnaire fields the AI may extract
+            preferredName, emergencyContactName, emergencyContactPhone,
+            occupation, sleepHours, stressLevel, activityLevel,
+            mealsPerDay, waterIntake, dietaryPreferences, foodAllergies,
+            workoutsPerWeek, workoutTypes, favoriteExercises, dislikedExercises,
+            movementLimitations, medications, doctorClearance,
+          } = payload;
 
           if (!firstName || !lastName) {
             logger.warn('[AIChatRoutes] AI create_client missing required fields (firstName/lastName)');
           } else {
-            // Generate placeholder email if not provided (ONBOARD_CLIENT format may omit it)
             const clientEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@clients.swanstudios.com`;
-            // Import User model from cache
             const { getAllModels } = await import('../models/index.mjs');
             const models = getAllModels();
             const User = models.User;
@@ -428,12 +435,23 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
               logger.info('[AIChatRoutes] Client with email %s already exists (id=%d)', clientEmail, existing.id);
               clientCreateResult = { success: false, reason: 'email_exists', existingId: existing.id };
             } else {
-              // Generate username and password
-              const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/[^a-z.]/g, '');
-              const crypto = await import('crypto');
-              const tempPassword = crypto.default.randomBytes(12).toString('base64url');
+              // Generate unique username (handle collisions)
+              let username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/[^a-z.]/g, '');
+              const existingUsername = await User.findOne({ where: { username } });
+              if (existingUsername) {
+                const crypto = await import('crypto');
+                username += '.' + crypto.default.randomBytes(3).toString('hex');
+              }
+
+              // Generate temp password
+              const cryptoMod = await import('crypto');
+              const tempPassword = cryptoMod.default.randomBytes(12).toString('base64url');
               const bcrypt = await import('bcryptjs');
               const hashedPassword = await bcrypt.default.hash(tempPassword, 12);
+
+              // Generate claim code (Crystalline Link Protocol)
+              const { generateClaimToken } = await import('../services/claimTokenService.mjs');
+              const claimToken = generateClaimToken();
 
               const newClient = await User.create({
                 firstName,
@@ -444,6 +462,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
                 phone: phone || null,
                 role: 'client',
                 isActive: true,
+                accountStatus: 'invited',
                 clientSource: clientSource || 'swanstudios',
                 fitnessGoal: fitnessGoal || null,
                 healthConcerns: healthConcerns || null,
@@ -453,17 +472,133 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
                 height: height ? parseFloat(height) : null,
                 trainingExperience: trainingExperience || null,
                 forcePasswordChange: true,
+                claimTokenHash: claimToken.hash,
+                claimTokenExpires: claimToken.expires,
+                availableSessions: (clientSource === 'move_fitness') ? 0 : (payload.availableSessions || 0),
               });
 
-              // Create ClientProgress record if table exists
+              // ── Pre-fill onboarding questionnaire with AI-extracted data ──
+              let sectionsPreFilled = 0;
+              const totalSections = 8;
+              const responsesJson = {};
+
+              // Stage 1: Basic Info
+              if (firstName) responsesJson.firstName = firstName;
+              if (lastName) responsesJson.lastName = lastName;
+              if (preferredName) responsesJson.preferredName = preferredName;
+              if (email) responsesJson.email = clientEmail;
+              if (phone) responsesJson.phone = phone;
+              if (dateOfBirth) responsesJson.dateOfBirth = dateOfBirth;
+              if (gender) responsesJson.gender = gender;
+              if (emergencyContactName) responsesJson.emergencyContactName = emergencyContactName;
+              if (emergencyContactPhone) responsesJson.emergencyContactPhone = emergencyContactPhone;
+              // Stage 1 counts as filled if we have name + at least one more field
+              if (firstName && lastName && (dateOfBirth || gender || phone || email)) sectionsPreFilled++;
+
+              // Stage 2: Goals
+              if (fitnessGoal) {
+                responsesJson.primaryGoal = fitnessGoal;
+                sectionsPreFilled++;
+              }
+
+              // Stage 3: Health
+              if (healthConcerns || medications || doctorClearance) {
+                if (healthConcerns) responsesJson.injuries = healthConcerns;
+                if (medications) responsesJson.medications = medications;
+                if (doctorClearance) responsesJson.doctorClearance = doctorClearance;
+                sectionsPreFilled++;
+              }
+
+              // Stage 4: Nutrition
+              if (mealsPerDay || waterIntake || dietaryPreferences || foodAllergies) {
+                if (mealsPerDay) responsesJson.mealsPerDay = mealsPerDay;
+                if (waterIntake) responsesJson.waterIntake = waterIntake;
+                if (dietaryPreferences) responsesJson.dietaryPreferences = dietaryPreferences;
+                if (foodAllergies) responsesJson.foodAllergies = foodAllergies;
+                sectionsPreFilled++;
+              }
+
+              // Stage 5: Lifestyle
+              if (occupation || sleepHours || stressLevel || activityLevel) {
+                if (occupation) responsesJson.occupation = occupation;
+                if (sleepHours) responsesJson.sleepHours = sleepHours;
+                if (stressLevel) responsesJson.stressLevel = stressLevel;
+                if (activityLevel) responsesJson.activityLevel = activityLevel;
+                sectionsPreFilled++;
+              }
+
+              // Stage 6: Training
+              if (trainingExperience || workoutsPerWeek || workoutTypes || favoriteExercises || movementLimitations) {
+                if (trainingExperience) responsesJson.trainingExperience = trainingExperience;
+                if (workoutsPerWeek) responsesJson.workoutsPerWeek = workoutsPerWeek;
+                if (workoutTypes) responsesJson.workoutTypes = workoutTypes;
+                if (favoriteExercises) responsesJson.favoriteExercises = favoriteExercises;
+                if (dislikedExercises) responsesJson.dislikedExercises = dislikedExercises;
+                if (movementLimitations) responsesJson.movementLimitations = movementLimitations;
+                sectionsPreFilled++;
+              }
+
+              // Stage 7: AI Consent — not pre-filled (client must consent personally)
+              // Stage 8: Summary — not pre-filled (client provides their own notes)
+
+              const completionPercentage = Math.round((sectionsPreFilled / totalSections) * 100);
+
+              // Create the questionnaire record
+              if (models.ClientOnboardingQuestionnaire) {
+                try {
+                  await models.ClientOnboardingQuestionnaire.create({
+                    userId: newClient.id,
+                    createdBy: req.user.id,
+                    status: 'in_progress',
+                    responsesJson,
+                    primaryGoal: fitnessGoal || null,
+                    trainingTier: trainingExperience || null,
+                    healthRisk: healthConcerns ? 'medium' : 'low',
+                  });
+                  logger.info('[AIChatRoutes] Pre-filled questionnaire for client %d (%d/%d sections)',
+                    newClient.id, sectionsPreFilled, totalSections);
+                } catch (qErr) {
+                  logger.warn('[AIChatRoutes] Questionnaire creation failed (non-fatal):', qErr.message);
+                }
+              }
+
+              // Create ClientProgress record
               if (models.ClientProgress) {
                 try {
                   await models.ClientProgress.create({ userId: newClient.id });
                 } catch { /* non-fatal */ }
               }
 
-              logger.info('[AIChatRoutes] AI-created new client: %s %s (id=%d) via admin %d',
-                firstName, lastName, newClient.id, req.user.id);
+              // Assign trainer (admin assigns to self by default)
+              if (models.ClientTrainerAssignment) {
+                try {
+                  await models.ClientTrainerAssignment.create({
+                    clientId: newClient.id,
+                    trainerId: req.user.id,
+                    status: 'active',
+                    assignedBy: req.user.id,
+                    assignedAt: new Date(),
+                  });
+                } catch { /* non-fatal — may fail if table missing or constraint */ }
+              }
+
+              // Store trainer NASM notes
+              if (trainerNotes) {
+                try {
+                  await sequelize.query(
+                    `INSERT INTO client_notes ("userId", "trainerId", "noteType", "content", "createdAt", "updatedAt")
+                     VALUES (:userId, :trainerId, 'nasm_assessment', :content, NOW(), NOW())`,
+                    { replacements: { userId: newClient.id, trainerId: req.user.id, content: trainerNotes } }
+                  );
+                } catch { /* non-fatal — table may not exist */ }
+              }
+
+              const claimUrl = `https://sswanstudios.com/claim/${claimToken.plainToken}`;
+              const isMoveFitness = (clientSource === 'move_fitness');
+
+              logger.info('[AIChatRoutes] AI-created client: %s %s (id=%d, source=%s, pre-filled=%d/%d) via %s %d',
+                firstName, lastName, newClient.id, clientSource || 'swanstudios',
+                sectionsPreFilled, totalSections, req.user.role, req.user.id);
 
               clientCreateResult = {
                 success: true,
@@ -472,6 +607,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
                 lastName,
                 username,
                 temporaryPassword: tempPassword,
+                claimCode: claimToken.plainToken,
+                claimUrl,
+                claimExpires: claimToken.expires,
+                isMoveFitness,
+                sectionsPreFilled,
+                totalSections,
+                completionPercentage,
               };
             }
           }
