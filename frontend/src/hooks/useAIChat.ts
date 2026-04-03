@@ -311,15 +311,25 @@ export function useAIChat() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to send message');
 
+      // Attach server-side action results to the assistant message metadata
+      const enrichedAssistantMsg = { ...data.assistantMessage };
+      if (data.clientCreateResult || data.workoutImportResults) {
+        enrichedAssistantMsg.metadata = {
+          ...enrichedAssistantMsg.metadata,
+          clientCreateResult: data.clientCreateResult || undefined,
+          workoutImportResults: data.workoutImportResults || undefined,
+        };
+      }
+
       setActiveConversation(prev => {
         if (!prev) return prev;
         const messagesWithoutOptimistic = prev.messages.slice(0, -1);
         return {
           ...prev,
-          messages: [...messagesWithoutOptimistic, data.userMessage, data.assistantMessage],
+          messages: [...messagesWithoutOptimistic, data.userMessage, enrichedAssistantMsg],
           messageCount: data.messageCount,
           title: prev.title || data.userMessage.content.slice(0, 47),
-          lastMessageAt: data.assistantMessage.timestamp,
+          lastMessageAt: enrichedAssistantMsg.timestamp,
         };
       });
 
@@ -330,7 +340,7 @@ export function useAIChat() {
         }
       }
 
-      return data.assistantMessage;
+      return enrichedAssistantMsg;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return null;
       const msg = err instanceof Error ? err.message : 'Failed to send message';

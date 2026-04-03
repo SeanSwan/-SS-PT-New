@@ -61,6 +61,32 @@ export interface CoachMessageData {
       outputTokens: number | null;
       totalTokens: number | null;
     };
+    clientCreateResult?: {
+      success: boolean;
+      clientId?: number;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
+      temporaryPassword?: string;
+      claimCode?: string;
+      claimUrl?: string;
+      isMoveFitness?: boolean;
+      sectionsPreFilled?: number;
+      totalSections?: number;
+      completionPercentage?: number;
+      reason?: string;
+      existingId?: number;
+    };
+    workoutImportResults?: Array<{
+      success: boolean;
+      date?: string;
+      sessionId?: string;
+      exerciseCount?: number;
+      totalSets?: number;
+      totalReps?: number;
+      totalWeight?: number;
+      reason?: string;
+    }>;
   };
   frontendActions?: FrontendAction[];
 }

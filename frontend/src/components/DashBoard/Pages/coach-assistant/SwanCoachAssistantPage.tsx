@@ -215,15 +215,17 @@ const SwanCoachAssistantPage: React.FC = () => {
   }, [coach, chat]);
 
   // ── Auto-read new AI messages when TTS enabled ──
+  // Skip welcome message and don't read during voice recording
   const lastMsgRef = React.useRef<string>('');
   React.useEffect(() => {
-    if (!tts.enabled || !coach.messages.length) return;
+    if (!tts.enabled || !coach.messages.length || voiceOverlayOpen) return;
     const lastMsg = coach.messages[coach.messages.length - 1];
-    if (lastMsg.role === 'assistant' && lastMsg.id !== lastMsgRef.current) {
+    // Skip welcome message and only read real AI responses
+    if (lastMsg.role === 'assistant' && lastMsg.id !== lastMsgRef.current && lastMsg.id !== 'welcome') {
       lastMsgRef.current = lastMsg.id;
       tts.speak(lastMsg.content);
     }
-  }, [coach.messages, tts]);
+  }, [coach.messages, tts, voiceOverlayOpen]);
 
   // ── Voice overlay handlers ──
   const handleOpenVoiceOverlay = useCallback(() => setVoiceOverlayOpen(true), []);
