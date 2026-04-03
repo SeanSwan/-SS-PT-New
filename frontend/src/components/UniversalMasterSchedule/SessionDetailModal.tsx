@@ -19,6 +19,7 @@ import {
   Caption,
   FlexBox,
 } from './ui';
+import { useNavigate } from 'react-router-dom';
 import GlowButton from '../ui/buttons/GlowButton';
 import { logger } from '@/utils/logger';
 
@@ -87,6 +88,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onApplyPayment,
   seriesCount
 }) => {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState('');
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
@@ -751,6 +753,34 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             >
               Mark Complete
             </GlowButton>
+          )}
+          {/* Schedule → Workout Logger entry points (all roles) */}
+          {session?.userId && session?.status !== 'cancelled' && session?.status !== 'blocked' && (
+            <>
+              {(mode === 'admin' || mode === 'trainer') && session?.status !== 'completed' && (
+                <GlowButton
+                  variant="neonBlue"
+                  size="medium"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/dashboard/${mode}/client-management?clientId=${session.userId}&tab=training`);
+                  }}
+                >
+                  Start Logging
+                </GlowButton>
+              )}
+              <GlowButton
+                variant="cosmic"
+                size="medium"
+                onClick={() => {
+                  onClose();
+                  const dashPath = mode === 'client' ? 'client' : mode;
+                  navigate(`/dashboard/${dashPath}/client-management?clientId=${session.userId}&tab=training`);
+                }}
+              >
+                View Workouts
+              </GlowButton>
+            </>
           )}
         </>
       )}

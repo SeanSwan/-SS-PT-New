@@ -85,6 +85,10 @@ const WorkoutCopilotPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel')
 );
 
+const WorkoutHistoryTimeline = React.lazy(
+  () => import('./WorkoutHistoryTimeline')
+);
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Configuration
 // ─────────────────────────────────────────────────────────────
@@ -368,11 +372,9 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
         );
       case 'history':
         return (
-          <PlaceholderCard>
-            <Archive size={32} color="var(--text-muted, #64748b)" />
-            <h4>Vault History</h4>
-            <p>Session history coming soon</p>
-          </PlaceholderCard>
+          <Suspense fallback={<PlaceholderCard><p>Loading workout history...</p></PlaceholderCard>}>
+            <WorkoutHistoryTimeline clientId={clientId} clientName={clientName} />
+          </Suspense>
         );
       default:
         return null;
