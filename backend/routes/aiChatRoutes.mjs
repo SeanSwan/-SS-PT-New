@@ -429,9 +429,12 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
             const isValidEmail = email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !email.includes('REDACTED');
             const cryptoForEmail = await import('crypto');
             const emailSuffix = cryptoForEmail.default.randomBytes(3).toString('hex');
+            // Sanitize name parts for email: strip non-alpha, collapse dots, trim dots
+            const emailFirst = firstName.toLowerCase().replace(/[^a-z]/g, '') || 'client';
+            const emailLast = lastName.toLowerCase().replace(/[^a-z]/g, '') || 'user';
             const clientEmail = isValidEmail
               ? email
-              : `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${emailSuffix}@clients.swanstudios.com`;
+              : `${emailFirst}.${emailLast}.${emailSuffix}@clients.swanstudios.com`;
             const { getAllModels } = await import('../models/index.mjs');
             const models = getAllModels();
             const User = models.User;
@@ -443,7 +446,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
               clientCreateResult = { success: false, reason: 'email_exists', existingId: existing.id };
             } else {
               // Generate unique username (handle collisions)
-              let username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/[^a-z.]/g, '');
+              let username = `${firstName.toLowerCase().replace(/[^a-z]/g, '')}.${lastName.toLowerCase().replace(/[^a-z]/g, '')}`.replace(/\.{2,}/g, '.').replace(/^\.|\.$/, '');
               const existingUsername = await User.findOne({ where: { username } });
               if (existingUsername) {
                 const crypto = await import('crypto');
