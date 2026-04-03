@@ -484,9 +484,6 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 🍁 ADMIN-ONLY: Canada Immigration
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
 
-      // 👥 MY CLIENTS — Admin as trainer: see clients assigned to you
-      { path: '/my-clients', component: MyClientsView, title: 'My Clients', description: 'Clients assigned to you as trainer' },
-
       // 💪 WORKOUT LOGGING (admin can log workouts too)
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
 

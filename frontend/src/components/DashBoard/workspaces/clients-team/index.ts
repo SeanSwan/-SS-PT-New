@@ -9,4 +9,7 @@
 export { default as MasterDetailLayout } from './MasterDetailLayout';
 export { default as ClientMiniCard } from './ClientMiniCard';
 export { default as ClientDetailView } from './ClientDetailView';
+export { default as ClientSelectorDropdown } from './ClientSelectorDropdown';
+export { default as ClientHeaderCard } from './ClientHeaderCard';
 export type { MiniCardClient } from './ClientMiniCard';
+export type { ClientOption } from './ClientSelectorDropdown';
