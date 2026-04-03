@@ -64,10 +64,17 @@ export const ContextChipBtn = styled.button<{ $active?: boolean }>`
                 0 0 8px rgba(139, 92, 246, 0.2);
   ` : ''}
 
+  @media (max-width: 430px) {
+    font-size: 11px;
+    padding: 5px 8px;
+    gap: 3px;
+    min-height: 36px;
+  }
+
   @media (max-width: 375px) {
-    font-size: 12px;
-    padding: 6px 10px;
-    gap: 4px;
+    font-size: 10px;
+    padding: 4px 7px;
+    gap: 2px;
   }
 
   @media (min-width: 768px) {
@@ -114,18 +121,22 @@ export const StyleBar = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 16px;
+  padding: 6px 12px;
   border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
   flex-shrink: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+  justify-content: center;
+
+  @media (max-width: 430px) {
+    padding: 4px 8px;
+    gap: 2px;
+  }
 
   @media (min-width: 1024px) {
     padding: 6px 24px;
-    max-width: 900px;
-    margin: 0 auto;
     width: 100%;
   }
 `;
@@ -133,10 +144,10 @@ export const StyleBar = styled.div`
 export const StyleBtn = styled.button<{ $active?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 4px;
+  padding: 6px 10px;
   border-radius: 16px;
-  min-height: 44px;
+  min-height: 36px;
   border: 1px solid ${({ $active }) =>
     $active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
   background: ${({ $active }) =>
@@ -144,7 +155,14 @@ export const StyleBtn = styled.button<{ $active?: boolean }>`
   color: ${({ $active }) =>
     $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-muted, rgba(224, 236, 244, 0.45))'};
   font-family: 'Sora', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
+
+  @media (max-width: 430px) {
+    font-size: 11px;
+    padding: 5px 8px;
+    min-height: 32px;
+    gap: 3px;
+  }
 
   @media (min-width: 768px) {
     font-size: 13px;
