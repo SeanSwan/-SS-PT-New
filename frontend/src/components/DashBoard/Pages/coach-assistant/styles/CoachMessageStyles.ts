@@ -36,8 +36,7 @@ export const MessagesArea = styled.div`
 
   @media (min-width: 1024px) {
     padding: 20px 24px;
-    max-width: 900px;
-    margin: 0 auto;
+    max-width: 100%;
     width: 100%;
   }
 

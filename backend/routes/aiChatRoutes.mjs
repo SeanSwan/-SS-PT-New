@@ -401,6 +401,87 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
     }
 
+    // Check if the AI response contains a create_client action block
+    let clientCreateResult = null;
+    if (aiResult.content && req.user.role === 'admin') {
+      try {
+        const createMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"(?:create_client|ONBOARD_CLIENT)"[\s\S]*?\})\s*```/);
+        if (createMatch) {
+          const rawPayload = JSON.parse(createMatch[1]);
+          // Support both flat format (create_client) and nested format (ONBOARD_CLIENT with data key)
+          const payload = rawPayload.data || rawPayload;
+          const { firstName, lastName, email, phone, clientSource, fitnessGoal, healthConcerns, dateOfBirth, gender, weight, height, trainingExperience } = payload;
+
+          if (!firstName || !lastName) {
+            logger.warn('[AIChatRoutes] AI create_client missing required fields (firstName/lastName)');
+          } else {
+            // Generate placeholder email if not provided (ONBOARD_CLIENT format may omit it)
+            const clientEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@clients.swanstudios.com`;
+            // Import User model from cache
+            const { getAllModels } = await import('../models/index.mjs');
+            const models = getAllModels();
+            const User = models.User;
+
+            // Check if email already exists
+            const existing = await User.findOne({ where: { email: clientEmail.toLowerCase() } });
+            if (existing) {
+              logger.info('[AIChatRoutes] Client with email %s already exists (id=%d)', clientEmail, existing.id);
+              clientCreateResult = { success: false, reason: 'email_exists', existingId: existing.id };
+            } else {
+              // Generate username and password
+              const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/[^a-z.]/g, '');
+              const crypto = await import('crypto');
+              const tempPassword = crypto.default.randomBytes(12).toString('base64url');
+              const bcrypt = await import('bcryptjs');
+              const hashedPassword = await bcrypt.default.hash(tempPassword, 12);
+
+              const newClient = await User.create({
+                firstName,
+                lastName,
+                email: clientEmail.toLowerCase(),
+                username,
+                password: hashedPassword,
+                phone: phone || null,
+                role: 'client',
+                isActive: true,
+                clientSource: clientSource || 'swanstudios',
+                fitnessGoal: fitnessGoal || null,
+                healthConcerns: healthConcerns || null,
+                dateOfBirth: dateOfBirth || null,
+                gender: gender || null,
+                weight: weight ? parseFloat(weight) : null,
+                height: height ? parseFloat(height) : null,
+                trainingExperience: trainingExperience || null,
+                forcePasswordChange: true,
+              });
+
+              // Create ClientProgress record if table exists
+              if (models.ClientProgress) {
+                try {
+                  await models.ClientProgress.create({ userId: newClient.id });
+                } catch { /* non-fatal */ }
+              }
+
+              logger.info('[AIChatRoutes] AI-created new client: %s %s (id=%d) via admin %d',
+                firstName, lastName, newClient.id, req.user.id);
+
+              clientCreateResult = {
+                success: true,
+                clientId: newClient.id,
+                firstName,
+                lastName,
+                username,
+                temporaryPassword: tempPassword,
+              };
+            }
+          }
+        }
+      } catch (createErr) {
+        logger.warn('[AIChatRoutes] Failed to process AI create_client action:', createErr.message);
+        clientCreateResult = { success: false, reason: createErr.message };
+      }
+    }
+
     // Extract FRONTEND_DISPATCH action blocks (AI_ADD_EXERCISE, AI_LOAD_TEMPLATE, etc.)
     // These are passed back to the frontend which dispatches them as CustomEvents
     let frontendActions = [];
@@ -438,6 +519,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       conversationId: conversation.id,
       messageCount: updatedMessages.length,
       dataUpdateResult,
+      clientCreateResult: clientCreateResult || undefined,
       frontendActions: frontendActions.length > 0 ? frontendActions : undefined,
     });
   } catch (err) {
