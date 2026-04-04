@@ -3,48 +3,43 @@
  * ║  SUB-COMPONENT: NASMExerciseRolodex                          ║
  * ║  PARENT: WorkoutLogger                                       ║
  * ║  PURPOSE: Virtualized exercise search + filter dropdown       ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-20        ║
+ * ║           with Teach Me exercise preview panel                ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-04-03        ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * WIREFRAME:
- * ┌────────────────────────────────────────────┐
- * │ [🔍 Search exercises...              ]     │
- * │ [All] [Chest] [Back] [Arms] [Legs] ...     │
- * │ ┌──────────────────────────────────────┐   │
- * │ │ ▸ Barbell Bench Press               │   │ ← react-window
- * │ │   compound · Chest, Triceps          │   │   virtualized
- * │ │ ▸ Dumbbell Fly                      │   │   (44px rows)
- * │ │   isolation · Chest                  │   │
- * │ │ ▸ Cable Crossover                   │   │
- * │ │   ...                               │   │
- * │ └──────────────────────────────────────┘   │
- * │ 59 exercises · 12 matching                 │
- * └────────────────────────────────────────────┘
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ [🔍 Search exercises...                              ]     │
+ * │ [All] [Chest] [Back] [Arms] [Legs] ...                     │
+ * │ [▸ More Filters]                                           │
+ * │ ┌──────────────────────┬──────────────────────────────┐   │
+ * │ │ ▸ Barbell Bench Press │ HOW TO PERFORM              │   │
+ * │ │   compound · Chest    │ Muscles: Chest, Triceps     │   │
+ * │ │ ▸ Dumbbell Fly       │ Equipment: Barbell, Bench   │   │
+ * │ │ ▸ Cable Crossover    │ Instructions: ...            │   │
+ * │ └──────────────────────┴──────────────────────────────┘   │
+ * │ 59 exercises · 12 matching                                 │
+ * └────────────────────────────────────────────────────────────┘
  *
  * Props: { onSelectExercise, isOpen, onClose, sectionContext? }
  */
 
 import React, { memo, useCallback, useState, useRef, useEffect, useMemo } from 'react';
-import styled, { keyframes, type CSSProperties } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { List, useListRef } from 'react-window';
-import { Search, Loader } from 'lucide-react';
+import { Search, Loader, BookOpen, Plus } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import ExerciseFilterChips from './ExerciseFilterChips';
 import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
 
 // ─── Types ──────────────────────────────────────────────────
 
-/** Section context for pre-filtering exercises by workout section */
 type SectionContext = 'warmup' | 'balance_core' | 'cooldown' | 'main';
 
 interface NASMExerciseRolodexProps {
-  /** Called when user picks an exercise */
   onSelectExercise: (exercise: ExerciseSlim) => void;
-  /** Controls dropdown visibility */
   isOpen: boolean;
-  /** Close the dropdown */
   onClose: () => void;
-  /** Pre-filter exercises by workout section context */
   sectionContext?: SectionContext;
 }
 
@@ -53,11 +48,10 @@ interface NASMExerciseRolodexProps {
 const ROW_HEIGHT = 56;
 const MAX_VISIBLE_ROWS = 6;
 
-// ─── Component ──────────────────────────────────────────────
+const EQUIPMENT_TYPES = ['All', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine', 'Cable', 'Band', 'Kettlebell', 'Ball', 'BOSU'];
+const EXERCISE_TYPES = ['All', 'Compound', 'Isolation', 'Calisthenics', 'Stability', 'Flexibility'];
 
 // ─── Section Context Filters ─────────────────────────────
-// Pre-filter patterns for each workout section. Matched against
-// lowercased exercise name, bodyPartCategory, and exerciseType.
 
 const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
   categories: string[];
@@ -81,62 +75,89 @@ const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
   },
 };
 
-/**
- * Filters exercises by section context. Returns true if the exercise
- * belongs to the given section, or if no section context is set.
- */
 function matchesSectionContext(ex: ExerciseSlim, ctx?: SectionContext): boolean {
   if (!ctx || ctx === 'main') return true;
   const pattern = SECTION_PATTERNS[ctx];
   if (!pattern) return true;
-
   const cat = (ex.bodyPartCategory || '').toLowerCase();
   const type = (ex.exerciseType || '').toLowerCase();
-
   if (pattern.categories.some(c => cat === c)) return true;
   if (pattern.types.some(t => type === t)) return true;
   if (pattern.nameKeywords.test(ex.name)) return true;
-
   return false;
+}
+
+function parseEquipment(eq: unknown): string[] {
+  if (!eq) return [];
+  if (Array.isArray(eq)) return eq.filter(Boolean);
+  if (typeof eq === 'string') {
+    if (eq === '[]' || eq === '') return [];
+    try { const p = JSON.parse(eq); if (Array.isArray(p)) return p.filter(Boolean); } catch { return [eq]; }
+  }
+  return [];
+}
+
+function getExerciseTips(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('squat')) return 'Feet shoulder-width, toes slightly out. Push hips back, bend knees. Keep chest up, drive through heels.';
+  if (n.includes('press') || n.includes('push')) return 'Maintain stable base. Control the lowering phase. Press explosively. Keep core braced.';
+  if (n.includes('curl')) return 'Keep elbows pinned. Control through full ROM. Squeeze at top. Lower slowly (3-4s).';
+  if (n.includes('row')) return 'Retract shoulder blades first. Drive elbows back, squeeze between shoulder blades. Avoid momentum.';
+  if (n.includes('lunge')) return 'Step forward with control. Lower until both knees ~90 degrees. Push back through front heel.';
+  if (n.includes('plank') || n.includes('hold')) return 'Straight line head to heels. Draw belly button to spine. Breathe steady. No hip sag.';
+  if (n.includes('deadlift') || n.includes('hinge')) return 'Hinge at hips, soft knees. Neutral spine throughout. Drive hips forward to stand.';
+  if (n.includes('fly') || n.includes('crossover')) return 'Slight bend in elbows. Control the stretch. Squeeze chest at top. Avoid locking elbows.';
+  if (n.includes('lateral') || n.includes('raise')) return 'Lead with elbows, not hands. Control the weight. Stop at shoulder height. Avoid shrugging.';
+  return 'Focus on controlled movement through full range of motion. Maintain alignment and core engagement.';
 }
 
 // ─── Component ──────────────────────────────────────────────
 
 const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
-  onSelectExercise,
-  isOpen,
-  onClose,
-  sectionContext,
+  onSelectExercise, isOpen, onClose, sectionContext,
 }) => {
   const {
-    results,
-    allExercises,
-    isSearching,
-    isLoading,
-    setQuery,
-    setCategory,
-    query,
-    category,
+    results, allExercises, isSearching, isLoading,
+    setQuery, setCategory, query, category,
   } = useExerciseSearch();
 
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [previewExercise, setPreviewExercise] = useState<ExerciseSlim | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [equipFilter, setEquipFilter] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useListRef();
 
-  // ── Section-aware filtering (applied on top of search/category results) ──
-  const filteredResults = useMemo(() => {
+  // Section-aware filtering
+  const sectionFiltered = useMemo(() => {
     if (!sectionContext || sectionContext === 'main') return results;
     return results.filter(ex => matchesSectionContext(ex, sectionContext));
   }, [results, sectionContext]);
 
-  // ── Section-aware allExercises (for accurate counts) ──
+  // Advanced filters on top
+  const filteredResults = useMemo(() => {
+    let pool = sectionFiltered;
+    if (typeFilter) {
+      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === typeFilter.toLowerCase());
+    }
+    if (equipFilter) {
+      const norm = equipFilter.toLowerCase();
+      pool = pool.filter(ex => {
+        const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+        if (norm === 'bodyweight') return eqArr.length === 0 || eqArr.some(e => e.toLowerCase().includes('body'));
+        return eqArr.some(e => e.toLowerCase().includes(norm));
+      });
+    }
+    return pool;
+  }, [sectionFiltered, typeFilter, equipFilter]);
+
   const filteredAllExercises = useMemo(() => {
     if (!sectionContext || sectionContext === 'main') return allExercises;
     return allExercises.filter(ex => matchesSectionContext(ex, sectionContext));
   }, [allExercises, sectionContext]);
 
-  // ── Category counts (memoized, uses section-filtered list) ──
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: filteredAllExercises.length };
     for (const ex of filteredAllExercises) {
@@ -146,37 +167,34 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     return counts;
   }, [filteredAllExercises]);
 
-  // ── Focus input when opened ──
+  // Focus input when opened
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => inputRef.current?.focus());
       setHighlightIndex(-1);
+      setPreviewExercise(null);
     }
   }, [isOpen]);
 
-  // ── Click outside to close ──
+  // Click outside to close
   useEffect(() => {
     if (!isOpen) return;
     const handleClick = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen, onClose]);
 
-  // ── Keyboard navigation ──
+  // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-      return;
-    }
+    if (e.key === 'Escape') { onClose(); return; }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlightIndex(prev => {
         const next = prev < filteredResults.length - 1 ? prev + 1 : 0;
         listRef.current?.scrollToRow({ index: next, align: 'smart' });
+        setPreviewExercise(filteredResults[next] || null);
         return next;
       });
     } else if (e.key === 'ArrowUp') {
@@ -184,6 +202,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       setHighlightIndex(prev => {
         const next = prev > 0 ? prev - 1 : filteredResults.length - 1;
         listRef.current?.scrollToRow({ index: next, align: 'smart' });
+        setPreviewExercise(filteredResults[next] || null);
         return next;
       });
     } else if (e.key === 'Enter' && highlightIndex >= 0 && filteredResults[highlightIndex]) {
@@ -198,9 +217,14 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
 
-  // ── Row renderer for react-window v2 ──
-  // v2 passes { index, style, ariaAttributes } + any rowProps
-  const RowComponent = useCallback(({ index, style }: { index: number; style: React.CSSProperties; ariaAttributes?: Record<string, unknown> }) => {
+  const handleRowHover = useCallback((exercise: ExerciseSlim) => {
+    setPreviewExercise(exercise);
+  }, []);
+
+  const activeFilterCount = [equipFilter, typeFilter].filter(Boolean).length;
+
+  // Row renderer for react-window v2
+  const RowComponent = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const ex = filteredResults[index];
     if (!ex) return null;
     return (
@@ -208,17 +232,18 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         style={style}
         $highlighted={index === highlightIndex}
         onClick={() => handleSelect(ex)}
+        onMouseEnter={() => handleRowHover(ex)}
         role="option"
         aria-selected={index === highlightIndex}
       >
         <ExName>{ex.name}</ExName>
         <ExMeta>
           <TypeBadge>{ex.exerciseType || 'exercise'}</TypeBadge>
-          {(ex.primaryMuscles || []).join(', ')}
+          {(ex.primaryMuscles || []).slice(0, 3).join(', ')}
         </ExMeta>
       </ExerciseRow>
     );
-  }, [filteredResults, highlightIndex, handleSelect]);
+  }, [filteredResults, highlightIndex, handleSelect, handleRowHover]);
 
   if (!isOpen) return null;
 
@@ -234,7 +259,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
           value={query}
           onChange={(e) => { setQuery(e.target.value); setHighlightIndex(-1); }}
           onKeyDown={handleKeyDown}
-          placeholder="Search exercises by name, type, or muscle\u2026"
+          placeholder="Search exercises by name, type, or muscle..."
           autoComplete="off"
           aria-label="Search exercises"
           role="combobox"
@@ -244,35 +269,113 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         {(isSearching || isLoading) && <SpinnerIcon size={16} />}
       </SearchRow>
 
-      {/* Filter Chips */}
+      {/* Body Part Filter Chips */}
       <ExerciseFilterChips
         activeCategory={category}
         onCategoryChange={setCategory}
         categoryCounts={categoryCounts}
       />
 
-      {/* Virtualized Results (react-window v2 API) */}
-      {filteredResults.length > 0 ? (
-        <ListContainer>
-          <List
-            listRef={listRef}
-            rowComponent={RowComponent}
-            rowCount={filteredResults.length}
-            rowHeight={ROW_HEIGHT}
-            rowProps={{}}
-            style={{ height: listHeight || ROW_HEIGHT }}
-            id="exercise-rolodex-list"
-            role="listbox"
-            aria-label="Exercise search results"
-          />
-        </ListContainer>
-      ) : !isLoading && (
-        <EmptyState>
-          {query.length >= 1
-            ? 'No exercises found. Try a different search.'
-            : 'Start typing to search exercises...'}
-        </EmptyState>
+      {/* Advanced Filters Toggle */}
+      <FilterToggle onClick={() => setShowFilters(!showFilters)}>
+        {showFilters ? '▾ Hide Filters' : '▸ More Filters'}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+      </FilterToggle>
+
+      {showFilters && (
+        <FilterRows>
+          <FilterLabel>Type:</FilterLabel>
+          <MiniChipRow>
+            {EXERCISE_TYPES.map(t => (
+              <MiniChip key={t} $active={typeFilter === null ? t === 'All' : typeFilter.toLowerCase() === t.toLowerCase()}
+                onClick={() => setTypeFilter(t === 'All' ? null : t)}>
+                {t}
+              </MiniChip>
+            ))}
+          </MiniChipRow>
+          <FilterLabel>Equipment:</FilterLabel>
+          <MiniChipRow>
+            {EQUIPMENT_TYPES.map(e => (
+              <MiniChip key={e} $active={equipFilter === null ? e === 'All' : equipFilter.toLowerCase() === e.toLowerCase()}
+                onClick={() => setEquipFilter(e === 'All' ? null : e)}>
+                {e}
+              </MiniChip>
+            ))}
+          </MiniChipRow>
+        </FilterRows>
       )}
+
+      {/* Split View: List + Preview */}
+      <SplitView $hasPreview={!!previewExercise}>
+        {/* Left: Exercise List */}
+        <ListSide>
+          {filteredResults.length > 0 ? (
+            <ListContainer>
+              <List
+                listRef={listRef}
+                rowComponent={RowComponent}
+                rowCount={filteredResults.length}
+                rowHeight={ROW_HEIGHT}
+                rowProps={{}}
+                style={{ height: listHeight || ROW_HEIGHT }}
+                id="exercise-rolodex-list"
+                role="listbox"
+                aria-label="Exercise search results"
+              />
+            </ListContainer>
+          ) : !isLoading && (
+            <EmptyState>
+              {query.length >= 1
+                ? 'No exercises found. Try a different search.'
+                : 'Start typing to search exercises...'}
+            </EmptyState>
+          )}
+        </ListSide>
+
+        {/* Right: Teach Me Preview */}
+        {previewExercise && (
+          <PreviewSide>
+            <PreviewHeader>
+              <BookOpen size={12} />
+              How to Perform
+            </PreviewHeader>
+            <PreviewTitle>{previewExercise.name}</PreviewTitle>
+            <PreviewRow>
+              <PreviewLabel>Muscles:</PreviewLabel>
+              {(previewExercise.primaryMuscles || []).join(', ') || 'Full Body'}
+            </PreviewRow>
+            <PreviewRow>
+              <PreviewLabel>Type:</PreviewLabel>
+              {previewExercise.exerciseType || 'Exercise'}
+            </PreviewRow>
+            <PreviewRow>
+              <PreviewLabel>Equipment:</PreviewLabel>
+              {(() => {
+                const eq = parseEquipment((previewExercise as any).equipment || (previewExercise as any).equipmentNeeded);
+                return eq.length > 0 ? eq.join(', ') : 'Bodyweight';
+              })()}
+            </PreviewRow>
+            <PreviewRow>
+              <PreviewLabel>Tips:</PreviewLabel>
+              {getExerciseTips(previewExercise.name)}
+            </PreviewRow>
+            {previewExercise.easyVariation && (
+              <PreviewRow>
+                <PreviewLabel>Easier:</PreviewLabel>
+                {previewExercise.easyVariation}
+              </PreviewRow>
+            )}
+            {previewExercise.hardVariation && (
+              <PreviewRow>
+                <PreviewLabel>Harder:</PreviewLabel>
+                {previewExercise.hardVariation}
+              </PreviewRow>
+            )}
+            <AddButton onClick={() => handleSelect(previewExercise)}>
+              <Plus size={14} /> Add to Workout
+            </AddButton>
+          </PreviewSide>
+        )}
+      </SplitView>
 
       {/* Status Bar */}
       <StatusBar>
@@ -280,6 +383,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         {query && ` · ${filteredResults.length} matching`}
         {category && category !== 'All' && ` · ${category}`}
         {sectionContext && sectionContext !== 'main' && ` · ${sectionContext.replace('_', ' ')}`}
+        {previewExercise && ' · hover to preview'}
       </StatusBar>
     </Wrapper>
   );
@@ -314,10 +418,7 @@ const Wrapper = styled.div`
   padding: 12px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 40px ${withAlpha(CS.glow, 0.06)};
   animation: ${slideDown} 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+  @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 
 const SearchRow = styled.div`
@@ -340,10 +441,7 @@ const SpinnerIcon = styled(Loader)`
   right: 12px;
   color: ${CS.gaming};
   animation: ${spin} 0.8s linear infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation-duration: 1.5s;
-  }
+  @media (prefers-reduced-motion: reduce) { animation-duration: 1.5s; }
 `;
 
 const SearchInput = styled.input`
@@ -358,23 +456,143 @@ const SearchInput = styled.input`
   font-family: 'Sora', sans-serif;
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
-
   &:focus {
     outline: none;
     border-color: ${CS.glow};
     box-shadow: 0 0 0 3px ${withAlpha(CS.glow, 0.15)};
   }
+  &::placeholder { color: rgba(224, 236, 244, 0.4); }
+`;
 
-  &::placeholder {
-    color: rgba(224, 236, 244, 0.4);
+const FilterToggle = styled.button`
+  display: block;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  border: none;
+  background: transparent;
+  color: ${CS.textSecondary};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  &:hover { color: ${CS.text}; }
+`;
+
+const FilterRows = styled.div`
+  padding: 0 0 6px;
+`;
+
+const FilterLabel = styled.div`
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: ${CS.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 2px 0 2px 2px;
+`;
+
+const MiniChipRow = styled.div`
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+`;
+
+const MiniChip = styled.button<{ $active: boolean }>`
+  padding: 2px 8px;
+  border-radius: 1rem;
+  border: 1px solid ${({ $active }) => $active ? CS.secondary : 'transparent'};
+  background: ${({ $active }) => $active ? withAlpha(CS.secondary, 0.2) : withAlpha(CS.glow, 0.06)};
+  color: ${({ $active }) => $active ? CS.text : CS.textSecondary};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 24px;
+  &:hover { color: ${CS.text}; background: ${withAlpha(CS.glow, 0.12)}; }
+`;
+
+const SplitView = styled.div<{ $hasPreview: boolean }>`
+  display: ${({ $hasPreview }) => $hasPreview ? 'grid' : 'block'};
+  grid-template-columns: ${({ $hasPreview }) => $hasPreview ? '1fr 1fr' : '1fr'};
+  gap: 8px;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ListSide = styled.div``;
+
+const PreviewSide = styled.div`
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid ${withAlpha(CS.glow, 0.12)};
+  background: ${withAlpha(CS.glow, 0.04)};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: ${CS.textSecondary};
+  max-height: ${MAX_VISIBLE_ROWS * ROW_HEIGHT}px;
+  overflow-y: auto;
+`;
+
+const PreviewHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: ${CS.glow};
+  margin-bottom: 6px;
+`;
+
+const PreviewTitle = styled.div`
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${CS.text};
+  margin-bottom: 8px;
+`;
+
+const PreviewRow = styled.div`
+  margin-bottom: 5px;
+`;
+
+const PreviewLabel = styled.span`
+  font-weight: 700;
+  color: ${CS.glow};
+  font-size: 0.72rem;
+  margin-right: 4px;
+`;
+
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid ${CS.secondary};
+  background: ${withAlpha(CS.secondary, 0.15)};
+  color: ${CS.text};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover {
+    background: ${CS.secondary};
+    color: white;
   }
 `;
 
 const ListContainer = styled.div`
   border-radius: 0.5rem;
   overflow: hidden;
-
-  /* Custom scrollbar for the react-window list */
   & > div {
     &::-webkit-scrollbar { width: 6px; }
     &::-webkit-scrollbar-track { background: transparent; }
@@ -397,7 +615,6 @@ const ExerciseRow = styled.div<{ $highlighted: boolean }>`
     $highlighted ? withAlpha(CS.glow, 0.12) : 'transparent'};
   border-left: 3px solid ${({ $highlighted }) =>
     $highlighted ? CS.glow : 'transparent'};
-
   &:hover {
     background: ${withAlpha(CS.glow, 0.08)};
     border-left-color: ${withAlpha(CS.glow, 0.4)};
