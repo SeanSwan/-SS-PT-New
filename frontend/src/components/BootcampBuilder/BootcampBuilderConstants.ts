@@ -7,11 +7,23 @@
  */
 import type { ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 
-export const CLASS_FORMATS: Array<{ value: ClassFormat; label: string }> = [
-  { value: 'stations_4x', label: '4 Exercises × N Stations (35s)' },
-  { value: 'stations_3x5', label: '3 Exercises × 5 Stations (40s)' },
-  { value: 'stations_2x7', label: '2 Exercises × 7 Stations (30s)' },
-  { value: 'full_group', label: 'Full Group (15 exercises × 2 rounds)' },
+export const CLASS_FORMATS: Array<{ value: string; label: string; description: string; category: string }> = [
+  // Station-based
+  { value: 'stations_4x', label: '4×N Stations', description: '4 exercises per station, 35s each', category: 'Station' },
+  { value: 'stations_3x5', label: '3×5 Stations', description: '3 exercises × 5 stations, 40s each', category: 'Station' },
+  { value: 'stations_2x7', label: '2×7 Stations', description: '2 exercises × 7 stations, 30s each', category: 'Station' },
+  { value: 'stations_3x4', label: '3×4 Stations', description: '3 exercises × 4 stations, 35s each', category: 'Station' },
+  { value: 'stations_5x3', label: '5×3 Stations', description: '5 exercises × 3 stations, 30s each', category: 'Station' },
+  // Full group
+  { value: 'full_group', label: 'Full Group Circuit', description: 'Everyone does same circuit, 40s each', category: 'Group' },
+  { value: 'circuit', label: 'Timed Circuit', description: '40s work / 15s rest, 3 rounds', category: 'Group' },
+  // Time protocols
+  { value: 'emom', label: 'EMOM', description: 'Every Minute On The Minute — 60s cycles', category: 'Protocol' },
+  { value: 'tabata', label: 'Tabata', description: '20s work / 10s rest × 8 rounds per exercise', category: 'Protocol' },
+  { value: 'amrap', label: 'AMRAP', description: 'As Many Reps As Possible — 4 min blocks', category: 'Protocol' },
+  // Specialty
+  { value: 'partner', label: 'Partner', description: 'I-go-you-go format, paired stations', category: 'Specialty' },
+  { value: 'hybrid', label: 'Hybrid', description: 'Warm-up stations → full group → finisher', category: 'Specialty' },
 ];
 
 export const DAY_TYPES: Array<{ value: DayType; label: string }> = [

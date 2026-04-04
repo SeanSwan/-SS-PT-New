@@ -16,6 +16,7 @@ import {
   XCircle,
   HeartPulse,
   Video,
+  Flame,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -52,6 +53,7 @@ export const trainerNavigationItems: TrainerNavItemData[] = [
   { id: 'progress', label: 'Client Progress', icon: TrendingUp, section: 'core', status: 'real' },
 
   // Client Training
+  { id: 'bootcamp', label: 'Bootcamp Creator', icon: Flame, section: 'core', status: 'real' },
   { id: 'clients', label: 'My Clients', icon: Users, section: 'training', status: 'real' },
   { id: 'form-analysis', label: 'Movement Analysis', icon: Video, section: 'training', status: 'real' },
   { id: 'body-map', label: 'Body Map', icon: HeartPulse, section: 'training', status: 'real' },

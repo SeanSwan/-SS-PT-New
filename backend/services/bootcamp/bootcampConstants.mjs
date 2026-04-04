@@ -9,10 +9,22 @@
 // ── Class Format Configs ──────────────────────────────────────────────
 
 export const FORMAT_CONFIG = {
-  stations_4x: { exercisesPerStation: 4, durationSec: 35, fixedStations: null },
-  stations_3x5: { exercisesPerStation: 3, durationSec: 40, fixedStations: 5 },
-  stations_2x7: { exercisesPerStation: 2, durationSec: 30, fixedStations: 7 },
-  full_group: { exercisesPerStation: null, durationSec: 40, fixedStations: null },
+  // Station-based formats
+  stations_4x: { exercisesPerStation: 4, durationSec: 35, fixedStations: null, description: '4 exercises per station, 35s each' },
+  stations_3x5: { exercisesPerStation: 3, durationSec: 40, fixedStations: 5, description: '3 exercises × 5 stations, 40s each' },
+  stations_2x7: { exercisesPerStation: 2, durationSec: 30, fixedStations: 7, description: '2 exercises × 7 stations, 30s each' },
+  stations_3x4: { exercisesPerStation: 3, durationSec: 35, fixedStations: 4, description: '3 exercises × 4 stations, 35s each' },
+  stations_5x3: { exercisesPerStation: 5, durationSec: 30, fixedStations: 3, description: '5 exercises × 3 stations, 30s each' },
+  // Full group formats (no stations)
+  full_group: { exercisesPerStation: null, durationSec: 40, fixedStations: null, description: 'Everyone does same circuit, 40s each' },
+  // Time-based protocols
+  emom: { exercisesPerStation: null, durationSec: 60, fixedStations: null, rounds: 1, description: 'Every Minute On The Minute — 60s cycles' },
+  tabata: { exercisesPerStation: null, durationSec: 20, restSec: 10, fixedStations: null, rounds: 8, description: 'Tabata — 20s work / 10s rest × 8 rounds per exercise' },
+  amrap: { exercisesPerStation: null, durationSec: null, fixedStations: null, blockMin: 4, description: 'As Many Reps As Possible — 4 min blocks' },
+  // Hybrid formats
+  circuit: { exercisesPerStation: null, durationSec: 40, fixedStations: null, rounds: 3, description: 'Timed circuit — 40s work, 15s rest, 3 rounds' },
+  partner: { exercisesPerStation: 2, durationSec: 40, fixedStations: null, description: 'Partner stations — I-go-you-go format, 40s each' },
+  hybrid: { exercisesPerStation: null, durationSec: 35, fixedStations: null, description: 'Warm-up stations → full group circuit → finisher' },
 };
 
 export const TRANSITION_TIME_SEC = 15;

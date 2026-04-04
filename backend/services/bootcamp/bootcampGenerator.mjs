@@ -180,20 +180,62 @@ export async function generateBootcampClass(options) {
   // Step 3: Get recent class logs for freshness
   const recentExerciseNames = await getRecentExerciseNames(trainerId);
 
-  // Step 4: Get exercise registry and filter by day type
-  const registry = getExerciseRegistry();
+  // Step 4: Get exercises — use Rolodex bridge with equipment filtering if profile set
   const targetMuscles = DAY_TYPE_MUSCLES[dayType] ?? DAY_TYPE_MUSCLES.full_body;
-
-  // Merge sprint exclusion keys with recent freshness set
   const combinedExclusions = new Set(recentExerciseNames);
   if (exclusionKeys instanceof Set) {
     exclusionKeys.forEach(k => combinedExclusions.add(k));
   }
 
-  const availableExercises = Object.entries(registry)
-    .filter(([, ex]) => (ex.muscles ?? []).some(m => targetMuscles.includes(m)))
-    .filter(([key]) => !combinedExclusions.has(key))
-    .map(([key, ex]) => ({ key, ...ex }));
+  let availableExercises = [];
+
+  // Try Rolodex bridge first (equipment-aware, uses exercise_library table)
+  if (equipmentProfileId) {
+    try {
+      const { getAllModels } = await import('../../models/index.mjs');
+      const models = getAllModels();
+      const profile = models.EquipmentProfile
+        ? await models.EquipmentProfile.findByPk(equipmentProfileId)
+        : null;
+
+      if (profile) {
+        // Get equipment items for this profile
+        const equipmentItems = models.EquipmentItem
+          ? await models.EquipmentItem.findAll({ where: { profileId: equipmentProfileId }, raw: true })
+          : [];
+        const availableEquipment = equipmentItems.map(e => e.equipmentType || e.name).filter(Boolean);
+        if (availableEquipment.length === 0) availableEquipment.push('bodyweight');
+
+        const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
+        const rolodexResults = await queryExercisesForBootcamp({
+          muscleGroups: targetMuscles,
+          availableEquipment,
+          excludeNames: [...combinedExclusions],
+          limit: 200,
+        });
+
+        if (rolodexResults.length > 0) {
+          availableExercises = rolodexResults.map(ex => ({
+            key: ex.key || ex.name?.toLowerCase().replace(/\s+/g, '_'),
+            ...ex,
+          }));
+        }
+      }
+    } catch (eqErr) {
+      // Non-fatal — fall through to registry fallback
+      const { default: logger } = await import('../../utils/logger.mjs');
+      logger.warn('[BootcampGen] Equipment profile query failed, using full registry:', eqErr.message);
+    }
+  }
+
+  // Fallback: use full exercise registry if Rolodex didn't produce results
+  if (availableExercises.length === 0) {
+    const registry = getExerciseRegistry();
+    availableExercises = Object.entries(registry)
+      .filter(([, ex]) => (ex.muscles ?? []).some(m => targetMuscles.includes(m)))
+      .filter(([key]) => !combinedExclusions.has(key))
+      .map(([key, ex]) => ({ key, ...ex }));
+  }
 
   // Step 5: Build stations or full-group workout
   const stations = [];
