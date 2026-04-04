@@ -78,17 +78,42 @@ const BootcampBuilderPage: React.FC = () => {
     : parseInt(targetDuration, 10) + 13;
   const isOverTime = totalClassMin > 55;
 
-  // Add exercise from Rolodex
+  // Selected rolodex exercise (for detail panel)
+  const [selectedRolodexId, setSelectedRolodexId] = useState<number | null>(null);
+
+  // View exercise detail from Rolodex (click on card body)
+  const handleSelectFromRolodex = useCallback((exercise: RolodexExercise) => {
+    setSelectedRolodexId(exercise.id);
+    // Map to BootcampExercise shape for the detail panel
+    setSelectedExercise({
+      exerciseName: exercise.name,
+      durationSec: 35,
+      restSec: 15,
+      sortOrder: 0,
+      muscleTargets: (exercise.primaryMuscles || []).join(','),
+      easyVariation: exercise.easyVariation || null,
+      hardVariation: exercise.hardVariation || null,
+      kneeMod: (exercise as any).kneeMod || null,
+      shoulderMod: (exercise as any).shoulderMod || null,
+      ankleMod: (exercise as any).ankleMod || null,
+      wristMod: (exercise as any).wristMod || null,
+      backMod: (exercise as any).backMod || null,
+      board: 'main',
+      stationIndex: 0,
+      isCardioFinisher: false,
+      equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
+      setupTimeSec: 5,
+      description: (exercise as any).description || null,
+    } as any);
+  }, []);
+
+  // Add exercise from Rolodex (click + button)
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
-    if (!bootcamp) {
-      toast.info('Generate a class first, then add exercises in Hybrid mode');
-      return;
-    }
     const newEx = {
       exerciseName: exercise.name,
       durationSec: 35,
       restSec: 15,
-      sortOrder: (bootcamp.exercises?.length || 0) + 1,
+      sortOrder: 1,
       muscleTargets: (exercise.primaryMuscles || []).join(','),
       easyVariation: exercise.easyVariation || null,
       hardVariation: exercise.hardVariation || null,
@@ -98,9 +123,31 @@ const BootcampBuilderPage: React.FC = () => {
       equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
       setupTimeSec: 5,
     } as any;
-    setBootcamp(prev => prev ? { ...prev, exercises: [...(prev.exercises || []), newEx] } : prev);
+
+    setBootcamp(prev => {
+      if (prev) {
+        // Existing bootcamp — append exercise
+        newEx.sortOrder = (prev.exercises?.length || 0) + 1;
+        return { ...prev, exercises: [...(prev.exercises || []), newEx] };
+      }
+      // No bootcamp yet (Manual mode) — create a shell
+      return {
+        name: className || 'Manual Class',
+        classFormat,
+        dayType,
+        stationCount: 1,
+        targetDuration: parseInt(targetDuration, 10) || 45,
+        totalWorkoutMin: 0,
+        totalClassMin: 0,
+        expectedParticipants: parseInt(expectedParticipants, 10) || 12,
+        stations: [],
+        exercises: [newEx],
+        explanations: [{ type: 'info', message: 'Manual class — add exercises from the Rolodex' }],
+        overflowPlan: null,
+      } as any;
+    });
     toast.success(`Added: ${exercise.name}`);
-  }, [bootcamp]);
+  }, [className, classFormat, dayType, targetDuration, expectedParticipants]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -204,7 +251,11 @@ const BootcampBuilderPage: React.FC = () => {
       <FourPane>
         {/* Left panel: Config (AI/Hybrid) or Rolodex (Manual) */}
         {buildMode === 'manual' ? (
-          <ExerciseRolodexPanel onAddExercise={handleAddFromRolodex} />
+          <ExerciseRolodexPanel
+            onAddExercise={handleAddFromRolodex}
+            onSelectExercise={handleSelectFromRolodex}
+            selectedId={selectedRolodexId}
+          />
         ) : (
           <ConfigPanel
             classFormat={classFormat} setClassFormat={setClassFormat}
@@ -236,7 +287,11 @@ const BootcampBuilderPage: React.FC = () => {
 
         {/* Right panel: Rolodex (Hybrid) or Exercise Detail (AI/Manual) */}
         {buildMode === 'hybrid' ? (
-          <ExerciseRolodexPanel onAddExercise={handleAddFromRolodex} />
+          <ExerciseRolodexPanel
+            onAddExercise={handleAddFromRolodex}
+            onSelectExercise={handleSelectFromRolodex}
+            selectedId={selectedRolodexId}
+          />
         ) : (
           <ExerciseDetailPanel
             selectedExercise={selectedExercise}

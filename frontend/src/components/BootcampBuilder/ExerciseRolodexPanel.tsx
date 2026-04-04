@@ -2,14 +2,14 @@
  * ┌─── SUB-COMPONENT: ExerciseRolodexPanel ───────────────────┐
  * │ PARENT: BootcampBuilderPage                                │
  * │ PURPOSE: Full exercise rolodex with all filter rows        │
- * │          matching the Workout Planner's rolodex sidebar    │
- * │ Props: { onAddExercise }                                   │
+ * │          Compact grid layout for better density             │
+ * │ Props: { onAddExercise, onSelectExercise, selectedId }     │
  * └────────────────────────────────────────────────────────────┘
  */
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import styled from 'styled-components';
-import { Search, Plus, X, Dumbbell } from 'lucide-react';
+import { Search, Plus, X, Dumbbell, Eye } from 'lucide-react';
 import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
 
 // ─────────────────────────────────────────────────────────────
@@ -19,6 +19,8 @@ export interface RolodexExercise extends ExerciseSlim {}
 
 interface ExerciseRolodexPanelProps {
   onAddExercise: (exercise: RolodexExercise, stationIndex?: number) => void;
+  onSelectExercise?: (exercise: RolodexExercise) => void;
+  selectedId?: number | null;
   targetStation?: number;
 }
 
@@ -109,10 +111,37 @@ const SearchBox = styled.div`
   }
 `;
 
+const FilterToggle = styled.button<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  margin: 2px 12px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
+  background: ${({ $open }) => $open ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent)' : 'transparent'};
+  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover { color: var(--text-primary, #E0ECF4); }
+`;
+
+const FilterSection = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => $open ? 'block' : 'none'};
+  flex-shrink: 0;
+  max-height: ${({ $open }) => $open ? '180px' : '0'};
+  overflow-y: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+`;
+
 const ChipRow = styled.div`
   display: flex;
-  gap: 4px;
-  padding: 3px 12px;
+  gap: 3px;
+  padding: 2px 12px;
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -121,65 +150,112 @@ const ChipRow = styled.div`
 `;
 
 const Chip = styled.button<{ $active: boolean }>`
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 5px;
   border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
   background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)' : 'transparent'};
   color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.5)'};
   font-family: 'Sora', sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  min-height: 24px;
+  min-height: 22px;
   flex-shrink: 0;
   &:hover { border-color: var(--accent-secondary, #8B5CF6); }
 `;
 
-const ExerciseList = styled.div`
+const ExerciseGrid = styled.div`
   flex: 1;
   overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px 6px;
+  align-content: start;
   &::-webkit-scrollbar { width: 3px; }
   &::-webkit-scrollbar-thumb { background: rgba(96, 192, 240, 0.1); border-radius: 2px; }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const ExerciseItem = styled.button`
+const ExerciseCard = styled.div<{ $selected: boolean }>`
   display: flex;
   flex-direction: column;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.04);
-  background: transparent;
-  color: var(--text-primary, #E0ECF4);
-  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid ${({ $selected }) =>
+    $selected ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(96, 192, 240, 0.06))'};
+  background: ${({ $selected }) =>
+    $selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'var(--bg-base, #0A0A0F)'};
   cursor: pointer;
-  transition: background 0.15s ease;
-  min-height: 48px;
-  &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent); }
+  transition: all 0.15s ease;
+  min-height: 44px;
+
+  &:hover {
+    border-color: var(--accent-primary, #60C0F0);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
+  }
+`;
+
+const CardTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
 `;
 
 const ExName = styled.div`
   font-family: 'Sora', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary, #E0ECF4);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 `;
 
-const ExMeta = styled.div`
+const AddBtn = styled.button`
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid var(--accent-secondary, #8B5CF6);
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
+  color: var(--accent-secondary, #8B5CF6);
+  cursor: pointer;
   display: flex;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  &:hover {
+    background: var(--accent-secondary, #8B5CF6);
+    color: white;
+  }
+`;
+
+const CardMeta = styled.div`
+  display: flex;
+  gap: 3px;
   flex-wrap: wrap;
   margin-top: 3px;
 `;
 
 const MetaTag = styled.span<{ $impact?: string }>`
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
   font-family: 'Fira Code', monospace;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 600;
   background: rgba(96, 192, 240, 0.08);
-  color: rgba(224, 236, 244, 0.5);
+  color: rgba(224, 236, 244, 0.45);
   ${({ $impact }) => {
     if ($impact === 'High Impact') return 'background: rgba(201,42,84,0.12); color: #C92A54;';
     if ($impact === 'Low Impact') return 'background: rgba(16,185,129,0.12); color: #10B981;';
@@ -194,20 +270,21 @@ const EmptyMsg = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.3));
   font-family: 'Sora', sans-serif;
   font-size: 12px;
+  grid-column: 1 / -1;
 `;
 
 const SkeletonBlock = styled.div`
-  height: 48px;
-  margin: 4px 12px;
-  border-radius: 8px;
+  height: 52px;
+  border-radius: 6px;
   background: rgba(96, 192, 240, 0.04);
 `;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
-const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExercise, targetStation }) => {
-  // Use the same hook as the Workout Planner
+const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
+  onAddExercise, onSelectExercise, selectedId, targetStation,
+}) => {
   const {
     results: exerciseResults,
     isLoading,
@@ -217,16 +294,17 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExerci
     category: filterCategory,
   } = useExerciseSearch();
 
-  // Advanced filters (same as Workout Planner)
+  // Advanced filters
   const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [impactFilter, setImpactFilter] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Apply advanced filters on top of search results
+  const activeFilterCount = [sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter].filter(Boolean).length;
+
   const filteredExercises = useMemo(() => {
     let pool = exerciseResults;
-
     if (exerciseTypeFilter) {
       pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === exerciseTypeFilter);
     }
@@ -244,13 +322,21 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExerci
     if (impactFilter) {
       pool = pool.filter(ex => getJointImpact(ex) === impactFilter);
     }
-
     return pool;
   }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
 
   const handleChipClick = useCallback((bp: string) => {
     setCategory(bp === 'All' ? null : bp);
   }, [setCategory]);
+
+  const handleCardClick = useCallback((ex: ExerciseSlim) => {
+    if (onSelectExercise) onSelectExercise(ex as RolodexExercise);
+  }, [onSelectExercise]);
+
+  const handleAddClick = useCallback((e: React.MouseEvent, ex: ExerciseSlim) => {
+    e.stopPropagation();
+    onAddExercise(ex as RolodexExercise, targetStation);
+  }, [onAddExercise, targetStation]);
 
   return (
     <PanelWrap>
@@ -274,7 +360,7 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExerci
         )}
       </SearchBox>
 
-      {/* Body Part filter */}
+      {/* Body Part filter — always visible */}
       <ChipRow>
         {BODY_PARTS.map(bp => (
           <Chip key={bp} $active={filterCategory === null ? bp === 'All' : filterCategory === bp} onClick={() => handleChipClick(bp)}>
@@ -283,65 +369,79 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExerci
         ))}
       </ChipRow>
 
-      {/* Source filter */}
-      <ChipRow>
-        {SOURCE_FILTERS.map(sf => (
-          <Chip key={sf} $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()} onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}>
-            {sf}
-          </Chip>
-        ))}
-      </ChipRow>
+      {/* Advanced filters — collapsible to save space */}
+      <FilterToggle $open={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
+        {filtersOpen ? '▾ Hide Filters' : '▸ More Filters'}{activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}
+      </FilterToggle>
 
-      {/* Exercise Type filter */}
-      <ChipRow>
-        {EXERCISE_TYPES.map(et => (
-          <Chip key={et} $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()} onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}>
-            {et}
-          </Chip>
-        ))}
-      </ChipRow>
+      <FilterSection $open={filtersOpen}>
+        <ChipRow>
+          {SOURCE_FILTERS.map(sf => (
+            <Chip key={sf} $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()} onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}>
+              {sf}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow>
+          {EXERCISE_TYPES.map(et => (
+            <Chip key={et} $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()} onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}>
+              {et}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow>
+          {EQUIPMENT_FILTERS.map(eq => (
+            <Chip key={eq} $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()} onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}>
+              {eq}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow>
+          {IMPACT_LEVELS.map(il => (
+            <Chip key={il} $active={impactFilter === null ? il === 'All Impact' : impactFilter === il} onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}>
+              {il}
+            </Chip>
+          ))}
+        </ChipRow>
+      </FilterSection>
 
-      {/* Equipment filter */}
-      <ChipRow>
-        {EQUIPMENT_FILTERS.map(eq => (
-          <Chip key={eq} $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()} onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}>
-            {eq}
-          </Chip>
-        ))}
-      </ChipRow>
-
-      {/* Impact Level filter */}
-      <ChipRow>
-        {IMPACT_LEVELS.map(il => (
-          <Chip key={il} $active={impactFilter === null ? il === 'All Impact' : impactFilter === il} onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}>
-            {il}
-          </Chip>
-        ))}
-      </ChipRow>
-
-      {/* Exercise List */}
-      <ExerciseList>
+      {/* Exercise Grid — compact 2-column layout */}
+      <ExerciseGrid>
         {isLoading ? (
           Array.from({ length: 8 }, (_, i) => <SkeletonBlock key={i} />)
         ) : filteredExercises.length === 0 ? (
           <EmptyMsg>No exercises match your filters.</EmptyMsg>
         ) : (
-          filteredExercises.slice(0, 200).map(ex => (
-            <ExerciseItem
-              key={ex.id}
-              onClick={() => onAddExercise(ex as any, targetStation)}
-            >
-              <ExName>{ex.name}</ExName>
-              <ExMeta>
-                <MetaTag>{ex.bodyPartCategory}</MetaTag>
-                <MetaTag>{ex.exerciseType}</MetaTag>
-                <MetaTag>{(() => { const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
-                <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
-              </ExMeta>
-            </ExerciseItem>
-          ))
+          filteredExercises.slice(0, 200).map(ex => {
+            const impact = getJointImpact(ex);
+            const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+            const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
+            return (
+              <ExerciseCard
+                key={ex.id}
+                $selected={selectedId === ex.id}
+                onClick={() => handleCardClick(ex)}
+              >
+                <CardTop>
+                  <ExName>{ex.name}</ExName>
+                  <AddBtn
+                    onClick={(e) => handleAddClick(e, ex)}
+                    title="Add to class"
+                    aria-label={`Add ${ex.name} to class`}
+                  >
+                    <Plus size={12} />
+                  </AddBtn>
+                </CardTop>
+                <CardMeta>
+                  <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                  <MetaTag>{eqLabel}</MetaTag>
+                  <MetaTag $impact={impact}>{impact.replace(' Impact', '')}</MetaTag>
+                </CardMeta>
+              </ExerciseCard>
+            );
+          })
         )}
-      </ExerciseList>
+      </ExerciseGrid>
     </PanelWrap>
   );
 };
