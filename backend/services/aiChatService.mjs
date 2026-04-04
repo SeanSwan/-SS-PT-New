@@ -1288,8 +1288,8 @@ Use their Client #ID for all data operations. You can log workouts, check progre
       }
     }
 
-    // ── COACH ASSISTANT: Inject bootcamp class history & space profiles ──
-    if (context === 'coach_assistant' && isAdminOrTrainer) {
+    // ── COACH ASSISTANT / WORKOUT_GENERATION: Inject bootcamp class history, space profiles, equipment ──
+    if ((context === 'coach_assistant' || context === 'workout_generation') && isAdminOrTrainer) {
       try {
         const [recentClasses, spaceProfiles, savedTemplates] = await Promise.all([
           safeQuery(
@@ -1360,6 +1360,37 @@ Use their Client #ID for all data operations. You can log workouts, check progre
               `  Client #${p.user_id}: ${p.body_region}${p.side ? ` (${p.side})` : ''} — ${p.pain_level}/10 ${p.pain_type || ''}`
             );
             bootcampParts.push(`Active Client Pain Entries (severity 5+):\n${painLines.join('\n')}\nUse Board 2 wellness modifications for exercises targeting these areas. Use "wellness modifications" language, not "medical treatments".`);
+          }
+        } catch { /* non-fatal */ }
+
+        // ── Equipment Profiles: inject items so AI can plan around available gear ──
+        try {
+          const equipProfiles = await safeQuery(
+            `SELECT ep.id, ep.name, ep."locationType",
+                    COALESCE(
+                      (SELECT json_agg(json_build_object(
+                        'name', ei.name, 'category', ei.category,
+                        'quantity', ei.quantity, 'resistanceType', ei."resistanceType"
+                      ) ORDER BY ei.category, ei.name)
+                       FROM equipment_items ei
+                       WHERE ei."profileId" = ep.id AND ei."isActive" = true
+                         AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')),
+                      '[]'
+                    ) as items
+             FROM equipment_profiles ep
+             WHERE ep."trainerId" = :trainerId AND ep."isActive" = true
+             ORDER BY ep."isDefault" DESC, ep.name`,
+            { trainerId: userId }
+          );
+          if (equipProfiles.length > 0) {
+            const profileLines = equipProfiles.map(ep => {
+              const items = typeof ep.items === 'string' ? JSON.parse(ep.items) : (ep.items || []);
+              const itemList = items.length > 0
+                ? items.map(i => `${i.name} (${i.category}${i.quantity > 1 ? ` x${i.quantity}` : ''})`).join(', ')
+                : 'No items';
+              return `  ${ep.name} [${ep.locationType}]: ${itemList}`;
+            });
+            bootcampParts.push(`Equipment Profiles (plan classes using ONLY this equipment when a profile is selected):\n${profileLines.join('\n')}\nIf no specific profile is mentioned, plan with all available exercises. When a profile IS mentioned, restrict exercises to those achievable with the listed equipment.`);
           }
         } catch { /* non-fatal */ }
 
