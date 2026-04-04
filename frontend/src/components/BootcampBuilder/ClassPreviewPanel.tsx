@@ -72,6 +72,27 @@ const BoardLabel = styled.span<{ $board: 'main' | 'alternative' }>`
   }
 `;
 
+const RegressionLine = styled.div`
+  padding: 2px 12px 6px 28px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  color: rgba(16, 185, 129, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '↳';
+    color: rgba(16, 185, 129, 0.4);
+    font-size: 13px;
+  }
+
+  span.label {
+    color: rgba(224, 236, 244, 0.35);
+    font-size: 10px;
+  }
+`;
+
 const StretchSection = styled.div`
   background: rgba(0, 255, 136, 0.04);
   border: 1px solid rgba(0, 255, 136, 0.15);
@@ -292,29 +313,37 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                       </div>
                     </StationHeader>
                     {exercises.map((ex) => (
-                      <ExerciseRow
-                        key={`${si}-${ex.sortOrder}-${activeBoard}`}
-                        $isCardio={ex.isCardioFinisher}
-                        onClick={() => onSelectExercise(ex)}
-                        type="button"
-                      >
-                        <span>
-                          {ex.sortOrder}. {ex.exerciseName}
-                          {ex.isCardioFinisher && ' (cardio finisher)'}
-                          {(ex as any).pyramidStartWeight && (
-                            <BoardLabel $board="main">{(ex as any).pyramidStartWeight}</BoardLabel>
-                          )}
-                          {(ex as any).supersetOrder && (
-                            <BoardLabel $board="main">S{(ex as any).supersetOrder}</BoardLabel>
-                          )}
-                        </span>
-                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          {(ex as any).setupTimeSec > 5 && (
-                            <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
-                          )}
-                          {ex.durationSec}s
-                        </span>
-                      </ExerciseRow>
+                      <React.Fragment key={`${si}-${ex.sortOrder}-${activeBoard}`}>
+                        <ExerciseRow
+                          $isCardio={ex.isCardioFinisher}
+                          onClick={() => onSelectExercise(ex)}
+                          type="button"
+                        >
+                          <span>
+                            {ex.sortOrder}. {ex.exerciseName}
+                            {ex.isCardioFinisher && ' (cardio finisher)'}
+                            {(ex as any).pyramidStartWeight && (
+                              <BoardLabel $board="main">{(ex as any).pyramidStartWeight}</BoardLabel>
+                            )}
+                            {(ex as any).supersetOrder && (
+                              <BoardLabel $board="main">S{(ex as any).supersetOrder}</BoardLabel>
+                            )}
+                          </span>
+                          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {(ex as any).setupTimeSec > 5 && (
+                              <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                            )}
+                            {ex.durationSec}s
+                          </span>
+                        </ExerciseRow>
+                        {/* Inline regression — easier alternative */}
+                        {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
+                          <RegressionLine>
+                            <span className="label">Easier:</span>
+                            {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
+                          </RegressionLine>
+                        )}
+                      </React.Fragment>
                     ))}
                   </StationCard>
                 );
@@ -328,15 +357,22 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                 {(activeBoard === 'main' ? board1Exercises : board2Exercises)
                   .filter(ex => (ex.stationIndex ?? -1) === -1)
                   .map((ex) => (
-                    <ExerciseRow
-                      key={`${ex.sortOrder}-${activeBoard}`}
-                      $isCardio={ex.isCardioFinisher}
-                      onClick={() => onSelectExercise(ex)}
-                      type="button"
-                    >
-                      <span>{ex.sortOrder}. {ex.exerciseName}</span>
-                      <span>{ex.durationSec}s</span>
-                    </ExerciseRow>
+                    <React.Fragment key={`${ex.sortOrder}-${activeBoard}`}>
+                      <ExerciseRow
+                        $isCardio={ex.isCardioFinisher}
+                        onClick={() => onSelectExercise(ex)}
+                        type="button"
+                      >
+                        <span>{ex.sortOrder}. {ex.exerciseName}</span>
+                        <span>{ex.durationSec}s</span>
+                      </ExerciseRow>
+                      {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
+                        <RegressionLine>
+                          <span className="label">Easier:</span>
+                          {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
+                        </RegressionLine>
+                      )}
+                    </React.Fragment>
                   ))}
               </StationCard>
             ) : null}
