@@ -36,7 +36,7 @@ interface ExerciseRolodexPanelProps {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Filter Chips
 // ─────────────────────────────────────────────────────────────
-const BODY_PARTS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Cardio'];
+const BODY_PARTS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Cardio', 'Recovery'];
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -229,10 +229,24 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExerci
       try {
         setLoading(true);
         const res = await authAxios.get('/api/bootcamp/exercises', {
-          params: { limit: 840, bodyPartCategory: bodyPart !== 'All' ? bodyPart.toLowerCase() : undefined },
+          params: {
+            limit: 200,
+            bodyPart: bodyPart !== 'All' ? bodyPart.toLowerCase().replace(' ', '_') : undefined,
+          },
         });
-        const data = res.data?.exercises || res.data?.data || res.data || [];
-        setExercises(Array.isArray(data) ? data : []);
+        const rawData = res.data?.exercises || res.data?.data || res.data || [];
+        const mapped = (Array.isArray(rawData) ? rawData : []).map((ex: any) => ({
+          id: ex.id,
+          name: ex.name || ex.exerciseName || 'Unknown',
+          primaryMuscles: typeof ex.primaryMuscles === 'string' ? JSON.parse(ex.primaryMuscles || '[]') : (ex.primaryMuscles || []),
+          secondaryMuscles: typeof ex.secondaryMuscles === 'string' ? JSON.parse(ex.secondaryMuscles || '[]') : (ex.secondaryMuscles || []),
+          equipmentNeeded: typeof ex.equipmentNeeded === 'string' ? JSON.parse(ex.equipmentNeeded || '[]') : (ex.equipmentNeeded || []),
+          difficulty: ex.difficulty || 500,
+          bodyPartCategory: ex.bodyPartCategory || '',
+          easyVariation: ex.easyVariation || ex.easy || null,
+          hardVariation: ex.hardVariation || ex.hard || null,
+        }));
+        setExercises(mapped);
       } catch (err) {
         console.warn('Failed to load exercises:', err);
         setExercises([]);

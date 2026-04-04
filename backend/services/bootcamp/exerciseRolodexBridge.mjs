@@ -66,11 +66,16 @@ export async function queryExercisesForBootcamp(filters = {}) {
   } = filters;
 
   try {
-    // Check if exercise_library/Exercises table exists
-    const [tableCheck] = await sequelize.query(
-      `SELECT to_regclass('exercise_library') AS t`,
-    );
-    const tableName = tableCheck[0]?.t ? 'exercise_library' : 'Exercises';
+    // Use "Exercises" table (883+ exercises). exercise_library exists but is empty.
+    // Check which table has actual data.
+    let tableName = 'Exercises';
+    try {
+      const [countCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM "Exercises"`);
+      if (parseInt(countCheck[0]?.c || 0) === 0) {
+        const [altCheck] = await sequelize.query(`SELECT COUNT(*) as c FROM exercise_library`);
+        if (parseInt(altCheck[0]?.c || 0) > 0) tableName = 'exercise_library';
+      }
+    } catch { /* use default */ }
 
     // Build WHERE conditions
     const conditions = [`"isActive" = true OR "isActive" IS NULL`];
