@@ -29,16 +29,22 @@
  *   D --> F[AITerminalPanel]
  */
 import React, { useCallback, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Wand2, Hand, Shuffle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
 import { exportBootcampPDF } from '../../services/pdfExportService';
-import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle, ThreePane } from './BootcampBuilderStyles';
+import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle } from './BootcampBuilderStyles';
+import { ModeBar, ModeBtn, TimingAlert, FourPane } from './BootcampModeStyles';
 import ConfigPanel from './ConfigPanel';
 import ClassPreviewPanel from './ClassPreviewPanel';
 import ExerciseDetailPanel from './ExerciseDetailPanel';
+import ExerciseRolodexPanel from './ExerciseRolodexPanel';
+import type { RolodexExercise } from './ExerciseRolodexPanel';
+import TeachMeToggle from '../Shared/TeachMeToggle';
+
+type BuildMode = 'ai' | 'manual' | 'hybrid';
 
 // ── Main Component ───────────────────────────────────────────
 
@@ -64,6 +70,37 @@ const BootcampBuilderPage: React.FC = () => {
   const [floorMode, setFloorMode] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<BootcampExercise | null>(null);
   const [saving, setSaving] = useState(false);
+  const [buildMode, setBuildMode] = useState<BuildMode>('ai');
+
+  // 55-min timing
+  const totalClassMin = bootcamp
+    ? (bootcamp.totalClassMin || (bootcamp.totalWorkoutMin || 0) + 13)
+    : parseInt(targetDuration, 10) + 13;
+  const isOverTime = totalClassMin > 55;
+
+  // Add exercise from Rolodex
+  const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
+    if (!bootcamp) {
+      toast.info('Generate a class first, then add exercises in Hybrid mode');
+      return;
+    }
+    const newEx = {
+      exerciseName: exercise.name,
+      durationSec: 35,
+      restSec: 15,
+      sortOrder: (bootcamp.exercises?.length || 0) + 1,
+      muscleTargets: (exercise.primaryMuscles || []).join(','),
+      easyVariation: exercise.easyVariation || null,
+      hardVariation: exercise.hardVariation || null,
+      board: 'main',
+      stationIndex: 0,
+      isCardioFinisher: false,
+      equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
+      setupTimeSec: 5,
+    } as any;
+    setBootcamp(prev => prev ? { ...prev, exercises: [...(prev.exercises || []), newEx] } : prev);
+    toast.success(`Added: ${exercise.name}`);
+  }, [bootcamp]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -125,27 +162,50 @@ const BootcampBuilderPage: React.FC = () => {
       <TopBar>
         <div>
           <Title>Boot Camp Class Builder</Title>
-          <Subtitle>AI-powered group fitness class generation with station planning and overflow management</Subtitle>
+          <Subtitle>AI + manual class creation with 840+ exercises and inline regressions</Subtitle>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           {bootcamp && (
             <FloorModeToggle onClick={handleExportPDF} title="Export class plan as PDF">
-              <Download size={16} /> Export PDF
+              <Download size={16} /> PDF
             </FloorModeToggle>
           )}
           <FloorModeToggle
             $active={floorMode}
             onClick={() => setFloorMode(!floorMode)}
             aria-pressed={floorMode}
-            aria-label={floorMode ? 'Exit high-contrast floor mode' : 'Enable high-contrast floor mode for gym use'}
-            title="High-contrast mode optimized for outdoor/gym floor coaching on tablets"
+            title="High-contrast mode for gym floor coaching"
           >
-            {floorMode ? 'Exit Floor Mode' : 'Floor Mode'}
+            {floorMode ? 'Exit Floor' : 'Floor Mode'}
           </FloorModeToggle>
+          <TeachMeToggle
+            sectionId="bootcamp-builder"
+            title="How to Use the Bootcamp Builder"
+            content="<strong>3 Build Modes:</strong><ul><li><strong>AI Generate:</strong> Set format, day type, style, hit Generate.</li><li><strong>Manual:</strong> Browse 840+ exercises, add to stations yourself.</li><li><strong>Hybrid:</strong> AI generates, you swap/add/remove.</li></ul><strong>55-Minute Rule:</strong> Timer turns red if class exceeds 55 min.<br/><strong>Regressions:</strong> Every exercise shows an easier alternative."
+          />
         </div>
       </TopBar>
 
-      <ThreePane>
+      <ModeBar>
+        <ModeBtn $active={buildMode === 'ai'} onClick={() => setBuildMode('ai')}>
+          <Wand2 size={14} /> AI Generate
+        </ModeBtn>
+        <ModeBtn $active={buildMode === 'manual'} onClick={() => setBuildMode('manual')}>
+          <Hand size={14} /> Manual
+        </ModeBtn>
+        <ModeBtn $active={buildMode === 'hybrid'} onClick={() => setBuildMode('hybrid')}>
+          <Shuffle size={14} /> Hybrid
+        </ModeBtn>
+        <TimingAlert $over={isOverTime}>
+          {isOverTime ? '⚠️' : '⏱'} {totalClassMin}/55 min
+        </TimingAlert>
+      </ModeBar>
+
+      <FourPane>
+        {/* Left panel: Config (AI mode) or Rolodex (Manual/Hybrid mode) */}
+        {buildMode === 'manual' ? (
+          <ExerciseRolodexPanel onAddExercise={handleAddFromRolodex} />
+        ) : (
         <ConfigPanel
           classFormat={classFormat} setClassFormat={setClassFormat}
           classStyle={classStyle} setClassStyle={setClassStyle}
@@ -162,6 +222,7 @@ const BootcampBuilderPage: React.FC = () => {
           error={error}
           onGenerate={handleGenerate}
         />
+        )}
         <ClassPreviewPanel
           bootcamp={bootcamp}
           loading={loading}
@@ -175,7 +236,7 @@ const BootcampBuilderPage: React.FC = () => {
           bootcamp={bootcamp}
           equipmentProfileId={equipmentProfileId}
         />
-      </ThreePane>
+      </FourPane>
     </PageWrapper>
   );
 };
