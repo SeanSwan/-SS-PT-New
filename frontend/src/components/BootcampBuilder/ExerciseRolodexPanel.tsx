@@ -1,32 +1,21 @@
 /**
  * ┌─── SUB-COMPONENT: ExerciseRolodexPanel ───────────────────┐
  * │ PARENT: BootcampBuilderPage                                │
- * │ PURPOSE: Searchable exercise browser with virtualized list │
- * │          for manual exercise selection in bootcamp builder  │
- * │ Props: { onAddExercise, availableEquipment }               │
+ * │ PURPOSE: Full exercise rolodex with all filter rows        │
+ * │          matching the Workout Planner's rolodex sidebar    │
+ * │ Props: { onAddExercise }                                   │
  * └────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import styled from 'styled-components';
-import { Search, Plus, Filter, X, Dumbbell, ChevronDown } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { List as VirtualList } from 'react-window';
+import { Search, Plus, X, Dumbbell } from 'lucide-react';
+import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
-export interface RolodexExercise {
-  id: string | number;
-  name: string;
-  primaryMuscles?: string[];
-  secondaryMuscles?: string[];
-  equipmentNeeded?: string[];
-  difficulty?: number;
-  bodyPartCategory?: string;
-  easyVariation?: string;
-  hardVariation?: string;
-}
+export interface RolodexExercise extends ExerciseSlim {}
 
 interface ExerciseRolodexPanelProps {
   onAddExercise: (exercise: RolodexExercise, stationIndex?: number) => void;
@@ -34,9 +23,31 @@ interface ExerciseRolodexPanelProps {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Filter Chips
+// SECTION: Filter Constants (match Workout Planner exactly)
 // ─────────────────────────────────────────────────────────────
 const BODY_PARTS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Cardio', 'Recovery'];
+const EXERCISE_TYPES = ['All Types', 'Compound', 'Isolation', 'Calisthenics', 'Stability', 'Flexibility', 'Core'];
+const EQUIPMENT_FILTERS = ['All Equipment', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine', 'Cable', 'Resistance Band', 'Kettlebell', 'Sliders', 'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX'];
+const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
+const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
+
+function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
+  const lowTypes = ['flexibility', 'stability', 'balance'];
+  const highTypes = ['calisthenics', 'compound'];
+  if (lowTypes.includes(ex.exerciseType) || ex.difficulty <= 200) return 'Low Impact';
+  if (highTypes.includes(ex.exerciseType) && ex.difficulty >= 500) return 'High Impact';
+  return 'Medium Impact';
+}
+
+function parseEquipment(eq: unknown): string[] {
+  if (!eq) return [];
+  if (Array.isArray(eq)) return eq.filter(Boolean);
+  if (typeof eq === 'string') {
+    if (eq === '[]' || eq === '') return [];
+    try { const p = JSON.parse(eq); if (Array.isArray(p)) return p.filter(Boolean); } catch { return [eq]; }
+  }
+  return [];
+}
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -48,18 +59,15 @@ const PanelWrap = styled.div`
   background: var(--bg-surface, #1A1A24);
   border-right: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   overflow: hidden;
-
-  @media (max-width: 768px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-    max-height: 50vh;
-  }
 `;
 
 const PanelHeader = styled.div`
-  padding: 12px;
+  padding: 10px 12px 6px;
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const PanelTitle = styled.div`
@@ -67,20 +75,27 @@ const PanelTitle = styled.div`
   font-size: 13px;
   font-weight: 700;
   color: var(--accent-primary, #60C0F0);
-  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 6px;
+`;
+
+const ResultCount = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.4));
 `;
 
 const SearchBox = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 7px 10px;
+  margin: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
   background: var(--bg-base, #0A0A0F);
+  flex-shrink: 0;
 
   input {
     flex: 1;
@@ -90,7 +105,6 @@ const SearchBox = styled.div`
     color: var(--text-primary, #E0ECF4);
     font-family: 'Sora', sans-serif;
     font-size: 13px;
-
     &::placeholder { color: var(--text-muted, rgba(224, 236, 244, 0.3)); }
   }
 `;
@@ -98,111 +112,83 @@ const SearchBox = styled.div`
 const ChipRow = styled.div`
   display: flex;
   gap: 4px;
+  padding: 3px 12px;
   overflow-x: auto;
-  padding: 8px 12px 4px;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
   flex-shrink: 0;
+  flex-wrap: wrap;
+  &::-webkit-scrollbar { display: none; }
 `;
 
 const Chip = styled.button<{ $active: boolean }>`
-  padding: 4px 10px;
-  border-radius: 12px;
-  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.1))'};
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
   background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)' : 'transparent'};
-  color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-muted, rgba(224, 236, 244, 0.5))'};
+  color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.5)'};
   font-family: 'Sora', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+  min-height: 24px;
   flex-shrink: 0;
-  min-height: 28px;
-
   &:hover { border-color: var(--accent-secondary, #8B5CF6); }
 `;
 
-const ExerciseCount = styled.div`
-  padding: 4px 12px;
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
-  flex-shrink: 0;
-`;
-
-const ListContainer = styled.div`
+const ExerciseList = styled.div`
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  &::-webkit-scrollbar { width: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba(96, 192, 240, 0.1); border-radius: 2px; }
 `;
 
-const ExerciseRow = styled.div`
+const ExerciseItem = styled.button`
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  width: 100%;
   padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.04);
+  background: transparent;
+  color: var(--text-primary, #E0ECF4);
+  text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.04);
-
+  min-height: 48px;
   &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent); }
-`;
-
-const ExInfo = styled.div`
-  flex: 1;
-  min-width: 0;
 `;
 
 const ExName = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const ExMeta = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
-  margin-top: 1px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 3px;
 `;
 
-const DiffBadge = styled.span<{ $level: 'easy' | 'med' | 'hard' }>`
-  padding: 2px 6px;
+const MetaTag = styled.span<{ $impact?: string }>`
+  padding: 1px 6px;
   border-radius: 4px;
-  font-size: 9px;
-  font-weight: 700;
   font-family: 'Fira Code', monospace;
-  ${({ $level }) => {
-    if ($level === 'easy') return 'background: rgba(16,185,129,0.15); color: #10B981;';
-    if ($level === 'hard') return 'background: rgba(201,42,84,0.15); color: #C92A54;';
-    return 'background: rgba(198,168,75,0.15); color: #C6A84B;';
+  font-size: 9px;
+  font-weight: 600;
+  background: rgba(96, 192, 240, 0.08);
+  color: rgba(224, 236, 244, 0.5);
+  ${({ $impact }) => {
+    if ($impact === 'High Impact') return 'background: rgba(201,42,84,0.12); color: #C92A54;';
+    if ($impact === 'Low Impact') return 'background: rgba(16,185,129,0.12); color: #10B981;';
+    if ($impact === 'Medium Impact') return 'background: rgba(198,168,75,0.12); color: #C6A84B;';
+    return '';
   }}
 `;
 
-const AddBtn = styled.button`
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--accent-primary, #60C0F0);
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  color: var(--accent-primary, #60C0F0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-    transform: scale(1.1);
-  }
-`;
-
-const EmptyState = styled.div`
+const EmptyMsg = styled.div`
   padding: 32px 16px;
   text-align: center;
   color: var(--text-muted, rgba(224, 236, 244, 0.3));
@@ -210,157 +196,152 @@ const EmptyState = styled.div`
   font-size: 12px;
 `;
 
+const SkeletonBlock = styled.div`
+  height: 48px;
+  margin: 4px 12px;
+  border-radius: 8px;
+  background: rgba(96, 192, 240, 0.04);
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({ onAddExercise, targetStation }) => {
-  const { authAxios } = useAuth() as any;
-  const [exercises, setExercises] = useState<RolodexExercise[]>([]);
-  const [search, setSearch] = useState('');
-  const [bodyPart, setBodyPart] = useState('All');
-  const [loading, setLoading] = useState(true);
-  const listRef = useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = useState(400);
+  // Use the same hook as the Workout Planner
+  const {
+    results: exerciseResults,
+    isLoading,
+    setQuery,
+    setCategory,
+    query: searchQuery,
+    category: filterCategory,
+  } = useExerciseSearch();
 
-  // Fetch exercises from API
-  useEffect(() => {
-    if (!authAxios) return;
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await authAxios.get('/api/bootcamp/exercises', {
-          params: {
-            limit: 200,
-            bodyPart: bodyPart !== 'All' ? bodyPart.toLowerCase().replace(' ', '_') : undefined,
-          },
-        });
-        const rawData = res.data?.exercises || res.data?.data || res.data || [];
-        const mapped = (Array.isArray(rawData) ? rawData : []).map((ex: any) => ({
-          id: ex.id,
-          name: ex.name || ex.exerciseName || 'Unknown',
-          primaryMuscles: typeof ex.primaryMuscles === 'string' ? JSON.parse(ex.primaryMuscles || '[]') : (ex.primaryMuscles || []),
-          secondaryMuscles: typeof ex.secondaryMuscles === 'string' ? JSON.parse(ex.secondaryMuscles || '[]') : (ex.secondaryMuscles || []),
-          equipmentNeeded: typeof ex.equipmentNeeded === 'string' ? JSON.parse(ex.equipmentNeeded || '[]') : (ex.equipmentNeeded || []),
-          difficulty: ex.difficulty || 500,
-          bodyPartCategory: ex.bodyPartCategory || '',
-          easyVariation: ex.easyVariation || ex.easy || null,
-          hardVariation: ex.hardVariation || ex.hard || null,
-        }));
-        setExercises(mapped);
-      } catch (err) {
-        console.warn('Failed to load exercises:', err);
-        setExercises([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [authAxios, bodyPart]);
+  // Advanced filters (same as Workout Planner)
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
+  const [impactFilter, setImpactFilter] = useState<string | null>(null);
 
-  // Measure container height for virtualization
-  useEffect(() => {
-    const measure = () => {
-      if (listRef.current) setListHeight(listRef.current.clientHeight || 400);
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
+  // Apply advanced filters on top of search results
+  const filteredExercises = useMemo(() => {
+    let pool = exerciseResults;
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return exercises;
-    const term = search.toLowerCase();
-    return exercises.filter(ex =>
-      ex.name?.toLowerCase().includes(term) ||
-      (ex.primaryMuscles || []).some(m => m.toLowerCase().includes(term)) ||
-      (ex.bodyPartCategory || '').toLowerCase().includes(term)
-    );
-  }, [exercises, search]);
+    if (exerciseTypeFilter) {
+      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === exerciseTypeFilter);
+    }
+    if (equipmentFilter) {
+      const norm = equipmentFilter.toLowerCase();
+      pool = pool.filter(ex => {
+        const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+        if (norm === 'bodyweight') return eqArr.length === 0 || eqArr.some(e => e.toLowerCase().includes('body'));
+        return eqArr.some(e => e.toLowerCase().includes(norm));
+      });
+    }
+    if (sourceFilter) {
+      pool = pool.filter(ex => (ex as any).source?.toLowerCase().includes(sourceFilter));
+    }
+    if (impactFilter) {
+      pool = pool.filter(ex => getJointImpact(ex) === impactFilter);
+    }
 
-  const getDiffLevel = (d?: number): 'easy' | 'med' | 'hard' => {
-    if (!d || d < 300) return 'easy';
-    if (d < 600) return 'med';
-    return 'hard';
-  };
+    return pool;
+  }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
 
-  const getDiffLabel = (d?: number): string => {
-    if (!d || d < 300) return 'Easy';
-    if (d < 600) return 'Medium';
-    return 'Hard';
-  };
-
-  const getMuscleStr = (ex: RolodexExercise): string => {
-    const muscles = ex.primaryMuscles || [];
-    return muscles.slice(0, 2).map(m => m.replace(/_/g, ' ')).join(', ') || 'General';
-  };
-
-  // Virtualized row renderer
-  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const ex = filtered[index];
-    if (!ex) return null;
-
-    return (
-      <div style={style}>
-        <ExerciseRow onClick={() => onAddExercise(ex, targetStation)}>
-          <ExInfo>
-            <ExName>{ex.name}</ExName>
-            <ExMeta>{getMuscleStr(ex)}</ExMeta>
-          </ExInfo>
-          <DiffBadge $level={getDiffLevel(ex.difficulty)}>{getDiffLabel(ex.difficulty)}</DiffBadge>
-          <AddBtn onClick={(e) => { e.stopPropagation(); onAddExercise(ex, targetStation); }} title="Add to class">
-            <Plus size={14} />
-          </AddBtn>
-        </ExerciseRow>
-      </div>
-    );
-  }, [filtered, onAddExercise, targetStation]);
+  const handleChipClick = useCallback((bp: string) => {
+    setCategory(bp === 'All' ? null : bp);
+  }, [setCategory]);
 
   return (
     <PanelWrap>
       <PanelHeader>
         <PanelTitle><Dumbbell size={14} /> Exercise Rolodex</PanelTitle>
-        <SearchBox>
-          <Search size={14} style={{ opacity: 0.4 }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search exercises..."
-            aria-label="Search exercises"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>
-              <X size={12} />
-            </button>
-          )}
-        </SearchBox>
+        <ResultCount>{filteredExercises.length} results</ResultCount>
       </PanelHeader>
 
+      <SearchBox>
+        <Search size={14} style={{ opacity: 0.4, flexShrink: 0 }} />
+        <input
+          value={searchQuery}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search exercises..."
+          aria-label="Search exercises"
+        />
+        {searchQuery && (
+          <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 2 }}>
+            <X size={12} />
+          </button>
+        )}
+      </SearchBox>
+
+      {/* Body Part filter */}
       <ChipRow>
         {BODY_PARTS.map(bp => (
-          <Chip key={bp} $active={bodyPart === bp} onClick={() => setBodyPart(bp)}>
+          <Chip key={bp} $active={filterCategory === null ? bp === 'All' : filterCategory === bp} onClick={() => handleChipClick(bp)}>
             {bp}
           </Chip>
         ))}
       </ChipRow>
 
-      <ExerciseCount>{filtered.length} exercises</ExerciseCount>
+      {/* Source filter */}
+      <ChipRow>
+        {SOURCE_FILTERS.map(sf => (
+          <Chip key={sf} $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()} onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}>
+            {sf}
+          </Chip>
+        ))}
+      </ChipRow>
 
-      <ListContainer ref={listRef}>
-        {loading ? (
-          <EmptyState>Loading exercises...</EmptyState>
-        ) : filtered.length === 0 ? (
-          <EmptyState>No exercises found</EmptyState>
+      {/* Exercise Type filter */}
+      <ChipRow>
+        {EXERCISE_TYPES.map(et => (
+          <Chip key={et} $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()} onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}>
+            {et}
+          </Chip>
+        ))}
+      </ChipRow>
+
+      {/* Equipment filter */}
+      <ChipRow>
+        {EQUIPMENT_FILTERS.map(eq => (
+          <Chip key={eq} $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()} onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}>
+            {eq}
+          </Chip>
+        ))}
+      </ChipRow>
+
+      {/* Impact Level filter */}
+      <ChipRow>
+        {IMPACT_LEVELS.map(il => (
+          <Chip key={il} $active={impactFilter === null ? il === 'All Impact' : impactFilter === il} onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}>
+            {il}
+          </Chip>
+        ))}
+      </ChipRow>
+
+      {/* Exercise List */}
+      <ExerciseList>
+        {isLoading ? (
+          Array.from({ length: 8 }, (_, i) => <SkeletonBlock key={i} />)
+        ) : filteredExercises.length === 0 ? (
+          <EmptyMsg>No exercises match your filters.</EmptyMsg>
         ) : (
-          <VirtualList
-            height={listHeight}
-            itemCount={filtered.length}
-            itemSize={52}
-            width="100%"
-          >
-            {Row}
-          </VirtualList>
+          filteredExercises.slice(0, 200).map(ex => (
+            <ExerciseItem
+              key={ex.id}
+              onClick={() => onAddExercise(ex as any, targetStation)}
+            >
+              <ExName>{ex.name}</ExName>
+              <ExMeta>
+                <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                <MetaTag>{ex.exerciseType}</MetaTag>
+                <MetaTag>{(() => { const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
+                <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
+              </ExMeta>
+            </ExerciseItem>
+          ))
         )}
-      </ListContainer>
+      </ExerciseList>
     </PanelWrap>
   );
 };
