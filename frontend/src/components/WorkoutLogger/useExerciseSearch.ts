@@ -123,6 +123,9 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           ankleMod: (ex?.ankleMod as string) || undefined,
           wristMod: (ex?.wristMod as string) || undefined,
           backMod: (ex?.backMod as string) || undefined,
+          elbowMod: (ex?.elbowMod as string) || undefined,
+          footMod: (ex?.footMod as string) || undefined,
+          hipMod: (ex?.hipMod as string) || undefined,
         }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);

@@ -37,6 +37,9 @@ export interface ExerciseSlim {
   ankleMod?: string;
   wristMod?: string;
   backMod?: string;
+  elbowMod?: string;
+  footMod?: string;
+  hipMod?: string;
 }
 
 interface CacheMessage { type: 'CACHE'; exercises: ExerciseSlim[] }

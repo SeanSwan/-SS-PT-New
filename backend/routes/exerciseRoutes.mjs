@@ -305,7 +305,7 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
           'id', 'name', 'exerciseType', 'primaryMuscles',
           'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
           'description', 'easyVariation', 'hardVariation',
-          'kneeMod', 'shoulderMod', 'ankleMod', 'wristMod', 'backMod',
+          'kneeMod', 'shoulderMod', 'ankleMod', 'wristMod', 'backMod', 'elbowMod', 'footMod', 'hipMod',
         ],
         where: { isActive: true },
         order: [['name', 'ASC']],
@@ -350,6 +350,9 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
         ankleMod: ex.ankleMod || null,
         wristMod: ex.wristMod || null,
         backMod: ex.backMod || null,
+        elbowMod: ex.elbowMod || null,
+        footMod: ex.footMod || null,
+        hipMod: ex.hipMod || null,
       };
     });
 
