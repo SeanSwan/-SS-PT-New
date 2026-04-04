@@ -27,7 +27,16 @@ export interface ExerciseSlim {
   primaryMuscles: string[];
   difficulty: number;
   equipment?: string[];
+  equipmentNeeded?: string[];
   source?: string;
+  description?: string;
+  easyVariation?: string;
+  hardVariation?: string;
+  kneeMod?: string;
+  shoulderMod?: string;
+  ankleMod?: string;
+  wristMod?: string;
+  backMod?: string;
 }
 
 interface CacheMessage { type: 'CACHE'; exercises: ExerciseSlim[] }

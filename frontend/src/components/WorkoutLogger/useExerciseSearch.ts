@@ -97,6 +97,13 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
       const body = (typeof payload === 'object' && payload !== null) ? payload : {};
       if (body.success && Array.isArray(body.exercises)) {
         // Sanitize each exercise to guarantee ExerciseSlim shape
+        const parseArr = (v: unknown): string[] => {
+          if (Array.isArray(v)) return v as string[];
+          if (typeof v === 'string') {
+            try { const p = JSON.parse(v); if (Array.isArray(p)) return p; } catch { return v ? [v] : []; }
+          }
+          return [];
+        };
         const exercises: ExerciseSlim[] = body.exercises.map((ex: Record<string, unknown>) => ({
           id: String(ex?.id ?? ''),
           name: String(ex?.name ?? 'Unknown Exercise'),
@@ -105,12 +112,17 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           bodyPartCategory: String(ex?.bodyPartCategory ?? 'Full Body'),
           primaryMuscles: Array.isArray(ex?.primaryMuscles) ? ex.primaryMuscles as string[] : [],
           difficulty: Number(ex?.difficulty) || 1,
-          equipment: Array.isArray(ex?.equipment)
-            ? ex.equipment as string[]
-            : typeof ex?.equipment === 'string'
-              ? (() => { try { const p = JSON.parse(ex.equipment as string); return Array.isArray(p) ? p : []; } catch { return [ex.equipment as string]; } })()
-              : [],
+          equipment: parseArr(ex?.equipment),
+          equipmentNeeded: parseArr(ex?.equipmentNeeded),
           source: String(ex?.source ?? 'swanstudios'),
+          description: (ex?.description as string) || undefined,
+          easyVariation: (ex?.easyVariation as string) || undefined,
+          hardVariation: (ex?.hardVariation as string) || undefined,
+          kneeMod: (ex?.kneeMod as string) || undefined,
+          shoulderMod: (ex?.shoulderMod as string) || undefined,
+          ankleMod: (ex?.ankleMod as string) || undefined,
+          wristMod: (ex?.wristMod as string) || undefined,
+          backMod: (ex?.backMod as string) || undefined,
         }));
         exerciseCacheRef.current = exercises;
         setAllExercises(exercises);

@@ -304,6 +304,8 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
         attributes: [
           'id', 'name', 'exerciseType', 'primaryMuscles',
           'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
+          'description', 'easyVariation', 'hardVariation',
+          'kneeMod', 'shoulderMod', 'ankleMod', 'wristMod', 'backMod',
         ],
         where: { isActive: true },
         order: [['name', 'ASC']],
@@ -340,6 +342,14 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
         difficulty: ex.difficulty || 0,
         equipment,
         source: ex.source || 'swanstudios',
+        description: ex.description || null,
+        easyVariation: ex.easyVariation || null,
+        hardVariation: ex.hardVariation || null,
+        kneeMod: ex.kneeMod || null,
+        shoulderMod: ex.shoulderMod || null,
+        ankleMod: ex.ankleMod || null,
+        wristMod: ex.wristMod || null,
+        backMod: ex.backMod || null,
       };
     });
 

@@ -348,23 +348,29 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                   </StationCard>
                 );
               })
-            ) : bootcamp.classFormat === 'full_group' ? (
+            ) : (activeBoard === 'main' ? board1Exercises : board2Exercises).length > 0 ? (
               <StationCard>
                 <StationHeader>
-                  <StationName>Full Group Workout</StationName>
-                  <TimingBadge>2 rounds</TimingBadge>
+                  <StationName>
+                    {bootcamp.classFormat === 'full_group' ? 'Full Group Workout' : 'Class Exercises'}
+                  </StationName>
+                  <TimingBadge>{(activeBoard === 'main' ? board1Exercises : board2Exercises).length} exercises</TimingBadge>
                 </StationHeader>
                 {(activeBoard === 'main' ? board1Exercises : board2Exercises)
-                  .filter(ex => (ex.stationIndex ?? -1) === -1)
-                  .map((ex) => (
-                    <React.Fragment key={`${ex.sortOrder}-${activeBoard}`}>
+                  .map((ex, idx) => (
+                    <React.Fragment key={`${ex.sortOrder}-${idx}-${activeBoard}`}>
                       <ExerciseRow
                         $isCardio={ex.isCardioFinisher}
                         onClick={() => onSelectExercise(ex)}
                         type="button"
                       >
-                        <span>{ex.sortOrder}. {ex.exerciseName}</span>
-                        <span>{ex.durationSec}s</span>
+                        <span>{idx + 1}. {ex.exerciseName}</span>
+                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          {(ex as any).setupTimeSec > 5 && (
+                            <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                          )}
+                          {ex.durationSec}s
+                        </span>
                       </ExerciseRow>
                       {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
                         <RegressionLine>

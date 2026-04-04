@@ -97,18 +97,39 @@ function parseEquipment(eq: unknown): string[] {
   return [];
 }
 
-function getExerciseTips(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes('squat')) return 'Feet shoulder-width, toes slightly out. Push hips back, bend knees. Keep chest up, drive through heels.';
-  if (n.includes('press') || n.includes('push')) return 'Maintain stable base. Control the lowering phase. Press explosively. Keep core braced.';
-  if (n.includes('curl')) return 'Keep elbows pinned. Control through full ROM. Squeeze at top. Lower slowly (3-4s).';
-  if (n.includes('row')) return 'Retract shoulder blades first. Drive elbows back, squeeze between shoulder blades. Avoid momentum.';
-  if (n.includes('lunge')) return 'Step forward with control. Lower until both knees ~90 degrees. Push back through front heel.';
-  if (n.includes('plank') || n.includes('hold')) return 'Straight line head to heels. Draw belly button to spine. Breathe steady. No hip sag.';
-  if (n.includes('deadlift') || n.includes('hinge')) return 'Hinge at hips, soft knees. Neutral spine throughout. Drive hips forward to stand.';
-  if (n.includes('fly') || n.includes('crossover')) return 'Slight bend in elbows. Control the stretch. Squeeze chest at top. Avoid locking elbows.';
-  if (n.includes('lateral') || n.includes('raise')) return 'Lead with elbows, not hands. Control the weight. Stop at shoulder height. Avoid shrugging.';
-  return 'Focus on controlled movement through full range of motion. Maintain alignment and core engagement.';
+function getExerciseTips(ex: ExerciseSlim): string {
+  // Use real description from DB when available
+  if (ex.description && ex.description.length > 20) return ex.description;
+
+  const n = ex.name.toLowerCase();
+  if (n.includes('squat') && (n.includes('jump') || n.includes('box'))) return 'Explode upward from squat. Land softly with bent knees. Absorb impact immediately into next rep.';
+  if (n.includes('goblet squat')) return 'Hold weight at chest, elbows down. Squat deep keeping torso upright, elbows inside knees. Drive through heels.';
+  if (n.includes('squat')) return 'Feet shoulder-width, toes slightly out. Push hips back, bend knees. Chest up, knees track over toes. Drive through heels.';
+  if (n.includes('bench press')) return 'Lie on bench, feet flat. Grip slightly wider than shoulders. Lower bar to mid-chest (3s down). Press up explosively. Keep shoulder blades retracted.';
+  if (n.includes('overhead press') || n.includes('military') || n.includes('shoulder press')) return 'Stand hip-width. Hold at shoulder height. Brace core, squeeze glutes. Press straight overhead to full lockout. Lower with control.';
+  if (n.includes('push up') || n.includes('pushup')) return 'Hands wider than shoulders. Straight line head to heels. Lower chest to 1-2" from floor. Push up explosively. No hip sag.';
+  if (n.includes('press') || n.includes('push')) return 'Stable base. Control the lowering phase (2-3s). Press with intent. Core braced, natural spine throughout.';
+  if (n.includes('pull up') || n.includes('pullup') || n.includes('chin up')) return 'Hang fully extended. Retract shoulder blades, pull until chin clears bar. Lower with control (3s). No kipping.';
+  if (n.includes('bent') && n.includes('row')) return 'Hinge to ~45 degrees. Pull bar to lower ribs, squeeze shoulder blades. Lower with control. Flat back throughout.';
+  if (n.includes('row')) return 'Retract shoulder blades first. Drive elbows back past torso. Squeeze between shoulder blades at top. Control the return.';
+  if (n.includes('deadlift') || n.includes('rdl') || n.includes('romanian')) return 'Feet hip-width, bar over mid-foot. Hinge at hips. Keep bar close to body, spine neutral. Lockout by squeezing glutes. Controlled return.';
+  if (n.includes('reverse lunge')) return 'Step backward. Lower until both knees ~90 degrees. Front knee behind toes. Drive through front heel to return.';
+  if (n.includes('walking lunge')) return 'Step forward into lunge. Both knees ~90 degrees. Drive through front heel, step back foot forward into next lunge.';
+  if (n.includes('lateral lunge') || n.includes('side lunge')) return 'Step wide to one side, push hips back. Bend stepping leg, keep other straight. Push off to return. Toes forward.';
+  if (n.includes('lunge')) return 'Step forward with control. Both knees ~90 degrees. Front knee over toes. Push back through front heel.';
+  if (n.includes('curl')) return 'Elbows pinned to sides. Curl up (2s). Squeeze hard at top. Lower slowly (3-4s). No swinging or momentum.';
+  if (n.includes('plank') || n.includes('dead bug') || n.includes('bird dog')) return 'Straight line head to heels. Draw belly button to spine. Breathe steady. No hip sag or pike. Hold with perfect form.';
+  if (n.includes('jump') || n.includes('hop') || n.includes('burpee') || n.includes('bound')) return 'Athletic stance, soft knees. Explode up with triple extension. Arms generate momentum. Land softly on balls of feet. Knees track over toes.';
+  if (n.includes('stretch') || n.includes('foam roll') || n.includes('mobility')) return 'Move slowly into position. Hold 20-30 seconds for static stretches. Breathe deeply and relax into it. For foam rolling: moderate pressure, 1 inch per second.';
+  if (n.includes('crunch') || n.includes('sit up') || n.includes('ab ')) return 'Knees bent, feet flat. Hands lightly behind head (don\'t pull neck). Curl shoulder blades off floor. Lower with control. Focus on the squeeze.';
+  if (n.includes('fly') || n.includes('flye') || n.includes('crossover')) return 'Slight elbow bend throughout. Control the stretch phase. Squeeze at contraction. 2s up, 3s down tempo.';
+  if (n.includes('lateral raise') || n.includes('side raise')) return 'Slight forward lean. Lead with elbows. Raise to shoulder height only. Lower for 3s. Don\'t shrug.';
+  if (n.includes('step up') || n.includes('step-up')) return 'Full foot on box. Drive through heel of working leg. Control the descent. Torso upright. Complete reps on one side, then switch.';
+  if (n.includes('sprint') || n.includes('run') || n.includes('shuttle')) return 'Drive knees high, powerful arm swing. Land on balls of feet. Forward lean from ankles. Maximum effort for prescribed distance.';
+  if (n.includes('rope') || n.includes('slam') || n.includes('throw')) return 'Generate power from hips and core. Athletic stance, soft knees. Full amplitude movements. Core braced. Breathe in rhythm.';
+  if (n.includes('kickback') || n.includes('extension') || n.includes('skull')) return 'Isolate the target joint. Fully extend through concentric. Squeeze 1 second. Control return 3 seconds. Lighter weight, prioritize form.';
+  if (n.includes('machine') || n.includes('leg press') || n.includes('lat pull')) return 'Adjust machine to fit your body. Controlled concentric. Squeeze at peak. Slow return through full ROM. Don\'t lock joints.';
+  return 'Controlled movement through full range of motion. Proper alignment. Core engaged. Breathe out during exertion, in during return.';
 }
 
 // ─── Component ──────────────────────────────────────────────
@@ -356,7 +377,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
             </PreviewRow>
             <PreviewRow>
               <PreviewLabel>Tips:</PreviewLabel>
-              {getExerciseTips(previewExercise.name)}
+              {getExerciseTips(previewExercise)}
             </PreviewRow>
             {previewExercise.easyVariation && (
               <PreviewRow>
