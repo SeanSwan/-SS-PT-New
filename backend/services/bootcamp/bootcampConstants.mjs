@@ -9,22 +9,53 @@
 // ── Class Format Configs ──────────────────────────────────────────────
 
 export const FORMAT_CONFIG = {
-  // Station-based formats
-  stations_4x: { exercisesPerStation: 4, durationSec: 35, fixedStations: null, description: '4 exercises per station, 35s each' },
-  stations_3x5: { exercisesPerStation: 3, durationSec: 40, fixedStations: 5, description: '3 exercises × 5 stations, 40s each' },
-  stations_2x7: { exercisesPerStation: 2, durationSec: 30, fixedStations: 7, description: '2 exercises × 7 stations, 30s each' },
-  stations_3x4: { exercisesPerStation: 3, durationSec: 35, fixedStations: 4, description: '3 exercises × 4 stations, 35s each' },
-  stations_5x3: { exercisesPerStation: 5, durationSec: 30, fixedStations: 3, description: '5 exercises × 3 stations, 30s each' },
-  // Full group formats (no stations)
-  full_group: { exercisesPerStation: null, durationSec: 40, fixedStations: null, description: 'Everyone does same circuit, 40s each' },
-  // Time-based protocols
-  emom: { exercisesPerStation: null, durationSec: 60, fixedStations: null, rounds: 1, description: 'Every Minute On The Minute — 60s cycles' },
-  tabata: { exercisesPerStation: null, durationSec: 20, restSec: 10, fixedStations: null, rounds: 8, description: 'Tabata — 20s work / 10s rest × 8 rounds per exercise' },
-  amrap: { exercisesPerStation: null, durationSec: null, fixedStations: null, blockMin: 4, description: 'As Many Reps As Possible — 4 min blocks' },
-  // Hybrid formats
-  circuit: { exercisesPerStation: null, durationSec: 40, fixedStations: null, rounds: 3, description: 'Timed circuit — 40s work, 15s rest, 3 rounds' },
-  partner: { exercisesPerStation: 2, durationSec: 40, fixedStations: null, description: 'Partner stations — I-go-you-go format, 40s each' },
-  hybrid: { exercisesPerStation: null, durationSec: 35, fixedStations: null, description: 'Warm-up stations → full group circuit → finisher' },
+  // ── 2 Exercises per Station ──
+  '2x5_r4':  { exercisesPerStation: 2, durationSec: 30, fixedStations: 5, rounds: 4 },
+  '2x5_r3':  { exercisesPerStation: 2, durationSec: 30, fixedStations: 5, rounds: 3 },
+  '2x6_r3':  { exercisesPerStation: 2, durationSec: 35, fixedStations: 6, rounds: 3 },
+  '2x6_r2':  { exercisesPerStation: 2, durationSec: 35, fixedStations: 6, rounds: 2 },
+  '2x7_r3':  { exercisesPerStation: 2, durationSec: 30, fixedStations: 7, rounds: 3 },
+  '2x7_r2':  { exercisesPerStation: 2, durationSec: 30, fixedStations: 7, rounds: 2 },
+  '2x8_r3':  { exercisesPerStation: 2, durationSec: 30, fixedStations: 8, rounds: 3 },
+  '2x8_r2':  { exercisesPerStation: 2, durationSec: 35, fixedStations: 8, rounds: 2 },
+  '2x10_r2': { exercisesPerStation: 2, durationSec: 30, fixedStations: 10, rounds: 2 },
+
+  // ── 3 Exercises per Station ──
+  '3x4_r3':  { exercisesPerStation: 3, durationSec: 30, fixedStations: 4, rounds: 3 },
+  '3x4_r2':  { exercisesPerStation: 3, durationSec: 35, fixedStations: 4, rounds: 2 },
+  '3x5_r2':  { exercisesPerStation: 3, durationSec: 35, fixedStations: 5, rounds: 2 },
+  '3x5_r3':  { exercisesPerStation: 3, durationSec: 30, fixedStations: 5, rounds: 3 },
+  '3x6_r2':  { exercisesPerStation: 3, durationSec: 30, fixedStations: 6, rounds: 2 },
+  '3x6_r1':  { exercisesPerStation: 3, durationSec: 35, fixedStations: 6, rounds: 1 },
+  '3x8_r1':  { exercisesPerStation: 3, durationSec: 30, fixedStations: 8, rounds: 1 },
+
+  // ── 4 Exercises per Station ──
+  '4x4_r2':  { exercisesPerStation: 4, durationSec: 30, fixedStations: 4, rounds: 2 },
+  '4x4_r1':  { exercisesPerStation: 4, durationSec: 35, fixedStations: 4, rounds: 1 },
+  '4x5_r2':  { exercisesPerStation: 4, durationSec: 30, fixedStations: 5, rounds: 2 },
+  '4x5_r1':  { exercisesPerStation: 4, durationSec: 35, fixedStations: 5, rounds: 1 },
+  '4x6_r1':  { exercisesPerStation: 4, durationSec: 35, fixedStations: 6, rounds: 1 },
+
+  // ── 5 Exercises per Station ──
+  '5x3_r2':  { exercisesPerStation: 5, durationSec: 30, fixedStations: 3, rounds: 2 },
+  '5x3_r1':  { exercisesPerStation: 5, durationSec: 30, fixedStations: 3, rounds: 1 },
+  '5x4_r1':  { exercisesPerStation: 5, durationSec: 30, fixedStations: 4, rounds: 1 },
+
+  // ── Legacy aliases (for existing saved templates) ──
+  stations_4x:  { exercisesPerStation: 4, durationSec: 35, fixedStations: 5, rounds: 2 },
+  stations_3x5: { exercisesPerStation: 3, durationSec: 40, fixedStations: 5, rounds: 2 },
+  stations_2x7: { exercisesPerStation: 2, durationSec: 30, fixedStations: 7, rounds: 3 },
+  stations_3x4: { exercisesPerStation: 3, durationSec: 35, fixedStations: 4, rounds: 2 },
+  stations_5x3: { exercisesPerStation: 5, durationSec: 30, fixedStations: 3, rounds: 2 },
+
+  // ── Group / Circuit / Protocol ──
+  full_group: { exercisesPerStation: null, durationSec: 40, fixedStations: null, rounds: 2 },
+  circuit:    { exercisesPerStation: null, durationSec: 40, fixedStations: null, rounds: 3 },
+  emom:       { exercisesPerStation: null, durationSec: 60, fixedStations: null, rounds: 1 },
+  tabata:     { exercisesPerStation: null, durationSec: 20, restSec: 10, fixedStations: null, rounds: 8 },
+  amrap:      { exercisesPerStation: null, durationSec: null, fixedStations: null, blockMin: 4, rounds: 1 },
+  partner:    { exercisesPerStation: 2, durationSec: 40, fixedStations: 6, rounds: 3 },
+  hybrid:     { exercisesPerStation: null, durationSec: 35, fixedStations: null, rounds: 1 },
 };
 
 export const TRANSITION_TIME_SEC = 15;

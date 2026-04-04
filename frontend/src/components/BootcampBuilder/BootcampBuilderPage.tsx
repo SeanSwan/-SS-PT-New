@@ -34,7 +34,7 @@ import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
-import { CLASS_FORMATS, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getDurationSec } from './BootcampBuilderConstants';
+import { CLASS_FORMATS, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getDurationSec, getRounds, getTotalMin } from './BootcampBuilderConstants';
 import { exportBootcampPDF } from '../../services/pdfExportService';
 import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle } from './BootcampBuilderStyles';
 import { ModeBar, ModeBtn, TimingAlert, FourPane } from './BootcampModeStyles';
@@ -115,7 +115,7 @@ const BootcampBuilderPage: React.FC = () => {
     const isStationBased = formatCfg?.isStationBased ?? false;
     const dur = getDurationSec(classFormat);
     const maxPerStation = getExercisesPerStation(classFormat);
-    const numStations = isStationBased ? getStationCount(classFormat, parseInt(targetDuration, 10) || 45) : 0;
+    const numStations = isStationBased ? getStationCount(classFormat) : 0;
 
     setBootcamp(prev => {
       const existingExercises = prev?.exercises || [];
@@ -328,7 +328,7 @@ const BootcampBuilderPage: React.FC = () => {
             stationInfo={(() => {
               const cfg = FORMAT_CONFIG[classFormat];
               if (!cfg?.isStationBased) return 'Circuit mode';
-              const sc = getStationCount(classFormat, parseInt(targetDuration, 10) || 45);
+              const sc = getStationCount(classFormat);
               const epc = getExercisesPerStation(classFormat);
               const filled = bootcamp?.exercises?.length || 0;
               const total = sc * epc;

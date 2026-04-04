@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type ClassFormat = 'stations_4x' | 'stations_3x5' | 'stations_2x7' | 'full_group' | 'custom';
+export type ClassFormat = string; // Dynamic — keys from FORMAT_CONFIG (25+ station combos + protocols)
 export type DayType = 'lower_body' | 'upper_body' | 'cardio' | 'full_body' | 'custom';
 
 export interface BootcampExercise {

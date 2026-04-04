@@ -59,7 +59,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       <Label>Class Format</Label>
       <Select value={classFormat} onChange={e => setClassFormat(e.target.value as ClassFormat)}>
         {CLASS_FORMATS.map(f => (
-          <option key={f.value} value={f.value}>{f.label}</option>
+          <option key={f.value} value={f.value}>
+            {f.fitBadge} {f.label} — {f.totalMin ? `${f.totalMin}min` : f.description}
+          </option>
         ))}
       </Select>
     </FormGroup>
