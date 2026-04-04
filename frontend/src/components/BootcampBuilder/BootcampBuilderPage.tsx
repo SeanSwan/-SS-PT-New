@@ -202,27 +202,29 @@ const BootcampBuilderPage: React.FC = () => {
       </ModeBar>
 
       <FourPane>
-        {/* Left panel: Config (AI mode) or Rolodex (Manual/Hybrid mode) */}
+        {/* Left panel: Config (AI/Hybrid) or Rolodex (Manual) */}
         {buildMode === 'manual' ? (
           <ExerciseRolodexPanel onAddExercise={handleAddFromRolodex} />
         ) : (
-        <ConfigPanel
-          classFormat={classFormat} setClassFormat={setClassFormat}
-          classStyle={classStyle} setClassStyle={setClassStyle}
-          dayType={dayType} setDayType={setDayType}
-          intensityCategory={intensityCategory} setIntensityCategory={setIntensityCategory}
-          optPhase={optPhase} setOptPhase={setOptPhase}
-          targetDuration={targetDuration} setTargetDuration={setTargetDuration}
-          expectedParticipants={expectedParticipants} setExpectedParticipants={setExpectedParticipants}
-          className={className} setClassName={setClassName}
-          equipmentProfileId={equipmentProfileId} setEquipmentProfileId={setEquipmentProfileId}
-          includeStretch={includeStretch} setIncludeStretch={setIncludeStretch}
-          floorMode={floorMode}
-          loading={loading}
-          error={error}
-          onGenerate={handleGenerate}
-        />
+          <ConfigPanel
+            classFormat={classFormat} setClassFormat={setClassFormat}
+            classStyle={classStyle} setClassStyle={setClassStyle}
+            dayType={dayType} setDayType={setDayType}
+            intensityCategory={intensityCategory} setIntensityCategory={setIntensityCategory}
+            optPhase={optPhase} setOptPhase={setOptPhase}
+            targetDuration={targetDuration} setTargetDuration={setTargetDuration}
+            expectedParticipants={expectedParticipants} setExpectedParticipants={setExpectedParticipants}
+            className={className} setClassName={setClassName}
+            equipmentProfileId={equipmentProfileId} setEquipmentProfileId={setEquipmentProfileId}
+            includeStretch={includeStretch} setIncludeStretch={setIncludeStretch}
+            floorMode={floorMode}
+            loading={loading}
+            error={error}
+            onGenerate={handleGenerate}
+          />
         )}
+
+        {/* Center: Class Preview */}
         <ClassPreviewPanel
           bootcamp={bootcamp}
           loading={loading}
@@ -231,11 +233,17 @@ const BootcampBuilderPage: React.FC = () => {
           onSave={handleSave}
           onSelectExercise={setSelectedExercise}
         />
-        <ExerciseDetailPanel
-          selectedExercise={selectedExercise}
-          bootcamp={bootcamp}
-          equipmentProfileId={equipmentProfileId}
-        />
+
+        {/* Right panel: Rolodex (Hybrid) or Exercise Detail (AI/Manual) */}
+        {buildMode === 'hybrid' ? (
+          <ExerciseRolodexPanel onAddExercise={handleAddFromRolodex} />
+        ) : (
+          <ExerciseDetailPanel
+            selectedExercise={selectedExercise}
+            bootcamp={bootcamp}
+            equipmentProfileId={equipmentProfileId}
+          />
+        )}
       </FourPane>
     </PageWrapper>
   );
