@@ -28,7 +28,7 @@
  *   B --> E[EquipmentProfilePicker]
  *   D --> F[AITerminalPanel]
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Download, Wand2, Hand, Shuffle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
@@ -53,7 +53,7 @@ const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI();
 
   // Config state
-  const [classFormat, setClassFormat] = useState<ClassFormat>('stations_4x');
+  const [classFormat, setClassFormat] = useState<ClassFormat>('2x8_r3');
   const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
   const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
@@ -82,6 +82,40 @@ const BootcampBuilderPage: React.FC = () => {
 
   // Selected rolodex exercise (for detail panel)
   const [selectedRolodexId, setSelectedRolodexId] = useState<number | null>(null);
+
+  // Auto-create empty station structure in Manual/Hybrid mode when format changes
+  useEffect(() => {
+    if (buildMode === 'ai') return;
+    const cfg = FORMAT_CONFIG[classFormat];
+    if (!cfg?.isStationBased) return;
+    const targetDur = parseInt(targetDuration, 10) || 45;
+    const { workSec } = calcWorkInterval(classFormat, targetDur);
+
+    // Only create if no bootcamp exists yet (user just switched format)
+    if (!bootcamp) {
+      setBootcamp({
+        name: className || 'Manual Class',
+        classFormat,
+        dayType,
+        stationCount: cfg.stations,
+        targetDuration: targetDur,
+        totalWorkoutMin: 0,
+        totalClassMin: OVERHEAD_MIN,
+        expectedParticipants: parseInt(expectedParticipants, 10) || 12,
+        stations: Array.from({ length: cfg.stations }, (_, i) => ({
+          stationNumber: i + 1,
+          stationName: `Station ${i + 1}`,
+          equipmentNeeded: null,
+        })),
+        exercises: [],
+        explanations: [{
+          type: 'info',
+          message: `Manual — ${cfg.stations} stations × ${cfg.exercisesPerStation} exercises × ${cfg.rounds} rounds, ${workSec}s each`,
+        }],
+        overflowPlan: null,
+      } as any);
+    }
+  }, [buildMode, classFormat, bootcamp]);
 
   // View exercise detail from Rolodex (click on card body)
   const handleSelectFromRolodex = useCallback((exercise: RolodexExercise) => {
