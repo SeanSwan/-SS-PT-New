@@ -15,7 +15,7 @@ import {
   Panel, PanelTitle, StationCard, StationHeader, StationName,
   ExerciseRow, TimingBadge, SectionDivider, InsightCard, PrimaryButton,
 } from './BootcampBuilderStyles';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
 
 // ── Board Toggle Styled Components ────────────────────────────────────
@@ -165,6 +165,116 @@ const FlowMeter = styled.div<{ $score: number }>`
   }
 `;
 
+// ── Board 2 Modification Table Styles ──
+
+const ModAccordionHeader = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  min-height: 48px;
+  border: none;
+  border-bottom: 1px solid rgba(96, 192, 240, 0.06);
+  background: var(--bg-elevated, #141419);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  &:hover { background: var(--bg-surface, #1A1A24); }
+`;
+
+const ModTable = styled.div`
+  padding: 0 8px 8px;
+`;
+
+const ModRow = styled.div<{ $even: boolean; $type?: 'easy' | 'hard' | 'joint' }>`
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 2px;
+  background: ${({ $even, $type }) => {
+    if ($type === 'easy') return 'rgba(16, 185, 129, 0.06)';
+    if ($type === 'hard') return 'rgba(201, 42, 84, 0.06)';
+    return $even ? 'rgba(96, 192, 240, 0.03)' : 'transparent';
+  }};
+  border-left: 3px solid ${({ $type }) => {
+    if ($type === 'easy') return '#10B981';
+    if ($type === 'hard') return '#C92A54';
+    return 'transparent';
+  }};
+`;
+
+const ModLabel = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  min-width: 100px;
+  flex-shrink: 0;
+`;
+
+const ModValue = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary, #E0ECF4);
+`;
+
+const MOD_FIELDS: Array<{ key: string; label: string; icon: string; type: 'easy' | 'hard' | 'joint' }> = [
+  { key: 'easyVariation', label: 'Easier Version', icon: '🟢', type: 'easy' },
+  { key: 'hardVariation', label: 'Harder Version', icon: '🔴', type: 'hard' },
+  { key: 'kneeMod', label: 'Knee-Friendly', icon: '🦵', type: 'joint' },
+  { key: 'shoulderMod', label: 'Shoulder-Friendly', icon: '💪', type: 'joint' },
+  { key: 'backMod', label: 'Lower Back-Friendly', icon: '🔙', type: 'joint' },
+  { key: 'ankleMod', label: 'Ankle-Friendly', icon: '🦶', type: 'joint' },
+  { key: 'wristMod', label: 'Wrist-Friendly', icon: '✋', type: 'joint' },
+  { key: 'elbowMod', label: 'Elbow-Friendly', icon: '💪', type: 'joint' },
+  { key: 'footMod', label: 'Foot-Friendly', icon: '👟', type: 'joint' },
+  { key: 'hipMod', label: 'Hip-Friendly', icon: '🦴', type: 'joint' },
+];
+
+/** Render the modification accordion for a single exercise on Board 2 */
+const ExerciseModAccordion: React.FC<{ ex: BootcampExercise; exIdx: number }> = ({ ex, exIdx }) => {
+  const [open, setOpen] = useState(false);
+  const mods = MOD_FIELDS.filter(m => {
+    const val = (ex as any)[m.key];
+    return val && val !== 'N/A' && val !== 'n/a' && val.trim().length > 0;
+  });
+
+  return (
+    <div>
+      <ModAccordionHeader onClick={() => setOpen(!open)}>
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>{exIdx + 1}. {ex.exerciseName}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>
+          {mods.length} alternatives
+        </span>
+      </ModAccordionHeader>
+      {open && mods.length > 0 && (
+        <ModTable>
+          {mods.map((mod, i) => (
+            <ModRow key={mod.key} $even={i % 2 === 0} $type={mod.type}>
+              <ModLabel>{mod.icon} {mod.label}</ModLabel>
+              <ModValue>{(ex as any)[mod.key]}</ModValue>
+            </ModRow>
+          ))}
+        </ModTable>
+      )}
+      {open && mods.length === 0 && (
+        <div style={{ padding: '8px 14px', fontSize: 11, opacity: 0.4, fontStyle: 'italic' }}>
+          No modifications available yet — data is being populated
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DeleteBtn = styled.button`
   width: 24px;
   height: 24px;
@@ -216,27 +326,24 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
 }) => {
   const [activeBoard, setActiveBoard] = useState<'main' | 'alternative'>('main');
 
-  const { board1Exercises, board2Exercises, stationExercises, hasBoard2 } = useMemo(() => {
-    if (!bootcamp) return { board1Exercises: [], board2Exercises: [], stationExercises: {}, hasBoard2: false };
+  const { board1Exercises, stationExercises } = useMemo(() => {
+    if (!bootcamp) return { board1Exercises: [], stationExercises: {} };
 
     const b1 = bootcamp.exercises.filter(ex => (ex as any).board !== 'alternative');
-    const b2 = bootcamp.exercises.filter(ex => (ex as any).board === 'alternative');
 
-    const currentBoard = activeBoard === 'main' ? b1 : b2;
-    const grouped = currentBoard.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
+    // For Board 1 (main), group by station
+    const grouped = b1.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
       const key = ex.stationIndex ?? -1;
       if (!acc[key]) acc[key] = [];
       acc[key].push(ex);
       return acc;
     }, {});
 
-    return {
-      board1Exercises: b1,
-      board2Exercises: b2,
-      stationExercises: grouped,
-      hasBoard2: b2.length > 0,
-    };
-  }, [bootcamp, activeBoard]);
+    return { board1Exercises: b1, stationExercises: grouped };
+  }, [bootcamp]);
+
+  // Board 2 is always available when there are exercises
+  const hasBoard2 = board1Exercises.length > 0;
 
   const stretches = (bootcamp as any)?.stretches ?? [];
   const flowData: Array<{ station: number; flowScore: number; maxSetupSec: number; bottleneck: boolean }> =
@@ -297,7 +404,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                   onClick={() => setActiveBoard('alternative')}
                   type="button"
                 >
-                  Board 2 — Modified
+                  Board 2 — Joint-Friendly Alternatives
                 </BoardTab>
               </BoardToggleBar>
             )}
@@ -317,8 +424,44 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
               </>
             )}
 
-            {/* Station Cards */}
-            {bootcamp.stations.length > 0 ? (
+            {/* ── Board 2: Joint-Friendly Alternatives (Modification Accordions) ── */}
+            {activeBoard === 'alternative' && (
+              <>
+                <div style={{ padding: '8px 0 4px', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  Tap any exercise to see joint-friendly alternatives. Same exercises as Board 1 with modification options.
+                </div>
+                {bootcamp.stations.length > 0 ? (
+                  bootcamp.stations.map((station, si) => {
+                    const exercises = stationExercises[si] ?? [];
+                    if (exercises.length === 0) return null;
+                    return (
+                      <StationCard key={`b2-${si}`}>
+                        <StationHeader>
+                          <StationName>{station.stationName}</StationName>
+                          <TimingBadge>{exercises.length} exercises</TimingBadge>
+                        </StationHeader>
+                        {exercises.map((ex, exIdx) => (
+                          <ExerciseModAccordion key={`b2-${si}-${exIdx}`} ex={ex} exIdx={exIdx} />
+                        ))}
+                      </StationCard>
+                    );
+                  })
+                ) : board1Exercises.length > 0 ? (
+                  <StationCard>
+                    <StationHeader>
+                      <StationName>All Exercises</StationName>
+                      <TimingBadge>{board1Exercises.length} exercises</TimingBadge>
+                    </StationHeader>
+                    {board1Exercises.map((ex, exIdx) => (
+                      <ExerciseModAccordion key={`b2-flat-${exIdx}`} ex={ex} exIdx={exIdx} />
+                    ))}
+                  </StationCard>
+                ) : null}
+              </>
+            )}
+
+            {/* ── Board 1: Main Intensity (Normal Exercise Rows) ── */}
+            {activeBoard === 'main' && bootcamp.stations.length > 0 ? (
               bootcamp.stations.map((station, si) => {
                 const exercises = stationExercises[si] ?? [];
                 if (exercises.length === 0 && activeBoard === 'alternative') return null;
@@ -411,16 +554,15 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                   </ClickableStationCard>
                 );
               })
-            ) : (activeBoard === 'main' ? board1Exercises : board2Exercises).length > 0 ? (
+            ) : activeBoard === 'main' && board1Exercises.length > 0 ? (
               <StationCard>
                 <StationHeader>
                   <StationName>
                     {bootcamp.classFormat === 'full_group' ? 'Full Group Workout' : 'Class Exercises'}
                   </StationName>
-                  <TimingBadge>{(activeBoard === 'main' ? board1Exercises : board2Exercises).length} exercises</TimingBadge>
+                  <TimingBadge>{board1Exercises.length} exercises</TimingBadge>
                 </StationHeader>
-                {(activeBoard === 'main' ? board1Exercises : board2Exercises)
-                  .map((ex, idx) => (
+                {board1Exercises.map((ex, idx) => (
                     <React.Fragment key={`${ex.sortOrder}-${idx}-${activeBoard}`}>
                       <ExerciseRow
                         $isCardio={ex.isCardioFinisher}
