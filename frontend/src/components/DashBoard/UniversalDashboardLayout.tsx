@@ -441,7 +441,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/trainer-management-legacy', component: TrainersManagementSection, title: 'Trainer Management (Legacy)', description: 'Traditional trainer oversight interface' },
       
       // 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT
-      { path: '/client-management', component: ClientManagementDashboard, title: 'Client Management Hub', description: 'Complete client data collection & management' },
+      { path: '/client-management', component: React.lazy(() => import('./workspaces/ClientsWorkspace')), title: 'Client Hub', description: 'Unified client management with selector, cards, and detail tabs' },
       { path: '/client-details', component: EnhancedAdminClientManagementView, title: 'Advanced Client Management', description: 'Detailed client management interface' },
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
