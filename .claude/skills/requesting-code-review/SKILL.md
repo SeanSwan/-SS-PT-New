@@ -1,3 +1,17 @@
+## Skill: requesting-code-review
+
+## Current Score: 2.0/10 (20.0%)
+
+## Score History: Gen 1: 20%
+
+## Failed Criteria (most important to fix):
+1. Skill prompt includes checking for security vulnerabilities (XSS, injection, auth bypass)
+2. Skill prompt includes checking for performance issues (N+1 queries, unnecessary re-renders)
+3. Skill prompt requires verifying test coverage for changed code
+4. Skill prompt requires checking for breaking API or interface changes
+5. Skill prompt checks that new code follows project conventions
+
+## Current Prompt:
 ---
 name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
@@ -24,10 +38,9 @@ Dispatch superpowers:code-reviewer subagent to catch issues before they cascade.
 ## How to Request
 
 **1. Get git SHAs:**
-```bash
+bash
 BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
-```
 
 **2. Dispatch code-reviewer subagent:**
 
@@ -39,6 +52,13 @@ Use Task tool with superpowers:code-reviewer type, fill template at `code-review
 - `{BASE_SHA}` - Starting commit
 - `{HEAD_SHA}` - Ending commit
 - `{DESCRIPTION}` - Brief summary
+
+**Explicitly request checks for:**
+- **Security vulnerabilities:** XSS, SQL/command injection, authentication bypasses, insecure direct object references, sensitive data exposure.
+- **Performance:** N+1 queries, unnecessary re-renders, excessive computations, inefficient algorithms, large data transfers.
+- **Test Coverage:** Verify new/changed code has adequate unit, integration, and end-to-end tests.
+- **Breaking Changes:** Identify any changes to public APIs, data schemas, or interfaces that could impact dependent systems.
+- **Project Conventions:** Adherence to coding style guides, architectural patterns, naming conventions, and documentation standards.
 
 **3. Act on feedback:**
 - Fix Critical issues immediately
@@ -62,15 +82,17 @@ HEAD_SHA=$(git rev-parse HEAD)
   BASE_SHA: a7981ec
   HEAD_SHA: 3df7661
   DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
+  REQUESTED_CHECKS: security, performance, test_coverage, breaking_changes, conventions
 
 [Subagent returns]:
   Strengths: Clean architecture, real tests
   Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
+    Critical: Potential XSS vulnerability in verifyIndex() output
+    Important: Missing progress indicators, N+1 query in repairIndex()
+    Minor: Magic number (100) for reporting interval, inconsistent variable naming
+  Assessment: Needs critical fixes before proceeding
 
-You: [Fix progress indicators]
+You: [Fix XSS vulnerability and N+1 query, add progress indicators]
 [Continue to Task 3]
 ```
 

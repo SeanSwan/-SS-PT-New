@@ -1,3 +1,13 @@
+## Skill: systematic-debugging
+
+## Current Score: 10.0/11 (90.9%)
+
+## Score History: Gen 1: 90.9%
+
+## Failed Criteria (most important to fix):
+1. Skill prompt requires documenting what was found and why the fix works
+
+## Current Prompt:
 ---
 name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
@@ -15,7 +25,6 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 
 ## The Iron Law
 
-```
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
@@ -212,6 +221,12 @@ You MUST complete each phase before proceeding to the next.
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 
+6. **Document Findings and Fix**
+   - Clearly state the identified root cause.
+   - Explain why the implemented fix addresses this root cause.
+   - Summarize the evidence that led to the root cause identification.
+   - Describe the specific change made and its expected impact.
+
 ## Red Flags - STOP and Follow Process
 
 If you catch yourself thinking:
@@ -262,7 +277,7 @@ If you catch yourself thinking:
 | **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
 | **2. Pattern** | Find working examples, compare | Identify differences |
 | **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+| **4. Implementation** | Create test, fix, verify, document | Bug resolved, tests pass, cause and fix documented |
 
 ## When Process Reveals "No Root Cause"
 
@@ -294,3 +309,5 @@ From debugging sessions:
 - Random fixes approach: 2-3 hours of thrashing
 - First-time fix rate: 95% vs 40%
 - New bugs introduced: Near zero vs common
+
+```

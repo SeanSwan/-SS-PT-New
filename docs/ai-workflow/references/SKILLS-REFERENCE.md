@@ -31,10 +31,9 @@ Skills are in `.agents/skills/` (symlinked to `.claude/skills/` and `.continue/s
 ### Maintenance
 `npx skills check` | `npx skills update` | `npx skills find <keyword>`
 
-
 ---
 
-## Installed Skills Reference
+## Installed Skills Reference (Table Format)
 
 ### Core Process Skills (10)
 | Skill | Purpose |
