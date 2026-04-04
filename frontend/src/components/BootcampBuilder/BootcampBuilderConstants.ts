@@ -3,123 +3,123 @@
  * FILE: BootcampBuilderConstants.ts
  * PURPOSE: Constants, types, and helpers for the Bootcamp Builder
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-04
- * AI VILLAGE VALIDATED: 2026-04-04 (14/17, 43 web sources)
  * ============================================================================
+ *
+ * IMPORTANT: Formats define STRUCTURE only (stations × exercises × rounds).
+ * The actual workout duration comes from the Workout Duration field.
+ * Work/rest intervals auto-calculate to fill the target duration.
  */
 import type { ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 
 // ── Timing Constants ────────────────────────────────────────
-const TRANSITION_SEC = 15;   // between exercises at same station
-const ROTATION_SEC = 30;     // between stations
-const DEMO_MIN = 5;          // walk-through before class
-const CLEAR_MIN = 5;         // equipment cleanup after class
-const STRETCH_MIN = 3;       // optional warm-up stretch
-const OVERHEAD_MIN = DEMO_MIN + CLEAR_MIN + STRETCH_MIN; // 13 min total
+export const OVERHEAD_MIN = 13; // 5 demo + 5 clear + 3 stretch
+export const DEFAULT_REST_SEC = 15; // between exercises at same station
+export const ROTATION_SEC = 30;     // between stations
 
 // ── Format Config ───────────────────────────────────────────
 export interface FormatConfig {
+  /** Exercises per station (0 for non-station formats) */
   exercisesPerStation: number;
+  /** Number of stations (0 for circuit/protocol formats) */
   stations: number;
+  /** How many times participants repeat the circuit at each station */
   rounds: number;
-  durationSec: number;
-  restSec: number;
+  /** Is this a station-based format? */
   isStationBased: boolean;
-  /** Estimated workout time in minutes (auto-calculated) */
-  workoutMin?: number;
-  /** Estimated total class time including overhead */
-  totalMin?: number;
-  /** Does this fit in a 55-minute class? */
-  fits55?: boolean;
 }
 
-function calcTiming(cfg: Pick<FormatConfig, 'exercisesPerStation' | 'stations' | 'rounds' | 'durationSec' | 'restSec'>): { workoutMin: number; totalMin: number; fits55: boolean } {
-  const stationWorkSec = cfg.exercisesPerStation * cfg.durationSec + (cfg.exercisesPerStation - 1) * cfg.restSec;
-  const stationTotalSec = (stationWorkSec * cfg.rounds) + ROTATION_SEC;
-  const totalWorkSec = stationTotalSec * cfg.stations;
-  const workoutMin = Math.ceil(totalWorkSec / 60);
-  const totalMin = workoutMin + OVERHEAD_MIN;
-  return { workoutMin, totalMin, fits55: totalMin <= 55 };
-}
-
-function makeFormat(stations: number, exPerStation: number, rounds: number, durationSec: number, restSec: number = TRANSITION_SEC): FormatConfig {
-  const base = { exercisesPerStation: exPerStation, stations, rounds, durationSec, restSec, isStationBased: true };
-  return { ...base, ...calcTiming(base) };
+function makeStation(stations: number, exPerStation: number, rounds: number): FormatConfig {
+  return { exercisesPerStation: exPerStation, stations, rounds, isStationBased: true };
 }
 
 export const FORMAT_CONFIG: Record<string, FormatConfig> = {
   // ── 2 Exercises per Station (quick rotations) ──
-  '2x5_r4':  makeFormat(5, 2, 4, 30),    // 5 stations × 2 ex × 4 rounds
-  '2x5_r3':  makeFormat(5, 2, 3, 30),
-  '2x6_r3':  makeFormat(6, 2, 3, 35),
-  '2x6_r2':  makeFormat(6, 2, 2, 35),
-  '2x7_r3':  makeFormat(7, 2, 3, 30),
-  '2x7_r2':  makeFormat(7, 2, 2, 30),
-  '2x8_r3':  makeFormat(8, 2, 3, 30),    // Sean's most common format
-  '2x8_r2':  makeFormat(8, 2, 2, 35),
-  '2x10_r2': makeFormat(10, 2, 2, 30),
+  '2x5_r4':  makeStation(5, 2, 4),
+  '2x5_r3':  makeStation(5, 2, 3),
+  '2x6_r3':  makeStation(6, 2, 3),
+  '2x6_r2':  makeStation(6, 2, 2),
+  '2x7_r3':  makeStation(7, 2, 3),
+  '2x7_r2':  makeStation(7, 2, 2),
+  '2x8_r3':  makeStation(8, 2, 3),
+  '2x8_r2':  makeStation(8, 2, 2),
+  '2x10_r2': makeStation(10, 2, 2),
 
   // ── 3 Exercises per Station (moderate depth) ──
-  '3x4_r3':  makeFormat(4, 3, 3, 30),
-  '3x4_r2':  makeFormat(4, 3, 2, 35),
-  '3x5_r2':  makeFormat(5, 3, 2, 35),
-  '3x5_r3':  makeFormat(5, 3, 3, 30),
-  '3x6_r2':  makeFormat(6, 3, 2, 30),
-  '3x6_r1':  makeFormat(6, 3, 1, 35),
-  '3x8_r1':  makeFormat(8, 3, 1, 30),    // Many stations, 1 pass
+  '3x4_r3':  makeStation(4, 3, 3),
+  '3x4_r2':  makeStation(4, 3, 2),
+  '3x5_r2':  makeStation(5, 3, 2),
+  '3x5_r3':  makeStation(5, 3, 3),
+  '3x6_r2':  makeStation(6, 3, 2),
+  '3x6_r1':  makeStation(6, 3, 1),
+  '3x8_r1':  makeStation(8, 3, 1),
 
   // ── 4 Exercises per Station (deep work) ──
-  '4x4_r2':  makeFormat(4, 4, 2, 30),
-  '4x4_r1':  makeFormat(4, 4, 1, 35),
-  '4x5_r2':  makeFormat(5, 4, 2, 30, 10),
-  '4x5_r1':  makeFormat(5, 4, 1, 35),
-  '4x6_r1':  makeFormat(6, 4, 1, 35),
+  '4x4_r2':  makeStation(4, 4, 2),
+  '4x4_r1':  makeStation(4, 4, 1),
+  '4x5_r2':  makeStation(5, 4, 2),
+  '4x5_r1':  makeStation(5, 4, 1),
+  '4x6_r1':  makeStation(6, 4, 1),
 
   // ── 5 Exercises per Station (intense) ──
-  '5x3_r2':  makeFormat(3, 5, 2, 30),
-  '5x3_r1':  makeFormat(3, 5, 1, 30),
-  '5x4_r1':  makeFormat(4, 5, 1, 30),
+  '5x3_r2':  makeStation(3, 5, 2),
+  '5x3_r1':  makeStation(3, 5, 1),
+  '5x4_r1':  makeStation(4, 5, 1),
 
   // ── Group / Circuit (no stations) ──
-  'full_group': { exercisesPerStation: 0, stations: 0, rounds: 2, durationSec: 40, restSec: 15, isStationBased: false, workoutMin: 30, totalMin: 43, fits55: true },
-  'circuit':    { exercisesPerStation: 0, stations: 0, rounds: 3, durationSec: 40, restSec: 15, isStationBased: false, workoutMin: 35, totalMin: 48, fits55: true },
+  'full_group': { exercisesPerStation: 0, stations: 0, rounds: 2, isStationBased: false },
+  'circuit':    { exercisesPerStation: 0, stations: 0, rounds: 3, isStationBased: false },
 
   // ── Time Protocols ──
-  'emom':   { exercisesPerStation: 0, stations: 0, rounds: 1, durationSec: 60, restSec: 0, isStationBased: false, workoutMin: 25, totalMin: 38, fits55: true },
-  'tabata': { exercisesPerStation: 0, stations: 0, rounds: 8, durationSec: 20, restSec: 10, isStationBased: false, workoutMin: 20, totalMin: 33, fits55: true },
-  'amrap':  { exercisesPerStation: 0, stations: 0, rounds: 1, durationSec: 40, restSec: 0, isStationBased: false, workoutMin: 30, totalMin: 43, fits55: true },
+  'emom':   { exercisesPerStation: 0, stations: 0, rounds: 1, isStationBased: false },
+  'tabata': { exercisesPerStation: 0, stations: 0, rounds: 8, isStationBased: false },
+  'amrap':  { exercisesPerStation: 0, stations: 0, rounds: 1, isStationBased: false },
 
   // ── Specialty ──
-  'partner': { exercisesPerStation: 2, stations: 6, rounds: 3, durationSec: 40, restSec: 0, isStationBased: true, workoutMin: 30, totalMin: 43, fits55: true },
-  'hybrid':  { exercisesPerStation: 0, stations: 0, rounds: 1, durationSec: 35, restSec: 15, isStationBased: false, workoutMin: 35, totalMin: 48, fits55: true },
+  'partner': makeStation(6, 2, 3),
+  'hybrid':  { exercisesPerStation: 0, stations: 0, rounds: 1, isStationBased: false },
+
+  // ── Legacy aliases (existing saved templates) ──
+  'stations_4x':  makeStation(5, 4, 2),
+  'stations_3x5': makeStation(5, 3, 2),
+  'stations_2x7': makeStation(7, 2, 3),
+  'stations_3x4': makeStation(4, 3, 2),
+  'stations_5x3': makeStation(3, 5, 2),
 };
 
-// Human-readable format list for dropdown
+/**
+ * Calculate work interval (seconds per exercise) to fill the target duration.
+ * This is the KEY function — the duration field drives everything.
+ */
+export function calcWorkInterval(format: string, targetDurationMin: number): { workSec: number; restSec: number; totalSlots: number } {
+  const cfg = FORMAT_CONFIG[format];
+  if (!cfg || !cfg.isStationBased) {
+    // Non-station: use defaults
+    if (format === 'tabata') return { workSec: 20, restSec: 10, totalSlots: 0 };
+    if (format === 'emom') return { workSec: 60, restSec: 0, totalSlots: 0 };
+    return { workSec: 40, restSec: 15, totalSlots: 0 };
+  }
+
+  const totalSlots = cfg.stations * cfg.exercisesPerStation * cfg.rounds;
+  const rotationOverhead = cfg.stations * ROTATION_SEC; // time spent walking between stations
+  const restOverhead = cfg.stations * (cfg.exercisesPerStation - 1) * cfg.rounds * DEFAULT_REST_SEC; // rest between exercises
+  const availableWorkSec = (targetDurationMin * 60) - rotationOverhead - restOverhead;
+  const workSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / totalSlots)));
+
+  return { workSec, restSec: DEFAULT_REST_SEC, totalSlots };
+}
+
+// ── Human-readable format list for dropdown ─────────────────
+
 function formatLabel(key: string, cfg: FormatConfig): string {
   if (!cfg.isStationBased) {
     const labels: Record<string, string> = {
       full_group: 'Full Group Circuit', circuit: 'Timed Circuit',
       emom: 'EMOM', tabata: 'Tabata', amrap: 'AMRAP',
-      partner: 'Partner', hybrid: 'Hybrid',
+      partner: 'Partner (I-Go-You-Go)', hybrid: 'Hybrid',
     };
     return labels[key] || key;
   }
   return `${cfg.stations} Stations × ${cfg.exercisesPerStation} Ex × ${cfg.rounds} Rounds`;
-}
-
-function formatDescription(key: string, cfg: FormatConfig): string {
-  if (!cfg.isStationBased) {
-    const descs: Record<string, string> = {
-      full_group: 'Everyone does same exercises together, 40s each',
-      circuit: '40s work / 15s rest, 3 rounds',
-      emom: 'Every Minute On The Minute — 60s cycles',
-      tabata: '20s max effort / 10s rest × 8 rounds',
-      amrap: 'As Many Reps As Possible — timed blocks',
-      partner: 'I-go-you-go format, paired stations',
-      hybrid: 'Warm-up stations → full group → finisher',
-    };
-    return descs[key] || '';
-  }
-  return `${cfg.durationSec}s work, ${cfg.restSec}s rest — ~${cfg.workoutMin}min workout`;
 }
 
 function formatCategory(key: string, cfg: FormatConfig): string {
@@ -128,32 +128,34 @@ function formatCategory(key: string, cfg: FormatConfig): string {
     if (['partner', 'hybrid'].includes(key)) return 'Specialty';
     return 'Group';
   }
-  return 'Station';
+  return `${cfg.exercisesPerStation} Ex/Station`;
 }
 
-function formatFitBadge(cfg: FormatConfig): string {
-  if (!cfg.totalMin) return '';
-  if (cfg.totalMin <= 50) return '✅';
-  if (cfg.totalMin <= 55) return '⚠️';
-  return '🔴';
-}
+// Exclude legacy aliases from the dropdown (they're for saved template backwards compat)
+const LEGACY_KEYS = new Set(['stations_4x', 'stations_3x5', 'stations_2x7', 'stations_3x4', 'stations_5x3']);
 
-export const CLASS_FORMATS: Array<{ value: string; label: string; description: string; category: string; totalMin: number; fitBadge: string }> = Object.entries(FORMAT_CONFIG)
+export const CLASS_FORMATS: Array<{ value: string; label: string; description: string; category: string }> = Object.entries(FORMAT_CONFIG)
+  .filter(([key]) => !LEGACY_KEYS.has(key))
   .map(([key, cfg]) => ({
     value: key,
     label: formatLabel(key, cfg),
-    description: formatDescription(key, cfg),
+    description: cfg.isStationBased
+      ? `${cfg.stations * cfg.exercisesPerStation * cfg.rounds} total exercise slots`
+      : '',
     category: formatCategory(key, cfg),
-    totalMin: cfg.totalMin || 0,
-    fitBadge: formatFitBadge(cfg),
   }))
   .sort((a, b) => {
-    // Sort: Station formats by total time, then Group, Protocol, Specialty
-    const catOrder: Record<string, number> = { Station: 0, Group: 1, Protocol: 2, Specialty: 3 };
-    const ca = catOrder[a.category] ?? 4;
-    const cb = catOrder[b.category] ?? 4;
+    // Sort by category, then by label
+    const catOrder: Record<string, number> = {};
+    let idx = 0;
+    // 2 ex/station first, then 3, 4, 5, then Group, Protocol, Specialty
+    for (const c of ['2 Ex/Station', '3 Ex/Station', '4 Ex/Station', '5 Ex/Station', 'Group', 'Protocol', 'Specialty']) {
+      catOrder[c] = idx++;
+    }
+    const ca = catOrder[a.category] ?? 99;
+    const cb = catOrder[b.category] ?? 99;
     if (ca !== cb) return ca - cb;
-    return a.totalMin - b.totalMin;
+    return a.label.localeCompare(b.label);
   });
 
 // ── Day Types ───────────────────────────────────────────────
@@ -173,7 +175,7 @@ export const OPT_PHASES = [
   { value: 5, label: 'Phase 5 — Power' },
 ] as const;
 
-// ── Class Styles (expanded) ─────────────────────────────────
+// ── Class Styles (12 total) ─────────────────────────────────
 export type ClassStyle = 'standard' | 'pyramid' | 'superset' | 'mixed' | 'ladder' | 'descending' | 'chipper' | 'countdown' | 'death_by' | 'ygig' | 'contrast' | 'density';
 
 export const CLASS_STYLES: Array<{ value: ClassStyle; label: string; description: string }> = [
@@ -208,32 +210,28 @@ export function formatMuscle(name: string): string {
   return name.trim().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/** Get station count for a format */
 export function getStationCount(format: string): number {
   return FORMAT_CONFIG[format]?.stations || 0;
 }
 
-/** Get max exercises per station */
 export function getExercisesPerStation(format: string): number {
   return FORMAT_CONFIG[format]?.exercisesPerStation || 4;
 }
 
-/** Get rounds per station */
 export function getRounds(format: string): number {
   return FORMAT_CONFIG[format]?.rounds || 1;
 }
 
-/** Get duration per exercise in seconds */
 export function getDurationSec(format: string): number {
-  return FORMAT_CONFIG[format]?.durationSec || 35;
+  // Default 35s — but this should be overridden by calcWorkInterval in most cases
+  return 35;
 }
 
-/** Get total workout minutes */
 export function getWorkoutMin(format: string): number {
-  return FORMAT_CONFIG[format]?.workoutMin || 30;
+  // This is now meaningless without targetDuration — use calcWorkInterval instead
+  return 0;
 }
 
-/** Get total class minutes (with overhead) */
 export function getTotalMin(format: string): number {
-  return FORMAT_CONFIG[format]?.totalMin || 43;
+  return 0;
 }

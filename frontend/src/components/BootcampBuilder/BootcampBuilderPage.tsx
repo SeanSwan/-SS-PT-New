@@ -34,7 +34,7 @@ import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
-import { CLASS_FORMATS, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getDurationSec, getRounds, getTotalMin } from './BootcampBuilderConstants';
+import { CLASS_FORMATS, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN } from './BootcampBuilderConstants';
 import { exportBootcampPDF } from '../../services/pdfExportService';
 import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle } from './BootcampBuilderStyles';
 import { ModeBar, ModeBtn, TimingAlert, FourPane } from './BootcampModeStyles';
@@ -113,7 +113,9 @@ const BootcampBuilderPage: React.FC = () => {
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
     const formatCfg = FORMAT_CONFIG[classFormat];
     const isStationBased = formatCfg?.isStationBased ?? false;
-    const dur = getDurationSec(classFormat);
+    const targetDur = parseInt(targetDuration, 10) || 45;
+    const { workSec } = calcWorkInterval(classFormat, targetDur);
+    const dur = workSec;
     const maxPerStation = getExercisesPerStation(classFormat);
     const numStations = isStationBased ? getStationCount(classFormat) : 0;
 
