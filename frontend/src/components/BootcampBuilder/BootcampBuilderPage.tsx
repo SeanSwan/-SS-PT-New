@@ -34,6 +34,7 @@ import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
+import { CLASS_FORMATS, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getDurationSec } from './BootcampBuilderConstants';
 import { exportBootcampPDF } from '../../services/pdfExportService';
 import { PageWrapper, TopBar, Title, Subtitle, FloorModeToggle } from './BootcampBuilderStyles';
 import { ModeBar, ModeBtn, TimingAlert, FourPane } from './BootcampModeStyles';
@@ -108,46 +109,114 @@ const BootcampBuilderPage: React.FC = () => {
   }, []);
 
   // Add exercise from Rolodex (click + button)
+  // Distributes exercises across stations based on selected class format
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
-    const newEx = {
-      exerciseName: exercise.name,
-      durationSec: 35,
-      restSec: 15,
-      sortOrder: 1,
-      muscleTargets: (exercise.primaryMuscles || []).join(','),
-      easyVariation: exercise.easyVariation || null,
-      hardVariation: exercise.hardVariation || null,
-      board: 'main',
-      stationIndex: 0,
-      isCardioFinisher: false,
-      equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
-      setupTimeSec: 5,
-    } as any;
+    const formatCfg = FORMAT_CONFIG[classFormat];
+    const isStationBased = formatCfg?.isStationBased ?? false;
+    const dur = getDurationSec(classFormat);
+    const maxPerStation = getExercisesPerStation(classFormat);
+    const numStations = isStationBased ? getStationCount(classFormat, parseInt(targetDuration, 10) || 45) : 0;
 
     setBootcamp(prev => {
-      if (prev) {
-        // Existing bootcamp — append exercise
-        newEx.sortOrder = (prev.exercises?.length || 0) + 1;
-        return { ...prev, exercises: [...(prev.exercises || []), newEx] };
+      const existingExercises = prev?.exercises || [];
+
+      // Determine which station this exercise goes into (round-robin)
+      let targetStationIdx = 0;
+      if (isStationBased && numStations > 0) {
+        // Count exercises per station
+        const stationCounts = new Map<number, number>();
+        for (const ex of existingExercises) {
+          const si = ex.stationIndex ?? 0;
+          stationCounts.set(si, (stationCounts.get(si) || 0) + 1);
+        }
+        // Find first station that isn't full
+        for (let i = 0; i < numStations; i++) {
+          if ((stationCounts.get(i) || 0) < maxPerStation) {
+            targetStationIdx = i;
+            break;
+          }
+        }
+        // All stations full — check if we should warn
+        const allFull = Array.from({ length: numStations }, (_, i) =>
+          (stationCounts.get(i) || 0) >= maxPerStation
+        ).every(Boolean);
+        if (allFull) {
+          toast.warning(`All ${numStations} stations are full (${maxPerStation} exercises each). Exercise added to Station 1.`);
+          targetStationIdx = 0;
+        }
       }
-      // No bootcamp yet (Manual mode) — create a shell
+
+      const stationExCount = existingExercises.filter(e => e.stationIndex === targetStationIdx).length;
+
+      const newEx = {
+        exerciseName: exercise.name,
+        durationSec: dur,
+        restSec: 15,
+        sortOrder: stationExCount + 1,
+        muscleTargets: (exercise.primaryMuscles || []).join(','),
+        easyVariation: exercise.easyVariation || null,
+        hardVariation: exercise.hardVariation || null,
+        kneeMod: (exercise as any).kneeMod || null,
+        shoulderMod: (exercise as any).shoulderMod || null,
+        ankleMod: (exercise as any).ankleMod || null,
+        wristMod: (exercise as any).wristMod || null,
+        backMod: (exercise as any).backMod || null,
+        board: 'main',
+        stationIndex: targetStationIdx,
+        isCardioFinisher: false,
+        equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
+        setupTimeSec: 5,
+      } as any;
+
+      if (prev) {
+        // Existing bootcamp — append and recalculate timing
+        const updatedExercises = [...existingExercises, newEx];
+        const totalExSec = updatedExercises.reduce((s, e) => s + (e.durationSec || dur) + (e.restSec || 15), 0);
+        return {
+          ...prev,
+          exercises: updatedExercises,
+          totalWorkoutMin: Math.ceil(totalExSec / 60),
+          totalClassMin: Math.ceil(totalExSec / 60) + 13,
+        };
+      }
+
+      // Create shell bootcamp with proper station structure
+      const stations = isStationBased
+        ? Array.from({ length: numStations }, (_, i) => ({
+            stationNumber: i + 1,
+            stationName: `Station ${i + 1}`,
+            equipmentNeeded: null,
+          }))
+        : [];
+
       return {
         name: className || 'Manual Class',
         classFormat,
         dayType,
-        stationCount: 1,
+        stationCount: numStations,
         targetDuration: parseInt(targetDuration, 10) || 45,
-        totalWorkoutMin: 0,
-        totalClassMin: 0,
+        totalWorkoutMin: Math.ceil((dur + 15) / 60),
+        totalClassMin: Math.ceil((dur + 15) / 60) + 13,
         expectedParticipants: parseInt(expectedParticipants, 10) || 12,
-        stations: [],
+        stations,
         exercises: [newEx],
-        explanations: [{ type: 'info', message: 'Manual class — add exercises from the Rolodex' }],
+        explanations: [
+          { type: 'info', message: isStationBased
+              ? `Manual ${classFormat.replace(/_/g, ' ')} — ${numStations} stations × ${maxPerStation} exercises, ${dur}s each`
+              : `Manual ${classFormat.replace(/_/g, ' ')} — add exercises to build your circuit`
+          },
+        ],
         overflowPlan: null,
       } as any;
     });
-    toast.success(`Added: ${exercise.name}`);
-  }, [className, classFormat, dayType, targetDuration, expectedParticipants]);
+
+    toast.success(`Added: ${exercise.name}${isStationBased ? ` → Station ${(bootcamp ? (() => {
+      const counts = new Map<number, number>();
+      for (const ex of (bootcamp.exercises || [])) counts.set(ex.stationIndex ?? 0, (counts.get(ex.stationIndex ?? 0) || 0) + 1);
+      for (let i = 0; i < numStations; i++) if ((counts.get(i) || 0) < maxPerStation) return i + 1;
+      return 1;
+    })() : 1)}` : ''}`);
+  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -255,6 +324,16 @@ const BootcampBuilderPage: React.FC = () => {
             onAddExercise={handleAddFromRolodex}
             onSelectExercise={handleSelectFromRolodex}
             selectedId={selectedRolodexId}
+            formatLabel={CLASS_FORMATS.find(f => f.value === classFormat)?.label || classFormat}
+            stationInfo={(() => {
+              const cfg = FORMAT_CONFIG[classFormat];
+              if (!cfg?.isStationBased) return 'Circuit mode';
+              const sc = getStationCount(classFormat, parseInt(targetDuration, 10) || 45);
+              const epc = getExercisesPerStation(classFormat);
+              const filled = bootcamp?.exercises?.length || 0;
+              const total = sc * epc;
+              return `${filled}/${total} slots filled`;
+            })()}
           />
         ) : (
           <ConfigPanel

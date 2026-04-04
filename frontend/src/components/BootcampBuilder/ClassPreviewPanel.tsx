@@ -301,6 +301,11 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                         )}
                       </StationName>
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {exercises.length > 0 && (
+                          <TimingBadge>
+                            {exercises.length} ex · {Math.ceil(exercises.reduce((s, e) => s + (e.durationSec || 35) + (e.restSec || 15), 0) / 60)}min
+                          </TimingBadge>
+                        )}
                         {station.equipmentNeeded && (
                           <TimingBadge>{station.equipmentNeeded}</TimingBadge>
                         )}

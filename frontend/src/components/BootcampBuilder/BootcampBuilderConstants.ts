@@ -64,3 +64,51 @@ export const INTENSITY_CATEGORIES: Array<{ value: IntensityCategory; label: stri
 export function formatMuscle(name: string): string {
   return name.trim().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+
+// ── Format Config (mirrors backend bootcampConstants.mjs) ──
+export interface FormatConfig {
+  exercisesPerStation: number | null;
+  durationSec: number;
+  fixedStations: number | null;
+  restSec?: number;
+  rounds?: number;
+  isStationBased: boolean;
+}
+
+export const FORMAT_CONFIG: Record<string, FormatConfig> = {
+  stations_4x:  { exercisesPerStation: 4, durationSec: 35, fixedStations: null, isStationBased: true },
+  stations_3x5: { exercisesPerStation: 3, durationSec: 40, fixedStations: 5,    isStationBased: true },
+  stations_2x7: { exercisesPerStation: 2, durationSec: 30, fixedStations: 7,    isStationBased: true },
+  stations_3x4: { exercisesPerStation: 3, durationSec: 35, fixedStations: 4,    isStationBased: true },
+  stations_5x3: { exercisesPerStation: 5, durationSec: 30, fixedStations: 3,    isStationBased: true },
+  full_group:   { exercisesPerStation: null, durationSec: 40, fixedStations: null, isStationBased: false },
+  circuit:      { exercisesPerStation: null, durationSec: 40, fixedStations: null, rounds: 3, isStationBased: false },
+  emom:         { exercisesPerStation: null, durationSec: 60, fixedStations: null, isStationBased: false },
+  tabata:       { exercisesPerStation: null, durationSec: 20, restSec: 10, fixedStations: null, rounds: 8, isStationBased: false },
+  amrap:        { exercisesPerStation: null, durationSec: 40, fixedStations: null, isStationBased: false },
+  partner:      { exercisesPerStation: 2, durationSec: 40, fixedStations: null, isStationBased: true },
+  hybrid:       { exercisesPerStation: null, durationSec: 35, fixedStations: null, isStationBased: false },
+};
+
+/** Get station count for a format, defaulting to 4 for dynamic formats */
+export function getStationCount(format: string, targetDuration: number): number {
+  const cfg = FORMAT_CONFIG[format];
+  if (!cfg || !cfg.isStationBased) return 0;
+  if (cfg.fixedStations) return cfg.fixedStations;
+  // Dynamic station count based on duration
+  const exerciseTime = (cfg.exercisesPerStation || 4) * cfg.durationSec;
+  const stationTime = exerciseTime + ((cfg.exercisesPerStation || 4) - 1) * 15 + 30;
+  return Math.max(4, Math.min(10, Math.floor((targetDuration * 60) / stationTime)));
+}
+
+/** Get max exercises per station */
+export function getExercisesPerStation(format: string): number {
+  const cfg = FORMAT_CONFIG[format];
+  return cfg?.exercisesPerStation || 4;
+}
+
+/** Get duration per exercise in seconds */
+export function getDurationSec(format: string): number {
+  const cfg = FORMAT_CONFIG[format];
+  return cfg?.durationSec || 35;
+}

@@ -22,6 +22,9 @@ interface ExerciseRolodexPanelProps {
   onSelectExercise?: (exercise: RolodexExercise) => void;
   selectedId?: number | null;
   targetStation?: number;
+  /** Show compact format/station info at top (Manual mode) */
+  formatLabel?: string;
+  stationInfo?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -282,8 +285,21 @@ const SkeletonBlock = styled.div`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
+const FormatInfoBar = styled.div`
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent);
+  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  color: var(--accent-secondary, #8B5CF6);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
-  onAddExercise, onSelectExercise, selectedId, targetStation,
+  onAddExercise, onSelectExercise, selectedId, targetStation, formatLabel, stationInfo,
 }) => {
   const {
     results: exerciseResults,
@@ -344,6 +360,14 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         <PanelTitle><Dumbbell size={14} /> Exercise Rolodex</PanelTitle>
         <ResultCount>{filteredExercises.length} results</ResultCount>
       </PanelHeader>
+
+      {/* Format/Station info bar (shown in Manual mode) */}
+      {(formatLabel || stationInfo) && (
+        <FormatInfoBar>
+          <span>{formatLabel}</span>
+          {stationInfo && <span>{stationInfo}</span>}
+        </FormatInfoBar>
+      )}
 
       <SearchBox>
         <Search size={14} style={{ opacity: 0.4, flexShrink: 0 }} />
