@@ -72,6 +72,7 @@ const BootcampBuilderPage: React.FC = () => {
   const [selectedExercise, setSelectedExercise] = useState<BootcampExercise | null>(null);
   const [saving, setSaving] = useState(false);
   const [buildMode, setBuildMode] = useState<BuildMode>('ai');
+  const [activeStation, setActiveStation] = useState<number | null>(null);
 
   // 55-min timing
   const totalClassMin = bootcamp
@@ -108,51 +109,63 @@ const BootcampBuilderPage: React.FC = () => {
     } as any);
   }, []);
 
-  // Add exercise from Rolodex (click + button)
-  // Distributes exercises across stations based on selected class format
+  // Delete exercise from bootcamp
+  const handleDeleteExercise = useCallback((globalIndex: number) => {
+    setBootcamp(prev => {
+      if (!prev) return prev;
+      const updated = prev.exercises.filter((_, i) => i !== globalIndex);
+      const totalExSec = updated.reduce((s, e) => s + (e.durationSec || 35) + (e.restSec || 15), 0);
+      return { ...prev, exercises: updated, totalWorkoutMin: Math.ceil(totalExSec / 60), totalClassMin: Math.ceil(totalExSec / 60) + OVERHEAD_MIN };
+    });
+  }, []);
+
+  // Add exercise from Rolodex — respects activeStation, enforces limits
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
     const formatCfg = FORMAT_CONFIG[classFormat];
     const isStationBased = formatCfg?.isStationBased ?? false;
     const targetDur = parseInt(targetDuration, 10) || 45;
     const { workSec } = calcWorkInterval(classFormat, targetDur);
-    const dur = workSec;
     const maxPerStation = getExercisesPerStation(classFormat);
     const numStations = isStationBased ? getStationCount(classFormat) : 0;
 
+    // Enforce limits: check if target station is full
+    if (isStationBased && bootcamp) {
+      const existingExercises = bootcamp.exercises || [];
+      const stationCounts = new Map<number, number>();
+      for (const ex of existingExercises) stationCounts.set(ex.stationIndex ?? 0, (stationCounts.get(ex.stationIndex ?? 0) || 0) + 1);
+
+      const targetIdx = activeStation ?? (() => {
+        for (let i = 0; i < numStations; i++) if ((stationCounts.get(i) || 0) < maxPerStation) return i;
+        return -1;
+      })();
+
+      if (targetIdx === -1) {
+        toast.error(`All ${numStations} stations are full (${maxPerStation} exercises each). Delete an exercise first.`);
+        return;
+      }
+      if ((stationCounts.get(targetIdx) || 0) >= maxPerStation) {
+        toast.error(`Station ${targetIdx + 1} is full (${maxPerStation} exercises). Click another station or delete an exercise.`);
+        return;
+      }
+    }
+
     setBootcamp(prev => {
       const existingExercises = prev?.exercises || [];
+      let targetStationIdx = activeStation ?? 0;
 
-      // Determine which station this exercise goes into (round-robin)
-      let targetStationIdx = 0;
-      if (isStationBased && numStations > 0) {
-        // Count exercises per station
+      if (isStationBased && numStations > 0 && activeStation === null) {
+        // Auto-find first station with room
         const stationCounts = new Map<number, number>();
-        for (const ex of existingExercises) {
-          const si = ex.stationIndex ?? 0;
-          stationCounts.set(si, (stationCounts.get(si) || 0) + 1);
-        }
-        // Find first station that isn't full
+        for (const ex of existingExercises) stationCounts.set(ex.stationIndex ?? 0, (stationCounts.get(ex.stationIndex ?? 0) || 0) + 1);
         for (let i = 0; i < numStations; i++) {
-          if ((stationCounts.get(i) || 0) < maxPerStation) {
-            targetStationIdx = i;
-            break;
-          }
-        }
-        // All stations full — check if we should warn
-        const allFull = Array.from({ length: numStations }, (_, i) =>
-          (stationCounts.get(i) || 0) >= maxPerStation
-        ).every(Boolean);
-        if (allFull) {
-          toast.warning(`All ${numStations} stations are full (${maxPerStation} exercises each). Exercise added to Station 1.`);
-          targetStationIdx = 0;
+          if ((stationCounts.get(i) || 0) < maxPerStation) { targetStationIdx = i; break; }
         }
       }
 
       const stationExCount = existingExercises.filter(e => e.stationIndex === targetStationIdx).length;
-
       const newEx = {
         exerciseName: exercise.name,
-        durationSec: dur,
+        durationSec: workSec,
         restSec: 15,
         sortOrder: stationExCount + 1,
         muscleTargets: (exercise.primaryMuscles || []).join(','),
@@ -171,54 +184,27 @@ const BootcampBuilderPage: React.FC = () => {
       } as any;
 
       if (prev) {
-        // Existing bootcamp — append and recalculate timing
         const updatedExercises = [...existingExercises, newEx];
-        const totalExSec = updatedExercises.reduce((s, e) => s + (e.durationSec || dur) + (e.restSec || 15), 0);
-        return {
-          ...prev,
-          exercises: updatedExercises,
-          totalWorkoutMin: Math.ceil(totalExSec / 60),
-          totalClassMin: Math.ceil(totalExSec / 60) + 13,
-        };
+        const totalExSec = updatedExercises.reduce((s, e) => s + (e.durationSec || workSec) + (e.restSec || 15), 0);
+        return { ...prev, exercises: updatedExercises, totalWorkoutMin: Math.ceil(totalExSec / 60), totalClassMin: Math.ceil(totalExSec / 60) + OVERHEAD_MIN };
       }
 
-      // Create shell bootcamp with proper station structure
       const stations = isStationBased
-        ? Array.from({ length: numStations }, (_, i) => ({
-            stationNumber: i + 1,
-            stationName: `Station ${i + 1}`,
-            equipmentNeeded: null,
-          }))
+        ? Array.from({ length: numStations }, (_, i) => ({ stationNumber: i + 1, stationName: `Station ${i + 1}`, equipmentNeeded: null }))
         : [];
-
       return {
-        name: className || 'Manual Class',
-        classFormat,
-        dayType,
-        stationCount: numStations,
-        targetDuration: parseInt(targetDuration, 10) || 45,
-        totalWorkoutMin: Math.ceil((dur + 15) / 60),
-        totalClassMin: Math.ceil((dur + 15) / 60) + 13,
-        expectedParticipants: parseInt(expectedParticipants, 10) || 12,
-        stations,
-        exercises: [newEx],
-        explanations: [
-          { type: 'info', message: isStationBased
-              ? `Manual ${classFormat.replace(/_/g, ' ')} — ${numStations} stations × ${maxPerStation} exercises, ${dur}s each`
-              : `Manual ${classFormat.replace(/_/g, ' ')} — add exercises to build your circuit`
-          },
-        ],
+        name: className || 'Manual Class', classFormat, dayType, stationCount: numStations,
+        targetDuration: targetDur, totalWorkoutMin: 1, totalClassMin: 1 + OVERHEAD_MIN,
+        expectedParticipants: parseInt(expectedParticipants, 10) || 12, stations, exercises: [newEx],
+        explanations: [{ type: 'info', message: isStationBased
+          ? `Manual — ${numStations} stations × ${maxPerStation} ex × ${getRounds(classFormat)} rounds, ${workSec}s each`
+          : `Manual circuit — add exercises` }],
         overflowPlan: null,
       } as any;
     });
 
-    toast.success(`Added: ${exercise.name}${isStationBased ? ` → Station ${(bootcamp ? (() => {
-      const counts = new Map<number, number>();
-      for (const ex of (bootcamp.exercises || [])) counts.set(ex.stationIndex ?? 0, (counts.get(ex.stationIndex ?? 0) || 0) + 1);
-      for (let i = 0; i < numStations; i++) if ((counts.get(i) || 0) < maxPerStation) return i + 1;
-      return 1;
-    })() : 1)}` : ''}`);
-  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp]);
+    toast.success(`Added: ${exercise.name}${isStationBased ? ` → Station ${(activeStation ?? 0) + 1}` : ''}`);
+  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -326,7 +312,9 @@ const BootcampBuilderPage: React.FC = () => {
             onAddExercise={handleAddFromRolodex}
             onSelectExercise={handleSelectFromRolodex}
             selectedId={selectedRolodexId}
-            formatLabel={CLASS_FORMATS.find(f => f.value === classFormat)?.label || classFormat}
+            showFormatSelector
+            classFormat={classFormat}
+            onFormatChange={(fmt) => { setClassFormat(fmt as ClassFormat); setBootcamp(null); setActiveStation(null); }}
             stationInfo={(() => {
               const cfg = FORMAT_CONFIG[classFormat];
               if (!cfg?.isStationBased) return 'Circuit mode';
@@ -334,7 +322,7 @@ const BootcampBuilderPage: React.FC = () => {
               const epc = getExercisesPerStation(classFormat);
               const filled = bootcamp?.exercises?.length || 0;
               const total = sc * epc;
-              return `${filled}/${total} slots filled`;
+              return `${filled}/${total} slots`;
             })()}
           />
         ) : (
@@ -364,6 +352,9 @@ const BootcampBuilderPage: React.FC = () => {
           saving={saving}
           onSave={handleSave}
           onSelectExercise={setSelectedExercise}
+          onDeleteExercise={buildMode !== 'ai' ? handleDeleteExercise : undefined}
+          onSelectStation={buildMode !== 'ai' ? setActiveStation : undefined}
+          activeStation={activeStation}
         />
 
         {/* Right panel: Rolodex (Hybrid) or Exercise Detail (AI/Manual) */}

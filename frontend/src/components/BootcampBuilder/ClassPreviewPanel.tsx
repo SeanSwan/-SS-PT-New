@@ -15,6 +15,7 @@ import {
   Panel, PanelTitle, StationCard, StationHeader, StationName,
   ExerciseRow, TimingBadge, SectionDivider, InsightCard, PrimaryButton,
 } from './BootcampBuilderStyles';
+import { Trash2 } from 'lucide-react';
 import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
 
 // ── Board Toggle Styled Components ────────────────────────────────────
@@ -164,6 +165,37 @@ const FlowMeter = styled.div<{ $score: number }>`
   }
 `;
 
+const DeleteBtn = styled.button`
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 42, 84, 0.3);
+  background: rgba(201, 42, 84, 0.08);
+  color: #C92A54;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: all 0.15s;
+  &:hover { background: rgba(201, 42, 84, 0.2); opacity: 1; }
+`;
+
+const ClickableStationCard = styled(StationCard)<{ $active: boolean }>`
+  border-color: ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : undefined};
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)' : undefined};
+  cursor: pointer;
+  &:hover { border-color: var(--accent-primary, #60C0F0); }
+`;
+
+const ExRowWithDelete = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  &:hover ${DeleteBtn} { opacity: 0.7; }
+`;
+
 // ── Component ─────────────────────────────────────────────────────────
 
 interface ClassPreviewPanelProps {
@@ -173,10 +205,14 @@ interface ClassPreviewPanelProps {
   saving: boolean;
   onSave: () => void;
   onSelectExercise: (ex: BootcampExercise) => void;
+  onDeleteExercise?: (exerciseIndex: number) => void;
+  onSelectStation?: (stationIndex: number) => void;
+  activeStation?: number | null;
 }
 
 const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   bootcamp, loading, floorMode, saving, onSave, onSelectExercise,
+  onDeleteExercise, onSelectStation, activeStation,
 }) => {
   const [activeBoard, setActiveBoard] = useState<'main' | 'alternative'>('main');
 
@@ -288,14 +324,22 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                 if (exercises.length === 0 && activeBoard === 'alternative') return null;
 
                 return (
-                  <StationCard key={station.stationNumber} style={
-                    activeBoard === 'alternative'
-                      ? { borderColor: 'rgba(255, 107, 53, 0.3)', background: 'rgba(255, 107, 53, 0.04)' }
-                      : undefined
-                  }>
+                  <ClickableStationCard
+                    key={station.stationNumber}
+                    $active={activeStation === si}
+                    onClick={() => onSelectStation?.(si)}
+                    style={
+                      activeBoard === 'alternative'
+                        ? { borderColor: 'rgba(255, 107, 53, 0.3)', background: 'rgba(255, 107, 53, 0.04)' }
+                        : undefined
+                    }
+                  >
                     <StationHeader>
                       <StationName>
                         {station.stationName}
+                        {activeStation === si && (
+                          <BoardLabel $board="main">ADDING HERE</BoardLabel>
+                        )}
                         {activeBoard === 'alternative' && (
                           <BoardLabel $board="alternative">MODIFIED</BoardLabel>
                         )}
@@ -317,40 +361,54 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                         )}
                       </div>
                     </StationHeader>
-                    {exercises.map((ex) => (
-                      <React.Fragment key={`${si}-${ex.sortOrder}-${activeBoard}`}>
-                        <ExerciseRow
-                          $isCardio={ex.isCardioFinisher}
-                          onClick={() => onSelectExercise(ex)}
-                          type="button"
-                        >
-                          <span>
-                            {ex.sortOrder}. {ex.exerciseName}
-                            {ex.isCardioFinisher && ' (cardio finisher)'}
-                            {(ex as any).pyramidStartWeight && (
-                              <BoardLabel $board="main">{(ex as any).pyramidStartWeight}</BoardLabel>
+                    {exercises.length === 0 && (
+                      <div style={{ padding: '12px 14px', opacity: 0.4, fontSize: 12, fontStyle: 'italic' }}>
+                        {activeStation === si ? 'Click "+" on exercises to add here' : 'Click to select this station, then add exercises'}
+                      </div>
+                    )}
+                    {exercises.map((ex, exIdx) => {
+                      // Find the global index of this exercise in bootcamp.exercises
+                      const globalIdx = bootcamp.exercises.indexOf(ex);
+                      return (
+                        <React.Fragment key={`${si}-${ex.sortOrder}-${exIdx}-${activeBoard}`}>
+                          <ExRowWithDelete>
+                            <ExerciseRow
+                              $isCardio={ex.isCardioFinisher}
+                              onClick={(e) => { e.stopPropagation(); onSelectExercise(ex); }}
+                              type="button"
+                              style={{ flex: 1 }}
+                            >
+                              <span>
+                                {exIdx + 1}. {ex.exerciseName}
+                                {ex.isCardioFinisher && ' (cardio finisher)'}
+                              </span>
+                              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                {(ex as any).setupTimeSec > 5 && (
+                                  <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                                )}
+                                {ex.durationSec}s
+                              </span>
+                            </ExerciseRow>
+                            {onDeleteExercise && (
+                              <DeleteBtn
+                                onClick={(e) => { e.stopPropagation(); onDeleteExercise(globalIdx); }}
+                                title={`Remove ${ex.exerciseName}`}
+                                aria-label={`Remove ${ex.exerciseName}`}
+                              >
+                                <Trash2 size={12} />
+                              </DeleteBtn>
                             )}
-                            {(ex as any).supersetOrder && (
-                              <BoardLabel $board="main">S{(ex as any).supersetOrder}</BoardLabel>
-                            )}
-                          </span>
-                          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            {(ex as any).setupTimeSec > 5 && (
-                              <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
-                            )}
-                            {ex.durationSec}s
-                          </span>
-                        </ExerciseRow>
-                        {/* Inline regression — easier alternative */}
-                        {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
-                          <RegressionLine>
-                            <span className="label">Easier:</span>
-                            {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
-                          </RegressionLine>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </StationCard>
+                          </ExRowWithDelete>
+                          {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
+                            <RegressionLine>
+                              <span className="label">Easier:</span>
+                              {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
+                            </RegressionLine>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </ClickableStationCard>
                 );
               })
             ) : (activeBoard === 'main' ? board1Exercises : board2Exercises).length > 0 ? (

@@ -9,8 +9,9 @@
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import styled from 'styled-components';
-import { Search, Plus, X, Dumbbell, Eye } from 'lucide-react';
+import { Search, Plus, X, Dumbbell } from 'lucide-react';
 import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
+import { CLASS_FORMATS } from './BootcampBuilderConstants';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -25,6 +26,10 @@ interface ExerciseRolodexPanelProps {
   /** Show compact format/station info at top (Manual mode) */
   formatLabel?: string;
   stationInfo?: string;
+  /** Format selector for Manual mode */
+  classFormat?: string;
+  onFormatChange?: (format: string) => void;
+  showFormatSelector?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -298,8 +303,22 @@ const FormatInfoBar = styled.div`
   align-items: center;
 `;
 
+const FormatSelect = styled.select`
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-secondary, #8B5CF6);
+  background: var(--bg-base, #0A0A0F);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  option { background: #0A0A0F; color: #E0ECF4; }
+`;
+
 const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
-  onAddExercise, onSelectExercise, selectedId, targetStation, formatLabel, stationInfo,
+  onAddExercise, onSelectExercise, selectedId, targetStation,
+  formatLabel, stationInfo, classFormat, onFormatChange, showFormatSelector,
 }) => {
   const {
     results: exerciseResults,
@@ -361,13 +380,24 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         <ResultCount>{filteredExercises.length} results</ResultCount>
       </PanelHeader>
 
-      {/* Format/Station info bar (shown in Manual mode) */}
-      {(formatLabel || stationInfo) && (
+      {/* Format selector + station info (Manual mode) */}
+      {showFormatSelector && onFormatChange ? (
+        <FormatInfoBar>
+          <FormatSelect
+            value={classFormat || '2x8_r3'}
+            onChange={e => onFormatChange(e.target.value)}
+          >
+            {CLASS_FORMATS.map(f => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </FormatSelect>
+        </FormatInfoBar>
+      ) : (formatLabel || stationInfo) ? (
         <FormatInfoBar>
           <span>{formatLabel}</span>
           {stationInfo && <span>{stationInfo}</span>}
         </FormatInfoBar>
-      )}
+      ) : null}
 
       <SearchBox>
         <Search size={14} style={{ opacity: 0.4, flexShrink: 0 }} />
