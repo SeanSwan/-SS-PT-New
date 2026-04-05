@@ -84,7 +84,7 @@ const certifications = [
 ];
 
 const statsData = [
-  { numericValue: 25, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
+  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
   { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
   { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
   { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
@@ -103,7 +103,7 @@ const milestones = [
   { year: '2005', text: 'Physical therapy aid at Kerlan Jobe Health South — deepened injury rehab expertise' },
   { year: '2010', text: 'Launched specialized programs for athletes at elite gyms across Los Angeles' },
   { year: '2013', text: 'Founded SwanStudios with wife Jasmine — blending coaching with technology' },
-  { year: '2018', text: 'Completed full-stack development bootcamp to build AI-enhanced training platform' },
+  { year: '2018', text: 'Self-taught full-stack development to build the AI-enhanced health community platform he envisioned' },
   { year: '2024', text: 'Leading innovation in fitness technology with the SwanStudios social ecosystem' },
 ];
 
@@ -124,8 +124,8 @@ const philosophies = [
     icon: <Shield size={24} />,
   },
   {
-    title: 'Community Focus',
-    body: 'Training is better together. Our community of like-minded individuals provides accountability, motivation, and lasting friendships.',
+    title: 'Collective Power',
+    body: 'The corporations cutting safety nets are counting on us staying isolated. SwanStudios is what happens when a community decides to take care of itself.',
     icon: <Heart size={24} />,
   },
 ];
@@ -953,6 +953,46 @@ const AboutV3: React.FC = () => {
 
         <SectionDivider />
 
+        {/* ── 1b. FOUNDER QUOTE ───────────────────────────── */}
+        <Section>
+          <SectionInner>
+            <ScrollReveal>
+              <div style={{
+                maxWidth: '800px',
+                margin: '0 auto',
+                padding: 'clamp(2rem, 5vw, 3.5rem)',
+                background: 'rgba(20, 20, 25, 0.85)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(198, 168, 75, 0.15)',
+                borderRadius: '16px',
+                textAlign: 'center',
+              }}>
+                <p style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontStyle: 'italic',
+                  fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
+                  lineHeight: 1.6,
+                  color: 'var(--text-primary, #E0ECF4)',
+                  marginBottom: '1rem',
+                }}>
+                  &ldquo;I&rsquo;m not building this to get rich. I&rsquo;m building this because people deserve a platform that&rsquo;s actually on their side.&rdquo;
+                </p>
+                <p style={{
+                  color: 'var(--accent-gold, #C6A84B)',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  margin: 0,
+                }}>
+                  — Sean Swan, Founder
+                </p>
+              </div>
+            </ScrollReveal>
+          </SectionInner>
+        </Section>
+
+        <SectionDivider />
+
         {/* ── 2. ABOUT ─────────────────────────────────────── */}
         <Section id="about">
           <SectionInner>
@@ -969,7 +1009,7 @@ const AboutV3: React.FC = () => {
                 <AboutText>
                   <p>
                     Sean Swan is an NCEP-certified personal trainer (National College of
-                    Exercise Professionals, 1998) with <strong>25+ years of experience</strong> helping
+                    Exercise Professionals, 1998) with <strong>26 years of experience</strong> helping
                     clients transform their lives. Trained in NASM protocols and workshops, Sean applies
                     the NASM Optimum Performance Training (OPT) model to every program he builds.
                   </p>
@@ -984,6 +1024,13 @@ const AboutV3: React.FC = () => {
                     with a vision to blend elite coaching with technology. Today, SwanStudios
                     combines <strong>personal training with AI as a powerful tool</strong> —
                     enabling deep research on each client's goals for truly optimized programming.
+                  </p>
+                  <p>
+                    In 2018, Sean taught himself full-stack development — not to become a developer,
+                    but because he had a vision that couldn't wait for someone else to build it.
+                    SwanStudios is that vision: a health-first community platform that gives trainers,
+                    creators, and everyday people a place where their data, their relationships,
+                    and their progress stay theirs forever.
                   </p>
                 </AboutText>
                 <FeatureList>
@@ -1020,6 +1067,47 @@ const AboutV3: React.FC = () => {
                 </ScrollReveal>
               ))}
             </BadgesGrid>
+          </SectionInner>
+        </Section>
+
+        <SectionDivider />
+
+        {/* ── 2b. THE SWANSTUDIOS PROMISE ─────────────────── */}
+        <Section>
+          <SectionInner>
+            <ScrollReveal>
+              <SectionTitle>The SwanStudios Promise</SectionTitle>
+              <AccentLine />
+            </ScrollReveal>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem',
+              marginTop: '2rem',
+            }}>
+              {[
+                { title: 'Fair Always', icon: <Shield size={28} />, body: 'We take a small fair fee from trainer transactions. Nothing hidden. Nothing predatory. If you thrive, we thrive.' },
+                { title: 'Your Data, Your Story', icon: <Heart size={28} />, body: 'Your workout history, your progress, your community — it lives here permanently and it belongs to you. Not advertisers.' },
+                { title: 'Community Over Profit', icon: <Users size={28} />, body: 'We will never sell your attention to the highest bidder. Every decision we make is filtered through one question: is this good for our community?' },
+              ].map((item) => (
+                <ScrollReveal key={item.title}>
+                  <div style={{
+                    background: 'rgba(0, 32, 96, 0.4)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(198, 168, 75, 0.2)',
+                    borderRadius: '12px',
+                    padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                    textAlign: 'center',
+                    height: '100%',
+                  }}>
+                    <div style={{ color: 'var(--accent-cyan, #60C0F0)', marginBottom: '1rem' }}>{item.icon}</div>
+                    <h3 style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>{item.title}</h3>
+                    <p style={{ color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>{item.body}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
           </SectionInner>
         </Section>
 

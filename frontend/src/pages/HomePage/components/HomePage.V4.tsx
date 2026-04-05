@@ -1231,7 +1231,7 @@ const CTAButtons = styled.div`
 // ═══════════════════════════════════════════════════════
 
 const FEATURES = [
-  { icon: Dumbbell, title: 'Elite Personal Training', desc: 'Personalized coaching from NCEP-certified experts with 25+ years experience. Science-based programming tailored to your goals.' },
+  { icon: Dumbbell, title: 'Elite Personal Training', desc: 'Personalized coaching from NCEP-certified experts with 26 years experience. Science-based programming tailored to your goals.' },
   { icon: Activity, title: 'Performance Assessment', desc: 'Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program.' },
   { icon: Apple, title: 'Nutrition Coaching', desc: 'Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.' },
   { icon: Heart, title: 'Recovery & Mobility', desc: 'Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles.' },
@@ -1292,7 +1292,7 @@ const TESTIMONIALS = [
 ];
 
 const STATS = [
-  { target: 25, suffix: '+', label: 'Years Experience', icon: Award },
+  { target: 26, suffix: '+', label: 'Years Experience', icon: Award },
   { target: 500, suffix: '+', label: 'Clients Transformed', icon: Users },
   { target: 10000, suffix: '+', label: 'Sessions Delivered', icon: TrendingUp, display: '10k' },
   { target: 312, suffix: '', label: 'Swimmers Taught', icon: Activity },
@@ -1301,14 +1301,14 @@ const STATS = [
 ];
 
 const SOCIAL_CATEGORIES = [
-  { title: 'Dance & Movement', desc: 'Post your dance videos, choreography, and freestyle sessions. From hip-hop to contemporary — move your way.', icon: Sparkles },
-  { title: 'Music Production', desc: 'Making songs, playing instruments, producing beats, and sharing your creative process. Your studio, your sound.', icon: Mic2 },
-  { title: 'Singing', desc: 'Share vocal performances, covers, instrumentals, and original music. Your stage, your voice.', icon: Mic },
-  { title: 'Art & Expression', desc: 'Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.', icon: Paintbrush },
-  { title: 'Gaming', desc: 'Share your gaming builds, favorite consoles, portable setups, and streams. Gamers get fit too.', icon: Gamepad2 },
-  { title: 'Comedy', desc: 'Standup, skits, memes, and funny content. Make the community laugh while you flex.', icon: Laugh },
-  { title: 'Fitness Challenges', desc: 'Community workout challenges, transformation posts, and accountability groups. Push each other forward.', icon: Flame },
-  { title: 'Community Meetups', desc: 'Local events, group activities, and real-world connections. The digital community, IRL.', icon: MapPin },
+  { title: 'Fitness & Training', desc: 'Log workouts, track progress, earn XP, challenge your community.', icon: Dumbbell },
+  { title: 'Dance & Movement', desc: 'Share choreography, freestyle sessions, and movement art.', icon: Sparkles },
+  { title: 'Music & Singing', desc: 'Produce beats, perform covers, share your creative process.', icon: Mic2 },
+  { title: 'Gaming & Streaming', desc: 'Stream games, find your crew, support independent developers.', icon: Gamepad2 },
+  { title: 'Art & Expression', desc: 'Showcase artwork, photography, and digital creations.', icon: Paintbrush },
+  { title: 'Comedy', desc: 'Skits, memes, stand-up. Make the community laugh.', icon: Laugh },
+  { title: 'Community Meetups', desc: 'Local events, walking clubs, group activities. Digital made real.', icon: MapPin },
+  { title: 'YouTube-Style Video', desc: 'Long-form content, tutorials, vlogs. Your channel, your audience.', icon: Monitor },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -1378,7 +1378,7 @@ const HomePageV4: React.FC = () => {
     <>
       <Helmet>
         <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-certified coaching with 25+ years experience, AI-driven programming, serving Orange County and LA." />
+        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-certified coaching with 26 years experience, AI-driven programming, serving Orange County and LA." />
       </Helmet>
 
       <MainWrapper>
@@ -1419,25 +1419,25 @@ const HomePageV4: React.FC = () => {
               transition={prefersReduced ? undefined : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
             <HeroHeadline variants={reveal}>
-              <TypewriterText text="Where Excellence Meets Precision" as="span" speed={50} />
+              <TypewriterText text="Health First. Community Always." as="span" speed={50} />
             </HeroHeadline>
             <HeroSubheadline variants={reveal}>
-              NCEP-Certified Personal Training &middot; 25+ Years of Experience &middot; NASM-Guided Protocols
+              The platform where your fitness journey, your creativity, your community, and your trainer all live in one place &mdash; and stay there forever.
             </HeroSubheadline>
             <ButtonGroup variants={reveal}>
               <GlowButton
-                text="Start My Fitness Journey"
+                text="Join the Community"
                 theme="primary"
                 size="large"
                 onClick={() => navigate('/store')}
-                aria-label="Start your personalized fitness journey"
+                aria-label="Join the SwanStudios community"
               />
               <GlowButton
-                text="Book Free Consultation"
+                text="Find a Trainer"
                 theme="cosmic"
                 size="large"
                 onClick={() => setShowOrientation(true)}
-                aria-label="Book a free consultation"
+                aria-label="Find a trainer near you"
               />
             </ButtonGroup>
 
@@ -1487,6 +1487,15 @@ const HomePageV4: React.FC = () => {
                 <LayoutDashboard size={14} />
                 Trainer Dashboard
               </CapsuleButton>
+              <CapsuleButton
+                $variant="gilded"
+                onClick={() => navigate('/signup?role=trainer')}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <Award size={14} />
+                Become a Trainer
+              </CapsuleButton>
             </QuickNavRow>
           </HeroContent>
 
@@ -1509,6 +1518,121 @@ const HomePageV4: React.FC = () => {
             </ScrollIndicatorEl>
           )}
         </HeroSection>
+
+        <SectionDivider />
+
+        {/* ─── 1b. MISSION — "Why We Built This" ─── */}
+        <SectionEl style={{ backgroundColor: 'var(--bg-base, #0A0A0F)' }}>
+          <Container>
+            <SectionHeader
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              variants={cinematicReveal}
+            >
+              <SectionTitle>
+                <TypewriterText text="Why We Built This" as="span" speed={50} />
+              </SectionTitle>
+            </SectionHeader>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              variants={cinematicReveal}
+              style={{
+                maxWidth: '900px',
+                margin: '0 auto',
+                background: 'rgba(20, 20, 25, 0.85)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(224, 236, 244, 0.05)',
+                borderRadius: '16px',
+                padding: 'clamp(1.5rem, 4vw, 3rem)',
+              }}
+            >
+              <p style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)', lineHeight: 1.8, marginBottom: '1.25rem', opacity: 0.9 }}>
+                The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.
+              </p>
+              <p style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)', lineHeight: 1.8, marginBottom: '1.25rem', opacity: 0.9 }}>
+                SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.
+              </p>
+              <p style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)', lineHeight: 1.8, marginBottom: '1.25rem', opacity: 0.9 }}>
+                We&rsquo;re not here to extract value from you. We&rsquo;re here to help you build it &mdash; for yourself, and for the people around you.
+              </p>
+              <p style={{ color: 'var(--accent-gold, #C6A84B)', fontSize: 'clamp(1rem, 2vw, 1.25rem)', fontWeight: 600, fontStyle: 'italic', textAlign: 'center', marginTop: '1.5rem', marginBottom: 0 }}>
+                Built by a trainer. Owned by the community. Powered by all of us.
+              </p>
+            </motion.div>
+          </Container>
+        </SectionEl>
+
+        <SectionDivider />
+
+        {/* ─── 1c. TRAINERS — "This Platform Is Yours" ─── */}
+        <SectionEl style={{ backgroundColor: 'var(--bg-surface, #141419)' }}>
+          <Container>
+            <SectionHeader
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              variants={cinematicReveal}
+            >
+              <SectionTitle>
+                <TypewriterText text="Trainers: This Platform Is Yours" as="span" speed={50} />
+              </SectionTitle>
+              <SectionSubtitle>
+                Whether you&rsquo;re in Anaheim or Amsterdam, Lagos or London &mdash; bring your clients to SwanStudios.
+              </SectionSubtitle>
+            </SectionHeader>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              variants={cinematicReveal}
+              style={{
+                maxWidth: '1000px',
+                margin: '0 auto',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
+              {[
+                { icon: <Dumbbell size={28} />, title: '840+ Exercises', desc: 'Full NASM OPT 5-phase periodization library with AI-powered workout builder.' },
+                { icon: <Mic2 size={28} />, title: 'Voice-First AI Coach', desc: 'Log workouts hands-free, get real-time client insights, and manage sessions by voice.' },
+                { icon: <Shield size={28} />, title: 'Fair Fees, Always', desc: 'Small transparent fee (~10%). No surprises. Your clients stay yours forever.' },
+                { icon: <MapPin size={28} />, title: 'Works Anywhere', desc: 'Run your sessions, collect payments, and build your brand from any city, any country.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  variants={cinematicReveal}
+                  style={{
+                    background: 'rgba(0, 32, 96, 0.4)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(198, 168, 75, 0.2)',
+                    borderRadius: '12px',
+                    padding: 'clamp(1.25rem, 3vw, 2rem)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ color: 'var(--accent-cyan, #60C0F0)', marginBottom: '0.75rem' }}>{item.icon}</div>
+                  <h3 style={{ color: 'var(--text-primary, #E0ECF4)', fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>{item.title}</h3>
+                  <p style={{ color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>{item.desc}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <GlowButton
+                text="Trainer Sign Up"
+                theme="cosmic"
+                size="large"
+                onClick={() => navigate('/signup?role=trainer')}
+                aria-label="Sign up as a trainer"
+              />
+            </div>
+          </Container>
+        </SectionEl>
 
         <SectionDivider />
 
@@ -1699,7 +1823,7 @@ const HomePageV4: React.FC = () => {
                 <p>
                   <strong>Sean Swan</strong> is an NCEP-certified personal trainer
                   (National College of Exercise Professionals, 1998) with{' '}
-                  <strong>25+ years of experience</strong> helping clients transform
+                  <strong>26 years of experience</strong> helping clients transform
                   their lives. Trained in NASM protocols and workshops, Sean applies the
                   NASM Optimum Performance Training (OPT) model to every program he builds.
                 </p>
@@ -1870,9 +1994,7 @@ const HomePageV4: React.FC = () => {
                 <TypewriterText text="Beyond the Gym" as="span" speed={40} />
               </SectionTitle>
               <SectionSubtitle>
-                SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
-                Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
-                where fitness meets art, music, singing, gaming, comedy, and real human connection.
+                SwanStudios is where fitness meets everything else that makes life worth living.
               </SectionSubtitle>
             </SectionHeader>
             <SocialGrid
@@ -1920,20 +2042,19 @@ const HomePageV4: React.FC = () => {
             variants={reveal}
           >
             <SectionTitle style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}>
-              <TypewriterText text="Ready to Transform?" as="span" speed={45} />
+              <TypewriterText text="Ready to Be Part of Something Real?" as="span" speed={45} />
             </SectionTitle>
             <SectionSubtitle style={{ margin: '16px auto 0' }}>
-              Your journey to a stronger, healthier, more confident you starts with
-              a single step. Let our NCEP-certified coaches guide you with proven
-              NASM protocols and 25+ years of expertise.
+              Your health journey deserves a permanent home. Your trainer deserves a fair platform.
+              Your community deserves to own itself. SwanStudios is where all of it lives.
             </SectionSubtitle>
             <CTAButtons>
               <GlowButton
-                text="Start Today"
+                text="Join SwanStudios"
                 theme="primary"
                 size="large"
                 onClick={() => navigate('/store')}
-                aria-label="Start your transformation today"
+                aria-label="Join SwanStudios today"
               />
               <GlowButton
                 text="Contact Us"

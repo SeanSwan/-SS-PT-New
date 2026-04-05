@@ -419,6 +419,20 @@ const EnhancedFooter: React.FC = () => {
           <SmallFooterLink to="/terms">Terms of Service</SmallFooterLink>
           <SmallFooterLink to="/sitemap">Sitemap</SmallFooterLink>
         </BottomLinks>
+
+        <p style={{
+          color: 'rgba(224, 236, 244, 0.35)',
+          fontSize: '0.7rem',
+          lineHeight: 1.5,
+          maxWidth: '700px',
+          margin: '1rem auto 0',
+          textAlign: 'center',
+          padding: '0 1rem',
+        }}>
+          SwanStudios is a fitness tracking and community platform intended for general wellness purposes only.
+          It is not a medical device and does not provide medical advice, diagnosis, or treatment.
+          Consult a physician before starting any exercise program.
+        </p>
       </BottomFooter>
     </FooterContainer>
   );
