@@ -103,7 +103,8 @@ const milestones = [
   { year: '2005', text: 'Physical therapy aid at Kerlan Jobe Health South — deepened injury rehab expertise' },
   { year: '2010', text: 'Launched specialized programs for athletes at elite gyms across Los Angeles' },
   { year: '2013', text: 'Founded SwanStudios with wife Jasmine — blending coaching with technology' },
-  { year: '2018', text: 'Self-taught full-stack development to build the AI-enhanced health community platform he envisioned' },
+  { year: '2017', text: 'Graduated from Redwood Code Academy coding bootcamp and completed MIT computer science courses online' },
+  { year: '2018', text: 'Applied development skills to build the AI-enhanced health community platform he envisioned' },
   { year: '2024', text: 'Leading innovation in fitness technology with the SwanStudios social ecosystem' },
 ];
 
@@ -1026,11 +1027,12 @@ const AboutV3: React.FC = () => {
                     enabling deep research on each client's goals for truly optimized programming.
                   </p>
                   <p>
-                    In 2018, Sean taught himself full-stack development — not to become a developer,
-                    but because he had a vision that couldn't wait for someone else to build it.
-                    SwanStudios is that vision: a health-first community platform that gives trainers,
-                    creators, and everyday people a place where their data, their relationships,
-                    and their progress stay theirs forever.
+                    In 2017, Sean graduated from Redwood Code Academy and completed MIT computer science
+                    courses online — not to become a developer, but because he had a vision that couldn't
+                    wait for someone else to build it. Now a full-stack React developer transitioning into
+                    AI development, Sean built SwanStudios from the ground up: a health-first community
+                    platform that gives trainers, creators, and everyday people a place where their data,
+                    their relationships, and their progress stay theirs forever.
                   </p>
                 </AboutText>
                 <FeatureList>
