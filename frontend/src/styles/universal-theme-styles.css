@@ -17,33 +17,33 @@
 
 /* Default theme variables - will be overridden by JavaScript */
 :root {
-  /* Fallback values — Crystalline Swan (Void Crystal / crystalline-dark) */
-  --color-primary: #22D3EE;
-  --color-primary-blue: #06B6D4;
-  --color-secondary: #A78BFA;
-  --color-accent: #F59E0B;
+  /* Fallback values — Crystalline Swan (Dark Navy default) */
+  --color-primary: #60C0F0;
+  --color-primary-blue: #50A0F0;
+  --color-secondary: #8B5CF6;
+  --color-accent: #C6A84B;
 
-  --bg-primary: #030712;
-  --bg-secondary: #0F172A;
-  --bg-surface: rgba(17, 24, 39, 0.6);
-  --bg-elevated: rgba(15, 23, 42, 0.5);
+  --bg-primary: #0D1117;
+  --bg-secondary: #161B22;
+  --bg-surface: rgba(22, 27, 34, 0.8);
+  --bg-elevated: #1A1F2E;
 
-  --text-primary: #F1F5F9;
-  --text-secondary: rgba(241, 245, 249, 0.85);
-  --text-muted: rgba(241, 245, 249, 0.55);
-  --text-heading: #F1F5F9;
+  --text-primary: #E6EDF3;
+  --text-secondary: rgba(230, 237, 243, 0.8);
+  --text-muted: rgba(230, 237, 243, 0.6);
+  --text-heading: #E6EDF3;
 
-  --gradient-primary: linear-gradient(135deg, #A78BFA, #22D3EE);
-  --gradient-secondary: linear-gradient(135deg, #0F172A, #A78BFA);
-  --gradient-cosmic: linear-gradient(135deg, #A78BFA, #06B6D4);
+  --gradient-primary: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  --gradient-secondary: linear-gradient(135deg, #161B22, #8B5CF6);
+  --gradient-cosmic: linear-gradient(135deg, #8B5CF6, #60C0F0);
 
-  --shadow-primary: 0 0 30px rgba(34, 211, 238, 0.3);
-  --shadow-elevation: 0 15px 35px rgba(0, 0, 0, 0.8);
-  --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(34, 211, 238, 0.2);
+  --shadow-primary: 0 0 20px rgba(96, 192, 240, 0.2);
+  --shadow-elevation: 0 15px 35px rgba(0, 0, 0, 0.7);
+  --shadow-cosmic: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(96, 192, 240, 0.1);
 
-  --border-subtle: rgba(34, 211, 238, 0.12);
-  --border-elegant: rgba(34, 211, 238, 0.3);
-  --border-prominent: rgba(34, 211, 238, 0.5);
+  --border-subtle: rgba(48, 54, 61, 0.6);
+  --border-elegant: rgba(96, 192, 240, 0.2);
+  --border-prominent: rgba(96, 192, 240, 0.4);
 }
 
 /* === THEME-AWARE UTILITY CLASSES === */
