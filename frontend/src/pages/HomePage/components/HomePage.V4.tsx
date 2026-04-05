@@ -1822,7 +1822,7 @@ const HomePageV4: React.FC = () => {
               >
                 <p>
                   <strong>Sean Swan</strong> is an NCEP-certified personal trainer
-                  (National College of Exercise Professionals, 1998) with{' '}
+                  (National College of Exercise Professionals, 2000) with{' '}
                   <strong>26 years of experience</strong> helping clients transform
                   their lives. Trained in NASM protocols and workshops, Sean applies the
                   NASM Optimum Performance Training (OPT) model to every program he builds.

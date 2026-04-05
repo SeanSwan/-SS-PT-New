@@ -76,11 +76,16 @@ const useCountUp = (
    ═══════════════════════════════════════════════════════ */
 
 const certifications = [
-  { name: 'NCEP Certified', full: 'National College of Exercise Professionals' },
-  { name: 'NASM Workshop', full: 'National Academy of Sports Medicine' },
+  // Fitness
+  { name: 'NCEP Certified', full: 'National College of Exercise Professionals (2000)' },
+  { name: 'NASM Workshop', full: 'National Academy of Sports Medicine — OPT Protocol Trained' },
   { name: 'Pro Results Certified', full: 'LA Fitness Personal Training' },
   { name: 'GGFI Certified', full: 'Gold\'s Gym Fitness Institute' },
   { name: '24 Hour Fitness', full: 'Master Trainer' },
+  // Development
+  { name: 'Redwood Code Academy', full: 'Full Stack Development Bootcamp Graduate (2017)' },
+  { name: 'MIT CS Courses', full: 'Computer Science — Online Coursework' },
+  { name: 'Zero To Mastery', full: 'Complete React Developer + Data Structures & Algorithms (2020–2021)' },
 ];
 
 const statsData = [
@@ -98,14 +103,14 @@ const featureList = [
 ];
 
 const milestones = [
-  { year: '1998', text: 'Earned NCEP certification and began personal training career' },
-  { year: '2002', text: 'Completed advanced NASM workshops and protocols training' },
+  { year: '2000', text: 'Earned NCEP certification and completed NASM workshops — began personal training career' },
   { year: '2005', text: 'Physical therapy aid at Kerlan Jobe Health South — deepened injury rehab expertise' },
   { year: '2010', text: 'Launched specialized programs for athletes at elite gyms across Los Angeles' },
   { year: '2013', text: 'Founded SwanStudios with wife Jasmine — blending coaching with technology' },
   { year: '2017', text: 'Graduated from Redwood Code Academy coding bootcamp and completed MIT computer science courses online' },
   { year: '2018', text: 'Applied development skills to build the AI-enhanced health community platform he envisioned' },
-  { year: '2024', text: 'Leading innovation in fitness technology with the SwanStudios social ecosystem' },
+  { year: '2020', text: 'Completed Zero To Mastery Academy — React Developer + Data Structures & Algorithms' },
+  { year: '2024', text: 'Leading innovation as Full Stack Engineer at SwanStudios, transitioning into AI development' },
 ];
 
 const philosophies = [
@@ -1010,7 +1015,7 @@ const AboutV3: React.FC = () => {
                 <AboutText>
                   <p>
                     Sean Swan is an NCEP-certified personal trainer (National College of
-                    Exercise Professionals, 1998) with <strong>26 years of experience</strong> helping
+                    Exercise Professionals, 2000) with <strong>26 years of experience</strong> helping
                     clients transform their lives. Trained in NASM protocols and workshops, Sean applies
                     the NASM Optimum Performance Training (OPT) model to every program he builds.
                   </p>
@@ -1028,11 +1033,12 @@ const AboutV3: React.FC = () => {
                   </p>
                   <p>
                     In 2017, Sean graduated from Redwood Code Academy and completed MIT computer science
-                    courses online — not to become a developer, but because he had a vision that couldn't
-                    wait for someone else to build it. Now a full-stack React developer transitioning into
-                    AI development, Sean built SwanStudios from the ground up: a health-first community
-                    platform that gives trainers, creators, and everyday people a place where their data,
-                    their relationships, and their progress stay theirs forever.
+                    courses online, followed by Zero To Mastery Academy's React and Data Structures programs —
+                    not to become a developer, but because he had a vision that couldn't wait for someone
+                    else to build it. Now a full-stack React engineer transitioning into AI development,
+                    Sean built SwanStudios from the ground up: a health-first community platform that gives
+                    trainers, creators, and everyday people a place where their data, their relationships,
+                    and their progress stay theirs forever.
                   </p>
                 </AboutText>
                 <FeatureList>
