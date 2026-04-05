@@ -36,6 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import api from '../../services/api.service';
+import { VIDEO } from '../../config/videoAssets';
 
 // Cinematic UI Components
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
@@ -49,6 +50,7 @@ import FloatingCart from './components/FloatingCart';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
 import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideoBackground';
+import MembershipsSection from './components/MembershipsSection';
 import { logger } from '@/utils/logger';
 
 // ============================================================
@@ -927,7 +929,7 @@ const StoreV3: React.FC = () => {
         {/* 1. PARALLAX HERO SECTION                     */}
         {/* ============================================ */}
         <ParallaxHero
-          videoSrc="/Swans.mp4"
+          videoSrc={VIDEO.swans}
           imageSrc="/images/parallax/store-hero-bg.png"
           overlayOpacity={0.55}
           minHeight="100vh"
@@ -970,13 +972,22 @@ const StoreV3: React.FC = () => {
         <SectionDivider />
 
         {/* ============================================ */}
-        {/* 2. PACKAGES SECTION                          */}
+        {/* 1B. MEMBERSHIPS SECTION                      */}
+        {/* ============================================ */}
+        <ScrollReveal direction="up" delay={0.1} duration={0.7}>
+          <MembershipsSection />
+        </ScrollReveal>
+
+        <SectionDivider />
+
+        {/* ============================================ */}
+        {/* 2. PACKAGES SECTION — Personal Training      */}
         {/* ============================================ */}
         {hasPackages && (
           <PackagesWrapper id="packages-section">
             {/* Video background layer */}
             <SectionVideoBackground
-              src="/swan-golden.mp4"
+              src={VIDEO.swanGolden}
               fallbackGradient={`linear-gradient(135deg, var(--bg-primary, #001545) 0%, var(--bg-secondary, #002060) 100%)`}
               overlayOpacity={0.55}
               overlayGradient="linear-gradient(to bottom, rgba(0,21,69,0.65) 0%, rgba(0,21,69,0.5) 50%, rgba(0,21,69,0.65) 100%)"

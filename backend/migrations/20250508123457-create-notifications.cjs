@@ -35,7 +35,7 @@ module.exports = {
         allowNull: true,
       },
       userId: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: false,
         references: {
           model: 'users',
@@ -43,7 +43,7 @@ module.exports = {
         }
       },
       senderId: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: true,
         references: {
           model: 'users',

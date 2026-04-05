@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const swanVideo = "/swan.mp4";
+import { VIDEO } from "../../config/videoAssets";
+const swanVideo = VIDEO.swan;
 
 /**
  * EnhancedContactPage — Crystalline Swan Contact Form

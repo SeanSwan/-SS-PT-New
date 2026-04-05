@@ -47,6 +47,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
+import { useSubscription } from '../../../../hooks/useSubscription';
+import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
 
 // Lazy-load heavy components
 const ProfileChartsGrid = React.lazy(
@@ -332,6 +334,8 @@ const ClientProgressDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, authAxios } = useAuth();
   const { profile } = useGamificationData();
+  const { isPro, isElite, isTrial } = useSubscription();
+  const hasAdvancedAccess = isPro || isElite || isTrial;
   const [weeklyRecap, setWeeklyRecap] = useState<any>(null);
   const [personalRecords, setPersonalRecords] = useState<any[]>([]);
 
@@ -491,12 +495,20 @@ const ClientProgressDashboardPage: React.FC = () => {
         )}
       </ChartsSection>
 
-      {/* Link to detailed NASM analytics */}
-      <DetailedLink onClick={() => navigate('/dashboard/client/progress/detailed')}>
-        <Dumbbell size={18} />
-        View Detailed NASM Analytics (14 Charts)
-        <ChevronRight size={16} style={{ marginLeft: 'auto' }} />
-      </DetailedLink>
+      {/* Link to detailed NASM analytics — Guardian+ feature */}
+      <CrystallineLockOverlay
+        isLocked={!hasAdvancedAccess}
+        featureName="Detailed NASM Analytics"
+        description="14 advanced charts with body composition, strength curves, and periodization insights"
+        ctaLabel="Upgrade to Swan Guardian"
+        onConfigure={() => navigate('/ascension')}
+      >
+        <DetailedLink onClick={() => navigate('/dashboard/client/progress/detailed')}>
+          <Dumbbell size={18} />
+          View Detailed NASM Analytics (14 Charts)
+          <ChevronRight size={16} style={{ marginLeft: 'auto' }} />
+        </DetailedLink>
+      </CrystallineLockOverlay>
     </PageWrap>
   );
 };

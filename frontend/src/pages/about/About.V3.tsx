@@ -29,6 +29,7 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import logoImg from '../../assets/Logo.png';
+import { VIDEO } from '../../config/videoAssets';
 import WhySwanStudios from '../../components/WhySwanStudios/WhySwanStudios';
 
 /* ═══════════════════════════════════════════════════════
@@ -927,7 +928,7 @@ const AboutV3: React.FC = () => {
         {/* ── 1. HERO ──────────────────────────────────────── */}
         <ParallaxHero
           imageSrc="/images/parallax/about-hero-bg.png"
-          videoSrc="/Waves.mp4"
+          videoSrc={VIDEO.waves}
           overlayOpacity={0.6}
           minHeight="100vh"
         >

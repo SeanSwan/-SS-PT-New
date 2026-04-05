@@ -12,7 +12,8 @@ const reducedMotion = css`
 import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Use direct paths to public folder
-import wavesVideo from "../../assets/Waves.mp4";
+import { VIDEO } from "../../config/videoAssets";
+const wavesVideo = VIDEO.waves;
 import logoImage from "../../assets/Logo.png";
 
 // ======================= 🎨 Animation Keyframes =======================

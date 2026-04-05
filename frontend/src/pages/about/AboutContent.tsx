@@ -16,7 +16,8 @@ import Header from "../../components/Header/header";
 
 // Import Assets
 import logoImage from "../../assets/Logo.png";
-import wavesVideo from "../../assets/Waves.mp4"; // Add subtle video background
+import { VIDEO } from "../../config/videoAssets";
+const wavesVideo = VIDEO.waves;
 
 // ======================= 🎨 Animations =======================
 const shimmer = keyframes`

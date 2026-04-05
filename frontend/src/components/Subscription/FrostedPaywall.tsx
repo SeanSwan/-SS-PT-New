@@ -364,33 +364,21 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
 
         <Title>Unlock {featureName}</Title>
         <Subtitle>
-          Upgrade to <strong>Swan Pro</strong> for AI-powered workout generation, NASM calculators,
-          and advanced analytics. Pay what you can — suggested $9.99/mo. Your support keeps
-          SwanStudios accessible for everyone.
+          This feature is available with <strong>Swan Guardian</strong> or higher.
+          Support the mission — your donation keeps SwanStudios free for everyone
+          and unlocks NASM calculators, advanced analytics, and more.
         </Subtitle>
 
         {/* Trial status badge */}
         {isTrial && trialDays > 0 && (
           <TrialBadge>
-            {trialDays} day{trialDays !== 1 ? 's' : ''} left in free trial
+            {trialDays} day{trialDays !== 1 ? 's' : ''} left in free trial — all features unlocked
           </TrialBadge>
         )}
         {trialExpired && (
           <TrialBadge $isExpired>
-            Free trial ended
+            Free trial ended — upgrade to keep premium features
           </TrialBadge>
-        )}
-
-        {/* Usage bar for free tier */}
-        {subscription?.tier === 'free' && (
-          <UsageBar>
-            <UsageLabel>
-              {messagesUsed}/{messagesLimit} AI chats used this month
-            </UsageLabel>
-            <UsageTrack>
-              <UsageFill $pct={messagePct} />
-            </UsageTrack>
-          </UsageBar>
         )}
 
         <ButtonRow>
@@ -401,12 +389,8 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
             </PrimaryBtn>
           )}
 
-          <PrimaryBtn onClick={() => handleSubscribe('pro', 0)}>
-            Swan Pro — Free Donation
-          </PrimaryBtn>
-
-          <PrimaryBtn onClick={() => handleSubscribe('pro', 9.99)}>
-            Swan Pro — $9.99/mo
+          <PrimaryBtn onClick={() => handleSubscribe('pro', 5)}>
+            Swan Guardian — Pay What You Can
           </PrimaryBtn>
 
           <SecondaryBtn onClick={() => handleSubscribe('elite')}>
@@ -417,9 +401,6 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
         <AnnualSection>
           <AnnualTitle>Save with Annual Plans — 2 months free</AnnualTitle>
           <ButtonRow>
-            <AnnualBtn onClick={() => handleSubscribe('pro', 9.99, 'year')}>
-              Swan Pro Annual — $99.99/yr
-            </AnnualBtn>
             <AnnualBtn onClick={() => handleSubscribe('elite', undefined, 'year')}>
               Crystalline Swan Annual — $249.99/yr
             </AnnualBtn>
@@ -427,8 +408,8 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
         </AnnualSection>
 
         <DonationNote>
-          Swan Pro is donation-based — pay what you can. More you give, more AI messages you get.
-          Crystalline Swan = unlimited AI coaching. Annual plans save you 2 months.
+          AI coaching is always free for everyone. Swan Guardian ($5/mo suggested, pay what you can)
+          unlocks advanced analytics and NASM tools. Crystalline Swan ($24.99/mo) adds direct trainer access.
         </DonationNote>
       </Card>
     </Backdrop>

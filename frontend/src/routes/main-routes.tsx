@@ -212,6 +212,12 @@ const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/StoreV2')
 );
 
+// 🏔️ ASCENSION — Tier comparison landing page
+const AscensionPage = lazyLoadWithErrorHandling(
+  () => import('../pages/AscensionPage/AscensionPage'),
+  'Ascension Tier Comparison'
+);
+
 // ✨ GENESIS CHECKOUT SYSTEM - New clean checkout flow
 const CheckoutView = lazyLoadWithErrorHandling(
   () => import('../components/NewCheckout/CheckoutView'),
@@ -531,6 +537,16 @@ const MainRoutes: RouteObject = {
       )
     },
     
+    // 🏔️ ASCENSION — Tier comparison / pricing page
+    {
+      path: 'ascension',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <AscensionPage />
+        </Suspense>
+      )
+    },
+
     // 🌌 GALAXY THEMED SWANSTUDIOS STORE - All routes point to the new Galaxy themed version
     {
       path: 'store',

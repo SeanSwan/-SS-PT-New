@@ -67,7 +67,7 @@ Subscription.init(
       type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'free',
-      comment: 'Subscription tier: free ($0, basic logging), pro ($9.99/mo, 30 AI msgs), elite ($24.99/mo, unlimited AI)',
+      comment: 'Subscription tier: free (Swan Starter, $0), pro (Swan Guardian, donation-based), elite (Crystalline Swan, $24.99/mo)',
       validate: { isIn: [['free', 'pro', 'elite']] },
     },
     status: {
@@ -80,7 +80,7 @@ Subscription.init(
     amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
-      comment: 'Monthly amount (Pro: $9.99/mo, Elite: $24.99/mo)',
+      comment: 'Monthly amount (Guardian: donation pay-what-you-want, Elite: $24.99/mo)',
     },
     trialStartDate: {
       type: DataTypes.DATE,

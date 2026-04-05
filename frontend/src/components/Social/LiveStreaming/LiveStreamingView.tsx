@@ -24,6 +24,8 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Radio, Video, Zap, Users, Calendar, Star } from 'lucide-react';
+import { useSubscription } from '../../../hooks/useSubscription';
+import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -162,7 +164,17 @@ const FEATURES = [
 ];
 
 const LiveStreamingView: React.FC = () => {
+  const { isElite, isTrial } = useSubscription();
+  const hasBroadcastAccess = isElite || isTrial;
+
   return (
+    <CrystallineLockOverlay
+      isLocked={!hasBroadcastAccess}
+      featureName="Live Streaming"
+      description="Stream live workouts to your community and earn XP"
+      ctaLabel="Upgrade to Crystalline Swan"
+      onConfigure={() => { window.location.href = '/ascension'; }}
+    >
     <Container>
       <IconCircle>
         <Radio size={40} />
@@ -188,6 +200,7 @@ const LiveStreamingView: React.FC = () => {
         Coming Soon
       </Badge>
     </Container>
+    </CrystallineLockOverlay>
   );
 };
 

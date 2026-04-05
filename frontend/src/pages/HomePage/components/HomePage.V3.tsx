@@ -19,6 +19,7 @@ import TypewriterText from '../../../components/ui-kit/cinematic/TypewriterText'
 import SectionDivider from '../../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
+import { VIDEO } from '../../../config/videoAssets';
 
 /* ═══════════════════════════════════════════════════════
    ANIMATED COUNTER HOOK
@@ -960,7 +961,7 @@ const HomePageV3: React.FC = () => {
       </Helmet>
 
       {/* ── 1. HERO ──────────────────────────────────── */}
-      <ParallaxHero videoSrc="/Swans.mp4" overlayOpacity={0.55} minHeight="100vh">
+      <ParallaxHero videoSrc={VIDEO.swans} overlayOpacity={0.55} minHeight="100vh">
         <QuickNav aria-label="Quick navigation">
           <GlowButton
             text="Social Profile"
@@ -1318,7 +1319,7 @@ const HomePageV3: React.FC = () => {
       <BeyondSection>
         <BeyondVideoWrapper>
           <video autoPlay muted loop playsInline>
-            <source src="/smoke.mp4" type="video/mp4" />
+            <source src={VIDEO.smoke} type="video/mp4" />
           </video>
         </BeyondVideoWrapper>
         <BeyondOverlay />

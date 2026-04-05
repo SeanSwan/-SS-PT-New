@@ -353,17 +353,37 @@ module.exports = {
       
       console.log('✅ Order_items table created');
       
-      // Add indexes for performance
+      // Add indexes for performance (with existence checks)
       console.log('📊 Adding indexes...');
       
-      await queryInterface.addIndex('orders', ['userId']);
-      await queryInterface.addIndex('orders', ['orderNumber']);
-      await queryInterface.addIndex('orders', ['status']);
-      await queryInterface.addIndex('orders', ['createdAt']);
-      await queryInterface.addIndex('order_items', ['orderId']);
-      await queryInterface.addIndex('order_items', ['storefrontItemId']);
+      // Helper function to check if index exists
+      const indexExists = async (indexName) => {
+        const [result] = await queryInterface.sequelize.query(
+          `SELECT indexname FROM pg_indexes WHERE indexname = '${indexName}';`
+        );
+        return result.length > 0;
+      };
       
-      console.log('✅ All indexes created');
+      // Add indexes only if they don't exist
+      const indexesToCreate = [
+        { table: 'orders', column: 'userId', name: 'orders_user_id' },
+        { table: 'orders', column: 'orderNumber', name: 'orders_order_number' },
+        { table: 'orders', column: 'status', name: 'orders_status' },
+        { table: 'orders', column: 'createdAt', name: 'orders_created_at' },
+        { table: 'order_items', column: 'orderId', name: 'order_items_order_id' },
+        { table: 'order_items', column: 'storefrontItemId', name: 'order_items_storefront_item_id' }
+      ];
+      
+      for (const index of indexesToCreate) {
+        if (!(await indexExists(index.name))) {
+          await queryInterface.addIndex(index.table, [index.column]);
+          console.log(`✅ Created index on ${index.table}.${index.column}`);
+        } else {
+          console.log(`⚠️ Index ${index.name} already exists, skipping`);
+        }
+      }
+      
+      console.log('✅ All indexes processed');
       console.log('🎉 Orders table UUID fix completed successfully!');
       
     } catch (error) {

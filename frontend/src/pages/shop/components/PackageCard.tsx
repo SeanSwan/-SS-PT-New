@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/GlowButton';
 import { SpecialBadge } from './SpecialBadge';
 import { logger } from '@/utils/logger';
+import { VIDEO } from '../../../config/videoAssets';
 
 // EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
 const T = {
@@ -110,25 +111,25 @@ const getMatchingMovieFile = (packageName: string): string | null => {
   const nameLower = packageName.toLowerCase();
 
   const matchingRules = [
-    { keywords: ['silver', 'elite'], movie: 'Swans.mp4' },
-    { keywords: ['swans', 'multiple', 'platinum', 'premium'], movie: 'Swans.mp4' },
-    { keywords: ['swan'], movie: 'swan.mp4' },
-    { keywords: ['run', 'running', 'cardio'], movie: 'Run.mp4' },
-    { keywords: ['wave', 'water', 'flow'], movie: 'Waves.mp4' },
-    { keywords: ['forest', 'nature', 'outdoor'], movie: 'forest.mp4' },
-    { keywords: ['smoke', 'intensity', 'transformation'], movie: 'smoke.mp4' },
-    { keywords: ['fish', 'aqua', 'marine'], movie: 'fish.mp4' }
+    { keywords: ['silver', 'elite'], movie: VIDEO.swans },
+    { keywords: ['swans', 'multiple', 'platinum', 'premium'], movie: VIDEO.swans },
+    { keywords: ['swan'], movie: VIDEO.swan },
+    { keywords: ['run', 'running', 'cardio'], movie: VIDEO.run },
+    { keywords: ['wave', 'water', 'flow'], movie: VIDEO.waves },
+    { keywords: ['forest', 'nature', 'outdoor'], movie: VIDEO.forest },
+    { keywords: ['smoke', 'intensity', 'transformation'], movie: VIDEO.smoke },
+    { keywords: ['fish', 'aqua', 'marine'], movie: VIDEO.fish }
   ];
 
   for (const rule of matchingRules) {
     if (rule.keywords.some(keyword => nameLower.includes(keyword))) {
-      return `/${rule.movie}`;
+      return rule.movie;
     }
   }
 
-  const fallbackMovies = ['Waves.mp4', 'forest.mp4', 'smoke.mp4', 'swan.mp4'];
+  const fallbackMovies = [VIDEO.waves, VIDEO.forest, VIDEO.smoke, VIDEO.swan];
   const fallbackIndex = Math.abs(packageName.length % fallbackMovies.length);
-  return `/${fallbackMovies[fallbackIndex]}`;
+  return fallbackMovies[fallbackIndex];
 };
 
 const formatPrice = (price: number | null | undefined): string => {

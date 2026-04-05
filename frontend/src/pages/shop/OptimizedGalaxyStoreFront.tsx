@@ -23,6 +23,7 @@ import { AnimatePresence, MotionConfig } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import api from "../../services/api.service";
+import { VIDEO } from "../../config/videoAssets";
 // Temporarily disabled useToast due to provider timing issues
 // import { useToast } from "../../hooks/use-toast";
 
@@ -618,7 +619,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           {hasPackages && (
             <PackagesWrapper>
               <SectionVideoBackground
-                src="/swan-golden.mp4"
+                src={VIDEO.swanGolden}
                 fallbackGradient={`linear-gradient(135deg, ${T.bg} 0%, #1a1a3c 100%)`}
                 overlayOpacity={0.55}
                 overlayGradient="linear-gradient(to bottom, rgba(0, 32, 96, 0.65) 0%, rgba(0, 32, 96, 0.5) 50%, rgba(0, 32, 96, 0.65) 100%)"

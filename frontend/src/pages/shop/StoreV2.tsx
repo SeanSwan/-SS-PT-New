@@ -30,6 +30,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import api from '../../services/api.service';
+import { VIDEO } from '../../config/videoAssets';
 
 // Cinematic UI Components
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
@@ -865,7 +866,7 @@ const StoreV2: React.FC = () => {
         {/* 1. PARALLAX HERO SECTION                     */}
         {/* ============================================ */}
         <ParallaxHero
-          videoSrc="/Swans.mp4"
+          videoSrc={VIDEO.swans}
           overlayOpacity={0.55}
           minHeight="100vh"
         >
@@ -913,7 +914,7 @@ const StoreV2: React.FC = () => {
           <PackagesWrapper id="packages-section">
             {/* Video background layer */}
             <SectionVideoBackground
-              src="/swan-golden.mp4"
+              src={VIDEO.swanGolden}
               fallbackGradient={`linear-gradient(135deg, var(--bg-primary, #001545) 0%, var(--bg-secondary, #002060) 100%)`}
               overlayOpacity={0.55}
               overlayGradient="linear-gradient(to bottom, rgba(0,21,69,0.65) 0%, rgba(0,21,69,0.5) 50%, rgba(0,21,69,0.65) 100%)"

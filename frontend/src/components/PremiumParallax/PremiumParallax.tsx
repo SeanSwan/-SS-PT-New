@@ -6,7 +6,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { FaRocket, FaStar, FaMedal, FaGem } from 'react-icons/fa';
 import GlowButtonComponent from "../Button/glow";
-import parallaxVideo from "../../../../assets/security.mp4";
+import { VIDEO } from "../../../../config/videoAssets";
+const parallaxVideo = VIDEO.swan;
 import logoImage from "../../../../assets/Logo.png";
 
 // Register GSAP plugins

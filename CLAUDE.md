@@ -45,6 +45,8 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 12. **No Grok/X-AI models** anywhere. Hard permanent no.
 13. **Commit style:** `type(scope): description` → push to main for Render auto-deploy
 14. **7-Star documentation** on all new files — see `docs/ai-workflow/references/DOCUMENTATION-STANDARD.md`
+15. **Recursive planning BEFORE building** — NO code without a plan. See `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`
+16. **AI Village (14-brain) requires Sean's permission** — NEVER run without asking. Use Opus (free) or Gemini CTO (cheap) for most planning. Village is for CRITICAL decisions only (~$0.33/run).
 
 ## Key Directories
 - `frontend/src/components/` — React components (styled-components, NO MUI)
@@ -108,6 +110,8 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 | OpenClaw | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | OpenClaw work |
 | Skills Reference | `docs/ai-workflow/references/SKILLS-REFERENCE.md` | Skill management |
 | 3-Tier Workflow | `docs/ai-workflow/references/THREE-TIER-WORKFLOW.md` | Choosing dev workflow tier |
+| R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
+| Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
 ## AI Coordination
 - Multi-AI Swarm (see `.clinerules` for full protocol)

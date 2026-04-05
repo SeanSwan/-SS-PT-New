@@ -37,6 +37,8 @@ import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Bui
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
+import { useSubscription } from '../../../hooks/useSubscription';
+import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Lazy imports
@@ -78,6 +80,8 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 // ─────────────────────────────────────────────────────────────
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('log');
+  const { isPro, isElite, isTrial } = useSubscription();
+  const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading } = useMacroSummary();
 
   return (
@@ -136,8 +140,28 @@ const NutritionWorkspace: React.FC = () => {
             {activeTab === 'garden' && <GardeningTab />}
             {activeTab === 'farms' && <FarmFinderTab />}
             {activeTab === 'supplements' && <SupplementsTab />}
-            {activeTab === 'meal-plan' && <MealPlanTab />}
-            {activeTab === 'intelligence' && <FoodIntelligenceDashboard />}
+            {activeTab === 'meal-plan' && (
+              <CrystallineLockOverlay
+                isLocked={!hasAINutrition}
+                featureName="AI Meal Planning"
+                description="AI-generated meal plans tailored to your macros and goals"
+                ctaLabel="Upgrade to Swan Guardian"
+                onConfigure={() => { window.location.href = '/ascension'; }}
+              >
+                <MealPlanTab />
+              </CrystallineLockOverlay>
+            )}
+            {activeTab === 'intelligence' && (
+              <CrystallineLockOverlay
+                isLocked={!hasAINutrition}
+                featureName="Nutrition Intelligence"
+                description="AI-powered food analysis and personalized nutrition coaching"
+                ctaLabel="Upgrade to Swan Guardian"
+                onConfigure={() => { window.location.href = '/ascension'; }}
+              >
+                <FoodIntelligenceDashboard />
+              </CrystallineLockOverlay>
+            )}
             {activeTab === 'learn' && <NutritionLearnTab />}
           </Suspense>
         </ErrorBoundary>

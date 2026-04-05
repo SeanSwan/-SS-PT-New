@@ -24,6 +24,8 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Crown, TrendingUp, Users, DollarSign, BarChart3, Sparkles } from 'lucide-react';
+import { useSubscription } from '../../../hooks/useSubscription';
+import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -166,7 +168,17 @@ const FEATURES = [
 ];
 
 const CreatorEconomyView: React.FC = () => {
+  const { isElite, isTrial } = useSubscription();
+  const hasCreatorAccess = isElite || isTrial;
+
   return (
+    <CrystallineLockOverlay
+      isLocked={!hasCreatorAccess}
+      featureName="Creator Economy"
+      description="Monetize your fitness content, grow your audience, and earn revenue inside SwanStudios"
+      ctaLabel="Upgrade to Crystalline Swan"
+      onConfigure={() => { window.location.href = '/ascension'; }}
+    >
     <Container>
       <IconCircle>
         <Crown size={40} />
@@ -193,6 +205,7 @@ const CreatorEconomyView: React.FC = () => {
         Apply to Become a Creator — Coming Soon
       </CTAButton>
     </Container>
+    </CrystallineLockOverlay>
   );
 };
 

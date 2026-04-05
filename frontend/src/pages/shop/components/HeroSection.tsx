@@ -40,7 +40,8 @@ const noMotion = css`
 `;
 
 // Asset paths
-const swanVideo = "/Swans.mp4";
+import { VIDEO } from "../../../config/videoAssets";
+const swanVideo = VIDEO.swans;
 const logoImg = "/Logo.png";
 
 // Keyframe animations

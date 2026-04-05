@@ -4,7 +4,8 @@ import React, { useState, useCallback } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
-import heroVideo from "../../assets/swan.mp4";
+import { VIDEO } from "../../config/videoAssets";
+const heroVideo = VIDEO.swan;
 import GlowButton from "../../components/Button/glowButton";
 
 // ---------------------------

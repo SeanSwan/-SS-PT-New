@@ -9,6 +9,7 @@ import FoodIntakeForm from '../../../../components/FoodTracker/FoodIntakeForm';
 import McpStatusIndicator from '../../../../components/ui/McpStatusIndicator';
 import styled, { keyframes, css } from 'styled-components';
 import './client-dashboard.css';
+import { VIDEO } from '../../../../config/videoAssets';
 
 // Lucide icons
 import {
@@ -1114,7 +1115,7 @@ const NewClientDashboard: React.FC = () => {
       {/* Video Background */}
       <VideoBackground>
         <video autoPlay loop muted playsInline>
-          <source src="/Waves.mp4" type="video/mp4" />
+          <source src={VIDEO.waves} type="video/mp4" />
         </video>
       </VideoBackground>
 

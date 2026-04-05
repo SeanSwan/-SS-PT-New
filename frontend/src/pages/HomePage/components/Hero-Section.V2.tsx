@@ -6,6 +6,7 @@ import { ArrowRight, Star } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 import logoImg from "../../../assets/Logo.png";
+import { VIDEO } from "../../../config/videoAssets";
 import { useReducedMotion } from "../../../hooks/useReducedMotion";
 
 // ═══════════════════════════════════════════════════
@@ -371,7 +372,7 @@ const HeroSectionV2: React.FC = () => {
             preload="metadata"
             onCanPlayThrough={handleVideoReady}
           >
-            <source src="/Swans.mp4" type="video/mp4" />
+            <source src={VIDEO.swans} type="video/mp4" />
           </video>
         </VideoBackground>
       ) : (

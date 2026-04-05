@@ -8,6 +8,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { logger } from '@/utils/logger';
 
+// ─────────────────────────────────────────────────────────────
+// Paywall bridge — connects Axios interceptor to React PaywallContext
+// without creating circular imports. Set by PaywallProvider on mount.
+// ─────────────────────────────────────────────────────────────
+type PaywallTriggerFn = (featureName: string, data?: Record<string, unknown>) => void;
+let _paywallTrigger: PaywallTriggerFn | null = null;
+
+export function registerPaywallTrigger(fn: PaywallTriggerFn) { _paywallTrigger = fn; }
+export function unregisterPaywallTrigger() { _paywallTrigger = null; }
+
 // Production configuration
 const IS_PRODUCTION = import.meta.env.PROD || 
                      window.location.hostname.includes('render.com') || 
@@ -281,6 +291,17 @@ const createProductionApiClient = (): AxiosInstance => {
           message: error.message,
           url: originalRequest?.url
         });
+      }
+
+      // 402 Payment Required — trigger FrostedPaywall for feature gating
+      if (error.response?.status === 402) {
+        const data = error.response.data as any;
+        const isBackground = originalRequest?._isBackgroundRequest === true;
+
+        if (!isBackground && _paywallTrigger) {
+          const featureName = data?.featureName || 'Premium Feature';
+          _paywallTrigger(featureName, data);
+        }
       }
 
       return Promise.reject(error);

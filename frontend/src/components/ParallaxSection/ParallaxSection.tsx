@@ -5,7 +5,8 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import correct video path
-import wavesVideo from "/smoke.mp4"; // Updated to smoke.mp4
+import { VIDEO } from "../../config/videoAssets";
+const wavesVideo = VIDEO.smoke;
 import { logger } from '@/utils/logger';
 
 // Keyframe animations

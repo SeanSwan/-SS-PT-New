@@ -40,84 +40,90 @@ const getStripe = () => {
 // SECTION: Tier Definitions
 // PURPOSE: Single source of truth for tier features and pricing
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// TIER PHILOSOPHY: Mission-first. AI is free for everyone.
+// Tiers gate FEATURES (calculators, charts, trainer access),
+// NOT AI message counts. Anomaly detection for bots only.
+// ─────────────────────────────────────────────────────────────
 const TIER_DEFINITIONS = {
   free: {
     id: 'free',
     name: 'Swan Starter',
-    tagline: 'Log workouts, track nutrition — free forever',
+    tagline: 'AI coaching, workout logging, nutrition — free forever',
     price: 0,
     priceDisplay: 'Free',
     donationEnabled: true,
     features: [
+      'AI Coach chat (unlimited)',
+      'AI workout generation (unlimited, with review flow)',
       'Workout logging (unlimited)',
       'Nutrition & macro counter',
-      'Exercise library (900+ exercises)',
+      'Exercise library (840+ exercises)',
       'Social feed & community',
-      'Gamification (XP, levels, badges)',
+      'Gamification (XP, levels, badges, streaks)',
       'Basic progress charts',
       'BMI calculator',
-      '3 AI chat messages/month (taste test)',
-      '1 AI workout generation/month',
+      'Pain & injury body map',
+      'Session booking',
+      '30-day trial of all premium features',
     ],
     limits: {
-      aiMessagesPerMonth: 3,
-      aiGenerationsPerMonth: 1,
+      aiMessagesPerMonth: Infinity,   // No caps — anomaly detection only
+      aiGenerationsPerMonth: Infinity,
     },
   },
   pro: {
     id: 'pro',
-    name: 'Swan Pro',
-    tagline: 'AI-powered coaching — pay what you can, suggested $9.99/mo',
-    price: 9.99,
-    priceDisplay: '$9.99/mo suggested',
-    annualPrice: 99.99,           // ~$8.33/mo — save $19.89/year (2 months free)
-    annualPriceDisplay: '$99.99/yr (save $20)',
+    name: 'Swan Guardian',
+    tagline: 'Support the mission — unlock advanced tools & analytics',
+    price: 5,
+    priceDisplay: 'Pay what you can (suggested $5/mo)',
     donationBased: true,
-    minimumPrice: 0,
+    minimumPrice: 1,
     maximumPrice: 50.00,
-    suggestedPrice: 9.99,
+    suggestedPrice: 5,
     features: [
       'Everything in Swan Starter',
-      'AI Coach messages (amount scales with donation)',
-      'AI workout generations (amount scales with donation)',
       'All 4 NASM calculators (1RM, TDEE, Body Fat %, BMI)',
-      'Full Victory chart gallery on profile',
-      'Advanced progress analytics',
-      'Swan Pro badge (Rare)',
+      'Full 50-chart Victory analytics gallery',
+      'Detailed NASM Analytics dashboard (14 charts)',
+      'AI Nutrition coaching (meal planning, food intelligence)',
+      'Advanced progress analytics & insights',
+      'Swan Guardian badge (Rare — Gilded Fern)',
       'Priority in community challenges',
+      'Support keeps SwanStudios free for everyone',
     ],
-    // Limits scale by donation amount — see donationTiers below
-    limits: {
-      aiMessagesPerMonth: 40,       // At suggested price ($9.99+)
-      aiGenerationsPerMonth: 10,    // At suggested price ($9.99+)
-    },
     donationTiers: [
-      { minAmount: 0,    maxAmount: 0.99,  aiMessagesPerMonth: 10, aiGenerationsPerMonth: 2, label: 'Free Donation' },
-      { minAmount: 1,    maxAmount: 4.99,  aiMessagesPerMonth: 15, aiGenerationsPerMonth: 3, label: 'Supporter' },
-      { minAmount: 5,    maxAmount: 9.98,  aiMessagesPerMonth: 25, aiGenerationsPerMonth: 4, label: 'Champion' },
-      { minAmount: 9.99, maxAmount: 50,    aiMessagesPerMonth: 40, aiGenerationsPerMonth: 10, label: 'Hero' },
+      { minAmount: 1,    maxAmount: 4.99,  label: 'Supporter' },
+      { minAmount: 5,    maxAmount: 9.99,  label: 'Champion' },
+      { minAmount: 10,   maxAmount: 24.99, label: 'Hero' },
+      { minAmount: 25,   maxAmount: 50,    label: 'Legendary Patron' },
     ],
+    limits: {
+      aiMessagesPerMonth: Infinity,   // No caps — same AI as everyone
+      aiGenerationsPerMonth: Infinity,
+    },
   },
   elite: {
     id: 'elite',
     name: 'Crystalline Swan',
-    tagline: 'Unlimited AI coaching — your personal trainer in your pocket',
+    tagline: 'Human trainer access — your personal coach in your pocket',
     price: 24.99,
     priceDisplay: '$24.99/mo',
-    annualPrice: 249.99,          // ~$20.83/mo — save $49.89/year (2 months free)
+    annualPrice: 249.99,
     annualPriceDisplay: '$249.99/yr (save $50)',
     stripePriceId: null, // Set via Stripe dashboard
     features: [
-      'Everything in Swan Pro',
-      'Unlimited AI Coach messages',
-      'Unlimited AI workout generation',
-      'Voice AI Coach (when available)',
+      'Everything in Swan Guardian',
+      'Direct trainer messaging (async chat with your trainer)',
+      'Video form check submissions (48h feedback)',
+      'Monthly custom workout plan review',
       'Content Studio access',
-      'Advanced analytics & insights',
-      'Direct trainer messaging',
-      'Video form check submissions',
-      'Crystalline Swan badge (Epic)',
+      'Creator Economy access',
+      'Live streaming (create broadcasts)',
+      'Crystalline Swan badge (Epic — Wing Purple)',
       'Priority scheduling for sessions',
+      'Exclusive trainer Q&A sessions',
     ],
     limits: {
       aiMessagesPerMonth: Infinity,
@@ -338,7 +344,7 @@ router.post('/checkout', protect, async (req, res) => {
 
       return res.json({
         success: true,
-        message: 'Swan Pro activated! Your AI limits are based on your donation level.',
+        message: 'Swan Guardian activated! Thank you for supporting the SwanStudios mission.',
         tier: 'pro',
         donationAmount: 0,
       });

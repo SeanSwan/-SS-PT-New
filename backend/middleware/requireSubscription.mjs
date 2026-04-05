@@ -1,54 +1,85 @@
 /**
  * ============================================================================
  * FILE: requireSubscription.mjs
- * PURPOSE: Middleware to gate AI features behind subscription tiers
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
+ * PURPOSE: AI access middleware — NO hard caps, anomaly detection only
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-05
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Checks if the authenticated user has the required
- * subscription tier to access AI features. Handles free trial logic,
- * monthly usage caps for free tier, and auto-creates trial subscriptions.
+ * PHILOSOPHY: AI is free for everyone. Tiers gate FEATURES, not AI access.
+ * This middleware tracks usage for monitoring and detects bot/abuse patterns.
+ * Normal users are NEVER blocked. Only automated scripts/bots get throttled.
  *
  * HOW IT FITS IN THE APP: Inserted into AI route middleware chain:
  *   protect → aiKillSwitch → requireSubscription('pro') → aiRateLimiter → controller
  *
- * KEY DECISIONS: Admins and trainers always pass (they manage the platform).
- * Free tier gets 3 AI chats + 1 workout generation per month. Trial users
- * get full access for 30 days. Subscription auto-creates on first AI access.
+ * WHAT CHANGED (2026-04-05): Removed all monthly message caps. Added anomaly
+ * detection (100+ req/hour, 500+ req/day flags Sean). Only 50+ req/min
+ * auto-throttles (definitely a bot). Sean decides everything else via admin dashboard.
  */
 
 import logger from '../utils/logger.mjs';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Free Tier Limits
-// PURPOSE: Monthly caps for non-paying users
-// WHY: Generous enough to demonstrate value, limited enough to drive conversion
+// SECTION: Anomaly Detection Thresholds
+// PURPOSE: Catch bots/scripts, NOT normal users
+// These are intentionally HIGH — no normal human hits them
 // ─────────────────────────────────────────────────────────────
-const TIER_LIMITS = {
-  free:  { aiMessagesPerMonth: 3,  aiGenerationsPerMonth: 1 },
-  elite: { aiMessagesPerMonth: Infinity, aiGenerationsPerMonth: Infinity },
+const ANOMALY = {
+  perMinuteHardLimit: 50,       // 50 req/min = definitely a bot → auto-cooldown
+  perHourAlertThreshold: 100,   // 100 req/hour = flag for Sean to review
+  perDayAlertThreshold: 500,    // 500 req/day = red flag for Sean
+  cooldownMs: 15 * 60 * 1000,  // 15-minute cooldown for bots
 };
 
-// Pro tier limits scale by donation amount — benevolent model
-// $0 donation still gets AI access but very limited to prevent abuse
-const PRO_DONATION_TIERS = [
-  { minAmount: 0,    maxAmount: 0.99,  aiMessagesPerMonth: 10, aiGenerationsPerMonth: 2 },
-  { minAmount: 1,    maxAmount: 4.99,  aiMessagesPerMonth: 15, aiGenerationsPerMonth: 3 },
-  { minAmount: 5,    maxAmount: 9.98,  aiMessagesPerMonth: 25, aiGenerationsPerMonth: 4 },
-  { minAmount: 9.99, maxAmount: 9999,  aiMessagesPerMonth: 40, aiGenerationsPerMonth: 10 },
-];
+// In-memory rate tracking (resets on server restart — fine for anomaly detection)
+const userRateMap = new Map(); // userId → { minuteCount, minuteStart, hourCount, hourStart, dayCount, dayStart, cooldownUntil }
 
-/** Get Pro tier limits based on donation amount */
-function getProLimits(donationAmount) {
-  const amount = parseFloat(donationAmount) || 0;
-  const tier = PRO_DONATION_TIERS.find(t => amount >= t.minAmount && amount <= t.maxAmount);
-  return tier || PRO_DONATION_TIERS[0]; // Default to lowest if no match
+function trackAndCheckAnomaly(userId) {
+  const now = Date.now();
+  let entry = userRateMap.get(userId);
+
+  if (!entry) {
+    entry = { minuteCount: 0, minuteStart: now, hourCount: 0, hourStart: now, dayCount: 0, dayStart: now, cooldownUntil: null };
+    userRateMap.set(userId, entry);
+  }
+
+  // Cooldown check
+  if (entry.cooldownUntil && now < entry.cooldownUntil) {
+    return { blocked: true, reason: 'cooldown', retryAfter: Math.ceil((entry.cooldownUntil - now) / 1000) };
+  }
+
+  // Reset windows
+  if (now - entry.minuteStart > 60_000) { entry.minuteCount = 0; entry.minuteStart = now; }
+  if (now - entry.hourStart > 3_600_000) { entry.hourCount = 0; entry.hourStart = now; }
+  if (now - entry.dayStart > 86_400_000) { entry.dayCount = 0; entry.dayStart = now; }
+
+  entry.minuteCount++;
+  entry.hourCount++;
+  entry.dayCount++;
+
+  // Auto-throttle: 50+ per minute = definitely automated
+  if (entry.minuteCount > ANOMALY.perMinuteHardLimit) {
+    entry.cooldownUntil = now + ANOMALY.cooldownMs;
+    logger.warn(`[Anomaly] User ${userId} hit ${entry.minuteCount} req/min — auto-cooldown 15min (likely bot)`);
+    return { blocked: true, reason: 'rate_exceeded', retryAfter: ANOMALY.cooldownMs / 1000 };
+  }
+
+  // Flag for Sean (log warning, DON'T block)
+  if (entry.hourCount === ANOMALY.perHourAlertThreshold) {
+    logger.warn(`[Anomaly] User ${userId} hit ${entry.hourCount} req/hour — flagging for admin review`);
+  }
+  if (entry.dayCount === ANOMALY.perDayAlertThreshold) {
+    logger.warn(`[Anomaly] User ${userId} hit ${entry.dayCount} req/day — RED FLAG for admin review`);
+  }
+
+  return { blocked: false, hourCount: entry.hourCount, dayCount: entry.dayCount };
 }
 
 /**
- * Middleware factory for subscription-gated routes.
+ * Middleware factory for subscription-aware AI routes.
+ * NO hard caps — tracks usage for monitoring and detects anomalies.
  *
- * @param {string} minimumTier - Minimum tier required: 'pro' or 'elite'
+ * @param {string} minimumTier - For FEATURE gating (not AI caps): 'pro' or 'elite'
  * @param {object} options - Additional options
  * @param {string} options.feature - Feature name for usage tracking ('chat' | 'generation')
  * @returns {Function} Express middleware
@@ -70,23 +101,35 @@ export function requireSubscription(minimumTier = 'pro', options = {}) {
 
       // ─────────────────────────────────────────────────────────────
       // SECTION: Role Bypass
-      // PURPOSE: Admins and trainers always have full AI access
-      // WHY: They manage the platform and need AI for client work
+      // Admins and trainers always have full AI access — no tracking
       // ─────────────────────────────────────────────────────────────
       if (user.role === 'admin' || user.role === 'trainer') {
         return next();
       }
 
       // ─────────────────────────────────────────────────────────────
+      // SECTION: Anomaly Detection (bot protection only)
+      // Normal users NEVER hit these thresholds
+      // ─────────────────────────────────────────────────────────────
+      const anomaly = trackAndCheckAnomaly(user.id);
+      if (anomaly.blocked) {
+        return res.status(429).json({
+          success: false,
+          message: 'Unusual activity detected. Please try again shortly.',
+          code: 'AI_ANOMALY_DETECTED',
+          retryAfter: anomaly.retryAfter,
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────
       // SECTION: Subscription Lookup
-      // PURPOSE: Find or create the user's subscription record
+      // Find or auto-create subscription record
       // ─────────────────────────────────────────────────────────────
       let Subscription;
       try {
         const mod = await import('../models/Subscription.mjs');
         Subscription = mod.default;
       } catch (err) {
-        // Table may not exist yet — allow access gracefully
         logger.warn('[Subscription] Subscription model not available, allowing access:', err.message);
         return next();
       }
@@ -114,60 +157,30 @@ export function requireSubscription(minimumTier = 'pro', options = {}) {
       }
 
       // ─────────────────────────────────────────────────────────────
-      // SECTION: Trial Check
-      // PURPOSE: Users in active trial get full access regardless of tier
+      // SECTION: Auto-revert cancelled subscriptions past billing period
       // ─────────────────────────────────────────────────────────────
-      if (subscription.isInTrial()) {
-        req.subscription = subscription;
-        req.subscriptionAccess = 'trial';
-        return next();
-      }
-
-      // If trial expired and still on free tier, update status
-      if (subscription.status === 'trial' && subscription.isTrialExpired()) {
-        subscription.status = 'active';
-        await subscription.save();
-      }
-
-      // ─────────────────────────────────────────────────────────────
-      // SECTION: Paid Tier Check
-      // PURPOSE: Pro and Elite tiers get full access to AI features
-      // ─────────────────────────────────────────────────────────────
-      // Support both old (supporter/premium) and new (pro/elite) tier names
-      // during migration transition period
-      const tierHierarchy = { free: 0, supporter: 1, pro: 1, premium: 2, elite: 2 };
-      const userTierLevel = tierHierarchy[subscription.tier] || 0;
-      const requiredTierLevel = tierHierarchy[minimumTier] || 1;
-
-      // ─────────────────────────────────────────────────────────────
-      // SECTION: Usage-Limited Access Check
-      // PURPOSE: All tiers (free, pro, elite) have monthly caps
-      // WHY: Pro has 30 msgs/month, Elite is unlimited, Free gets a taste
-      // ─────────────────────────────────────────────────────────────
-      if (userTierLevel >= requiredTierLevel && subscription.status === 'active') {
-        const tier = subscription.tier;
-
-        // Determine limits: Elite = unlimited, Pro = donation-scaled
-        const limits = tier === 'elite'
-          ? TIER_LIMITS.elite
-          : tier === 'pro'
-            ? getProLimits(subscription.amount)
-            : TIER_LIMITS.free;
-
-        // Elite tier — unlimited, skip usage tracking
-        if (limits.aiMessagesPerMonth === Infinity) {
-          req.subscription = subscription;
-          req.subscriptionAccess = 'paid';
-          return next();
+      if (subscription.status === 'cancelled' && subscription.currentPeriodEnd) {
+        if (new Date() >= new Date(subscription.currentPeriodEnd)) {
+          subscription.tier = 'free';
+          subscription.status = 'active';
+          subscription.amount = null;
+          await subscription.save();
+          logger.info(`[Subscription] Reverted cancelled subscription to free for user ${user.id}`);
         }
+      }
 
-        // Pro tier — enforce monthly limits
-        const now = new Date();
+      // ─────────────────────────────────────────────────────────────
+      // SECTION: Track Usage (for admin dashboard, NOT for blocking)
+      // ─────────────────────────────────────────────────────────────
+      try {
         const UserModel = (await import('../models/User.mjs')).default;
         const userData = await UserModel.findByPk(user.id);
 
         if (userData) {
+          const now = new Date();
           const resetDate = userData.aiUsageResetDate ? new Date(userData.aiUsageResetDate) : null;
+
+          // Monthly reset
           if (!resetDate || now >= resetDate) {
             const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
             await userData.update({
@@ -177,122 +190,34 @@ export function requireSubscription(minimumTier = 'pro', options = {}) {
             });
           }
 
-          const messagesUsed = userData.aiMessagesUsedThisMonth || 0;
-          const generationsUsed = userData.aiGenerationsUsedThisMonth || 0;
-
-          if (feature === 'chat' && messagesUsed < limits.aiMessagesPerMonth) {
-            await userData.increment('aiMessagesUsedThisMonth');
-            req.subscription = subscription;
-            req.subscriptionAccess = 'paid';
-            req.aiUsageRemaining = {
-              messages: limits.aiMessagesPerMonth - messagesUsed - 1,
-              generations: limits.aiGenerationsPerMonth - generationsUsed,
-            };
-            return next();
-          }
-
-          if (feature === 'generation' && generationsUsed < limits.aiGenerationsPerMonth) {
-            await userData.increment('aiGenerationsUsedThisMonth');
-            req.subscription = subscription;
-            req.subscriptionAccess = 'paid';
-            req.aiUsageRemaining = {
-              messages: limits.aiMessagesPerMonth - messagesUsed,
-              generations: limits.aiGenerationsPerMonth - generationsUsed - 1,
-            };
-            return next();
-          }
+          // Increment usage counter (for monitoring only)
+          if (feature === 'chat') await userData.increment('aiMessagesUsedThisMonth');
+          if (feature === 'generation') await userData.increment('aiGenerationsUsedThisMonth');
         }
-
-        // Pro tier limit reached — upsell to Elite
-        return res.status(402).json({
-          success: false,
-          message: `You've reached your ${tier === 'pro' ? 'Swan Pro' : 'monthly'} AI limit. Upgrade to Crystalline Swan ($24.99/mo) for unlimited AI!`,
-          code: 'AI_LIMIT_REACHED',
-          tier,
-          limits,
-          upgradeUrl: '/store/subscriptions',
-        });
+      } catch (trackErr) {
+        // Usage tracking failure should NEVER block the user
+        logger.warn('[Subscription] Usage tracking error (non-blocking):', trackErr.message);
       }
 
       // ─────────────────────────────────────────────────────────────
-      // SECTION: Free Tier Usage Check
-      // PURPOSE: Give free users a taste of AI (3 msgs, 1 generation/month)
+      // SECTION: Attach subscription to request and allow access
+      // AI is free for everyone — just attach tier info for model routing
       // ─────────────────────────────────────────────────────────────
-      if (subscription.tier === 'free') {
-        const limits = TIER_LIMITS.free;
-        const now = new Date();
-        const UserModel = (await import('../models/User.mjs')).default;
-        const userData = await UserModel.findByPk(user.id);
+      req.subscription = subscription;
+      req.subscriptionAccess = subscription.isInTrial?.() ? 'trial'
+        : subscription.tier === 'free' ? 'free'
+        : 'paid';
 
-        if (userData) {
-          const resetDate = userData.aiUsageResetDate ? new Date(userData.aiUsageResetDate) : null;
-          if (!resetDate || now >= resetDate) {
-            const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            await userData.update({
-              aiMessagesUsedThisMonth: 0,
-              aiGenerationsUsedThisMonth: 0,
-              aiUsageResetDate: nextReset,
-            });
-          }
-
-          const messagesUsed = userData.aiMessagesUsedThisMonth || 0;
-          const generationsUsed = userData.aiGenerationsUsedThisMonth || 0;
-
-          if (feature === 'chat' && messagesUsed < limits.aiMessagesPerMonth) {
-            await userData.increment('aiMessagesUsedThisMonth');
-            req.subscription = subscription;
-            req.subscriptionAccess = 'free_limited';
-            req.aiUsageRemaining = {
-              messages: limits.aiMessagesPerMonth - messagesUsed - 1,
-              generations: limits.aiGenerationsPerMonth - generationsUsed,
-            };
-            return next();
-          }
-
-          if (feature === 'generation' && generationsUsed < limits.aiGenerationsPerMonth) {
-            await userData.increment('aiGenerationsUsedThisMonth');
-            req.subscription = subscription;
-            req.subscriptionAccess = 'free_limited';
-            req.aiUsageRemaining = {
-              messages: limits.aiMessagesPerMonth - messagesUsed,
-              generations: limits.aiGenerationsPerMonth - generationsUsed - 1,
-            };
-            return next();
-          }
-        }
-
-        // Free tier limit reached
-        return res.status(402).json({
-          success: false,
-          message: 'You\'ve reached your free tier AI limit for this month. Upgrade to Swan Pro ($9.99/mo) for 30 AI messages!',
-          code: 'AI_SUBSCRIPTION_REQUIRED',
-          tier: 'free',
-          limits,
-          trialExpired: subscription.isTrialExpired(),
-          trialDaysRemaining: subscription.trialDaysRemaining(),
-          upgradeUrl: '/store/subscriptions',
-        });
+      // Past due/cancelled but within billing period — still allow access
+      if (subscription.status === 'past_due') {
+        logger.warn(`[Subscription] User ${user.id} has past_due subscription — allowing access, Stripe will handle`);
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // SECTION: Subscription Expired / Past Due
-      // ─────────────────────────────────────────────────────────────
-      return res.status(402).json({
-        success: false,
-        message: subscription.status === 'past_due'
-          ? 'Your subscription payment is past due. Please update your payment method.'
-          : subscription.status === 'cancelled'
-            ? 'Your subscription has been cancelled. Resubscribe to regain access.'
-            : 'A subscription is required for this feature.',
-        code: 'AI_SUBSCRIPTION_REQUIRED',
-        tier: subscription.tier,
-        status: subscription.status,
-        upgradeUrl: '/store/subscriptions',
-      });
+      return next();
 
     } catch (error) {
       logger.error('[Subscription] Error checking subscription:', error);
-      // Fail open — don't block users if subscription check errors
+      // Fail open — NEVER block users if subscription check errors
       return next();
     }
   };
@@ -300,7 +225,7 @@ export function requireSubscription(minimumTier = 'pro', options = {}) {
 
 /**
  * Lightweight middleware to attach subscription info to request
- * without blocking. Used for frontend to show usage counters.
+ * without blocking. Used for frontend to show tier badges and features.
  */
 export function attachSubscriptionInfo() {
   return async (req, res, next) => {

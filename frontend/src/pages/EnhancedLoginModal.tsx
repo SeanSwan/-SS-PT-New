@@ -18,7 +18,8 @@ import { logger } from '@/utils/logger';
 
 // --- Asset Paths ---
 const Logo = "/Logo.png";
-const powerBackground = "/Waves.mp4";
+import { VIDEO } from "../config/videoAssets";
+const powerBackground = VIDEO.waves;
 
 /* ------------------ Animations ------------------ */
 const shimmer = keyframes`

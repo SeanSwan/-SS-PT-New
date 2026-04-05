@@ -22,6 +22,7 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import logoImg from '../../assets/Logo.png';
+import { VIDEO } from '../../config/videoAssets';
 
 /* ═══════════════════════════════════════════════════════
    ANIMATED COUNTER HOOK
@@ -609,7 +610,7 @@ const AboutV2: React.FC = () => {
   return (
     <PageWrapper>
       {/* ── 1. HERO ──────────────────────────────────────── */}
-      <ParallaxHero videoSrc="/Waves.mp4" overlayOpacity={0.6} minHeight="100vh">
+      <ParallaxHero videoSrc={VIDEO.waves} overlayOpacity={0.6} minHeight="100vh">
         <HeroLogo src={logoImg} alt="SwanStudios logo" />
         <HeroHeadline>
           <TypewriterText text="Achieve Your Best Self" as="span" speed={55} />

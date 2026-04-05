@@ -56,7 +56,13 @@ frontend/test-results/
 playwright-report/
 test-results/
 tests/screenshots/
+qa-audit/
 *.tsbuildinfo
+
+# Large media files — hosted on Cloudflare R2, not in git
+frontend/public/*.mp4
+frontend/src/assets/*.mp4
+frontend/public/badges/
 
 # File archive vault
 .swan/archive/

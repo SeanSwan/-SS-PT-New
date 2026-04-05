@@ -12,15 +12,28 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
+export interface DonationTier {
+  minAmount: number;
+  maxAmount: number;
+  label: string;
+  aiMessagesPerMonth?: number;
+  aiGenerationsPerMonth?: number;
+}
+
 export interface TierDefinition {
   id: string;
   name: string;
   tagline: string;
   price: number;
   priceDisplay: string;
+  annualPrice?: number;
+  annualPriceDisplay?: string;
+  donationBased?: boolean;
   payWhatYouWant?: boolean;
   minimumPrice?: number;
   maximumPrice?: number;
+  suggestedPrice?: number;
+  donationTiers?: DonationTier[];
   features: string[];
   limits: {
     aiMessagesPerMonth: number;

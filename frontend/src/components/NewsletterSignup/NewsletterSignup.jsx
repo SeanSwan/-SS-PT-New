@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { VIDEO } from '../../config/videoAssets';
 
 // Reduced-motion helper
 const reducedMotion = css`
@@ -434,7 +435,7 @@ const NewsletterSignup = () => {
   return (
     <NewsletterSection id="newsletter">
       <SectionVideoBackground
-        src="/Waves.mp4"
+        src={VIDEO.waves}
         fallbackGradient="linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9))"
         overlayOpacity={0.50}
       />

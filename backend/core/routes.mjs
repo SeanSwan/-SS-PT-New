@@ -184,6 +184,7 @@ import farmFinderRoutes from '../routes/farmFinderRoutes.mjs';
 import supplementRoutes from '../routes/supplementRoutes.mjs';
 import mealPlanRoutes from '../routes/mealPlanRoutes.mjs';
 import subscriptionRoutes from '../routes/subscriptionRoutes.mjs';
+import adminAiUsageRoutes from '../routes/adminAiUsageRoutes.mjs';
 import creditsRoutes from '../routes/creditsRoutes.mjs';
 import commissionRoutes from '../routes/commissionRoutes.mjs';
 import freeApiRoutes from '../routes/freeApiRoutes.mjs';
@@ -551,6 +552,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
+  app.use('/api/admin', adminAiUsageRoutes);
   app.use('/api', creditsRoutes);
   app.use('/api/commissions', commissionRoutes);
   app.use('/api/master-prompt', masterPromptRoutes);

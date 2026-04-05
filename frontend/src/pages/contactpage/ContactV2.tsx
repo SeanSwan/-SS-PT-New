@@ -8,6 +8,7 @@ import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
+import { VIDEO } from '../../config/videoAssets';
 
 /* ================================================================
  * ContactV2 — Cinematic, Theme-Aware Contact Page
@@ -613,7 +614,7 @@ const ContactV2: React.FC = () => {
   return (
     <PageWrapper>
       {/* ---- Hero ---- */}
-      <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.65} minHeight="70vh">
+      <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.65} minHeight="70vh">
         <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         <HeroTitle text="Let's Connect" forwardedAs="h1" speed={60} />
         <HeroSubtitle>

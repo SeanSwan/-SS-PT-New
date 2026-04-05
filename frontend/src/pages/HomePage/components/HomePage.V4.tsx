@@ -30,6 +30,7 @@ import TypewriterText from '../../../components/ui-kit/cinematic/TypewriterText'
 import SectionDivider from '../../../components/ui-kit/cinematic/SectionDivider';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
+import { VIDEO } from '../../../config/videoAssets';
 
 // ═══════════════════════════════════════════════════════
 // CINEMATIC MOTION SYSTEM
@@ -1400,7 +1401,7 @@ const HomePageV4: React.FC = () => {
             transition={{ duration: 2, ease: 'easeOut' }}
             style={prefersReduced ? undefined : { scale: heroVideoScale }}
           >
-            <source src="/Swans.mp4" type="video/mp4" />
+            <source src={VIDEO.swans} type="video/mp4" />
             <track kind="captions" srcLang="en" label="English captions" />
           </VideoEl>
 

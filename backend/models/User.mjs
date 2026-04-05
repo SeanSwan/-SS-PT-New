@@ -213,7 +213,14 @@ User.init(
       allowNull: true,
       comment: 'Trainer hourly rate'
     },
-    
+    trainerType: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      defaultValue: null,
+      validate: { isIn: [['affiliated', 'independent']] },
+      comment: 'Trainer type: affiliated (SS employed, full access) | independent (own business, limited permissions)'
+    },
+
     // ========== ADMIN-SPECIFIC FIELDS ==========
     // Administrative permissions
     permissions: {

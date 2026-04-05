@@ -18,6 +18,7 @@ import {
   type WaiverSubmitResponse,
 } from '../services/publicWaiverService';
 import ParallaxHero from '../components/ui-kit/cinematic/ParallaxHero';
+import { VIDEO } from '../config/videoAssets';
 import ScrollReveal from '../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../components/ui-kit/cinematic/TypewriterText';
 import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
@@ -523,7 +524,7 @@ export default function PublicWaiverPageV3() {
     return (
       <PageWrapper>
         <NoiseOverlay />
-        <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.7} minHeight="40vh">
+        <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.7} minHeight="40vh">
           <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         </ParallaxHero>
         <FormContainer>
@@ -550,7 +551,7 @@ export default function PublicWaiverPageV3() {
     return (
       <PageWrapper>
         <NoiseOverlay />
-        <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.7} minHeight="40vh">
+        <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.7} minHeight="40vh">
           <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         </ParallaxHero>
         <FormContainer>
@@ -568,7 +569,7 @@ export default function PublicWaiverPageV3() {
       <NoiseOverlay />
 
       {/* Hero */}
-      <ParallaxHero videoSrc="/swan.mp4" overlayOpacity={0.65} minHeight="50vh">
+      <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.65} minHeight="50vh">
         <HeroLogo src={logoImg} alt="SwanStudios Logo" />
         <HeroTitle>
           <TypewriterText text="Activity Waiver & Release" as="span" speed={50} />

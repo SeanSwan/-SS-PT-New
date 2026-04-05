@@ -55,6 +55,7 @@ import GlowButton from '../../../components/ui/buttons/GlowButton';
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import logoImg from '../../../assets/Logo.png';
+import { VIDEO } from '../../../config/videoAssets';
 
 // ═══════════════════════════════════════════════════════════
 // CINEMATIC MOTION SYSTEM — Spring Physics
@@ -1420,7 +1421,7 @@ const HomePageV5: React.FC = () => {
             poster="/images/parallax/hero-swan-bg.png"
             preload="metadata"
           >
-            <source src="/Swans.mp4" type="video/mp4" />
+            <source src={VIDEO.swans} type="video/mp4" />
           </video>
         </HeroBackground>
 
