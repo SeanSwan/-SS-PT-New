@@ -1378,7 +1378,7 @@ const HomePageV4: React.FC = () => {
     <>
       <Helmet>
         <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-certified coaching with 26 years experience, AI-driven programming, serving Orange County and LA." />
+        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with 26 years experience, AI-driven programming, serving Orange County and LA." />
       </Helmet>
 
       <MainWrapper>
@@ -1690,7 +1690,7 @@ const HomePageV4: React.FC = () => {
             >
               <SectionTitle>Your Training Programs</SectionTitle>
               <SectionSubtitle>
-                Choose your protocol. Every tier includes AI-driven programming and NASM-certified coaching.
+                Choose your protocol. Every tier includes AI-driven programming and NASM-protocol coaching.
               </SectionSubtitle>
             </SectionHeader>
             <ProgramsContainer
