@@ -23,6 +23,10 @@ export interface BootcampExercise {
   ankleMod: string | null;
   wristMod: string | null;
   backMod: string | null;
+  elbowMod: string | null;
+  footMod: string | null;
+  hipMod: string | null;
+  description: string | null;
   equipmentRequired: string | null;
   stationIndex?: number;
   board?: 'main' | 'alternative';
@@ -37,7 +41,7 @@ export interface BootcampExercise {
 export interface BootcampStation {
   stationNumber: number;
   stationName: string;
-  equipmentNeeded: string;
+  equipmentNeeded: string | null;
   sortOrder: number;
   setupTimeSec?: number;
   flowScore?: number;

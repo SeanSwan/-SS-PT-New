@@ -245,12 +245,9 @@ const JWT_EXPIRY = process.env.JWT_EXPIRES_IN || '24h';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const PASSWORD_MIN_LENGTH = 8;
 const RESET_SECRET = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET;
-// TODO: REVERT TO PRODUCTION VALUES BEFORE LAUNCH:
-//   LOGIN_ATTEMPT_LIMIT = 10
-//   LOGIN_ATTEMPT_WINDOW = 15 * 60 * 1000  (15 minutes)
-// Currently disabled for Playwright E2E testing.
-const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 999999;
-const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 1 * 60 * 1000;
+// Production rate limiting — 10 attempts per 15 minutes
+const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
+const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
 
 /**
  * Login attempts tracking for rate limiting

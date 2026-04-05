@@ -244,7 +244,7 @@ const ExerciseModAccordion: React.FC<{ ex: BootcampExercise; exIdx: number }> = 
   const [open, setOpen] = useState(false);
   const mods = MOD_FIELDS.filter(m => {
     const val = (ex as any)[m.key];
-    return val && val !== 'N/A' && val !== 'n/a' && val.trim().length > 0;
+    return typeof val === 'string' && val.length > 0 && val !== 'N/A' && val !== 'n/a' && val.trim().length > 0;
   });
 
   return (
@@ -544,7 +544,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                           </ExRowWithDelete>
                           {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
                             <RegressionLine>
-                              <span className="label">Easier:</span>
+                              <span className="label">{ex.easyVariation ? 'Easier:' : (ex as any).kneeMod ? '🦵 Knee:' : (ex as any).backMod ? '🔙 Back:' : '💪 Mod:'}</span>
                               {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
                             </RegressionLine>
                           )}
