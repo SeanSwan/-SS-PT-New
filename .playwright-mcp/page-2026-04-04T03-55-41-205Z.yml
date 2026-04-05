@@ -1,0 +1,222 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - img "SwanStudios Logo" [ref=e14]
+          - generic [ref=e15]:
+            - button "Notifications" [ref=e48] [cursor=pointer]:
+              - img [ref=e49]
+            - button "Open shopping cart" [ref=e18] [cursor=pointer]:
+              - img [ref=e20]
+            - button "Switch to Monochrome" [ref=e26] [cursor=pointer]:
+              - img [ref=e28]
+            - button "User profile" [ref=e54] [cursor=pointer]:
+              - img "Sean" [ref=e55]
+          - button "Open menu" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+      - main [ref=e39]:
+        - generic [ref=e56]:
+          - button "Open admin menu" [ref=e57] [cursor=pointer]:
+            - img [ref=e58]
+          - navigation "Admin navigation" [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - generic [ref=e62]: SS
+                - generic [ref=e63]: Admin
+              - button "Close admin menu" [ref=e64] [cursor=pointer]:
+                - img [ref=e65]
+            - button "Select Client..." [ref=e69] [cursor=pointer]:
+              - img [ref=e70]
+              - generic [ref=e75]: Select Client...
+              - img [ref=e76]
+            - navigation [ref=e78]:
+              - menuitem "Coach Assistant" [ref=e79] [cursor=pointer]:
+                - img [ref=e81]
+                - generic [ref=e83]: Coach Assistant
+              - menuitem "Dashboard" [ref=e84] [cursor=pointer]:
+                - img [ref=e86]
+                - generic [ref=e88]: Dashboard
+              - menuitem "Clients & Team" [ref=e89] [cursor=pointer]:
+                - img [ref=e91]
+                - generic [ref=e96]: Clients & Team
+              - menuitem "Workouts" [ref=e97] [cursor=pointer]:
+                - img [ref=e99]
+                - generic [ref=e107]: Workouts
+              - menuitem "Bootcamp Creator" [ref=e108] [cursor=pointer]:
+                - img [ref=e110]
+                - generic [ref=e112]: Bootcamp Creator
+              - menuitem "Equipment" [ref=e113] [cursor=pointer]:
+                - img [ref=e115]
+                - generic [ref=e117]: Equipment
+              - menuitem "Scheduling" [ref=e118] [cursor=pointer]:
+                - img [ref=e120]
+                - generic [ref=e122]: Scheduling
+              - menuitem "Gamification" [ref=e123] [cursor=pointer]:
+                - img [ref=e125]
+                - generic [ref=e127]: Gamification
+              - menuitem "Store & Revenue" [ref=e128] [cursor=pointer]:
+                - img [ref=e130]
+                - generic [ref=e132]: Store & Revenue
+              - menuitem "Content Studio" [ref=e133] [cursor=pointer]:
+                - img [ref=e135]
+                - generic [ref=e138]: Content Studio
+              - menuitem "Analytics" [ref=e139] [cursor=pointer]:
+                - img [ref=e141]
+                - generic [ref=e143]: Analytics
+              - menuitem "System" [ref=e144] [cursor=pointer]:
+                - img [ref=e146]
+                - generic [ref=e149]: System
+              - menuitem "Canada Immigration" [ref=e150] [cursor=pointer]:
+                - img [ref=e152]
+                - generic [ref=e155]: Canada Immigration
+              - menuitem "Homepage Preview" [ref=e157] [cursor=pointer]:
+                - img [ref=e159]
+                - generic [ref=e165]: Homepage V5
+              - menuitem "My Training" [ref=e167] [cursor=pointer]:
+                - img [ref=e169]
+                - generic [ref=e173]: My Training
+            - generic [ref=e175]: SwanStudios v2.1
+          - button "Back to dashboard overview" [ref=e176] [cursor=pointer]:
+            - img [ref=e177]
+          - main [ref=e180]:
+            - generic [ref=e182]:
+              - generic [ref=e183]:
+                - generic [ref=e184]:
+                  - heading "Boot Camp Class Builder" [level=1] [ref=e185]
+                  - paragraph [ref=e186]: AI + manual class creation with 840+ exercises and inline regressions
+                - generic [ref=e187]:
+                  - button "Floor Mode" [ref=e188] [cursor=pointer]
+                  - 'button "Teach Me: How to Use the Bootcamp Builder" [ref=e189] [cursor=pointer]':
+                    - img [ref=e190]
+                    - text: Teach Me
+              - generic [ref=e193]:
+                - button "AI Generate" [ref=e194] [cursor=pointer]:
+                  - img [ref=e195]
+                  - text: AI Generate
+                - button "Manual" [ref=e198] [cursor=pointer]:
+                  - img [ref=e199]
+                  - text: Manual
+                - button "Hybrid" [ref=e204] [cursor=pointer]:
+                  - img [ref=e205]
+                  - text: Hybrid
+                - generic [ref=e211]: ⚠️ 63/55 min
+              - generic [ref=e212]:
+                - generic [ref=e213]:
+                  - heading "Class Configuration" [level=2] [ref=e214]
+                  - generic [ref=e215]:
+                    - generic [ref=e216]: Class Format
+                    - combobox [ref=e217]:
+                      - option "4×N Stations" [selected]
+                      - option "3×5 Stations"
+                      - option "2×7 Stations"
+                      - option "3×4 Stations"
+                      - option "5×3 Stations"
+                      - option "Full Group Circuit"
+                      - option "Timed Circuit"
+                      - option "EMOM"
+                      - option "Tabata"
+                      - option "AMRAP"
+                      - option "Partner"
+                      - option "Hybrid"
+                  - generic [ref=e218]:
+                    - generic [ref=e219]: Class Style
+                    - combobox [ref=e220]:
+                      - option "Standard — Equal-weight rounds" [selected]
+                      - option "Pyramid — Heavy → drop weight → lighter → failure"
+                      - option "Superset — Compound → bodyweight → banded (same muscle)"
+                      - option "Mixed — Combination of styles per station"
+                  - generic [ref=e221]:
+                    - generic [ref=e222]: Day Type
+                    - combobox [ref=e223]:
+                      - option "Lower Body"
+                      - option "Upper Body"
+                      - option "Cardio / Conditioning"
+                      - option "Full Body" [selected]
+                  - generic [ref=e224]:
+                    - generic [ref=e225]: Intensity Category
+                    - combobox [ref=e226]:
+                      - option "High Impact" [selected]
+                      - option "Medium Impact"
+                      - option "Calisthenics"
+                      - option "Stability"
+                      - option "Flexibility"
+                      - option "Cardio"
+                  - generic [ref=e227]:
+                    - generic [ref=e228]: NASM OPT Phase
+                    - combobox [ref=e229]:
+                      - option "Phase 1 — Stabilization Endurance" [selected]
+                      - option "Phase 2 — Strength Endurance"
+                      - option "Phase 3 — Hypertrophy"
+                      - option "Phase 4 — Maximal Strength"
+                      - option "Phase 5 — Power"
+                  - generic [ref=e230]:
+                    - generic [ref=e231]: Workout Duration (min)
+                    - spinbutton [ref=e232]: "50"
+                  - generic [ref=e233]:
+                    - generic [ref=e234]: Expected Participants
+                    - spinbutton [ref=e235]: "12"
+                  - generic [ref=e236]:
+                    - generic [ref=e237]: Class Name (optional)
+                    - textbox "Auto-generated if empty" [ref=e238]
+                  - generic [ref=e240]:
+                    - generic [ref=e241]: Equipment Profile
+                    - combobox [ref=e242] [cursor=pointer]:
+                      - option "Any Equipment" [selected]
+                      - option "Gym — Move Fitness (0 items)"
+                  - generic [ref=e244] [cursor=pointer]:
+                    - checkbox "Include 3-5 min warm-up stretch" [checked] [ref=e245]
+                    - text: Include 3-5 min warm-up stretch
+                  - button "Generate Class" [ref=e246] [cursor=pointer]
+                - generic [ref=e247]:
+                  - heading "Class Preview" [level=2] [ref=e248]
+                  - generic [ref=e249]: Configure your class and click Generate
+                - generic [ref=e250]:
+                  - heading "Exercise Detail" [level=2] [ref=e251]
+                  - generic [ref=e252]: Click an exercise to see difficulty tiers and pain modifications
+                  - generic [ref=e253]: AI Assistant
+                  - button "SwanStudios Workout Builder" [ref=e255] [cursor=pointer]:
+                    - generic [ref=e256]:
+                      - img [ref=e258]
+                      - generic [ref=e260]: SwanStudios Workout Builder
+                    - img [ref=e262]
+        - dialog "SwanStudios AI Assistant" [ref=e264]:
+          - generic [ref=e267]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e268]
+            - generic [ref=e269]:
+              - button "Minimize" [ref=e270] [cursor=pointer]:
+                - img [ref=e271]
+              - button "Close assistant" [ref=e272] [cursor=pointer]:
+                - img [ref=e273]
+        - button "Open SwanStudios Assistant" [ref=e277] [cursor=pointer]:
+          - img [ref=e278]
+          - text: AI
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "NP Norma Patton":
+        - generic: NP
+        - text: Norma Patton
+      - option "RW Ron W":
+        - generic: RW
+        - text: Ron W
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

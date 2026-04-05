@@ -1,0 +1,491 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - generic [ref=e13]:
+              - img "SwanStudios Logo" [ref=e14]
+              - generic [ref=e15]: SwanStudios
+          - navigation [ref=e17]:
+            - link "Home" [ref=e18] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e19] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e150] [cursor=pointer]:
+              - img [ref=e151]
+              - text: Admin Dashboard
+              - img [ref=e156]
+            - link "Video Library" [ref=e22] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e23] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e24] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e25] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e26] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e27]:
+            - button "Notifications" [ref=e160] [cursor=pointer]:
+              - img [ref=e161]
+            - button "Open shopping cart" [ref=e30] [cursor=pointer]:
+              - img [ref=e32]
+            - button "Switch to Monochrome" [ref=e38] [cursor=pointer]:
+              - img [ref=e40]
+            - generic [ref=e164]:
+              - button "User profile" [ref=e166] [cursor=pointer]:
+                - img "Sean" [ref=e167]
+              - button "Logout" [ref=e168] [cursor=pointer]
+      - main [ref=e43]:
+        - generic [ref=e169]:
+          - navigation "Admin navigation" [ref=e170]:
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: SS
+                - generic [ref=e174]: Admin
+              - button "Collapse sidebar" [ref=e175] [cursor=pointer]:
+                - img [ref=e176]
+            - button "Select Client..." [ref=e179] [cursor=pointer]:
+              - img [ref=e180]
+              - generic [ref=e185]: Select Client...
+              - img [ref=e186]
+            - navigation [ref=e188]:
+              - menuitem "Coach Assistant" [ref=e189] [cursor=pointer]:
+                - img [ref=e191]
+                - generic [ref=e193]: Coach Assistant
+              - menuitem "Dashboard" [ref=e194] [cursor=pointer]:
+                - img [ref=e196]
+                - generic [ref=e198]: Dashboard
+              - menuitem "Clients & Team" [ref=e199] [cursor=pointer]:
+                - img [ref=e201]
+                - generic [ref=e206]: Clients & Team
+              - menuitem "Workouts" [ref=e207] [cursor=pointer]:
+                - img [ref=e209]
+                - generic [ref=e217]: Workouts
+              - menuitem "Bootcamp Creator" [ref=e218] [cursor=pointer]:
+                - img [ref=e220]
+                - generic [ref=e222]: Bootcamp Creator
+              - menuitem "Equipment" [ref=e223] [cursor=pointer]:
+                - img [ref=e225]
+                - generic [ref=e227]: Equipment
+              - menuitem "Scheduling" [ref=e228] [cursor=pointer]:
+                - img [ref=e230]
+                - generic [ref=e232]: Scheduling
+              - menuitem "Gamification" [ref=e233] [cursor=pointer]:
+                - img [ref=e235]
+                - generic [ref=e237]: Gamification
+              - menuitem "Store & Revenue" [ref=e238] [cursor=pointer]:
+                - img [ref=e240]
+                - generic [ref=e242]: Store & Revenue
+              - menuitem "Content Studio" [ref=e243] [cursor=pointer]:
+                - img [ref=e245]
+                - generic [ref=e248]: Content Studio
+              - menuitem "Analytics" [ref=e249] [cursor=pointer]:
+                - img [ref=e251]
+                - generic [ref=e253]: Analytics
+              - menuitem "System" [ref=e254] [cursor=pointer]:
+                - img [ref=e256]
+                - generic [ref=e259]: System
+              - menuitem "Canada Immigration" [ref=e260] [cursor=pointer]:
+                - img [ref=e262]
+                - generic [ref=e265]: Canada Immigration
+              - menuitem "Homepage Preview" [active] [ref=e267] [cursor=pointer]:
+                - img [ref=e269]
+                - generic [ref=e275]: Homepage V5
+              - menuitem "My Training" [ref=e277] [cursor=pointer]:
+                - img [ref=e279]
+                - generic [ref=e283]: My Training
+            - generic [ref=e285]: SwanStudios v2.1
+          - main [ref=e286]:
+            - generic [ref=e718]:
+              - generic [ref=e719]:
+                - generic [ref=e722]:
+                  - generic [ref=e723]:
+                    - generic [ref=e724]:
+                      - img [ref=e725]
+                      - text: Elite Performance Training
+                    - heading "Where Human Excellence Meets AI Precision" [level=1] [ref=e727]:
+                      - text: Where Human
+                      - text: Excellence Meets
+                      - text: AI Precision
+                    - paragraph [ref=e728]: Science-backed training programs with real-time AI coaching, NASM-protocol periodization, and a fitness social platform that makes every rep count.
+                    - generic [ref=e729]:
+                      - generic [ref=e730]:
+                        - img [ref=e731]
+                        - text: NASM Certified
+                      - generic [ref=e734]:
+                        - img [ref=e735]
+                        - text: NCEP Certified
+                      - generic [ref=e738]:
+                        - img [ref=e739]
+                        - text: 25+ Years
+                    - generic [ref=e742]:
+                      - button "Button" [ref=e745] [cursor=pointer]:
+                        - generic [ref=e747]:
+                          - text: Start Training
+                          - img [ref=e748]
+                      - button "Button" [ref=e752] [cursor=pointer]:
+                        - generic [ref=e754]:
+                          - img [ref=e755]
+                          - text: Free Consultation
+                    - generic [ref=e757]:
+                      - button "SwanStudios Social" [ref=e758] [cursor=pointer]
+                      - button "Client Dashboard" [ref=e759] [cursor=pointer]:
+                        - img [ref=e760]
+                        - text: Client Dashboard
+                      - button "Photography" [ref=e764] [cursor=pointer]:
+                        - img [ref=e765]
+                        - text: Photography
+                      - button "Waiver" [ref=e768] [cursor=pointer]:
+                        - img [ref=e769]
+                        - text: Waiver
+                      - button "Trainer Dashboard" [ref=e772] [cursor=pointer]:
+                        - img [ref=e773]
+                        - text: Trainer Dashboard
+                  - img "SwanStudios Logo" [ref=e780]
+                - generic "Scroll down to explore" [ref=e781] [cursor=pointer]:
+                  - generic [ref=e782]: EXPLORE
+                  - img [ref=e784]
+              - generic [ref=e788]:
+                - generic [ref=e789]:
+                  - generic [ref=e790]: The Arsenal
+                  - heading "Everything You Need. Nothing You Don't." [level=2] [ref=e791]:
+                    - text: Everything You Need.
+                    - text: Nothing You Don't.
+                  - paragraph [ref=e792]: Eight pillars of elite performance, engineered for your transformation.
+                - generic [ref=e793]:
+                  - generic [ref=e794]:
+                    - img [ref=e796]
+                    - heading "Elite Personal Training" [level=3] [ref=e804]
+                    - paragraph [ref=e805]: Personalized coaching from NCEP-certified experts with 25+ years experience. Science-based programming tailored to your goals.
+                  - generic [ref=e806]:
+                    - img [ref=e808]
+                    - heading "Performance Assessment" [level=3] [ref=e810]
+                    - paragraph [ref=e811]: Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program.
+                  - generic [ref=e812]:
+                    - img [ref=e814]
+                    - heading "Nutrition Coaching" [level=3] [ref=e817]
+                    - paragraph [ref=e818]: Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.
+                  - generic [ref=e819]:
+                    - img [ref=e821]
+                    - heading "Recovery & Mobility" [level=3] [ref=e823]
+                    - paragraph [ref=e824]: Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles.
+                  - generic [ref=e825]:
+                    - img [ref=e827]
+                    - heading "Online Coaching" [level=3] [ref=e829]
+                    - paragraph [ref=e830]: Expert guidance anywhere with customized programs and regular check-ins through our AI-enhanced platform.
+                  - generic [ref=e831]:
+                    - img [ref=e833]
+                    - heading "Group Performance" [level=3] [ref=e838]
+                    - paragraph [ref=e839]: Exclusive small-group sessions combining group energy with personalized attention for maximum results.
+                  - generic [ref=e840]:
+                    - img [ref=e842]
+                    - heading "Sports-Specific Training" [level=3] [ref=e846]
+                    - paragraph [ref=e847]: Specialized programs for golfers, athletes, and weekend warriors. Rotational power and sport-specific conditioning.
+                  - generic [ref=e848]:
+                    - img [ref=e850]
+                    - heading "Corporate Wellness" [level=3] [ref=e854]
+                    - paragraph [ref=e855]: Comprehensive corporate wellness programs including on-site sessions, workshops, and team challenges.
+              - generic [ref=e858]:
+                - generic [ref=e859]:
+                  - generic [ref=e860]: Ascension Protocols
+                  - heading "Your Training Programs" [level=2] [ref=e861]
+                  - paragraph [ref=e862]: Choose your protocol. Every tier includes AI-driven programming and NASM-certified coaching.
+                - generic [ref=e863]:
+                  - generic [ref=e864]:
+                    - heading "Express Precision" [level=3] [ref=e865]
+                    - paragraph [ref=e866]: 30-Minute Sessions
+                    - list [ref=e867]:
+                      - listitem [ref=e868]:
+                        - img [ref=e869]
+                        - text: Targeted time-optimized training
+                      - listitem [ref=e871]:
+                        - img [ref=e872]
+                        - text: Customized workout plans
+                      - listitem [ref=e874]:
+                        - img [ref=e875]
+                        - text: Progress tracking
+                      - listitem [ref=e877]:
+                        - img [ref=e878]
+                        - text: Flexible scheduling
+                    - button "View Details" [ref=e882] [cursor=pointer]:
+                      - generic [ref=e884]: View Details
+                  - generic [ref=e885]:
+                    - generic [ref=e886]: Most Popular
+                    - heading "Signature Performance" [level=3] [ref=e887]
+                    - paragraph [ref=e888]: 60-Minute Sessions
+                    - list [ref=e889]:
+                      - listitem [ref=e890]:
+                        - img [ref=e891]
+                        - text: Full biomechanical coaching
+                      - listitem [ref=e893]:
+                        - img [ref=e894]
+                        - text: NASM OHSA movement analysis
+                      - listitem [ref=e896]:
+                        - img [ref=e897]
+                        - text: Nutrition guidance included
+                      - listitem [ref=e899]:
+                        - img [ref=e900]
+                        - text: Priority scheduling
+                      - listitem [ref=e902]:
+                        - img [ref=e903]
+                        - text: Monthly progress reports
+                    - button "View Details" [ref=e907] [cursor=pointer]:
+                      - generic [ref=e909]: View Details
+                  - generic [ref=e910]:
+                    - generic [ref=e911]: Best Value
+                    - heading "Transformation Programs" [level=3] [ref=e912]
+                    - paragraph [ref=e913]: Multi-Session Packages
+                    - list [ref=e914]:
+                      - listitem [ref=e915]:
+                        - img [ref=e916]
+                        - text: Comprehensive NASM assessment
+                      - listitem [ref=e918]:
+                        - img [ref=e919]
+                        - text: Periodized programming
+                      - listitem [ref=e921]:
+                        - img [ref=e922]
+                        - text: Priority scheduling
+                      - listitem [ref=e924]:
+                        - img [ref=e925]
+                        - text: Weekly check-ins
+                      - listitem [ref=e927]:
+                        - img [ref=e928]
+                        - text: Full nutrition plan
+                    - button "View Details" [ref=e932] [cursor=pointer]:
+                      - generic [ref=e934]: View Details
+              - generic [ref=e937]:
+                - generic [ref=e938]:
+                  - generic [ref=e939]: The Fairway
+                  - heading "Master The Fairway" [level=2] [ref=e940]
+                  - paragraph [ref=e941]: Unlock your full potential on the course with sport-specific training designed for golfers of every level.
+                - generic [ref=e942]:
+                  - generic [ref=e943]:
+                    - generic [ref=e944]:
+                      - img [ref=e945]
+                      - generic [ref=e947]:
+                        - strong [ref=e948]: Rotational Power Training
+                        - text: — Generate explosive hip and torso rotation for longer drives and more consistent ball striking.
+                    - generic [ref=e949]:
+                      - img [ref=e950]
+                      - generic [ref=e952]:
+                        - strong [ref=e953]: Core Stability & Balance
+                        - text: — Build a rock-solid foundation that keeps your swing consistent from the first tee to the 18th green.
+                    - generic [ref=e954]:
+                      - img [ref=e955]
+                      - generic [ref=e957]:
+                        - strong [ref=e958]: Flexibility & Mobility
+                        - text: — Increase your range of motion for a fuller backswing and smoother follow-through without strain.
+                    - generic [ref=e959]:
+                      - img [ref=e960]
+                      - generic [ref=e962]:
+                        - strong [ref=e963]: Injury Prevention
+                        - text: "— Corrective exercise protocols targeting common golf injuries: lower back, shoulders, elbows, and wrists."
+                    - generic [ref=e964]:
+                      - img [ref=e965]
+                      - generic [ref=e968]:
+                        - strong [ref=e969]: Movement Analysis
+                        - text: — NASM-guided assessment of your movement patterns to identify limitations affecting your swing mechanics.
+                  - generic [ref=e971]:
+                    - img [ref=e973]
+                    - heading "Golf Performance Program" [level=3] [ref=e975]
+                    - paragraph [ref=e976]: Whether you're a weekend warrior or a competitive amateur, our golf-specific training addresses the physical demands of the game. Improve your drive distance, reduce your handicap, and play pain-free.
+                    - button "Explore golf performance training" [ref=e979] [cursor=pointer]:
+                      - generic [ref=e981]: Improve Your Game
+              - generic [ref=e984]:
+                - generic [ref=e985]:
+                  - generic [ref=e986]: The Architect
+                  - heading "About Sean Swan" [level=2] [ref=e987]
+                  - paragraph [ref=e988]: A legacy of transforming lives through science-backed fitness and AI-enhanced coaching.
+                - generic [ref=e989]:
+                  - generic [ref=e990]:
+                    - paragraph [ref=e991]:
+                      - strong [ref=e992]: Sean Swan
+                      - text: is an NCEP-certified personal trainer (National College of Exercise Professionals, 1998) with
+                      - strong [ref=e993]: 25+ years of experience
+                      - text: helping clients transform their lives. Trained in NASM protocols and workshops, Sean applies the NASM Optimum Performance Training (OPT) model to every program he builds.
+                    - paragraph [ref=e994]: His career spans elite fitness brands including LA Fitness, Gold's Gym, 24 Hour Fitness, and Bodies in Motion. His time as a physical therapy aid at Kerlan Jobe Health South deepened his expertise in injury prevention, corrective exercise, and rehabilitation.
+                    - paragraph [ref=e995]:
+                      - text: At SwanStudios, we blend
+                      - strong [ref=e996]: elite personal training with AI as a powerful tool
+                      - text: "— not a replacement for the coach. Sean and his team conduct deep research on each client's goals, athletic background, and physical history to build truly optimized programs. The result: the fastest, safest progress possible with a real coach guiding every step."
+                  - generic:
+                    - generic:
+                      - img "SwanStudios"
+                - generic [ref=e997]:
+                  - generic [ref=e998]:
+                    - img [ref=e1000]
+                    - heading "Deep Client Research" [level=4] [ref=e1003]
+                    - paragraph [ref=e1004]: Your trainer studies your goals, movement history, and athletic background to build a program that's truly yours.
+                  - generic [ref=e1005]:
+                    - img [ref=e1007]
+                    - heading "AI-Optimized Programming" [level=4] [ref=e1009]
+                    - paragraph [ref=e1010]: AI helps analyze performance data and refine your training program for faster, safer results — guided by your coach.
+                  - generic [ref=e1011]:
+                    - img [ref=e1013]
+                    - heading "Privacy & Rehabilitation" [level=4] [ref=e1015]
+                    - paragraph [ref=e1016]: Your data stays private through our programming protocol. Injury rehab programs built with precision and care.
+                - button "Learn more about Sean Swan" [ref=e1020] [cursor=pointer]:
+                  - generic [ref=e1022]: Learn More
+              - generic [ref=e1025]:
+                - generic [ref=e1026]:
+                  - generic [ref=e1027]: The Echoes
+                  - heading "Client Success Stories" [level=2] [ref=e1028]
+                  - paragraph [ref=e1029]: Real results from real people. No shortcuts — just elite-level coaching that works.
+                - generic [ref=e1030]:
+                  - generic [ref=e1031]:
+                    - generic [ref=e1032]:
+                      - img [ref=e1033]
+                      - img [ref=e1035]
+                      - img [ref=e1037]
+                      - img [ref=e1039]
+                      - img [ref=e1041]
+                    - paragraph [ref=e1043]: “Thanks to SwanStudios personal training, I achieved an incredible transformation. The tailored workouts and nutrition plan helped me lose 42 lbs, and I feel more energetic and confident than ever.”
+                    - generic [ref=e1044]: Sarah J.
+                    - generic [ref=e1045]: Corporate Executive
+                    - generic [ref=e1046]: Lost 42 lbs in 7 months
+                  - generic [ref=e1047]:
+                    - generic [ref=e1048]:
+                      - img [ref=e1049]
+                      - img [ref=e1051]
+                      - img [ref=e1053]
+                      - img [ref=e1055]
+                      - img [ref=e1057]
+                    - paragraph [ref=e1059]: “Sean Swan completely transformed my golf game. Through targeted core stability work, rotational power training, and flexibility protocols, I added serious distance off the tee.”
+                    - generic [ref=e1060]: Robert T.
+                    - generic [ref=e1061]: Avid Golfer
+                    - generic [ref=e1062]: Added 35 yards to drive
+                  - generic [ref=e1063]:
+                    - generic [ref=e1064]:
+                      - img [ref=e1065]
+                      - img [ref=e1067]
+                      - img [ref=e1069]
+                      - img [ref=e1071]
+                      - img [ref=e1073]
+                    - paragraph [ref=e1075]: “Training with Sean Swan got me in the best shape of my life. My department fitness test running time improved dramatically, and I feel stronger, faster, and more capable on the job.”
+                    - generic [ref=e1076]: Officer Martinez
+                    - generic [ref=e1077]: Law Enforcement
+                    - generic [ref=e1078]: Run improved by 2:30
+              - generic [ref=e1081]:
+                - generic [ref=e1082]:
+                  - generic [ref=e1083]: The Proof
+                  - heading "By the Numbers" [level=2] [ref=e1084]
+                - generic [ref=e1085]:
+                  - generic [ref=e1086]:
+                    - img [ref=e1088]
+                    - generic [ref=e1091]: 0+
+                    - generic [ref=e1092]: Years Experience
+                  - generic [ref=e1093]:
+                    - img [ref=e1095]
+                    - generic [ref=e1100]: 0+
+                    - generic [ref=e1101]: Clients Transformed
+                  - generic [ref=e1102]:
+                    - img [ref=e1104]
+                    - generic [ref=e1107]: 0+
+                    - generic [ref=e1108]: Sessions Delivered
+                  - generic [ref=e1109]:
+                    - img [ref=e1111]
+                    - generic [ref=e1113]: "0"
+                    - generic [ref=e1114]: Swimmers Taught
+                  - generic [ref=e1115]:
+                    - img [ref=e1117]
+                    - generic [ref=e1119]: 0+
+                    - generic [ref=e1120]: Lbs Lost Together
+                  - generic [ref=e1121]:
+                    - img [ref=e1123]
+                    - generic [ref=e1125]: 0%
+                    - generic [ref=e1126]: Client Satisfaction
+              - generic [ref=e1129]:
+                - generic [ref=e1130]:
+                  - generic [ref=e1131]: Beyond the Gym
+                  - heading "More Than Fitness" [level=2] [ref=e1132]
+                  - paragraph [ref=e1133]: SwanStudios isn't just a fitness platform — it's a creative social ecosystem. Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community where fitness meets art, music, singing, gaming, comedy, and real human connection.
+                - generic [ref=e1134]:
+                  - generic [ref=e1135]:
+                    - img [ref=e1137]
+                    - heading "Dance & Movement" [level=3] [ref=e1139]
+                    - paragraph [ref=e1140]: Post your dance videos, choreography, and freestyle sessions. From hip-hop to contemporary.
+                  - generic [ref=e1141]:
+                    - img [ref=e1143]
+                    - heading "Music Production" [level=3] [ref=e1146]
+                    - paragraph [ref=e1147]: Making songs, playing instruments, producing beats, and sharing your creative process.
+                  - generic [ref=e1148]:
+                    - img [ref=e1150]
+                    - heading "Singing" [level=3] [ref=e1153]
+                    - paragraph [ref=e1154]: Share vocal performances, covers, instrumentals, and original music. Your stage, your voice.
+                  - generic [ref=e1155]:
+                    - img [ref=e1157]
+                    - heading "Art & Expression" [level=3] [ref=e1161]
+                    - paragraph [ref=e1162]: Showcase artwork, digital art, photography, and creative projects. Inspire and get inspired.
+                  - generic [ref=e1163]:
+                    - img [ref=e1165]
+                    - heading "Gaming" [level=3] [ref=e1167]
+                    - paragraph [ref=e1168]: Share your gaming builds, favorite consoles, portable setups, and streams. Gamers get fit too.
+                  - generic [ref=e1169]:
+                    - img [ref=e1171]
+                    - heading "Comedy" [level=3] [ref=e1174]
+                    - paragraph [ref=e1175]: Standup, skits, memes, and funny content. Make the community laugh while you flex.
+                  - generic [ref=e1176]:
+                    - img [ref=e1178]
+                    - heading "Fitness Challenges" [level=3] [ref=e1180]
+                    - paragraph [ref=e1181]: Community workout challenges, transformation posts, and accountability groups.
+                  - generic [ref=e1182]:
+                    - img [ref=e1184]
+                    - heading "Community Meetups" [level=3] [ref=e1187]
+                    - paragraph [ref=e1188]: Local events, group activities, and real-world connections. The digital community, IRL.
+                - button "Button" [ref=e1192] [cursor=pointer]:
+                  - generic [ref=e1194]:
+                    - text: Join the Community
+                    - img [ref=e1195]
+              - generic [ref=e1199]:
+                - heading "Ready to Transform?" [level=2] [ref=e1200]
+                - paragraph [ref=e1201]: Join the platform where science, technology, and human expertise converge to create extraordinary results.
+                - generic [ref=e1202]:
+                  - button "Button" [ref=e1205] [cursor=pointer]:
+                    - generic [ref=e1207]:
+                      - text: Start Today
+                      - img [ref=e1208]
+                  - button "Button" [ref=e1212] [cursor=pointer]:
+                    - generic [ref=e1214]:
+                      - img [ref=e1215]
+                      - text: Contact Us
+        - dialog "SwanStudios AI Assistant" [ref=e291]:
+          - generic [ref=e292]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e293]
+            - generic [ref=e294]:
+              - button "Minimize" [ref=e295] [cursor=pointer]:
+                - img [ref=e296]
+              - button "Close assistant" [ref=e297] [cursor=pointer]:
+                - img [ref=e298]
+        - button "Open SwanStudios Assistant" [ref=e302] [cursor=pointer]:
+          - img [ref=e303]
+          - text: AI
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "NP Norma Patton":
+        - generic: NP
+        - text: Norma Patton
+      - option "RW Ron W":
+        - generic: RW
+        - text: Ron W
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

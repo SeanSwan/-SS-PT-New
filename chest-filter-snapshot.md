@@ -1,0 +1,613 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - generic [ref=e13]:
+              - img "SwanStudios Logo" [ref=e14]
+              - generic [ref=e15]: SwanStudios
+          - navigation [ref=e17]:
+            - link "Home" [ref=e18] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e19] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e52] [cursor=pointer]:
+              - img [ref=e53]
+              - text: Admin Dashboard
+              - img [ref=e58]
+            - link "Video Library" [ref=e22] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e23] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e24] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e25] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e26] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e27]:
+            - button "Notifications" [ref=e62] [cursor=pointer]:
+              - img [ref=e63]
+            - button "Open shopping cart" [ref=e30] [cursor=pointer]:
+              - generic [ref=e31]:
+                - img [ref=e32]
+                - generic [ref=e66]: "2"
+            - button "Switch to Ember Realm" [ref=e38] [cursor=pointer]:
+              - img [ref=e40]
+            - generic [ref=e67]:
+              - button "User profile" [ref=e69] [cursor=pointer]:
+                - img "Sean" [ref=e70]
+              - button "Logout" [ref=e71] [cursor=pointer]
+      - main [ref=e43]:
+        - generic [ref=e72]:
+          - navigation "Admin navigation" [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]:
+                - generic [ref=e76]: SS
+                - generic [ref=e77]: Admin
+              - button "Collapse sidebar" [ref=e78] [cursor=pointer]:
+                - img [ref=e79]
+            - button "Select Client..." [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - generic [ref=e88]: Select Client...
+              - img [ref=e89]
+            - navigation [ref=e91]:
+              - menuitem "Dashboard" [ref=e92] [cursor=pointer]:
+                - img [ref=e94]
+                - generic [ref=e96]: Dashboard
+              - menuitem "Clients & Team" [ref=e97] [cursor=pointer]:
+                - img [ref=e99]
+                - generic [ref=e104]: Clients & Team
+              - menuitem "Workouts" [ref=e105] [cursor=pointer]:
+                - img [ref=e107]
+                - generic [ref=e115]: Workouts
+              - menuitem "Scheduling" [ref=e116] [cursor=pointer]:
+                - img [ref=e118]
+                - generic [ref=e120]: Scheduling
+              - menuitem "Gamification" [ref=e121] [cursor=pointer]:
+                - img [ref=e123]
+                - generic [ref=e125]: Gamification
+              - menuitem "Store & Revenue" [ref=e126] [cursor=pointer]:
+                - img [ref=e128]
+                - generic [ref=e130]: Store & Revenue
+              - menuitem "Content Studio" [ref=e131] [cursor=pointer]:
+                - img [ref=e133]
+                - generic [ref=e136]: Content Studio
+              - menuitem "Analytics" [ref=e137] [cursor=pointer]:
+                - img [ref=e139]
+                - generic [ref=e141]: Analytics
+              - menuitem "System" [ref=e142] [cursor=pointer]:
+                - img [ref=e144]
+                - generic [ref=e147]: System
+              - menuitem "Canada Immigration" [ref=e148] [cursor=pointer]:
+                - img [ref=e150]
+                - generic [ref=e153]: Canada Immigration
+              - menuitem "My Training" [ref=e155] [cursor=pointer]:
+                - img [ref=e157]
+                - generic [ref=e161]: My Training
+            - generic [ref=e163]: SwanStudios v2.1
+          - main [ref=e164]:
+            - generic [ref=e166]:
+              - generic [ref=e167]:
+                - generic [ref=e168]:
+                  - img [ref=e170]
+                  - generic [ref=e178]:
+                    - heading "NASM Workout Planner" [level=1] [ref=e179]
+                    - paragraph [ref=e180]: Build intelligent, periodized training programs with 840+ exercises
+                - button "Teach Mode Off" [ref=e181] [cursor=pointer]:
+                  - img [ref=e182]
+                  - text: Teach Mode Off
+              - generic [ref=e185]:
+                - combobox "Select client" [ref=e186] [cursor=pointer]:
+                  - option "Jackie Client" [selected]
+                  - option "Anand MoveFit"
+                  - option "QABot Tester"
+                  - option "Vickie Valdez"
+                - combobox "Select OPT phase" [ref=e187] [cursor=pointer]:
+                  - 'option "Phase 1: Stabilization Endurance"'
+                  - 'option "Phase 2: Strength Endurance" [selected]'
+                  - 'option "Phase 3: Hypertrophy"'
+                  - 'option "Phase 4: Maximal Strength"'
+                  - 'option "Phase 5: Power"'
+                - combobox "Select workout category" [ref=e188] [cursor=pointer]:
+                  - option "Full Body" [selected]
+                  - option "Chest"
+                  - option "Back"
+                  - option "Shoulders"
+                  - option "Arms"
+                  - option "Legs"
+                  - option "Core"
+                - combobox "Select training goal" [ref=e189] [cursor=pointer]:
+                  - option "General Fitness" [selected]
+                  - option "Muscle Growth"
+                  - option "Strength"
+                  - option "Fat Loss"
+                  - option "Athletic Performance"
+                  - option "Golf Performance"
+                - button "AI Generate" [ref=e190] [cursor=pointer]:
+                  - img [ref=e191]
+                  - text: AI Generate
+              - generic [ref=e193]:
+                - generic [ref=e194]:
+                  - img [ref=e195]
+                  - text: Plan Duration
+                - combobox "Select plan duration" [ref=e197] [cursor=pointer]:
+                  - option "Single Session" [selected]
+                  - option "1 Week (Trial)"
+                  - option "1 Month (4 weeks)"
+                  - option "2 Months (8 weeks)"
+                  - option "3 Months (12 weeks)"
+                  - option "4 Months (16 weeks)"
+                  - option "6 Months (24 weeks)"
+                  - option "9 Months (36 weeks)"
+                  - option "12 Months (52 weeks)"
+              - generic [ref=e198]:
+                - generic [ref=e199]:
+                  - generic [ref=e200]:
+                    - heading "Exercise Rolodex" [level=2] [ref=e201]:
+                      - img [ref=e202]
+                      - text: Exercise Rolodex
+                    - generic [ref=e205]: 50 results
+                  - generic [ref=e206]:
+                    - generic [ref=e207]:
+                      - img
+                      - textbox "Search exercises" [ref=e208]:
+                        - /placeholder: Search 840+ exercises...
+                    - generic [ref=e209]:
+                      - button "All" [ref=e210] [cursor=pointer]
+                      - button "Chest" [active] [ref=e211] [cursor=pointer]
+                      - button "Back" [ref=e212] [cursor=pointer]
+                      - button "Shoulders" [ref=e213] [cursor=pointer]
+                      - button "Arms" [ref=e214] [cursor=pointer]
+                      - button "Legs" [ref=e215] [cursor=pointer]
+                      - button "Core" [ref=e216] [cursor=pointer]
+                      - button "Full Body" [ref=e217] [cursor=pointer]
+                      - button "Cardio" [ref=e218] [cursor=pointer]
+                      - button "Recovery" [ref=e219] [cursor=pointer]
+                    - 'button "Archer Push-Up chest | calisthenics | Diff: 600" [ref=e340] [cursor=pointer]':
+                      - generic [ref=e341]: Archer Push-Up
+                      - generic [ref=e342]:
+                        - generic [ref=e343]: chest
+                        - generic [ref=e344]: "|"
+                        - generic [ref=e345]: calisthenics
+                        - generic [ref=e346]: "|"
+                        - generic [ref=e347]: "Diff: 600"
+                    - 'button "Banded Bench Press chest | compound | Diff: 500" [ref=e428] [cursor=pointer]':
+                      - generic [ref=e429]: Banded Bench Press
+                      - generic [ref=e430]:
+                        - generic [ref=e431]: chest
+                        - generic [ref=e432]: "|"
+                        - generic [ref=e433]: compound
+                        - generic [ref=e434]: "|"
+                        - generic [ref=e435]: "Diff: 500"
+                    - 'button "Banded Push-Up chest | compound | Diff: 400" [ref=e484] [cursor=pointer]':
+                      - generic [ref=e485]: Banded Push-Up
+                      - generic [ref=e486]:
+                        - generic [ref=e487]: chest
+                        - generic [ref=e488]: "|"
+                        - generic [ref=e489]: compound
+                        - generic [ref=e490]: "|"
+                        - generic [ref=e491]: "Diff: 400"
+                    - 'button "Band-Resisted Push-Up chest | calisthenics | Diff: 350" [ref=e532] [cursor=pointer]':
+                      - generic [ref=e533]: Band-Resisted Push-Up
+                      - generic [ref=e534]:
+                        - generic [ref=e535]: chest
+                        - generic [ref=e536]: "|"
+                        - generic [ref=e537]: calisthenics
+                        - generic [ref=e538]: "|"
+                        - generic [ref=e539]: "Diff: 350"
+                    - 'button "Barbell Floor Press chest | compound | Diff: 400" [ref=e612] [cursor=pointer]':
+                      - generic [ref=e613]: Barbell Floor Press
+                      - generic [ref=e614]:
+                        - generic [ref=e615]: chest
+                        - generic [ref=e616]: "|"
+                        - generic [ref=e617]: compound
+                        - generic [ref=e618]: "|"
+                        - generic [ref=e619]: "Diff: 400"
+                    - 'button "BOSU Ball Push-Up chest | stability | Diff: 300" [ref=e651] [cursor=pointer]':
+                      - generic [ref=e652]: BOSU Ball Push-Up
+                      - generic [ref=e653]:
+                        - generic [ref=e654]: chest
+                        - generic [ref=e655]: "|"
+                        - generic [ref=e656]: stability
+                        - generic [ref=e657]: "|"
+                        - generic [ref=e658]: "Diff: 300"
+                    - 'button "Cable Chest Fly chest | isolation | Diff: 250" [ref=e659] [cursor=pointer]':
+                      - generic [ref=e660]: Cable Chest Fly
+                      - generic [ref=e661]:
+                        - generic [ref=e662]: chest
+                        - generic [ref=e663]: "|"
+                        - generic [ref=e664]: isolation
+                        - generic [ref=e665]: "|"
+                        - generic [ref=e666]: "Diff: 250"
+                    - 'button "Cable Chest Press chest | compound | Diff: 250" [ref=e667] [cursor=pointer]':
+                      - generic [ref=e668]: Cable Chest Press
+                      - generic [ref=e669]:
+                        - generic [ref=e670]: chest
+                        - generic [ref=e671]: "|"
+                        - generic [ref=e672]: compound
+                        - generic [ref=e673]: "|"
+                        - generic [ref=e674]: "Diff: 250"
+                    - 'button "Cable Crossover chest | isolation | Diff: 300" [ref=e675] [cursor=pointer]':
+                      - generic [ref=e676]: Cable Crossover
+                      - generic [ref=e677]:
+                        - generic [ref=e678]: chest
+                        - generic [ref=e679]: "|"
+                        - generic [ref=e680]: isolation
+                        - generic [ref=e681]: "|"
+                        - generic [ref=e682]: "Diff: 300"
+                    - 'button "Cable Fly Low to Mid chest | isolation | Diff: 250" [ref=e683] [cursor=pointer]':
+                      - generic [ref=e684]: Cable Fly Low to Mid
+                      - generic [ref=e685]:
+                        - generic [ref=e686]: chest
+                        - generic [ref=e687]: "|"
+                        - generic [ref=e688]: isolation
+                        - generic [ref=e689]: "|"
+                        - generic [ref=e690]: "Diff: 250"
+                    - 'button "Cable Iron Cross chest | isolation | Diff: 350" [ref=e691] [cursor=pointer]':
+                      - generic [ref=e692]: Cable Iron Cross
+                      - generic [ref=e693]:
+                        - generic [ref=e694]: chest
+                        - generic [ref=e695]: "|"
+                        - generic [ref=e696]: isolation
+                        - generic [ref=e697]: "|"
+                        - generic [ref=e698]: "Diff: 350"
+                    - 'button "Chest Dip chest | compound | Diff: 450" [ref=e699] [cursor=pointer]':
+                      - generic [ref=e700]: Chest Dip
+                      - generic [ref=e701]:
+                        - generic [ref=e702]: chest
+                        - generic [ref=e703]: "|"
+                        - generic [ref=e704]: compound
+                        - generic [ref=e705]: "|"
+                        - generic [ref=e706]: "Diff: 450"
+                    - 'button "Chest Press Machine chest | compound | Diff: 200" [ref=e707] [cursor=pointer]':
+                      - generic [ref=e708]: Chest Press Machine
+                      - generic [ref=e709]:
+                        - generic [ref=e710]: chest
+                        - generic [ref=e711]: "|"
+                        - generic [ref=e712]: compound
+                        - generic [ref=e713]: "|"
+                        - generic [ref=e714]: "Diff: 200"
+                    - 'button "Clap Push-Up chest | calisthenics | Diff: 550" [ref=e715] [cursor=pointer]':
+                      - generic [ref=e716]: Clap Push-Up
+                      - generic [ref=e717]:
+                        - generic [ref=e718]: chest
+                        - generic [ref=e719]: "|"
+                        - generic [ref=e720]: calisthenics
+                        - generic [ref=e721]: "|"
+                        - generic [ref=e722]: "Diff: 550"
+                    - 'button "Close-Grip Dumbbell Press chest | compound | Diff: 350" [ref=e723] [cursor=pointer]':
+                      - generic [ref=e724]: Close-Grip Dumbbell Press
+                      - generic [ref=e725]:
+                        - generic [ref=e726]: chest
+                        - generic [ref=e727]: "|"
+                        - generic [ref=e728]: compound
+                        - generic [ref=e729]: "|"
+                        - generic [ref=e730]: "Diff: 350"
+                    - 'button "Decline Barbell Bench Press chest | compound | Diff: 450" [ref=e731] [cursor=pointer]':
+                      - generic [ref=e732]: Decline Barbell Bench Press
+                      - generic [ref=e733]:
+                        - generic [ref=e734]: chest
+                        - generic [ref=e735]: "|"
+                        - generic [ref=e736]: compound
+                        - generic [ref=e737]: "|"
+                        - generic [ref=e738]: "Diff: 450"
+                    - 'button "Decline Dumbbell Fly chest | isolation | Diff: 300" [ref=e739] [cursor=pointer]':
+                      - generic [ref=e740]: Decline Dumbbell Fly
+                      - generic [ref=e741]:
+                        - generic [ref=e742]: chest
+                        - generic [ref=e743]: "|"
+                        - generic [ref=e744]: isolation
+                        - generic [ref=e745]: "|"
+                        - generic [ref=e746]: "Diff: 300"
+                    - 'button "Decline Dumbbell Press chest | compound | Diff: 400" [ref=e747] [cursor=pointer]':
+                      - generic [ref=e748]: Decline Dumbbell Press
+                      - generic [ref=e749]:
+                        - generic [ref=e750]: chest
+                        - generic [ref=e751]: "|"
+                        - generic [ref=e752]: compound
+                        - generic [ref=e753]: "|"
+                        - generic [ref=e754]: "Diff: 400"
+                    - 'button "Decline Push-Up chest | calisthenics | Diff: 350" [ref=e755] [cursor=pointer]':
+                      - generic [ref=e756]: Decline Push-Up
+                      - generic [ref=e757]:
+                        - generic [ref=e758]: chest
+                        - generic [ref=e759]: "|"
+                        - generic [ref=e760]: calisthenics
+                        - generic [ref=e761]: "|"
+                        - generic [ref=e762]: "Diff: 350"
+                    - 'button "Deficit Push-Up chest | calisthenics | Diff: 350" [ref=e763] [cursor=pointer]':
+                      - generic [ref=e764]: Deficit Push-Up
+                      - generic [ref=e765]:
+                        - generic [ref=e766]: chest
+                        - generic [ref=e767]: "|"
+                        - generic [ref=e768]: calisthenics
+                        - generic [ref=e769]: "|"
+                        - generic [ref=e770]: "Diff: 350"
+                    - 'button "Dumbbell Around the World chest | isolation | Diff: 350" [ref=e771] [cursor=pointer]':
+                      - generic [ref=e772]: Dumbbell Around the World
+                      - generic [ref=e773]:
+                        - generic [ref=e774]: chest
+                        - generic [ref=e775]: "|"
+                        - generic [ref=e776]: isolation
+                        - generic [ref=e777]: "|"
+                        - generic [ref=e778]: "Diff: 350"
+                    - 'button "Dumbbell Bench Press chest | compound | Diff: 250" [ref=e779] [cursor=pointer]':
+                      - generic [ref=e780]: Dumbbell Bench Press
+                      - generic [ref=e781]:
+                        - generic [ref=e782]: chest
+                        - generic [ref=e783]: "|"
+                        - generic [ref=e784]: compound
+                        - generic [ref=e785]: "|"
+                        - generic [ref=e786]: "Diff: 250"
+                    - 'button "Dumbbell Crush Press chest | compound | Diff: 350" [ref=e787] [cursor=pointer]':
+                      - generic [ref=e788]: Dumbbell Crush Press
+                      - generic [ref=e789]:
+                        - generic [ref=e790]: chest
+                        - generic [ref=e791]: "|"
+                        - generic [ref=e792]: compound
+                        - generic [ref=e793]: "|"
+                        - generic [ref=e794]: "Diff: 350"
+                    - 'button "Dumbbell Squeeze Press chest | compound | Diff: 300" [ref=e795] [cursor=pointer]':
+                      - generic [ref=e796]: Dumbbell Squeeze Press
+                      - generic [ref=e797]:
+                        - generic [ref=e798]: chest
+                        - generic [ref=e799]: "|"
+                        - generic [ref=e800]: compound
+                        - generic [ref=e801]: "|"
+                        - generic [ref=e802]: "Diff: 300"
+                    - 'button "Fingertip Push-Up chest | calisthenics | Diff: 600" [ref=e803] [cursor=pointer]':
+                      - generic [ref=e804]: Fingertip Push-Up
+                      - generic [ref=e805]:
+                        - generic [ref=e806]: chest
+                        - generic [ref=e807]: "|"
+                        - generic [ref=e808]: calisthenics
+                        - generic [ref=e809]: "|"
+                        - generic [ref=e810]: "Diff: 600"
+                    - 'button "Flat Barbell Bench Press chest | compound | Diff: 400" [ref=e811] [cursor=pointer]':
+                      - generic [ref=e812]: Flat Barbell Bench Press
+                      - generic [ref=e813]:
+                        - generic [ref=e814]: chest
+                        - generic [ref=e815]: "|"
+                        - generic [ref=e816]: compound
+                        - generic [ref=e817]: "|"
+                        - generic [ref=e818]: "Diff: 400"
+                    - 'button "Flat Dumbbell Fly chest | isolation | Diff: 300" [ref=e819] [cursor=pointer]':
+                      - generic [ref=e820]: Flat Dumbbell Fly
+                      - generic [ref=e821]:
+                        - generic [ref=e822]: chest
+                        - generic [ref=e823]: "|"
+                        - generic [ref=e824]: isolation
+                        - generic [ref=e825]: "|"
+                        - generic [ref=e826]: "Diff: 300"
+                    - 'button "Guillotine Press chest | compound | Diff: 550" [ref=e827] [cursor=pointer]':
+                      - generic [ref=e828]: Guillotine Press
+                      - generic [ref=e829]:
+                        - generic [ref=e830]: chest
+                        - generic [ref=e831]: "|"
+                        - generic [ref=e832]: compound
+                        - generic [ref=e833]: "|"
+                        - generic [ref=e834]: "Diff: 550"
+                    - 'button "Hammer Strength Chest Press chest | compound | Diff: 250" [ref=e835] [cursor=pointer]':
+                      - generic [ref=e836]: Hammer Strength Chest Press
+                      - generic [ref=e837]:
+                        - generic [ref=e838]: chest
+                        - generic [ref=e839]: "|"
+                        - generic [ref=e840]: compound
+                        - generic [ref=e841]: "|"
+                        - generic [ref=e842]: "Diff: 250"
+                    - 'button "Hex Press chest | compound | Diff: 300" [ref=e843] [cursor=pointer]':
+                      - generic [ref=e844]: Hex Press
+                      - generic [ref=e845]:
+                        - generic [ref=e846]: chest
+                        - generic [ref=e847]: "|"
+                        - generic [ref=e848]: compound
+                        - generic [ref=e849]: "|"
+                        - generic [ref=e850]: "Diff: 300"
+                    - 'button "High Cable Fly chest | isolation | Diff: 250" [ref=e851] [cursor=pointer]':
+                      - generic [ref=e852]: High Cable Fly
+                      - generic [ref=e853]:
+                        - generic [ref=e854]: chest
+                        - generic [ref=e855]: "|"
+                        - generic [ref=e856]: isolation
+                        - generic [ref=e857]: "|"
+                        - generic [ref=e858]: "Diff: 250"
+                    - 'button "Hindu Push-Up chest | calisthenics | Diff: 400" [ref=e859] [cursor=pointer]':
+                      - generic [ref=e860]: Hindu Push-Up
+                      - generic [ref=e861]:
+                        - generic [ref=e862]: chest
+                        - generic [ref=e863]: "|"
+                        - generic [ref=e864]: calisthenics
+                        - generic [ref=e865]: "|"
+                        - generic [ref=e866]: "Diff: 400"
+                    - 'button "Incline Dumbbell Fly chest | isolation | Diff: 300" [ref=e867] [cursor=pointer]':
+                      - generic [ref=e868]: Incline Dumbbell Fly
+                      - generic [ref=e869]:
+                        - generic [ref=e870]: chest
+                        - generic [ref=e871]: "|"
+                        - generic [ref=e872]: isolation
+                        - generic [ref=e873]: "|"
+                        - generic [ref=e874]: "Diff: 300"
+                    - 'button "Incline Dumbbell Press chest | compound | Diff: 400" [ref=e875] [cursor=pointer]':
+                      - generic [ref=e876]: Incline Dumbbell Press
+                      - generic [ref=e877]:
+                        - generic [ref=e878]: chest
+                        - generic [ref=e879]: "|"
+                        - generic [ref=e880]: compound
+                        - generic [ref=e881]: "|"
+                        - generic [ref=e882]: "Diff: 400"
+                    - 'button "Incline Dumbbell Squeeze Press chest | compound | Diff: 350" [ref=e883] [cursor=pointer]':
+                      - generic [ref=e884]: Incline Dumbbell Squeeze Press
+                      - generic [ref=e885]:
+                        - generic [ref=e886]: chest
+                        - generic [ref=e887]: "|"
+                        - generic [ref=e888]: compound
+                        - generic [ref=e889]: "|"
+                        - generic [ref=e890]: "Diff: 350"
+                    - 'button "Incline Push-Up chest | calisthenics | Diff: 150" [ref=e891] [cursor=pointer]':
+                      - generic [ref=e892]: Incline Push-Up
+                      - generic [ref=e893]:
+                        - generic [ref=e894]: chest
+                        - generic [ref=e895]: "|"
+                        - generic [ref=e896]: calisthenics
+                        - generic [ref=e897]: "|"
+                        - generic [ref=e898]: "Diff: 150"
+                    - 'button "Landmine Chest Press chest | compound | Diff: 350" [ref=e899] [cursor=pointer]':
+                      - generic [ref=e900]: Landmine Chest Press
+                      - generic [ref=e901]:
+                        - generic [ref=e902]: chest
+                        - generic [ref=e903]: "|"
+                        - generic [ref=e904]: compound
+                        - generic [ref=e905]: "|"
+                        - generic [ref=e906]: "Diff: 350"
+                    - 'button "Low Cable Crossover chest | isolation | Diff: 250" [ref=e907] [cursor=pointer]':
+                      - generic [ref=e908]: Low Cable Crossover
+                      - generic [ref=e909]:
+                        - generic [ref=e910]: chest
+                        - generic [ref=e911]: "|"
+                        - generic [ref=e912]: isolation
+                        - generic [ref=e913]: "|"
+                        - generic [ref=e914]: "Diff: 250"
+                    - 'button "Low Cable Fly chest | isolation | Diff: 250" [ref=e915] [cursor=pointer]':
+                      - generic [ref=e916]: Low Cable Fly
+                      - generic [ref=e917]:
+                        - generic [ref=e918]: chest
+                        - generic [ref=e919]: "|"
+                        - generic [ref=e920]: isolation
+                        - generic [ref=e921]: "|"
+                        - generic [ref=e922]: "Diff: 250"
+                    - 'button "Machine Chest Fly chest | isolation | Diff: 150" [ref=e923] [cursor=pointer]':
+                      - generic [ref=e924]: Machine Chest Fly
+                      - generic [ref=e925]:
+                        - generic [ref=e926]: chest
+                        - generic [ref=e927]: "|"
+                        - generic [ref=e928]: isolation
+                        - generic [ref=e929]: "|"
+                        - generic [ref=e930]: "Diff: 150"
+                    - 'button "Machine Decline Chest Press chest | compound | Diff: 200" [ref=e931] [cursor=pointer]':
+                      - generic [ref=e932]: Machine Decline Chest Press
+                      - generic [ref=e933]:
+                        - generic [ref=e934]: chest
+                        - generic [ref=e935]: "|"
+                        - generic [ref=e936]: compound
+                        - generic [ref=e937]: "|"
+                        - generic [ref=e938]: "Diff: 200"
+                    - 'button "Machine Incline Chest Press chest | compound | Diff: 200" [ref=e939] [cursor=pointer]':
+                      - generic [ref=e940]: Machine Incline Chest Press
+                      - generic [ref=e941]:
+                        - generic [ref=e942]: chest
+                        - generic [ref=e943]: "|"
+                        - generic [ref=e944]: compound
+                        - generic [ref=e945]: "|"
+                        - generic [ref=e946]: "Diff: 200"
+                    - 'button "Machine Pec Fly chest | isolation | Diff: 150" [ref=e947] [cursor=pointer]':
+                      - generic [ref=e948]: Machine Pec Fly
+                      - generic [ref=e949]:
+                        - generic [ref=e950]: chest
+                        - generic [ref=e951]: "|"
+                        - generic [ref=e952]: isolation
+                        - generic [ref=e953]: "|"
+                        - generic [ref=e954]: "Diff: 150"
+                    - 'button "Medicine Ball Chest Pass chest | compound | Diff: 250" [ref=e955] [cursor=pointer]':
+                      - generic [ref=e956]: Medicine Ball Chest Pass
+                      - generic [ref=e957]:
+                        - generic [ref=e958]: chest
+                        - generic [ref=e959]: "|"
+                        - generic [ref=e960]: compound
+                        - generic [ref=e961]: "|"
+                        - generic [ref=e962]: "Diff: 250"
+                    - 'button "Moving Push-Ups chest | compound | Diff: 450" [ref=e963] [cursor=pointer]':
+                      - generic [ref=e964]: Moving Push-Ups
+                      - generic [ref=e965]:
+                        - generic [ref=e966]: chest
+                        - generic [ref=e967]: "|"
+                        - generic [ref=e968]: compound
+                        - generic [ref=e969]: "|"
+                        - generic [ref=e970]: "Diff: 450"
+                    - 'button "One-Arm Push-Up chest | calisthenics | Diff: 850" [ref=e971] [cursor=pointer]':
+                      - generic [ref=e972]: One-Arm Push-Up
+                      - generic [ref=e973]:
+                        - generic [ref=e974]: chest
+                        - generic [ref=e975]: "|"
+                        - generic [ref=e976]: calisthenics
+                        - generic [ref=e977]: "|"
+                        - generic [ref=e978]: "Diff: 850"
+                    - 'button "Pec Deck Machine chest | isolation | Diff: 150" [ref=e979] [cursor=pointer]':
+                      - generic [ref=e980]: Pec Deck Machine
+                      - generic [ref=e981]:
+                        - generic [ref=e982]: chest
+                        - generic [ref=e983]: "|"
+                        - generic [ref=e984]: isolation
+                        - generic [ref=e985]: "|"
+                        - generic [ref=e986]: "Diff: 150"
+                    - 'button "Plate Pinch Press chest | isolation | Diff: 250" [ref=e987] [cursor=pointer]':
+                      - generic [ref=e988]: Plate Pinch Press
+                      - generic [ref=e989]:
+                        - generic [ref=e990]: chest
+                        - generic [ref=e991]: "|"
+                        - generic [ref=e992]: isolation
+                        - generic [ref=e993]: "|"
+                        - generic [ref=e994]: "Diff: 250"
+                    - 'button "Plate Squeeze Press chest | isolation | Diff: 200" [ref=e995] [cursor=pointer]':
+                      - generic [ref=e996]: Plate Squeeze Press
+                      - generic [ref=e997]:
+                        - generic [ref=e998]: chest
+                        - generic [ref=e999]: "|"
+                        - generic [ref=e1000]: isolation
+                        - generic [ref=e1001]: "|"
+                        - generic [ref=e1002]: "Diff: 200"
+                    - 'button "Plyometric Push-Up chest | compound | Diff: 600" [ref=e1003] [cursor=pointer]':
+                      - generic [ref=e1004]: Plyometric Push-Up
+                      - generic [ref=e1005]:
+                        - generic [ref=e1006]: chest
+                        - generic [ref=e1007]: "|"
+                        - generic [ref=e1008]: compound
+                        - generic [ref=e1009]: "|"
+                        - generic [ref=e1010]: "Diff: 600"
+                - generic [ref=e620]:
+                  - generic [ref=e621]:
+                    - heading "Workout Builder" [level=2] [ref=e622]:
+                      - img [ref=e623]
+                      - text: Workout Builder
+                    - button "Save Plan" [disabled] [ref=e626]:
+                      - img [ref=e627]
+                      - text: Save Plan
+                  - generic [ref=e631]:
+                    - generic [ref=e632]:
+                      - generic [ref=e633]: Phase 2
+                      - generic [ref=e634]: Strength Endurance — 2-4 sets × 8-12 reps — 2/0/2 — 0-60s
+                    - generic [ref=e635]: Click exercises in the Rolodex to add them, or use AI Generate for an intelligent program.
+        - dialog "SwanStudios AI Assistant" [ref=e636]:
+          - generic [ref=e637]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e638]
+            - generic [ref=e639]:
+              - button "Minimize" [ref=e640] [cursor=pointer]:
+                - img [ref=e641]
+              - button "Close assistant" [ref=e642] [cursor=pointer]:
+                - img [ref=e643]
+        - button "Open SwanStudios Assistant" [ref=e647] [cursor=pointer]:
+          - img [ref=e648]
+          - text: AI
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

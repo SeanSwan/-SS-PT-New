@@ -1,0 +1,279 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Client Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Client Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Client navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Client
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - navigation [ref=e109]:
+              - generic [ref=e110]: HOME
+              - menuitem "Overview" [ref=e111] [cursor=pointer]:
+                - img [ref=e113]
+                - generic [ref=e116]: Overview
+              - menuitem "My Workouts" [ref=e117] [cursor=pointer]:
+                - img [ref=e119]
+                - generic [ref=e127]: My Workouts
+              - menuitem "My Progress" [ref=e128] [cursor=pointer]:
+                - img [ref=e130]
+                - generic [ref=e133]: My Progress
+              - generic [ref=e134]: INTELLIGENCE
+              - menuitem "Nutrition Intelligence" [ref=e135] [cursor=pointer]:
+                - img [ref=e137]
+                - generic [ref=e142]: Nutrition Intelligence
+              - menuitem "AI Privacy & Consent" [ref=e143] [cursor=pointer]:
+                - img [ref=e145]
+                - generic [ref=e147]: AI Privacy & Consent
+              - generic [ref=e148]: COMMUNITY
+              - menuitem "Book My Session" [ref=e149] [cursor=pointer]:
+                - img [ref=e151]
+                - generic [ref=e153]: Book My Session
+              - menuitem "Community & Challenges" [active] [ref=e154] [cursor=pointer]:
+                - img [ref=e156]
+                - generic [ref=e161]: Community & Challenges
+              - menuitem "Messages" [ref=e162] [cursor=pointer]:
+                - img [ref=e164]
+                - generic [ref=e166]: Messages
+              - generic [ref=e167]: MY SPACE
+              - menuitem "My Profile & Settings" [ref=e168] [cursor=pointer]:
+                - img [ref=e170]
+                - generic [ref=e173]: My Profile & Settings
+              - menuitem "My Rewards" [ref=e174] [cursor=pointer]:
+                - img [ref=e176]
+                - generic [ref=e179]: My Rewards
+            - generic [ref=e181]: SwanStudios v2.1
+          - main [ref=e182]:
+            - generic [ref=e1389]:
+              - tablist "Feed category filter" [ref=e1391]:
+                - tab "Filter by All" [selected] [ref=e1392] [cursor=pointer]:
+                  - img [ref=e1393]
+                  - text: All
+                - tab "Filter by Fitness" [ref=e1395] [cursor=pointer]:
+                  - img [ref=e1396]
+                  - text: Fitness
+                - tab "Filter by Creative" [ref=e1404] [cursor=pointer]:
+                  - img [ref=e1405]
+                  - text: Creative
+                - tab "Filter by Community" [ref=e1411] [cursor=pointer]:
+                  - img [ref=e1412]
+                  - text: Community
+              - generic [ref=e1417]:
+                - generic [ref=e1418]:
+                  - textbox "Write a post" [ref=e1419]:
+                    - /placeholder: "Share an update... use #hashtags to categorize! #fitness #dance"
+                  - generic [ref=e1420]:
+                    - img [ref=e1421]
+                    - text: "Type #hashtags to categorize your post"
+                    - generic [ref=e1424]: +15 XP
+                    - generic [ref=e1425]: 0/500
+                - button "Create post" [disabled] [ref=e1426]:
+                  - img [ref=e1427]
+                  - text: Post
+              - generic [ref=e1430]:
+                - generic [ref=e1431]:
+                  - heading "Faction War" [level=3] [ref=e1432]:
+                    - img [ref=e1433]
+                    - text: Faction War
+                  - generic [ref=e1435]:
+                    - heading "Faction War" [level=4] [ref=e1436]
+                    - generic [ref=e1437]:
+                      - generic [ref=e1438]:
+                        - img [ref=e1439]
+                        - generic [ref=e1441]: Black Swans
+                      - generic [ref=e1444]: "0"
+                    - generic [ref=e1445]:
+                      - generic [ref=e1446]:
+                        - img [ref=e1447]
+                        - generic [ref=e1449]: Glacial Edge
+                      - generic [ref=e1452]: "0"
+                    - generic [ref=e1453]:
+                      - generic [ref=e1454]:
+                        - img [ref=e1455]
+                        - generic [ref=e1457]: Crystal Flock
+                      - generic [ref=e1460]: "0"
+                - generic [ref=e1461]:
+                  - heading "Party" [level=3] [ref=e1462]:
+                    - img [ref=e1463]
+                    - text: Party
+                  - generic [ref=e1468]:
+                    - button "Create Party" [ref=e1469] [cursor=pointer]:
+                      - img [ref=e1470]
+                      - text: Create Party
+                    - button "Join Party" [ref=e1471] [cursor=pointer]:
+                      - img [ref=e1472]
+                      - text: Join Party
+              - generic [ref=e1476]:
+                - generic [ref=e1477]:
+                  - heading "Upcoming Events" [level=3] [ref=e1478]:
+                    - img [ref=e1479]
+                    - text: Upcoming Events
+                  - button "Create event" [ref=e1481] [cursor=pointer]:
+                    - img [ref=e1482]
+                    - text: Create
+                - generic [ref=e1483]:
+                  - generic [ref=e1484]:
+                    - heading "Saturday Morning Run Club" [level=4] [ref=e1485]
+                    - generic [ref=e1486]: Running Club
+                  - paragraph [ref=e1487]: Join us for a 5K run through the park. All levels welcome!
+                  - generic [ref=e1488]:
+                    - generic [ref=e1489]:
+                      - img [ref=e1490]
+                      - text: Apr 5
+                    - generic [ref=e1492]:
+                      - img [ref=e1493]
+                      - text: 7:00 AM
+                    - generic [ref=e1496]:
+                      - img [ref=e1497]
+                      - text: In Person
+                    - generic [ref=e1500]:
+                      - img [ref=e1501]
+                      - text: 0/20
+                  - generic [ref=e1506]:
+                    - button "RSVP going" [ref=e1507] [cursor=pointer]: ✓ Going
+                    - button "RSVP interested" [ref=e1508] [cursor=pointer]: ★ Interested
+                    - button "RSVP maybe" [ref=e1509] [cursor=pointer]: "? Maybe"
+              - generic [ref=e1510]:
+                - generic [ref=e1511]:
+                  - heading "Active Challenges" [level=3] [ref=e1512]:
+                    - img [ref=e1513]
+                    - text: Active Challenges
+                  - paragraph [ref=e1522]: No active challenges right now. Check back soon!
+                - generic [ref=e1523]:
+                  - heading "Leaderboard" [level=3] [ref=e1524]
+                  - generic [ref=e1525]:
+                    - generic [ref=e1526]: "1"
+                    - generic [ref=e1527]: QABot
+                    - generic [ref=e1528]: 0 XP
+                  - generic [ref=e1529]:
+                    - generic [ref=e1530]: "2"
+                    - generic [ref=e1531]: jasmine
+                    - generic [ref=e1532]: 0 XP
+                  - generic [ref=e1533]:
+                    - generic [ref=e1534]: "3"
+                    - generic [ref=e1535]: Vickie
+                    - generic [ref=e1536]: 0 XP
+                  - generic [ref=e1537]:
+                    - generic [ref=e1538]: "4"
+                    - generic [ref=e1539]: Jackie
+                    - generic [ref=e1540]: 0 XP
+                  - generic [ref=e1541]:
+                    - generic [ref=e1542]: "5"
+                    - generic [ref=e1543]: Anand
+                    - generic [ref=e1544]: 0 XP
+              - generic [ref=e1545]:
+                - heading "Social Feed" [level=3] [ref=e1546]:
+                  - img [ref=e1547]
+                  - text: Social Feed
+                - generic [ref=e1549]:
+                  - generic [ref=e1550]: jasmine
+                  - generic [ref=e1551]: "Gaming plus Fitness crossover: Try the 30-Minute Challenge -- 30 minutes of gaming followed by 30 minutes of exercise. Best of both worlds!"
+                  - generic [ref=e1552]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1553]:
+                  - generic [ref=e1554]: jasmine
+                  - generic [ref=e1555]: Community meetups are coming soon! Stay tuned for local workout sessions, group hikes, and social events. Real connections, real community.
+                  - generic [ref=e1556]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1557]:
+                  - generic [ref=e1558]: jasmine
+                  - generic [ref=e1559]: Music lovers -- share your workout playlist! Drop a link or tell us your top 3 songs that keep you grinding in the gym.
+                  - generic [ref=e1560]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1561]:
+                  - generic [ref=e1562]: jasmine
+                  - generic [ref=e1563]: Art and Expression showcase every Friday! Share your fitness-inspired art, photography, or creative projects. This community celebrates ALL forms of self-expression.
+                  - generic [ref=e1564]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1565]:
+                  - generic [ref=e1566]: jasmine
+                  - generic [ref=e1567]: Dance and Movement challenges are here! Whether you're into hip-hop, salsa, or freestyle -- post your best moves and earn points. Let's see what you've got!
+                  - generic [ref=e1568]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1569]:
+                  - generic [ref=e1570]: jasmine
+                  - generic [ref=e1571]: "Pro tip: Consistency beats intensity. A 20-minute workout you do every day is better than a 2-hour session once a week. Start small, stay consistent."
+                  - generic [ref=e1572]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1573]:
+                  - generic [ref=e1574]: jasmine
+                  - generic [ref=e1575]: Welcome to SwanStudios! This is your fitness and creative community. Post workouts, share dance moves, drop your playlist -- let's build something incredible together.
+                  - generic [ref=e1576]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1577]:
+                  - generic [ref=e1578]: jasmine
+                  - generic [ref=e1579]: Transformation Tuesday is every week! Share your progress photos, before and after, or just tell your story. You inspire someone every time you post.
+                  - generic [ref=e1580]: 3/6/2026, 10:41:06 AM
+                - generic [ref=e1581]:
+                  - generic [ref=e1582]: Sean
+                  - generic [ref=e1583]: its mee
+                  - generic [ref=e1584]: 3/2/2026, 4:16:58 PM
+                - generic [ref=e1585]:
+                  - generic [ref=e1586]: Sean
+                  - generic [ref=e1587]: QA test post from Playwright
+                  - generic [ref=e1588]: 3/1/2026, 9:13:52 PM
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status

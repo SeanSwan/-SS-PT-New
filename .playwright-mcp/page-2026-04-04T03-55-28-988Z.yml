@@ -1,0 +1,30 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔄
+      - generic [ref=e6]: Connecting to Server
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Retrying... (0/1)
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - img "SwanStudios Logo" [ref=e14]
+          - generic [ref=e15]:
+            - button "Open shopping cart" [ref=e18] [cursor=pointer]:
+              - img [ref=e20]
+            - button "Switch to Monochrome" [ref=e26] [cursor=pointer]:
+              - img [ref=e28]
+            - button "Sign in" [ref=e32] [cursor=pointer]:
+              - img [ref=e33]
+          - button "Open menu" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+      - main [ref=e39]:
+        - generic [ref=e40]:
+          - img [ref=e42]
+          - heading "Verifying access..." [level=2] [ref=e44]
+          - paragraph [ref=e45]: Please wait while we check your credentials
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status

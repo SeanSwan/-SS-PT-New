@@ -1,0 +1,433 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Admin Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Admin navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Admin
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - button "Select Client..." [ref=e110] [cursor=pointer]:
+              - img [ref=e111]
+              - generic [ref=e116]: Select Client...
+              - img [ref=e117]
+            - navigation [ref=e119]:
+              - menuitem "Coach Assistant" [ref=e120] [cursor=pointer]:
+                - img [ref=e122]
+                - generic [ref=e124]: Coach Assistant
+              - menuitem "Dashboard" [ref=e125] [cursor=pointer]:
+                - img [ref=e127]
+                - generic [ref=e129]: Dashboard
+              - menuitem "Clients & Team" [ref=e130] [cursor=pointer]:
+                - img [ref=e132]
+                - generic [ref=e137]: Clients & Team
+              - menuitem "Workouts" [ref=e138] [cursor=pointer]:
+                - img [ref=e140]
+                - generic [ref=e148]: Workouts
+              - menuitem "Scheduling" [ref=e149] [cursor=pointer]:
+                - img [ref=e151]
+                - generic [ref=e153]: Scheduling
+              - menuitem "Gamification" [ref=e154] [cursor=pointer]:
+                - img [ref=e156]
+                - generic [ref=e158]: Gamification
+              - menuitem "Store & Revenue" [ref=e159] [cursor=pointer]:
+                - img [ref=e161]
+                - generic [ref=e163]: Store & Revenue
+              - menuitem "Content Studio" [ref=e164] [cursor=pointer]:
+                - img [ref=e166]
+                - generic [ref=e169]: Content Studio
+              - menuitem "Analytics" [ref=e170] [cursor=pointer]:
+                - img [ref=e172]
+                - generic [ref=e174]: Analytics
+              - menuitem "System" [active] [ref=e175] [cursor=pointer]:
+                - img [ref=e177]
+                - generic [ref=e180]: System
+              - menuitem "Canada Immigration" [ref=e181] [cursor=pointer]:
+                - img [ref=e183]
+                - generic [ref=e186]: Canada Immigration
+              - menuitem "My Clients" [ref=e188] [cursor=pointer]:
+                - img [ref=e190]
+                - generic [ref=e194]: My Clients
+              - menuitem "My Training" [ref=e195] [cursor=pointer]:
+                - img [ref=e197]
+                - generic [ref=e201]: My Training
+            - generic [ref=e203]: SwanStudios v2.1
+          - main [ref=e204]:
+            - generic [ref=e29157]:
+              - generic [ref=e29158]:
+                - heading "The Aesthetic Codex" [level=1] [ref=e29159]
+                - paragraph [ref=e29160]: The definitive style guide for SwanStudios platform. Every design element, color, and component catalogued for consistent, production-ready development.
+              - generic [ref=e29161]:
+                - heading "Color Palette" [level=2] [ref=e29162]
+                - generic [ref=e29163]:
+                  - generic [ref=e29164]:
+                    - heading "Primary (Blue/Cyan)" [level=4] [ref=e29165]
+                    - generic [ref=e29166]:
+                      - generic [ref=e29167]: Primary Main
+                      - generic [ref=e29168]: "#60C0F0"
+                    - generic [ref=e29169]:
+                      - generic [ref=e29170]: Swan Blue
+                      - generic [ref=e29171]: "#50A0F0"
+                    - generic [ref=e29172]:
+                      - generic [ref=e29173]: Swan Ice
+                      - generic [ref=e29174]: "#90D4F8"
+                    - generic [ref=e29175]:
+                      - generic [ref=e29176]: Swan Deep
+                      - generic [ref=e29177]: "#4070C0"
+                  - generic [ref=e29178]:
+                    - heading "Secondary (Purple)" [level=4] [ref=e29179]
+                    - generic [ref=e29180]:
+                      - generic [ref=e29181]: Cosmic Main
+                      - generic [ref=e29182]: "#4070C0"
+                    - generic [ref=e29183]:
+                      - generic [ref=e29184]: Nebula Purple
+                      - generic [ref=e29185]: "#003080"
+                    - generic [ref=e29186]:
+                      - generic [ref=e29187]: Galaxy Pink
+                      - generic [ref=e29188]: "#6090D0"
+                  - generic [ref=e29189]:
+                    - heading "Backgrounds" [level=4] [ref=e29190]
+                    - generic [ref=e29191]:
+                      - generic [ref=e29192]: Primary BG
+                      - generic [ref=e29193]: "#002060"
+                    - generic [ref=e29194]:
+                      - generic [ref=e29195]: Secondary BG
+                      - generic [ref=e29196]: "#003080"
+                    - generic [ref=e29197]:
+                      - generic [ref=e29198]: Elevated BG
+                      - generic [ref=e29199]: rgba(0, 48, 128, 0.4)
+                  - generic [ref=e29200]:
+                    - heading "Swan Brand" [level=4] [ref=e29201]
+                    - generic [ref=e29202]:
+                      - generic [ref=e29203]: Swan Pure
+                      - generic [ref=e29204]: "#E0ECF4"
+                    - generic [ref=e29205]:
+                      - generic [ref=e29206]: Swan Silver
+                      - generic [ref=e29207]: "#D0DCE8"
+                    - generic [ref=e29208]:
+                      - generic [ref=e29209]: Swan Gold
+                      - generic [ref=e29210]: "#C6A84B"
+                - generic [ref=e29211]: "// Usage Example import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const PrimaryButton = styled.button` background: ${swanStudiosTheme.primary.main}; color: ${swanStudiosTheme.text.primary}; box-shadow: ${swanStudiosTheme.shadows.primaryGlow}; `;"
+              - generic [ref=e29212]:
+                - heading "Typography System" [level=2] [ref=e29213]
+                - generic [ref=e29214]:
+                  - generic [ref=e29215]:
+                    - generic [ref=e29216]: Display Typography
+                    - generic [ref=e29217]: Display H1 - Hero Headlines
+                    - generic [ref=e29218]: Display H2 - Section Headers
+                    - generic [ref=e29219]: Display H3 - Subsection Headers
+                  - generic [ref=e29220]:
+                    - generic [ref=e29221]: Body Typography
+                    - generic [ref=e29222]: Body Large - Important content, introductory text
+                    - generic [ref=e29223]: Body Medium - Standard content, descriptions, articles
+                    - generic [ref=e29224]: Body Small - Secondary content, captions, metadata
+                  - generic [ref=e29225]:
+                    - generic [ref=e29226]: UI Typography
+                    - generic [ref=e29227]: Button Text - Call to Action
+                    - generic [ref=e29228]: Label Text - Form Labels
+                    - generic [ref=e29229]: Caption Text - Helper text, tooltips
+                - generic [ref=e29230]: "// Typography Usage import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const Headline = styled.h1` ${swanStudiosTheme.typography.display.h1}; color: ${swanStudiosTheme.primary.main}; `; const BodyText = styled.p` ${swanStudiosTheme.typography.body.medium}; color: ${swanStudiosTheme.text.primary}; `;"
+              - generic [ref=e29231]:
+                - heading "Button Components" [level=2] [ref=e29232]
+                - generic [ref=e29233]:
+                  - generic [ref=e29234]:
+                    - heading "Primary Buttons" [level=4] [ref=e29235]
+                    - generic [ref=e29236]:
+                      - button "Primary Action" [ref=e29237] [cursor=pointer]
+                      - button "Primary Disabled" [disabled] [ref=e29238]
+                  - generic [ref=e29239]:
+                    - heading "Secondary Buttons" [level=4] [ref=e29240]
+                    - generic [ref=e29241]:
+                      - button "Secondary Action" [ref=e29242] [cursor=pointer]
+                      - button "Secondary Disabled" [disabled] [ref=e29243]
+                  - generic [ref=e29244]:
+                    - heading "Outline Buttons" [level=4] [ref=e29245]
+                    - generic [ref=e29246]:
+                      - button "Outline Action" [ref=e29247] [cursor=pointer]
+                      - button "Outline Disabled" [disabled] [ref=e29248]
+                  - generic [ref=e29249]:
+                    - heading "Ghost Buttons" [level=4] [ref=e29250]
+                    - generic [ref=e29251]:
+                      - button "Ghost Action" [ref=e29252] [cursor=pointer]
+                      - button "Ghost Disabled" [disabled] [ref=e29253]
+                - generic [ref=e29254]: "// Button Component Usage import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const PrimaryButton = styled.button` ${swanStudiosTheme.components.buttonBase}; background: ${swanStudiosTheme.gradients.primaryCosmic}; color: ${swanStudiosTheme.text.primary}; box-shadow: ${swanStudiosTheme.shadows.primaryGlow}; &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: ${swanStudiosTheme.shadows.primaryElevated}; } `;"
+              - generic [ref=e29255]:
+                - heading "Form Elements" [level=2] [ref=e29256]
+                - generic [ref=e29257]:
+                  - generic [ref=e29258]:
+                    - heading "Text Inputs" [level=4] [ref=e29259]
+                    - generic [ref=e29260]:
+                      - generic [ref=e29261]: Email Address
+                      - textbox "Email Address" [ref=e29262]:
+                        - /placeholder: Enter your email
+                        - text: user@swanstudios.com
+                    - generic [ref=e29263]:
+                      - generic [ref=e29264]: Password
+                      - textbox "Password" [ref=e29265]:
+                        - /placeholder: Enter your password
+                    - generic [ref=e29266]:
+                      - generic [ref=e29267]: Error State
+                      - textbox "Error State" [ref=e29268]:
+                        - /placeholder: This field has an error
+                  - generic [ref=e29269]:
+                    - heading "Select & Textarea" [level=4] [ref=e29270]
+                    - generic [ref=e29271]:
+                      - generic [ref=e29272]: User Role
+                      - combobox "User Role" [ref=e29273]:
+                        - option "User" [selected]
+                        - option "Trainer"
+                        - option "Admin"
+                    - generic [ref=e29274]:
+                      - generic [ref=e29275]: Bio
+                      - textbox "Bio" [ref=e29276]:
+                        - /placeholder: Tell us about yourself...
+                        - text: Passionate about fitness and wellness.
+                  - generic [ref=e29277]:
+                    - heading "Checkboxes & Options" [level=4] [ref=e29278]
+                    - generic [ref=e29280] [cursor=pointer]:
+                      - checkbox [checked] [ref=e29281]
+                      - generic [ref=e29282]: Subscribe to newsletter
+                    - generic [ref=e29284] [cursor=pointer]:
+                      - checkbox [ref=e29285]
+                      - generic [ref=e29286]: I agree to the terms and conditions
+                    - generic [ref=e29288] [cursor=pointer]:
+                      - checkbox [ref=e29289]
+                      - generic [ref=e29290]: Receive marketing communications
+                - generic [ref=e29291]: "// Form Elements Usage import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const StyledInput = styled.input` ${swanStudiosTheme.components.input}; width: 100%; &:focus { border-color: ${swanStudiosTheme.components.input.focus.borderColor}; box-shadow: ${swanStudiosTheme.components.input.focus.boxShadow}; } `;"
+              - generic [ref=e29292]:
+                - heading "Layout System" [level=2] [ref=e29293]
+                - generic [ref=e29294]:
+                  - generic [ref=e29295]:
+                    - heading "Grid Layouts" [level=4] [ref=e29296]
+                    - generic [ref=e29297]:
+                      - heading "2-Column Grid" [level=5] [ref=e29298]
+                      - generic [ref=e29299]:
+                        - generic [ref=e29300]: Column 1
+                        - generic [ref=e29301]: Column 2
+                    - generic [ref=e29302]:
+                      - heading "3-Column Grid" [level=5] [ref=e29303]
+                      - generic [ref=e29304]:
+                        - generic [ref=e29305]: Column 1
+                        - generic [ref=e29306]: Column 2
+                        - generic [ref=e29307]: Column 3
+                    - generic [ref=e29308]:
+                      - heading "4-Column Grid" [level=5] [ref=e29309]
+                      - generic [ref=e29310]:
+                        - generic [ref=e29311]: Col 1
+                        - generic [ref=e29312]: Col 2
+                        - generic [ref=e29313]: Col 3
+                        - generic [ref=e29314]: Col 4
+                  - generic [ref=e29315]:
+                    - heading "Flexbox Layouts" [level=4] [ref=e29316]
+                    - generic [ref=e29317]:
+                      - heading "Flex Row (justify-start)" [level=5] [ref=e29318]
+                      - generic [ref=e29319]:
+                        - generic [ref=e29320]: Item 1
+                        - generic [ref=e29321]: Item 2
+                        - generic [ref=e29322]: Item 3
+                    - generic [ref=e29323]:
+                      - heading "Flex Row (justify-center)" [level=5] [ref=e29324]
+                      - generic [ref=e29325]:
+                        - generic [ref=e29326]: Item 1
+                        - generic [ref=e29327]: Item 2
+                        - generic [ref=e29328]: Item 3
+                    - generic [ref=e29329]:
+                      - heading "Flex Row (justify-between)" [level=5] [ref=e29330]
+                      - generic [ref=e29331]:
+                        - generic [ref=e29332]: Item 1
+                        - generic [ref=e29333]: Item 2
+                        - generic [ref=e29334]: Item 3
+                  - generic [ref=e29335]:
+                    - heading "Spacing System" [level=4] [ref=e29336]
+                    - generic [ref=e29337]:
+                      - generic [ref=e29338]:
+                        - generic [ref=e29339]: "xs:"
+                        - generic [ref=e29341]: 0.25rem
+                      - generic [ref=e29342]:
+                        - generic [ref=e29343]: "sm:"
+                        - generic [ref=e29345]: 0.5rem
+                      - generic [ref=e29346]:
+                        - generic [ref=e29347]: "md:"
+                        - generic [ref=e29349]: 1rem
+                      - generic [ref=e29350]:
+                        - generic [ref=e29351]: "lg:"
+                        - generic [ref=e29353]: 1.5rem
+                      - generic [ref=e29354]:
+                        - generic [ref=e29355]: "xl:"
+                        - generic [ref=e29357]: 2rem
+                      - generic [ref=e29358]:
+                        - generic [ref=e29359]: "xxl:"
+                        - generic [ref=e29361]: 3rem
+                      - generic [ref=e29362]:
+                        - generic [ref=e29363]: "xxxl:"
+                        - generic [ref=e29365]: 4rem
+                - generic [ref=e29366]: "// Layout System Usage import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const GridContainer = styled.div` display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: ${swanStudiosTheme.spacing.lg}; ${swanStudiosTheme.breakpoints.down.tablet} { grid-template-columns: 1fr; } `; const FlexContainer = styled.div` display: flex; gap: ${swanStudiosTheme.spacing.md}; align-items: center; justify-content: space-between; `;"
+              - generic [ref=e29367]:
+                - heading "Component Showcase" [level=2] [ref=e29368]
+                - generic [ref=e29369]:
+                  - generic [ref=e29370]:
+                    - heading "Card Components" [level=4] [ref=e29371]
+                    - generic [ref=e29372]:
+                      - generic [ref=e29373]:
+                        - heading "Feature Card" [level=5] [ref=e29374]
+                        - paragraph [ref=e29375]: This is a standard card component with hover effects, perfect for showcasing features or content items.
+                        - text: Featured
+                      - generic [ref=e29376]:
+                        - heading "User Profile" [level=5] [ref=e29377]
+                        - paragraph [ref=e29378]: User profile cards can display member information, trainer credentials, or client progress summaries.
+                        - text: Profile
+                      - generic [ref=e29379]:
+                        - heading "Workout Plan" [level=5] [ref=e29380]
+                        - paragraph [ref=e29381]: Workout plan cards present exercise routines with clear visual hierarchy and action buttons.
+                        - text: Fitness
+                  - generic [ref=e29382]:
+                    - heading "Status Indicators" [level=4] [ref=e29383]
+                    - generic [ref=e29384]:
+                      - generic [ref=e29387]: Online
+                      - generic [ref=e29390]: Away
+                      - generic [ref=e29393]: Offline
+                  - generic [ref=e29394]:
+                    - heading "Progress Indicators" [level=4] [ref=e29395]
+                    - generic [ref=e29396]:
+                      - generic [ref=e29398]:
+                        - generic [ref=e29399]: Progress 25%
+                        - generic [ref=e29400]: 25%
+                      - generic [ref=e29404]:
+                        - generic [ref=e29405]: Progress 50%
+                        - generic [ref=e29406]: 50%
+                      - generic [ref=e29410]:
+                        - generic [ref=e29411]: Progress 75%
+                        - generic [ref=e29412]: 75%
+                      - generic [ref=e29416]:
+                        - generic [ref=e29417]: Progress 90%
+                        - generic [ref=e29418]: 90%
+                - generic [ref=e29421]: "// Component Showcase Usage import styled from 'styled-components'; import { swanStudiosTheme } from '@/core/theme'; const Card = styled.div` background: ${swanStudiosTheme.components.card.background}; border: ${swanStudiosTheme.components.card.border}; border-radius: 12px; padding: ${swanStudiosTheme.spacing.lg}; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); &:hover { border-color: ${swanStudiosTheme.components.card.hoverBorder}; box-shadow: ${swanStudiosTheme.shadows.primaryElevated}; transform: translateY(-4px); } `;"
+              - generic [ref=e29422]:
+                - heading "Implementation Complete ✨" [level=2] [ref=e29423]
+                - generic [ref=e29424]:
+                  - heading "🎯 Full Style Guide Implementation" [level=3] [ref=e29425]
+                  - generic [ref=e29426]:
+                    - generic [ref=e29427]:
+                      - heading "Foundation Systems" [level=4] [ref=e29428]
+                      - list [ref=e29429]:
+                        - listitem [ref=e29430]: ✅ Color Palette System
+                        - listitem [ref=e29431]: ✅ Typography Hierarchy
+                        - listitem [ref=e29432]: ✅ Spacing & Layout Grid
+                        - listitem [ref=e29433]: ✅ Theme Integration
+                    - generic [ref=e29434]:
+                      - heading "UI Components" [level=4] [ref=e29435]
+                      - list [ref=e29436]:
+                        - listitem [ref=e29437]: ✅ Button Components
+                        - listitem [ref=e29438]: ✅ Form Elements
+                        - listitem [ref=e29439]: ✅ Card Components
+                        - listitem [ref=e29440]: ✅ Status Indicators
+                    - generic [ref=e29441]:
+                      - heading "System Features" [level=4] [ref=e29442]
+                      - list [ref=e29443]:
+                        - listitem [ref=e29444]: ✅ Responsive Design
+                        - listitem [ref=e29445]: ✅ Code Examples
+                        - listitem [ref=e29446]: ✅ Live Previews
+                        - listitem [ref=e29447]: ✅ Production Ready
+                  - paragraph [ref=e29449]: 🎨 Your design system is now complete and ready for development team implementation!
+        - dialog "SwanStudios AI Assistant" [ref=e311]:
+          - generic [ref=e312]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e313]
+            - generic [ref=e314]:
+              - button "Minimize" [ref=e315] [cursor=pointer]:
+                - img [ref=e316]
+              - button "Close assistant" [ref=e317] [cursor=pointer]:
+                - img [ref=e318]
+        - button "Open SwanStudios Assistant" [ref=e322] [cursor=pointer]:
+          - img [ref=e323]
+          - text: AI
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez
+  - img [ref=e29156]

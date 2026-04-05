@@ -1,0 +1,1076 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - generic [ref=e13]:
+              - img "SwanStudios Logo" [ref=e14]
+              - generic [ref=e15]: SwanStudios
+          - navigation [ref=e17]:
+            - link "Home" [ref=e18] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e19] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e610] [cursor=pointer]:
+              - img [ref=e611]
+              - text: Admin Dashboard
+              - img [ref=e616]
+            - link "Video Library" [ref=e22] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e23] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e24] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e25] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e26] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e27]:
+            - button "Notifications" [ref=e620] [cursor=pointer]:
+              - img [ref=e621]
+            - button "Open shopping cart" [ref=e30] [cursor=pointer]:
+              - img [ref=e32]
+            - button "Switch to Monochrome" [ref=e38] [cursor=pointer]:
+              - img [ref=e40]
+            - generic [ref=e624]:
+              - button "User profile" [ref=e626] [cursor=pointer]:
+                - img "Sean" [ref=e627]
+              - button "Logout" [ref=e628] [cursor=pointer]
+      - main [ref=e43]:
+        - generic [ref=e629]:
+          - navigation "Admin navigation" [ref=e630]:
+            - generic [ref=e631]:
+              - generic [ref=e632]:
+                - generic [ref=e633]: SS
+                - generic [ref=e634]: Admin
+              - button "Collapse sidebar" [ref=e635] [cursor=pointer]:
+                - img [ref=e636]
+            - button "Select Client..." [ref=e639] [cursor=pointer]:
+              - img [ref=e640]
+              - generic [ref=e645]: Select Client...
+              - img [ref=e646]
+            - navigation [ref=e648]:
+              - menuitem "Coach Assistant" [ref=e649] [cursor=pointer]:
+                - img [ref=e651]
+                - generic [ref=e653]: Coach Assistant
+              - menuitem "Dashboard" [active] [ref=e654] [cursor=pointer]:
+                - img [ref=e656]
+                - generic [ref=e658]: Dashboard
+              - menuitem "Clients & Team" [ref=e659] [cursor=pointer]:
+                - img [ref=e661]
+                - generic [ref=e666]: Clients & Team
+              - menuitem "Workouts" [ref=e667] [cursor=pointer]:
+                - img [ref=e669]
+                - generic [ref=e677]: Workouts
+              - menuitem "Bootcamp Creator" [ref=e678] [cursor=pointer]:
+                - img [ref=e680]
+                - generic [ref=e682]: Bootcamp Creator
+              - menuitem "Equipment" [ref=e683] [cursor=pointer]:
+                - img [ref=e685]
+                - generic [ref=e687]: Equipment
+              - menuitem "Scheduling" [ref=e688] [cursor=pointer]:
+                - img [ref=e690]
+                - generic [ref=e692]: Scheduling
+              - menuitem "Gamification" [ref=e693] [cursor=pointer]:
+                - img [ref=e695]
+                - generic [ref=e697]: Gamification
+              - menuitem "Store & Revenue" [ref=e698] [cursor=pointer]:
+                - img [ref=e700]
+                - generic [ref=e702]: Store & Revenue
+              - menuitem "Content Studio" [ref=e703] [cursor=pointer]:
+                - img [ref=e705]
+                - generic [ref=e708]: Content Studio
+              - menuitem "Analytics" [ref=e709] [cursor=pointer]:
+                - img [ref=e711]
+                - generic [ref=e713]: Analytics
+              - menuitem "System" [ref=e714] [cursor=pointer]:
+                - img [ref=e716]
+                - generic [ref=e719]: System
+              - menuitem "Canada Immigration" [ref=e720] [cursor=pointer]:
+                - img [ref=e722]
+                - generic [ref=e725]: Canada Immigration
+              - menuitem "Homepage Preview" [ref=e727] [cursor=pointer]:
+                - img [ref=e729]
+                - generic [ref=e735]: Homepage V5
+              - menuitem "My Training" [ref=e737] [cursor=pointer]:
+                - img [ref=e739]
+                - generic [ref=e743]: My Training
+            - generic [ref=e745]: SwanStudios v2.1
+          - main [ref=e746]:
+            - generic [ref=e1034]:
+              - generic [ref=e1035]:
+                - heading "Command Center Overview" [level=1] [ref=e1036]
+                - paragraph [ref=e1037]: Your administrative command center for platform oversight
+              - generic [ref=e1039]:
+                - button "SwanStudios Admin Assistant" [ref=e1042] [cursor=pointer]:
+                  - generic [ref=e1043]:
+                    - img [ref=e1045]
+                    - generic [ref=e1047]: SwanStudios Admin Assistant
+                  - img [ref=e1049]
+                - generic [ref=e1052]:
+                  - generic [ref=e1053]:
+                    - heading "Visitor Intelligence" [level=3] [ref=e1056]:
+                      - img [ref=e1057]
+                      - text: Visitor Intelligence
+                    - generic [ref=e1060]:
+                      - generic [ref=e1061]:
+                        - img [ref=e1062]
+                        - generic [ref=e1064]: "1"
+                        - generic [ref=e1065]: Live Now
+                      - generic [ref=e1066]:
+                        - img [ref=e1067]
+                        - generic [ref=e1070]: "1"
+                        - generic [ref=e1071]: Last Hour
+                      - generic [ref=e1072]:
+                        - img [ref=e1073]
+                        - generic [ref=e1078]: "18"
+                        - generic [ref=e1079]: Users
+                      - generic [ref=e1080]:
+                        - img [ref=e1081]
+                        - generic [ref=e1084]: "1"
+                        - generic [ref=e1085]: 24h Visitors
+                      - button "Refresh visitor data" [ref=e1086] [cursor=pointer]:
+                        - img [ref=e1087]
+                      - button "View all visitors" [ref=e1092] [cursor=pointer]:
+                        - img [ref=e1093]
+                        - text: View All
+                  - generic [ref=e1098]:
+                    - generic [ref=e1099]: 1 Logged In
+                    - generic [ref=e1100]: 17 Gallery
+                    - generic [ref=e1101]: 1 Anonymous
+                    - generic [ref=e1102]: 1 Countries
+                    - generic [ref=e1103]: 8 Cities
+                  - tablist "Visitor data views" [ref=e1104]:
+                    - tab "Live Feed" [selected] [ref=e1105] [cursor=pointer]:
+                      - img [ref=e1106]
+                      - text: Live Feed
+                    - tab "Countries" [ref=e1108] [cursor=pointer]:
+                      - img [ref=e1109]
+                      - text: Countries
+                    - tab "Cities" [ref=e1112] [cursor=pointer]:
+                      - img [ref=e1113]
+                      - text: Cities
+                    - tab "Top Pages" [ref=e1116] [cursor=pointer]:
+                      - img [ref=e1117]
+                      - text: Top Pages
+                    - tab "Users" [ref=e1120] [cursor=pointer]:
+                      - img [ref=e1121]
+                      - text: Users
+                  - generic [ref=e1127]:
+                    - generic [ref=e1128] [cursor=pointer]:
+                      - generic [ref=e1130]:
+                        - generic [ref=e1131]: 🌐 Unknown
+                        - generic [ref=e1132]: Homepage
+                      - generic [ref=e1133]:
+                        - generic [ref=e1134]: anon
+                        - generic [ref=e1135]: 1m ago
+                      - img [ref=e1136]
+                    - generic [ref=e1138] [cursor=pointer]:
+                      - generic [ref=e1140]:
+                        - generic [ref=e1141]: 🌐 supernovagirlsbasketball@gmail.com
+                        - generic [ref=e1142]: Unknown
+                      - generic [ref=e1143]:
+                        - generic [ref=e1144]: gallery
+                        - generic [ref=e1145]: 15d ago
+                      - img [ref=e1146]
+                    - generic [ref=e1148] [cursor=pointer]:
+                      - generic [ref=e1150]:
+                        - generic [ref=e1151]: 🌐 michaelmorin333@gmail.com
+                        - generic [ref=e1152]: Unknown
+                      - generic [ref=e1153]:
+                        - generic [ref=e1154]: gallery
+                        - generic [ref=e1155]: 16d ago
+                      - img [ref=e1156]
+                    - generic [ref=e1158] [cursor=pointer]:
+                      - generic [ref=e1160]:
+                        - generic [ref=e1161]: 🇺🇸 Patricia
+                        - generic [ref=e1162]: Huntington Beach, United States
+                      - generic [ref=e1163]:
+                        - generic [ref=e1164]: gallery
+                        - generic [ref=e1165]: 17d ago
+                      - img [ref=e1166]
+                    - generic [ref=e1168] [cursor=pointer]:
+                      - generic [ref=e1170]:
+                        - generic [ref=e1171]: 🇺🇸 Alina
+                        - generic [ref=e1172]: Anaheim, United States
+                      - generic [ref=e1173]:
+                        - generic [ref=e1174]: gallery
+                        - generic [ref=e1175]: 17d ago
+                      - img [ref=e1176]
+                    - generic [ref=e1178] [cursor=pointer]:
+                      - generic [ref=e1180]:
+                        - generic [ref=e1181]: 🇺🇸 priyashah311@gmail.com
+                        - generic [ref=e1182]: Cypress, United States
+                      - generic [ref=e1183]:
+                        - generic [ref=e1184]: gallery
+                        - generic [ref=e1185]: 17d ago
+                      - img [ref=e1186]
+                    - generic [ref=e1188] [cursor=pointer]:
+                      - generic [ref=e1190]:
+                        - generic [ref=e1191]: 🇺🇸 Anand
+                        - generic [ref=e1192]: Anaheim, United States
+                      - generic [ref=e1193]:
+                        - generic [ref=e1194]: gallery
+                        - generic [ref=e1195]: 17d ago
+                      - img [ref=e1196]
+                    - generic [ref=e1198] [cursor=pointer]:
+                      - generic [ref=e1200]:
+                        - generic [ref=e1201]: 🌐 supernovagirlsbasketball@gmail.col
+                        - generic [ref=e1202]: Unknown
+                      - generic [ref=e1203]:
+                        - generic [ref=e1204]: gallery
+                        - generic [ref=e1205]: 17d ago
+                      - img [ref=e1206]
+                    - generic [ref=e1208] [cursor=pointer]:
+                      - generic [ref=e1210]:
+                        - generic [ref=e1211]: 🇺🇸 juliebhindi@gmail.con
+                        - generic [ref=e1212]: Yorba Linda, United States
+                      - generic [ref=e1213]:
+                        - generic [ref=e1214]: gallery
+                        - generic [ref=e1215]: 17d ago
+                      - img [ref=e1216]
+                    - generic [ref=e1218] [cursor=pointer]:
+                      - generic [ref=e1220]:
+                        - generic [ref=e1221]: 🇺🇸 shenap@gmail.com
+                        - generic [ref=e1222]: Yorba Linda, United States
+                      - generic [ref=e1223]:
+                        - generic [ref=e1224]: gallery
+                        - generic [ref=e1225]: 17d ago
+                      - img [ref=e1226]
+                    - generic [ref=e1228] [cursor=pointer]:
+                      - generic [ref=e1230]:
+                        - generic [ref=e1231]: 🇺🇸 rui21per@gmail.com
+                        - generic [ref=e1232]: Brea, United States
+                      - generic [ref=e1233]:
+                        - generic [ref=e1234]: gallery
+                        - generic [ref=e1235]: 17d ago
+                      - img [ref=e1236]
+                - generic [ref=e1240]:
+                  - generic [ref=e1241]:
+                    - generic [ref=e1242]:
+                      - img [ref=e1244]
+                      - generic [ref=e1247]:
+                        - heading "Global Visitor Intelligence" [level=3] [ref=e1248]
+                        - paragraph [ref=e1249]: Real-time geographic distribution
+                    - button "Refresh map data" [ref=e1251] [cursor=pointer]:
+                      - img [ref=e1252]
+                  - generic [ref=e1257]:
+                    - generic [ref=e1258]:
+                      - img [ref=e1259]
+                      - generic [ref=e1262]: "440"
+                      - generic [ref=e1263]: All-Time Visitors
+                    - generic [ref=e1264]:
+                      - img [ref=e1265]
+                      - generic [ref=e1270]: "18"
+                      - generic [ref=e1271]: Tracked Users
+                    - generic [ref=e1272]:
+                      - img [ref=e1273]
+                      - generic [ref=e1276]: "1"
+                      - generic [ref=e1277]: Countries
+                    - generic [ref=e1278]:
+                      - img [ref=e1279]
+                      - generic [ref=e1282]: "8"
+                      - generic [ref=e1283]: Cities
+                  - generic [ref=e1284]:
+                    - img [ref=e1285]
+                    - generic [ref=e1612]:
+                      - button "Zoom in" [ref=e1613] [cursor=pointer]:
+                        - img [ref=e1614]
+                      - button "Zoom out" [disabled] [ref=e1615]:
+                        - img [ref=e1616]
+                - generic [ref=e1618]:
+                  - generic [ref=e1619]:
+                    - heading "Real-time Signup Monitoring" [level=3] [ref=e1620]:
+                      - img [ref=e1621]
+                      - text: Real-time Signup Monitoring
+                    - generic [ref=e1625]:
+                      - generic [ref=e1626]:
+                        - img [ref=e1627]
+                        - text: Database Healthy
+                      - button "Refresh" [ref=e1630] [cursor=pointer]:
+                        - img [ref=e1631]
+                        - text: Refresh
+                  - generic [ref=e1636]:
+                    - generic [ref=e1637]:
+                      - img [ref=e1640]
+                      - generic [ref=e1645]: "9"
+                      - generic [ref=e1646]: Total Users
+                      - generic [ref=e1647]:
+                        - img [ref=e1648]
+                        - text: connected
+                    - generic [ref=e1652]:
+                      - img [ref=e1655]
+                      - generic [ref=e1658]: "0"
+                      - generic [ref=e1659]: Last 24 Hours
+                      - generic [ref=e1660]:
+                        - img [ref=e1661]
+                        - text: 0.4/day avg
+                    - generic [ref=e1664]:
+                      - img [ref=e1667]
+                      - generic [ref=e1669]: "2"
+                      - generic [ref=e1670]: Active Users
+                      - generic [ref=e1671]:
+                        - img [ref=e1672]
+                        - text: 22.2% of total
+                    - generic [ref=e1675]:
+                      - img [ref=e1678]
+                      - generic [ref=e1681]: 99.9%
+                      - generic [ref=e1682]: Database Uptime
+                      - generic [ref=e1683]:
+                        - img [ref=e1684]
+                        - text: "16.10"
+                  - generic [ref=e1686]:
+                    - generic [ref=e1687]:
+                      - img [ref=e1688]
+                      - text: Recent Signups (Live)
+                      - generic [ref=e1691]: "Last updated: 6:19:46 PM"
+                    - generic [ref=e1692]:
+                      - generic [ref=e1693]:
+                        - generic [ref=e1694]: Norma Patton
+                        - generic [ref=e1695]: norma.patton.686cc5@clients.swanstudios.com
+                      - generic [ref=e1696]:
+                        - generic [ref=e1697]: 1d ago
+                        - generic [ref=e1698]: 4/3/2026, 9:19:28 AM
+                    - generic [ref=e1699]:
+                      - generic [ref=e1700]:
+                        - generic [ref=e1701]: Ron W
+                        - generic [ref=e1702]: ron.w.84b59a@clients.swanstudios.com
+                      - generic [ref=e1703]:
+                        - generic [ref=e1704]: 1d ago
+                        - generic [ref=e1705]: 4/3/2026, 12:37:59 AM
+                    - generic [ref=e1706]:
+                      - generic [ref=e1707]:
+                        - generic [ref=e1708]: QA Admin
+                        - generic [ref=e1709]: qa-admin@swanstudios.local
+                      - generic [ref=e1710]:
+                        - generic [ref=e1711]: 3d ago
+                        - generic [ref=e1712]: 4/1/2026, 2:37:12 PM
+                    - generic [ref=e1713]:
+                      - generic [ref=e1714]:
+                        - generic [ref=e1715]: Anand MoveFit
+                        - generic [ref=e1716]: anand.mfit@swanstudios.com
+                      - generic [ref=e1717]:
+                        - generic [ref=e1718]: 7d ago
+                        - generic [ref=e1719]: 3/27/2026, 7:54:45 PM
+                    - generic [ref=e1720]:
+                      - generic [ref=e1721]:
+                        - generic [ref=e1722]: Jackie Client
+                        - generic [ref=e1723]: jackie.c.movefitness@swanstudios.com
+                      - generic [ref=e1724]:
+                        - generic [ref=e1725]: 17d ago
+                        - generic [ref=e1726]: 3/17/2026, 8:00:22 PM
+                    - generic [ref=e1727]:
+                      - generic [ref=e1728]:
+                        - generic [ref=e1729]: QABot Tester
+                        - generic [ref=e1730]: qabot-tester-2026@swanstudios.com
+                      - generic [ref=e1731]:
+                        - generic [ref=e1732]: 34d ago
+                        - generic [ref=e1733]: 3/1/2026, 12:39:02 PM
+                    - generic [ref=e1734]:
+                      - generic [ref=e1735]:
+                        - generic [ref=e1736]: Vickie Valdez
+                        - generic [ref=e1737]: salonvictoria@yahoo.com
+                      - generic [ref=e1738]:
+                        - generic [ref=e1739]: 48d ago
+                        - generic [ref=e1740]: 2/15/2026, 9:55:27 AM
+                    - generic [ref=e1741]:
+                      - generic [ref=e1742]:
+                        - generic [ref=e1743]: jasmine Swan
+                        - generic [ref=e1744]: loveswanstudios@protonmail.com
+                      - generic [ref=e1745]:
+                        - generic [ref=e1746]: 72d ago
+                        - generic [ref=e1747]: 1/22/2026, 2:41:26 PM
+                    - generic [ref=e1748]:
+                      - generic [ref=e1749]:
+                        - generic [ref=e1750]: Sean Swan
+                        - generic [ref=e1751]: ogpswan@yahoo.com
+                      - generic [ref=e1752]:
+                        - generic [ref=e1753]: 267d ago
+                        - generic [ref=e1754]: 7/11/2025, 12:27:55 PM
+                  - generic [ref=e1755]:
+                    - img [ref=e1756]
+                    - text: Auto-refreshing every 30 seconds
+                - generic [ref=e1759]:
+                  - generic [ref=e1760]:
+                    - heading "Orientation Intake 0" [level=3] [ref=e1761]:
+                      - img [ref=e1762]
+                      - text: Orientation Intake
+                      - generic [ref=e1767]: "0"
+                    - generic [ref=e1768]:
+                      - button "Refresh" [ref=e1769] [cursor=pointer]:
+                        - img [ref=e1770]
+                        - text: Refresh
+                      - button "Open Queue" [ref=e1775] [cursor=pointer]
+                  - generic [ref=e1776]: No pending orientation submissions.
+                - generic [ref=e1778]:
+                  - generic [ref=e1779]:
+                    - heading "Business Intelligence Alerts 14" [level=3] [ref=e1780]:
+                      - img [ref=e1781]
+                      - text: Business Intelligence Alerts
+                      - generic [ref=e1784]: "14"
+                    - generic [ref=e1785]:
+                      - button "Show unread only" [ref=e1786] [cursor=pointer]:
+                        - img [ref=e1787]
+                      - button "Refresh notifications" [ref=e1792] [cursor=pointer]:
+                        - img [ref=e1793]
+                  - generic [ref=e1798]:
+                    - generic [ref=e1800] [cursor=pointer]:
+                      - img [ref=e1802]
+                      - generic [ref=e1804]:
+                        - generic [ref=e1805]: New Contact Form Submission
+                        - generic [ref=e1806]: "QA Test User (qatest@example.com) sent: \"[GENERAL] This is a QA test message to verify form submission. Subject: QA Testing\""
+                        - generic [ref=e1808]:
+                          - img [ref=e1809]
+                          - text: 7d ago
+                      - generic [ref=e1812]: Action Required
+                    - generic [ref=e1814] [cursor=pointer]:
+                      - img [ref=e1816]
+                      - generic [ref=e1818]:
+                        - generic [ref=e1819]: New Contact Form Submission
+                        - generic [ref=e1820]: "Vickie Valdez (salonvictoria@yahoo.com) sent: \"[GENERAL] I think it looks gret! ... you have the videogame template, I really like it! Subject: Webs...show more"
+                        - generic [ref=e1822]:
+                          - img [ref=e1823]
+                          - text: 48d ago
+                      - generic [ref=e1826]: Action Required
+                    - generic [ref=e1828] [cursor=pointer]:
+                      - img [ref=e1830]
+                      - generic [ref=e1832]:
+                        - generic [ref=e1833]: New Contact Form Submission
+                        - generic [ref=e1834]: "SwanStudios (ogpswan@yahoo.com) sent: \"[GENERAL] h i hi hi Subject: khjb\""
+                        - generic [ref=e1836]:
+                          - img [ref=e1837]
+                          - text: 50d ago
+                      - generic [ref=e1840]: Action Required
+                    - generic [ref=e1842] [cursor=pointer]:
+                      - img [ref=e1844]
+                      - generic [ref=e1846]:
+                        - generic [ref=e1847]: New Contact Form Submission
+                        - generic [ref=e1848]: "Test (test@test.com) sent: \"audit test\""
+                        - generic [ref=e1850]:
+                          - img [ref=e1851]
+                          - text: 52d ago
+                      - generic [ref=e1854]: Action Required
+                    - generic [ref=e1856] [cursor=pointer]:
+                      - img [ref=e1858]
+                      - generic [ref=e1860]:
+                        - generic [ref=e1861]: New Contact Form Submission
+                        - generic [ref=e1862]: "Sean Swan (ogpswan@yahoo.com) sent: \"[GENERAL] hi Subject: khjb\""
+                        - generic [ref=e1864]:
+                          - img [ref=e1865]
+                          - text: 56d ago
+                      - generic [ref=e1868]: Action Required
+                    - generic [ref=e1870] [cursor=pointer]:
+                      - img [ref=e1872]
+                      - generic [ref=e1874]:
+                        - generic [ref=e1875]: New Contact Form Submission
+                        - generic [ref=e1876]: "Sean Swan (ogpswan@yahoo.com) sent: \"[GENERAL] [09i Subject: khjb\""
+                        - generic [ref=e1878]:
+                          - img [ref=e1879]
+                          - text: 83d ago
+                      - generic [ref=e1882]: Action Required
+                    - generic [ref=e1884] [cursor=pointer]:
+                      - img [ref=e1886]
+                      - generic [ref=e1888]:
+                        - generic [ref=e1889]: New Contact Form Submission
+                        - generic [ref=e1890]: "Sean Swan (ogpswan@yahoo.com) sent: \"[GENERAL] [09i Subject: khjb\""
+                        - generic [ref=e1892]:
+                          - img [ref=e1893]
+                          - text: 83d ago
+                      - generic [ref=e1896]: Action Required
+                    - generic [ref=e1898] [cursor=pointer]:
+                      - img [ref=e1900]
+                      - generic [ref=e1902]:
+                        - generic [ref=e1903]: New Contact Form Submission
+                        - generic [ref=e1904]: "Test User Fix (test@example.com) sent: \"[GENERAL] Test message from deployment script\""
+                        - generic [ref=e1906]:
+                          - img [ref=e1907]
+                          - text: 298d ago
+                      - generic [ref=e1910]: Action Required
+                    - generic [ref=e1912] [cursor=pointer]:
+                      - img [ref=e1914]
+                      - generic [ref=e1916]:
+                        - generic [ref=e1917]: New Contact Form Submission
+                        - generic [ref=e1918]: "Test User (test@example.com) sent: \"[GENERAL] Test message from browser console\""
+                        - generic [ref=e1920]:
+                          - img [ref=e1921]
+                          - text: 298d ago
+                      - generic [ref=e1924]: Action Required
+                    - generic [ref=e1926] [cursor=pointer]:
+                      - img [ref=e1928]
+                      - generic [ref=e1930]:
+                        - generic [ref=e1931]: New Contact Form Submission
+                        - generic [ref=e1932]: "hill (ogpswan@yahoo.com) sent: \"kkkkkkioiioklk,\""
+                        - generic [ref=e1934]:
+                          - img [ref=e1935]
+                          - text: 387d ago
+                      - generic [ref=e1938]: Action Required
+                    - generic [ref=e1940] [cursor=pointer]:
+                      - img [ref=e1942]
+                      - generic [ref=e1944]:
+                        - generic [ref=e1945]: New Contact Form Submission
+                        - generic [ref=e1946]: "hill (ogpswan@yahoo.com) sent: \"kkkkkkioiioklk,\""
+                        - generic [ref=e1948]:
+                          - img [ref=e1949]
+                          - text: 387d ago
+                      - generic [ref=e1952]: Action Required
+                    - generic [ref=e1954] [cursor=pointer]:
+                      - img [ref=e1956]
+                      - generic [ref=e1958]:
+                        - generic [ref=e1959]: New Contact Form Submission
+                        - generic [ref=e1960]: "hill (ogpswan@yahoo.com) sent: \"kkkkkkioiioklk,\""
+                        - generic [ref=e1962]:
+                          - img [ref=e1963]
+                          - text: 387d ago
+                      - generic [ref=e1966]: Action Required
+                    - generic [ref=e1968] [cursor=pointer]:
+                      - img [ref=e1970]
+                      - generic [ref=e1972]:
+                        - generic [ref=e1973]: New Contact Form Submission
+                        - generic [ref=e1974]: "ben (ben@gmail.com) sent: \"hello there\""
+                        - generic [ref=e1976]:
+                          - img [ref=e1977]
+                          - text: 397d ago
+                      - generic [ref=e1980]: Action Required
+                    - generic [ref=e1982] [cursor=pointer]:
+                      - img [ref=e1984]
+                      - generic [ref=e1986]:
+                        - generic [ref=e1987]: New Contact Form Submission
+                        - generic [ref=e1988]: "ben (ben@gmail.com) sent: \"hello there\""
+                        - generic [ref=e1990]:
+                          - img [ref=e1991]
+                          - text: 397d ago
+                      - generic [ref=e1994]: Action Required
+                - generic [ref=e1996]:
+                  - generic [ref=e1997]:
+                    - heading "Social Intelligence" [level=3] [ref=e1998]:
+                      - img [ref=e1999]
+                      - text: Social Intelligence
+                    - generic [ref=e2001]:
+                      - button "Refresh" [ref=e2002] [cursor=pointer]:
+                        - img [ref=e2003]
+                        - text: Refresh
+                      - button "Open Command" [ref=e2008] [cursor=pointer]:
+                        - img [ref=e2009]
+                        - text: Open Command
+                  - generic [ref=e2011]:
+                    - generic [ref=e2012]:
+                      - generic [ref=e2013]:
+                        - img [ref=e2014]
+                        - text: Posts
+                      - generic [ref=e2016]: "16"
+                    - generic [ref=e2017]:
+                      - generic [ref=e2018]:
+                        - img [ref=e2019]
+                        - text: Active Posters
+                      - generic [ref=e2024]: "2"
+                    - generic [ref=e2025]:
+                      - generic [ref=e2026]:
+                        - img [ref=e2027]
+                        - text: Engagement
+                      - generic [ref=e2029]: "14"
+                    - generic [ref=e2030]:
+                      - generic [ref=e2031]:
+                        - img [ref=e2032]
+                        - text: Needs Review
+                      - generic [ref=e2034]: "0"
+                  - generic [ref=e2035]:
+                    - generic [ref=e2036]:
+                      - generic [ref=e2037]:
+                        - generic [ref=e2038]: Sean Swan
+                        - generic [ref=e2039]: approved
+                      - generic [ref=e2040]:
+                        - generic [ref=e2041]: 7d ago
+                        - generic [ref=e2042]: 0 likes
+                        - generic [ref=e2043]: 0 comments
+                      - paragraph [ref=e2044]: Also, gotta give a shout out to my wifey Jasmine her birthday just passed. I want to give an another happy birthday love to her. She is the backbone of my family and we support each other so well IAlso, gotta give a shout out to my wifey Jasmine her birthday just passed. I want to give a another happy birthday love to her. She is the backbone of my family and we support each other so well I’m excited for what the future holds for us even when times may be dark there will be light at the end of the tunnel.
+                    - generic [ref=e2045]:
+                      - generic [ref=e2046]:
+                        - generic [ref=e2047]: Sean Swan
+                        - generic [ref=e2048]: approved
+                      - generic [ref=e2049]:
+                        - generic [ref=e2050]: 7d ago
+                        - generic [ref=e2051]: 0 likes
+                        - generic [ref=e2052]: 0 comments
+                      - paragraph [ref=e2053]: Woooo it’s Saturday ip early training a boot Camp class at Move Fitness is my daughter‘s 21st birthday. I’m so excited for her. She’s grown up to be a wonderful young woman headstrong. God-fearing got my cute little daughters, Saniyah and Jade as well as the new little sister Kaliyah who just hit one week ago this week and polishing up SwanStudios site every single day spending those late hours every night six hours every night after work polishing it all up. It’s definitely time for me to start my own recreation of myself which I’m looking forward to and most likely gonna go ahead and start this Monday so get ready to see this transformation and I’m gonna share all the stats and all the data so if you wanna hop in and do it too go ahead and join the fun
+                    - generic [ref=e2054]:
+                      - generic [ref=e2055]:
+                        - generic [ref=e2056]: Sean Swan
+                        - generic [ref=e2057]: approved
+                      - generic [ref=e2058]:
+                        - generic [ref=e2059]: 22d ago
+                        - generic [ref=e2060]: 0 likes
+                        - generic [ref=e2061]: 0 comments
+                      - paragraph [ref=e2062]: Shared media
+                    - generic [ref=e2063]:
+                      - generic [ref=e2064]:
+                        - generic [ref=e2065]: Sean Swan
+                        - generic [ref=e2066]: approved
+                      - generic [ref=e2067]:
+                        - generic [ref=e2068]: 22d ago
+                        - generic [ref=e2069]: 0 likes
+                        - generic [ref=e2070]: 0 comments
+                      - paragraph [ref=e2071]: I Created this With Midjourney I thought it was cool.
+                    - generic [ref=e2072]:
+                      - generic [ref=e2073]:
+                        - generic [ref=e2074]: Sean Swan
+                        - generic [ref=e2075]: approved
+                      - generic [ref=e2076]:
+                        - generic [ref=e2077]: 27d ago
+                        - generic [ref=e2078]: 0 likes
+                        - generic [ref=e2079]: 0 comments
+                      - paragraph [ref=e2080]: I am going to be working on more videos soon! Make sure to hit me up and be healthy! THANK YOU for the ones that are using my app I appreciate it!
+                  - generic [ref=e2082]: "Last 24h posts: 0"
+                - generic [ref=e2084]:
+                  - generic [ref=e2085]:
+                    - generic [ref=e2086]:
+                      - img [ref=e2087]
+                      - heading "Content Moderation" [level=3] [ref=e2089]
+                    - button "View all moderation items" [ref=e2090] [cursor=pointer]:
+                      - text: View All
+                      - img [ref=e2091]
+                  - generic [ref=e2095]:
+                    - generic [ref=e2096]:
+                      - img [ref=e2098]
+                      - text: 0 Pending
+                    - generic [ref=e2100]:
+                      - img [ref=e2102]
+                      - text: 0 Approved
+                    - generic [ref=e2105]:
+                      - img [ref=e2107]
+                      - text: 0 Flagged
+                  - generic [ref=e2111]: No content pending review
+                - generic [ref=e2113]:
+                  - generic [ref=e2114]:
+                    - generic [ref=e2115]:
+                      - img [ref=e2116]
+                      - heading "Post Reports" [level=3] [ref=e2118]
+                    - button "View All" [ref=e2119] [cursor=pointer]:
+                      - text: View All
+                      - img [ref=e2120]
+                  - generic [ref=e2122]:
+                    - img [ref=e2123]
+                    - generic [ref=e2125]: No pending reports
+                - combobox "Select time range" [ref=e2129] [cursor=pointer]:
+                  - option "Last 24 hours" [selected]
+                  - option "Last 7 days"
+                  - option "Last 30 days"
+                  - option "Last 90 days"
+                - generic [ref=e2131]:
+                  - generic [ref=e2133]:
+                    - generic [ref=e2134]:
+                      - generic [ref=e2135]:
+                        - generic [ref=e2136]: Total Revenue
+                        - generic [ref=e2137]: $0
+                        - generic [ref=e2138]:
+                          - img [ref=e2139]
+                          - generic [ref=e2141]: 0%
+                      - generic [ref=e2142]:
+                        - img [ref=e2144]
+                        - text: "0"
+                    - generic [ref=e2147]: Monthly recurring revenue
+                    - text: "0"
+                    - generic [ref=e2148]: Trend data available
+                  - generic [ref=e2150]:
+                    - generic [ref=e2151]:
+                      - generic [ref=e2152]:
+                        - generic [ref=e2153]: Active Users
+                        - generic [ref=e2154]: "6"
+                        - generic [ref=e2155]:
+                          - img [ref=e2156]
+                          - generic [ref=e2159]: +200%
+                      - generic [ref=e2160]:
+                        - img [ref=e2162]
+                        - generic [ref=e2167]: "Target: 7"
+                    - generic [ref=e2169]: Daily active users
+                    - generic [ref=e2171]:
+                      - generic [ref=e2172]: Progress to Target
+                      - generic [ref=e2173]: 85.7%
+                    - generic [ref=e2176]: Trend data available
+                  - generic [ref=e2178]:
+                    - generic [ref=e2179]:
+                      - generic [ref=e2180]:
+                        - generic [ref=e2181]: Workout Completion
+                        - generic [ref=e2182]: 100.0%
+                        - generic [ref=e2183]:
+                          - img [ref=e2184]
+                          - generic [ref=e2187]: +200%
+                      - generic [ref=e2188]:
+                        - img [ref=e2190]
+                        - generic [ref=e2198]: "Target: 90%"
+                    - generic [ref=e2200]: Average workout completion rate
+                    - generic [ref=e2202]:
+                      - generic [ref=e2203]: Progress to Target
+                      - generic [ref=e2204]: 111.1%
+                    - generic [ref=e2207]: Trend data available
+                  - generic [ref=e2209]:
+                    - generic [ref=e2210]:
+                      - generic [ref=e2211]:
+                        - generic [ref=e2212]: System Health
+                        - generic [ref=e2213]: 99.94%
+                        - generic [ref=e2214]:
+                          - img [ref=e2215]
+                          - generic [ref=e2217]: 0%
+                      - generic [ref=e2218]:
+                        - img [ref=e2220]
+                        - generic [ref=e2222]: "Target: 99.9%"
+                    - generic [ref=e2224]: Overall system uptime
+                    - generic [ref=e2226]:
+                      - generic [ref=e2227]: Progress to Target
+                      - generic [ref=e2228]: 100.0%
+                    - generic [ref=e2231]: Trend data available
+                - generic [ref=e2233]:
+                  - generic [ref=e2234]:
+                    - generic [ref=e2235]:
+                      - img [ref=e2236]
+                      - heading "Business Intelligence" [level=3] [ref=e2239]
+                    - generic [ref=e2240]:
+                      - button "30 Days" [ref=e2241] [cursor=pointer]
+                      - button "90 Days" [ref=e2242] [cursor=pointer]
+                      - button "12 Months" [ref=e2243] [cursor=pointer]
+                  - generic [ref=e2244]:
+                    - generic [ref=e2245]:
+                      - img [ref=e2247]
+                      - generic [ref=e2249]:
+                        - generic [ref=e2250]: Monthly Revenue
+                        - generic [ref=e2251]: $0
+                        - generic [ref=e2252]:
+                          - img [ref=e2253]
+                          - text: 71.4%
+                      - img [ref=e2257]
+                    - generic [ref=e2258]:
+                      - img [ref=e2260]
+                      - generic [ref=e2265]:
+                        - generic [ref=e2266]: Active Clients
+                        - generic [ref=e2267]: "7"
+                        - generic [ref=e2268]:
+                          - img [ref=e2269]
+                          - text: 5.0%
+                      - img [ref=e2273]
+                    - generic [ref=e2274]:
+                      - img [ref=e2276]
+                      - generic [ref=e2279]:
+                        - generic [ref=e2280]: New Clients
+                        - generic [ref=e2281]: "+5"
+                        - generic [ref=e2282]:
+                          - img [ref=e2283]
+                          - text: 5.0%
+                    - generic [ref=e2286]:
+                      - img [ref=e2288]
+                      - generic [ref=e2291]:
+                        - generic [ref=e2292]: Churn Rate
+                        - generic [ref=e2293]: 0.0%
+                        - generic [ref=e2294]:
+                          - img [ref=e2295]
+                          - text: 0.0%
+                    - generic [ref=e2296]:
+                      - img [ref=e2298]
+                      - generic [ref=e2300]:
+                        - generic [ref=e2301]: Session Utilization
+                        - generic [ref=e2302]: 78%
+                        - generic [ref=e2303]:
+                          - img [ref=e2304]
+                          - text: 3.0%
+                    - generic [ref=e2307]:
+                      - img [ref=e2309]
+                      - generic [ref=e2313]:
+                        - generic [ref=e2314]: Avg Client LTV
+                        - generic [ref=e2315]: $0
+                        - generic [ref=e2316]:
+                          - img [ref=e2317]
+                          - text: 0.0%
+                  - generic [ref=e2318]:
+                    - generic [ref=e2319]:
+                      - generic [ref=e2320]: Revenue / Client
+                      - generic [ref=e2321]: $0
+                    - generic [ref=e2322]:
+                      - generic [ref=e2323]: Sessions This Month
+                      - generic [ref=e2324]: "0"
+                    - generic [ref=e2325]:
+                      - generic [ref=e2326]: vs Last Month
+                      - generic [ref=e2327]: "+0"
+                    - generic [ref=e2328]:
+                      - generic [ref=e2329]: Total Revenue (30d)
+                      - generic [ref=e2330]: $0
+                - generic [ref=e2332]:
+                  - generic [ref=e2333]:
+                    - generic [ref=e2334]:
+                      - img [ref=e2335]
+                      - heading "Needs Attention" [level=3] [ref=e2337]
+                      - generic [ref=e2338]: 0 clients
+                    - button [ref=e2339] [cursor=pointer]:
+                      - img [ref=e2340]
+                  - generic [ref=e2345]:
+                    - button "All" [ref=e2346] [cursor=pointer]
+                    - button "Critical 0" [ref=e2347] [cursor=pointer]:
+                      - text: Critical
+                      - generic [ref=e2348]: "0"
+                    - button "Warning 0" [ref=e2349] [cursor=pointer]:
+                      - text: Warning
+                      - generic [ref=e2350]: "0"
+                    - button "Watch 0" [ref=e2351] [cursor=pointer]:
+                      - text: Watch
+                      - generic [ref=e2352]: "0"
+                  - generic [ref=e2353]:
+                    - generic [ref=e2354]:
+                      - generic [ref=e2355]: "0"
+                      - generic [ref=e2356]: Critical
+                    - generic [ref=e2357]:
+                      - generic [ref=e2358]: "0"
+                      - generic [ref=e2359]: Warning
+                    - generic [ref=e2360]:
+                      - generic [ref=e2361]: "0"
+                      - generic [ref=e2362]: Watch
+                    - generic [ref=e2363]:
+                      - generic [ref=e2364]: 0%
+                      - generic [ref=e2365]: Avg Compliance
+                  - generic [ref=e2367]:
+                    - img [ref=e2368]
+                    - generic [ref=e2371]: All clients are on track!
+                - generic [ref=e2373]:
+                  - generic [ref=e2375]:
+                    - img [ref=e2376]
+                    - heading "Automated Check-Ins & Habits" [level=3] [ref=e2379]
+                  - generic [ref=e2380]:
+                    - generic [ref=e2381]:
+                      - img [ref=e2383]
+                      - generic [ref=e2386]:
+                        - generic [ref=e2387]: "0"
+                        - generic [ref=e2388]: Upcoming
+                    - generic [ref=e2389]:
+                      - img [ref=e2391]
+                      - generic [ref=e2394]:
+                        - generic [ref=e2395]: "0"
+                        - generic [ref=e2396]: Overdue
+                    - generic [ref=e2397]:
+                      - img [ref=e2399]
+                      - generic [ref=e2404]:
+                        - generic [ref=e2405]: "0"
+                        - generic [ref=e2406]: Active Triggers
+                    - generic [ref=e2407]:
+                      - img [ref=e2409]
+                      - generic [ref=e2412]:
+                        - generic [ref=e2413]: "0"
+                        - generic [ref=e2414]: Tracked Habits
+                  - generic [ref=e2415]:
+                    - button "Check-Ins" [ref=e2416] [cursor=pointer]:
+                      - img [ref=e2417]
+                      - text: Check-Ins
+                    - button "Habits" [ref=e2419] [cursor=pointer]:
+                      - img [ref=e2420]
+                      - text: Habits
+                    - button "Triggers" [ref=e2423] [cursor=pointer]:
+                      - img [ref=e2424]
+                      - text: Triggers
+                  - generic [ref=e2428]: No check-ins scheduled. Set up recurring check-ins for your clients.
+                - generic [ref=e2430]:
+                  - heading "Upcoming Check-ins" [level=3] [ref=e2431]:
+                    - img [ref=e2432]
+                    - text: Upcoming Check-ins
+                  - list [ref=e2438]:
+                    - listitem [ref=e2439]:
+                      - generic [ref=e2441]:
+                        - generic [ref=e2442]: QABot Tester
+                        - generic [ref=e2443]:
+                          - img [ref=e2444]
+                          - text: Full Measurement
+                      - generic [ref=e2450]: 0d overdue
+                    - listitem [ref=e2451]:
+                      - generic [ref=e2453]:
+                        - generic [ref=e2454]: QABot Tester
+                        - generic [ref=e2455]:
+                          - img [ref=e2456]
+                          - text: Weigh-In
+                      - generic [ref=e2460]: 0d overdue
+                    - listitem [ref=e2461]:
+                      - generic [ref=e2463]:
+                        - generic [ref=e2464]: Vickie Valdez
+                        - generic [ref=e2465]:
+                          - img [ref=e2466]
+                          - text: Full Measurement
+                      - generic [ref=e2472]: 0d overdue
+                    - listitem [ref=e2473]:
+                      - generic [ref=e2475]:
+                        - generic [ref=e2476]: Vickie Valdez
+                        - generic [ref=e2477]:
+                          - img [ref=e2478]
+                          - text: Weigh-In
+                      - generic [ref=e2482]: 0d overdue
+                    - listitem [ref=e2483]:
+                      - generic [ref=e2485]:
+                        - generic [ref=e2486]: Jackie Client
+                        - generic [ref=e2487]:
+                          - img [ref=e2488]
+                          - text: Full Measurement
+                      - generic [ref=e2494]: 0d overdue
+                    - listitem [ref=e2495]:
+                      - generic [ref=e2497]:
+                        - generic [ref=e2498]: Jackie Client
+                        - generic [ref=e2499]:
+                          - img [ref=e2500]
+                          - text: Weigh-In
+                      - generic [ref=e2504]: 0d overdue
+                    - listitem [ref=e2505]:
+                      - generic [ref=e2507]:
+                        - generic [ref=e2508]: Anand MoveFit
+                        - generic [ref=e2509]:
+                          - img [ref=e2510]
+                          - text: Full Measurement
+                      - generic [ref=e2516]: 0d overdue
+                    - listitem [ref=e2517]:
+                      - generic [ref=e2519]:
+                        - generic [ref=e2520]: Anand MoveFit
+                        - generic [ref=e2521]:
+                          - img [ref=e2522]
+                          - text: Weigh-In
+                      - generic [ref=e2526]: 0d overdue
+                    - listitem [ref=e2527]:
+                      - generic [ref=e2529]:
+                        - generic [ref=e2530]: Ron W
+                        - generic [ref=e2531]:
+                          - img [ref=e2532]
+                          - text: Full Measurement
+                      - generic [ref=e2538]: 0d overdue
+                    - listitem [ref=e2539]:
+                      - generic [ref=e2541]:
+                        - generic [ref=e2542]: Ron W
+                        - generic [ref=e2543]:
+                          - img [ref=e2544]
+                          - text: Weigh-In
+                      - generic [ref=e2548]: 0d overdue
+                - generic [ref=e2550]:
+                  - generic [ref=e2551]:
+                    - heading "Cancelled Sessions" [level=3] [ref=e2552]:
+                      - img [ref=e2553]
+                      - text: Cancelled Sessions
+                    - generic [ref=e2556]:
+                      - generic [ref=e2557]:
+                        - button "All" [ref=e2558] [cursor=pointer]
+                        - button "Pending" [ref=e2559] [cursor=pointer]
+                        - button "Charged" [ref=e2560] [cursor=pointer]
+                        - button "Waived" [ref=e2561] [cursor=pointer]
+                      - button [ref=e2562] [cursor=pointer]:
+                        - img [ref=e2563]
+                  - generic [ref=e2568]: No cancelled sessions
+                - generic [ref=e2570]:
+                  - generic [ref=e2571]:
+                    - generic [ref=e2572]:
+                      - heading "System Health" [level=3] [ref=e2573]
+                      - paragraph [ref=e2574]: Live infrastructure status and response metrics
+                    - button "Refresh" [ref=e2575] [cursor=pointer]
+                  - generic [ref=e2577]:
+                    - generic [ref=e2578]:
+                      - generic [ref=e2581]: Database
+                      - generic [ref=e2582]: 99.94% uptime
+                    - generic [ref=e2583]: All endpoints responding normally
+                    - generic [ref=e2584]:
+                      - generic [ref=e2585]: "Resp: 91ms"
+                      - generic [ref=e2586]: "Err: 0%"
+                      - generic [ref=e2587]: "Thr: 0"
+                - generic [ref=e2589]:
+                  - heading "Quick Actions" [level=3] [ref=e2590]
+                  - generic [ref=e2591]:
+                    - generic [ref=e2592]:
+                      - img [ref=e2594]
+                      - heading "Revenue Analytics" [level=4] [ref=e2596]
+                      - paragraph [ref=e2597]: Detailed revenue analysis
+                    - generic [ref=e2598]:
+                      - img [ref=e2600]
+                      - heading "User Management" [level=4] [ref=e2605]
+                      - paragraph [ref=e2606]: Manage platform users
+                    - generic [ref=e2607]:
+                      - img [ref=e2609]
+                      - heading "Security Dashboard" [level=4] [ref=e2612]
+                      - paragraph [ref=e2613]: Security monitoring
+                    - generic [ref=e2614]:
+                      - img [ref=e2616]
+                      - heading "System Health" [level=4] [ref=e2618]
+                      - paragraph [ref=e2619]: Infrastructure monitoring
+                - generic [ref=e2621]:
+                  - generic [ref=e2622]:
+                    - heading "Swan Oracle" [level=3] [ref=e2623]
+                    - generic [ref=e2624]:
+                      - button "Fitness News" [ref=e2625] [cursor=pointer]:
+                        - img [ref=e2626]
+                      - button "Exercise Science" [ref=e2629] [cursor=pointer]:
+                        - img [ref=e2630]
+                      - button "Training Videos" [ref=e2633] [cursor=pointer]:
+                        - img [ref=e2634]
+                      - button "Refresh" [ref=e2636] [cursor=pointer]:
+                        - img [ref=e2637]
+                  - generic [ref=e2642]:
+                    - 'link "Saudi Arabia Fitness Industry Trends: Boutique Gyms, Digital Fitness & Competitive Landscape vocal.media · 03/23/2026, 02:05 AM, +0000 UTC" [ref=e2643] [cursor=pointer]':
+                      - /url: https://vocal.media/futurism/saudi-arabia-fitness-industry-trends-boutique-gyms-digital-fitness-and-competitive-landscape
+                      - generic [ref=e2644]:
+                        - generic [ref=e2645]: "Saudi Arabia Fitness Industry Trends: Boutique Gyms, Digital Fitness & Competitive Landscape"
+                        - generic [ref=e2646]: vocal.media · 03/23/2026, 02:05 AM, +0000 UTC
+                      - img [ref=e2647]
+                    - link "Personal Fitness Trainer Market Size & Trends 2026-2036 Future Market Insights · 02/23/2026, 08:00 AM, +0000 UTC" [ref=e2651] [cursor=pointer]:
+                      - /url: https://www.futuremarketinsights.com/reports/personal-fitness-trainer-market
+                      - generic [ref=e2652]:
+                        - generic [ref=e2653]: Personal Fitness Trainer Market Size & Trends 2026-2036
+                        - generic [ref=e2654]: Future Market Insights · 02/23/2026, 08:00 AM, +0000 UTC
+                      - img [ref=e2655]
+                    - link "Walking Workouts Could Explode in Popularity in 2026, Google Data Suggests Athletech News · 01/16/2026, 08:00 AM, +0000 UTC" [ref=e2659] [cursor=pointer]:
+                      - /url: https://athletechnews.com/fitness-trends-2026-walking-workouts-google-data/
+                      - generic [ref=e2660]:
+                        - generic [ref=e2661]: Walking Workouts Could Explode in Popularity in 2026, Google Data Suggests
+                        - generic [ref=e2662]: Athletech News · 01/16/2026, 08:00 AM, +0000 UTC
+                      - img [ref=e2663]
+                    - link "9 Top Fitness Industry Trends (2024 & 2025) Exploding Topics · 11/20/2025, 08:00 AM, +0000 UTC" [ref=e2667] [cursor=pointer]:
+                      - /url: https://explodingtopics.com/blog/fitness-industry-trends
+                      - generic [ref=e2668]:
+                        - generic [ref=e2669]: 9 Top Fitness Industry Trends (2024 & 2025)
+                        - generic [ref=e2670]: Exploding Topics · 11/20/2025, 08:00 AM, +0000 UTC
+                      - img [ref=e2671]
+                    - 'link "Personal Trainer Trends Dominating 2026: What’s Actually Working WorldHealth.net · 01/05/2026, 08:00 AM, +0000 UTC" [ref=e2675] [cursor=pointer]':
+                      - /url: https://worldhealth.net/news/personal-trainer-trends-dominating-2026/
+                      - generic [ref=e2676]:
+                        - generic [ref=e2677]: "Personal Trainer Trends Dominating 2026: What’s Actually Working"
+                        - generic [ref=e2678]: WorldHealth.net · 01/05/2026, 08:00 AM, +0000 UTC
+                      - img [ref=e2679]
+                    - 'link "AI Personal Trainer Market - Global Forecast to 2030: GlobeNewswire · 06/20/2025, 07:00 AM, +0000 UTC" [ref=e2683] [cursor=pointer]':
+                      - /url: https://www.globenewswire.com/news-release/2025/06/20/3102560/28124/en/AI-Personal-Trainer-Market-Global-Forecast-to-2030-Explosive-Growth-in-AI-Fitness-Industry-Market-Set-for-15-99-CAGR-Through-2030.html
+                      - generic [ref=e2684]:
+                        - generic [ref=e2685]: "AI Personal Trainer Market - Global Forecast to 2030:"
+                        - generic [ref=e2686]: GlobeNewswire · 06/20/2025, 07:00 AM, +0000 UTC
+                      - img [ref=e2687]
+        - dialog "SwanStudios AI Assistant" [ref=e853]:
+          - generic [ref=e854]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e855]
+            - generic [ref=e856]:
+              - button "Minimize" [ref=e857] [cursor=pointer]:
+                - img [ref=e858]
+              - button "Close assistant" [ref=e859] [cursor=pointer]:
+                - img [ref=e860]
+        - button "Open SwanStudios Assistant" [ref=e864] [cursor=pointer]:
+          - img [ref=e865]
+          - text: AI
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "NP Norma Patton":
+        - generic: NP
+        - text: Norma Patton
+      - option "RW Ron W":
+        - generic: RW
+        - text: Ron W
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

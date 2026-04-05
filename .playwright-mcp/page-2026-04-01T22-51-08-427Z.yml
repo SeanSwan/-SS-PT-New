@@ -1,0 +1,431 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Admin Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Admin navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Admin
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - button "Select Client..." [ref=e110] [cursor=pointer]:
+              - img [ref=e111]
+              - generic [ref=e116]: Select Client...
+              - img [ref=e117]
+            - navigation [ref=e119]:
+              - menuitem "Coach Assistant" [ref=e120] [cursor=pointer]:
+                - img [ref=e122]
+                - generic [ref=e124]: Coach Assistant
+              - menuitem "Dashboard" [ref=e125] [cursor=pointer]:
+                - img [ref=e127]
+                - generic [ref=e129]: Dashboard
+              - menuitem "Clients & Team" [ref=e130] [cursor=pointer]:
+                - img [ref=e132]
+                - generic [ref=e137]: Clients & Team
+              - menuitem "Workouts" [ref=e138] [cursor=pointer]:
+                - img [ref=e140]
+                - generic [ref=e148]: Workouts
+              - menuitem "Scheduling" [ref=e149] [cursor=pointer]:
+                - img [ref=e151]
+                - generic [ref=e153]: Scheduling
+              - menuitem "Gamification" [ref=e154] [cursor=pointer]:
+                - img [ref=e156]
+                - generic [ref=e158]: Gamification
+              - menuitem "Store & Revenue" [ref=e159] [cursor=pointer]:
+                - img [ref=e161]
+                - generic [ref=e163]: Store & Revenue
+              - menuitem "Content Studio" [ref=e164] [cursor=pointer]:
+                - img [ref=e166]
+                - generic [ref=e169]: Content Studio
+              - menuitem "Analytics" [ref=e170] [cursor=pointer]:
+                - img [ref=e172]
+                - generic [ref=e174]: Analytics
+              - menuitem "System" [ref=e175] [cursor=pointer]:
+                - img [ref=e177]
+                - generic [ref=e180]: System
+              - menuitem "Canada Immigration" [active] [ref=e181] [cursor=pointer]:
+                - img [ref=e183]
+                - generic [ref=e186]: Canada Immigration
+              - menuitem "My Clients" [ref=e188] [cursor=pointer]:
+                - img [ref=e190]
+                - generic [ref=e194]: My Clients
+              - menuitem "My Training" [ref=e195] [cursor=pointer]:
+                - img [ref=e197]
+                - generic [ref=e201]: My Training
+            - generic [ref=e203]: SwanStudios v2.1
+          - main [ref=e204]:
+            - generic [ref=e29450]:
+              - generic [ref=e29451]:
+                - heading "Canada Immigration Tracker" [level=1] [ref=e29452]
+                - paragraph [ref=e29453]: Express Entry pathway — complete planning & progress hub
+              - generic [ref=e29454]:
+                - button "📊 Overview" [ref=e29455] [cursor=pointer]:
+                  - generic [ref=e29456]: 📊
+                  - generic [ref=e29457]: Overview
+                - button "☑️ Checklist" [ref=e29458] [cursor=pointer]:
+                  - generic [ref=e29459]: ☑️
+                  - generic [ref=e29460]: Checklist
+                - button "📁 Documents" [ref=e29461] [cursor=pointer]:
+                  - generic [ref=e29462]: 📁
+                  - generic [ref=e29463]: Documents
+                - button "🖩 CRS Calculator" [ref=e29464] [cursor=pointer]:
+                  - generic [ref=e29465]: 🖩
+                  - generic [ref=e29466]: CRS Calculator
+                - button "📚 Study Hub" [ref=e29467] [cursor=pointer]:
+                  - generic [ref=e29468]: 📚
+                  - generic [ref=e29469]: Study Hub
+                - button "🔗 Resources" [ref=e29470] [cursor=pointer]:
+                  - generic [ref=e29471]: 🔗
+                  - generic [ref=e29472]: Resources
+                - button "📅 Timeline" [ref=e29473] [cursor=pointer]:
+                  - generic [ref=e29474]: 📅
+                  - generic [ref=e29475]: Timeline
+              - button "SwanStudios Research Assistant" [ref=e29477] [cursor=pointer]:
+                - generic [ref=e29478]:
+                  - img [ref=e29480]
+                  - generic [ref=e29482]: SwanStudios Research Assistant
+                - img [ref=e29484]
+              - generic [ref=e29486]: Failed to load study sessions
+              - generic [ref=e29488]:
+                - generic [ref=e29489]:
+                  - heading "Immigration Pathways 6 parallel strategies to maximize success" [level=2] [ref=e29490]:
+                    - img [ref=e29491]
+                    - text: Immigration Pathways
+                    - generic [ref=e29495]: 6 parallel strategies to maximize success
+                  - generic [ref=e29496]:
+                    - generic [ref=e29497]:
+                      - img [ref=e29499]
+                      - generic [ref=e29501]: Express Entry
+                      - generic [ref=e29502]: Wife as principal + French bonus
+                      - generic [ref=e29503]: Active — building CRS score
+                    - generic [ref=e29504]:
+                      - img [ref=e29506]
+                      - generic [ref=e29509]: Provincial Nominee (PNP)
+                      - generic [ref=e29510]: +600 points — guaranteed ITA
+                      - generic [ref=e29511]: Researching Ontario HCP + BC Tech
+                    - generic [ref=e29512]:
+                      - img [ref=e29514]
+                      - generic [ref=e29517]: Wife Studies in CanadaPrimary
+                      - generic [ref=e29518]: MEd → spousal OWP → whole family moves
+                      - generic [ref=e29519]: PRIMARY PATHWAY
+                    - generic [ref=e29520]:
+                      - img [ref=e29522]
+                      - generic [ref=e29526]: Francophone Mobility
+                      - generic [ref=e29527]: NCLC 5+ = work permit, NO LMIA
+                      - generic [ref=e29528]: French study in progress
+                    - generic [ref=e29529]:
+                      - img [ref=e29531]
+                      - generic [ref=e29534]: Self-Employed (2027)
+                      - generic [ref=e29535]: 26yr NASM experience, score 68-80/35
+                      - generic [ref=e29536]: Program paused — preparing docs
+                    - generic [ref=e29537]:
+                      - img [ref=e29539]
+                      - generic [ref=e29541]: Indigenous Mobility
+                      - generic [ref=e29542]: Chickasaw enrollment + APM SP52
+                      - generic [ref=e29543]: Dawes Roll research pending
+                - generic [ref=e29544]:
+                  - heading "Family Status Board" [level=2] [ref=e29545]:
+                    - img [ref=e29546]
+                    - text: Family Status Board
+                  - generic [ref=e29551]:
+                    - generic [ref=e29552]:
+                      - img [ref=e29554]
+                      - generic [ref=e29557]: Sean
+                      - generic [ref=e29558]: Personal Trainer / Developer
+                      - generic [ref=e29559]: Spousal OWP (pending wife MEd)
+                    - generic [ref=e29560]:
+                      - img [ref=e29562]
+                      - generic [ref=e29564]: Wife
+                      - generic [ref=e29565]: Teacher / MEd Student
+                      - generic [ref=e29566]: Principal applicant — Express Entry
+                    - generic [ref=e29567]:
+                      - img [ref=e29569]
+                      - generic [ref=e29572]: 4 Kids
+                      - generic [ref=e29573]: Students
+                      - generic [ref=e29574]: Free Canadian public school (K-12)
+                    - generic [ref=e29575]:
+                      - img [ref=e29577]
+                      - generic [ref=e29582]: Grandma
+                      - generic [ref=e29583]: Family Elder
+                      - generic [ref=e29584]: Super Visa (5yr stays, 10yr validity)
+                - generic [ref=e29585]:
+                  - generic [ref=e29586]:
+                    - heading "Overall Progress" [level=3] [ref=e29587]
+                    - generic [ref=e29588]:
+                      - img [ref=e29589]:
+                        - generic [ref=e29592]: 0%
+                      - generic [ref=e29593]:
+                        - generic [ref=e29594]:
+                          - generic [ref=e29595]: "0"
+                          - generic [ref=e29596]: Tasks completed
+                        - generic [ref=e29597]:
+                          - generic [ref=e29598]: "0"
+                          - generic [ref=e29599]: Docs gathered
+                        - generic [ref=e29600]:
+                          - generic [ref=e29601]: "0"
+                          - generic [ref=e29602]: Study sessions
+                  - generic [ref=e29603]:
+                    - heading "Immigration Phases" [level=3] [ref=e29604]
+                    - generic [ref=e29605]:
+                      - generic [ref=e29606]:
+                        - generic [ref=e29607]: Phase 0
+                        - generic [ref=e29608]: Pre-Departure
+                        - generic [ref=e29609]: Marriage, tribal, legal docs
+                        - generic [ref=e29610]: 0%
+                      - generic [ref=e29611]:
+                        - generic [ref=e29612]: Phase 1
+                        - generic [ref=e29613]: Language & Certs
+                        - generic [ref=e29614]: IELTS, TEF, AI certifications
+                        - generic [ref=e29615]: 0%
+                      - generic [ref=e29616]:
+                        - generic [ref=e29617]: Phase 2
+                        - generic [ref=e29618]: Express Entry
+                        - generic [ref=e29619]: Profile, PNP, applications
+                        - generic [ref=e29620]: 0%
+                      - generic [ref=e29621]:
+                        - generic [ref=e29622]: Phase 3
+                        - generic [ref=e29623]: Landing & Setup
+                        - generic [ref=e29624]: Move, settle, start career
+                        - generic [ref=e29625]: 0%
+                - generic [ref=e29626]:
+                  - heading "12-Month Scorecard Key milestone per month" [level=2] [ref=e29627]:
+                    - img [ref=e29628]
+                    - text: 12-Month Scorecard
+                    - generic [ref=e29631]: Key milestone per month
+                  - generic [ref=e29632]:
+                    - generic [ref=e29633]:
+                      - generic [ref=e29634]:
+                        - img [ref=e29635]
+                        - text: Month 1
+                      - generic [ref=e29637]: Get married, CDIB app, book IELTS
+                    - generic [ref=e29638]:
+                      - generic [ref=e29639]: Month 2
+                      - generic [ref=e29640]: Take IELTS, submit ECA
+                    - generic [ref=e29641]:
+                      - generic [ref=e29642]: Month 3
+                      - generic [ref=e29643]: Express Entry profile, research MEd
+                    - generic [ref=e29644]:
+                      - generic [ref=e29645]: Month 4
+                      - generic [ref=e29646]: Wife applies MEd, Ontario HCP
+                    - generic [ref=e29647]:
+                      - generic [ref=e29648]: Month 5
+                      - generic [ref=e29649]: iTalki French, Chickasaw citizenship
+                    - generic [ref=e29650]:
+                      - generic [ref=e29651]: Month 6
+                      - generic [ref=e29652]: Azure AI-102, document PT business
+                    - generic [ref=e29653]:
+                      - generic [ref=e29654]: Month 7
+                      - generic [ref=e29655]: Wife accepted — apply permits
+                    - generic [ref=e29656]:
+                      - generic [ref=e29657]: Month 8
+                      - generic [ref=e29658]: Family applications submitted
+                    - generic [ref=e29659]:
+                      - generic [ref=e29660]: Month 9
+                      - generic [ref=e29661]: MOVE TO CANADA
+                    - generic [ref=e29662]:
+                      - generic [ref=e29663]: Month 10
+                      - generic [ref=e29664]: Start training clients, kids in school
+                    - generic [ref=e29665]:
+                      - generic [ref=e29666]: Month 11
+                      - generic [ref=e29667]: Book TEF exam, intensive French
+                    - generic [ref=e29668]:
+                      - generic [ref=e29669]: Month 12
+                      - generic [ref=e29670]: Take TEF, update Express Entry (+50 CRS)
+                - generic [ref=e29671]:
+                  - heading "Cost Dashboard" [level=2] [ref=e29672]:
+                    - img [ref=e29673]
+                    - text: Cost Dashboard
+                  - generic [ref=e29675]:
+                    - generic [ref=e29676]:
+                      - generic [ref=e29677]: $2-3K
+                      - generic [ref=e29678]: Total Budget
+                    - generic [ref=e29679]:
+                      - generic [ref=e29680]: $0
+                      - generic [ref=e29681]: Spent (completed tasks)
+                    - generic [ref=e29682]:
+                      - generic [ref=e29683]: $2,500
+                      - generic [ref=e29684]: Remaining
+                  - generic [ref=e29685]:
+                    - text: Less than
+                    - strong [ref=e29686]: 17 PT sessions
+                    - text: at $175/hr to move the entire family to Canada
+                - generic [ref=e29692]:
+                  - heading "CRS Quick View" [level=3] [ref=e29693]:
+                    - img [ref=e29694]
+                    - text: CRS Quick View
+                  - generic [ref=e29697]:
+                    - generic [ref=e29698]:
+                      - generic [ref=e29699]: "340"
+                      - generic [ref=e29700]: Est. CRS Score
+                    - generic [ref=e29701]:
+                      - generic [ref=e29702]:
+                        - img [ref=e29703]
+                        - generic [ref=e29705]:
+                          - text: "IELTS CLB 9+ across all bands:"
+                          - strong [ref=e29706]: +30-50 pts
+                      - generic [ref=e29707]:
+                        - img [ref=e29708]
+                        - generic [ref=e29712]:
+                          - text: "TEF French NCLC 7+:"
+                          - strong [ref=e29713]: +50 pts
+                          - text: (bilingual bonus)
+                      - generic [ref=e29714]:
+                        - img [ref=e29715]
+                        - generic [ref=e29718]:
+                          - text: "PNP nomination:"
+                          - strong [ref=e29719]: +600 pts
+                          - text: (guaranteed ITA)
+                  - generic [ref=e29720]:
+                    - generic [ref=e29721]:
+                      - generic [ref=e29722]: French Stream Cutoff
+                      - generic [ref=e29723]: "379"
+                    - generic [ref=e29724]:
+                      - generic [ref=e29725]: General Draw Cutoff
+                      - generic [ref=e29726]: ~520
+                    - generic [ref=e29727]:
+                      - generic [ref=e29728]: With PNP (+600)
+                      - generic [ref=e29729]: "940"
+                - generic [ref=e29730]:
+                  - generic [ref=e29731]:
+                    - heading "Next Priority Actions" [level=3] [ref=e29732]
+                    - generic [ref=e29734]: All tasks completed!
+                  - generic [ref=e29735]:
+                    - heading "Days Until Milestones" [level=3] [ref=e29736]
+                    - generic [ref=e29737]:
+                      - generic [ref=e29738]:
+                        - generic [ref=e29739]: "44"
+                        - generic [ref=e29740]: Marriage License
+                      - generic [ref=e29741]:
+                        - generic [ref=e29742]: "122"
+                        - generic [ref=e29743]: IELTS Test Date
+                      - generic [ref=e29744]:
+                        - generic [ref=e29745]: "183"
+                        - generic [ref=e29746]: TEF Test Date
+                      - generic [ref=e29747]:
+                        - generic [ref=e29748]: "275"
+                        - generic [ref=e29749]: Express Entry Profile
+                      - generic [ref=e29750]:
+                        - generic [ref=e29751]: "548"
+                        - generic [ref=e29752]: Target Landing
+                - generic [ref=e29753]:
+                  - heading "Category Breakdown" [level=3] [ref=e29754]
+                  - generic [ref=e29755]:
+                    - generic [ref=e29756]:
+                      - generic [ref=e29757]: Marriage & Legal
+                      - generic [ref=e29759]: 0/0
+                    - generic [ref=e29760]:
+                      - generic [ref=e29761]: Tribal/Indigenous
+                      - generic [ref=e29763]: 0/0
+                    - generic [ref=e29764]:
+                      - generic [ref=e29765]: Language
+                      - generic [ref=e29767]: 0/0
+                    - generic [ref=e29768]:
+                      - generic [ref=e29769]: Certifications
+                      - generic [ref=e29771]: 0/0
+                    - generic [ref=e29772]:
+                      - generic [ref=e29773]: Immigration
+                      - generic [ref=e29775]: 0/0
+                    - generic [ref=e29776]:
+                      - generic [ref=e29777]: PT Market Prep
+                      - generic [ref=e29779]: 0/0
+        - dialog "SwanStudios AI Assistant" [ref=e311]:
+          - generic [ref=e312]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e313]
+            - generic [ref=e314]:
+              - button "Minimize" [ref=e315] [cursor=pointer]:
+                - img [ref=e316]
+              - button "Close assistant" [ref=e317] [cursor=pointer]:
+                - img [ref=e318]
+        - button "Open SwanStudios Assistant" [ref=e322] [cursor=pointer]:
+          - img [ref=e323]
+          - text: AI
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez
+  - img [ref=e29156]

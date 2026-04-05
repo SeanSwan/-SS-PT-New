@@ -1,0 +1,396 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Trainer Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Trainer Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Trainer navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Trainer
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - button "Select Client..." [ref=e110] [cursor=pointer]:
+              - img [ref=e111]
+              - generic [ref=e116]: Select Client...
+              - img [ref=e117]
+            - navigation [ref=e119]:
+              - generic [ref=e120]: TRAINING HUB
+              - menuitem "Training Overview" [ref=e121] [cursor=pointer]:
+                - img [ref=e123]
+                - generic [ref=e125]: Training Overview
+              - generic [ref=e126]: CLIENT MANAGEMENT
+              - menuitem "My Clients" [ref=e127] [cursor=pointer]:
+                - img [ref=e129]
+                - generic [ref=e134]: My Clients
+              - menuitem "Log Client Workout" [ref=e135] [cursor=pointer]:
+                - img [ref=e137]
+                - generic [ref=e141]: Log Client Workout
+              - menuitem "Client Progress" [ref=e142] [cursor=pointer]:
+                - img [ref=e144]
+                - generic [ref=e146]: Client Progress
+              - menuitem "Form Assessments" [ref=e147] [cursor=pointer]:
+                - img [ref=e149]
+                - generic [ref=e153]: Form Assessments
+              - generic [ref=e154]: CONTENT STUDIO
+              - menuitem "Training Videos" [ref=e155] [cursor=pointer]:
+                - img [ref=e157]
+                - generic [ref=e160]: Training Videos
+              - menuitem "Workout Intelligence" [ref=e161] [cursor=pointer]:
+                - img [ref=e163]
+                - generic [ref=e166]: Workout Intelligence
+              - menuitem "Nutrition Intelligence" [ref=e167] [cursor=pointer]:
+                - img [ref=e169]
+                - generic [ref=e172]: Nutrition Intelligence
+              - generic [ref=e173]: UNIVERSAL TOOLS
+              - menuitem "My Schedule" [active] [ref=e174] [cursor=pointer]:
+                - img [ref=e176]
+                - generic [ref=e178]: My Schedule
+              - menuitem "Client Messages" [ref=e179] [cursor=pointer]:
+                - img [ref=e181]
+                - generic [ref=e183]: Client Messages
+            - generic [ref=e185]: SwanStudios v2.1
+          - main [ref=e186]:
+            - application "Universal Master Schedule" [ref=e705]:
+              - generic [ref=e706]:
+                - generic [ref=e707]:
+                  - generic [ref=e708]:
+                    - img [ref=e709]
+                    - generic [ref=e711]:
+                      - heading "Universal Master Schedule" [level=1] [ref=e712]
+                      - paragraph [ref=e713]: Professional session management system
+                  - generic [ref=e714]:
+                    - generic [ref=e715]:
+                      - button "My Schedule" [ref=e716] [cursor=pointer]:
+                        - img [ref=e717]
+                        - text: My Schedule
+                      - button "All Trainers" [ref=e720] [cursor=pointer]:
+                        - img [ref=e721]
+                        - text: All Trainers
+                    - button "Refresh sessions" [ref=e726] [cursor=pointer]:
+                      - img [ref=e727]
+                    - generic "Create schedule actions" [ref=e733]:
+                      - button "Create" [ref=e736] [cursor=pointer]:
+                        - generic [ref=e738]:
+                          - text: Create
+                          - img [ref=e740]
+                    - generic "Manage schedule actions" [ref=e743]:
+                      - button "Manage" [ref=e744] [cursor=pointer]:
+                        - text: Manage
+                        - img [ref=e745]
+                - generic [ref=e747]:
+                  - tablist "Schedule views" [ref=e748]:
+                    - tab "Month" [ref=e749] [cursor=pointer]
+                    - tab "Week" [selected] [ref=e750] [cursor=pointer]
+                    - tab "Day" [ref=e751] [cursor=pointer]
+                    - tab "Agenda" [ref=e752] [cursor=pointer]
+                  - generic [ref=e753]:
+                    - button "Previous" [ref=e754] [cursor=pointer]: ‹
+                    - generic [ref=e755]: April 2026
+                    - button "Next" [ref=e756] [cursor=pointer]: ›
+                    - button "Today" [ref=e757] [cursor=pointer]
+                - generic [ref=e758]:
+                  - generic [ref=e759]:
+                    - heading "Schedule Overview" [level=2] [ref=e760]
+                    - generic [ref=e761]: Today onward
+                  - generic [ref=e762]:
+                    - 'button "Total Sessions: 0. All sessions in current scope and date range" [ref=e763] [cursor=pointer]':
+                      - generic [ref=e764]: "0"
+                      - generic [ref=e765]: Total Sessions
+                      - generic [ref=e766]: All in scope
+                      - generic: All sessions in current scope and date range
+                    - 'button "Available: 0. Open slots today or later, not yet booked by a client" [ref=e767] [cursor=pointer]':
+                      - generic [ref=e768]: "0"
+                      - generic [ref=e769]: Available
+                      - generic [ref=e770]: Upcoming open slots
+                      - generic: Open slots today or later, not yet booked by a client
+                    - 'button "Scheduled: 0. Booked or confirmed sessions today or later" [ref=e771] [cursor=pointer]':
+                      - generic [ref=e772]: "0"
+                      - generic [ref=e773]: Scheduled
+                      - generic [ref=e774]: Upcoming booked
+                      - generic: Booked or confirmed sessions today or later
+                    - 'button "Completed: 0. Sessions that have been finished" [ref=e775] [cursor=pointer]':
+                      - generic [ref=e776]: "0"
+                      - generic [ref=e777]: Completed
+                      - generic [ref=e778]: Finished sessions
+                      - generic: Sessions that have been finished
+                    - 'button "Cancelled: 0. Sessions that were cancelled" [ref=e779] [cursor=pointer]':
+                      - generic [ref=e780]: "0"
+                      - generic [ref=e781]: Cancelled
+                      - generic [ref=e782]: Cancelled sessions
+                      - generic: Sessions that were cancelled
+                - generic [ref=e785]:
+                  - generic [ref=e786]:
+                    - button "View Sun Mar 29 2026" [ref=e788] [cursor=pointer]:
+                      - generic [ref=e789]: Sun
+                      - generic [ref=e790]: 3/29
+                    - button "View Mon Mar 30 2026" [ref=e791] [cursor=pointer]:
+                      - generic [ref=e792]: Mon
+                      - generic [ref=e793]: 3/30
+                    - button "View Tue Mar 31 2026" [ref=e794] [cursor=pointer]:
+                      - generic [ref=e795]: Tue
+                      - generic [ref=e796]: 3/31
+                    - button "View Wed Apr 01 2026" [ref=e797] [cursor=pointer]:
+                      - generic [ref=e798]: Wed
+                      - generic [ref=e799]: 4/1
+                    - button "View Thu Apr 02 2026" [ref=e800] [cursor=pointer]:
+                      - generic [ref=e801]: Thu
+                      - generic [ref=e802]: 4/2
+                    - button "View Fri Apr 03 2026" [ref=e803] [cursor=pointer]:
+                      - generic [ref=e804]: Fri
+                      - generic [ref=e805]: 4/3
+                    - button "View Sat Apr 04 2026" [ref=e806] [cursor=pointer]:
+                      - generic [ref=e807]: Sat
+                      - generic [ref=e808]: 4/4
+                  - generic [ref=e809]:
+                    - generic [ref=e810]:
+                      - generic [ref=e811]: 5:00 AM
+                      - generic [ref=e812]: 6:00 AM
+                      - generic [ref=e813]: 7:00 AM
+                      - generic [ref=e814]: 8:00 AM
+                      - generic [ref=e815]: 9:00 AM
+                      - generic [ref=e816]: 10:00 AM
+                      - generic [ref=e817]: 11:00 AM
+                      - generic [ref=e818]: 12:00 PM
+                      - generic [ref=e819]: 1:00 PM
+                      - generic [ref=e820]: 2:00 PM
+                      - generic [ref=e821]: 3:00 PM
+                      - generic [ref=e822]: 4:00 PM
+                      - generic [ref=e823]: 5:00 PM
+                      - generic [ref=e824]: 6:00 PM
+                      - generic [ref=e825]: 7:00 PM
+                      - generic [ref=e826]: 8:00 PM
+                      - generic [ref=e827]: 9:00 PM
+                      - generic [ref=e828]: 10:00 PM
+                    - generic [ref=e829]:
+                      - generic [ref=e830]:
+                        - button "Sun 5:00 AM" [ref=e831] [cursor=pointer]
+                        - button "Sun 6:00 AM" [ref=e832] [cursor=pointer]
+                        - button "Sun 7:00 AM" [ref=e833] [cursor=pointer]
+                        - button "Sun 8:00 AM" [ref=e834] [cursor=pointer]
+                        - button "Sun 9:00 AM" [ref=e835] [cursor=pointer]
+                        - button "Sun 10:00 AM" [ref=e836] [cursor=pointer]
+                        - button "Sun 11:00 AM" [ref=e837] [cursor=pointer]
+                        - button "Sun 12:00 PM" [ref=e838] [cursor=pointer]
+                        - button "Sun 1:00 PM" [ref=e839] [cursor=pointer]
+                        - button "Sun 2:00 PM" [ref=e840] [cursor=pointer]
+                        - button "Sun 3:00 PM" [ref=e841] [cursor=pointer]
+                        - button "Sun 4:00 PM" [ref=e842] [cursor=pointer]
+                        - button "Sun 5:00 PM" [ref=e843] [cursor=pointer]
+                        - button "Sun 6:00 PM" [ref=e844] [cursor=pointer]
+                        - button "Sun 7:00 PM" [ref=e845] [cursor=pointer]
+                        - button "Sun 8:00 PM" [ref=e846] [cursor=pointer]
+                        - button "Sun 9:00 PM" [ref=e847] [cursor=pointer]
+                        - button "Sun 10:00 PM" [ref=e848] [cursor=pointer]
+                      - generic [ref=e849]:
+                        - button "Mon 5:00 AM" [ref=e850] [cursor=pointer]
+                        - button "Mon 6:00 AM" [ref=e851] [cursor=pointer]
+                        - button "Mon 7:00 AM" [ref=e852] [cursor=pointer]
+                        - button "Mon 8:00 AM" [ref=e853] [cursor=pointer]
+                        - button "Mon 9:00 AM" [ref=e854] [cursor=pointer]
+                        - button "Mon 10:00 AM" [ref=e855] [cursor=pointer]
+                        - button "Mon 11:00 AM" [ref=e856] [cursor=pointer]
+                        - button "Mon 12:00 PM" [ref=e857] [cursor=pointer]
+                        - button "Mon 1:00 PM" [ref=e858] [cursor=pointer]
+                        - button "Mon 2:00 PM" [ref=e859] [cursor=pointer]
+                        - button "Mon 3:00 PM" [ref=e860] [cursor=pointer]
+                        - button "Mon 4:00 PM" [ref=e861] [cursor=pointer]
+                        - button "Mon 5:00 PM" [ref=e862] [cursor=pointer]
+                        - button "Mon 6:00 PM" [ref=e863] [cursor=pointer]
+                        - button "Mon 7:00 PM" [ref=e864] [cursor=pointer]
+                        - button "Mon 8:00 PM" [ref=e865] [cursor=pointer]
+                        - button "Mon 9:00 PM" [ref=e866] [cursor=pointer]
+                        - button "Mon 10:00 PM" [ref=e867] [cursor=pointer]
+                      - generic [ref=e868]:
+                        - button "Tue 5:00 AM" [ref=e869] [cursor=pointer]
+                        - button "Tue 6:00 AM" [ref=e870] [cursor=pointer]
+                        - button "Tue 7:00 AM" [ref=e871] [cursor=pointer]
+                        - button "Tue 8:00 AM" [ref=e872] [cursor=pointer]
+                        - button "Tue 9:00 AM" [ref=e873] [cursor=pointer]
+                        - button "Tue 10:00 AM" [ref=e874] [cursor=pointer]
+                        - button "Tue 11:00 AM" [ref=e875] [cursor=pointer]
+                        - button "Tue 12:00 PM" [ref=e876] [cursor=pointer]
+                        - button "Tue 1:00 PM" [ref=e877] [cursor=pointer]
+                        - button "Tue 2:00 PM" [ref=e878] [cursor=pointer]
+                        - button "Tue 3:00 PM" [ref=e879] [cursor=pointer]
+                        - button "Tue 4:00 PM" [ref=e880] [cursor=pointer]
+                        - button "Tue 5:00 PM" [ref=e881] [cursor=pointer]
+                        - button "Tue 6:00 PM" [ref=e882] [cursor=pointer]
+                        - button "Tue 7:00 PM" [ref=e883] [cursor=pointer]
+                        - button "Tue 8:00 PM" [ref=e884] [cursor=pointer]
+                        - button "Tue 9:00 PM" [ref=e885] [cursor=pointer]
+                        - button "Tue 10:00 PM" [ref=e886] [cursor=pointer]
+                      - generic [ref=e887]:
+                        - button "Wed 5:00 AM" [ref=e888] [cursor=pointer]
+                        - button "Wed 6:00 AM" [ref=e889] [cursor=pointer]
+                        - button "Wed 7:00 AM" [ref=e890] [cursor=pointer]
+                        - button "Wed 8:00 AM" [ref=e891] [cursor=pointer]
+                        - button "Wed 9:00 AM" [ref=e892] [cursor=pointer]
+                        - button "Wed 10:00 AM" [ref=e893] [cursor=pointer]
+                        - button "Wed 11:00 AM" [ref=e894] [cursor=pointer]
+                        - button "Wed 12:00 PM" [ref=e895] [cursor=pointer]
+                        - button "Wed 1:00 PM" [ref=e896] [cursor=pointer]
+                        - button "Wed 2:00 PM" [ref=e897] [cursor=pointer]
+                        - button "Wed 3:00 PM" [ref=e898] [cursor=pointer]
+                        - button "Wed 4:00 PM" [ref=e899] [cursor=pointer]
+                        - button "Wed 5:00 PM" [ref=e900] [cursor=pointer]
+                        - button "Wed 6:00 PM" [ref=e901] [cursor=pointer]
+                        - button "Wed 7:00 PM" [ref=e902] [cursor=pointer]
+                        - button "Wed 8:00 PM" [ref=e903] [cursor=pointer]
+                        - button "Wed 9:00 PM" [ref=e904] [cursor=pointer]
+                        - button "Wed 10:00 PM" [ref=e905] [cursor=pointer]
+                      - generic [ref=e906]:
+                        - button "Thu 5:00 AM" [ref=e907] [cursor=pointer]
+                        - button "Thu 6:00 AM" [ref=e908] [cursor=pointer]
+                        - button "Thu 7:00 AM" [ref=e909] [cursor=pointer]
+                        - button "Thu 8:00 AM" [ref=e910] [cursor=pointer]
+                        - button "Thu 9:00 AM" [ref=e911] [cursor=pointer]
+                        - button "Thu 10:00 AM" [ref=e912] [cursor=pointer]
+                        - button "Thu 11:00 AM" [ref=e913] [cursor=pointer]
+                        - button "Thu 12:00 PM" [ref=e914] [cursor=pointer]
+                        - button "Thu 1:00 PM" [ref=e915] [cursor=pointer]
+                        - button "Thu 2:00 PM" [ref=e916] [cursor=pointer]
+                        - button "Thu 3:00 PM" [ref=e917] [cursor=pointer]
+                        - button "Thu 4:00 PM" [ref=e918] [cursor=pointer]
+                        - button "Thu 5:00 PM" [ref=e919] [cursor=pointer]
+                        - button "Thu 6:00 PM" [ref=e920] [cursor=pointer]
+                        - button "Thu 7:00 PM" [ref=e921] [cursor=pointer]
+                        - button "Thu 8:00 PM" [ref=e922] [cursor=pointer]
+                        - button "Thu 9:00 PM" [ref=e923] [cursor=pointer]
+                        - button "Thu 10:00 PM" [ref=e924] [cursor=pointer]
+                      - generic [ref=e925]:
+                        - button "Fri 5:00 AM" [ref=e926] [cursor=pointer]
+                        - button "Fri 6:00 AM" [ref=e927] [cursor=pointer]
+                        - button "Fri 7:00 AM" [ref=e928] [cursor=pointer]
+                        - button "Fri 8:00 AM" [ref=e929] [cursor=pointer]
+                        - button "Fri 9:00 AM" [ref=e930] [cursor=pointer]
+                        - button "Fri 10:00 AM" [ref=e931] [cursor=pointer]
+                        - button "Fri 11:00 AM" [ref=e932] [cursor=pointer]
+                        - button "Fri 12:00 PM" [ref=e933] [cursor=pointer]
+                        - button "Fri 1:00 PM" [ref=e934] [cursor=pointer]
+                        - button "Fri 2:00 PM" [ref=e935] [cursor=pointer]
+                        - button "Fri 3:00 PM" [ref=e936] [cursor=pointer]
+                        - button "Fri 4:00 PM" [ref=e937] [cursor=pointer]
+                        - button "Fri 5:00 PM" [ref=e938] [cursor=pointer]
+                        - button "Fri 6:00 PM" [ref=e939] [cursor=pointer]
+                        - button "Fri 7:00 PM" [ref=e940] [cursor=pointer]
+                        - button "Fri 8:00 PM" [ref=e941] [cursor=pointer]
+                        - button "Fri 9:00 PM" [ref=e942] [cursor=pointer]
+                        - button "Fri 10:00 PM" [ref=e943] [cursor=pointer]
+                      - generic [ref=e944]:
+                        - button "Sat 5:00 AM" [ref=e945] [cursor=pointer]
+                        - button "Sat 6:00 AM" [ref=e946] [cursor=pointer]
+                        - button "Sat 7:00 AM" [ref=e947] [cursor=pointer]
+                        - button "Sat 8:00 AM" [ref=e948] [cursor=pointer]
+                        - button "Sat 9:00 AM" [ref=e949] [cursor=pointer]
+                        - button "Sat 10:00 AM" [ref=e950] [cursor=pointer]
+                        - button "Sat 11:00 AM" [ref=e951] [cursor=pointer]
+                        - button "Sat 12:00 PM" [ref=e952] [cursor=pointer]
+                        - button "Sat 1:00 PM" [ref=e953] [cursor=pointer]
+                        - button "Sat 2:00 PM" [ref=e954] [cursor=pointer]
+                        - button "Sat 3:00 PM" [ref=e955] [cursor=pointer]
+                        - button "Sat 4:00 PM" [ref=e956] [cursor=pointer]
+                        - button "Sat 5:00 PM" [ref=e957] [cursor=pointer]
+                        - button "Sat 6:00 PM" [ref=e958] [cursor=pointer]
+                        - button "Sat 7:00 PM" [ref=e959] [cursor=pointer]
+                        - button "Sat 8:00 PM" [ref=e960] [cursor=pointer]
+                        - button "Sat 9:00 PM" [ref=e961] [cursor=pointer]
+                        - button "Sat 10:00 PM" [ref=e962] [cursor=pointer]
+        - dialog "SwanStudios AI Assistant" [ref=e271]:
+          - generic [ref=e272]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e273]
+            - generic [ref=e274]:
+              - button "Minimize" [ref=e275] [cursor=pointer]:
+                - img [ref=e276]
+              - button "Close assistant" [ref=e277] [cursor=pointer]:
+                - img [ref=e278]
+        - button "Open SwanStudios Assistant" [ref=e282] [cursor=pointer]:
+          - img [ref=e283]
+          - text: AI
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

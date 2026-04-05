@@ -1,0 +1,172 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - link "Login" [active] [ref=e41] [cursor=pointer]:
+              - /url: /login
+            - link "Sign Up" [ref=e42] [cursor=pointer]:
+              - /url: /signup
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e608]:
+          - generic [ref=e610]:
+            - button "Close login modal" [ref=e613] [cursor=pointer]:
+              - generic [ref=e614]: ×
+            - generic [ref=e615]:
+              - generic [ref=e616]:
+                - img "SwanStudios Logo" [ref=e618]
+                - heading "SwanStudios" [level=1] [ref=e619]
+              - heading "Access Your Account" [level=2] [ref=e620]
+              - generic [ref=e621]:
+                - textbox "Username or Email" [ref=e622]
+                - textbox "Password" [ref=e623]
+                - button "Sign In" [ref=e624] [cursor=pointer]
+              - link "Forgot Password?" [ref=e625] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=e626]: ✓ Server Connected
+          - generic [ref=e627]:
+            - generic [ref=e628]:
+              - img [ref=e629]
+              - text: 2026 Swan Studios. All Rights Reserved.
+            - generic [ref=e632]:
+              - link "Privacy" [ref=e633] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms" [ref=e634] [cursor=pointer]:
+                - /url: /terms
+              - link "Help" [ref=e635] [cursor=pointer]:
+                - /url: /help
+      - contentinfo [ref=e529]:
+        - generic [ref=e530]:
+          - generic [ref=e531]:
+            - generic [ref=e532]:
+              - img "SwanStudios Logo" [ref=e533]
+              - generic [ref=e534]:
+                - heading "SwanStudios" [level=3] [ref=e535]
+                - generic [ref=e536]: Excellence in Performance Training
+            - paragraph [ref=e537]: Transforming fitness through personalized training programs and expert guidance. Our elite coaching team combines proven science with personalized attention to help you achieve your health and wellness goals.
+            - generic [ref=e538]:
+              - link "Facebook" [ref=e539] [cursor=pointer]:
+                - /url: https://facebook.com/seanswantech
+                - img [ref=e540]
+              - link "Bluesky" [ref=e542] [cursor=pointer]:
+                - /url: https://bsky.app/profile/swanstudios.bsky.social
+                - generic [ref=e543]: B
+              - link "Instagram" [ref=e544] [cursor=pointer]:
+                - /url: https://www.instagram.com/seanswantech
+                - img [ref=e545]
+              - link "LinkedIn" [ref=e548] [cursor=pointer]:
+                - /url: https://www.linkedin.com/company/swanstudios
+                - img [ref=e549]
+              - link "YouTube" [ref=e553] [cursor=pointer]:
+                - /url: https://www.youtube.com/@swanstudios2018
+                - img [ref=e554]
+          - generic [ref=e557]:
+            - heading "Quick Links" [level=4] [ref=e558]
+            - navigation [ref=e559]:
+              - link "Home" [ref=e560] [cursor=pointer]:
+                - /url: /
+              - link "About Us" [ref=e561] [cursor=pointer]:
+                - /url: /about
+              - link "Store" [ref=e562] [cursor=pointer]:
+                - /url: /store
+              - link "Contact" [ref=e563] [cursor=pointer]:
+                - /url: /contact
+              - link "Video Library" [ref=e564] [cursor=pointer]:
+                - /url: /video-library
+          - generic [ref=e565]:
+            - heading "Programs" [level=4] [ref=e566]
+            - navigation [ref=e567]:
+              - link "Personal Training" [ref=e568] [cursor=pointer]:
+                - /url: /store
+              - link "Group Classes" [ref=e569] [cursor=pointer]:
+                - /url: /store
+              - link "Nutrition Coaching" [ref=e570] [cursor=pointer]:
+                - /url: /store
+              - link "Online Training" [ref=e571] [cursor=pointer]:
+                - /url: /store
+              - link "Recovery & Wellness" [ref=e572] [cursor=pointer]:
+                - /url: /store
+          - generic [ref=e573]:
+            - heading "Contact Us" [level=4] [ref=e574]
+            - generic [ref=e575]:
+              - img [ref=e576]
+              - generic [ref=e579]: Anaheim Hills
+            - generic [ref=e580]:
+              - img [ref=e581]
+              - generic [ref=e583]: (714) 485-3950
+            - generic [ref=e584]:
+              - img [ref=e585]
+              - generic [ref=e588]: loveswanstudios@protonmail.com
+            - heading "Hours" [level=4] [ref=e589]
+            - generic [ref=e591]: "Monday–Sunday: By Appointment Only"
+        - generic [ref=e593]:
+          - paragraph [ref=e594]:
+            - text: © 2018 Swan Studios. All Rights Reserved.
+            - generic [ref=e595]: Made with
+            - img [ref=e596]
+            - generic [ref=e598]: in California
+          - generic [ref=e599]:
+            - link "Privacy Policy" [ref=e600] [cursor=pointer]:
+              - /url: /privacy
+            - link "Terms of Service" [ref=e601] [cursor=pointer]:
+              - /url: /terms
+            - link "Sitemap" [ref=e602] [cursor=pointer]:
+              - /url: /sitemap
+    - img [ref=e605] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status

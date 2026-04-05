@@ -1,0 +1,160 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Client Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Client Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Client navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Client
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - navigation [ref=e109]:
+              - generic [ref=e110]: HOME
+              - menuitem "Overview" [active] [ref=e111] [cursor=pointer]:
+                - img [ref=e113]
+                - generic [ref=e116]: Overview
+              - menuitem "My Workouts" [ref=e117] [cursor=pointer]:
+                - img [ref=e119]
+                - generic [ref=e127]: My Workouts
+              - menuitem "My Progress" [ref=e128] [cursor=pointer]:
+                - img [ref=e130]
+                - generic [ref=e133]: My Progress
+              - generic [ref=e134]: INTELLIGENCE
+              - menuitem "Nutrition Intelligence" [ref=e135] [cursor=pointer]:
+                - img [ref=e137]
+                - generic [ref=e142]: Nutrition Intelligence
+              - menuitem "AI Privacy & Consent" [ref=e143] [cursor=pointer]:
+                - img [ref=e145]
+                - generic [ref=e147]: AI Privacy & Consent
+              - generic [ref=e148]: COMMUNITY
+              - menuitem "Book My Session" [ref=e149] [cursor=pointer]:
+                - img [ref=e151]
+                - generic [ref=e153]: Book My Session
+              - menuitem "Community & Challenges" [ref=e154] [cursor=pointer]:
+                - img [ref=e156]
+                - generic [ref=e161]: Community & Challenges
+              - menuitem "Messages" [ref=e162] [cursor=pointer]:
+                - img [ref=e164]
+                - generic [ref=e166]: Messages
+              - generic [ref=e167]: MY SPACE
+              - menuitem "My Profile & Settings" [ref=e168] [cursor=pointer]:
+                - img [ref=e170]
+                - generic [ref=e173]: My Profile & Settings
+              - menuitem "My Rewards" [ref=e174] [cursor=pointer]:
+                - img [ref=e176]
+                - generic [ref=e179]: My Rewards
+            - generic [ref=e181]: SwanStudios v2.1
+          - main [ref=e182]:
+            - generic [ref=e503]:
+              - generic [ref=e504]:
+                - heading "Welcome back, QA!" [level=1] [ref=e505]
+                - paragraph [ref=e506]: Level 1 — Bronze Forge
+              - generic [ref=e507]:
+                - generic [ref=e508]:
+                  - img [ref=e510]
+                  - generic [ref=e512]:
+                    - generic [ref=e513]: Total Workouts
+                    - generic [ref=e514]: "0"
+                - generic [ref=e515]:
+                  - img [ref=e517]
+                  - generic [ref=e519]:
+                    - generic [ref=e520]: Current Streak
+                    - generic [ref=e521]: 0 days
+                - generic [ref=e522]:
+                  - img [ref=e524]
+                  - generic [ref=e530]:
+                    - generic [ref=e531]: Current Level
+                    - generic [ref=e532]: "1"
+                - generic [ref=e533]:
+                  - img [ref=e535]
+                  - generic [ref=e537]:
+                    - generic [ref=e538]: XP to Next Level
+                    - generic [ref=e539]: "400"
+              - generic [ref=e540]:
+                - button "Book Session" [ref=e541] [cursor=pointer]:
+                  - img [ref=e542]
+                  - text: Book Session
+                - button "View Progress" [ref=e544] [cursor=pointer]:
+                  - img [ref=e545]
+                  - text: View Progress
+                - button "Log Workout" [ref=e548] [cursor=pointer]:
+                  - img [ref=e549]
+                  - text: Log Workout
+              - generic [ref=e557]:
+                - generic [ref=e558]:
+                  - heading "Recent Activity" [level=3] [ref=e559]
+                  - paragraph [ref=e560]: No recent workouts yet. Start training to see your activity!
+                - generic [ref=e561]:
+                  - heading "Next Session" [level=3] [ref=e562]
+                  - paragraph [ref=e563]: No upcoming sessions scheduled. Book one to get started!
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status

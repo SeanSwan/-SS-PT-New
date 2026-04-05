@@ -65,6 +65,21 @@ When the plan is presented to Sean, he should be able to say "I can't think of a
 
 **Typical flow:** Phase A (free, 3-10 loops) → Village (1 run, ~$0.33) → Phase C (free, 1-3 loops) → Build. Total Village cost: $0.33. Rarely $0.66 if a second run is needed.
 
+## Boris Cherney's 6 Rules (Claude Code Creator — Source of Truth)
+
+These come directly from the creator of Claude Code. They are foundational:
+
+1. **Plan Mode first** — "Move slow to move fast." Start ~80% of sessions with planning. Prompt: "Before we start building, interview me about this. What are the core problems? What does success look like? What should this NOT do? Summarize back to me before you write any code."
+2. **Minimal CLAUDE.md** — Keep it short (~2000 tokens). If bloated, delete and start fresh. Add back only when the model goes off track. With every model upgrade, you need fewer instructions.
+3. **Verification** — Give Claude tools to check its own work (2-3x quality improvement). Add to CLAUDE.md: "Before you do any work, mention how you could verify that work." After building: "Please verify all your work so far. Make sure you used best practices, were efficient, and didn't introduce any issues."
+4. **Parallel sessions** — Multiple sessions on partitioned tasks. "Two context windows that don't know about each other tend to get better results." Fresh session = no baggage = sees obvious things the first session missed.
+5. **Inner loops → Skills** — Document repeatable processes as Claude Skills. Slash commands for anything done multiple times per day. "A prompt tells a player to dribble. A skill is the exact play to run."
+6. **Build for the future** — "Never bet against the model." Micro-tweaks to improve output become unnecessary in 6 months. Focus on your INFORMATION (context fed to model), not prompt optimization. "AI will never be as bad as it is today."
+
+**CLAUDE.md maintenance (from Boris):** When it gets bloated, either:
+- Delete entirely and rebuild gradually (Boris's way)
+- OR run: "Update CLAUDE.md to remove anything no longer needed, contradictory, duplicate, or unnecessary bloat impacting effectiveness"
+
 ## Planning Tiers
 
 ### Tier 1: Opus Internal Planning (FREE — default for most tasks)

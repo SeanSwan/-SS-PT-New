@@ -1,0 +1,1686 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: 🔧
+      - generic [ref=e6]: Mock Mode
+      - generic [ref=e7]: "-"
+      - generic [ref=e8]: Local development mode - using mock data
+      - button "Retry" [ref=e9] [cursor=pointer]
+    - generic [ref=e10]:
+      - generic [ref=e11]: 🌌 Crystalline Swan Theme
+      - generic [ref=e12]:
+        - generic [ref=e13]: Theme Core
+        - generic [ref=e14]: ✅ SUCCESS
+      - generic [ref=e15]:
+        - generic [ref=e16]: Primary Colors
+        - generic [ref=e17]: ✅ SUCCESS
+      - generic [ref=e18]:
+        - generic [ref=e19]: Gradients
+        - generic [ref=e20]: ✅ SUCCESS
+      - generic [ref=e21]:
+        - generic [ref=e22]: Animations
+        - generic [ref=e23]: ✅ SUCCESS
+      - generic [ref=e24]:
+        - generic [ref=e25]: Typography
+        - generic [ref=e26]: ✅ SUCCESS
+      - generic [ref=e28]:
+        - text: 🔗
+        - link "View Theme Showcase" [ref=e29] [cursor=pointer]:
+          - /url: /theme-showcase
+    - generic [ref=e30]:
+      - banner "Main navigation" [ref=e31]:
+        - generic [ref=e32]:
+          - button "Go to homepage" [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]:
+              - img "SwanStudios Logo" [ref=e35]
+              - generic [ref=e36]: SwanStudios
+          - navigation [ref=e38]:
+            - link "Home" [ref=e39] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e40] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e82] [cursor=pointer]:
+              - img [ref=e83]
+              - text: Admin Dashboard
+              - img [ref=e88]
+            - link "Video Library" [ref=e43] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e44] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e45] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e46] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e47] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e48]:
+            - button "Notifications" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "Open shopping cart" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - button "Switch to Monochrome" [ref=e59] [cursor=pointer]:
+              - img [ref=e61]
+            - generic [ref=e96]:
+              - button "User profile" [ref=e98] [cursor=pointer]: Q
+              - button "Logout" [ref=e99] [cursor=pointer]
+      - button [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+      - main [ref=e68]:
+        - generic [ref=e100]:
+          - navigation "Admin navigation" [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]: SS
+                - generic [ref=e105]: Admin
+              - button "Collapse sidebar" [ref=e106] [cursor=pointer]:
+                - img [ref=e107]
+            - button "Select Client..." [ref=e110] [cursor=pointer]:
+              - img [ref=e111]
+              - generic [ref=e116]: Select Client...
+              - img [ref=e117]
+            - navigation [ref=e119]:
+              - menuitem "Coach Assistant" [ref=e120] [cursor=pointer]:
+                - img [ref=e122]
+                - generic [ref=e124]: Coach Assistant
+              - menuitem "Dashboard" [ref=e125] [cursor=pointer]:
+                - img [ref=e127]
+                - generic [ref=e129]: Dashboard
+              - menuitem "Clients & Team" [ref=e130] [cursor=pointer]:
+                - img [ref=e132]
+                - generic [ref=e137]: Clients & Team
+              - menuitem "Workouts" [active] [ref=e138] [cursor=pointer]:
+                - img [ref=e140]
+                - generic [ref=e148]: Workouts
+              - menuitem "Scheduling" [ref=e149] [cursor=pointer]:
+                - img [ref=e151]
+                - generic [ref=e153]: Scheduling
+              - menuitem "Gamification" [ref=e154] [cursor=pointer]:
+                - img [ref=e156]
+                - generic [ref=e158]: Gamification
+              - menuitem "Store & Revenue" [ref=e159] [cursor=pointer]:
+                - img [ref=e161]
+                - generic [ref=e163]: Store & Revenue
+              - menuitem "Content Studio" [ref=e164] [cursor=pointer]:
+                - img [ref=e166]
+                - generic [ref=e169]: Content Studio
+              - menuitem "Analytics" [ref=e170] [cursor=pointer]:
+                - img [ref=e172]
+                - generic [ref=e174]: Analytics
+              - menuitem "System" [ref=e175] [cursor=pointer]:
+                - img [ref=e177]
+                - generic [ref=e180]: System
+              - menuitem "Canada Immigration" [ref=e181] [cursor=pointer]:
+                - img [ref=e183]
+                - generic [ref=e186]: Canada Immigration
+              - menuitem "My Clients" [ref=e188] [cursor=pointer]:
+                - img [ref=e190]
+                - generic [ref=e194]: My Clients
+              - menuitem "My Training" [ref=e195] [cursor=pointer]:
+                - img [ref=e197]
+                - generic [ref=e201]: My Training
+            - generic [ref=e203]: SwanStudios v2.1
+          - main [ref=e204]:
+            - generic [ref=e2432]:
+              - generic [ref=e2433]:
+                - generic [ref=e2434]:
+                  - img [ref=e2436]
+                  - generic [ref=e2444]:
+                    - heading "NASM Workout Planner" [level=1] [ref=e2445]
+                    - paragraph [ref=e2446]: Build intelligent, periodized training programs with 880+ exercises
+                - button "Teach Mode Off" [ref=e2447] [cursor=pointer]:
+                  - img [ref=e2448]
+                  - text: Teach Mode Off
+              - generic [ref=e2451]:
+                - combobox "Select client" [ref=e2452] [cursor=pointer]:
+                  - option "Jackie Client" [selected]
+                  - option "Anand MoveFit"
+                  - option "QABot Tester"
+                  - option "Vickie Valdez"
+                - combobox "Select OPT phase" [ref=e2453] [cursor=pointer]:
+                  - 'option "Phase 1: Stabilization Endurance"'
+                  - 'option "Phase 2: Strength Endurance" [selected]'
+                  - 'option "Phase 3: Hypertrophy"'
+                  - 'option "Phase 4: Maximal Strength"'
+                  - 'option "Phase 5: Power"'
+                - combobox "Select workout category" [ref=e2454] [cursor=pointer]:
+                  - option "Full Body" [selected]
+                  - option "Chest"
+                  - option "Back"
+                  - option "Shoulders"
+                  - option "Arms"
+                  - option "Legs"
+                  - option "Core"
+                - combobox "Select training goal" [ref=e2455] [cursor=pointer]:
+                  - option "General Fitness" [selected]
+                  - option "Muscle Growth"
+                  - option "Strength"
+                  - option "Fat Loss"
+                  - option "Athletic Performance"
+                  - option "Golf Performance"
+                - button "AI Generate" [ref=e2456] [cursor=pointer]:
+                  - img [ref=e2457]
+                  - text: AI Generate
+              - generic [ref=e2459]:
+                - generic [ref=e2460]:
+                  - img [ref=e2461]
+                  - text: Plan Duration
+                - combobox "Select plan duration" [ref=e2463] [cursor=pointer]:
+                  - option "Single Session" [selected]
+                  - option "1 Week (Trial)"
+                  - option "1 Month (4 weeks)"
+                  - option "2 Months (8 weeks)"
+                  - option "3 Months (12 weeks)"
+                  - option "4 Months (16 weeks)"
+                  - option "6 Months (24 weeks)"
+                  - option "9 Months (36 weeks)"
+                  - option "12 Months (52 weeks)"
+              - button "Workout AI Assistant" [ref=e2464] [cursor=pointer]:
+                - img [ref=e2465]
+                - generic [ref=e2468]: Workout AI Assistant
+                - img [ref=e2469]
+              - generic [ref=e2471]:
+                - generic [ref=e2472]:
+                  - generic [ref=e2473]:
+                    - heading "Exercise Rolodex" [level=2] [ref=e2474]:
+                      - img [ref=e2475]
+                      - text: Exercise Rolodex
+                    - generic [ref=e2478]: 883 results
+                  - generic [ref=e2479]:
+                    - generic [ref=e2480]:
+                      - img
+                      - textbox "Search exercises" [ref=e2481]:
+                        - /placeholder: Search exercises...
+                    - generic [ref=e2482]:
+                      - button "All" [ref=e2483] [cursor=pointer]
+                      - button "Chest" [ref=e2484] [cursor=pointer]
+                      - button "Back" [ref=e2485] [cursor=pointer]
+                      - button "Shoulders" [ref=e2486] [cursor=pointer]
+                      - button "Arms" [ref=e2487] [cursor=pointer]
+                      - button "Legs" [ref=e2488] [cursor=pointer]
+                      - button "Core" [ref=e2489] [cursor=pointer]
+                      - button "Full Body" [ref=e2490] [cursor=pointer]
+                      - button "Cardio" [ref=e2491] [cursor=pointer]
+                      - button "Recovery" [ref=e2492] [cursor=pointer]
+                    - generic [ref=e2493]:
+                      - button "All Programs" [ref=e2494] [cursor=pointer]
+                      - button "NASM" [ref=e2495] [cursor=pointer]
+                      - button "SwanStudios" [ref=e2496] [cursor=pointer]
+                    - generic [ref=e2497]:
+                      - button "All Types" [ref=e2498] [cursor=pointer]
+                      - button "Compound" [ref=e2499] [cursor=pointer]
+                      - button "Isolation" [ref=e2500] [cursor=pointer]
+                      - button "Calisthenics" [ref=e2501] [cursor=pointer]
+                      - button "Stability" [ref=e2502] [cursor=pointer]
+                      - button "Flexibility" [ref=e2503] [cursor=pointer]
+                      - button "Core" [ref=e2504] [cursor=pointer]
+                    - generic [ref=e2505]:
+                      - button "All Equipment" [ref=e2506] [cursor=pointer]
+                      - button "Bodyweight" [ref=e2507] [cursor=pointer]
+                      - button "Dumbbell" [ref=e2508] [cursor=pointer]
+                      - button "Barbell" [ref=e2509] [cursor=pointer]
+                      - button "Machine" [ref=e2510] [cursor=pointer]
+                      - button "Cable" [ref=e2511] [cursor=pointer]
+                      - button "Resistance Band" [ref=e2512] [cursor=pointer]
+                      - button "Kettlebell" [ref=e2513] [cursor=pointer]
+                      - button "Sliders" [ref=e2514] [cursor=pointer]
+                      - button "Stability Ball" [ref=e2515] [cursor=pointer]
+                      - button "Medicine Ball" [ref=e2516] [cursor=pointer]
+                      - button "BOSU" [ref=e2517] [cursor=pointer]
+                      - button "TRX" [ref=e2518] [cursor=pointer]
+                    - generic [ref=e2519]:
+                      - button "All Impact" [ref=e2520] [cursor=pointer]
+                      - button "Low Impact" [ref=e2521] [cursor=pointer]
+                      - button "Medium Impact" [ref=e2522] [cursor=pointer]
+                      - button "High Impact" [ref=e2523] [cursor=pointer]
+                    - button "1-2-3 Drills legs calisthenics Bodyweight Medium Impact" [ref=e2524] [cursor=pointer]:
+                      - generic [ref=e2525]: 1-2-3 Drills
+                      - generic [ref=e2526]:
+                        - generic [ref=e2527]: legs
+                        - generic [ref=e2528]: calisthenics
+                        - generic [ref=e2529]: Bodyweight
+                        - generic [ref=e2530]: Medium Impact
+                    - button "1.5 Rep Squat legs compound Barbell, Squat Rack High Impact" [ref=e2531] [cursor=pointer]:
+                      - generic [ref=e2532]: 1.5 Rep Squat
+                      - generic [ref=e2533]:
+                        - generic [ref=e2534]: legs
+                        - generic [ref=e2535]: compound
+                        - generic [ref=e2536]: Barbell, Squat Rack
+                        - generic [ref=e2537]: High Impact
+                    - button "21s Bicep Curl arms isolation Barbell Medium Impact" [ref=e2538] [cursor=pointer]:
+                      - generic [ref=e2539]: 21s Bicep Curl
+                      - generic [ref=e2540]:
+                        - generic [ref=e2541]: arms
+                        - generic [ref=e2542]: isolation
+                        - generic [ref=e2543]: Barbell
+                        - generic [ref=e2544]: Medium Impact
+                    - button "360 Jump cardio compound Bodyweight High Impact" [ref=e2545] [cursor=pointer]:
+                      - generic [ref=e2546]: 360 Jump
+                      - generic [ref=e2547]:
+                        - generic [ref=e2548]: cardio
+                        - generic [ref=e2549]: compound
+                        - generic [ref=e2550]: Bodyweight
+                        - generic [ref=e2551]: High Impact
+                    - button "90/90 Hip Stretch recovery flexibility Bodyweight Low Impact" [ref=e2552] [cursor=pointer]:
+                      - generic [ref=e2553]: 90/90 Hip Stretch
+                      - generic [ref=e2554]:
+                        - generic [ref=e2555]: recovery
+                        - generic [ref=e2556]: flexibility
+                        - generic [ref=e2557]: Bodyweight
+                        - generic [ref=e2558]: Low Impact
+                    - button "90-90 Shin Box Stretch recovery flexibility Bodyweight Low Impact" [ref=e2559] [cursor=pointer]:
+                      - generic [ref=e2560]: 90-90 Shin Box Stretch
+                      - generic [ref=e2561]:
+                        - generic [ref=e2562]: recovery
+                        - generic [ref=e2563]: flexibility
+                        - generic [ref=e2564]: Bodyweight
+                        - generic [ref=e2565]: Low Impact
+                    - button "Ab Attack core isolation Bodyweight Medium Impact" [ref=e2566] [cursor=pointer]:
+                      - generic [ref=e2567]: Ab Attack
+                      - generic [ref=e2568]:
+                        - generic [ref=e2569]: core
+                        - generic [ref=e2570]: isolation
+                        - generic [ref=e2571]: Bodyweight
+                        - generic [ref=e2572]: Medium Impact
+                    - button "Ab Wheel Rollout core core Ab Wheel Medium Impact" [ref=e2573] [cursor=pointer]:
+                      - generic [ref=e2574]: Ab Wheel Rollout
+                      - generic [ref=e2575]:
+                        - generic [ref=e2576]: core
+                        - generic [ref=e2577]: core
+                        - generic [ref=e2578]: Ab Wheel
+                        - generic [ref=e2579]: Medium Impact
+                    - button "A-Frame Ab Tuck core compound Bodyweight High Impact" [ref=e2580] [cursor=pointer]:
+                      - generic [ref=e2581]: A-Frame Ab Tuck
+                      - generic [ref=e2582]:
+                        - generic [ref=e2583]: core
+                        - generic [ref=e2584]: compound
+                        - generic [ref=e2585]: Bodyweight
+                        - generic [ref=e2586]: High Impact
+                    - button "Agility Ladder High Knees cardio calisthenics Agility Ladder Medium Impact" [ref=e2587] [cursor=pointer]:
+                      - generic [ref=e2588]: Agility Ladder High Knees
+                      - generic [ref=e2589]:
+                        - generic [ref=e2590]: cardio
+                        - generic [ref=e2591]: calisthenics
+                        - generic [ref=e2592]: Agility Ladder
+                        - generic [ref=e2593]: Medium Impact
+                    - button "Agility Ladder In-Out cardio calisthenics Agility Ladder Medium Impact" [ref=e2594] [cursor=pointer]:
+                      - generic [ref=e2595]: Agility Ladder In-Out
+                      - generic [ref=e2596]:
+                        - generic [ref=e2597]: cardio
+                        - generic [ref=e2598]: calisthenics
+                        - generic [ref=e2599]: Agility Ladder
+                        - generic [ref=e2600]: Medium Impact
+                    - button "Agility Ladder Lateral Shuffle cardio calisthenics Agility Ladder Medium Impact" [ref=e2601] [cursor=pointer]:
+                      - generic [ref=e2602]: Agility Ladder Lateral Shuffle
+                      - generic [ref=e2603]:
+                        - generic [ref=e2604]: cardio
+                        - generic [ref=e2605]: calisthenics
+                        - generic [ref=e2606]: Agility Ladder
+                        - generic [ref=e2607]: Medium Impact
+                    - button "Air Bike Sprint cardio calisthenics Air Bike Medium Impact" [ref=e2608] [cursor=pointer]:
+                      - generic [ref=e2609]: Air Bike Sprint
+                      - generic [ref=e2610]:
+                        - generic [ref=e2611]: cardio
+                        - generic [ref=e2612]: calisthenics
+                        - generic [ref=e2613]: Air Bike
+                        - generic [ref=e2614]: Medium Impact
+                    - button "Airborne Heisman cardio compound Bodyweight High Impact" [ref=e2615] [cursor=pointer]:
+                      - generic [ref=e2616]: Airborne Heisman
+                      - generic [ref=e2617]:
+                        - generic [ref=e2618]: cardio
+                        - generic [ref=e2619]: compound
+                        - generic [ref=e2620]: Bodyweight
+                        - generic [ref=e2621]: High Impact
+                    - button "Airdyne Bike Sprint cardio calisthenics Air Bike High Impact" [ref=e2622] [cursor=pointer]:
+                      - generic [ref=e2623]: Airdyne Bike Sprint
+                      - generic [ref=e2624]:
+                        - generic [ref=e2625]: cardio
+                        - generic [ref=e2626]: calisthenics
+                        - generic [ref=e2627]: Air Bike
+                        - generic [ref=e2628]: High Impact
+                    - button "Alternating Dumbbell Curl arms isolation Dumbbells Low Impact" [ref=e2629] [cursor=pointer]:
+                      - generic [ref=e2630]: Alternating Dumbbell Curl
+                      - generic [ref=e2631]:
+                        - generic [ref=e2632]: arms
+                        - generic [ref=e2633]: isolation
+                        - generic [ref=e2634]: Dumbbells
+                        - generic [ref=e2635]: Low Impact
+                    - button "Altitude Drop Squat legs compound Bodyweight Medium Impact" [ref=e2636] [cursor=pointer]:
+                      - generic [ref=e2637]: Altitude Drop Squat
+                      - generic [ref=e2638]:
+                        - generic [ref=e2639]: legs
+                        - generic [ref=e2640]: compound
+                        - generic [ref=e2641]: Bodyweight
+                        - generic [ref=e2642]: Medium Impact
+                    - button "Anderson Squat legs compound Barbell, Squat Rack High Impact" [ref=e2643] [cursor=pointer]:
+                      - generic [ref=e2644]: Anderson Squat
+                      - generic [ref=e2645]:
+                        - generic [ref=e2646]: legs
+                        - generic [ref=e2647]: compound
+                        - generic [ref=e2648]: Barbell, Squat Rack
+                        - generic [ref=e2649]: High Impact
+                    - button "Ankle Alphabet recovery flexibility Bodyweight Low Impact" [ref=e2650] [cursor=pointer]:
+                      - generic [ref=e2651]: Ankle Alphabet
+                      - generic [ref=e2652]:
+                        - generic [ref=e2653]: recovery
+                        - generic [ref=e2654]: flexibility
+                        - generic [ref=e2655]: Bodyweight
+                        - generic [ref=e2656]: Low Impact
+                    - button "Ankle Hop legs compound Bodyweight Low Impact" [ref=e2657] [cursor=pointer]:
+                      - generic [ref=e2658]: Ankle Hop
+                      - generic [ref=e2659]:
+                        - generic [ref=e2660]: legs
+                        - generic [ref=e2661]: compound
+                        - generic [ref=e2662]: Bodyweight
+                        - generic [ref=e2663]: Low Impact
+                    - button "Archer Push-Up chest calisthenics Bodyweight High Impact" [ref=e2664] [cursor=pointer]:
+                      - generic [ref=e2665]: Archer Push-Up
+                      - generic [ref=e2666]:
+                        - generic [ref=e2667]: chest
+                        - generic [ref=e2668]: calisthenics
+                        - generic [ref=e2669]: Bodyweight
+                        - generic [ref=e2670]: High Impact
+                    - button "Arm Circle recovery flexibility Bodyweight Low Impact" [ref=e2671] [cursor=pointer]:
+                      - generic [ref=e2672]: Arm Circle
+                      - generic [ref=e2673]:
+                        - generic [ref=e2674]: recovery
+                        - generic [ref=e2675]: flexibility
+                        - generic [ref=e2676]: Bodyweight
+                        - generic [ref=e2677]: Low Impact
+                    - button "Arm Circles recovery flexibility Bodyweight Low Impact" [ref=e2678] [cursor=pointer]:
+                      - generic [ref=e2679]: Arm Circles
+                      - generic [ref=e2680]:
+                        - generic [ref=e2681]: recovery
+                        - generic [ref=e2682]: flexibility
+                        - generic [ref=e2683]: Bodyweight
+                        - generic [ref=e2684]: Low Impact
+                    - button "Army Crawl cardio calisthenics Bodyweight Medium Impact" [ref=e2685] [cursor=pointer]:
+                      - generic [ref=e2686]: Army Crawl
+                      - generic [ref=e2687]:
+                        - generic [ref=e2688]: cardio
+                        - generic [ref=e2689]: calisthenics
+                        - generic [ref=e2690]: Bodyweight
+                        - generic [ref=e2691]: Medium Impact
+                    - button "Arnold Press shoulders compound Dumbbells Medium Impact" [ref=e2692] [cursor=pointer]:
+                      - generic [ref=e2693]: Arnold Press
+                      - generic [ref=e2694]:
+                        - generic [ref=e2695]: shoulders
+                        - generic [ref=e2696]: compound
+                        - generic [ref=e2697]: Dumbbells
+                        - generic [ref=e2698]: Medium Impact
+                    - button "Assault Bike cardio compound Assault Bike Medium Impact" [ref=e2699] [cursor=pointer]:
+                      - generic [ref=e2700]: Assault Bike
+                      - generic [ref=e2701]:
+                        - generic [ref=e2702]: cardio
+                        - generic [ref=e2703]: compound
+                        - generic [ref=e2704]: Assault Bike
+                        - generic [ref=e2705]: Medium Impact
+                    - button "Assisted Pull-Up Machine back compound Assisted Pull-Up Machine Low Impact" [ref=e2706] [cursor=pointer]:
+                      - generic [ref=e2707]: Assisted Pull-Up Machine
+                      - generic [ref=e2708]:
+                        - generic [ref=e2709]: back
+                        - generic [ref=e2710]: compound
+                        - generic [ref=e2711]: Assisted Pull-Up Machine
+                        - generic [ref=e2712]: Low Impact
+                    - button "Atlas Stone Load full_body compound Atlas Stone, Platform High Impact" [ref=e2713] [cursor=pointer]:
+                      - generic [ref=e2714]: Atlas Stone Load
+                      - generic [ref=e2715]:
+                        - generic [ref=e2716]: full_body
+                        - generic [ref=e2717]: compound
+                        - generic [ref=e2718]: Atlas Stone, Platform
+                        - generic [ref=e2719]: High Impact
+                    - button "Back Bridge recovery flexibility Bodyweight Low Impact" [ref=e2720] [cursor=pointer]:
+                      - generic [ref=e2721]: Back Bridge
+                      - generic [ref=e2722]:
+                        - generic [ref=e2723]: recovery
+                        - generic [ref=e2724]: flexibility
+                        - generic [ref=e2725]: Bodyweight
+                        - generic [ref=e2726]: Low Impact
+                    - button "Back Extension Machine back isolation Back Extension Machine Low Impact" [ref=e2727] [cursor=pointer]:
+                      - generic [ref=e2728]: Back Extension Machine
+                      - generic [ref=e2729]:
+                        - generic [ref=e2730]: back
+                        - generic [ref=e2731]: isolation
+                        - generic [ref=e2732]: Back Extension Machine
+                        - generic [ref=e2733]: Low Impact
+                    - button "Band Anti-Rotation Press core core Resistance Band Medium Impact" [ref=e2734] [cursor=pointer]:
+                      - generic [ref=e2735]: Band Anti-Rotation Press
+                      - generic [ref=e2736]:
+                        - generic [ref=e2737]: core
+                        - generic [ref=e2738]: core
+                        - generic [ref=e2739]: Resistance Band
+                        - generic [ref=e2740]: Medium Impact
+                    - button "Band-Assisted Pull-Up back compound Pull-Up Bar, Resistance Band Medium Impact" [ref=e2741] [cursor=pointer]:
+                      - generic [ref=e2742]: Band-Assisted Pull-Up
+                      - generic [ref=e2743]:
+                        - generic [ref=e2744]: back
+                        - generic [ref=e2745]: compound
+                        - generic [ref=e2746]: Pull-Up Bar, Resistance Band
+                        - generic [ref=e2747]: Medium Impact
+                    - button "Band Bent Over Row back compound Resistance Band Medium Impact" [ref=e2748] [cursor=pointer]:
+                      - generic [ref=e2749]: Band Bent Over Row
+                      - generic [ref=e2750]:
+                        - generic [ref=e2751]: back
+                        - generic [ref=e2752]: compound
+                        - generic [ref=e2753]: Resistance Band
+                        - generic [ref=e2754]: Medium Impact
+                    - button "Band Bicep Curl arms isolation Resistance Band Low Impact" [ref=e2755] [cursor=pointer]:
+                      - generic [ref=e2756]: Band Bicep Curl
+                      - generic [ref=e2757]:
+                        - generic [ref=e2758]: arms
+                        - generic [ref=e2759]: isolation
+                        - generic [ref=e2760]: Resistance Band
+                        - generic [ref=e2761]: Low Impact
+                    - button "Band Chest Press chest compound Resistance Band Low Impact" [ref=e2762] [cursor=pointer]:
+                      - generic [ref=e2763]: Band Chest Press
+                      - generic [ref=e2764]:
+                        - generic [ref=e2765]: chest
+                        - generic [ref=e2766]: compound
+                        - generic [ref=e2767]: Resistance Band
+                        - generic [ref=e2768]: Low Impact
+                    - button "Band Deadlift legs compound Resistance Band Medium Impact" [ref=e2769] [cursor=pointer]:
+                      - generic [ref=e2770]: Band Deadlift
+                      - generic [ref=e2771]:
+                        - generic [ref=e2772]: legs
+                        - generic [ref=e2773]: compound
+                        - generic [ref=e2774]: Resistance Band
+                        - generic [ref=e2775]: Medium Impact
+                    - button "Banded Ankle Distraction recovery flexibility Resistance Band Low Impact" [ref=e2776] [cursor=pointer]:
+                      - generic [ref=e2777]: Banded Ankle Distraction
+                      - generic [ref=e2778]:
+                        - generic [ref=e2779]: recovery
+                        - generic [ref=e2780]: flexibility
+                        - generic [ref=e2781]: Resistance Band
+                        - generic [ref=e2782]: Low Impact
+                    - button "Banded Bench Press chest compound Barbell, Bench High Impact" [ref=e2783] [cursor=pointer]:
+                      - generic [ref=e2784]: Banded Bench Press
+                      - generic [ref=e2785]:
+                        - generic [ref=e2786]: chest
+                        - generic [ref=e2787]: compound
+                        - generic [ref=e2788]: Barbell, Bench
+                        - generic [ref=e2789]: High Impact
+                    - button "Banded Dead Bug core core Resistance Band Medium Impact" [ref=e2790] [cursor=pointer]:
+                      - generic [ref=e2791]: Banded Dead Bug
+                      - generic [ref=e2792]:
+                        - generic [ref=e2793]: core
+                        - generic [ref=e2794]: core
+                        - generic [ref=e2795]: Resistance Band
+                        - generic [ref=e2796]: Medium Impact
+                    - button "Banded Glute Bridge legs stability Resistance Band Low Impact" [ref=e2797] [cursor=pointer]:
+                      - generic [ref=e2798]: Banded Glute Bridge
+                      - generic [ref=e2799]:
+                        - generic [ref=e2800]: legs
+                        - generic [ref=e2801]: stability
+                        - generic [ref=e2802]: Resistance Band
+                        - generic [ref=e2803]: Low Impact
+                    - button "Banded Hip Thrust legs compound Bench, Resistance Band Medium Impact" [ref=e2804] [cursor=pointer]:
+                      - generic [ref=e2805]: Banded Hip Thrust
+                      - generic [ref=e2806]:
+                        - generic [ref=e2807]: legs
+                        - generic [ref=e2808]: compound
+                        - generic [ref=e2809]: Bench, Resistance Band
+                        - generic [ref=e2810]: Medium Impact
+                    - button "Banded Lateral Walk legs stability Resistance Band Low Impact" [ref=e2811] [cursor=pointer]:
+                      - generic [ref=e2812]: Banded Lateral Walk
+                      - generic [ref=e2813]:
+                        - generic [ref=e2814]: legs
+                        - generic [ref=e2815]: stability
+                        - generic [ref=e2816]: Resistance Band
+                        - generic [ref=e2817]: Low Impact
+                    - button "Banded Leg Curl legs isolation Resistance Band Low Impact" [ref=e2818] [cursor=pointer]:
+                      - generic [ref=e2819]: Banded Leg Curl
+                      - generic [ref=e2820]:
+                        - generic [ref=e2821]: legs
+                        - generic [ref=e2822]: isolation
+                        - generic [ref=e2823]: Resistance Band
+                        - generic [ref=e2824]: Low Impact
+                    - button "Banded Leg Extension legs isolation Resistance Band Low Impact" [ref=e2825] [cursor=pointer]:
+                      - generic [ref=e2826]: Banded Leg Extension
+                      - generic [ref=e2827]:
+                        - generic [ref=e2828]: legs
+                        - generic [ref=e2829]: isolation
+                        - generic [ref=e2830]: Resistance Band
+                        - generic [ref=e2831]: Low Impact
+                    - button "Banded Push-Up chest compound Resistance Band Medium Impact" [ref=e2832] [cursor=pointer]:
+                      - generic [ref=e2833]: Banded Push-Up
+                      - generic [ref=e2834]:
+                        - generic [ref=e2835]: chest
+                        - generic [ref=e2836]: compound
+                        - generic [ref=e2837]: Resistance Band
+                        - generic [ref=e2838]: Medium Impact
+                    - button "Banded Terminal Knee Extension recovery injury_prevention Resistance Band Low Impact" [ref=e2839] [cursor=pointer]:
+                      - generic [ref=e2840]: Banded Terminal Knee Extension
+                      - generic [ref=e2841]:
+                        - generic [ref=e2842]: recovery
+                        - generic [ref=e2843]: injury_prevention
+                        - generic [ref=e2844]: Resistance Band
+                        - generic [ref=e2845]: Low Impact
+                    - button "Band Face Pull shoulders isolation Resistance Band Low Impact" [ref=e2846] [cursor=pointer]:
+                      - generic [ref=e2847]: Band Face Pull
+                      - generic [ref=e2848]:
+                        - generic [ref=e2849]: shoulders
+                        - generic [ref=e2850]: isolation
+                        - generic [ref=e2851]: Resistance Band
+                        - generic [ref=e2852]: Low Impact
+                    - button "Band Front Raise shoulders isolation Resistance Band Low Impact" [ref=e2853] [cursor=pointer]:
+                      - generic [ref=e2854]: Band Front Raise
+                      - generic [ref=e2855]:
+                        - generic [ref=e2856]: shoulders
+                        - generic [ref=e2857]: isolation
+                        - generic [ref=e2858]: Resistance Band
+                        - generic [ref=e2859]: Low Impact
+                    - button "Band Good Morning legs compound Resistance Band Low Impact" [ref=e2860] [cursor=pointer]:
+                      - generic [ref=e2861]: Band Good Morning
+                      - generic [ref=e2862]:
+                        - generic [ref=e2863]: legs
+                        - generic [ref=e2864]: compound
+                        - generic [ref=e2865]: Resistance Band
+                        - generic [ref=e2866]: Low Impact
+                    - button "Band Hammer Curl arms isolation Resistance Band Low Impact" [ref=e2867] [cursor=pointer]:
+                      - generic [ref=e2868]: Band Hammer Curl
+                      - generic [ref=e2869]:
+                        - generic [ref=e2870]: arms
+                        - generic [ref=e2871]: isolation
+                        - generic [ref=e2872]: Resistance Band
+                        - generic [ref=e2873]: Low Impact
+                    - button "Band Hip Flexion March legs isolation Resistance Band Low Impact" [ref=e2874] [cursor=pointer]:
+                      - generic [ref=e2875]: Band Hip Flexion March
+                      - generic [ref=e2876]:
+                        - generic [ref=e2877]: legs
+                        - generic [ref=e2878]: isolation
+                        - generic [ref=e2879]: Resistance Band
+                        - generic [ref=e2880]: Low Impact
+                    - button "Band Hip Thrust legs compound Resistance Band, Bench Low Impact" [ref=e2881] [cursor=pointer]:
+                      - generic [ref=e2882]: Band Hip Thrust
+                      - generic [ref=e2883]:
+                        - generic [ref=e2884]: legs
+                        - generic [ref=e2885]: compound
+                        - generic [ref=e2886]: Resistance Band, Bench
+                        - generic [ref=e2887]: Low Impact
+                    - button "Band Kickback arms isolation Resistance Band Low Impact" [ref=e2888] [cursor=pointer]:
+                      - generic [ref=e2889]: Band Kickback
+                      - generic [ref=e2890]:
+                        - generic [ref=e2891]: arms
+                        - generic [ref=e2892]: isolation
+                        - generic [ref=e2893]: Resistance Band
+                        - generic [ref=e2894]: Low Impact
+                    - button "Band Lateral Raise shoulders isolation Resistance Band Low Impact" [ref=e2895] [cursor=pointer]:
+                      - generic [ref=e2896]: Band Lateral Raise
+                      - generic [ref=e2897]:
+                        - generic [ref=e2898]: shoulders
+                        - generic [ref=e2899]: isolation
+                        - generic [ref=e2900]: Resistance Band
+                        - generic [ref=e2901]: Low Impact
+                    - button "Band Lat Pulldown back compound Resistance Band Low Impact" [ref=e2902] [cursor=pointer]:
+                      - generic [ref=e2903]: Band Lat Pulldown
+                      - generic [ref=e2904]:
+                        - generic [ref=e2905]: back
+                        - generic [ref=e2906]: compound
+                        - generic [ref=e2907]: Resistance Band
+                        - generic [ref=e2908]: Low Impact
+                    - button "Band Overhead Press shoulders compound Resistance Band Medium Impact" [ref=e2909] [cursor=pointer]:
+                      - generic [ref=e2910]: Band Overhead Press
+                      - generic [ref=e2911]:
+                        - generic [ref=e2912]: shoulders
+                        - generic [ref=e2913]: compound
+                        - generic [ref=e2914]: Resistance Band
+                        - generic [ref=e2915]: Medium Impact
+                    - button "Band Pallof Hold core core Resistance Band Low Impact" [ref=e2916] [cursor=pointer]:
+                      - generic [ref=e2917]: Band Pallof Hold
+                      - generic [ref=e2918]:
+                        - generic [ref=e2919]: core
+                        - generic [ref=e2920]: core
+                        - generic [ref=e2921]: Resistance Band
+                        - generic [ref=e2922]: Low Impact
+                    - button "Band Pass-Through recovery flexibility Resistance Band Low Impact" [ref=e2923] [cursor=pointer]:
+                      - generic [ref=e2924]: Band Pass-Through
+                      - generic [ref=e2925]:
+                        - generic [ref=e2926]: recovery
+                        - generic [ref=e2927]: flexibility
+                        - generic [ref=e2928]: Resistance Band
+                        - generic [ref=e2929]: Low Impact
+                    - button "Band Pull-Apart shoulders isolation Resistance Band Low Impact" [ref=e2930] [cursor=pointer]:
+                      - generic [ref=e2931]: Band Pull-Apart
+                      - generic [ref=e2932]:
+                        - generic [ref=e2933]: shoulders
+                        - generic [ref=e2934]: isolation
+                        - generic [ref=e2935]: Resistance Band
+                        - generic [ref=e2936]: Low Impact
+                    - button "Band Pull-Through legs compound Resistance Band Medium Impact" [ref=e2937] [cursor=pointer]:
+                      - generic [ref=e2938]: Band Pull-Through
+                      - generic [ref=e2939]:
+                        - generic [ref=e2940]: legs
+                        - generic [ref=e2941]: compound
+                        - generic [ref=e2942]: Resistance Band
+                        - generic [ref=e2943]: Medium Impact
+                    - button "Band-Resisted Deadlift legs compound Barbell, Resistance Band High Impact" [ref=e2944] [cursor=pointer]:
+                      - generic [ref=e2945]: Band-Resisted Deadlift
+                      - generic [ref=e2946]:
+                        - generic [ref=e2947]: legs
+                        - generic [ref=e2948]: compound
+                        - generic [ref=e2949]: Barbell, Resistance Band
+                        - generic [ref=e2950]: High Impact
+                    - button "Band-Resisted Push-Up chest calisthenics Resistance Band Medium Impact" [ref=e2951] [cursor=pointer]:
+                      - generic [ref=e2952]: Band-Resisted Push-Up
+                      - generic [ref=e2953]:
+                        - generic [ref=e2954]: chest
+                        - generic [ref=e2955]: calisthenics
+                        - generic [ref=e2956]: Resistance Band
+                        - generic [ref=e2957]: Medium Impact
+                    - button "Band Resisted Sprint legs compound Resistance Band High Impact" [ref=e2958] [cursor=pointer]:
+                      - generic [ref=e2959]: Band Resisted Sprint
+                      - generic [ref=e2960]:
+                        - generic [ref=e2961]: legs
+                        - generic [ref=e2962]: compound
+                        - generic [ref=e2963]: Resistance Band
+                        - generic [ref=e2964]: High Impact
+                    - button "Band Reverse Fly shoulders isolation Resistance Band Low Impact" [ref=e2965] [cursor=pointer]:
+                      - generic [ref=e2966]: Band Reverse Fly
+                      - generic [ref=e2967]:
+                        - generic [ref=e2968]: shoulders
+                        - generic [ref=e2969]: isolation
+                        - generic [ref=e2970]: Resistance Band
+                        - generic [ref=e2971]: Low Impact
+                    - button "Band Reverse Lunge legs compound Resistance Band Medium Impact" [ref=e2972] [cursor=pointer]:
+                      - generic [ref=e2973]: Band Reverse Lunge
+                      - generic [ref=e2974]:
+                        - generic [ref=e2975]: legs
+                        - generic [ref=e2976]: compound
+                        - generic [ref=e2977]: Resistance Band
+                        - generic [ref=e2978]: Medium Impact
+                    - button "Band Shoulder External Rotation shoulders isolation Resistance Band Low Impact" [ref=e2979] [cursor=pointer]:
+                      - generic [ref=e2980]: Band Shoulder External Rotation
+                      - generic [ref=e2981]:
+                        - generic [ref=e2982]: shoulders
+                        - generic [ref=e2983]: isolation
+                        - generic [ref=e2984]: Resistance Band
+                        - generic [ref=e2985]: Low Impact
+                    - button "Band Shoulder Internal Rotation shoulders isolation Resistance Band Low Impact" [ref=e2986] [cursor=pointer]:
+                      - generic [ref=e2987]: Band Shoulder Internal Rotation
+                      - generic [ref=e2988]:
+                        - generic [ref=e2989]: shoulders
+                        - generic [ref=e2990]: isolation
+                        - generic [ref=e2991]: Resistance Band
+                        - generic [ref=e2992]: Low Impact
+                    - button "Band Shoulder Press shoulders compound Resistance Band Medium Impact" [ref=e2993] [cursor=pointer]:
+                      - generic [ref=e2994]: Band Shoulder Press
+                      - generic [ref=e2995]:
+                        - generic [ref=e2996]: shoulders
+                        - generic [ref=e2997]: compound
+                        - generic [ref=e2998]: Resistance Band
+                        - generic [ref=e2999]: Medium Impact
+                    - button "Band Single-Leg Romanian Deadlift legs compound Resistance Band Medium Impact" [ref=e3000] [cursor=pointer]:
+                      - generic [ref=e3001]: Band Single-Leg Romanian Deadlift
+                      - generic [ref=e3002]:
+                        - generic [ref=e3003]: legs
+                        - generic [ref=e3004]: compound
+                        - generic [ref=e3005]: Resistance Band
+                        - generic [ref=e3006]: Medium Impact
+                    - button "Band Squat legs compound Resistance Band Low Impact" [ref=e3007] [cursor=pointer]:
+                      - generic [ref=e3008]: Band Squat
+                      - generic [ref=e3009]:
+                        - generic [ref=e3010]: legs
+                        - generic [ref=e3011]: compound
+                        - generic [ref=e3012]: Resistance Band
+                        - generic [ref=e3013]: Low Impact
+                    - button "Band Standing Hip Abduction legs isolation Resistance Band Low Impact" [ref=e3014] [cursor=pointer]:
+                      - generic [ref=e3015]: Band Standing Hip Abduction
+                      - generic [ref=e3016]:
+                        - generic [ref=e3017]: legs
+                        - generic [ref=e3018]: isolation
+                        - generic [ref=e3019]: Resistance Band
+                        - generic [ref=e3020]: Low Impact
+                    - button "Band Tricep Extension arms isolation Resistance Band Low Impact" [ref=e3021] [cursor=pointer]:
+                      - generic [ref=e3022]: Band Tricep Extension
+                      - generic [ref=e3023]:
+                        - generic [ref=e3024]: arms
+                        - generic [ref=e3025]: isolation
+                        - generic [ref=e3026]: Resistance Band
+                        - generic [ref=e3027]: Low Impact
+                    - button "Band Upright Row back compound Resistance Band Low Impact" [ref=e3028] [cursor=pointer]:
+                      - generic [ref=e3029]: Band Upright Row
+                      - generic [ref=e3030]:
+                        - generic [ref=e3031]: back
+                        - generic [ref=e3032]: compound
+                        - generic [ref=e3033]: Resistance Band
+                        - generic [ref=e3034]: Low Impact
+                    - button "Band Woodchop core compound Resistance Band Medium Impact" [ref=e3035] [cursor=pointer]:
+                      - generic [ref=e3036]: Band Woodchop
+                      - generic [ref=e3037]:
+                        - generic [ref=e3038]: core
+                        - generic [ref=e3039]: compound
+                        - generic [ref=e3040]: Resistance Band
+                        - generic [ref=e3041]: Medium Impact
+                    - button "Barbell Back Squat legs compound Bodyweight Medium Impact" [ref=e3042] [cursor=pointer]:
+                      - generic [ref=e3043]: Barbell Back Squat
+                      - generic [ref=e3044]:
+                        - generic [ref=e3045]: legs
+                        - generic [ref=e3046]: compound
+                        - generic [ref=e3047]: Bodyweight
+                        - generic [ref=e3048]: Medium Impact
+                    - button "Barbell Bear Complex full_body compound Barbell High Impact" [ref=e3049] [cursor=pointer]:
+                      - generic [ref=e3050]: Barbell Bear Complex
+                      - generic [ref=e3051]:
+                        - generic [ref=e3052]: full_body
+                        - generic [ref=e3053]: compound
+                        - generic [ref=e3054]: Barbell
+                        - generic [ref=e3055]: High Impact
+                    - button "Barbell Bulgarian Split Squat legs compound Barbell, Bench High Impact" [ref=e3056] [cursor=pointer]:
+                      - generic [ref=e3057]: Barbell Bulgarian Split Squat
+                      - generic [ref=e3058]:
+                        - generic [ref=e3059]: legs
+                        - generic [ref=e3060]: compound
+                        - generic [ref=e3061]: Barbell, Bench
+                        - generic [ref=e3062]: High Impact
+                    - button "Barbell Clean legs compound Barbell High Impact" [ref=e3063] [cursor=pointer]:
+                      - generic [ref=e3064]: Barbell Clean
+                      - generic [ref=e3065]:
+                        - generic [ref=e3066]: legs
+                        - generic [ref=e3067]: compound
+                        - generic [ref=e3068]: Barbell
+                        - generic [ref=e3069]: High Impact
+                    - button "Barbell Complex full_body compound Barbell High Impact" [ref=e3070] [cursor=pointer]:
+                      - generic [ref=e3071]: Barbell Complex
+                      - generic [ref=e3072]:
+                        - generic [ref=e3073]: full_body
+                        - generic [ref=e3074]: compound
+                        - generic [ref=e3075]: Barbell
+                        - generic [ref=e3076]: High Impact
+                    - button "Barbell Drag Curl arms isolation Barbell Medium Impact" [ref=e3077] [cursor=pointer]:
+                      - generic [ref=e3078]: Barbell Drag Curl
+                      - generic [ref=e3079]:
+                        - generic [ref=e3080]: arms
+                        - generic [ref=e3081]: isolation
+                        - generic [ref=e3082]: Barbell
+                        - generic [ref=e3083]: Medium Impact
+                    - button "Barbell Floor Press chest compound Barbell Medium Impact" [ref=e3084] [cursor=pointer]:
+                      - generic [ref=e3085]: Barbell Floor Press
+                      - generic [ref=e3086]:
+                        - generic [ref=e3087]: chest
+                        - generic [ref=e3088]: compound
+                        - generic [ref=e3089]: Barbell
+                        - generic [ref=e3090]: Medium Impact
+                    - button "Barbell French Press arms isolation EZ Curl Bar Medium Impact" [ref=e3091] [cursor=pointer]:
+                      - generic [ref=e3092]: Barbell French Press
+                      - generic [ref=e3093]:
+                        - generic [ref=e3094]: arms
+                        - generic [ref=e3095]: isolation
+                        - generic [ref=e3096]: EZ Curl Bar
+                        - generic [ref=e3097]: Medium Impact
+                    - button "Barbell Front Rack Lunge legs compound Barbell Medium Impact" [ref=e3098] [cursor=pointer]:
+                      - generic [ref=e3099]: Barbell Front Rack Lunge
+                      - generic [ref=e3100]:
+                        - generic [ref=e3101]: legs
+                        - generic [ref=e3102]: compound
+                        - generic [ref=e3103]: Barbell
+                        - generic [ref=e3104]: Medium Impact
+                    - button "Barbell Good Morning legs compound Barbell Medium Impact" [ref=e3105] [cursor=pointer]:
+                      - generic [ref=e3106]: Barbell Good Morning
+                      - generic [ref=e3107]:
+                        - generic [ref=e3108]: legs
+                        - generic [ref=e3109]: compound
+                        - generic [ref=e3110]: Barbell
+                        - generic [ref=e3111]: Medium Impact
+                    - button "Barbell Hang Clean to Thruster full_body compound Barbell High Impact" [ref=e3112] [cursor=pointer]:
+                      - generic [ref=e3113]: Barbell Hang Clean to Thruster
+                      - generic [ref=e3114]:
+                        - generic [ref=e3115]: full_body
+                        - generic [ref=e3116]: compound
+                        - generic [ref=e3117]: Barbell
+                        - generic [ref=e3118]: High Impact
+                    - button "Barbell High Pull shoulders compound Barbell Medium Impact" [ref=e3119] [cursor=pointer]:
+                      - generic [ref=e3120]: Barbell High Pull
+                      - generic [ref=e3121]:
+                        - generic [ref=e3122]: shoulders
+                        - generic [ref=e3123]: compound
+                        - generic [ref=e3124]: Barbell
+                        - generic [ref=e3125]: Medium Impact
+                    - button "Barbell Hip Bridge legs compound Barbell Medium Impact" [ref=e3126] [cursor=pointer]:
+                      - generic [ref=e3127]: Barbell Hip Bridge
+                      - generic [ref=e3128]:
+                        - generic [ref=e3129]: legs
+                        - generic [ref=e3130]: compound
+                        - generic [ref=e3131]: Barbell
+                        - generic [ref=e3132]: Medium Impact
+                    - button "Barbell Hip Thrust legs compound Barbell, Bench Medium Impact" [ref=e3133] [cursor=pointer]:
+                      - generic [ref=e3134]: Barbell Hip Thrust
+                      - generic [ref=e3135]:
+                        - generic [ref=e3136]: legs
+                        - generic [ref=e3137]: compound
+                        - generic [ref=e3138]: Barbell, Bench
+                        - generic [ref=e3139]: Medium Impact
+                    - button "Barbell Landmine Row back compound Barbell, Landmine Medium Impact" [ref=e3140] [cursor=pointer]:
+                      - generic [ref=e3141]: Barbell Landmine Row
+                      - generic [ref=e3142]:
+                        - generic [ref=e3143]: back
+                        - generic [ref=e3144]: compound
+                        - generic [ref=e3145]: Barbell, Landmine
+                        - generic [ref=e3146]: Medium Impact
+                    - button "Barbell Meadows Row back compound Barbell, Landmine Medium Impact" [ref=e3147] [cursor=pointer]:
+                      - generic [ref=e3148]: Barbell Meadows Row
+                      - generic [ref=e3149]:
+                        - generic [ref=e3150]: back
+                        - generic [ref=e3151]: compound
+                        - generic [ref=e3152]: Barbell, Landmine
+                        - generic [ref=e3153]: Medium Impact
+                    - button "Barbell Reverse Curl arms isolation Barbell Medium Impact" [ref=e3154] [cursor=pointer]:
+                      - generic [ref=e3155]: Barbell Reverse Curl
+                      - generic [ref=e3156]:
+                        - generic [ref=e3157]: arms
+                        - generic [ref=e3158]: isolation
+                        - generic [ref=e3159]: Barbell
+                        - generic [ref=e3160]: Medium Impact
+                    - button "Barbell Reverse Wrist Curl arms isolation Barbell Low Impact" [ref=e3161] [cursor=pointer]:
+                      - generic [ref=e3162]: Barbell Reverse Wrist Curl
+                      - generic [ref=e3163]:
+                        - generic [ref=e3164]: arms
+                        - generic [ref=e3165]: isolation
+                        - generic [ref=e3166]: Barbell
+                        - generic [ref=e3167]: Low Impact
+                    - button "Barbell Rollout core core Barbell Medium Impact" [ref=e3168] [cursor=pointer]:
+                      - generic [ref=e3169]: Barbell Rollout
+                      - generic [ref=e3170]:
+                        - generic [ref=e3171]: core
+                        - generic [ref=e3172]: core
+                        - generic [ref=e3173]: Barbell
+                        - generic [ref=e3174]: Medium Impact
+                    - button "Barbell Shrug back isolation Barbell Medium Impact" [ref=e3175] [cursor=pointer]:
+                      - generic [ref=e3176]: Barbell Shrug
+                      - generic [ref=e3177]:
+                        - generic [ref=e3178]: back
+                        - generic [ref=e3179]: isolation
+                        - generic [ref=e3180]: Barbell
+                        - generic [ref=e3181]: Medium Impact
+                    - button "Barbell Skull Crusher arms isolation EZ Curl Bar, Bench Medium Impact" [ref=e3182] [cursor=pointer]:
+                      - generic [ref=e3183]: Barbell Skull Crusher
+                      - generic [ref=e3184]:
+                        - generic [ref=e3185]: arms
+                        - generic [ref=e3186]: isolation
+                        - generic [ref=e3187]: EZ Curl Bar, Bench
+                        - generic [ref=e3188]: Medium Impact
+                    - button "Barbell Snatch legs compound Barbell High Impact" [ref=e3189] [cursor=pointer]:
+                      - generic [ref=e3190]: Barbell Snatch
+                      - generic [ref=e3191]:
+                        - generic [ref=e3192]: legs
+                        - generic [ref=e3193]: compound
+                        - generic [ref=e3194]: Barbell
+                        - generic [ref=e3195]: High Impact
+                    - button "Barbell Squat Jump legs compound Barbell High Impact" [ref=e3196] [cursor=pointer]:
+                      - generic [ref=e3197]: Barbell Squat Jump
+                      - generic [ref=e3198]:
+                        - generic [ref=e3199]: legs
+                        - generic [ref=e3200]: compound
+                        - generic [ref=e3201]: Barbell
+                        - generic [ref=e3202]: High Impact
+                    - button "Barbell Thruster full_body compound Barbell High Impact" [ref=e3203] [cursor=pointer]:
+                      - generic [ref=e3204]: Barbell Thruster
+                      - generic [ref=e3205]:
+                        - generic [ref=e3206]: full_body
+                        - generic [ref=e3207]: compound
+                        - generic [ref=e3208]: Barbell
+                        - generic [ref=e3209]: High Impact
+                    - button "Barbell Thruster from Rack full_body compound Barbell, Squat Rack High Impact" [ref=e3210] [cursor=pointer]:
+                      - generic [ref=e3211]: Barbell Thruster from Rack
+                      - generic [ref=e3212]:
+                        - generic [ref=e3213]: full_body
+                        - generic [ref=e3214]: compound
+                        - generic [ref=e3215]: Barbell, Squat Rack
+                        - generic [ref=e3216]: High Impact
+                    - button "Barbell Upright Row shoulders compound Barbell Medium Impact" [ref=e3217] [cursor=pointer]:
+                      - generic [ref=e3218]: Barbell Upright Row
+                      - generic [ref=e3219]:
+                        - generic [ref=e3220]: shoulders
+                        - generic [ref=e3221]: compound
+                        - generic [ref=e3222]: Barbell
+                        - generic [ref=e3223]: Medium Impact
+                    - button "Barbell Walking Lunge legs compound Barbell Medium Impact" [ref=e3224] [cursor=pointer]:
+                      - generic [ref=e3225]: Barbell Walking Lunge
+                      - generic [ref=e3226]:
+                        - generic [ref=e3227]: legs
+                        - generic [ref=e3228]: compound
+                        - generic [ref=e3229]: Barbell
+                        - generic [ref=e3230]: Medium Impact
+                    - button "Barbell Wrist Curl arms isolation Barbell Low Impact" [ref=e3231] [cursor=pointer]:
+                      - generic [ref=e3232]: Barbell Wrist Curl
+                      - generic [ref=e3233]:
+                        - generic [ref=e3234]: arms
+                        - generic [ref=e3235]: isolation
+                        - generic [ref=e3236]: Barbell
+                        - generic [ref=e3237]: Low Impact
+                    - button "Basketball Drills cardio compound Bodyweight High Impact" [ref=e3238] [cursor=pointer]:
+                      - generic [ref=e3239]: Basketball Drills
+                      - generic [ref=e3240]:
+                        - generic [ref=e3241]: cardio
+                        - generic [ref=e3242]: compound
+                        - generic [ref=e3243]: Bodyweight
+                        - generic [ref=e3244]: High Impact
+                    - button "Battle Rope Alternating Waves shoulders compound Battle Ropes Medium Impact" [ref=e3245] [cursor=pointer]:
+                      - generic [ref=e3246]: Battle Rope Alternating Waves
+                      - generic [ref=e3247]:
+                        - generic [ref=e3248]: shoulders
+                        - generic [ref=e3249]: compound
+                        - generic [ref=e3250]: Battle Ropes
+                        - generic [ref=e3251]: Medium Impact
+                    - button "Battle Rope Circle cardio compound Battle Ropes Medium Impact" [ref=e3252] [cursor=pointer]:
+                      - generic [ref=e3253]: Battle Rope Circle
+                      - generic [ref=e3254]:
+                        - generic [ref=e3255]: cardio
+                        - generic [ref=e3256]: compound
+                        - generic [ref=e3257]: Battle Ropes
+                        - generic [ref=e3258]: Medium Impact
+                    - button "Battle Rope Slam cardio compound Battle Ropes Medium Impact" [ref=e3259] [cursor=pointer]:
+                      - generic [ref=e3260]: Battle Rope Slam
+                      - generic [ref=e3261]:
+                        - generic [ref=e3262]: cardio
+                        - generic [ref=e3263]: compound
+                        - generic [ref=e3264]: Battle Ropes
+                        - generic [ref=e3265]: Medium Impact
+                    - button "Bayesian Cable Curl arms isolation Cable Machine Medium Impact" [ref=e3266] [cursor=pointer]:
+                      - generic [ref=e3267]: Bayesian Cable Curl
+                      - generic [ref=e3268]:
+                        - generic [ref=e3269]: arms
+                        - generic [ref=e3270]: isolation
+                        - generic [ref=e3271]: Cable Machine
+                        - generic [ref=e3272]: Medium Impact
+                    - button "Bear Complex full_body compound Barbell High Impact" [ref=e3273] [cursor=pointer]:
+                      - generic [ref=e3274]: Bear Complex
+                      - generic [ref=e3275]:
+                        - generic [ref=e3276]: full_body
+                        - generic [ref=e3277]: compound
+                        - generic [ref=e3278]: Barbell
+                        - generic [ref=e3279]: High Impact
+                    - button "Bear Crawl core stability Bodyweight Low Impact" [ref=e3280] [cursor=pointer]:
+                      - generic [ref=e3281]: Bear Crawl
+                      - generic [ref=e3282]:
+                        - generic [ref=e3283]: core
+                        - generic [ref=e3284]: stability
+                        - generic [ref=e3285]: Bodyweight
+                        - generic [ref=e3286]: Low Impact
+                    - button "Bear Crawl Sprint cardio calisthenics Bodyweight Medium Impact" [ref=e3287] [cursor=pointer]:
+                      - generic [ref=e3288]: Bear Crawl Sprint
+                      - generic [ref=e3289]:
+                        - generic [ref=e3290]: cardio
+                        - generic [ref=e3291]: calisthenics
+                        - generic [ref=e3292]: Bodyweight
+                        - generic [ref=e3293]: Medium Impact
+                    - button "Bear Crawl with Band core core Resistance Band Medium Impact" [ref=e3294] [cursor=pointer]:
+                      - generic [ref=e3295]: Bear Crawl with Band
+                      - generic [ref=e3296]:
+                        - generic [ref=e3297]: core
+                        - generic [ref=e3298]: core
+                        - generic [ref=e3299]: Resistance Band
+                        - generic [ref=e3300]: Medium Impact
+                    - button "Behind-the-Back Cable Curl arms isolation Cable Machine Medium Impact" [ref=e3301] [cursor=pointer]:
+                      - generic [ref=e3302]: Behind-the-Back Cable Curl
+                      - generic [ref=e3303]:
+                        - generic [ref=e3304]: arms
+                        - generic [ref=e3305]: isolation
+                        - generic [ref=e3306]: Cable Machine
+                        - generic [ref=e3307]: Medium Impact
+                    - button "Behind-the-Back Lateral Raise shoulders isolation Cable Machine Medium Impact" [ref=e3308] [cursor=pointer]:
+                      - generic [ref=e3309]: Behind-the-Back Lateral Raise
+                      - generic [ref=e3310]:
+                        - generic [ref=e3311]: shoulders
+                        - generic [ref=e3312]: isolation
+                        - generic [ref=e3313]: Cable Machine
+                        - generic [ref=e3314]: Medium Impact
+                    - button "Behind the Neck Press shoulders compound Barbell High Impact" [ref=e3315] [cursor=pointer]:
+                      - generic [ref=e3316]: Behind the Neck Press
+                      - generic [ref=e3317]:
+                        - generic [ref=e3318]: shoulders
+                        - generic [ref=e3319]: compound
+                        - generic [ref=e3320]: Barbell
+                        - generic [ref=e3321]: High Impact
+                    - button "Belt Kicks cardio compound Bodyweight Medium Impact" [ref=e3322] [cursor=pointer]:
+                      - generic [ref=e3323]: Belt Kicks
+                      - generic [ref=e3324]:
+                        - generic [ref=e3325]: cardio
+                        - generic [ref=e3326]: compound
+                        - generic [ref=e3327]: Bodyweight
+                        - generic [ref=e3328]: Medium Impact
+                    - button "Belt Squat legs compound Belt Squat Machine Medium Impact" [ref=e3329] [cursor=pointer]:
+                      - generic [ref=e3330]: Belt Squat
+                      - generic [ref=e3331]:
+                        - generic [ref=e3332]: legs
+                        - generic [ref=e3333]: compound
+                        - generic [ref=e3334]: Belt Squat Machine
+                        - generic [ref=e3335]: Medium Impact
+                    - button "Bench Dip arms compound Bench Medium Impact" [ref=e3336] [cursor=pointer]:
+                      - generic [ref=e3337]: Bench Dip
+                      - generic [ref=e3338]:
+                        - generic [ref=e3339]: arms
+                        - generic [ref=e3340]: compound
+                        - generic [ref=e3341]: Bench
+                        - generic [ref=e3342]: Medium Impact
+                    - button "Bicycle Crunch core core Bodyweight Low Impact" [ref=e3343] [cursor=pointer]:
+                      - generic [ref=e3344]: Bicycle Crunch
+                      - generic [ref=e3345]:
+                        - generic [ref=e3346]: core
+                        - generic [ref=e3347]: core
+                        - generic [ref=e3348]: Bodyweight
+                        - generic [ref=e3349]: Low Impact
+                    - button "Bicycle Kick core compound Bodyweight Medium Impact" [ref=e3350] [cursor=pointer]:
+                      - generic [ref=e3351]: Bicycle Kick
+                      - generic [ref=e3352]:
+                        - generic [ref=e3353]: core
+                        - generic [ref=e3354]: compound
+                        - generic [ref=e3355]: Bodyweight
+                        - generic [ref=e3356]: Medium Impact
+                    - button "Bodyweight Hyperextension back isolation Hyperextension Bench Medium Impact" [ref=e3357] [cursor=pointer]:
+                      - generic [ref=e3358]: Bodyweight Hyperextension
+                      - generic [ref=e3359]:
+                        - generic [ref=e3360]: back
+                        - generic [ref=e3361]: isolation
+                        - generic [ref=e3362]: Hyperextension Bench
+                        - generic [ref=e3363]: Medium Impact
+                    - button "Bodyweight Step-Up legs compound Bench Low Impact" [ref=e3364] [cursor=pointer]:
+                      - generic [ref=e3365]: Bodyweight Step-Up
+                      - generic [ref=e3366]:
+                        - generic [ref=e3367]: legs
+                        - generic [ref=e3368]: compound
+                        - generic [ref=e3369]: Bench
+                        - generic [ref=e3370]: Low Impact
+                    - button "Bodyweight Tricep Dip arms compound Dip Station Medium Impact" [ref=e3371] [cursor=pointer]:
+                      - generic [ref=e3372]: Bodyweight Tricep Dip
+                      - generic [ref=e3373]:
+                        - generic [ref=e3374]: arms
+                        - generic [ref=e3375]: compound
+                        - generic [ref=e3376]: Dip Station
+                        - generic [ref=e3377]: Medium Impact
+                    - button "Booty Shake legs isolation Bodyweight Low Impact" [ref=e3378] [cursor=pointer]:
+                      - generic [ref=e3379]: Booty Shake
+                      - generic [ref=e3380]:
+                        - generic [ref=e3381]: legs
+                        - generic [ref=e3382]: isolation
+                        - generic [ref=e3383]: Bodyweight
+                        - generic [ref=e3384]: Low Impact
+                    - button "BOSU Ball Lunge legs stability BOSU Ball Low Impact" [ref=e3385] [cursor=pointer]:
+                      - generic [ref=e3386]: BOSU Ball Lunge
+                      - generic [ref=e3387]:
+                        - generic [ref=e3388]: legs
+                        - generic [ref=e3389]: stability
+                        - generic [ref=e3390]: BOSU Ball
+                        - generic [ref=e3391]: Low Impact
+                    - button "BOSU Ball Push-Up chest stability BOSU Ball Low Impact" [ref=e3392] [cursor=pointer]:
+                      - generic [ref=e3393]: BOSU Ball Push-Up
+                      - generic [ref=e3394]:
+                        - generic [ref=e3395]: chest
+                        - generic [ref=e3396]: stability
+                        - generic [ref=e3397]: BOSU Ball
+                        - generic [ref=e3398]: Low Impact
+                    - button "BOSU Ball Single-Leg Stand core balance BOSU Ball Low Impact" [ref=e3399] [cursor=pointer]:
+                      - generic [ref=e3400]: BOSU Ball Single-Leg Stand
+                      - generic [ref=e3401]:
+                        - generic [ref=e3402]: core
+                        - generic [ref=e3403]: balance
+                        - generic [ref=e3404]: BOSU Ball
+                        - generic [ref=e3405]: Low Impact
+                    - button "BOSU Ball Squat legs balance BOSU Ball Low Impact" [ref=e3406] [cursor=pointer]:
+                      - generic [ref=e3407]: BOSU Ball Squat
+                      - generic [ref=e3408]:
+                        - generic [ref=e3409]: legs
+                        - generic [ref=e3410]: balance
+                        - generic [ref=e3411]: BOSU Ball
+                        - generic [ref=e3412]: Low Impact
+                    - button "BOSU Bird Dog core stability BOSU Ball Low Impact" [ref=e3413] [cursor=pointer]:
+                      - generic [ref=e3414]: BOSU Bird Dog
+                      - generic [ref=e3415]:
+                        - generic [ref=e3416]: core
+                        - generic [ref=e3417]: stability
+                        - generic [ref=e3418]: BOSU Ball
+                        - generic [ref=e3419]: Low Impact
+                    - button "BOSU Burpee legs calisthenics BOSU Ball High Impact" [ref=e3420] [cursor=pointer]:
+                      - generic [ref=e3421]: BOSU Burpee
+                      - generic [ref=e3422]:
+                        - generic [ref=e3423]: legs
+                        - generic [ref=e3424]: calisthenics
+                        - generic [ref=e3425]: BOSU Ball
+                        - generic [ref=e3426]: High Impact
+                    - button "BOSU Calf Raise legs isolation BOSU Ball Low Impact" [ref=e3427] [cursor=pointer]:
+                      - generic [ref=e3428]: BOSU Calf Raise
+                      - generic [ref=e3429]:
+                        - generic [ref=e3430]: legs
+                        - generic [ref=e3431]: isolation
+                        - generic [ref=e3432]: BOSU Ball
+                        - generic [ref=e3433]: Low Impact
+                    - button "BOSU Crunch core core BOSU Ball Low Impact" [ref=e3434] [cursor=pointer]:
+                      - generic [ref=e3435]: BOSU Crunch
+                      - generic [ref=e3436]:
+                        - generic [ref=e3437]: core
+                        - generic [ref=e3438]: core
+                        - generic [ref=e3439]: BOSU Ball
+                        - generic [ref=e3440]: Low Impact
+                    - button "BOSU Dead Bug core core BOSU Ball Medium Impact" [ref=e3441] [cursor=pointer]:
+                      - generic [ref=e3442]: BOSU Dead Bug
+                      - generic [ref=e3443]:
+                        - generic [ref=e3444]: core
+                        - generic [ref=e3445]: core
+                        - generic [ref=e3446]: BOSU Ball
+                        - generic [ref=e3447]: Medium Impact
+                    - button "BOSU Lunge legs compound BOSU Ball Medium Impact" [ref=e3448] [cursor=pointer]:
+                      - generic [ref=e3449]: BOSU Lunge
+                      - generic [ref=e3450]:
+                        - generic [ref=e3451]: legs
+                        - generic [ref=e3452]: compound
+                        - generic [ref=e3453]: BOSU Ball
+                        - generic [ref=e3454]: Medium Impact
+                    - button "BOSU Mountain Climber core calisthenics BOSU Ball Medium Impact" [ref=e3455] [cursor=pointer]:
+                      - generic [ref=e3456]: BOSU Mountain Climber
+                      - generic [ref=e3457]:
+                        - generic [ref=e3458]: core
+                        - generic [ref=e3459]: calisthenics
+                        - generic [ref=e3460]: BOSU Ball
+                        - generic [ref=e3461]: Medium Impact
+                    - button "BOSU Pistol Squat Assist legs compound BOSU Ball High Impact" [ref=e3462] [cursor=pointer]:
+                      - generic [ref=e3463]: BOSU Pistol Squat Assist
+                      - generic [ref=e3464]:
+                        - generic [ref=e3465]: legs
+                        - generic [ref=e3466]: compound
+                        - generic [ref=e3467]: BOSU Ball
+                        - generic [ref=e3468]: High Impact
+                    - button "BOSU Plank core core BOSU Ball Medium Impact" [ref=e3469] [cursor=pointer]:
+                      - generic [ref=e3470]: BOSU Plank
+                      - generic [ref=e3471]:
+                        - generic [ref=e3472]: core
+                        - generic [ref=e3473]: core
+                        - generic [ref=e3474]: BOSU Ball
+                        - generic [ref=e3475]: Medium Impact
+                    - button "BOSU Plank to Push-Up core compound BOSU Ball Medium Impact" [ref=e3476] [cursor=pointer]:
+                      - generic [ref=e3477]: BOSU Plank to Push-Up
+                      - generic [ref=e3478]:
+                        - generic [ref=e3479]: core
+                        - generic [ref=e3480]: compound
+                        - generic [ref=e3481]: BOSU Ball
+                        - generic [ref=e3482]: Medium Impact
+                    - button "BOSU Push-Up chest compound BOSU Ball Medium Impact" [ref=e3483] [cursor=pointer]:
+                      - generic [ref=e3484]: BOSU Push-Up
+                      - generic [ref=e3485]:
+                        - generic [ref=e3486]: chest
+                        - generic [ref=e3487]: compound
+                        - generic [ref=e3488]: BOSU Ball
+                        - generic [ref=e3489]: Medium Impact
+                    - button "BOSU Reverse Lunge legs compound BOSU Ball Medium Impact" [ref=e3490] [cursor=pointer]:
+                      - generic [ref=e3491]: BOSU Reverse Lunge
+                      - generic [ref=e3492]:
+                        - generic [ref=e3493]: legs
+                        - generic [ref=e3494]: compound
+                        - generic [ref=e3495]: BOSU Ball
+                        - generic [ref=e3496]: Medium Impact
+                    - button "BOSU Side Lunge legs compound BOSU Ball Medium Impact" [ref=e3497] [cursor=pointer]:
+                      - generic [ref=e3498]: BOSU Side Lunge
+                      - generic [ref=e3499]:
+                        - generic [ref=e3500]: legs
+                        - generic [ref=e3501]: compound
+                        - generic [ref=e3502]: BOSU Ball
+                        - generic [ref=e3503]: Medium Impact
+                    - button "BOSU Side Plank core core BOSU Ball Medium Impact" [ref=e3504] [cursor=pointer]:
+                      - generic [ref=e3505]: BOSU Side Plank
+                      - generic [ref=e3506]:
+                        - generic [ref=e3507]: core
+                        - generic [ref=e3508]: core
+                        - generic [ref=e3509]: BOSU Ball
+                        - generic [ref=e3510]: Medium Impact
+                    - button "BOSU Single-Leg Balance legs balance BOSU Ball Low Impact" [ref=e3511] [cursor=pointer]:
+                      - generic [ref=e3512]: BOSU Single-Leg Balance
+                      - generic [ref=e3513]:
+                        - generic [ref=e3514]: legs
+                        - generic [ref=e3515]: balance
+                        - generic [ref=e3516]: BOSU Ball
+                        - generic [ref=e3517]: Low Impact
+                    - button "BOSU Squat legs compound BOSU Ball Medium Impact" [ref=e3518] [cursor=pointer]:
+                      - generic [ref=e3519]: BOSU Squat
+                      - generic [ref=e3520]:
+                        - generic [ref=e3521]: legs
+                        - generic [ref=e3522]: compound
+                        - generic [ref=e3523]: BOSU Ball
+                        - generic [ref=e3524]: Medium Impact
+                    - button "BOSU Step-Up legs compound BOSU Ball Low Impact" [ref=e3525] [cursor=pointer]:
+                      - generic [ref=e3526]: BOSU Step-Up
+                      - generic [ref=e3527]:
+                        - generic [ref=e3528]: legs
+                        - generic [ref=e3529]: compound
+                        - generic [ref=e3530]: BOSU Ball
+                        - generic [ref=e3531]: Low Impact
+                    - button "Bottoms-Up Carry arms stability Kettlebell Low Impact" [ref=e3532] [cursor=pointer]:
+                      - generic [ref=e3533]: Bottoms-Up Carry
+                      - generic [ref=e3534]:
+                        - generic [ref=e3535]: arms
+                        - generic [ref=e3536]: stability
+                        - generic [ref=e3537]: Kettlebell
+                        - generic [ref=e3538]: Low Impact
+                    - button "Bottoms-Up Kettlebell Press shoulders compound Kettlebell Medium Impact" [ref=e3539] [cursor=pointer]:
+                      - generic [ref=e3540]: Bottoms-Up Kettlebell Press
+                      - generic [ref=e3541]:
+                        - generic [ref=e3542]: shoulders
+                        - generic [ref=e3543]: compound
+                        - generic [ref=e3544]: Kettlebell
+                        - generic [ref=e3545]: Medium Impact
+                    - button "Bounding cardio compound Bodyweight Medium Impact" [ref=e3546] [cursor=pointer]:
+                      - generic [ref=e3547]: Bounding
+                      - generic [ref=e3548]:
+                        - generic [ref=e3549]: cardio
+                        - generic [ref=e3550]: compound
+                        - generic [ref=e3551]: Bodyweight
+                        - generic [ref=e3552]: Medium Impact
+                    - button "Box Jump legs compound Plyo Box Medium Impact" [ref=e3553] [cursor=pointer]:
+                      - generic [ref=e3554]: Box Jump
+                      - generic [ref=e3555]:
+                        - generic [ref=e3556]: legs
+                        - generic [ref=e3557]: compound
+                        - generic [ref=e3558]: Plyo Box
+                        - generic [ref=e3559]: Medium Impact
+                    - button "Box Squat legs compound Barbell, Box Medium Impact" [ref=e3560] [cursor=pointer]:
+                      - generic [ref=e3561]: Box Squat
+                      - generic [ref=e3562]:
+                        - generic [ref=e3563]: legs
+                        - generic [ref=e3564]: compound
+                        - generic [ref=e3565]: Barbell, Box
+                        - generic [ref=e3566]: Medium Impact
+                    - button "Box Step-Up Cardio cardio calisthenics Plyo Box Low Impact" [ref=e3567] [cursor=pointer]:
+                      - generic [ref=e3568]: Box Step-Up Cardio
+                      - generic [ref=e3569]:
+                        - generic [ref=e3570]: cardio
+                        - generic [ref=e3571]: calisthenics
+                        - generic [ref=e3572]: Plyo Box
+                        - generic [ref=e3573]: Low Impact
+                    - button "Bradford Press shoulders compound Barbell Medium Impact" [ref=e3574] [cursor=pointer]:
+                      - generic [ref=e3575]: Bradford Press
+                      - generic [ref=e3576]:
+                        - generic [ref=e3577]: shoulders
+                        - generic [ref=e3578]: compound
+                        - generic [ref=e3579]: Barbell
+                        - generic [ref=e3580]: Medium Impact
+                    - button "Brettzel Stretch recovery flexibility Bodyweight Low Impact" [ref=e3581] [cursor=pointer]:
+                      - generic [ref=e3582]: Brettzel Stretch
+                      - generic [ref=e3583]:
+                        - generic [ref=e3584]: recovery
+                        - generic [ref=e3585]: flexibility
+                        - generic [ref=e3586]: Bodyweight
+                        - generic [ref=e3587]: Low Impact
+                    - button "Broad Jump legs compound Bodyweight Medium Impact" [ref=e3588] [cursor=pointer]:
+                      - generic [ref=e3589]: Broad Jump
+                      - generic [ref=e3590]:
+                        - generic [ref=e3591]: legs
+                        - generic [ref=e3592]: compound
+                        - generic [ref=e3593]: Bodyweight
+                        - generic [ref=e3594]: Medium Impact
+                    - button "B-Stance Hip Thrust legs compound Bench Medium Impact" [ref=e3595] [cursor=pointer]:
+                      - generic [ref=e3596]: B-Stance Hip Thrust
+                      - generic [ref=e3597]:
+                        - generic [ref=e3598]: legs
+                        - generic [ref=e3599]: compound
+                        - generic [ref=e3600]: Bench
+                        - generic [ref=e3601]: Medium Impact
+                    - button "Burpee legs calisthenics Bodyweight Medium Impact" [ref=e3602] [cursor=pointer]:
+                      - generic [ref=e3603]: Burpee
+                      - generic [ref=e3604]:
+                        - generic [ref=e3605]: legs
+                        - generic [ref=e3606]: calisthenics
+                        - generic [ref=e3607]: Bodyweight
+                        - generic [ref=e3608]: Medium Impact
+                    - button "Burpee Box Jump full_body compound Plyo Box High Impact" [ref=e3609] [cursor=pointer]:
+                      - generic [ref=e3610]: Burpee Box Jump
+                      - generic [ref=e3611]:
+                        - generic [ref=e3612]: full_body
+                        - generic [ref=e3613]: compound
+                        - generic [ref=e3614]: Plyo Box
+                        - generic [ref=e3615]: High Impact
+                    - button "Burpee Sprawl cardio compound Bodyweight High Impact" [ref=e3616] [cursor=pointer]:
+                      - generic [ref=e3617]: Burpee Sprawl
+                      - generic [ref=e3618]:
+                        - generic [ref=e3619]: cardio
+                        - generic [ref=e3620]: compound
+                        - generic [ref=e3621]: Bodyweight
+                        - generic [ref=e3622]: High Impact
+                    - button "Butterfly Abs core isolation Bodyweight Medium Impact" [ref=e3623] [cursor=pointer]:
+                      - generic [ref=e3624]: Butterfly Abs
+                      - generic [ref=e3625]:
+                        - generic [ref=e3626]: core
+                        - generic [ref=e3627]: isolation
+                        - generic [ref=e3628]: Bodyweight
+                        - generic [ref=e3629]: Medium Impact
+                    - button "Butterfly Stretch recovery flexibility Bodyweight Low Impact" [ref=e3630] [cursor=pointer]:
+                      - generic [ref=e3631]: Butterfly Stretch
+                      - generic [ref=e3632]:
+                        - generic [ref=e3633]: recovery
+                        - generic [ref=e3634]: flexibility
+                        - generic [ref=e3635]: Bodyweight
+                        - generic [ref=e3636]: Low Impact
+                    - button "Butt Kicks cardio calisthenics Bodyweight Low Impact" [ref=e3637] [cursor=pointer]:
+                      - generic [ref=e3638]: Butt Kicks
+                      - generic [ref=e3639]:
+                        - generic [ref=e3640]: cardio
+                        - generic [ref=e3641]: calisthenics
+                        - generic [ref=e3642]: Bodyweight
+                        - generic [ref=e3643]: Low Impact
+                    - button "Cable Bayesian Curl arms isolation Cable Machine Medium Impact" [ref=e3644] [cursor=pointer]:
+                      - generic [ref=e3645]: Cable Bayesian Curl
+                      - generic [ref=e3646]:
+                        - generic [ref=e3647]: arms
+                        - generic [ref=e3648]: isolation
+                        - generic [ref=e3649]: Cable Machine
+                        - generic [ref=e3650]: Medium Impact
+                    - button "Cable Bicep Curl arms isolation Cable Machine Low Impact" [ref=e3651] [cursor=pointer]:
+                      - generic [ref=e3652]: Cable Bicep Curl
+                      - generic [ref=e3653]:
+                        - generic [ref=e3654]: arms
+                        - generic [ref=e3655]: isolation
+                        - generic [ref=e3656]: Cable Machine
+                        - generic [ref=e3657]: Low Impact
+                    - button "Cable Bicep Curl — Rope arms isolation Cable Machine Low Impact" [ref=e3658] [cursor=pointer]:
+                      - generic [ref=e3659]: Cable Bicep Curl — Rope
+                      - generic [ref=e3660]:
+                        - generic [ref=e3661]: arms
+                        - generic [ref=e3662]: isolation
+                        - generic [ref=e3663]: Cable Machine
+                        - generic [ref=e3664]: Low Impact
+                    - button "Cable Chest Fly chest isolation Cable Machine Medium Impact" [ref=e3665] [cursor=pointer]:
+                      - generic [ref=e3666]: Cable Chest Fly
+                      - generic [ref=e3667]:
+                        - generic [ref=e3668]: chest
+                        - generic [ref=e3669]: isolation
+                        - generic [ref=e3670]: Cable Machine
+                        - generic [ref=e3671]: Medium Impact
+                    - button "Cable Chest Press chest compound Cable Machine Medium Impact" [ref=e3672] [cursor=pointer]:
+                      - generic [ref=e3673]: Cable Chest Press
+                      - generic [ref=e3674]:
+                        - generic [ref=e3675]: chest
+                        - generic [ref=e3676]: compound
+                        - generic [ref=e3677]: Cable Machine
+                        - generic [ref=e3678]: Medium Impact
+                    - button "Cable Crossover chest isolation Cable Machine Medium Impact" [ref=e3679] [cursor=pointer]:
+                      - generic [ref=e3680]: Cable Crossover
+                      - generic [ref=e3681]:
+                        - generic [ref=e3682]: chest
+                        - generic [ref=e3683]: isolation
+                        - generic [ref=e3684]: Cable Machine
+                        - generic [ref=e3685]: Medium Impact
+                    - button "Cable Crunch core core Cable Machine, Rope Attachment Medium Impact" [ref=e3686] [cursor=pointer]:
+                      - generic [ref=e3687]: Cable Crunch
+                      - generic [ref=e3688]:
+                        - generic [ref=e3689]: core
+                        - generic [ref=e3690]: core
+                        - generic [ref=e3691]: Cable Machine, Rope Attachment
+                        - generic [ref=e3692]: Medium Impact
+                    - button "Cable Face Pull shoulders isolation Cable Machine, Rope Attachment Low Impact" [ref=e3693] [cursor=pointer]:
+                      - generic [ref=e3694]: Cable Face Pull
+                      - generic [ref=e3695]:
+                        - generic [ref=e3696]: shoulders
+                        - generic [ref=e3697]: isolation
+                        - generic [ref=e3698]: Cable Machine, Rope Attachment
+                        - generic [ref=e3699]: Low Impact
+                    - button "Cable Fly Low to Mid chest isolation Cable Machine Medium Impact" [ref=e3700] [cursor=pointer]:
+                      - generic [ref=e3701]: Cable Fly Low to Mid
+                      - generic [ref=e3702]:
+                        - generic [ref=e3703]: chest
+                        - generic [ref=e3704]: isolation
+                        - generic [ref=e3705]: Cable Machine
+                        - generic [ref=e3706]: Medium Impact
+                    - button "Cable Front Raise shoulders isolation Cable Machine Low Impact" [ref=e3707] [cursor=pointer]:
+                      - generic [ref=e3708]: Cable Front Raise
+                      - generic [ref=e3709]:
+                        - generic [ref=e3710]: shoulders
+                        - generic [ref=e3711]: isolation
+                        - generic [ref=e3712]: Cable Machine
+                        - generic [ref=e3713]: Low Impact
+                    - button "Cable Hip Flexion legs isolation Cable Machine, Ankle Strap Low Impact" [ref=e3714] [cursor=pointer]:
+                      - generic [ref=e3715]: Cable Hip Flexion
+                      - generic [ref=e3716]:
+                        - generic [ref=e3717]: legs
+                        - generic [ref=e3718]: isolation
+                        - generic [ref=e3719]: Cable Machine, Ankle Strap
+                        - generic [ref=e3720]: Low Impact
+                    - button "Cable Iron Cross chest isolation Cable Machine Medium Impact" [ref=e3721] [cursor=pointer]:
+                      - generic [ref=e3722]: Cable Iron Cross
+                      - generic [ref=e3723]:
+                        - generic [ref=e3724]: chest
+                        - generic [ref=e3725]: isolation
+                        - generic [ref=e3726]: Cable Machine
+                        - generic [ref=e3727]: Medium Impact
+                    - button "Cable Kickback legs isolation Cable Machine, Ankle Strap Low Impact" [ref=e3728] [cursor=pointer]:
+                      - generic [ref=e3729]: Cable Kickback
+                      - generic [ref=e3730]:
+                        - generic [ref=e3731]: legs
+                        - generic [ref=e3732]: isolation
+                        - generic [ref=e3733]: Cable Machine, Ankle Strap
+                        - generic [ref=e3734]: Low Impact
+                    - button "Cable Lateral Raise shoulders isolation Cable Machine Low Impact" [ref=e3735] [cursor=pointer]:
+                      - generic [ref=e3736]: Cable Lateral Raise
+                      - generic [ref=e3737]:
+                        - generic [ref=e3738]: shoulders
+                        - generic [ref=e3739]: isolation
+                        - generic [ref=e3740]: Cable Machine
+                        - generic [ref=e3741]: Low Impact
+                    - button "Cable Low-to-High Woodchop core core Cable Machine Medium Impact" [ref=e3742] [cursor=pointer]:
+                      - generic [ref=e3743]: Cable Low-to-High Woodchop
+                      - generic [ref=e3744]:
+                        - generic [ref=e3745]: core
+                        - generic [ref=e3746]: core
+                        - generic [ref=e3747]: Cable Machine
+                        - generic [ref=e3748]: Medium Impact
+                    - button "Cable Preacher Curl arms isolation Cable Machine, Preacher Bench Medium Impact" [ref=e3749] [cursor=pointer]:
+                      - generic [ref=e3750]: Cable Preacher Curl
+                      - generic [ref=e3751]:
+                        - generic [ref=e3752]: arms
+                        - generic [ref=e3753]: isolation
+                        - generic [ref=e3754]: Cable Machine, Preacher Bench
+                        - generic [ref=e3755]: Medium Impact
+                    - button "Cable Pullover back isolation Cable Machine Medium Impact" [ref=e3756] [cursor=pointer]:
+                      - generic [ref=e3757]: Cable Pullover
+                      - generic [ref=e3758]:
+                        - generic [ref=e3759]: back
+                        - generic [ref=e3760]: isolation
+                        - generic [ref=e3761]: Cable Machine
+                        - generic [ref=e3762]: Medium Impact
+                    - button "Cable Pull-Through legs compound Cable Machine, Rope Attachment Medium Impact" [ref=e3763] [cursor=pointer]:
+                      - generic [ref=e3764]: Cable Pull-Through
+                      - generic [ref=e3765]:
+                        - generic [ref=e3766]: legs
+                        - generic [ref=e3767]: compound
+                        - generic [ref=e3768]: Cable Machine, Rope Attachment
+                        - generic [ref=e3769]: Medium Impact
+                    - button "Cable Reverse Fly shoulders isolation Cable Machine Medium Impact" [ref=e3770] [cursor=pointer]:
+                      - generic [ref=e3771]: Cable Reverse Fly
+                      - generic [ref=e3772]:
+                        - generic [ref=e3773]: shoulders
+                        - generic [ref=e3774]: isolation
+                        - generic [ref=e3775]: Cable Machine
+                        - generic [ref=e3776]: Medium Impact
+                    - button "Cable Rope Hammer Curl arms isolation Cable Machine, Rope Attachment Low Impact" [ref=e3777] [cursor=pointer]:
+                      - generic [ref=e3778]: Cable Rope Hammer Curl
+                      - generic [ref=e3779]:
+                        - generic [ref=e3780]: arms
+                        - generic [ref=e3781]: isolation
+                        - generic [ref=e3782]: Cable Machine, Rope Attachment
+                        - generic [ref=e3783]: Low Impact
+                    - button "Cable Shrug back isolation Cable Machine Low Impact" [ref=e3784] [cursor=pointer]:
+                      - generic [ref=e3785]: Cable Shrug
+                      - generic [ref=e3786]:
+                        - generic [ref=e3787]: back
+                        - generic [ref=e3788]: isolation
+                        - generic [ref=e3789]: Cable Machine
+                        - generic [ref=e3790]: Low Impact
+                    - button "Cable Straight-Arm Pullback back isolation Cable Machine Low Impact" [ref=e3791] [cursor=pointer]:
+                      - generic [ref=e3792]: Cable Straight-Arm Pullback
+                      - generic [ref=e3793]:
+                        - generic [ref=e3794]: back
+                        - generic [ref=e3795]: isolation
+                        - generic [ref=e3796]: Cable Machine
+                        - generic [ref=e3797]: Low Impact
+                    - button "Cable Tricep Kickback arms isolation Cable Machine Low Impact" [ref=e3798] [cursor=pointer]:
+                      - generic [ref=e3799]: Cable Tricep Kickback
+                      - generic [ref=e3800]:
+                        - generic [ref=e3801]: arms
+                        - generic [ref=e3802]: isolation
+                        - generic [ref=e3803]: Cable Machine
+                        - generic [ref=e3804]: Low Impact
+                    - button "Cable Tricep Overhead Extension arms isolation Cable Machine Low Impact" [ref=e3805] [cursor=pointer]:
+                      - generic [ref=e3806]: Cable Tricep Overhead Extension
+                      - generic [ref=e3807]:
+                        - generic [ref=e3808]: arms
+                        - generic [ref=e3809]: isolation
+                        - generic [ref=e3810]: Cable Machine
+                        - generic [ref=e3811]: Low Impact
+                    - button "Cable Tricep Pushdown arms isolation Cable Machine Low Impact" [ref=e3812] [cursor=pointer]:
+                      - generic [ref=e3813]: Cable Tricep Pushdown
+                      - generic [ref=e3814]:
+                        - generic [ref=e3815]: arms
+                        - generic [ref=e3816]: isolation
+                        - generic [ref=e3817]: Cable Machine
+                        - generic [ref=e3818]: Low Impact
+                    - button "Cable Upright Row shoulders compound Cable Machine Medium Impact" [ref=e3819] [cursor=pointer]:
+                      - generic [ref=e3820]: Cable Upright Row
+                      - generic [ref=e3821]:
+                        - generic [ref=e3822]: shoulders
+                        - generic [ref=e3823]: compound
+                        - generic [ref=e3824]: Cable Machine
+                        - generic [ref=e3825]: Medium Impact
+                    - button "Cable Woodchop core core Cable Machine Medium Impact" [ref=e3826] [cursor=pointer]:
+                      - generic [ref=e3827]: Cable Woodchop
+                      - generic [ref=e3828]:
+                        - generic [ref=e3829]: core
+                        - generic [ref=e3830]: core
+                        - generic [ref=e3831]: Cable Machine
+                        - generic [ref=e3832]: Medium Impact
+                    - button "Cable Woodchop — Golf Swing core compound Cable Machine Medium Impact" [ref=e3833] [cursor=pointer]:
+                      - generic [ref=e3834]: Cable Woodchop — Golf Swing
+                      - generic [ref=e3835]:
+                        - generic [ref=e3836]: core
+                        - generic [ref=e3837]: compound
+                        - generic [ref=e3838]: Cable Machine
+                        - generic [ref=e3839]: Medium Impact
+                    - button "Cable Woodchop High to Low core core Cable Machine Medium Impact" [ref=e3840] [cursor=pointer]:
+                      - generic [ref=e3841]: Cable Woodchop High to Low
+                      - generic [ref=e3842]:
+                        - generic [ref=e3843]: core
+                        - generic [ref=e3844]: core
+                        - generic [ref=e3845]: Cable Machine
+                        - generic [ref=e3846]: Medium Impact
+                    - button "Cable Woodchop Low to High core core Cable Machine Medium Impact" [ref=e3847] [cursor=pointer]:
+                      - generic [ref=e3848]: Cable Woodchop Low to High
+                      - generic [ref=e3849]:
+                        - generic [ref=e3850]: core
+                        - generic [ref=e3851]: core
+                        - generic [ref=e3852]: Cable Machine
+                        - generic [ref=e3853]: Medium Impact
+                    - button "Cable Y-Raise shoulders isolation Cable Machine Low Impact" [ref=e3854] [cursor=pointer]:
+                      - generic [ref=e3855]: Cable Y-Raise
+                      - generic [ref=e3856]:
+                        - generic [ref=e3857]: shoulders
+                        - generic [ref=e3858]: isolation
+                        - generic [ref=e3859]: Cable Machine
+                        - generic [ref=e3860]: Low Impact
+                    - button "Calf Foam Roll recovery flexibility Foam Roller Low Impact" [ref=e3861] [cursor=pointer]:
+                      - generic [ref=e3862]: Calf Foam Roll
+                      - generic [ref=e3863]:
+                        - generic [ref=e3864]: recovery
+                        - generic [ref=e3865]: flexibility
+                        - generic [ref=e3866]: Foam Roller
+                        - generic [ref=e3867]: Low Impact
+                    - button "Calf Raise Machine legs isolation Calf Raise Machine Low Impact" [ref=e3868] [cursor=pointer]:
+                      - generic [ref=e3869]: Calf Raise Machine
+                      - generic [ref=e3870]:
+                        - generic [ref=e3871]: legs
+                        - generic [ref=e3872]: isolation
+                        - generic [ref=e3873]: Calf Raise Machine
+                        - generic [ref=e3874]: Low Impact
+                    - button "Calf Stretch on Step recovery flexibility Step Low Impact" [ref=e3875] [cursor=pointer]:
+                      - generic [ref=e3876]: Calf Stretch on Step
+                      - generic [ref=e3877]:
+                        - generic [ref=e3878]: recovery
+                        - generic [ref=e3879]: flexibility
+                        - generic [ref=e3880]: Step
+                        - generic [ref=e3881]: Low Impact
+                    - button "Carioca Drill legs calisthenics Bodyweight Low Impact" [ref=e3882] [cursor=pointer]:
+                      - generic [ref=e3883]: Carioca Drill
+                      - generic [ref=e3884]:
+                        - generic [ref=e3885]: legs
+                        - generic [ref=e3886]: calisthenics
+                        - generic [ref=e3887]: Bodyweight
+                        - generic [ref=e3888]: Low Impact
+                    - button "Cat-Cow Stretch recovery flexibility Bodyweight Low Impact" [ref=e3889] [cursor=pointer]:
+                      - generic [ref=e3890]: Cat-Cow Stretch
+                      - generic [ref=e3891]:
+                        - generic [ref=e3892]: recovery
+                        - generic [ref=e3893]: flexibility
+                        - generic [ref=e3894]: Bodyweight
+                        - generic [ref=e3895]: Low Impact
+                    - button "Chest Dip chest compound Dip Station Medium Impact" [ref=e3896] [cursor=pointer]:
+                      - generic [ref=e3897]: Chest Dip
+                      - generic [ref=e3898]:
+                        - generic [ref=e3899]: chest
+                        - generic [ref=e3900]: compound
+                        - generic [ref=e3901]: Dip Station
+                        - generic [ref=e3902]: Medium Impact
+                    - button "Chest Press Machine chest compound Chest Press Machine Low Impact" [ref=e3903] [cursor=pointer]:
+                      - generic [ref=e3904]: Chest Press Machine
+                      - generic [ref=e3905]:
+                        - generic [ref=e3906]: chest
+                        - generic [ref=e3907]: compound
+                        - generic [ref=e3908]: Chest Press Machine
+                        - generic [ref=e3909]: Low Impact
+                    - button "Chest Stretch on Door Frame recovery flexibility Bodyweight Low Impact" [ref=e3910] [cursor=pointer]:
+                      - generic [ref=e3911]: Chest Stretch on Door Frame
+                      - generic [ref=e3912]:
+                        - generic [ref=e3913]: recovery
+                        - generic [ref=e3914]: flexibility
+                        - generic [ref=e3915]: Bodyweight
+                        - generic [ref=e3916]: Low Impact
+                    - button "Chest-Supported Dumbbell Row back compound Dumbbells, Incline Bench Medium Impact" [ref=e3917] [cursor=pointer]:
+                      - generic [ref=e3918]: Chest-Supported Dumbbell Row
+                      - generic [ref=e3919]:
+                        - generic [ref=e3920]: back
+                        - generic [ref=e3921]: compound
+                        - generic [ref=e3922]: Dumbbells, Incline Bench
+                        - generic [ref=e3923]: Medium Impact
+                - generic [ref=e3924]:
+                  - generic [ref=e3925]:
+                    - heading "Workout Builder" [level=2] [ref=e3926]:
+                      - img [ref=e3927]
+                      - text: Workout Builder
+                    - button "Save Plan" [disabled] [ref=e3930]:
+                      - img [ref=e3931]
+                      - text: Save Plan
+                  - generic [ref=e3935]:
+                    - generic [ref=e3936]:
+                      - generic [ref=e3937]: Phase 2
+                      - generic [ref=e3938]: Strength Endurance — 2-4 sets × 8-12 reps — 2/0/2 — 0-60s
+                    - generic [ref=e3939]: Click exercises in the Rolodex to add them, or use AI Generate for an intelligent program.
+              - generic [ref=e3940]:
+                - heading "Saved Plans" [level=3] [ref=e3941]:
+                  - img [ref=e3942]
+                  - text: Saved Plans
+                - generic [ref=e3945]: No saved plans for this client yet. Generate and save a workout plan above.
+        - dialog "SwanStudios AI Assistant" [ref=e311]:
+          - generic [ref=e312]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e313]
+            - generic [ref=e314]:
+              - button "Minimize" [ref=e315] [cursor=pointer]:
+                - img [ref=e316]
+              - button "Close assistant" [ref=e317] [cursor=pointer]:
+                - img [ref=e318]
+        - button "Open SwanStudios Assistant" [ref=e322] [cursor=pointer]:
+          - img [ref=e323]
+          - text: AI
+    - img [ref=e77] [cursor=pointer]
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez

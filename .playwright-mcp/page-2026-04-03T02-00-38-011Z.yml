@@ -1,0 +1,443 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e9]:
+      - banner "Main navigation" [ref=e10]:
+        - generic [ref=e11]:
+          - button "Go to homepage" [ref=e12] [cursor=pointer]:
+            - generic [ref=e13]:
+              - img "SwanStudios Logo" [ref=e14]
+              - generic [ref=e15]: SwanStudios
+          - navigation [ref=e17]:
+            - link "Home" [ref=e18] [cursor=pointer]:
+              - /url: /
+            - link "SwanStudios Store" [ref=e19] [cursor=pointer]:
+              - /url: /store
+            - button "Admin Dashboard" [ref=e151] [cursor=pointer]:
+              - img [ref=e152]
+              - text: Admin Dashboard
+              - img [ref=e157]
+            - link "Video Library" [ref=e22] [cursor=pointer]:
+              - /url: /video-library
+            - link "Waiver" [ref=e23] [cursor=pointer]:
+              - /url: /waiver
+            - link "Contact" [ref=e24] [cursor=pointer]:
+              - /url: /contact
+            - link "SwanStudios Photography" [ref=e25] [cursor=pointer]:
+              - /url: /gallery
+            - link "About Us" [ref=e26] [cursor=pointer]:
+              - /url: /about
+          - generic [ref=e27]:
+            - button "Notifications" [ref=e161] [cursor=pointer]:
+              - img [ref=e162]
+            - button "Open shopping cart" [ref=e30] [cursor=pointer]:
+              - img [ref=e32]
+            - button "Switch to Monochrome" [ref=e38] [cursor=pointer]:
+              - img [ref=e40]
+            - generic [ref=e165]:
+              - button "User profile" [ref=e167] [cursor=pointer]:
+                - img "Sean" [ref=e168]
+              - button "Logout" [ref=e169] [cursor=pointer]
+      - main [ref=e43]:
+        - generic [ref=e170]:
+          - navigation "Admin navigation" [ref=e171]:
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: SS
+                - generic [ref=e175]: Admin
+              - button "Collapse sidebar" [ref=e176] [cursor=pointer]:
+                - img [ref=e177]
+            - button "Select Client..." [ref=e180] [cursor=pointer]:
+              - img [ref=e181]
+              - generic [ref=e186]: Select Client...
+              - img [ref=e187]
+            - navigation [ref=e189]:
+              - menuitem "Coach Assistant" [ref=e190] [cursor=pointer]:
+                - img [ref=e192]
+                - generic [ref=e194]: Coach Assistant
+              - menuitem "Dashboard" [ref=e195] [cursor=pointer]:
+                - img [ref=e197]
+                - generic [ref=e199]: Dashboard
+              - menuitem "Clients & Team" [ref=e200] [cursor=pointer]:
+                - img [ref=e202]
+                - generic [ref=e207]: Clients & Team
+              - menuitem "Workouts" [ref=e208] [cursor=pointer]:
+                - img [ref=e210]
+                - generic [ref=e218]: Workouts
+              - menuitem "Bootcamp Creator" [ref=e219] [cursor=pointer]:
+                - img [ref=e221]
+                - generic [ref=e223]: Bootcamp Creator
+              - menuitem "Equipment" [ref=e224] [cursor=pointer]:
+                - img [ref=e226]
+                - generic [ref=e228]: Equipment
+              - menuitem "Scheduling" [ref=e229] [cursor=pointer]:
+                - img [ref=e231]
+                - generic [ref=e233]: Scheduling
+              - menuitem "Gamification" [ref=e234] [cursor=pointer]:
+                - img [ref=e236]
+                - generic [ref=e238]: Gamification
+              - menuitem "Store & Revenue" [ref=e239] [cursor=pointer]:
+                - img [ref=e241]
+                - generic [ref=e243]: Store & Revenue
+              - menuitem "Content Studio" [ref=e244] [cursor=pointer]:
+                - img [ref=e246]
+                - generic [ref=e249]: Content Studio
+              - menuitem "Analytics" [ref=e250] [cursor=pointer]:
+                - img [ref=e252]
+                - generic [ref=e254]: Analytics
+              - menuitem "System" [ref=e255] [cursor=pointer]:
+                - img [ref=e257]
+                - generic [ref=e260]: System
+              - menuitem "Canada Immigration" [ref=e261] [cursor=pointer]:
+                - img [ref=e263]
+                - generic [ref=e266]: Canada Immigration
+              - menuitem "My Clients" [ref=e268] [cursor=pointer]:
+                - img [ref=e270]
+                - generic [ref=e274]: My Clients
+              - menuitem "My Training" [ref=e275] [cursor=pointer]:
+                - img [ref=e277]
+                - generic [ref=e281]: My Training
+            - generic [ref=e283]: SwanStudios v2.1
+          - main [ref=e284]:
+            - generic [ref=e286]:
+              - generic [ref=e287]:
+                - generic [ref=e288]:
+                  - button "Toggle conversation history" [ref=e289] [cursor=pointer]:
+                    - img [ref=e290]
+                  - img [ref=e294]
+                  - heading "Swan Coach Assistant" [level=1] [ref=e296]
+                  - button "Toggle Teach Mode panel" [ref=e297] [cursor=pointer]:
+                    - img [ref=e298]
+                - button "Select client" [ref=e302] [cursor=pointer]:
+                  - img [ref=e303]
+                  - generic [ref=e306]: Select a client...
+                  - img [ref=e307]
+                - toolbar "AI context selector" [ref=e309]:
+                  - button "Switch to Coach context" [pressed] [ref=e310] [cursor=pointer]:
+                    - generic [ref=e311]: 🤖
+                    - text: Coach
+                  - button "Switch to Workouts context" [ref=e312] [cursor=pointer]:
+                    - generic [ref=e313]: 🏋️
+                    - text: Workouts
+                  - button "Switch to Log Meal context" [ref=e314] [cursor=pointer]:
+                    - generic [ref=e315]: 📋
+                    - text: Log Meal
+                  - button "Switch to Clients context" [ref=e316] [cursor=pointer]:
+                    - generic [ref=e317]: 👥
+                    - text: Clients
+                  - button "Switch to Schedule context" [ref=e318] [cursor=pointer]:
+                    - generic [ref=e319]: 📅
+                    - text: Schedule
+                  - button "Switch to Progress context" [ref=e320] [cursor=pointer]:
+                    - generic [ref=e321]: 📊
+                    - text: Progress
+                  - button "Switch to Exercises context" [ref=e322] [cursor=pointer]:
+                    - generic [ref=e323]: 💪
+                    - text: Exercises
+                  - button "Switch to XP & Badges context" [ref=e324] [cursor=pointer]:
+                    - generic [ref=e325]: 🏆
+                    - text: XP & Badges
+                  - button "Switch to Form Tips context" [ref=e326] [cursor=pointer]:
+                    - generic [ref=e327]: 🎯
+                    - text: Form Tips
+                  - button "Switch to Onboarding context" [ref=e328] [cursor=pointer]:
+                    - generic [ref=e329]: 📝
+                    - text: Onboarding
+                - log "Conversation" [ref=e330]:
+                  - generic [ref=e720]:
+                    - text: I want to onboard a new Move Fitness client named Will. He is 32 years old.
+                    - generic [ref=e721]: 7:00 PM
+                  - status "AI is thinking" [ref=e722]:
+                    - generic [ref=e727]: Forming response...
+                - radiogroup "AI response style" [ref=e346]:
+                  - 'radio "PhD Mode: Expert-level NASM technical detail" [ref=e347] [cursor=pointer]':
+                    - generic [ref=e348]: 🎓
+                    - text: PhD Mode
+                  - 'radio "Balanced: Clear and complete — technical but accessible" [checked] [ref=e349] [cursor=pointer]':
+                    - generic [ref=e350]: ⚖️
+                    - text: Balanced
+                  - 'radio "Keep It 100: Straight to the point, no jargon" [ref=e351] [cursor=pointer]':
+                    - generic [ref=e352]: 💯
+                    - text: Keep It 100
+                - button "Enable AI voice" [ref=e354] [cursor=pointer]:
+                  - img [ref=e355]
+                  - text: "AI Voice: OFF"
+                - generic [ref=e359]:
+                  - button "Enable voice readback" [ref=e360] [cursor=pointer]:
+                    - img [ref=e361]
+                  - button "Attach file" [disabled] [ref=e365]:
+                    - img [ref=e366]
+                  - textbox "Message input" [disabled] [ref=e369]:
+                    - /placeholder: Type or tap mic...
+                  - button "Start voice input" [ref=e370] [cursor=pointer]:
+                    - img [ref=e371]
+                  - button "Send message" [disabled] [ref=e374]:
+                    - img [ref=e375]
+              - complementary "Teach Mode panel":
+                - generic [ref=e378]:
+                  - generic [ref=e379]:
+                    - img [ref=e380]
+                    - text: Teach Mode
+                  - button "Close Teach Mode" [ref=e383] [cursor=pointer]:
+                    - img [ref=e384]
+                - generic [ref=e387]:
+                  - generic:
+                    - img
+                  - textbox "Search exercises for Teach Mode" [ref=e388]:
+                    - /placeholder: Search exercises...
+                - generic [ref=e390]: Search for an exercise above to see step-by-step instructions, coaching cues, biomechanics, and NASM phase guidance.
+              - dialog "Voice recording":
+                - generic:
+                  - button "Recording orb":
+                    - img
+                - generic: 0:00
+                - generic:
+                  - button "Cancel recording":
+                    - img
+                    - text: Cancel
+        - dialog "SwanStudios AI Assistant" [ref=e391]:
+          - generic [ref=e392]:
+            - heading "SwanStudios Assistant" [level=2] [ref=e393]
+            - generic [ref=e394]:
+              - button "Minimize" [ref=e395] [cursor=pointer]:
+                - img [ref=e396]
+              - button "Close assistant" [ref=e397] [cursor=pointer]:
+                - img [ref=e398]
+        - button "Open SwanStudios Assistant" [ref=e402] [cursor=pointer]:
+          - img [ref=e403]
+          - text: AI
+    - generic:
+      - region "Notifications"
+  - generic:
+    - status
+  - listbox:
+    - generic:
+      - img
+      - textbox "Search clients":
+        - /placeholder: Search clients...
+    - list:
+      - option "AM Anand MoveFit":
+        - generic: AM
+        - text: Anand MoveFit
+      - option "JC Jackie Client":
+        - generic: JC
+        - text: Jackie Client
+      - option "QT QABot Tester":
+        - generic: QT
+        - text: QABot Tester
+      - option "VV Vickie Valdez":
+        - generic: VV
+        - text: Vickie Valdez
+  - navigation "Conversation history" [ref=e406]:
+    - generic [ref=e407]:
+      - button "Start new conversation" [ref=e408] [cursor=pointer]:
+        - img [ref=e409]
+        - text: New Chat
+      - button "Close sidebar" [ref=e410] [cursor=pointer]:
+        - img [ref=e411]
+    - textbox "Search conversations" [ref=e414]:
+      - /placeholder: Search conversations...
+    - generic [ref=e415]:
+      - generic [ref=e416]:
+        - generic [ref=e417]: This Week
+        - button "Swan Coach Session 4 msgs · Yesterday Rename conversation Delete conversation" [ref=e418] [cursor=pointer]:
+          - img [ref=e419]
+          - generic [ref=e421]:
+            - generic [ref=e422]: Swan Coach Session
+            - generic [ref=e423]: 4 msgs · Yesterday
+          - generic [ref=e424]:
+            - button "Rename conversation" [ref=e425]:
+              - img [ref=e426]
+            - button "Delete conversation" [ref=e429]:
+              - img [ref=e430]
+        - button "Swan Coach Session 2 msgs · Yesterday Rename conversation Delete conversation" [ref=e433] [cursor=pointer]:
+          - img [ref=e434]
+          - generic [ref=e436]:
+            - generic [ref=e437]: Swan Coach Session
+            - generic [ref=e438]: 2 msgs · Yesterday
+          - generic [ref=e439]:
+            - button "Rename conversation" [ref=e440]:
+              - img [ref=e441]
+            - button "Delete conversation" [ref=e444]:
+              - img [ref=e445]
+        - button "Swan Coach Session 2 msgs · Mar 31 Rename conversation Delete conversation" [ref=e448] [cursor=pointer]:
+          - img [ref=e449]
+          - generic [ref=e451]:
+            - generic [ref=e452]: Swan Coach Session
+            - generic [ref=e453]: 2 msgs · Mar 31
+          - generic [ref=e454]:
+            - button "Rename conversation" [ref=e455]:
+              - img [ref=e456]
+            - button "Delete conversation" [ref=e459]:
+              - img [ref=e460]
+        - button "Swan Coach Session 2 msgs · Mar 31 Rename conversation Delete conversation" [ref=e463] [cursor=pointer]:
+          - img [ref=e464]
+          - generic [ref=e466]:
+            - generic [ref=e467]: Swan Coach Session
+            - generic [ref=e468]: 2 msgs · Mar 31
+          - generic [ref=e469]:
+            - button "Rename conversation" [ref=e470]:
+              - img [ref=e471]
+            - button "Delete conversation" [ref=e474]:
+              - img [ref=e475]
+        - button "Test Coach 2 msgs · Mar 31 Rename conversation Delete conversation" [ref=e478] [cursor=pointer]:
+          - img [ref=e479]
+          - generic [ref=e481]:
+            - generic [ref=e482]: Test Coach
+            - generic [ref=e483]: 2 msgs · Mar 31
+          - generic [ref=e484]:
+            - button "Rename conversation" [ref=e485]:
+              - img [ref=e486]
+            - button "Delete conversation" [ref=e489]:
+              - img [ref=e490]
+        - button "Workout Builder — workout_generation 8 msgs · Mar 30 Rename conversation Delete conversation" [ref=e493] [cursor=pointer]:
+          - img [ref=e494]
+          - generic [ref=e496]:
+            - generic [ref=e497]: Workout Builder — workout_generation
+            - generic [ref=e498]: 8 msgs · Mar 30
+          - generic [ref=e499]:
+            - button "Rename conversation" [ref=e500]:
+              - img [ref=e501]
+            - button "Delete conversation" [ref=e504]:
+              - img [ref=e505]
+        - button "Test Coach 0 msgs · Mar 31 Rename conversation Delete conversation" [ref=e508] [cursor=pointer]:
+          - img [ref=e509]
+          - generic [ref=e511]:
+            - generic [ref=e512]: Test Coach
+            - generic [ref=e513]: 0 msgs · Mar 31
+          - generic [ref=e514]:
+            - button "Rename conversation" [ref=e515]:
+              - img [ref=e516]
+            - button "Delete conversation" [ref=e519]:
+              - img [ref=e520]
+        - button "Test 0 msgs · Mar 31 Rename conversation Delete conversation" [ref=e523] [cursor=pointer]:
+          - img [ref=e524]
+          - generic [ref=e526]:
+            - generic [ref=e527]: Test
+            - generic [ref=e528]: 0 msgs · Mar 31
+          - generic [ref=e529]:
+            - button "Rename conversation" [ref=e530]:
+              - img [ref=e531]
+            - button "Delete conversation" [ref=e534]:
+              - img [ref=e535]
+        - button "Swan Coach Session 0 msgs · Mar 31 Rename conversation Delete conversation" [ref=e538] [cursor=pointer]:
+          - img [ref=e539]
+          - generic [ref=e541]:
+            - generic [ref=e542]: Swan Coach Session
+            - generic [ref=e543]: 0 msgs · Mar 31
+          - generic [ref=e544]:
+            - button "Rename conversation" [ref=e545]:
+              - img [ref=e546]
+            - button "Delete conversation" [ref=e549]:
+              - img [ref=e550]
+      - generic [ref=e553]:
+        - generic [ref=e554]: Older
+        - button "Add 3 sets of barbell bench press at 135 pounds... 2 msgs · Mar 21 Rename conversation Delete conversation" [ref=e555] [cursor=pointer]:
+          - img [ref=e556]
+          - generic [ref=e558]:
+            - generic [ref=e559]: Add 3 sets of barbell bench press at 135 pounds...
+            - generic [ref=e560]: 2 msgs · Mar 21
+          - generic [ref=e561]:
+            - button "Rename conversation" [ref=e562]:
+              - img [ref=e563]
+            - button "Delete conversation" [ref=e566]:
+              - img [ref=e567]
+        - button "Workout Builder — workout_generation 2 msgs · Mar 21 Rename conversation Delete conversation" [ref=e570] [cursor=pointer]:
+          - img [ref=e571]
+          - generic [ref=e573]:
+            - generic [ref=e574]: Workout Builder — workout_generation
+            - generic [ref=e575]: 2 msgs · Mar 21
+          - generic [ref=e576]:
+            - button "Rename conversation" [ref=e577]:
+              - img [ref=e578]
+            - button "Delete conversation" [ref=e581]:
+              - img [ref=e582]
+        - button "i NEED A WORKOUT FOR JACKIE 2 msgs · Mar 20 Rename conversation Delete conversation" [ref=e585] [cursor=pointer]:
+          - img [ref=e586]
+          - generic [ref=e588]:
+            - generic [ref=e589]: i NEED A WORKOUT FOR JACKIE
+            - generic [ref=e590]: 2 msgs · Mar 20
+          - generic [ref=e591]:
+            - button "Rename conversation" [ref=e592]:
+              - img [ref=e593]
+            - button "Delete conversation" [ref=e596]:
+              - img [ref=e597]
+        - button "Jackie C - Move Fitness Onboarding Plan 6 msgs · Mar 17 Rename conversation Delete conversation" [ref=e600] [cursor=pointer]:
+          - img [ref=e601]
+          - generic [ref=e603]:
+            - generic [ref=e604]: Jackie C - Move Fitness Onboarding Plan
+            - generic [ref=e605]: 6 msgs · Mar 17
+          - generic [ref=e606]:
+            - button "Rename conversation" [ref=e607]:
+              - img [ref=e608]
+            - button "Delete conversation" [ref=e611]:
+              - img [ref=e612]
+        - button "Workout Builder — workout_generation 2 msgs · Mar 17 Rename conversation Delete conversation" [ref=e615] [cursor=pointer]:
+          - img [ref=e616]
+          - generic [ref=e618]:
+            - generic [ref=e619]: Workout Builder — workout_generation
+            - generic [ref=e620]: 2 msgs · Mar 17
+          - generic [ref=e621]:
+            - button "Rename conversation" [ref=e622]:
+              - img [ref=e623]
+            - button "Delete conversation" [ref=e626]:
+              - img [ref=e627]
+        - button "Based off this client history can you create a ... 2 msgs · Mar 17 Rename conversation Delete conversation" [ref=e630] [cursor=pointer]:
+          - img [ref=e631]
+          - generic [ref=e633]:
+            - generic [ref=e634]: Based off this client history can you create a ...
+            - generic [ref=e635]: 2 msgs · Mar 17
+          - generic [ref=e636]:
+            - button "Rename conversation" [ref=e637]:
+              - img [ref=e638]
+            - button "Delete conversation" [ref=e641]:
+              - img [ref=e642]
+        - button "I'm trying to figure out where my client on boa... 2 msgs · Mar 16 Rename conversation Delete conversation" [ref=e645] [cursor=pointer]:
+          - img [ref=e646]
+          - generic [ref=e648]:
+            - generic [ref=e649]: I'm trying to figure out where my client on boa...
+            - generic [ref=e650]: 2 msgs · Mar 16
+          - generic [ref=e651]:
+            - button "Rename conversation" [ref=e652]:
+              - img [ref=e653]
+            - button "Delete conversation" [ref=e656]:
+              - img [ref=e657]
+        - button "Create a quick upper body workout for a beginne... 4 msgs · Mar 14 Rename conversation Delete conversation" [ref=e660] [cursor=pointer]:
+          - img [ref=e661]
+          - generic [ref=e663]:
+            - generic [ref=e664]: Create a quick upper body workout for a beginne...
+            - generic [ref=e665]: 4 msgs · Mar 14
+          - generic [ref=e666]:
+            - button "Rename conversation" [ref=e667]:
+              - img [ref=e668]
+            - button "Delete conversation" [ref=e671]:
+              - img [ref=e672]
+        - button "Create structured workout plans 2 msgs · Mar 14 Rename conversation Delete conversation" [ref=e675] [cursor=pointer]:
+          - img [ref=e676]
+          - generic [ref=e678]:
+            - generic [ref=e679]: Create structured workout plans
+            - generic [ref=e680]: 2 msgs · Mar 14
+          - generic [ref=e681]:
+            - button "Rename conversation" [ref=e682]:
+              - img [ref=e683]
+            - button "Delete conversation" [ref=e686]:
+              - img [ref=e687]
+        - button "how many clients do i have? 2 msgs · Mar 10 Rename conversation Delete conversation" [ref=e690] [cursor=pointer]:
+          - img [ref=e691]
+          - generic [ref=e693]:
+            - generic [ref=e694]: how many clients do i have?
+            - generic [ref=e695]: 2 msgs · Mar 10
+          - generic [ref=e696]:
+            - button "Rename conversation" [ref=e697]:
+              - img [ref=e698]
+            - button "Delete conversation" [ref=e701]:
+              - img [ref=e702]
+        - button "Create a full body workout plan for my client V... 2 msgs · Mar 9 Rename conversation Delete conversation" [ref=e705] [cursor=pointer]:
+          - img [ref=e706]
+          - generic [ref=e708]:
+            - generic [ref=e709]: Create a full body workout plan for my client V...
+            - generic [ref=e710]: 2 msgs · Mar 9
+          - generic [ref=e711]:
+            - button "Rename conversation" [ref=e712]:
+              - img [ref=e713]
+            - button "Delete conversation" [ref=e716]:
+              - img [ref=e717]
