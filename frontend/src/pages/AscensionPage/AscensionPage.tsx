@@ -94,7 +94,7 @@ const AscensionPage: React.FC = () => {
     <PageWrapper>
       <Helmet>
         <title>Ascend Your Training | SwanStudios</title>
-        <meta name="description" content="Choose your SwanStudios tier — free AI coaching for everyone, advanced analytics for Guardians, and human trainer access for Crystalline members." />
+        <meta name="description" content="Choose your SwanStudios tier — free Swan Coach for everyone, advanced analytics for Guardians, and human trainer access for Crystalline members." />
       </Helmet>
 
       <HeroSection>
@@ -120,7 +120,7 @@ const AscensionPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.25 }}
         >
-          AI coaching is free for everyone. Choose your level to unlock
+          Swan Coach is free for everyone. Choose your level to unlock
           advanced tools, analytics, and human trainer access.
         </HeroSub>
       </HeroSection>

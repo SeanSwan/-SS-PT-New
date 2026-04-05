@@ -26,7 +26,7 @@ const MembershipsSection: React.FC = () => {
       icon: <Sparkles size={20} />,
       name: 'Swan Starter',
       price: 'Free',
-      benefit: 'AI coaching, workout logging, nutrition, and community — forever free.',
+      benefit: 'Swan Coach, workout logging, nutrition, and community — forever free.',
       variant: 'starter' as const,
     },
     {
@@ -50,7 +50,7 @@ const MembershipsSection: React.FC = () => {
       <SectionHeader>
         <SectionEyebrow>Membership Tiers</SectionEyebrow>
         <SectionTitle>Choose Your Level</SectionTitle>
-        <SectionSub>AI coaching is free for everyone. Upgrade for advanced tools and trainer access.</SectionSub>
+        <SectionSub>Swan Coach is free for everyone. Upgrade for advanced tools and trainer access.</SectionSub>
       </SectionHeader>
 
       <CardsRow>

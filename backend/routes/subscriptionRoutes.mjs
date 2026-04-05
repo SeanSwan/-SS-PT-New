@@ -49,13 +49,13 @@ const TIER_DEFINITIONS = {
   free: {
     id: 'free',
     name: 'Swan Starter',
-    tagline: 'AI coaching, workout logging, nutrition — free forever',
+    tagline: 'Swan Coach, workout logging, nutrition — free forever',
     price: 0,
     priceDisplay: 'Free',
     donationEnabled: true,
     features: [
-      'AI Coach chat (unlimited)',
-      'AI workout generation (unlimited, with review flow)',
+      'Swan Coach conversations (unlimited)',
+      'Coach-designed workout plans (unlimited, with review flow)',
       'Workout logging (unlimited)',
       'Nutrition & macro counter',
       'Exercise library (840+ exercises)',

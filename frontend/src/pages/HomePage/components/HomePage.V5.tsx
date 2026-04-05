@@ -1455,7 +1455,7 @@ const HomePageV5: React.FC = () => {
               initial="hidden"
               animate="visible"
             >
-              Science-backed training programs with real-time AI coaching,
+              Science-backed training programs with real-time Swan Coach guidance,
               NASM-protocol periodization, and a fitness social platform
               that makes every rep count.
             </HeroSubline>

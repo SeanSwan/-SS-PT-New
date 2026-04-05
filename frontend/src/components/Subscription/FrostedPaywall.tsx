@@ -408,7 +408,7 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
         </AnnualSection>
 
         <DonationNote>
-          AI coaching is always free for everyone. Swan Guardian ($5/mo suggested, pay what you can)
+          Swan Coach is always free for everyone. Swan Guardian ($5/mo suggested, pay what you can)
           unlocks advanced analytics and NASM tools. Crystalline Swan ($24.99/mo) adds direct trainer access.
         </DonationNote>
       </Card>

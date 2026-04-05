@@ -309,7 +309,7 @@ const ContentStudioHub: React.FC = () => {
   const [activeTab, setActiveTab] = useState<StudioTab>('library');
   const [serviceConfig, setServiceConfig] = useState<Record<string, boolean>>({
     remotion: true,   // Always available (bootstrap)
-    kling: false,
+    seedance: false,
     elevenlabs: false,
     blotato: false,
   });
@@ -344,17 +344,17 @@ const ContentStudioHub: React.FC = () => {
       tier: 'bootstrap',
     },
     {
-      key: 'kling',
-      label: 'Kling AI',
-      description: 'AI video generation',
+      key: 'seedance',
+      label: 'Seedance 2.0',
+      description: 'Video generation (via Higgsfield)',
       icon: <Sparkles size={16} />,
-      configured: serviceConfig.kling,
+      configured: serviceConfig.seedance,
       tier: 'full',
     },
     {
       key: 'elevenlabs',
       label: 'ElevenLabs',
-      description: 'AI voice synthesis',
+      description: 'Voice synthesis',
       icon: <Mic2 size={16} />,
       configured: serviceConfig.elevenlabs,
       tier: 'full',
@@ -638,7 +638,7 @@ interface ContentStudioSettingsProps {
 
 const ContentStudioSettings: React.FC<ContentStudioSettingsProps> = ({ serviceConfig, onRefresh }) => {
   const { authAxios } = useAuth();
-  const [klingKey, setKlingKey] = useState('');
+  const [seedanceKey, setKlingKey] = useState('');
   const [elevenLabsKey, setElevenLabsKey] = useState('');
   const [blotatoKey, setBlotatoKey] = useState('');
   const [saving, setSaving] = useState(false);
@@ -649,7 +649,7 @@ const ContentStudioSettings: React.FC<ContentStudioSettingsProps> = ({ serviceCo
     setStatus(null);
     try {
       const keys: Record<string, string> = {};
-      if (klingKey.trim()) keys.kling = klingKey.trim();
+      if (seedanceKey.trim()) keys.seedance = seedanceKey.trim();
       if (elevenLabsKey.trim()) keys.elevenlabs = elevenLabsKey.trim();
       if (blotatoKey.trim()) keys.blotato = blotatoKey.trim();
 
@@ -681,15 +681,15 @@ const ContentStudioSettings: React.FC<ContentStudioSettingsProps> = ({ serviceCo
       </SettingsDesc>
 
       <FieldGroup>
-        <FieldLabel>Kling AI API Key</FieldLabel>
+        <FieldLabel>Seedance 2.0 / Higgsfield API Key</FieldLabel>
         <FieldHint>
-          {serviceConfig.kling ? '✓ Configured' : 'Get your key from kling.ai'}
+          {serviceConfig.seedance ? '✓ Configured' : 'Get your key from higgsfield.ai'}
         </FieldHint>
         <ApiKeyInput
           type="password"
-          value={klingKey}
+          value={seedanceKey}
           onChange={(e) => setKlingKey(e.target.value)}
-          placeholder={serviceConfig.kling ? '••••••••••••••••' : 'sk-kling-...'}
+          placeholder={serviceConfig.seedance ? '••••••••••••••••' : 'hf-...'}
           autoComplete="off"
         />
       </FieldGroup>

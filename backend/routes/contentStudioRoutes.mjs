@@ -19,7 +19,7 @@ router.get('/service-status', protect, adminOnly, (req, res) => {
       success: true,
       data: {
         remotion: true, // Always available (built-in)
-        kling: !!process.env.KLING_API_KEY,
+        seedance: !!process.env.SEEDANCE_API_KEY,
         elevenlabs: !!process.env.ELEVENLABS_API_KEY,
         blotato: !!process.env.BLOTATO_API_KEY,
       },
@@ -39,9 +39,9 @@ router.put('/api-keys', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid keys payload' });
     }
 
-    const validKeys = ['kling', 'elevenlabs', 'blotato'];
+    const validKeys = ['seedance', 'elevenlabs', 'blotato'];
     const envMap = {
-      kling: 'KLING_API_KEY',
+      seedance: 'SEEDANCE_API_KEY',
       elevenlabs: 'ELEVENLABS_API_KEY',
       blotato: 'BLOTATO_API_KEY',
     };
@@ -60,7 +60,7 @@ router.put('/api-keys', protect, adminOnly, async (req, res) => {
       message: `Updated ${updated.length} API key(s): ${updated.join(', ')}`,
       data: {
         remotion: true,
-        kling: !!process.env.KLING_API_KEY,
+        seedance: !!process.env.SEEDANCE_API_KEY,
         elevenlabs: !!process.env.ELEVENLABS_API_KEY,
         blotato: !!process.env.BLOTATO_API_KEY,
       },

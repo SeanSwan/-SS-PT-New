@@ -1599,8 +1599,8 @@ const HomePageV4: React.FC = () => {
               }}
             >
               {[
-                { icon: <Dumbbell size={28} />, title: '840+ Exercises', desc: 'Full NASM OPT 5-phase periodization library with AI-powered workout builder.' },
-                { icon: <Mic2 size={28} />, title: 'Voice-First AI Coach', desc: 'Log workouts hands-free, get real-time client insights, and manage sessions by voice.' },
+                { icon: <Dumbbell size={28} />, title: '840+ Exercises', desc: 'Full NASM OPT 5-phase periodization library with Swan Coach workout builder.' },
+                { icon: <Mic2 size={28} />, title: 'Voice-First Swan Coach', desc: 'Log workouts hands-free, get real-time client insights, and manage sessions by voice.' },
                 { icon: <Shield size={28} />, title: 'Fair Fees, Always', desc: 'Small transparent fee (~10%). No surprises. Your clients stay yours forever.' },
                 { icon: <MapPin size={28} />, title: 'Works Anywhere', desc: 'Run your sessions, collect payments, and build your brand from any city, any country.' },
               ].map((item, i) => (
