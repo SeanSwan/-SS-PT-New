@@ -1151,6 +1151,20 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         </PageSubtitle>
       </SectionHeader>
 
+      {/* Demo data notice */}
+      <div style={{
+        background: 'rgba(198, 168, 75, 0.1)',
+        border: '1px solid rgba(198, 168, 75, 0.3)',
+        borderRadius: 8,
+        padding: '10px 16px',
+        marginBottom: 16,
+        fontSize: 13,
+        color: '#C6A84B',
+        fontFamily: "'Sora', sans-serif"
+      }}>
+        Preview Mode — Charts display sample data. Real progress will populate as sessions are completed.
+      </div>
+
       {/* Controls */}
       <ControlsRow>
         <NativeSelect

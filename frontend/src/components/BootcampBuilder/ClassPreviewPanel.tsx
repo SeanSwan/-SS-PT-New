@@ -510,8 +510,11 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                       </div>
                     )}
                     {exercises.map((ex, exIdx) => {
-                      // Find the global index of this exercise in bootcamp.exercises
-                      const globalIdx = bootcamp.exercises.indexOf(ex);
+                      // Use sortOrder + stationIndex for a unique match instead of indexOf
+                      // indexOf fails with duplicate exercises (always returns first match)
+                      const globalIdx = bootcamp.exercises.findIndex(
+                        (e) => e.sortOrder === ex.sortOrder && e.stationIndex === ex.stationIndex
+                      );
                       return (
                         <React.Fragment key={`${si}-${ex.sortOrder}-${exIdx}-${activeBoard}`}>
                           <ExRowWithDelete>

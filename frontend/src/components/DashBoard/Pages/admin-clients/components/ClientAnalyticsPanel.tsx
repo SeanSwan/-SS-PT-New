@@ -917,6 +917,20 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
         <Subtitle>AI-powered insights and comprehensive performance analytics</Subtitle>
       </SectionHeader>
 
+      {/* Demo data notice */}
+      <div style={{
+        background: 'rgba(198, 168, 75, 0.1)',
+        border: '1px solid rgba(198, 168, 75, 0.3)',
+        borderRadius: 8,
+        padding: '10px 16px',
+        marginBottom: 16,
+        fontSize: 13,
+        color: '#C6A84B',
+        fontFamily: "'Sora', sans-serif"
+      }}>
+        Preview Mode — Charts display sample data. Real analytics will populate as client sessions are logged.
+      </div>
+
       {/* Control Panel */}
       <ControlPanel>
         <NativeSelect defaultValue={timePeriod}>

@@ -633,8 +633,9 @@ class AdminClientController {
       }
 
       // Determine password: use admin-supplied or generate a secure one
+      // base64url + special char suffix ensures validators requiring special chars pass
       const passwordSource = password ? 'admin-supplied' : 'generated';
-      const effectivePassword = password || crypto.randomBytes(12).toString('base64url');
+      const effectivePassword = password || (crypto.randomBytes(12).toString('base64url') + '!A1');
 
       // Check if email/username already exists
       const existingUser = await User.findOne({
@@ -1372,7 +1373,7 @@ class AdminClientController {
       // Generate username from email prefix with high-entropy suffix to prevent collisions
       const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
       const username = `${baseUsername}_${crypto.randomBytes(4).toString('hex')}`;
-      const effectivePassword = password || crypto.randomBytes(12).toString('base64url');
+      const effectivePassword = password || (crypto.randomBytes(12).toString('base64url') + '!A1');
       const passwordSource = password ? 'admin-supplied' : 'generated';
 
       // Check if email already exists

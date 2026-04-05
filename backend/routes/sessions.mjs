@@ -1043,6 +1043,185 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
   }
 });
 
+// ==================== ATTENDANCE & FEEDBACK ====================
+
+/**
+ * PATCH /api/sessions/:id/attendance
+ * Record attendance for a session (admin/trainer only)
+ */
+router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const { attendanceStatus, noShowReason, notes } = req.body;
+
+    if (!['present', 'late', 'no_show'].includes(attendanceStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid attendance status. Must be: present, late, or no_show'
+      });
+    }
+
+    const session = await Session.findByPk(req.params.id);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    const updates = {
+      attendanceStatus,
+      attendanceRecordedAt: new Date(),
+      ...(attendanceStatus === 'present' && { checkInTime: new Date() }),
+      ...(attendanceStatus === 'no_show' && noShowReason && { noShowReason }),
+      ...(notes && { notes })
+    };
+
+    await session.update(updates);
+
+    return res.status(200).json({
+      success: true,
+      message: `Attendance recorded: ${attendanceStatus}`,
+      data: session
+    });
+  } catch (error) {
+    logger.error(`Error in PATCH /api/sessions/${req.params.id}/attendance:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error recording attendance',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/:id/feedback
+ * Client submits feedback for a completed session
+ */
+router.post("/:id/feedback", protect, async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be between 1 and 5'
+      });
+    }
+
+    const session = await Session.findByPk(req.params.id);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    // Only the client assigned to this session can leave feedback
+    if (session.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned client or an admin can submit feedback'
+      });
+    }
+
+    if (session.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Feedback can only be submitted for completed sessions'
+      });
+    }
+
+    await session.update({
+      rating,
+      feedback: comment || null,
+      feedbackProvided: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Feedback submitted successfully',
+      data: { rating, feedback: comment || null }
+    });
+  } catch (error) {
+    logger.error(`Error in POST /api/sessions/${req.params.id}/feedback:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error submitting feedback',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/:id/cancel-warning
+ * Check late cancellation policy before cancelling
+ */
+router.get("/:id/cancel-warning", protect, async (req, res) => {
+  try {
+    const session = await Session.findByPk(req.params.id);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    const sessionDate = new Date(session.sessionDate);
+    const now = new Date();
+    const hoursUntilSession = (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const isLateCancellation = hoursUntilSession < 24;
+
+    // Default cancellation policy
+    const cancellationPolicy = {
+      lateFeeAmount: 88,
+      creditRestored: !isLateCancellation,
+      lateThresholdHours: 24
+    };
+
+    return res.status(200).json({
+      success: true,
+      isLateCancellation,
+      hoursUntilSession: Math.max(0, Math.round(hoursUntilSession * 10) / 10),
+      cancellationPolicy,
+      warningMessage: isLateCancellation
+        ? `This is a late cancellation (less than 24 hours notice). A fee of $${cancellationPolicy.lateFeeAmount} may apply.`
+        : 'You are cancelling with more than 24 hours notice. No fee will be charged.',
+      sessionDateFormatted: sessionDate.toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit'
+      })
+    });
+  } catch (error) {
+    logger.error(`Error in GET /api/sessions/${req.params.id}/cancel-warning:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error checking cancellation policy',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/:id/client-package-price
+ * Get client's package price for a session (admin/trainer only)
+ */
+router.get("/:id/client-package-price", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const session = await Session.findByPk(req.params.id);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    // Default pricing — can be enhanced with actual package lookup later
+    return res.status(200).json({
+      success: true,
+      data: {
+        pricePerSession: 175,
+        defaultChargeAmount: 175,
+        lateFeeAmount: 88,
+        packageName: 'Standard Training Package'
+      }
+    });
+  } catch (error) {
+    logger.error(`Error in GET /api/sessions/${req.params.id}/client-package-price:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching package price',
+      error: error.message
+    });
+  }
+});
+
 // ==================== SERVICE HEALTH CHECK ====================
 
 /**
