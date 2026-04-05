@@ -280,7 +280,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     }
 
     // ── PHASE 2: IDENTITY-BLIND AI — strip PII from outbound message ──
-    const enrichUserId = conversation.targetUserId || req.user.id;
+    // For admin/trainer: ONLY enrich with client data when a target client is explicitly selected.
+    // Without this guard, the admin's own user ID is used as the "client", causing
+    // the AI to say "Client #2" (the admin's ID) instead of operating in general coach mode.
+    const isAdminOrTrainer = conversation.role === 'admin' || conversation.role === 'trainer';
+    const enrichUserId = isAdminOrTrainer
+      ? (conversation.targetUserId || null)   // null = no client selected → skip enrichment
+      : (conversation.targetUserId || req.user.id);  // clients always enrich with their own data
 
     // ── TRAINER RBAC: Verify trainer is assigned to target client ──
     if (conversation.targetUserId && conversation.role === 'trainer') {
@@ -307,24 +313,30 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     }
     let sanitizedMessage = message.trim();
     let piiStripped = false;
-    try {
-      const stripResult = await stripIdentityFromMessage(sanitizedMessage, enrichUserId, sequelize);
-      sanitizedMessage = stripResult.sanitizedMessage;
-      piiStripped = stripResult.identitiesStripped > 0;
-    } catch (stripErr) {
-      logger.warn('[AIChatRoutes] PII stripping failed (non-fatal):', stripErr.message);
-      // Continue with original message — fail open for usability, but log the failure
+    // Only strip PII when we have a target client to protect
+    if (enrichUserId) {
+      try {
+        const stripResult = await stripIdentityFromMessage(sanitizedMessage, enrichUserId, sequelize);
+        sanitizedMessage = stripResult.sanitizedMessage;
+        piiStripped = stripResult.identitiesStripped > 0;
+      } catch (stripErr) {
+        logger.warn('[AIChatRoutes] PII stripping failed (non-fatal):', stripErr.message);
+        // Continue with original message — fail open for usability, but log the failure
+      }
     }
 
     // Build system prompt based on role + context, enriched with user data
     // For trainer/admin conversations with a target client, enrich with the CLIENT's data
     const responseStyle = conversation.metadata?.responseStyle || 'both';
     let systemPrompt = getSystemPrompt(conversation.role, conversation.context, responseStyle);
-    const userDataContext = await enrichWithUserData(
-      enrichUserId, conversation.role, conversation.context, sequelize
-    );
-    if (userDataContext) {
-      systemPrompt += userDataContext;
+    // Only enrich with client data if a client is actually selected
+    if (enrichUserId) {
+      const userDataContext = await enrichWithUserData(
+        enrichUserId, conversation.role, conversation.context, sequelize
+      );
+      if (userDataContext) {
+        systemPrompt += userDataContext;
+      }
     }
     // Use sanitized message (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
@@ -334,11 +346,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
 
     // ── PHASE 2b: Strip identity from AI response (bidirectional scrubbing) ──
     let aiContent = aiResult.content;
-    try {
-      const responseStrip = await stripIdentityFromResponse(aiContent, enrichUserId, sequelize);
-      aiContent = responseStrip.sanitizedResponse;
-    } catch (stripErr) {
-      logger.warn('[AIChatRoutes] Response PII stripping failed (non-fatal):', stripErr.message);
+    if (enrichUserId) {
+      try {
+        const responseStrip = await stripIdentityFromResponse(aiContent, enrichUserId, sequelize);
+        aiContent = responseStrip.sanitizedResponse;
+      } catch (stripErr) {
+        logger.warn('[AIChatRoutes] Response PII stripping failed (non-fatal):', stripErr.message);
+      }
     }
 
     // Create message entries
