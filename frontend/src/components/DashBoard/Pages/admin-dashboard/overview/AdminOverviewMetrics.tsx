@@ -19,7 +19,12 @@ interface AdminOverviewMetricsProps {
 const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) => {
   const renderSparkline = (trend: number[], color: string) => {
     if (!trend || trend.length < 2) return null;
-    const data = trend.map((y, i) => ({ x: i, y }));
+    const data = trend.map((y, i) => ({
+      x: i,
+      y: Number.isFinite(Number(y)) ? Number(y) : 0,
+    }));
+    // Skip rendering if all values are 0 (no real data)
+    if (data.every(d => d.y === 0)) return null;
     return (
       <SparklineWrap>
         <svg viewBox="0 0 100 32" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>

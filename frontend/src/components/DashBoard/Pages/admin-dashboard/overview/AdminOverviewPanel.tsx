@@ -93,6 +93,14 @@ const AdminOverviewPanel: React.FC = () => {
     return 'neutral';
   };
 
+  const safeTrend = (raw: unknown): number[] => {
+    if (!Array.isArray(raw)) return [];
+    return raw.map(v => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    });
+  };
+
   const fetchAdminOverview = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -120,7 +128,7 @@ const AdminOverviewPanel: React.FC = () => {
           icon: <DollarSign size={24} />,
           color: '#10b981',
           description: 'Monthly recurring revenue',
-          trend: revenueData.trend ?? [],
+          trend: safeTrend(revenueData.trend),
           target: revenueData.target ?? undefined,
           format: 'currency',
         },
@@ -133,7 +141,7 @@ const AdminOverviewPanel: React.FC = () => {
           icon: <Users size={24} />,
           color: '#3b82f6',
           description: 'Daily active users',
-          trend: usersData.trend ?? [],
+          trend: safeTrend(usersData.trend),
           target: usersData.target ?? undefined,
           format: 'number',
         },
@@ -146,7 +154,7 @@ const AdminOverviewPanel: React.FC = () => {
           icon: <Dumbbell size={24} />,
           color: '#f59e0b',
           description: 'Average workout completion rate',
-          trend: workoutsData.trend ?? [],
+          trend: safeTrend(workoutsData.trend),
           target: workoutsData.target ?? undefined,
           format: 'percentage',
         },
@@ -159,7 +167,7 @@ const AdminOverviewPanel: React.FC = () => {
           icon: <Monitor size={24} />,
           color: '#10b981',
           description: 'Overall system uptime',
-          trend: healthData.trend ?? [],
+          trend: safeTrend(healthData.trend),
           target: 99.9,
           format: 'percentage',
         },
