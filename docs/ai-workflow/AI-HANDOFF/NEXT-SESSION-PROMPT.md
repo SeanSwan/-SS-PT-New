@@ -4,14 +4,14 @@
 
 ## PROMPT:
 
-Continue building SwanStudios. Phases 1-7 are COMPLETE and deployed. We are starting Phase 8 of 11. Everything is committed, pushed, and live on Render.
+Continue building SwanStudios. Phases 1-8 are COMPLETE and deployed. We are starting Phase 9 of 11. Everything is committed, pushed, and live on Render.
 
 **IMPORTANT:** The full phase tracker with all 11 phases, file paths, and status is in this file:
 `docs/ai-workflow/AI-HANDOFF/NEXT-SESSION-PROMPT.md`
 
 Read that file first to get full context before starting work.
 
-**What was already built and deployed (Phases 1-7):**
+**What was already built and deployed (Phases 1-8):**
 
 ### Phase 1 — Dark Navy Default Theme + 4 New Themes
 - 18 themes (dark navy = crystalline-dark default confirmed)
@@ -53,6 +53,26 @@ Read that file first to get full context before starting work.
   - `AdminOverviewPanel.tsx` — Reorganized bento grid: KPIs at top → revenue/growth charts → business KPI + sessions → 3-col quick actions/activity/gamification. Quick actions updated to 6 real routes
 - **Bug fix**: `useSubscription.ts` — Added missing `fetchTiers` to return object, fixing MembershipsSection.tsx crash on Store page
 
+### Phase 8 — Marketing Dashboard
+- **Bug fix**: `ClientHeaderCard.tsx:152` — styled-components error #12 fixed (keyframe interpolation inside plain string literal → wrapped with `css` helper)
+- **11 new files** in `frontend/src/components/DashBoard/workspaces/marketing/`:
+  - `marketing.types.ts` — Shared TypeScript interfaces for all 7 panels
+  - `marketing.styles.ts` — Shared styled-components (MarketingCard, StatusChip, CompetitionBadge, etc.)
+  - `index.ts` — Barrel exports
+  - `SEOAuditPanel.tsx` — Site health donut gauge (Victory), issue categories, issues table with demo data
+  - `KeywordResearchWidget.tsx` — Sortable keyword table, category tabs (PT/Golf/Local SEO), Victory sparklines, track/untrack
+  - `BlogWriterPanel.tsx` — 3-step wizard (topic→outline→draft), cadence guard (1x/week), draft queue sidebar
+  - `SocialPostGenerator.tsx` — Platform selector (IG/FB/X), composer with char counter, hashtag chips, best time card, preview card
+  - `EmailDigestBuilder.tsx` — 4 template cards, block editor (heading/paragraph/CTA/testimonial), personalization tokens, cadence guard (2x/month)
+  - `MarketingCalendar.tsx` — Week view with channel color coding (blog=cyan, social=purple, email=gold, video=amber), filter chips, week navigation
+  - `CompetitorAnalysisWidget.tsx` — 3 competitor cards with social followers/reviews/pricing/keywords, comparison table (SwanStudios vs selected), Victory sparklines
+- **1 new workspace container**: `MarketingWorkspace.tsx` — Internal tab state + lazy loading (matches ContentStudioHub pattern, works with flat roleConfigurations routing)
+- **3 modified files**:
+  - `dashboard-tabs.ts` — Added marketing workspace to WORKSPACE_CONFIG (Megaphone icon)
+  - `AdminStellarSidebar.tsx` — Added Megaphone to lucide imports + iconMap
+  - `UniversalDashboardLayout.tsx` — Added lazy import + route in roleConfigurations.admin.routes
+- **Architecture note**: Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. Marketing workspace uses internal useState tab switching (not React Router Outlet) to work with this pattern.
+
 ---
 
 **ALL PHASES:**
@@ -66,35 +86,33 @@ Read that file first to get full context before starting work.
 | 5 | Canada Immigration tab — 5-phase alignment, CRS defaults, cost update, privacy hardening | DONE |
 | 6 | Workout logging speed optimization — 3-tap quick log, pre-fill, overload prompts, rest timer, stats bar, offline-first | DONE |
 | 7 | Admin Overview KPI dashboard — Victory revenue/growth charts, session tracking, activity feed, gamification summary, enhanced metrics | DONE |
-| 8 | Marketing Dashboard — SEO audit, keyword research, blog writer, social post generator, email digest, content calendar | **START HERE** |
-| 9 | Security Intelligence Panel — 6 free CVE APIs, daily scanning, admin alerts, npm audit | Pending |
+| 8 | Marketing Dashboard — SEO audit, keyword research, blog writer, social post generator, email digest, content calendar, competitor analysis | DONE |
+| 9 | Security Intelligence Panel — 6 free CVE APIs, daily scanning, admin alerts, npm audit | **START HERE** |
 | 10 | Content Studio upgrades — Seedance 2.0 integration, multi-platform social distribution, blog writer tab | Pending |
 | 11 | E2EE encryption — Signal Protocol (optional per user), server-side AES-256 default, identity verification | Pending |
 
 ---
 
-## PHASE 8 — Marketing Dashboard
+## PHASE 9 — Security Intelligence Panel
 
-**Goal:** Give Sean a PhD-level AI marketing assistant inside the admin dashboard. This is a full marketing command center — SEO, content creation, social media management, email campaigns, competitor analysis, and a content calendar. All in one place.
+**Goal:** Build a security monitoring dashboard in the admin panel. Proactive CVE/vulnerability scanning using free APIs, npm audit integration, and admin alerts for security issues.
 
 **Key features to build:**
 
-1. **SEO Audit Panel** — Site health score, meta tag analysis, keyword density, page speed insights, crawl issues. Pull data from existing site analysis or use Lighthouse-style checks.
+1. **Vulnerability Scanner Dashboard** — Overview of security posture. Scan results from free CVE APIs (NVD, OSV, GitHub Advisory). Show severity breakdown (critical/high/medium/low), scan history, and trend charts.
 
-2. **Keyword Research Widget** — Target keyword suggestions for personal training, golf fitness, local SEO terms. Show search volume estimates, competition level, and recommended content topics.
+2. **npm Audit Integration** — Run and display `npm audit` results. Show vulnerable packages, severity, fix available status. One-click fix suggestions.
 
-3. **Blog Writer Tab** — AI-assisted blog post generator using Swan Coach. Topic suggestions, outline builder, draft generator. Posts saved to admin draft queue for Sean's approval before publishing.
+3. **Dependency Health Widget** — Track outdated dependencies. Show packages needing updates, security patches available, and license compliance.
 
-4. **Social Post Generator** — Create social media posts (Instagram, Facebook, X/Twitter) with Swan Coach branding. Template library, hashtag suggestions, optimal posting time recommendations. Preview cards for each platform.
+4. **Security Alerts Feed** — Real-time feed of security-relevant events (failed logins, suspicious API calls, rate limit triggers, auth failures). Filterable by severity and type.
 
-5. **Email Digest Builder** — Compose client newsletters and email blasts. Template system, personalization tokens (client name, recent achievements). Respects content cadence rule: max 2x/month emails, 1x/week blog. Sean approves before sending.
+5. **CVE Watch List** — Track specific CVEs relevant to the tech stack (Node.js, Express, React, PostgreSQL, Sequelize). Auto-match against project dependencies.
 
-6. **Content Calendar** — Visual calendar showing planned/published content across all channels (blog, social, email). Drag-and-drop scheduling. Status tracking (draft, scheduled, published, archived).
-
-7. **Competitor Analysis Widget** — Track 3-5 local competitors. Compare social following, review ratings, keyword rankings, pricing tiers.
+6. **Security Score Card** — Overall security health score (0-100) based on: dependency freshness, known vulnerabilities, config hygiene, HTTPS enforcement, header security.
 
 **Current admin dashboard location:** `frontend/src/components/DashBoard/Pages/admin-dashboard/`
-**Existing marketing memory:** See `memory/project_marketing_dashboard_vision.md` and `memory/project_marketing_seo_research.md`
+**Existing security component:** `frontend/src/components/DashBoard/Pages/admin-dashboard/components/SecurityMonitoringPanel.tsx` (check what's already built)
 
 **Key design rules:**
 - Default theme: dark navy — Enchanted Apex: Crystalline Swan
@@ -104,10 +122,11 @@ Read that file first to get full context before starting work.
 - Max 300 lines per file — extract to sub-components
 - Victory only for charts (no Recharts)
 - prefers-reduced-motion MUST be respected
-- Content cadence: blog 1x/week, email 2x/month MAX. Sean approves before publish.
+
+**Architecture note from Phase 8:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. New workspaces should use internal useState tab switching + lazy loading (see MarketingWorkspace.tsx as template).
 
 **DO NOT run the AI Village without asking me first.** Use Opus internal planning (free) for most decisions.
 
-Start building Phase 8 — Marketing Dashboard.
+Start building Phase 9 — Security Intelligence Panel.
 
 ---
