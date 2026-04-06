@@ -200,6 +200,7 @@ export function useSubscription() {
     error,
     // Actions
     fetchStatus,
+    fetchTiers,
     startTrial,
     checkout,
     cancel,

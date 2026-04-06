@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react';
+import { DollarSign, Users, Dumbbell, Monitor, UserPlus, ClipboardList, Mail, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
@@ -14,6 +14,11 @@ import UpcomingChecksWidget from '../components/UpcomingChecksWidget';
 import ClientComplianceDashboard from '../components/ClientComplianceDashboard';
 import BusinessKPIDashboard from '../components/BusinessKPIDashboard';
 import AutomatedCheckInsWidget from '../components/AutomatedCheckInsWidget';
+import RevenueChart from '../components/RevenueChart';
+import UserGrowthChart from '../components/UserGrowthChart';
+import SessionTrackingWidget from '../components/SessionTrackingWidget';
+import RecentActivityFeed from '../components/RecentActivityFeed';
+import GamificationSummaryWidget from '../components/GamificationSummaryWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
@@ -37,32 +42,46 @@ const AdminOverviewPanel: React.FC = () => {
   const quickActions: AdminQuickAction[] = useMemo(
     () => [
       {
-        id: 'view-revenue',
-        title: 'Revenue Analytics',
-        description: 'Detailed revenue analysis',
-        icon: <DollarSign size={20} />,
-        action: () => navigate('/dashboard/admin/revenue'),
+        id: 'add-client',
+        title: 'Add Client',
+        description: 'Onboard a new client',
+        icon: <UserPlus size={20} />,
+        action: () => navigate('/dashboard/client-orientation'),
       },
       {
-        id: 'view-users',
+        id: 'log-workout',
+        title: 'Log Workout',
+        description: 'Quick session logging',
+        icon: <Dumbbell size={20} />,
+        action: () => navigate('/dashboard/admin-sessions'),
+      },
+      {
+        id: 'view-reports',
+        title: 'Reports',
+        description: 'Analytics & reports',
+        icon: <BarChart3 size={20} />,
+        action: () => navigate('/dashboard/reports'),
+      },
+      {
+        id: 'manage-users',
         title: 'User Management',
         description: 'Manage platform users',
         icon: <Users size={20} />,
-        action: () => navigate('/dashboard/admin/client-management'),
+        action: () => navigate('/dashboard/user-management'),
       },
       {
-        id: 'view-security',
-        title: 'Security Dashboard',
-        description: 'Security monitoring',
-        icon: <ShieldCheck size={20} />,
-        action: () => navigate('/dashboard/admin/style-guide'),
+        id: 'session-packages',
+        title: 'Packages',
+        description: 'Manage session packages',
+        icon: <ClipboardList size={20} />,
+        action: () => navigate('/dashboard/admin-packages'),
       },
       {
-        id: 'view-system',
-        title: 'System Health',
-        description: 'Infrastructure monitoring',
-        icon: <Monitor size={20} />,
-        action: () => navigate('/dashboard/admin/style-guide'),
+        id: 'notifications',
+        title: 'Notifications',
+        description: 'Email & alerts',
+        icon: <Mail size={20} />,
+        action: () => navigate('/dashboard/settings'),
       },
     ],
     [navigate]
@@ -186,30 +205,7 @@ const AdminOverviewPanel: React.FC = () => {
         />
       </BentoFull>
 
-      {/* ── Row 1: Critical Alerts (2-col bento) ── */}
-      <BentoHalf><VisitorGeoWidget /></BentoHalf>
-      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
-
-      {/* ── Row 1b: World Map (full width) ── */}
-      <BentoFull>
-        <Suspense fallback={<div style={{ minHeight: 400 }} />}>
-          <VisitorWorldMap />
-        </Suspense>
-      </BentoFull>
-
-      {/* ── Row 2: Signups + Orientations + Contacts ── */}
-      <BentoFull>
-        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
-      </BentoFull>
-      <BentoHalf><OrientationIntakeWidget /></BentoHalf>
-      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
-
-      {/* ── Row 3: Social triptych (3-col on desktop) ── */}
-      <BentoThird><SocialOverviewWidget /></BentoThird>
-      <BentoThird><ModerationWidget /></BentoThird>
-      <BentoThird><PostReportsWidget /></BentoThird>
-
-      {/* ── Row 4: Metrics controls + KPI cards (full width) ── */}
+      {/* ── Row 1: KPI Metrics + Time Range Control ── */}
       <BentoFull>
         <ControlsHeader>
           <ControlsInner>
@@ -228,23 +224,54 @@ const AdminOverviewPanel: React.FC = () => {
           </ControlsInner>
         </ControlsHeader>
       </BentoFull>
-
       <BentoFull><AdminOverviewMetrics metrics={metrics} /></BentoFull>
-      <BentoFull><BusinessKPIDashboard /></BentoFull>
 
-      {/* ── Row 5: Client Intelligence (2-col bento) ── */}
+      {/* ── Row 2: Revenue + User Growth Charts (2-col) ── */}
+      <BentoHalf><RevenueChart /></BentoHalf>
+      <BentoHalf><UserGrowthChart /></BentoHalf>
+
+      {/* ── Row 3: Business KPI + Session Tracking (2-col) ── */}
+      <BentoHalf><BusinessKPIDashboard /></BentoHalf>
+      <BentoHalf><SessionTrackingWidget /></BentoHalf>
+
+      {/* ── Row 4: Quick Actions + Activity Feed + Gamification (3-col) ── */}
+      <BentoThird><AdminQuickActions actions={quickActions} /></BentoThird>
+      <BentoThird><RecentActivityFeed /></BentoThird>
+      <BentoThird><GamificationSummaryWidget /></BentoThird>
+
+      {/* ── Row 5: System Health + Pending Payments (2-col) ── */}
+      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
+      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
+
+      {/* ── Row 6: Critical Alerts (2-col) ── */}
+      <BentoHalf><VisitorGeoWidget /></BentoHalf>
+      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
+
+      {/* ── Row 7: Signups + Orientations ── */}
+      <BentoFull>
+        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
+      </BentoFull>
+      <BentoHalf><OrientationIntakeWidget /></BentoHalf>
+      <BentoHalf>
+        <Suspense fallback={<div style={{ minHeight: 400 }} />}>
+          <VisitorWorldMap />
+        </Suspense>
+      </BentoHalf>
+
+      {/* ── Row 8: Social triptych (3-col) ── */}
+      <BentoThird><SocialOverviewWidget /></BentoThird>
+      <BentoThird><ModerationWidget /></BentoThird>
+      <BentoThird><PostReportsWidget /></BentoThird>
+
+      {/* ── Row 9: Client Intelligence (2-col) ── */}
       <BentoHalf><ClientComplianceDashboard /></BentoHalf>
       <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
 
-      {/* ── Row 6: Operations (2-col bento) ── */}
+      {/* ── Row 10: Operations (2-col) ── */}
       <BentoHalf><UpcomingChecksWidget /></BentoHalf>
       <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
 
-      {/* ── Row 7: System + Actions (2-col bento) ── */}
-      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
-      <BentoHalf><AdminQuickActions actions={quickActions} /></BentoHalf>
-
-      {/* ── Row 8: Swan Oracle — Fitness Industry Intelligence ── */}
+      {/* ── Row 11: Swan Oracle ── */}
       <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
     </BentoWrapper>
   );
