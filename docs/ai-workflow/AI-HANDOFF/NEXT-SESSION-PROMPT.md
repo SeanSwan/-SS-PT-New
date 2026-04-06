@@ -4,14 +4,14 @@
 
 ## PROMPT:
 
-Continue building SwanStudios. Phases 1-8 are COMPLETE and deployed. We are starting Phase 9 of 11. Everything is committed, pushed, and live on Render.
+Continue building SwanStudios. Phases 1-9 are COMPLETE and deployed. We are starting Phase 10 of 11. Everything is committed, pushed, and live on Render.
 
 **IMPORTANT:** The full phase tracker with all 11 phases, file paths, and status is in this file:
 `docs/ai-workflow/AI-HANDOFF/NEXT-SESSION-PROMPT.md`
 
 Read that file first to get full context before starting work.
 
-**What was already built and deployed (Phases 1-8):**
+**What was already built and deployed (Phases 1-9):**
 
 ### Phase 1 — Dark Navy Default Theme + 4 New Themes
 - 18 themes (dark navy = crystalline-dark default confirmed)
@@ -71,7 +71,36 @@ Read that file first to get full context before starting work.
   - `dashboard-tabs.ts` — Added marketing workspace to WORKSPACE_CONFIG (Megaphone icon)
   - `AdminStellarSidebar.tsx` — Added Megaphone to lucide imports + iconMap
   - `UniversalDashboardLayout.tsx` — Added lazy import + route in roleConfigurations.admin.routes
-- **Architecture note**: Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. Marketing workspace uses internal useState tab switching (not React Router Outlet) to work with this pattern.
+
+### Phase 9 — Security Intelligence Panel
+- **8 new files** in `frontend/src/components/DashBoard/workspaces/security/`:
+  - `security.types.ts` — Shared interfaces (Vulnerability, Dependency, Alert, CVE, Score types + SEVERITY_CONFIG)
+  - `security.styles.ts` — Shared styled-components (SecurityCard, SeverityBadge, CVEStatusChip, DepStatusChip, AlertCard, DataTable, MetricRow, ScoreBadge, ActionButton)
+  - `index.ts` — Barrel exports
+  - `VulnerabilityScannerPanel.tsx` — Victory pie chart (severity breakdown) + Victory area chart (7-day trend), filterable vulnerability table, scan button
+  - `DependencyHealthWidget.tsx` — npm audit summary metrics, filterable dependency table (current/outdated/vulnerable), fix suggestion banner
+  - `SecurityAlertsFeed.tsx` — Real-time security events (failed logins, SQL injection blocks, rate limits, JWT forgery, config changes), filterable by severity, toggle resolved
+  - `CVEWatchList.tsx` — CVE tracker for Node/Express/React/PG/Sequelize stack, CVSS scores, expandable rows, status filters (affected/monitoring/mitigated/patched)
+  - `SecurityScoreCard.tsx` — Overall score (0-100) with grade, 6 category breakdown with progress bars, Victory 7-day trend chart
+- **1 new workspace container**: `SecurityWorkspace.tsx` — 5-tab container (Vuln Scanner, Dependencies, Alerts Feed, CVE Watch, Score Card) with lazy loading + AnimatePresence
+- **3 modified files**:
+  - `dashboard-tabs.ts` — Added security workspace to WORKSPACE_CONFIG (ShieldCheck icon)
+  - `AdminStellarSidebar.tsx` — Added ShieldCheck to lucide imports + iconMap
+  - `UniversalDashboardLayout.tsx` — Added lazy import + `/security` route in roleConfigurations.admin.routes
+
+### Codebase Security Audit Fix Pass (same deploy)
+- CORS hardened to allowlisted origins in production (`backend/core/app.mjs`)
+- Session requires real secret + Redis in production, fails closed (`backend/config/session.mjs`)
+- Storefront XSS sanitized on write+read (`backend/routes/storeFrontRoutes.mjs`)
+- `dangerouslySetInnerHTML` removed from `ProductDetail.tsx` + `TeachMeToggle.tsx`
+- AI rate limiter ownership shifted to middleware (`backend/middleware/aiRateLimiter.mjs`)
+- Privacy aliasing respects preferredAlias (`backend/services/deIdentificationService.mjs`, `backend/controllers/onboardingController.mjs`)
+- Auth refresh unified to `/api/auth/refresh-token` (`frontend/src/context/AuthContext.tsx`)
+- Trainer access uses `ClientTrainerAssignment` model (`backend/routes/authRoutes.mjs:746`)
+- AI consent requires explicit userId for trainer/admin (`backend/controllers/aiConsentController.mjs`)
+- `parse_error` standardized to 502 (`backend/controllers/aiWorkoutController.mjs`, `backend/controllers/longHorizonController.mjs`)
+
+**Architecture note:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. New workspaces should use internal useState tab switching + lazy loading (see MarketingWorkspace.tsx or SecurityWorkspace.tsx as template).
 
 ---
 
@@ -87,32 +116,31 @@ Read that file first to get full context before starting work.
 | 6 | Workout logging speed optimization — 3-tap quick log, pre-fill, overload prompts, rest timer, stats bar, offline-first | DONE |
 | 7 | Admin Overview KPI dashboard — Victory revenue/growth charts, session tracking, activity feed, gamification summary, enhanced metrics | DONE |
 | 8 | Marketing Dashboard — SEO audit, keyword research, blog writer, social post generator, email digest, content calendar, competitor analysis | DONE |
-| 9 | Security Intelligence Panel — 6 free CVE APIs, daily scanning, admin alerts, npm audit | **START HERE** |
-| 10 | Content Studio upgrades — Seedance 2.0 integration, multi-platform social distribution, blog writer tab | Pending |
+| 9 | Security Intelligence Panel — vulnerability scanner, dependency health, alerts feed, CVE watchlist, security score card (all Victory charts) | DONE |
+| 10 | Content Studio upgrades — Seedance 2.0 integration, multi-platform social distribution, blog writer tab | **START HERE** |
 | 11 | E2EE encryption — Signal Protocol (optional per user), server-side AES-256 default, identity verification | Pending |
 
 ---
 
-## PHASE 9 — Security Intelligence Panel
+## PHASE 10 — Content Studio Upgrades
 
-**Goal:** Build a security monitoring dashboard in the admin panel. Proactive CVE/vulnerability scanning using free APIs, npm audit integration, and admin alerts for security issues.
+**Goal:** Enhance the existing Content Studio with Seedance 2.0 video AI integration, multi-platform social distribution, and a blog writer tab.
 
 **Key features to build:**
 
-1. **Vulnerability Scanner Dashboard** — Overview of security posture. Scan results from free CVE APIs (NVD, OSV, GitHub Advisory). Show severity breakdown (critical/high/medium/low), scan history, and trend charts.
+1. **Seedance 2.0 Integration** — Replace Kling 3.0 references with Seedance 2.0 (Higgsfield or laozhang.ai API). Video generation panel for exercise demos, social content, and marketing clips. Cost: $0.05/video via laozhang.ai or $15-34/mo via Higgsfield.
 
-2. **npm Audit Integration** — Run and display `npm audit` results. Show vulnerable packages, severity, fix available status. One-click fix suggestions.
+2. **Multi-Platform Social Distribution** — Publish generated content to Instagram, Facebook, X (Twitter) from within Content Studio. Preview cards, scheduling, caption generation with hashtag suggestions.
 
-3. **Dependency Health Widget** — Track outdated dependencies. Show packages needing updates, security patches available, and license compliance.
+3. **Blog Writer Tab** — Content Studio tab for long-form blog posts (ties into Marketing Dashboard's BlogWriterPanel but lives inside Content Studio for the content creation flow). SEO-optimized drafts, keyword integration.
 
-4. **Security Alerts Feed** — Real-time feed of security-relevant events (failed logins, suspicious API calls, rate limit triggers, auth failures). Filterable by severity and type.
+**Current Content Studio location:** `frontend/src/components/DashBoard/Pages/content-studio/ContentStudioHub.tsx`
 
-5. **CVE Watch List** — Track specific CVEs relevant to the tech stack (Node.js, Express, React, PostgreSQL, Sequelize). Auto-match against project dependencies.
-
-6. **Security Score Card** — Overall security health score (0-100) based on: dependency freshness, known vulnerabilities, config hygiene, HTTPS enforcement, header security.
-
-**Current admin dashboard location:** `frontend/src/components/DashBoard/Pages/admin-dashboard/`
-**Existing security component:** `frontend/src/components/DashBoard/Pages/admin-dashboard/components/SecurityMonitoringPanel.tsx` (check what's already built)
+**Key references:**
+- Content Studio plan: `docs/ai-workflow/references/` (check for content studio docs)
+- Seedance replaces Kling: memory file `project_video_ai_seedance_replacement.md`
+- Content cadence: blog 1x/week, email 2x/month MAX, Sean approves before publish
+- Two-tier workflow: Bootstrap (free/trial) vs Full Arsenal (paid)
 
 **Key design rules:**
 - Default theme: dark navy — Enchanted Apex: Crystalline Swan
@@ -123,10 +151,10 @@ Read that file first to get full context before starting work.
 - Victory only for charts (no Recharts)
 - prefers-reduced-motion MUST be respected
 
-**Architecture note from Phase 8:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. New workspaces should use internal useState tab switching + lazy loading (see MarketingWorkspace.tsx as template).
+**Architecture note:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. Content Studio already exists at `/content` route. Extend it with new tabs inside the existing ContentStudioHub pattern.
 
 **DO NOT run the AI Village without asking me first.** Use Opus internal planning (free) for most decisions.
 
-Start building Phase 9 — Security Intelligence Panel.
+Start building Phase 10 — Content Studio Upgrades.
 
 ---
