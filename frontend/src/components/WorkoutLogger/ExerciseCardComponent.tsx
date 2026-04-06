@@ -6,7 +6,7 @@
  * < 768px: stacked cards with 1fr 1fr grid
  * >= 768px: dense data table
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import styled, { css } from 'styled-components';
 import { Dumbbell, Star, Plus, Minus, X } from 'lucide-react';
@@ -15,6 +15,8 @@ import { CS, withAlpha, reducedMotionSafe } from './WorkoutLoggerCS';
 import TempoInput from './TempoInput';
 import RestTimer from './RestTimer';
 import GhostDataRow from './GhostDataRow';
+import OverloadSuggestion from './OverloadSuggestion';
+import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 
 interface ExerciseCardComponentProps {
   exercise: ExerciseEntry;
@@ -26,6 +28,10 @@ interface ExerciseCardComponentProps {
   onAddSet: (exerciseIndex: number) => void;
   onRemoveSet: (exerciseIndex: number, setIndex: number) => void;
   onRemoveExercise: (exerciseIndex: number) => void;
+  /** Optional: overload suggestion getter from useGhostPreFill */
+  getOverload?: (exerciseName: string, setIndex: number) => OverloadSuggestionType | null;
+  /** Optional: callback when a set is "confirmed" (triggers rest timer) */
+  onSetLogged?: (exerciseIndex: number, setIndex: number) => void;
 }
 
 const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo(({
@@ -38,6 +44,8 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onAddSet,
   onRemoveSet,
   onRemoveExercise,
+  getOverload,
+  onSetLogged,
 }) => (
   <CardContainer
     $isSuperset={supersetGroup != null && supersetGroup > 0}
@@ -126,13 +134,24 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
             <SetNumber>{set.setNumber}</SetNumber>
           </SetCell>
           <SetCell data-label="Weight">
-            <NumberInput
-              type="number"
-              value={set.weight ?? ''}
-              onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              aria-label={`Set ${set.setNumber} weight in lbs`}
-            />
+            <WeightInputWrapper>
+              <NumberInput
+                type="number"
+                value={set.weight ?? ''}
+                onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                aria-label={`Set ${set.setNumber} weight in lbs`}
+              />
+              {getOverload && (
+                <OverloadSuggestion
+                  suggestion={getOverload(exercise.exerciseName, setIndex)}
+                  onApply={() => {
+                    const suggestion = getOverload(exercise.exerciseName, setIndex);
+                    if (suggestion) onUpdateSet(exerciseIndex, setIndex, 'weight', suggestion.suggested);
+                  }}
+                />
+              )}
+            </WeightInputWrapper>
           </SetCell>
           <SetCell data-label="Reps">
             <NumberInput
@@ -572,6 +591,16 @@ const NumberInput = styled.input`
   @media (max-width: 430px) {
     font-size: 16px;
     padding: 10px;
+  }
+`;
+
+const WeightInputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  @media (max-width: 768px) {
+    flex: 1;
   }
 `;
 

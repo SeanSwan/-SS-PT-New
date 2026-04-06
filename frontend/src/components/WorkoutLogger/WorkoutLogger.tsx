@@ -56,6 +56,14 @@ import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import FloatingRestTimer from './FloatingRestTimer';
 
+// Phase 6: Speed optimization imports
+import { useGhostPreFill } from './useGhostPreFill';
+import { useSessionStats } from './useSessionStats';
+import { useOfflineQueue } from './useOfflineQueue';
+import SessionStatsBar from './SessionStatsBar';
+import QuickLogMode from './QuickLogMode';
+import { useRestTimer } from './useRestTimer';
+
 // ==================== INTERFACES ====================
 
 interface WorkoutLoggerProps {
@@ -113,6 +121,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
+  const [isQuickLogMode, setIsQuickLogMode] = useState(false);
+
+  // ── Phase 6: Speed Optimization Hooks ──
+  const ghostPreFill = useGhostPreFill(clientId);
+  const sessionStats = useSessionStats(exercises);
+  const offlineQueue = useOfflineQueue(clientId);
+  const restTimer = useRestTimer({
+    defaultSeconds: 60,
+    onComplete: () => toast.info('Rest complete — next set!'),
+  });
 
   // ── NASM Protocol State — Full exercise lists from NASMProtocolDefaults ──
   const [warmupItems, setWarmupItems] = useState<NASMItem[]>(DEFAULT_WARMUP_ITEMS);
@@ -396,30 +414,47 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }
   }, [clientId]);
 
-  // ── Exercise CRUD ──
+  // ── Exercise CRUD (Phase 6: pre-fill from last session) ──
   const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
     setNumber, weight: 0, reps: 0, rpe: 5, tempo: '', restTime: 60, formQuality: 3, notes: ''
   }), []);
 
   const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
+    // Trigger ghost data fetch for pre-fill
+    ghostPreFill.fetchExerciseHistory(exercise.name);
+    const preFilled = ghostPreFill.createPreFilledSet(exercise.name, 1);
+
     setExercises(prev => [...prev, {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
-      sets: [createEmptySet(1)],
+      sets: [preFilled],
       formRating: 3,
       painLevel: 0,
       performanceNotes: ''
     }]);
     setShowExerciseSearch(false);
     toast.success(`Added ${exercise.name} to workout`);
-  }, [createEmptySet]);
+  }, [ghostPreFill]);
 
   const addSet = useCallback((exerciseIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
       if (i !== exerciseIndex) return exercise;
-      return { ...exercise, sets: [...exercise.sets, createEmptySet(exercise.sets.length + 1)] };
+      const preFilled = ghostPreFill.createPreFilledSet(
+        exercise.exerciseName,
+        exercise.sets.length + 1
+      );
+      return { ...exercise, sets: [...exercise.sets, preFilled] };
     }));
-  }, [createEmptySet]);
+  }, [ghostPreFill]);
+
+  /** Phase 6: When a set is logged/confirmed, auto-start rest timer */
+  const handleSetLogged = useCallback((exerciseIndex: number, setIndex: number) => {
+    const exercise = exercises[exerciseIndex];
+    if (!exercise) return;
+    const set = exercise.sets[setIndex];
+    const restSeconds = set?.restTime || 60;
+    restTimer.start(restSeconds);
+  }, [exercises, restTimer]);
 
   const removeSet = useCallback((exerciseIndex: number, setIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
@@ -492,18 +527,26 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
+    const formData = {
+      clientId,
+      date: new Date().toISOString().split('T')[0],
+      exercises,
+      sessionNotes,
+      overallIntensity
+    };
+
+    // Phase 6: Offline-first — queue if offline
+    if (!offlineQueue.isOnline) {
+      offlineQueue.queueSubmission(formData);
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      return;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
-      const formData = {
-        clientId,
-        date: new Date().toISOString().split('T')[0],
-        exercises,
-        sessionNotes,
-        overallIntensity
-      };
-
       const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
 
       if (response.success && response.data) {
@@ -518,7 +561,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       if (error instanceof Error && error.name === 'AbortError') {
         toast.error('Workout submission timed out. Please try again.');
       } else {
-        toast.error(getErrorMessage(error, 'Failed to submit workout form'));
+        // Phase 6: Queue locally if submit fails due to network
+        offlineQueue.queueSubmission(formData);
       }
     } finally {
       clearTimeout(timeoutId);
@@ -619,6 +663,31 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onOPTPhaseChange={setCurrentOPTPhase}
         />
 
+        {/* Phase 6: Session Stats Bar (sticky, live volume/sets/calories) */}
+        {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
+
+        {/* Phase 6: Quick Log / Full Mode Toggle */}
+        {exercises.length > 0 && (
+          <ModeToggle>
+            <ModeButton $active={!isQuickLogMode} onClick={() => setIsQuickLogMode(false)}>
+              Full Mode
+            </ModeButton>
+            <ModeButton $active={isQuickLogMode} onClick={() => setIsQuickLogMode(true)}>
+              Quick Log
+            </ModeButton>
+            {!offlineQueue.isOnline && (
+              <OfflineBadge aria-label="Offline — workouts will be saved locally">
+                Offline{offlineQueue.pendingCount > 0 ? ` (${offlineQueue.pendingCount})` : ''}
+              </OfflineBadge>
+            )}
+            {restTimer.isRunning && (
+              <RestTimerBadge aria-label={`Rest timer: ${restTimer.secondsLeft}s`}>
+                ⏱ {restTimer.secondsLeft}s
+              </RestTimerBadge>
+            )}
+          </ModeToggle>
+        )}
+
         {/* Learning Mode Toggle */}
         <LearningModeToggle />
 
@@ -672,6 +741,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Plus size={20} />
               Add Your First Exercise
             </AddExerciseButton>
+          ) : isQuickLogMode ? (
+            /* Phase 6: Quick Log Mode — 3-tap streamlined view */
+            <QuickLogMode
+              exercises={exercises}
+              onUpdateSet={updateSet}
+              onAddSet={addSet}
+              ghostPreFill={ghostPreFill}
+              onSetLogged={handleSetLogged}
+            />
           ) : (
             exercises.map((exercise, exerciseIndex) => (
               <ExerciseCardComponent
@@ -684,6 +762,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 onAddSet={addSet}
                 onRemoveSet={removeSet}
                 onRemoveExercise={removeExercise}
+                getOverload={ghostPreFill.getOverload}
+                onSetLogged={handleSetLogged}
               />
             ))
           )}
@@ -964,4 +1044,69 @@ const LiveRegion = styled.div`
   width: 1px;
   height: 1px;
   overflow: hidden;
+`;
+
+// ── Phase 6: Quick Log Mode Toggle & Status Badges ──
+
+const ModeToggle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
+const ModeButton = styled.button<{ $active: boolean }>`
+  padding: 0.5rem 1rem;
+  min-height: 44px;
+  border-radius: 0.625rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid ${({ $active }) =>
+    $active ? CS.glow : CS.glassBorder};
+  background: ${({ $active }) =>
+    $active ? withAlpha(CS.glow, 0.15) : 'transparent'};
+  color: ${({ $active }) =>
+    $active ? CS.gaming : CS.textMuted};
+
+  &:hover {
+    border-color: ${CS.glow};
+    color: ${CS.text};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.glow};
+    outline-offset: 2px;
+  }
+`;
+
+const OfflineBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: ${CS.warningBg};
+  border: 1px solid ${CS.warningBorder};
+  color: ${CS.warningText};
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: auto;
+`;
+
+const RestTimerBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: ${CS.infoBg};
+  border: 1px solid ${CS.infoBorder};
+  color: ${CS.gaming};
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 `;
