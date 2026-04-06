@@ -246,6 +246,15 @@ const createProductionApiClient = (): AxiosInstance => {
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as any;
+      const isCanceledRequest =
+        error.code === 'ERR_CANCELED'
+        || error.name === 'CanceledError'
+        || error.message === 'canceled'
+        || axios.isCancel(error);
+
+      if (isCanceledRequest) {
+        return Promise.reject(error);
+      }
 
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;

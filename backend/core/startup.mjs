@@ -210,6 +210,25 @@ const initializeDatabases = async () => {
       }
     }
 
+    // Phase 11: Initialize E2EE encryption models
+    try {
+      const { initE2EEModels, syncE2EETables } = await import('../services/encryption/keyStoreService.mjs');
+      initE2EEModels(sequelize);
+      await syncE2EETables(sequelize);
+      logger.info('E2EE encryption models initialized');
+
+      // Register health data encryption hooks
+      try {
+        const { registerAllHealthEncryptionHooks } = await import('../services/encryption/healthDataEncryption.mjs');
+        const getModels = (await import("../models/associations.mjs")).default;
+        const allModels = await getModels();
+        registerAllHealthEncryptionHooks(allModels);
+      } catch (hookErr) {
+        logger.warn('Health encryption hooks skipped:', hookErr.message);
+      }
+    } catch (e2eeError) {
+      logger.warn('E2EE model init skipped (non-critical):', e2eeError.message);
+    }
     logger.info('✅ ENHANCED: Database initialization completed with resilient error handling');
   } catch (error) {
     logger.error('❌ Database initialization failed:', error);

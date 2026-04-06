@@ -7,11 +7,7 @@
  */
 
 // Local logger — avoids circular/timing issues when spaRoutingFix loads early in main.jsx
-const logger = {
-  log: (...args) => console.log(...args),
-  warn: (...args) => console.warn(...args),
-  error: (...args) => console.error(...args),
-};
+import { logger } from './logger';
 
 /**
  * Initialize SPA routing fix

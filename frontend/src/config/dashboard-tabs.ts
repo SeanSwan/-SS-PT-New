@@ -404,7 +404,7 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     order: 18,
     status: 'mock',
     section: 'system',
-    route: '/dashboard/security',
+    route: '/dashboard/admin/security',
     description: 'Security monitoring and threat analysis',
   },
   {

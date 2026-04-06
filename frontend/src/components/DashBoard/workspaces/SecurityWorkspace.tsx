@@ -65,7 +65,11 @@ const Header = styled.div`
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  background: linear-gradient(
+    135deg,
+    var(--accent-secondary, #8B5CF6),
+    var(--accent-primary, #60C0F0)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -94,7 +98,7 @@ const TabBar = styled.div`
 
   @media (max-width: 768px) {
     gap: 4px;
-    background: rgba(0, 32, 96, 0.3);
+    background: var(--bg-surface, rgba(0, 32, 96, 0.3));
     border-radius: 12px;
     padding: 6px 8px;
   }
@@ -108,8 +112,12 @@ const TabBtn = styled.button<{ $active: boolean }>`
   padding: 8px 18px;
   border: none;
   border-radius: 8px;
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#8B5CF6' : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
+  background: ${({ $active }) => $active
+    ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)'
+    : 'transparent'};
+  color: ${({ $active }) => $active
+    ? 'var(--accent-secondary, #8B5CF6)'
+    : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: ${({ $active }) => $active ? 600 : 500};
@@ -119,7 +127,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
   transition: all 0.15s ease;
 
   &:hover {
-    background: rgba(139, 92, 246, 0.08);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent);
     color: var(--text-primary, #E0ECF4);
   }
 `;

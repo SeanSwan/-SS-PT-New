@@ -13,7 +13,7 @@ import {
 import { DollarSign, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
-  CHART_COLORS, FULL_PALETTE, victoryTheme, hexAlpha,
+  CHART_COLORS, victoryTheme, hexAlpha,
 } from '../../../../Charts/chartTheme';
 
 interface RevenueDataPoint {
@@ -48,6 +48,43 @@ const DEMO_DATA: RevenueChartData = {
   ],
 };
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeRevenueHistory = (value: unknown): RevenueDataPoint[] => {
+  if (!Array.isArray(value)) return DEMO_DATA.revenueHistory;
+
+  const normalized = value.map((entry, index) => {
+    const point = (entry && typeof entry === 'object' ? entry : {}) as Partial<RevenueDataPoint>;
+    return {
+      date: typeof point.date === 'string' && point.date.trim() ? point.date : `Point ${index + 1}`,
+      revenue: toFiniteNumber(point.revenue),
+      transactions: toFiniteNumber(point.transactions),
+    };
+  });
+
+  return normalized.length ? normalized : DEMO_DATA.revenueHistory;
+};
+
+const normalizeRevenueData = (value: unknown): RevenueChartData => {
+  const payload = (value && typeof value === 'object' ? value : {}) as Partial<RevenueChartData> & {
+    overview?: Partial<RevenueChartData['overview']>;
+  };
+  const overview = payload.overview ?? {};
+
+  return {
+    overview: {
+      totalRevenue: toFiniteNumber(overview.totalRevenue, DEMO_DATA.overview.totalRevenue),
+      monthlyRecurring: toFiniteNumber(overview.monthlyRecurring, DEMO_DATA.overview.monthlyRecurring),
+      averageTransaction: toFiniteNumber(overview.averageTransaction, DEMO_DATA.overview.averageTransaction),
+      totalCustomers: toFiniteNumber(overview.totalCustomers, DEMO_DATA.overview.totalCustomers),
+    },
+    revenueHistory: normalizeRevenueHistory(payload.revenueHistory),
+  };
+};
+
 const RevenueChart: React.FC = () => {
   const { authAxios } = useAuth();
   const [data, setData] = useState<RevenueChartData>(DEMO_DATA);
@@ -60,7 +97,7 @@ const RevenueChart: React.FC = () => {
       const res = await authAxios.get('/api/admin/analytics/revenue', {
         params: { timeRange },
       });
-      if (res.data?.data) setData(res.data.data);
+      if (res.data?.data) setData(normalizeRevenueData(res.data.data));
     } catch {
       setData(DEMO_DATA);
     } finally {
@@ -71,7 +108,7 @@ const RevenueChart: React.FC = () => {
   useEffect(() => { fetchRevenue(); }, [fetchRevenue]);
 
   const chartData = data.revenueHistory.map((d, i) => ({
-    x: d.date, y: d.revenue,
+    x: d.date, y: toFiniteNumber(d.revenue),
   }));
 
   return (

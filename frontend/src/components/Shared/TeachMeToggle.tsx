@@ -213,7 +213,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
         {onAskAI && (
           <AskAIBtn onClick={onAskAI}>
             <MessageCircle size={14} />
-            Ask AI Coach for help
+            Ask Swan Coach for help
           </AskAIBtn>
         )}
       </Panel>

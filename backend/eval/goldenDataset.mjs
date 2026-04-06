@@ -79,6 +79,14 @@ function validLongHorizon(overrides = {}) {
   return JSON.stringify(merged);
 }
 
+function validWarningExercise(name) {
+  return {
+    name,
+    tempo: '2/0/2',
+    restPeriod: 60,
+  };
+}
+
 // ── Scenarios ────────────────────────────────────────────────────────────────
 
 export const GOLDEN_SCENARIOS = [
@@ -923,7 +931,7 @@ export const GOLDEN_SCENARIOS = [
       durationWeeks: 4,
       days: [{
         dayNumber: 1, name: 'Full Day',
-        exercises: Array.from({ length: 20 }, (_, i) => ({ name: `Exercise ${i + 1}` })),
+        exercises: Array.from({ length: 20 }, (_, i) => validWarningExercise(`Exercise ${i + 1}`)),
       }],
     }),
     opts: {},
@@ -940,7 +948,7 @@ export const GOLDEN_SCENARIOS = [
       durationWeeks: 4,
       days: [{
         dayNumber: 1, name: 'Heavy Day',
-        exercises: Array.from({ length: 21 }, (_, i) => ({ name: `Exercise ${i + 1}` })),
+        exercises: Array.from({ length: 21 }, (_, i) => validWarningExercise(`Exercise ${i + 1}`)),
       }],
     }),
     opts: {},

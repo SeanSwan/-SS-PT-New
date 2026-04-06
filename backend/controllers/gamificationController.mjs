@@ -430,6 +430,46 @@ const safeError = (req, error) => {
   return 'An error occurred. Please try again.';
 };
 
+const mapPointTransactionFeedType = (source) => {
+  switch (source) {
+    case 'friend_referral':
+      return 'signup';
+    case 'package_purchase':
+      return 'payment';
+    case 'workout_completion':
+    case 'exercise_completion':
+      return 'workout';
+    case 'achievement_earned':
+    case 'milestone_reached':
+    case 'level_up':
+    case 'challenge_completion':
+      return 'achievement';
+    case 'trainer_award':
+      return 'session';
+    default:
+      return 'system';
+  }
+};
+
+const formatFeedTimeAgo = (timestamp) => {
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return 'just now';
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (diffSeconds < 60) return 'just now';
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+  return date.toISOString().split('T')[0];
+};
+
 const gamificationController = {
   /**
    * Get gamification settings
@@ -2748,9 +2788,26 @@ const gamificationController = {
         }]
       });
 
+      const normalizedFeed = feed.map((transaction) => {
+        const record = transaction.get({ plain: true });
+        const displayName =
+          [record.user?.firstName, record.user?.lastName].filter(Boolean).join(' ')
+          || record.user?.username
+          || 'Client';
+
+        return {
+          id: record.id,
+          type: mapPointTransactionFeedType(record.source),
+          message: record.description || `${displayName} earned ${record.points || 0} points`,
+          timestamp: record.createdAt,
+          timeAgo: formatFeedTimeAgo(record.createdAt),
+          meta: displayName
+        };
+      });
+
       return res.json({
         success: true,
-        data: feed,
+        data: normalizedFeed,
         timestamp: new Date().toISOString()
       });
     } catch (error) {

@@ -403,6 +403,8 @@ const setupAssociations = async () => {
       const criticalAssociationStatus = {
         userToClientProgress: hasClientProgressAlias,
         userToClientSessions: !!(User.associations && User.associations.clientSessions),
+        userToPointTransactions: !!(User.associations && User.associations.pointTransactions),
+        pointTransactionToUser: !!(PointTransaction.associations && PointTransaction.associations.user),
         cartToStorefront: !!(CartItem.associations && CartItem.associations.storefrontItem),
         cartToShoppingCart: !!(CartItem.associations && CartItem.associations.cart),
         shoppingCartToItems: !!(ShoppingCart.associations && ShoppingCart.associations.cartItems),
@@ -544,6 +546,10 @@ const setupAssociations = async () => {
     // GAMIFICATION ASSOCIATIONS
     // ========================
     Gamification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(PointTransaction, { foreignKey: 'userId', as: 'pointTransactions' });
+    PointTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(PointTransaction, { foreignKey: 'awardedBy', as: 'awardedPointTransactions' });
+    PointTransaction.belongsTo(User, { foreignKey: 'awardedBy', as: 'awarder' });
     
     // ACHIEVEMENT ASSOCIATIONS
     // =======================

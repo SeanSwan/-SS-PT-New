@@ -39,6 +39,46 @@ const DEMO: GrowthData = {
   ],
 };
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeGrowthHistory = (value: unknown): GrowthPoint[] => {
+  if (!Array.isArray(value)) return DEMO.history;
+
+  const normalized = value.map((entry, index) => {
+    const point = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+    return {
+      date: typeof point.date === 'string' && point.date.trim() ? point.date : `Point ${index + 1}`,
+      signups: toFiniteNumber(point.signups ?? point.newUsers),
+      active: toFiniteNumber(point.active ?? point.activeUsers),
+    };
+  });
+
+  return normalized.length ? normalized : DEMO.history;
+};
+
+const normalizeGrowthData = (value: unknown): GrowthData => {
+  const payload = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const overview = payload.overview && typeof payload.overview === 'object'
+    ? payload.overview as Record<string, unknown>
+    : payload;
+  const history = Array.isArray(payload.history)
+    ? normalizeGrowthHistory(payload.history)
+    : normalizeGrowthHistory(payload.userActivity);
+  const derivedNewThisMonth = history.reduce((sum, point) => sum + point.signups, 0);
+
+  return {
+    totalUsers: toFiniteNumber(overview.totalUsers, DEMO.totalUsers),
+    activeUsers: toFiniteNumber(overview.activeUsers ?? overview.activeToday, DEMO.activeUsers),
+    newThisWeek: toFiniteNumber(overview.newThisWeek, DEMO.newThisWeek),
+    newThisMonth: toFiniteNumber(overview.newThisMonth, derivedNewThisMonth || DEMO.newThisMonth),
+    retentionRate: Number(toFiniteNumber(overview.retentionRate, DEMO.retentionRate).toFixed(1)),
+    history,
+  };
+};
+
 const UserGrowthChart: React.FC = () => {
   const { authAxios } = useAuth();
   const [data, setData] = useState<GrowthData>(DEMO);
@@ -48,17 +88,7 @@ const UserGrowthChart: React.FC = () => {
     try {
       setLoading(true);
       const res = await authAxios.get('/api/admin/analytics/users');
-      if (res.data?.data) {
-        const d = res.data.data;
-        setData({
-          totalUsers: d.totalUsers ?? DEMO.totalUsers,
-          activeUsers: d.activeUsers ?? DEMO.activeUsers,
-          newThisWeek: d.newThisWeek ?? DEMO.newThisWeek,
-          newThisMonth: d.newThisMonth ?? DEMO.newThisMonth,
-          retentionRate: d.retentionRate ?? DEMO.retentionRate,
-          history: d.history?.length ? d.history : DEMO.history,
-        });
-      }
+      if (res.data?.data) setData(normalizeGrowthData(res.data.data));
     } catch {
       setData(DEMO);
     } finally {

@@ -103,6 +103,8 @@ export const getAdminRouteTitle = (pathname: string): string => {
     '/dashboard/notifications': 'Notification Center',
     '/dashboard/system-health': 'System Health',
     '/dashboard/security': 'Security Monitor',
+    '/dashboard/admin/marketing': 'Marketing',
+    '/dashboard/admin/security': 'Security Intelligence',
     '/dashboard/mcp-servers': 'MCP Servers',
     '/dashboard/settings': 'Admin Settings',
     '/dashboard/exercise-management': 'Exercise Center',
