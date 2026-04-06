@@ -286,7 +286,7 @@ const CanadaImmigrationTab: React.FC = () => {
   }, []);
 
   const fetchStudySessions = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/immigration/study-sessions`, { headers: authHeaders() });
+    const res = await fetch(`${API_BASE}/api/immigration/study`, { headers: authHeaders() });
     if (!res.ok) throw new Error('Failed to load study sessions');
     const data = await res.json();
     return Array.isArray(data) ? data : data.studySessions ?? [];
@@ -364,7 +364,7 @@ const CanadaImmigrationTab: React.FC = () => {
 
   const addStudySession = useCallback(async (session: Omit<StudySession, 'id' | 'date'>) => {
     try {
-      const res = await fetch(`${API_BASE}/api/immigration/study-sessions`, {
+      const res = await fetch(`${API_BASE}/api/immigration/study`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(session),
