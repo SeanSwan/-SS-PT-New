@@ -27,7 +27,6 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import { getUser, getClientProgress } from '../models/index.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
@@ -148,9 +147,8 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     // 1. Generate unique username
     const username = await generateUniqueUsername(firstName, lastName, User, transaction);
 
-    // 2. Generate and hash temp password
+    // 2. Generate temp password (User model beforeCreate hook handles hashing)
     const tempPassword = generateTempPassword();
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // 3. Generate claim token (if requested)
     let claimData = null;
@@ -167,7 +165,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
       username,
-      password: hashedPassword,
+      password: tempPassword,
       role: 'client',
       clientSource,
       forcePasswordChange: true,
