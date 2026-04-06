@@ -200,12 +200,12 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
     <Container>
       <SectionHeader>
         <Shield size={24} color={SWAN_CYAN} />
-        <SectionTitle>AI Privacy & Consent</SectionTitle>
+        <SectionTitle>Swan Coach Privacy & Consent</SectionTitle>
       </SectionHeader>
 
       <SectionSubtitle>
-        SwanStudios uses AI to create personalized workout plans. Your identity is
-        never shared — the AI only receives your anonymous client ID. Review the
+        SwanStudios uses Swan Coach to create personalized workout plans. Your identity is
+        never shared — Swan Coach only receives your anonymous client ID. Review the
         details below.
       </SectionSubtitle>
 
@@ -214,7 +214,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
         <ProtectionsList>
           <ProtectionItem>
             <ProtectionIcon $color={SWAN_CYAN}><Brain size={16} /></ProtectionIcon>
-            <div><strong>AI-powered workout plans</strong> — personalized based on your goals, fitness level, and the NASM Optimum Performance Training model.</div>
+            <div><strong>Swan Coach workout plans</strong> — personalized based on your goals, fitness level, and the NASM Optimum Performance Training model.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon $color={SWAN_CYAN}><Brain size={16} /></ProtectionIcon>
@@ -228,7 +228,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
         <ProtectionsList>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
-            <div><strong>Identity hidden from AI.</strong> Your name, email, and personal details are never sent. The AI only receives your anonymous client ID.</div>
+            <div><strong>Identity hidden.</strong> Your name, email, and personal details are never sent. Swan Coach only receives your anonymous client ID.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Eye size={16} /></ProtectionIcon>
@@ -236,11 +236,11 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Lock size={16} /></ProtectionIcon>
-            <div><strong>You stay anonymous.</strong> The AI has no way to identify who you are — it only sees a numeric client ID and your fitness profile.</div>
+            <div><strong>You stay anonymous.</strong> Swan Coach has no way to identify who you are — it only sees a numeric client ID and your fitness profile.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
-            <div><strong>Withdraw anytime.</strong> You can disable AI features from your dashboard settings at any time.</div>
+            <div><strong>Withdraw anytime.</strong> You can disable Swan Coach features from your dashboard settings at any time.</div>
           </ProtectionItem>
         </ProtectionsList>
       </Card>
@@ -251,11 +251,11 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           <Shield size={16} />
           Consent Disclosure (v1.0)
         </ConsentDisclosureTitle>
-        By enabling AI features, you agree that SwanStudios may process your
-        fitness profile through an AI provider (currently OpenAI) to generate
+        By enabling Swan Coach features, you agree that SwanStudios may process your
+        fitness profile through a Swan Coach provider to generate
         personalized workout plans. Only your anonymous client ID and fitness data
         are shared — your name, email, and personal identifiers are never sent to
-        the AI provider. You may withdraw consent at any time from the AI Privacy
+        the Swan Coach provider. You may withdraw consent at any time from the Swan Coach Privacy
         &amp; Consent page in your dashboard.
       </ConsentDisclosure>
 
@@ -267,19 +267,19 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           onChange={handleToggle}
           role="switch"
           aria-checked={isConsentGranted}
-          aria-label="Enable AI-powered features"
+          aria-label="Enable Swan Coach features"
         />
         <ToggleTrack $checked={isConsentGranted}>
           <ToggleThumb $checked={isConsentGranted} />
         </ToggleTrack>
         <ToggleLabel>
           <TogglePrimary>
-            {isConsentGranted ? 'AI Features Enabled' : 'Enable AI-Powered Features'}
+            {isConsentGranted ? 'Swan Coach Features Enabled' : 'Enable Swan Coach Features'}
           </TogglePrimary>
           <ToggleSecondary>
             {isConsentGranted
-              ? 'Your anonymous fitness profile will be used for AI workout generation.'
-              : 'Toggle on to opt in to AI-generated workout plans.'}
+              ? 'Your anonymous fitness profile will be used for Swan Coach workout generation.'
+              : 'Toggle on to opt in to Swan Coach-generated workout plans.'}
           </ToggleSecondary>
         </ToggleLabel>
       </ConsentToggleRow>
@@ -290,7 +290,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           <Info size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <strong>This step is optional.</strong> You can skip it and still use all
-            manual and trainer-assigned workout features. You can enable AI features
+            manual and trainer-assigned workout features. You can enable Swan Coach features
             later from your dashboard.
           </div>
         </SkipNote>

@@ -240,12 +240,12 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   return (
     <>
       <Overlay onClick={onClose} />
-      <DrawerPanel ref={drawerRef} role="dialog" aria-modal="true" aria-label="AI Assistant" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <DrawerPanel ref={drawerRef} role="dialog" aria-modal="true" aria-label="Swan Coach Assistant" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {/* Header */}
         <DrawerHeader>
           <HeaderTitle>
             {view === 'list' || !activeConversation ? (
-              <><Sparkles size={20} /> SwanStudios AI</>
+              <><Sparkles size={20} /> Swan Coach</>
             ) : (
               <>
                 <IconBtn onClick={() => { newChat(); setView('list'); }} aria-label="Back to conversations">
@@ -266,7 +266,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             <IconBtn onClick={() => setView(view === 'list' ? 'chat' : 'list')} aria-label="Conversation history" title="History">
               <MessageSquare size={18} />
             </IconBtn>
-            <IconBtn onClick={onClose} aria-label="Close AI Assistant">
+            <IconBtn onClick={onClose} aria-label="Close Swan Coach Assistant">
               <X size={20} />
             </IconBtn>
           </HeaderActions>
@@ -381,7 +381,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                     <Dot $delay={0.15} />
                     <Dot $delay={0.3} />
                     <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
-                      AI is thinking...
+                      Swan Coach is thinking...
                     </span>
                   </TypingIndicator>
                 )}

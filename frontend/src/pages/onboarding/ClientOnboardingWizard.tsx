@@ -25,7 +25,7 @@ const WIZARD_STEPS = [
   { id: 4, label: "Nutrition", component: NutritionSection },
   { id: 5, label: "Lifestyle", component: LifestyleSection },
   { id: 6, label: "Training", component: TrainingSection },
-  { id: 7, label: "AI Consent", component: ConsentSection },
+  { id: 7, label: "Swan Coach Consent", component: ConsentSection },
   { id: 8, label: "Summary", component: SummarySection },
 ] as const;
 

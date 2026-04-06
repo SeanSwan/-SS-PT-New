@@ -303,7 +303,7 @@ const AiConsentPanel: React.FC = () => {
       setError(null);
       await grantConsent();
       await fetchStatus();
-      showToast('AI consent granted.');
+      showToast('Swan Coach consent granted.');
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to grant consent.');
     } finally {
@@ -318,7 +318,7 @@ const AiConsentPanel: React.FC = () => {
       await withdrawConsent();
       await fetchStatus();
       setConfirmWithdraw(false);
-      showToast('AI consent withdrawn.');
+      showToast('Swan Coach consent withdrawn.');
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to withdraw consent.');
     } finally {
@@ -349,7 +349,7 @@ const AiConsentPanel: React.FC = () => {
     >
       <PanelTitle>
         <Shield size={22} color="#60C0F0" />
-        AI Privacy & Consent
+        Swan Coach Privacy & Consent
       </PanelTitle>
 
       {/* Loading */}
@@ -405,7 +405,7 @@ const AiConsentPanel: React.FC = () => {
               <div>
                 <strong style={{ color: '#f59e0b' }}>Waiver update required</strong> — The terms of your
                 AI consent waiver have been updated. Please sign the updated waiver to continue
-                using AI-powered features without interruption.
+                using Swan Coach features without interruption.
                 <ButtonRow style={{ marginTop: '0.75rem' }}>
                   <ActionButton $variant="grant" onClick={() => navigate('/waiver')}>
                     Sign Updated Waiver
@@ -432,7 +432,7 @@ const AiConsentPanel: React.FC = () => {
           <InfoList>
             <InfoItem>
               <InfoIcon><ShieldCheck size={14} /></InfoIcon>
-              <span><strong>De-identified data only</strong> — name, email, phone stripped before reaching AI</span>
+              <span><strong>De-identified data only</strong> — name, email, phone stripped before reaching Swan Coach</span>
             </InfoItem>
             <InfoItem>
               <InfoIcon><Eye size={14} /></InfoIcon>
@@ -440,14 +440,14 @@ const AiConsentPanel: React.FC = () => {
             </InfoItem>
             <InfoItem>
               <InfoIcon><Lock size={14} /></InfoIcon>
-              <span><strong>Spirit name used</strong> — the AI only knows your SwanStudios alias</span>
+              <span><strong>Spirit name used</strong> — Swan Coach only knows your SwanStudios alias</span>
             </InfoItem>
           </InfoList>
 
           {/* Disclosure */}
           <ConsentDisclosure>
             <strong style={{ color: '#60C0F0' }}>Consent Disclosure (v1.0)</strong> — By granting consent, SwanStudios
-            may process your de-identified fitness profile through an AI provider to generate personalized workout plans.
+            may process your de-identified fitness profile through a Swan Coach provider to generate personalized workout plans.
             Personal identifiers are never shared. You may withdraw consent at any time.
           </ConsentDisclosure>
 
@@ -455,7 +455,7 @@ const AiConsentPanel: React.FC = () => {
           <ButtonRow>
             {(consentState === 'none' || consentState === 'withdrawn') && (
               <ActionButton $variant="grant" onClick={handleGrant} disabled={actionLoading}>
-                {actionLoading ? <><RefreshCw size={16} /> Processing...</> : <><ShieldCheck size={16} /> Grant AI Consent</>}
+                {actionLoading ? <><RefreshCw size={16} /> Processing...</> : <><ShieldCheck size={16} /> Grant Swan Coach Consent</>}
               </ActionButton>
             )}
             {consentState === 'granted' && !confirmWithdraw && (
@@ -476,8 +476,8 @@ const AiConsentPanel: React.FC = () => {
                 <WithdrawWarning>
                   <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div>
-                    <strong>Are you sure?</strong> AI workout features will be disabled immediately.
-                    Existing plans remain, but no new AI plans can be generated.
+                    <strong>Are you sure?</strong> Swan Coach workout features will be disabled immediately.
+                    Existing plans remain, but no new Swan Coach plans can be generated.
                     <ButtonRow style={{ marginTop: '0.75rem' }}>
                       <ActionButton $variant="withdraw" onClick={handleWithdraw} disabled={actionLoading}>
                         {actionLoading ? 'Processing...' : 'Yes, Withdraw'}
@@ -497,14 +497,14 @@ const AiConsentPanel: React.FC = () => {
             <InfoList style={{ marginTop: '0.75rem' }}>
               <InfoItem>
                 <InfoIcon $color="#f59e0b"><AlertTriangle size={14} /></InfoIcon>
-                <span>AI features are <strong>disabled</strong>. Manual templates and trainer-assigned plans still work. Re-enable anytime above.</span>
+                <span>Swan Coach features are <strong>disabled</strong>. Manual templates and trainer-assigned plans still work. Re-enable anytime above.</span>
               </InfoItem>
             </InfoList>
           )}
 
           {consentState === 'none' && (
             <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.8125rem', marginTop: '0.5rem' }}>
-              You haven't opted in to AI features yet. Grant consent above to enable AI-powered workouts.
+              You haven't opted in to Swan Coach features yet. Grant consent above to enable Swan Coach workouts.
             </div>
           )}
         </>

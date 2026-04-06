@@ -269,9 +269,9 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
       {!open && (
         <>
           {/* Desktop: Cmd+K trigger bar with Swan logo */}
-          <CmdKBar onClick={() => setOpen(true)} aria-label="Open AI Assistant (Ctrl+K)" style={lowEnd ? { animation: 'none' } : undefined}>
+          <CmdKBar onClick={() => setOpen(true)} aria-label="Open Swan Coach Assistant (Ctrl+K)" style={lowEnd ? { animation: 'none' } : undefined}>
             <img src="/Logo.png" alt="" aria-hidden="true" />
-            <span>AI Assistant...</span>
+            <span>Swan Coach...</span>
             <KbdStyle>
               <Command size={11} />K
             </KbdStyle>
@@ -279,8 +279,8 @@ const AIAssistantFAB: React.FC<AIAssistantFABProps> = ({
 
           {/* Mobile/Tablet: Swan logo FAB — positioned above Windows taskbar */}
           <MobileFABWrapper>
-            <FAB onClick={() => setOpen(true)} aria-label="Open AI Assistant" title="SwanStudios AI Assistant" style={lowEnd ? { animation: 'none', backdropFilter: 'none' } : undefined}>
-              <img src="/Logo.png" alt="AI Assistant" />
+            <FAB onClick={() => setOpen(true)} aria-label="Open Swan Coach Assistant" title="Swan Coach Assistant" style={lowEnd ? { animation: 'none', backdropFilter: 'none' } : undefined}>
+              <img src="/Logo.png" alt="Swan Coach Assistant" />
             </FAB>
           </MobileFABWrapper>
         </>

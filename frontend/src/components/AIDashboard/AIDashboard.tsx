@@ -792,7 +792,7 @@ const EnhancedAIDashboard: React.FC = () => {
       <DashboardContainer>
         <CenterBox>
           <Spinner $size={60} />
-          <LoadingText>Loading AI Dashboard...</LoadingText>
+          <LoadingText>Loading Swan Coach Dashboard...</LoadingText>
         </CenterBox>
       </DashboardContainer>
     );
@@ -808,7 +808,7 @@ const EnhancedAIDashboard: React.FC = () => {
         {/* Header */}
         <FlexRow $justify="space-between" $align="center" $mb="2rem" $wrap="wrap" $gap="1rem">
           <div>
-            <Heading1>AI Monitoring</Heading1>
+            <Heading1>Swan Coach Monitoring</Heading1>
             <Subtitle>Real-time MCP server monitoring and control</Subtitle>
           </div>
 

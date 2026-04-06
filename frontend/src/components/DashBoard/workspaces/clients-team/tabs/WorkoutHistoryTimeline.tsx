@@ -362,7 +362,7 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
     <EmptyState>
       <Dumbbell size={40} style={{ opacity: 0.3 }} />
       <div style={{ fontSize: 16, fontWeight: 600 }}>No workouts logged yet</div>
-      <div style={{ fontSize: 13 }}>Log a workout or import from another platform via the AI Coach</div>
+      <div style={{ fontSize: 13 }}>Log a workout or import from another platform via the Swan Coach</div>
     </EmptyState>
   );
 

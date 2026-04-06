@@ -69,7 +69,7 @@ export interface WaiverRecordDetail extends WaiverRecordSummary {
 
 export type BadgeLabel =
   | 'Waiver Signed'
-  | 'AI Consent Signed'
+  | 'Swan Coach Consent Signed'
   | 'Consent Missing'
   | 'Guardian Required'
   | 'Version Outdated'

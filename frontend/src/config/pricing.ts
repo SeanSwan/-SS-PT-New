@@ -39,15 +39,15 @@ export const PACKAGES: PricingPackage[] = [
   },
   {
     id: 'signature-60-ai',
-    name: 'Signature 60 + AI Data',
+    name: 'Signature 60 + Swan Coach Data',
     duration: 60,
     price: 200,
-    description: '60-minute session with AI-powered tracking',
+    description: '60-minute session with Swan Coach tracking',
     features: [
       'Everything in Signature 60',
       '85-question assessment',
       'NASM movement screen',
-      'AI workout generation',
+      'Swan Coach workout generation',
       'Comprehensive progress analytics'
     ],
     recommended: true

@@ -1190,7 +1190,7 @@ const FEATURES_DATA = [
   {
     icon: <Monitor size={22} />,
     title: 'Online Coaching',
-    desc: 'Expert guidance anywhere with customized programs and regular check-ins through our AI-enhanced platform.',
+    desc: 'Expert guidance anywhere with customized programs and regular check-ins through our Swan Coach-enhanced platform.',
     accent: 'rgba(139, 92, 246, 0.2)',
     iconBg: 'rgba(139, 92, 246, 0.1)',
     iconColor: '#8B5CF6',
@@ -1400,8 +1400,8 @@ const HomePageV5: React.FC = () => {
   return (
     <PageContainer>
       <Helmet>
-        <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content="NASM-certified personal training powered by AI. 25+ years experience, 840+ exercise library, real-time progress tracking, and gamified fitness." />
+        <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets Swan Coach Precision</title>
+        <meta name="description" content="NASM-certified personal training powered by Swan Coach. 25+ years experience, 840+ exercise library, real-time progress tracking, and gamified fitness." />
       </Helmet>
 
       <NoiseOverlay />
@@ -1446,7 +1446,7 @@ const HomePageV5: React.FC = () => {
               <br />
               Excellence Meets
               <br />
-              <span className="accent">AI Precision</span>
+              <span className="accent">Swan Coach Precision</span>
             </HeroHeadline>
 
             <HeroSubline
@@ -1638,7 +1638,7 @@ const HomePageV5: React.FC = () => {
             <SectionEyebrow style={{ textAlign: 'center' }}>Ascension Protocols</SectionEyebrow>
             <SectionTitle style={{ textAlign: 'center' }}>Your Training Programs</SectionTitle>
             <SectionSubtitle $center>
-              Choose your protocol. Every tier includes AI-driven programming and NASM-certified coaching.
+              Choose your protocol. Every tier includes Swan Coach programming and NASM-certified coaching.
             </SectionSubtitle>
           </SectionHeader>
 
@@ -1761,7 +1761,7 @@ const HomePageV5: React.FC = () => {
             <SectionEyebrow style={{ textAlign: 'center' }}>The Architect</SectionEyebrow>
             <SectionTitle style={{ textAlign: 'center' }}>About Sean Swan</SectionTitle>
             <SectionSubtitle $center>
-              A legacy of transforming lives through science-backed fitness and AI-enhanced coaching.
+              A legacy of transforming lives through science-backed fitness and Swan Coach-enhanced coaching.
             </SectionSubtitle>
           </SectionHeader>
 
@@ -1786,7 +1786,7 @@ const HomePageV5: React.FC = () => {
                 corrective exercise, and rehabilitation.
               </p>
               <p>
-                At SwanStudios, we blend <strong>elite personal training with AI as a powerful tool</strong> —
+                At SwanStudios, we blend <strong>elite personal training with Swan Coach as a powerful tool</strong> —
                 not a replacement for the coach. Sean and his team conduct deep research on each
                 client's goals, athletic background, and physical history to build truly optimized
                 programs. The result: the fastest, safest progress possible with a real coach guiding every step.
@@ -1823,9 +1823,9 @@ const HomePageV5: React.FC = () => {
             </ApproachCard>
             <ApproachCard variants={card}>
               <ApproachIconWrap><Zap size={24} /></ApproachIconWrap>
-              <ApproachTitle>AI-Optimized Programming</ApproachTitle>
+              <ApproachTitle>Swan Coach-Optimized Programming</ApproachTitle>
               <ApproachDesc>
-                AI helps analyze performance data and refine your training program for faster, safer results — guided by your coach.
+                Swan Coach helps analyze performance data and refine your training program for faster, safer results — guided by your coach.
               </ApproachDesc>
             </ApproachCard>
             <ApproachCard variants={card}>

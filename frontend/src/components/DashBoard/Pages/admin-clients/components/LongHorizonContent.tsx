@@ -620,7 +620,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
               context="workout_generation"
               clientId={clientId}
               equipmentProfileId={equipmentProfileId}
-              placeholder="Ask AI about long-horizon planning..."
+              placeholder="Ask Swan Coach about long-horizon planning..."
               defaultOpen={false}
             />
           </FormGroup>
@@ -670,7 +670,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <AlertTriangle size={48} color="#ffaa00" />
-        <h3 style={{ color: '#ffaa00', margin: 0 }}>AI Temporarily Unavailable</h3>
+        <h3 style={{ color: '#ffaa00', margin: 0 }}>Swan Coach Temporarily Unavailable</h3>
         <p style={{ color: '#94a3b8', margin: 0, maxWidth: 540 }}>{degradedData.message}</p>
         <InfoPanel $variant="warning">
           <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
@@ -730,7 +730,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
             <InfoContent>
               {isWaiverError
                 ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver, or an admin override reason is required to proceed.'
-                : 'AI consent is not available for this client. Admin override reason is required if you choose to proceed without consent.'}
+                : 'Swan Coach consent is not available for this client. Admin override reason is required if you choose to proceed without consent.'}
             </InfoContent>
           </InfoPanel>
         )}

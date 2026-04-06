@@ -611,7 +611,7 @@ const TrainingOverview: React.FC = () => {
                   onClick={() => setCopilotClient({ id: client.id, name: client.name })}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  title={`Generate AI workout for ${client.name}`}
+                  title={`Generate Swan Coach workout for ${client.name}`}
                 >
                   <Sparkles size={14} />
                   Generate
@@ -868,7 +868,7 @@ const ContentStudio: React.FC = () => {
           fontSize: '1.1rem',
           fontWeight: 600
         }}>
-          ✨ AI Movement Analysis
+          ✨ Swan Coach Movement Analysis
         </h4>
         <p style={{
           color: theme.text?.secondary || '#E8F0FF',

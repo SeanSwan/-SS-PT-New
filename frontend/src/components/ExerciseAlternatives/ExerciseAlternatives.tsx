@@ -771,7 +771,7 @@ const ExerciseAlternatives: React.FC<ExerciseAlternativesProps> = ({ onClose }) 
 
     // Short-circuit when MCP is disabled
     if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      enqueueSnackbar('AI exercise alternatives are currently disabled', { variant: 'info' });
+      enqueueSnackbar('Swan Coach exercise alternatives are currently disabled', { variant: 'info' });
       return;
     }
 

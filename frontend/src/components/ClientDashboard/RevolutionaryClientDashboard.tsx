@@ -320,7 +320,7 @@ const sectionDescriptions: Record<string, string> = {
   onboarding: 'Complete your profile to unlock personalized training',
   schedule: 'Navigate your training appointments through time',
   workouts: 'Explore training programs and exercise galaxies',
-  'form-check': 'Upload videos or use your camera — AI analyzes your exercise form',
+  'form-check': 'Upload videos or use your camera — Swan Coach analyzes your exercise form',
   progress: 'Track your transformation through the cosmos',
   health: 'Report pain, track injuries, and keep your trainer informed',
   gamification: 'Celebrate your stellar accomplishments',

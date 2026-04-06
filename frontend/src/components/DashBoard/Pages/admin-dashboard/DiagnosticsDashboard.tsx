@@ -1293,7 +1293,7 @@ const DiagnosticsDashboard: React.FC = () => {
                       </AlertBox>
 
                       <BodyText>
-                        The workout MCP server provides AI-powered workout generation, customization, and analysis.
+                        The workout MCP server provides Swan Coach workout generation, customization, and analysis.
                       </BodyText>
                     </CardPanel>
 

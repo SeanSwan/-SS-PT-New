@@ -82,7 +82,7 @@ const AdminWaiverDetailModal: React.FC<Props> = ({
                 {record.consentFlags.liabilityAccepted ? '✓' : '✗'} Liability
               </ConsentItem>
               <ConsentItem $accepted={record.consentFlags.aiConsentAccepted}>
-                {record.consentFlags.aiConsentAccepted ? '✓' : '✗'} AI Consent
+                {record.consentFlags.aiConsentAccepted ? '✓' : '✗'} Swan Coach Consent
               </ConsentItem>
               <ConsentItem $accepted={record.consentFlags.mediaConsentAccepted}>
                 {record.consentFlags.mediaConsentAccepted ? '✓' : '✗'} Media

@@ -160,11 +160,11 @@ const CTAButton = styled.button`
 
 const FEATURES = [
   { icon: DollarSign, label: 'Earn Revenue', desc: 'Subscriptions & tips from your audience' },
-  { icon: TrendingUp, label: 'Grow Audience', desc: 'Analytics & AI content suggestions' },
+  { icon: TrendingUp, label: 'Grow Audience', desc: 'Analytics & Swan Coach content suggestions' },
   { icon: Users, label: 'Brand Deals', desc: 'Partner with fitness brands' },
   { icon: Crown, label: 'Creator Tiers', desc: 'Basic to Featured status' },
   { icon: BarChart3, label: 'Deep Analytics', desc: 'Track engagement & earnings' },
-  { icon: Sparkles, label: 'AI Insights', desc: 'Optimal posting times & trends' },
+  { icon: Sparkles, label: 'Swan Coach Insights', desc: 'Optimal posting times & trends' },
 ];
 
 const CreatorEconomyView: React.FC = () => {

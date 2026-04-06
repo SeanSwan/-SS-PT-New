@@ -287,7 +287,7 @@ const OmniTerminal: React.FC<OmniTerminalProps> = ({
         $isOpen={isOpen}
         role="dialog"
         aria-modal="true"
-        aria-label="SwanStudios AI Assistant"
+        aria-label="Swan Coach Assistant"
       >
         {/* Mobile drag handle */}
         <DragHandle>

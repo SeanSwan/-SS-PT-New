@@ -605,7 +605,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           context="workout_generation"
           clientId={clientId}
           equipmentProfileId={equipmentProfileId}
-          placeholder="Ask AI to suggest exercises for this client..."
+          placeholder="Ask Swan Coach to suggest exercises for this client..."
         />
 
         {/* Header */}

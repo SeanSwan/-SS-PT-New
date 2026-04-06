@@ -363,11 +363,11 @@ const ClientsWorkspace: React.FC = () => {
           loading={loading}
         />
         <TopBarActions>
-          <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Coach AI with this client's context">
+          <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Swan Coach with this client's context">
             <MessageCircle size={16} />
-            <span>AI Coach</span>
+            <span>Swan Coach</span>
           </ActionBtn>
-          <ActionBtn onClick={handleNewClient} title="Onboard a new client via AI">
+          <ActionBtn onClick={handleNewClient} title="Onboard a new client via Swan Coach">
             <UserPlus size={16} />
             <span>New Client</span>
           </ActionBtn>
@@ -404,7 +404,7 @@ const ClientsWorkspace: React.FC = () => {
           <EmptyHub>
             <UserPlus size={48} style={{ opacity: 0.3 }} />
             <div style={{ fontSize: 16, fontWeight: 600 }}>No clients yet</div>
-            <div style={{ fontSize: 13 }}>Use the AI Coach to onboard your first client</div>
+            <div style={{ fontSize: 13 }}>Use the Swan Coach to onboard your first client</div>
             <ActionBtn onClick={handleNewClient} $variant="primary">
               <UserPlus size={16} />
               <span>Onboard New Client</span>

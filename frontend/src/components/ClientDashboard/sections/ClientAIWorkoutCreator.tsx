@@ -338,7 +338,7 @@ const ClientAIWorkoutCreator: React.FC = () => {
       await (apiService.authAxios || apiService).post('/api/ai/consent/grant', {
         consentVersion: '1.0'
       });
-      toast.success('AI features enabled! Generating your workout...');
+      toast.success('Swan Coach features enabled! Generating your workout...');
       // Now generate
       setViewState('generating');
       if (!user?.id) return;

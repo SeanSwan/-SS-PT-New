@@ -276,8 +276,8 @@ const TrainerWorkoutForgePage: React.FC = () => {
           <ActionBtn $variant="secondary" onClick={() => toast.info('Exercise picker coming in Phase 3')}>
             <Plus size={18} /> Add Exercise
           </ActionBtn>
-          <ActionBtn onClick={() => toast.info('AI workout generation coming in Phase 3')}>
-            <Sparkles size={18} /> Generate with AI
+          <ActionBtn onClick={() => toast.info('Swan Coach workout generation coming in Phase 3')}>
+            <Sparkles size={18} /> Generate with Swan Coach
           </ActionBtn>
           <ActionBtn $variant="secondary" onClick={() => toast.info('Template saving coming in Phase 3')}>
             <Save size={18} /> Save Template

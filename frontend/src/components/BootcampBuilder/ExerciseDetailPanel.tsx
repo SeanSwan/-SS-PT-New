@@ -253,7 +253,7 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
 
       {bootcamp && bootcamp.explanations.length > 0 && (
         <>
-          <SectionDivider>AI Reasoning</SectionDivider>
+          <SectionDivider>Swan Coach Reasoning</SectionDivider>
           {bootcamp.explanations.map((exp, i) => (
             <InsightCard key={i} $type={exp.type}>
               {exp.message}
@@ -262,11 +262,11 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
         </>
       )}
 
-      <SectionDivider>AI Assistant</SectionDivider>
+      <SectionDivider>Swan Coach Assistant</SectionDivider>
       <AITerminalPanel
         context="workout_generation"
         equipmentProfileId={equipmentProfileId}
-        placeholder="Ask AI to modify this bootcamp class..."
+        placeholder="Ask Swan Coach to modify this bootcamp class..."
         defaultOpen={false}
       />
     </Panel>

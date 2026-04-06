@@ -646,11 +646,11 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
             {/* AI Notes */}
             <FormGroup>
-              <Label>AI Guidance Notes</Label>
+              <Label>Swan Coach Guidance Notes</Label>
               <TextArea
                 value={aiNotes}
                 onChange={(e) => setAiNotes(e.target.value)}
-                placeholder="Guidance for the AI when generating workouts, e.g., 'Focus on thoracic mobility before any pressing...'"
+                placeholder="Guidance for Swan Coach when generating workouts, e.g., 'Focus on thoracic mobility before any pressing...'"
               />
               <HintText>
                 This text will be injected into the AI workout generation prompt.
@@ -663,7 +663,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
               <TextArea
                 value={trainerNotes}
                 onChange={(e) => setTrainerNotes(e.target.value)}
-                placeholder="Internal notes — not sent to AI..."
+                placeholder="Internal notes — not sent to Swan Coach..."
               />
             </FormGroup>
           </>

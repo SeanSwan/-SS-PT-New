@@ -245,7 +245,7 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     status: 'real',
     section: 'management',
     route: '/dashboard/admin/workout-planner',
-    description: 'AI-powered workout builder with Teach Mode',
+    description: 'Swan Coach workout builder with Teach Mode',
     isNew: true,
   },
   {
@@ -475,7 +475,7 @@ export const TRAINER_DASHBOARD_TABS: DashboardTab[] = [
     status: 'real',
     section: 'management',
     route: '/dashboard/trainer/workout-planner',
-    description: 'AI-powered workout builder with Teach Mode',
+    description: 'Swan Coach workout builder with Teach Mode',
     isNew: true,
   },
 ];
@@ -516,12 +516,12 @@ export interface WorkspaceConfig {
 // Workspace prefixes must match the actual admin route paths in UniversalDashboardLayout
 // Routes are mounted at /dashboard/admin/{path}, so prefixes must use that namespace
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
-  { id: 'coach', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — AI training assistant' },
+  { id: 'coach', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — Training Assistant' },
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
   { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
-  { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & AI protocols' },
-  { id: 'bootcamp', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'AI-powered group fitness class builder' },
-  { id: 'equipment', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & AI scanner' },
+  { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & Swan Coach protocols' },
+  { id: 'bootcamp', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
+  { id: 'equipment', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
   { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
   { id: 'gamification', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
   { id: 'store', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },

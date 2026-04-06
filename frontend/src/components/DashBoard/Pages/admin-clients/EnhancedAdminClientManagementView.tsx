@@ -2129,12 +2129,12 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               if (selectedClient) {
                 navigate(`/dashboard/people/view-as/${selectedClient.id}`);
               } else {
-                alert('Please select a client first to view AI insights.');
+                alert('Please select a client first to view Swan Coach insights.');
               }
             }}
           >
             <Brain size={18} />
-            AI Insights
+            Swan Coach Insights
           </ActionButton>
         </FlexRow>
 
@@ -2150,7 +2150,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           </TabButton>
           <TabButton $active={currentTab === 2} onClick={() => setCurrentTab(2)}>
             <Brain size={18} />
-            AI Insights
+            Swan Coach Insights
           </TabButton>
           <TabButton $active={currentTab === 3} onClick={() => setCurrentTab(3)}>
             <Activity size={18} />
@@ -2316,7 +2316,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             <MessageSquare size={20} />
           </SpeedDialActionBtn>
           <SpeedDialActionBtn
-            title="AI Insights"
+            title="Swan Coach Insights"
             onClick={() => { setCurrentTab(4); setSpeedDialOpen(false); }}
           >
             <Brain size={20} />

@@ -516,7 +516,7 @@ const TrainerAssessmentsPage: React.FC = () => {
     try {
       const payload = buildPayload();
       await authAxios.post('/api/movement-analysis', payload);
-      setSubmitStatus({ msg: 'Assessment saved — AI hive mind updated', success: true });
+      setSubmitStatus({ msg: 'Assessment saved — Swan Coach hive mind updated', success: true });
       // Reset form
       setNotes('');
       setDate(new Date().toISOString().split('T')[0]);

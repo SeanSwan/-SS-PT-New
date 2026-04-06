@@ -67,7 +67,7 @@ const MetricsVisualizationPanel: React.FC<MetricsVisualizationPanelProps> = ({
   // Format metrics for display
   const displayMetrics = [
     { label: 'Cameras', value: `${metrics.camerasOnline}/${metrics.totalCameras}` },
-    { label: 'AI Accuracy', value: `${metrics.aiAccuracy.toFixed(1)}%` },
+    { label: 'Swan Coach Accuracy', value: `${metrics.aiAccuracy.toFixed(1)}%` },
     { label: 'Uptime', value: `${metrics.operationalUptime}%` },
     { label: 'Response Time', value: `${metrics.responseTime}s` },
     { 

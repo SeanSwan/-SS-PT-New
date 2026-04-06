@@ -809,7 +809,7 @@ const EquipmentManagerPage: React.FC = () => {
           <div style={{ display: 'flex', gap: 8 }}>
             <GhostButton onClick={() => setShowAddItem(true)}>+ Add Manually</GhostButton>
             <PrimaryButton onClick={handleScanClick}>
-              {scanning ? 'Scanning...' : 'AI Scan'}
+              {scanning ? 'Scanning...' : 'Swan Coach Scan'}
             </PrimaryButton>
           </div>
         </Header>
@@ -839,7 +839,7 @@ const EquipmentManagerPage: React.FC = () => {
         {items.length === 0 && !scanning ? (
           <EmptyState>
             <EmptyTitle>No equipment here yet</EmptyTitle>
-            <p>Tap "AI Scan" to photograph equipment or add items manually.</p>
+            <p>Tap "Swan Coach Scan" to photograph equipment or add items manually.</p>
           </EmptyState>
         ) : (
           <AnimatePresence>

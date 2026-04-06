@@ -70,7 +70,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
   { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
   { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
-  { id: 'meal-plan', label: 'AI Meal Plan', icon: <Brain size={16} /> },
+  { id: 'meal-plan', label: 'Swan Coach Meal Plan', icon: <Brain size={16} /> },
   { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
   { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
 ];
@@ -143,8 +143,8 @@ const NutritionWorkspace: React.FC = () => {
             {activeTab === 'meal-plan' && (
               <CrystallineLockOverlay
                 isLocked={!hasAINutrition}
-                featureName="AI Meal Planning"
-                description="AI-generated meal plans tailored to your macros and goals"
+                featureName="Swan Coach Meal Planning"
+                description="Swan Coach meal plans tailored to your macros and goals"
                 ctaLabel="Upgrade to Swan Guardian"
                 onConfigure={() => { window.location.href = '/ascension'; }}
               >
@@ -155,7 +155,7 @@ const NutritionWorkspace: React.FC = () => {
               <CrystallineLockOverlay
                 isLocked={!hasAINutrition}
                 featureName="Nutrition Intelligence"
-                description="AI-powered food analysis and personalized nutrition coaching"
+                description="Swan Coach food analysis and personalized nutrition coaching"
                 ctaLabel="Upgrade to Swan Guardian"
                 onConfigure={() => { window.location.href = '/ascension'; }}
               >

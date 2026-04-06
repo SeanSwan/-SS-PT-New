@@ -51,7 +51,7 @@ export const navigationItems: NavItemData[] = [
   // Training — core workout loop
   { id: 'workouts', label: 'Workouts', icon: Activity, section: 'training', status: 'real' },
   { id: 'logger', label: 'Log Workout', icon: Dumbbell, section: 'training', status: 'new' },
-  { id: 'ai-workout', label: 'AI Workout', icon: Brain, section: 'training', status: 'new' },
+  { id: 'ai-workout', label: 'Swan Coach Workout', icon: Brain, section: 'training', status: 'new' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, section: 'training', status: 'real' },
 
   // Health — body & nutrition tools

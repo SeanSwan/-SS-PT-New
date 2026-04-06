@@ -46,7 +46,7 @@ interface ContextConfig {
 }
 
 export const CONTEXTS: Record<string, ContextConfig> = {
-  coach_assistant: { label: 'Coach Assistant', icon: Sparkles, description: 'Master AI with access to all contexts', roles: ['trainer', 'admin'] },
+  coach_assistant: { label: 'Coach Assistant', icon: Sparkles, description: 'Master Swan Coach with access to all contexts', roles: ['trainer', 'admin'] },
   general: { label: 'General', icon: MessageSquare, description: 'Ask me anything about fitness and wellness', roles: ['client', 'trainer', 'admin'] },
   macro_logging: { label: 'Macros', icon: Utensils, description: 'Log food — just tell me what you ate', roles: ['client', 'trainer', 'admin'] },
   form_tips: { label: 'Form Tips', icon: Dumbbell, description: 'Get exercise form guidance', roles: ['client', 'trainer', 'admin'] },
@@ -58,7 +58,7 @@ export const CONTEXTS: Record<string, ContextConfig> = {
   progress_analysis: { label: 'Progress', icon: TrendingUp, description: 'Analyze client progress and chart data', roles: ['trainer', 'admin'] },
   exercise_library: { label: 'Exercises', icon: BookOpen, description: 'Search and explore the 840+ exercise database', roles: ['trainer', 'admin'] },
   gamification: { label: 'Gamification', icon: Trophy, description: 'Manage achievements, badges, and XP system', roles: ['admin'] },
-  client_onboarding: { label: 'Onboarding', icon: UserPlus, description: 'Dictate new client info — AI builds the intake form', roles: ['trainer', 'admin'] },
+  client_onboarding: { label: 'Onboarding', icon: UserPlus, description: 'Dictate new client info — Swan Coach builds the intake form', roles: ['trainer', 'admin'] },
 };
 
 export const RESPONSE_STYLES: { key: string; label: string; emoji: string }[] = [
@@ -131,7 +131,7 @@ const AIContextSelector: React.FC<AIContextSelectorProps> = memo(({
       <EmptyState>
         <EmptyIcon><Sparkles size={28} /></EmptyIcon>
         <WelcomeTitle>
-          {CONTEXTS[selectedContext]?.label || 'AI Assistant'}
+          {CONTEXTS[selectedContext]?.label || 'Swan Coach Assistant'}
         </WelcomeTitle>
         <WelcomeText>{CONTEXTS[selectedContext]?.description}</WelcomeText>
         <SendBtn $active onClick={() => onStartChat(selectedContext)} style={{ width: 'auto', padding: '0 24px', borderRadius: 999 }}>

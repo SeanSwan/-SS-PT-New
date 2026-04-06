@@ -381,7 +381,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
         {onNewClient && (
           <NewClientRow onClick={() => { onNewClient(); setOpen(false); }}>
             <UserPlus size={18} />
-            <span>Onboard New Client via AI</span>
+            <span>Onboard New Client via Swan Coach</span>
           </NewClientRow>
         )}
       </Dropdown>

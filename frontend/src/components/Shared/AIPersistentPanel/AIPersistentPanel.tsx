@@ -174,7 +174,7 @@ const MessageList = memo(function MessageList({
       {messages.length === 0 && !sending ? (
         <EmptyState>
           <EmptyIcon aria-hidden="true">&#10024;</EmptyIcon>
-          <span>Ask SwanStudios AI anything.</span>
+          <span>Ask Swan Coach anything.</span>
           <span style={{ fontSize: 12, opacity: 0.6 }}>
             Type a message or tap the mic to speak.
           </span>
@@ -187,7 +187,7 @@ const MessageList = memo(function MessageList({
             </MessageBubble>
           ))}
           {sending && (
-            <TypingIndicator aria-label="AI is thinking">
+            <TypingIndicator aria-label="Swan Coach is thinking">
               <span /><span /><span />
             </TypingIndicator>
           )}
@@ -267,7 +267,7 @@ const InputBar = memo(function InputBar({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        aria-label="Message SwanStudios AI"
+        aria-label="Message Swan Coach"
       />
       <SendBtn
         $active={isActive}
@@ -341,16 +341,16 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
   // ── Desktop Panel ──
   if (isDesktop) {
     return (
-      <DesktopPanel aria-label="SwanStudios AI Assistant">
+      <DesktopPanel aria-label="Swan Coach Assistant">
         <DesktopPanelHeader>
           <PanelTitle>
             <PanelSparkle aria-hidden="true">&#10024;</PanelSparkle>
-            SwanStudios AI
+            Swan Coach
           </PanelTitle>
           <ContextSelector
             value={context}
             onChange={handleContextChange}
-            aria-label="AI context"
+            aria-label="Swan Coach context"
           >
             {PANEL_CONTEXTS.map((ctx) => (
               <option key={ctx} value={ctx}>
@@ -380,7 +380,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
       $expanded={mobileExpanded}
       role={mobileExpanded ? 'dialog' : undefined}
       aria-modal={mobileExpanded ? true : undefined}
-      aria-label="SwanStudios AI Assistant"
+      aria-label="Swan Coach Assistant"
     >
       {mobileExpanded ? (
         <>
@@ -388,13 +388,13 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
           <MobileExpandedHeader>
             <PanelTitle>
               <PanelSparkle aria-hidden="true">&#10024;</PanelSparkle>
-              SwanStudios AI
+              Swan Coach
             </PanelTitle>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <ContextSelector
                 value={context}
                 onChange={handleContextChange}
-                aria-label="AI context"
+                aria-label="Swan Coach context"
               >
                 {PANEL_CONTEXTS.map((ctx) => (
                   <option key={ctx} value={ctx}>
@@ -404,7 +404,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
               </ContextSelector>
               <MobileCloseBtn
                 onClick={() => setMobileExpanded(false)}
-                aria-label="Close AI chat"
+                aria-label="Close Swan Coach chat"
               >
                 &#10005;
               </MobileCloseBtn>
@@ -426,7 +426,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
         <MobileCollapsedRow onClick={expandMobile} role="button" tabIndex={0}>
           <MobileCollapsedInput>
             <MobileCollapsedSparkle aria-hidden="true">&#10024;</MobileCollapsedSparkle>
-            Ask SwanStudios AI...
+            Ask Swan Coach...
           </MobileCollapsedInput>
           <OrbWrapper>
             <Suspense fallback={<div style={{ width: 44, height: 44 }} />}>

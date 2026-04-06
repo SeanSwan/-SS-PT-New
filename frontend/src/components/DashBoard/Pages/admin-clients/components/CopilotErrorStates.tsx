@@ -131,8 +131,8 @@ const ErrorView: React.FC<CopilotErrorStatesProps> = ({
         <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
         <InfoContent>
           {isWaiverError
-            ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver before AI features can be used.'
-            : 'This client has not granted AI consent. The client must enable AI features from their own account settings before AI workout generation can be used.'}
+            ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver before Swan Coach features can be used.'
+            : 'This client has not granted Swan Coach consent. The client must enable Swan Coach features from their own account settings before Swan Coach workout generation can be used.'}
         </InfoContent>
       </InfoPanel>
     )}
@@ -181,7 +181,7 @@ const DegradedView: React.FC<{
 }> = ({ degradedData, handleGenerate, isSubmitting, onClose }) => (
   <CenterContent>
     <AlertTriangle size={48} color="#ffaa00" />
-    <h3 style={{ color: '#ffaa00', margin: 0 }}>AI Temporarily Unavailable</h3>
+    <h3 style={{ color: '#ffaa00', margin: 0 }}>Swan Coach Temporarily Unavailable</h3>
     <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
       {degradedData.message}
     </p>
@@ -214,7 +214,7 @@ const DegradedView: React.FC<{
     <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
       <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
         <RefreshCw size={16} />
-        Retry AI Generation
+        Retry Swan Coach Generation
       </PrimaryButton>
       <SecondaryButton onClick={onClose}>Close</SecondaryButton>
     </div>

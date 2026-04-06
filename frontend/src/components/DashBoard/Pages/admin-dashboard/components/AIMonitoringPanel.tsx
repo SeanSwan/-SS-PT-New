@@ -1079,7 +1079,7 @@ const AIMonitoringPanel: React.FC = () => {
   const renderOverviewTab = () => {
     // Show loading state if overview data is loading
     if (isLoadingData('overview')) {
-      return <LoadingSpinner message="Loading AI monitoring overview..." />;
+      return <LoadingSpinner message="Loading Swan Coach monitoring overview..." />;
     }
 
     return (
@@ -1089,7 +1089,7 @@ const AIMonitoringPanel: React.FC = () => {
           <ErrorMessage
             error={errors.overview!}
             onRetry={fetchMCPHealthData}
-            dataType="AI monitoring data"
+            dataType="Swan Coach monitoring data"
           />
         )}
 
@@ -1175,7 +1175,7 @@ const AIMonitoringPanel: React.FC = () => {
               <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
                 <SectionTitle style={{ margin: 0 }}>
                   <BarChart3 size={20} />
-                  AI Models Performance
+                  Swan Coach Models Performance
                 </SectionTitle>
                 <FlexRow $gap={12}>
                   <NativeSelect
@@ -1272,7 +1272,7 @@ const AIMonitoringPanel: React.FC = () => {
               <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 16 }}>
                 <SectionTitle style={{ margin: 0 }}>
                   <Lightbulb size={20} />
-                  AI Insights
+                  Swan Coach Insights
                 </SectionTitle>
                 <RoundButton title="Download insights">
                   <Download size={18} />
@@ -1307,7 +1307,7 @@ const AIMonitoringPanel: React.FC = () => {
                 <EmptyStateWrap>
                   <Brain size={64} color={theme.green} style={{ marginBottom: 16 }} />
                   <MetricValue $color={theme.green} style={{ marginBottom: 8 }}>
-                    All AI Systems Optimal
+                    All Swan Coach Systems Optimal
                   </MetricValue>
                   <BodyText $muted>
                     No insights or recommendations at this time
@@ -1324,7 +1324,7 @@ const AIMonitoringPanel: React.FC = () => {
   const renderModelsTab = () => (
     <div>
       <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
-        <SectionTitle style={{ margin: 0 }}>AI Models Status</SectionTitle>
+        <SectionTitle style={{ margin: 0 }}>Swan Coach Models Status</SectionTitle>
         <ActionButton onClick={refreshAllData}>
           <RefreshCw size={16} />
           Refresh Models
@@ -1424,7 +1424,7 @@ const AIMonitoringPanel: React.FC = () => {
   const renderInsightsTab = () => (
     <div>
       <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
-        <SectionTitle style={{ margin: 0 }}>AI Insights &amp; Recommendations</SectionTitle>
+        <SectionTitle style={{ margin: 0 }}>Swan Coach Insights &amp; Recommendations</SectionTitle>
         <ActionButton>
           <Download size={16} />
           Export Insights
@@ -1498,7 +1498,7 @@ const AIMonitoringPanel: React.FC = () => {
 
   const renderPerformanceTab = () => (
     <div>
-      <SectionTitle>AI Performance Analytics</SectionTitle>
+      <SectionTitle>Swan Coach Performance Analytics</SectionTitle>
 
       <TwoEqualGrid>
         <GlassPanel>
@@ -1626,7 +1626,7 @@ const AIMonitoringPanel: React.FC = () => {
       <PageRoot style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <FlexCol $align="center" $gap={16}>
           <Spinner $size={60} />
-          <SectionTitle>Loading AI Monitoring Data...</SectionTitle>
+          <SectionTitle>Loading Swan Coach Monitoring Data...</SectionTitle>
         </FlexCol>
       </PageRoot>
     );
@@ -1637,7 +1637,7 @@ const AIMonitoringPanel: React.FC = () => {
       <PageRoot>
         <AlertBox $severity="error">
           <div style={{ flex: 1 }}>
-            <MetricValue style={{ marginBottom: 4 }}>Failed to Load AI Monitoring Data</MetricValue>
+            <MetricValue style={{ marginBottom: 4 }}>Failed to Load Swan Coach Monitoring Data</MetricValue>
             <BodyText>{errors.overview}</BodyText>
           </div>
           <ActionButton $small onClick={fetchMCPHealthData} disabled={isLoadingData('overview')}>
@@ -1658,7 +1658,7 @@ const AIMonitoringPanel: React.FC = () => {
   return (
     <PageRoot>
       <PageHeader>
-        <PageTitle>AI Monitoring</PageTitle>
+        <PageTitle>Swan Coach Monitoring</PageTitle>
         <PageSubtitle>
           Comprehensive monitoring of AI models, performance metrics, and intelligent insights
         </PageSubtitle>
@@ -1671,7 +1671,7 @@ const AIMonitoringPanel: React.FC = () => {
         </TabButton>
         <TabButton $active={activeTab === 1} onClick={() => setActiveTab(1)}>
           <Bot size={18} />
-          AI Models
+          Swan Coach Models
         </TabButton>
         <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
           <Lightbulb size={18} />
@@ -1690,7 +1690,7 @@ const AIMonitoringPanel: React.FC = () => {
       {/* Insight Details Dialog */}
       <Overlay $open={alertDialogOpen} onClick={() => setAlertDialogOpen(false)}>
         <DialogPanel onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>AI Insight Details</DialogHeader>
+          <DialogHeader>Swan Coach Insight Details</DialogHeader>
           <DialogBody>
             {selectedInsight && (
               <div>
@@ -1757,7 +1757,7 @@ const AIMonitoringPanel: React.FC = () => {
         {fabOpen && (
           <>
             <FABAction
-              title="Export AI Data"
+              title="Export Swan Coach Data"
               onClick={() => {
                 logger.log('📁 Export AI data functionality to be implemented');
                 setFabOpen(false);
@@ -1786,7 +1786,7 @@ const AIMonitoringPanel: React.FC = () => {
           </>
         )}
         <FABMain
-          aria-label="AI Actions"
+          aria-label="Swan Coach Actions"
           onClick={() => setFabOpen(prev => !prev)}
         >
           {fabOpen ? <XCircle size={24} /> : <Brain size={24} />}

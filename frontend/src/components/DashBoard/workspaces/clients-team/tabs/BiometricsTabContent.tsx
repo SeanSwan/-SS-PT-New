@@ -105,7 +105,7 @@ const BIOMETRIC_CARDS: BentoCardConfig[] = [
   {
     id: 'body-map',
     title: 'Body Map',
-    description: 'Interactive SVG body map with AI-powered photo upload for visual progress tracking.',
+    description: 'Interactive SVG body map with Swan Coach photo upload for visual progress tracking.',
     icon: <MapPin size={24} />,
   },
   {
@@ -123,7 +123,7 @@ const BIOMETRIC_CARDS: BentoCardConfig[] = [
   {
     id: 'form-analysis',
     title: 'Form Analysis',
-    description: 'AI-powered exercise form checking with video analysis and feedback.',
+    description: 'Swan Coach exercise form checking with video analysis and feedback.',
     icon: <Eye size={24} />,
   },
   {

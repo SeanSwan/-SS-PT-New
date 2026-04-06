@@ -533,7 +533,7 @@ const AI_FEATURES = [
   {
     id: 'workout-generator',
     title: 'Workout Intelligence',
-    description: 'Generate personalized workouts using SwanStudios AI based on client data, goals, and equipment.',
+    description: 'Generate personalized workouts using Swan Coach based on client data, goals, and equipment.',
     icon: Dumbbell,
     color: '#60C0F0',
     colorSecondary: '#46cdcf',
@@ -543,7 +543,7 @@ const AI_FEATURES = [
   {
     id: 'progress-analysis',
     title: 'Progress Intelligence',
-    description: 'SwanStudios AI analysis of client progress with pattern recognition and predictive insights.',
+    description: 'Swan Coach analysis of client progress with pattern recognition and predictive insights.',
     icon: BarChart3,
     color: '#8B5CF6',
     colorSecondary: '#9c27b0',
@@ -553,7 +553,7 @@ const AI_FEATURES = [
   {
     id: 'nutrition-planning',
     title: 'Nutrition Intelligence',
-    description: 'SwanStudios AI nutrition plans tailored to workout programs and dietary preferences.',
+    description: 'Swan Coach nutrition plans tailored to workout programs and dietary preferences.',
     icon: UtensilsCrossed,
     color: '#ff6b9d',
     colorSecondary: '#e91e63',
@@ -563,7 +563,7 @@ const AI_FEATURES = [
   {
     id: 'exercise-alternatives',
     title: 'Exercise Intelligence',
-    description: 'SwanStudios AI exercise substitutions based on equipment and limitations.',
+    description: 'Swan Coach exercise substitutions based on equipment and limitations.',
     icon: ArrowLeftRight,
     color: '#4caf50',
     colorSecondary: '#66bb6a',
@@ -648,7 +648,7 @@ const AIFeaturesDashboard = () => {
    */
   const handleFeatureClick = (feature) => {
     if (mcpStatus.workout.status === 'offline' && mcpStatus.gamification.status === 'offline') {
-      enqueueSnackbar('AI services are currently offline', { variant: 'error' });
+      enqueueSnackbar('Swan Coach services are currently offline', { variant: 'error' });
       return;
     }
 
@@ -710,7 +710,7 @@ const AIFeaturesDashboard = () => {
     <DashboardContainer>
       <DashboardTitle>
         <Sparkles size={32} />
-        AI Features Dashboard
+        Swan Coach Features Dashboard
         <TitleActions>
           <ToggleLabel>
             <HiddenCheckbox
@@ -767,7 +767,7 @@ const AIFeaturesDashboard = () => {
 
         {systemHealth.status === 'degraded' && (
           <WarningAlert>
-            Some AI services are currently unavailable. Features may be limited.
+            Some Swan Coach services are currently unavailable. Features may be limited.
           </WarningAlert>
         )}
       </StatusPanel>
@@ -820,7 +820,7 @@ const AIFeaturesDashboard = () => {
             <TrendingUp size={20} /> Usage Statistics
           </SectionTitle>
           <OutlineButton
-            onClick={() => setSelectedFeature({ title: 'AI Monitoring', component: 'AIDashboard' })}
+            onClick={() => setSelectedFeature({ title: 'Swan Coach Monitoring', component: 'AIDashboard' })}
           >
             <BarChart3 size={18} />
             View Detailed Analytics

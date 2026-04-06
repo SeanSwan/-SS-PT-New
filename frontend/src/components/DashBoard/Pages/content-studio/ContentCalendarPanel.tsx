@@ -358,7 +358,7 @@ const ContentCalendarPanel: React.FC = () => {
       {/* AI Suggestions */}
       {suggestions.length > 0 && (
         <SuggestionsSection>
-          <SugTitle><Sparkles size={14} /> AI Topic Suggestions</SugTitle>
+          <SugTitle><Sparkles size={14} /> Swan Coach Topic Suggestions</SugTitle>
           <SugGrid>
             {suggestions.map((topic, i) => (
               <SugChip key={i} onClick={() => handleSuggestionClick(topic)}>

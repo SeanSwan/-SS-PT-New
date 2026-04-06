@@ -20,7 +20,7 @@ const ResponseStyleSelectorComponent: React.FC<ResponseStyleSelectorProps> = ({
   activeStyle,
   onStyleChange,
 }) => (
-  <StyleBar role="radiogroup" aria-label="AI response style">
+  <StyleBar role="radiogroup" aria-label="Swan Coach response style">
     {RESPONSE_STYLES.map(style => (
       <StyleBtn
         key={style.key}

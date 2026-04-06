@@ -409,7 +409,7 @@ const clientNavConfig = [
     section: 'INTELLIGENCE',
     items: [
       { label: 'Nutrition Intelligence', path: '/dashboard/client/meal-planner', icon: UtensilsCrossed },
-      { label: 'AI Privacy & Consent', path: '/dashboard/client/ai-consent', icon: Shield },
+      { label: 'Swan Coach Privacy & Consent', path: '/dashboard/client/ai-consent', icon: Shield },
     ],
   },
   {

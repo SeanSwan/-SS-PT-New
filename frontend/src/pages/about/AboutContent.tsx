@@ -953,7 +953,7 @@ const AboutContent = () => {
     {
       year: 2018,
       title: "Technology Integration",
-      description: "Completed a full-stack development bootcamp to blend 25+ years of training expertise with AI technology, creating flawless programs that deliver 100% results for committed clients."
+      description: "Completed a full-stack development bootcamp to blend 25+ years of training expertise with Swan Coach technology, creating flawless programs that deliver 100% results for committed clients."
     },
     {
       year: 2025,
@@ -972,7 +972,7 @@ const AboutContent = () => {
     {
       icon: "👤",
       title: "Personalized",
-      text: "No cookie-cutter programs. Every client receives a fully customized AI-assisted plan tailored to their unique body, goals, and specific needs."
+      text: "No cookie-cutter programs. Every client receives a fully customized Swan Coach-assisted plan tailored to their unique body, goals, and specific needs."
     },
     {
       icon: "🔄",
@@ -1037,7 +1037,7 @@ const AboutContent = () => {
             </p>
 
             <p>
-              In 2018, Sean completed a full-stack development bootcamp to seamlessly blend technology with fitness expertise, creating AI-assisted programs that deliver guaranteed results for committed clients. This innovative approach has revolutionized how personalized fitness programs are developed at SwanStudios.
+              In 2018, Sean completed a full-stack development bootcamp to seamlessly blend technology with fitness expertise, creating Swan Coach-assisted programs that deliver guaranteed results for committed clients. This innovative approach has revolutionized how personalized fitness programs are developed at SwanStudios.
             </p>
 
             <p>
@@ -1048,7 +1048,7 @@ const AboutContent = () => {
               <li><strong>No shortcuts.</strong> Just elite-level coaching that works.</li>
               <li>Training rooted in <strong>science, experience, and innovation.</strong></li>
               <li>A <strong>proven track record</strong> of success with hundreds of clients.</li>
-              <li><strong>AI-assisted performance tracking</strong> combined with thousands of real-world training hours.</li>
+              <li><strong>Swan Coach-assisted performance tracking</strong> combined with thousands of real-world training hours.</li>
             </FeatureList>
 
             <p>

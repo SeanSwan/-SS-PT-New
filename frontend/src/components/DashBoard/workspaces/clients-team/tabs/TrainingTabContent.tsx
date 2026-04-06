@@ -108,7 +108,7 @@ const SECTIONS: {
 }[] = [
   { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
-  { id: 'copilot', label: 'AI Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
+  { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
   { id: 'history', label: 'Vault History', shortLabel: 'History', icon: <Archive size={18} /> },
 ];
 

@@ -153,7 +153,7 @@ const MessageContent = memo(function MessageContent({
         </MessageBubble>
       ))}
       {sending && (
-        <SendingIndicator aria-label="AI is thinking">
+        <SendingIndicator aria-label="Swan Coach is thinking">
           <span /><span /><span />
         </SendingIndicator>
       )}
@@ -280,14 +280,14 @@ const AICommandBar = memo(function AICommandBar({
             placeholder={displayPlaceholder}
             onChange={(e) => setInputValue(e.target.value)}
             onFocus={handleFocus}
-            aria-label={`AI ${contextLabel} input`}
+            aria-label={`Swan Coach ${contextLabel} input`}
           />
           <ContextBadge>{contextLabel}</ContextBadge>
         </InputRow>
         <MobileOverlay role="dialog" aria-modal="true" aria-label={`${contextLabel} chat`}>
           <MobileHeader>
             <ContextBadge>{contextLabel}</ContextBadge>
-            <MobileCloseButton onClick={handleMobileClose} aria-label="Close AI chat">
+            <MobileCloseButton onClick={handleMobileClose} aria-label="Close Swan Coach chat">
               &#10005;
             </MobileCloseButton>
           </MobileHeader>

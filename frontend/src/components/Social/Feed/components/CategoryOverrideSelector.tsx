@@ -84,7 +84,7 @@ const CategoryOverrideSelector: React.FC<CategoryOverrideSelectorProps> = ({
       <NativeSelect
         value={currentType}
         onChange={(e) => onOverride(e.target.value as PostType)}
-        aria-label="Override AI-suggested category"
+        aria-label="Override Swan Coach-suggested category"
         style={{ minWidth: 140, marginLeft: 'auto' }}
       >
         {postTypeOptions.map((opt) => (
@@ -97,7 +97,7 @@ const CategoryOverrideSelector: React.FC<CategoryOverrideSelectorProps> = ({
       {isOverridden && (
         <CategoryOverrideBtn
           onClick={() => onOverride(suggestion.suggested)}
-          title="Accept AI suggestion"
+          title="Accept Swan Coach suggestion"
         >
           <BarChart3 size={12} />
           Use AI pick

@@ -300,7 +300,7 @@ const BootcampBuilderPage: React.FC = () => {
       <TopBar>
         <div>
           <Title>Boot Camp Class Builder</Title>
-          <Subtitle>AI + manual class creation with 840+ exercises and inline regressions</Subtitle>
+          <Subtitle>Swan Coach + manual class creation with 840+ exercises and inline regressions</Subtitle>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           {bootcamp && (
@@ -319,14 +319,14 @@ const BootcampBuilderPage: React.FC = () => {
           <TeachMeToggle
             sectionId="bootcamp-builder"
             title="How to Use the Bootcamp Builder"
-            content="<strong>3 Build Modes:</strong><ul><li><strong>AI Generate:</strong> Set format, day type, style, hit Generate.</li><li><strong>Manual:</strong> Browse 840+ exercises, add to stations yourself.</li><li><strong>Hybrid:</strong> AI generates, you swap/add/remove.</li></ul><strong>55-Minute Rule:</strong> Timer turns red if class exceeds 55 min.<br/><strong>Regressions:</strong> Every exercise shows an easier alternative."
+            content="<strong>3 Build Modes:</strong><ul><li><strong>Swan Coach Generate:</strong> Set format, day type, style, hit Generate.</li><li><strong>Manual:</strong> Browse 840+ exercises, add to stations yourself.</li><li><strong>Hybrid:</strong> Swan Coach generates, you swap/add/remove.</li></ul><strong>55-Minute Rule:</strong> Timer turns red if class exceeds 55 min.<br/><strong>Regressions:</strong> Every exercise shows an easier alternative."
           />
         </div>
       </TopBar>
 
       <ModeBar>
         <ModeBtn $active={buildMode === 'ai'} onClick={() => setBuildMode('ai')}>
-          <Wand2 size={14} /> AI Generate
+          <Wand2 size={14} /> Swan Coach Generate
         </ModeBtn>
         <ModeBtn $active={buildMode === 'manual'} onClick={() => setBuildMode('manual')}>
           <Hand size={14} /> Manual

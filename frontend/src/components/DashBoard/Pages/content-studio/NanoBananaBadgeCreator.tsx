@@ -209,7 +209,7 @@ const NanoBananaBadgeCreator: React.FC = () => {
         <HeaderIcon><Wand2 size={20} /></HeaderIcon>
         <div>
           <Title>Nano Banana II — Badge Creator</Title>
-          <Subtitle>AI-powered badge generation using Gemini image models</Subtitle>
+          <Subtitle>Swan Coach badge generation using Gemini image models</Subtitle>
         </div>
       </Header>
 
@@ -341,7 +341,7 @@ const NanoBananaBadgeCreator: React.FC = () => {
             <EmptyState>
               <Image size={48} strokeWidth={1} />
               <EmptyText>
-                Enter an achievement name and click Generate to create AI-powered badge art.
+                Enter an achievement name and click Generate to create Swan Coach badge art.
                 Badges are generated using Gemini&apos;s image model in the Crystalline Swan style.
               </EmptyText>
             </EmptyState>

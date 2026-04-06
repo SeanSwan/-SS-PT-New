@@ -122,7 +122,7 @@ export const StatusBadge = styled.span<{ $status: string }>`
 
 const badgeColors: Record<string, { bg: string; fg: string }> = {
   'Waiver Signed': { bg: 'rgba(0, 255, 136, 0.15)', fg: '#00ff88' },
-  'AI Consent Signed': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#60C0F0' },
+  'Swan Coach Consent Signed': { bg: 'rgba(139, 92, 246, 0.15)', fg: '#60C0F0' },
   'Consent Missing': { bg: 'rgba(255, 107, 107, 0.15)', fg: '#ff6b6b' },
   'Guardian Required': { bg: 'rgba(255, 193, 7, 0.15)', fg: '#ffc107' },
   'Version Outdated': { bg: 'rgba(255, 152, 0, 0.15)', fg: '#ff9800' },

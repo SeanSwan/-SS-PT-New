@@ -1183,7 +1183,7 @@ const MCPServersSection: React.FC = () => {
             onChange={(e) => setTypeFilter(e.target.value)}
           >
             <option value="all">All Types</option>
-            <option value="ai-agent">AI Agent</option>
+            <option value="ai-agent">Swan Coach Agent</option>
             <option value="data-processor">Data Processor</option>
             <option value="scheduler">Scheduler</option>
             <option value="analytics">Analytics</option>

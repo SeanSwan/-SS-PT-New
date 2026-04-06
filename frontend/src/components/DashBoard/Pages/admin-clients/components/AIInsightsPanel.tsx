@@ -794,7 +794,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
     {
       id: 'r3',
       title: 'Optimize Rest Periods',
-      description: 'AI analysis suggests customizing rest periods based on heart rate recovery could improve workout efficiency.',
+      description: 'Swan Coach analysis suggests customizing rest periods based on heart rate recovery could improve workout efficiency.',
       type: 'short-term',
       impact: 'medium',
       effort: 'low',
@@ -1321,7 +1321,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           AI Insights &amp; Analytics
         </Heading4>
         <BodyText style={{ marginTop: 8 }}>
-          Advanced AI-powered insights, predictions, and personalized recommendations
+          Advanced Swan Coach insights, predictions, and personalized recommendations
         </BodyText>
       </SectionBox>
 

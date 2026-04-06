@@ -28,7 +28,7 @@ const ContextChipBarComponent: React.FC<ContextChipBarProps> = ({
   );
 
   return (
-    <ChipBarWrap role="toolbar" aria-label="AI context selector">
+    <ChipBarWrap role="toolbar" aria-label="Swan Coach context selector">
       {visibleChips.map(chip => (
         <ContextChipBtn
           key={chip.key}

@@ -85,7 +85,7 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 }) => (
   <CenterContent>
     <Sparkles size={48} color={SWAN_CYAN} />
-    <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate AI Workout Plan</h3>
+    <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate Swan Coach Workout Plan</h3>
     <p style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
       The AI will analyze {clientName}&apos;s profile, training history, and NASM assessment
       to generate a personalized workout plan for your review.

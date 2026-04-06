@@ -430,7 +430,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/overview', component: RevolutionaryAdminDashboard, title: 'Command Center', description: 'Administrative oversight' },
 
       // 🤖 SWAN COACH ASSISTANT — Master AI with full context access
-      { path: '/coach-assistant', component: SwanCoachAssistantPage, title: 'Coach Assistant', description: 'Swan Studios AI training assistant' },
+      { path: '/coach-assistant', component: SwanCoachAssistantPage, title: 'Coach Assistant', description: 'Swan Studios Coach Assistant' },
 
       // 🏢 COMPREHENSIVE USER DATA MANAGEMENT SUITE
       { path: '/user-management', component: EnhancedUserDataManagement, title: 'User Data Management', description: 'Complete user data collection & lifecycle management' },
@@ -494,8 +494,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 🔧 EQUIPMENT MANAGER — Upload gym/park/home photos, manage equipment profiles
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
 
-      // 🔥 BOOTCAMP CREATOR — AI-powered group fitness class builder
-      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder with pyramids, supersets, and flow optimization' }
+      // 🔥 BOOTCAMP CREATOR — Swan Coach group fitness class builder
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' }
     ],
     defaultPath: '/coach-assistant'
   },
@@ -505,9 +505,9 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
-      { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'YOLO AI form checking' },
+      { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
-      { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'AI workout generation' },
+      { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'Swan Coach workout generation' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
@@ -515,7 +515,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
-      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'AI-powered group fitness class builder' },
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder' },
       { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' }
     ],
     defaultPath: '/overview'
@@ -527,7 +527,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
       { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },
       { path: '/progress/detailed', component: ClientProgressWrapper, title: 'Detailed Analytics', description: 'NASM 14-chart analytics dashboard' },
-      { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'AI Privacy & Consent', description: 'Manage AI data consent' },
+      { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'Swan Coach Privacy & Consent', description: 'Manage Swan Coach data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },

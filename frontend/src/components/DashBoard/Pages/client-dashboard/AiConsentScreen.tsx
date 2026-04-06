@@ -414,7 +414,7 @@ const AiConsentScreen: React.FC = () => {
       setError(null);
       await grantConsent();
       await fetchStatus();
-      showToast('AI consent granted successfully.');
+      showToast('Swan Coach consent granted successfully.');
     } catch (err: any) {
       setError(err.message || 'Failed to grant consent.');
     } finally {
@@ -429,7 +429,7 @@ const AiConsentScreen: React.FC = () => {
       await withdrawConsent();
       await fetchStatus();
       setConfirmWithdraw(false);
-      showToast('AI consent withdrawn. AI features are now disabled.');
+      showToast('Swan Coach consent withdrawn. Swan Coach features are now disabled.');
     } catch (err: any) {
       if (err.status === 404) {
         setError('No consent record found to withdraw.');
@@ -511,10 +511,10 @@ const AiConsentScreen: React.FC = () => {
       <PageHeader>
         <PageTitle>
           <Shield size={28} color="#60C0F0" />
-          AI Privacy & Consent
+          Swan Coach Privacy & Consent
         </PageTitle>
         <PageSubtitle>
-          Manage how your data is used with AI-powered workout features.
+          Manage how your data is used with Swan Coach workout features.
           Your privacy is our priority.
         </PageSubtitle>
       </PageHeader>
@@ -532,7 +532,7 @@ const AiConsentScreen: React.FC = () => {
       {/* Current Status Card */}
       <StatusCard $status={consentState}>
         <StatusRow>
-          <StatusLabel>Current AI Consent Status</StatusLabel>
+          <StatusLabel>Current Swan Coach Consent Status</StatusLabel>
           <StatusBadge $status={consentState}>
             {consentState === 'granted' && <><ShieldCheck size={14} /> Active</>}
             {consentState === 'withdrawn' && <><ShieldOff size={14} /> Withdrawn</>}
@@ -563,7 +563,7 @@ const AiConsentScreen: React.FC = () => {
 
         {consentState === 'none' && (
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-            You have not yet opted in to AI-powered features. Review the information below and grant consent to get started.
+            You have not yet opted in to Swan Coach features. Review the information below and grant consent to get started.
           </div>
         )}
       </StatusCard>
@@ -572,7 +572,7 @@ const AiConsentScreen: React.FC = () => {
       <Card>
         <SectionTitle>
           <Brain size={20} color="#60C0F0" />
-          What AI Features Provide
+          What Swan Coach Features Provide
         </SectionTitle>
         <PrivacyList>
           <PrivacyItem>
@@ -599,7 +599,7 @@ const AiConsentScreen: React.FC = () => {
         <PrivacyList>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><ShieldCheck size={18} /></PrivacyIcon>
-            <div><strong>De-identified data only.</strong> Your name, email, phone number, and other personal identifiers are stripped before anything reaches the AI provider.</div>
+            <div><strong>De-identified data only.</strong> Your name, email, phone number, and other personal identifiers are stripped before anything reaches the Swan Coach provider.</div>
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Eye size={18} /></PrivacyIcon>
@@ -607,11 +607,11 @@ const AiConsentScreen: React.FC = () => {
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Lock size={18} /></PrivacyIcon>
-            <div><strong>Full audit trail.</strong> Every AI interaction is logged with a cryptographic hash — never your raw data. You can withdraw consent at any time.</div>
+            <div><strong>Full audit trail.</strong> Every Swan Coach interaction is logged with a cryptographic hash — never your raw data. You can withdraw consent at any time.</div>
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><ShieldCheck size={18} /></PrivacyIcon>
-            <div><strong>Your identity is hidden.</strong> The AI only knows you by an anonymous client ID — your real name and personal details stay private.</div>
+            <div><strong>Your identity is hidden.</strong> Swan Coach only knows you by an anonymous client ID — your real name and personal details stay private.</div>
           </PrivacyItem>
         </PrivacyList>
       </Card>
@@ -623,15 +623,15 @@ const AiConsentScreen: React.FC = () => {
           Consent Disclosure (v1.0)
         </ConsentDisclosureTitle>
         By granting consent, you agree that SwanStudios may process your de-identified fitness profile
-        through an AI provider (currently OpenAI) to generate personalized workout plans. Your personal
-        identifiers (name, email, phone, medical details) are never shared with the AI provider. Only
+        through a Swan Coach provider to generate personalized workout plans. Your personal
+        identifiers (name, email, phone, medical details) are never shared with the Swan Coach provider. Only
         fitness-relevant data — goals, measurements, training preferences, and safety-critical information
         (injuries, medical conditions) — is used, and only after stripping all identifying information.
         <br /><br />
-        You may withdraw consent at any time. Withdrawal immediately disables all AI-powered features.
-        Previously generated workout plans remain in your account but no new AI requests will be made.
+        You may withdraw consent at any time. Withdrawal immediately disables all Swan Coach features.
+        Previously generated workout plans remain in your account but no new Swan Coach requests will be made.
         <br /><br />
-        This consent applies to AI workout generation (Consent Version 1.0).
+        This consent applies to Swan Coach workout generation (Consent Version 1.0).
       </ConsentDisclosure>
 
       {/* Action Buttons */}
@@ -641,12 +641,12 @@ const AiConsentScreen: React.FC = () => {
             $variant="grant"
             onClick={handleGrant}
             disabled={actionLoading}
-            aria-label="Grant AI consent"
+            aria-label="Grant Swan Coach consent"
           >
             {actionLoading ? (
               <><RefreshCw size={18} /> Processing...</>
             ) : (
-              <><ShieldCheck size={18} /> Grant AI Consent</>
+              <><ShieldCheck size={18} /> Grant Swan Coach Consent</>
             )}
           </ConsentButton>
         )}
@@ -656,7 +656,7 @@ const AiConsentScreen: React.FC = () => {
             $variant="withdraw"
             onClick={() => setConfirmWithdraw(true)}
             disabled={actionLoading}
-            aria-label="Withdraw AI consent"
+            aria-label="Withdraw Swan Coach consent"
           >
             <ShieldOff size={18} /> Withdraw Consent
           </ConsentButton>
@@ -675,8 +675,8 @@ const AiConsentScreen: React.FC = () => {
             <WithdrawWarning>
               <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
-                <strong>Are you sure?</strong> Withdrawing consent will immediately disable all AI-powered
-                workout features. Your existing workout plans will remain, but no new AI-generated plans
+                <strong>Are you sure?</strong> Withdrawing consent will immediately disable all Swan Coach
+                workout features. Your existing workout plans will remain, but no new Swan Coach-generated plans
                 can be created until you re-grant consent.
                 <ButtonRow style={{ marginTop: '1rem' }}>
                   <ConsentButton
@@ -708,11 +708,11 @@ const AiConsentScreen: React.FC = () => {
             <PrivacyList>
               <PrivacyItem>
                 <PrivacyIcon $color="#ef4444"><ShieldOff size={18} /></PrivacyIcon>
-                <div>AI workout generation is <strong>disabled</strong>. You can still use manual workout templates and trainer-assigned plans.</div>
+                <div>Swan Coach workout generation is <strong>disabled</strong>. You can still use manual workout templates and trainer-assigned plans.</div>
               </PrivacyItem>
               <PrivacyItem>
                 <PrivacyIcon $color="#f59e0b"><AlertTriangle size={18} /></PrivacyIcon>
-                <div>You can re-enable AI features at any time by granting consent above.</div>
+                <div>You can re-enable Swan Coach features at any time by granting consent above.</div>
               </PrivacyItem>
             </PrivacyList>
           </Card>

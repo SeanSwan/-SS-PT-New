@@ -217,8 +217,8 @@ const VoiceSettingsBar: React.FC<VoiceSettingsBarProps> = memo(({
       <ToggleBtn
         $active={enabled}
         onClick={onToggle}
-        aria-label={enabled ? 'Disable AI voice' : 'Enable AI voice'}
-        title={enabled ? 'AI voice is ON — responses will be spoken' : 'Enable AI voice readback'}
+        aria-label={enabled ? 'Disable Swan Coach voice' : 'Enable Swan Coach voice'}
+        title={enabled ? 'Swan Coach voice is ON — responses will be spoken' : 'Enable Swan Coach voice readback'}
       >
         {enabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
         AI Voice: {enabled ? 'ON' : 'OFF'}
@@ -229,7 +229,7 @@ const VoiceSettingsBar: React.FC<VoiceSettingsBarProps> = memo(({
         <VoiceSelectWrap ref={dropdownRef}>
           <VoiceSelectBtn
             onClick={() => setDropdownOpen(prev => !prev)}
-            aria-label="Select AI voice"
+            aria-label="Select Swan Coach voice"
             aria-expanded={dropdownOpen}
           >
             {currentVoice?.label || voice}

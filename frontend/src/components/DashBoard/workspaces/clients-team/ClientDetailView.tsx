@@ -90,7 +90,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
     switch (activeTab) {
       case 'training':
         return renderTraining ? renderTraining(client.id) : (
-          <PlaceholderContent label="Training" description="Workouts, sessions, and AI generation." />
+          <PlaceholderContent label="Training" description="Workouts, sessions, and Swan Coach generation." />
         );
       case 'biometrics':
         return renderBiometrics ? renderBiometrics(client.id) : (

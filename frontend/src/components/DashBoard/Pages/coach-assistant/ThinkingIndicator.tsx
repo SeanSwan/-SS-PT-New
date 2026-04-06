@@ -129,7 +129,7 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = memo(({ isThinking }
   if (!isThinking) return null;
 
   return (
-    <ThinkingWrap aria-label="AI is thinking" role="status" aria-live="polite">
+    <ThinkingWrap aria-label="Swan Coach is thinking" role="status" aria-live="polite">
       <DotsWrap>
         <Dot $delay={0} />
         <Dot $delay={0.2} />

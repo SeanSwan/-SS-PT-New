@@ -54,7 +54,7 @@ const HomePageV4: React.FC = () => {
     <>
       <Helmet>
         <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with 26 years experience, AI-driven programming, serving Orange County and LA." />
+        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with 26 years experience, Swan Coach programming, serving Orange County and LA." />
       </Helmet>
 
       <ScrollProgress enabled={isFull} />

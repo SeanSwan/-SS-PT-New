@@ -364,7 +364,7 @@ const WorkoutPlannerPage: React.FC = () => {
       } else if (specificMsg) {
         setStatusMsg({ type: 'error', text: `Workout generation failed: ${specificMsg}` });
       } else {
-        setStatusMsg({ type: 'error', text: 'AI generation failed. Check client data and try again.' });
+        setStatusMsg({ type: 'error', text: 'Swan Coach generation failed. Check client data and try again.' });
       }
     } finally {
       setGenerating(false);
@@ -553,7 +553,7 @@ const WorkoutPlannerPage: React.FC = () => {
           disabled={generating || generatingPlan || !selectedClientId}
         >
           {generating || generatingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {generating || generatingPlan ? 'Generating...' : planDuration === 'single' ? 'AI Generate' : 'Generate Plan'}
+          {generating || generatingPlan ? 'Generating...' : planDuration === 'single' ? 'Swan Coach Generate' : 'Generate Plan'}
         </ActionBtn>
       </ControlRow>
 
@@ -613,7 +613,7 @@ const WorkoutPlannerPage: React.FC = () => {
         <AITerminalPanel
           context="workout_generation"
           clientId={selectedClientId ?? undefined}
-          label="Workout AI Assistant"
+          label="Workout Swan Coach Assistant"
           placeholder="Ask me about exercise selection, periodization, NASM protocols..."
           compact
           defaultOpen={false}
@@ -755,7 +755,7 @@ const WorkoutPlannerPage: React.FC = () => {
 
             {generating ? (
               <GeneratingSkeletonWrap role="status" aria-live="polite" aria-label="Generating workout">
-                <GeneratingLabel>Coach AI is analyzing client data and building your workout...</GeneratingLabel>
+                <GeneratingLabel>Swan Coach is analyzing client data and building your workout...</GeneratingLabel>
                 {Array.from({ length: 6 }, (_, i) => (
                   <GeneratingSkeletonRow key={i} style={{ animationDelay: `${i * 100}ms` }}>
                     <SkeletonCircle />
@@ -768,7 +768,7 @@ const WorkoutPlannerPage: React.FC = () => {
               </GeneratingSkeletonWrap>
             ) : planExercises.length === 0 ? (
               <EmptyMessage>
-                Click exercises in the Rolodex to add them, or use AI Generate for an intelligent program.
+                Click exercises in the Rolodex to add them, or use Swan Coach Generate for an intelligent program.
               </EmptyMessage>
             ) : (
               planExercises.map((pe, idx) => (
@@ -850,7 +850,7 @@ const WorkoutPlannerPage: React.FC = () => {
               <ExplanationsPanel>
                 <ExplanationsToggle onClick={() => setShowExplanations(v => !v)}>
                   <Info size={16} />
-                  AI Reasoning ({explanations.length} insight{explanations.length !== 1 ? 's' : ''})
+                  Swan Coach Reasoning ({explanations.length} insight{explanations.length !== 1 ? 's' : ''})
                   {showExplanations ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </ExplanationsToggle>
                 {showExplanations && explanations.map((exp, i) => (

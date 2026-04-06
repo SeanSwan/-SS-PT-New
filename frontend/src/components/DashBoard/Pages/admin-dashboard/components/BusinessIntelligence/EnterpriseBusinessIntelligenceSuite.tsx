@@ -572,10 +572,10 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
       ],
       marketTrends: [
         {
-          trend: 'AI-Powered Fitness',
+          trend: 'Swan Coach Fitness',
           direction: 'up',
           impact: 0.85,
-          recommendation: 'Increase investment in AI workout generation and personalization'
+          recommendation: 'Increase investment in Swan Coach workout generation and personalization'
         },
         {
           trend: 'Social Fitness',
@@ -893,7 +893,7 @@ const EnterpriseBusinessIntelligenceSuite: React.FC = () => {
           <InsightsPanel>
             <h3>
               <Sparkles size={20} />
-              AI Business Insights
+              Swan Coach Business Insights
             </h3>
             
             {mockPredictiveInsights.growthOpportunities.map((opportunity, index) => (

@@ -268,7 +268,7 @@ const ClientWorkoutForgePage: React.FC = () => {
       {result && (
         <ResultCard>
           {result.placeholder ? (
-            <PlaceholderMsg>AI workout generation coming soon! Your trainer will configure this feature.</PlaceholderMsg>
+            <PlaceholderMsg>Swan Coach workout generation coming soon! Your trainer will configure this feature.</PlaceholderMsg>
           ) : (
             <>
               <h3>Your {selectedPhase.name} Workout</h3>
