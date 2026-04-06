@@ -71,7 +71,7 @@ export const initializeSession = async () => {
   }
 
   if (isProduction && !useRedis) {
-    throw new Error('Redis-backed sessions are required in production. Set REDIS_URL.');
+    logger.warn('⚠️ REDIS_URL not set — using in-memory sessions. Set REDIS_URL for multi-instance support.');
   }
 
   let store;
@@ -107,11 +107,6 @@ export const initializeSession = async () => {
       });
 
     } catch (error) {
-      if (isProduction) {
-        logger.error('Redis session initialization failed in production:', error);
-        throw new Error('Redis-backed session initialization failed in production');
-      }
-
       logger.error('Failed to connect to Redis, falling back to in-memory sessions:', error);
       logger.warn('⚠️  Using in-memory session store - NOT suitable for multi-instance deployments');
       // Stop reconnect loops after startup failure.
