@@ -7,7 +7,7 @@
  */
 
 import React, { memo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { Activity, Target, Calendar, TrendingUp } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ const OnboardingBar = styled.div<{ $pct: number; $incomplete: boolean }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid ${({ $incomplete }) =>
     $incomplete ? 'rgba(139, 92, 246, 0.3)' : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
-  ${({ $incomplete }) => $incomplete && `animation: ${onboardingGlow} 3s ease-in-out infinite;`}
+  ${({ $incomplete }) => $incomplete && css`animation: ${onboardingGlow} 3s ease-in-out infinite;`}
   display: flex;
   align-items: center;
   gap: 10px;

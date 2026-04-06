@@ -122,6 +122,8 @@ const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboa
 const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
+const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
+const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Universal Theme — CSS Custom Property Bridge
@@ -495,7 +497,13 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
 
       // 🔥 BOOTCAMP CREATOR — Swan Coach group fitness class builder
-      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' }
+      { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' },
+
+      // 📣 MARKETING DASHBOARD — SEO, content creation, social media, competitor analysis
+      { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'SEO, content marketing, and competitor analysis' },
+
+      // 🔒 SECURITY INTELLIGENCE — CVE scanning, dependency health, alerts, score card
+      { path: '/security', component: SecurityWorkspace, title: 'Security Intelligence', description: 'Vulnerability scanning, dependency health, and security posture' }
     ],
     defaultPath: '/coach-assistant'
   },

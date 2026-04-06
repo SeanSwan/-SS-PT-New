@@ -36,7 +36,7 @@ import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
-  Flame, Wrench, MessageCircle, Palette,
+  Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ import {
 const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
-  Flame, Wrench, MessageCircle,
+  Flame, Wrench, MessageCircle, Megaphone, ShieldCheck,
 };
 
 const getIcon = (name: string, size = 20) => {
