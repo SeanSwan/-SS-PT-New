@@ -4,14 +4,14 @@
 
 ## PROMPT:
 
-Continue building SwanStudios. Phases 1-9 are COMPLETE and deployed. We are starting Phase 10 of 11. Everything is committed, pushed, and live on Render.
+Continue building SwanStudios. Phases 1-10 are COMPLETE and deployed. We are starting Phase 11 of 11. Everything is committed, pushed, and live on Render.
 
 **IMPORTANT:** The full phase tracker with all 11 phases, file paths, and status is in this file:
 `docs/ai-workflow/AI-HANDOFF/NEXT-SESSION-PROMPT.md`
 
 Read that file first to get full context before starting work.
 
-**What was already built and deployed (Phases 1-9):**
+**What was already built and deployed (Phases 1-10):**
 
 ### Phase 1 — Dark Navy Default Theme + 4 New Themes
 - 18 themes (dark navy = crystalline-dark default confirmed)
@@ -88,7 +88,7 @@ Read that file first to get full context before starting work.
   - `AdminStellarSidebar.tsx` — Added ShieldCheck to lucide imports + iconMap
   - `UniversalDashboardLayout.tsx` — Added lazy import + `/security` route in roleConfigurations.admin.routes
 
-### Codebase Security Audit Fix Pass (same deploy)
+### Codebase Security Audit Fix Pass (same deploy as Phase 9)
 - CORS hardened to allowlisted origins in production (`backend/core/app.mjs`)
 - Session requires real secret + Redis in production, fails closed (`backend/config/session.mjs`)
 - Storefront XSS sanitized on write+read (`backend/routes/storeFrontRoutes.mjs`)
@@ -100,7 +100,25 @@ Read that file first to get full context before starting work.
 - AI consent requires explicit userId for trainer/admin (`backend/controllers/aiConsentController.mjs`)
 - `parse_error` standardized to 502 (`backend/controllers/aiWorkoutController.mjs`, `backend/controllers/longHorizonController.mjs`)
 
-**Architecture note:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. New workspaces should use internal useState tab switching + lazy loading (see MarketingWorkspace.tsx or SecurityWorkspace.tsx as template).
+### Phase 10 — Content Studio Upgrades
+- **6 new files** in `frontend/src/components/DashBoard/Pages/content-studio/`:
+  - `SeedanceVideoPanel.tsx` (219 lines) — AI video generation with Seedance 2.0 (Higgsfield). Category selector (exercise demo / social clip / marketing), style picker, duration config, job queue with status tracking
+  - `BlogWriterTab.tsx` (274 lines) — 3-step SEO blog wizard (Topic & Keywords → Outline → Draft). Keyword presets, cadence guard (1x/week), draft queue sidebar, suggested topics
+  - `SocialDistributionPanel.tsx` (264 lines) — Multi-platform social composer (Instagram/Facebook/X). Preview cards, hashtag suggestions, caption generation, scheduling, publish queue
+  - `ContentStudioSettings.tsx` (224 lines) — Extracted from hub. API key config for Seedance/ElevenLabs/Blotato
+  - `ContentStudioHub.styles.ts` (162 lines) — Extracted hub-specific styled components (Page, Header, Tabs, ServiceCards)
+  - `content-studio.styles.ts` (258 lines) — Shared styled components for all Phase 10 panels (PanelContainer, SplitLayout, buttons, chips, cards)
+- **1 refactored file**:
+  - `ContentStudioHub.tsx` — Reduced from 734→171 lines. Added 3 new tabs (seedance-video, blog-writer, social-publish). Fixed `setKlingKey` variable naming → `setSeedanceKey`. Now 11 total tabs.
+
+**Architecture note:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. New workspaces should use internal useState tab switching + lazy loading (see MarketingWorkspace.tsx, SecurityWorkspace.tsx, or ContentStudioHub.tsx as template).
+
+### Known Audit Findings (from Codex audit, `docs/ai-workflow/AI-HANDOFF/PHASE-1-9-AUDIT-2026-04-05.md`)
+These are pre-existing issues documented but NOT yet fixed:
+1. **MEDIUM**: Phase 9 eval harness regression — `outputValidator.mjs` (~line 273), `goldenDataset.mjs` (~line 918), `evalHarness.test.mjs` (~line 407). Self-healing corrections counted as warnings, `warnings_05` golden scenario expects 0. Full backend suite: 1 test fails.
+2. **LOW**: MarketingWorkspace.tsx + SecurityWorkspace.tsx hardcode gradient/active-tab colors instead of `var(--token, #fallback)` pattern.
+3. **LOW**: Legacy admin route metadata in dashboard-tabs.ts points Security at wrong path.
+4. **LOW**: TeachMeToggle.tsx (~line 216) still says "Ask AI Coach" instead of "Ask Swan Coach".
 
 ---
 
@@ -117,30 +135,27 @@ Read that file first to get full context before starting work.
 | 7 | Admin Overview KPI dashboard — Victory revenue/growth charts, session tracking, activity feed, gamification summary, enhanced metrics | DONE |
 | 8 | Marketing Dashboard — SEO audit, keyword research, blog writer, social post generator, email digest, content calendar, competitor analysis | DONE |
 | 9 | Security Intelligence Panel — vulnerability scanner, dependency health, alerts feed, CVE watchlist, security score card (all Victory charts) | DONE |
-| 10 | Content Studio upgrades — Seedance 2.0 integration, multi-platform social distribution, blog writer tab | **START HERE** |
-| 11 | E2EE encryption — Signal Protocol (optional per user), server-side AES-256 default, identity verification | Pending |
+| 10 | Content Studio upgrades — Seedance 2.0 video panel, blog writer tab, social publish with previews/hashtags/scheduling | DONE |
+| 11 | E2EE encryption — Signal Protocol (optional per user), server-side AES-256 default, identity verification | **START HERE** |
 
 ---
 
-## PHASE 10 — Content Studio Upgrades
+## PHASE 11 — E2EE Encryption
 
-**Goal:** Enhance the existing Content Studio with Seedance 2.0 video AI integration, multi-platform social distribution, and a blog writer tab.
+**Goal:** Implement end-to-end encrypted messaging and health data encryption for the platform.
 
 **Key features to build:**
 
-1. **Seedance 2.0 Integration** — Replace Kling 3.0 references with Seedance 2.0 (Higgsfield or laozhang.ai API). Video generation panel for exercise demos, social content, and marketing clips. Cost: $0.05/video via laozhang.ai or $15-34/mo via Higgsfield.
+1. **Server-Side AES-256 Default** — Encrypt sensitive health data (workout logs, body measurements, nutrition data) at rest using AES-256-GCM. This is the DEFAULT for all users — no opt-in required. Key management via environment variable on Render.
 
-2. **Multi-Platform Social Distribution** — Publish generated content to Instagram, Facebook, X (Twitter) from within Content Studio. Preview cards, scheduling, caption generation with hashtag suggestions.
+2. **E2EE Messaging (Optional Per User)** — WhatsApp-style Signal Protocol for private messages between trainers and clients. Users can opt into E2EE for their conversations. Key exchange, message encryption/decryption, forward secrecy.
 
-3. **Blog Writer Tab** — Content Studio tab for long-form blog posts (ties into Marketing Dashboard's BlogWriterPanel but lives inside Content Studio for the content creation flow). SEO-optimized drafts, keyword integration.
-
-**Current Content Studio location:** `frontend/src/components/DashBoard/Pages/content-studio/ContentStudioHub.tsx`
+3. **Identity Verification** — Safety number / QR code verification for E2EE conversations, so users can verify they're talking to the right person.
 
 **Key references:**
-- Content Studio plan: `docs/ai-workflow/references/` (check for content studio docs)
-- Seedance replaces Kling: memory file `project_video_ai_seedance_replacement.md`
-- Content cadence: blog 1x/week, email 2x/month MAX, Sean approves before publish
-- Two-tier workflow: Bootstrap (free/trial) vs Full Arsenal (paid)
+- E2EE plan: memory file `project_e2ee_encryption_messaging.md`
+- Privacy proxy: `docs/ai-workflow/references/PRIVACY-PROXY.md`
+- Zero PII to LLMs rule: all client data as IDs only
 
 **Key design rules:**
 - Default theme: dark navy — Enchanted Apex: Crystalline Swan
@@ -148,13 +163,16 @@ Read that file first to get full context before starting work.
 - styled-components only, NO Material-UI
 - `var(--token, #fallback)` pattern for all colors
 - Max 300 lines per file — extract to sub-components
-- Victory only for charts (no Recharts)
 - prefers-reduced-motion MUST be respected
 
-**Architecture note:** Live admin routing uses `roleConfigurations` in `UniversalDashboardLayout.tsx` (flat routes), NOT `UnifiedAdminRoutes.tsx`. Content Studio already exists at `/content` route. Extend it with new tabs inside the existing ContentStudioHub pattern.
+**Architecture notes:**
+- Backend encryption utilities should go in `backend/services/` or `backend/utils/`
+- Frontend E2EE UI components in `frontend/src/components/DashBoard/Pages/messaging/` or similar
+- The E2EE implementation should use $0 cost libraries (libsignal-protocol-javascript or similar)
+- Server-side AES-256 uses Node.js built-in `crypto` module — no external deps needed
 
 **DO NOT run the AI Village without asking me first.** Use Opus internal planning (free) for most decisions.
 
-Start building Phase 10 — Content Studio Upgrades.
+Start building Phase 11 — E2EE Encryption.
 
 ---
