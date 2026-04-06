@@ -741,12 +741,13 @@ router.get('/users/:id', protect, async (req, res) => {
     // If not admin or same user, check if trainer relationship exists
     let hasTrainerAccess = false;
     if (!isAdmin && !isSameUser && req.user.role === 'trainer') {
-      // This query would check if the requesting trainer has a relationship with this client
-      // Adjust based on your database model structure
-      const trainerClientRelation = await TrainerClient.findOne({
+      const { default: getModels } = await import('../models/associations.mjs');
+      const { ClientTrainerAssignment } = await getModels();
+      const trainerClientRelation = await ClientTrainerAssignment.findOne({
         where: {
           trainerId: req.user.id,
-          clientId: userId
+          clientId: userId,
+          status: 'active',
         }
       });
       

@@ -10,7 +10,7 @@ import logger from '../../utils/logger.mjs';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
-const PER_USER_PER_MINUTE = 15;
+const PER_USER_PER_MINUTE = 3;
 const PER_USER_PER_HOUR = 60;
 const GLOBAL_PER_MINUTE = 60;
 const WINDOW_MINUTE_MS = 60 * 1000;

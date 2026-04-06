@@ -145,7 +145,7 @@ export function hashPayload(payload) {
  * @param {Object} masterPromptJson - Raw master prompt JSON from User model
  * @param {Object} options
  * @param {number|string} [options.clientId] - Anonymous client ID (from User.id)
- * @param {string} [options.spiritName] - DEPRECATED: kept for backward compat, ignored if clientId provided
+ * @param {string} [options.spiritName] - Preferred anonymous alias when provided
  * @returns {{ deIdentified: Object, strippedFields: string[] } | null}
  *   Returns null if the payload is empty/unsafe after stripping (fail-closed).
  */
@@ -158,9 +158,20 @@ export function deIdentify(masterPromptJson, options = {}) {
   const payload = deepClone(masterPromptJson);
   const strippedFields = [];
   const { clientId, spiritName } = options;
+  const existingAlias = getNestedValue(payload, 'client.alias');
 
-  // Anonymous label: prefer clientId, fall back to generic
-  const anonymousLabel = clientId ? `Client #${clientId}` : 'Client';
+  const normalizedSpiritName = typeof spiritName === 'string' && spiritName.trim()
+    ? spiritName.trim()
+    : null;
+  const normalizedExistingAlias = typeof existingAlias === 'string' && existingAlias.trim()
+    ? existingAlias.trim()
+    : null;
+
+  // Name fields should only use an explicitly supplied alias.
+  // Existing payload aliases may be preserved separately, but should not replace
+  // the generic de-identified name when the caller did not supply one.
+  const anonymousLabel = normalizedSpiritName || (clientId ? `Client #${clientId}` : 'Client');
+  const aliasLabel = normalizedSpiritName || normalizedExistingAlias || anonymousLabel;
 
   // 1. Replace name fields with anonymous client ID
   const originalName = getNestedValue(payload, 'client.name');
@@ -173,6 +184,10 @@ export function deIdentify(masterPromptJson, options = {}) {
   if (originalPreferred !== undefined) {
     setNestedValue(payload, 'client.preferredName', anonymousLabel);
     strippedFields.push('client.preferredName');
+  }
+
+  if (getNestedValue(payload, 'client.alias') !== aliasLabel) {
+    setNestedValue(payload, 'client.alias', aliasLabel);
   }
 
   // 2. Strip direct identifiers

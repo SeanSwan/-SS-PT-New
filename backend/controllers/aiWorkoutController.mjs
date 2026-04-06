@@ -196,7 +196,6 @@ export const generateWorkoutPlan = async (req, res) => {
   const requesterId = req.user?.id;
   let auditLog = null;
   let eligibilityOverride = null;
-  let rateLimitAcquired = false;
 
   try {
     const { userId: rawUserId, masterPromptJson, mode } = req.body || {};
@@ -209,9 +208,6 @@ export const generateWorkoutPlan = async (req, res) => {
         message: 'Not authenticated',
       });
     }
-
-    // Rate limiter middleware already acquired the lock for this requesterId
-    rateLimitAcquired = true;
 
     const parsed = Number(rawUserId);
     const targetUserId = (Number.isInteger(parsed) && parsed > 0) ? parsed
@@ -756,8 +752,9 @@ export const generateWorkoutPlan = async (req, res) => {
     let validation = runValidationPipeline(providerResult.rawText, validationOpts);
 
     // --- Phase 3A-retry: Self-healing retry with correction prompt ---
-    // On parse/validation errors (NOT PII leaks), retry once with explicit correction feedback
-    if (!validation.ok && validation.failStage !== 'pii_leak') {
+    // Only retry structural/rule validation failures. Raw JSON parse errors should
+    // stay explicit so the API contract and audit log remain deterministic.
+    if (!validation.ok && validation.failStage === 'validation_error') {
       logger.warn('[Self-Heal] Validation failed, attempting retry with correction prompt', {
         failStage: validation.failStage,
         failReason: validation.failReason,
@@ -805,7 +802,7 @@ export const generateWorkoutPlan = async (req, res) => {
     if (!validation.ok) {
       const statusMap = {
         pii_leak: 422,
-        parse_error: 503,
+        parse_error: 502,
         validation_error: 422,
       };
       const codeMap = {
@@ -1001,8 +998,9 @@ export const generateWorkoutPlan = async (req, res) => {
         : (error.message || 'Failed to generate workout plan'),
     });
   } finally {
-    // Only release if the rate limiter actually acquired a lock for this request
-    if (rateLimitAcquired && requesterId) {
+    // Direct controller tests may call this without aiRateLimiter middleware.
+    // In that case the controller still owns the lock lifecycle.
+    if (!req.aiRateLimitManaged && requesterId) {
       releaseConcurrent(requesterId);
     }
   }

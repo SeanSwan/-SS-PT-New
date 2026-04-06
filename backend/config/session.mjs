@@ -64,6 +64,15 @@ const createRedisClient = () => {
 export const initializeSession = async () => {
   const isProduction = process.env.NODE_ENV === 'production';
   const useRedis = shouldUseRedisSessions();
+  const sessionSecret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
+
+  if (isProduction && !sessionSecret) {
+    throw new Error('SESSION_SECRET or JWT_SECRET is required in production');
+  }
+
+  if (isProduction && !useRedis) {
+    throw new Error('Redis-backed sessions are required in production. Set REDIS_URL.');
+  }
 
   let store;
   let redisClient;
@@ -98,6 +107,11 @@ export const initializeSession = async () => {
       });
 
     } catch (error) {
+      if (isProduction) {
+        logger.error('Redis session initialization failed in production:', error);
+        throw new Error('Redis-backed session initialization failed in production');
+      }
+
       logger.error('Failed to connect to Redis, falling back to in-memory sessions:', error);
       logger.warn('⚠️  Using in-memory session store - NOT suitable for multi-instance deployments');
       // Stop reconnect loops after startup failure.
@@ -124,7 +138,7 @@ export const initializeSession = async () => {
   // Session middleware configuration
   const sessionConfig = {
     store,
-    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'fallback-secret-change-in-production',
+    secret: sessionSecret || 'fallback-secret-change-in-production',
     resave: false,
     saveUninitialized: false,
     name: 'swanstudios.sid', // Custom session cookie name

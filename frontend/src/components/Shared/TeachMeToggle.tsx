@@ -107,6 +107,7 @@ const PanelContent = styled.div`
   font-size: 13px;
   line-height: 1.7;
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  white-space: pre-wrap;
 
   strong { color: var(--text-primary, #E0ECF4); font-weight: 600; }
   ul, ol { padding-left: 18px; margin: 8px 0; }
@@ -203,7 +204,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
 
         <PanelContent>
           {typeof content === 'string' ? (
-            <div dangerouslySetInnerHTML={{ __html: content }} />
+            <div>{content}</div>
           ) : (
             content
           )}

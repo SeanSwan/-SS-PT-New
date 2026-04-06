@@ -546,8 +546,9 @@ export const generateLongHorizonPlan = async (req, res) => {
       message: err.message || 'Internal server error during plan generation',
     });
   } finally {
-    // Always release the concurrent rate-limit lock
-    if (requesterId) {
+    // Direct controller tests may call this without aiRateLimiter middleware.
+    // In that case the controller still owns the lock lifecycle.
+    if (!req.aiRateLimitManaged && requesterId) {
       releaseConcurrent(requesterId);
     }
   }

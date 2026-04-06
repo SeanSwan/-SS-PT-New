@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import apiService from '../services/api.service';
+import apiService, { ProductionTokenManager } from '../services/api.service';
 import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxLoading } from '../store/slices/authSlice';
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
@@ -110,15 +110,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Token refresh function - Properly memoized to prevent re-creation
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
-      const token = tokenCleanup.getValidatedToken();
-      if (!token) return false;
-      
-      const response = await apiService.post('/api/auth/refresh', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.token) {
-        const newToken = response.data.token;
+      const newToken = await ProductionTokenManager.refreshAccessToken();
+
+      if (newToken) {
         tokenCleanup.storeToken(newToken);
         apiService.setAuthToken(newToken);
         setToken(newToken);

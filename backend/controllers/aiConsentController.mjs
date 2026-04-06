@@ -23,7 +23,7 @@ const VALID_CONSENT_VERSIONS = ['1.0'];
  * Clients omit userId (self). Admins may specify userId.
  *
  * Validates target user exists and is a client before creating consent.
- * Admin/trainer self-consent defaults to self when no userId provided.
+ * Admins and trainers must provide an explicit target userId.
  */
 export const grantAiConsent = async (req, res) => {
   try {
@@ -199,10 +199,7 @@ export const getAiConsentStatus = async (req, res) => {
     }
 
     const rawUserId = req.params?.userId || req.query?.userId;
-    // For status checks, default to self for ALL roles (read-only, always safe)
-    const targetUserId = rawUserId
-      ? resolveTargetUser(rawUserId, requesterId, requesterRole)
-      : requesterId;
+    const targetUserId = resolveTargetUser(rawUserId, requesterId, requesterRole);
 
     if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'Missing or invalid userId' });
@@ -280,8 +277,8 @@ export const getAiConsentStatus = async (req, res) => {
  *
  * Behavior by role:
  *   - client:  defaults to self (requesterId) when userId is omitted
- *   - trainer: requires explicit userId (returns null if omitted → 400)
- *   - admin:   requires explicit userId (returns null if omitted → 400)
+ *   - trainer: requires explicit userId (returns null if omitted -> 400)
+ *   - admin:   requires explicit userId (returns null if omitted -> 400)
  *
  * This is intentional: trainers and admins must specify which user they are
  * acting on. Clients always act on themselves.
@@ -291,7 +288,5 @@ function resolveTargetUser(rawUserId, requesterId, requesterRole) {
     const parsed = Number(rawUserId);
     return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null;
   }
-  // All authenticated users default to self when no userId provided
-  // (role-specific restrictions are enforced downstream)
-  return requesterId;
+  return requesterRole === 'client' ? requesterId : null;
 }

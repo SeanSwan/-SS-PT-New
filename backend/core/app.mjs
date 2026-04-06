@@ -56,35 +56,61 @@ export const createApp = async () => {
     'https://swanstudios-frontend.onrender.com'
   ];
 
+  const getAllowedCorsOrigin = (origin) => {
+    if (!origin) return null;
+    if (!isProduction || allowedOrigins.includes(origin)) {
+      return origin;
+    }
+    return null;
+  };
+
+  const applyCorsHeaders = (res, origin, methods, headers) => {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', methods);
+    res.setHeader('Access-Control-Allow-Headers', headers);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader('Vary', 'Origin');
+  };
+
   // LAYER 1: IMMEDIATE OPTIONS INTERCEPTION
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     const method = req.method;
     const url = req.url;
+    const corsOrigin = getAllowedCorsOrigin(origin);
     
     // Log ALL incoming requests for debugging
     logger.info(`🌐 INCOMING REQUEST: ${method} ${url} from origin: ${origin || 'no-origin'}`);
     
     if (method === 'OPTIONS') {
       logger.info(`🎯 LAYER 1 - OPTIONS INTERCEPTED: ${url} from origin: ${origin || 'no-origin'}`);
-      
-      // Set ultra-permissive CORS headers
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, X-CSRF-Token, X-Forwarded-For');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Max-Age', '86400');
-      res.setHeader('Vary', 'Origin');
+
+      if (!origin) {
+        return res.status(204).end();
+      }
+
+      if (!corsOrigin) {
+        logger.warn(`🚫 LAYER 1 - OPTIONS origin rejected: ${origin}`);
+        return res.status(403).end();
+      }
+
+      applyCorsHeaders(
+        res,
+        corsOrigin,
+        'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD',
+        'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, X-CSRF-Token, X-Forwarded-For'
+      );
       
       // Debug headers — only in development
       if (process.env.NODE_ENV !== 'production') {
         res.setHeader('X-Debug-CORS-Handler', 'Layer1-UltraAggressive');
-        res.setHeader('X-Debug-Origin', origin || 'no-origin');
+        res.setHeader('X-Debug-Origin', corsOrigin);
         res.setHeader('X-Debug-Timestamp', new Date().toISOString());
       }
       
       logger.info(`📤 LAYER 1 - OPTIONS RESPONSE HEADERS SET:`);
-      logger.info(`   - Access-Control-Allow-Origin: ${origin || '*'}`);
+      logger.info(`   - Access-Control-Allow-Origin: ${corsOrigin}`);
       logger.info(`   - Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD`);
       logger.info(`   - Access-Control-Allow-Credentials: true`);
       logger.info(`   - Handler: Layer1-UltraAggressive`);
@@ -93,11 +119,13 @@ export const createApp = async () => {
     }
     
     // For non-OPTIONS requests, add CORS headers and continue
-    if (origin && (allowedOrigins.includes(origin) || !isProduction)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
+    if (corsOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Vary', 'Origin');
-      logger.info(`✅ NON-OPTIONS: Origin '${origin}' allowed - headers set`);
+      logger.info(`✅ NON-OPTIONS: Origin '${corsOrigin}' allowed - headers set`);
+    } else if (origin) {
+      logger.warn(`🚫 NON-OPTIONS: Origin '${origin}' rejected`);
     }
     
     next();
@@ -107,12 +135,17 @@ export const createApp = async () => {
   // Explicit OPTIONS routes for critical endpoints
   app.options('/health', (req, res) => {
     const origin = req.headers.origin;
+    const corsOrigin = getAllowedCorsOrigin(origin);
     logger.info(`🎯 LAYER 2 - OPTIONS /health from origin: ${origin || 'no-origin'}`);
-    
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (!origin) {
+      return res.status(204).end();
+    }
+    if (!corsOrigin) {
+      return res.status(403).end();
+    }
+
+    applyCorsHeaders(res, corsOrigin, 'GET, OPTIONS', 'Content-Type, Authorization');
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Health');
     
     res.status(204).end();
@@ -120,12 +153,17 @@ export const createApp = async () => {
   
   app.options('/api/auth/login', (req, res) => {
     const origin = req.headers.origin;
+    const corsOrigin = getAllowedCorsOrigin(origin);
     logger.info(`🎯 LAYER 2 - OPTIONS /api/auth/login from origin: ${origin || 'no-origin'}`);
-    
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (!origin) {
+      return res.status(204).end();
+    }
+    if (!corsOrigin) {
+      return res.status(403).end();
+    }
+
+    applyCorsHeaders(res, corsOrigin, 'POST, OPTIONS', 'Content-Type, Authorization, X-Requested-With');
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-Login');
     
     res.status(204).end();
@@ -133,12 +171,22 @@ export const createApp = async () => {
   
   app.options('/api/*', (req, res) => {
     const origin = req.headers.origin;
+    const corsOrigin = getAllowedCorsOrigin(origin);
     logger.info(`🎯 LAYER 2 - OPTIONS /api/* (${req.url}) from origin: ${origin || 'no-origin'}`);
-    
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (!origin) {
+      return res.status(204).end();
+    }
+    if (!corsOrigin) {
+      return res.status(403).end();
+    }
+
+    applyCorsHeaders(
+      res,
+      corsOrigin,
+      'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+    );
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer2-RouteSpecific-API');
     
     res.status(204).end();
@@ -147,13 +195,22 @@ export const createApp = async () => {
   // LAYER 3: WILDCARD OPTIONS FALLBACK
   app.options('*', (req, res) => {
     const origin = req.headers.origin;
+    const corsOrigin = getAllowedCorsOrigin(origin);
     logger.info(`🎯 LAYER 3 - WILDCARD OPTIONS ${req.url} from origin: ${origin || 'no-origin'}`);
-    
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400');
+
+    if (!origin) {
+      return res.status(204).end();
+    }
+    if (!corsOrigin) {
+      return res.status(403).end();
+    }
+
+    applyCorsHeaders(
+      res,
+      corsOrigin,
+      'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD',
+      'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers'
+    );
     if (process.env.NODE_ENV !== 'production') res.setHeader('X-Debug-CORS-Handler', 'Layer3-Wildcard-Fallback');
     
     res.status(204).end();
@@ -164,13 +221,13 @@ export const createApp = async () => {
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin) || !isProduction) {
+      if (getAllowedCorsOrigin(origin)) {
         logger.info(`✅ LAYER 4 - CORS: Origin '${origin}' allowed by traditional middleware`);
         return callback(null, true);
       }
       
-      logger.warn(`⚠️ LAYER 4 - CORS: Origin '${origin}' not in allowlist - but allowing for compatibility`);
-      return callback(null, true);
+      logger.warn(`🚫 LAYER 4 - CORS: Origin '${origin}' rejected`);
+      return callback(null, false);
     },
     credentials: true
   };

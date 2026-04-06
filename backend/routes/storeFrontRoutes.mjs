@@ -9,6 +9,65 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
+const sanitizeStorefrontDescription = (value) => {
+  if (typeof value !== 'string') {
+    return value ?? null;
+  }
+
+  return value
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const sanitizeStorefrontPayload = (payload = {}) => {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+
+  const sanitized = { ...payload };
+
+  if (Object.prototype.hasOwnProperty.call(sanitized, 'description')) {
+    sanitized.description = sanitizeStorefrontDescription(sanitized.description);
+  }
+
+  return sanitized;
+};
+
+const mapStorefrontItem = (item) => ({
+  id: item.id,
+  name: item.name,
+  description: sanitizeStorefrontDescription(item.description),
+  totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
+  displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
+  pricePerSession: parseFloat(item.pricePerSession) || 0,
+  price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
+  priceDetails: item.packageType === 'monthly'
+    ? `${item.months} months, ${item.sessionsPerWeek} sessions/week`
+    : null,
+  imageUrl: item.imageUrl,
+  theme: item.theme || 'cosmic',
+  sessions: item.sessions,
+  months: item.months,
+  sessionsPerWeek: item.sessionsPerWeek,
+  totalSessions: item.totalSessions,
+  category: null,
+  itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
+  includedFeatures: item.includedFeatures || null,
+  packageType: item.packageType,
+  isActive: item.isActive,
+  displayOrder: item.displayOrder || 0
+});
+
 /**
  * Get all storefront items
  * GET /api/storefront
@@ -80,33 +139,7 @@ router.get('/', async (req, res) => {
       logger.warn('Could not fetch active specials (table may not exist):', specialsErr.message);
     }
 
-    const transformedItems = items.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      // Handle price fields appropriately - convert DECIMAL to numbers
-      totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
-      displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-      pricePerSession: parseFloat(item.pricePerSession) || 0,
-      // Also add price for frontend compatibility
-      price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-      priceDetails: item.packageType === 'monthly' ? 
-        `${item.months} months, ${item.sessionsPerWeek} sessions/week` : 
-        null,
-      // Handle other fields
-      imageUrl: item.imageUrl,
-      theme: item.theme || 'cosmic',
-      sessions: item.sessions,
-      months: item.months,
-      sessionsPerWeek: item.sessionsPerWeek,
-      totalSessions: item.totalSessions,
-      category: null, // Add if you have this field
-      itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
-      includedFeatures: item.includedFeatures || null, // Include the actual features (null if not available)
-      packageType: item.packageType,
-      isActive: item.isActive,
-      displayOrder: item.displayOrder || 0
-    }));
+    const transformedItems = items.map(mapStorefrontItem);
 
     logger.info(`Retrieved ${items.length} storefront items`);
 
@@ -314,30 +347,7 @@ router.get('/:id', async (req, res) => {
     }
     
     // Transform to meet frontend expectations
-    const transformedItem = {
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
-      displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-      pricePerSession: parseFloat(item.pricePerSession) || 0,
-      // Also add price for frontend compatibility
-      price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-      priceDetails: item.packageType === 'monthly' ? 
-        `${item.months} months, ${item.sessionsPerWeek} sessions/week` : 
-        null,
-      imageUrl: item.imageUrl,
-      theme: item.theme || 'cosmic',
-      sessions: item.sessions,
-      months: item.months,
-      sessionsPerWeek: item.sessionsPerWeek,
-      totalSessions: item.totalSessions,
-      itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
-      includedFeatures: item.includedFeatures || null, // Include the actual features (null if not available)
-      packageType: item.packageType,
-      isActive: item.isActive,
-      displayOrder: item.displayOrder || 0
-    };
+    const transformedItem = mapStorefrontItem(item);
 
     res.json({
       success: true,
@@ -371,21 +381,23 @@ router.post('/', protect, async (req, res) => {
       });
     }
     
+    const sanitizedPayload = sanitizeStorefrontPayload(req.body);
+
     // Validate that pricePerSession is at least $140
-    if (req.body.pricePerSession && parseFloat(req.body.pricePerSession) < 140) {
+    if (sanitizedPayload.pricePerSession && parseFloat(sanitizedPayload.pricePerSession) < 140) {
       return res.status(400).json({
         success: false,
         message: 'Price per session must be at least $140'
       });
     }
     
-    const item = await StorefrontItem.create(req.body);
+    const item = await StorefrontItem.create(sanitizedPayload);
     
     logger.info(`Admin created new storefront item: ${item.name}`);
     
     res.status(201).json({
       success: true,
-      item: item
+      item: mapStorefrontItem(item)
     });
   } catch (error) {
     logger.error('Error creating storefront item:', error);
@@ -425,6 +437,7 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
     
+    const sanitizedPayload = sanitizeStorefrontPayload(req.body);
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -435,20 +448,20 @@ router.put('/:id', protect, async (req, res) => {
     }
     
     // Validate that pricePerSession is at least $140 if being updated
-    if (req.body.pricePerSession && parseFloat(req.body.pricePerSession) < 140) {
+    if (sanitizedPayload.pricePerSession && parseFloat(sanitizedPayload.pricePerSession) < 140) {
       return res.status(400).json({
         success: false,
         message: 'Price per session must be at least $140'
       });
     }
     
-    await item.update(req.body);
+    await item.update(sanitizedPayload);
     
     logger.info(`Admin updated storefront item: ${item.name}`);
     
     res.json({
       success: true,
-      item: item
+      item: mapStorefrontItem(item)
     });
   } catch (error) {
     logger.error('Error updating storefront item:', error);

@@ -41,6 +41,8 @@ export function aiRateLimiter(req, res, next) {
     });
   }
 
+  req.aiRateLimitManaged = true;
+
   // Auto-release concurrent lock when response finishes (or connection closes)
   // This ensures the lock is ALWAYS released, even if the handler crashes or forgets
   let released = false;
@@ -48,11 +50,15 @@ export function aiRateLimiter(req, res, next) {
     if (released) return;
     released = true;
     releaseConcurrent(userId);
-    res.removeListener('finish', releaseOnce);
-    res.removeListener('close', releaseOnce);
   };
-  res.on('finish', releaseOnce);
-  res.on('close', releaseOnce);
+
+  if (typeof res.once === 'function') {
+    res.once('finish', releaseOnce);
+    res.once('close', releaseOnce);
+  } else if (typeof res.on === 'function') {
+    res.on('finish', releaseOnce);
+    res.on('close', releaseOnce);
+  }
 
   next();
 }

@@ -14,13 +14,21 @@ import { generateChallengesFromGoals } from '../services/gamification/goalChalle
  */
 
 /**
- * Generate anonymous client alias using client ID.
- * Spirit name system has been retired — we now use numeric IDs
- * so the AI never sees any identifying information.
+ * Generate the preferred anonymous client alias for AI/privacy flows.
+ * A caller-provided alias takes precedence; otherwise we fall back to
+ * the numeric Client #ID format.
  *
  * @deprecated Use clientId directly. Kept for backward compat in API responses.
  */
-export const generateSpiritName = (_formData, userId) => {
+export const generateSpiritName = (formData = {}, userId) => {
+  const preferredAlias = typeof formData.preferredAlias === 'string'
+    ? formData.preferredAlias.trim()
+    : '';
+
+  if (preferredAlias) {
+    return preferredAlias;
+  }
+
   return userId ? `Client #${userId}` : 'Client';
 };
 
@@ -251,7 +259,7 @@ export const createClientOnboarding = async (req, res) => {
 
     if (user) {
       // Generate anonymous alias using client ID
-      const anonymousAlias = `Client #${user.id}`;
+      const anonymousAlias = generateSpiritName(formData, user.id);
 
       // Update existing user
       await user.update({
@@ -320,7 +328,7 @@ export const createClientOnboarding = async (req, res) => {
       });
 
       // Now set the anonymous alias using the auto-generated user ID
-      const anonymousAlias = `Client #${user.id}`;
+      const anonymousAlias = generateSpiritName(formData, user.id);
       await user.update({ spiritName: anonymousAlias });
 
       // Create PII record
@@ -448,7 +456,7 @@ export const createClientSelfOnboarding = async (req, res) => {
     formData.email = formData.email || user.email;
     formData.phone = formData.phone || user.phone;
 
-    const anonymousAlias = `Client #${userId}`;
+    const anonymousAlias = generateSpiritName(formData, userId);
     const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, userId);
 
     await user.update({

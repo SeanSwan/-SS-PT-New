@@ -197,6 +197,7 @@ const ProductDescription = styled.div`
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.6;
   margin-bottom: 2rem;
+  white-space: pre-line;
 `;
 
 const FeaturesTitle = styled.h3`
@@ -540,7 +541,7 @@ const ProductDetail: React.FC = () => {
                 </PriceDetails>
               )}
               
-              <ProductDescription dangerouslySetInnerHTML={{ __html: product.description }} />
+              <ProductDescription>{product.description}</ProductDescription>
               
               {features.length > 0 && (
                 <>
