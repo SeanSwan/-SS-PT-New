@@ -785,18 +785,18 @@ const EDUCATION_OPTIONS = [
 ];
 
 const CRSCalculator: React.FC = () => {
-  const [sean, setSean] = useState<ApplicantData>(defaultApplicant());
-  const [wife, setWife] = useState<ApplicantData>(defaultApplicant());
-  const [wifeIsPrincipal, setWifeIsPrincipal] = useState(false);
+  const [spouseA, setSpouseA] = useState<ApplicantData>(defaultApplicant());
+  const [spouseB, setSpouseB] = useState<ApplicantData>(defaultApplicant());
+  const [wifeIsPrincipal, setWifeIsPrincipal] = useState(true);
   const [whatIfFrench, setWhatIfFrench] = useState(false);
   const [whatIfPNP, setWhatIfPNP] = useState(false);
   const [selfEmployedOpen, setSelfEmployedOpen] = useState(false);
 
   // Determine who is primary and spouse based on toggle
-  const primary = wifeIsPrincipal ? wife : sean;
-  const spouse = wifeIsPrincipal ? sean : wife;
-  const setPrimaryData = wifeIsPrincipal ? setWife : setSean;
-  const setSpouseData = wifeIsPrincipal ? setSean : setWife;
+  const primary = wifeIsPrincipal ? spouseB : spouseA;
+  const spouse = wifeIsPrincipal ? spouseA : spouseB;
+  const setPrimaryData = wifeIsPrincipal ? setSpouseB : setSpouseA;
+  const setSpouseData = wifeIsPrincipal ? setSpouseA : setSpouseB;
 
   const effectivePrimary = useMemo(() => {
     if (!whatIfFrench) return primary;
@@ -842,8 +842,8 @@ const CRSCalculator: React.FC = () => {
   const ageOptions = Array.from({ length: 28 }, (_, i) => i + 18);
   const workOptions = [0, 1, 2, 3, 4, 5];
 
-  const primaryLabel = wifeIsPrincipal ? 'Wife (Principal Applicant)' : 'Primary Applicant (Sean)';
-  const spouseLabel = wifeIsPrincipal ? 'Spouse (Sean)' : 'Spouse / Partner';
+  const primaryLabel = wifeIsPrincipal ? 'Spouse B (Principal Applicant)' : 'Spouse A (Principal Applicant)';
+  const spouseLabel = wifeIsPrincipal ? 'Spouse A (Accompanying)' : 'Spouse B (Accompanying)';
 
   return (
     <Wrapper>
@@ -864,20 +864,20 @@ const CRSCalculator: React.FC = () => {
             onClick={() => setWifeIsPrincipal(false)}
             type="button"
           >
-            Sean (You)
+            Spouse A
           </PrincipalOption>
           <PrincipalOption
             $active={wifeIsPrincipal}
             onClick={() => setWifeIsPrincipal(true)}
             type="button"
           >
-            Wife (Principal)
+            Spouse B (Recommended)
           </PrincipalOption>
         </PrincipalButtons>
         {wifeIsPrincipal && (
           <PrincipalNote>
             <Info size={14} />
-            Recommended: Wife as principal applicant for Express Entry
+            Recommended: Spouse B as principal (age + education advantage)
           </PrincipalNote>
         )}
       </PrincipalToggleContainer>

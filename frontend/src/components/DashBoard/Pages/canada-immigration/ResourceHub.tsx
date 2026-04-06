@@ -1025,7 +1025,7 @@ const FamilyPathwaySection: React.FC = () => (
   <>
     <SubHeader>The Strategy</SubHeader>
     <BodyText>
-      Wife enrolls in a Canadian Master's program (MEd). Sean gets a spousal Open Work Permit (OWP).
+      Spouse B enrolls in a Canadian Master's program (MEd). Spouse A gets a spousal Open Work Permit (OWP).
       4 kids attend free public school. Grandma joins on a Super Visa.
     </BodyText>
 
@@ -1037,10 +1037,10 @@ const FamilyPathwaySection: React.FC = () => (
       </CalloutText>
     </CalloutBox>
 
-    <SubHeader>Why Wife (Not Sean)</SubHeader>
+    <SubHeader>Why Spouse B Leads</SubHeader>
     <BodyText>
-      She has a college degree and can pursue a Master's. Sean has a GED and cannot directly enter a Master's program.
-      This makes her the study permit holder and Sean the spousal OWP recipient.
+      The principal applicant has a college degree and can pursue a Master's. The spouse has a GED and cannot directly enter a Master's program.
+      This makes them the study permit holder and the spouse the OWP recipient.
     </BodyText>
 
     <SubHeader>Target Programs</SubHeader>

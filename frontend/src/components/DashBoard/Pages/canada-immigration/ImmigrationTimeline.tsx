@@ -39,11 +39,11 @@ interface Props {
 /* ────────── Constants ────────── */
 
 const PHASE_META = [
-  { phase: 0, name: 'Phase 0: Pre-Departure',      range: 'Months 0-3',   color: '#ef4444' },
-  { phase: 1, name: 'Phase 1: Language & Certs',    range: 'Months 3-6',   color: '#60C0F0' },
-  { phase: 2, name: 'Phase 2: Express Entry',       range: 'Months 6-9',   color: '#8B5CF6' },
-  { phase: 3, name: 'Phase 3: Landing & Setup',     range: 'Months 9-12',  color: '#C6A84B' },
-  { phase: 4, name: 'Phase 4: Permanent Residency', range: 'Months 13-24', color: '#22C55E' },
+  { phase: 0, name: 'Phase 0: Immediate Actions',   range: 'This Week',    color: '#ef4444' },
+  { phase: 1, name: 'Phase 1: Foundation',           range: 'Months 1-3',   color: '#8B5CF6' },
+  { phase: 2, name: 'Phase 2: Applications',         range: 'Months 4-6',   color: '#60C0F0' },
+  { phase: 3, name: 'Phase 3: Transition',           range: 'Months 7-12',  color: '#C6A84B' },
+  { phase: 4, name: 'Phase 4: Permanent Residency',  range: 'Months 13-24', color: '#22C55E' },
 ];
 
 const CAT_COLORS: Record<string, string> = {
@@ -64,11 +64,11 @@ interface FamilyMilestone {
 }
 
 const FAMILY_MILESTONES: FamilyMilestone[] = [
-  { label: 'Wife accepted to MEd',        phase: 3, icon: 'graduation' },
+  { label: 'Spouse B accepted to MEd',        phase: 3, icon: 'graduation' },
   { label: 'Family moves to Canada',      phase: 3, icon: 'plane' },
   { label: 'Kids start school',           phase: 3, icon: 'users' },
   { label: 'Grandma arrives on Super Visa', phase: 3, icon: 'heart' },
-  { label: 'Wife graduates MEd',          phase: 4, icon: 'graduation' },
+  { label: 'Spouse B graduates MEd',          phase: 4, icon: 'graduation' },
   { label: 'PR application submitted',    phase: 4, icon: 'home' },
 ];
 
@@ -740,8 +740,8 @@ const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask 
   };
 
   const ownerLabel = (o: string) => {
-    if (o === 'sean') return 'Sean';
-    if (o === 'wife') return 'Wife';
+    if (o === 'sean') return 'Spouse A';
+    if (o === 'wife') return 'Spouse B';
     return 'Both';
   };
 

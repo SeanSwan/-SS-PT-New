@@ -84,9 +84,9 @@ const FRENCH_BENEFITS = [
 ];
 
 const FRENCH_TIMELINE = [
-  { months: 'Months 1-3', activity: 'Duolingo + Pimsleur ($15/mo)', detail: 'Build foundation, daily habit' },
-  { months: 'Months 4-6', activity: 'Add iTalki tutoring ($10-20/session)', detail: 'Speaking practice with native speakers' },
-  { months: 'Months 7-12', activity: 'TEF prep course + practice tests', detail: 'Exam-specific strategies and timing' },
+  { months: 'Months 1-3', activity: 'Duolingo (free) + Pimsleur ($15/mo) daily', detail: 'Build foundation, daily habit. ~$45 total' },
+  { months: 'Months 4-8', activity: 'Add iTalki tutoring (~$10-15/session)', detail: 'Speaking practice with native speakers' },
+  { months: 'Months 9-12', activity: 'TEF Canada prep course + practice tests', detail: 'Exam-specific strategies. Montreal = forced immersion accelerates this' },
 ];
 
 const FRENCH_VOCAB = [
@@ -106,7 +106,7 @@ const AI_CERTS = [
     cost: '~$150',
     time: '2-3 mo',
     difficulty: 'Beginner' as const,
-    why: 'Aligns with LLM/RAG/agent work on SwanStudios',
+    why: 'Aligns with LLM/RAG/agent development work',
     link: 'https://www.coursera.org/professional-certificates/ai-engineer',
     topics: ['Generative AI', 'LLMs', 'RAG', 'Prompt Engineering', 'LangChain'],
   },
@@ -146,13 +146,11 @@ const AI_CERTS = [
 ];
 
 const STUDY_PROGRESSION = [
-  { period: 'Now - Month 3', items: ['IELTS prep (FREE online resources)', 'Duolingo French daily (15 min)'], color: '#60C0F0' },
-  { period: 'Month 1', items: ['Start IBM GenAI cert on Coursera ($49/mo spare time)'], color: '#8B5CF6' },
-  { period: 'Month 2', items: ['Take IELTS exam ($300)'], color: '#60C0F0' },
-  { period: 'Months 4-6', items: ['iTalki French tutoring begins', 'Azure AI-102 exam prep'], color: '#C6A84B' },
-  { period: 'Month 6', items: ['Azure AI-102 exam ($165)'], color: '#8B5CF6' },
-  { period: 'Months 7-12', items: ['TEF prep intensive'], color: '#C6A84B' },
-  { period: 'Month 11-12', items: ['Take TEF Canada exam'], color: '#C6A84B' },
+  { period: 'Phase 0 (Now)', items: ['Take free IELTS practice test', 'Start Duolingo French (free, daily)'], color: '#ef4444' },
+  { period: 'Months 1-3', items: ['Book & take IELTS (both spouses, ~$300 each)', 'Start IBM GenAI cert ($49/mo)', 'Get GED ($120-150)'], color: '#8B5CF6' },
+  { period: 'Months 4-6', items: ['iTalki French tutoring begins', 'Azure AI-102 exam ($165)', 'Add Pimsleur ($15/mo)'], color: '#60C0F0' },
+  { period: 'Months 7-12', items: ['TEF Canada prep intensive', 'Take TEF exam (target NCLC 7, +50 CRS)'], color: '#C6A84B' },
+  { period: 'Months 13-24', items: ['Canadian work experience building', 'Update Express Entry with new scores'], color: '#22C55E' },
 ];
 
 const STUDY_CATEGORIES = [

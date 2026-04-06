@@ -49,10 +49,11 @@ interface Props {
 /* ────────── Constants ────────── */
 
 const PHASES = [
-  { phase: 0, name: 'Pre-Departure', description: 'Marriage, tribal, legal docs', months: '0-3' },
-  { phase: 1, name: 'Language & Certs', description: 'IELTS, TEF, AI certifications', months: '3-9' },
-  { phase: 2, name: 'Express Entry', description: 'Profile, PNP, applications', months: '9-15' },
-  { phase: 3, name: 'Landing & Setup', description: 'Move, settle, start career', months: '15-24' },
+  { phase: 0, name: 'Immediate Actions', description: 'Marriage, tribal enrollment, initial research', months: 'This Week' },
+  { phase: 1, name: 'Foundation', description: 'IELTS, GED, ECA, Express Entry profile', months: 'Months 1-3' },
+  { phase: 2, name: 'Applications', description: 'MEd applications, PNP, certifications', months: 'Months 4-6' },
+  { phase: 3, name: 'Transition', description: 'Permits, move to Canada, settle family', months: 'Months 7-12' },
+  { phase: 4, name: 'Permanent Residency', description: 'Canadian experience, PR application', months: 'Months 13-24' },
 ];
 
 const CATEGORIES = [
@@ -69,7 +70,7 @@ const PATHWAYS = [
     title: 'Express Entry',
     icon: Zap,
     color: '#60C0F0',
-    subtitle: 'Wife as principal + French bonus',
+    subtitle: 'Principal applicant + French bonus',
     status: 'Active \u2014 building CRS score',
     primary: false,
   },
@@ -101,7 +102,7 @@ const PATHWAYS = [
     title: 'Self-Employed (2027)',
     icon: Briefcase,
     color: '#C6A84B',
-    subtitle: '26yr NASM experience, score 68-80/35',
+    subtitle: '26yr PT experience, score 68-80/35',
     status: 'Program paused \u2014 preparing docs',
     primary: false,
   },
@@ -116,10 +117,10 @@ const PATHWAYS = [
 ];
 
 const FAMILY_MEMBERS = [
-  { name: 'Sean', icon: User, role: 'Personal Trainer / Developer', status: 'Spousal OWP (pending wife MEd)', color: '#60C0F0' },
-  { name: 'Wife', icon: Heart, role: 'Teacher / MEd Student', status: 'Principal applicant \u2014 Express Entry', color: '#8B5CF6' },
-  { name: '4 Kids', icon: Baby, role: 'Students', status: 'Free Canadian public school (K-12)', color: '#22C55E' },
-  { name: 'Grandma', icon: Users, role: 'Family Elder', status: 'Super Visa (5yr stays, 10yr validity)', color: '#C6A84B' },
+  { name: 'Spouse A', icon: User, role: 'Personal Trainer / Developer', status: 'Spousal OWP (pending MEd)', color: '#60C0F0' },
+  { name: 'Spouse B', icon: Heart, role: 'Teacher / MEd Student', status: 'Principal applicant \u2014 Express Entry', color: '#8B5CF6' },
+  { name: 'Children', icon: Baby, role: 'Students', status: 'Free Canadian public school (K-12)', color: '#22C55E' },
+  { name: 'Elder', icon: Users, role: 'Family Elder', status: 'Super Visa (5yr stays, 10yr validity)', color: '#C6A84B' },
 ];
 
 const TWELVE_MONTH_PLAN = [
@@ -1144,7 +1145,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
         </SectionTitle>
         <CostGrid>
           <CostMetric>
-            <CostValue>$2-3K</CostValue>
+            <CostValue>$4-5.5K</CostValue>
             <CostLabel>Total Budget</CostLabel>
           </CostMetric>
           <CostMetric>
@@ -1157,7 +1158,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
           </CostMetric>
         </CostGrid>
         <CostNote>
-          Less than <strong>17 PT sessions</strong> at $175/hr to move the entire family to Canada
+          Less than <strong>32 PT sessions</strong> at $175/hr covers the entire pre-move budget
         </CostNote>
         <PhaseBreakdown>
           {PHASES.map((ph, i) => (
@@ -1165,7 +1166,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
               key={ph.phase}
               $width={phasePcts[i] > 0 ? 25 : 25}
               $color={
-                i === 0 ? '#ef4444' : i === 1 ? '#60C0F0' : i === 2 ? '#8B5CF6' : '#22C55E'
+                i === 0 ? '#ef4444' : i === 1 ? '#8B5CF6' : i === 2 ? '#60C0F0' : i === 3 ? '#C6A84B' : '#22C55E'
               }
             />
           ))}

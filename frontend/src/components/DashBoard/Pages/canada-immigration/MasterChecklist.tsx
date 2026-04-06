@@ -21,10 +21,10 @@ interface Props {
 /* ────────── Phase Meta ────────── */
 
 const PHASE_META: Record<number, { label: string; months: string; color: string }> = {
-  0: { label: 'Foundation',          months: 'Months 0-3',   color: '#8B5CF6' },
-  1: { label: 'Language & Certs',    months: 'Months 3-6',   color: '#60C0F0' },
-  2: { label: 'Application',         months: 'Months 6-9',   color: '#C6A84B' },
-  3: { label: 'Settlement Prep',     months: 'Months 9-12',  color: '#06b6d4' },
+  0: { label: 'Immediate Actions',   months: 'This Week',    color: '#ef4444' },
+  1: { label: 'Foundation',          months: 'Months 1-3',   color: '#8B5CF6' },
+  2: { label: 'Applications',        months: 'Months 4-6',   color: '#60C0F0' },
+  3: { label: 'Transition',          months: 'Months 7-12',  color: '#C6A84B' },
   4: { label: 'Permanent Residency', months: 'Months 13-24', color: '#22C55E' },
 };
 
@@ -45,8 +45,8 @@ const CAT_COLORS: Record<string, string> = {
 /* ────────── Owner Config ────────── */
 
 const OWNER_LABELS: Record<string, string> = {
-  sean: 'Sean',
-  wife: 'Wife',
+  sean: 'Spouse A',
+  wife: 'Spouse B',
   both: 'Both',
 };
 
