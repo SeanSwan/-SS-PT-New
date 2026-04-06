@@ -162,9 +162,9 @@ const ContactPage = lazyLoadWithErrorHandling(
   () => import('../pages/contactpage/ContactV2')
 );
 const AboutPage = lazyLoadWithErrorHandling(
-  () => import('../pages/about/About.V3'),
-  'About Page V3',
-  () => import('../pages/about/About.V2')
+  () => import('../pages/about/About.V4'),
+  'About Page V4',
+  () => import('../pages/about/About.V3')
 );
 
 // Account Claiming (Crystalline Link Protocol — SWAN-XXXX invite codes)
