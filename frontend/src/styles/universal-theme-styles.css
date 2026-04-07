@@ -31,6 +31,8 @@
   --text-primary: #E6EDF3;
   --text-secondary: rgba(230, 237, 243, 0.8);
   --text-muted: rgba(230, 237, 243, 0.6);
+  --text-placeholder: rgba(230, 237, 243, 0.5);
+  --text-disabled: rgba(230, 237, 243, 0.6);
   --text-heading: #E6EDF3;
 
   --gradient-primary: linear-gradient(135deg, #8B5CF6, #60C0F0);

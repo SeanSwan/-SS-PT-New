@@ -1,409 +1,433 @@
 # Code Quality — Validation Report
 
-> **Status:** PASS | **Model:** anthropic/claude-4.6-sonnet-20260217 | **Duration:** 86.1s
-> **Files:** docs/ai-workflow/blueprints/ULTIMATE-7-STAR-VALIDATION.md
-> **Generated:** 4/5/2026, 3:14:40 PM
+> **Status:** PASS | **Model:** anthropic/claude-4.6-sonnet-20260217 | **Duration:** 75.8s
+> **Files:** AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/01-ux-research.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/02-architecture-design.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/03-security-planning.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/04-performance-planning.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/05-competitive-intel.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/06-persona-alignment.md
+> **Generated:** 4/6/2026, 7:48:02 PM
 
 ---
 
-# SwanStudios ULTIMATE-7-STAR-VALIDATION.md — Code Quality Review
+# SwanStudios Validation Report Archive — Code Quality Review
 
-> **Reviewer Note:** This file is a **product specification / AI workflow blueprint document** — it contains no TypeScript, React, styled-components, or executable code. The standard code-quality rubric (TypeScript types, React hooks, styled-components tokens, etc.) does not apply to Markdown prose. However, as a senior engineer embedded in this platform, I have a professional obligation to deliver a thorough, actionable review across every dimension that *will* affect code quality when this spec is implemented. That is what follows.
-
----
-
-## Executive Summary
-
-| Category | Rating | Summary |
-|---|---|---|
-| Spec Clarity | ⚠️ HIGH RISK | Ambiguous, contradictory, and underdefined in critical areas |
-| Theme Architecture | 🔴 CRITICAL | Direct conflicts with the active design system |
-| Security Spec | ⚠️ HIGH RISK | Dangerously underspecified for a production SaaS |
-| Performance Spec | 🟡 MEDIUM | Hook concept is sound but implementation contract is missing |
-| Scope / Feasibility | 🔴 CRITICAL | Unbounded scope with no phasing, no acceptance criteria |
-| DRY / Consistency | ⚠️ HIGH RISK | Repeated patterns defined inconsistently across sections |
+> **Reviewer:** Senior TypeScript/React Code Quality Analyst
+> **Scope:** Six validation report markdown files from the 2026-04-06 archive
+> **Note:** These files are **documentation artifacts** (planning reports, gap analyses, security findings), not executable TypeScript/React/styled-components source code. The review dimensions requested (TypeScript typing, React hooks, styled-components tokens, DRY violations, error handling, performance anti-patterns) apply to **code**, not to markdown prose. What follows is therefore a structured review of what *is* reviewable — the documentation quality, architectural recommendations, and embedded code snippets — plus a meta-analysis of the validation pipeline itself.
 
 ---
 
-## Finding 1 — Theme System: Direct Conflict with Active Design System
+## Summary Table
 
-**Rating: 🔴 CRITICAL**
+| File | Status | Primary Concern | Highest Finding |
+|------|--------|-----------------|-----------------|
+| `01-ux-research.md` | PASS | Retired palette referenced | MEDIUM |
+| `02-architecture-design.md` | PASS | Embedded code has real bugs | CRITICAL |
+| `03-security-planning.md` | PASS | SQL snippet has injection risk | HIGH |
+| `04-performance-planning.md` | FAIL | Timeout — no content | CRITICAL |
+| `05-competitive-intel.md` | FAIL | Wrong model ID — no content | HIGH |
+| `06-persona-alignment.md` | PASS | Truncated output, DRY violations | MEDIUM |
 
-### Problem
+---
 
-Section 1 defines a new default theme with hardcoded hex values that **directly contradict** the active Enchanted Apex: Crystalline Swan palette documented in the system prompt:
+## File-by-File Findings
+
+---
+
+### `01-ux-research.md` — UX Research & Competitor Analysis
+
+---
+
+#### Finding 1.1 — Retired Galaxy-Swan Palette Values Referenced in Accessibility Section
+
+**Rating:** MEDIUM
+
+**Location:** Section 5 — Accessibility Risks, Color Contrast subsection
+
+**Issue:**
 
 ```md
-# Spec Section 1 defines:
-Background: `#0D1117`
-Surface:    `#161B22`
-Elevated:   `#1A1F2E`
-Text:       `#E6EDF3`
-
-# Active system palette:
-Frost White (Background): #E0ECF4   ← OPPOSITE luminance
-Midnight Sapphire (Primary): #002060
-Royal Depth (Surface): #003080
+The active palette includes `Midnight Sapphire #002060`, `Royal Depth #003080`,
+`Obsidian Black #0A0A0F`, `Carbon #141419`, and `Graphite #1A1A24`...
 ```
 
-The spec also reintroduces `#00FFFF` in the "Cyberpunk Cyan Fix" section:
+`Obsidian Black #0A0A0F`, `Carbon #141419`, and `Graphite #1A1A24` are **not** in the active Enchanted Apex palette defined in the system prompt. They appear to be remnants of the retired Galaxy-Swan theme (`#0a0a1a` family). Any developer reading this document and implementing contrast checks against these values will be testing the wrong baseline colors.
+
+**Correct active dark tokens:**
+- Midnight Sapphire `#002060` ✅
+- Royal Depth `#003080` ✅
+- Frost White `#E0ECF4` ✅ (background)
+
+**Recommendation:**
 
 ```md
-Increase cyan dominance: `#00FFFF` to `#60E0FF` range
+<!-- REPLACE -->
+`Obsidian Black #0A0A0F`, `Carbon #141419`, and `Graphite #1A1A24`
+
+<!-- WITH -->
+`Midnight Sapphire #002060` (Primary), `Royal Depth #003080` (Surface)
+— note: no near-black tokens exist in the active Enchanted Apex palette;
+if a near-black is needed, it must be formally added to the design token registry
+before use in contrast calculations.
 ```
 
-`#00FFFF` is explicitly listed as **RETIRED** (Galaxy-Swan theme). This will cause implementation confusion and regression if an engineer follows this spec literally.
+---
 
-### Impact
+#### Finding 1.2 — No Measurable Success Criteria for UX Recommendations
 
-Every component that consumes theme tokens will be implemented against the wrong contract. Fixing this after implementation is a full-scale refactor.
+**Rating:** LOW
 
-### Required Actions
+**Issue:** Every recommendation in sections 1–7 is qualitative ("implement," "ensure," "consider"). There are no measurable acceptance criteria (e.g., task completion rate, time-on-task, Lighthouse score targets). Without these, the Playwright tests referenced in `02-architecture-design.md` Section 9 have no pass/fail thresholds to validate against.
 
-1. **Resolve the conflict in writing before any implementation begins.** Either:
-   - Update the active palette in the system prompt to reflect Sean's dark-navy preference, OR
-   - Annotate Section 1 as "proposed palette override — pending design system update"
-2. **Remove `#00FFFF` from Section 1.** Replace with `#60C0F0` (Ice Wing) or `#50A0F0` (Arctic Cyan) — both are active palette tokens.
-3. **Define a single source of truth** for theme tokens. The correct pattern for this codebase:
+**Recommendation:** Each CRITICAL/HIGH priority item should include at least one measurable criterion:
+
+```md
+**Acceptance Criteria:**
+- Mobile exercise rolodex: scroll FPS ≥ 60 on iPhone XR (Lighthouse device emulation)
+- Booking flow: task completion in ≤ 3 taps from dashboard
+- Color contrast: all text passes WCAG 2.1 AA (4.5:1) verified by axe-core in CI
+```
+
+---
+
+### `02-architecture-design.md` — Architecture & Component Design
+
+This file contains the most substantive embedded code snippets and is the primary target for TypeScript/React pattern review.
+
+---
+
+#### Finding 2.1 — Swallowed `AbortError` Type Is Untyped `any`
+
+**Rating:** CRITICAL
+
+**Location:** Finding 2 — Conversation Loading Race Condition, `loadConversation` snippet
+
+**Issue:**
 
 ```typescript
-// theme/tokens.ts — SINGLE SOURCE OF TRUTH
-export const crystallineSwan = {
-  background: {
-    default: '#0D1117',   // Sean-confirmed dark navy
-    surface:  '#161B22',
-    elevated: '#1A1F2E',
-  },
-  text: {
-    primary:   '#E6EDF3',
-    secondary: 'rgba(230, 237, 243, 0.6)',
-  },
-  accent: {
-    cyan:   '#60C0F0',  // Ice Wing — NOT #00FFFF (retired)
-    purple: '#8B5CF6',  // Wing Purple
-    gold:   '#C6A84B',  // Gilded Fern
-  },
-} as const;
-
-export type ThemeTokens = typeof crystallineSwan;
+// AS WRITTEN — CRITICAL BUG
+} catch (err) {
+  if (err.name !== 'AbortError') setError(err);
+}
 ```
 
-4. **The "4 Additional Dark Themes" section** introduces `#64FFDA` (Deep Ocean teal) and `#C0C0C0` (Carbon Fiber silver) — neither is in the active palette. These must be formally added to the design system with token names before any component references them.
+`err` in a TypeScript `catch` clause is typed as `unknown` in strict mode (TypeScript 4.0+, `useUnknownInCatchVariables: true`). Accessing `err.name` without a type guard is a **compile error** in strict mode. Passing `err` directly to `setError` without narrowing means `setError` must accept `unknown`, which will cascade `any`-equivalent types through the error state.
 
----
-
-## Finding 2 — Theme Builder Spec: "No Hardcoded Colors Anywhere" Is Unenforceable Without Architecture
-
-**Rating: 🔴 CRITICAL**
-
-### Problem
-
-```md
-No hardcoded colors anywhere — 100% theme-driven
-Use CSS custom properties that cascade through the ENTIRE component tree
-```
-
-This is stated as a requirement but provides zero implementation contract. In a styled-components codebase, "CSS custom properties that cascade" conflicts with styled-components' JavaScript-in-CSS model unless explicitly bridged. The spec does not define:
-
-- Whether the theme is delivered via `ThemeProvider` props, CSS custom properties, or both
-- How the Theme Builder persists selection (localStorage? database? user profile?)
-- How server-side rendered pages receive the correct theme before hydration (flash of wrong theme)
-- What happens to components that currently use hardcoded values during the migration
-
-### Required Actions
-
-Define the theme architecture contract explicitly:
+**Correct implementation:**
 
 ```typescript
-// Required contract — add to spec:
-
-// 1. Theme stored in user profile (DB) + localStorage fallback
-// 2. ThemeProvider wraps entire app, receives resolved theme object
-// 3. CSS custom properties injected at :root for non-SC components
-// 4. ESLint rule: no-hardcoded-colors (custom rule) enforced in CI
-
-// Example bridge pattern:
-const GlobalThemeVars = createGlobalStyle<{ theme: ThemeTokens }>`
-  :root {
-    --color-bg-default:  ${({ theme }) => theme.background.default};
-    --color-accent-cyan: ${({ theme }) => theme.accent.cyan};
-    /* ... all tokens */
+} catch (err: unknown) {
+  // Narrow to Error before property access
+  if (err instanceof Error && err.name !== 'AbortError') {
+    setError(err);
+  } else if (!(err instanceof Error)) {
+    // Handle non-Error throws (e.g., thrown strings, objects)
+    setError(new Error(String(err)));
   }
-`;
+  // AbortError: intentional cancellation — silently discard
+}
 ```
 
-Without this contract, different engineers will implement theme consumption differently, producing a fragmented system that the Theme Builder cannot reliably update.
-
----
-
-## Finding 3 — Security Spec: Critically Underspecified for Production
-
-**Rating: 🔴 CRITICAL**
-
-### Problem
-
-Section 11 lists security requirements as bullet points with no implementation detail:
-
-```md
-- AI endpoints: anomaly detection (50+ req/min = bot cooldown)
-- Encryption: server-side AES-256 default, optional E2EE (user choice)
-- OAuth tokens: encrypted database model, never in .env
-```
-
-These statements are **aspirational**, not specifications. Critical gaps:
-
-**Gap 1 — Rate limiting:** "50+ req/min = bot cooldown" is not a security spec. Missing:
-- What is "bot cooldown"? HTTP 429? Temporary ban? CAPTCHA challenge?
-- Is the limit per-user, per-IP, or per-session?
-- What is the sliding window? (1 minute? 5 minutes?)
-- How are legitimate high-frequency users (trainers with many clients) handled?
-
-**Gap 2 — AES-256 encryption:** "Server-side AES-256 default" with no key management spec is dangerous:
-- Where are encryption keys stored? (Must NOT be in .env for production)
-- Key rotation policy?
-- Which fields are encrypted? (PII? Health data? All of it?)
-- Is this at-rest encryption or field-level encryption?
-
-**Gap 3 — "Optional E2EE (user choice)":** End-to-end encryption where the server can toggle it off is not E2EE by definition. This is a marketing claim that will create legal liability if health data is involved (HIPAA, PIPEDA for Canada).
-
-**Gap 4 — Canada Immigration tab contains PII:** Section 8 includes passport data, police checks, medical exam status, family information, and heritage documentation. This data requires explicit compliance specification (PIPEDA minimum, potentially PHIPA).
-
-### Required Actions
-
-Replace the bullet list with a proper security specification table:
-
-```markdown
-| Threat | Control | Implementation | Owner | Test |
-|--------|---------|----------------|-------|------|
-| Brute force login | Rate limit | express-rate-limit: 5 attempts/15min per IP, lockout + email alert | Backend | Integration test |
-| AI endpoint abuse | Rate limit | 50 req/min per authenticated user, sliding window, HTTP 429 + Retry-After header | Backend | Load test |
-| PII at rest | Field encryption | AES-256-GCM, keys in AWS KMS / HashiCorp Vault, NOT .env | DevOps | Audit |
-| Immigration data | PIPEDA compliance | Data residency: Canada region, retention policy, deletion on request | Legal + Backend | Compliance audit |
-```
-
----
-
-## Finding 4 — `useAnimationTier()` Hook: Spec Defines Behavior Without Contract
-
-**Rating: ⚠️ HIGH**
-
-### Problem
-
-Section 10 defines a three-tier animation system:
-
-```md
-- Full (8+ cores): All effects
-- Balanced (4-7 cores): Section reveals, glass blur
-- Essential (<4 cores / prefers-reduced-motion): No animations
-```
-
-The spec does not define:
-- The hook's return type
-- How components consume the tier (CSS class? boolean flags? enum?)
-- Whether `prefers-reduced-motion` overrides core count (it must — accessibility law)
-- How the tier is determined at runtime without blocking render
-
-### Required Actions
-
-The spec must include the implementation contract:
+**State type must also be explicit:**
 
 ```typescript
-// Required addition to spec — hook contract:
+// The hook's error state should be typed, not inferred
+const [error, setError] = useState<Error | null>(null);
+// NOT: useState(null) — infers null, then setError(err) breaks
+```
 
-type AnimationTier = 'full' | 'balanced' | 'essential';
+---
 
-interface AnimationTierResult {
-  tier: AnimationTier;
-  shouldAnimate: boolean;        // false if prefers-reduced-motion
-  canUseParallax: boolean;       // tier === 'full' && shouldAnimate
-  canUseBlur: boolean;           // tier !== 'essential' && shouldAnimate
-  canUseParticles: boolean;      // tier === 'full' && shouldAnimate
-}
+#### Finding 2.2 — Stale Closure in `loadConversation` `useCallback`
 
-// CRITICAL: prefers-reduced-motion ALWAYS wins regardless of core count
-// CRITICAL: core count detection is async — hook must not block first render
-// CRITICAL: SSR — default to 'essential' until client hydration
+**Rating:** CRITICAL
 
-function useAnimationTier(): AnimationTierResult {
-  const prefersReduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const [coreCount, setCoreCount] = useState<number>(4); // safe SSR default
+**Location:** Finding 2, `loadConversation` snippet
 
-  useEffect(() => {
-    setCoreCount(navigator.hardwareConcurrency ?? 4);
-  }, []);
+**Issue:**
 
-  const tier: AnimationTier = prefersReduced
-    ? 'essential'
-    : coreCount >= 8 ? 'full'
-    : coreCount >= 4 ? 'balanced'
-    : 'essential';
+```typescript
+// AS WRITTEN
+const loadConversation = useCallback(async (id: string) => {
+  // ...
+  setConversations(prev => ({
+    ...prev,
+    [id]: { ...prev[id], messages, loaded: true }
+  }));
+  // ...
+}, []); // stable identity — no deps that change
+```
 
-  return {
-    tier,
-    shouldAnimate: !prefersReduced,
-    canUseParallax: tier === 'full' && !prefersReduced,
-    canUseBlur: tier !== 'essential' && !prefersReduced,
-    canUseParticles: tier === 'full' && !prefersReduced,
+The comment claims stable identity with empty deps, but `setConversations` is referenced inside the callback. While `setState` dispatchers are guaranteed stable by React, `setLoadingConversationId` is also referenced and must also be a stable dispatcher. The real problem is the **`setLoadingConversationId` finalizer**:
+
+```typescript
+// AS WRITTEN — stale closure bug
+setLoadingConversationId(prev => prev === id ? null : prev);
+```
+
+`id` here is the closure-captured parameter, which is correct for a function argument. However, if `fetchConversation` is not passed as a stable reference (e.g., it's defined inline or depends on changing state), the empty dep array creates a stale closure over the initial `fetchConversation`. The document does not define `fetchConversation`'s origin, which is the actual risk.
+
+**Recommendation — make the dependency contract explicit:**
+
+```typescript
+// Define fetchConversation outside the hook or wrap in useCallback with its own deps
+const fetchConversation = useCallback(
+  async (id: string, options: { signal: AbortSignal }): Promise<Message[]> => {
+    const response = await fetch(`/api/conversations/${id}`, options);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json() as Promise<Message[]>;
+  },
+  [] // truly stable — no external deps
+);
+
+const loadConversation = useCallback(async (id: string) => {
+  const controller = new AbortController();
+  setLoadingConversationId(id);
+
+  try {
+    const messages = await fetchConversation(id, { signal: controller.signal });
+    setConversations(prev => ({
+      ...prev,
+      [id]: { ...prev[id], messages, loaded: true },
+    }));
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name !== 'AbortError') {
+      setError(err);
+    }
+  } finally {
+    setLoadingConversationId(prev => (prev === id ? null : prev));
+  }
+
+  return () => controller.abort();
+}, [fetchConversation]); // fetchConversation is stable, so loadConversation is stable
+```
+
+---
+
+#### Finding 2.3 — `useEffect` Cleanup Pattern Is Incorrect
+
+**Rating:** CRITICAL
+
+**Location:** Finding 2, composition layer `useEffect` snippet
+
+**Issue:**
+
+```typescript
+// AS WRITTEN — BROKEN CLEANUP
+useEffect(() => {
+  if (!selectedId) return;
+  if (conversations[selectedId]?.loaded) return; // cache hit, no fetch
+  const cleanup = loadConversation(selectedId);
+  return cleanup; // abort on selectedId change or unmount
+}, [selectedId]);
+```
+
+`loadConversation` is `async` — it returns a `Promise<() => void>`, not `() => void`. React's `useEffect` cleanup must be a **synchronous function**, not a Promise. Returning a Promise from `useEffect` is silently ignored by React (no cleanup runs). This means the `AbortController` is never called on `selectedId` change, defeating the entire race condition fix.
+
+**Correct pattern:**
+
+```typescript
+useEffect(() => {
+  if (!selectedId) return;
+  if (conversations[selectedId]?.loaded) return;
+
+  // Create controller in the effect, not inside the async function
+  const controller = new AbortController();
+
+  // Fire-and-forget the async work, passing the signal
+  void loadConversation(selectedId, controller.signal);
+
+  // Synchronous cleanup — this is what React actually calls
+  return () => {
+    controller.abort();
   };
-}
+}, [selectedId, conversations, loadConversation]);
+// conversations needed because the cache-hit guard reads it
+// loadConversation needed if not guaranteed stable
 ```
 
-Without this contract, every engineer will implement tier consumption differently, producing inconsistent animation behavior across the platform.
-
----
-
-## Finding 5 — Swan Coach CRUD Table: Missing Error States and Optimistic Update Strategy
-
-**Rating: ⚠️ HIGH**
-
-### Problem
-
-Section 9 defines Swan Coach CRUD capabilities:
-
-```md
-CREATE: log workout, create post, book session, set goal, log meal, log pain, generate workout
-UPDATE: edit workout, update goals, modify booking, change profile
-DELETE: cancel booking, remove post, clear pain entry
-```
-
-No specification for:
-- What happens when a CRUD operation fails mid-conversation?
-- Does Swan Coach use optimistic updates? If so, how are rollbacks communicated to the user?
-- What is the retry strategy for failed AI-initiated mutations?
-- How does Swan Coach confirm destructive operations (DELETE) before executing?
-
-A conversational AI that silently fails to log a workout — or worse, silently deletes a booking — is a trust-destroying UX failure.
-
-### Required Actions
-
-Add to Section 9:
-
-```markdown
-### Swan Coach CRUD Error Contract
-
-**All mutations must:**
-1. Confirm before executing destructive operations: "I'll cancel your Thursday session — confirm?"
-2. Show inline status: "Logging your workout... ✓ Done" or "❌ Failed to save — tap to retry"
-3. Never silently fail — always surface errors in conversational language
-4. Support undo for non-destructive mutations within 10 seconds of execution
-5. Log all AI-initiated mutations to an audit trail accessible in user profile
-
-**Optimistic update strategy:**
-- Optimistic: UI updates immediately for low-risk reads (display changes)
-- Pessimistic: Wait for server confirmation before updating for all writes
-- Rationale: Fitness data integrity > perceived speed
-```
-
----
-
-## Finding 6 — DRY Violation: Progress Tracking Defined Inconsistently Across Sections
-
-**Rating: ⚠️ HIGH**
-
-### Problem
-
-"Progress tracking" appears in at least four sections with different, potentially conflicting definitions:
-
-```md
-Section 2 (Onboarding):    "Save progress — if user leaves, resume where they left off"
-Section 3 (Workout Log):   "Volume tracker: Real-time total volume during session"
-Section 8 (Immigration):   "Score history charts (track improvement over time)"
-Section 9 (Swan Coach):    "READ: check progress, view schedule, see achievements"
-```
-
-Each section defines progress tracking in isolation. There is no unified `ProgressEvent` data model, no shared persistence strategy, and no definition of what "progress" means at the platform level.
-
-### Impact
-
-Engineers will build four separate progress tracking implementations with incompatible data shapes, making cross-feature analytics (e.g., "show me all progress this week") impossible without a painful data migration.
-
-### Required Actions
-
-Add a unified data model section to the spec:
+This requires refactoring `loadConversation` to accept a signal parameter rather than creating its own controller:
 
 ```typescript
-// Required: Unified Progress Event Model
-// Add as Section 0 (Foundation) or Appendix A
+// Revised signature — caller owns the AbortController
+const loadConversation = useCallback(
+  async (id: string, signal: AbortSignal): Promise<void> => {
+    setLoadingConversationId(id);
+    try {
+      const messages = await fetchConversation(id, { signal });
+      setConversations(prev => ({
+        ...prev,
+        [id]: { ...prev[id], messages, loaded: true },
+      }));
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err);
+      }
+    } finally {
+      setLoadingConversationId(prev => (prev === id ? null : prev));
+    }
+  },
+  [fetchConversation]
+);
+```
 
-interface ProgressEvent {
-  id:         string;
-  userId:     string;
-  eventType:  ProgressEventType;
-  occurredAt: Date;
-  payload:    ProgressPayload;
-  source:     'user' | 'swan-coach' | 'system';
+---
+
+#### Finding 2.4 — `ErrorBoundary` Missing `displayName` and Reset Prop Types
+
+**Rating:** HIGH
+
+**Location:** Finding 3 — Styled-Components Runtime Crash, `ContentStudioTabErrorBoundary` snippet
+
+**Issue:**
+
+```typescript
+// AS WRITTEN — incomplete typing
+class ContentStudioTabErrorBoundary extends React.Component<
+  { tabName: string; children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null };
+```
+
+Three problems:
+
+1. `state = { hasError: false, error: null }` — `null` is inferred as `null` type, not `Error | null`. TypeScript will reject `setError(error)` in `getDerivedStateFromError` because `error: Error` cannot be assigned to the inferred `null` type without explicit annotation.
+
+2. `onReset` prop is passed to `TabErrorFallback` but not declared in the props interface.
+
+3. No `displayName` — React DevTools will show `ContentStudioTabErrorBoundary` as an anonymous class in production builds.
+
+**Correct implementation:**
+
+```typescript
+interface ContentStudioTabErrorBoundaryProps {
+  tabName: string;
+  children: React.ReactNode;
 }
 
-type ProgressEventType =
-  | 'workout.completed'
-  | 'workout.set.logged'
-  | 'onboarding.step.completed'
-  | 'goal.achieved'
-  | 'language.score.recorded'    // immigration
-  | 'document.status.updated';   // immigration
+interface ContentStudioTabErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
 
-// All progress tracking features consume this model
-// Single persistence layer: POST /api/progress/events
-// Single read layer: GET /api/progress/events?userId=&type=&from=&to=
+class ContentStudioTabErrorBoundary extends React.Component<
+  ContentStudioTabErrorBoundaryProps,
+  ContentStudioTabErrorBoundaryState
+> {
+  static displayName = 'ContentStudioTabErrorBoundary';
+
+  // Explicit annotation required — do NOT rely on inference from class body
+  override state: ContentStudioTabErrorBoundaryState = {
+    hasError: false,
+    error: null,
+  };
+
+  static getDerivedStateFromError(
+    error: Error
+  ): ContentStudioTabErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  override componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    console.error(`[ContentStudio:${this.props.tabName}] Tab crashed:`, error, info);
+    // TODO: send to Sentry/error tracking service
+  }
+
+  private handleReset = (): void => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  override render(): React.ReactNode {
+    if (this.state.hasError) {
+      return (
+        <TabErrorFallback
+          tabName={this.props.tabName}
+          error={this.state.error}
+          onReset={this.handleReset}
+        />
+      );
+    }
+    return this.props.children;
+  }
+}
 ```
 
 ---
 
-## Finding 7 — Canada Immigration Tab: PII Architecture Not Specified
+#### Finding 2.5 — `AITerminalConfig` Interface Uses Implicit `any` via Untyped Callback
 
-**Rating: ⚠️ HIGH**
+**Rating:** HIGH
 
-### Problem
+**Location:** Finding 5 — Unified AI Terminal State Fragmentation
 
-Section 8 specifies storing:
+**Issue:**
 
-```md
-- Passport data
-- Police check status
-- Medical exam status
-- Chickasaw heritage documentation
-- Marriage documentation
-- Wife as principal applicant tracking
+```typescript
+// AS WRITTEN — AIIntent is undefined
+interface AITerminalConfig {
+  onHandoff?: (intent: AIIntent) => void;
+}
 ```
 
-This is among the most sensitive PII categories that exist. The spec treats this identically to workout logging data. No mention of:
+`AIIntent` is referenced but never defined in the document. Any developer implementing this will either:
+- Import a non-existent type (compile error)
+- Define their own local `AIIntent` (type fragmentation — exactly the problem the unified terminal is meant to solve)
+- Fall back to `any` (defeats TypeScript entirely)
 
-- Data residency (must be Canadian servers for PIPEDA compliance)
-- Retention and deletion policy
-- Who can access this data (admin? trainer? client only?)
-- Whether this data is in scope for the security audit in Section 11
-- Backup and recovery for this data specifically
+**Recommendation — define the discriminated union before the interface:**
 
-### Required Actions
+```typescript
+// types/ai/AIIntent.ts — must be defined BEFORE AITerminalConfig
 
-Add a data classification table to the spec:
+type AIIntent =
+  | { type: 'navigate'; route: string; params?: Record<string, string> }
+  | { type: 'load-workout'; planId: string }
+  | { type: 'schedule-session'; clientId: string; suggestedTime?: string }
+  | { type: 'open-client-profile'; clientId: string }
+  | { type: 'create-content'; contentType: 'email' | 'social' | 'workout' };
 
-```markdown
-| Data Category | Classification | Encryption | Access | Retention | Regulation |
-|---|---|---|---|---|---|
-| Immigration documents | RESTRICTED | Field-level AES-256 | Client only | User-controlled | PIPEDA |
-| Heritage documentation | RESTRICTED | Field-level AES-256 | Client only | User-controlled | PIPEDA + UNDRIP |
-| Medical exam status | RESTRICTED | Field-level AES-256 | Client only | User-controlled | PIPEDA + PHIPA |
-| Workout logs | INTERNAL | At-rest | Client + Trainer | 7 years | Standard |
-| Chat history | INTERNAL | At-rest | Client + Admin | 2 years | Standard |
+// Discriminated union enables exhaustive switch in parent handlers:
+// switch (intent.type) {
+//   case 'navigate': router.push(intent.route); break;
+//   case 'load-workout': loadPlan(intent.planId); break;
+//   ...
+// }
+
+interface AITerminalConfig {
+  terminalId: string;
+  systemPrompt: string;
+  suggestedPrompts?: readonly string[]; // readonly — config should not be mutated
+  voiceEnabled?: boolean;
+  sidebarEnabled?: boolean;
+  onHandoff?: (intent: AIIntent) => void;
+}
 ```
 
 ---
 
-## Finding 8 — Scope Creep: No Phasing, No Acceptance Criteria, No Definition of Done
+#### Finding 2.6 — Mock Data Guard Snippet Is Truncated Mid-Expression
 
-**Rating: ⚠️ HIGH**
+**Rating:** HIGH
 
-### Problem
+**Location:** Finding 6 — Mock Data Contamination Risk, end of file
 
-This document describes approximately **18 months of engineering work** as a single deliverable with no phasing:
+**Issue:**
 
-- Conversational AI onboarding with NLP extraction
-- Custom numeric keyboard
-- MidJourney-like image generation
-- IELTS preparation tracker with flashcards
-- Points calculator
+```typescript
+// AS WRITTEN — file cuts off mid-line
+const MOCK_DATA_ALLOWED = import.meta.env.VITE_ALLOW_MOCK_DATA
+```
+
+The file is truncated. The expression is incomplete (missing `=== 'true'` or similar), and the entire `mockDataGuard.ts` utility is absent. This is a documentation failure that will cause an implementer to either skip the guard entirely or implement it incorrectly.
+
+**Recommendation — complete the snippet:**
+
+```typescript
+// utils/data/mockDataGuard.ts
+
+const IS_PRODUCTION = import.meta.env.PROD;
+const MOCK_DATA_ALLOWED = import.meta.env.VITE_ALLOW_MOCK_DATA === 'true';
+
+/**
 
 ---
 
-*Part of SwanStudios 14-Brain Recursive Consensus System*
+*Part of SwanStudios 15-Brain Recursive Consensus System*

@@ -257,7 +257,7 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
-  color: ${({ $disabled }) => ($disabled ? '#555' : '#e2e8f0')};
+  color: ${({ $disabled }) => ($disabled ? 'var(--text-disabled, rgba(224, 236, 244, 0.6))' : '#e2e8f0')};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   min-height: 44px;
   min-width: 44px;
@@ -1013,7 +1013,7 @@ const AdminClientManagementView: React.FC = () => {
               <TRow>
                 <Td colSpan={7} $align="center">
                   <EmptyState>
-                    <UserPlus size={64} color="#666" style={{ marginBottom: 16 }} />
+                    <UserPlus size={64} color="var(--text-disabled, rgba(224, 236, 244, 0.6))" style={{ marginBottom: 16 }} />
                     <h3 style={{ color: '#94a3b8', margin: '0 0 8px 0', fontWeight: 600 }}>
                       No clients found
                     </h3>

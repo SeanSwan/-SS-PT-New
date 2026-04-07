@@ -40,10 +40,26 @@
   --frost-white-25: rgba(var(--frost-white-rgb), 0.25);
   --wing-purple-40: rgba(var(--wing-purple-rgb), 0.40);
 
-  /* Semantic Status Backgrounds (15% opacity) */
-  --status-success-bg: rgba(var(--status-success-rgb), 0.15);
+  /* Semantic Status Backgrounds */
+  --status-success-bg: rgba(var(--status-success-rgb), 0.25);
   --status-info-bg: rgba(var(--status-info-rgb), 0.15);
-  --status-error-bg: rgba(var(--status-error-rgb), 0.15);
+  --status-error-bg: rgba(var(--status-error-rgb), 0.25);
+
+  /* ── Text Contrast Tokens (WCAG 4.5:1 minimum on #0A0A0F) ── */
+  --text-placeholder: rgba(var(--frost-white-rgb), 0.5);   /* ~5.5:1 on dark */
+  --text-disabled: rgba(var(--frost-white-rgb), 0.6);       /* ~6.6:1 on dark */
+  --text-muted-icon: rgba(var(--frost-white-rgb), 0.5);     /* icons/decorative on dark */
+
+  /* ── Z-Index Scale ── */
+  --z-dropdown: 1260;
+  --z-sticky: 300;
+  --z-header: 400;
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-drawer: 1200;
+  --z-fab: 1250;
+  --z-toast: 1300;
+  --z-celebration: 1400;
 
   /* ── Typography ── */
   --font-display: 'Cormorant Garamond', serif;

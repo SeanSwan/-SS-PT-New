@@ -37,7 +37,7 @@ export const SmartImage = forwardRef<HTMLImageElement, SmartImageProps>(
           height: fallbackPlaceholder.height,
           text: fallbackPlaceholder.text || 'Image not found',
           backgroundColor: '#f5f5f5',
-          textColor: '#999999',
+          textColor: '#5f6775',
         });
         setImageSrc(fallbackSrc);
       }

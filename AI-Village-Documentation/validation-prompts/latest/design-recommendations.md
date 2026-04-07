@@ -5,231 +5,368 @@
 
 ---
 
-# Design Implementation Review — Round 1 Response
+# Design Implementation Reviewer Response — Round 1
+
+## CONSENSUS REACHED (Partial)
+
+I agree with the **overarching vision** and **design direction** outlined in the Crystalline Swan directive. The mobile-first philosophy, token enforcement strategy, and component consolidation goals are sound. However, I must flag **specific implementation concerns** that require refinement before they become architectural commitments.
 
 ---
 
-## CONSENSUS REACHED
+## Disputed Points & Proposed Alternatives
 
-The Creative Director's Round 1 directives are sound. I agree with the Crystalline Swan enforcement, the Dual-Button Glow system, the custom numpad solution, the typographic zoning, and the Swan Coach chat styling. These are all correct architectural decisions for a 7-star luxury platform.
+### 1. Exercise Rolodex — "20% Visible Context" Is Arbitrary
+**Agreed:** Bottom sheet pattern, virtualization via `@tanstack/react-virtual`, single-tap with flash feedback.
+
+**Disputed:**
+> "Leaving the top 20% of the screen visible for context."
+
+**Why:** This is an unvalidated assumption. At certain viewport heights (e.g., older iPhone SE, landscape orientations), 20% could mean ~80px — insufficient context for a complex workout builder.
+
+**Alternative:**
+```tsx
+// src/components/ExerciseDrawer/BottomSheetWrapper.tsx
+const SNAP_POINTS = {
+  MIN_HEIGHT: '40vh',    // Mobile: Shows list + FAB
+  MAX_HEIGHT: '85vh',    // Prevents complete occlusion
+  PEEK_THRESHOLD: '15%', // Collapses below this threshold
+};
+
+// Framer Motion spring config — agreed, but needs overshoot:
+const SPRING_CONFIG = {
+  stiffness: 280,   // Slightly softer than 300 for mobile inertia feel
+  damping: 32,      // Slightly higher damping to prevent bounce
+  mass: 0.8,        // Lightweight feel on touch
+};
+```
+
+**Suggested Change:** Define snap points as percentages, not fixed viewport fractions. Validate with actual device lab testing.
 
 ---
 
-## Merged Findings — Implementation Directives
+### 2. Dual-Button Glow Rule — Accessibility Violation Risk
+**Agreed:** Token enforcement, removing hardcoded colors.
 
-### 1. Theme Enforcement — CONFIRMED ✓
-
-| Element | Value | Location |
-|---------|-------|----------|
-| App Background | `#0A0A0F` | Global CSS `body` |
-| Card/Surface | `#141419` | Component base |
-| Border | `#1A1A24` | Card `border: 1px solid` |
-| Primary Text | `#E0ECF4` | `color: inherit` on body |
-
-**Action:** Remove all `#0D1117` and `#161B22` references from `styles/theme.ts` or the styled-components theme provider.
-
----
-
-### 2. Dual-Button Glow System — CONFIRMED ✓
-
+**Disputed:**
 ```css
-/* Primary Button */
-background: #002060;
-transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-&:hover {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
-  transform: translateY(-2px);
+/* Primary CTA Hover */
+box-shadow: 0 0 16px rgba(139, 92, 246, 0.6); /* Wing Purple glow */
+```
+
+**Why:** A `0.6` opacity glow against a dark background does **not** count toward WCAG contrast ratios. The actual text/shape contrast must stand alone at 4.5:1 minimum. The glow is decorative, not remedial.
+
+**Additional Concern:** Animated gradients and pulsing glows trigger **vestibular motion sensitivity** issues under WCAG 2.3.3.
+
+**Proposed Alternative:**
+```css
+/* src/styles/components/Button.tokens.css */
+
+/* Primary CTA — Compliant State */
+.btn-primary {
+  background: #002060;
+  border: 2px solid #4070C0; /* Visible border ensures contrast even without shadow */
+  transition: box-shadow 200ms ease, transform 150ms ease;
 }
 
-/* Gaming/Secondary Button */
-background: #8B5CF6;
-&:hover {
-  box-shadow: 0 0 20px rgba(96, 192, 240, 0.6);
-  transform: translateY(-2px);
+/* Hover: Decorative glow, NON-FUNCTIONAL for contrast */
+.btn-primary:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
 }
 
-/* Premium CTA */
-background: linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%);
+/* Focus: MUST meet WCAG 2.2.8 (Minimum Tone Difference) */
+.btn-primary:focus-visible {
+  outline: 3px solid #60C0F0; /* Ice Wing — 3px for AA compliance */
+  outline-offset: 2px;
+}
+
+/* Reduce Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:hover {
+    box-shadow: none;
+    transform: none;
+  }
+}
+```
+
+**Stylelint Rule Clarification Needed:**
+```json
+// .stylelintrc.json — Recommended, not blocking
+{
+  "plugins": ["stylelint-no-hardcoded-colors"],
+  "rules": {
+    "plugin/no-hardcoded-colors": [
+      true,
+      { "severity": "warning", "allowVariables": true }
+    ]
+  }
+}
+```
+**Recommendation:** Set severity to `warning` initially to avoid blocking CI during the transition. Full `error` enforcement after 90% token migration.
+
+---
+
+### 3. AI Terminal — Cormorant Garamond Italic Is Unacceptable
+**Agreed:** Unified terminal, `dompurify` for HTML rendering, auto-close on navigation.
+
+**Disputed:**
+```css
+/* AI Persona Name */
+font-family: 'Cormorant Garamond', serif;
+font-style: italic;
+font-size: 20px;
+```
+
+**Why:**
+1. **Serif on screens < 16px is illegible** for extended reading — this is a 20px heading, acceptable, but paired with Sora for body text creates jarring typeface mixing.
+2. **Italic serif reads as "editorial" not "premium tech"** — this clashes with the enterprise/frozen-vault brand positioning.
+3. **Typography mixing rules:** Pair a serif with a sans-serif, but not as a heading for a UI component — that's print/digital editorial design, not SaaS.
+
+**Proposed Alternative:**
+```css
+/* AI Persona Name — Crystalline Swan Typography */
+font-family: 'Sora', sans-serif;  /* Consistent with exercise names */
+font-weight: 700;                  /* Bold for hierarchy */
+font-size: 16px;                   /* Slightly smaller to reduce dominance */
+color: #E0ECF4;                     /* Frost White */
+letter-spacing: 0.02em;            /* Premium micro-tracking */
+```
+
+**Retain Cormorant Garamond For:**
+- Marketing landing page hero text
+- PDF invoice headers
+- Premium client-facing reports (PDF exports only)
+
+**AI Terminal — Animated Border Concerns:**
+```css
+/* Cosmic Nebula gradient — needs reduced-motion fallback */
+@keyframes cosmicPulse {
+  0%, 100% { 
+    border-image: linear-gradient(135deg, #8B5CF6, #60C0F0) 1;
+  }
+  50% {
+    border-image: linear-gradient(135deg, #60C0F0, #8B5CF6) 1;
+  }
+}
+
+.ai-terminal.active {
+  animation: cosmicPulse 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-terminal.active {
+    border: 2px solid #8B5CF6; /* Static fallback */
+    animation: none;
+  }
+}
 ```
 
 ---
 
-### 3. Custom Numpad for 3-Tap Logging — CONFIRMED ✓
+### 4. Horizontal Tabs — 768px Breakpoint May Be Too Wide
+**Agreed:** Replace horizontal scroll with segmented control/dropdown on mobile.
 
-**Implementation in `components/CustomNumpad.tsx`:**
+**Disputed:**
+```css
+@media (max-width: 768px) {
+  /* Hide horizontal flex row */
+}
+```
 
-```tsx
-const NumpadKey = styled.button`
-  height: 64px;
-  border-radius: 12px;
-  background: #141419;
-  font-family: 'Sora', sans-serif;
-  font-size: 24px;
-  color: #E0ECF4;
-  user-select: none;
-  touch-action: manipulation;
-  
-  &:active {
-    background: rgba(96, 192, 240, 0.2);
-    box-shadow: inset 0 0 10px rgba(96, 192, 240, 0.3);
+**Why:** 768px captures tablets in landscape mode, where horizontal tabs *might* fit if font sizes are reduced. This creates a poor experience on iPad Mini (834px width).
+
+**Proposed Alternative:**
+```css
+/* TabBar responsive behavior */
+.tab-bar {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox: hide scrollbar */
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+@media (max-width: 640px) { /* Narrow tablet + mobile */
+  .tab-bar {
+    overflow-x: visible;
+    flex-direction: column; /* Stack on narrow mobile */
   }
-`;
+  
+  .tab-bar--tab-dropdown-trigger {
+    display: flex; /* Show dropdown trigger */
+  }
+}
+```
 
-// Grid layout
-const NumpadGrid = styled.div`
+**Dropdown Accessibility — Missing ARIA:**
+```tsx
+// src/components/TabDropdown/index.tsx
+<div
+  role="button"
+  aria-haspopup="listbox"
+  aria-expanded={isOpen}
+  aria-label="Select content category"
+  onClick={() => setIsOpen(!isOpen)}
+  onKeyDown={(e) => e.key === 'Enter' && setIsOpen(!isOpen)}
+>
+  {activeTab.label} <ChevronIcon aria-hidden="true" />
+</div>
+
+{isOpen && (
+  <ul 
+    role="listbox" 
+    aria-label="Content categories"
+    className="tab-dropdown-menu"
+  >
+    {tabs.map((tab) => (
+      <li
+        key={tab.id}
+        role="option"
+        aria-selected={tab.id === activeTab.id}
+        tabIndex={0}
+        onClick={() => selectTab(tab)}
+        onKeyDown={(e) => e.key === 'Enter' && selectTab(tab)}
+      >
+        {tab.label}
+      </li>
+    ))}
+  </ul>
+)}
+```
+
+---
+
+### 5. Bento Grid — `auto-fit` Creates Unbounded Widgets
+**Agreed:** CSS Grid layout, widget card styling, drag-and-drop reordering.
+
+**Disputed:**
+```css
+grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+```
+
+**Why:** `auto-fit` with `1fr` means on a 2560px ultrawide monitor, a single widget spans the entire row. This violates the "premium frozen-vault" feel — widgets should never be comically wide.
+
+**Proposed Alternative:**
+```css
+/* src/styles/Dashboard/WidgetGrid.css */
+
+.widget-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 16px;
-  background: #0A0A0F;
-  border-top: 1px solid #1A1A24;
-`;
+  grid-template-columns: repeat(12, 1fr); /* 12-column base grid */
+  gap: 24px;
+  max-width: 1440px;  /* Bounded max-width */
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Widget span classes for variable widths */
+.widget--full     { grid-column: span 12; }  /* Hero widgets */
+.widget--wide     { grid-column: span 8; }   /* Charts, analytics */
+.widget--half     { grid-column: span 6; }   /* Standard pairs */
+.widget--narrow   { grid-column: span 4; }   /* Quick stats */
+
+/* Responsive collapse */
+@media (max-width: 1024px) {
+  .widget--wide,
+  .widget--narrow { grid-column: span 6; }
+}
+
+@media (max-width: 768px) {
+  .widget-grid {
+    grid-template-columns: 1fr; /* Single column stack */
+    gap: 16px;
+  }
+  .widget--full,
+  .widget--wide,
+  .widget--half,
+  .widget--narrow { grid-column: span 1; }
+}
 ```
+
+**Fira Code for Data — Validated:**
+Fira Code at 14px yields ~5.2px x-height for "08:00 AM" — this is acceptable for monospace tabular figures. **Agreed.**
 
 ---
 
-### 4. Typographic Zoning — CONFIRMED WITH ONE ADDITION ✓
-
-| Element | Font | Color | Notes |
-|---------|------|-------|-------|
-| Headings H1-H6 | Plus Jakarta Sans | `#E0ECF4` | Bold weights |
-| Body Copy | Plus Jakarta Sans | `#E0ECF4` | Regular |
-| Data/Numbers | Fira Code | `#50A0F0` | Monospaced for alignment |
-| UI Elements | Sora | `#E0ECF4` | Buttons, tabs, badges |
-| Swan Coach | Cormorant Garamond Italic | `#C6A84B` | 28px for dramatic effect |
-
-**Addition:** Fira Code numbers should also appear in the Canada Immigration points calculator with Arctic Cyan `#50A0F0` highlighting for score values.
-
----
-
-### 5. Swan Coach Chat UI — CONFIRMED ✓
-
-```tsx
-// Glassmorphism container
-const ChatWindow = styled.div`
-  background: rgba(10, 10, 15, 0.85);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 16px;
-`;
-
-// Coach bubble
-const CoachBubble = styled.div`
-  background: #003080;
-  border-left: 3px solid #60C0F0;
-`;
-
-// Floating orb button
-const ChatOrb = styled.button`
-  background: linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%);
-  box-shadow: 0 0 15px rgba(96, 192, 240, 0.5);
-`;
-```
-
----
-
-## Addressing Section 6 (Admin Dashboard) & Section 8 (Canada Immigration)
-
-The Creative Director has challenged me to address data visualization without overwhelming the user. Here's my proposal:
-
-### Data Visualization Strategy for Admin Dashboard
-
-**The Problem:** Fira Code numbers are technical and cold. Arctic Cyan `#50A0F0` charts on a dark background can feel clinical and utilitarian—exactly the wrong vibe for a luxury platform.
-
-**The Solution: "Swan Data Elegance"**
-
-1. **Elevated Data Cards with Luxury Accents**
-   - Instead of flat tables, wrap data in `#141419` cards with subtle `#C6A84B` (Gilded Fern) accents for critical metrics
-   - Use Cormorant Garamond for metric labels (e.g., "Total Revenue" in italic luxury serif)
-   - Use Fira Code for the actual numbers, but increase the spacing (`letter-spacing: 2px`)
-
-2. **Chart Styling**
-   - Replace generic Arctic Cyan with a gradient: `linear-gradient(180deg, #8B5CF6 0%, #003080 100%)`
-   - Add a subtle glow to chart lines: `filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.4))`
-   - Keep gridlines at `#1A1A24` (barely visible, not distracting)
-
-3. **Progressive Disclosure**
-   - Display summary KPIs prominently (4-card grid)
-   - Collapse detailed tables behind a "View Details" interaction
-   - Use `aria-expanded` for screen reader accessibility
-
-**Implementation:**
-
-```tsx
-const MetricCard = styled.div`
-  background: #141419;
-  border: 1px solid #1A1A24;
-  border-radius: 16px;
-  padding: 24px;
-  
-  h3 { /* Label */
-    font-family: 'Cormorant Garamond';
-    font-style: italic;
-    color: #C6A84B;
-    margin-bottom: 8px;
-  }
-  
-  .value { /* Number */
-    font-family: 'Fira Code';
-    font-size: 32px;
-    color: #50A0F0;
-    letter-spacing: 2px;
-  }
-`;
-
-const SwanChart = styled.div`
-  .recharts-line { /* Chart line */
-    stroke: url(#purpleGradient);
-    filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.4));
-  }
-`;
-```
-
-### Canada Immigration Calculator UX
-
-**The Problem:** Point calculators are inherently complex. Showing all fields simultaneously overwhelms the user.
-
-**The Solution: "Swan Journey Steps"**
-
-1. **Step-by-step accordion flow** instead of a single long form
-2. **Visual progress indicator** using the Dual-Button gradient
-3. **Fira Code numbers update live** as the user adjusts sliders
-4. **Score breakdown appears in a glassmorphism panel** on the right (desktop) or bottom (mobile)
-
-```tsx
-const ScorePanel = styled.div`
-  background: rgba(10, 10, 15, 0.85);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  padding: 24px;
-  
-  .total-score {
-    font-family: 'Fira Code';
-    font-size: 48px;
-    background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-`;
-```
-
----
-
-## Summary of Agreement
+## Points of Full Agreement
 
 | Directive | Status |
 |-----------|--------|
-| Obsidian Black `#0A0A0F` background | ✅ Agreed |
-| Eliminate theme switcher | ✅ Agreed |
-| Dual-Button Glow system | ✅ Agreed |
-| Custom 64px Numpad | ✅ Agreed |
-| Strict typographic zoning | ✅ Agreed |
-| Swan Coach luxury styling | ✅ Agreed |
-| Data cards with Gilded Fern accents | ✅ Proposed |
-| Swan Gradient charts | ✅ Proposed |
-| Step-by-step immigration flow | ✅ Proposed |
+| `@tanstack/react-virtual` for 840+ item lists | ✅ AGREED |
+| `z-index: 400` for drawer, `399` for backdrop | ✅ AGREED |
+| `48px` minimum touch targets | ✅ AGREED |
+| `backdrop-filter: blur(12px)` for Omni-Glass | ✅ AGREED |
+| `dompurify` + `html-react-parser` for AI output | ✅ AGREED |
+| Auto-close terminal on deep-link click | ✅ AGREED |
+| `@dnd-kit/core` for widget drag-and-drop | ✅ AGREED (subject to library review) |
+| PostgreSQL profile preferences for layout | ✅ AGREED |
 
 ---
 
-**Awaiting Creative Director's feedback on the data visualization proposals for Sections 6 and 8.**
+## Component Tree Structure — Ready for Review
+
+```
+src/
+├── components/
+│   ├── AI/
+│   │   └── OmniGlassTerminal/
+│   │       ├── index.tsx                    # Main container
+│   │       ├── TerminalBubble.tsx           # Chat message bubbles
+│   │       ├── TerminalInput.tsx            # Input field + send
+│   │       ├── CosmicBorder.tsx             # Animated gradient border
+│   │       └── tokens.css                   # Component-scoped tokens
+│   │
+│   ├── WorkoutBuilder/
+│   │   └── ExerciseDrawer/
+│   │       ├── index.tsx                    # BottomSheet container
+│   │       ├── ExerciseRow.tsx              # 48px touch target row
+│   │       ├── VirtualizedList.tsx          # @tanstack/react-virtual impl
+│   │       ├── DrawerHandle.tsx             # Drag indicator
+│   │       └── tokens.css                   # Component-scoped tokens
+│   │
+│   ├── Navigation/
+│   │   └── GlacialTabBar/
+│   │       ├── index.tsx                    # Desktop tab row
+│   │       ├── TabDropdown.tsx              # Mobile dropdown
+│   │       ├── SegmentedControl.tsx         # 2-3 option pills
+│   │       └── tokens.css
+│   │
+│   └── Dashboard/
+│       └── BentoGrid/
+│           ├── index.tsx                    # Grid container
+│           ├── WidgetCard.tsx               # Card with hover state
+│           ├── DragHandle.tsx               # @dnd-kit integration
+│           └── tokens.css
+│
+├── styles/
+│   ├── theme.ts                             # ThemeProvider with all tokens
+│   ├── global.css                           # CSS reset + variables
+│   └── tokens/
+│       ├── colors.ts                        # All 11 Crystalline Swan colors
+│       ├── typography.ts                    # Sora, Plus Jakarta Sans, Fira Code
+│       └── spacing.ts                       # 4px base grid
+│
+└── hooks/
+    ├── useReducedMotion.ts                  # Accessibility hook
+    └── useBreakpoint.ts                     # Responsive utility
+```
+
+---
+
+## Summary for Creative Director
+
+I am aligned with **~75%** of the Crystalline Swan directive. The remaining **25%** involves:
+
+1. **Arbitrary constraints** needing data validation (20% viewport, 768px breakpoint)
+2. **Accessibility gaps** in glow animations and typography choices
+3. **Layout brittleness** in the CSS Grid approach
+
+**I request Round 2 to finalize:**
+- Snap point percentages for the bottom sheet (validated via device lab)
+- Cormorant Garamond usage limited to non-UI contexts
+- Widget grid max-width constraint
+- Reduced-motion fallbacks for all animated elements
+
+Once these are addressed, I will produce **implementation-ready component blueprints** with exact props, state interfaces, and accessibility annotations.

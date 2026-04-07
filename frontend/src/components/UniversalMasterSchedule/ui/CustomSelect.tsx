@@ -83,7 +83,7 @@ const PortalDropdown = styled.div<{
   top: ${props => props.top}px;
   left: ${props => props.left}px;
   width: ${props => props.width}px;
-  z-index: 999999;
+  z-index: var(--z-dropdown, 200);
   pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
 `;
 

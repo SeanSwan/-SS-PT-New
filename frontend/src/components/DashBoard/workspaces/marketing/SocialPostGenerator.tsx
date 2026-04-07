@@ -78,7 +78,7 @@ const TextArea = styled.textarea`
   transition: border-color 0.15s;
 
   &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-  &::placeholder { color: rgba(224, 236, 244, 0.3); }
+  &::placeholder { color: var(--text-placeholder, rgba(224, 236, 244, 0.5)); }
 `;
 
 const CharCount = styled.div<{ $over: boolean }>`

@@ -144,7 +144,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | '
   }
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
   }

@@ -215,7 +215,7 @@ const PortalContainer = styled.div<{ $top: number; $left: number; $width: number
   top: ${p => p.$top}px;
   left: ${p => p.$left}px;
   width: ${p => p.$width}px;
-  z-index: 999999;
+  z-index: var(--z-dropdown, 200);
 `;
 
 const DropdownList = styled.div<{ $direction: 'down' | 'up' }>`

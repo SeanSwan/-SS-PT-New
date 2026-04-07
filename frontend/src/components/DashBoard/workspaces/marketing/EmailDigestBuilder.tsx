@@ -123,7 +123,7 @@ const Input = styled.input`
   min-height: 44px;
 
   &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-  &::placeholder { color: rgba(224, 236, 244, 0.3); }
+  &::placeholder { color: var(--text-placeholder, rgba(224, 236, 244, 0.5)); }
 `;
 
 const CharHint = styled.span`
@@ -176,9 +176,9 @@ const RemoveBtn = styled.button`
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: rgba(224, 236, 244, 0.3);
-  min-width: 36px;
-  min-height: 36px;
+  color: var(--text-muted-icon, rgba(224, 236, 244, 0.5));
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;

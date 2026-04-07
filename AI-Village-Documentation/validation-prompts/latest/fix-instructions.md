@@ -1,151 +1,90 @@
 # Fix Instructions — Code Quality Consensus
 
-> Generated from Phase 2B specialty debate (Claude Sonnet 4.6 ↔ Qwen 3.6 Plus)
+> Generated from Phase 2B specialty debate (Claude Sonnet 4.6 ↔ Nemotron 3 Super)
 > Consensus: YES
 
 ---
 
-# Round 3 — Senior Code Quality Lead: Final Position
+CONSENSUS REACHED
 
-## CONSENSUS REACHED
+## Merged Findings: Critical Architecture Gaps Requiring Immediate Remediation
 
-The core disputes from Rounds 1-2 are resolved. I'm ratifying the merged findings with **three final precision corrections** before closing.
+### F-01: Validator Pipeline Failure — Silent Data Loss in Consensus System
+**Agreed Issue:** Two validators (`04-performance-planning.md`, `05-competitive-intel.md`) produced zero output due to timeout (240s) and invalid model ID (0.2s failure), yet were archived as valid inputs to the consensus system, creating a 33% data deficit without provenance tracking.  
+**Agreed Fix:** Implement blocking validation pipeline with:  
+- Timeout reduced to 120s (fail fast)  
+- Model-specific error handling (no retries for `MODEL_ERROR`)  
+- Pipeline assertion blocking consensus on any validator failure  
+- Retry logic with exponential backoff for transient errors only  
+*Files to modify:* `validation-pipeline/runner.ts` (new implementation)  
 
----
-
-## CORRECTION 1 — `window.__REACT_ERROR_BOUNDARY_REPORTED__` is Problematic
-
-**File:** `TabErrorBoundary.tsx` — Qwen's Round 2 proposal
-
-```tsx
-// ❌ Qwen's deduplication guard
-if (!window.__REACT_ERROR_BOUNDARY_REPORTED__) {
-  captureException(error, { ... });
-}
-```
-
-**Why this is wrong:** This global flag is never reset. The first `TabErrorBoundary` that catches an error sets it to `true`, and **every subsequent error boundary in the entire application silently stops reporting**. If `TrainingTabContent` crashes, then `BiometricsTabContent` also crashes, only the first error reaches your observability service.
-
-**Correct deduplication pattern — instance-level, not global:**
-
-```tsx
-export class TabErrorBoundary extends Component<Props, State> {
-  private reported = false; // ✅ Instance-level flag, not global
-  
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    if (this.reported) return; // ✅ Prevents double-report on React 18 double-invoke
-    this.reported = true;
-    
-    captureException(error, {
-      tags: { tabName: this.props.tabName, component: 'TabErrorBoundary' },
-      extra: { componentStack: info.componentStack },
-    });
-  }
-  
-  // Reset on recovery
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-}
-```
-
-Modern Sentry/Datadog SDKs already deduplicate by error fingerprint server-side. The only client-side guard needed is preventing the React 18 double-invoke in Strict Mode from sending the same error twice — which the instance flag handles correctly.
-
----
-
-## CORRECTION 2 — `as TabKey` Cast Needs a Runtime Guard
-
-**File:** `dashboard-tabs.ts` — consensus implementation
-
-Both parties agreed on:
-
-```ts
-const sortedTabs = [...tabs].sort((a, b) => 
-  TAB_ORDER[a.key as TabKey] - TAB_ORDER[b.key as TabKey]
-);
-```
-
-Qwen noted in passing: *"add a runtime filter: `tabs.filter(t => t.key in TAB_ORDER)` before sorting"* — but left it optional. **It is not optional.** The `as TabKey` cast bypasses TypeScript's type system. If `tabs` contains a key not in `TAB_ORDER`, the result is `undefined - undefined = NaN`, and `Array.sort` with `NaN` comparators produces **implementation-defined ordering** (varies by V8 version).
-
-**Final implementation with mandatory guard:**
-
-```ts
-// dashboard-tabs.ts
-function isValidTabKey(key: string): key is TabKey {
-  return key in TAB_ORDER;
-}
-
-export function sortTabs(tabs: DashboardTab[]): DashboardTab[] {
-  const [known, unknown] = tabs.reduce<[DashboardTab[], DashboardTab[]]>(
-    ([k, u], tab) => isValidTabKey(tab.key) 
-      ? [[...k, tab], u] 
-      : [k, [...u, tab]],
-    [[], []]
-  );
-  
-  if (unknown.length > 0) {
-    logger.warn('sortTabs: unknown tab keys will be appended', unknown.map(t => t.key));
-  }
-  
-  return [
-    ...known.sort((a, b) => TAB_ORDER[a.key as TabKey] - TAB_ORDER[b.key as TabKey]),
-    ...unknown, // ✅ Unknown tabs appended at end, not silently corrupting sort
-  ];
-}
-```
-
----
-
-## CORRECTION 3 — One Unresolved Issue From Round 1 Was Never Addressed
-
-**File:** `MasterDetailLayout.tsx` — lines ~65–80 (HIGH-04, cut off in Round 1)
-
-Neither party completed the analysis of `OUTLET_ROUTES`. For completeness, the final position:
-
-```tsx
-// ❌ Current — hardcoded strings that drift from router config
-const OUTLET_ROUTES = [
-  '/dashboard/people',
-  '/dashboard/settings',
-  // ... manually maintained
-];
-```
-
-**Final fix — derive from router, not duplicate it:**
-
-```tsx
-// routes.ts — single source of truth
-export const MASTER_DETAIL_PATHS = {
-  people: '/dashboard/people',
-  settings: '/dashboard/settings',
+### F-02: Model ID Hardcoded Without Validation — Configuration Debt  
+**Agreed Issue:** Hardcoded model ID `gemini-3-flash-preview-20251217` (missing provider prefix) causes silent 404; inconsistency with `04-performance-planning.md` using `google/gemini-3-flash-preview-20251217` indicates fragmented configuration.  
+**Agreed Fix:** Centralized model registry with startup validation:  
+```typescript
+// config/model-registry.ts
+export const MODEL_REGISTRY = {
+  GEMINI_FLASH: 'google/gemini-2.5-flash',
+  GEMINI_FLASH_PREVIEW: 'google/gemini-3-flash-preview-20251217', // Marked DEPRECATED
+  CLAUDE_SONNET: 'anthropic/claude-4.6-sonnet-20260217',
+  DEEPSEEK_V3: 'deepseek/deepseek-v3.2-20251201',
+  NEMOTRON_NANO: 'nvidia/nemotron-3-nano-30b-a3b:free',
 } as const;
+```  
+*Files to modify:* `05-competitive-intel.md` (remove hardcoded ID), add `config/model-registry.ts` and validation hook in pipeline initializer  
 
-export type MasterDetailPath = typeof MASTER_DETAIL_PATHS[keyof typeof MASTER_DETAIL_PATHS];
+### F-03: No Migration Safety Policy — AI-Induced Data Annihilation Risk  
+**Agreed Issue:** Absence of explicit prohibition against `sequelize.sync({ force: true })` in all six planning documents enables AI executors to destroy production data (user accounts, workout plans, session history, etc.) when "fixing" database issues.  
+**Agreed Fix:** Mandatory migration policy enforced at code level:  
+```typescript
+// database/migrator.ts
+export const migrator = new Umzug({ /* config */ });
+export async function runMigrationsOnStartup() {
+  // ... migration logic
+  // BLOCK UNSAFE SYNC
+  sequelize.sync = async (options?: SyncOptions) => {
+    if (options?.force || options?.alter) {
+      throw new Error('POLICY VIOLATION: Use Umzug migrations only');
+    }
+    return originalSync(options);
+  };
+}
+```  
+*Files to modify:* All six validation documents (add migration policy section), create `database/MIGRATION_POLICY.md`, implement `database/migrator.ts`  
 
-// MasterDetailLayout.tsx
-import { MASTER_DETAIL_PATHS } from '@/routes';
-const OUTLET_ROUTES = Object.values(MASTER_DETAIL_PATHS); // ✅ Derived, never duplicated
-```
+### F-04: PII Leakage to External LLMs — Unenforced Security Policy  
+**Agreed Issue:** `03-security-planning.md` correctly identifies "ZERO PII TO LLMs" requirement but lacks enforcement mechanisms, relying on advisory guidelines that AI executors will ignore.  
+**Agreed Fix:** Implement runtime PII scanning and blocking:  
+```typescript
+// llm-gateway/pII-filter.ts
+export async function safeLLMPrompt(messages: Message[]): Promise<string> {
+  const piiPatterns = [/\b\d{3}-\d{2}-\d{4}\b/, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i];
+  const sanitized = messages.map(m => ({
+    ...m,
+    content: m.content.replace(piiPatterns, '[REDACTED_PII]')
+  }));
+  
+  if (hasPII(messages)) {
+    auditLog.piiBlocked(messages);
+    throw new Error('PII transmission blocked by policy');
+  }
+  
+  return callLLM(sanitized);
+}
+```  
+*Files to modify:* `03-security-planning.md` (add enforcement section), create `llm-gateway/pII-filter.ts`, integrate into all LLM call paths  
 
----
+## Consensus Summary
+All four critical findings represent systemic risks that would inevitably lead to production incidents:  
+1. **Data integrity failure** via broken validation pipeline (F-01)  
+2. **Configuration fragility** from unvalidated dependencies (F-02)  
+3. **Catastrophic data loss** from unsafe ORM usage (F-03)  
+4. **Regulatory violation** via uncontrolled PII exposure (F-04)  
 
-## FINAL MERGED FINDINGS
+The agreed fixes establish:  
+- **Fail-fast validation** with explicit error states  
+- **Centralized, validated configuration**  
+- **Automated blocking of dangerous patterns**  
+- **Runtime enforcement of security policies**  
 
-| Issue | File | Resolution |
-|-------|------|------------|
-| CRIT-01 | `AuthContext.tsx`, `MasterDetailLayout.tsx` | `useMemo([token])` stabilizes `authAxios`; `AbortController` handles cancellation |
-| CRIT-02 | `api-types.ts`, `MasterDetailLayout.tsx` | Zod `ClientsApiResponseSchema` validates full envelope at runtime |
-| CRIT-03 | `MasterDetailLayout.tsx` | `useCallback` on all four render props; stable references fix broken memo |
-| CRIT-04 | `ClientDetailView.tsx` | Remove `key={client.id}`; `useEffect([client.id])` resets tab explicitly |
-| HIGH-01 | `dashboard-tabs.ts` | Exhaustive `Record<TabKey, number>` with `sortTabs()` guard function |
-| HIGH-02 | `MasterDetailLayout.tsx` | `navigate(\`...messages?clientId=${clientId}\`)` |
-| HIGH-03 | `MasterDetailLayout.tsx` | `closest()` with full ARIA selector including `combobox`, `spinbutton`, `listbox` |
-| HIGH-04 | `routes.ts`, `MasterDetailLayout.tsx` | `Object.values(MASTER_DETAIL_PATHS)` derived from single source |
-| HIGH-05 | `TabErrorBoundary.tsx` | Instance-level `reported` flag; `captureException` to observability service |
-
-**Three precision corrections applied:**
-1. `window.__REACT_ERROR_BOUNDARY_REPORTED__` → instance-level `this.reported` flag
-2. `as TabKey` cast → mandatory `isValidTabKey` guard with unknown-tab fallback
-3. HIGH-04 completed with `Object.values()` derivation pattern
-
-All findings are architecturally sound, type-safe at compile time, validated at runtime, and production-observable. **Submitting for final authority ratification.**
+Implementation must block further pipeline execution until these are resolved, as the current state risks cascading failures in downstream AI-generated code.

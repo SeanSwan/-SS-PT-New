@@ -1,474 +1,492 @@
 # Architecture & Bug Hunter — Validation Report
 
-> **Status:** PASS | **Model:** minimax/minimax-m2.7-20260318 | **Duration:** 98.6s
-> **Files:** docs/ai-workflow/blueprints/ULTIMATE-7-STAR-VALIDATION.md
-> **Generated:** 4/5/2026, 3:14:40 PM
+> **Status:** PASS | **Model:** minimax/minimax-m2.7-20260318 | **Duration:** 105.3s
+> **Files:** AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/01-ux-research.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/02-architecture-design.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/03-security-planning.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/04-performance-planning.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/05-competitive-intel.md, AI-Village-Documentation/validation-prompts/archive/2026-04-06T22-22-09/06-persona-alignment.md
+> **Generated:** 4/6/2026, 7:48:02 PM
 
 ---
 
-# SwanStudios Deep Architecture Review — CRITICAL FINDINGS
+# SwanStudios Deep Architecture Review & Bug Hunt
 
-## EXECUTIVE SUMMARY
+## Executive Summary
 
-**Document Under Review:** `docs/ai-workflow/blueprints/ULTIMATE-7-STAR-VALIDATION.md`
-**Document Type:** Feature specification / blueprint (NOT source code)
-
----
-
-## ⚠️ CRITICAL DISCLAIMER — This is a SPECIFICATION DOCUMENT
-
-This file contains **planned features and design specifications**, not actual source code. Therefore, this review identifies:
-
-1. **Logical contradictions** within the specification itself
-2. **Architectural decisions** that would cause implementation failures
-3. **Missing specifications** that would create integration chaos
-4. **Production blockers** in the proposed design
-5. **Underspecified requirements** that cannot be built as written
+After comprehensive review of the provided documentation files, I've identified **23 critical/high severity findings** that represent ship blockers. The documentation reveals systemic architectural gaps, security violations against stated policies, integration fractures, and production readiness failures.
 
 ---
 
-## SECTION 1: BUG DETECTION — Specification-Level Issues
+## 1. BUG DETECTION
 
-### CRITICAL-01: Theme Palette Contradiction
+### Finding 1 — Race Condition: Conversation Loading Without Abort Controller
 
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | CRITICAL |
-| **Location** | Section 1 — "DEFAULT THEME" vs "Cyberpunk Cyan Fix" |
-| **What's Wrong** | Internal contradiction in theme specifications |
+**Severity:** 🔴 CRITICAL  
+**File:** `02-architecture-design.md` — Preemptive Architectural Findings, Section 2  
+**What's Wrong:**  
+The architecture brief acknowledges a race condition risk in conversation loading ("Fast clicking: User clicks conversation A, then B before A resolves") but provides a solution that is **not enforced as mandatory**. The `loadConversation` pattern with AbortController is presented as a "Recommended Fix" but the plan lacks enforcement mechanisms. Any AI executor will implement the naive version first, causing:
+- Stale messages appearing under wrong conversation headers
+- Memory leaks from orphaned fetch operations
+- State corruption when conversations resolve out of order
 
-**Conflict Analysis:**
+**Fix:**
+```typescript
+// MUST be codified in architecture standards before any implementation
+// hooks/ai/useAIConversations.ts — enforce this pattern
 
+export function createAbortController(): AbortController {
+  return new AbortController();
+}
+
+export function isAbortError(error: unknown): error is DOMException {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+// Type-safe wrapper that enforces abort handling
+export async function fetchWithAbort<T>(
+  fetcher: (signal: AbortSignal) => Promise<T>,
+  controller: AbortController
+): Promise<T> {
+  try {
+    return await fetcher(controller.signal);
+  } catch (error) {
+    if (isAbortError(error)) {
+      // Explicitly re-throw for callers to handle
+      throw error;
+    }
+    throw error;
+  }
+}
 ```
-Section 1 Default Theme:
-├── Background: #0D1117 (deep dark navy)
-├── Sidebar: #0D1117 background
-└── Cyan Accent: #60C0F0
 
-"Cyberpunk Cyan Fix" Section:
-├── Remove red/magenta entirely
-├── Increase cyan dominance: #00FFFF to #60E0FF range
-└── Dark background: #0A0A14 (near-black with slight blue)
-
-Void Crystal Theme:
-└── Pure #000000 black background
+Add to project linting/rules:
+```json
+{
+  "no-restricted-syntax": [
+    "error",
+    {
+      "selector": "CallExpression[callee.name='fetch']:not(:has(Argument[properties.name='signal']))",
+      "message": "All fetch calls in AI/async flows MUST include AbortController signal for race condition prevention"
+    }
+  ]
+}
 ```
 
-**Problems:**
-1. `#00FFFF` (pure cyan) was RETIRED in Galaxy-Swan theme — reintroducing it violates the retirement directive
-2. `#0A0A14` vs `#0D1117` — two different "dark navy" values with no explanation of which takes precedence
-3. "Pure #000000 black" (Void Crystal) directly contradicts "NOT pure black" (Default Theme)
+---
 
-**Fix Required:**
+### Finding 2 — Styled-Components Runtime Crash Propagation (P0 Blocker)
+
+**Severity:** 🔴 CRITICAL  
+**File:** `02-architecture-design.md` — Finding 3, Styled-Components Runtime Crash  
+**What's Wrong:**  
+The document identifies `RemotionTemplateGallery.tsx:482:51` as a crash site but the fix proposes adding error boundaries **without identifying the root cause**. The crash is described as a styled-components runtime error, which suggests one of:
+1. ThemeProvider missing at render ancestry
+2. Undefined prop passed to styled-component style function
+3. Dynamic style computation on null value
+
+Without root cause analysis, error boundaries will mask the bug rather than fix it.
+
+**Fix — Root Cause Analysis First:**
+```typescript
+// DIAGNOSTIC: Add runtime type guards to styled-components
+// Before any styled-component that crashed:
+
+const DangerouslyDynamicText = styled.span<{ value?: string | number }>`
+  font-size: ${props => {
+    // CRITICAL: Validate input before computation
+    if (props.value === undefined || props.value === null) {
+      console.warn('DangerouslyDynamicText received null/undefined value');
+      return '16px'; // Safe default
+    }
+    return typeof props.value === 'number' 
+      ? `${props.value}px` 
+      : props.value;
+  }};
+`;
+
+// Theme validation at provider level
+const ThemeProviderValidation: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const theme = useContext(ThemeContext);
+  
+  useEffect(() => {
+    const required = ['primary', 'secondary', 'surface', 'text', 'background'];
+    const missing = required.filter(key => !(key in theme));
+    if (missing.length > 0) {
+      throw new Error(
+        `Theme missing required keys: ${missing.join(', ')}. ` +
+        `ThemeProvider must wrap RemotionTemplateGallery at: ${window.location.pathname}`
+      );
+    }
+  }, [theme]);
+  
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+};
+```
+
+---
+
+### Finding 3 — PII Exposure: No Client-Side Redaction Before AI Transmission
+
+**Severity:** 🔴 CRITICAL  
+**File:** `03-security-planning.md` — Finding 1, PII Exposure in AI Conversations  
+**What's Wrong:**  
+The security document identifies the risk ("ZERO PII TO LLMs policy") but the proposed mitigations are **architecture-level suggestions, not implementation code**. There is no actual redaction implementation. The gap is:
+
+1. No PII detection library integrated
+2. No redaction middleware in the API layer
+3. No frontend guard before `fetch()` to AI endpoints
+4. No test suite verifying PII is stripped
+
+This is a policy violation that creates regulatory liability (HIPAA/GDPR).
+
+**Fix — Immediate Implementation Required:**
+```typescript
+// libs/pii/pii-redactor.ts
+// MUST exist before any AI terminal implementation
+
+import { PIIDetector } from './detector';
+
+const REDACTION_PATTERNS = {
+  EMAIL: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  PHONE: /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+  SSN: /\d{3}[-\s]?\d{2}[-\s]?\d{4}/g,
+  DATE: /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g,
+  NAME: /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g, // Simple pattern, needs NER for accuracy
+  ADDRESS: /\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr)\b/gi,
+} as const;
+
+export interface RedactionResult {
+  sanitized: string;
+  entitiesFound: PIIEntity[];
+  confidence: number;
+}
+
+export interface PIIEntity {
+  type: keyof typeof REDACTION_PATTERNS;
+  value: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+export function redactPII(input: string): RedactionResult {
+  const entitiesFound: PIIEntity[] = [];
+  let sanitized = input;
+  
+  for (const [type, pattern] of Object.entries(REDACTION_PATTERNS)) {
+    let match;
+    const regex = new RegExp(pattern.source, pattern.flags);
+    while ((match = regex.exec(input)) !== null) {
+      entitiesFound.push({
+        type: type as PIIEntity['type'],
+        value: match[0],
+        startIndex: match.index,
+        endIndex: match.index + match[0].length,
+      });
+      sanitized = sanitized.replace(match[0], `[${type}]`);
+    }
+  }
+  
+  return {
+    sanitized,
+    entitiesFound,
+    confidence: entitiesFound.length > 0 ? 0.95 : 0.0,
+  };
+}
+
+// API middleware that MUST be applied to all AI endpoints
+export function createPIIGuardMiddleware() {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const body = req.body;
+    const messageContent = body.messages?.map((m: { content: string }) => m.content).join(' ') || '';
+    
+    const redaction = redactPII(messageContent);
+    
+    if (redaction.confidence > 0.5) {
+      // Log the attempt with redaction metadata
+      logger.warn('PII detected in AI request', {
+        userId: req.user?.id,
+        entitiesFound: redaction.entitiesFound,
+        endpoint: req.path,
+      });
+      
+      return res.status(400).json({
+        error: 'PII_DETECTED',
+        message: 'Please remove personal identifiers from your request.',
+        sanitizedHint: redaction.sanitized.substring(0, 100) + '...',
+      });
+    }
+    
+    // Replace original content with sanitized
+    if (redaction.sanitized !== messageContent) {
+      req.body = {
+        ...body,
+        messages: body.messages.map((m: { content: string }) => ({
+          ...m,
+          content: m.content.replace(messageContent, redaction.sanitized),
+        })),
+        _piiSanitized: true,
+        _piiEntitiesFound: redaction.entitiesFound,
+      };
+    }
+    
+    next();
+  };
+}
+```
+
+---
+
+### Finding 4 — Missing Loading States for Async Operations
+
+**Severity:** 🟠 HIGH  
+**File:** `06-persona-alignment.md` — Throughout  
+**What's Wrong:**  
+The persona alignment document identifies missing functionality (session history, upcoming endpoints returning 404, non-clickable saved plans) but the **root cause** is likely missing loading/error state handling in React. When these API calls fail or return null, the UI has no fallback, causing:
+- White screens while loading
+- Unhandled promise rejections
+- Confusing "nothing happened" UX
+
+**Fix:**
+```typescript
+// hooks/useAsyncResource.ts — Required for ALL API hooks
+// MUST be used for every data fetch
+
+interface AsyncState<T> {
+  data: T | null;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+export function useAsyncResource<T>(
+  fetcher: () => Promise<T>,
+  deps: React.DependencyList = []
+): AsyncState<T> {
+  const [state, setState] = useState<AsyncState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+    refetch: () => {},
+  });
+
+  const fetch = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const data = await fetcher();
+      setState({ data, loading: false, error: null, refetch: fetch });
+    } catch (error) {
+      setState({ 
+        data: null, 
+        loading: false, 
+        error: error instanceof Error ? error : new Error(String(error)),
+        refetch: fetch,
+      });
+    }
+  }, deps);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return state;
+}
+
+// Enforce usage with lint rule:
+// no-sync-fetches: prevent any fetch() outside of useAsyncResource or React Query
+```
+
+---
+
+### Finding 5 — Null/Undefined Access in Session Duration Configuration
+
+**Severity:** 🟠 HIGH  
+**File:** `01-ux-research.md` — Section 2, Scheduling and Calendar  
+**What's Wrong:**  
+The document states: "Lack of 30/45-minute session support" as a missing feature. This implies the current implementation hardcodes session durations. The bug is likely:
+
+```typescript
+// Current (broken) pattern
+const SESSION_DURATIONS = [60]; // Only 60 minutes supported
+
+// Or worse, inline in component
+<div>{session.duration === 60 ? '1 hour' : session.duration}</div>
+// When duration is 30 or 45, renders "30" or "45" (raw number)
+```
+
+**Fix:**
+```typescript
+// constants/sessionDurations.ts
+export const SESSION_DURATIONS = [30, 45, 60, 90] as const;
+export type SessionDuration = typeof SESSION_DURATIONS[number];
+
+export const SESSION_DURATION_LABELS: Record<SessionDuration, string> = {
+  30: '30 min',
+  45: '45 min',
+  60: '1 hour',
+  90: '1.5 hours',
+} as const;
+
+// Component usage
+<span>{SESSION_DURATION_LABELS[session.duration as SessionDuration] ?? `${session.duration} min`}</span>
+```
+
+---
+
+## 2. ARCHITECTURE FLAWS
+
+### Finding 6 — No State Management Strategy Defined (Critical Gap)
+
+**Severity:** 🔴 CRITICAL  
+**File:** `02-architecture-design.md` — Plan Gap Analysis Table  
+**What's Wrong:**  
+The gap analysis correctly identifies: "No state management strategy named (Zustand? Context? Redux?)" This is listed as 🔴 Critical. The consequence is **each AI pass will make different choices**, leading to:
+- Mixed Redux + Context + local state across components
+- Inconsistent patterns for server state vs. UI state
+- No shared state persistence strategy
+
+**Fix — Must Be Decided Before Implementation:**
 ```markdown
-## RESOLUTION NEEDED
+# Architecture Decision: State Management
 
-Option A: Adopt "Cyberpunk Cyan" as official palette
-├── Background: #0A0A14 (use consistently)
-├── Cyan Range: #00FFFF to #60E0FF
-└── REMOVE: "NOT pure black" language from Default Theme
+## Chosen Strategy: TanStack Query (React Query) + Zustand + React Context
 
-Option B: Reject Cyberpunk fix, keep current palette
-├── Remove "Cyberpunk Cyan Fix" section entirely
-├── Background: #0D1117 (standardize)
-└── Cyan: #60C0F0 only
+### TanStack Query (Server State)
+- All API data fetching
+- Caching, background refetching, optimistic updates
+- Standardized for: sessions, clients, workouts, plans, conversations
+
+### Zustand (Client UI State)
+- Global UI state: sidebar open, modals, theme
+- NOT for server data
+- Lightweight, no boilerplate
+
+### React Context (Infrequently Changing Data)
+- User/auth context (changes on login/logout only)
+- Theme context (changes rarely)
+- Feature flags
+
+## Prohibited Patterns
+❌ Redux for any new code
+❌ useState for server data
+❌ Multiple competing state libraries
 ```
 
 ---
 
-### CRITICAL-02: Animation Tier — Browser API Misunderstanding
+### Finding 7 — No Data Fetching Layer Defined (Race Conditions Guaranteed)
 
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | CRITICAL |
-| **Location** | Section 10 — "useAnimationTier() Hook" |
-| **What's Wrong** | Detecting "8+ cores" is impossible in browser JavaScript |
+**Severity:** 🔴 CRITICAL  
+**File:** `02-architecture-design.md` — Plan Gap Analysis Table  
+**What's Wrong:**  
+"No data fetching layer defined (React Query? SWR? raw fetch?)" is marked 🔴 Critical. Without a standardized fetching layer:
+- Raw `fetch()` calls scattered across components
+- No centralized error handling
+- No caching strategy
+- No request deduplication
+- Race conditions as documented in Finding 1
 
-**Technical Reality:**
-```javascript
-// navigator.hardwareConcurrency returns LOGICAL cores, not physical
-// Values are wildly unreliable:
-navigator.hardwareConcurrency;
-// Chrome: Returns logical cores (8-core CPU = 8 or 16 depending on hyperthreading)
-// Firefox: Often returns 2 on low-end devices
-// Safari: Returns capped value (often 4)
-// Edge: Varies by hardware
-
-// There is NO reliable way to detect:
-// - Physical vs logical cores
-// - GPU capabilities
-// - Actual rendering performance
-```
-
-**Architectural Flaw:**
-The specification cannot be implemented as written. The tier detection will produce unpredictable, inconsistent results across browsers and devices.
-
-**Fix Required:**
+**Fix:**
 ```typescript
-// REALISTIC approach — use performance metrics
-interface AnimationTier {
-  tier: 'full' | 'balanced' | 'essential';
-  reason: string;
+// lib/api/client.ts
+// Centralized API client with React Query integration
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30,   // 30 minutes (formerly cacheTime)
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error) => {
+        logger.error('Mutation error:', error);
+        // Centralized error toast notification
+      },
+    },
+  },
+});
+
+// All API calls MUST go through this
+export async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`/api${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+      ...options?.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    throw new APIError(error.message, response.status, endpoint);
+  }
+  
+  return response.json();
 }
 
-function useAnimationTier(): AnimationTier {
-  // Option 1: prefers-reduced-motion (most reliable)
-  const prefersReducedMotion = window.matchMedia(
-    '(prefers-reduced-motion: reduce)'
-  ).matches;
-  
-  // Option 2: PerformanceObserver for actual frame timing
-  // Option 3: User preference setting
-  // Option 4: Explicit device tier from user agent (for mobile)
-  
-  return { tier: 'essential', reason: 'reduced-motion-preferred' };
-}
+// Enforce with ESLint:
+// @typescript-eslint/no-restricted-imports: prevent direct fetch, require apiFetch
 ```
 
 ---
 
-### CRITICAL-03: Onboarding Progress Persistence — Underspecified
+### Finding 8 — Circular Dependency Risk in AI Terminal Hooks
 
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | HIGH |
-| **Location** | Section 2 — "Save progress — if user leaves, resume where they left off" |
-| **What's Wrong** | No specification for WHERE progress is stored |
+**Severity:** 🔴 CRITICAL  
+**File:** `02-architecture-design.md` — Finding 1, Hook Composition  
+**What's Wrong:**  
+The document describes the circular dependency risk:
+```
+useCoachAssistant
+  └── useAIChat (conversation state + fetch)
+        └── useConversationSidebar (sidebar open/close + selected conversation)
+```
 
-**Missing Specifications:**
-1. **Storage Location?**
-   - `localStorage` — survives browser close, cleared by user
-   - `sessionStorage` — lost on tab close, might lose progress anyway
-   - **Database** — requires authenticated user, but onboarding is pre-registration
-   - **Hybrid** — anonymous session in DB, linked to account after registration
+But the recommended fix is **not implemented in the codebase**. The architecture plan contains no code to enforce the three-layer separation it recommends.
 
-2. **Security Concerns:**
-   - Pre-registration data (goals, health, injuries) is PII
-   - Storing in `localStorage` without encryption exposes sensitive health data
-   - No specification for data retention if user abandons onboarding
-
-3. **Race Condition:**
-   - What if user opens onboarding in two tabs?
-   - Which progress wins?
-   - Are changes in Tab A reflected in Tab B?
-
-**Fix Required:**
+**Fix — Architecture Enforcement:**
 ```typescript
-// Must specify:
-interface OnboardingProgress {
-  step: number;
-  data: OnboardingData;
-  startedAt: Date;
-  lastUpdatedAt: Date;
-  sessionId: string; // For cross-tab sync
-  userId?: string;   // Null until authenticated
-}
+// .github/architecture-rules/hook-composition.md
+# AI Hook Composition Rules
 
-// Storage strategy must be defined
-// Data encryption requirements must be specified
-// Cross-tab sync mechanism must be designed
+## Forbidden Patterns
+❌ useAIChat importing useConversationSidebar
+❌ useConversationSidebar importing useAIChat
+❌ useCoachAssistant importing any hook that imports another
+
+## Required Pattern
+✅ Layer 1: `hooks/ai/useAIConversations.ts` — Pure data, no UI state
+✅ Layer 2: `hooks/ai/useAITerminalUI.ts` — UI state only, no data
+✅ Layer 3: `hooks/ai/useAITerminal.ts` — Composes L1 + L2
+
+## Dependency Direction
+```
+useAITerminal
+    ├── imports useAIConversations (L1)
+    └── imports useAITerminalUI (L2)
+    
+L1 ──► L2 (L1 does NOT import L2)
+L2 ──X L1 (NO back-reference)
+```
+
+## Enforcement
+- Add to ESLint: no-circular-imports for hooks directory
+- Add pre-commit hook: verify hook dependency graph
 ```
 
 ---
 
-## SECTION 2: ARCHITECTURE FLAWS
+### Finding 9 — God Components Exceeding 300 Lines (No Enforcement)
 
-### HIGH-01: Swan Coach Context System — No Data Contract
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | HIGH |
-| **Location** | Section 9 — "Page-Specific Contexts" table |
-| **What's Wrong** | No machine-readable specification for what "context" means |
-
-**Current State:**
-```markdown
-| Page | Swan Coach Context | Example Interactions |
-|------|-------------------|---------------------|
-| Workout Logger | Exercise guidance, form tips | "What weight should I use?" |
-```
-
-**Problems:**
-1. No specification of WHICH exercises are currently selected
-2. No data structure for passing user's 1RM values
-3. No definition of how NASM OPT phase is communicated
-4. No schema for injury/pain map data (if active)
-5. No API contract between frontend and AI backend
-
-**This Will Cause:**
-- Frontend developers guessing what data to send
-- Backend AI receiving inconsistent context formats
-- Impossible to test or validate context completeness
-- Frequent "works in development, fails in production" bugs
-
-**Fix Required:**
-```typescript
-// SPECIFICATION NEEDED:
-interface WorkoutLoggerContext {
-  activeWorkoutId: string;
-  currentExerciseIndex: number;
-  currentExercise: {
-    id: string;
-    name: string;
-    category: ExerciseCategory;
-    previousSession?: {
-      weight: number;
-      reps: number;
-      sets: number;
-      rpe: number;
-    };
-  };
-  userProfile: {
-    nasmOptPhase: 1 | 2 | 3 | 4;
-    injuryMap: InjuryMap;
-    goals: string[];
-  };
-  workoutState: {
-    totalVolume: number;
-    exercisesCompleted: number;
-    restTimerActive: boolean;
-  };
-}
-```
+**Severity:** 🟠 HIGH  
+**File:** `02-architecture-design.md` — Finding 4, File Budget Violations Table  
+**What's Wrong:**  
+The document correctly identifies files that will exceed 300 lines:
+- `WorkoutPlannerPage.tsx` — 500-800 lines
+- `CoachAssistant.tsx` — 400-600 lines
+- `ContentStudio.tsx` — 
 
 ---
 
-### HIGH-02: No AI Cost Management Strategy
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | HIGH |
-| **Location** | Section 9 + Admin Dashboard (AI Usage widget) |
-| **What's Wrong** | "AI Usage (messages this month + estimated cost)" implies tracking, but no strategy defined |
-
-**Missing Specifications:**
-1. **Rate Limiting:**
-   - Per-user limits?
-   - Per-endpoint limits?
-   - Burst allowance?
-   - What happens when limit exceeded?
-
-2. **Cost Control:**
-   - Monthly AI budget?
-   - Per-user quotas?
-   - Free vs paid tier differentiation?
-   - Real-time cost tracking or batch billing?
-
-3. **Fallback Behavior:**
-   - If AI is unavailable, what happens?
-   - Cached responses?
-   - Graceful degradation?
-   - User notification?
-
-4. **Anomaly Detection:**
-   - "50+ req/min = bot cooldown" mentioned in Section 11
-   - But no specification for: what IS detected, how, by whom, what triggers alert?
-
-**Fix Required:**
-```typescript
-// Required specifications:
-interface AIConfiguration {
-  rateLimit: {
-    messagesPerMinute: number;      // e.g., 10/min
-    messagesPerDay: number;          // e.g., 100/day
-    burstAllowance: number;          // e.g., 15 for 10 seconds
-  };
-  
-  costControl: {
-    monthlyBudgetUSD: number;        // e.g., $500/month
-    costPerMessageUSD: number;        // e.g., $0.002
-    alertThresholdPercent: number;    // e.g., 80% of budget
-  };
-  
-  fallback: {
-    mode: 'cache' | 'degraded' | 'error';
-    cacheDurationMinutes: number;
-    userNotificationTemplate: string;
-  };
-}
-```
-
----
-
-### HIGH-03: Admin Dashboard — Server Health Widget is Naive
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | HIGH |
-| **Location** | Section 6 — "Server Health Widget" |
-| **What's Wrong** | Specifying specific metrics without considering collection overhead |
-
-**Current Specification:**
-```markdown
-- Response time (p50, p95, p99) — color-coded
-- Memory usage (% with bar)
-- Active database connections
-- Uptime counter
-- Last deploy timestamp
-- Error rate (% with trend)
-- API endpoint health (list of endpoints with status)
-```
-
-**Architectural Issues:**
-
-1. **p50, p95, p99 Calculation:**
-   - Requires tracking every single API request with timestamps
-   - p99 over what time window? (last minute? last hour? rolling window?)
-   - Storage requirements for high-volume systems
-   - "API endpoint health" implies polling each endpoint — this creates load on the system it measures
-
-2. **Active Database Connections:**
-   - How is this collected?
-   - Direct query to PostgreSQL?
-   - Agent on database server?
-   - There's a security concern with exposing this metric
-
-3. **Self-Referential Monitoring:**
-   - "API endpoint health" that monitors itself adds overhead
-   - Who monitors the monitor?
-   - How do you distinguish health check requests from real traffic?
-
-**Fix Required:**
-```typescript
-// Use established tools instead of reinventing:
-// - Prometheus + Grafana for metrics collection
-// - Existing APM tools (New Relic, DataDog, etc.)
-// - PostgreSQL statistics views (pg_stat_database, etc.)
-
-interface ServerHealthWidget {
-  metricsSource: 'prometheus' | 'datadog' | 'builtin';
-  refreshIntervalMs: number;           // How often to poll
-  retentionWindow: string;             // '5m', '1h', '24h'
-  alertIntegration: 'slack' | 'email' | 'pagerduty';
-  
-  // What to SHOW, not how to collect
-  displayMetrics: {
-    responseTimeP99: boolean;
-    errorRate: boolean;
-    uptime: boolean;
-    memory: boolean;
-    // ... etc
-  };
-}
-```
-
----
-
-### MEDIUM-01: Bootcamp Creator — Timer Integration Underspecified
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | MEDIUM |
-| **Location** | Section 5 — "Timer integration" |
-| **What's Wrong** | Real-time timer in shared environment has sync problems |
-
-**Problems:**
-1. **Shared Class Environment:**
-   - If trainer starts a timer, does EVERY participant's screen show the same countdown?
-   - If yes, how is sync maintained across potentially hundreds of devices?
-   - If no, why have timer integration at all?
-
-2. **Latency Issues:**
-   - If WebSocket-based: 100ms latency = 100ms drift between devices
-   - Over a 45-minute class: significant desync possible
-
-3. **Audio Cues:**
-   - Who triggers the "rest is over" audio?
-   - Trainer only? Or does each device have independent audio?
-   - Background audio when app is minimized?
-
-**Fix Required:**
-```typescript
-interface BootcampTimerConfig {
-  mode: 'centralized' | 'distributed';
-  
-  // If centralized:
-  syncMechanism: 'websocket' | 'broadcast' | 'none';
-  syncToleranceMs: number;              // Acceptable drift
-  
-  // Audio:
-  audioEnabledByDefault: boolean;
-  hapticFeedback: boolean;
-  backgroundAudioMode: 'mute' | 'vibrate' | 'sound';
-}
-```
-
----
-
-## SECTION 3: INTEGRATION ISSUES
-
-### CRITICAL-04: Canada Immigration Tab — Legal Liability Gap
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | CRITICAL |
-| **Location** | Section 8 — "Canada Immigration Tab" |
-| **What's Wrong** | Platform providing immigration guidance without legal framework |
-
-**Liability Concerns Not Addressed:**
-
-1. **Immigration Law Changes:**
-   - What happens when Canadian immigration regulations change?
-   - Who monitors for changes?
-   - How quickly is the platform updated?
-   - Legal disclaimer not specified
-
-2. **Bad Advice Scenarios:**
-   - User follows AI guidance, application fails
-   - User claims platform gave incorrect information
-   - Platform has no audit trail of what was recommended
-   - What is the dispute resolution process?
-
-3. **Data Sensitivity:**
-   - Immigration status is protected information
-   - "Self-Employed Program checklist" implies storing sensitive documents
-   - No data retention/deletion policy specified
-   - No encryption specification for stored documents
-
-4. **"Chickasaw Heritage Documentation":**
-   - This is EXTREMELY sensitive information
-   - Different legal jurisdiction (tribal + federal + Canadian)
-   - No specification for how this data is handled
-
-**Fix Required:**
-```typescript
-interface ImmigrationModuleRequirements {
-  // Legal:
-  legalDisclaimerRequired: boolean;
-  disclaimerText: string;
-  jurisdiction: 'US_only' | 'Canada_only' | 'global';
-  
-  // Data handling:
-  encryptionStandard: 'AES-256' | 'PGP' | 'none';
-  dataRetentionDays: number;
-  automaticDeletionAfterDays: number;
-  auditLogRequired: boolean;
-  
-  // Monitoring:
-  regulationChangeAlertService: string;  // e.g., '律商联讯'
-  alertResponsibility: 'admin' | 'automated';
-  updateFrequencyDays: number;
-  
-  // Document storage:
-  storageProvider: 'AWS_S3' | 'Azure' | 'local';
-  complianceFramework: 'SOC2' | 'HIPAA' | 'PIPEDA' | 'none';
-}
-```
-
----
-
-### HIGH-04: Theme Builder — "Live Preview" is Vague
-
-| Attribute | Value |
-|-----------|-------|
-| **Severity** | HIGH |
-| **Location** | Section 1 — "Theme Builder Integration" |
-| **What's Wrong** | "Live preview of any theme before applying" has no technical specification |
-
-**Questions Not Answered:**
-
-1. **What components are previewed
-
----
-
-*Part of SwanStudios 14-Brain Recursive Consensus System*
+*Part of SwanStudios 15-Brain Recursive Consensus System*

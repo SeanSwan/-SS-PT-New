@@ -16,7 +16,7 @@ import {
 import { useMediaQuery, alpha } from '../../../../styles/mui-replacements';
 
 // project imports
-import { useMenuState as useMenuStates } from '../../../../hooks/useMenuState';
+import { useMenuState as useMenuStates, useMenuActions } from '../../../../hooks/useMenuState';
 import useConfig from '../../../../hooks/useConfig';
 
 // Small dot icon replacement for FiberManualRecordIcon
@@ -106,7 +106,8 @@ const NavItem = ({ item, level, isParents = false, setSelectedID }: NavItemProps
   const { pathname } = useLocation();
   const { borderRadius } = useConfig();
 
-  const { isDashboardDrawerOpened: drawerOpen, setIsDashboardDrawerOpened } = useMenuStates();
+  const { isDashboardDrawerOpened: drawerOpen } = useMenuStates();
+  const { handleDrawerOpen } = useMenuActions();
   const isSelected = !!matchPath({ path: item?.link ? item.link : item.url, end: false }, pathname);
 
   const [hoverStatus, setHover] = useState(false);
@@ -137,7 +138,7 @@ const NavItem = ({ item, level, isParents = false, setSelectedID }: NavItemProps
   }
 
   const itemHandler = () => {
-    if (downMD) setIsDashboardDrawerOpened(false);
+    if (downMD) handleDrawerOpen(false);
 
     if (isParents && setSelectedID) {
       setSelectedID();
