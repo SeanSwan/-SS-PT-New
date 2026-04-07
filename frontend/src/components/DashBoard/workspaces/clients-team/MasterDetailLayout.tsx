@@ -93,14 +93,10 @@ const PILLAR_TABS: Record<Exclude<Pillar, 'roster'>, { label: string; icon: Reac
 };
 
 // Routes that should show the Outlet (non-roster pillar content) instead of client detail
+// Derived from PILLAR_TABS to prevent drift, plus additional routes not in pillar tabs
 const OUTLET_ROUTES = [
-  '/dashboard/people/leads',
-  '/dashboard/people/onboarding',
-  '/dashboard/people/waivers',
-  '/dashboard/people/orientations',
-  '/dashboard/people/trainers',
-  '/dashboard/people/users',
-  '/dashboard/people/messages',
+  ...Object.values(PILLAR_TABS).flat().map(tab => tab.path),
+  // Additional outlet routes not covered by pillar tabs
   '/dashboard/people/progress',
   '/dashboard/people/assignments',
   '/dashboard/people/measurements',

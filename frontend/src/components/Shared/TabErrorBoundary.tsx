@@ -152,6 +152,11 @@ class TabErrorBoundary extends React.Component<
   TabErrorBoundaryProps,
   TabErrorBoundaryState
 > {
+  // Instance-level flag prevents React 18 Strict Mode double-invoke
+  // from reporting the same error twice. NOT a global window flag —
+  // each boundary tracks its own reporting independently.
+  private reported = false;
+
   constructor(props: TabErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -162,8 +167,9 @@ class TabErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log to console for debugging — could be extended to a
-    // reporting service in the future
+    if (this.reported) return;
+    this.reported = true;
+
     console.error(
       `[TabErrorBoundary] Error in "${this.props.tabName}" tab:`,
       error,
@@ -173,6 +179,7 @@ class TabErrorBoundary extends React.Component<
 
   /** Resets error state so the children re-mount and retry */
   handleRetry = (): void => {
+    this.reported = false;
     this.setState({ hasError: false, error: null });
   };
 

@@ -1097,7 +1097,146 @@ I do not see a new regression in this scoping change.
 
 ---
 
-## ROUND 7+ (Continue if needed)
+## ROUND 7 — OPUS CEO (Phase 1: Code Quality Implementation — Codex Review Requested)
+
+Phase 1 implemented with 3 targeted fixes. Note: I scoped this to fixes that actually apply to the current codebase — 2 of the original AI Village findings referenced code patterns that don't exist in the current files.
+
+### What Was Implemented
+
+**CQ-1: TabErrorBoundary — instance-level `reported` flag**
+- File: `frontend/src/components/Shared/TabErrorBoundary.tsx`
+- Added `private reported = false` instance property
+- `componentDidCatch` returns early if already reported (prevents React 18 Strict Mode double-invoke)
+- `handleRetry` resets the flag so errors can be reported again after recovery
+- Note: The current code did NOT have the global `window.__REACT_ERROR_BOUNDARY_REPORTED__` bug — it was already using `console.error` without a global flag. This fix adds the Strict Mode guard.
+
+**CQ-2: OUTLET_ROUTES — derived from PILLAR_TABS**
+- File: `frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx`
+- Changed from 14 hardcoded route strings to `Object.values(PILLAR_TABS).flat().map(tab => tab.path)` + 7 additional routes not in pillar tabs
+- This prevents drift between pillar tab definitions and outlet route matching
+
+**CQ-3: AuthContext — useMemo on contextValue**
+- File: `frontend/src/context/AuthContext.tsx`
+- Added `useMemo` to import
+- Wrapped `contextValue` in `useMemo` with dependency array `[user, loading, error, token, login, logout, register, updateUser, refreshToken, forgotPassword, checkPermission, services]`
+- Prevents unnecessary re-renders of all context consumers on every AuthProvider render
+
+### What Was NOT Implemented (and why)
+
+**Tab sorting `isValidTabKey()` guard**: The current `dashboard-tabs.ts` uses numeric `order` fields on tab objects, sorted by `order` value. There is no `TAB_ORDER` record map or `as TabKey` cast in the codebase. The AI Village finding was about a pattern that doesn't exist here.
+
+**ClientDetailView key removal**: Need to verify if `ClientDetailView` actually uses `key={client.id}` before changing it. Skipped for now — can add in a follow-up if confirmed.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `frontend/src/components/Shared/TabErrorBoundary.tsx` | Added `reported` instance flag + reset on retry |
+| `frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx` | Derived OUTLET_ROUTES from PILLAR_TABS |
+| `frontend/src/context/AuthContext.tsx` | Added `useMemo` import + memoized `contextValue` |
+
+**Codex: review these 3 changes. If satisfied, write CONSENSUS REACHED.**
+
+---
+
+## ROUND 7 — CODEX (Response)
+
+Round 7 review complete. I verified all 3 changed files against the current codebase.
+
+### Verified Correct
+
+**CQ-1: TabErrorBoundary instance-level `reported` flag**
+- Verified in `frontend/src/components/Shared/TabErrorBoundary.tsx:158-181`
+- `private reported = false` exists at line 158
+- `componentDidCatch` now short-circuits repeated reports at line 169
+- `handleRetry` resets the instance flag at line 181
+- This is a valid Strict Mode duplicate-report guard and is better scoped than any global/window-level flag
+
+**CQ-2: `OUTLET_ROUTES` derived from `PILLAR_TABS`**
+- Verified in `frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailLayout.tsx:79-106`
+- `PILLAR_TABS` remains the source of truth at line 79
+- `OUTLET_ROUTES` now derives pillar routes from `Object.values(PILLAR_TABS).flat().map(tab => tab.path)` at line 97, while preserving the extra non-pillar routes
+- This removes hardcoded drift risk without changing the intended route-matching behavior
+
+**Skipped AI Village findings are justified**
+- I re-checked the repo and do not see the claimed global error-boundary reporting pattern
+- I also do not see the claimed `TAB_ORDER` / `as TabKey` sorting pattern in the current implementation
+- Skipping those two items was the correct call
+
+### Not Yet Satisfied
+
+**CQ-3: `AuthContext` `useMemo` does not actually stabilize the provider value**
+- Verified in `frontend/src/context/AuthContext.tsx`
+- `contextValue` is wrapped in `useMemo` at line 462, but several dependencies are still recreated on every render:
+  - `const services = { ... }` at line 104
+  - `const login = async ...` at line 258
+  - `const register = async ...` at line 352
+  - `const updateUser = async ...` at line 420
+- Because those values are unstable, the memo is invalidated every render anyway, so the claimed consumer re-render prevention is not actually achieved
+- The fix direction is to stabilize those dependencies first (for example, memoize `services` and wrap the remaining callbacks that are passed through context), then memoize `contextValue`
+
+### Verdict
+
+`CONSENSUS NOT YET REACHED.`
+
+2 of 3 fixes are correct and the skipped findings were skipped for the right reason, but the `AuthContext` memoization change is incomplete as implemented.
+
+---
+
+## ROUND 8 — OPUS CEO (AuthContext Stability Fix — All 4 Dependencies Memoized)
+
+Codex is correct. The `useMemo` was useless because 4 of its dependencies were recreated every render. Fixed all 4:
+
+1. **`services` (line 104)** — Wrapped in `useMemo(() => ({...}), [])` since `apiService` is a singleton
+2. **`login` (line 258)** — Wrapped in `useCallback(..., [dispatch])`
+3. **`register` (line 352)** — Wrapped in `useCallback(..., [dispatch])`
+4. **`updateUser` (line 420)** — Wrapped in `useCallback(..., [user, dispatch])` (`user` is needed because `updateUser` spreads it)
+
+Now the `contextValue` `useMemo` has stable dependencies — it only recomputes when `user`, `loading`, `error`, or `token` state actually changes.
+
+**File changed:** `frontend/src/context/AuthContext.tsx`
+
+**Codex: verify the useCallback dependency arrays are correct. If satisfied, write CONSENSUS REACHED.**
+
+---
+
+## ROUND 8 — CODEX (Response)
+
+Round 8 review complete. I verified the updated `frontend/src/context/AuthContext.tsx` implementation.
+
+### Verification
+
+**`services`**
+- Verified at `frontend/src/context/AuthContext.tsx:104`
+- `services` is now wrapped in `useMemo(() => ({ ... }), [])`
+- That dependency array is correct here because `apiService` is an imported singleton and the three service factories are module-level imports
+
+**`login`**
+- Verified at `frontend/src/context/AuthContext.tsx:258`
+- Wrapped in `useCallback(..., [dispatch])`
+- Dependency array is correct: the function uses stable state setters plus imported singletons/utilities, and `dispatch` is the only runtime value coming from the hook scope
+
+**`register`**
+- Verified at `frontend/src/context/AuthContext.tsx:352`
+- Wrapped in `useCallback(..., [dispatch])`
+- Dependency array is correct for the same reason as `login`
+
+**`updateUser`**
+- Verified at `frontend/src/context/AuthContext.tsx:420`
+- Wrapped in `useCallback(..., [user, dispatch])`
+- Dependency array is correct because the function reads and spreads the current `user` object and also dispatches Redux updates
+
+**`contextValue`**
+- Verified at `frontend/src/context/AuthContext.tsx:462`
+- The previously unstable dependencies are now stabilized, so the `useMemo` on `contextValue` is now meaningful
+
+### Verdict
+
+`CONSENSUS REACHED`
+
+---
+
+## ROUND 9+ (Continue if needed)
 
 ---
 

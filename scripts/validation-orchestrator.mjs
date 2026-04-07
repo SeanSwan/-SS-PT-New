@@ -8,11 +8,11 @@
  * ║  Phase 1 — 9 parallel analysts (OpenRouter):                      ║
  * ║  1. Gemini 2.5 Flash     → UX / Accessibility        (FREE)    ║
  * ║  2. Claude Sonnet 4.6   → Code Quality               (FREE)    ║
- * ║  3. Step 3.5 Flash       → Security scan              (FREE)    ║
+ * ║  3. Nemotron 3 Nano       → Security scan              (FREE)    ║
  * ║  4. Gemini 3 Flash       → Performance review         (FREE)    ║
- * ║  5. MiniMax M2.1         → Competitive intelligence   (FREE)    ║
- * ║  6. DeepSeek V3.2        → User research / personas   (FREE)    ║
- * ║  7. MiniMax M2.5         → Architecture & Bug Hunter  (~$0.01)  ║
+ * ║  5. Gemini 2.5 Flash         → Competitive intelligence   (FREE)    ║
+ * ║  6. Nemotron 3 Nano        → User research / personas   (FREE)    ║
+ * ║  7. Gemini 2.5 Flash         → Architecture & Bug Hunter  (~$0.01)  ║
  * ║  8. Gemini 3.1 Flash     → Frontend UX & Code Patterns (FREE)  ║
  * ║  9. Claude Sonnet 4.6   → Data Safety & Integrity     (FREE)  ║
  * ║                                                                  ║
@@ -59,30 +59,34 @@ const ROOT = join(__dirname, '..');
 // VERIFIED FREE: https://openrouter.ai/collections/free-models
 // PAID models are clearly marked with cost estimates
 const MODELS = {
-  // ── VERIFIED FREE on OpenRouter ──
-  gemini25Flash:  'google/gemini-2.5-flash',              // FREE — fast, great at structured analysis
-  gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — solid for performance review
-  gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — latest Flash lite, strong at code review
-  deepseekV3:     'deepseek/deepseek-v3.2',                // ~$0.26/$0.38 per M — user research / personas
-  step35Flash:    'stepfun/step-3.5-flash:free',           // FREE — 256K ctx, 74.4% SWE-bench, security specialist
-  minimaxM21:     'minimax/minimax-m2.5:free',              // FREE — upgraded from M2.1 (2026-04-06 model audit)
-  minimaxM25Free: 'minimax/minimax-m2.7',                   // $0.30/$1.20 per M — replaces M2.5:free (data policy blocks)
-  nemotron3Super: 'nvidia/nemotron-3-super-120b-a12b:free', // FREE — 120B MoE, security + data safety specialist
-  qwen36Plus:     'qwen/qwen3.6-plus:free',                 // FREE — 1M context, code architecture specialist (graduated from preview)
-  // ── PAID models (clearly marked) ──
-  claudeSonnet46: 'anthropic/claude-sonnet-4.6',            // $3/$15 per M tokens — premium code quality + data safety
-  trinityLarge:   'arcee-ai/trinity-large-preview:free',    // FREE — 400B MoE, 13B active, 131K ctx (added 2026-04-06 model audit)
-  // ── PAID models (clearly marked) ──
-  // claudeSonnet46 is above
+  // ── VERIFIED FREE — US/EU COMPANIES ONLY (Privacy audit 2026-04-06) ──
+  // Policy: No Chinese models for sensitive roles (security, competitive intel, user research)
+  // Remaining Chinese model: MiniMax M2.7 (design debates only — lowest sensitivity, no free US equivalent)
+  gemini25Flash:  'google/gemini-2.5-flash',              // FREE — Google/US — UX analysis + competitive intel (2nd instance)
+  gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — Google/US — performance review
+  gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — Google/US — frontend UX patterns
+  nemotron3Super: 'nvidia/nemotron-3-super-120b-a12b:free', // FREE — NVIDIA/US — 120B MoE, security + code architecture
+  nemotron3Nano:  'nvidia/nemotron-3-nano-30b-a3b:free',   // FREE — NVIDIA/US — 30B MoE, security + bug hunting + user research
+  trinityLarge:   'arcee-ai/trinity-large-preview:free',    // FREE — Arcee AI/US — 400B MoE, full-stack integration
+  // ── PAID models — US ONLY ──
+  claudeSonnet46: 'anthropic/claude-sonnet-4.6',            // $3/$15 per M — Anthropic/US — premium code quality + data safety
+  // ── DESIGN DEBATE (only Chinese model remaining — lowest sensitivity role) ──
+  minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — design debate partner only
   // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
-  mercury2:       'z-ai/glm-4.7-flash-20260119',          // $0.06/$0.40 per M — agentic-coding optimized, replaces Mercury 2 (4x cheaper, 2026-04-06 audit)
-  minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — #3 overall, CRITICAL escalation only
+  escalation1:    'nvidia/nemotron-3-nano-30b-a3b:free',   // FREE — NVIDIA/US — replaces GLM-4.7 (was Z-AI/China)
+  escalation2:    'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — CRITICAL escalation only
   // ── Google GenAI (direct API, not via OpenRouter) ──
-  gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Phase 2C UX debate
+  gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Google/US — Phase 2C UX debate authority
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
-  // claudeOpus:  'anthropic/claude-4.6-opus-20260205'     // $5/$25 per M tokens — use via CLI subscription instead
+  // claudeOpus:  'anthropic/claude-4.6-opus-20260205'     // $5/$25 per M — use via CLI subscription instead
   // ── BANNED MODELS (NEVER USE) ──
   // No Grok. No X-AI models. Hard no, permanent ban. User explicit preference.
+  // ── REMOVED (Privacy audit 2026-04-06) ──
+  // deepseekV3:   'deepseek/deepseek-v3.2'      — REMOVED: Chinese servers, gov access laws, processed product vision
+  // step35Flash:  'stepfun/step-3.5-flash:free'  — REMOVED: Chinese company doing security analysis of codebase
+  // minimaxM21:   'minimax/minimax-m2.5:free'    — REMOVED: Chinese company doing competitive intelligence
+  // qwen36Plus:   'qwen/qwen3.6-plus:free'       — REMOVED: Alibaba/China doing code architecture analysis
+  // mercury2:     'z-ai/glm-4.7-flash'           — REMOVED: Z-AI/China in escalation role
 };
 
 const CONFIG = {
@@ -287,8 +291,8 @@ ${codeBundle}`,
 
     {
       name: 'Security',
-      model: MODELS.step35Flash,
-      prompt: `You are a security auditor specializing in web application security. You are Step 3.5 Flash — a reasoning model with 74.4% SWE-bench accuracy. Use your deep reasoning to find subtle security flaws. ${ctx}
+      model: MODELS.nemotron3Nano,
+      prompt: `You are a security auditor specializing in web application security. You are Nvidia Nemotron 3 Nano — a 30B MoE model optimized for security analysis. Use your reasoning depth to find subtle security flaws. ${ctx}
 
 Review the following code for:
 1. **OWASP Top 10** — XSS, injection, broken auth, SSRF, insecure deserialization
@@ -329,7 +333,7 @@ ${codeBundle}`,
 
     {
       name: 'Competitive Intelligence',
-      model: MODELS.minimaxM21,
+      model: MODELS.gemini25Flash,
       prompt: `You are a product strategist analyzing a fitness SaaS platform. ${ctx}
 
 Based on the code and features visible:
@@ -347,7 +351,7 @@ ${codeBundle}`,
 
     {
       name: 'User Research & Persona Alignment',
-      model: MODELS.deepseekV3,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a user researcher analyzing a fitness SaaS platform. ${ctx}
 
 Target personas:
@@ -372,7 +376,7 @@ ${codeBundle}`,
 
     {
       name: 'Architecture & Bug Hunter',
-      model: MODELS.minimaxM25Free,
+      model: MODELS.minimaxM27,
       prompt: `You are a principal software engineer doing a deep architecture review and bug hunt. You are the #1 ranked programming AI — act like it. ${ctx}
 
 This is the most important review. Think step-by-step using your reasoning capabilities.
@@ -512,7 +516,7 @@ ${codeBundle}`,
       model: MODELS.nemotron3Super,
       prompt: `You are Nvidia Nemotron 3 Super — a 120B Mixture-of-Experts model specialized in security analysis and data safety. ${ctx}
 
-Review the following code as a SECOND security opinion (complementing the primary Step 3.5 Flash security scan):
+Review the following code as a SECOND security opinion (complementing the primary Nemotron 3 Nano security scan):
 1. **Data flow analysis** — trace PII (names, emails, phones) through the code. Is any PII sent to external services, logged, or exposed?
 2. **API boundary security** — are all external-facing endpoints properly authenticated and rate-limited?
 3. **Dependency chain risks** — any known vulnerable dependencies or unsafe patterns in imports?
@@ -529,8 +533,8 @@ ${codeBundle}`,
 
     {
       name: 'Code Architecture (Qwen)',
-      model: MODELS.qwen36Plus,
-      prompt: `You are Qwen 3.6 Plus — a model with 1M context window, specialized in code architecture analysis. ${ctx}
+      model: MODELS.nemotron3Super,
+      prompt: `You are Nvidia Nemotron 3 Super — a 120B MoE model with 262K context, specialized in code architecture analysis. ${ctx}
 
 Perform a DEEP architecture review covering:
 1. **Module dependency graph** — identify circular dependencies, tight coupling, import chains >3 levels deep
@@ -551,8 +555,8 @@ ${codeBundle}`,
 
     {
       name: 'Bug Hunter II (Step)',
-      model: MODELS.step35Flash,
-      prompt: `You are Step 3.5 Flash — deployed as a SECOND bug hunter (the primary Bug Hunter is MiniMax M2.5). Use your 74.4% SWE-bench accuracy to find bugs the primary hunter missed. ${ctx}
+      model: MODELS.nemotron3Nano,
+      prompt: `You are Nvidia Nemotron 3 Nano — deployed as a SECOND bug hunter (the primary Bug Hunter uses Gemini 2.5 Flash). Use your MoE reasoning to find bugs the primary hunter missed. ${ctx}
 
 This is a SECONDARY bug hunt. Focus on DIFFERENT bug categories than a typical architecture review:
 
@@ -676,7 +680,7 @@ ${documentContent}`,
 
     {
       name: 'Business & Revenue Validation',
-      model: MODELS.minimaxM21,
+      model: MODELS.gemini25Flash,
       prompt: `You are a fitness industry business analyst. ${ctx}
 
 Review this vision alignment report for BUSINESS ACCURACY:
@@ -696,7 +700,7 @@ ${documentContent}`,
 
     {
       name: 'Gamification & Engagement Review',
-      model: MODELS.deepseekV3,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a gamification and user engagement specialist. The platform uses the Octalysis Framework with 5 tiers (Bronze Forge → Crystalline Swan), 6 skill trees, and badge rarity system. ${ctx}
 
 Review this document's gamification assessment:
@@ -736,7 +740,7 @@ ${documentContent}`,
 
     {
       name: 'Security & Privacy Assessment',
-      model: MODELS.step35Flash,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a security and privacy expert. ${ctx}
 
 Review this document for SECURITY & PRIVACY considerations:
@@ -909,7 +913,7 @@ ${planContent}`,
 
     {
       name: 'Security & Privacy Planning',
-      model: MODELS.step35Flash,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a security engineer reviewing a feature plan for a platform that handles personal health data. CRITICAL: This platform has a ZERO PII TO LLMs policy — no client names, emails, or personal data may reach external AI providers. ${ctx}
 
 Review this PLAN for security implications:
@@ -974,7 +978,7 @@ ${planContent}`,
 
     {
       name: 'User Persona Alignment',
-      model: MODELS.deepseekV3,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a user researcher specializing in fitness applications. ${ctx}
 
 Target personas:
@@ -999,7 +1003,7 @@ ${planContent}`,
 
     {
       name: 'Implementation Risk Assessment',
-      model: MODELS.minimaxM25Free,
+      model: MODELS.minimaxM27,
       prompt: `You are a project manager and risk assessor for a software project. ${ctx}
 
 Review this implementation plan for risks and feasibility:
@@ -1087,7 +1091,7 @@ ${planContent}`,
 
     {
       name: 'Module Architecture & File Budget',
-      model: MODELS.qwen36Plus,
+      model: MODELS.nemotron3Super,
       prompt: `You are a code architecture specialist with expertise in large-scale React applications. ${ctx}
 
 MANDATORY CONSTRAINT: No file may exceed 300 lines of code (excluding comments and blank lines).
@@ -1112,7 +1116,7 @@ ${planContent}`,
 
     {
       name: 'Mobile & Edge Case Analysis',
-      model: MODELS.step35Flash,
+      model: MODELS.nemotron3Nano,
       prompt: `You are a mobile web specialist and edge case hunter. ${ctx}
 
 MANDATORY: 10-breakpoint responsive matrix: 320px, 375px, 430px, 768px, 1024px, 1280px, 1440px, 1920px, 2560px, 3840px
@@ -1547,7 +1551,7 @@ async function runValidator(apiKey, track, index) {
       // Claude Sonnet 4.6: $3/$15 per M tokens
       costUSD = (result.inputTokens / 1_000_000 * 3.0) +
                 (result.outputTokens / 1_000_000 * 15.0);
-    } else if (track.model === MODELS.mercury2) {
+    } else if (track.model === MODELS.escalation1) {
       costUSD = (result.inputTokens / 1_000_000 * 0.25) +
                 (result.outputTokens / 1_000_000 * 0.75);
     } else if (track.model === MODELS.minimaxM27) {
@@ -1559,7 +1563,7 @@ async function runValidator(apiKey, track, index) {
                 (result.outputTokens / 1_000_000 * 12.0);
     }
     // Safety: warn if a "free" model somehow reports cost
-    const paidModels = [MODELS.claudeSonnet46, MODELS.mercury2, MODELS.minimaxM27, MODELS.gemini31Pro];
+    const paidModels = [MODELS.claudeSonnet46, MODELS.escalation1, MODELS.minimaxM27, MODELS.gemini31Pro];
     if (!paidModels.includes(track.model) && costUSD > 0.01) {
       console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
@@ -1674,9 +1678,9 @@ ${extractFindings(results, 'HIGH')}
 ---
 
 *SwanStudios 15-Brain Recursive Consensus System v14.0*
-*Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.5 + MiniMax M2.7 + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude) + Trinity Large 400B*
+*Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Nemotron 3 Nano + Gemini 3 Flash + Gemini 3.1 Flash + Nemotron 3 Nano + Gemini 2.5 Flash + MiniMax M2.7 + Nemotron 3 Super + Nemotron 3 Super + Step Bug Hunter II + Data Safety (Claude) + Trinity Large 400B*
 *Phase 2: 3 Specialty Debates — Security (Step ↔ Nemotron) + Code Quality (Claude ↔ Qwen) + UX/UI (Gemini 3.1 Pro ↔ M2.5:free)*
-*Phase 3: Smart Escalation — Mercury 2 + MiniMax M2.7 (CRITICAL only)*
+*Phase 3: Smart Escalation — Nemotron Nano Escalation + MiniMax M2.7 (CRITICAL only)*
 `;
 
   return { md, timestamp };
@@ -1722,18 +1726,18 @@ async function main() {
   console.log('  ║                                                          ║');
   console.log('  ║    Phase 1: 13 Parallel Validators (OpenRouter)         ║');
   console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
-  console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
-  console.log('  ║    MiniMax M2.1 · MiniMax M2.7 · Nemotron 3     ║');
-  console.log('  ║    Qwen 3.6 Plus · Step Bug Hunter II · Data Safety   ║');
+  console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · Nemotron 3 Nano  ║');
+  console.log('  ║    Gemini 2.5 Flash · MiniMax M2.7 · Nemotron 3     ║');
+  console.log('  ║    Nemotron 3 Super · Step Bug Hunter II · Data Safety   ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
     console.log('  ║    A. Security: Step 3.5 ↔ Nemotron 3 Super (FREE)   ║');
-    console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus       ║');
+    console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Nemotron 3 Super       ║');
     console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7     ║');
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
-    console.log('  ║    Mercury 2 + MiniMax M2.7 — skip if not needed      ║');
+    console.log('  ║    Nemotron Nano Escalation + MiniMax M2.7 — skip if not needed      ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
@@ -1962,7 +1966,7 @@ async function main() {
     if (hasGemini31) {
       console.log(`  Phase 2: 3 Planning Specialty Debates...`);
       console.log(`    A. Security Planning: Step 3.5 ↔ Nemotron 3 Super (FREE)`);
-      console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus`);
+      console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Nemotron 3 Super`);
       console.log(`    C. UX/UI Design: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7`);
       console.log(`  Phase 3: Smart Escalation (only if CRITICAL gaps or stalled debates)`);
     }
@@ -2003,7 +2007,7 @@ async function main() {
       // ── Phase 2A: Security Planning Debate (FREE) ──
       console.log('');
       console.log('  ── Phase 2A: Security Planning Debate ──');
-      console.log('  Step 3.5 Flash ↔ Nvidia Nemotron 3 Super (both FREE)');
+      console.log('  Nemotron 3 Nano ↔ Nvidia Nemotron 3 Super (both FREE)');
       console.log('');
 
       try {
@@ -2011,7 +2015,7 @@ async function main() {
         const secReport = phase1Results.find(r => r.name === 'Security & Privacy Planning' && r.status === 'SUCCESS')?.text || '';
         const p2aResult = await runRecursiveConsensus({
           topic: 'Security Planning Analysis',
-          modelA: { name: 'Step 3.5 Flash', model: MODELS.step35Flash, provider: 'openrouter', role: 'Primary Security Planner' },
+          modelA: { name: 'Nemotron 3 Nano', model: MODELS.nemotron3Nano, provider: 'openrouter', role: 'Primary Security Planner' },
           modelB: { name: 'Nemotron 3 Super', model: MODELS.nemotron3Super, provider: 'openrouter', role: 'Secondary Security Planner (120B MoE)' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateSecurityPrompt(planContent, ctx, phase1Summary),
@@ -2023,7 +2027,7 @@ async function main() {
         securityDebateLog = p2aResult.debateLog;
         console.log(`    [${p2aResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2A — ${p2aResult.rounds.length} rounds, ${((Date.now() - p2aStart) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`,
+          name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.nemotron3Nano} ↔ ${MODELS.nemotron3Super}`,
           status: 'SUCCESS', text: p2aResult.finalVerdict,
           inputTokens: p2aResult.totalTokens.input, outputTokens: p2aResult.totalTokens.output,
           costUSD: 0, durationMs: Date.now() - p2aStart,
@@ -2031,13 +2035,13 @@ async function main() {
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 2A: ${err.message}`);
-        debateResults.push({ name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'Security Planning Debate (Phase 2A)', model: `${MODELS.nemotron3Nano} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
 
       // ── Phase 2B: Architecture Planning Debate ──
       console.log('');
       console.log('  ── Phase 2B: Architecture Planning Debate ──');
-      console.log('  Claude Sonnet 4.6 ↔ Qwen 3.6 Plus:free');
+      console.log('  Claude Sonnet 4.6 ↔ Nemotron 3 Super:free');
       console.log('');
 
       try {
@@ -2045,7 +2049,7 @@ async function main() {
         const p2bResult = await runRecursiveConsensus({
           topic: 'Architecture & Component Planning',
           modelA: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'Senior Architecture Lead' },
-          modelB: { name: 'Qwen 3.6 Plus', model: MODELS.qwen36Plus, provider: 'openrouter', role: 'Code Architecture Specialist (1M context)' },
+          modelB: { name: 'Nemotron 3 Super', model: MODELS.nemotron3Super, provider: 'openrouter', role: 'Code Architecture Specialist (1M context)' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateArchPrompt(planContent, ctx, phase1Summary),
           callModel: callModelForDebate,
@@ -2056,7 +2060,7 @@ async function main() {
         archDebateLog = p2bResult.debateLog;
         console.log(`    [${p2bResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2B — ${p2bResult.rounds.length} rounds, ${((Date.now() - p2bStart) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`,
+          name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.nemotron3Super}`,
           status: 'SUCCESS', text: p2bResult.finalVerdict,
           inputTokens: p2bResult.totalTokens.input, outputTokens: p2bResult.totalTokens.output,
           costUSD: (p2bResult.totalTokens.input / 1_000_000 * 1.5) + (p2bResult.totalTokens.output / 1_000_000 * 7.5),
@@ -2065,7 +2069,7 @@ async function main() {
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 2B: ${err.message}`);
-        debateResults.push({ name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'Architecture Planning Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
 
       // ── Phase 2C: UX/UI Design Planning Debate ──
@@ -2079,7 +2083,7 @@ async function main() {
         const p2cResult = await runRecursiveConsensus({
           topic: 'UX/UI Design Specification',
           modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director (Lead Design Authority)' },
-          modelB: { name: 'MiniMax M2.7', model: MODELS.minimaxM25Free, provider: 'openrouter', role: 'Design Implementation Reviewer' },
+          modelB: { name: 'MiniMax M2.7', model: MODELS.minimaxM27, provider: 'openrouter', role: 'Design Implementation Reviewer' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateDesignPrompt(planContent, ctx, uxReport),
           callModel: callModelForDebate,
@@ -2090,7 +2094,7 @@ async function main() {
         designDebateLog = p2cResult.debateLog;
         console.log(`    [${p2cResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${p2cResult.rounds.length} rounds, ${((Date.now() - p2cStart) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`,
+          name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`,
           status: 'SUCCESS', text: p2cResult.finalVerdict,
           inputTokens: p2cResult.totalTokens.input, outputTokens: p2cResult.totalTokens.output,
           costUSD: (p2cResult.totalTokens.input / 1_000_000 * 1.0) + (p2cResult.totalTokens.output / 1_000_000 * 6.0),
@@ -2099,7 +2103,7 @@ async function main() {
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 2C: ${err.message}`);
-        debateResults.push({ name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
 
       // ── Phase 3: Smart Escalation ──
@@ -2112,16 +2116,16 @@ async function main() {
         console.log('  ── Phase 3: Smart Escalation (CRITICAL gaps or stalled debates detected) ──');
 
         if (hasStalled) {
-          console.log('  Mercury 2 — resolving stalled planning debate...');
+          console.log('  Nemotron Nano Escalation — resolving stalled planning debate...');
           try {
             const mercStart = Date.now();
             const stalledDebates = debateResults.filter(r => r.consensusReached === false).map(r => `### ${r.name}\n${r.text}`).join('\n\n');
-            const mercResult = await callOpenRouter(apiKey, MODELS.mercury2, `You are Mercury 2 — the fastest reasoning model. A planning debate between AI models has stalled. Review the contested design/architecture decisions and provide a FINAL RULING on each.\n\nStalled Debates:\n${stalledDebates}\n\nFor each: AGREE with Model A, AGREE with Model B, or provide your OWN recommendation with reasoning.`);
-            console.log(`    [OK] Mercury 2 — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
-            debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'SUCCESS', text: mercResult.text, inputTokens: mercResult.inputTokens, outputTokens: mercResult.outputTokens, costUSD: (mercResult.inputTokens / 1_000_000 * 0.25) + (mercResult.outputTokens / 1_000_000 * 0.75), durationMs: Date.now() - mercStart });
+            const mercResult = await callOpenRouter(apiKey, MODELS.escalation1, `You are Nemotron Nano Escalation — the fastest reasoning model. A planning debate between AI models has stalled. Review the contested design/architecture decisions and provide a FINAL RULING on each.\n\nStalled Debates:\n${stalledDebates}\n\nFor each: AGREE with Model A, AGREE with Model B, or provide your OWN recommendation with reasoning.`);
+            console.log(`    [OK] Nemotron Nano Escalation — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
+            debateResults.push({ name: 'Smart Escalation (Nemotron Nano Escalation)', model: MODELS.escalation1, status: 'SUCCESS', text: mercResult.text, inputTokens: mercResult.inputTokens, outputTokens: mercResult.outputTokens, costUSD: (mercResult.inputTokens / 1_000_000 * 0.25) + (mercResult.outputTokens / 1_000_000 * 0.75), durationMs: Date.now() - mercStart });
           } catch (err) {
-            console.error(`    [FAIL] Mercury 2: ${err.message}`);
-            debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+            console.error(`    [FAIL] Nemotron Nano Escalation: ${err.message}`);
+            debateResults.push({ name: 'Smart Escalation (Nemotron Nano Escalation)', model: MODELS.escalation1, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
           }
         }
 
@@ -2181,7 +2185,7 @@ async function main() {
     // Write actionable outputs
     const archVerdict = debateResults.find(r => r.name.includes('Architecture Planning'));
     if (archVerdict?.status === 'SUCCESS') {
-      const archPlan = `# Architecture Planning Consensus\n\n> Phase 2B: Claude Sonnet 4.6 ↔ Qwen 3.6 Plus\n> Consensus: ${archVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${archVerdict.text}\n`;
+      const archPlan = `# Architecture Planning Consensus\n\n> Phase 2B: Claude Sonnet 4.6 ↔ Nemotron 3 Super\n> Consensus: ${archVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${archVerdict.text}\n`;
       writeFileSync(join(outputPaths.latestDir, 'architecture-plan.md'), archPlan, 'utf-8');
       writeFileSync(join(outputPaths.archiveDir, 'architecture-plan.md'), archPlan, 'utf-8');
     }
@@ -2193,7 +2197,7 @@ async function main() {
     }
     const secVerdict = debateResults.find(r => r.name.includes('Security Planning Debate'));
     if (secVerdict?.status === 'SUCCESS') {
-      const secPlan = `# Security Planning Consensus\n\n> Phase 2A: Step 3.5 Flash ↔ Nemotron 3 Super (FREE)\n> Consensus: ${secVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${secVerdict.text}\n`;
+      const secPlan = `# Security Planning Consensus\n\n> Phase 2A: Nemotron 3 Nano ↔ Nemotron 3 Super (FREE)\n> Consensus: ${secVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${secVerdict.text}\n`;
       writeFileSync(join(outputPaths.latestDir, 'security-plan.md'), secPlan, 'utf-8');
       writeFileSync(join(outputPaths.archiveDir, 'security-plan.md'), secPlan, 'utf-8');
     }
@@ -2297,7 +2301,7 @@ async function main() {
     // ── Phase 2A: Security Specialty Debate (FREE) ──
     console.log('');
     console.log('  ── Phase 2A: Security Specialty Debate ──');
-    console.log('  Step 3.5 Flash ↔ Nvidia Nemotron 3 Super (both FREE)');
+    console.log('  Nemotron 3 Nano ↔ Nvidia Nemotron 3 Super (both FREE)');
     console.log('  Max 5 rounds');
     console.log('');
 
@@ -2308,8 +2312,8 @@ async function main() {
       const p2aResult = await runRecursiveConsensus({
         topic: 'Security Analysis',
         modelA: {
-          name: 'Step 3.5 Flash',
-          model: MODELS.step35Flash,
+          name: 'Nemotron 3 Nano',
+          model: MODELS.nemotron3Nano,
           provider: 'openrouter',
           role: 'Primary Security Auditor',
         },
@@ -2330,7 +2334,7 @@ async function main() {
       console.log(`    [${p2aResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2A — ${p2aResult.rounds.length} rounds, ${(p2aDuration / 1000).toFixed(1)}s`);
       debateResults.push({
         name: 'Security Debate (Phase 2A)',
-        model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`,
+        model: `${MODELS.nemotron3Nano} ↔ ${MODELS.nemotron3Super}`,
         status: 'SUCCESS', text: p2aResult.finalVerdict,
         inputTokens: p2aResult.totalTokens.input, outputTokens: p2aResult.totalTokens.output,
         costUSD: 0, // Both models are FREE
@@ -2338,13 +2342,13 @@ async function main() {
       });
     } catch (err) {
       console.error(`    [FAIL] Phase 2A: ${err.message}`);
-      debateResults.push({ name: 'Security Debate (Phase 2A)', model: `${MODELS.step35Flash} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      debateResults.push({ name: 'Security Debate (Phase 2A)', model: `${MODELS.nemotron3Nano} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
     }
 
     // ── Phase 2B: Code Quality Specialty Debate (mixed cost) ──
     console.log('');
     console.log('  ── Phase 2B: Code Quality Specialty Debate ──');
-    console.log('  Claude Sonnet 4.6 ↔ Qwen 3.6 Plus:free');
+    console.log('  Claude Sonnet 4.6 ↔ Nemotron 3 Super:free');
     console.log('  Max 5 rounds · Claude = final authority');
     console.log('');
 
@@ -2359,8 +2363,8 @@ async function main() {
           role: 'Senior Code Quality Lead',
         },
         modelB: {
-          name: 'Qwen 3.6 Plus',
-          model: MODELS.qwen36Plus,
+          name: 'Nemotron 3 Super',
+          model: MODELS.nemotron3Super,
           provider: 'openrouter',
           role: 'Code Architecture Specialist (1M context)',
         },
@@ -2376,7 +2380,7 @@ async function main() {
       console.log(`    [${phase2Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2B — ${phase2Result.rounds.length} rounds, ${(p2bDuration / 1000).toFixed(1)}s`);
       debateResults.push({
         name: 'Code Quality Debate (Phase 2B)',
-        model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`,
+        model: `${MODELS.claudeSonnet46} ↔ ${MODELS.nemotron3Super}`,
         status: 'SUCCESS', text: phase2Result.finalVerdict,
         inputTokens: phase2Result.totalTokens.input, outputTokens: phase2Result.totalTokens.output,
         costUSD: (phase2Result.totalTokens.input / 1_000_000 * 1.5) + (phase2Result.totalTokens.output / 1_000_000 * 7.5), // Only Claude costs, Qwen is free
@@ -2384,7 +2388,7 @@ async function main() {
       });
     } catch (err) {
       console.error(`    [FAIL] Phase 2B: ${err.message}`);
-      debateResults.push({ name: 'Code Quality Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.qwen36Plus}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      debateResults.push({ name: 'Code Quality Debate (Phase 2B)', model: `${MODELS.claudeSonnet46} ↔ ${MODELS.nemotron3Super}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
     }
 
     // ── Phase 2C: UX/UI Design Specialty Debate ──
@@ -2406,7 +2410,7 @@ async function main() {
         },
         modelB: {
           name: 'MiniMax M2.7',
-          model: MODELS.minimaxM25Free,
+          model: MODELS.minimaxM27,
           provider: 'openrouter',
           role: 'Design Implementation Reviewer',
         },
@@ -2422,7 +2426,7 @@ async function main() {
       console.log(`    [${phase3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${phase3Result.rounds.length} rounds, ${(p2cDuration / 1000).toFixed(1)}s`);
       debateResults.push({
         name: 'UX/UI Design Debate (Phase 2C)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`,
+        model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`,
         status: 'SUCCESS', text: phase3Result.finalVerdict,
         inputTokens: phase3Result.totalTokens.input, outputTokens: phase3Result.totalTokens.output,
         costUSD: (phase3Result.totalTokens.input / 1_000_000 * 1.0) + (phase3Result.totalTokens.output / 1_000_000 * 6.0), // Only Gemini costs, M2.5 is free
@@ -2430,7 +2434,7 @@ async function main() {
       });
     } catch (err) {
       console.error(`    [FAIL] Phase 2C: ${err.message}`);
-      debateResults.push({ name: 'UX/UI Design Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM25Free}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      debateResults.push({ name: 'UX/UI Design Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
     }
 
     // ── Phase 3: Smart Escalation (only for CRITICAL findings or stalled debates) ──
@@ -2443,22 +2447,22 @@ async function main() {
       console.log('  ── Phase 3: Smart Escalation (CRITICAL/stalled detected) ──');
 
       if (hasStalled) {
-        console.log('  Mercury 2 — resolving stalled debate...');
+        console.log('  Nemotron Nano Escalation — resolving stalled debate...');
         try {
           const mercStart = Date.now();
           const stalledDebates = debateResults.filter(r => r.consensusReached === false).map(r => `### ${r.name}\n${r.text}`).join('\n\n');
-          const mercResult = await callOpenRouter(apiKey, MODELS.mercury2, `You are Mercury 2 — the fastest reasoning model. A debate between AI models has stalled without consensus. Review the contested points and provide a FINAL RULING on each one.\n\nStalled Debates:\n${stalledDebates}\n\nFor each contested point: AGREE with Model A, AGREE with Model B, or provide your OWN ruling with evidence.`);
-          console.log(`    [OK] Mercury 2 escalation — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
+          const mercResult = await callOpenRouter(apiKey, MODELS.escalation1, `You are Nemotron Nano Escalation — the fastest reasoning model. A debate between AI models has stalled without consensus. Review the contested points and provide a FINAL RULING on each one.\n\nStalled Debates:\n${stalledDebates}\n\nFor each contested point: AGREE with Model A, AGREE with Model B, or provide your OWN ruling with evidence.`);
+          console.log(`    [OK] Nemotron Nano Escalation escalation — ${((Date.now() - mercStart) / 1000).toFixed(1)}s`);
           debateResults.push({
-            name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2,
+            name: 'Smart Escalation (Nemotron Nano Escalation)', model: MODELS.escalation1,
             status: 'SUCCESS', text: mercResult.text,
             inputTokens: mercResult.inputTokens, outputTokens: mercResult.outputTokens,
             costUSD: (mercResult.inputTokens / 1_000_000 * 0.25) + (mercResult.outputTokens / 1_000_000 * 0.75),
             durationMs: Date.now() - mercStart,
           });
         } catch (err) {
-          console.error(`    [FAIL] Mercury 2: ${err.message}`);
-          debateResults.push({ name: 'Smart Escalation (Mercury 2)', model: MODELS.mercury2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+          console.error(`    [FAIL] Nemotron Nano Escalation: ${err.message}`);
+          debateResults.push({ name: 'Smart Escalation (Nemotron Nano Escalation)', model: MODELS.escalation1, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
         }
       }
 
@@ -2511,7 +2515,7 @@ async function main() {
   // ── Write fix-instructions.md (actionable from Phase 2B code quality consensus) ──
   const phase2bVerdict = debateResults.find(r => r.name.includes('Code Quality'));
   if (phase2bVerdict?.status === 'SUCCESS') {
-    const fixInstructions = `# Fix Instructions — Code Quality Consensus\n\n> Generated from Phase 2B specialty debate (Claude Sonnet 4.6 ↔ Qwen 3.6 Plus)\n> Consensus: ${phase2bVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2bVerdict.text}\n`;
+    const fixInstructions = `# Fix Instructions — Code Quality Consensus\n\n> Generated from Phase 2B specialty debate (Claude Sonnet 4.6 ↔ Nemotron 3 Super)\n> Consensus: ${phase2bVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2bVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'fix-instructions.md'), fixInstructions, 'utf-8');
   }
@@ -2527,7 +2531,7 @@ async function main() {
   // ── Write security-consensus.md (actionable from Phase 2A security debate) ──
   const phase2aVerdict = debateResults.find(r => r.name.includes('Security Debate'));
   if (phase2aVerdict?.status === 'SUCCESS') {
-    const securityRecs = `# Security Consensus\n\n> Generated from Phase 2A specialty debate (Step 3.5 Flash ↔ Nemotron 3 Super)\n> Consensus: ${phase2aVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2aVerdict.text}\n`;
+    const securityRecs = `# Security Consensus\n\n> Generated from Phase 2A specialty debate (Nemotron 3 Nano ↔ Nemotron 3 Super)\n> Consensus: ${phase2aVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2aVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'security-consensus.md'), securityRecs, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'security-consensus.md'), securityRecs, 'utf-8');
   }
@@ -2578,7 +2582,7 @@ const TRACK_SLUGS = {
   'Security Debate (Phase 2A)': '13-security-debate',
   'Code Quality Debate (Phase 2B)': '14-code-quality-debate',
   'UX/UI Design Debate (Phase 2C)': '15-design-debate',
-  'Smart Escalation (Mercury 2)': '16-escalation-mercury',
+  'Smart Escalation (Nemotron Nano Escalation)': '16-escalation-mercury',
   'Smart Escalation (MiniMax M2.7)': '17-escalation-minimax',
   // Legacy slugs (backwards compat)
   'Code Quality Debate (Phase 2)': '14-code-quality-debate',
@@ -2721,7 +2725,7 @@ Each track has its own file — read only the ones relevant to your task:
 | \`08-frontend-ux-patterns.md\` | React patterns, styled-components, animations |
 | \`09-data-safety.md\` | Data integrity, destructive operations, PII |
 | \`10-security-nemotron.md\` | Security II — Nemotron 3 Super deep scan |
-| \`11-code-architecture-qwen.md\` | Code Architecture — Qwen 3.6 Plus review |
+| \`11-code-architecture-qwen.md\` | Code Architecture — Nemotron 3 Super review |
 | \`12-bug-hunter-step.md\` | Bug Hunter II — edge cases, race conditions |
 | \`13-security-debate.md\` | Phase 2A: Security debate (Step ↔ Nemotron) |
 | \`14-code-quality-debate.md\` | Phase 2B: Code quality debate (Claude ↔ Qwen) |

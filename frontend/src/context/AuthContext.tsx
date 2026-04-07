@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import apiService, { ProductionTokenManager } from '../services/api.service';
 import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxLoading } from '../store/slices/authSlice';
@@ -100,12 +100,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     logger.log('Redux not available, using local state only');
   }
   
-  // Create services with authenticated axios instance
-  const services = {
+  // Create services with authenticated axios instance — memoized since apiService is a singleton
+  const services = useMemo(() => ({
     clientProgress: createClientProgressService(apiService),
     exercise: createExerciseService(apiService),
     adminClient: createAdminClientService(apiService)
-  };
+  }), []);
   
   // Token refresh function - Properly memoized to prevent re-creation
   const refreshToken = useCallback(async (): Promise<boolean> => {
@@ -254,8 +254,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     };
   }, []); // Empty dependency array - only run once on mount
   
-  // Login function - PRODUCTION ONLY
-  const login = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}> => {
+  // Login function - PRODUCTION ONLY — memoized to stabilize context value
+  const login = useCallback(async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}> => {
     setLoading(true);
     setError(null);
 
@@ -315,8 +315,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [dispatch]);
+
   // Logout function
   const logout = useCallback(() => {
     try {
@@ -348,8 +348,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     logger.log('Logged out successfully');
   }, [dispatch]);
   
-  // Register function - PRODUCTION ONLY
-  const register = async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
+  // Register function - PRODUCTION ONLY — memoized to stabilize context value
+  const register = useCallback(async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
     setLoading(true);
     setError(null);
     
@@ -414,10 +414,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Update user function
-  const updateUser = async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
+  }, [dispatch]);
+
+  // Update user function — memoized to stabilize context value
+  const updateUser = useCallback(async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
     if (!user) return { success: false, user: null, error: 'Not authenticated' };
     
     setLoading(true);
@@ -456,10 +456,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Context value
-  const contextValue: AuthContextType = {
+  }, [user, dispatch]);
+
+  // Context value — memoized to prevent unnecessary re-renders of all consumers
+  const contextValue: AuthContextType = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     loading,
@@ -474,7 +474,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     checkPermission,
     services,
     authAxios: apiService
-  };
+  }), [user, loading, error, token, login, logout, register, updateUser, refreshToken, forgotPassword, checkPermission, services]);
   
   return (
     <AuthContext.Provider value={contextValue}>
