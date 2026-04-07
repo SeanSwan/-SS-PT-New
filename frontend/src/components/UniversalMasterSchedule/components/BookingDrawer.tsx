@@ -37,6 +37,7 @@ interface BookingDrawerProps {
   onConfirm: (clientId: string | number) => Promise<void>;
   slotDate: Date | null;
   slotDuration: number;
+  onDurationChange?: (duration: number) => void;
   slotLocation: string;
   trainerName?: string;
   clients: Client[];
@@ -49,6 +50,7 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
   onConfirm,
   slotDate,
   slotDuration,
+  onDurationChange,
   slotLocation,
   trainerName,
   clients,
@@ -140,7 +142,22 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <SlotTime>{timeStr}</SlotTime>
               <SlotDate>{dateStr}</SlotDate>
               <SlotMeta>
-                <Clock size={12} /> {slotDuration} min
+                <Clock size={12} />
+                <select
+                  value={slotDuration}
+                  onChange={(e) => onDurationChange?.(Number(e.target.value))}
+                  style={{
+                    background: 'rgba(0, 32, 96, 0.6)', border: '1px solid rgba(96, 192, 240, 0.2)',
+                    borderRadius: 6, color: '#E0ECF4', padding: '4px 8px', fontSize: 13,
+                    cursor: 'pointer', minHeight: 32,
+                  }}
+                  aria-label="Session duration"
+                >
+                  <option value={30}>30 min</option>
+                  <option value={45}>45 min</option>
+                  <option value={60}>60 min</option>
+                  <option value={90}>90 min</option>
+                </select>
                 {slotLocation && <><MapPin size={12} /> {slotLocation}</>}
               </SlotMeta>
               {trainerName && (

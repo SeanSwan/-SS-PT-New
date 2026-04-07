@@ -50,6 +50,8 @@ interface ScheduleHeaderProps {
   onLayoutModeChange?: (mode: LayoutMode) => void;
   density?: DensityMode;
   onDensityChange?: (density: DensityMode) => void;
+  // User identity for personalized header
+  currentUser?: { firstName: string; lastName: string; profileImageUrl?: string };
 }
 
 const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
@@ -82,17 +84,33 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   layoutMode = 'columns',
   onLayoutModeChange,
   density = 'comfortable',
-  onDensityChange
+  onDensityChange,
+  currentUser
 }) => {
+  const headerTitle = currentUser
+    ? `${currentUser.firstName}'s Schedule`
+    : 'Universal Master Schedule';
+  const headerSub = currentUser
+    ? `${currentUser.firstName} ${currentUser.lastName}`
+    : 'Professional session management system';
+
   return (
     <>
       <HeaderContainer>
         <FlexBox align="center" gap="1rem">
-          <Calendar size={32} color="#3b82f6" />
+          {currentUser?.profileImageUrl ? (
+            <img
+              src={currentUser.profileImageUrl}
+              alt={headerSub}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(96, 192, 240, 0.3)' }}
+            />
+          ) : (
+            <Calendar size={32} color="#3b82f6" />
+          )}
           <Box>
-            <PageTitle>Universal Master Schedule</PageTitle>
+            <PageTitle>{headerTitle}</PageTitle>
             <SmallText secondary style={{ marginTop: '0.25rem' }}>
-              Professional session management system
+              {headerSub}
             </SmallText>
           </Box>
         </FlexBox>

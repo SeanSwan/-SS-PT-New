@@ -122,6 +122,7 @@ const TrainerWorkoutForgePage = React.lazy(() => import('./Pages/trainer-dashboa
 const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
+const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 
@@ -518,7 +519,6 @@ const roleConfigurations: Record<string, RoleConfig> = {
       
       // 🎨 DESIGN SYSTEM & DEVELOPMENT
       { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
-      { path: '/homepage-preview', component: React.lazy(() => import('../../pages/HomePage/components/HomePage.V5')), title: 'Homepage V5 Preview', description: 'Preview redesigned homepage before going live' },
 
       // 🎬 CONTENT MANAGEMENT — Two-tier hub (Bootstrap + Full Arsenal)
       { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
@@ -545,7 +545,13 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'SEO, content marketing, and competitor analysis' },
 
       // 🔒 SECURITY INTELLIGENCE — CVE scanning, dependency health, alerts, score card
-      { path: '/security', component: SecurityWorkspace, title: 'Security Intelligence', description: 'Vulnerability scanning, dependency health, and security posture' }
+      { path: '/security', component: SecurityWorkspace, title: 'Security Intelligence', description: 'Vulnerability scanning, dependency health, and security posture' },
+
+      // 📊 ADMIN-AS-TRAINER TOOLS — admin has access to everything trainers have
+      { path: '/body-map', component: BodyMapPage, title: 'Pain Charts', description: 'Client pain and injury tracking (body map)' },
+      { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
+      { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Communication hub for clients and trainers' },
+      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' }
     ],
     defaultPath: '/coach-assistant'
   },
@@ -566,7 +572,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder' },
-      { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' }
+      { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' },
+      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' }
     ],
     defaultPath: '/overview'
   },

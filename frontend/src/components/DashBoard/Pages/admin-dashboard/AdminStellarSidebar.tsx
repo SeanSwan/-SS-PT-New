@@ -623,26 +623,6 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
             </NavItem>
           ))}
 
-          {/* Homepage V5 Preview */}
-          {user?.role === 'admin' && (
-            <>
-              <Divider $collapsed={collapsed && !isMobile} />
-              <NavItem
-                $active={isActive('/dashboard/admin/homepage-preview')}
-                $collapsed={collapsed && !isMobile}
-                onClick={() => handleNav('/dashboard/admin/homepage-preview')}
-                role="menuitem"
-                aria-label="Homepage Preview"
-              >
-                <NavIcon><Palette size={20} /></NavIcon>
-                <NavLabel $visible={showLabel}>Homepage V5</NavLabel>
-                {collapsed && !isMobile && (
-                  <NavTooltip>Homepage V5 Preview</NavTooltip>
-                )}
-              </NavItem>
-            </>
-          )}
-
           {/* My Training link for admin/trainer */}
           {(user?.role === 'admin' || user?.role === 'trainer') && (
             <>

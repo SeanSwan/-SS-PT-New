@@ -455,7 +455,7 @@ const trainerNavConfig = [
     section: 'CLASS BUILDER',
     items: [
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
-      { label: 'Sprint Planner', path: '/dashboard/workouts/sprint-planner', icon: Zap },
+      { label: 'Sprint Planner', path: '/dashboard/trainer/sprint-planner', icon: Zap },
       { label: 'Equipment Profiles', path: '/dashboard/trainer/equipment', icon: Wrench },
     ],
   },

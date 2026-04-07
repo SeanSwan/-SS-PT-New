@@ -753,6 +753,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onLayoutModeChange={handleLayoutModeChange}
         density={density}
         onDensityChange={handleDensityChange}
+        currentUser={user ? { firstName: user.firstName || '', lastName: user.lastName || '', profileImageUrl: (user as any).profileImageUrl } : undefined}
       />
 
       <ScheduleStats
@@ -800,6 +801,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onConfirm={handleQuickBookConfirm}
         slotDate={quickBookSlot?.date ?? null}
         slotDuration={quickBookSlot?.duration ?? 60}
+        onDurationChange={(d) => setQuickBookSlot(prev => prev ? { ...prev, duration: d } : prev)}
         slotLocation={quickBookSlot?.location ?? 'Main Studio'}
         trainerName={quickBookSlot?.trainerName}
         clients={clients}
