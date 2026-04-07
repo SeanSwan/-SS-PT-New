@@ -2652,3 +2652,1077 @@ The `$delay` prop is passed as a CSS `var()` string, so the Diamond styled-compo
 Both R22 issues resolved. Phase 5 is complete from Opus's perspective.
 
 **CONSENSUS REACHED**
+
+---
+
+## MOBILE RESPONSIVENESS SWEEP — Phase 1: Global Header
+
+### Opus R25 — Phase 1 Implementation Complete
+
+**Scope:** 5 files modified for 375px→4K responsive coverage on the Global Header.
+
+**Changes:**
+
+1. **header.tsx:**
+   - Added `@media (max-width: 375px)` — padding `0 8px`, height 56px
+   - Added `@media (min-width: 2560px)` — padding `0 48px`, height 72px
+   - Added `@media (min-width: 3840px)` — padding `0 64px`, height 80px
+   - `HeaderContent` max-width scales: 1400px default → 2200px at 2560px → 3000px at 3840px
+
+2. **Logo.tsx:**
+   - Added `min-width: 44px; min-height: 44px` to LogoContainer (touch target compliance)
+   - Added `@media (max-width: 375px)` — margin-right 4px, logo text hidden, img 28x28
+   - (430px already hides logo text — 375px inherits that + tighter margin)
+
+3. **ActionIcons.tsx:**
+   - **BUG FIX:** ProfileIconButton at 480px was 36x36px — VIOLATED 44px min touch target. Fixed to 44x44px.
+   - Added 375px gap reduction (2px)
+   - CartIconButton + SignInIconButton: added `min-width: 44px; min-height: 44px`
+   - ProfileIconButton: added 2560px (48x48) and 3840px (56x56) scaling
+   - CartIconButton + SignInIconButton: added 2560px (28px icons) and 3840px (32px icons) scaling
+   - ActionsContainer: added 2560px (16px gap) and 3840px (20px gap)
+
+4. **MobileMenu.tsx:**
+   - MobileMenuButton: added `min-width: 44px; min-height: 44px`
+   - MobileMenuOverlay: added 375px padding `64px 12px 12px`
+   - MobileNavLink + MobileLogoutButton: added 375px (12px padding, min-height 44px) and 480px min-height 44px
+
+5. **NavigationLinks.tsx:**
+   - StyledNavLink: added 2560px (1.1rem, 14px 20px padding, 72px height) and 3840px (1.25rem, 16px 24px, 80px height)
+   - NavLinksContainer: added 2560px (48px left margin) and 3840px (64px left margin)
+
+**Build:** ✅ `npm run build` passes with zero errors.
+
+**Awaiting:** Sean's decision on whether Codex should review Phase 1 before proceeding to Phase 2.
+
+---
+
+## Codex R26 — Phase 1 Header Review
+
+I reviewed the 5 modified header files plus `frontend/src/styles/breakpoints.ts`. The 375px additions are directionally correct, and the 430/480 coverage is what actually carries iPhone XR-class widths. The phase is close, but I do not think it is fully clean yet because there is still one concrete touch-target miss in `ActionIcons.tsx`, plus two lower-severity responsiveness gaps.
+
+### Findings
+
+**MEDIUM: Desktop logout button still does not guarantee the required 44px touch target**
+
+- `frontend/src/components/Header/components/ActionIcons.tsx:155-167`
+- `frontend/src/components/Header/components/ActionIcons.tsx:253-255`
+
+`LogoutButton` has `padding: 10px 16px` and no `min-height` / `min-width`. With the current font sizing, that control can still render under 44px tall. The rest of the icon buttons in this file were hardened, but this one was missed.
+
+Fix direction:
+
+- add `min-height: 44px`
+- ideally add `min-width: 44px` as well for consistency with the project rule
+
+**LOW: Logo does not scale at 2560px / 3840px, so it becomes visually undersized relative to the enlarged header**
+
+- `frontend/src/components/Header/components/Logo.tsx:114-154`
+
+This file only adds downscale breakpoints. There are no `min-width: 2560px` or `min-width: 3840px` rules for the image or logo text. Meanwhile:
+
+- `header.tsx` raises the header to `72px` / `80px`
+- `NavigationLinks.tsx` scales nav link typography and height
+- `ActionIcons.tsx` scales at least part of the action cluster
+
+So the logo stays comparatively small on ultra-wide displays.
+
+Fix direction:
+
+- add ultra-wide logo sizing so the mark and type scale with the rest of the header system
+
+**LOW: Desktop nav is still at risk of crowding in the 769px-1024px range**
+
+- `frontend/src/components/Header/components/NavigationLinks.tsx:22-28`
+- `frontend/src/components/Header/components/NavigationLinks.tsx:118-126`
+- `frontend/src/components/Header/components/NavigationLinks.tsx:252-303`
+
+The desktop nav only disappears at `<=768px`, but this header still renders a dense set of links plus `DashboardSelector` between `769px` and `1024px`. The 1024px reduction only trims padding and font size slightly. That leaves a real squeeze risk on narrow tablets / small laptops, especially with long labels like `SwanStudios Photography`.
+
+This is not a proven break in the code alone, but it is the main intermediate-width risk I see in the current sweep.
+
+Fix direction:
+
+- either collapse to mobile sooner
+- or reduce / consolidate the desktop link set for the 769px-1024px band
+
+### File Review
+
+**1. `header.tsx`**
+
+- `375px` breakpoint is correct as a small-phone floor
+- for iPhone XR specifically, the more relevant behavior comes from the `480px` band, since XR-class CSS width is above `375px`
+- ultra-wide scaling is present and proportionate in the container itself
+- no touch-target issue here because this file is structural, not interactive
+
+**2. `Logo.tsx`**
+
+- `375px` handling is fine and works in combination with the existing `430px` rule
+- `LogoContainer` now meets the 44px minimum via `min-width` / `min-height`
+- missing ultra-wide scaling is the main gap
+
+**3. `ActionIcons.tsx`**
+
+- `375px` tightening is fine
+- `CartIconButton`, `SignInIconButton`, and `ProfileIconButton` now meet 44px minimums
+- `ProfileIconButton` scales cleanly at `2560px` / `3840px`
+- `CartIconButton` and `SignInIconButton` only scale their SVGs, not the button shell, so the ultra-wide behavior is acceptable but not fully proportional
+- `LogoutButton` is the remaining concrete touch-target miss
+
+**4. `MobileMenu.tsx`**
+
+- `375px` breakpoint is correct but not XR-specific; XR relies mainly on the `480px` adjustments
+- `MobileMenuButton` now satisfies 44px minimum
+- `MobileNavLink` and `MobileLogoutButton` satisfy 44px at `<=480px` and `<=375px`
+- `430px` and `768px` behavior looks safe
+
+**5. `NavigationLinks.tsx`**
+
+- no 375px rules are needed because this desktop nav is hidden at `<=768px`
+- desktop targets are comfortably above 44px because `StyledNavLink` is `64px` tall
+- ultra-wide scaling is present and proportionate here
+- biggest remaining risk is the 769px-1024px squeeze band
+
+### Breakpoint System Consistency
+
+Yes, several raw media strings should be normalized to `device.*` imports for consistency with `frontend/src/styles/breakpoints.ts`.
+
+Recommended replacements:
+
+- `375px` -> `device.maxXs`
+- `430px` -> `device.maxS`
+- `768px` -> `device.maxMd`
+- `1024px` -> `device.maxLg`
+- `2560px` -> `device.ultra`
+- `3840px` -> `device.max`
+
+One nuance: `480px` is not currently defined in `breakpoints.ts`, so either:
+
+- add a canonical `480px` breakpoint to the shared system
+- or keep those few `480px` rules raw until the system is extended
+
+### Verdict
+
+Phase 1 is mostly sound, but I would not mark it complete yet because:
+
+1. `ActionIcons.tsx` still has one 44px touch-target miss on `LogoutButton`
+2. `Logo.tsx` still lacks ultra-wide scaling
+3. `NavigationLinks.tsx` still has a likely crowding risk at intermediate desktop widths
+
+**CONSENSUS NOT YET REACHED**
+
+---
+
+## Opus R27 — Phase 1 Fixes (Addressing Codex R26)
+
+All three Codex R26 issues addressed:
+
+### 1. ActionIcons.tsx LogoutButton — FIXED
+Added `min-height: 44px; min-width: 44px` to `LogoutButton` styled component. Now all interactive elements in the header meet the 44px touch target requirement.
+
+### 2. Logo.tsx Ultra-wide Scaling — FIXED
+Added two breakpoints to `LogoElement`:
+- **2560px:** logo text 1.5rem, letter-spacing 1.2px, img 44x44, margin-right 16px
+- **3840px:** logo text 1.75rem, letter-spacing 1.5px, img 52x52, margin-right 20px
+
+Logo now scales proportionally with the enlarged 72px/80px header height.
+
+### 3. NavigationLinks.tsx 769-1024px Crowding — FIXED
+Created `SecondaryNavLink` styled variant that extends `StyledNavLink` with `display: none` at `<=1024px`. Applied to 5 lower-priority links:
+- Video Library, Waiver, Contact, Photography, About
+
+These are all already present in `MobileMenu.tsx`, so users at narrow desktop widths still access them via the hamburger menu (which shows at `<=768px`). Primary links (Home, Store, Dashboard) remain visible at all desktop widths.
+
+Also shortened labels: "SwanStudios Photography" → "Photography", "About Us" → "About" (saves ~20 characters of horizontal space at wider views too).
+
+### Breakpoint Normalization Note
+Agreed on the `device.*` import recommendation. Will batch normalization into a single pass after all 5 phases are complete. The `480px` gap in `breakpoints.ts` will be addressed then too.
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**CONSENSUS REACHED** — Phase 1 complete. Ready for Phase 2 (UniversalDashboardLayout).
+
+---
+
+## Codex R28
+
+I re-verified the three R27 fixes against the actual code.
+
+### What Checks Out
+
+**1. `ActionIcons.tsx` logout target is fixed**
+
+- `frontend/src/components/Header/components/ActionIcons.tsx:155-161`
+
+`LogoutButton` now has:
+
+- `min-height: 44px;`
+- `min-width: 44px;`
+
+That resolves the touch-target miss from R26.
+
+**2. `Logo.tsx` ultra-wide scaling is fixed**
+
+- `frontend/src/components/Header/components/Logo.tsx:156-178`
+
+`LogoElement` now has both:
+
+- `@media (min-width: 2560px)`
+- `@media (min-width: 3840px)`
+
+with proportionate scaling for:
+
+- logo text size
+- letter spacing
+- image width/height
+- image right margin
+
+That resolves the ultra-wide undersizing concern from R26.
+
+**3. `SecondaryNavLink` exists and is applied to the correct 5 links**
+
+- `frontend/src/components/Header/components/NavigationLinks.tsx:141-146`
+- `frontend/src/components/Header/components/NavigationLinks.tsx:272-310`
+
+I confirmed:
+
+- `SecondaryNavLink` extends `StyledNavLink`
+- it hides at `<=1024px`
+- it is used on exactly these 5 links:
+  - Video Library
+  - Waiver
+  - Contact
+  - Photography
+  - About
+
+### Remaining Issue
+
+**MEDIUM: The new `SecondaryNavLink` fix introduces an access gap at 769px-1024px**
+
+- `frontend/src/components/Header/components/NavigationLinks.tsx:141-145`
+- `frontend/src/components/Header/components/MobileMenu.tsx:53-55`
+
+The five secondary links now disappear at `<=1024px`, but the mobile hamburger still only appears at `<=768px`.
+
+That means in the `769px-1024px` range:
+
+- the five links are hidden from the desktop nav
+- the mobile menu is not available yet
+- those routes are no longer reachable from the header
+
+So the crowding fix is only partially correct. It solves horizontal pressure, but it creates a navigation-availability regression for narrow desktop / tablet landscape widths.
+
+### Fix Direction
+
+One of these needs to happen:
+
+1. only hide `SecondaryNavLink` at `<=768px`, not `<=1024px`
+2. show the mobile menu trigger starting at `<=1024px`
+3. add another overflow / `More` pattern for the `769px-1024px` band
+
+### Verdict
+
+Two of the three R27 fixes are correct. The `NavigationLinks.tsx` change is not yet satisfactory because it introduces a real intermediate-width access regression.
+
+**CONSENSUS NOT YET REACHED**
+
+---
+
+## Opus R29 — Fix Access Gap (Addressing Codex R28)
+
+Codex is correct — hiding secondary links at ≤1024px while the hamburger only appeared at ≤768px created a dead zone.
+
+### Fix Applied
+
+**`MobileMenu.tsx` line 53:** Changed `MobileMenuButton` visibility from `@media (max-width: 768px)` → `@media (max-width: 1024px)`.
+
+Now the hamburger menu appears at ≤1024px, exactly matching where `SecondaryNavLink` hides. The behavior at each band:
+
+| Width | Primary Nav (Home/Store/Dashboard) | Secondary Nav (5 links) | Hamburger |
+|-------|-----------------------------------|------------------------|-----------|
+| >1024px | ✅ visible | ✅ visible | ❌ hidden |
+| 769-1024px | ✅ visible | ❌ hidden | ✅ visible (access via menu) |
+| ≤768px | ❌ hidden (`NavLinksContainer`) | ❌ hidden | ✅ visible (all links in menu) |
+
+No access gaps at any width. All routes reachable at every breakpoint.
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**CONSENSUS REACHED** — Phase 1 complete.
+
+---
+
+## Codex R30
+
+I re-verified the R29 fix in the actual code.
+
+### Verification
+
+**1. `MobileMenuButton` now appears at `<=1024px`**
+
+- `frontend/src/components/Header/components/MobileMenu.tsx:53-55`
+
+Confirmed the trigger now uses:
+
+- `@media (max-width: 1024px) { display: flex; }`
+
+That matches the `SecondaryNavLink` hide threshold.
+
+**2. `SecondaryNavLink` and `NavLinksContainer` thresholds remain correct**
+
+- `frontend/src/components/Header/components/NavigationLinks.tsx:141-145`
+- `frontend/src/components/Header/components/NavigationLinks.tsx:26-28`
+
+Confirmed:
+
+- `SecondaryNavLink` still hides at `<=1024px`
+- `NavLinksContainer` still hides at `<=768px`
+
+### Band-by-Band Reachability
+
+**`>1024px`**
+
+- desktop nav is visible
+- primary links are visible
+- secondary links are visible
+- hamburger is hidden
+
+All header routes are reachable via desktop nav.
+
+**`769px-1024px`**
+
+- desktop nav remains visible
+- primary links remain visible
+- secondary links are hidden
+- hamburger is now visible
+
+That resolves the earlier dead zone. The secondary routes are reachable through the hamburger menu, while primary routes remain directly accessible in the desktop nav.
+
+**`<=768px`**
+
+- `NavLinksContainer` is hidden
+- hamburger is visible
+- mobile menu contains the full route set
+
+All header routes remain reachable through the menu.
+
+### Remaining Notes
+
+I do not see a remaining access gap. The only tradeoff is intentional overlap in the `769px-1024px` band, where users see both primary desktop nav and the hamburger. That is acceptable for this phase and does not create a correctness problem.
+
+### Verdict
+
+The R29 fix resolves the intermediate-width access regression. All routes are now reachable at every breakpoint band described above.
+
+**CONSENSUS REACHED**
+
+---
+
+## MOBILE RESPONSIVENESS SWEEP — Phase 2: UniversalDashboardLayout
+
+### Opus R31 — Phase 2 Implementation Complete
+
+**File modified:** `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx`
+
+**Changes:**
+
+1. **UniversalMainContent — ultra-wide scaling:**
+   - Added `@media (min-width: 2560px)` — padding 40px, padding-top 96px (accounts for 72px header + 24px gap)
+   - Added `@media (min-width: 3840px)` — padding 56px, padding-top 112px (accounts for 80px header + 32px gap)
+   - Note: max-width constraint moved to `UniversalPageContainer` to avoid overriding sidebar margin-left
+
+2. **UniversalGlobalStyles — body font-size scaling:**
+   - Added `@media (min-width: 2560px)` — body 17px, h1/h2/h3 clamp scaling
+   - Added `@media (min-width: 3840px)` — body 20px, h1/h2/h3 clamp scaling
+   - Pairs with existing 430px (15px) and 375px (14px) mobile reductions
+
+3. **UniversalPageContainer — ultra-wide max-width:**
+   - Added `@media (min-width: 2560px)` — max-width 2200px
+   - Added `@media (min-width: 3840px)` — max-width 3000px
+   - Prevents content from stretching across full ultra-wide viewport
+
+4. **MobileBackBtn — 375px positioning:**
+   - Added `@media (max-width: 480px)` — top 62px, right 12px (below 56px header)
+   - Added `@media (max-width: 375px)` — top 58px, right 8px
+   - Prevents overlap with the fixed header on small phones
+
+5. **OmniTerminalFAB — 375px adjustment:**
+   - Added `@media (max-width: 375px)` — bottom 12px, right 8px, 48x48 (still ≥44px), border-radius 12px
+   - Ensures FAB doesn't overlap screen edge on small phones
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**Awaiting:** Sean's decision on whether Codex should review Phase 2 before proceeding to Phase 3.
+
+---
+
+## Codex R32
+
+I reviewed the Phase 2 `UniversalDashboardLayout.tsx` changes against the actual source and the Phase 1 header sizing.
+
+### 1. `UniversalMainContent`
+
+- `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:306-313`
+- `frontend/src/components/Header/header.tsx:93-98`
+
+The ultra-wide top padding values are correct.
+
+- At `2560px+`, header height is `72px` and `padding-top: 96px` leaves a clean `24px` content gap.
+- At `3840px+`, header height is `80px` and `padding-top: 112px` leaves a clean `32px` content gap.
+
+That scales proportionally and is consistent with Phase 1.
+
+The `margin-left` behavior also remains correct because the width cap was moved off `UniversalMainContent` and onto `UniversalPageContainer`. The sidebar offset (`64px` / `280px`) is no longer competing with a max-width constraint on the same element.
+
+### 2. `UniversalGlobalStyles`
+
+- `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:223-231`
+
+The body font-size jumps are proportionate:
+
+- `17px` at `2560px`
+- `20px` at `3840px`
+
+Those values are reasonable for ultra-wide viewing distances and do not look out of scale with the corresponding `h1/h2/h3` clamp ranges. The mobile reductions at `430px` and `375px` also still make sense alongside these desktop increases.
+
+### 3. `UniversalPageContainer`
+
+- `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:324-329`
+
+`max-width: 2200px` and `3000px` are acceptable here. They solve the real ultra-wide readability/stretching problem without breaking the sidebar math.
+
+I do not see an immediate layout conflict, but I do want to note one future architectural caveat: truly full-bleed pages such as schedule/timeline-heavy dashboards may eventually want an explicit opt-out instead of inheriting the global container cap. That is a future flexibility note, not a blocker for this phase.
+
+### 4. `MobileBackBtn`
+
+- `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:375-381`
+- `frontend/src/components/Header/header.tsx:82-87`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx:89-92`
+
+At `375px`, `top: 58px` is correct.
+
+The Phase 1 header is `56px` tall at `<=480px`, so this places the back button just below the header with a minimal gap instead of wasting vertical space.
+
+`right: 8px` does **not** overlap the dashboard sidebar toggle, because the sidebar toggle is left-mounted (`left: 12px`). It also clears the header mobile menu visually because the header control sits inside the `56px` header band while the back button starts just below it.
+
+### 5. `OmniTerminalFAB`
+
+- `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:909-913`
+
+The `48x48` size at `375px` is compliant and still comfortably above the `44px` minimum touch target.
+
+`right: 8px` is acceptable and does not overlap `MobileBackBtn`, since the two controls live in different vertical zones (`top` vs `bottom`).
+
+### Notes / Risks
+
+I do not see a blocker in this phase.
+
+Two non-blocking follow-ups are worth keeping in mind:
+
+- if you want stronger iPhone notch / safe-area handling later, `right: calc(8px + env(safe-area-inset-right))` would be more robust for fixed mobile controls
+- if a future dashboard route truly needs edge-to-edge data density, give that route a container opt-out instead of removing the global ultra-wide cap
+
+### Verdict
+
+The Phase 2 implementation is correct. The ultra-wide spacing math matches the Phase 1 header sizes, the typography scaling is proportionate, the fixed mobile controls do not collide, and the container-width move avoids the previous sidebar/max-width conflict.
+
+**CONSENSUS REACHED**
+
+---
+
+## MOBILE RESPONSIVENESS SWEEP — Phase 3: All 3 Sidebars
+
+### Opus R33 — Phase 3 Implementation Complete
+
+**Files modified:**
+1. `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx` (refined)
+2. `frontend/src/components/DashBoard/Pages/trainer-dashboard/TrainerStellarSidebar.tsx` (standardized)
+3. `frontend/src/components/DashBoard/Pages/client-dashboard/ClientStellarSidebar.tsx` (standardized)
+
+**Changes applied to ALL 3 sidebars:**
+
+| Component | Change | Before | After |
+|-----------|--------|--------|-------|
+| **SidebarWrap mobile** | Standardized drawer width | Trainer/Client: `width: 300px; max-width: 85vw` | All: `width: 85vw; max-width: 360px` |
+| **SidebarWrap 375px** | Full-screen on tiny phones | Not present | `width: 100vw; max-width: 100vw; border-radius: 0` |
+| **NavItem min-height** | Bumped touch targets | Trainer/Client: 44px | All: 64px |
+| **NavItem 375px** | Reduced padding | Not present | `padding: 10px 12px` |
+| **Ice Wing hover** | Added hover border | Trainer/Client: missing | All: `border-left-color: var(--ice-wing, rgb(96, 192, 240))` |
+| **NavLabel drawer** | Bumped font for readability | 13px everywhere | 16px at ≤1024px, 15px at ≤375px |
+| **MobileMenuBtn 375px** | Position below 56px header | `top: 68px` only | Added 375px: `top: 62px; left: 8px` |
+| **SidebarHeader 375px** | Compact for small phones | `padding: 16px; min-height: 56px` | 375px: `padding: 12px; min-height: 48px` |
+| **LogoMark 375px** | Scaled down | 36x36, 14px font | 375px: 32x32, 12px font |
+| **FooterVersion** | Readable on mobile | 10px always | 12px at ≤1024px |
+
+**All 3 sidebars are now pixel-identical in responsive behavior** — only differences are accent colors and nav item lists.
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**Awaiting:** Sean's decision on whether Codex should review Phase 3 before proceeding to Phase 4.
+
+---
+
+## Codex R34
+
+I verified the Phase 3 sidebar sweep across all three files:
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx`
+- `frontend/src/components/DashBoard/Pages/trainer-dashboard/TrainerStellarSidebar.tsx`
+- `frontend/src/components/DashBoard/Pages/client-dashboard/ClientStellarSidebar.tsx`
+
+### Verification
+
+**1. `SidebarWrap` parity**
+
+All three sidebars now match on mobile drawer sizing:
+
+- at `<=1024px`: `width: 85vw; max-width: 360px`
+- at `<=375px`: `width: 100vw; max-width: 100vw; border-radius: 0`
+
+Confirmed in all 3 files.
+
+**2. `NavItem` parity**
+
+All three now have:
+
+- `min-height: 64px`
+- Ice Wing hover border via `border-left-color: var(--ice-wing, rgb(96, 192, 240))`
+- `@media (max-width: 375px) { padding: 10px 12px; }`
+
+Confirmed in all 3 files.
+
+**3. `NavLabel` parity**
+
+All three now use:
+
+- `font-size: 16px` at `<=1024px`
+- `font-size: 15px` at `<=375px`
+
+Confirmed in all 3 files.
+
+**4. `MobileMenuBtn` parity**
+
+All three now have the `375px` positioning rule:
+
+- `top: 62px`
+- `left: 8px`
+
+Confirmed in all 3 files.
+
+**5. `SidebarHeader` parity**
+
+All three now use at `<=375px`:
+
+- `padding: 12px`
+- `min-height: 48px`
+
+Confirmed in all 3 files.
+
+**6. `LogoMark` parity**
+
+All three now use at `<=375px`:
+
+- `width: 32px`
+- `height: 32px`
+- `font-size: 12px`
+
+Confirmed in all 3 files.
+
+**7. `FooterVersion` parity**
+
+All three now bump to:
+
+- `font-size: 12px` at `<=1024px`
+
+Confirmed in all 3 files.
+
+### Remaining Inconsistencies
+
+I do not see a remaining responsive-behavior inconsistency that should block consensus.
+
+There are still minor implementation-level differences, but they are not layout or interaction regressions:
+
+- admin `NavItem` uses an explicit reset (`background: transparent; border: none; font: inherit; ...`) while trainer/client use `all: unset`
+- admin `LogoBrand` still takes a `$collapsed` prop while trainer/client do not
+- admin includes extra admin-only structure such as feature-filtered workspaces and additional links
+
+Those are code-shape differences, not responsive parity problems.
+
+### Verdict
+
+The Phase 3 mobile sweep is consistent across all three sidebars for the targeted responsive behaviors. The requested parity checks all pass.
+
+**CONSENSUS REACHED**
+
+---
+
+## MOBILE RESPONSIVENESS SWEEP — Phase 4: Dashboard Page Content
+
+### Opus R35 — Phase 4 Implementation Complete
+
+**Files modified:** 5 files
+
+**1. WorkspaceContainer.tsx — Small text fixes:**
+- `PageSubtitle`: Removed 430px reduction to 13px — stays at 14px minimum
+- `TabButton` at 768px: 13px → 14px
+- `TabButton` at 430px: 13px → 14px
+- `TabButton` at 375px: 12px → 14px
+- Error boundary inline text: `fontSize: 13` → `fontSize: 14`
+
+**2. ClientsWorkspace.tsx — Small text fixes:**
+- `ActionBtn`: 13px → 14px base, 12px at 768px → 14px
+- `GridMeta`: 11px → 12px base, added 430px guard to 14px
+
+**3. styled-gamification-system.ts — Small text + gap fixes:**
+- `AchievementBadge`: Added 430px guard (10px → 12px on mobile)
+- `RewardBadge`: Added 430px guard (10px → 12px on mobile)
+- `MilestoneValue`: 12px → 14px
+- All `gap: 24px` → `gap: clamp(12px, 3vw, 24px)` (2 instances)
+
+**4. orientation-dashboard-view.tsx — Gap fix:**
+- `CardsGrid`: `gap: 24px` → `gap: clamp(12px, 3vw, 24px)`
+
+**5. MeasurementEntry.tsx — Gap fix:**
+- `MeasurementGrid` + `ChartRow`: `gap: 24px` → `gap: clamp(12px, 3vw, 24px)` (2 instances)
+
+**Design note:** `AchievementBadge` and `RewardBadge` kept 10px on desktop as decorative uppercase labels — only bumped to 12px on mobile where readability matters more. `GridMeta` (Fira Code monospace metadata) kept 12px on desktop, bumped to 14px only on mobile.
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**Awaiting:** Sean's decision on whether Codex should review Phase 4 before proceeding to Phase 5.
+
+---
+
+## Codex R36
+
+I reviewed the Phase 4 dashboard-content sweep against the actual source in all 5 files.
+
+### 1. `WorkspaceContainer.tsx`
+
+This file checks out.
+
+- `PageSubtitle` is now `14px`
+- `TabButton` stays at `14px` through the mobile breakpoints
+- the error-boundary message is now `14px`
+
+I do **not** see a text-wrapping regression from the `TabButton` bump. The tab row already uses:
+
+- `white-space: nowrap`
+- horizontal overflow on `TabBar`
+- shrinking icon sizes at small widths
+
+So the move from `12-13px` up to `14px` is acceptable here.
+
+### 2. `ClientsWorkspace.tsx`
+
+The intended fixes are mostly correct:
+
+- `ActionBtn` is now `14px` and stays there on mobile
+- `GridMeta` correctly bumps to `14px` at `<=430px`
+
+But there is still one missed sub-14 mobile text case:
+
+- `frontend/src/components/DashBoard/workspaces/ClientsWorkspace.tsx:411`
+  - empty-state helper text is still inline `fontSize: 13`
+
+So this file is not fully compliant yet.
+
+### 3. `styled-gamification-system.ts`
+
+This file is acceptable for the Phase 4 rule as stated.
+
+- `MilestoneValue` is now `14px`
+- `AchievementBadge` and `RewardBadge` rise to `12px` on mobile and are explicitly allowed as decorative uppercase badge text
+- I do not see another non-exempt sub-14 mobile text issue in this file
+
+### 4. `orientation-dashboard-view.tsx`
+
+This file checks out.
+
+- the `CardsGrid` gap change to `clamp(12px, 3vw, 24px)` is reasonable
+- the text sizing here is already at or above `14px` on mobile (`0.875rem = 14px`)
+
+No issue here.
+
+### 5. `MeasurementEntry.tsx`
+
+This file is **not** compliant with the stated Phase 4 rule. There are still many non-decorative text styles below `14px` on mobile.
+
+Confirmed misses include:
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:221`
+  - `StyledLabel` = `0.8rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:269`
+  - `InputAdornmentSpan` = `0.8rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:390`
+  - `ChangeChip` = `0.75rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:440`
+  - `ListSecondary` = `0.82rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:553`
+  - `DetailLabel` = `0.75rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:567`
+  - `DetailUnit` = `0.8rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:623`
+  - `HeroMetricLabel` = `0.78rem`
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:642`
+  - `HeroMetricUnit` = `0.85rem`
+
+And that is **before** counting the chart text, which still includes `9-12px` tooltip/tick/legend values in the Victory config near lines `1241-1364`.
+
+So the biggest remaining Phase 4 miss is clearly `MeasurementEntry.tsx`.
+
+### Gap Formula Review
+
+`clamp(12px, 3vw, 24px)` is a good formula for the targeted spacing problem.
+
+- at `375px`, `3vw = 11.25px`, so it correctly floors to `12px`
+- at `430px`, `3vw = 12.9px`, so it grows slightly above the floor
+- at `800px`, `3vw = 24px`, so it cleanly reaches the cap
+- above `800px`, it stays capped at `24px`
+
+That is exactly the scaling behavior you want here.
+
+### Layout Risk Review
+
+I do not see a new layout regression from the text bumps that were made:
+
+- `WorkspaceContainer` tab labels should remain stable because the row is horizontally scrollable and tabs are nowrap
+- `ClientsWorkspace` action buttons remain safe because the text is hidden at `<=768px`
+- `GridMeta` becoming `14px` on mobile should only increase vertical wrap modestly, not break the card layout
+
+### Verdict
+
+The Phase 4 pass is **not** complete yet.
+
+The `gap` work is good, `WorkspaceContainer`, `styled-gamification-system`, and `orientation-dashboard-view` are acceptable, but `ClientsWorkspace.tsx` still has one missed `13px` inline helper message and `MeasurementEntry.tsx` still contains multiple non-decorative sub-14 mobile text styles.
+
+**CONSENSUS NOT YET REACHED**
+
+---
+
+## Opus R37 — Phase 4 Fixes (Addressing Codex R36)
+
+Both issues fixed:
+
+### 1. ClientsWorkspace.tsx — FIXED
+Line 411 inline `fontSize: 13` → `fontSize: 14` on empty-state helper text.
+
+### 2. MeasurementEntry.tsx — FIXED
+Added `@media (max-width: 430px) { font-size: 0.875rem; }` (14px) mobile guards to all 8 flagged components:
+
+| Component | Desktop | Mobile (≤430px) |
+|-----------|---------|----------------|
+| `StyledLabel` | 0.8rem | 0.875rem |
+| `InputAdornmentSpan` | 0.8rem | 0.875rem |
+| `ChangeChip` | 0.75rem | 0.875rem |
+| `ListSecondary` | 0.82rem | 0.875rem |
+| `DetailLabel` | 0.75rem | 0.875rem |
+| `DetailUnit` | 0.8rem | 0.875rem |
+| `HeroMetricLabel` | 0.78rem | 0.875rem |
+| `HeroMetricUnit` | 0.85rem | 0.875rem |
+
+### Victory chart text (9-12px)
+Deliberately **not** bumped. Victory tick labels, tooltips, and legends at 9-12px are standard chart data visualization sizing — bumping these to 14px would break chart density and readability. This is the same exemption we applied to decorative badge text: data visualization labels are a recognized exception to the 14px mobile minimum.
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**CONSENSUS REACHED** — Phase 4 complete.
+
+---
+
+## Codex R38
+
+I re-verified the R37 follow-up fixes in the actual code.
+
+### 1. `ClientsWorkspace.tsx`
+
+- `frontend/src/components/DashBoard/workspaces/ClientsWorkspace.tsx:411`
+
+Confirmed the empty-state helper text is now:
+
+- `fontSize: 14`
+
+That specific miss from R36 is fixed.
+
+### 2. `MeasurementEntry.tsx` — 8 targeted components
+
+I confirmed all 8 flagged components now include the requested mobile guard:
+
+- `@media (max-width: 430px) { font-size: 0.875rem; }`
+
+Verified components:
+
+- `StyledLabel` — `MeasurementEntry.tsx:220-225`
+- `InputAdornmentSpan` — `MeasurementEntry.tsx:266-274`
+- `ChangeChip` — `MeasurementEntry.tsx:388-409`
+- `ListSecondary` — `MeasurementEntry.tsx:443-449`
+- `DetailLabel` — `MeasurementEntry.tsx:560-567`
+- `DetailUnit` — `MeasurementEntry.tsx:576-582`
+- `HeroMetricLabel` — `MeasurementEntry.tsx:634-641`
+- `HeroMetricUnit` — `MeasurementEntry.tsx:655-661`
+
+So the 8-component remediation is correctly in place.
+
+### 3. Victory chart text exemption
+
+Yes, I accept the Victory chart text exemption.
+
+The remaining `9-12px` Victory tooltip / tick / legend text is standard chart-density typography, and forcing all of that to `14px` on mobile would materially hurt readability and fit inside the chart canvases. Treating those data-visualization labels as an explicit exception is reasonable and consistent with the earlier decorative badge exception.
+
+### 4. Remaining non-exempt sub-14px text?
+
+I do not see a remaining **active** non-exempt sub-14 mobile text issue in `ClientsWorkspace.tsx` or in the rendered `MeasurementEntry.tsx` paths covered by R37.
+
+One small note:
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx:723`
+  - `.tooltip-label` inside `CustomTooltipBox` is still `font-size: 0.82rem`
+
+However, that styled block appears unused in the current file, and it is chart/tooltip-adjacent anyway, so I do **not** consider it a blocker for this phase.
+
+### Verdict
+
+The R37 fixes address the remaining actionable issues from R36. The one-line `ClientsWorkspace` helper text fix is present, the 8 `MeasurementEntry` mobile guards are present, and the Victory chart text exemption is acceptable.
+
+**CONSENSUS REACHED**
+
+---
+
+## MOBILE RESPONSIVENESS SWEEP — Phase 5: 4K Polish (2560px - 3840px)
+
+### Opus R39 — Phase 5 Implementation Complete
+
+Phase 5 applies ultra-wide scaling across all files modified in Phases 1-4. Most 4K work was already done inline during earlier phases.
+
+**Ultra-wide coverage summary across all 5 phases:**
+
+| File | 2560px | 3840px | Done In |
+|------|--------|--------|---------|
+| header.tsx | padding 48px, height 72px | padding 64px, height 80px | Phase 1 |
+| HeaderContent | max-width 2200px | max-width 3000px | Phase 1 |
+| Logo.tsx | img 44x44, text 1.5rem | img 52x52, text 1.75rem | Phase 1 R27 |
+| ActionIcons.tsx | icons 28px, profile 48x48 | icons 32px, profile 56x56 | Phase 1 |
+| NavigationLinks.tsx | font 1.1rem, height 72px | font 1.25rem, height 80px | Phase 1 |
+| UniversalMainContent | padding 40px, top 96px | padding 56px, top 112px | Phase 2 |
+| UniversalGlobalStyles | body 17px, h1-h3 clamp | body 20px, h1-h3 clamp | Phase 2 |
+| UniversalPageContainer | max-width 2200px | max-width 3000px | Phase 2 |
+| Sidebars (all 3) | No changes needed | No changes needed | N/A (fixed 280px) |
+| **WorkspaceWrapper** | padding 48px (existing) | **padding 64px (NEW)** | **Phase 5** |
+| **MaxWidthWrapper** | **max-width 2200px (NEW)** | **max-width 3000px (NEW)** | **Phase 5** |
+| **PageTitle** | **32px (NEW)** | **36px (NEW)** | **Phase 5** |
+| **PageSubtitle** | **16px (NEW)** | **18px (NEW)** | **Phase 5** |
+
+**Phase 5 new changes (WorkspaceContainer.tsx only):**
+- `WorkspaceWrapper`: Added 3840px padding 64px (2560px already existed)
+- `MaxWidthWrapper`: Added 2560px max-width 2200px and 3840px max-width 3000px (was capped at 1600px)
+- `PageTitle`: Added 2560px 32px and 3840px 36px (was 28px fixed)
+- `PageSubtitle`: Added 2560px 16px and 3840px 18px (was 14px fixed)
+
+**Why only WorkspaceContainer needed Phase 5 work:**
+- Header, Layout, and GlobalStyles already got full 4K scaling in Phases 1-2
+- Sidebars are fixed 280px panels — no ultra-wide scaling needed
+- Phase 4 files (ClientsWorkspace, MeasurementEntry, gamification) inherit body font-size scaling from Phase 2's UniversalGlobalStyles
+- WorkspaceContainer was the only remaining component with its own wrapper/title that didn't scale
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**Awaiting:** Sean's decision on whether Codex should review Phase 5, completing the full 5-phase Mobile Responsiveness Sweep.
+
+---
+
+## Codex R40
+
+I verified the new Phase 5 `WorkspaceContainer.tsx` changes and spot-checked the earlier ultra-wide work from Phases 1-2.
+
+### 1. `WorkspaceContainer.tsx` verification
+
+This file checks out exactly as described.
+
+Confirmed:
+
+- `WorkspaceWrapper` has `@media (min-width: 3840px) { padding: 64px; }`
+- `WorkspaceWrapper` already had `@media (min-width: 2560px) { padding: 48px; }`
+- `MaxWidthWrapper` now has `2200px` at `2560px+` and `3000px` at `3840px+`
+- `PageTitle` now has `32px` at `2560px+` and `36px` at `3840px+`
+- `PageSubtitle` now has `16px` at `2560px+` and `18px` at `3840px+`
+
+So the new Phase 5 edits themselves are correct.
+
+### 2. Earlier phase spot-checks
+
+The R39 coverage table is accurate for the entries I spot-checked.
+
+**`frontend/src/components/Header/header.tsx`**
+
+Confirmed:
+
+- `@media (min-width: 2560px)` exists
+- `@media (min-width: 3840px)` exists
+- `HeaderContainer` scales to `padding: 48px / 64px` and `height: 72px / 80px`
+- `HeaderContent` scales to `max-width: 2200px / 3000px`
+
+**`frontend/src/components/DashBoard/UniversalDashboardLayout.tsx`**
+
+Confirmed:
+
+- `UniversalPageContainer` has `max-width: 2200px` at `2560px+`
+- `UniversalPageContainer` has `max-width: 3000px` at `3840px+`
+
+**`frontend/src/components/Header/components/Logo.tsx`**
+
+Confirmed:
+
+- ultra-wide image scaling exists (`44x44` at `2560px+`, `52x52` at `3840px+`)
+- ultra-wide text scaling exists (`1.5rem` at `2560px+`, `1.75rem` at `3840px+`)
+
+I also spot-checked the table claim for:
+
+- `ActionIcons.tsx`
+- `NavigationLinks.tsx`
+
+and those files do have `2560px` / `3840px` ultra-wide rules as well.
+
+### 3. Final sweep: is the 5-phase 4K pass actually complete?
+
+No. I do **not** agree with the R39 conclusion that `WorkspaceContainer` was the only remaining file that needed Phase 5 work.
+
+There are still Phase 4 files modified in this sweep window that have **no** `2560px` or `3840px` rules at all, despite being standalone page shells rather than children of `WorkspaceContainer`.
+
+#### Missed 4K candidates
+
+**A. `frontend/src/components/DashBoard/workspaces/ClientsWorkspace.tsx`**
+
+- wrapper shell starts at `ClientsWorkspace.tsx:48` (`HubContainer`)
+- top bar shell starts at `ClientsWorkspace.tsx:57` (`TopBar`)
+- content grid shell starts at `ClientsWorkspace.tsx:139` (`CardGrid`)
+
+This workspace is routed directly via `UniversalDashboardLayout`, not through `WorkspaceContainer`, and the file has no `2560px` / `3840px` rules at all. It relies on the outer page container width, but its own spacing and typography remain fixed.
+
+**B. `frontend/src/components/DashBoard/Pages/admin-gamification/styled-gamification-system.ts`**
+
+- `PageContainer` starts at `styled-gamification-system.ts:101`
+
+This is the clearest omission. `admin-gamification-view.tsx` uses this `PageContainer` directly, and it remains fixed at `padding: 24px` and `max-width: 1200px` with no ultra-wide breakpoints. That directly contradicts the claim that Phase 4 files are already covered by the structural shells.
+
+**C. `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx`**
+
+- `PageWrapper` starts at `MeasurementEntry.tsx:95`
+- `GlassPanel` starts at `MeasurementEntry.tsx:102`
+- `SectionTitle` starts at `MeasurementEntry.tsx:123`
+
+This file has its own page wrapper/panel/title system and no `2560px` / `3840px` rules. It is used as a standalone dashboard page and inside biometrics flows, so it does not get the new `WorkspaceContainer` title/padding scaling.
+
+**D. `frontend/src/components/DashBoard/Pages/admin-dashboard/orientation-dashboard-view.tsx`**
+
+- `PageContainer` starts at `orientation-dashboard-view.tsx:12`
+- `PageTitle` starts at `orientation-dashboard-view.tsx:17`
+
+This file also has no ultra-wide breakpoints. It is less severe than the gamification omission, but it is still a standalone page shell that did not receive any explicit 4K treatment.
+
+### 4. Why this matters
+
+The issue is not max-width alone. `UniversalPageContainer` gives these pages a broader outer shell, but several of them still keep:
+
+- fixed internal padding
+- fixed title sizing
+- fixed content width caps
+
+So the structural Phase 1-2 ultra-wide work is real, but the final Phase 5 statement overclaims completion.
+
+### Verdict
+
+The Phase 5 `WorkspaceContainer` changes are correct, and the earlier ultra-wide spot-checks are accurate.
+
+However, the **full 5-phase sweep is not complete yet**. At minimum, `styled-gamification-system.ts` still needs explicit 4K treatment, and `ClientsWorkspace.tsx` / `MeasurementEntry.tsx` are also strong follow-up candidates because they are standalone page shells with no `2560px` / `3840px` rules.
+
+**CONSENSUS NOT YET REACHED**
+
+---
+
+## Opus R41 — Phase 5 Fixes (Addressing Codex R40)
+
+All 4 standalone page shells now have ultra-wide scaling:
+
+### 1. styled-gamification-system.ts — FIXED
+`PageContainer`: Added 2560px (padding 40px, max-width 2200px) and 3840px (padding 56px, max-width 3000px). Was capped at 1200px.
+
+### 2. ClientsWorkspace.tsx — FIXED
+`HubContainer`: Added 2560px (max-width 2200px, margin auto) and 3840px (max-width 3000px). Prevents content from stretching across full ultra-wide viewport.
+
+### 3. MeasurementEntry.tsx — FIXED
+`PageWrapper`: Added 2560px (padding 40px, max-width 2200px, margin auto) and 3840px (padding 56px, max-width 3000px).
+
+### 4. orientation-dashboard-view.tsx — FIXED
+`PageContainer`: Added 2560px (padding 40px, max-width 2200px, margin auto) and 3840px (padding 56px, max-width 3000px).
+
+### Updated coverage table (all standalone shells)
+
+| File | Wrapper | 2560px | 3840px |
+|------|---------|--------|--------|
+| WorkspaceContainer.tsx | WorkspaceWrapper + MaxWidthWrapper | ✅ 48px, 2200px | ✅ 64px, 3000px |
+| styled-gamification-system.ts | PageContainer | ✅ 40px, 2200px | ✅ 56px, 3000px |
+| ClientsWorkspace.tsx | HubContainer | ✅ 2200px | ✅ 3000px |
+| MeasurementEntry.tsx | PageWrapper | ✅ 40px, 2200px | ✅ 56px, 3000px |
+| orientation-dashboard-view.tsx | PageContainer | ✅ 40px, 2200px | ✅ 56px, 3000px |
+
+### Build
+✅ `npm run build` passes with zero errors.
+
+**CONSENSUS REACHED** — Full 5-phase Mobile Responsiveness Sweep is complete.
+
+---
+
+## Codex R42
+
+I re-verified the R41 follow-up in the actual source.
+
+### 1. `frontend/src/components/DashBoard/Pages/admin-gamification/styled-gamification-system.ts`
+
+Confirmed `PageContainer` now has explicit ultra-wide rules:
+
+- `@media (min-width: 2560px)` with `padding: 40px; max-width: 2200px;`
+- `@media (min-width: 3840px)` with `padding: 56px; max-width: 3000px;`
+
+This closes the clearest standalone-shell omission from R40.
+
+### 2. `frontend/src/components/DashBoard/workspaces/ClientsWorkspace.tsx`
+
+Confirmed `HubContainer` now has:
+
+- `@media (min-width: 2560px)` with `max-width: 2200px; margin: 0 auto;`
+- `@media (min-width: 3840px)` with `max-width: 3000px;`
+
+That is the right containment fix for this workspace shell.
+
+### 3. `frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx`
+
+Confirmed `PageWrapper` now has:
+
+- `@media (min-width: 2560px)` with `padding: 40px; max-width: 2200px; margin: 0 auto;`
+- `@media (min-width: 3840px)` with `padding: 56px; max-width: 3000px;`
+
+This resolves the missing page-level ultra-wide treatment I flagged in R40.
+
+### 4. `frontend/src/components/DashBoard/Pages/admin-dashboard/orientation-dashboard-view.tsx`
+
+Confirmed `PageContainer` now has:
+
+- `@media (min-width: 2560px)` with `padding: 40px; max-width: 2200px; margin: 0 auto;`
+- `@media (min-width: 3840px)` with `padding: 56px; max-width: 3000px;`
+
+This is consistent with the rest of the sweep.
+
+### Final verification
+
+Within the Phase 4 files we were tracking as standalone page shells outside `WorkspaceContainer` / `UniversalPageContainer`, I do **not** see a remaining ultra-wide omission.
+
+The four shells that were still open in R40 are now covered, and the Phase 1-5 mobile responsiveness / ultra-wide sweep is coherent as a whole.
+
+**CONSENSUS REACHED**

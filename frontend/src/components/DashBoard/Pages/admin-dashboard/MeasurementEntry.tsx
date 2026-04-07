@@ -97,6 +97,17 @@ const PageWrapper = styled(motion.div)`
   @media (min-width: 768px) {
     padding: 32px;
   }
+
+  @media (min-width: 2560px) {
+    padding: 40px;
+    max-width: 2200px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 56px;
+    max-width: 3000px;
+  }
 `;
 
 const GlassPanel = styled(motion.div)`
@@ -159,7 +170,7 @@ const ResponsiveGrid = styled.div`
 
 const MeasurementGrid = styled.div`
   display: grid;
-  gap: 24px;
+  gap: clamp(12px, 3vw, 24px);
   grid-template-columns: 1fr;
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
@@ -221,6 +232,8 @@ const StyledLabel = styled.label`
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.55);
   padding-left: 2px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 const StyledInput = styled.input<{ $hasAdornment?: boolean }>`
@@ -268,6 +281,8 @@ const InputAdornmentSpan = styled.span`
   color: rgba(255, 255, 255, 0.4);
   font-size: 0.8rem;
   pointer-events: none;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 // ─── Autocomplete / Searchable Select ───────────────────────────────────────────
@@ -401,6 +416,8 @@ const ChangeChip = styled.span<{ $variant?: 'success' | 'error' | 'default' }>`
       : $variant === 'error'
         ? '#f44336'
         : 'rgba(255, 255, 255, 0.7)'};
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 // ─── List Components ────────────────────────────────────────────────────────────
@@ -439,6 +456,8 @@ const ListSecondary = styled.span`
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.82rem;
   margin-top: 2px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 // ─── Spinner Component ──────────────────────────────────────────────────────────
@@ -555,6 +574,8 @@ const DetailLabel = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 const DetailValue = styled.div`
@@ -568,6 +589,8 @@ const DetailUnit = styled.span`
   color: rgba(255, 255, 255, 0.4);
   font-weight: 400;
   margin-left: 4px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 const DetailPhotoGrid = styled.div`
@@ -625,6 +648,8 @@ const HeroMetricLabel = styled.div`
   letter-spacing: 1px;
   color: rgba(255, 255, 255, 0.5);
   margin-bottom: 8px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 const HeroMetricValue = styled.div<{ $positive?: boolean }>`
@@ -643,6 +668,8 @@ const HeroMetricUnit = styled.span`
   font-weight: 400;
   color: rgba(255, 255, 255, 0.4);
   margin-left: 4px;
+
+  @media (max-width: 430px) { font-size: 0.875rem; }
 `;
 
 const HeroMetricIcon = styled.div<{ $positive?: boolean }>`
@@ -689,7 +716,7 @@ const ChartTitle3D = styled.h3`
 
 const ChartRow = styled.div`
   display: grid;
-  gap: 24px;
+  gap: clamp(12px, 3vw, 24px);
   grid-template-columns: 1fr;
   @media (min-width: 1024px) {
     grid-template-columns: 2fr 1fr;

@@ -220,6 +220,20 @@ const UniversalGlobalStyles = createGlobalStyle`
     body { font-size: 14px; }
   }
 
+  @media (min-width: 2560px) {
+    body { font-size: 17px; }
+    h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); }
+    h2 { font-size: clamp(1.4rem, 2.5vw, 2rem); }
+    h3 { font-size: clamp(1.15rem, 2vw, 1.5rem); }
+  }
+
+  @media (min-width: 3840px) {
+    body { font-size: 20px; }
+    h1 { font-size: clamp(2rem, 3vw, 3rem); }
+    h2 { font-size: clamp(1.6rem, 2.5vw, 2.25rem); }
+    h3 { font-size: clamp(1.3rem, 2vw, 1.75rem); }
+  }
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
@@ -288,6 +302,16 @@ const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }
     padding: 6px;
     padding-top: 60px;
   }
+
+  @media (min-width: 2560px) {
+    padding: 40px;
+    padding-top: 96px;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 56px;
+    padding-top: 112px;
+  }
 `;
 
 const UniversalPageContainer = styled(motion.div)`
@@ -296,6 +320,14 @@ const UniversalPageContainer = styled(motion.div)`
   margin: 0 auto;
   position: relative;
   z-index: 1;
+
+  @media (min-width: 2560px) {
+    max-width: 2200px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 3000px;
+  }
 `;
 
 // ─── Mobile Back/Close Button ────────────────────────────
@@ -337,6 +369,16 @@ const MobileBackBtn = styled.button`
 
   @media (max-width: 1024px) {
     display: flex;
+  }
+
+  @media (max-width: 480px) {
+    top: 62px;
+    right: 12px;
+  }
+
+  @media (max-width: 375px) {
+    top: 58px;
+    right: 8px;
   }
 `;
 
@@ -862,6 +904,15 @@ const OmniTerminalFAB = styled.button`
   @media (max-width: 768px) {
     bottom: 16px;
     right: 16px;
+  }
+
+  @media (max-width: 375px) {
+    bottom: 12px;
+    right: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    font-size: 9px;
   }
 `;
 

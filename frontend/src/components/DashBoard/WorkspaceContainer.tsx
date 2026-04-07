@@ -47,11 +47,23 @@ const WorkspaceWrapper = styled.div`
     flex-direction: column;
     align-items: center;
   }
+
+  @media (min-width: 3840px) {
+    padding: 64px;
+  }
 `;
 
 const MaxWidthWrapper = styled.div`
   width: 100%;
   max-width: 1600px;
+
+  @media (min-width: 2560px) {
+    max-width: 2200px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 3000px;
+  }
 `;
 
 const PageHeader = styled.div`
@@ -75,6 +87,14 @@ const PageTitle = styled.h1`
   @media (max-width: 768px) {
     font-size: 22px;
   }
+
+  @media (min-width: 2560px) {
+    font-size: 32px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 36px;
+  }
 `;
 
 const PageSubtitle = styled.p`
@@ -82,8 +102,12 @@ const PageSubtitle = styled.p`
   color: rgba(255, 255, 255, 0.5);
   margin: 0;
 
-  @media (max-width: 430px) {
-    font-size: 13px;
+  @media (min-width: 2560px) {
+    font-size: 16px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 18px;
   }
 `;
 
@@ -169,7 +193,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   @media (max-width: 768px) {
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: 14px;
     gap: 6px;
     border-radius: 18px;
     min-height: 44px;
@@ -189,7 +213,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   @media (max-width: 430px) {
     padding: 8px 12px;
-    font-size: 13px;
+    font-size: 14px;
     min-height: 44px;
     gap: 6px;
 
@@ -201,7 +225,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
   @media (max-width: 375px) {
     padding: 8px 10px;
-    font-size: 12px;
+    font-size: 14px;
     min-height: 44px;
   }
 `;
@@ -246,7 +270,7 @@ class WorkspaceErrorBoundary extends Component<EBProps, EBState> {
       return (
         <ErrorFallbackWrapper>
           <h3>This workspace encountered an error</h3>
-          <p style={{ opacity: 0.6, fontSize: 13 }}>{this.state.error?.message}</p>
+          <p style={{ opacity: 0.6, fontSize: 14 }}>{this.state.error?.message}</p>
           <RetryButton onClick={() => this.setState({ hasError: false, error: null })}>
             Retry
           </RetryButton>

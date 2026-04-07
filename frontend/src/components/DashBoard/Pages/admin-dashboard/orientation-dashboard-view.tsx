@@ -12,6 +12,17 @@ import { accessibleLabelGenerator } from '../../../../utils/accessibility';
 const PageContainer = styled.main`
   flex-grow: 1;
   padding: 24px;
+
+  @media (min-width: 2560px) {
+    padding: 40px;
+    max-width: 2200px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 56px;
+    max-width: 3000px;
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -24,7 +35,7 @@ const PageTitle = styled.h1`
 const CardsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: clamp(12px, 3vw, 24px);
   margin-bottom: 32px;
 
   @media (max-width: 960px) {

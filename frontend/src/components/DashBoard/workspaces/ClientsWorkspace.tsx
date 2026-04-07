@@ -52,6 +52,15 @@ const HubContainer = styled.div`
   background: var(--bg-base, #0A0A0F);
   color: var(--text-primary, #E0ECF4);
   overflow: hidden;
+
+  @media (min-width: 2560px) {
+    max-width: 2200px;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 3000px;
+  }
 `;
 
 const TopBar = styled.div`
@@ -95,7 +104,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
       ? 'var(--accent-secondary, #8B5CF6)'
       : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -115,7 +124,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
 
   @media (max-width: 768px) {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: 14px;
     span { display: none; }
   }
 `;
@@ -207,9 +216,13 @@ const GridName = styled.div`
 
 const GridMeta = styled.div`
   font-family: 'Fira Code', monospace;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted, rgba(224, 236, 244, 0.5));
   margin-top: 2px;
+
+  @media (max-width: 430px) {
+    font-size: 14px;
+  }
 `;
 
 const EmptyHub = styled.div`
@@ -404,7 +417,7 @@ const ClientsWorkspace: React.FC = () => {
           <EmptyHub>
             <UserPlus size={48} style={{ opacity: 0.3 }} />
             <div style={{ fontSize: 16, fontWeight: 600 }}>No clients yet</div>
-            <div style={{ fontSize: 13 }}>Use the Swan Coach to onboard your first client</div>
+            <div style={{ fontSize: 14 }}>Use the Swan Coach to onboard your first client</div>
             <ActionBtn onClick={handleNewClient} $variant="primary">
               <UserPlus size={16} />
               <span>Onboard New Client</span>

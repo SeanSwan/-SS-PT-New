@@ -33,10 +33,24 @@ const ActionsContainer = styled(motion.div)`
   @media (max-width: 480px) {
     gap: 4px;
   }
+
+  @media (max-width: 375px) {
+    gap: 2px;
+  }
+
+  @media (min-width: 2560px) {
+    gap: 16px;
+  }
+
+  @media (min-width: 3840px) {
+    gap: 20px;
+  }
 `;
 
 const CartIconButton = styled(IconButton)`
   color: var(--text-secondary);
+  min-width: 44px;
+  min-height: 44px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
@@ -48,6 +62,14 @@ const CartIconButton = styled(IconButton)`
   &:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
+  }
+
+  @media (min-width: 2560px) {
+    svg { width: 28px; height: 28px; }
+  }
+
+  @media (min-width: 3840px) {
+    svg { width: 32px; height: 32px; }
   }
 `;
 
@@ -79,9 +101,21 @@ const ProfileIconButton = styled(IconButton)<{ $hasImage?: boolean }>`
   }
 
   @media (max-width: 480px) {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     font-size: 0.875rem;
+  }
+
+  @media (min-width: 2560px) {
+    width: 48px;
+    height: 48px;
+    font-size: 1.1rem;
+  }
+
+  @media (min-width: 3840px) {
+    width: 56px;
+    height: 56px;
+    font-size: 1.25rem;
   }
 `;
 
@@ -94,6 +128,8 @@ const ProfileAvatar = styled.img`
 
 const SignInIconButton = styled(IconButton)`
   color: var(--text-secondary);
+  min-width: 44px;
+  min-height: 44px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
@@ -106,6 +142,14 @@ const SignInIconButton = styled(IconButton)`
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
+
+  @media (min-width: 2560px) {
+    svg { width: 28px; height: 28px; }
+  }
+
+  @media (min-width: 3840px) {
+    svg { width: 32px; height: 32px; }
+  }
 `;
 
 const LogoutButton = styled.button`
@@ -113,6 +157,8 @@ const LogoutButton = styled.button`
   border: none;
   color: var(--text-secondary);
   padding: 10px 16px;
+  min-height: 44px;
+  min-width: 44px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;

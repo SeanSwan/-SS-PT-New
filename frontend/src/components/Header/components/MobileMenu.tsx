@@ -29,6 +29,8 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
   padding: 8px;
   border-radius: 12px;
   position: relative;
+  min-width: 44px;
+  min-height: 44px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &::before {
@@ -48,7 +50,7 @@ const MobileMenuButton = styled(IconButton)<{ $isOpen: boolean }>`
     transition: opacity 0.3s ease;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     display: flex;
   }
 
@@ -99,6 +101,10 @@ const MobileMenuOverlay = styled(motion.div)`
 
   @media (max-width: 480px) {
     padding: 70px 20px 20px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 64px 12px 12px;
   }
 `;
 
@@ -155,6 +161,13 @@ const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
     font-size: 1rem;
     padding: 14px 16px;
     margin: 4px 0;
+    min-height: 44px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: 1rem;
+    padding: 12px 12px;
+    min-height: 44px;
   }
 `;
 
@@ -186,6 +199,13 @@ const MobileLogoutButton = styled(motion.button)`
     font-size: 1rem;
     padding: 14px 16px;
     margin: 4px 0;
+    min-height: 44px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: 1rem;
+    padding: 12px 12px;
+    min-height: 44px;
   }
 `;
 

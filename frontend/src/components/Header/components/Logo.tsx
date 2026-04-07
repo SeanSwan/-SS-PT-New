@@ -43,6 +43,8 @@ const LogoContainer = styled(motion.div)`
   margin-right: 24px;
   cursor: pointer;
   z-index: 3;
+  min-width: 44px;
+  min-height: 44px;
 
   @media (max-width: 768px) {
     margin-right: 16px;
@@ -50,6 +52,10 @@ const LogoContainer = styled(motion.div)`
 
   @media (max-width: 430px) {
     margin-right: 8px;
+  }
+
+  @media (max-width: 375px) {
+    margin-right: 4px;
   }
 `;
 
@@ -133,6 +139,41 @@ const LogoElement = styled.div`
     }
     img {
       margin-right: 0;
+    }
+  }
+
+  @media (max-width: 375px) {
+    .logo-text {
+      display: none;
+    }
+    img {
+      height: 28px;
+      width: 28px;
+      margin-right: 0;
+    }
+  }
+
+  @media (min-width: 2560px) {
+    .logo-text {
+      font-size: 1.5rem;
+      letter-spacing: 1.2px;
+    }
+    img {
+      height: 44px;
+      width: 44px;
+      margin-right: 16px;
+    }
+  }
+
+  @media (min-width: 3840px) {
+    .logo-text {
+      font-size: 1.75rem;
+      letter-spacing: 1.5px;
+    }
+    img {
+      height: 52px;
+      width: 52px;
+      margin-right: 20px;
     }
   }
 `;

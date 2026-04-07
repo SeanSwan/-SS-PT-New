@@ -102,6 +102,16 @@ export const PageContainer = styled.div`
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
+
+  @media (min-width: 2560px) {
+    padding: 40px;
+    max-width: 2200px;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 56px;
+    max-width: 3000px;
+  }
 `;
 
 export const ContentContainer = styled.div`
@@ -145,7 +155,7 @@ export const CardContent = styled.div`
 export const AchievementGrid = motion(styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
+  gap: clamp(12px, 3vw, 24px);
   margin-top: 24px;
 `);
 
@@ -223,6 +233,11 @@ export const AchievementBadge = styled.div<{ tier: string }>`
   background-color: ${({ tier }) => getSwanTierBg(tier)};
   color: ${({ tier }) => getSwanTierColor(tier)};
   border: 1px solid ${({ tier }) => getSwanTierColor(tier)}33;
+
+  @media (max-width: 430px) {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
 `;
 
 export const UnlockedOverlay = styled.div`
@@ -298,7 +313,7 @@ export const MilestoneLabel = styled.div<{ active: boolean, passed: boolean }>`
 `;
 
 export const MilestoneValue = styled.div<{ active: boolean, passed: boolean }>`
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
   text-align: center;
   color: ${({ active, passed, theme }) => 
@@ -353,7 +368,7 @@ export const StyledProgress = styled.div<{ $percentage: number; $color?: string 
 export const RewardGrid = motion(styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  gap: clamp(12px, 3vw, 24px);
   margin-top: 24px;
 `);
 
@@ -443,4 +458,9 @@ export const RewardBadge = styled.div<{ tier: string }>`
   background-color: ${({ tier }) => getSwanTierBg(tier)};
   color: ${({ tier }) => getSwanTierColor(tier)};
   border: 1px solid ${({ tier }) => getSwanTierColor(tier)}33;
+
+  @media (max-width: 430px) {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
 `;

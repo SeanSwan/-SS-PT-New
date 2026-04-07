@@ -26,6 +26,14 @@ const NavLinksContainer = styled.div`
   @media (max-width: 768px) {
     display: none;
   }
+
+  @media (min-width: 2560px) {
+    margin-left: 48px;
+  }
+
+  @media (min-width: 3840px) {
+    margin-left: 64px;
+  }
 `;
 
 const Nav = styled(motion.nav)`
@@ -115,6 +123,25 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   @media (max-width: 1024px) {
     padding: 12px 10px;
     font-size: 0.88rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.1rem;
+    padding: 14px 20px;
+    height: 72px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.25rem;
+    padding: 16px 24px;
+    height: 80px;
+  }
+`;
+
+/* Secondary nav links hidden at narrow desktop (769-1024px) to prevent crowding */
+const SecondaryNavLink = styled(StyledNavLink)`
+  @media (max-width: 1024px) {
+    display: none;
   }
 `;
 
@@ -242,45 +269,45 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
         
         {renderDesktopLinks()}
         
-        <StyledNavLink
+        <SecondaryNavLink
           to="/video-library"
           $isActive={isActive('/video-library')}
           variants={itemVariants}
         >
           Video Library
-        </StyledNavLink>
+        </SecondaryNavLink>
 
-        <StyledNavLink
+        <SecondaryNavLink
           to="/waiver"
           $isActive={isActive('/waiver')}
           variants={itemVariants}
         >
           Waiver
-        </StyledNavLink>
+        </SecondaryNavLink>
 
-        <StyledNavLink
+        <SecondaryNavLink
           to="/contact"
           $isActive={isActive('/contact')}
           variants={itemVariants}
         >
           Contact
-        </StyledNavLink>
-        
-        <StyledNavLink
+        </SecondaryNavLink>
+
+        <SecondaryNavLink
           to="/gallery"
           $isActive={isActive('/gallery')}
           variants={itemVariants}
         >
-          SwanStudios Photography
-        </StyledNavLink>
+          Photography
+        </SecondaryNavLink>
 
-        <StyledNavLink
+        <SecondaryNavLink
           to="/about"
           $isActive={isActive('/about')}
           variants={itemVariants}
         >
-          About Us
-        </StyledNavLink>
+          About
+        </SecondaryNavLink>
       </Nav>
     </NavLinksContainer>
   );

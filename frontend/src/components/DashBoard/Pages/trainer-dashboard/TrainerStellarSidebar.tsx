@@ -84,6 +84,11 @@ const MobileMenuBtn = styled.button`
   @media (max-width: 1024px) {
     display: flex;
   }
+
+  @media (max-width: 375px) {
+    top: 62px;
+    left: 8px;
+  }
 `;
 
 const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
@@ -104,12 +109,18 @@ const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
 
   @media (max-width: 1024px) {
     top: 0;
-    width: 300px;
-    max-width: 85vw;
+    width: 85vw;
+    max-width: 360px;
     border-right: none;
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
     border-radius: 0 16px 16px 0;
     transform: translateX(${({ $mobileOpen }) => ($mobileOpen ? '0' : '-100%')});
+  }
+
+  @media (max-width: 375px) {
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 0;
   }
 `;
 
@@ -121,6 +132,11 @@ const SidebarHeader = styled.div<{ $collapsed: boolean }>`
   min-height: 56px;
   border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   flex-shrink: 0;
+
+  @media (max-width: 375px) {
+    padding: 12px;
+    min-height: 48px;
+  }
 `;
 
 const LogoBrand = styled.div`
@@ -148,6 +164,13 @@ const LogoMark = styled.div`
   font-size: 14px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   text-shadow: 0 0 6px rgba(96, 192, 240, 0.6);
+
+  @media (max-width: 375px) {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 12px;
+  }
 `;
 
 const LogoLabel = styled.span<{ $visible: boolean }>`
@@ -278,7 +301,8 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   width: calc(100% - 16px);
   margin: 4px 8px;
   padding: ${({ $collapsed }) => ($collapsed ? '12px 0' : '10px 12px')};
-  min-height: 44px;
+  /* DESIGN-4: 64px item height for touch targets */
+  min-height: 64px;
   border-radius: 10px;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
 
@@ -305,11 +329,17 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
         ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, transparent 100%)'
         : 'rgba(96, 192, 240, 0.06)'};
     color: var(--text-primary, #E0ECF4);
+    /* DESIGN-4: Ice Wing hover border */
+    border-left-color: var(--ice-wing, rgb(96, 192, 240));
   }
 
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 10px 12px;
   }
 
   /* Dual-glow: active icon gets Ice Wing glow */
@@ -341,6 +371,14 @@ const NavLabel = styled.span<{ $visible: boolean }>`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   width: ${({ $visible }) => ($visible ? 'auto' : '0')};
   transition: opacity 200ms ease;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: 15px;
+  }
 `;
 
 const NavTooltip = styled.div`
@@ -386,6 +424,10 @@ const FooterVersion = styled.div`
   color: var(--text-muted, #4070C0);
   text-align: center;
   opacity: 0.6;
+
+  @media (max-width: 1024px) {
+    font-size: 12px;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────

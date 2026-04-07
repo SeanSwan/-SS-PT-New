@@ -113,6 +113,11 @@ const MobileMenuBtn = styled.button`
   @media (max-width: 1024px) {
     display: flex;
   }
+
+  @media (max-width: 375px) {
+    top: 62px;
+    left: 8px;
+  }
 `;
 
 const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
@@ -144,6 +149,12 @@ const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
     border-radius: 0 16px 16px 0;
     transform: translateX(${({ $mobileOpen }) => ($mobileOpen ? '0' : '-100%')});
   }
+
+  @media (max-width: 375px) {
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 0;
+  }
 `;
 
 const SidebarHeader = styled.div<{ $collapsed: boolean }>`
@@ -154,6 +165,11 @@ const SidebarHeader = styled.div<{ $collapsed: boolean }>`
   min-height: 56px;
   border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   flex-shrink: 0;
+
+  @media (max-width: 375px) {
+    padding: 12px;
+    min-height: 48px;
+  }
 `;
 
 const LogoBrand = styled.div<{ $collapsed: boolean }>`
@@ -180,6 +196,13 @@ const LogoMark = styled.div`
   font-weight: 700;
   font-size: 14px;
   font-family: 'Plus Jakarta Sans', sans-serif;
+
+  @media (max-width: 375px) {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 12px;
+  }
 `;
 
 const LogoLabel = styled.span<{ $visible: boolean }>`
@@ -338,6 +361,10 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
     outline-offset: -2px;
   }
 
+  @media (max-width: 375px) {
+    padding: 10px 12px;
+  }
+
   /* Dual-glow: active icon gets Ice Wing glow */
   svg {
     color: ${({ $active }) =>
@@ -367,6 +394,14 @@ const NavLabel = styled.span<{ $visible: boolean }>`
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   width: ${({ $visible }) => ($visible ? 'auto' : '0')};
   transition: opacity 200ms ease;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: 15px;
+  }
 `;
 
 const NavTooltip = styled.div`
@@ -417,6 +452,10 @@ const FooterVersion = styled.div`
   font-size: 10px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.6));
   text-align: center;
+
+  @media (max-width: 1024px) {
+    font-size: 12px;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────

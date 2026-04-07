@@ -82,6 +82,22 @@ const HeaderContainer = styled(motion.header)<{
     height: 56px;
   }
 
+  @media (max-width: 375px) {
+    padding: 0 8px;
+    height: 56px;
+  }
+
+  /* Ultra-wide scaling */
+  @media (min-width: 2560px) {
+    padding: 0 48px;
+    height: 72px;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 0 64px;
+    height: 80px;
+  }
+
   /* Add subtle nebula effect with better contrast */
   &::before {
     content: '';
@@ -105,14 +121,22 @@ const HeaderContainer = styled(motion.header)<{
 `;
 
 const HeaderContent = styled.div`
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  width: 100%; 
-  max-width: 1400px; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
+
+  @media (min-width: 2560px) {
+    max-width: 2200px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 3000px;
+  }
 `;
 
 // ===================== REFORGED HEADER COMPONENT =====================
