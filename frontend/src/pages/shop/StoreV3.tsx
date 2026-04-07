@@ -111,10 +111,10 @@ const subtleFloat = keyframes`
 // Noise Overlay Component (V3 addition)
 // ============================================================
 const NoiseOverlay = styled.div`
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
   background-repeat: repeat;
@@ -126,17 +126,16 @@ const NoiseOverlay = styled.div`
 
 const StoreContainer = styled.div`
   position: relative;
+  isolation: isolate;
   overflow-x: hidden;
-  overflow-y: auto;
-  scroll-behavior: smooth;
   background: ${({ theme }) => theme.background?.primary || '#001545'};
   color: ${({ theme }) => theme.text?.primary || '#E0ECF4'};
   min-height: 100vh;
-  z-index: 1;
+  z-index: 0;
 
   &::before {
     content: '';
-    position: fixed;
+    position: absolute;
     inset: 0;
     background:
       radial-gradient(2px 2px at 20px 30px, ${({ theme }) => theme.colors?.primary || '#60C0F0'}99, transparent),
@@ -146,7 +145,7 @@ const StoreContainer = styled.div`
     background-size: 200px 100px;
     opacity: 0.1;
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
   }
 
   /* V3: Extra-small screens */
@@ -311,7 +310,7 @@ const AuthBanner = styled.div`
   left: 0;
   width: 100%;
   padding: 12px 1rem;
-  background: ${({ theme }) => theme.background?.surface || 'rgba(0,48,128,0.6)'};
+  background: ${({ theme }) => theme.background?.surfaceElevated || theme.background?.surface || 'rgba(0,48,128,0.88)'};
   color: ${({ theme }) => theme.text?.primary || '#E0ECF4'};
   text-align: center;
   font-family: ${({ theme }) => theme.fonts?.ui || '"Sora", sans-serif'};
@@ -323,10 +322,6 @@ const AuthBanner = styled.div`
   justify-content: center;
   gap: 0.75rem;
   letter-spacing: 0.5px;
-  ${({ theme }) =>
-    theme.effects?.glassmorphism
-      ? css`backdrop-filter: blur(15px);`
-      : ''}
 `;
 
 // ---- Packages Section ----
