@@ -63,7 +63,7 @@ import {
   ControlRow, Select, ActionBtn, ThreePanel,
   Panel, PanelHeader, PanelTitle, PanelBody,
   SearchWrapper, SearchInput, ChipRow, Chip,
-  ExerciseItem, ExerciseName, ExerciseMeta, MetaTag,
+  ExerciseItem, ExerciseAddBtn, ExerciseName, ExerciseMeta, MetaTag,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
   SkeletonBlock, EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
@@ -722,21 +722,31 @@ const WorkoutPlannerPage: React.FC = () => {
               filteredExercises.slice(0, 200).map(ex => (
                 <ExerciseItem
                   key={ex.id}
+                  role="button"
+                  tabIndex={0}
                   $selected={selectedExercise?.id === ex.id}
                   onClick={() => {
                     setSelectedExercise(ex);
                     if (teachModeOpen) return; // Just select for teach mode
-                    addExercise(ex);
                   }}
                   onDoubleClick={() => addExercise(ex)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addExercise(ex); } }}
                 >
-                  <ExerciseName>{ex.name}</ExerciseName>
-                  <ExerciseMeta>
-                    <MetaTag>{ex.bodyPartCategory}</MetaTag>
-                    <MetaTag>{ex.exerciseType}</MetaTag>
-                    <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
-                    <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
-                  </ExerciseMeta>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <ExerciseName>{ex.name}</ExerciseName>
+                    <ExerciseMeta>
+                      <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                      <MetaTag>{ex.exerciseType}</MetaTag>
+                      <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
+                      <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
+                    </ExerciseMeta>
+                  </div>
+                  <ExerciseAddBtn
+                    onClick={(e) => { e.stopPropagation(); addExercise(ex); }}
+                    aria-label={`Add ${ex.name}`}
+                  >
+                    <Plus size={18} />
+                  </ExerciseAddBtn>
                 </ExerciseItem>
               ))
             )}

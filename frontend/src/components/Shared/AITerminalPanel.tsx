@@ -57,6 +57,7 @@ import styled, { keyframes } from 'styled-components';
 import { Bot, ChevronDown, ChevronUp, Send, Sparkles, Volume2, VolumeX, X } from 'lucide-react';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
+import MarkdownRenderer from '../DashBoard/Pages/coach-assistant/MarkdownRenderer';
 
 const CrystallineVoicePill = lazy(() => import('./CrystallineVoicePill'));
 
@@ -240,7 +241,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
                   </BubbleIcon>
                 )}
                 <BubbleContent $role={msg.role}>
-                  {msg.content}
+                  {msg.role === 'assistant' ? <MarkdownRenderer content={msg.content} /> : msg.content}
                 </BubbleContent>
               </MessageBubble>
             ))}

@@ -42,7 +42,7 @@ import PaymentMethodSelector from '../Checkout/PaymentMethodSelector';
 import api from '../../services/api.service';
 import {
   ShoppingCart, CreditCard, Shield, Lock, CheckCircle,
-  AlertTriangle, Loader, ArrowRight, Star, Sparkles,
+  AlertTriangle, Loader, ArrowRight, ArrowLeft, Star, Sparkles,
   Package, DollarSign, User, Mail, Phone, Home
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
@@ -77,16 +77,20 @@ const CheckoutContainer = styled(motion.div)`
   margin: 2rem auto;
   padding: 0;
   min-height: 600px;
-  
+
   @media (max-width: 1440px) {
     max-width: 95%;
     margin: 1.5rem auto;
   }
-  
+
   @media (max-width: 768px) {
     max-width: 100%;
     margin: 0.5rem;
     border-radius: 16px;
+    min-height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   &::before {
@@ -598,6 +602,20 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     >
       {/* Header */}
       <CheckoutHeader>
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            style={{
+              position: 'absolute', top: 16, left: 16,
+              background: 'rgba(96, 192, 240, 0.1)', border: '1px solid rgba(96, 192, 240, 0.2)',
+              borderRadius: 8, padding: '8px 14px', color: '#60C0F0', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, minHeight: 44,
+            }}
+            aria-label="Back to store"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+        )}
         <CheckoutTitle>Secure Checkout</CheckoutTitle>
         <CheckoutSubtitle>Complete your SwanStudios training package purchase</CheckoutSubtitle>
       </CheckoutHeader>

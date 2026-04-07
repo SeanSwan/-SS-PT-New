@@ -276,6 +276,11 @@ export const PanelBody = styled.div`
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
     border-radius: 3px;
   }
+
+  @media (max-width: 430px) {
+    max-height: 320px;
+    flex: none;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -372,9 +377,38 @@ export const Chip = styled.button<{ $active?: boolean }>`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Exercise List Item
 // ─────────────────────────────────────────────────────────────
-export const ExerciseItem = styled.button<{ $selected?: boolean }>`
+export const ExerciseAddBtn = styled.button`
+  all: unset;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+    transform: scale(1.1);
+  }
+
+  @media (min-width: 431px) {
+    display: none;
+  }
+`;
+
+export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   width: 100%;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 14px;
   border: 1px solid ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)' : 'var(--border-soft, rgba(96, 192, 240, 0.06))'};
   border-radius: 10px;
@@ -416,6 +450,13 @@ export const ExerciseName = styled.div`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  @media (max-width: 430px) {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
 `;
 
 export const ExerciseMeta = styled.div`
@@ -480,6 +521,12 @@ export const BuilderRow = styled.div`
   transition: border-color 0.2s ease;
 
   &:hover { border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent); }
+
+  @media (max-width: 430px) {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 6px;
+  }
 `;
 
 export const BuilderRowNumber = styled.span`

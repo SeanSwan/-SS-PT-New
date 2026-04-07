@@ -191,9 +191,10 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
   const recorder = useVoiceRecorder();
   const transcription = useGeminiTranscription();
 
-  // Auto-start recording when overlay opens
+  // Auto-start recording when overlay opens (desktop only — iOS requires user gesture)
   useEffect(() => {
-    if (isOpen && recorder.state === 'idle') {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isOpen && recorder.state === 'idle' && !isIOS) {
       recorder.start();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,8 +246,8 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
         {isRecording && <PulseRing />}
         <RecordingOrb
           $recording={isRecording}
-          onClick={isRecording ? handleStopAndSend : undefined}
-          aria-label={isRecording ? 'Stop recording' : 'Recording orb'}
+          onClick={isRecording ? handleStopAndSend : recorder.state === 'idle' ? () => recorder.start() : undefined}
+          aria-label={isRecording ? 'Stop recording' : 'Tap to start recording'}
         >
           {isTranscribing ? <SpinIcon size={28} /> : <Mic size={28} />}
         </RecordingOrb>

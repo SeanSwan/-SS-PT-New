@@ -35,7 +35,7 @@ export interface UseVoiceRecorderReturn {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Preferred MIME types (ordered by browser support)
 // ─────────────────────────────────────────────────────────────
-const MIME_CANDIDATES = [
+const MIME_CANDIDATES_DESKTOP = [
   'audio/webm;codecs=opus',
   'audio/webm',
   'audio/ogg;codecs=opus',
@@ -43,7 +43,12 @@ const MIME_CANDIDATES = [
 ];
 
 function getSupportedMime(): string {
-  for (const mime of MIME_CANDIDATES) {
+  // iOS Safari only reliably supports audio/mp4
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    return MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+  }
+  for (const mime of MIME_CANDIDATES_DESKTOP) {
     if (MediaRecorder.isTypeSupported(mime)) return mime;
   }
   return '';

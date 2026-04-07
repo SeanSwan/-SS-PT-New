@@ -354,7 +354,7 @@ export const MobileBottomSheet = styled.div<{ $expanded: boolean }>`
   border-top-right-radius: 24px;
   box-shadow: 0 -8px 32px rgba(10, 10, 15, 0.8);
   transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 100;
+  z-index: 40;
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -127,7 +127,13 @@ export function usePremiumTTS(): UsePremiumTTSReturn {
         URL.revokeObjectURL(url);
         setSpeaking(false);
       };
-      await audio.play();
+      // iOS Safari rejects autoplay without user gesture — catch and fall back
+      try {
+        await audio.play();
+      } catch {
+        URL.revokeObjectURL(url);
+        speakWithBrowser(text);
+      }
     } catch {
       setSpeaking(false);
       // Fall back to browser TTS

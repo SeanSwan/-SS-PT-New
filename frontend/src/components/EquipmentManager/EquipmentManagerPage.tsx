@@ -821,7 +821,7 @@ const EquipmentManagerPage: React.FC = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           capture="environment"
           style={{ display: 'none' }}
           onChange={handleFileSelected}
