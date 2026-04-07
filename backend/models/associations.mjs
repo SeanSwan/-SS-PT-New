@@ -75,6 +75,9 @@ const setupAssociations = async () => {
     const EquipmentModule = await import('./Equipment.mjs');
     const ExerciseEquipmentModule = await import('./ExerciseEquipment.mjs');
     
+    // Video Chat Models (Sequelize)
+    const VideoSessionModule = await import('./VideoSession.mjs');
+
     // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
     const NotificationModule = await import('./Notification.mjs');
@@ -251,6 +254,7 @@ const setupAssociations = async () => {
     const WorkoutPlanDay = WorkoutPlanDayModule.default;
     const WorkoutPlanDayExercise = WorkoutPlanDayExerciseModule.default;
     const WorkoutSession = WorkoutSessionModule.default;
+    const VideoSession = VideoSessionModule.default;
     const WorkoutLog = WorkoutLogModule.default;
     const WorkoutExercise = WorkoutExerciseModule.default;
     const Exercise = ExerciseModule.default;
@@ -514,6 +518,12 @@ const setupAssociations = async () => {
     // Trainer who led the workout (optional - for trainer-led sessions)
     User.hasMany(WorkoutSession, { foreignKey: 'trainerId', as: 'ledWorkoutSessions' });
     WorkoutSession.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    // Video Session associations (remote assessments via LiveKit)
+    User.hasMany(VideoSession, { foreignKey: 'trainerId', as: 'trainerVideoSessions' });
+    VideoSession.belongsTo(User, { foreignKey: 'trainerId', as: 'videoTrainer' });
+    User.hasMany(VideoSession, { foreignKey: 'clientId', as: 'clientVideoSessions' });
+    VideoSession.belongsTo(User, { foreignKey: 'clientId', as: 'videoClient' });
 
     // Session type associations (Phase 5 - buffer-aware scheduling)
     Session.belongsTo(SessionType, { foreignKey: 'sessionTypeId', as: 'sessionType' });
@@ -1254,6 +1264,7 @@ const setupAssociations = async () => {
       WorkoutPlanDay,
       WorkoutPlanDayExercise,
       WorkoutSession,
+      VideoSession,
       WorkoutLog,
       WorkoutExercise,
       Exercise,

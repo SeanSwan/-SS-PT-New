@@ -106,6 +106,7 @@ import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import adminSocialPublishingRoutes from '../routes/adminSocialPublishingRoutes.mjs';
+import videoSessionRoutes from '../routes/videoSessionRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import publicVideoRoutes from '../routes/publicVideoRoutes.mjs';
 
@@ -401,6 +402,7 @@ export const setupRoutes = async (app) => {
 
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
   app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Social media publishing via Postiz
+  app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)

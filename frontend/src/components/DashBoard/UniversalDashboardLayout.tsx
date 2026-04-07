@@ -123,6 +123,7 @@ const OmniTerminal = React.lazy(() => import('../Shared/OmniTerminal'));
 const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
+const VideoCallPage = React.lazy(() => import('../VideoChat/VideoCallPage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 
@@ -551,7 +552,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/body-map', component: BodyMapPage, title: 'Pain Charts', description: 'Client pain and injury tracking (body map)' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Communication hub for clients and trainers' },
-      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' }
+      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
+      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' }
     ],
     defaultPath: '/coach-assistant'
   },
@@ -573,7 +575,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder' },
       { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' },
-      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' }
+      { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
+      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' }
     ],
     defaultPath: '/overview'
   },
