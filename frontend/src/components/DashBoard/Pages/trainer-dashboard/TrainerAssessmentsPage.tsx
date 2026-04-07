@@ -61,12 +61,17 @@ const ASSESSMENT_TYPES = [
 ] as const;
 
 // OHSA checkpoint keys — maps to NASM kinetic chain checkpoints
+// Backend model key → frontend label mapping
 const OHSA_CHECKPOINTS = [
-  { key: 'feetFlatten', label: 'Feet Flatten / Turn Out', view: 'anterior' },
-  { key: 'kneesValgus', label: 'Knees Move Inward (Valgus)', view: 'anterior' },
+  { key: 'feetTurnout', label: 'Feet Turn Out', view: 'anterior' },
+  { key: 'feetFlattening', label: 'Feet Flatten (Pronate)', view: 'anterior' },
+  { key: 'kneeValgus', label: 'Knees Move Inward (Valgus)', view: 'anterior' },
+  { key: 'kneeVarus', label: 'Knees Move Outward (Varus)', view: 'anterior' },
   { key: 'excessiveForwardLean', label: 'Excessive Forward Lean', view: 'lateral' },
-  { key: 'lowBackArches', label: 'Low Back Arches (Extension)', view: 'lateral' },
+  { key: 'lowBackArch', label: 'Low Back Arches (Extension)', view: 'lateral' },
   { key: 'armsFallForward', label: 'Arms Fall Forward', view: 'lateral' },
+  { key: 'forwardHead', label: 'Forward Head Posture', view: 'lateral' },
+  { key: 'asymmetricWeightShift', label: 'Asymmetric Weight Shift', view: 'posterior' },
 ] as const;
 
 // Postural checkpoints
@@ -447,7 +452,7 @@ const TrainerAssessmentsPage: React.FC = () => {
     const load = async () => {
       try {
         const res = await authAxios.get('/api/movement-analysis');
-        const list = res.data?.data || res.data?.assessments || [];
+        const list = res.data?.data?.analyses || res.data?.data || res.data?.assessments || [];
         setHistory(Array.isArray(list) ? list : []);
       } catch { setHistory([]); }
       try {
@@ -467,17 +472,27 @@ const TrainerAssessmentsPage: React.FC = () => {
       fullName: selectedClient?.name || 'Client',
       status: 'completed',
       source: 'trainer_assessment',
+      assessmentDate: date,
       trainerNotes: notes || null,
     };
 
     if (assessmentType === 'movement_screen') {
-      // Build OHSA JSONB — maps checkpoint keys to compensation levels
+      // Build OHSA JSONB in nested structure the backend model expects:
+      // { anteriorView: {...}, lateralView: {...}, asymmetricWeightShift }
+      const anteriorKeys = ['feetTurnout', 'feetFlattening', 'kneeValgus', 'kneeVarus'];
+      const lateralKeys = ['excessiveForwardLean', 'lowBackArch', 'armsFallForward', 'forwardHead'];
+      const anteriorView: Record<string, string> = {};
+      const lateralView: Record<string, string> = {};
+      for (const [k, v] of Object.entries(ohsaScores)) {
+        if (anteriorKeys.includes(k)) anteriorView[k] = v;
+        else if (lateralKeys.includes(k)) lateralView[k] = v;
+      }
       return {
         ...base,
         overheadSquatAssessment: {
-          ...ohsaScores,
-          assessmentDate: date,
-          conductedBy: user?.id,
+          anteriorView,
+          lateralView,
+          asymmetricWeightShift: ohsaScores.asymmetricWeightShift ?? 'none',
         },
       };
     }
@@ -526,7 +541,7 @@ const TrainerAssessmentsPage: React.FC = () => {
       // Reload history
       try {
         const res = await authAxios.get('/api/movement-analysis');
-        const list = res.data?.data || res.data?.assessments || [];
+        const list = res.data?.data?.analyses || res.data?.data || res.data?.assessments || [];
         setHistory(Array.isArray(list) ? list : []);
       } catch { /* non-critical */ }
     } catch (err: any) {

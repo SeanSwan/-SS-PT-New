@@ -18,7 +18,7 @@ export const createMovementAnalysis = async (req, res) => {
 
     const {
       userId, fullName, email, phone, dateOfBirth, address,
-      source, parqScreening, medicalClearanceRequired,
+      source, assessmentDate, parqScreening, medicalClearanceRequired,
       posturalAssessment, overheadSquatAssessment,
       squatUniversityAssessment, movementQualityAssessments,
       trainerNotes, status,
@@ -29,9 +29,8 @@ export const createMovementAnalysis = async (req, res) => {
     }
 
     // Normalize source values from different frontend surfaces
-    const VALID_SOURCES = ['orientation', 'admin_dashboard', 'in_session'];
-    const SOURCE_MAP = { trainer_assessment: 'admin_dashboard' };
-    const normalizedSource = SOURCE_MAP[source] || (VALID_SOURCES.includes(source) ? source : 'admin_dashboard');
+    const VALID_SOURCES = ['orientation', 'admin_dashboard', 'in_session', 'trainer_assessment'];
+    const normalizedSource = VALID_SOURCES.includes(source) ? source : 'admin_dashboard';
 
     // Calculate scores if OHSA data provided
     let nasmAssessmentScore = null;
@@ -60,7 +59,7 @@ export const createMovementAnalysis = async (req, res) => {
       status: status || 'draft',
       source: normalizedSource,
       conductedBy: req.user.id,
-      assessmentDate: new Date(),
+      assessmentDate: assessmentDate ? new Date(assessmentDate) : new Date(),
       completedAt: isCompleted ? new Date() : null,
       parqScreening: parqScreening || null,
       medicalClearanceRequired: medicalClearanceRequired || false,

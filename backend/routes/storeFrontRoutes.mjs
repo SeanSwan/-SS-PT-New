@@ -142,7 +142,22 @@ router.get('/', async (req, res) => {
     const transformedItems = items.map(mapStorefrontItem);
 
     if (items.length === 0) {
-      logger.warn('Storefront has 0 active items — frontend will show fallback data. Seed StorefrontItem table to fix.');
+      // Auto-seed storefront packages on first request if table is empty
+      try {
+        const seedPackages = (await import('../seeders/20260407-seed-storefront-packages.mjs')).default;
+        await seedPackages();
+        const seededItems = await StorefrontItem.findAll({
+          where: whereClause,
+          order: [[validSortBy, validSortOrder]],
+          limit: parseInt(limit, 10),
+          offset: parseInt(offset, 10),
+        });
+        const seededTransformed = seededItems.map(mapStorefrontItem);
+        return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
+      } catch (seedErr) {
+        logger.error('Auto-seed storefront failed:', seedErr.message);
+      }
+      logger.warn('Storefront has 0 active items — frontend will show fallback data.');
     } else {
       logger.info(`Retrieved ${items.length} storefront items`);
     }

@@ -564,10 +564,18 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     });
   } catch (err) {
     logger.error('[EquipmentRoutes] Scan error:', err);
-    const message = err.message?.includes('GOOGLE_API_KEY')
-      ? 'AI scanning is not configured'
-      : 'Equipment scan failed';
-    res.status(500).json({ success: false, error: message });
+    const msg = err.message || 'Equipment scan failed';
+    // Map service errors to appropriate HTTP status codes
+    if (msg.includes('GOOGLE_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
+      return res.status(503).json({ success: false, error: 'AI scanning is not available. Please add equipment manually.' });
+    }
+    if (msg.includes('Invalid image type') || msg.includes('Image too large')) {
+      return res.status(400).json({ success: false, error: msg });
+    }
+    if (msg.includes('invalid JSON')) {
+      return res.status(422).json({ success: false, error: 'AI could not identify the equipment. Try a clearer photo.' });
+    }
+    res.status(500).json({ success: false, error: 'Equipment scan failed. Try again or add manually.' });
   }
 });
 

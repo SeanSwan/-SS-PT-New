@@ -114,16 +114,22 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
 ## Opus-Codex Recursive Debate Protocol (MANDATORY)
-- **Debate file:** `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-2026-04-06.md`
+- **Debate directory:** `docs/ai-workflow/AI-HANDOFF/`
+- **Archive:** `docs/ai-workflow/AI-HANDOFF/debate-archive/` (completed debates)
 - **Purpose:** Claude (Opus) and Codex debate plans/fixes recursively until consensus
 - **Flow:**
-  1. Claude writes analysis/plan/AI Village results into the debate .md file
+  1. Claude writes analysis/plan/AI Village results into a **per-phase debate file** (e.g., `OPUS-CODEX-DEBATE-TIER1-2026-04-07.md`)
   2. Claude asks Sean: "Would you like Codex to review this?" — **Sean decides yes or no**
   3. If yes: Claude provides Sean a prompt to give Codex, pointing to the debate file
   4. Sean pastes Codex's response back to Claude (or notifies file was updated)
   5. Claude reads Codex's response, writes Round N reply into the debate file
   6. Repeat until BOTH parties write "CONSENSUS REACHED"
   7. Final consensus becomes the implementation plan
+- **Token Management (MANDATORY):**
+  - **One debate file per phase/tier** — NEVER append to a multi-thousand-line mega-file
+  - **On CONSENSUS REACHED:** Move full transcript to `debate-archive/`, replace original with a <30 line summary (outcomes + key decisions only)
+  - **Max file size:** If a debate file exceeds 500 lines mid-debate, summarize earlier rounds in-place (keep last 2 rounds full, compress older rounds to bullet summaries)
+  - **Codex prompt must say:** "Read ONLY this debate file" — never point Codex at the archive
 - **Rules:**
   - Claude NEVER starts without asking Sean's permission for Codex review
   - Polling ownership: Sean manages — Codex does NOT self-poll

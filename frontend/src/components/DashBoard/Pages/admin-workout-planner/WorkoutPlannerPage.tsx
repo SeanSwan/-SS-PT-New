@@ -404,36 +404,46 @@ const WorkoutPlannerPage: React.FC = () => {
     setSaving(true);
     try {
       const client = clients.find(c => c.id === selectedClientId);
-      // Map to backend workoutService.createWorkoutPlan schema:
-      // { name, description, clientId, trainerId, goal, status, days: [{ exercises }] }
+      // Map to backend WorkoutPlan model schema:
+      // { userId, title, description, nasmPhase, status, planData }
       const phaseToOpt: Record<number, string> = {
         1: 'stabilization_endurance', 2: 'strength_endurance',
         3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
       };
+      const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
       await authAxios.post('/api/workout/plans', {
-        name: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
-        description: `${WORKOUT_CATEGORIES.find(c => c.value === category)?.label} — ${goal}`,
-        clientId: selectedClientId,
-        trainerId: user?.id,
-        goal,
+        userId: selectedClientId,
+        title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
+        description: `${categoryLabel} — ${goal}`,
+        nasmPhase: phaseNumber,
         status: 'draft',
-        days: [{
-          dayNumber: 1,
-          name: `${phase.name} Workout`,
-          focus: WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body',
-          dayType: 'training',
-          optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
-          exercises: planExercises.map((p, i) => ({
-            exerciseId: p.exerciseSlim.id,
-            orderInWorkout: i + 1,
-            setScheme: `${p.sets}x${p.reps}`,
-            repGoal: p.reps,
-            restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
-            tempo: p.tempo,
-            intensityGuideline: `${p.intensityPercent}% 1RM`,
-            notes: p.notes || '',
-          })),
-        }],
+        planData: {
+          weeks: [{
+            weekNumber: 1,
+            days: [{
+              dayNumber: 1,
+              name: `${phase.name} Workout`,
+              focus: categoryLabel,
+              dayType: 'training',
+              optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
+              exercises: planExercises.map((p, i) => ({
+                exerciseId: p.exerciseSlim.id,
+                exerciseName: p.exerciseSlim.name,
+                orderInWorkout: i + 1,
+                sets: p.sets,
+                reps: p.reps,
+                setScheme: `${p.sets}x${p.reps}`,
+                repGoal: p.reps,
+                restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
+                tempo: p.tempo,
+                intensityGuideline: `${p.intensityPercent}% 1RM`,
+                notes: p.notes || '',
+              })),
+            }],
+          }],
+          goal,
+          category,
+        },
       });
       setStatusMsg({ type: 'success', text: 'Workout plan saved successfully!' });
       // Refresh saved plans list
@@ -456,10 +466,10 @@ const WorkoutPlannerPage: React.FC = () => {
       if (data?.success && Array.isArray(data.plans)) {
         setSavedPlans(data.plans.map((p: Record<string, unknown>) => ({
           id: String(p.id || ''),
-          name: String(p.name || 'Untitled Plan'),
+          name: String(p.title || p.name || 'Untitled Plan'),
           status: String(p.status || 'draft'),
           createdAt: String(p.createdAt || ''),
-          goal: String(p.goal || ''),
+          goal: String((p.planData as Record<string, unknown>)?.goal || p.goal || ''),
         })));
       } else {
         setSavedPlans([]);

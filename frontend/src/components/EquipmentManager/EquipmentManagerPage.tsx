@@ -475,6 +475,7 @@ const EquipmentManagerPage: React.FC = () => {
   const [items, setItems] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const [lastScanResult, setLastScanResult] = useState<{ item: EquipmentItem; scanResult: ScanResult } | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -598,6 +599,7 @@ const EquipmentManagerPage: React.FC = () => {
     reader.readAsDataURL(file);
 
     setScanning(true);
+    setScanError(null);
     try {
       const result = await api.scanEquipment(selectedProfile.id, file);
       setLastScanResult(result);
@@ -608,8 +610,9 @@ const EquipmentManagerPage: React.FC = () => {
         category: result.scanResult.suggestedCategory,
       });
       loadItems(selectedProfile.id);
-    } catch {
-      // silent
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Scan failed. Try again or add equipment manually.';
+      setScanError(msg);
     } finally {
       setScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -833,6 +836,11 @@ const EquipmentManagerPage: React.FC = () => {
             </ScanOverlay>
             <ScanningText style={{ marginTop: 12 }}>Analyzing equipment...</ScanningText>
           </CameraArea>
+        )}
+        {scanError && !scanning && (
+          <div style={{ padding: '12px 16px', margin: '8px 0', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#fca5a5', fontSize: 14 }}>
+            {scanError}
+          </div>
         )}
 
         {/* Equipment Items List */}

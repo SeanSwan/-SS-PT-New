@@ -292,12 +292,17 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, async (req, res) => {
 
     if (planData.weeks && planData.weeks[weekIndex]) {
       const week = planData.weeks[weekIndex];
-      if (week.sessions && week.sessions[dayIndex]) {
-        week.sessions[dayIndex].completed = true;
-        week.sessions[dayIndex].completedAt = new Date().toISOString();
+      // Support both "sessions" (legacy) and "days" (new frontend) keys
+      const entries = week.sessions || week.days || [];
+      if (entries[dayIndex]) {
+        entries[dayIndex].completed = true;
+        entries[dayIndex].completedAt = new Date().toISOString();
         if (trainerNotes) {
-          week.sessions[dayIndex].trainerNotes = trainerNotes;
+          entries[dayIndex].trainerNotes = trainerNotes;
         }
+        // Write back to whichever key exists
+        if (week.sessions) week.sessions = entries;
+        else week.days = entries;
       }
     }
 
@@ -308,7 +313,7 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, async (req, res) => {
 
     // Check if we need to advance to next week
     const currentWeekData = planData.weeks?.[weekIndex];
-    const sessionsInWeek = currentWeekData?.sessions?.length || 0;
+    const sessionsInWeek = (currentWeekData?.sessions || currentWeekData?.days)?.length || 0;
 
     if (nextDay > sessionsInWeek) {
       // Move to next week, day 1
@@ -406,19 +411,21 @@ function extractCurrentSession(plan) {
   }
 
   const week = planData.weeks[weekIndex];
-  const session = week.sessions?.[dayIndex] || null;
+  // Support both "sessions" (legacy) and "days" (new frontend) keys
+  const entries = week.sessions || week.days || [];
+  const session = entries[dayIndex] || null;
 
   if (!session) return null;
 
   return {
     weekNumber: plan.currentWeek,
-    weekFocus: week.focus || null,
+    weekFocus: week.focus || session.focus || null,
     dayNumber: plan.currentDay,
-    dayLabel: session.dayLabel || `Day ${plan.currentDay}`,
+    dayLabel: session.dayLabel || session.name || `Day ${plan.currentDay}`,
     session,
     totalWeeks: planData.weeks.length,
-    totalSessionsThisWeek: week.sessions?.length || 0,
-    isLastSessionOfWeek: plan.currentDay >= (week.sessions?.length || 0),
+    totalSessionsThisWeek: entries.length,
+    isLastSessionOfWeek: plan.currentDay >= entries.length,
     isLastWeek: plan.currentWeek >= planData.weeks.length
   };
 }

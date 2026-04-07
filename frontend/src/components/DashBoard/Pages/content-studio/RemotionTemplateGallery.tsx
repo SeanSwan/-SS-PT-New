@@ -479,7 +479,7 @@ const TemplateCard = styled.button<{ $selected: boolean }>`
     $selected ? 'rgba(139, 92, 246, 0.5)' : 'rgba(96, 192, 240, 0.08)'};
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  ${({ $selected }) => $selected && css`animation: ${pulseGlow} 2s ease-in-out infinite;`}
+  ${({ $selected }) => $selected ? css`animation: ${pulseGlow} 2s ease-in-out infinite;` : ''}
 
   &:hover {
     border-color: rgba(139, 92, 246, 0.3);
