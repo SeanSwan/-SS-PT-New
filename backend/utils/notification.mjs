@@ -535,28 +535,41 @@ export const processSessionDeduction = async (session, client, transaction = nul
     session.deductionDate = new Date();
       await session.save(saveOptions);
     
-    // Notify client about session deduction
-    const sessionTime = getFormattedSessionTime(session.sessionDate, session.duration);
-    const subject = 'Session Deduction - Swan Studios';
-    const textContent = `Hi ${client.firstName},\n\nA session has been deducted from your available sessions for your appointment on ${sessionTime}.\n\nRemaining sessions: ${client.availableSessions}\n\nThank you,\nSwan Studios Team`;
-    
-    if (client.email && client.emailNotifications !== false) {
-      await sendEmailNotification({
-        to: client.email,
-        subject,
-        text: textContent,
-        html: textContent.replace(/\n/g, '<br>')
-      });
-    }
-    
+    // NOTE: Email notification moved OUTSIDE this function to avoid
+    // external API calls inside database transactions (ARCH-1 pattern).
+    // Callers should send deduction emails AFTER transaction.commit().
+
     return {
       success: true,
       deducted: true,
+      creditsDeducted: creditsToDeduct,
       remainingSessions: client.availableSessions
     };
   } catch (error) {
     logger.error('Session deduction error:', error);
     return { success: false, error };
+  }
+};
+
+/**
+ * Send session deduction email notification (call AFTER transaction commit)
+ * @param {Object} session - The session
+ * @param {Object} client - The client with firstName, email, availableSessions
+ */
+export const sendDeductionNotification = async (session, client) => {
+  try {
+    if (!client?.email || client.emailNotifications === false) return;
+    const sessionTime = getFormattedSessionTime(session.sessionDate, session.duration);
+    const subject = 'Session Deduction - Swan Studios';
+    const textContent = `Hi ${client.firstName},\n\nA session has been deducted from your available sessions for your appointment on ${sessionTime}.\n\nRemaining sessions: ${client.availableSessions}\n\nThank you,\nSwan Studios Team`;
+    await sendEmailNotification({
+      to: client.email,
+      subject,
+      text: textContent,
+      html: textContent.replace(/\n/g, '<br>')
+    });
+  } catch (error) {
+    logger.error('Deduction notification error:', error);
   }
 };
 

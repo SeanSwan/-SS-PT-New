@@ -63,6 +63,7 @@ import {
   notifyAdminSessionBooked,
   notifySessionCancelled,
   processSessionDeduction,
+  sendDeductionNotification,
   notifyLowSessionsRemaining,
   sendSessionReminder
 } from '../../utils/notification.mjs';
@@ -1475,8 +1476,13 @@ class UnifiedSessionService {
 
       await transaction.commit();
 
-      // Send notifications (async, after successful transaction)
+      // Send notifications (async, after successful transaction — ARCH-1 pattern)
       this.sendBookingNotifications(session, client);
+      if (shouldDeduct) {
+        sendDeductionNotification(session, client).catch(err =>
+          logger.error('[bookSession] Deduction notification failed:', err)
+        );
+      }
 
       // Fetch the updated session with related data
       const updatedSession = await this.Session.findByPk(session.id, {

@@ -103,6 +103,18 @@
 
   /* ── Touch Targets ── */
   --min-touch-target: 44px;
+
+  /* ── Accessible Animation Tokens (DESIGN-1) ── */
+  --color-swan-lavender-base: #50A0D0;   /* Lighter variant for animation peaks */
+  --color-ice-wing-peak: #80E0FF;        /* Bright peak for shimmer highlights */
+  --animation-shimmer-stagger-1: 0s;
+  --animation-shimmer-stagger-2: 0.2s;
+  --animation-shimmer-stagger-3: 0.4s;
+
+  /* ── Dark Surface Tokens ── */
+  --obsidian-black: #0A0A0F;
+  --carbon: #141419;
+  --graphite: #1A1A24;
 }
 
 /* ─────────────────────────────────────────────────────────────

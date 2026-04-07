@@ -29,6 +29,10 @@ import {
 import { generateSprintClasses, regenerateSlot } from '../services/bootcamp/sprintGenerator.mjs';
 import logger from '../utils/logger.mjs';
 
+// ── ARCH-2: In-memory progress store for SSE reconnection ──────────
+const sprintJobs = new Map(); // sprintId → { events: [], done: boolean }
+const SPRINT_JOB_TTL = 5 * 60 * 1000; // 5 min TTL after completion
+
 const router = Router();
 
 // ── Auth: admin + trainer only ───────────────────────────────────────
@@ -103,8 +107,23 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ── POST /sprints/:id/generate — SSE progress stream ─────────────────
+// ── POST /sprints/:id/generate — SSE progress stream (ARCH-2 reconnection) ──
 router.post('/:id/generate', genLimiter, async (req, res) => {
+  const sprintId = parseInt(req.params.id);
+
+  // Reject duplicate generation if one is already in progress (Codex R18 fix)
+  const existingJob = sprintJobs.get(sprintId);
+  if (existingJob && !existingJob.done) {
+    return res.status(409).json({
+      success: false,
+      error: 'Generation already in progress for this sprint',
+    });
+  }
+
+  // Initialize job store for this sprint
+  const job = { events: [], done: false };
+  sprintJobs.set(sprintId, job);
+
   // Set up SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -114,24 +133,72 @@ router.post('/:id/generate', genLimiter, async (req, res) => {
   });
 
   const sendEvent = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    job.events.push(data);
+    const eventId = job.events.length;
+    res.write(`id: ${eventId}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
   try {
-    sendEvent({ type: 'started', sprintId: parseInt(req.params.id) });
+    sendEvent({ type: 'started', sprintId });
 
-    const result = await generateSprintClasses(
-      parseInt(req.params.id),
-      sendEvent,
-    );
+    const result = await generateSprintClasses(sprintId, sendEvent);
 
     sendEvent(result);
+    job.done = true;
     res.end();
   } catch (err) {
     logger.error('[SprintRoutes] Generate failed:', err.message);
     sendEvent({ type: 'error', error: err.message });
+    job.done = true;
     res.end();
   }
+
+  // Clean up job after TTL
+  setTimeout(() => sprintJobs.delete(sprintId), SPRINT_JOB_TTL);
+});
+
+// ── GET /sprints/:id/generate/stream — Reconnect to in-progress generation ──
+router.get('/:id/generate/stream', async (req, res) => {
+  const sprintId = parseInt(req.params.id);
+  const job = sprintJobs.get(sprintId);
+
+  if (!job) {
+    return res.status(404).json({ success: false, error: 'No active generation for this sprint' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  // Replay from Last-Event-ID (ARCH-2 pattern)
+  const lastEventId = parseInt(req.headers['last-event-id'] || '0', 10) || 0;
+  let lastSent = lastEventId;
+
+  for (let i = lastSent; i < job.events.length; i++) {
+    res.write(`id: ${i + 1}\ndata: ${JSON.stringify(job.events[i])}\n\n`);
+  }
+  lastSent = job.events.length;
+
+  if (job.done) {
+    return res.end();
+  }
+
+  // Poll for new events until done
+  const interval = setInterval(() => {
+    while (lastSent < job.events.length) {
+      res.write(`id: ${lastSent + 1}\ndata: ${JSON.stringify(job.events[lastSent])}\n\n`);
+      lastSent++;
+    }
+    if (job.done) {
+      clearInterval(interval);
+      res.end();
+    }
+  }, 500);
+
+  req.on('close', () => clearInterval(interval));
 });
 
 // ── PUT /sprints/:id/weeks/:weekId — Update week ─────────────────────

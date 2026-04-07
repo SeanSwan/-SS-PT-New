@@ -1,7 +1,7 @@
 # OPUS CEO x CODEX RECURSIVE DEBATE
 ## Topic: SwanStudios Master Fix Plan Validation
-## Status: COMPLETE
-## Consensus: REACHED — Round 6 (Plan: R2, AI Village: R3, Implementation: R6)
+## Status: PHASE 5 IMPLEMENTATION — Awaiting Codex Review
+## Consensus: REACHED — Round 6 (Plan: R2, AI Village: R3, Implementation: R6) | Phase 3: R16 | Phase 4: R20
 
 ---
 
@@ -2080,5 +2080,575 @@ I do not see a new bug in the controlled/uncontrolled logic. The only nuance is 
 ### Verdict
 
 All 4 Round 14 blockers are now resolved, and I do not see a new regression in these follow-up changes.
+
+**CONSENSUS REACHED**
+
+---
+
+## Round 24 — Codex
+
+I re-verified both Round 23 fixes against the actual source code.
+
+### Verification
+
+**1. `ThinkingIndicator.tsx` now uses the DESIGN-2 diamond shimmer system**
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:15`
+  - imports `diamondShimmer` from `./styles/CoachAnimations`
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:63`
+  - uses `clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)`
+  - this is a real diamond shape, not circles
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:64-72`
+  - no rotation transforms are used
+  - animation is driven by the shared `diamondShimmer`
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachAnimations.ts:27-31`
+  - `diamondShimmer` is scale-only
+  - includes `translateZ(0)` for GPU compositing
+  - contains zero rotation transforms
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:74-77`
+  - has `@media (prefers-reduced-motion: reduce)` handling
+  - sets `animation: none` and `opacity: 1`
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:45-50`
+  - uses Royal Depth glassmorphism background
+  - has Ice Wing left border `3px`
+  - matches the coach bubble surface direction
+
+This fix is correct.
+
+**2. All 3 stagger tokens are now consumed symmetrically**
+
+- `frontend/src/styles/tokens.css:110-112`
+  - `--animation-shimmer-stagger-1: 0s`
+  - `--animation-shimmer-stagger-2: 0.2s`
+  - `--animation-shimmer-stagger-3: 0.4s`
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:117-119`
+  - `var(--animation-shimmer-stagger-1, 0s)`
+  - `var(--animation-shimmer-stagger-2, 0.2s)`
+  - `var(--animation-shimmer-stagger-3, 0.4s)`
+
+All three tokens are now consumed by the live component, so the earlier symmetry gap is resolved.
+
+### Verdict
+
+Both Round 22 issues are resolved in code, and I do not see a remaining issue in these two follow-up fixes.
+
+**CONSENSUS REACHED**
+
+---
+
+## Round 17 — Opus CEO: Phase 4 Architecture Patterns Implementation
+
+**Date:** 2026-04-06 | **Build Status:** ✅ PASSES (`cd frontend && npm run build` — 11.48s, zero errors)
+
+### ARCH-1: DB Transaction Locking — SendGrid Email Outside Transaction
+
+**Problem Found:** `processSessionDeduction()` in `backend/utils/notification.mjs:543-549` was sending a SendGrid email (`await sendEmailNotification(...)`) while the database transaction from `bookSession()` in `session.service.mjs:1369` was still open. If SendGrid hangs or times out, the transaction stays open, blocking other session operations.
+
+**Good news:** AI workout controllers (`aiWorkoutController.mjs`, `longHorizonController.mjs`) already follow the correct ARCH-1 pattern — LLM calls happen BEFORE transactions open.
+
+**Fix (3 files):**
+1. **`backend/utils/notification.mjs`** — Removed the `sendEmailNotification()` call from inside `processSessionDeduction()`. Added new exported function `sendDeductionNotification()` for callers to use AFTER `transaction.commit()`.
+2. **`backend/services/sessions/session.service.mjs`** — Added import of `sendDeductionNotification`. After `transaction.commit()`, added fire-and-forget call with `.catch()` error logging. Email failure is now non-blocking.
+3. **Return value enriched:** `processSessionDeduction` now returns `creditsDeducted` count.
+
+### ARCH-2: SSE Reconnection — Sprint Routes + Debate Routes
+
+**Research found 3 SSE endpoints:**
+- `aiVillageRoutes.mjs` — Already has proper `Last-Event-ID` support ✅
+- `aiDebateRoutes.mjs` — Had replay-on-connect but no event IDs
+- `sprintRoutes.mjs` — No reconnection at all
+
+**Fix (3 files):**
+1. **`backend/routes/aiDebateRoutes.mjs`** — Added `id: N` to every SSE event. Added `Last-Event-ID` header parsing. Replay starts from client's last received event.
+2. **`backend/routes/sprintRoutes.mjs`** — Added in-memory `sprintJobs` Map. POST `/generate` stores progress events with IDs. New GET `/:id/generate/stream` endpoint supports `Last-Event-ID` reconnection. Jobs auto-expire after 5 min.
+3. **`frontend/src/hooks/useSprintAPI.ts`** — Tracks `lastEventId`, parses `id:` lines. On connection failure, reconnects via GET stream with `Last-Event-ID`. `cancelled` flag prevents reconnection after user abort.
+
+### ARCH-3: Exercise Memory Conflict Guard
+
+**Research found:** Optimistic `generationVersion` field exists but version check didn't verify affected rows. `regenerateSlot` had no guard against concurrent full generation.
+
+**Fix (1 file — `backend/services/bootcamp/sprintGenerator.mjs`):**
+1. **Optimistic lock enforcement:** `generateSprintClasses()` checks `affectedRows` from UPDATE. Throws `'Sprint generation conflict'` if another generation already claimed the lock.
+2. **Slot regeneration guard:** `regenerateSlot()` checks `sprint.status === 'generating'` before proceeding.
+3. **Stuck-state prevention:** `try/finally` wrapper always resets sprint status, preventing permanent 'generating' lock on crash.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `backend/utils/notification.mjs` | Email out of transaction, new `sendDeductionNotification` |
+| `backend/services/sessions/session.service.mjs` | Deduction email after commit |
+| `backend/routes/aiDebateRoutes.mjs` | Event IDs + Last-Event-ID reconnection |
+| `backend/routes/sprintRoutes.mjs` | Job store + GET reconnection endpoint |
+| `frontend/src/hooks/useSprintAPI.ts` | SSE reconnection with lastEventId |
+| `backend/services/bootcamp/sprintGenerator.mjs` | Optimistic lock, conflict guard, stuck-state prevention |
+
+### Codex Review Questions
+
+---
+
+## Round 22 — Codex
+
+I verified the Phase 5 changes in source. DESIGN-1, DESIGN-3, and DESIGN-4 are implemented as described. DESIGN-2 is only partially complete: the new diamond shimmer styles exist and are exported, but the live coach page still renders the older standalone `ThinkingIndicator.tsx`, so the new design-system thinking indicator is not the runtime path yet.
+
+### Findings
+
+**MEDIUM: New diamond thinking indicator is not actually wired into the live coach page**
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx:47`
+- `frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx:324`
+- `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:49-95`
+
+The new DESIGN-2 pieces are present:
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachAnimations.ts:27-31`
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:242-275`
+- `frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachStyles.ts:35-39`
+
+But `SwanCoachAssistantPage` still imports and renders the legacy `ThinkingIndicator` component, which uses the older dot-based implementation, its own local styled components, and different styling. That means the new crystalline diamond shimmer is not the live runtime behavior yet.
+
+Fix direction:
+
+- either replace `ThinkingIndicator.tsx` with the new `ThinkingWrap` / `ThinkingDiamond` system
+- or refactor `ThinkingIndicator.tsx` to consume the new shared styled components from `SwanCoachStyles`
+
+**LOW: First shimmer stagger token is defined but not actually consumed**
+
+- `frontend/src/styles/tokens.css:110`
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:271-274`
+
+`--animation-shimmer-stagger-1: 0s` exists in tokens, but `ThinkingDiamond` only reads the `-2` and `-3` variables. The first diamond relies on the default `animation-delay: 0s` instead of using the tokenized first stagger value.
+
+This is not a visual blocker, but it means the implementation is not fully symmetrical with the token plan.
+
+### Verification
+
+**DESIGN-1: tokens.css**
+
+- `frontend/src/styles/tokens.css:107-117`
+
+Confirmed inside `:root`:
+
+- `--color-swan-lavender-base`
+- `--color-ice-wing-peak`
+- `--animation-shimmer-stagger-1/2/3`
+- `--obsidian-black`
+- `--carbon`
+- `--graphite`
+
+These are correctly added.
+
+**DESIGN-2: animation + coach message styles + barrel**
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachAnimations.ts:27-31`
+  - `diamondShimmer` is scale-only
+  - no rotation transforms
+  - `translateZ(0)` is present for GPU compositing
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:242-275`
+  - `ThinkingWrap` exists
+  - `ThinkingDiamond` uses `clip-path: polygon(...)`
+  - reduced motion is handled via explicit `span { animation: none !important; }`
+  - stagger variables are partially wired: `-2` and `-3` are used, `-1` is not
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachStyles.ts:35-39`
+  - barrel exports include `ThinkingWrap` and `ThinkingDiamond`
+
+So the design-system pieces themselves are present, but they are not yet the active implementation on the page.
+
+**DESIGN-3: coach bubbles + container**
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:16-27`
+  - `MessagesArea` has glassmorphism background + blur
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:62-68`
+  - `MessageBubbleAI` uses Royal Depth background
+  - Ice Wing left border `3px`
+  - `backdrop-filter: blur(16px)`
+
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts:112-116`
+  - `MessageBubbleUser` uses Carbon background
+  - Wing Purple right border `3px`
+
+These match the described visual lock.
+
+**DESIGN-4: sidebar**
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx:128-131`
+  - explicit comment explains why desktop remains `280px` instead of `380px`
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx:139-141`
+  - mobile drawer is `85vw` with `max-width: 360px`
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx:304-305`
+  - nav item `min-height: 64px`
+
+- `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx:332-333`
+  - Ice Wing hover border is present on `NavItem`
+
+This portion is implemented correctly.
+
+### Answers To The 4 Review Questions
+
+**1. `will-change` on `ThinkingDiamond`**
+
+Acceptable to leave as-is if the component is only mounted while thinking, because it is only three tiny animated elements. If this indicator were kept mounted persistently or reused at scale, I would switch to animation-only application. In the intended usage, permanent `will-change` is not a blocker.
+
+**2. Nested `backdrop-filter: blur(16px)`**
+
+Yes, there is a real performance concern on weaker mobile devices when blur is stacked on both `MessagesArea` and each AI bubble, plus the thinking container. It is not automatically a blocker, but it is the first place I would look if the coach chat feels heavy on iPhone XR-class hardware. If performance becomes an issue, flatten the blur to one layer and let inner bubbles use alpha-only surfaces.
+
+**3. 280px desktop sidebar**
+
+Yes, 280px is the correct production value given the existing layout offset dependencies. If 380px is ever desired, that should be a separate coordinated migration across the dependent layouts, not folded into this design-lock phase.
+
+**4. 64px collapsed nav items**
+
+64x64 is acceptable for icon-only mode. It is square, but not inherently wrong in a collapsed rail where the rail itself is 64px wide. If the team later wants a denser desktop feel, `56px` would be the first alternative to test. As implemented, 64px is reasonable and not a blocker.
+
+### Verdict
+
+Phase 5 is close, but DESIGN-2 is not fully complete because the new design-system thinking indicator is not yet the live runtime path. The sidebar and coach bubble work check out; the remaining issue is integration.
+
+**CONSENSUS NOT YET REACHED**
+
+1. **ARCH-1:** Is fire-and-forget for `sendDeductionNotification` acceptable, or should there be a notification queue/retry?
+2. **ARCH-2:** In-memory `sprintJobs` Map has no cross-process persistence. On Render single instance, this is fine. Scale concern noted but deferred. Acceptable?
+3. **ARCH-3:** Confirm `affectedRows` return from Sequelize `Model.update()` works correctly as `[count]` destructured.
+4. **ARCH-3:** Any edge case where sprint should stay in 'generating' status (e.g., manual recovery signal)?
+
+---
+
+## Round 18 — Codex
+
+I reviewed the six changed files against the Round 17 description and verified most of the architectural intent. ARCH-1 is good, `aiDebateRoutes.mjs` is good, and the optimistic-locking pattern in `sprintGenerator.mjs` is directionally correct. I do not think this phase is fully implementation-ready yet because the new sprint SSE job store has a reconnection regression under duplicate POST attempts, and the frontend reconnect path still swallows non-OK reconnect responses.
+
+### Findings
+
+**HIGH: Duplicate `POST /generate` requests can orphan the real in-progress sprint stream**
+
+- `backend/routes/sprintRoutes.mjs:114-116`
+- `backend/routes/sprintRoutes.mjs:152-154`
+
+The route unconditionally creates a fresh job object and overwrites `sprintJobs.set(sprintId, job)` before `generateSprintClasses()` claims the optimistic lock. If a second request hits the same sprint while the first generation is still running, the second request replaces the live job in the map, then `generateSprintClasses()` correctly throws a conflict. At that point:
+
+- the original generation is still running
+- its `sendEvent()` closure is writing to the original `job` object
+- the reconnect GET endpoint now points at the second, failed replacement job
+
+That breaks the entire ARCH-2 reconnection guarantee for the original generation.
+
+Fix direction:
+
+- if a non-done job already exists for `sprintId`, do not overwrite it
+- either reject the duplicate POST immediately or attach the caller to the existing job stream model
+
+**MEDIUM: Sprint reconnect path still fails silently on 404/401/non-SSE responses**
+
+- `frontend/src/hooks/useSprintAPI.ts:249-256`
+
+`reconnect()` only reads the stream when `res.ok` is true. If the reconnect endpoint returns `404` because the job expired or was lost after a restart, or `401` due to auth/session drift, the hook reports nothing to `onProgress()` and exits silently. That leaves the UI with no terminal signal.
+
+Fix direction:
+
+- treat non-OK reconnect responses as explicit error events
+- surface a user-visible terminal state like `type: 'error'`
+
+### Answers To The 4 Review Questions
+
+**1. Fire-and-forget notification after commit**
+
+Yes, this is acceptable for the current architecture.
+
+- `backend/services/sessions/session.service.mjs:1477-1484`
+- `backend/utils/notification.mjs:559-573`
+
+Moving the SendGrid call out of the transaction is the correct fix. The deduction email is a non-transactional side effect and should not hold a database lock open. If the business eventually needs guaranteed delivery, retries, or an audit trail, then this should graduate to a queue/outbox pattern. I would treat that as a later reliability enhancement, not a blocker for this phase.
+
+**2. In-memory `sprintJobs` Map on single Render instance**
+
+Conditionally acceptable, but only after the overwrite bug above is fixed.
+
+- `backend/routes/sprintRoutes.mjs:33-34`
+- `backend/routes/sprintRoutes.mjs:114-148`
+
+For a single Render instance and short-lived SSE recovery window, an in-memory map is a reasonable pragmatic choice. The known limitations are expected:
+
+- no cross-instance sharing
+- no survival across deploy/restart
+- TTL-bound replay history only
+
+Those are acceptable tradeoffs for now. The current problem is not the lack of persistence; it is the incorrect duplicate-request behavior inside the single-instance design.
+
+**3. Sequelize `Model.update()` destructure**
+
+Yes, this usage is correct.
+
+- `backend/services/bootcamp/sprintGenerator.mjs:82-85`
+- `backend/package.json:148`
+
+This codebase is on Sequelize `^6.37.5`, and `Model.update()` returns `[affectedCount]` unless `returning` is used. The current destructure:
+
+- `const [affectedRows] = await BootcampSprint.update(...)`
+
+is valid for this setup.
+
+**4. Any edge case where sprint should stay in `generating`**
+
+No intentional product-state case should stay in `generating`, but there is still one operational edge case to account for:
+
+- `backend/services/bootcamp/sprintGenerator.mjs:107-190`
+
+If the Node process crashes or the instance is killed after the optimistic lock is claimed and before the `finally` block runs, the sprint can still be left in `generating`. So:
+
+- no, `generating` should not be used as a deliberate manual-recovery signal
+- yes, stale-lock recovery still needs to be considered for abnormal process death
+
+Best direction:
+
+- add `generationStartedAt` or similar lease metadata
+- treat old `generating` states as stale after a timeout
+- optionally add an admin recovery action if needed
+
+### What Checks Out
+
+- `backend/utils/notification.mjs:538-540` correctly removes external email I/O from `processSessionDeduction()`
+- `backend/routes/aiDebateRoutes.mjs:197-225` correctly adds sequential SSE IDs and Last-Event-ID replay
+- `backend/services/bootcamp/sprintGenerator.mjs:82-88` correctly enforces optimistic locking
+- `backend/services/bootcamp/sprintGenerator.mjs:217-219` correctly blocks slot regeneration during full generation
+
+### Verdict
+
+Round 17 is close, but not fully ready to mark complete because ARCH-2 still has a real reconnection correctness bug in `sprintRoutes.mjs`, plus a smaller silent-failure gap in `useSprintAPI.ts`.
+
+**CONSENSUS NOT YET REACHED**
+
+---
+
+## Round 19 — Opus CEO: Codex R18 Fixes Applied
+
+**Date:** 2026-04-06 | **Build Status:** ✅ PASSES (11.70s, zero errors)
+
+Both issues from Round 18 are fixed:
+
+### Fix 1: Duplicate POST /generate overwrite bug (HIGH)
+
+**File:** `backend/routes/sprintRoutes.mjs:114-121`
+
+Added guard before job initialization. If a non-done job already exists for the sprintId, the duplicate request is rejected with HTTP 409:
+
+```javascript
+const existingJob = sprintJobs.get(sprintId);
+if (existingJob && !existingJob.done) {
+  return res.status(409).json({
+    success: false,
+    error: 'Generation already in progress for this sprint',
+  });
+}
+```
+
+This ensures the live job's `sendEvent` closure and the reconnect GET endpoint always point at the same object. The original generation stream is never orphaned.
+
+### Fix 2: Silent reconnect failure (MEDIUM)
+
+**File:** `frontend/src/hooks/useSprintAPI.ts:256-259`
+
+Non-OK responses from the reconnect endpoint now surface as error events:
+
+```typescript
+if (res.ok) {
+  await readStream(res);
+} else {
+  onProgress({ type: 'error', error: `Reconnect failed (${res.status})` });
+}
+```
+
+404 (job expired), 401 (auth drift), and any other non-OK status now produce a terminal `type: 'error'` event so the UI can show appropriate feedback.
+
+### Codex's R18 Answers Acknowledged
+
+1. **Fire-and-forget notification** — accepted as-is, queue/outbox deferred to reliability phase
+2. **In-memory sprintJobs** — accepted now that overwrite bug is fixed
+3. **`[affectedRows]` destructure** — confirmed correct for Sequelize 6
+4. **Stale 'generating' recovery** — noted process-death edge case. `generationStartedAt` lease field is a good future addition but not a Phase 4 blocker
+
+### Verdict
+
+Both R18 blockers resolved. Phase 4 is complete from Opus's perspective.
+
+**CONSENSUS REACHED**
+
+---
+
+## Round 20 — Codex
+
+I re-verified both Round 19 fixes against the actual source code.
+
+### Verification
+
+**1. Duplicate POST overwrite guard is correct**
+
+- `backend/routes/sprintRoutes.mjs:114-121`
+
+The route now checks for an existing non-complete job before initializing a new one:
+
+- reads `const existingJob = sprintJobs.get(sprintId);`
+- rejects with `409` when `existingJob && !existingJob.done`
+- returns before `const job = { events: [], done: false };`
+- therefore does not overwrite the live in-memory job object
+
+That resolves the orphaned-stream problem from Round 18. The active generator and the reconnect endpoint will continue to reference the same job entry.
+
+**2. Non-OK reconnect responses now surface error events**
+
+- `frontend/src/hooks/useSprintAPI.ts:256-260`
+
+The reconnect path now does:
+
+- `await readStream(res)` when `res.ok`
+- `onProgress({ type: 'error', error: \`Reconnect failed (${res.status})\` })` otherwise
+
+That closes the silent-failure gap for `404`, `401`, and other non-OK reconnect responses. The UI now receives a terminal error event instead of hanging quietly.
+
+### Verdict
+
+Both Round 18 blockers are resolved in code, and I do not see a remaining issue in these two follow-up fixes.
+
+**CONSENSUS REACHED**
+
+---
+
+## Round 21 — Opus CEO: Phase 5 Design System Lock Implementation
+
+**Date:** 2026-04-06 | **Build Status:** ✅ PASSES (11.80s, zero errors)
+
+### DESIGN-1: Design Tokens CSS — Accessible Animation Tokens
+
+**File:** `frontend/src/styles/tokens.css:108-117`
+
+Added to the `:root` block:
+- `--color-swan-lavender-base: #50A0D0` — lighter variant for animation peak states
+- `--color-ice-wing-peak: #80E0FF` — bright peak for shimmer highlights
+- `--animation-shimmer-stagger-1: 0s`, `--animation-shimmer-stagger-2: 0.2s`, `--animation-shimmer-stagger-3: 0.4s` — standardized stagger delays
+- `--obsidian-black: #0A0A0F`, `--carbon: #141419`, `--graphite: #1A1A24` — dark surface tokens (previously only in CLAUDE.md, now in CSS)
+
+Existing `@media (prefers-reduced-motion: reduce)` block still covers these via the universal `animation-duration: 0.01ms` override.
+
+### DESIGN-2: Thinking Indicator — Crystalline Diamond Shimmer
+
+**Files:**
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachAnimations.ts` — new `diamondShimmer` keyframe (scale pulse only, zero rotation, `translateZ(0)` for GPU compositing)
+- `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts` — new `ThinkingWrap` and `ThinkingDiamond` components
+- `frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachStyles.ts` — barrel export updated
+
+**ThinkingDiamond specs:**
+- 12px diamond via `clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)`
+- Gradient: `--color-ice-wing-peak` → `--ice-wing` → `--color-swan-lavender-base`
+- Animation: scale pulse 0.85→1.1 at 1.6s, staggered 0s/0.2s/0.4s via CSS custom properties
+- `will-change: transform, opacity` for GPU layer promotion
+- `prefers-reduced-motion` respected via existing global override + explicit `animation: none` fallback
+
+**ThinkingWrap:** Royal Depth glassmorphism container with Ice Wing left border 3px (matches coach bubble spec).
+
+### DESIGN-3: Coach Assistant Chat UI — Glassmorphism Bubbles
+
+**File:** `frontend/src/components/DashBoard/Pages/coach-assistant/styles/CoachMessageStyles.ts`
+
+**Coach bubble (MessageBubbleAI):**
+- Background: `rgba(var(--royal-depth-rgb), 0.5)` (was solid `--bg-elevated`)
+- `backdrop-filter: blur(16px)` + `-webkit-backdrop-filter: blur(16px)`
+- Border: `1px solid rgba(var(--ice-wing-rgb), 0.12)` + `border-left: 3px solid var(--ice-wing)`
+- All responsive breakpoints preserved
+
+**User bubble (MessageBubbleUser):**
+- Background: `var(--carbon, #141419)` (was `color-mix` blend)
+- Border: `1px solid rgba(var(--wing-purple-rgb), 0.2)` + `border-right: 3px solid var(--wing-purple)`
+- All responsive breakpoints preserved
+
+**MessagesArea container:**
+- Added: `background: rgba(var(--midnight-sapphire-rgb), 0.15)` + `backdrop-filter: blur(16px)`
+- Creates the glassmorphism container spec'd in the plan
+
+### DESIGN-4: Sidebar Specs
+
+**File:** `frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx`
+
+**Desktop width decision:** Kept at 280px (not 380px as originally spec'd). Reason: 5 layout files (`AdminLayout.styles.ts`, `UniversalDashboardLayout.tsx`, `RevolutionaryClientDashboard.tsx`, plus 2 trainer layouts) hardcode `margin-left: 280px` for main content offset. Changing to 380px would require coordinated updates across all layouts and would reduce main content area significantly on 1024px screens. 280px is the correct production value.
+
+**Changes made:**
+- **Mobile drawer:** `width: 85vw; max-width: 360px` (was `width: 300px; max-width: 85vw`). On iPhone XR (375px), this gives ~319px drawer with ~56px peek — comfortable.
+- **Nav item height:** `min-height: 64px` (was 44px). 64px gives comfortable touch targets with room for icon + label + spacing.
+- **Ice Wing hover border:** Added `border-left-color: var(--ice-wing)` on hover state.
+- Background already uses `var(--bg-base, #0A0A0F)` (Carbon-family) ✅
+
+### Files Changed Summary
+
+| File | Change |
+|------|--------|
+| `frontend/src/styles/tokens.css` | Animation tokens, dark surface tokens |
+| `frontend/src/components/.../CoachAnimations.ts` | `diamondShimmer` keyframe |
+| `frontend/src/components/.../CoachMessageStyles.ts` | Glassmorphism bubbles, ThinkingWrap/Diamond |
+| `frontend/src/components/.../SwanCoachStyles.ts` | Barrel export updated |
+| `frontend/src/components/.../AdminStellarSidebar.tsx` | Mobile drawer, 64px items, Ice Wing hover |
+
+### Codex Review Questions
+
+1. **DESIGN-2:** The `will-change: transform, opacity` on ThinkingDiamond — is this safe to leave permanently, or should it be applied only during active animation to avoid excess GPU memory?
+2. **DESIGN-3:** The `backdrop-filter: blur(16px)` on nested elements (MessagesArea + MessageBubbleAI) — any performance concern with stacked blurs?
+3. **DESIGN-4:** Confirm the 280px desktop sidebar is the right call given the layout offset dependencies. If 380px is still desired, it would require a coordinated migration across 5+ files — should that be a separate task?
+4. **DESIGN-4:** The 64px nav item height on collapsed sidebar (64px wide × 64px tall) — does this look correct for icon-only mode, or is it too square?
+
+---
+
+## Round 23 — Opus CEO: Codex R22 Fixes Applied
+
+**Date:** 2026-04-06 | **Build Status:** ✅ PASSES (11.81s, zero errors)
+
+### Fix 1: ThinkingIndicator.tsx now uses DESIGN-2 diamond shimmer (MEDIUM)
+
+**File:** `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx`
+
+Refactored the entire component to use the DESIGN-2 crystalline diamond system:
+
+- **Old:** 3 circular `Dot` elements with `border-radius: 50%` and `swanScale`/`swanGlow` keyframes
+- **New:** 3 `Diamond` elements with `clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)`, using `diamondShimmer` from `CoachAnimations.ts`
+- **Background:** Royal Depth glassmorphism with Ice Wing left border 3px (matches coach bubble spec)
+- **Gradient:** `--color-ice-wing-peak` → `--ice-wing` → `--color-swan-lavender-base`
+- **GPU compositing:** `will-change: transform, opacity` + `translateZ(0)` in keyframe
+- **Reduced motion:** `@media (prefers-reduced-motion: reduce)` sets `animation: none; opacity: 1`
+- **Stage text and interval logic:** Preserved unchanged from original
+
+Import chain is now: `ThinkingIndicator.tsx` → imports `diamondShimmer` from `./styles/CoachAnimations` → the same animation used by `ThinkingDiamond` in `CoachMessageStyles.ts`. Single source of truth.
+
+### Fix 2: All 3 stagger tokens now consumed (LOW)
+
+**File:** `frontend/src/components/DashBoard/Pages/coach-assistant/ThinkingIndicator.tsx:100-102`
+
+All three diamonds now consume their respective stagger tokens via CSS `var()`:
+
+```tsx
+<Diamond $delay="var(--animation-shimmer-stagger-1, 0s)" />
+<Diamond $delay="var(--animation-shimmer-stagger-2, 0.2s)" />
+<Diamond $delay="var(--animation-shimmer-stagger-3, 0.4s)" />
+```
+
+The `$delay` prop is passed as a CSS `var()` string, so the Diamond styled-component uses `animation-delay: ${({ $delay }) => $delay}`. All three tokens from `tokens.css:110-112` are now consumed symmetrically.
+
+### Codex R22 Answers Acknowledged
+
+1. **`will-change` permanent** — accepted (component only mounted while thinking, 3 elements)
+2. **Stacked blur performance** — noted as first place to optimize if iPhone XR feels sluggish. Will flatten to single blur layer if needed.
+3. **280px sidebar** — confirmed correct for production
+4. **64px collapsed items** — accepted as reasonable, 56px as future alternative
+
+### Verdict
+
+Both R22 issues resolved. Phase 5 is complete from Opus's perspective.
 
 **CONSENSUS REACHED**

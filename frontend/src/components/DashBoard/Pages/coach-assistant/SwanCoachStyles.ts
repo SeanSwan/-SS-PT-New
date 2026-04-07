@@ -10,7 +10,7 @@
  */
 
 // Animations (shared keyframes)
-export { fadeIn, pulseGlow, bounce } from './styles/CoachAnimations';
+export { fadeIn, pulseGlow, bounce, diamondShimmer } from './styles/CoachAnimations';
 
 // Layout (page shell, header, welcome state)
 export {
@@ -34,6 +34,8 @@ export {
   MessageActionBtn,
   TypingWrap,
   TypingDot,
+  ThinkingWrap,
+  ThinkingDiamond,
 } from './styles/CoachMessageStyles';
 
 // Chips (context chips, response style selector)

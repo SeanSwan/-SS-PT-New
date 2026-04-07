@@ -208,6 +208,63 @@ export function useSprintAPI() {
   ): (() => void) => {
     const token = localStorage.getItem('token');
     const controller = new AbortController();
+    let lastEventId = 0;
+    let cancelled = false;
+
+    // Parse SSE stream, tracking event IDs for reconnection (ARCH-2)
+    const readStream = async (response: Response) => {
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentId: number | null = null;
+        for (const line of lines) {
+          if (line.startsWith('id: ')) {
+            currentId = parseInt(line.slice(4), 10);
+            if (!isNaN(currentId)) lastEventId = currentId;
+          } else if (line.startsWith('data: ')) {
+            try {
+              const evt = JSON.parse(line.slice(6));
+              onProgress(evt);
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
+    };
+
+    // Reconnect via GET stream with Last-Event-ID
+    const reconnect = async () => {
+      if (cancelled) return;
+      try {
+        const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Last-Event-ID': String(lastEventId),
+          },
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          await readStream(res);
+        } else {
+          // Surface non-OK reconnect as error (Codex R18 fix — 404/401/etc)
+          onProgress({ type: 'error', error: `Reconnect failed (${res.status})` });
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          onProgress({ type: 'error', error: err.message });
+        }
+      }
+    };
 
     (async () => {
       try {
@@ -220,37 +277,16 @@ export function useSprintAPI() {
           signal: controller.signal,
         });
 
-        const reader = res.body?.getReader();
-        if (!reader) return;
-
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const evt = JSON.parse(line.slice(6));
-                onProgress(evt);
-              } catch { /* skip malformed */ }
-            }
-          }
-        }
+        await readStream(res);
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== 'AbortError') {
-          onProgress({ type: 'error', error: err.message });
+          // Connection lost mid-generation — try reconnecting to GET stream
+          await reconnect();
         }
       }
     })();
 
-    return () => controller.abort();
+    return () => { cancelled = true; controller.abort(); };
   }, []);
 
   const confirmSlot = useCallback(async (

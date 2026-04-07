@@ -1,17 +1,18 @@
 /**
  * ┌─── SUB-COMPONENT: ThinkingIndicator ──────────────────────┐
  * │ PARENT: SwanCoachAssistantPage                              │
- * │ PURPOSE: Animated "AI is thinking" indicator with stages    │
+ * │ PURPOSE: Crystalline diamond "AI is thinking" indicator     │
  * │ Props: { isThinking: boolean }                              │
  * │ CLICK-OUTCOMES: None (display only)                         │
  * │ AI VILLAGE VALIDATED: 2026-03-31                            │
- * │ DESIGN CONSENSUS: Composite-only ::after glow + transform   │
- * │ scale. GPU-composited — 60fps on low-end devices.           │
+ * │ DESIGN-2 UPGRADE: 2026-04-06 — Diamond shimmer via         │
+ * │   clip-path polygon, zero rotation, GPU-composited.         │
  * └─────────────────────────────────────────────────────────────┘
  */
 
 import React, { memo, useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { diamondShimmer } from './styles/CoachAnimations';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Thinking Stages (rotate every 3s while thinking)
@@ -24,73 +25,55 @@ const THINKING_STAGES = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Animations (GPU-composited: transform + opacity ONLY)
-// Design consensus: composite-only ::after glow + transform scale
-// box-shadow is STATIC (painted once), glow toggled via opacity
+// SECTION: Animations
 // ─────────────────────────────────────────────────────────────
-const swanScale = keyframes`
-  0%, 100% { transform: scale(0.8); }
-  50% { transform: scale(1.2); }
-`;
-
-const swanGlow = keyframes`
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
-`;
-
 const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
+// SECTION: Styled Components (DESIGN-2 Crystalline Diamond)
 // ─────────────────────────────────────────────────────────────
-const ThinkingWrap = styled.div`
+const Wrap = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
   max-width: 320px;
   border-radius: 16px 16px 16px 4px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  background: rgba(var(--royal-depth-rgb, 0, 48, 128), 0.5);
+  backdrop-filter: blur(var(--glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 12px));
+  border: 1px solid rgba(var(--ice-wing-rgb, 96, 192, 240), 0.12);
+  border-left: 3px solid var(--ice-wing, rgb(96, 192, 240));
   animation: ${fadeInUp} 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 `;
 
-const DotsWrap = styled.div`
+const DiamondsWrap = styled.div`
   display: flex;
   gap: 6px;
   flex-shrink: 0;
 `;
 
-const Dot = styled.span<{ $delay: number }>`
-  position: relative;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-primary, #002060);
-  will-change: transform;
-  animation: ${swanScale} 1.5s ease-in-out infinite;
-  animation-delay: ${({ $delay }) => $delay}s;
-
-  /* Glow pseudo-element: static box-shadow, animated opacity */
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--accent-primary, #60C0F0);
-    box-shadow: 0 0 12px var(--accent-primary, #60C0F0);
-    opacity: 0;
-    will-change: opacity;
-    animation: ${swanGlow} 1.5s ease-in-out infinite;
-    animation-delay: ${({ $delay }) => $delay}s;
-  }
+/** DESIGN-2: Diamond via clip-path — zero rotation transforms, GPU-composited */
+const Diamond = styled.span<{ $delay: string }>`
+  width: 12px;
+  height: 12px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: linear-gradient(
+    135deg,
+    var(--color-ice-wing-peak, #80E0FF),
+    var(--ice-wing, rgb(96, 192, 240)),
+    var(--color-swan-lavender-base, #50A0D0)
+  );
+  will-change: transform, opacity;
+  animation: ${diamondShimmer} 1.6s ease-in-out infinite;
+  animation-delay: ${({ $delay }) => $delay};
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    &::after { animation: none; opacity: 0.5; }
+    opacity: 1;
   }
 `;
 
@@ -129,14 +112,14 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = memo(({ isThinking }
   if (!isThinking) return null;
 
   return (
-    <ThinkingWrap aria-label="Swan Coach is thinking" role="status" aria-live="polite">
-      <DotsWrap>
-        <Dot $delay={0} />
-        <Dot $delay={0.2} />
-        <Dot $delay={0.4} />
-      </DotsWrap>
+    <Wrap aria-label="Swan Coach is thinking" role="status" aria-live="polite">
+      <DiamondsWrap>
+        <Diamond $delay="var(--animation-shimmer-stagger-1, 0s)" />
+        <Diamond $delay="var(--animation-shimmer-stagger-2, 0.2s)" />
+        <Diamond $delay="var(--animation-shimmer-stagger-3, 0.4s)" />
+      </DiamondsWrap>
       <StageText key={stageIndex}>{THINKING_STAGES[stageIndex]}</StageText>
-    </ThinkingWrap>
+    </Wrap>
   );
 });
 

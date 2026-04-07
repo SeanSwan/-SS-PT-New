@@ -23,3 +23,10 @@ export const bounce = keyframes`
   0%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-6px); }
 `;
+
+/* DESIGN-2: Crystalline diamond shimmer — scale pulse only, zero rotation
+ * GPU-composited via translateZ(0). Clip-path creates diamond shape. */
+export const diamondShimmer = keyframes`
+  0%, 100% { opacity: 0.4; transform: translateZ(0) scale(0.85); }
+  50% { opacity: 1; transform: translateZ(0) scale(1.1); }
+`;

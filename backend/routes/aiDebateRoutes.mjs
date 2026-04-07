@@ -194,12 +194,15 @@ router.get('/:jobId/stream', protect, validateDebateOwnership, (req, res) => {
     'X-Accel-Buffering': 'no', // Disable Nginx buffering
   });
 
-  // Send existing progress events
-  let lastSent = 0;
-  for (const event of job.progress) {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
-    lastSent++;
+  // Support reconnection via Last-Event-ID (ARCH-2 SSE reconnection pattern)
+  const lastEventId = parseInt(req.headers['last-event-id'] || '0', 10) || 0;
+  let lastSent = lastEventId;
+
+  // Replay events the client missed (or all if first connection)
+  for (let i = lastSent; i < job.progress.length; i++) {
+    res.write(`id: ${i + 1}\ndata: ${JSON.stringify(job.progress[i])}\n\n`);
   }
+  lastSent = job.progress.length;
 
   // Poll for new events (throttled 500ms per V3 spec)
   const interval = setInterval(() => {
@@ -211,9 +214,9 @@ router.get('/:jobId/stream', protect, validateDebateOwnership, (req, res) => {
       return;
     }
 
-    // Send any new progress events
+    // Send any new progress events with sequential IDs
     while (lastSent < currentJob.progress.length) {
-      res.write(`data: ${JSON.stringify(currentJob.progress[lastSent])}\n\n`);
+      res.write(`id: ${lastSent + 1}\ndata: ${JSON.stringify(currentJob.progress[lastSent])}\n\n`);
       lastSent++;
     }
 

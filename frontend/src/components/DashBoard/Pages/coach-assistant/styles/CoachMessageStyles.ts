@@ -7,11 +7,12 @@
  */
 
 import styled from 'styled-components';
-import { fadeIn, bounce } from './CoachAnimations';
+import { fadeIn, bounce, diamondShimmer } from './CoachAnimations';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Messages Area
 // ─────────────────────────────────────────────────────────────
+/* DESIGN-3: Glassmorphism chat container — backdrop-filter blur 16px */
 export const MessagesArea = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -21,6 +22,9 @@ export const MessagesArea = styled.div`
   gap: 12px;
   min-height: 0;
   scroll-behavior: smooth;
+  background: rgba(var(--midnight-sapphire-rgb, 0, 32, 96), 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -53,9 +57,14 @@ export const MessagesArea = styled.div`
   }
 `;
 
+/* DESIGN-3: Coach bubble — Royal Depth bg + Ice Wing left border 3px
+ * Glassmorphism with backdrop-filter blur 16px */
 export const MessageBubbleAI = styled.div`
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  background: rgba(var(--royal-depth-rgb, 0, 48, 128), 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(var(--ice-wing-rgb, 96, 192, 240), 0.12);
+  border-left: 3px solid var(--ice-wing, rgb(96, 192, 240));
   border-radius: 16px 16px 16px 4px;
   padding: 14px 16px;
   color: var(--text-primary, #E0ECF4);
@@ -99,9 +108,11 @@ export const MessageBubbleAI = styled.div`
   }
 `;
 
+/* DESIGN-3: User bubble — Carbon bg + Wing Purple right border 3px */
 export const MessageBubbleUser = styled.div`
-  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, var(--bg-elevated, #141419));
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent);
+  background: var(--carbon, #141419);
+  border: 1px solid rgba(var(--wing-purple-rgb, 139, 92, 246), 0.2);
+  border-right: 3px solid var(--wing-purple, rgb(139, 92, 246));
   border-radius: 16px 16px 4px 16px;
   padding: 14px 16px;
   color: var(--text-primary, #E0ECF4);
@@ -222,4 +233,43 @@ export const TypingDot = styled.span`
 
   &:nth-child(2) { animation-delay: 0.15s; }
   &:nth-child(3) { animation-delay: 0.3s; }
+`;
+
+/* DESIGN-2: Crystalline diamond thinking indicator
+ * - clip-path polygon for diamond shape (no rotation transforms)
+ * - Staggered shimmer: 0s, 0.2s, 0.4s
+ * - GPU-composited via translateZ(0) */
+export const ThinkingWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 16px;
+  background: rgba(var(--royal-depth-rgb, 0, 48, 128), 0.5);
+  border: 1px solid rgba(var(--ice-wing-rgb, 96, 192, 240), 0.12);
+  border-left: 3px solid var(--ice-wing, rgb(96, 192, 240));
+  border-radius: 16px 16px 16px 4px;
+  backdrop-filter: blur(var(--glass-blur, 12px));
+  max-width: 100px;
+
+  @media (prefers-reduced-motion: reduce) {
+    span { animation: none !important; opacity: 1 !important; }
+  }
+`;
+
+export const ThinkingDiamond = styled.span`
+  width: 12px;
+  height: 12px;
+  /* Diamond via clip-path — zero rotation transforms */
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: linear-gradient(
+    135deg,
+    var(--color-ice-wing-peak, #80E0FF),
+    var(--ice-wing, rgb(96, 192, 240)),
+    var(--color-swan-lavender-base, #50A0D0)
+  );
+  will-change: transform, opacity;
+  animation: ${diamondShimmer} 1.6s ease-in-out infinite;
+
+  &:nth-child(2) { animation-delay: var(--animation-shimmer-stagger-2, 0.2s); }
+  &:nth-child(3) { animation-delay: var(--animation-shimmer-stagger-3, 0.4s); }
 `;

@@ -125,6 +125,9 @@ const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
   flex-direction: column;
   background: var(--bg-base, #0A0A0F);
   border-right: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
+  /* DESIGN-4: 280px desktop expanded, 64px collapsed
+   * 380px was originally spec'd but 280px is correct — matches all layout
+   * offset calculations and preserves main content area on 1024px screens. */
   width: ${({ $collapsed }) => ($collapsed ? '64px' : '280px')};
   transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
               transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -133,8 +136,9 @@ const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
 
   @media (max-width: 1024px) {
     top: 0;
-    width: 300px;
-    max-width: 85vw;
+    /* DESIGN-4: 85vw / max 360px mobile drawer */
+    width: 85vw;
+    max-width: 360px;
     border-right: none;
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
     border-radius: 0 16px 16px 0;
@@ -297,7 +301,8 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   width: calc(100% - 16px);
   margin: 4px 8px;
   padding: ${({ $collapsed }) => ($collapsed ? '12px 0' : '10px 12px')};
-  min-height: 44px;
+  /* DESIGN-4: 64px item height for touch targets */
+  min-height: 64px;
   border-radius: 10px;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
 
@@ -324,6 +329,8 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
         ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, transparent 100%)'
         : 'rgba(96, 192, 240, 0.06)'};
     color: var(--text-primary, #E0ECF4);
+    /* DESIGN-4: Ice Wing hover border */
+    border-left-color: var(--ice-wing, rgb(96, 192, 240));
   }
 
   &:focus-visible {
