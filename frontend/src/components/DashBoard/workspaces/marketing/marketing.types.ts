@@ -60,7 +60,7 @@ export interface BlogDraft {
 }
 
 // ─── Social Post ───────────────────────────────────────────────
-export type SocialPlatform = 'instagram' | 'facebook' | 'x';
+export type SocialPlatform = 'instagram' | 'facebook' | 'youtube' | 'bluesky' | 'tiktok';
 
 export interface SocialPost {
   id: string;
@@ -120,7 +120,7 @@ export interface CompetitorProfile {
   id: string;
   name: string;
   website: string;
-  socialFollowers: Record<SocialPlatform, number>;
+  socialFollowers: Partial<Record<SocialPlatform, number>>;
   reviewScore: number;
   reviewCount: number;
   topKeywords: string[];
