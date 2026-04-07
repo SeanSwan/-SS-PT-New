@@ -248,7 +248,7 @@ export const DifficultyChip = styled.span<{ $tier: string }>`
     switch ($tier) {
       case 'easy': return css`background: rgba(0,255,136,0.1); color: #00FF88;`;
       case 'hard': return css`background: rgba(201,42,84,0.1); color: #C92A54;`;
-      default: return css`background: rgba(96,192,240,0.1); color: var(--accent-primary, #60c0f0);`;
+      default: return css`background: rgba(96,192,240,0.1); color: var(--text-primary, #E0ECF4);`;
     }
   }}
 `;
@@ -259,7 +259,7 @@ export const TimingBadge = styled.span`
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 12px;
-  color: var(--accent-primary, #60c0f0);
+  color: var(--text-primary, #E0ECF4);
 `;
 
 export const InsightCard = styled.div<{ $type?: string }>`

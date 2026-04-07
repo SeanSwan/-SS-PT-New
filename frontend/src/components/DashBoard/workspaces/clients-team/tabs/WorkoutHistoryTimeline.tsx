@@ -124,7 +124,7 @@ const WorkoutTitle = styled.div`
 const WorkoutMeta = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted, rgba(224, 236, 244, 0.85));
   display: flex;
   gap: 12px;
   margin-top: 2px;
@@ -166,7 +166,7 @@ const SetRow = styled.div`
 `;
 
 const SetLabel = styled.div`
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-size: 11px;
 `;
 
@@ -218,7 +218,7 @@ const EmptyState = styled.div`
   padding: 48px 20px;
   text-align: center;
   gap: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-family: 'Sora', sans-serif;
 `;
 
@@ -232,7 +232,7 @@ const StatusBadge = styled.span<{ $status: string }>`
     if ($status === 'completed') return `background: rgba(16,185,129,0.15); color: #10B981;`;
     if ($status === 'planned') return `background: rgba(59,130,246,0.15); color: #3B82F6;`;
     if ($status === 'skipped') return `background: rgba(107,114,128,0.15); color: #6B7280;`;
-    return `background: rgba(224,236,244,0.08); color: rgba(224,236,244,0.5);`;
+    return `background: rgba(224,236,244,0.08); color: rgba(224,236,244,0.85);`;
   }}
 `;
 
@@ -401,7 +401,7 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
             {isExpanded && (
               <>
                 <ExerciseList>
-                  <SetRow style={{ fontWeight: 700, fontSize: 10, color: 'rgba(224,236,244,0.3)', marginBottom: 4 }}>
+                  <SetRow style={{ fontWeight: 700, fontSize: 10, color: 'rgba(224,236,244,0.75)', marginBottom: 4 }}>
                     <div>Set</div>
                     <div>Reps</div>
                     <div>Weight</div>
@@ -429,7 +429,7 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
                               <div>{set.reps}</div>
                               <div>{set.weight > 0 ? `${set.weight} lbs` : '—'}</div>
                               <div>{set.rpe || '—'}</div>
-                              <div style={{ color: 'rgba(224,236,244,0.3)', fontSize: 11 }}>{set.notes || ''}</div>
+                              <div style={{ color: 'rgba(224,236,244,0.75)', fontSize: 11 }}>{set.notes || ''}</div>
                             </>
                           )}
                         </SetRow>

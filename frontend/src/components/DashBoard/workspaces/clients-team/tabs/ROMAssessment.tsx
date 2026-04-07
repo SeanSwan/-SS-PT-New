@@ -156,14 +156,14 @@ const DegreeInput = styled.input<{ $status: 'normal' | 'limited' | 'severe' }>`
 const NormalBadge = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   text-align: center;
 `;
 
 const SideLabel = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 10px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   text-align: center;
   padding-bottom: 2px;
 `;

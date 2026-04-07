@@ -160,7 +160,7 @@ const DependencyHealthWidget: React.FC = () => {
                     )}
                   </td>
                   <td style={{ fontSize: 12 }}>{dep.license}</td>
-                  <td style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(224,236,244,0.5)' }}>{dep.type}</td>
+                  <td style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(224,236,244,0.85)' }}>{dep.type}</td>
                 </tr>
               ))}
             </tbody>

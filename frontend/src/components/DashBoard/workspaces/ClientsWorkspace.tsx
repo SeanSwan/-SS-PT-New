@@ -217,7 +217,7 @@ const GridName = styled.div`
 const GridMeta = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted, rgba(224, 236, 244, 0.85));
   margin-top: 2px;
 
   @media (max-width: 430px) {
@@ -233,7 +233,7 @@ const EmptyHub = styled.div`
   gap: 16px;
   padding: 60px 20px;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, rgba(224, 236, 244, 0.85));
   font-family: 'Sora', sans-serif;
 `;
 
@@ -242,7 +242,7 @@ const LoadingPulse = styled.div`
   align-items: center;
   justify-content: center;
   padding: 40px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-family: 'Sora', sans-serif;
   font-size: 14px;
 `;

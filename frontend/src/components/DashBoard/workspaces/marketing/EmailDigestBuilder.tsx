@@ -93,7 +93,7 @@ const TplName = styled.div`
 const TplDesc = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
 `;
 
 const InputRow = styled.div`
@@ -106,7 +106,7 @@ const Label = styled.label`
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin-bottom: 4px;
 `;
 
@@ -123,13 +123,13 @@ const Input = styled.input`
   min-height: 44px;
 
   &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-  &::placeholder { color: var(--text-placeholder, rgba(224, 236, 244, 0.5)); }
+  &::placeholder { color: var(--text-placeholder, rgba(224, 236, 244, 0.5)); } /* placeholder intentionally dimmer */
 `;
 
 const CharHint = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.4));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.75));
   margin-left: 8px;
 `;
 
@@ -176,7 +176,7 @@ const RemoveBtn = styled.button`
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: var(--text-muted-icon, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted-icon, rgba(224, 236, 244, 0.85));
   min-width: 44px;
   min-height: 44px;
   display: flex;
@@ -211,7 +211,7 @@ const TokenChip = styled.button`
 const CadenceMeter = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 12px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -256,7 +256,7 @@ const PreviewQuote = styled.blockquote`
   border-left: 3px solid ${CHART_COLORS.gildedFern};
   padding-left: 16px;
   font-style: italic;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin: 12px 0;
 `;
 
@@ -272,7 +272,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   border-radius: 8px;
   border: 1px solid ${({ $active }) => $active ? '#8B5CF6' : 'rgba(96,192,240,0.08)'};
   background: ${({ $active }) => $active ? 'rgba(139,92,246,0.1)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#8B5CF6' : 'rgba(224,236,244,0.5)'};
+  color: ${({ $active }) => $active ? '#8B5CF6' : 'rgba(224,236,244,0.85)'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   cursor: pointer;

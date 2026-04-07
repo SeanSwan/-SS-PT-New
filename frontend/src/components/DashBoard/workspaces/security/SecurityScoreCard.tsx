@@ -56,7 +56,7 @@ const CategoryRow: React.FC<{ cat: SecurityScoreCategory }> = ({ cat }) => {
         <div style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #E0ECF4)', marginBottom: 4 }}>
           {cat.name}
         </div>
-        <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'var(--text-secondary, rgba(224,236,244,0.6))' }}>
+        <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'var(--text-secondary, rgba(224,236,244,0.85))' }}>
           {cat.detail}
         </div>
       </div>
@@ -113,7 +113,7 @@ const SecurityScoreCard: React.FC = () => {
               }}>
                 {score.grade}
               </div>
-              <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'rgba(224,236,244,0.5)' }}>
+              <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'rgba(224,236,244,0.85)' }}>
                 {totalEarned}/{totalPossible} pts
               </div>
             </div>
@@ -148,7 +148,7 @@ const SecurityScoreCard: React.FC = () => {
               tickFormat={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
               style={{
                 axis: { stroke: 'rgba(96,192,240,0.15)' },
-                tickLabels: { fill: 'rgba(224,236,244,0.5)', fontSize: 9, fontFamily: 'Fira Code' },
+                tickLabels: { fill: 'rgba(224,236,244,0.85)', fontSize: 9, fontFamily: 'Fira Code' },
               }}
             />
             <VictoryAxis
@@ -156,7 +156,7 @@ const SecurityScoreCard: React.FC = () => {
               domain={[0, 100]}
               style={{
                 axis: { stroke: 'rgba(96,192,240,0.15)' },
-                tickLabels: { fill: 'rgba(224,236,244,0.5)', fontSize: 9, fontFamily: 'Fira Code' },
+                tickLabels: { fill: 'rgba(224,236,244,0.85)', fontSize: 9, fontFamily: 'Fira Code' },
                 grid: { stroke: 'rgba(96,192,240,0.06)' },
               }}
             />

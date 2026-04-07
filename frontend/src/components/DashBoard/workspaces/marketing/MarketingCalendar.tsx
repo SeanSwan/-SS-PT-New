@@ -108,7 +108,7 @@ const DayHeader = styled.div<{ $isToday: boolean }>`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: ${({ $isToday }) => $isToday ? '#8B5CF6' : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
+  color: ${({ $isToday }) => $isToday ? '#8B5CF6' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   margin-bottom: 4px;
   display: flex;
   justify-content: space-between;
@@ -160,7 +160,7 @@ const FilterChip = styled.button<{ $active: boolean; $color: string }>`
   border-radius: 6px;
   border: 1px solid ${({ $active, $color }) => $active ? $color : 'rgba(96,192,240,0.08)'};
   background: ${({ $active, $color }) => $active ? hexAlpha($color, 0.12) : 'transparent'};
-  color: ${({ $active, $color }) => $active ? $color : 'rgba(224,236,244,0.4)'};
+  color: ${({ $active, $color }) => $active ? $color : 'rgba(224,236,244,0.75)'};
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   cursor: pointer;

@@ -109,7 +109,7 @@ const Badge = styled.span<{ $variant: 'mf' | 'ss' | 'status' }>`
 const MetaLine = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted, rgba(224, 236, 244, 0.85));
   margin-top: 4px;
   display: flex;
   gap: 12px;
@@ -212,7 +212,7 @@ const ClientHeaderCard: React.FC<ClientHeaderProps> = ({ client, onboardingPct }
           {client.workoutCount || 0} workouts
         </StatPill>
         {!isMF && (
-          <StatPill $color={client.availableSessions ? '#C6A84B' : 'rgba(224,236,244,0.4)'}>
+          <StatPill $color={client.availableSessions ? '#C6A84B' : 'rgba(224,236,244,0.75)'}>
             <Target size={14} />
             {client.availableSessions || 0} sessions left
           </StatPill>

@@ -67,7 +67,7 @@ const StepDot = styled.div<{ $active: boolean; $done: boolean }>`
     $active ? 'rgba(139, 92, 246, 0.2)' :
     'rgba(96, 192, 240, 0.08)'};
   color: ${({ $active, $done }) =>
-    $done ? '#10B981' : $active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.4)'};
+    $done ? '#10B981' : $active ? '#8B5CF6' : 'rgba(224, 236, 244, 0.7)'};
   border: 2px solid ${({ $active, $done }) =>
     $done ? '#10B981' : $active ? '#8B5CF6' : 'transparent'};
 `;
@@ -75,7 +75,7 @@ const StepDot = styled.div<{ $active: boolean; $done: boolean }>`
 const StepLabel = styled.span<{ $active: boolean }>`
   font-size: 13px;
   font-family: 'Sora', sans-serif;
-  color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'rgba(224, 236, 244, 0.4)'};
+  color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'rgba(224, 236, 244, 0.7)'};
 `;
 
 const TopicCard = styled.button<{ $selected: boolean }>`
@@ -161,7 +161,7 @@ const DraftTitle = styled.div`
 const DraftMeta = styled.div`
   font-size: 11px;
   font-family: 'Fira Code', monospace;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   display: flex;
   align-items: center;
   gap: 8px;

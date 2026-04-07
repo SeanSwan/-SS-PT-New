@@ -89,7 +89,7 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   font-size: 14px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin: 0;
 `;
 
@@ -123,7 +123,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
     : 'transparent'};
   color: ${({ $active }) => $active
     ? 'var(--accent-secondary, #8B5CF6)'
-    : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
+    : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: ${({ $active }) => $active ? 600 : 500};
@@ -143,7 +143,7 @@ const LoadingFallback = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   font-family: 'Sora', sans-serif;
   font-size: 14px;
 `;

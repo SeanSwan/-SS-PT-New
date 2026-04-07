@@ -59,7 +59,7 @@ export const CardSubtitle = styled.p`
   font-family: 'Fira Code', monospace;
   font-size: 12px;
   margin: 2px 0 0;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
 `;
 
 // --- Severity Badge ------------------------------------------------------
@@ -199,7 +199,7 @@ export const DataTable = styled.table`
   th {
     font-family: 'Sora', sans-serif;
     font-weight: 600;
-    color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+    color: var(--text-secondary, rgba(224, 236, 244, 0.85));
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -228,7 +228,7 @@ export const PillTab = styled.button<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? 'rgba(96, 192, 240, 0.12)' : 'transparent'};
   color: ${({ $active }) =>
-    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
+    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -247,7 +247,7 @@ export const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   font-family: 'Sora', sans-serif;
   font-size: 14px;
   text-align: center;
@@ -283,7 +283,7 @@ export const MetricLabel = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;

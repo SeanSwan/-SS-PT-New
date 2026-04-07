@@ -82,7 +82,7 @@ const TrackBtn = styled.button<{ $tracked: boolean }>`
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: ${({ $tracked }) => $tracked ? CHART_COLORS.gildedFern : 'var(--text-muted-icon, rgba(224, 236, 244, 0.5))'};
+  color: ${({ $tracked }) => $tracked ? CHART_COLORS.gildedFern : 'var(--text-muted-icon, rgba(224, 236, 244, 0.85))'};
   transition: color 0.15s;
   min-width: 44px;
   min-height: 44px;

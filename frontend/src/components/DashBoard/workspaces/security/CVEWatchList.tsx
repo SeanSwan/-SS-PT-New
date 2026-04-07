@@ -137,7 +137,7 @@ const CVEWatchList: React.FC = () => {
                         <p style={{ fontFamily: 'Sora, sans-serif', fontSize: 13, color: 'var(--text-secondary, rgba(224,236,244,0.7))', margin: '0 0 8px' }}>
                           {cve.description}
                         </p>
-                        <div style={{ display: 'flex', gap: 8, fontSize: 11, fontFamily: 'Fira Code, monospace', color: 'rgba(224,236,244,0.4)' }}>
+                        <div style={{ display: 'flex', gap: 8, fontSize: 11, fontFamily: 'Fira Code, monospace', color: 'rgba(224,236,244,0.75)' }}>
                           <span>Published: {cve.publishedDate}</span>
                           {cve.references.length > 0 && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#60C0F0' }}>

@@ -98,7 +98,7 @@ const MetricRow = styled.div`
 const MetricLabel = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 11px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   min-width: 60px;
 `;
 
@@ -247,7 +247,7 @@ const CompetitorAnalysisWidget: React.FC = () => {
                 <ReviewStars>
                   <Star size={14} fill="#C6A84B" />
                   <MetricValue>{comp.reviewScore}</MetricValue>
-                  <span style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)' }}>({comp.reviewCount})</span>
+                  <span style={{ fontSize: 11, color: 'rgba(224,236,244,0.85)' }}>({comp.reviewCount})</span>
                 </ReviewStars>
               </MetricRow>
 
@@ -311,7 +311,7 @@ const CompetitorAnalysisWidget: React.FC = () => {
                         ).map(kw => <KwChip key={kw}>{kw}</KwChip>)}
                         {SWAN_STUDIOS.topKeywords.filter(kw =>
                           competitor.topKeywords.includes(kw)
-                        ).length === 0 && <span style={{ fontSize: 12, opacity: 0.5 }}>No overlap</span>}
+                        ).length === 0 && <span style={{ fontSize: 12, opacity: 0.85 }}>No overlap</span>}
                       </KeywordList>
                     </td>
                   </CompareRow>

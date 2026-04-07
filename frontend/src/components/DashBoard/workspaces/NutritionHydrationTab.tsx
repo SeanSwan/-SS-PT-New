@@ -188,7 +188,7 @@ const GlassBtn = styled.button<{ $filled: boolean; $goalMet: boolean }>`
     : 'var(--bg-surface, #1A1A24)'};
   color: ${({ $filled }) => $filled
     ? 'var(--accent-primary, #60C0F0)'
-    : 'var(--text-muted, rgba(224,236,244,0.4))'};
+    : 'var(--text-muted, rgba(224,236,244,0.75))'};
   cursor: pointer;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -238,7 +238,7 @@ const ResetBtn = styled.button`
   border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
   border-radius: 8px;
   background: transparent;
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: var(--text-muted, rgba(224,236,244,0.75));
   font-size: 0.8rem;
   cursor: pointer;
   transition: color 200ms, border-color 200ms;

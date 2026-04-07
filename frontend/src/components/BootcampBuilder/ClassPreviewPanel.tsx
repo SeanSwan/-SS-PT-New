@@ -69,7 +69,7 @@ const BoardLabel = styled.span<{ $board: 'main' | 'alternative' }>`
   margin-left: 6px;
   ${({ $board }) => $board === 'alternative'
     ? css`background: rgba(255, 107, 53, 0.15); color: #FF6B35;`
-    : css`background: rgba(96, 192, 240, 0.15); color: var(--accent-primary, #60c0f0);`
+    : css`background: rgba(96, 192, 240, 0.15); color: var(--text-primary, #E0ECF4);`
   }
 `;
 
@@ -137,7 +137,7 @@ const FlowInsightBar = styled.div`
   background: rgba(96, 192, 240, 0.06);
   border: 1px solid rgba(96, 192, 240, 0.15);
   font-size: 12px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.65));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
 `;
 
 const FlowMeter = styled.div<{ $score: number }>`

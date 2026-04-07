@@ -248,7 +248,7 @@ const TabBtn = styled(motion.button)<{ $active: boolean }>`
   border: none;
   border-bottom: 2px solid ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
   background: ${(p) => (p.$active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)' : 'transparent')};
-  color: ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-muted, rgba(224,236,244,0.5))')};
+  color: ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-muted, rgba(224,236,244,0.85))')};
   font-size: 13px;
   font-weight: ${(p) => (p.$active ? 600 : 500)};
   cursor: pointer;

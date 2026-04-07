@@ -30,17 +30,8 @@ const ALERT_TYPE_CONFIG: Record<AlertType, { icon: React.ReactNode; label: strin
   new_device: { icon: <Smartphone size={14} />, label: 'New Device' },
 };
 
-// --- Demo data -----------------------------------------------------------
-const DEMO_ALERTS: SecurityAlert[] = [
-  { id: '1', type: 'failed_login', severity: 'medium', title: 'Multiple failed login attempts', description: 'IP 192.168.1.45 attempted 5 failed logins for user admin@sswanstudios.com in 2 minutes.', timestamp: '2 minutes ago', sourceIp: '192.168.1.45', userId: 'admin', resolved: false },
-  { id: '2', type: 'suspicious_api', severity: 'high', title: 'SQL injection attempt blocked', description: 'Malicious payload detected in /api/users query parameter. Request rejected by WAF.', timestamp: '15 minutes ago', sourceIp: '10.0.0.23', resolved: true },
-  { id: '3', type: 'rate_limit', severity: 'low', title: 'Rate limit triggered on /api/auth/login', description: 'Client exceeded 100 requests/minute threshold. Temporary 429 response issued.', timestamp: '32 minutes ago', sourceIp: '203.0.113.50', resolved: true },
-  { id: '4', type: 'auth_failure', severity: 'high', title: 'JWT token forgery attempt', description: 'Invalid signature detected on authentication token. Token payload tampered with modified role claim.', timestamp: '1 hour ago', sourceIp: '198.51.100.12', resolved: true },
-  { id: '5', type: 'config_change', severity: 'medium', title: 'Environment variable modified', description: 'DATABASE_URL was updated via Render dashboard. Change logged for audit trail.', timestamp: '2 hours ago', userId: 'admin', resolved: true },
-  { id: '6', type: 'new_device', severity: 'low', title: 'New device login detected', description: 'Admin account accessed from new browser (Brave/Windows 11) in Los Angeles, CA.', timestamp: '3 hours ago', userId: 'admin', resolved: true },
-  { id: '7', type: 'failed_login', severity: 'medium', title: 'Brute force attempt detected', description: 'IP 172.16.0.99 attempted 12 failed logins across 3 different accounts.', timestamp: '4 hours ago', sourceIp: '172.16.0.99', resolved: false },
-  { id: '8', type: 'permission_escalation', severity: 'critical', title: 'Privilege escalation attempt', description: 'Client-tier user attempted to access /api/admin/users endpoint. Request denied.', timestamp: '5 hours ago', sourceIp: '192.0.2.100', userId: 'client_42', resolved: true },
-];
+// --- Live data (empty until real monitoring APIs are connected) ----------
+const LIVE_ALERTS: SecurityAlert[] = [];
 
 type FilterSeverity = 'all' | Severity;
 
@@ -49,13 +40,13 @@ const SecurityAlertsFeed: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<FilterSeverity>('all');
   const [showResolved, setShowResolved] = useState(true);
 
-  const filtered = DEMO_ALERTS
+  const filtered = LIVE_ALERTS
     .filter(a => severityFilter === 'all' || a.severity === severityFilter)
     .filter(a => showResolved || !a.resolved);
 
-  const unresolvedCount = DEMO_ALERTS.filter(a => !a.resolved).length;
-  const criticalCount = DEMO_ALERTS.filter(a => a.severity === 'critical').length;
-  const highCount = DEMO_ALERTS.filter(a => a.severity === 'high').length;
+  const unresolvedCount = LIVE_ALERTS.filter(a => !a.resolved).length;
+  const criticalCount = LIVE_ALERTS.filter(a => a.severity === 'critical').length;
+  const highCount = LIVE_ALERTS.filter(a => a.severity === 'high').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -87,7 +78,7 @@ const SecurityAlertsFeed: React.FC = () => {
             <MetricLabel>High</MetricLabel>
           </MetricBox>
           <MetricBox>
-            <MetricValue>{DEMO_ALERTS.length}</MetricValue>
+            <MetricValue>{LIVE_ALERTS.length}</MetricValue>
             <MetricLabel>Total (24h)</MetricLabel>
           </MetricBox>
         </MetricRow>
@@ -117,15 +108,17 @@ const SecurityAlertsFeed: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.length === 0 ? (
             <EmptyState>
-              <CheckCircle size={32} style={{ opacity: 0.4 }} />
-              No alerts matching current filters
+              <CheckCircle size={32} style={{ opacity: 0.6 }} />
+              {LIVE_ALERTS.length === 0
+                ? 'No security alerts yet. Real-time monitoring will display events here once connected.'
+                : 'No alerts matching current filters'}
             </EmptyState>
           ) : (
             filtered.map(alert => (
               <AlertCard key={alert.id} $severity={alert.severity}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-secondary, rgba(224,236,244,0.5))' }}>
+                    <span style={{ color: 'var(--text-secondary, rgba(224,236,244,0.85))' }}>
                       {ALERT_TYPE_CONFIG[alert.type].icon}
                     </span>
                     <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #E0ECF4)' }}>
@@ -135,10 +128,10 @@ const SecurityAlertsFeed: React.FC = () => {
                       <CheckCircle size={14} style={{ color: '#10B981', flexShrink: 0 }} />
                     )}
                   </div>
-                  <p style={{ fontFamily: 'Sora, sans-serif', fontSize: 13, color: 'var(--text-secondary, rgba(224,236,244,0.6))', margin: '0 0 6px' }}>
+                  <p style={{ fontFamily: 'Sora, sans-serif', fontSize: 13, color: 'var(--text-secondary, rgba(224,236,244,0.85))', margin: '0 0 6px' }}>
                     {alert.description}
                   </p>
-                  <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'Fira Code, monospace', color: 'rgba(224,236,244,0.4)' }}>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 11, fontFamily: 'Fira Code, monospace', color: 'rgba(224,236,244,0.75)' }}>
                     <span>{alert.timestamp}</span>
                     {alert.sourceIp && <span>IP: {alert.sourceIp}</span>}
                     {alert.userId && <span>User: {alert.userId}</span>}

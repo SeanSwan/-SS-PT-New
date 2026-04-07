@@ -102,7 +102,7 @@ const SelectionName = styled.div`
 
 const SelectionMeta = styled.div`
   font-size: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted, rgba(224, 236, 244, 0.85));
   font-family: 'Fira Code', monospace;
 `;
 
@@ -178,7 +178,7 @@ const SectionLabel = styled.div`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
 `;
 
 const ClientRow = styled.button<{ $active?: boolean }>`
@@ -215,7 +215,7 @@ const NewClientRow = styled(ClientRow)`
 const EmptyMsg = styled.div`
   padding: 24px 14px;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-family: 'Sora', sans-serif;
   font-size: 13px;
 `;

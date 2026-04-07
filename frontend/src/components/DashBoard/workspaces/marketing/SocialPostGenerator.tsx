@@ -48,7 +48,7 @@ const PlatformBtn = styled.button<{ $active: boolean; $color: string }>`
   border-radius: 10px;
   border: 2px solid ${({ $active, $color }) => $active ? $color : 'transparent'};
   background: ${({ $active, $color }) => $active ? hexAlpha($color, 0.1) : 'var(--bg-elevated, #141419)'};
-  color: ${({ $active, $color }) => $active ? $color : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
+  color: ${({ $active, $color }) => $active ? $color : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -86,7 +86,7 @@ const CharCount = styled.div<{ $over: boolean }>`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
   margin-top: 4px;
-  color: ${({ $over }) => $over ? '#EF4444' : 'var(--text-secondary, rgba(224, 236, 244, 0.4))'};
+  color: ${({ $over }) => $over ? '#EF4444' : 'var(--text-secondary, rgba(224, 236, 244, 0.75))'};
 `;
 
 const HashtagSection = styled.div`
@@ -102,7 +102,7 @@ const CatLabel = styled.span`
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin-right: 8px;
 `;
 
@@ -117,7 +117,7 @@ const HashtagChip = styled.button<{ $selected: boolean }>`
   background: ${({ $selected }) =>
     $selected ? 'rgba(96, 192, 240, 0.12)' : 'transparent'};
   color: ${({ $selected }) =>
-    $selected ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.5))'};
+    $selected ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   font-family: 'Fira Code', monospace;
   font-size: 12px;
   cursor: pointer;
@@ -225,7 +225,7 @@ const RecentCaption = styled.div`
 const RecentMeta = styled.div`
   font-size: 11px;
   font-family: 'Fira Code', monospace;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   display: flex;
   align-items: center;
   gap: 8px;

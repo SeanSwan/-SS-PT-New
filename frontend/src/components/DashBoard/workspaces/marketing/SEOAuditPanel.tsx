@@ -67,7 +67,7 @@ const ScoreCard = styled(MarketingCard)`
 const ScoreLabel = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 13px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   text-align: center;
 `;
 
@@ -126,13 +126,13 @@ const IssueBadge = styled.span<{ $type: SEOIssueType }>`
 `;
 
 const PageCell = styled.td`
-  && { font-size: 12px; opacity: 0.6; }
+  && { font-size: 12px; opacity: 0.85; }
 `;
 
 const LastAudit = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
   margin-top: 4px;
 `;
 
@@ -167,7 +167,7 @@ const ScoreGauge: React.FC<{ score: number }> = ({ score }) => {
         x={80}
         y={100}
         text="/ 100"
-        style={{ fontSize: 12, fill: 'rgba(224,236,244,0.5)', fontFamily: 'Fira Code' }}
+        style={{ fontSize: 12, fill: 'rgba(224,236,244,0.85)', fontFamily: 'Fira Code' }}
       />
     </svg>
   );

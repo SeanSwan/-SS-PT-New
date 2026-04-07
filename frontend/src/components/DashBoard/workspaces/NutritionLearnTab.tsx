@@ -196,11 +196,11 @@ const ModTitle = styled.div`
 `;
 const ModSub = styled.div`
   font-size: 0.8rem; margin-top: 2px;
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: var(--text-muted, rgba(224,236,244,0.85));
 `;
 
 const Chevron = styled.div<{ $open: boolean }>`
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: var(--text-muted, rgba(224,236,244,0.75));
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
   transform: rotate(${({ $open }) => $open ? '180deg' : '0'});
 `;
