@@ -319,9 +319,11 @@ export const setupRoutes = async (app) => {
   app.use('/api/automation', automationRoutes);
 
   // ===================== FITNESS & WELLNESS ROUTES =====================
-  app.use('/api/workout', workoutRoutes);
+  // IMPORTANT: /api/workout/plans MUST mount BEFORE /api/workout to prevent route shadowing
+  // (Express matches broader mounts first — /api/workout would catch /plans requests)
   app.use('/api/workout-plans', workoutPlanRoutes);
   app.use('/api/workout/plans', workoutPlanRoutes); // Legacy mount point for backward compat
+  app.use('/api/workout', workoutRoutes);
   app.use('/api/workout/sessions', workoutSessionRoutes);
   
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================

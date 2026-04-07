@@ -356,6 +356,117 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
   }
 });
 
+// ==================== UPCOMING & HISTORY (MUST BE BEFORE /:id ROUTE) ====================
+
+/**
+ * GET /api/sessions/upcoming/:userId
+ * Get upcoming sessions for a user (sessions with sessionDate > now)
+ * Auth: user can only access own sessions; trainers can access their clients; admins can access all
+ */
+router.get("/upcoming/:userId", protect, async (req, res) => {
+  try {
+    const targetUserId = Number(req.params.userId);
+    if (Number.isNaN(targetUserId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    // IDOR protection:
+    // - Admin: full access to any user's sessions
+    // - Trainer: only sessions where THEY are the trainer for the target user
+    // - Client: only their own sessions
+    const requesterId = req.user.id;
+    const role = req.user.role;
+    if (role !== 'admin' && role !== 'trainer' && requesterId !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view these sessions' });
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 10, 50);
+    const now = new Date();
+    const { Op } = Session.sequelize.Sequelize;
+
+    // Build ownership-scoped where clause
+    const ownershipFilter = role === 'admin'
+      ? { [Op.or]: [{ userId: targetUserId }, { trainerId: targetUserId }] }
+      : role === 'trainer'
+        ? { userId: targetUserId, trainerId: requesterId } // Trainer only sees their own clients
+        : { [Op.or]: [{ userId: targetUserId }, { trainerId: targetUserId }] }; // Own sessions
+
+    const sessions = await Session.findAll({
+      where: {
+        ...ownershipFilter,
+        sessionDate: { [Op.gt]: now },
+        status: { [Op.notIn]: ['cancelled', 'blocked'] }
+      },
+      order: [['sessionDate', 'ASC']],
+      limit
+    });
+
+    // Return raw array to match frontend caller expectations (MyClientsView, sessionService)
+    return res.status(200).json(sessions);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/upcoming/:userId:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching upcoming sessions',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/history/:userId
+ * Get past sessions for a user (sessions with sessionDate <= now)
+ * Auth: user can only access own sessions; trainers see only their clients; admins can access all
+ */
+router.get("/history/:userId", protect, async (req, res) => {
+  try {
+    const targetUserId = Number(req.params.userId);
+    if (Number.isNaN(targetUserId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    // IDOR protection:
+    // - Admin: full access to any user's sessions
+    // - Trainer: only sessions where THEY are the trainer for the target user
+    // - Client: only their own sessions
+    const requesterId = req.user.id;
+    const role = req.user.role;
+    if (role !== 'admin' && role !== 'trainer' && requesterId !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view these sessions' });
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 10, 50);
+    const now = new Date();
+    const { Op } = Session.sequelize.Sequelize;
+
+    // Build ownership-scoped where clause
+    const ownershipFilter = role === 'admin'
+      ? { [Op.or]: [{ userId: targetUserId }, { trainerId: targetUserId }] }
+      : role === 'trainer'
+        ? { userId: targetUserId, trainerId: requesterId } // Trainer only sees their own clients
+        : { [Op.or]: [{ userId: targetUserId }, { trainerId: targetUserId }] }; // Own sessions
+
+    const sessions = await Session.findAll({
+      where: {
+        ...ownershipFilter,
+        sessionDate: { [Op.lte]: now }
+      },
+      order: [['sessionDate', 'DESC']],
+      limit
+    });
+
+    // Return raw array to match frontend caller expectations (MyClientsView, sessionService)
+    return res.status(200).json(sessions);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/history/:userId:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching session history',
+      error: error.message
+    });
+  }
+});
+
 /**
  * GET /api/sessions/:id
  * Get a single session by ID with role-based access control

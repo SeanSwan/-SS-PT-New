@@ -103,6 +103,7 @@ export interface WorkoutStatistics {
 
 export interface WorkoutPlanDayExercise {
   exerciseId: string;
+  exerciseName?: string;
   orderInWorkout?: number;
   setScheme?: string;
   repGoal?: string;

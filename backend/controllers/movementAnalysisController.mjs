@@ -28,6 +28,11 @@ export const createMovementAnalysis = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Full name is required' });
     }
 
+    // Normalize source values from different frontend surfaces
+    const VALID_SOURCES = ['orientation', 'admin_dashboard', 'in_session'];
+    const SOURCE_MAP = { trainer_assessment: 'admin_dashboard' };
+    const normalizedSource = SOURCE_MAP[source] || (VALID_SOURCES.includes(source) ? source : 'admin_dashboard');
+
     // Calculate scores if OHSA data provided
     let nasmAssessmentScore = null;
     let correctiveExerciseStrategy = null;
@@ -53,7 +58,7 @@ export const createMovementAnalysis = async (req, res) => {
       dateOfBirth: dateOfBirth || null,
       address: address || null,
       status: status || 'draft',
-      source: source || 'admin_dashboard',
+      source: normalizedSource,
       conductedBy: req.user.id,
       assessmentDate: new Date(),
       completedAt: isCompleted ? new Date() : null,

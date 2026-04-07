@@ -284,12 +284,12 @@ router.get('/recommendations', protect, workoutController.getExerciseRecommendat
 router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);
 
 // --- Plan Routes ---
+// NOTE: CRUD operations (GET, POST, PUT, DELETE /plans) are now handled exclusively
+// by workoutPlanRoutes.mjs mounted at /api/workout/plans and /api/workout-plans.
+// Only /plans/:planId/generate remains here as it has no equivalent in workoutPlanRoutes.
+// Duplicate CRUD removed 2026-04-06 per Opus-Codex consensus to prevent route shadowing.
 
-/**
- * @route GET /api/workout/plans
- * @desc Get all workout plans for the current user
- * @access Private
- */
+/* REMOVED — now served by workoutPlanRoutes.mjs
 router.get('/plans', protect, async (req, res) => {
   try {
     const models = getAllModels();
@@ -326,39 +326,18 @@ router.get('/plans', protect, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch plans' });
   }
 });
+END REMOVED */
 
-/**
- * @route GET /api/workout/plans/:planId
- * @desc Get a specific workout plan
- * @access Private
- */
-router.get('/plans/:planId', protect, workoutController.getWorkoutPlanById);
-
-/**
- * @route POST /api/workout/plans
- * @desc Create a new workout plan
- * @access Private (Admin/Trainer only)
- */
-router.post('/plans', protect, authorize(['admin', 'trainer']), workoutController.createWorkoutPlan);
-
-/**
- * @route PUT /api/workout/plans/:planId
- * @desc Update a workout plan
- * @access Private
- */
-router.put('/plans/:planId', protect, workoutController.updateWorkoutPlan);
-
-/**
- * @route DELETE /api/workout/plans/:planId
- * @desc Delete a workout plan
- * @access Private
- */
-router.delete('/plans/:planId', protect, workoutController.deleteWorkoutPlan);
+// REMOVED: GET /plans/:planId — now served by workoutPlanRoutes.mjs
+// REMOVED: POST /plans — now served by workoutPlanRoutes.mjs
+// REMOVED: PUT /plans/:planId — now served by workoutPlanRoutes.mjs
+// REMOVED: DELETE /plans/:planId — now served by workoutPlanRoutes.mjs
 
 /**
  * @route POST /api/workout/plans/:planId/generate
  * @desc Generate workout sessions from a plan
  * @access Private
+ * NOTE: Kept here — workoutPlanRoutes.mjs does not have an equivalent endpoint yet
  */
 router.post('/plans/:planId/generate', protect, workoutController.generateWorkoutSessions);
 

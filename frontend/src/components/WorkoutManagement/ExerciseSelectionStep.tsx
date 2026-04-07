@@ -125,7 +125,7 @@ const ExerciseSelectionStep: React.FC<ExerciseSelectionStepProps> = ({
                       {day.exercises.map((exercise, exIndex) => (
                         <tr key={exIndex}>
                           <StyledTd>{exercise.orderInWorkout}</StyledTd>
-                          <StyledTd>{exercise.exerciseId}</StyledTd>
+                          <StyledTd title={exercise.exerciseId}>{exercise.exerciseName || exercise.exerciseId}</StyledTd>
                           <StyledTd>
                             <CompactInput
                               type="text"

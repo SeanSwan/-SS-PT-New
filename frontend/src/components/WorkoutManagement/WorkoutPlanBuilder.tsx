@@ -229,6 +229,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     const newDays = [...workoutDays];
     const exerciseToAdd: WorkoutPlanDayExercise = {
       exerciseId: exercise.id,
+      exerciseName: exercise.name || exercise.id,
       orderInWorkout: (newDays[dayIndex].exercises?.length || 0) + 1,
       setScheme: '3x10',
       repGoal: '10',

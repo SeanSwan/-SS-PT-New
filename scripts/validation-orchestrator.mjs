@@ -2,7 +2,7 @@
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║         SwanStudios 14-Brain Recursive Consensus System         ║
+ * ║         SwanStudios 15-Brain Recursive Consensus System         ║
  * ║           OpenRouter + Google GenAI + Recursive Debates          ║
  * ║                                                                  ║
  * ║  Phase 1 — 9 parallel analysts (OpenRouter):                      ║
@@ -65,14 +65,17 @@ const MODELS = {
   gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — latest Flash lite, strong at code review
   deepseekV3:     'deepseek/deepseek-v3.2',                // ~$0.26/$0.38 per M — user research / personas
   step35Flash:    'stepfun/step-3.5-flash:free',           // FREE — 256K ctx, 74.4% SWE-bench, security specialist
-  minimaxM21:     'minimax/minimax-m2.1',                  // FREE
+  minimaxM21:     'minimax/minimax-m2.5:free',              // FREE — upgraded from M2.1 (2026-04-06 model audit)
   minimaxM25Free: 'minimax/minimax-m2.7',                   // $0.30/$1.20 per M — replaces M2.5:free (data policy blocks)
   nemotron3Super: 'nvidia/nemotron-3-super-120b-a12b:free', // FREE — 120B MoE, security + data safety specialist
-  qwen36Plus:     'qwen/qwen3.6-plus-preview:free',        // FREE — 1M context, code architecture specialist
+  qwen36Plus:     'qwen/qwen3.6-plus:free',                 // FREE — 1M context, code architecture specialist (graduated from preview)
   // ── PAID models (clearly marked) ──
   claudeSonnet46: 'anthropic/claude-sonnet-4.6',            // $3/$15 per M tokens — premium code quality + data safety
+  trinityLarge:   'arcee-ai/trinity-large-preview:free',    // FREE — 400B MoE, 13B active, 131K ctx (added 2026-04-06 model audit)
+  // ── PAID models (clearly marked) ──
+  // claudeSonnet46 is above
   // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
-  mercury2:       'inception/mercury-2-small',             // $0.25/$0.75 per M — fastest reasoning, escalation only
+  mercury2:       'z-ai/glm-4.7-flash-20260119',          // $0.06/$0.40 per M — agentic-coding optimized, replaces Mercury 2 (4x cheaper, 2026-04-06 audit)
   minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — #3 overall, CRITICAL escalation only
   // ── Google GenAI (direct API, not via OpenRouter) ──
   gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Phase 2C UX debate
@@ -502,7 +505,7 @@ CODE TO REVIEW:
 ${codeBundle}`,
     },
 
-    // ── NEW: 3 additional brains (14-Brain upgrade) ──
+    // ── NEW: 3 additional brains (15-Brain upgrade) ──
 
     {
       name: 'Security II (Nemotron)',
@@ -568,6 +571,29 @@ For each bug found, provide:
 - **Fix:** Specific code change
 
 Output as structured markdown. Find what others miss.
+
+CODE TO REVIEW:
+${codeBundle}`,
+    },
+
+    // ── 15th Brain: Trinity Large (added 2026-04-06 model audit) ──
+    {
+      name: 'Full-Stack Integration Review (Trinity)',
+      model: MODELS.trinityLarge,
+      prompt: `You are Arcee Trinity Large — a 400B Mixture-of-Experts model with 13B active parameters, specialized in full-stack integration analysis. ${ctx}
+
+Perform a CROSS-CUTTING integration review that spans frontend and backend together:
+
+1. **API contract alignment** — do frontend fetch calls match backend route signatures, response shapes, and error codes exactly?
+2. **Authentication flow integrity** — trace the full auth lifecycle: login → token → protected route → token refresh → logout. Any gaps?
+3. **Data flow completeness** — for each feature, does data flow correctly from UI input → API call → DB write → response → UI update?
+4. **Error propagation** — when the backend throws an error, does the frontend handle it gracefully? Any swallowed errors or generic "something went wrong"?
+5. **Environment variable alignment** — are all VITE_* vars referenced in frontend actually set? Are all backend env vars present?
+6. **Model/migration consistency** — do Sequelize model definitions match what the database actually has? Any missing columns or wrong types?
+7. **Import chain validation** — any imports referencing files that don't exist, or circular dependencies between frontend and shared types?
+
+Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
+This is the INTEGRATION layer — find what single-domain reviewers miss.
 
 CODE TO REVIEW:
 ${codeBundle}`,
@@ -1170,6 +1196,30 @@ Output as structured markdown. This is the most important brain in the planning 
 PLAN TO REVIEW:
 ${planContent}`,
     },
+
+    // ── 15th Brain: Trinity Large — Full-Stack Integration (added 2026-04-06 model audit) ──
+    {
+      name: 'Full-Stack Integration Analysis (Trinity)',
+      model: MODELS.trinityLarge,
+      prompt: `You are Arcee Trinity Large — a 400B Mixture-of-Experts model, specialized in cross-domain integration analysis. ${ctx}
+
+Review this plan for INTEGRATION GAPS that single-domain specialists miss:
+
+1. **Frontend-Backend contract alignment** — Do the planned UI components call APIs that actually exist? Any missing endpoints?
+2. **Data model completeness** — Does the plan account for all necessary database columns, associations, and migrations?
+3. **Authentication & authorization gaps** — Are all new endpoints properly gated? Do role checks match the plan's access requirements?
+4. **Environment variable checklist** — List every env var the plan requires (VITE_*, backend). Are any missing from deployment config?
+5. **Error boundary coverage** — Does the plan specify error handling for every failure point (API errors, validation, timeout, auth expiry)?
+6. **Mobile-Desktop parity** — Any features that work on desktop but are unspecified for mobile, or vice versa?
+7. **Deployment sequence risks** — Must backend deploy before frontend? Any breaking changes that need coordinated deploys?
+8. **Testing coverage gaps** — What integration tests are missing? What manual QA steps would catch issues the plan doesn't specify?
+
+Rate each gap: CRITICAL / HIGH / MEDIUM / LOW
+Focus on the SEAMS between systems — that's where bugs hide.
+
+PLAN TO REVIEW:
+${planContent}`,
+    },
   ];
 }
 
@@ -1623,8 +1673,8 @@ ${extractFindings(results, 'HIGH')}
 
 ---
 
-*SwanStudios 14-Brain Recursive Consensus System v14.0*
-*Phase 1: 12 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.1 + MiniMax M2.7 + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude)*
+*SwanStudios 15-Brain Recursive Consensus System v14.0*
+*Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Step 3.5 Flash + Gemini 3 Flash + Gemini 3.1 Flash + DeepSeek V3.2 + MiniMax M2.5 + MiniMax M2.7 + Nemotron 3 Super + Qwen 3.6 Plus + Step Bug Hunter II + Data Safety (Claude) + Trinity Large 400B*
 *Phase 2: 3 Specialty Debates — Security (Step ↔ Nemotron) + Code Quality (Claude ↔ Qwen) + UX/UI (Gemini 3.1 Pro ↔ M2.5:free)*
 *Phase 3: Smart Escalation — Mercury 2 + MiniMax M2.7 (CRITICAL only)*
 `;
@@ -1664,13 +1714,13 @@ async function main() {
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios 14-Brain Recursive Consensus System      ║');
+  console.log('  ║    SwanStudios 15-Brain Recursive Consensus System      ║');
   const subtitle = hasGemini31
     ? `${brainCount}-Brain — Specialty Debates + Smart Escalation`
-    : `12-Brain — Phase 1 only (add GEMINI_API_KEY for 14-Brain)`;
+    : `13-Brain — Phase 1 only (add GEMINI_API_KEY for 15-Brain)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Phase 1: 12 Parallel Validators (OpenRouter)         ║');
+  console.log('  ║    Phase 1: 13 Parallel Validators (OpenRouter)         ║');
   console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
   console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · DeepSeek V3.2  ║');
   console.log('  ║    MiniMax M2.1 · MiniMax M2.7 · Nemotron 3     ║');
@@ -1892,7 +1942,7 @@ async function main() {
 
     const planContent = readFileSync(docPath, 'utf-8');
     console.log('  ╔══════════════════════════════════════════════════════════╗');
-    console.log('  ║         14-Brain PLANNING MODE (with Web Research)       ║');
+    console.log('  ║         15-Brain PLANNING MODE (with Web Research)       ║');
     console.log('  ║    Feature Plan Analysis & Design Consensus              ║');
     console.log('  ║    3 brains use Google Search Grounding (FREE)           ║');
     console.log('  ╚══════════════════════════════════════════════════════════╝');
@@ -2153,7 +2203,7 @@ async function main() {
 
     console.log('');
     console.log('  ════════════════════════════════════════════════════════');
-    console.log(`  14-Brain PLANNING MODE (with Web Research) — Complete`);
+    console.log(`  15-Brain PLANNING MODE (with Web Research) — Complete`);
     console.log(`  Plan:       ${opts.document}`);
     const groundedSummary = results.filter(r => r.groundingMeta?.sources?.length);
     if (groundedSummary.length > 0) {
@@ -2488,7 +2538,7 @@ async function main() {
 
   const totalValidators = phase1Tracks.length + debateResults.length;
   console.log('  ════════════════════════════════════════════════════════');
-  console.log(`  14-Brain Recursive Consensus System — Complete`);
+  console.log(`  15-Brain Recursive Consensus System — Complete`);
   console.log(`  AI Village Output:`);
   console.log(`    Latest:     ${outputPaths.latestDir}/`);
   console.log(`    Summary:    ${outputPaths.summary}`);
@@ -2587,7 +2637,7 @@ ${r.text}
 
 ---
 
-*Part of SwanStudios 14-Brain Recursive Consensus System*
+*Part of SwanStudios 15-Brain Recursive Consensus System*
 `;
     writeFileSync(join(latestDir, `${slug}.md`), content, 'utf-8');
     writeFileSync(join(archiveDir, `${slug}.md`), content, 'utf-8');
@@ -2682,7 +2732,7 @@ Each track has its own file — read only the ones relevant to your task:
 | \`design-recommendations.md\` | Actionable design fixes from Phase 2C consensus |
 | \`security-consensus.md\` | Security consensus from Phase 2A debate |
 
-*SwanStudios 14-Brain Recursive Consensus System v14.0*
+*SwanStudios 15-Brain Recursive Consensus System v14.0*
 `;
 }
 

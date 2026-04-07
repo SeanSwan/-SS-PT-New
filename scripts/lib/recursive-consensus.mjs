@@ -16,7 +16,7 @@
  *   Or MAX_ROUNDS hit → final authority model makes the call
  */
 
-const MAX_ROUNDS = 20; // Increased to 20 — Sean wants the deepest possible debates for final validation
+const MAX_ROUNDS = 25; // Increased to 25 — deepest possible debates for comprehensive site refactor validation
 
 /**
  * @typedef {Object} DebateConfig

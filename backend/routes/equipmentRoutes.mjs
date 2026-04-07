@@ -479,6 +479,15 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'Photo is required' });
     }
 
+    // Graceful check: is AI scanning configured? (before rate limiter to avoid burning quota)
+    if (!process.env.GOOGLE_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI scanning is not configured. Please add equipment manually or contact admin.',
+        configurable: true,
+      });
+    }
+
     // Rate limit: 10 scans/hour per trainer
     if (!checkScanRate(req.user.id)) {
       return res.status(429).json({

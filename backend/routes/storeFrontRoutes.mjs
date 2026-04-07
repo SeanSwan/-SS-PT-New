@@ -141,7 +141,11 @@ router.get('/', async (req, res) => {
 
     const transformedItems = items.map(mapStorefrontItem);
 
-    logger.info(`Retrieved ${items.length} storefront items`);
+    if (items.length === 0) {
+      logger.warn('Storefront has 0 active items — frontend will show fallback data. Seed StorefrontItem table to fix.');
+    } else {
+      logger.info(`Retrieved ${items.length} storefront items`);
+    }
 
     const packagesWithSpecials = transformedItems.map((pkg) => {
       const applicableSpecial = activeSpecials.find(

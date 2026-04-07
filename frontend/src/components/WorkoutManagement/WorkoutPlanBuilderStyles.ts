@@ -138,6 +138,14 @@ export const Surface = styled.div`
   padding: 24px;
   backdrop-filter: blur(12px);
   box-shadow: ${TOKENS.shadow};
+
+  @media (max-width: 430px) {
+    padding: 14px;
+  }
+  @media (max-width: 375px) {
+    padding: 10px;
+    border-radius: 8px;
+  }
 `;
 
 export const CardPanel = styled.div`
@@ -304,10 +312,10 @@ export const StepCircle = styled.div<{ $active?: boolean; $completed?: boolean }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   font-size: 0.875rem;
   font-weight: 700;
@@ -498,12 +506,22 @@ export const StyledTd = styled.td`
   color: ${TOKENS.text};
   border-bottom: 1px solid rgba(148,163,184,0.08);
   vertical-align: middle;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: 430px) {
+    padding: 8px 8px;
+    font-size: 0.813rem;
+    max-width: 120px;
+  }
 `;
 
 export const CompactInput = styled.input`
   width: 100%;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   font-size: 0.875rem;
   color: ${TOKENS.text};
   background: ${TOKENS.surface};

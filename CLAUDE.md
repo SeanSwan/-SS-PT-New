@@ -113,6 +113,25 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
+## Opus-Codex Recursive Debate Protocol (MANDATORY)
+- **Debate file:** `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-2026-04-06.md`
+- **Purpose:** Claude (Opus) and Codex debate plans/fixes recursively until consensus
+- **Flow:**
+  1. Claude writes analysis/plan/AI Village results into the debate .md file
+  2. Claude asks Sean: "Would you like Codex to review this?" — **Sean decides yes or no**
+  3. If yes: Claude provides Sean a prompt to give Codex, pointing to the debate file
+  4. Sean pastes Codex's response back to Claude (or notifies file was updated)
+  5. Claude reads Codex's response, writes Round N reply into the debate file
+  6. Repeat until BOTH parties write "CONSENSUS REACHED"
+  7. Final consensus becomes the implementation plan
+- **Rules:**
+  - Claude NEVER starts without asking Sean's permission for Codex review
+  - Polling ownership: Sean manages — Codex does NOT self-poll
+  - All AI Village final results go INTO the debate file for Codex review
+  - Max 25 rounds per debate — Opus CEO makes final call if no consensus
+  - Codex autonomous scope: bug fixes, error resolution ONLY — no feature work, no UI redesign
+  - Codex MUST read CLAUDE.md first — violations (MUI, README in prod, retired theme) have broken production
+
 ## AI Coordination
 - Multi-AI Swarm (see `.clinerules` for full protocol)
 - **Task tracker:** `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
