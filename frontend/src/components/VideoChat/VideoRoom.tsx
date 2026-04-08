@@ -12,10 +12,13 @@ import styled from 'styled-components';
 import {
   Mic, MicOff, Camera, CameraOff, PhoneOff, Maximize, Minimize,
   MessageSquare, FileText, Shield, CameraIcon, Sparkles,
+  Activity, Watch,
 } from 'lucide-react';
 import FreezeFrameAnnotator from './FreezeFrameAnnotator';
 import AssessmentNotesPanel from './AssessmentNotesPanel';
 import MicroWinOverlay, { type MicroWinType } from './MicroWinOverlay';
+import ROMTrackingPanel from './ROMTrackingPanel';
+import WearableDataPanel from './WearableDataPanel';
 
 const RoomWrapper = styled.div<{ $fullscreen: boolean }>`
   ${({ $fullscreen }) => $fullscreen ? `
@@ -232,6 +235,11 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
   const [annotations, setAnnotations] = useState<string[]>([]);
   const [activeMicroWin, setActiveMicroWin] = useState<MicroWinType | null>(null);
 
+  // Phase 3: ROM tracking, wearable data
+  const [showROM, setShowROM] = useState(false);
+  const [recoveryScore, setRecoveryScore] = useState<number | null>(null);
+  const [showWearable, setShowWearable] = useState(false);
+
   // Timer
   React.useEffect(() => {
     const interval = setInterval(() => setElapsedSec(s => s + 1), 1000);
@@ -389,6 +397,12 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
             <ControlBtn onClick={() => setShowNotes(!showNotes)} title="Session Notes">
               <MessageSquare size={22} />
             </ControlBtn>
+            <ControlBtn onClick={() => setShowROM(!showROM)} title="ROM Tracking">
+              <Activity size={22} />
+            </ControlBtn>
+            <ControlBtn onClick={() => setShowWearable(!showWearable)} title="Wearable Data">
+              <Watch size={22} />
+            </ControlBtn>
             <div style={{ position: 'relative' }}>
               <ControlBtn onClick={() => setShowMicroWinMenu(!showMicroWinMenu)} title="Award Micro-Win">
                 <Sparkles size={22} />
@@ -451,6 +465,26 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
           onNotesChange={setTrainerNotes}
           onSaveNotes={handleSaveNotes}
           annotations={annotations}
+        />
+      )}
+
+      {/* Phase 3: ROM Tracking Panel */}
+      {isTrainer && (
+        <ROMTrackingPanel
+          open={showROM}
+          onClose={() => setShowROM(false)}
+          videoSessionId={videoSessionId}
+          recoveryScore={recoveryScore}
+          onScoreUpdate={setRecoveryScore}
+        />
+      )}
+
+      {/* Phase 3: Wearable Data Panel */}
+      {isTrainer && (
+        <WearableDataPanel
+          open={showWearable}
+          onClose={() => setShowWearable(false)}
+          videoSessionId={videoSessionId}
         />
       )}
 

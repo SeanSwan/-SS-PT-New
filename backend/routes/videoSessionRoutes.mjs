@@ -288,4 +288,253 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ── Phase 3: Participant ownership check ───────────────────────
+async function getSessionIfParticipant(sessionId, userId, userRole) {
+  const { default: VideoSession } = await import('../models/VideoSession.mjs');
+  const session = await VideoSession.findByPk(sessionId);
+  if (!session) return { session: null, error: 'Session not found', status: 404 };
+  if (userId !== session.trainerId && userId !== session.clientId && userRole !== 'admin') {
+    return { session: null, error: 'Not authorized — you are not a participant of this session', status: 403 };
+  }
+  return { session, error: null, status: 200 };
+}
+
+// ── Phase 3: ROM Tracking ──────────────────────────────────────
+// POST /api/video-sessions/:id/rom
+router.post('/:id/rom', protect, async (req, res) => {
+  const { measurements } = req.body;
+  if (!Array.isArray(measurements) || measurements.length === 0) {
+    return res.status(400).json({ success: false, message: 'measurements array required' });
+  }
+
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    // Append to existing ROM data
+    const existing = session.romData || [];
+    const stamped = measurements.map(m => ({
+      joint: m.joint,
+      angle: m.angle,
+      side: m.side || 'bilateral',
+      timestamp: m.timestamp || new Date().toISOString(),
+    }));
+    const updated = [...existing, ...stamped];
+
+    // Compute recovery/mobility score from ROM data
+    const recoveryScore = computeRecoveryScore(updated);
+
+    await session.update({ romData: updated, recoveryScore });
+
+    logger.info(`[AUDIT] ROM data added to session ${req.params.id}: ${stamped.length} measurements, score=${recoveryScore}`);
+    res.json({ success: true, data: { romData: updated, recoveryScore } });
+  } catch (err) {
+    logger.error('ROM tracking error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to save ROM data' });
+  }
+});
+
+// GET /api/video-sessions/:id/rom
+router.get('/:id/rom', protect, async (req, res) => {
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    res.json({ success: true, data: { romData: session.romData || [], recoveryScore: session.recoveryScore } });
+  } catch (err) {
+    logger.error('ROM fetch error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch ROM data' });
+  }
+});
+
+// ── Phase 3: Wearable Data Integration ─────────────────────────
+// POST /api/video-sessions/:id/wearable
+router.post('/:id/wearable', protect, async (req, res) => {
+  const { heartRate, steps, sleepHours, hrv, source } = req.body;
+
+  const VALID_SOURCES = ['healthkit', 'google_fit'];
+  if (!source || !VALID_SOURCES.includes(source)) {
+    return res.status(400).json({ success: false, message: `source must be one of: ${VALID_SOURCES.join(', ')}` });
+  }
+
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    const wearableData = {
+      heartRate: heartRate || null,
+      steps: steps || null,
+      sleepHours: sleepHours || null,
+      hrv: hrv || null,
+      source,
+      syncedAt: new Date().toISOString(),
+    };
+
+    await session.update({ wearableData });
+
+    logger.info(`[AUDIT] Wearable data synced to session ${req.params.id} from ${source}`);
+    res.json({ success: true, data: { wearableData } });
+  } catch (err) {
+    logger.error('Wearable sync error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to sync wearable data' });
+  }
+});
+
+// GET /api/video-sessions/:id/wearable
+router.get('/:id/wearable', protect, async (req, res) => {
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    res.json({ success: true, data: { wearableData: session.wearableData } });
+  } catch (err) {
+    logger.error('Wearable fetch error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch wearable data' });
+  }
+});
+
+// ── Phase 3: Transcription (Deepgram) ──────────────────────────
+// POST /api/video-sessions/:id/transcribe
+router.post('/:id/transcribe', protect, authorize(['admin', 'trainer']), async (req, res) => {
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    if (!session.recordingUrl) {
+      return res.status(400).json({ success: false, message: 'No recording available for transcription' });
+    }
+
+    if (session.transcriptionStatus === 'processing') {
+      return res.status(409).json({ success: false, message: 'Transcription already in progress' });
+    }
+
+    await session.update({ transcriptionStatus: 'processing' });
+
+    // Deepgram transcription (async — runs in background)
+    transcribeWithDeepgram(session.id, session.recordingUrl).catch(err => {
+      logger.error(`Transcription failed for session ${session.id}:`, err.message);
+    });
+
+    logger.info(`[AUDIT] Transcription started for session ${req.params.id}`);
+    res.json({ success: true, data: { transcriptionStatus: 'processing' } });
+  } catch (err) {
+    logger.error('Transcription start error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to start transcription' });
+  }
+});
+
+// GET /api/video-sessions/:id/transcription
+router.get('/:id/transcription', protect, async (req, res) => {
+  try {
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    res.json({
+      success: true,
+      data: {
+        transcription: session.transcription,
+        status: session.transcriptionStatus,
+      },
+    });
+  } catch (err) {
+    logger.error('Transcription fetch error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch transcription' });
+  }
+});
+
+// ── Recovery Score Computation ─────────────────────────────────
+function computeRecoveryScore(romData) {
+  if (!romData || romData.length === 0) return null;
+
+  // Normal ROM ranges (degrees) by joint
+  const NORMAL_ROM = {
+    shoulder_flexion: 180,
+    shoulder_extension: 60,
+    shoulder_abduction: 180,
+    elbow_flexion: 145,
+    hip_flexion: 120,
+    hip_extension: 30,
+    knee_flexion: 135,
+    knee_extension: 0,
+    ankle_dorsiflexion: 20,
+    ankle_plantarflexion: 50,
+    cervical_flexion: 50,
+    cervical_extension: 60,
+    lumbar_flexion: 60,
+    lumbar_extension: 25,
+  };
+
+  // Get latest measurement per joint
+  const latestByJoint = {};
+  for (const m of romData) {
+    const key = `${m.joint}_${m.side}`;
+    if (!latestByJoint[key] || m.timestamp > latestByJoint[key].timestamp) {
+      latestByJoint[key] = m;
+    }
+  }
+
+  const entries = Object.values(latestByJoint);
+  if (entries.length === 0) return null;
+
+  let totalPercent = 0;
+  let count = 0;
+  for (const m of entries) {
+    const normalMax = NORMAL_ROM[m.joint];
+    if (normalMax) {
+      totalPercent += Math.min((m.angle / normalMax) * 100, 100);
+      count++;
+    }
+  }
+
+  return count > 0 ? Math.round(totalPercent / count) : null;
+}
+
+// ── Deepgram Transcription (Background) ────────────────────────
+async function transcribeWithDeepgram(sessionId, recordingUrl) {
+  const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
+  if (!DEEPGRAM_API_KEY) {
+    const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    await VideoSession.update(
+      { transcriptionStatus: 'failed', transcription: 'Deepgram API key not configured' },
+      { where: { id: sessionId } }
+    );
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&paragraphs=true', {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${DEEPGRAM_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: recordingUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Deepgram API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const transcript = data?.results?.channels?.[0]?.alternatives?.[0]?.paragraphs?.transcript
+      || data?.results?.channels?.[0]?.alternatives?.[0]?.transcript
+      || '';
+
+    const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    await VideoSession.update(
+      { transcription: transcript, transcriptionStatus: 'complete' },
+      { where: { id: sessionId } }
+    );
+
+    logger.info(`[AUDIT] Transcription complete for session ${sessionId}: ${transcript.length} chars`);
+  } catch (err) {
+    const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    await VideoSession.update(
+      { transcriptionStatus: 'failed', transcription: `Error: ${err.message}` },
+      { where: { id: sessionId } }
+    );
+    logger.error(`Transcription failed for session ${sessionId}:`, err.message);
+  }
+}
+
 export default router;

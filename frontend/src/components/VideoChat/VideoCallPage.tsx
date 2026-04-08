@@ -12,6 +12,7 @@ import { Video, ArrowLeft } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import PreCallCheck from './PreCallCheck';
 import VideoRoom from './VideoRoom';
+import AccessibleVideoPlayer from './AccessibleVideoPlayer';
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -106,6 +107,8 @@ interface SessionData {
   token: string;
   isTrainer: boolean;
   assessmentType: string;
+  recordingUrl?: string;
+  transcription?: string;
 }
 
 interface VideoCallPageProps {
@@ -190,7 +193,28 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
   }, [clientId]);
 
   const handlePreCallReady = () => setPhase('incall');
-  const handleEnd = () => setPhase('ended');
+  const handleEnd = useCallback(async () => {
+    setPhase('ended');
+    // Fetch completed session to get recordingUrl + transcription for playback
+    if (sessionData?.videoSessionId) {
+      try {
+        const [sessionRes, transcriptRes] = await Promise.all([
+          fetch(`/api/video-sessions/${sessionData.videoSessionId}`, { headers }),
+          fetch(`/api/video-sessions/${sessionData.videoSessionId}/transcription`, { headers }),
+        ]);
+        const sessionD = await sessionRes.json();
+        const transcriptD = await transcriptRes.json();
+        if (sessionD.success || transcriptD.success) {
+          setSessionData(prev => prev ? {
+            ...prev,
+            recordingUrl: sessionD.data?.recordingUrl || undefined,
+            transcription: transcriptD.data?.transcription || undefined,
+          } : prev);
+        }
+      } catch { /* best-effort — player just won't show if no recording */ }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionData?.videoSessionId]);
 
   return (
     <PageWrapper>
@@ -269,6 +293,18 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
               ? 'Assessment recorded. You can add notes from the client workspace.'
               : 'Thank you! Your trainer will review the assessment.'}
           </EmptyDesc>
+
+          {/* Phase 3: Accessible recording player (when recording exists) */}
+          {sessionData?.recordingUrl && (
+            <div style={{ width: '100%', maxWidth: 900, margin: '16px auto' }}>
+              <AccessibleVideoPlayer
+                src={sessionData.recordingUrl}
+                title={`Session Recording — ${sessionData.assessmentType || 'General'}`}
+                transcription={sessionData.transcription}
+              />
+            </div>
+          )}
+
           {onBack && (
             <CreateBtn onClick={onBack}>
               <ArrowLeft size={16} /> Back to Dashboard

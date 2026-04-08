@@ -81,6 +81,32 @@ VideoSession.init(
       allowNull: true,
       comment: 'LiveKit join token for the client (short-lived)',
     },
+    // Phase 3: ROM tracking, recovery score, wearable, transcription
+    romData: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment: 'ROM measurements array: [{joint, angle, timestamp, side}]',
+    },
+    recoveryScore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Computed recovery/mobility score (0-100)',
+    },
+    wearableData: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      comment: 'HealthKit/Google Fit data: {heartRate, steps, sleepHours, hrv, source}',
+    },
+    transcription: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Deepgram automated transcription of session audio',
+    },
+    transcriptionStatus: {
+      type: DataTypes.ENUM('none', 'processing', 'complete', 'failed'),
+      defaultValue: 'none',
+      comment: 'Status of Deepgram transcription',
+    },
   },
   {
     sequelize,
