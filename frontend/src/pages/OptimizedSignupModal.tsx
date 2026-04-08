@@ -44,29 +44,26 @@ const glow = keyframes`
 const SignupContainer = styled(motion.div)`
   position: relative;
   width: 100%;
+  min-height: 100%;
   max-width: 100vw;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding: 30px 10px 10px;
+  isolation: isolate;
 `;
 
 const VideoBackground = styled.div`
-  position: fixed; /* Changed from absolute to fixed */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   z-index: 0;
   overflow: hidden;
+  pointer-events: none;
 
   &:after {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: ${({ theme }) => theme.gradients.hero};
     z-index: 1;
   }
@@ -100,7 +97,6 @@ const ModalContent = styled(motion.div)`
   background: ${({ theme }) => theme.background.surface};
   padding: 1.5rem; /* Reduced padding */
   border-radius: 16px;
-  backdrop-filter: blur(10px);
   border: 1px solid ${({ theme }) => theme.borders.subtle};
   box-shadow: ${({ theme }) => theme.shadows.elevation};
   margin: 20px 0 60px 0; /* Increased top margin */
@@ -423,8 +419,7 @@ const FormSection = styled.div`
   margin-bottom: 1rem; /* Reduced margin */
   padding: 1rem; /* Reduced padding */
   border-radius: 12px;
-  background: rgba(30, 30, 60, 0.4);
-  backdrop-filter: blur(5px);
+  background: rgba(30, 30, 60, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.05);
 
   h3 { 

@@ -132,8 +132,8 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
 
         <motion.div variants={isEssential ? undefined : reveal}>
           <BtnRow>
-            <GlowButton colorScheme="primary" size="large" onClick={() => navigate('/signup')}>Sign Up</GlowButton>
-            <GlowButton colorScheme="accent" size="large" onClick={onOpenOrientation}>Orientation</GlowButton>
+            <GlowButton colorScheme="primary" size="large" onClick={() => navigate('/signup')}>Join the Community</GlowButton>
+            <GlowButton colorScheme="accent" size="large" onClick={onOpenOrientation}>Find a Trainer</GlowButton>
           </BtnRow>
         </motion.div>
 
