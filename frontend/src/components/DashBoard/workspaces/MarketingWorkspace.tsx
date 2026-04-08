@@ -24,9 +24,10 @@ const EmailDigestBuilder = lazy(() => import('./marketing/EmailDigestBuilder'));
 const MarketingCalendar = lazy(() => import('./marketing/MarketingCalendar'));
 const CompetitorAnalysisWidget = lazy(() => import('./marketing/CompetitorAnalysisWidget'));
 const SocialAnalyticsDashboard = lazy(() => import('./marketing/SocialAnalyticsDashboard'));
+const ContentCalendarPanel = lazy(() => import('./marketing/ContentCalendarPanel'));
 
 // ─── Types ─────────────────────────────────────────────────────
-type TabId = 'seo' | 'keywords' | 'blog' | 'social' | 'social-hub' | 'email' | 'calendar' | 'competitors';
+type TabId = 'seo' | 'keywords' | 'blog' | 'social' | 'social-hub' | 'email' | 'calendar' | 'ai-calendar' | 'competitors';
 
 interface TabDef {
   id: TabId;
@@ -42,6 +43,7 @@ const TABS: TabDef[] = [
   { id: 'social-hub', label: 'Social Hub', icon: <BarChart3 size={16} /> },
   { id: 'email', label: 'Email Digest', icon: <Mail size={16} /> },
   { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
+  { id: 'ai-calendar', label: 'AI Calendar', icon: <Megaphone size={16} /> },
   { id: 'competitors', label: 'Competitors', icon: <Users size={16} /> },
 ];
 
@@ -53,6 +55,7 @@ const TAB_COMPONENTS: Record<TabId, React.LazyExoticComponent<React.FC>> = {
   'social-hub': SocialAnalyticsDashboard,
   email: EmailDigestBuilder,
   calendar: MarketingCalendar,
+  'ai-calendar': ContentCalendarPanel,
   competitors: CompetitorAnalysisWidget,
 };
 
