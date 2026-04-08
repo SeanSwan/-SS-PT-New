@@ -58,6 +58,32 @@ Badge.init({
     allowNull: true,
     comment: 'Art style ID used for generation',
   },
+  // Phase 3: Batch, marketplace, animation
+  isAnimated: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Legendary animated badge (CSS shimmer + glow)',
+  },
+  isShared: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Shared to badge marketplace for other users to claim',
+  },
+  sharedBy: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'Admin who shared this badge to marketplace',
+  },
+  batchGroupId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Groups batch-generated badge variations together',
+  },
+  secondaryStyle: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Secondary style ID for style-mixed badges',
+  },
 }, {
   sequelize,
   modelName: 'Badge',

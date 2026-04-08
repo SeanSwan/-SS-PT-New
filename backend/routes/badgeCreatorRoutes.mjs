@@ -115,7 +115,7 @@ router.post('/generate', async (req, res) => {
 // ── Save Generated Badge ─────────────────────────────────────
 // POST /api/admin/badge-creator/save
 router.post('/save', async (req, res) => {
-  const { name, description, imageUrl, prompt, style, rarity, abilityPoints } = req.body;
+  const { name, description, imageUrl, prompt, style, rarity, abilityPoints, isAnimated, batchGroupId, secondaryStyle } = req.body;
 
   if (!name || !imageUrl) {
     return res.status(400).json({ success: false, message: 'name and imageUrl are required' });
@@ -134,6 +134,9 @@ router.post('/save', async (req, res) => {
       xpReward: abilityPoints || 50,
       prompt: prompt || null,
       style: style || null,
+      isAnimated: isAnimated || false,
+      batchGroupId: batchGroupId || null,
+      secondaryStyle: secondaryStyle || null,
     });
 
     logger.info(`[AUDIT] Admin ${req.user.id} saved badge "${name}" (${badge.id})`);
@@ -213,6 +216,224 @@ router.patch('/:badgeId/unassign', async (req, res) => {
   } catch (err) {
     logger.error('Badge unassign error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to unassign badge' });
+  }
+});
+
+// ── Phase 3: Batch Generation (5 Variations) ────────────────
+// POST /api/admin/badge-creator/generate-batch
+router.post('/generate-batch', async (req, res) => {
+  const { prompt, style, secondaryStyle } = req.body;
+
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ success: false, message: 'prompt is required' });
+  }
+  if (!style || typeof style !== 'string') {
+    return res.status(400).json({ success: false, message: 'style is required' });
+  }
+
+  const remaining = await getRemainingGenerations();
+  if (remaining < 5) {
+    return res.status(429).json({
+      success: false,
+      message: `Batch requires 5 credits. Only ${remaining} remaining this month.`,
+    });
+  }
+
+  const batchGroupId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const variations = [
+    '', // Original prompt as-is
+    'Alternate angle, different perspective.',
+    'More detailed, intricate version.',
+    'Simplified, cleaner minimalist take.',
+    'Bold dramatic version with stronger contrast.',
+  ];
+
+  // Build combined style modifier for style mixing
+  const combinedStyle = secondaryStyle
+    ? `${style}. Mixed with: ${secondaryStyle}`
+    : style;
+
+  try {
+    const results = await Promise.allSettled(
+      variations.map((suffix, i) => {
+        const varPrompt = suffix ? `${prompt}. ${suffix}` : prompt;
+        return recraft.generateBadge({ prompt: varPrompt, style: combinedStyle, size: 256 });
+      })
+    );
+
+    const images = results.map((r, i) => ({
+      index: i,
+      variation: variations[i] || 'Original',
+      success: r.status === 'fulfilled' && r.value.success,
+      imageUrl: r.status === 'fulfilled' && r.value.success ? r.value.imageUrl : null,
+      error: r.status === 'fulfilled' ? r.value.error : r.reason?.message,
+    }));
+
+    const successCount = images.filter(i => i.success).length;
+    logger.info(`[AUDIT] Admin ${req.user.id} batch-generated ${successCount}/5 badges: "${prompt}" (batchGroup: ${batchGroupId})`);
+
+    res.json({
+      success: true,
+      data: {
+        batchGroupId,
+        images,
+        creditsUsed: successCount,
+        creditsRemaining: remaining - successCount,
+        styleMixed: !!secondaryStyle,
+      },
+    });
+  } catch (err) {
+    logger.error('Batch generation failed:', err.message);
+    res.status(500).json({ success: false, message: 'Batch generation failed' });
+  }
+});
+
+// ── Phase 3: Pet Avatar Generation ──────────────────────────
+// POST /api/admin/badge-creator/generate-pet-avatar
+router.post('/generate-pet-avatar', async (req, res) => {
+  const { species, personality, style } = req.body;
+
+  if (!species || typeof species !== 'string') {
+    return res.status(400).json({ success: false, message: 'species is required' });
+  }
+
+  const remaining = await getRemainingGenerations();
+  if (remaining <= 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Monthly generation limit reached (${MAX_GENERATIONS_PER_MONTH}/month).`,
+    });
+  }
+
+  const PET_PROMPTS = {
+    phoenix: 'majestic phoenix bird, fiery plumage, warm glow',
+    wolf: 'loyal wolf companion, noble stance, keen eyes',
+    dragon: 'friendly baby dragon, small wings, playful',
+    owl: 'wise owl, scholarly, perched, gentle expression',
+    swan: 'elegant crystalline swan, graceful, icy feathers',
+  };
+
+  const basePrompt = PET_PROMPTS[species.toLowerCase()] || `cute ${species} companion pet`;
+  const personalityNote = personality ? `. Personality: ${personality}` : '';
+  const fullPrompt = `${basePrompt}${personalityNote}. Pet avatar icon for fitness app.`;
+  const styleModifier = style || 'crystalline ice, deep sapphire blue (#002060), frost white, elegant swan, premium luxury';
+
+  try {
+    const result = await recraft.generateBadge({ prompt: fullPrompt, style: styleModifier, size: 256 });
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, message: result.error });
+    }
+
+    logger.info(`[AUDIT] Admin ${req.user.id} generated pet avatar: ${species}`);
+
+    res.json({
+      success: true,
+      data: {
+        imageUrl: result.imageUrl,
+        species,
+        personality,
+        creditsRemaining: remaining - 1,
+      },
+    });
+  } catch (err) {
+    logger.error('Pet avatar generation failed:', err.message);
+    res.status(500).json({ success: false, message: 'Pet avatar generation failed' });
+  }
+});
+
+// ── Phase 3: Badge Marketplace ──────────────────────────────
+// GET /api/admin/badge-creator/marketplace
+router.get('/marketplace', async (_req, res) => {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const shared = await Badge.findAll({
+      where: { isShared: true },
+      order: [['createdAt', 'DESC']],
+      limit: 100,
+    });
+    res.json({ success: true, data: shared });
+  } catch (err) {
+    logger.error('Marketplace load error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to load marketplace' });
+  }
+});
+
+// POST /api/admin/badge-creator/marketplace/share
+router.post('/marketplace/share', async (req, res) => {
+  const { badgeId } = req.body;
+  if (!badgeId) {
+    return res.status(400).json({ success: false, message: 'badgeId is required' });
+  }
+
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    await badge.update({ isShared: true, sharedBy: req.user.id });
+    logger.info(`[AUDIT] Admin ${req.user.id} shared badge "${badge.name}" to marketplace`);
+    res.json({ success: true, data: badge });
+  } catch (err) {
+    logger.error('Marketplace share error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to share badge' });
+  }
+});
+
+// POST /api/admin/badge-creator/marketplace/unshare
+router.post('/marketplace/unshare', async (req, res) => {
+  const { badgeId } = req.body;
+  if (!badgeId) {
+    return res.status(400).json({ success: false, message: 'badgeId is required' });
+  }
+
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    await badge.update({ isShared: false, sharedBy: null });
+    logger.info(`[AUDIT] Admin ${req.user.id} unshared badge "${badge.name}" from marketplace`);
+    res.json({ success: true, data: badge });
+  } catch (err) {
+    logger.error('Marketplace unshare error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to unshare badge' });
+  }
+});
+
+// POST /api/admin/badge-creator/marketplace/claim/:badgeId
+router.post('/marketplace/claim/:badgeId', async (req, res) => {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const original = await Badge.findByPk(req.params.badgeId);
+    if (!original) return res.status(404).json({ success: false, message: 'Badge not found' });
+    if (!original.isShared) return res.status(400).json({ success: false, message: 'Badge is not shared' });
+
+    // Clone badge for the claiming admin (per-admin uniqueness)
+    const adminId = req.user.id;
+    const cloneName = `${original.name} (${adminId.slice(0, 8)})`;
+    const existing = await Badge.findOne({ where: { name: cloneName } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'You already claimed this badge' });
+    }
+
+    const clone = await Badge.create({
+      name: cloneName,
+      description: original.description,
+      imageUrl: original.imageUrl,
+      category: 'custom',
+      rarity: original.rarity,
+      xpReward: original.xpReward,
+      prompt: original.prompt,
+      style: original.style,
+      isAnimated: original.isAnimated,
+    });
+
+    logger.info(`[AUDIT] Admin ${req.user.id} claimed badge "${original.name}" from marketplace`);
+    res.status(201).json({ success: true, data: clone });
+  } catch (err) {
+    logger.error('Marketplace claim error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to claim badge' });
   }
 });
 

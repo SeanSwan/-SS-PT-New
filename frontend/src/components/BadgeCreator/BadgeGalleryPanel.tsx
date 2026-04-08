@@ -12,8 +12,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   Grid3X3, Filter, Trophy, Layout, X, Check,
-  Tag, Sparkles, Loader, Image,
+  Tag, Sparkles, Loader, Image, Share2,
 } from 'lucide-react';
+import AnimatedBadge from './AnimatedBadge';
 
 // ── Rarity gradient animation ──
 const legendaryGlow = keyframes`
@@ -233,6 +234,8 @@ interface BadgeData {
   xpReward: number;
   assignedTo: string | null;
   assignedTarget: string | null;
+  isShared: boolean;
+  isAnimated: boolean;
   createdAt: string;
 }
 
@@ -244,6 +247,7 @@ const BadgeGalleryPanel: React.FC = () => {
   const [assignType, setAssignType] = useState<string>('achievement');
   const [assignTarget, setAssignTarget] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -336,7 +340,11 @@ const BadgeGalleryPanel: React.FC = () => {
             >
               <BadgeImg>
                 {badge.imageUrl ? (
-                  <img src={badge.imageUrl} alt={badge.name} />
+                  badge.rarity === 'legendary' ? (
+                    <AnimatedBadge src={badge.imageUrl} alt={badge.name} size={160} />
+                  ) : (
+                    <img src={badge.imageUrl} alt={badge.name} />
+                  )
                 ) : (
                   <Image size={32} style={{ opacity: 0.3 }} />
                 )}
@@ -405,6 +413,29 @@ const BadgeGalleryPanel: React.FC = () => {
                 <X size={14} /> Unassign
               </AssignBtn>
             )}
+
+            <AssignBtn
+              onClick={async () => {
+                if (!selected) return;
+                setSharing(true);
+                const endpoint = selected.isShared
+                  ? '/api/admin/badge-creator/marketplace/unshare'
+                  : '/api/admin/badge-creator/marketplace/share';
+                try {
+                  await fetch(endpoint, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ badgeId: selected.id }),
+                  });
+                  fetchBadges();
+                } catch { /* best-effort */ }
+                setSharing(false);
+              }}
+              disabled={sharing}
+            >
+              <Share2 size={14} />
+              {sharing ? 'Updating...' : selected.isShared ? 'Unshare from Marketplace' : 'Share to Marketplace'}
+            </AssignBtn>
           </AssignRow>
         </AssignPanel>
       )}
