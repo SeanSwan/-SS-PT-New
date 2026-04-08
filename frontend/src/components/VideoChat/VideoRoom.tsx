@@ -11,8 +11,11 @@ import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import {
   Mic, MicOff, Camera, CameraOff, PhoneOff, Maximize, Minimize,
-  MessageSquare, FileText, Shield,
+  MessageSquare, FileText, Shield, CameraIcon, Sparkles,
 } from 'lucide-react';
+import FreezeFrameAnnotator from './FreezeFrameAnnotator';
+import AssessmentNotesPanel from './AssessmentNotesPanel';
+import MicroWinOverlay, { type MicroWinType } from './MicroWinOverlay';
 
 const RoomWrapper = styled.div<{ $fullscreen: boolean }>`
   ${({ $fullscreen }) => $fullscreen ? `
@@ -215,11 +218,19 @@ interface VideoRoomProps {
 const VideoRoom: React.FC<VideoRoomProps> = ({
   videoSessionId, roomName, livekitUrl, token, isTrainer, assessmentType, onEnd,
 }) => {
+  const [showMicroWinMenu, setShowMicroWinMenu] = useState(false);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [stepBackMode, setStepBackMode] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
+
+  // Phase 2: Freeze frame, notes, micro-wins
+  const [freezeFrameUrl, setFreezeFrameUrl] = useState<string | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
+  const [trainerNotes, setTrainerNotes] = useState('');
+  const [annotations, setAnnotations] = useState<string[]>([]);
+  const [activeMicroWin, setActiveMicroWin] = useState<MicroWinType | null>(null);
 
   // Timer
   React.useEffect(() => {
@@ -232,6 +243,51 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
     const sec = s % 60;
     return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
+
+  const handleFreezeFrame = useCallback(() => {
+    // In production, this captures from the actual video element
+    // For now, use a placeholder that shows the annotator
+    setFreezeFrameUrl('data:image/svg+xml,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect fill="#141419" width="640" height="480"/><text x="320" y="240" text-anchor="middle" fill="#60C0F0" font-size="18">Frozen Frame — Draw annotations here</text></svg>'
+    ));
+  }, []);
+
+  const handleAnnotationSave = useCallback((dataUrl: string) => {
+    setAnnotations(prev => [...prev, dataUrl]);
+    setFreezeFrameUrl(null);
+  }, []);
+
+  const handleSaveNotes = useCallback(async () => {
+    const tkn = localStorage.getItem('token');
+    try {
+      await fetch(`/api/video-sessions/${videoSessionId}/notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(tkn && { Authorization: `Bearer ${tkn}` }),
+        },
+        body: JSON.stringify({ trainerNotes }),
+      });
+    } catch { /* best-effort */ }
+  }, [videoSessionId, trainerNotes]);
+
+  const handleTriggerMicroWin = useCallback(async (type: MicroWinType) => {
+    const tkn = localStorage.getItem('token');
+    try {
+      const res = await fetch(`/api/video-sessions/${videoSessionId}/micro-win`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(tkn && { Authorization: `Bearer ${tkn}` }),
+        },
+        body: JSON.stringify({ type }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setActiveMicroWin(type); // Only show celebration after confirmed XP award
+      }
+    } catch { /* best-effort */ }
+  }, [videoSessionId]);
 
   const handleEnd = useCallback(async () => {
     try {
@@ -326,15 +382,85 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
         )}
 
         {isTrainer && (
-          <ControlBtn onClick={() => {/* TODO: open notes panel */}} title="Session Notes">
-            <MessageSquare size={22} />
-          </ControlBtn>
+          <>
+            <ControlBtn onClick={handleFreezeFrame} title="Freeze Frame + Annotate">
+              <CameraIcon size={22} />
+            </ControlBtn>
+            <ControlBtn onClick={() => setShowNotes(!showNotes)} title="Session Notes">
+              <MessageSquare size={22} />
+            </ControlBtn>
+            <div style={{ position: 'relative' }}>
+              <ControlBtn onClick={() => setShowMicroWinMenu(!showMicroWinMenu)} title="Award Micro-Win">
+                <Sparkles size={22} />
+              </ControlBtn>
+              {showMicroWinMenu && (
+                <div style={{
+                  position: 'absolute', bottom: '60px', left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--bg-elevated, #141419)', border: '1px solid rgba(96,192,240,0.2)',
+                  borderRadius: 10, padding: 6, minWidth: 200, zIndex: 20,
+                  display: 'flex', flexDirection: 'column', gap: 4,
+                }}>
+                  {([
+                    ['perfect_form', 'Perfect Form! (+25 XP)'],
+                    ['great_rep', 'Great Rep! (+10 XP)'],
+                    ['full_rom', 'Full ROM! (+15 XP)'],
+                    ['consistency', 'Consistent Pace! (+10 XP)'],
+                    ['improvement', 'Visible Improvement! (+50 XP)'],
+                  ] as [MicroWinType, string][]).map(([type, label]) => (
+                    <button
+                      key={type}
+                      onClick={() => { handleTriggerMicroWin(type); setShowMicroWinMenu(false); }}
+                      style={{
+                        minHeight: 40, padding: '8px 12px', borderRadius: 6, border: 'none',
+                        background: 'transparent', color: '#E0ECF4', cursor: 'pointer',
+                        fontFamily: 'Sora, sans-serif', fontSize: 13, textAlign: 'left',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(96,192,240,0.1)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <ControlBtn $danger onClick={handleEnd} title="End Call">
           <PhoneOff size={22} />
         </ControlBtn>
       </ControlBar>
+
+      {/* Phase 2: Freeze Frame Annotator */}
+      {freezeFrameUrl && (
+        <FreezeFrameAnnotator
+          frameDataUrl={freezeFrameUrl}
+          onSave={handleAnnotationSave}
+          onClose={() => setFreezeFrameUrl(null)}
+        />
+      )}
+
+      {/* Phase 2: Assessment Notes Panel */}
+      {isTrainer && (
+        <AssessmentNotesPanel
+          open={showNotes}
+          onClose={() => setShowNotes(false)}
+          videoSessionId={videoSessionId}
+          notes={trainerNotes}
+          onNotesChange={setTrainerNotes}
+          onSaveNotes={handleSaveNotes}
+          annotations={annotations}
+        />
+      )}
+
+      {/* Phase 2: Micro-Win Overlay */}
+      {activeMicroWin && (
+        <MicroWinOverlay
+          type={activeMicroWin}
+          onComplete={() => setActiveMicroWin(null)}
+        />
+      )}
     </RoomWrapper>
   );
 };

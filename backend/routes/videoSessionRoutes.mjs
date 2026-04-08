@@ -179,6 +179,74 @@ router.patch('/:id/end', authorize(['admin', 'trainer']), async (req, res) => {
   }
 });
 
+// ── Save Trainer Notes (trainer/admin) ───────────────────────
+// PATCH /api/video-sessions/:id/notes
+router.patch('/:id/notes', authorize(['admin', 'trainer']), async (req, res) => {
+  const { trainerNotes } = req.body;
+  if (trainerNotes == null || typeof trainerNotes !== 'string') {
+    return res.status(400).json({ success: false, message: 'trainerNotes (string) is required' });
+  }
+  // Empty string is allowed — trainer can clear notes
+
+  try {
+    const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    const session = await VideoSession.findByPk(req.params.id);
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Video session not found' });
+    }
+
+    await session.update({ trainerNotes });
+    logger.info(`[AUDIT] Trainer ${req.user.id} saved notes for video session ${session.id}`);
+    res.json({ success: true, data: { trainerNotes: session.trainerNotes } });
+  } catch (err) {
+    logger.error('Failed to save session notes:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to save notes' });
+  }
+});
+
+// ── Trigger Micro-Win (trainer/admin) ────────────────────────
+// POST /api/video-sessions/:id/micro-win
+router.post('/:id/micro-win', authorize(['admin', 'trainer']), async (req, res) => {
+  const { type } = req.body;
+  const validTypes = ['perfect_form', 'great_rep', 'full_rom', 'consistency', 'improvement'];
+
+  if (!type || !validTypes.includes(type)) {
+    return res.status(400).json({ success: false, message: `type must be one of: ${validTypes.join(', ')}` });
+  }
+
+  // XP values per type
+  const XP_MAP = { perfect_form: 25, great_rep: 10, full_rom: 15, consistency: 10, improvement: 50 };
+
+  try {
+    const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    const session = await VideoSession.findByPk(req.params.id);
+
+    if (!session || session.status !== 'active') {
+      return res.status(400).json({ success: false, message: 'Session not active' });
+    }
+
+    // Award XP to client via gamification
+    try {
+      const { default: Gamification } = await import('../models/Gamification.mjs');
+      const gam = await Gamification.findOne({ where: { userId: session.clientId } });
+      if (gam) {
+        await gam.update({
+          experience: (gam.experience || 0) + XP_MAP[type],
+          totalXP: (gam.totalXP || 0) + XP_MAP[type],
+        });
+      }
+    } catch { /* gamification XP is best-effort */ }
+
+    logger.info(`[AUDIT] Trainer ${req.user.id} triggered micro-win "${type}" (+${XP_MAP[type]} XP) for client ${session.clientId}`);
+
+    res.json({ success: true, data: { type, xp: XP_MAP[type], clientId: session.clientId } });
+  } catch (err) {
+    logger.error('Failed to trigger micro-win:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to trigger micro-win' });
+  }
+});
+
 // ── List Video Sessions (admin) ──────────────────────────────
 // GET /api/video-sessions
 router.get('/', authorize(['admin', 'trainer']), async (req, res) => {
