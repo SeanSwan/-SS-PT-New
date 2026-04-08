@@ -10,9 +10,13 @@
  */
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
+
+// All creator economy routes require Crystalline tier
+router.use(authenticateToken, requireTier('elite', 'creator.economy'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers — dynamic model import
@@ -36,7 +40,7 @@ async function getModels() {
  * GET /api/creators
  * List top creators
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { CreatorProfile } = await getModels();
     const creators = await CreatorProfile.getTopCreators?.() || [];
@@ -51,7 +55,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * GET /api/creators/config
  * Feature configuration
  */
-router.get('/config', authenticateToken, (_req, res) => {
+router.get('/config', (_req, res) => {
   res.json({
     enabled: false,
     status: 'coming_soon',
@@ -65,7 +69,7 @@ router.get('/config', authenticateToken, (_req, res) => {
  * GET /api/creators/my-profile
  * Get current user's creator profile
  */
-router.get('/my-profile', authenticateToken, async (req, res) => {
+router.get('/my-profile', async (req, res) => {
   try {
     const { CreatorProfile } = await getModels();
     const profile = await CreatorProfile.findOne({ where: { userId: req.user.id } });
@@ -80,7 +84,7 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
  * POST /api/creators/apply
  * Apply to become a creator
  */
-router.post('/apply', authenticateToken, async (req, res) => {
+router.post('/apply', async (req, res) => {
   try {
     const { CreatorProfile } = await getModels();
     const existing = await CreatorProfile.findOne({ where: { userId: req.user.id } });
@@ -112,7 +116,7 @@ router.post('/apply', authenticateToken, async (req, res) => {
  * GET /api/creators/:id
  * Get a creator's public profile
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { CreatorProfile } = await getModels();
     const profile = await CreatorProfile.findByPk(req.params.id);

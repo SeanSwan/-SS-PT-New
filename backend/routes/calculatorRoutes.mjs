@@ -17,6 +17,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { protect } from '../middleware/auth.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 import {
   calculateBMR,
   calculateTDEE,
@@ -84,9 +85,9 @@ function validateNumericFields(body, specs) {
   return { valid: true, values };
 }
 
-// ─── TDEE / Calorie Calculator ──────────────────────────────
+// ─── TDEE / Calorie Calculator (Guardian+) ─────────────────
 
-router.post('/tdee', (req, res) => {
+router.post('/tdee', requireTier('pro', 'calculator.all'), (req, res) => {
   try {
     const { sex, activityLevel, goal } = req.body;
     const check = validateNumericFields(req.body, [
@@ -120,7 +121,7 @@ router.post('/tdee', (req, res) => {
 
 // ─── Body Fat Calculator ────────────────────────────────────
 
-router.post('/body-fat', (req, res) => {
+router.post('/body-fat', requireTier('pro', 'calculator.all'), (req, res) => {
   try {
     const { sex, unit = 'in' } = req.body;
     const maxVal = unit === 'cm' ? 300 : 120;
@@ -175,7 +176,7 @@ router.post('/bmi', (req, res) => {
 
 // ─── 1RM Calculator (Brzycki) ───────────────────────────────
 
-router.post('/1rm', (req, res) => {
+router.post('/1rm', requireTier('pro', 'calculator.all'), (req, res) => {
   try {
     const check = validateNumericFields(req.body, [
       { field: 'weight', min: 1, max: 2000, required: true },
@@ -194,7 +195,7 @@ router.post('/1rm', (req, res) => {
 
 // ─── 1RM Conversion Chart ───────────────────────────────────
 
-router.get('/1rm-chart/:weight', (req, res) => {
+router.get('/1rm-chart/:weight', requireTier('pro', 'calculator.all'), (req, res) => {
   try {
     const weight = toPositiveNum(req.params.weight);
     if (!weight || weight > 2000) {
@@ -210,7 +211,7 @@ router.get('/1rm-chart/:weight', (req, res) => {
 
 // ─── Target Weight Calculator (backend-only, CEO ruling) ────
 
-router.post('/target-weight', (req, res) => {
+router.post('/target-weight', requireTier('pro', 'calculator.all'), (req, res) => {
   try {
     const check = validateNumericFields(req.body, [
       { field: 'user1RM', min: 0, max: 2000, required: false },

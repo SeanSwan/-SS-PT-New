@@ -10,9 +10,13 @@
  */
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
+
+// All live streaming routes require Crystalline tier
+router.use(authenticateToken, requireTier('elite', 'live.streaming'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers — dynamic model import
@@ -36,7 +40,7 @@ async function getModels() {
  * GET /api/live-streams
  * List upcoming and live streams
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { LiveStream } = await getModels();
     const streams = await LiveStream.findAll({
@@ -55,7 +59,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * GET /api/live-streams/trending
  * Get trending/popular streams
  */
-router.get('/trending', authenticateToken, async (req, res) => {
+router.get('/trending', async (req, res) => {
   try {
     const { LiveStream } = await getModels();
     const streams = await LiveStream.getTrendingStreams?.() || [];
@@ -70,7 +74,7 @@ router.get('/trending', authenticateToken, async (req, res) => {
  * GET /api/live-streams/:id
  * Get stream details
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { LiveStream } = await getModels();
     const stream = await LiveStream.findByPk(req.params.id);
@@ -86,7 +90,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * POST /api/live-streams
  * Schedule a new stream (trainer/admin only)
  */
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const user = req.user;
     if (!['admin', 'trainer'].includes(user.role)) {
@@ -121,7 +125,7 @@ router.post('/', authenticateToken, async (req, res) => {
  * GET /api/live-streams/config
  * Feature configuration
  */
-router.get('/config', authenticateToken, (_req, res) => {
+router.get('/config', (_req, res) => {
   res.json({
     enabled: false,
     status: 'coming_soon',

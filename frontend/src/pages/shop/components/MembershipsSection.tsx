@@ -32,7 +32,7 @@ const MembershipsSection: React.FC = () => {
     {
       icon: <Heart size={20} />,
       name: 'Swan Guardian',
-      price: 'From $1/mo',
+      price: 'From $1',
       benefit: 'NASM calculators, 50 Victory charts, advanced analytics. Support the mission.',
       variant: 'guardian' as const,
     },

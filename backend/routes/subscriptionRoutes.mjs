@@ -23,6 +23,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Subscription from '../models/Subscription.mjs';
+import { TIER_DEFINITIONS as CATALOG_TIERS } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -37,100 +38,11 @@ const getStripe = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Tier Definitions
-// PURPOSE: Single source of truth for tier features and pricing
+// SECTION: Tier Definitions — imported from central catalog
+// PHILOSOPHY: Mission-first. AI is free for everyone.
+// Tiers gate FEATURES, NOT AI message counts.
 // ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// TIER PHILOSOPHY: Mission-first. AI is free for everyone.
-// Tiers gate FEATURES (calculators, charts, trainer access),
-// NOT AI message counts. Anomaly detection for bots only.
-// ─────────────────────────────────────────────────────────────
-const TIER_DEFINITIONS = {
-  free: {
-    id: 'free',
-    name: 'Swan Starter',
-    tagline: 'Swan Coach, workout logging, nutrition — free forever',
-    price: 0,
-    priceDisplay: 'Free',
-    donationEnabled: true,
-    features: [
-      'Swan Coach conversations (unlimited)',
-      'Coach-designed workout plans (unlimited, with review flow)',
-      'Workout logging (unlimited)',
-      'Nutrition & macro counter',
-      'Exercise library (840+ exercises)',
-      'Social feed & community',
-      'Gamification (XP, levels, badges, streaks)',
-      'Basic progress charts',
-      'BMI calculator',
-      'Pain & injury body map',
-      'Session booking',
-      '30-day trial of all premium features',
-    ],
-    limits: {
-      aiMessagesPerMonth: Infinity,   // No caps — anomaly detection only
-      aiGenerationsPerMonth: Infinity,
-    },
-  },
-  pro: {
-    id: 'pro',
-    name: 'Swan Guardian',
-    tagline: 'Support the mission — unlock advanced tools & analytics',
-    price: 5,
-    priceDisplay: 'Pay what you can (suggested $5/mo)',
-    donationBased: true,
-    minimumPrice: 1,
-    maximumPrice: 50.00,
-    suggestedPrice: 5,
-    features: [
-      'Everything in Swan Starter',
-      'All 4 NASM calculators (1RM, TDEE, Body Fat %, BMI)',
-      'Full 50-chart Victory analytics gallery',
-      'Detailed NASM Analytics dashboard (14 charts)',
-      'AI Nutrition coaching (meal planning, food intelligence)',
-      'Advanced progress analytics & insights',
-      'Swan Guardian badge (Rare — Gilded Fern)',
-      'Priority in community challenges',
-      'Support keeps SwanStudios free for everyone',
-    ],
-    donationTiers: [
-      { minAmount: 1,    maxAmount: 4.99,  label: 'Supporter' },
-      { minAmount: 5,    maxAmount: 9.99,  label: 'Champion' },
-      { minAmount: 10,   maxAmount: 24.99, label: 'Hero' },
-      { minAmount: 25,   maxAmount: 50,    label: 'Legendary Patron' },
-    ],
-    limits: {
-      aiMessagesPerMonth: Infinity,   // No caps — same AI as everyone
-      aiGenerationsPerMonth: Infinity,
-    },
-  },
-  elite: {
-    id: 'elite',
-    name: 'Crystalline Swan',
-    tagline: 'Human trainer access — your personal coach in your pocket',
-    price: 24.99,
-    priceDisplay: '$24.99/mo',
-    annualPrice: 249.99,
-    annualPriceDisplay: '$249.99/yr (save $50)',
-    stripePriceId: null, // Set via Stripe dashboard
-    features: [
-      'Everything in Swan Guardian',
-      'Direct trainer messaging (async chat with your trainer)',
-      'Video form check submissions (48h feedback)',
-      'Monthly custom workout plan review',
-      'Content Studio access',
-      'Creator Economy access',
-      'Live streaming (create broadcasts)',
-      'Crystalline Swan badge (Epic — Wing Purple)',
-      'Priority scheduling for sessions',
-      'Exclusive trainer Q&A sessions',
-    ],
-    limits: {
-      aiMessagesPerMonth: Infinity,
-      aiGenerationsPerMonth: Infinity,
-    },
-  },
-};
+const TIER_DEFINITIONS = CATALOG_TIERS;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Public Endpoints
@@ -269,7 +181,10 @@ router.post('/start-trial', protect, async (req, res) => {
   }
 });
 
-/** POST /api/subscriptions/checkout - Create Stripe subscription checkout session */
+/** POST /api/subscriptions/checkout - Create Stripe checkout session */
+// BILLING MODES:
+//   Guardian (pro)     = mode:payment  (one-time donation, $1-$50)
+//   Crystalline (elite) = mode:subscription (recurring $24.99/mo or $249.99/yr)
 router.post('/checkout', protect, async (req, res) => {
   try {
     const { tier, amount, billingInterval = 'month' } = req.body;
@@ -290,6 +205,74 @@ router.post('/checkout', protect, async (req, res) => {
       });
     }
 
+    const tierDef = TIER_DEFINITIONS[tier];
+
+    // ── Guardian (pro): one-time donation via mode:payment ──
+    if (tier === 'pro') {
+      let donationAmount = tierDef.suggestedPrice;
+      if (amount !== undefined) {
+        const parsed = parseFloat(amount);
+        if (isNaN(parsed) || parsed < tierDef.minimumPrice) {
+          return res.status(400).json({
+            success: false,
+            message: `Minimum Guardian donation is $${tierDef.minimumPrice}.`,
+          });
+        }
+        if (parsed > tierDef.maximumPrice) {
+          return res.status(400).json({ success: false, message: `Maximum donation is $${tierDef.maximumPrice}.` });
+        }
+        donationAmount = parsed;
+      }
+
+      // Get or create Stripe customer
+      const UserModel = (await import('../models/User.mjs')).default;
+      const user = await UserModel.findByPk(userId);
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await s.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          metadata: { userId: String(userId), tier: 'pro' },
+        });
+        customerId = customer.id;
+        await user.update({ stripeCustomerId: customerId });
+      }
+
+      const session = await s.checkout.sessions.create({
+        customer: customerId,
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `SwanStudios ${tierDef.name} — Donation`,
+                description: tierDef.tagline,
+              },
+              unit_amount: Math.round(donationAmount * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/ascension`,
+        metadata: {
+          userId: String(userId),
+          tier: 'pro',
+          amount: String(donationAmount),
+          billingMode: 'payment',
+        },
+      });
+
+      return res.json({
+        success: true,
+        checkoutUrl: session.url,
+        sessionId: session.id,
+      });
+    }
+
+    // ── Crystalline (elite): recurring subscription ──
     if (!['month', 'year'].includes(billingInterval)) {
       return res.status(400).json({
         success: false,
@@ -297,79 +280,25 @@ router.post('/checkout', protect, async (req, res) => {
       });
     }
 
-    const tierDef = TIER_DEFINITIONS[tier];
     const isAnnual = billingInterval === 'year';
+    const checkoutAmount = isAnnual ? tierDef.annualPrice : tierDef.price;
 
-    // Pro tier: donation-based (pay what you can, $0-$50)
-    let checkoutAmount = isAnnual ? tierDef.annualPrice : tierDef.price;
-    if (tier === 'pro' && amount !== undefined && !isAnnual) {
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount < 0) {
-        return res.status(400).json({ success: false, message: 'Invalid donation amount.' });
-      }
-      if (parsedAmount > tierDef.maximumPrice) {
-        return res.status(400).json({ success: false, message: `Maximum donation is $${tierDef.maximumPrice}/mo.` });
-      }
-      checkoutAmount = parsedAmount;
-    }
-
-    // For annual Pro donation: multiply monthly donation × 10 (2 months free discount)
-    if (tier === 'pro' && isAnnual && amount !== undefined) {
-      const monthlyDonation = parseFloat(amount);
-      if (!isNaN(monthlyDonation) && monthlyDonation > 0) {
-        checkoutAmount = Math.round(monthlyDonation * 10 * 100) / 100; // 10 months = 2 free
-      }
-    }
-
-    // $0 donation = skip Stripe, create directly as active
-    if (checkoutAmount === 0) {
-      const now = new Date();
-      const periodEnd = new Date(now);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-
-      await Subscription.upsert({
-        userId,
-        tier: 'pro',
-        status: 'active',
-        amount: 0,
-        paymentMethod: 'manual',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        cancelledAt: null,
-        cancelReason: null,
-      });
-
-      const UserModel = (await import('../models/User.mjs')).default;
-      await UserModel.update({ subscriptionTier: 'pro' }, { where: { id: userId } });
-
-      return res.json({
-        success: true,
-        message: 'Swan Guardian activated! Thank you for supporting the SwanStudios mission.',
-        tier: 'pro',
-        donationAmount: 0,
-      });
-    }
-
-    // Get or create Stripe customer
     const UserModel = (await import('../models/User.mjs')).default;
     const user = await UserModel.findByPk(userId);
-
     let customerId = user.stripeCustomerId;
     if (!customerId) {
       const customer = await s.customers.create({
         email: user.email,
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-        metadata: { userId: String(userId), tier },
+        metadata: { userId: String(userId), tier: 'elite' },
       });
       customerId = customer.id;
       await user.update({ stripeCustomerId: customerId });
     }
 
-    // Build product name with billing interval
     const intervalLabel = isAnnual ? 'Annual' : 'Monthly';
-    const savingsNote = isAnnual ? ' (2 months free!)' : '';
+    const savingsNote = isAnnual ? ' (save $50!)' : '';
 
-    // Create Stripe Checkout Session in subscription mode
     const session = await s.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -391,18 +320,19 @@ router.post('/checkout', protect, async (req, res) => {
       subscription_data: {
         metadata: {
           userId: String(userId),
-          tier,
+          tier: 'elite',
           billingInterval,
           requestedAmount: String(checkoutAmount),
         },
       },
       success_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/store/subscriptions`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/ascension`,
       metadata: {
         userId: String(userId),
-        tier,
+        tier: 'elite',
         billingInterval,
         amount: String(checkoutAmount),
+        billingMode: 'subscription',
       },
     });
 
@@ -491,49 +421,75 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        const userId = parseInt(session.metadata?.userId, 10);
+        if (!userId) break;
+
+        const UserModel = (await import('../models/User.mjs')).default;
+
+        // Guardian donation (mode:payment) — one-time, no recurring
+        if (session.mode === 'payment') {
+          const donationAmount = parseFloat(session.metadata?.amount || '5');
+
+          await Subscription.upsert({
+            userId,
+            tier: 'pro',
+            status: 'active',
+            amount: donationAmount,
+            stripeCustomerId: session.customer,
+            stripeSubscriptionId: null,
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: null,
+            paymentMethod: 'stripe',
+            cancelledAt: null,
+            cancelReason: null,
+          });
+
+          await UserModel.update(
+            { subscriptionTier: 'pro' },
+            { where: { id: userId } }
+          );
+
+          logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId}`);
+        }
+
+        // Crystalline subscription (mode:subscription) — recurring
         if (session.mode === 'subscription') {
-          const userId = parseInt(session.metadata?.userId, 10);
-          const tier = session.metadata?.tier || 'pro';
-          const amount = parseFloat(session.metadata?.amount || '9.99');
+          const tier = session.metadata?.tier || 'elite';
+          const amount = parseFloat(session.metadata?.amount || '24.99');
           const interval = session.metadata?.billingInterval || 'month';
 
-          if (userId) {
-            const now = new Date();
-            const periodEnd = new Date(now);
-            if (interval === 'year') {
-              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-            } else {
-              periodEnd.setMonth(periodEnd.getMonth() + 1);
-            }
-
-            // For annual, store the effective monthly amount for donation tier calc
-            const effectiveMonthlyAmount = interval === 'year'
-              ? Math.round((amount / 12) * 100) / 100
-              : amount;
-
-            await Subscription.upsert({
-              userId,
-              tier,
-              status: 'active',
-              amount: effectiveMonthlyAmount, // Store monthly equivalent for donation tier calc
-              stripeSubscriptionId: session.subscription,
-              stripeCustomerId: session.customer,
-              currentPeriodStart: now,
-              currentPeriodEnd: periodEnd,
-              paymentMethod: 'stripe',
-              cancelledAt: null,
-              cancelReason: null,
-            });
-
-            // Update user tier cache
-            const UserModel = (await import('../models/User.mjs')).default;
-            await UserModel.update(
-              { subscriptionTier: tier },
-              { where: { id: userId } }
-            );
-
-            logger.info(`[Subscription Webhook] Activated ${tier} for user ${userId} at $${amount}/mo`);
+          const now = new Date();
+          const periodEnd = new Date(now);
+          if (interval === 'year') {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
           }
+
+          const effectiveMonthlyAmount = interval === 'year'
+            ? Math.round((amount / 12) * 100) / 100
+            : amount;
+
+          await Subscription.upsert({
+            userId,
+            tier,
+            status: 'active',
+            amount: effectiveMonthlyAmount,
+            stripeSubscriptionId: session.subscription,
+            stripeCustomerId: session.customer,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            paymentMethod: 'stripe',
+            cancelledAt: null,
+            cancelReason: null,
+          });
+
+          await UserModel.update(
+            { subscriptionTier: tier },
+            { where: { id: userId } }
+          );
+
+          logger.info(`[Subscription Webhook] Activated ${tier} for user ${userId} at $${amount}/${interval}`);
         }
         break;
       }
@@ -548,15 +504,26 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           });
 
           if (subscription) {
-            const periodEnd = new Date();
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
+            // Derive billing interval from Stripe subscription object
+            // Stripe sends the full subscription in invoice.subscription_details
+            // or we can check the line item period
+            const now = new Date();
+            const periodEnd = new Date(now);
+            const lineItem = invoice.lines?.data?.[0];
+            const intervalFromStripe = lineItem?.plan?.interval || lineItem?.price?.recurring?.interval;
+
+            if (intervalFromStripe === 'year') {
+              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+            } else {
+              periodEnd.setMonth(periodEnd.getMonth() + 1);
+            }
 
             subscription.status = 'active';
-            subscription.currentPeriodStart = new Date();
+            subscription.currentPeriodStart = now;
             subscription.currentPeriodEnd = periodEnd;
             await subscription.save();
 
-            logger.info(`[Subscription Webhook] Renewal payment succeeded for sub ${subId}`);
+            logger.info(`[Subscription Webhook] Renewal payment succeeded for sub ${subId} (interval: ${intervalFromStripe || 'month'})`);
           }
         }
         break;

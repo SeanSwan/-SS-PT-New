@@ -30,7 +30,7 @@ const DonationSlider: React.FC<DonationSliderProps> = ({
   return (
     <SliderWrapper>
       <SliderHeader>
-        <DonationAmount>${value}<span>/mo</span></DonationAmount>
+        <DonationAmount>${value}<span> donation</span></DonationAmount>
         {currentLabel && <TierLabel>{currentLabel}</TierLabel>}
       </SliderHeader>
 
@@ -44,11 +44,11 @@ const DonationSlider: React.FC<DonationSliderProps> = ({
           onChange={handleChange}
           $pct={pct}
           role="slider"
-          aria-label="Monthly donation amount"
+          aria-label="Donation amount"
           aria-valuenow={value}
           aria-valuemin={min}
           aria-valuemax={max}
-          aria-valuetext={`$${value} per month — ${currentLabel}`}
+          aria-valuetext={`$${value} one-time donation — ${currentLabel}`}
         />
       </SliderTrackWrapper>
 
@@ -66,7 +66,7 @@ const DonationSlider: React.FC<DonationSliderProps> = ({
         ))}
       </TickMarks>
 
-      <SuggestedNote>Suggested: ${suggested}/mo — your support keeps SwanStudios free for everyone</SuggestedNote>
+      <SuggestedNote>Suggested: ${suggested} — your support keeps SwanStudios free for everyone</SuggestedNote>
     </SliderWrapper>
   );
 };

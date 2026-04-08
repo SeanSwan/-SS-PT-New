@@ -359,7 +359,8 @@ export const protect = async (req, res, next) => {
         id: toStringId(user.id),
         role: user.role,
         username: user.username,
-        email: user.email
+        email: user.email,
+        subscriptionTier: user.subscriptionTier || 'free',
       };
       
       // Log successful authentication

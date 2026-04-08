@@ -136,19 +136,19 @@ User.init(
       type: DataTypes.STRING(20),
       allowNull: true,
       defaultValue: 'free',
-      comment: 'Current subscription tier: free, supporter, premium'
+      comment: 'Current subscription tier: free, pro, elite'
     },
     aiMessagesUsedThisMonth: {
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0,
-      comment: 'AI chat messages used in current month (free tier cap: 3)'
+      comment: 'AI chat messages used in current month (no cap — anomaly detection only)'
     },
     aiGenerationsUsedThisMonth: {
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0,
-      comment: 'AI workout generations used in current month (free tier cap: 1)'
+      comment: 'AI workout generations used in current month (no cap — anomaly detection only)'
     },
     aiUsageResetDate: {
       type: DataTypes.DATE,

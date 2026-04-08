@@ -5,6 +5,7 @@
  * Handles upload, history, single analysis fetch, and reprocessing.
  */
 import { useState, useCallback } from 'react';
+import { usePaywall } from '../context/PaywallContext';
 
 interface FormAnalysisRecord {
   id: number;
@@ -51,6 +52,7 @@ function getAuthHeaders(): HeadersInit {
 export function useFormAnalysisAPI() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { showPaywall } = usePaywall();
 
   const uploadMedia = useCallback(async (
     file: File,
@@ -74,6 +76,13 @@ export function useFormAnalysisAPI() {
         body: formData,
       });
 
+      // 402 Payment Required — trigger paywall for tier-gated upload
+      if (response.status === 402) {
+        const data = await response.json().catch(() => ({}));
+        showPaywall(data.featureName || 'Video Form Check', data);
+        throw new Error('This feature requires a Crystalline Swan membership.');
+      }
+
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Upload failed' }));
         throw new Error(err.error || `Upload failed (${response.status})`);
@@ -84,7 +93,7 @@ export function useFormAnalysisAPI() {
     } finally {
       setIsUploading(false);
     }
-  }, []);
+  }, [showPaywall]);
 
   const fetchHistory = useCallback(async (
     options?: { page?: number; limit?: number; exerciseName?: string; status?: string }

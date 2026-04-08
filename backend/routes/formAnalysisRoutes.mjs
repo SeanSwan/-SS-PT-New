@@ -16,6 +16,7 @@ import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 import {
   createFormAnalysis,
   processFormAnalysis,
@@ -51,9 +52,9 @@ const upload = multer({
 router.use(protect);
 
 /**
- * POST /upload — Upload media and start form analysis
+ * POST /upload — Upload media and start form analysis (Crystalline+)
  */
-router.post('/upload', upload.single('media'), async (req, res) => {
+router.post('/upload', requireTier('elite', 'video.formcheck'), upload.single('media'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No media file provided' });

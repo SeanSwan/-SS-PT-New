@@ -38,6 +38,7 @@ import {
   getRPEByExerciseChart
 } from '../controllers/chartDataController.mjs';
 import { protect, authorize, requireOwnershipOrTrainer } from '../middleware/authMiddleware.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 
 const router = express.Router();
 
@@ -134,19 +135,20 @@ router.get('/:userId/exercise-history', requireOwnershipOrTrainer, getExerciseHi
 router.get('/:userId/exercise-variety', requireOwnershipOrTrainer, getExerciseVariety);
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Victory chart data endpoints (9 charts)
+// SECTION: Victory chart data endpoints (9 charts — Guardian+)
 // PURPOSE: Pre-shaped data for each Victory chart component
 // WHY: Server-side aggregation — frontend receives chart-ready arrays
+// TIER: pro (Guardian) — full analytics gallery is a premium feature
 // ─────────────────────────────────────────────────────────────
 
-router.get('/:userId/chart-workout-frequency', requireOwnershipOrTrainer, getWorkoutFrequencyChart);
-router.get('/:userId/chart-weight-progression', requireOwnershipOrTrainer, getWeightProgressionChart);
-router.get('/:userId/chart-muscle-group-focus', requireOwnershipOrTrainer, getMuscleGroupFocusChart);
-router.get('/:userId/chart-macro-split', requireOwnershipOrTrainer, getMacroSplitChart);
-router.get('/:userId/chart-cardio-endurance', requireOwnershipOrTrainer, getCardioEnduranceChart);
-router.get('/:userId/chart-session-frequency', requireOwnershipOrTrainer, getSessionFrequencyChart);
-router.get('/:userId/chart-body-fat-trend', requireOwnershipOrTrainer, getBodyFatTrendChart);
-router.get('/:userId/chart-muscle-recovery', requireOwnershipOrTrainer, getMuscleRecoveryChart);
-router.get('/:userId/chart-rpe-by-exercise', requireOwnershipOrTrainer, getRPEByExerciseChart);
+router.get('/:userId/chart-workout-frequency', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWorkoutFrequencyChart);
+router.get('/:userId/chart-weight-progression', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeightProgressionChart);
+router.get('/:userId/chart-muscle-group-focus', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMuscleGroupFocusChart);
+router.get('/:userId/chart-macro-split', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMacroSplitChart);
+router.get('/:userId/chart-cardio-endurance', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getCardioEnduranceChart);
+router.get('/:userId/chart-session-frequency', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getSessionFrequencyChart);
+router.get('/:userId/chart-body-fat-trend', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getBodyFatTrendChart);
+router.get('/:userId/chart-muscle-recovery', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMuscleRecoveryChart);
+router.get('/:userId/chart-rpe-by-exercise', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getRPEByExerciseChart);
 
 export default router;

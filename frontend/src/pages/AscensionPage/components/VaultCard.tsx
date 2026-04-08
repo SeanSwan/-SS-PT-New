@@ -49,7 +49,7 @@ const VaultCard: React.FC<VaultCardProps> = ({
   const periodLabel = variant === 'starter'
     ? 'forever'
     : variant === 'guardian'
-      ? '/mo · pay what you can'
+      ? 'one-time · pay what you can'
       : isAnnual ? '/yr' : '/mo';
 
   return (
