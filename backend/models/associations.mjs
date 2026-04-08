@@ -78,6 +78,7 @@ const setupAssociations = async () => {
     // Video Chat Models (Sequelize)
     const VideoSessionModule = await import('./VideoSession.mjs');
     const AvatarHomeModule = await import('./AvatarHome.mjs');
+    const OlympicEventModule = await import('./OlympicEvent.mjs');
 
     // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
@@ -257,6 +258,7 @@ const setupAssociations = async () => {
     const WorkoutSession = WorkoutSessionModule.default;
     const VideoSession = VideoSessionModule.default;
     const AvatarHome = AvatarHomeModule.default;
+    const OlympicEvent = OlympicEventModule.default;
     const WorkoutLog = WorkoutLogModule.default;
     const WorkoutExercise = WorkoutExerciseModule.default;
     const Exercise = ExerciseModule.default;
@@ -486,7 +488,9 @@ const setupAssociations = async () => {
         // Boot Camp Sprint Planner (Phase 10B)
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
-        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage
+        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
+        // Video Chat + Avatar + Olympics Models
+        VideoSession, AvatarHome, OlympicEvent
       };
       } // end: if (allCriticalExist) return early
     } // end: if (hasUserAssociations || ...)
@@ -524,6 +528,10 @@ const setupAssociations = async () => {
     // Avatar Home associations (3D world — unlocks at Level 10)
     User.hasOne(AvatarHome, { foreignKey: 'userId', as: 'avatarHome' });
     AvatarHome.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+    // Virtual Olympics associations (Ghost Racing — async competitive events)
+    User.hasMany(OlympicEvent, { foreignKey: 'userId', as: 'olympicEvents' });
+    OlympicEvent.belongsTo(User, { foreignKey: 'userId', as: 'athlete' });
 
     // Video Session associations (remote assessments via LiveKit)
     User.hasMany(VideoSession, { foreignKey: 'trainerId', as: 'trainerVideoSessions' });
@@ -1272,6 +1280,7 @@ const setupAssociations = async () => {
       WorkoutSession,
       VideoSession,
       AvatarHome,
+      OlympicEvent,
       WorkoutLog,
       WorkoutExercise,
       Exercise,

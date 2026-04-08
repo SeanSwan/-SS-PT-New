@@ -118,6 +118,20 @@ const Gamification = db.define('Gamification', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  // ── Wisdom XP + Recovery Day Tracking (V3 Feature) ──
+  // Recovery days earn full XP credit — rewarding smart decisions, not just volume
+  wisdomXP: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    comment: 'XP earned from recovery days, rest decisions, form improvements'
+  },
+  recoveryDaysCompleted: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    comment: 'Total recovery routine completions — drives Wisdom stat'
+  },
   // ── Aegis HUD: RPG Needs System (V2 Feature) ──
   // 5 needs bars: athletic, recovery, social, discipline, vitality
   // Each stores { value: 0-100, lastUpdated: ISO string }

@@ -109,6 +109,7 @@ import adminSocialPublishingRoutes from '../routes/adminSocialPublishingRoutes.m
 import videoSessionRoutes from '../routes/videoSessionRoutes.mjs';
 import avatarHomeRoutes from '../routes/avatarHomeRoutes.mjs';
 import badgeCreatorRoutes from '../routes/badgeCreatorRoutes.mjs';
+import olympicRoutes from '../routes/olympicRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import publicVideoRoutes from '../routes/publicVideoRoutes.mjs';
 
@@ -407,6 +408,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
   app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10
   app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Recraft V3
+  app.use('/api/olympics', olympicRoutes); // Virtual Olympics — Ghost Racing competitive events
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)

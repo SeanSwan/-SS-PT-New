@@ -125,6 +125,7 @@ const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/Bootcamp
 const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 const VideoCallPage = React.lazy(() => import('../VideoChat/VideoCallPage'));
 const AvatarHomePage = React.lazy(() => import('../AvatarHome/AvatarHomePage'));
+const VirtualOlympicsPage = React.lazy(() => import('../VirtualOlympics/VirtualOlympicsPage'));
 const BadgeCreatorPage = React.lazy(() => import('../BadgeCreator/BadgeCreatorPage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
@@ -557,6 +558,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
       { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
       { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
+      { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events — Pull-ups, Push-ups, Sprint' },
       { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' }
     ],
     defaultPath: '/coach-assistant'
@@ -581,7 +583,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' },
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
       { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
-      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
+      { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events' }
     ],
     defaultPath: '/overview'
   },
@@ -602,7 +605,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/profile', component: ClientProfilePage, title: 'Profile', description: 'Personal settings and preferences' },
       { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' },
       { path: '/body-map', component: BodyMapPage, title: 'Pain & Injury Chart', description: 'Track pain areas and injury recovery' },
-      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
+      { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events' }
     ],
     defaultPath: '/overview'
   }

@@ -13,6 +13,8 @@ import { Home, Eye, EyeOff, Loader } from 'lucide-react';
 import LevelGate from './LevelGate';
 import MinimalistView from './MinimalistView';
 import HomeWorld from './HomeWorld';
+import CompanionPetPanel from './CompanionPetPanel';
+import PetAdoptionModal from './PetAdoptionModal';
 
 const PageWrapper = styled.div`
   min-height: 100%;
@@ -96,11 +98,25 @@ interface HomeData {
   minimalistMode: boolean;
 }
 
+const HomeLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 20px;
+  padding: 0 24px 24px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const AvatarHomePage: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeData | null>(null);
   const [userLevel, setUserLevel] = useState<number>(1);
+  const [userId, setUserId] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAdoptModal, setShowAdoptModal] = useState(false);
+  const [petKey, setPetKey] = useState(0);
 
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -120,12 +136,15 @@ const AvatarHomePage: React.FC = () => {
       .catch(() => setError('Network error'))
       .finally(() => setLoading(false));
 
-    // Fetch user level from gamification
+    // Fetch user level + userId from gamification
+    // Response shape: { success, profile: { id, level, ... } }
     fetch('/api/gamification/profile', { headers })
       .then(r => r.json())
       .then(d => {
-        if (d.data?.level) setUserLevel(d.data.level);
-        else if (d.level) setUserLevel(d.level);
+        const profile = d.profile || d.data || d;
+        if (profile?.level) setUserLevel(profile.level);
+        if (profile?.id) setUserId(profile.id);
+        else if (profile?.userId) setUserId(profile.userId);
       })
       .catch(() => {/* gamification may not be set up */});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,11 +223,28 @@ const AvatarHomePage: React.FC = () => {
       {homeData.minimalistMode ? (
         <MinimalistView data={homeData} onToggle3D={toggleMinimalistMode} />
       ) : (
-        <HomeWorld
-          homeTier={homeData.homeTier}
-          activeRoom={homeData.activeRoom}
-          furniture={homeData.furniture}
-          onRoomChange={handleRoomChange}
+        <HomeLayout>
+          <HomeWorld
+            homeTier={homeData.homeTier}
+            activeRoom={homeData.activeRoom}
+            furniture={homeData.furniture}
+            onRoomChange={handleRoomChange}
+          />
+          {userId > 0 && (
+            <CompanionPetPanel
+              key={petKey}
+              userId={userId}
+              onAdoptClick={() => setShowAdoptModal(true)}
+            />
+          )}
+        </HomeLayout>
+      )}
+
+      {showAdoptModal && userId > 0 && (
+        <PetAdoptionModal
+          userId={userId}
+          onClose={() => setShowAdoptModal(false)}
+          onAdopted={() => setPetKey(k => k + 1)}
         />
       )}
     </PageWrapper>
