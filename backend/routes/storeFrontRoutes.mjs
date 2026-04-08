@@ -161,17 +161,11 @@ router.get('/', async (req, res) => {
           logger.error('Auto-seed storefront failed:', seedErr.message);
         }
       } else {
-        // Packages exist but are inactive — activate them
-        logger.warn(`Storefront has ${totalCount} inactive packages — re-activating all.`);
-        await StorefrontItem.update({ isActive: true }, { where: {} });
-        const reactivated = await StorefrontItem.findAll({
-          where: whereClause,
-          order: [[validSortBy, validSortOrder]],
-          limit: parseInt(limit, 10),
-          offset: parseInt(offset, 10),
-        });
-        const reactivatedTransformed = reactivated.map(mapStorefrontItem);
-        return res.json({ success: true, items: reactivatedTransformed, data: { packages: reactivatedTransformed, activeSpecials: [] } });
+        // Packages exist but are all inactive — this is an admin configuration
+        // state, not a bug. Log it and let the frontend show its fallback.
+        // Recovery (re-activation) must be done via the admin panel, not a
+        // public GET, to avoid anonymous traffic overriding intentional deactivation.
+        logger.warn(`Storefront has ${totalCount} package(s) but all are inactive — admin action required to re-activate.`);
       }
       logger.warn('Storefront has 0 active items — frontend will show fallback data.');
     } else {

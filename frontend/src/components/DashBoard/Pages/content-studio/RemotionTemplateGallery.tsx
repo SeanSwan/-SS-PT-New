@@ -398,6 +398,12 @@ const pulseGlow = keyframes`
   50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
 `;
 
+// Hoisted at module level so pulseGlow is interpolated by the same
+// styled-components instance — avoids Error #12 ("different instance" crash).
+const selectedCardAnimation = css`
+  animation: ${pulseGlow} 2s ease-in-out infinite;
+`;
+
 const Container = styled.div`
   padding: 24px;
 `;
@@ -479,7 +485,7 @@ const TemplateCard = styled.button<{ $selected: boolean }>`
     $selected ? 'rgba(139, 92, 246, 0.5)' : 'rgba(96, 192, 240, 0.08)'};
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: ${({ $selected }) => $selected ? `${pulseGlow} 2s ease-in-out infinite` : 'none'};
+  ${({ $selected }) => $selected && selectedCardAnimation}
 
   &:hover {
     border-color: rgba(139, 92, 246, 0.3);

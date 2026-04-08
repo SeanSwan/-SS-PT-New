@@ -81,11 +81,18 @@ async function seedPackages() {
     if (existing > 0) {
       console.log(`Storefront already has ${existing} packages — skipping seed (use FORCE_RESEED=true to override).`);
       if (process.env.FORCE_RESEED !== 'true') return [];
-      // FORCE_RESEED: update existing rows by name instead of deleting (avoids FK constraint violations)
+      // FORCE_RESEED: find each package by name and update in-place.
+      // StorefrontItem has no unique constraint on 'name', so upsert by
+      // conflictFields is not safe — use findOne + update instead.
       for (const pkg of PACKAGES) {
-        await StorefrontItem.upsert(pkg, { conflictFields: ['name'] });
+        const existing = await StorefrontItem.findOne({ where: { name: pkg.name } });
+        if (existing) {
+          await existing.update(pkg);
+        } else {
+          await StorefrontItem.create(pkg);
+        }
       }
-      console.log(`Force-reseeded ${PACKAGES.length} storefront packages.`);
+      console.log(`Force-reseeded ${PACKAGES.length} storefront packages (findOne+update).`);
       return [];
     }
 
