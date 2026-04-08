@@ -12,7 +12,7 @@ import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Hash, FileText, Share2, Mail, CalendarDays, Users, Megaphone,
+  Search, Hash, FileText, Share2, Mail, CalendarDays, Users, Megaphone, BarChart3,
 } from 'lucide-react';
 
 // Lazy-load panels for code-splitting
@@ -23,9 +23,10 @@ const SocialPostGenerator = lazy(() => import('./marketing/SocialPostGenerator')
 const EmailDigestBuilder = lazy(() => import('./marketing/EmailDigestBuilder'));
 const MarketingCalendar = lazy(() => import('./marketing/MarketingCalendar'));
 const CompetitorAnalysisWidget = lazy(() => import('./marketing/CompetitorAnalysisWidget'));
+const SocialAnalyticsDashboard = lazy(() => import('./marketing/SocialAnalyticsDashboard'));
 
 // ─── Types ─────────────────────────────────────────────────────
-type TabId = 'seo' | 'keywords' | 'blog' | 'social' | 'email' | 'calendar' | 'competitors';
+type TabId = 'seo' | 'keywords' | 'blog' | 'social' | 'social-hub' | 'email' | 'calendar' | 'competitors';
 
 interface TabDef {
   id: TabId;
@@ -38,6 +39,7 @@ const TABS: TabDef[] = [
   { id: 'keywords', label: 'Keywords', icon: <Hash size={16} /> },
   { id: 'blog', label: 'Blog Writer', icon: <FileText size={16} /> },
   { id: 'social', label: 'Social Posts', icon: <Share2 size={16} /> },
+  { id: 'social-hub', label: 'Social Hub', icon: <BarChart3 size={16} /> },
   { id: 'email', label: 'Email Digest', icon: <Mail size={16} /> },
   { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
   { id: 'competitors', label: 'Competitors', icon: <Users size={16} /> },
@@ -48,6 +50,7 @@ const TAB_COMPONENTS: Record<TabId, React.LazyExoticComponent<React.FC>> = {
   keywords: KeywordResearchWidget,
   blog: BlogWriterPanel,
   social: SocialPostGenerator,
+  'social-hub': SocialAnalyticsDashboard,
   email: EmailDigestBuilder,
   calendar: MarketingCalendar,
   competitors: CompetitorAnalysisWidget,

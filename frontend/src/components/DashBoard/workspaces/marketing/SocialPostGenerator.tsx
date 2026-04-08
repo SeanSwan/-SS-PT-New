@@ -9,7 +9,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { Send, Clock, Hash, AlertTriangle, CheckCircle, Shield, Link2 } from 'lucide-react';
+import { Send, Clock, Hash, AlertTriangle, CheckCircle, Shield, Link2, Calendar } from 'lucide-react';
 import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
@@ -272,6 +272,8 @@ const SocialPostGenerator: React.FC = () => {
   } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const [scheduleMode, setScheduleMode] = useState(false);
 
   const config = PLATFORMS[platform];
   const charCount = caption.length;
@@ -344,13 +346,14 @@ const SocialPostGenerator: React.FC = () => {
         },
         body: JSON.stringify({
           content: fullContent,
-          platformIds: selectedAccountIds, // Resolved integration IDs from connected accounts
+          platformIds: selectedAccountIds,
           isAIGenerated: false,
+          ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setPublishStatus('Post published successfully!');
+        setPublishStatus(scheduleMode && scheduleDate ? `Post scheduled for ${new Date(scheduleDate).toLocaleString()}!` : 'Post published successfully!');
         setCaption('');
         setComplianceResult(null);
       } else {
@@ -361,7 +364,7 @@ const SocialPostGenerator: React.FC = () => {
     } finally {
       setPublishing(false);
     }
-  }, [caption, selectedTags, selectedAccountIds]);
+  }, [caption, selectedTags, selectedAccountIds, scheduleMode, scheduleDate]);
 
   return (
     <Grid>
@@ -477,6 +480,38 @@ const SocialPostGenerator: React.FC = () => {
           </StatusBanner>
         )}
 
+        {/* Schedule toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+            fontFamily: 'Sora, sans-serif', fontSize: 13, fontWeight: 600,
+            color: scheduleMode ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))',
+          }}>
+            <input
+              type="checkbox"
+              checked={scheduleMode}
+              onChange={e => setScheduleMode(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: '#60C0F0' }}
+            />
+            <Calendar size={14} /> Schedule for later
+          </label>
+          {scheduleMode && (
+            <input
+              type="datetime-local"
+              value={scheduleDate}
+              onChange={e => setScheduleDate(e.target.value)}
+              min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; })()}
+              style={{
+                minHeight: 44, padding: '8px 12px', borderRadius: 8,
+                border: '1px solid rgba(96, 192, 240, 0.2)',
+                background: 'var(--bg-base, #0A0A0F)',
+                color: 'var(--text-primary, #E0ECF4)',
+                fontFamily: 'Fira Code, monospace', fontSize: 13,
+              }}
+            />
+          )}
+        </div>
+
         <div style={{ display: 'flex', gap: 10 }}>
           <ActionButton
             $variant="secondary"
@@ -488,12 +523,12 @@ const SocialPostGenerator: React.FC = () => {
             Check Compliance
           </ActionButton>
           <ActionButton
-            disabled={!caption.trim() || isOver || selectedAccountIds.length === 0 || publishing}
+            disabled={!caption.trim() || isOver || selectedAccountIds.length === 0 || publishing || (scheduleMode && !scheduleDate)}
             onClick={handlePublish}
             style={{ flex: 1 }}
           >
-            <Send size={14} style={{ marginRight: 6 }} />
-            {publishing ? 'Publishing...' : `Publish to ${selectedAccountIds.length} Account${selectedAccountIds.length !== 1 ? 's' : ''}`}
+            {scheduleMode ? <Calendar size={14} style={{ marginRight: 6 }} /> : <Send size={14} style={{ marginRight: 6 }} />}
+            {publishing ? 'Publishing...' : scheduleMode ? 'Schedule Post' : `Publish to ${selectedAccountIds.length} Account${selectedAccountIds.length !== 1 ? 's' : ''}`}
           </ActionButton>
         </div>
       </MarketingCard>
