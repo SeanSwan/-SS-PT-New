@@ -10,9 +10,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   Sparkles, Upload, Save, Image, RefreshCw, Zap, AlertTriangle,
-  CheckCircle,
+  CheckCircle, Grid3X3,
 } from 'lucide-react';
 import StyleBrowser, { type ArtStyle } from './StyleBrowser';
+import BadgeGalleryPanel from './BadgeGalleryPanel';
 
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
@@ -239,7 +240,7 @@ const StatusMsg = styled.div<{ $type: 'success' | 'error' }>`
 `;
 
 const BadgeCreatorPage: React.FC = () => {
-  const [mode, setMode] = useState<'generate' | 'upload'>('generate');
+  const [mode, setMode] = useState<'generate' | 'upload' | 'gallery'>('generate');
   const [styles, setStyles] = useState<ArtStyle[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<ArtStyle | null>(null);
   const [prompt, setPrompt] = useState('');
@@ -346,6 +347,9 @@ const BadgeCreatorPage: React.FC = () => {
         <ModeTab $active={mode === 'upload'} onClick={() => setMode('upload')}>
           <Upload size={16} /> Upload Custom
         </ModeTab>
+        <ModeTab $active={mode === 'gallery'} onClick={() => setMode('gallery')}>
+          <Grid3X3 size={16} /> Gallery
+        </ModeTab>
       </ModeTabs>
 
       {statusMsg && (
@@ -355,6 +359,9 @@ const BadgeCreatorPage: React.FC = () => {
         </StatusMsg>
       )}
 
+      {mode === 'gallery' ? (
+        <BadgeGalleryPanel />
+      ) : (
       <Grid>
         <div>
           {mode === 'generate' ? (
@@ -451,6 +458,7 @@ const BadgeCreatorPage: React.FC = () => {
           )}
         </Card>
       </Grid>
+      )}
     </PageWrapper>
   );
 };

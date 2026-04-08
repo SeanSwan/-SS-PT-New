@@ -132,6 +132,8 @@ router.post('/save', async (req, res) => {
       category: 'custom',
       rarity: rarity || 'common',
       xpReward: abilityPoints || 50,
+      prompt: prompt || null,
+      style: style || null,
     });
 
     logger.info(`[AUDIT] Admin ${req.user.id} saved badge "${name}" (${badge.id})`);
@@ -143,6 +145,74 @@ router.post('/save', async (req, res) => {
     }
     logger.error('Failed to save badge:', err.message);
     res.status(500).json({ success: false, message: 'Failed to save badge' });
+  }
+});
+
+// ── Badge Gallery ────────────────────────────────────────────
+// GET /api/admin/badge-creator/gallery
+router.get('/gallery', async (req, res) => {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const { rarity, category, assignedTo } = req.query;
+    const where = {};
+    if (rarity) where.rarity = rarity;
+    if (category) where.category = category;
+    if (assignedTo) where.assignedTo = assignedTo;
+
+    const badges = await Badge.findAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: 200,
+    });
+    res.json({ success: true, data: badges });
+  } catch (err) {
+    logger.error('Badge gallery error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to load gallery' });
+  }
+});
+
+// ── Assign Badge to Achievement/Milestone ────────────────────
+// PATCH /api/admin/badge-creator/:badgeId/assign
+router.patch('/:badgeId/assign', async (req, res) => {
+  const { badgeId } = req.params;
+  const { assignedTo, assignedTarget } = req.body;
+
+  if (!assignedTo || !assignedTarget) {
+    return res.status(400).json({ success: false, message: 'assignedTo and assignedTarget are required' });
+  }
+  const validTypes = ['achievement', 'tab', 'milestone'];
+  if (!validTypes.includes(assignedTo)) {
+    return res.status(400).json({ success: false, message: `assignedTo must be: ${validTypes.join(', ')}` });
+  }
+
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    await badge.update({ assignedTo, assignedTarget });
+    logger.info(`[AUDIT] Admin ${req.user.id} assigned badge "${badge.name}" → ${assignedTo}:${assignedTarget}`);
+    res.json({ success: true, data: badge });
+  } catch (err) {
+    logger.error('Badge assign error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to assign badge' });
+  }
+});
+
+// ── Unassign Badge ───────────────────────────────────────────
+// PATCH /api/admin/badge-creator/:badgeId/unassign
+router.patch('/:badgeId/unassign', async (req, res) => {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(req.params.badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    await badge.update({ assignedTo: null, assignedTarget: null });
+    logger.info(`[AUDIT] Admin ${req.user.id} unassigned badge "${badge.name}"`);
+    res.json({ success: true, data: badge });
+  } catch (err) {
+    logger.error('Badge unassign error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to unassign badge' });
   }
 });
 

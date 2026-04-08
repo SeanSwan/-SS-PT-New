@@ -37,6 +37,27 @@ Badge.init({
     defaultValue: 'common',
     comment: 'Rarity tier: common, rare, epic, legendary',
   },
+  // Phase 2: Assignment targets
+  assignedTo: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Assignment type: achievement, tab, milestone, or null (unassigned)',
+  },
+  assignedTarget: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Target identifier: achievement name, tab key (e.g. "workout", "nutrition"), milestone ID',
+  },
+  prompt: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'AI generation prompt (for reference)',
+  },
+  style: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Art style ID used for generation',
+  },
 }, {
   sequelize,
   modelName: 'Badge',

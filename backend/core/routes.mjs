@@ -410,6 +410,24 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Recraft V3
   app.use('/api/olympics', olympicRoutes); // Virtual Olympics — Ghost Racing competitive events
 
+  // Public tab icon overrides — needed by all roles on dashboard init
+  app.get('/api/badge-tab-icons', async (_req, res) => {
+    try {
+      const { default: Badge } = (await import('../models/Badge.mjs'));
+      const overrides = await Badge.findAll({
+        where: { assignedTo: 'tab' },
+        attributes: ['assignedTarget', 'imageUrl', 'name'],
+      });
+      const iconMap = {};
+      for (const b of overrides) {
+        iconMap[b.assignedTarget] = { imageUrl: b.imageUrl, name: b.name };
+      }
+      res.json({ success: true, data: iconMap });
+    } catch {
+      res.json({ success: true, data: {} }); // Fail open — use default icons
+    }
+  });
+
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)
   app.use('/api/admin', adminWorkoutLoggerRoutes); // Phase 1B: Admin workout logging API
