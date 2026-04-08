@@ -471,7 +471,7 @@ const TrainerAssessmentsPage: React.FC = () => {
       userId: Number(clientId),
       fullName: selectedClient?.name || 'Client',
       status: 'completed',
-      source: 'trainer_assessment',
+      source: 'in_session',
       assessmentDate: date,
       trainerNotes: notes || null,
     };

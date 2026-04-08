@@ -29,8 +29,12 @@ export const createMovementAnalysis = async (req, res) => {
     }
 
     // Normalize source values from different frontend surfaces
-    const VALID_SOURCES = ['orientation', 'admin_dashboard', 'in_session', 'trainer_assessment'];
-    const normalizedSource = VALID_SOURCES.includes(source) ? source : 'admin_dashboard';
+    // NOTE: DB ENUM is ('orientation', 'admin_dashboard', 'in_session') — trainer_assessment maps to in_session
+    const SOURCE_MAP = { trainer_assessment: 'in_session' };
+    const VALID_SOURCES = ['orientation', 'admin_dashboard', 'in_session'];
+    const normalizedSource = VALID_SOURCES.includes(source)
+      ? source
+      : (SOURCE_MAP[source] || 'admin_dashboard');
 
     // Calculate scores if OHSA data provided
     let nasmAssessmentScore = null;

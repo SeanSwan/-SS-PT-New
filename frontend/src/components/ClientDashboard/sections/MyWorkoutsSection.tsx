@@ -351,80 +351,6 @@ const CenterBox = styled.div`
 
 // ─── Data ────────────────────────────────────────────────────────────
 
-// Placeholder workout plans
-const workoutPlans = [
-  {
-    id: 1,
-    name: "Full Body Workout",
-    type: "Strength",
-    duration: 45,
-    lastCompleted: "2 days ago",
-    progress: 80,
-    exercises: [
-      { name: "Squats", sets: 3, reps: 12 },
-      { name: "Push-ups", sets: 3, reps: 15 },
-      { name: "Deadlifts", sets: 3, reps: 10 },
-      { name: "Lunges", sets: 2, reps: 12 },
-      { name: "Plank", sets: 3, reps: "30 seconds" }
-    ]
-  },
-  {
-    id: 2,
-    name: "HIIT Cardio",
-    type: "Cardio",
-    duration: 30,
-    lastCompleted: "5 days ago",
-    progress: 60,
-    exercises: [
-      { name: "Jumping Jacks", sets: 3, reps: "30 seconds" },
-      { name: "Mountain Climbers", sets: 3, reps: "30 seconds" },
-      { name: "Burpees", sets: 3, reps: 10 },
-      { name: "High Knees", sets: 3, reps: "30 seconds" },
-      { name: "Rest", sets: 3, reps: "15 seconds" }
-    ]
-  },
-  {
-    id: 3,
-    name: "Dance Workout",
-    type: "Dance",
-    duration: 40,
-    lastCompleted: "1 week ago",
-    progress: 45,
-    exercises: [
-      { name: "Warm-up", sets: 1, reps: "5 minutes" },
-      { name: "Hip-hop Routine", sets: 1, reps: "10 minutes" },
-      { name: "Latin Dance", sets: 1, reps: "10 minutes" },
-      { name: "Freestyle", sets: 1, reps: "10 minutes" },
-      { name: "Cool Down", sets: 1, reps: "5 minutes" }
-    ]
-  }
-];
-
-// Past sessions
-const pastSessions = [
-  {
-    id: 201,
-    type: "Personal Training",
-    dateTime: "May 8, 2025 - 11:00 AM",
-    trainer: "Alex Johnson",
-    completed: true
-  },
-  {
-    id: 202,
-    type: "Group Yoga",
-    dateTime: "May 5, 2025 - 9:00 AM",
-    trainer: "Sarah Chen",
-    completed: true
-  },
-  {
-    id: 203,
-    type: "Personal Training",
-    dateTime: "May 1, 2025 - 10:30 AM",
-    trainer: "Alex Johnson",
-    completed: true
-  }
-];
-
 /**
  * MyWorkoutsSection Component
  *
@@ -437,24 +363,9 @@ const MyWorkoutsSection: React.FC = () => {
   const [availableSessions, setAvailableSessions] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [sessionsInfo, setSessionsInfo] = useState<any>(null);
-
-  // Upcoming sessions data (state)
-  const [upcomingSessions, setUpcomingSessions] = useState([
-    {
-      id: 101,
-      type: "Personal Training",
-      dateTime: "May 22, 2025 - 10:00 AM",
-      trainer: "Alex Johnson",
-      focus: "Strength & Conditioning"
-    },
-    {
-      id: 102,
-      type: "Group Dance Class",
-      dateTime: "May 25, 2025 - 6:00 PM",
-      trainer: "Maria Rodriguez",
-      focus: "Latin Dance Fundamentals"
-    }
-  ]);
+  const [workoutPlans, setWorkoutPlans] = useState<any[]>([]);
+  const [pastSessions, setPastSessions] = useState<any[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
 
   const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
@@ -468,7 +379,7 @@ const MyWorkoutsSection: React.FC = () => {
       setIsLoading(true);
       try {
         // Try to get user data from API
-        const response = await authAxios.get('/api/users/me');
+        const response = await authAxios.get('/api/auth/me');
 
         if (response.data) {
           setAvailableSessions(response.data.availableSessions || 0);
@@ -534,6 +445,12 @@ const MyWorkoutsSection: React.FC = () => {
 
       {/* My Plans Tab */}
       {tabValue === 0 && (
+        workoutPlans.length === 0 ? (
+          <Surface $centered>
+            <BodyText $gutterBottom>No workout plans assigned yet.</BodyText>
+            <BodyText $secondary>Your trainer will assign plans here once your program begins.</BodyText>
+          </Surface>
+        ) :
         <GridContainer>
           {workoutPlans.map(workout => (
             <StyledCard key={workout.id}>
@@ -693,7 +610,12 @@ const MyWorkoutsSection: React.FC = () => {
         <>
           <SectionTitle>Session History</SectionTitle>
 
-          {pastSessions.map(session => (
+          {pastSessions.length === 0 ? (
+            <Surface $centered>
+              <BodyText $gutterBottom>No completed sessions yet.</BodyText>
+              <BodyText $secondary>Your session history will appear here after your first workout.</BodyText>
+            </Surface>
+          ) : pastSessions.map(session => (
             <Surface key={session.id} style={{ padding: 16 }}>
               <FlexRow $justify="space-between" $align="center">
                 <div>

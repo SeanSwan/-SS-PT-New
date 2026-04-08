@@ -5,6 +5,7 @@ import { Shield, Dumbbell, Send } from 'lucide-react';
 
 // Import GlowButton to replace regular button
 import GlowButton from '../../ui/GlowButton';
+import { useAuth } from '../../../context/AuthContext';
 
 // Define interfaces for type safety
 interface Message {
@@ -245,86 +246,35 @@ const RecipientName = styled.h3`
  * different conversation types.
  */
 const EnhancedMessagingSection: React.FC = () => {
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [newMessage, setNewMessage] = useState('');
   const [adminMessages, setAdminMessages] = useState<Message[]>([]);
   const [trainerMessages, setTrainerMessages] = useState<Message[]>([]);
-  
-  // Mock client ID - in a real app, this would come from auth
-  const clientId = 'client123';
-  const clientName = 'Sarah Johnson';
-  
-  // Mock users/contacts
+
+  const clientId = user?.id?.toString() || '';
+  const clientName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username
+    : 'You';
+
   const admin = {
-    id: 'admin456',
+    id: 'admin',
     name: 'Admin Support',
     type: 'admin' as const,
     avatar: undefined
   };
-  
+
   const trainer = {
-    id: 'trainer789',
-    name: 'Jason Miller',
+    id: 'trainer',
+    name: 'Your Trainer',
     type: 'trainer' as const,
     avatar: undefined
   };
-  
-  // Mock initial messages (in a real app, these would be fetched from API)
+
+  // Messages loaded from API — empty until real messaging endpoint is wired
   useEffect(() => {
-    // Simulate loading message history
-    setAdminMessages([
-      {
-        id: 1,
-        sender: admin,
-        recipient: { id: clientId, type: 'client' },
-        text: 'Welcome to Swan Studios! How can I help you today?',
-        timestamp: new Date(Date.now() - 86400000), // 1 day ago
-        read: true
-      },
-      {
-        id: 2,
-        sender: { id: clientId, name: clientName, type: 'client' },
-        recipient: { id: admin.id, type: 'admin' },
-        text: 'I have a question about my subscription.',
-        timestamp: new Date(Date.now() - 82800000), // 23 hours ago
-        read: true
-      },
-      {
-        id: 3,
-        sender: admin,
-        recipient: { id: clientId, type: 'client' },
-        text: 'Of course! What would you like to know about your subscription?',
-        timestamp: new Date(Date.now() - 79200000), // 22 hours ago
-        read: true
-      }
-    ]);
-    
-    setTrainerMessages([
-      {
-        id: 101,
-        sender: trainer,
-        recipient: { id: clientId, type: 'client' },
-        text: 'Great job on yesterday\'s workout! How are you feeling today?',
-        timestamp: new Date(Date.now() - 43200000), // 12 hours ago
-        read: true
-      },
-      {
-        id: 102,
-        sender: { id: clientId, name: clientName, type: 'client' },
-        recipient: { id: trainer.id, type: 'trainer' },
-        text: 'Thanks! I\'m feeling good but a little sore in my shoulders.',
-        timestamp: new Date(Date.now() - 39600000), // 11 hours ago
-        read: true
-      },
-      {
-        id: 103,
-        sender: trainer,
-        recipient: { id: clientId, type: 'client' },
-        text: 'That\'s normal after the exercises we did. Make sure to stretch and I\'ll adjust our next session to focus more on recovery.',
-        timestamp: new Date(Date.now() - 36000000), // 10 hours ago
-        read: true
-      }
-    ]);
+    setAdminMessages([]);
+    setTrainerMessages([]);
   }, []);
   
   // Handle tab change
