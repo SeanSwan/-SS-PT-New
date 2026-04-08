@@ -211,4 +211,242 @@ router.patch('/room', async (req, res) => {
   }
 });
 
+// ── Phase 3: Unlock gate helper ─────────────────────────────────
+async function requireUnlockedHome(userId) {
+  const { default: AvatarHome } = await import('../models/AvatarHome.mjs');
+  const home = await AvatarHome.findOne({ where: { userId } });
+  if (!home) return { home: null, error: 'Avatar home not found', status: 404 };
+  if (!home.unlocked) return { home: null, error: 'Reach Level 10 to unlock this feature', status: 403 };
+  return { home, error: null, status: 200 };
+}
+
+// ── Phase 3: Crystalline Marketplace ────────────────────────────
+
+const MARKETPLACE_CATALOG = [
+  // Furniture
+  { id: 'crystal_bed', type: 'furniture', name: 'Crystalline Bed', room: 'bedroom', slot: 'bed', price: 500, rarity: 'epic' },
+  { id: 'aurora_poster', type: 'furniture', name: 'Aurora Borealis Wall', room: 'bedroom', slot: 'decor', price: 300, rarity: 'rare' },
+  { id: 'smart_kitchen', type: 'furniture', name: 'Smart Kitchen Island', room: 'kitchen', slot: 'table', price: 400, rarity: 'rare' },
+  { id: 'holographic_rack', type: 'furniture', name: 'Holographic Training Rack', room: 'training_room', slot: 'equipment', price: 800, rarity: 'legendary' },
+  // Pet Skins
+  { id: 'golden_dragon', type: 'pet_skin', name: 'Golden Dragon Skin', species: 'dragon', price: 600, rarity: 'epic' },
+  { id: 'arctic_wolf', type: 'pet_skin', name: 'Arctic Wolf Skin', species: 'wolf', price: 400, rarity: 'rare' },
+  { id: 'ember_phoenix', type: 'pet_skin', name: 'Ember Phoenix Skin', species: 'phoenix', price: 500, rarity: 'epic' },
+  { id: 'shadow_panther', type: 'pet_skin', name: 'Midnight Panther Skin', species: 'panther', price: 350, rarity: 'rare' },
+  { id: 'crystal_swan', type: 'pet_skin', name: 'Crystal Swan Skin', species: 'swan', price: 700, rarity: 'legendary' },
+  // Outfits
+  { id: 'crystalline_suit', type: 'outfit', name: 'Crystalline Training Suit', price: 450, rarity: 'epic' },
+  { id: 'obsidian_armor', type: 'outfit', name: 'Obsidian Battle Armor', price: 600, rarity: 'epic' },
+  { id: 'golden_tracksuit', type: 'outfit', name: 'Gilded Fern Tracksuit', price: 350, rarity: 'rare' },
+  { id: 'legendary_wings', type: 'outfit', name: 'Swan Wing Cape', price: 1000, rarity: 'legendary' },
+  { id: 'starter_casual', type: 'outfit', name: 'Casual Workout Tee', price: 100, rarity: 'common' },
+];
+
+// GET /api/avatar-home/marketplace
+router.get('/marketplace', async (_req, res) => {
+  res.json({ success: true, data: MARKETPLACE_CATALOG });
+});
+
+// GET /api/avatar-home/crystals
+router.get('/crystals', async (req, res) => {
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+    res.json({
+      success: true,
+      data: {
+        balance: home.crystalBalance || 0,
+        ownedItems: home.ownedItems || [],
+      },
+    });
+  } catch (err) {
+    logger.error('Crystal balance error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch balance' });
+  }
+});
+
+// POST /api/avatar-home/marketplace/purchase
+router.post('/marketplace/purchase', async (req, res) => {
+  const { itemId } = req.body;
+  if (!itemId) return res.status(400).json({ success: false, message: 'itemId required' });
+
+  const catalogItem = MARKETPLACE_CATALOG.find(i => i.id === itemId);
+  if (!catalogItem) return res.status(404).json({ success: false, message: 'Item not found in catalog' });
+
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+
+    // Check already owned
+    const owned = home.ownedItems || [];
+    if (owned.some(i => i.id === itemId)) {
+      return res.status(409).json({ success: false, message: 'Already owned' });
+    }
+
+    // Check balance
+    if (home.crystalBalance < catalogItem.price) {
+      return res.status(400).json({
+        success: false,
+        message: `Not enough crystals. Need ${catalogItem.price}, have ${home.crystalBalance}.`,
+      });
+    }
+
+    const newItem = { id: catalogItem.id, type: catalogItem.type, name: catalogItem.name, rarity: catalogItem.rarity, equippedIn: null };
+    const updatedOwned = [...owned, newItem];
+    const newBalance = home.crystalBalance - catalogItem.price;
+
+    await home.update({ ownedItems: updatedOwned, crystalBalance: newBalance });
+
+    logger.info(`[AUDIT] User ${req.user.id} purchased "${catalogItem.name}" for ${catalogItem.price} crystals`);
+    res.json({ success: true, data: { item: newItem, crystalBalance: newBalance } });
+  } catch (err) {
+    logger.error('Marketplace purchase error:', err.message);
+    res.status(500).json({ success: false, message: 'Purchase failed' });
+  }
+});
+
+// POST /api/avatar-home/marketplace/equip
+router.post('/marketplace/equip', async (req, res) => {
+  const { itemId, target } = req.body;
+  if (!itemId) return res.status(400).json({ success: false, message: 'itemId required' });
+
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+
+    const owned = [...(home.ownedItems || [])];
+    const idx = owned.findIndex(i => i.id === itemId);
+    if (idx === -1) return res.status(404).json({ success: false, message: 'Item not owned' });
+
+    owned[idx] = { ...owned[idx], equippedIn: target || 'active' };
+    await home.update({ ownedItems: owned });
+    res.json({ success: true, data: { ownedItems: owned } });
+  } catch (err) {
+    logger.error('Equip error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to equip item' });
+  }
+});
+
+// ── Phase 3: Corporate Faction Hooks (Architecture Only) ────────
+
+// PATCH /api/avatar-home/faction
+router.patch('/faction', async (req, res) => {
+  const { factionId } = req.body;
+
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+
+    await home.update({ factionId: factionId || null });
+    logger.info(`[AUDIT] User ${req.user.id} ${factionId ? `joined faction "${factionId}"` : 'left faction'}`);
+    res.json({ success: true, data: { factionId: home.factionId } });
+  } catch (err) {
+    logger.error('Faction update error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to update faction' });
+  }
+});
+
+// GET /api/avatar-home/faction
+router.get('/faction', async (req, res) => {
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+    res.json({ success: true, data: { factionId: home.factionId || null } });
+  } catch (err) {
+    logger.error('Faction fetch error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch faction' });
+  }
+});
+
+// ── Phase 3: Ready Player Me Avatar ────────────────────────────
+
+// PATCH /api/avatar-home/ready-player-me
+router.patch('/ready-player-me', async (req, res) => {
+  const { avatarUrl } = req.body;
+  if (!avatarUrl || typeof avatarUrl !== 'string') {
+    return res.status(400).json({ success: false, message: 'avatarUrl is required' });
+  }
+
+  // Validate Ready Player Me URL format
+  if (!avatarUrl.includes('readyplayer.me') && !avatarUrl.includes('models.readyplayer.me')) {
+    return res.status(400).json({ success: false, message: 'Invalid Ready Player Me URL' });
+  }
+
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+
+    await home.update({ readyPlayerMeUrl: avatarUrl });
+    logger.info(`[AUDIT] User ${req.user.id} linked Ready Player Me avatar`);
+    res.json({ success: true, data: { readyPlayerMeUrl: avatarUrl } });
+  } catch (err) {
+    logger.error('RPM avatar error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to save avatar URL' });
+  }
+});
+
+// ── Phase 3: Wearable Recovery Data (HealthKit/Google Fit) ──────
+
+// POST /api/avatar-home/recovery-sync
+router.post('/recovery-sync', async (req, res) => {
+  const { sleepHours, hrv, restingHR, steps, source } = req.body;
+
+  const VALID_SOURCES = ['healthkit', 'google_fit'];
+  if (!source || !VALID_SOURCES.includes(source)) {
+    return res.status(400).json({ success: false, message: `source must be: ${VALID_SOURCES.join(', ')}` });
+  }
+
+  try {
+    const { home, error, status } = await requireUnlockedHome(req.user.id);
+    if (!home) return res.status(status).json({ success: false, message: error });
+
+    const recoveryData = {
+      sleepHours: sleepHours || null,
+      hrv: hrv || null,
+      restingHR: restingHR || null,
+      steps: steps || null,
+      source,
+      syncedAt: new Date().toISOString(),
+      recoveryRecommendation: computeRecoveryRecommendation(sleepHours, hrv, restingHR),
+    };
+
+    await home.update({ wearableRecoveryData: recoveryData });
+
+    logger.info(`[AUDIT] User ${req.user.id} synced recovery data from ${source}`);
+    res.json({ success: true, data: { wearableRecoveryData: recoveryData } });
+  } catch (err) {
+    logger.error('Recovery sync error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to sync recovery data' });
+  }
+});
+
+function computeRecoveryRecommendation(sleepHours, hrv, restingHR) {
+  let score = 0;
+  let factors = 0;
+
+  if (sleepHours != null) {
+    score += sleepHours >= 7 ? 100 : sleepHours >= 6 ? 70 : 40;
+    factors++;
+  }
+  if (hrv != null) {
+    score += hrv >= 50 ? 100 : hrv >= 30 ? 70 : 40;
+    factors++;
+  }
+  if (restingHR != null) {
+    score += restingHR <= 60 ? 100 : restingHR <= 75 ? 70 : 40;
+    factors++;
+  }
+
+  if (factors === 0) return { score: null, recommendation: 'Sync wearable data for recovery insights' };
+
+  const avg = Math.round(score / factors);
+  const recommendation = avg >= 80
+    ? 'Great recovery — ready for high-intensity training!'
+    : avg >= 60
+      ? 'Moderate recovery — consider lighter volume today.'
+      : 'Low recovery — prioritize flexibility and rest. Wisdom XP awaits!';
+
+  return { score: avg, recommendation };
+}
+
 export default router;

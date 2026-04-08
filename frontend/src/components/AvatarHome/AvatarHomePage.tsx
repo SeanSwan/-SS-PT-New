@@ -15,6 +15,9 @@ import MinimalistView from './MinimalistView';
 import HomeWorld from './HomeWorld';
 import CompanionPetPanel from './CompanionPetPanel';
 import PetAdoptionModal from './PetAdoptionModal';
+import CrystallineMarketplace from './CrystallineMarketplace';
+import FactionHooksPanel from './FactionHooksPanel';
+import ReadyPlayerMeAvatar from './ReadyPlayerMeAvatar';
 
 const PageWrapper = styled.div`
   min-height: 100%;
@@ -96,6 +99,7 @@ interface HomeData {
   activeRoom: string;
   furniture: Record<string, Record<string, string>>;
   minimalistMode: boolean;
+  readyPlayerMeUrl: string | null;
 }
 
 const HomeLayout = styled.div`
@@ -238,6 +242,20 @@ const AvatarHomePage: React.FC = () => {
             />
           )}
         </HomeLayout>
+      )}
+
+      {/* Phase 3: Marketplace, Factions, Ready Player Me */}
+      {!homeData.minimalistMode && (
+        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <CrystallineMarketplace />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <FactionHooksPanel />
+            <ReadyPlayerMeAvatar
+              currentUrl={homeData.readyPlayerMeUrl}
+              onAvatarUpdate={(url) => setHomeData(prev => prev ? { ...prev, readyPlayerMeUrl: url } : prev)}
+            />
+          </div>
+        </div>
       )}
 
       {showAdoptModal && userId > 0 && (

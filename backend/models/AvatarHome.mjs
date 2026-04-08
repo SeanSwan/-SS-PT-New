@@ -92,6 +92,33 @@ AvatarHome.init(
       defaultValue: 'default',
       comment: 'Saved camera position preference',
     },
+
+    // Phase 3: Marketplace, Factions, Ready Player Me
+    ownedItems: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+      comment: 'Array of purchased marketplace items: [{id, type, name, rarity, equippedIn}]',
+    },
+    crystalBalance: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      comment: 'In-app currency for marketplace purchases (earned through gameplay)',
+    },
+    factionId: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      comment: 'Corporate faction membership (architecture hook — Phase 3)',
+    },
+    readyPlayerMeUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      comment: 'Ready Player Me avatar GLB URL from face scan',
+    },
+    wearableRecoveryData: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'Latest HealthKit/Google Fit recovery data for gamification',
+    },
   },
   {
     sequelize,
