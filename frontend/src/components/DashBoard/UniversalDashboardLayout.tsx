@@ -124,6 +124,7 @@ const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/Equipm
 const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'));
 const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 const VideoCallPage = React.lazy(() => import('../VideoChat/VideoCallPage'));
+const AvatarHomePage = React.lazy(() => import('../AvatarHome/AvatarHomePage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 
@@ -553,7 +554,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Communication hub for clients and trainers' },
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
-      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' }
+      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
     ],
     defaultPath: '/coach-assistant'
   },
@@ -576,7 +578,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder' },
       { path: '/body-map', component: BodyMapPage, title: 'Client Pain Charts', description: 'View and manage client pain and injury tracking' },
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
-      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' }
+      { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
     ],
     defaultPath: '/overview'
   },
@@ -596,7 +599,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
       { path: '/profile', component: ClientProfilePage, title: 'Profile', description: 'Personal settings and preferences' },
       { path: '/rewards', component: ClientRewardsPage, title: 'Rewards', description: 'Points, achievements, and tier progress' },
-      { path: '/body-map', component: BodyMapPage, title: 'Pain & Injury Chart', description: 'Track pain areas and injury recovery' }
+      { path: '/body-map', component: BodyMapPage, title: 'Pain & Injury Chart', description: 'Track pain areas and injury recovery' },
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
     ],
     defaultPath: '/overview'
   }

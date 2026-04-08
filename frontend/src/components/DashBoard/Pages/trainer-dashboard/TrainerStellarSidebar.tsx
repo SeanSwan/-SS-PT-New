@@ -24,7 +24,7 @@ import {
   Activity, Users, ClipboardCheck, BarChart3, Target,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame, Wrench,
-  HeartPulse, Zap,
+  HeartPulse, Zap, Home,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -472,6 +472,7 @@ const trainerNavConfig = [
     items: [
       { label: 'My Schedule', path: '/dashboard/trainer/schedule', icon: Calendar },
       { label: 'Client Messages', path: '/dashboard/trainer/messages', icon: MessageSquare },
+      { label: 'My Home', path: '/dashboard/trainer/my-home', icon: Home },
     ],
   },
 ];

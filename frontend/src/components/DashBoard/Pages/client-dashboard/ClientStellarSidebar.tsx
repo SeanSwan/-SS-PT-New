@@ -467,6 +467,7 @@ const clientNavConfig = [
     items: [
       { label: 'My Profile & Settings', path: '/dashboard/client/profile', icon: User },
       { label: 'My Rewards', path: '/dashboard/client/rewards', icon: Award },
+      { label: 'My Home', path: '/dashboard/client/my-home', icon: Home },
     ],
   },
 ];

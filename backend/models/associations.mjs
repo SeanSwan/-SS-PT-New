@@ -77,6 +77,7 @@ const setupAssociations = async () => {
     
     // Video Chat Models (Sequelize)
     const VideoSessionModule = await import('./VideoSession.mjs');
+    const AvatarHomeModule = await import('./AvatarHome.mjs');
 
     // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
@@ -255,6 +256,7 @@ const setupAssociations = async () => {
     const WorkoutPlanDayExercise = WorkoutPlanDayExerciseModule.default;
     const WorkoutSession = WorkoutSessionModule.default;
     const VideoSession = VideoSessionModule.default;
+    const AvatarHome = AvatarHomeModule.default;
     const WorkoutLog = WorkoutLogModule.default;
     const WorkoutExercise = WorkoutExerciseModule.default;
     const Exercise = ExerciseModule.default;
@@ -518,6 +520,10 @@ const setupAssociations = async () => {
     // Trainer who led the workout (optional - for trainer-led sessions)
     User.hasMany(WorkoutSession, { foreignKey: 'trainerId', as: 'ledWorkoutSessions' });
     WorkoutSession.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    // Avatar Home associations (3D world — unlocks at Level 10)
+    User.hasOne(AvatarHome, { foreignKey: 'userId', as: 'avatarHome' });
+    AvatarHome.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     // Video Session associations (remote assessments via LiveKit)
     User.hasMany(VideoSession, { foreignKey: 'trainerId', as: 'trainerVideoSessions' });
@@ -1265,6 +1271,7 @@ const setupAssociations = async () => {
       WorkoutPlanDayExercise,
       WorkoutSession,
       VideoSession,
+      AvatarHome,
       WorkoutLog,
       WorkoutExercise,
       Exercise,

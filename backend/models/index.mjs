@@ -148,6 +148,7 @@ export const getExercise = () => getModel('Exercise');
 export const getWorkoutPlan = () => getModel('WorkoutPlan');
 export const getWorkoutSession = () => getModel('WorkoutSession');
 export const getVideoSession = () => getModel('VideoSession');
+export const getAvatarHome = () => getModel('AvatarHome');
 export const getWorkoutLog = () => getModel('WorkoutLog');
 
 // NASM Workout Tracking Models
