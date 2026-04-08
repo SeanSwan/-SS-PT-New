@@ -31,22 +31,14 @@ We're continuing from a massive build sprint. Here's where we are:
 | `a17af5ab` | **6.2 Gamification Phase 2** — CompanionPetPanel, PetAdoptionModal, VirtualOlympicsPage, Ghost Racing, Recovery Day Wisdom XP | Deployed, Codex R4 |
 | `c7023137` | **6.3 Badge Creator Phase 2** — BadgeGalleryPanel, rarity borders, assignment system (achievement/tab/milestone), public tab-icons API | Deployed, Codex R2 |
 
-### Phase 3 Builds (In Progress)
-| Feature | Status | Details |
-|---------|--------|---------|
-| **6.4 Social Media Phase 3** | **BUILT, NOT YET COMMITTED** — Awaiting Codex R2 | ContentCalendarPanel (7-day AI calendar, best-time-to-post, auto-post templates with live DB stats), 3 new backend endpoints |
+### Phase 3 Builds
+| Commit | Feature | Status |
+|--------|---------|--------|
+| `3f84b8a9` | **6.4 Social Media Phase 3** — AI content calendar, best-time-to-post, auto-post templates | Deployed, Codex R2 |
 
 ## What Needs To Happen Next (IN ORDER)
 
-### 1. Commit 6.4 Social Media Phase 3 (awaiting Codex)
-- **Debate file:** `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-6.4-PHASE3-2026-04-07.md`
-- Either Codex R2 is already in the file, or Sean needs to send the prompt
-- After consensus → commit + push these files:
-  - `backend/routes/adminSocialPublishingRoutes.mjs` (modified — 3 new endpoints)
-  - `frontend/src/components/DashBoard/workspaces/marketing/ContentCalendarPanel.tsx` (new)
-  - `frontend/src/components/DashBoard/workspaces/MarketingWorkspace.tsx` (modified — AI Calendar tab)
-
-### 2. Phase 3 Builds (continue in order)
+### 1. Remaining Phase 3 Builds (continue in order)
 | Feature | Phase 3 Scope | CEO Ruling Reference |
 |---------|---------------|---------------------|
 | **6.3 Badge Creator** | Batch generation (5 variations), style mixing, avatar icons for pets, animated badges (Lottie) | `opus-ceo-ruling-badge-creator.md` |
@@ -92,7 +84,7 @@ We're continuing from a massive build sprint. Here's where we are:
 - `frontend/src/components/VirtualOlympics/VirtualOlympicsPage.tsx` — 3 events + Ghost Racing + leaderboard
 - `frontend/src/components/BadgeCreator/BadgeGalleryPanel.tsx` — filterable gallery + assignment UI
 
-### Phase 3 Files (not yet committed — awaiting Codex on 6.4)
+### Phase 3 Files (committed)
 - `frontend/src/components/DashBoard/workspaces/marketing/ContentCalendarPanel.tsx` — AI calendar + best times + auto-post templates
 
 ## AI Village Runs (4 completed, $1.30 total)
