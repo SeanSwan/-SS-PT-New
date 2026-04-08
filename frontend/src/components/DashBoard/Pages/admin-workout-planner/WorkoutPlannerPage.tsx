@@ -416,7 +416,6 @@ const WorkoutPlannerPage: React.FC = () => {
         title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
         description: `${categoryLabel} — ${goal}`,
         nasmPhase: phaseNumber,
-        status: 'draft',
         planData: {
           weeks: [{
             weekNumber: 1,

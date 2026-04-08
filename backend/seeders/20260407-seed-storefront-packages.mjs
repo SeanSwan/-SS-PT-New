@@ -79,12 +79,17 @@ async function seedPackages() {
   try {
     const existing = await StorefrontItem.count();
     if (existing > 0) {
-      console.log(`Storefront already has ${existing} packages — clearing and reseeding...`);
-      await StorefrontItem.destroy({ where: {}, force: true });
-      await StorefrontItem.sequelize.query('ALTER SEQUENCE IF EXISTS storefront_items_id_seq RESTART WITH 1;');
+      console.log(`Storefront already has ${existing} packages — skipping seed (use FORCE_RESEED=true to override).`);
+      if (process.env.FORCE_RESEED !== 'true') return [];
+      // FORCE_RESEED: update existing rows by name instead of deleting (avoids FK constraint violations)
+      for (const pkg of PACKAGES) {
+        await StorefrontItem.upsert(pkg, { conflictFields: ['name'] });
+      }
+      console.log(`Force-reseeded ${PACKAGES.length} storefront packages.`);
+      return [];
     }
 
-    const created = await StorefrontItem.bulkCreate(PACKAGES, { validate: true, individualHooks: true });
+    const created = await StorefrontItem.bulkCreate(PACKAGES, { validate: true, individualHooks: true, ignoreDuplicates: true });
     console.log(`Seeded ${created.length} storefront packages successfully.`);
     logger.info(`[StorefrontSeeder] Seeded ${created.length} packages with graduated pricing`);
 

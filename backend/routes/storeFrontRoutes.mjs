@@ -142,20 +142,36 @@ router.get('/', async (req, res) => {
     const transformedItems = items.map(mapStorefrontItem);
 
     if (items.length === 0) {
-      // Auto-seed storefront packages on first request if table is empty
-      try {
-        const seedPackages = (await import('../seeders/20260407-seed-storefront-packages.mjs')).default;
-        await seedPackages();
-        const seededItems = await StorefrontItem.findAll({
+      // Check if ANY packages exist (including inactive) before attempting seed
+      const totalCount = await StorefrontItem.count();
+      if (totalCount === 0) {
+        // Table truly empty — auto-seed
+        try {
+          const seedPackages = (await import('../seeders/20260407-seed-storefront-packages.mjs')).default;
+          await seedPackages();
+          const seededItems = await StorefrontItem.findAll({
+            where: whereClause,
+            order: [[validSortBy, validSortOrder]],
+            limit: parseInt(limit, 10),
+            offset: parseInt(offset, 10),
+          });
+          const seededTransformed = seededItems.map(mapStorefrontItem);
+          return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
+        } catch (seedErr) {
+          logger.error('Auto-seed storefront failed:', seedErr.message);
+        }
+      } else {
+        // Packages exist but are inactive — activate them
+        logger.warn(`Storefront has ${totalCount} inactive packages — re-activating all.`);
+        await StorefrontItem.update({ isActive: true }, { where: {} });
+        const reactivated = await StorefrontItem.findAll({
           where: whereClause,
           order: [[validSortBy, validSortOrder]],
           limit: parseInt(limit, 10),
           offset: parseInt(offset, 10),
         });
-        const seededTransformed = seededItems.map(mapStorefrontItem);
-        return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
-      } catch (seedErr) {
-        logger.error('Auto-seed storefront failed:', seedErr.message);
+        const reactivatedTransformed = reactivated.map(mapStorefrontItem);
+        return res.json({ success: true, items: reactivatedTransformed, data: { packages: reactivatedTransformed, activeSpecials: [] } });
       }
       logger.warn('Storefront has 0 active items — frontend will show fallback data.');
     } else {
