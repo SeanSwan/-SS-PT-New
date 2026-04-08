@@ -27,6 +27,16 @@ Badge.init({
     type: DataTypes.INTEGER,
     defaultValue: 50,
   },
+  category: {
+    type: DataTypes.STRING,
+    defaultValue: 'achievement',
+    comment: 'Badge category: achievement, custom, milestone, etc.',
+  },
+  rarity: {
+    type: DataTypes.STRING,
+    defaultValue: 'common',
+    comment: 'Rarity tier: common, rare, epic, legendary',
+  },
 }, {
   sequelize,
   modelName: 'Badge',

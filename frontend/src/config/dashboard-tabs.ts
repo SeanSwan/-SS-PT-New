@@ -535,6 +535,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
   { id: 'immigration', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },
   { id: 'my-home', label: 'My Home', icon: 'Home', prefix: '/dashboard/admin/my-home', description: '3D avatar home — unlocks at Level 10' },
+  { id: 'badge-creator', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
 ];
 
 export default {

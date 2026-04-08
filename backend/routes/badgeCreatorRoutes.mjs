@@ -1,0 +1,219 @@
+/**
+ * ┌─── ROUTES: Badge Creator (AI Generation) ──────────────────┐
+ * │ PREFIX: /api/admin/badge-creator                            │
+ * │ AUTH: protect + adminOnly                                   │
+ * │ PURPOSE: AI-powered badge generation via Recraft V3.       │
+ * │ Extends existing Badge system with visual creation studio.  │
+ * │ CEO RULING: Recraft V3, 50 gens/month, curated styles.    │
+ * └────────────────────────────────────────────────────────────┘
+ */
+
+import express from 'express';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import recraft from '../services/recraftService.mjs';
+import logger from '../utils/logger.mjs';
+
+const router = express.Router();
+router.use(protect, adminOnly);
+
+const MAX_GENERATIONS_PER_MONTH = 50;
+
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Get remaining generations from durable storage (Badge table count).
+ * Global cap: 50 custom badges per month across all admins.
+ */
+async function getRemainingGenerations() {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const { Op } = await import('sequelize');
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const used = await Badge.count({
+      where: {
+        category: 'custom',
+        createdAt: { [Op.gte]: monthStart },
+      },
+    });
+    return Math.max(MAX_GENERATIONS_PER_MONTH - used, 0);
+  } catch {
+    return MAX_GENERATIONS_PER_MONTH; // Fail open if DB unavailable
+  }
+}
+
+// ── Health Check ─────────────────────────────────────────────
+// GET /api/admin/badge-creator/health
+router.get('/health', async (_req, res) => {
+  const health = await recraft.checkHealth();
+  res.json({ success: true, data: health });
+});
+
+// ── Generation Credits ───────────────────────────────────────
+// GET /api/admin/badge-creator/credits
+router.get('/credits', async (req, res) => {
+  const remaining = await getRemainingGenerations();
+  res.json({
+    success: true,
+    data: {
+      remaining,
+      max: MAX_GENERATIONS_PER_MONTH,
+      used: MAX_GENERATIONS_PER_MONTH - remaining,
+      month: getMonthKey(),
+    },
+  });
+});
+
+// ── Generate Badge (AI) ──────────────────────────────────────
+// POST /api/admin/badge-creator/generate
+router.post('/generate', async (req, res) => {
+  const { prompt, style } = req.body;
+
+  if (!prompt || typeof prompt !== 'string') {
+    return res.status(400).json({ success: false, message: 'prompt is required' });
+  }
+  if (!style || typeof style !== 'string') {
+    return res.status(400).json({ success: false, message: 'style is required' });
+  }
+
+  // Check generation credits (durable — survives deploys)
+  const remaining = await getRemainingGenerations();
+  if (remaining <= 0) {
+    return res.status(429).json({
+      success: false,
+      message: `Monthly generation limit reached (${MAX_GENERATIONS_PER_MONTH}/month). Resets next month.`,
+    });
+  }
+
+  try {
+    const result = await recraft.generateBadge({ prompt, style, size: 256 });
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, message: result.error });
+    }
+
+    logger.info(`[AUDIT] Admin ${req.user.id} generated badge: "${prompt}" (style: ${style}). ${remaining - 1} credits left.`);
+
+    res.json({
+      success: true,
+      data: {
+        imageUrl: result.imageUrl,
+        prompt,
+        style,
+        creditsRemaining: remaining, // Decrements after save, not generate
+      },
+    });
+  } catch (err) {
+    logger.error('Badge generation failed:', err.message);
+    res.status(500).json({ success: false, message: 'Generation failed' });
+  }
+});
+
+// ── Save Generated Badge ─────────────────────────────────────
+// POST /api/admin/badge-creator/save
+router.post('/save', async (req, res) => {
+  const { name, description, imageUrl, prompt, style, rarity, abilityPoints } = req.body;
+
+  if (!name || !imageUrl) {
+    return res.status(400).json({ success: false, message: 'name and imageUrl are required' });
+  }
+
+  try {
+    // Use existing Badge model
+    const { default: Badge } = await import('../models/Badge.mjs');
+
+    const badge = await Badge.create({
+      name,
+      description: description || `AI-generated badge: ${prompt}`,
+      imageUrl,
+      category: 'custom',
+      rarity: rarity || 'common',
+      xpReward: abilityPoints || 50,
+    });
+
+    logger.info(`[AUDIT] Admin ${req.user.id} saved badge "${name}" (${badge.id})`);
+
+    res.status(201).json({ success: true, data: badge });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: `Badge "${name}" already exists` });
+    }
+    logger.error('Failed to save badge:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to save badge' });
+  }
+});
+
+// ── List Art Styles ──────────────────────────────────────────
+// GET /api/admin/badge-creator/styles
+router.get('/styles', (_req, res) => {
+  // Return the curated style library
+  // In production, this could come from a DB or CDN-cached JSON
+  res.json({
+    success: true,
+    data: CURATED_STYLES,
+  });
+});
+
+// ── Curated Art Styles (from MidLibrary.io research) ─────────
+const CURATED_STYLES = [
+  // Flat & Minimal
+  { id: 'flat_2', name: 'Flat 2.0', category: 'Minimal', promptModifier: 'flat design, clean lines, minimal shading' },
+  { id: 'material', name: 'Material Design', category: 'Minimal', promptModifier: 'material design, subtle shadows, bold colors' },
+  { id: 'geometric', name: 'Geometric', category: 'Minimal', promptModifier: 'geometric shapes, angular, low-poly style' },
+  { id: 'line_art', name: 'Line Art', category: 'Minimal', promptModifier: 'clean line art, monoline, minimal' },
+  { id: 'monochrome', name: 'Monochrome', category: 'Minimal', promptModifier: 'monochrome, single color, high contrast' },
+
+  // Classic & Ornate
+  { id: 'art_deco', name: 'Art Deco', category: 'Classic', promptModifier: 'art deco style, gold accents, geometric luxury' },
+  { id: 'heraldic', name: 'Heraldic', category: 'Classic', promptModifier: 'heraldic shield, coat of arms, medieval' },
+  { id: 'vintage_badge', name: 'Vintage Badge', category: 'Classic', promptModifier: 'vintage emblem, retro typography, worn texture' },
+  { id: 'art_nouveau', name: 'Art Nouveau', category: 'Classic', promptModifier: 'art nouveau, organic curves, ornamental' },
+  { id: 'celtic', name: 'Celtic Knot', category: 'Classic', promptModifier: 'celtic knot pattern, interlacing, medieval' },
+
+  // Gaming & Digital
+  { id: 'pixel_art', name: 'Pixel Art', category: 'Gaming', promptModifier: '16-bit pixel art, retro gaming, 8-bit palette' },
+  { id: 'neon_glow', name: 'Neon Glow', category: 'Gaming', promptModifier: 'neon glow, cyberpunk, dark background, electric' },
+  { id: 'rpg_icon', name: 'RPG Icon', category: 'Gaming', promptModifier: 'RPG game icon, fantasy item, clean silhouette' },
+  { id: 'esports', name: 'Esports', category: 'Gaming', promptModifier: 'esports logo, aggressive angles, bold typography' },
+  { id: 'vaporwave', name: 'Vaporwave', category: 'Gaming', promptModifier: 'vaporwave aesthetic, pink/purple/cyan, retro grid' },
+
+  // Nature & Organic
+  { id: 'watercolor', name: 'Watercolor', category: 'Nature', promptModifier: 'watercolor painting, soft edges, organic feel' },
+  { id: 'botanical', name: 'Botanical', category: 'Nature', promptModifier: 'botanical illustration, detailed leaves, scientific drawing' },
+  { id: 'crystal', name: 'Crystalline', category: 'Nature', promptModifier: 'crystal formation, gemstone, translucent, faceted' },
+  { id: 'ice', name: 'Frozen Ice', category: 'Nature', promptModifier: 'frozen ice, frost, glacial blue, crystalline' },
+  { id: 'wood_carving', name: 'Wood Carving', category: 'Nature', promptModifier: 'wood carving, relief sculpture, natural grain' },
+
+  // Premium & Luxury
+  { id: 'gold_foil', name: 'Gold Foil', category: 'Luxury', promptModifier: 'gold foil stamping, metallic, premium, embossed' },
+  { id: 'enamel_pin', name: 'Enamel Pin', category: 'Luxury', promptModifier: 'enamel pin design, hard enamel, polished metal border' },
+  { id: 'engraved', name: 'Engraved', category: 'Luxury', promptModifier: 'engraved metal, etched, intaglio, silver plate' },
+  { id: 'wax_seal', name: 'Wax Seal', category: 'Luxury', promptModifier: 'wax seal stamp, royal, parchment, deep red' },
+  { id: 'diamond', name: 'Diamond Cut', category: 'Luxury', promptModifier: 'diamond facets, brilliant cut, light refraction, precious' },
+
+  // Sports & Fitness
+  { id: 'medal', name: 'Medal', category: 'Sports', promptModifier: 'olympic medal, gold/silver/bronze, ribbon, competition' },
+  { id: 'trophy', name: 'Trophy', category: 'Sports', promptModifier: 'championship trophy, victory cup, engraved plate' },
+  { id: 'muscle', name: 'Muscle Badge', category: 'Sports', promptModifier: 'fitness badge, strong physique silhouette, gym' },
+  { id: 'shield', name: 'Shield Crest', category: 'Sports', promptModifier: 'sports shield crest, team emblem, laurel wreath' },
+  { id: 'flame', name: 'Flame', category: 'Sports', promptModifier: 'flame emblem, fire, intense energy, ember glow' },
+
+  // 3D & Rendered
+  { id: '3d_render', name: '3D Render', category: '3D', promptModifier: '3D rendered, smooth shading, studio lighting, glossy' },
+  { id: 'isometric', name: 'Isometric', category: '3D', promptModifier: 'isometric 3D, diorama style, cute, miniature' },
+  { id: 'glass', name: 'Glass', category: '3D', promptModifier: 'glass material, transparent, refractive, caustics' },
+  { id: 'clay', name: 'Clay', category: '3D', promptModifier: 'clay render, soft matte, Pixar style, rounded' },
+  { id: 'holographic', name: 'Holographic', category: '3D', promptModifier: 'holographic, iridescent, rainbow shimmer, foil' },
+
+  // SwanStudios Brand
+  { id: 'crystalline_swan', name: 'Crystalline Swan', category: 'Brand', promptModifier: 'crystalline ice, deep sapphire blue (#002060), frost white, elegant swan, premium luxury' },
+  { id: 'swan_gold', name: 'Swan Gold', category: 'Brand', promptModifier: 'gilded fern gold (#C6A84B), deep midnight blue, luxury emblem, premium' },
+  { id: 'swan_purple', name: 'Swan Purple', category: 'Brand', promptModifier: 'wing purple (#8B5CF6), cosmic glow, cyber-crystalline, gaming' },
+  { id: 'arctic_cyan', name: 'Arctic Cyan', category: 'Brand', promptModifier: 'arctic cyan (#60C0F0), ice wing, frozen energy, data-driven' },
+  { id: 'obsidian', name: 'Obsidian', category: 'Brand', promptModifier: 'obsidian black (#0A0A0F), dark luxury, deep shadow, mysterious' },
+];
+
+export default router;

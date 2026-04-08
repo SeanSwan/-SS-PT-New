@@ -108,6 +108,7 @@ import adminContentModerationRoutes from '../routes/adminContentModerationRoutes
 import adminSocialPublishingRoutes from '../routes/adminSocialPublishingRoutes.mjs';
 import videoSessionRoutes from '../routes/videoSessionRoutes.mjs';
 import avatarHomeRoutes from '../routes/avatarHomeRoutes.mjs';
+import badgeCreatorRoutes from '../routes/badgeCreatorRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import publicVideoRoutes from '../routes/publicVideoRoutes.mjs';
 
@@ -405,6 +406,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Social media publishing via Postiz
   app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
   app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10
+  app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Recraft V3
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)

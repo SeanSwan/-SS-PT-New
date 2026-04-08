@@ -125,6 +125,7 @@ const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/Bootcamp
 const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'));
 const VideoCallPage = React.lazy(() => import('../VideoChat/VideoCallPage'));
 const AvatarHomePage = React.lazy(() => import('../AvatarHome/AvatarHomePage'));
+const BadgeCreatorPage = React.lazy(() => import('../BadgeCreator/BadgeCreatorPage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 
@@ -555,7 +556,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Communication hub for clients and trainers' },
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
       { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
-      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' }
+      { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
+      { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' }
     ],
     defaultPath: '/coach-assistant'
   },
