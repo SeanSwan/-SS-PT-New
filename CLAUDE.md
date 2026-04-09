@@ -107,7 +107,9 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 | File Cleanup | `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` | Cleanup tasks |
 | Auto Research | `docs/ai-workflow/references/AUTO-RESEARCH.md` | Running skill optimization |
 | App AI Hive Mind | `docs/ai-workflow/references/APP-AI-HIVE-MIND.md` | AI chat features |
-| OpenClaw | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | OpenClaw work |
+| Hermes + Wiki + Mythos | `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md` | AI command center, Hermes Agent, Karpathy Wiki, Mythos planning |
+| Plaud Audio Intelligence | `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` | Voice logging, Plaud NotePin, audio import, transcript parsing, session recap |
+| OpenClaw (SUPERSEDED) | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | SUPERSEDED by Hermes plan — kept for reference only |
 | Skills Reference | `docs/ai-workflow/references/SKILLS-REFERENCE.md` | Skill management |
 | 3-Tier Workflow | `docs/ai-workflow/references/THREE-TIER-WORKFLOW.md` | Choosing dev workflow tier |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |

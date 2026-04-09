@@ -113,10 +113,10 @@ const PageWrapper = styled(motion.div)`
 const GlassPanel = styled(motion.div)`
   padding: 16px;
   margin-bottom: 24px;
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--bg-surface, #141419);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   @media (min-width: 768px) {
     padding: 24px;
   }
@@ -124,7 +124,7 @@ const GlassPanel = styled(motion.div)`
 
 const DarkPanel = styled.div`
   padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-card, #0A0A0F);
   border-radius: 8px;
   height: 100%;
   display: flex;
@@ -134,14 +134,14 @@ const DarkPanel = styled.div`
 const SectionTitle = styled.h2`
   font-size: 1.4rem;
   font-weight: 700;
-  color: #8B5CF6;
+  color: var(--accent-secondary, #8B5CF6);
   margin: 0 0 16px 0;
 `;
 
 const SubsectionTitle = styled.h3`
   font-size: 1.15rem;
   font-weight: 600;
-  color: rgba(130, 200, 255, 0.9);
+  color: var(--accent-primary, #60C0F0);
   margin: 0 0 12px 0;
 `;
 
@@ -240,17 +240,17 @@ const StyledInput = styled.input<{ $hasAdornment?: boolean }>`
   width: 100%;
   padding: 10px 12px;
   padding-right: ${({ $hasAdornment }) => ($hasAdornment ? '60px' : '12px')};
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--bg-card, #0A0A0F);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.1));
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.95rem;
   outline: none;
   transition: border-color 0.2s ease;
   box-sizing: border-box;
 
   &:focus {
-    border-color: #8B5CF6;
+    border-color: var(--accent-secondary, #8B5CF6);
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
   }
 
@@ -340,7 +340,7 @@ const OutlinedButton = styled.button`
 
   &:hover:not(:disabled) {
     background: rgba(139, 92, 246, 0.08);
-    border-color: #8B5CF6;
+    border-color: var(--accent-secondary, #8B5CF6);
   }
 
   &:disabled {
@@ -351,10 +351,10 @@ const OutlinedButton = styled.button`
 
 const RemovePhotoButton = styled.button`
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
+  top: 2px;
+  right: 2px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,22 +533,22 @@ const ModalHeader = styled.div`
 `;
 
 const ModalCloseButton = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.1));
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted, #4070C0);
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
 
   &:hover {
     background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    color: var(--text-primary, #E0ECF4);
   }
 `;
 
@@ -1112,12 +1112,27 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                     $hasAdornment={!!selectedClient}
                   />
                   {selectedClient && (
-                    <InputAdornmentSpan
-                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                    <button
+                      type="button"
                       onClick={handleClearClient}
+                      aria-label="Clear selected client"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        bottom: 0,
+                        width: 44,
+                        height: 44,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted, #4070C0)',
+                      }}
                     >
                       <X size={16} />
-                    </InputAdornmentSpan>
+                    </button>
                   )}
                 </FlexRow>
               </InputWrapper>
@@ -1155,6 +1170,115 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
           </InputWrapper>
         </ResponsiveGrid>
       </GlassPanel>
+
+      {/* ── Measurement Entry Form ── */}
+      {selectedClient &&
+        (isLoading ? (
+          <Spinner />
+        ) : (
+          <motion.div variants={itemVariants}>
+            {/* Measurement Fields */}
+            <GlassPanel>
+              <HeaderRow>
+                <SubsectionTitle style={{ margin: 0 }}>
+                  New Measurements for {selectedClient.name}
+                </SubsectionTitle>
+                <OutlinedButton
+                  onClick={handleCopyLast}
+                  disabled={!latestMeasurement}
+                >
+                  <Copy size={16} />
+                  Copy from Last
+                </OutlinedButton>
+              </HeaderRow>
+
+              <MeasurementGrid>
+                {measurementFields.map(({ key, label }) => (
+                  <DarkPanel key={key}>
+                    <FieldLabel>{label}</FieldLabel>
+                    <FlexStack $gap={12} style={{ marginTop: 12, flex: 1 }}>
+                      {/* Previous value */}
+                      <InputWrapper>
+                        <StyledLabel>Previous</StyledLabel>
+                        <StyledInput
+                          type="text"
+                          value={latestMeasurement?.[key] ?? 'N/A'}
+                          disabled
+                        />
+                      </InputWrapper>
+
+                      {/* New value */}
+                      <InputWrapper>
+                        <StyledLabel>New</StyledLabel>
+                        <StyledInput
+                          type="number"
+                          value={newMeasurement[key] ?? ''}
+                          onChange={(e) => handleInputChange(key, e.target.value)}
+                          $hasAdornment
+                        />
+                        <InputAdornmentSpan>
+                          {key === 'weight'
+                            ? newMeasurement.weightUnit
+                            : key === 'bodyFatPercentage' || key === 'muscleMassPercentage'
+                              ? '%'
+                              : newMeasurement.circumferenceUnit}
+                        </InputAdornmentSpan>
+                      </InputWrapper>
+
+                      {/* Change indicator */}
+                      <ChangeCenter>{renderChange(key)}</ChangeCenter>
+                    </FlexStack>
+                  </DarkPanel>
+                ))}
+              </MeasurementGrid>
+            </GlassPanel>
+
+            {/* Progress Photos */}
+            <GlassPanel>
+              <SubsectionTitle>Progress Photos</SubsectionTitle>
+              <PhotoGrid>
+                {savedPhotoUrls.map((url, index) => (
+                  <PhotoPreviewWrapper key={`saved-${index}`}>
+                    <img src={url} alt={`Saved ${index + 1}`} />
+                    <RemovePhotoButton onClick={() => removeSavedPhoto(index)}>
+                      <X size={16} color="white" />
+                    </RemovePhotoButton>
+                  </PhotoPreviewWrapper>
+                ))}
+                {photoPreviews.map((previewUrl, index) => (
+                  <PhotoPreviewWrapper key={`new-${index}`}>
+                    <img src={previewUrl} alt={`Preview ${index + 1}`} />
+                    <RemovePhotoButton onClick={() => removePhoto(index)}>
+                      <X size={16} color="white" />
+                    </RemovePhotoButton>
+                  </PhotoPreviewWrapper>
+                ))}
+                <UploadZone>
+                  <UploadCloud size={24} />
+                  Upload JPEG
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/jpeg,.jpg,.jpeg"
+                    onChange={handlePhotoChange}
+                  />
+                </UploadZone>
+              </PhotoGrid>
+            </GlassPanel>
+
+            {/* Save Button */}
+            <SaveWrapper>
+              <GlowButton
+                text="Save Measurements"
+                theme="emerald"
+                leftIcon={<Save />}
+                onClick={handleSave}
+                isLoading={isSaving}
+              />
+            </SaveWrapper>
+          </motion.div>
+        ))}
 
       {/* ── Recent Measurements Panel ── */}
       <AnimatePresence>
@@ -1264,8 +1388,8 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                           labels={({ datum }) => `${datum.date}\nWeight: ${datum.weight?.toFixed(1) ?? '—'} lbs\nBody Fat: ${datum.bodyFat?.toFixed(1) ?? '—'}%\nWaist: ${datum.waist?.toFixed(1) ?? '—'} in`}
                           labelComponent={
                             <VictoryTooltip
-                              flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
-                              style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 9 }}
+                              flyoutStyle={{ fill: 'var(--bg-card, #141419)', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                              style={{ fill: 'var(--text-primary, #E0ECF4)', fontFamily: "'Fira Code', monospace", fontSize: 9 }}
                               cornerRadius={8}
                             />
                           }
@@ -1402,8 +1526,8 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
               {stats && (
                 <FlexRow $gap={24} style={{ justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                   <BodyText>
-                    <span style={{ color: '#8B5CF6' }}>{stats.totalMeasurements}</span> measurements over{' '}
-                    <span style={{ color: '#8B5CF6' }}>{stats.daysSinceStart}</span> days
+                    <span style={{ color: 'var(--accent-secondary, #8B5CF6)' }}>{stats.totalMeasurements}</span> measurements over{' '}
+                    <span style={{ color: 'var(--accent-secondary, #8B5CF6)' }}>{stats.daysSinceStart}</span> days
                   </BodyText>
                 </FlexRow>
               )}
@@ -1419,116 +1543,6 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
         </motion.div>
       )}
 
-      {/* ── Measurement Entry Form ── */}
-      {selectedClient &&
-        (isLoading ? (
-          <Spinner />
-        ) : (
-          <motion.div variants={itemVariants}>
-            {/* Measurement Fields */}
-            <GlassPanel>
-              <HeaderRow>
-                <SubsectionTitle style={{ margin: 0 }}>
-                  New Measurements for {selectedClient.name}
-                </SubsectionTitle>
-                <OutlinedButton
-                  onClick={handleCopyLast}
-                  disabled={!latestMeasurement}
-                >
-                  <Copy size={16} />
-                  Copy from Last
-                </OutlinedButton>
-              </HeaderRow>
-
-              <MeasurementGrid>
-                {measurementFields.map(({ key, label }) => (
-                  <DarkPanel key={key}>
-                    <FieldLabel>{label}</FieldLabel>
-                    <FlexStack $gap={12} style={{ marginTop: 12, flex: 1 }}>
-                      {/* Previous value */}
-                      <InputWrapper>
-                        <StyledLabel>Previous</StyledLabel>
-                        <StyledInput
-                          type="text"
-                          value={latestMeasurement?.[key] ?? 'N/A'}
-                          disabled
-                        />
-                      </InputWrapper>
-
-                      {/* New value */}
-                      <InputWrapper>
-                        <StyledLabel>New</StyledLabel>
-                        <StyledInput
-                          type="number"
-                          value={newMeasurement[key] ?? ''}
-                          onChange={(e) => handleInputChange(key, e.target.value)}
-                          $hasAdornment
-                        />
-                        <InputAdornmentSpan>
-                          {key === 'weight'
-                            ? newMeasurement.weightUnit
-                            : key === 'bodyFatPercentage' || key === 'muscleMassPercentage'
-                              ? '%'
-                              : newMeasurement.circumferenceUnit}
-                        </InputAdornmentSpan>
-                      </InputWrapper>
-
-                      {/* Change indicator */}
-                      <ChangeCenter>{renderChange(key)}</ChangeCenter>
-                    </FlexStack>
-                  </DarkPanel>
-                ))}
-              </MeasurementGrid>
-            </GlassPanel>
-
-            {/* Progress Photos */}
-            <GlassPanel>
-              <SubsectionTitle>Progress Photos</SubsectionTitle>
-              <PhotoGrid>
-                {/* Saved photos from previous measurement (via Copy from Last) */}
-                {savedPhotoUrls.map((url, index) => (
-                  <PhotoPreviewWrapper key={`saved-${index}`}>
-                    <img src={url} alt={`Saved ${index + 1}`} />
-                    <RemovePhotoButton onClick={() => removeSavedPhoto(index)}>
-                      <X size={16} color="white" />
-                    </RemovePhotoButton>
-                  </PhotoPreviewWrapper>
-                ))}
-                {/* Newly selected photos (local blob previews) */}
-                {photoPreviews.map((previewUrl, index) => (
-                  <PhotoPreviewWrapper key={`new-${index}`}>
-                    <img src={previewUrl} alt={`Preview ${index + 1}`} />
-                    <RemovePhotoButton onClick={() => removePhoto(index)}>
-                      <X size={16} color="white" />
-                    </RemovePhotoButton>
-                  </PhotoPreviewWrapper>
-                ))}
-                <UploadZone>
-                  <UploadCloud size={24} />
-                  Upload JPEG
-                  <input
-                    type="file"
-                    hidden
-                    multiple
-                    accept="image/jpeg,.jpg,.jpeg"
-                    onChange={handlePhotoChange}
-                  />
-                </UploadZone>
-              </PhotoGrid>
-            </GlassPanel>
-
-            {/* Save Button */}
-            <SaveWrapper>
-              <GlowButton
-                text="Save Measurements"
-                theme="emerald"
-                leftIcon={<Save />}
-                onClick={handleSave}
-                isLoading={isSaving}
-              />
-            </SaveWrapper>
-          </motion.div>
-        ))}
       {/* ── Measurement Detail Modal ── */}
       <AnimatePresence>
         {detailMeasurement && (
