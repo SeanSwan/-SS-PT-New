@@ -32,6 +32,7 @@ import React, { useCallback, useMemo, useEffect, useState, lazy, Suspense } from
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
 import { useAIChat } from '../../../../hooks/useAIChat';
+import { usePaywall } from '../../../../context/PaywallContext';
 import { useCoachAssistant } from './hooks/useCoachAssistant';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { useConversationSidebar } from './hooks/useConversationSidebar';
@@ -197,6 +198,7 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
+  const { showPaywall } = usePaywall();
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
   const coach = useCoachAssistant({ chat, targetClientId: selectedClient?.id ?? null });
   const tts = usePremiumTTS();
@@ -224,9 +226,21 @@ const SwanCoachAssistantPage: React.FC = () => {
       (async () => {
         if (cancelled) return;
         const result = await coach.sendMessageWithFood(message, foodContext);
-        // Only clear storage on confirmed success — not on paywall, failure, or null/early-exit
-        const succeeded = result && !result.paywallRequired && !result.failed && result.role === 'assistant';
-        if (!cancelled && succeeded) sessionStorage.removeItem('swan:pending-coach-food');
+        if (cancelled) return;
+        if (result?.paywallRequired) {
+          // Free-tier user — surface the paywall overlay so they can upgrade
+          showPaywall('Swan Coach', {
+            requiredTier: (result as any).requiredTier ?? 'pro',
+            message: (result as any).message,
+            code: (result as any).code,
+            upgradeUrl: (result as any).upgradeUrl,
+          });
+          // Keep storage so the query survives a successful upgrade + re-navigation
+          return;
+        }
+        // Only clear storage on confirmed success
+        const succeeded = result && !result.failed && result.role === 'assistant';
+        if (succeeded) sessionStorage.removeItem('swan:pending-coach-food');
       })();
     } catch {
       // Malformed entry — clear it so it doesn't persist
