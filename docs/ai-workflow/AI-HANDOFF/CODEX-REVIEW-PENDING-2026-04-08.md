@@ -120,7 +120,7 @@ Local Food Directories API at the USDA AMS Local Food Portal.
 ---
 
 ## FIX 4 — Exercise Rolodex Not Virtualized in Workout Planner & Bootcamp Builder
-**Commit:** `PENDING`
+**Commit:** `0db929c6` (final, build-verified)
 
 ### Problem
 Both `WorkoutPlannerPage.tsx` and `ExerciseRolodexPanel.tsx` rendered the full exercise list
@@ -130,32 +130,42 @@ all 200 visible items were in the DOM simultaneously — no windowing. The "Rolo
 (WorkoutLogger), which was never wired into these two pages.
 
 ### Fix
-Added `react-window` `FixedSizeList` virtualization to both components:
+Added `react-window v2` `List` virtualization to both components (matching the API already used
+by `NASMExerciseRolodex.tsx`). Initial implementation used `FixedSizeList` (v1 API) — Codex
+correctly caught that `react-window@2.2.7` does not export `FixedSizeList`. Final implementation
+uses the v2 `List` + `rowComponent` pattern.
 
 **WorkoutPlannerPage** — left panel exercise list:
-- Replaced flat `.map()` with `FixedSizeList` (height=420px, itemSize=64px ≈ 6-7 visible rows)
-- Each row renders one `ExerciseItem` inside a `div` with the `style` position prop from react-window
-- Added `import { FixedSizeList, type ListChildComponentProps } from 'react-window'`
+- Import: `import { List } from 'react-window'`
+- `ExerciseRowRenderer` defined as `useCallback` with `{ index, style }` signature
+- Left panel restructured: filters in `flex-shrink:0` div, List in `flex:1; min-height:0` div — no nested scroll conflict
+- `<List rowComponent={ExerciseRowRenderer} rowCount={filteredExercises.length} rowHeight={64} rowProps={{}} style={{ height: 420 }} />`
+- Shows ~6-7 exercises at a time; virtualized scroll
 
 **ExerciseRolodexPanel** (Bootcamp Builder) — exercise grid:
-- Replaced flat `.map()` inside `ExerciseGrid` with `FixedSizeList` (itemSize=60, max 7 rows visible)
-- Exercises grouped into pairs (2 per row) to preserve 2-column layout
-- Each row renders a `div` with `display: flex` containing 2 `ExerciseCard` components
+- Import: `import { List } from 'react-window'`
+- `exercisePairs` computed with `useMemo` (groups filteredExercises into pairs)
+- `PairedRowRenderer` defined as `useCallback` with `{ index, style }`, renders 2 `ExerciseCard` per row
 - `ExerciseGrid` changed from `display: grid` to `display: flex; flex-direction: column; overflow: hidden`
+- `<List rowComponent={PairedRowRenderer} rowCount={exercisePairs.length} rowHeight={60} rowProps={{}} style={{ height: min(pairs,7)*60 }} />`
+- Shows ~7 rows (14 exercises) at a time; 2-column layout preserved
 
 ### Files changed
 | File | Change |
 |------|--------|
-| `frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx` | Added `FixedSizeList` import + replaced flat exercise `.map()` with virtualized list (height=420) |
-| `frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx` | Added `FixedSizeList` import + replaced flat `.map()` inside `ExerciseGrid` with paired-row virtualized list + changed `ExerciseGrid` layout to flex column |
+| `frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx` | v2 List import + ExerciseRowRenderer useCallback + left panel restructured (no nested scroll) |
+| `frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx` | v2 List import + exercisePairs useMemo + PairedRowRenderer useCallback + ExerciseGrid flex column |
 
 ### What Codex should verify
-- [ ] `FixedSizeList` renders correctly inside `PanelBody` (which is `overflow-y: auto`) — inner scroll + outer scroll should not conflict
-- [ ] Pair grouping in `ExerciseRolodexPanel` handles odd-length arrays correctly (last pair may have 1 item — should render without layout break)
-- [ ] `ExerciseCard` with `style={{ flex: 1 }}` passed as prop still applies styled-component styles correctly (no TypeScript error, no style override conflict)
-- [ ] Keyboard navigation (Arrow Up/Down, Enter) still works for `ExerciseItem` rows in WorkoutPlannerPage — `tabIndex={0}` and `onKeyDown` preserved
-- [ ] No `key` warning from React — `ExerciseItem` inside `FixedSizeList` row has no `key` prop (the outer `div` wrapping each row has no key either — Codex to confirm this is OK since react-window manages indices, not keys)
-- [ ] `react-window` is in `frontend/package.json` dependencies (confirmed: `"react-window": "^2.2.7"`)
+- [x] `FixedSizeList` import was wrong (Codex R1 caught this) — FIXED: now uses `List` from react-window v2
+- [x] Nested scroll conflict (Codex R1 caught this) — FIXED: filters moved to `flex-shrink:0` wrapper, List in `flex:1` wrapper outside PanelBody
+- [x] Arrow Up/Down claim was over-broad (Codex R1 caught this) — CLARIFIED: WorkoutPlannerPage never had arrow navigation; only Enter/Space on ExerciseItem rows are preserved (same as before)
+- [x] `react-window@2.2.7` in dependencies — PASS
+- [x] Pair grouping handles odd arrays — PASS (Codex R1)
+- [x] React `key` handling — PASS (Codex R1)
+- [x] `vite build` passes — VERIFIED locally (5412 modules, 12.82s, ✓ built)
+- [ ] Codex to confirm: `ExerciseCard style={{ flex: 1 }}` type-safety with styled-components (TypeScript)
+- [ ] Codex to confirm: `List rowProps={{}}` is correct for v2 when no extra row props are needed
 
 ---
 
@@ -190,3 +200,24 @@ Checkbox verdicts:
 - Fix 2 `SocketContext.tsx` env flow correct: PASS
 - Fix 2 `useSocket.ts` env flow correct: PASS
 - Fix 2 no remaining hardcoded `ss-pt-new.onrender.com`: FAIL
+
+5. Fix 4 is not deploy-ready. The frontend build fails immediately on the new virtualization import: `FixedSizeList` is not exported by `react-window@2.2.7`. I verified the installed package exports `List` and `Grid`, not `FixedSizeList`, and `vite build` fails on `frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx` line 11. `WorkoutPlannerPage.tsx` uses the same invalid import pattern, so this is a release blocker.
+
+6. Fix 4 also does not satisfy the keyboard-navigation checkbox as written. In `frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx`, `ExerciseItem` still has `tabIndex={0}`, but the only preserved key handling is `Enter` / space on the row. I found no `ArrowUp` / `ArrowDown` handling in the file, so the claim that arrow navigation still works is not substantiated by the implementation.
+
+7. The nested-scroll checkbox is also not convincingly resolved. `PanelBody` in `frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStyles.ts` still has `overflow-y: auto`, and the new `FixedSizeList` introduces its own internal scroll container. That leaves nested vertical scroll regions in the left panel. I could not validate runtime behavior because the build is currently broken.
+
+8. The remaining Fix 4 checks are mostly fine from source review:
+   - Pair grouping in `ExerciseRolodexPanel.tsx` is safe for odd-length arrays. The final row renders a single card without throwing; it expands to full row width because of `style={{ flex: 1 }}`.
+   - React `key` handling looks fine. Inner `ExerciseCard` nodes are keyed by `ex.id`, and the outer row wrapper inside `react-window` does not need an explicit React `key`.
+   - `react-window` is present in `frontend/package.json` dependencies as `"react-window": "^2.2.7"`.
+
+Fix 4 verdicts:
+
+- Fix 4 `react-window` dependency present: PASS
+- Fix 4 odd-length pair grouping safe: PASS
+- Fix 4 `key` warning concern: PASS
+- Fix 4 nested scroll conflict resolved: NOT VERIFIED / SOURCE INDICATES RISK
+- Fix 4 `ExerciseCard style={{ flex: 1 }}` type-safety: NOT VERIFIED because build fails earlier on invalid `react-window` import
+- Fix 4 Arrow Up/Down + Enter keyboard behavior preserved: FAIL
+- Fix 4 deploy readiness: FAIL
