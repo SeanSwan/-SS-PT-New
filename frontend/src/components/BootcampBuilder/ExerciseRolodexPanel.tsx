@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
+import { FixedSizeList, type ListChildComponentProps } from 'react-window';
 import styled from 'styled-components';
 import { Search, Plus, X, Dumbbell } from 'lucide-react';
 import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
@@ -175,18 +176,10 @@ const Chip = styled.button<{ $active: boolean }>`
 
 const ExerciseGrid = styled.div`
   flex: 1;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding: 4px 6px;
-  align-content: start;
-  &::-webkit-scrollbar { width: 3px; }
-  &::-webkit-scrollbar-thumb { background: rgba(96, 192, 240, 0.1); border-radius: 2px; }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const ExerciseCard = styled.div<{ $selected: boolean }>`
@@ -459,42 +452,64 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         </ChipRow>
       </FilterSection>
 
-      {/* Exercise Grid — compact 2-column layout */}
+      {/* Exercise Rolodex — windowed 2-column layout (react-window) */}
       <ExerciseGrid>
         {isLoading ? (
           Array.from({ length: 8 }, (_, i) => <SkeletonBlock key={i} />)
         ) : filteredExercises.length === 0 ? (
           <EmptyMsg>No exercises match your filters.</EmptyMsg>
-        ) : (
-          filteredExercises.slice(0, 200).map(ex => {
-            const impact = getJointImpact(ex);
-            const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
-            const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
-            return (
-              <ExerciseCard
-                key={ex.id}
-                $selected={selectedId === ex.id}
-                onClick={() => handleCardClick(ex)}
-              >
-                <CardTop>
-                  <ExName>{ex.name}</ExName>
-                  <AddBtn
-                    onClick={(e) => handleAddClick(e, ex)}
-                    title="Add to class"
-                    aria-label={`Add ${ex.name} to class`}
-                  >
-                    <Plus size={12} />
-                  </AddBtn>
-                </CardTop>
-                <CardMeta>
-                  <MetaTag>{ex.bodyPartCategory}</MetaTag>
-                  <MetaTag>{eqLabel}</MetaTag>
-                  <MetaTag $impact={impact}>{impact.replace(' Impact', '')}</MetaTag>
-                </CardMeta>
-              </ExerciseCard>
-            );
-          })
-        )}
+        ) : (() => {
+          // Group into pairs for 2-column virtualized rows
+          const pairs: ExerciseSlim[][] = [];
+          for (let i = 0; i < filteredExercises.length; i += 2) {
+            pairs.push(filteredExercises.slice(i, i + 2));
+          }
+          const ROW_H = 60;
+          const MAX_ROWS = 7;
+          return (
+            <FixedSizeList
+              height={Math.min(pairs.length, MAX_ROWS) * ROW_H}
+              itemCount={pairs.length}
+              itemSize={ROW_H}
+              width="100%"
+              style={{ overflowX: 'hidden' }}
+            >
+              {({ index, style }: ListChildComponentProps) => (
+                <div style={{ ...style, display: 'flex', gap: 4, padding: '2px 0' }}>
+                  {pairs[index].map(ex => {
+                    const impact = getJointImpact(ex);
+                    const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+                    const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
+                    return (
+                      <ExerciseCard
+                        key={ex.id}
+                        $selected={selectedId === ex.id}
+                        onClick={() => handleCardClick(ex)}
+                        style={{ flex: 1 }}
+                      >
+                        <CardTop>
+                          <ExName>{ex.name}</ExName>
+                          <AddBtn
+                            onClick={(e) => handleAddClick(e, ex)}
+                            title="Add to class"
+                            aria-label={`Add ${ex.name} to class`}
+                          >
+                            <Plus size={12} />
+                          </AddBtn>
+                        </CardTop>
+                        <CardMeta>
+                          <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                          <MetaTag>{eqLabel}</MetaTag>
+                          <MetaTag $impact={impact}>{impact.replace(' Impact', '')}</MetaTag>
+                        </CardMeta>
+                      </ExerciseCard>
+                    );
+                  })}
+                </div>
+              )}
+            </FixedSizeList>
+          );
+        })()}
       </ExerciseGrid>
     </PanelWrap>
   );

@@ -105,6 +105,46 @@ Local Food Directories API at the USDA AMS Local Food Portal.
 
 ---
 
+## FIX 4 — Exercise Rolodex Not Virtualized in Workout Planner & Bootcamp Builder
+**Commit:** `PENDING`
+
+### Problem
+Both `WorkoutPlannerPage.tsx` and `ExerciseRolodexPanel.tsx` rendered the full exercise list
+as flat DOM nodes (`filteredExercises.slice(0, 200).map(...)`). With 840+ exercises in the DB,
+all 200 visible items were in the DOM simultaneously — no windowing. The "Rolodex" behavior
+(scroll in from bottom, disappear from top) was only present in `NASMExerciseRolodex.tsx`
+(WorkoutLogger), which was never wired into these two pages.
+
+### Fix
+Added `react-window` `FixedSizeList` virtualization to both components:
+
+**WorkoutPlannerPage** — left panel exercise list:
+- Replaced flat `.map()` with `FixedSizeList` (height=420px, itemSize=64px ≈ 6-7 visible rows)
+- Each row renders one `ExerciseItem` inside a `div` with the `style` position prop from react-window
+- Added `import { FixedSizeList, type ListChildComponentProps } from 'react-window'`
+
+**ExerciseRolodexPanel** (Bootcamp Builder) — exercise grid:
+- Replaced flat `.map()` inside `ExerciseGrid` with `FixedSizeList` (itemSize=60, max 7 rows visible)
+- Exercises grouped into pairs (2 per row) to preserve 2-column layout
+- Each row renders a `div` with `display: flex` containing 2 `ExerciseCard` components
+- `ExerciseGrid` changed from `display: grid` to `display: flex; flex-direction: column; overflow: hidden`
+
+### Files changed
+| File | Change |
+|------|--------|
+| `frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx` | Added `FixedSizeList` import + replaced flat exercise `.map()` with virtualized list (height=420) |
+| `frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx` | Added `FixedSizeList` import + replaced flat `.map()` inside `ExerciseGrid` with paired-row virtualized list + changed `ExerciseGrid` layout to flex column |
+
+### What Codex should verify
+- [ ] `FixedSizeList` renders correctly inside `PanelBody` (which is `overflow-y: auto`) — inner scroll + outer scroll should not conflict
+- [ ] Pair grouping in `ExerciseRolodexPanel` handles odd-length arrays correctly (last pair may have 1 item — should render without layout break)
+- [ ] `ExerciseCard` with `style={{ flex: 1 }}` passed as prop still applies styled-component styles correctly (no TypeScript error, no style override conflict)
+- [ ] Keyboard navigation (Arrow Up/Down, Enter) still works for `ExerciseItem` rows in WorkoutPlannerPage — `tabIndex={0}` and `onKeyDown` preserved
+- [ ] No `key` warning from React — `ExerciseItem` inside `FixedSizeList` row has no `key` prop (the outer `div` wrapping each row has no key either — Codex to confirm this is OK since react-window manages indices, not keys)
+- [ ] `react-window` is in `frontend/package.json` dependencies (confirmed: `"react-window": "^2.2.7"`)
+
+---
+
 ## ADD NEW FIXES BELOW THIS LINE
 
 <!-- Format:
