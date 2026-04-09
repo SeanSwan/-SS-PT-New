@@ -23,7 +23,7 @@ import {
 
 // ── Animations ──────────────────────────────────────────────────────────────
 
-const cyanPulse = keyframes`
+const coachPulse = keyframes`
   0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15); }
   50% { box-shadow: 0 0 35px rgba(139, 92, 246, 0.3); }
 `;
@@ -49,7 +49,7 @@ const PageHeader = styled.div`
 const PageTitle = styled.h2`
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
@@ -84,7 +84,7 @@ const StatusCard = styled(Card)<{ $status: 'granted' | 'withdrawn' | 'none' }>`
       default: return 'rgba(255, 255, 255, 0.08)';
     }
   }};
-  animation: ${cyanPulse} 4s ease-in-out infinite;
+  animation: ${coachPulse} 4s ease-in-out infinite;
 `;
 
 const StatusBadge = styled.div<{ $status: 'granted' | 'withdrawn' | 'none' }>`
@@ -132,7 +132,7 @@ const StatusRow = styled.div`
 const StatusLabel = styled.h3`
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   margin: 0;
 `;
 
@@ -169,7 +169,7 @@ const MetaValue = styled.span`
 const SectionTitle = styled.h3`
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
@@ -249,8 +249,8 @@ const ConsentButton = styled.button<{ $variant: 'grant' | 'withdraw' }>`
   font-family: inherit;
 
   ${({ $variant }) => $variant === 'grant' ? `
-    background: linear-gradient(135deg, rgba(0, 204, 204, 0.9), rgba(139, 92, 246, 0.8));
-    color: #002060;
+    background: linear-gradient(135deg, rgba(96, 192, 240, 0.9), rgba(139, 92, 246, 0.8));
+    color: var(--bg-base, #030712);
     border-color: rgba(139, 92, 246, 0.5);
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
 
@@ -342,7 +342,7 @@ const RetryButton = styled.button`
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(139, 92, 246, 0.3);
-    color: #ffffff;
+    color: var(--text-primary, #E0ECF4);
   }
 
   &:focus-visible {
@@ -361,7 +361,7 @@ const SuccessToast = styled(motion.div)`
   padding: 1rem 1.5rem;
   background: rgba(16, 185, 129, 0.95);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--bg-base, #030712);
   font-size: 0.9375rem;
   font-weight: 500;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);

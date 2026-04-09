@@ -106,6 +106,9 @@ const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
+// ClientHomeTab replaces ClientOverviewPage at /overview — same route, new component.
+// ClientOverviewPage kept as a fallback import but no longer the default.
+const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'));
 const ClientOverviewPage = React.lazy(() => import('./Pages/client-dashboard/ClientOverviewPage'));
 const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/ClientProfilePage'));
 const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
@@ -591,7 +594,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
   },
   client: {
     routes: [
-      { path: '/overview', component: ClientOverviewPage, title: 'Overview', description: 'Your fitness journey hub' },
+      { path: '/overview', component: ClientHomeTab, title: 'Home', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
       { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },

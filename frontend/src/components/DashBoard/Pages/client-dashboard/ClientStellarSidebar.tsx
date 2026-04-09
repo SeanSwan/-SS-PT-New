@@ -20,9 +20,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import {
-  Home, Dumbbell, TrendingUp, Brain, UtensilsCrossed, Shield,
-  Calendar, Users, MessageSquare, User, Award, Star, HeartPulse,
-  ChevronRight, ChevronLeft, Menu, X,
+  Home, Dumbbell, TrendingUp, UtensilsCrossed, Shield,
+  Calendar, Users, MessageSquare, User, Award, HeartPulse,
+  ChevronRight, ChevronLeft, Menu, X, Star,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -432,42 +432,45 @@ const FooterVersion = styled.div`
 // SECTION: Navigation Configuration
 // ─────────────────────────────────────────────────────────────
 
+// ─── Navigation: Home / Train / Recover / Community / Account ───────────────
+// ai-consent removed from primary discovery; accessible from Account section.
+// Route slugs are unchanged — only grouping and labels changed.
 const clientNavConfig = [
   {
     section: 'HOME',
     items: [
-      { label: 'Overview', path: '/dashboard/client/overview', icon: Home },
+      { label: 'Home', path: '/dashboard/client/overview', icon: Home },
+      { label: 'Book Session', path: '/dashboard/client/schedule', icon: Calendar },
+    ],
+  },
+  {
+    section: 'TRAIN',
+    items: [
       { label: 'My Workouts', path: '/dashboard/client/workouts', icon: Dumbbell },
       { label: 'My Progress', path: '/dashboard/client/progress', icon: TrendingUp },
     ],
   },
   {
-    section: 'HEALTH',
+    section: 'RECOVER',
     items: [
       { label: 'Pain & Injury Chart', path: '/dashboard/client/body-map', icon: HeartPulse },
-    ],
-  },
-  {
-    section: 'INTELLIGENCE',
-    items: [
-      { label: 'Nutrition Intelligence', path: '/dashboard/client/meal-planner', icon: UtensilsCrossed },
-      { label: 'Swan Coach Privacy & Consent', path: '/dashboard/client/ai-consent', icon: Shield },
+      { label: 'Nutrition', path: '/dashboard/client/meal-planner', icon: UtensilsCrossed },
     ],
   },
   {
     section: 'COMMUNITY',
     items: [
-      { label: 'Book My Session', path: '/dashboard/client/schedule', icon: Calendar },
       { label: 'Community & Challenges', path: '/dashboard/client/community', icon: Users },
       { label: 'Messages', path: '/dashboard/client/messages', icon: MessageSquare },
     ],
   },
   {
-    section: 'MY SPACE',
+    section: 'ACCOUNT',
     items: [
       { label: 'My Profile & Settings', path: '/dashboard/client/profile', icon: User },
       { label: 'My Rewards', path: '/dashboard/client/rewards', icon: Award },
-      { label: 'My Home', path: '/dashboard/client/my-home', icon: Home },
+      { label: 'Privacy & Consent', path: '/dashboard/client/ai-consent', icon: Shield },
+      { label: 'My Home', path: '/dashboard/client/my-home', icon: Star },
     ],
   },
 ];
