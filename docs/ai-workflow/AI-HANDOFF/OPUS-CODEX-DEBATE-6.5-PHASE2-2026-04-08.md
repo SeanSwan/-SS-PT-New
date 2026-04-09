@@ -1,7 +1,7 @@
 # OPUS-CODEX DEBATE: 6.5 Phase 2 — Ask Coach from RestaurantTab
 **Date:** 2026-04-08  
-**Status:** ROUND 1 — Awaiting Codex Review  
-**Commit:** `7277a75a`
+**Status:** ROUND 2 — Awaiting Codex Review  
+**Commits:** `7277a75a` (Phase 2), `21d84b8a` (R2 fixes)
 
 ---
 
