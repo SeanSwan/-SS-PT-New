@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useCallback, useMemo, memo } from 'react';
-import { FixedSizeList, type ListChildComponentProps } from 'react-window';
+import { List } from 'react-window';
 import styled from 'styled-components';
 import { Search, Plus, X, Dumbbell } from 'lucide-react';
 import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
@@ -366,6 +366,54 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
     onAddExercise(ex as RolodexExercise, targetStation);
   }, [onAddExercise, targetStation]);
 
+  // Group into pairs for 2-column virtualized rows
+  const exercisePairs = useMemo(() => {
+    const pairs: ExerciseSlim[][] = [];
+    for (let i = 0; i < filteredExercises.length; i += 2) {
+      pairs.push(filteredExercises.slice(i, i + 2));
+    }
+    return pairs;
+  }, [filteredExercises]);
+
+  // Row renderer for react-window v2 List (2 cards per row)
+  const PairedRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const pair = exercisePairs[index];
+    if (!pair) return null;
+    return (
+      <div style={{ ...style, display: 'flex', gap: 4, padding: '2px 0' }}>
+        {pair.map(ex => {
+          const impact = getJointImpact(ex);
+          const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+          const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
+          return (
+            <ExerciseCard
+              key={ex.id}
+              $selected={selectedId === ex.id}
+              onClick={() => handleCardClick(ex)}
+              style={{ flex: 1 }}
+            >
+              <CardTop>
+                <ExName>{ex.name}</ExName>
+                <AddBtn
+                  onClick={(e) => handleAddClick(e, ex)}
+                  title="Add to class"
+                  aria-label={`Add ${ex.name} to class`}
+                >
+                  <Plus size={12} />
+                </AddBtn>
+              </CardTop>
+              <CardMeta>
+                <MetaTag>{ex.bodyPartCategory}</MetaTag>
+                <MetaTag>{eqLabel}</MetaTag>
+                <MetaTag $impact={impact}>{impact.replace(' Impact', '')}</MetaTag>
+              </CardMeta>
+            </ExerciseCard>
+          );
+        })}
+      </div>
+    );
+  }, [exercisePairs, selectedId, handleCardClick, handleAddClick]);
+
   return (
     <PanelWrap>
       <PanelHeader>
@@ -452,64 +500,21 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         </ChipRow>
       </FilterSection>
 
-      {/* Exercise Rolodex — windowed 2-column layout (react-window) */}
+      {/* Exercise Rolodex — windowed 2-column layout (react-window v2 List) */}
       <ExerciseGrid>
         {isLoading ? (
           Array.from({ length: 8 }, (_, i) => <SkeletonBlock key={i} />)
         ) : filteredExercises.length === 0 ? (
           <EmptyMsg>No exercises match your filters.</EmptyMsg>
-        ) : (() => {
-          // Group into pairs for 2-column virtualized rows
-          const pairs: ExerciseSlim[][] = [];
-          for (let i = 0; i < filteredExercises.length; i += 2) {
-            pairs.push(filteredExercises.slice(i, i + 2));
-          }
-          const ROW_H = 60;
-          const MAX_ROWS = 7;
-          return (
-            <FixedSizeList
-              height={Math.min(pairs.length, MAX_ROWS) * ROW_H}
-              itemCount={pairs.length}
-              itemSize={ROW_H}
-              width="100%"
-              style={{ overflowX: 'hidden' }}
-            >
-              {({ index, style }: ListChildComponentProps) => (
-                <div style={{ ...style, display: 'flex', gap: 4, padding: '2px 0' }}>
-                  {pairs[index].map(ex => {
-                    const impact = getJointImpact(ex);
-                    const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
-                    const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
-                    return (
-                      <ExerciseCard
-                        key={ex.id}
-                        $selected={selectedId === ex.id}
-                        onClick={() => handleCardClick(ex)}
-                        style={{ flex: 1 }}
-                      >
-                        <CardTop>
-                          <ExName>{ex.name}</ExName>
-                          <AddBtn
-                            onClick={(e) => handleAddClick(e, ex)}
-                            title="Add to class"
-                            aria-label={`Add ${ex.name} to class`}
-                          >
-                            <Plus size={12} />
-                          </AddBtn>
-                        </CardTop>
-                        <CardMeta>
-                          <MetaTag>{ex.bodyPartCategory}</MetaTag>
-                          <MetaTag>{eqLabel}</MetaTag>
-                          <MetaTag $impact={impact}>{impact.replace(' Impact', '')}</MetaTag>
-                        </CardMeta>
-                      </ExerciseCard>
-                    );
-                  })}
-                </div>
-              )}
-            </FixedSizeList>
-          );
-        })()}
+        ) : (
+          <List
+            rowComponent={PairedRowRenderer}
+            rowCount={exercisePairs.length}
+            rowHeight={60}
+            rowProps={{}}
+            style={{ height: Math.min(exercisePairs.length, 7) * 60, overflowX: 'hidden' }}
+          />
+        )}
       </ExerciseGrid>
     </PanelWrap>
   );

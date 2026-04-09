@@ -41,7 +41,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
-import { FixedSizeList, type ListChildComponentProps } from 'react-window';
+import { List } from 'react-window';
 import {
   Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
   Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info, Eye,
@@ -226,6 +226,40 @@ const WorkoutPlannerPage: React.FC = () => {
     }
     return pool;
   }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
+
+  // ── Virtualized row renderer (react-window v2 List API) ──
+  const ExerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const ex = filteredExercises[index];
+    if (!ex) return null;
+    return (
+      <div style={style}>
+        <ExerciseItem
+          role="button"
+          tabIndex={0}
+          $selected={selectedExercise?.id === ex.id}
+          onClick={() => { setSelectedExercise(ex); }}
+          onDoubleClick={() => addExercise(ex)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addExercise(ex); } }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ExerciseName>{ex.name}</ExerciseName>
+            <ExerciseMeta>
+              <MetaTag>{ex.bodyPartCategory}</MetaTag>
+              <MetaTag>{ex.exerciseType}</MetaTag>
+              <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
+              <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
+            </ExerciseMeta>
+          </div>
+          <ExerciseAddBtn
+            onClick={(e) => { e.stopPropagation(); addExercise(ex); }}
+            aria-label={`Add ${ex.name}`}
+          >
+            <Plus size={18} />
+          </ExerciseAddBtn>
+        </ExerciseItem>
+      </div>
+    );
+  }, [filteredExercises, selectedExercise, addExercise, setSelectedExercise]);
 
   // ── Fetch Clients ──
   useEffect(() => {
@@ -644,7 +678,8 @@ const WorkoutPlannerPage: React.FC = () => {
               {filteredExercises.length} results
             </span>
           </PanelHeader>
-          <PanelBody>
+          {/* Filters section — fixed height, does not scroll */}
+          <div style={{ flexShrink: 0, padding: '12px 16px 4px', display: 'flex', flexDirection: 'column', gap: 0 }}>
             <SearchWrapper>
               <Search size={14} />
               <SearchInput
@@ -714,55 +749,23 @@ const WorkoutPlannerPage: React.FC = () => {
                 </Chip>
               ))}
             </ChipRow>
+          </div>
+          {/* Exercise list — flex: 1, own scroll via FixedSizeList. No outer scroll conflict. */}
+          <div style={{ flex: 1, minHeight: 0, padding: '0 16px 8px' }}>
             {exercisesLoading ? (
               Array.from({ length: 6 }, (_, i) => <SkeletonBlock key={i} />)
             ) : filteredExercises.length === 0 ? (
               <EmptyMessage>No exercises match your filters.</EmptyMessage>
             ) : (
-              <FixedSizeList
-                height={420}
-                itemCount={filteredExercises.length}
-                itemSize={64}
-                width="100%"
-                style={{ overflowX: 'hidden' }}
-              >
-                {({ index, style }: ListChildComponentProps) => {
-                  const ex = filteredExercises[index];
-                  return (
-                    <div style={style}>
-                      <ExerciseItem
-                        role="button"
-                        tabIndex={0}
-                        $selected={selectedExercise?.id === ex.id}
-                        onClick={() => {
-                          setSelectedExercise(ex);
-                          if (teachModeOpen) return;
-                        }}
-                        onDoubleClick={() => addExercise(ex)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addExercise(ex); } }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <ExerciseName>{ex.name}</ExerciseName>
-                          <ExerciseMeta>
-                            <MetaTag>{ex.bodyPartCategory}</MetaTag>
-                            <MetaTag>{ex.exerciseType}</MetaTag>
-                            <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
-                            <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
-                          </ExerciseMeta>
-                        </div>
-                        <ExerciseAddBtn
-                          onClick={(e) => { e.stopPropagation(); addExercise(ex); }}
-                          aria-label={`Add ${ex.name}`}
-                        >
-                          <Plus size={18} />
-                        </ExerciseAddBtn>
-                      </ExerciseItem>
-                    </div>
-                  );
-                }}
-              </FixedSizeList>
+              <List
+                rowComponent={ExerciseRowRenderer}
+                rowCount={filteredExercises.length}
+                rowHeight={64}
+                rowProps={{}}
+                style={{ height: 420, overflowX: 'hidden' }}
+              />
             )}
-          </PanelBody>
+          </div>
         </Panel>
 
         {/* Center: Workout Builder */}
