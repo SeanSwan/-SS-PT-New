@@ -52,6 +52,8 @@ export interface SubscriptionStatus {
   currentPeriodEnd: string | null;
   amount: number | null;
   paymentMethod: string | null;
+  cumulativeDonationAmount?: number;
+  crystallinePromoEligible?: boolean;
   isAdmin?: boolean;
 }
 

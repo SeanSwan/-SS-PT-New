@@ -127,6 +127,12 @@ Subscription.init(
       defaultValue: 'stripe',
       validate: { isIn: [['stripe', 'zelle', 'venmo', 'manual']] },
     },
+    cumulativeDonationAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Total lifetime Guardian donations — triggers Crystalline promo at $25+',
+    },
   },
   {
     sequelize,

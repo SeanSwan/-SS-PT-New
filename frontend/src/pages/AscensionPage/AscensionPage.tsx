@@ -38,6 +38,7 @@ const AscensionPage: React.FC = () => {
 
   const currentTier = subscription?.tier || 'free';
   const showTrial = !subscription;
+  const showCrystallinePromo = subscription?.crystallinePromoEligible === true;
 
   const handleCheckout = (tier: 'pro' | 'elite') => {
     if (tier === 'pro') {
@@ -96,6 +97,29 @@ const AscensionPage: React.FC = () => {
         <title>Ascend Your Training | SwanStudios</title>
         <meta name="description" content="Choose your SwanStudios tier — free Swan Coach for everyone, advanced analytics for Guardians, and human trainer access for Crystalline members." />
       </Helmet>
+
+      {showCrystallinePromo && (
+        <PromoBanner
+          as={motion.div}
+          initial={prefersReduced ? {} : { opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <PromoIcon>✦</PromoIcon>
+          <PromoContent>
+            <PromoTitle>You've Unlocked the Crystalline Upgrade</PromoTitle>
+            <PromoText>
+              Your Guardian donations have crossed $25. Crystalline Swan is available
+              to you — direct trainer access, full analytics, all premium tools.
+            </PromoText>
+          </PromoContent>
+          <PromoBtn
+            onClick={() => checkout('elite', undefined, isAnnual ? 'year' : 'month')}
+          >
+            Upgrade Now
+          </PromoBtn>
+        </PromoBanner>
+      )}
 
       <HeroSection>
         <Eyebrow
@@ -255,4 +279,66 @@ const MissionNote = styled.p`
   color: rgba(224, 236, 244, 0.35);
 
   @media (min-width: 1024px) { margin-top: 4rem; }
+`;
+
+// ─── Promo Banner (Guardian → Crystalline upgrade prompt) ───────
+
+const PromoBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(96,192,240,0.08));
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 14px;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    text-align: center;
+  }
+`;
+
+const PromoIcon = styled.span`
+  font-size: 1.75rem;
+  flex-shrink: 0;
+  color: #8B5CF6;
+`;
+
+const PromoContent = styled.div`
+  flex: 1;
+`;
+
+const PromoTitle = styled.p`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ice-wing, #60C0F0);
+  margin: 0 0 0.3rem;
+`;
+
+const PromoText = styled.p`
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: rgba(224,236,244,0.65);
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const PromoBtn = styled.button`
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  color: #030712;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  &:hover { opacity: 0.88; }
 `;

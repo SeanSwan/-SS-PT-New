@@ -310,6 +310,10 @@ const CheckoutCancel = lazyLoadWithErrorHandling(
   () => import('../pages/checkout/CheckoutCancel'),
   'Checkout Cancel'
 );
+const SubscriptionSuccessPage = lazyLoadWithErrorHandling(
+  () => import('../pages/subscription/SubscriptionSuccessPage'),
+  'Subscription Success Page'
+);
 
 // Protected Pages
 const RevolutionaryClientDashboard = lazyLoadWithErrorHandling(
@@ -748,6 +752,14 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <CheckoutCancel />
+        </Suspense>
+      )
+    },
+    {
+      path: 'subscription/success',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SubscriptionSuccessPage />
         </Suspense>
       )
     },

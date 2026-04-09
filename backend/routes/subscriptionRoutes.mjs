@@ -104,6 +104,9 @@ router.get('/status', protect, async (req, res) => {
 
     const tierDef = TIER_DEFINITIONS[subscription.tier] || TIER_DEFINITIONS.free;
 
+    const cumDonation = parseFloat(subscription.cumulativeDonationAmount || 0);
+    const crystallinePromoEligible = subscription.tier === 'pro' && cumDonation >= 25;
+
     res.json({
       success: true,
       subscription: {
@@ -117,6 +120,8 @@ router.get('/status', protect, async (req, res) => {
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,
         paymentMethod: subscription.paymentMethod,
+        cumulativeDonationAmount: cumDonation,
+        crystallinePromoEligible,
       },
       usage: {
         aiMessagesUsed: user?.aiMessagesUsedThisMonth || 0,
@@ -430,11 +435,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         if (session.mode === 'payment') {
           const donationAmount = parseFloat(session.metadata?.amount || '5');
 
+          // Fetch existing to accumulate lifetime donations
+          const existing = await Subscription.findOne({ where: { userId } });
+          const prevCumulative = parseFloat(existing?.cumulativeDonationAmount || 0);
+          const newCumulative = Math.round((prevCumulative + donationAmount) * 100) / 100;
+
           await Subscription.upsert({
             userId,
             tier: 'pro',
             status: 'active',
             amount: donationAmount,
+            cumulativeDonationAmount: newCumulative,
             stripeCustomerId: session.customer,
             stripeSubscriptionId: null,
             currentPeriodStart: new Date(),
@@ -449,7 +460,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             { where: { id: userId } }
           );
 
-          logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId}`);
+          logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId} (cumulative: $${newCumulative})`);
         }
 
         // Crystalline subscription (mode:subscription) — recurring

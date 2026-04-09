@@ -312,14 +312,22 @@ const DonationNote = styled.p`
 interface FrostedPaywallProps {
   /** What feature triggered the paywall */
   featureName?: string;
+  /** Minimum tier required — drives subtitle copy */
+  requiredTier?: 'pro' | 'elite';
   /** Close handler — dismiss the overlay */
   onClose: () => void;
   /** Called after successful trial start or subscription */
   onUnlocked?: () => void;
 }
 
+const TIER_DISPLAY: Record<string, string> = {
+  pro: 'Swan Guardian',
+  elite: 'Crystalline Swan',
+};
+
 const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
   featureName = 'AI coaching',
+  requiredTier = 'pro',
   onClose,
   onUnlocked,
 }) => {
@@ -364,9 +372,10 @@ const FrostedPaywall: React.FC<FrostedPaywallProps> = ({
 
         <Title>Unlock {featureName}</Title>
         <Subtitle>
-          This feature is available with <strong>Swan Guardian</strong> or higher.
-          Support the mission — your donation keeps SwanStudios free for everyone
-          and unlocks NASM calculators, advanced analytics, and more.
+          This feature requires <strong>{TIER_DISPLAY[requiredTier] || 'Swan Guardian'}</strong> or higher.
+          {requiredTier === 'elite'
+            ? ' Crystalline Swan ($24.99/mo) adds direct trainer access, full analytics, and all premium tools.'
+            : ' Support the mission — your donation keeps SwanStudios free for everyone and unlocks NASM calculators, advanced analytics, and more.'}
         </Subtitle>
 
         {/* Trial status badge */}
