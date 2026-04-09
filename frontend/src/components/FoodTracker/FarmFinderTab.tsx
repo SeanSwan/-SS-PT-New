@@ -12,7 +12,7 @@ import {
   Container, HeaderRow, HeaderIcon, Title, Subtitle,
   SearchRow, ZipInput, SearchBtn, ErrorMsg, InfoMsg,
   MapWrapper, ResultCount, MarketList,
-  MarketCard, MarketHeader, MarketName, DistBadge,
+  MarketCardWrapper, MarketCardTrigger, MarketHeader, MarketName, DistBadge,
   LoadingRow, MarketDetails, DetailItem, DirectionsLink, Attribution,
 } from './FarmFinderTab.styles';
 
@@ -190,21 +190,23 @@ const FarmFinderTab: React.FC = () => {
           <ResultCount>{markets.length} market{markets.length !== 1 ? 's' : ''} found</ResultCount>
           <MarketList>
             {markets.map(market => (
-              <MarketCard
-                key={market.id}
-                type="button"
-                $selected={selectedMarket === market.id}
-                aria-expanded={selectedMarket === market.id}
-                aria-label={`${market.name}${market.distanceMiles != null ? ` — ${market.distanceMiles.toFixed(1)} miles away` : ''}`}
-                onClick={() => loadDetail(market.id)}
-              >
-                <MarketHeader>
-                  <MapPin size={16} style={{ color: 'var(--accent-primary, #60C0F0)', flexShrink: 0 }} />
-                  <MarketName>{market.name}</MarketName>
-                  {market.distanceMiles != null && (
-                    <DistBadge>{market.distanceMiles.toFixed(1)} mi</DistBadge>
-                  )}
-                </MarketHeader>
+              // Wrapper div carries card chrome; trigger button handles expand/collapse.
+              // Detail content (anchor) lives in a sibling div — no interactive nesting.
+              <MarketCardWrapper key={market.id} $selected={selectedMarket === market.id}>
+                <MarketCardTrigger
+                  type="button"
+                  aria-expanded={selectedMarket === market.id}
+                  aria-label={`${market.name}${market.distanceMiles != null ? ` — ${market.distanceMiles.toFixed(1)} miles away` : ''}, tap to ${selectedMarket === market.id ? 'collapse' : 'expand'}`}
+                  onClick={() => loadDetail(market.id)}
+                >
+                  <MarketHeader>
+                    <MapPin size={16} style={{ color: 'var(--accent-primary, #60C0F0)', flexShrink: 0 }} />
+                    <MarketName>{market.name}</MarketName>
+                    {market.distanceMiles != null && (
+                      <DistBadge>{market.distanceMiles.toFixed(1)} mi</DistBadge>
+                    )}
+                  </MarketHeader>
+                </MarketCardTrigger>
 
                 {detailLoading === market.id && (
                   <LoadingRow><Loader2 size={14} /> Loading details...</LoadingRow>
@@ -227,14 +229,13 @@ const FarmFinderTab: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Get directions to ${market.name} (opens in new tab)`}
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <ExternalLink size={13} /> Get Directions
                       </DirectionsLink>
                     )}
                   </MarketDetails>
                 )}
-              </MarketCard>
+              </MarketCardWrapper>
             ))}
           </MarketList>
         </>

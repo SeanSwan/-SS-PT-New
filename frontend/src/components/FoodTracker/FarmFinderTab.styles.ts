@@ -123,7 +123,12 @@ export const MarketList = styled.div`
   gap: 8px;
 `;
 
-export const MarketCard = styled.button<{ $selected: boolean }>`
+/**
+ * Outer wrapper (div) carries the card chrome.
+ * Trigger (button) is the only interactive child in the header row.
+ * Detail content (including anchor) lives in a sibling div — no button-in-button or a-in-button.
+ */
+export const MarketCardWrapper = styled.div<{ $selected: boolean }>`
   border-radius: 12px;
   border: 1px solid ${(p) => p.$selected
     ? 'rgba(96, 192, 240, 0.3)'
@@ -132,13 +137,19 @@ export const MarketCard = styled.button<{ $selected: boolean }>`
     ? 'rgba(96, 192, 240, 0.04)'
     : 'var(--bg-surface, #1A1A24)'};
   overflow: hidden;
-  cursor: pointer;
   transition: border-color 0.15s;
-  text-align: left;
-  width: 100%;
-  padding: 0;
   &:hover { border-color: rgba(96, 192, 240, 0.25); }
-  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
+`;
+
+export const MarketCardTrigger = styled.button`
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: -2px; }
 `;
 
 export const MarketHeader = styled.div`

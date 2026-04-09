@@ -101,6 +101,8 @@ const GardeningTab: React.FC = () => {
 
   const refetchPlants = useCallback(async (cat: string, space: string, diff: string) => {
     if (!zoneData) return;
+    // Clear immediately so failure never shows old results under new filter labels
+    setPlants([]);
     const params = new URLSearchParams({ zone: zoneData.zone });
     if (cat) params.set('category', cat);
     if (space) params.set('spaceType', space);
