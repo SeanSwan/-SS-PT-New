@@ -23,6 +23,7 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import { X, ShieldAlert, ExternalLink, AlertTriangle, Leaf } from 'lucide-react';
 import type { IngredientSafety } from './IngredientSafetyPanel';
@@ -117,7 +118,10 @@ const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredien
     || (ingredient.bannedRegions?.length ?? 0) > 0
     || (ingredient.researchUrls?.length ?? 0) > 0;
 
-  return (
+  // Portal to document.body — escapes any transformed ancestor (e.g. ProductCard
+  // hover translateY) that would otherwise contain the fixed backdrop, and ensures
+  // the inert loop in useEffect correctly isolates the app root.
+  return createPortal(
     <Backdrop onClick={onClose}>
       <Modal
         ref={modalRef}
@@ -234,7 +238,8 @@ const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredien
           </DisclaimerBox>
         </ModalBody>
       </Modal>
-    </Backdrop>
+    </Backdrop>,
+    document.body,
   );
 };
 
