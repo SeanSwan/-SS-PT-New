@@ -36,7 +36,7 @@ const ActivityContainer = styled(motion.div)`
     0 8px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
 
   @media (max-width: 768px) {
@@ -122,7 +122,6 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   &:hover {
     background: var(--accent-primary);
     color: white;
-    transform: translateY(-1px);
   }
 
   &:focus-visible {
@@ -163,7 +162,6 @@ const StatCard = styled(motion.div)`
   transition: all 0.3s ease;
 
   &:hover {
-    transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
   }
 
@@ -175,7 +173,7 @@ const StatCard = styled(motion.div)`
 const StatIcon = styled.div<{ $color?: string }>`
   width: 48px;
   height: 48px;
-  background: ${({ $color }) => $color || 'linear-gradient(135deg, #3B82F6, #8B5CF6)'};
+  background: ${({ $color }) => $color || 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-purple, #8B5CF6))'};
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -214,7 +212,6 @@ const ActivityItem = styled(motion.div)`
   overflow: hidden;
 
   &:hover {
-    transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -226,7 +223,7 @@ const ActivityIcon = styled.div<{ $color?: string }>`
   left: 1.25rem;
   width: 40px;
   height: 40px;
-  background: ${({ $color }) => $color || 'linear-gradient(135deg, #3B82F6, #8B5CF6)'};
+  background: ${({ $color }) => $color || 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-purple, #8B5CF6))'};
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -381,21 +378,21 @@ const ActivitySection: React.FC = () => {
   const { stats, posts, isLoadingStats, isLoadingPosts } = useProfile();
 
   const realStats = React.useMemo(() => [
-    { icon: Target, label: 'Workouts', value: String(stats?.workouts || 0), color: '#60C0F0' },
-    { icon: Zap, label: 'Streak Days', value: String(stats?.streak || 0), color: '#C6A84B' },
-    { icon: Heart, label: 'Followers', value: String(stats?.followers || 0), color: '#F472B6' },
-    { icon: TrendingUp, label: 'Level', value: String(stats?.level || 0), color: '#4ADE80' },
+    { icon: Target, label: 'Workouts', value: String(stats?.workouts || 0), color: 'var(--accent-primary, #60C0F0)' },
+    { icon: Zap, label: 'Streak Days', value: String(stats?.streak || 0), color: 'var(--accent-gold, #C6A84B)' },
+    { icon: Heart, label: 'Followers', value: String(stats?.followers || 0), color: 'var(--accent-tertiary, #F472B6)' },
+    { icon: TrendingUp, label: 'Level', value: String(stats?.level || 0), color: 'var(--accent-success, #4ADE80)' },
   ], [stats]);
 
   const realActivities = React.useMemo(() => {
     if (!posts || posts.length === 0) return [];
     return posts.slice(0, 6).map((post, index) => {
       const typeMap: Record<string, { icon: any; color: string; label: string }> = {
-        workout: { icon: Zap, color: '#60C0F0', label: 'Workout' },
-        achievement: { icon: Award, color: '#C6A84B', label: 'Achievement' },
-        challenge: { icon: Target, color: '#4ADE80', label: 'Challenge' },
-        milestone: { icon: TrendingUp, color: '#F472B6', label: 'Milestone' },
-        general: { icon: Activity, color: '#50A0F0', label: 'Post' },
+        workout: { icon: Zap, color: 'var(--accent-primary, #60C0F0)', label: 'Workout' },
+        achievement: { icon: Award, color: 'var(--accent-gold, #C6A84B)', label: 'Achievement' },
+        challenge: { icon: Target, color: 'var(--accent-success, #4ADE80)', label: 'Challenge' },
+        milestone: { icon: TrendingUp, color: 'var(--accent-tertiary, #F472B6)', label: 'Milestone' },
+        general: { icon: Activity, color: 'var(--arctic-cyan, #50A0F0)', label: 'Post' },
       };
       const typeInfo = typeMap[post.type] || typeMap.general;
 
@@ -487,7 +484,7 @@ const ActivitySection: React.FC = () => {
           const Icon = stat.icon;
           return (
             <StatCard
-              key={index}
+              key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
