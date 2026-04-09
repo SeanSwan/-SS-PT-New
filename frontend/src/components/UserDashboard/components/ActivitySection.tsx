@@ -10,23 +10,13 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
-  Clock,
-  Calendar,
   Trophy,
   Heart,
   MessageCircle,
-  Share2,
   Target,
   Zap,
-  Star,
   Award,
-  Users,
-  Camera,
-  Video,
-  Music,
-  MapPin,
   TrendingUp,
-  Filter,
   ChevronDown,
   ChevronUp,
   Loader2
@@ -44,10 +34,18 @@ const ActivityContainer = styled(motion.div)`
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.15),
     0 8px 16px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
 
   @media (max-width: 768px) {
     padding: 1.5rem;
     border-radius: 16px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
   }
 `;
 
@@ -57,7 +55,7 @@ const ActivityHeader = styled.div`
   align-items: center;
   margin-bottom: 2rem;
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
@@ -83,10 +81,12 @@ const FilterContainer = styled.div`
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  width: 100%;
   
-  @media (max-width: 768px) {
-    justify-content: center;
-    flex-wrap: wrap;
+  @media (max-width: 1024px) {
+    justify-content: flex-start;
   }
 `;
 
@@ -115,23 +115,43 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   transition: all 0.3s ease;
   font-size: 0.875rem;
   font-weight: 500;
+  min-height: 44px;
+  flex-shrink: 0;
+  white-space: nowrap;
 
   &:hover {
     background: var(--accent-primary);
     color: white;
     transform: translateY(-1px);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 const StatsOverview = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
-  
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 360px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -145,6 +165,10 @@ const StatCard = styled(motion.div)`
   &:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  }
+
+  @media (max-width: 560px) {
+    padding: 1rem;
   }
 `;
 
@@ -187,6 +211,7 @@ const ActivityItem = styled(motion.div)`
   padding: 1.25rem;
   transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
 
   &:hover {
     transform: translateY(-2px);
@@ -211,13 +236,16 @@ const ActivityIcon = styled.div<{ $color?: string }>`
 
 const ActivityContent = styled.div`
   margin-left: 60px;
+  min-width: 0;
 `;
 
 const ActivityItemHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 0.75rem;
   margin-bottom: 0.5rem;
+  min-width: 0;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -231,6 +259,9 @@ const ActivityItemTitle = styled.h4`
   font-weight: 600;
   margin: 0;
   line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 
 const ActivityTime = styled.p`
@@ -249,12 +280,15 @@ const ActivityDescription = styled.p`
   font-size: 0.9rem;
   margin: 0 0 0.75rem;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 
 const ActivityMeta = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
   font-size: 0.8rem;
   color: var(--text-muted);
 `;
@@ -280,11 +314,17 @@ const ShowMoreButton = styled(motion.button)`
   gap: 0.5rem;
   font-weight: 500;
   margin-top: 1rem;
+  min-height: 44px;
 
   &:hover {
     background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
     border-color: var(--accent-primary);
     color: var(--accent-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -330,9 +370,9 @@ const LoadingContainer = styled.div`
 const filterOptions = [
   { id: 'all', label: 'All Activity', icon: Activity },
   { id: 'workout', label: 'Workouts', icon: Zap },
-  { id: 'social', label: 'Social', icon: Heart },
+  { id: 'general', label: 'Posts', icon: MessageCircle },
   { id: 'achievement', label: 'Achievements', icon: Trophy },
-  { id: 'content', label: 'Content', icon: Camera }
+  { id: 'progress', label: 'Progress', icon: TrendingUp }
 ];
 
 const ActivitySection: React.FC = () => {
@@ -371,6 +411,7 @@ const ActivitySection: React.FC = () => {
 
       return {
         id: post.id || String(index),
+        typeKey: post.type,
         type: typeInfo.label,
         title: post.content?.substring(0, 60) || typeInfo.label,
         description: post.content || '',
@@ -381,9 +422,13 @@ const ActivitySection: React.FC = () => {
     });
   }, [posts]);
 
-  const filteredActivities = realActivities.filter(activity =>
-    activeFilter === 'all' || activity.type.toLowerCase() === activeFilter
-  );
+  const filteredActivities = realActivities.filter((activity) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'progress') {
+      return activity.typeKey === 'challenge' || activity.typeKey === 'milestone';
+    }
+    return activity.typeKey === activeFilter;
+  });
 
   const displayedActivities = showMore ? filteredActivities : filteredActivities.slice(0, 4);
 
@@ -421,7 +466,9 @@ const ActivitySection: React.FC = () => {
             return (
               <FilterButton
                 key={filter.id}
+                type="button"
                 $active={activeFilter === filter.id}
+                aria-pressed={activeFilter === filter.id}
                 onClick={() => setActiveFilter(filter.id)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -506,6 +553,7 @@ const ActivitySection: React.FC = () => {
         
         {hasMoreActivities && (
           <ShowMoreButton
+            type="button"
             onClick={() => setShowMore(!showMore)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
