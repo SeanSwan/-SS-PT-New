@@ -362,6 +362,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     reactToPost,
     removeReaction,
     addComment,
+    updatePost,
     deletePost,
     reportPost,
     repostPost,
@@ -574,6 +575,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
               onReact={reactToPost}
               onRemoveReaction={removeReaction}
               onComment={addComment}
+              onEdit={updatePost}
               onDelete={deletePost}
               onReport={reportPost}
               onRepost={repostPost}

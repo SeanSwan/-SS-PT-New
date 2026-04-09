@@ -89,7 +89,7 @@ import { logger } from '@/utils/logger';
 // PURPOSE: Manages state and composes all sub-components
 // ─────────────────────────────────────────────────────────────
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport, onRepost }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost }) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
@@ -101,6 +101,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   // Menu state
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Edit state
+  const [editMode, setEditMode] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -205,6 +210,22 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     logger.warn('TODO: implement mute user', post.user.id);
   }, [post.user.id]);
 
+  const handleEditPost = useCallback(() => {
+    setEditContent(post.content);
+    setEditMode(true);
+  }, [post.content]);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!onEdit || !editContent.trim() || editContent === post.content) {
+      setEditMode(false);
+      return;
+    }
+    setIsSavingEdit(true);
+    const ok = await onEdit(post.id, editContent.trim());
+    setIsSavingEdit(false);
+    if (ok) setEditMode(false);
+  }, [onEdit, editContent, post.id, post.content]);
+
   const handleDeletePost = useCallback(async () => {
     if (!onDelete) return;
     const confirmed = window.confirm('Are you sure you want to delete this post? This cannot be undone.');
@@ -240,15 +261,70 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           onMenuClose={() => setMenuOpen(false)}
           onReport={() => setReportModalOpen(true)}
           onDelete={handleDeletePost}
+          onEdit={handleEditPost}
           onCopyLink={handleCopyLink}
           onMute={handleMute}
           isOwnPost={isOwnPost}
         />
 
-        <PostContent
-          post={post}
-          transformationSliderValue={transformationSliderValue}
-        />
+        {editMode ? (
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              autoFocus
+              rows={4}
+              style={{
+                width: '100%',
+                background: 'var(--bg-elevated, #1A1A24)',
+                color: 'var(--text-primary, #E0ECF4)',
+                border: '1px solid var(--accent-primary, #60C0F0)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 14,
+                lineHeight: 1.5,
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+              aria-label="Edit post content"
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setEditMode(false)}
+                disabled={isSavingEdit}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: '1px solid rgba(96,192,240,0.2)',
+                  background: 'transparent', color: 'var(--text-muted, rgba(224,236,244,0.5))',
+                  fontFamily: "'Sora', sans-serif", fontSize: 13, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit || !editContent.trim()}
+                style={{
+                  padding: '6px 16px', borderRadius: 6, border: 'none',
+                  background: 'var(--accent-primary, #60C0F0)', color: '#0A0A0F',
+                  fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700,
+                  cursor: isSavingEdit ? 'not-allowed' : 'pointer',
+                  opacity: isSavingEdit ? 0.7 : 1,
+                }}
+              >
+                {isSavingEdit ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <PostContent
+            post={post}
+            transformationSliderValue={transformationSliderValue}
+          />
+        )}
 
         <StyledDivider />
 

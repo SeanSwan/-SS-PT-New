@@ -401,6 +401,24 @@ export const useSocialFeed = () => {
     }
   }, [authAxios, user, toast, invalidateProfile]);
   
+  // Update a post's content (owner only, within 24h — admin exempt)
+  const updatePost = useCallback(async (postId: string, content: string): Promise<boolean> => {
+    if (!user || !content.trim()) return false;
+    try {
+      const response = await authAxios.put(`/api/social/posts/${postId}`, { content });
+      const updated = response.data.post;
+      setPosts(prevPosts =>
+        prevPosts.map(p => p.id === postId ? { ...p, content: updated.content, isEdited: true } : p)
+      );
+      toast({ title: 'Post updated', description: 'Your changes have been saved.', variant: 'default' });
+      return true;
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Unable to update post.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      return false;
+    }
+  }, [authAxios, user, toast]);
+
   // Delete a post (owner or admin only)
   const deletePost = useCallback(async (postId: string): Promise<boolean> => {
     if (!user) return false;
@@ -512,6 +530,7 @@ export const useSocialFeed = () => {
     reactToPost,
     removeReaction,
     addComment,
+    updatePost,
     deletePost,
     reportPost,
     repostPost,

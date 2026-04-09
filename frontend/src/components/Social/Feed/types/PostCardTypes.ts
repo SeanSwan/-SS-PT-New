@@ -99,6 +99,7 @@ export interface PostCardProps {
   onRemoveReaction?: (postId: string, reactionType: string) => void;
   onComment: (postId: string, content: string) => void;
   onDelete?: (postId: string) => Promise<boolean>;
+  onEdit?: (postId: string, content: string) => Promise<boolean>;
   onReport?: (postId: string, reason: string, description?: string) => Promise<boolean>;
   onRepost?: (postId: string, content?: string) => Promise<boolean>;
 }
@@ -112,6 +113,7 @@ export interface PostHeaderProps {
   onMenuClose: () => void;
   onReport: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   onCopyLink: () => void;
   onMute: () => void;
   isOwnPost: boolean;

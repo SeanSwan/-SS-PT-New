@@ -25,7 +25,7 @@
  */
 
 import React from 'react';
-import { MoreVertical, User, Link2, VolumeX, Flag, Trash2 } from 'lucide-react';
+import { MoreVertical, User, Link2, VolumeX, Flag, Trash2, Pencil } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
 import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import MembershipBadge from '../../../MembershipBadge/MembershipBadge';
@@ -95,6 +95,7 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
   onMenuClose,
   onReport,
   onDelete,
+  onEdit,
   onCopyLink,
   onMute,
   isOwnPost,
@@ -166,6 +167,13 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
                   <DropdownMenuItem onClick={() => { onReport(); onMenuClose(); }} $danger>
                     <Flag size={16} />
                     Report Post
+                  </DropdownMenuItem>
+                )}
+
+                {isOwnPost && (
+                  <DropdownMenuItem onClick={() => { onEdit(); onMenuClose(); }}>
+                    <Pencil size={16} />
+                    Edit Post
                   </DropdownMenuItem>
                 )}
 
