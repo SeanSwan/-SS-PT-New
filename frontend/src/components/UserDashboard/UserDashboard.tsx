@@ -8,7 +8,7 @@
  * Framework: styled-components + framer-motion (NO MUI)
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -1140,6 +1140,8 @@ const UserDashboard: React.FC = () => {
     likePost,
     unlikePost,
     addComment,
+    updatePost,
+    deletePost,
   } = useSocialFeed();
 
   // ── Local state ──
@@ -1150,6 +1152,10 @@ const UserDashboard: React.FC = () => {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<string[]>([]);
+  // Post edit/menu state
+  const [postMenuOpen, setPostMenuOpen] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
 
   // ── Refs ──
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -1200,6 +1206,14 @@ const UserDashboard: React.FC = () => {
     const result = await createPost({ content: postText, type: 'general', visibility: 'public' });
     if (result) setPostText('');
   }, [postText, isCreatingPost, createPost]);
+
+  // Close post menu on outside click
+  useEffect(() => {
+    if (!postMenuOpen) return;
+    const close = () => setPostMenuOpen(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [postMenuOpen]);
 
   const handleLikeToggle = useCallback(async (postId: string, isLiked: boolean) => {
     if (isLiked) await unlikePost(postId);
@@ -1392,10 +1406,67 @@ const UserDashboard: React.FC = () => {
                             {post.type !== 'general' && <TypeBadge $color={typeInfo.color}><TypeIcon size={11} />{typeInfo.label}</TypeBadge>}
                           </div>
                         </PostMeta>
-                        <SmallIconButton><MoreVertical size={18} /></SmallIconButton>
+                        {/* 3-dot menu — edit/delete own posts only */}
+                        {user?.id && post.user.id === String(user.id) && (
+                          <div style={{ position: 'relative' }}>
+                            <SmallIconButton
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                setPostMenuOpen(postMenuOpen === post.id ? null : post.id);
+                              }}
+                              aria-label="Post options"
+                            >
+                              <MoreVertical size={18} />
+                            </SmallIconButton>
+                            {postMenuOpen === post.id && (
+                              <div
+                                style={{
+                                  position: 'absolute', top: '100%', right: 0, zIndex: 50,
+                                  background: 'var(--bg-surface, #1A1A24)',
+                                  border: '1px solid rgba(96,192,240,0.15)',
+                                  borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                                  minWidth: 140, overflow: 'hidden',
+                                }}
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: 'var(--text-primary, #E0ECF4)', fontFamily: "'Sora', sans-serif", fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                                  onClick={() => { setEditText(post.content); setEditingPostId(post.id); setPostMenuOpen(null); }}
+                                >
+                                  ✏️ Edit Post
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 14px', background: 'none', border: 'none', color: '#ef4444', fontFamily: "'Sora', sans-serif", fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                                  onClick={async () => { setPostMenuOpen(null); await deletePost(post.id); }}
+                                >
+                                  🗑️ Delete Post
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </PostHeader>
 
-                      <PostBody>{post.content}</PostBody>
+                      {editingPostId === post.id ? (
+                        <div style={{ padding: '4px 0 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <textarea
+                            value={editText}
+                            onChange={e => setEditText(e.target.value)}
+                            autoFocus
+                            rows={3}
+                            style={{ width: '100%', background: 'var(--bg-elevated, #1A1A24)', color: 'var(--text-primary, #E0ECF4)', border: '1px solid var(--accent-primary, #60C0F0)', borderRadius: 8, padding: '10px 12px', fontFamily: "'Sora', sans-serif", fontSize: 14, lineHeight: 1.5, resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                            aria-label="Edit post content"
+                          />
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button type="button" onClick={() => setEditingPostId(null)} style={{ padding: '6px 16px', borderRadius: 6, border: '1px solid rgba(96,192,240,0.2)', background: 'transparent', color: 'rgba(224,236,244,0.5)', fontFamily: "'Sora', sans-serif", fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                            <button type="button" disabled={!editText.trim()} onClick={async () => { const ok = await updatePost(post.id, editText.trim()); if (ok) setEditingPostId(null); }} style={{ padding: '6px 16px', borderRadius: 6, border: 'none', background: 'var(--accent-primary, #60C0F0)', color: '#0A0A0F', fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <PostBody>{post.content}</PostBody>
+                      )}
 
                       {post.mediaUrl && (
                         <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 16, border: `1px solid ${T.glassBorder}` }}>
