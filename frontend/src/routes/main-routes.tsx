@@ -1,6 +1,6 @@
 /**
- * main-routes.tsx - GALAXY THEMED STOREFRONT VERSION
- * Using the new GalaxyThemedStoreFront with correct pricing and stunning visuals
+ * main-routes.tsx
+ * Application route definitions — Crystalline Swan theme, dark-first.
  */
 import React, { lazy, Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';

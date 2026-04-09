@@ -6,7 +6,7 @@
  * Fetches real gamification data via useGamificationData hook.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
@@ -16,8 +16,6 @@ import {
   Target,
   Trophy,
   Star,
-  Edit3,
-  Save,
   Plus,
   Zap,
   Loader2
@@ -91,25 +89,6 @@ const CardTitle = styled.h3`
   gap: 0.5rem;
 `;
 
-const EditButton = styled(motion.button)`
-  width: 44px;
-  height: 44px;
-  background: var(--bg-base);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: var(--accent-primary);
-    color: white;
-    transform: scale(1.1);
-  }
-`;
 
 const InfoList = styled.div`
   display: flex;
@@ -351,7 +330,6 @@ function formatJoinDate(dateStr?: string): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const AboutSection: React.FC = () => {
-  const [editingPersonal, setEditingPersonal] = useState(false);
   const { user } = useAuth();
   const { profile, achievements, isLoading, levelProgress: lp } = useGamificationData();
 
@@ -474,13 +452,6 @@ const AboutSection: React.FC = () => {
               <User size={20} />
               Profile
             </CardTitle>
-            <EditButton
-              onClick={() => setEditingPersonal(!editingPersonal)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {editingPersonal ? <Save size={16} /> : <Edit3 size={16} />}
-            </EditButton>
           </CardHeader>
 
           <InfoList>

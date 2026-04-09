@@ -61,10 +61,10 @@ export const slideInRight = keyframes`
 
 export const subtleGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1), 0 8px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 20px rgba(96, 192, 240, 0.1), 0 8px 32px rgba(0, 0, 0, 0.12);
   }
   50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 30px rgba(96, 192, 240, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
   }
 `;
 
@@ -168,11 +168,11 @@ export const ContentWrapper = styled.div`
   }
 `;
 
-export const ContentGrid = styled.div`
+export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '300px 1fr'};
   gap: 2rem;
-  margin-top: 2rem;
+  margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
   overflow: hidden;
 
   @media (max-width: 1024px) {
@@ -187,16 +187,23 @@ export const ContentGrid = styled.div`
   }
 
   @media (min-width: 2560px) {
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '380px 1fr'};
     gap: 2.5rem;
     margin-top: 3rem;
   }
 
   @media (min-width: 3840px) {
-    grid-template-columns: 460px 1fr;
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '460px 1fr'};
     gap: 3rem;
     margin-top: 4rem;
   }
+`;
+
+/** Stack wrapper for Progress and Profile tabs — avoids inline style in JSX */
+export const TabStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -1402,6 +1409,7 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
+  min-height: 44px;
   border: none;
   border-radius: 12px;
   background: ${({ $active }) =>

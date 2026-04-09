@@ -78,7 +78,7 @@ export interface TabConfig {
   icon: LucideIcon;
 }
 
-export type TabId = 'feed' | 'creative' | 'photos' | 'about' | 'activity' | 'nutrition';
+export type TabId = 'home' | 'feed' | 'progress' | 'community' | 'profile';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component Props

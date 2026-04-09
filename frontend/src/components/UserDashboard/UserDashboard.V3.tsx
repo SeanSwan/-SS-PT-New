@@ -7,8 +7,9 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the user-facing profile/dashboard page with
- * cover photo, avatar, stats, tabbed content (feed, creative, photos, workouts,
- * about, activity, nutrition), and profile editing capabilities.
+ * cover photo, avatar, stats, and 5-tab content model: Home (MomentumCard +
+ * Swan Coach + quick CTAs), Feed (social stream), Progress (workouts +
+ * activity + nutrition), Community (discovery cards), Profile (about + media).
  *
  * HOW IT FITS IN THE APP: Top-level page at /user-dashboard. Uses useProfile
  * hook for data, useAuth for identity, lazy-loads tab content components.
@@ -24,15 +25,15 @@ import {
   Settings,
   Share2,
   Edit3,
+  Home,
   Users,
   Activity,
   Star,
   Crown,
   Sparkles,
   Image as ImageIcon,
-  Music2,
-  Apple,
-  Dumbbell
+  Dumbbell,
+  User,
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -77,10 +78,12 @@ import {
   MainContent,
   TabNavigation,
   Tab,
+  TabStack,
   HiddenInput,
   LoadingContainer,
   LoadingSpinner,
 } from './styles/DashboardV3Styles';
+import type { TabId } from './types/UserDashboardTypes';
 
 // Simplified Error Boundary
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -130,8 +133,9 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
 }
 
 // Lazy load components for better performance
-// CommunityFeed deprecated — using unified SocialFeed with compact variant
+const HomeTab = lazy(() => import('./components/HomeTab'));
 const SocialFeed = lazy(() => import('../Social/Feed/SocialFeed'));
+const CommunityTab = lazy(() => import('./components/CommunityTab'));
 const CreativeGallery = lazy(() => import('./components/CreativeGallery'));
 const PhotoGallery = lazy(() => import('./components/PhotoGallery'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
@@ -187,7 +191,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
   }, [gamProfile?.data?.achievements]);
 
   // Local state
-  const [activeTab, setActiveTab] = useState('feed');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -266,7 +270,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
   }, [navigate]);
 
   const handleShare = useCallback(async () => {
-    const shareUrl = `${window.location.origin}/user-dashboard`;
+    const shareUrl = `${window.location.origin}/profile/${user?.id}`;
     const shareData = {
       title: `${getDisplayName()} on SwanStudios`,
       url: shareUrl
@@ -331,8 +335,8 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
         {/* V3: Main content z-index wrapper sits above noise */}
         <MainContentZWrapper>
           <ContentWrapper>
-            {/* Profile Header */}
-            <ProfileHeader
+            {/* Profile Header — hidden on Home tab so it's home-first, not profile-first */}
+            {activeTab !== 'home' && <ProfileHeader
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -443,12 +447,12 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   </BadgeShowcase>
                 )}
               </ProfileInfo>
-            </ProfileHeader>
+            </ProfileHeader>}
 
-            {/* Content Grid */}
-            <ContentGrid>
-              {/* Sidebar */}
-              <Sidebar
+            {/* Content Grid — full-width on Home tab (no sidebar needed) */}
+            <ContentGrid $fullWidth={activeTab === 'home'}>
+              {/* Sidebar — hidden on Home tab; MomentumCard already shows key stats */}
+              {activeTab !== 'home' && <Sidebar
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
@@ -491,7 +495,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     ))}
                   </div>
                 </SidebarCard>
-              </Sidebar>
+              </Sidebar>}
 
               {/* Main Content */}
               <MainContent
@@ -499,23 +503,25 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                {/* Tab Navigation */}
-                <TabNavigation>
-                  {[
-                    { id: 'feed', label: 'Feed', icon: Sparkles },
-                    { id: 'creative', label: 'Creative', icon: Music2 },
-                    { id: 'photos', label: 'Photos', icon: ImageIcon },
-                    { id: 'about', label: 'About', icon: Users },
-                    { id: 'workouts', label: 'Workouts', icon: Dumbbell },
-                    { id: 'activity', label: 'Activity', icon: Activity },
-                    { id: 'nutrition', label: 'Nutrition', icon: Apple },
-                  ].map((tab) => {
+                {/* Tab Navigation — ARIA tablist pattern */}
+                <TabNavigation role="tablist" aria-label="Dashboard sections">
+                  {([
+                    { id: 'home',      label: 'Home',      icon: Home },
+                    { id: 'feed',      label: 'Feed',      icon: Sparkles },
+                    { id: 'progress',  label: 'Progress',  icon: Activity },
+                    { id: 'community', label: 'Community', icon: Users },
+                    { id: 'profile',   label: 'Profile',   icon: User },
+                  ] as const).map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <Tab
                         key={tab.id}
+                        id={`tab-${tab.id}`}
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        aria-controls={`panel-${tab.id}`}
                         $active={activeTab === tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => setActiveTab(tab.id as TabId)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -526,15 +532,41 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   })}
                 </TabNavigation>
 
-                {/* Tab Content with Suspense */}
+                {/* Tab Panels — ARIA tabpanel pattern */}
                 <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
-                  {activeTab === 'feed' && <SocialFeed variant="compact" />}
-                  {activeTab === 'creative' && <CreativeGallery />}
-                  {activeTab === 'photos' && <PhotoGallery />}
-                  {activeTab === 'workouts' && <WorkoutsTab />}
-                  {activeTab === 'about' && <AboutSection />}
-                  {activeTab === 'activity' && <ActivitySection />}
-                  {activeTab === 'nutrition' && <NutritionWorkspace />}
+                  {activeTab === 'home' && (
+                    <div role="tabpanel" id="panel-home" aria-labelledby="tab-home">
+                      <HomeTab onTabChange={(t) => setActiveTab(t as TabId)} />
+                    </div>
+                  )}
+                  {activeTab === 'feed' && (
+                    <div role="tabpanel" id="panel-feed" aria-labelledby="tab-feed">
+                      <SocialFeed variant="compact" />
+                    </div>
+                  )}
+                  {activeTab === 'progress' && (
+                    <div role="tabpanel" id="panel-progress" aria-labelledby="tab-progress">
+                      <TabStack>
+                        <WorkoutsTab />
+                        <ActivitySection />
+                        <NutritionWorkspace />
+                      </TabStack>
+                    </div>
+                  )}
+                  {activeTab === 'community' && (
+                    <div role="tabpanel" id="panel-community" aria-labelledby="tab-community">
+                      <CommunityTab onTabChange={(t) => setActiveTab(t as TabId)} />
+                    </div>
+                  )}
+                  {activeTab === 'profile' && (
+                    <div role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
+                      <TabStack>
+                        <AboutSection />
+                        <CreativeGallery />
+                        <PhotoGallery />
+                      </TabStack>
+                    </div>
+                  )}
                 </Suspense>
               </MainContent>
             </ContentGrid>
