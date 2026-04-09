@@ -46,6 +46,13 @@ interface BarcodeScannerProps {
 const API_BASE = import.meta.env.VITE_API_BASE
   || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
+/**
+ * LEGAL GATE — ingredient safety UI is off by default.
+ * Set VITE_INGREDIENT_SAFETY_ENABLED=true in Render env vars only after
+ * Sean signs off on IARC phrasing and FDA disclaimer wording.
+ */
+const INGREDIENT_SAFETY_ENABLED = import.meta.env.VITE_INGREDIENT_SAFETY_ENABLED === 'true';
+
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
   const [barcode, setBarcode] = useState('');
   const [product, setProduct] = useState<ScannedProduct | null>(null);
@@ -213,8 +220,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
             </MacroItem>
           </MacroRow>
 
-          {/* Ingredient Safety — Phase 3: shows IARC/EU-banned badges */}
-          {Array.isArray(product.ingredients) && product.ingredients.length > 0 && (
+          {/* Ingredient Safety — gated by VITE_INGREDIENT_SAFETY_ENABLED (legal sign-off required) */}
+          {INGREDIENT_SAFETY_ENABLED && Array.isArray(product.ingredients) && product.ingredients.length > 0 && (
             <IngredientSafetyPanel ingredients={product.ingredients} />
           )}
 

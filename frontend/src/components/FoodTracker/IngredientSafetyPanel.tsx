@@ -101,7 +101,12 @@ const IngredientSafetyPanel: React.FC<IngredientSafetyPanelProps> = ({ ingredien
             {flagged.length > 0 && <FlagCount>{flagged.length} flagged</FlagCount>}
           </PanelTitle>
         </HeaderLeft>
-        <ExpandBtn type="button" onClick={() => setExpanded(p => !p)} aria-label="Toggle ingredient list">
+        <ExpandBtn
+          type="button"
+          onClick={() => setExpanded(p => !p)}
+          aria-label={expanded ? 'Show fewer ingredients' : `Show all ${ingredients.length} ingredients`}
+          aria-expanded={expanded}
+        >
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {expanded ? 'Less' : `All ${ingredients.length}`}
         </ExpandBtn>
@@ -202,7 +207,7 @@ const ExpandBtn = styled.button`
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 6px;
-  min-height: 32px;
+  min-height: 44px;
   &:hover { background: rgba(96,192,240,0.08); }
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
@@ -224,7 +229,7 @@ const IngredientRow = styled.div<{ $level: 'danger' | 'caution' | 'safe' }>`
   cursor: ${({ $level }) => $level !== 'safe' ? 'pointer' : 'default'};
   text-align: left;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   transition: opacity 0.15s;
   &:hover { opacity: ${({ $level }) => $level !== 'safe' ? '0.85' : '1'}; }
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
@@ -258,7 +263,7 @@ const ShowMore = styled.button`
   cursor: pointer;
   padding: 4px 0;
   text-align: left;
-  min-height: 32px;
+  min-height: 44px;
   &:hover { text-decoration: underline; }
 `;
 

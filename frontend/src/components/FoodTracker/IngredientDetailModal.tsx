@@ -22,7 +22,7 @@
  *   All IARC text uses approved conservative phrasing.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, ShieldAlert, ExternalLink, AlertTriangle, Leaf } from 'lucide-react';
 import type { IngredientSafety } from './IngredientSafetyPanel';
@@ -59,28 +59,74 @@ const FDA_DISCLAIMER =
   'significant dietary changes.';
 
 // ── Component ──────────────────────────────────────────────────────────────
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredient, onClose }) => {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  // Capture triggering element so we can restore focus on close
+  const triggerRef = useRef<Element | null>(
+    typeof document !== 'undefined' ? document.activeElement : null
+  );
 
-  // Focus close button on open for accessibility
+  // Focus close button on open
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
 
-  // Close on Escape
+  // Restore focus to trigger on unmount
   useEffect(() => {
+    const trigger = triggerRef.current as HTMLElement | null;
+    return () => { trigger?.focus(); };
+  }, []);
+
+  // Inert background + Escape key
+  useEffect(() => {
+    // Mark everything outside the modal as inert so keyboard/AT can't reach it
+    const rootChildren = Array.from(document.body.children) as HTMLElement[];
+    rootChildren.forEach(el => {
+      if (!el.contains(modalRef.current)) el.setAttribute('inert', '');
+    });
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    return () => {
+      rootChildren.forEach(el => el.removeAttribute('inert'));
+      window.removeEventListener('keydown', handler);
+    };
   }, [onClose]);
 
+  // Focus trap — keep Tab/Shift+Tab inside modal
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+    const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE))
+      .filter(el => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+    if (focusable.length === 0) { e.preventDefault(); return; }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, []);
+
   const iarcInfo = ingredient.iarcGroup ? IARC_DESCRIPTIONS[ingredient.iarcGroup] : null;
-  const hasSections = iarcInfo || ingredient.isEUBanned || (ingredient.healthConcerns?.length ?? 0) > 0
-    || (ingredient.healthierAlternatives?.length ?? 0) > 0 || (ingredient.bannedRegions?.length ?? 0) > 0;
+  const hasSections = iarcInfo || ingredient.isEUBanned || !!ingredient.description
+    || (ingredient.healthConcerns?.length ?? 0) > 0
+    || (ingredient.healthierAlternatives?.length ?? 0) > 0
+    || (ingredient.bannedRegions?.length ?? 0) > 0
+    || (ingredient.researchUrls?.length ?? 0) > 0;
 
   return (
-    <Backdrop onClick={onClose} role="dialog" aria-modal="true" aria-label={`Ingredient detail: ${ingredient.name}`}>
-      <Modal onClick={e => e.stopPropagation()}>
+    <Backdrop onClick={onClose}>
+      <Modal
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Ingredient detail: ${ingredient.name}`}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
         <ModalHeader>
           <HeaderLeft>
             <ShieldAlert size={18} color="#C92A54" />
@@ -162,7 +208,13 @@ const IngredientDetailModal: React.FC<IngredientDetailModalProps> = ({ ingredien
                 Research Sources
               </SectionTitle>
               {ingredient.researchUrls!.slice(0, 3).map((url, i) => (
-                <ResearchLink key={i} href={url} target="_blank" rel="noopener noreferrer">
+                <ResearchLink
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Research source ${i + 1} for ${ingredient.name} (opens in new tab)`}
+                >
                   <ExternalLink size={12} /> Source {i + 1}
                 </ResearchLink>
               ))}
@@ -245,8 +297,8 @@ const ModalTitle = styled.h3`
 `;
 
 const CloseBtn = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: rgba(255,255,255,0.06);
