@@ -164,8 +164,10 @@ uses the v2 `List` + `rowComponent` pattern.
 - [x] Pair grouping handles odd arrays — PASS (Codex R1)
 - [x] React `key` handling — PASS (Codex R1)
 - [x] `vite build` passes — VERIFIED locally (5412 modules, 12.82s, ✓ built)
-- [ ] Codex to confirm: `ExerciseCard style={{ flex: 1 }}` type-safety with styled-components (TypeScript)
-- [ ] Codex to confirm: `List rowProps={{}}` is correct for v2 when no extra row props are needed
+- [x] `ExerciseCard style={{ flex: 1 }}` type-safe — styled div accepts React.CSSProperties (Codex R2 PASS)
+- [x] `rowProps={{}}` correct for v2 — matches NASMExerciseRolodex.tsx:339 pattern (Codex R2 PASS)
+
+**Fix 4 verdict: ALL CHECKS PASS — deploy-ready**
 
 ---
 
