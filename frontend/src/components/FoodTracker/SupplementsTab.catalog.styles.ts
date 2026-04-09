@@ -2,22 +2,22 @@
  * Styled components for SupplementsTab — category filter + product catalog.
  * Hero/gap/footer styles → SupplementsTab.styles.ts
  * Extracted to keep all files under 300 lines (CLAUDE.md rule).
- * color-mix() removed — replaced with rgba() for Safari 15 compat.
+ * All colors use var(--token, #fallback) pattern per CLAUDE.md rule 6.
  */
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
 export const MiniProductChip = styled.button`
   padding: 4px 10px;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: var(--accent-secondary-subtle, rgba(139, 92, 246, 0.12));
+  border: 1px solid var(--accent-secondary-border-25, rgba(139, 92, 246, 0.25));
   border-radius: 12px;
   color: var(--accent-secondary, #8B5CF6);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   min-height: 44px;
-  &:hover { background: rgba(139, 92, 246, 0.20); }
+  &:hover { background: var(--accent-secondary-light, rgba(139, 92, 246, 0.20)); }
   &:focus-visible { outline: 2px solid var(--accent-secondary, #8B5CF6); outline-offset: 2px; }
 `;
 
@@ -39,7 +39,9 @@ export const CatChip = styled(motion.button)<{ $active: boolean }>`
   border: 1px solid ${p => p.$active
     ? 'var(--accent-secondary, #8B5CF6)'
     : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
-  background: ${p => p.$active ? 'rgba(139, 92, 246, 0.12)' : 'transparent'};
+  background: ${p => p.$active
+    ? 'var(--accent-secondary-subtle, rgba(139, 92, 246, 0.12))'
+    : 'transparent'};
   color: ${p => p.$active
     ? 'var(--accent-secondary, #8B5CF6)'
     : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
@@ -60,11 +62,11 @@ export const ProductGrid = styled.div`
 `;
 
 export const ProductCard = styled(motion.div)`
-  background: rgba(20, 20, 25, 0.90);
+  background: var(--bg-elevated-90, rgba(20, 20, 25, 0.90));
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 10px;
   padding: 14px;
-  &:hover { border-color: rgba(96, 192, 240, 0.20); }
+  &:hover { border-color: var(--accent-primary-hover, rgba(96, 192, 240, 0.20)); }
 `;
 
 /**
@@ -140,8 +142,8 @@ export const BadgeRow = styled.div`
 
 export const ProductBadge = styled.span`
   padding: 3px 8px;
-  background: rgba(96, 192, 240, 0.10);
-  border: 1px solid rgba(96, 192, 240, 0.20);
+  background: var(--accent-primary-subtle, rgba(96, 192, 240, 0.10));
+  border: 1px solid var(--accent-primary-border, rgba(96, 192, 240, 0.20));
   border-radius: 10px;
   font-size: 10px;
   font-weight: 500;
@@ -157,7 +159,7 @@ export const ExpandedDetail = styled(motion.div)`
 
 export const NasmBox = styled.div`
   padding: 10px;
-  background: rgba(139, 92, 246, 0.06);
+  background: var(--accent-secondary-faint, rgba(139, 92, 246, 0.06));
   border-radius: 6px;
   margin-bottom: 10px;
 `;
@@ -185,14 +187,14 @@ export const ShopLink = styled.a`
   gap: 6px;
   padding: 10px 18px;
   background: var(--accent-secondary, #8B5CF6);
-  color: #fff;
+  color: var(--color-on-accent, #fff);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   min-height: 44px;
   transition: box-shadow 0.15s;
-  &:hover { box-shadow: 0 0 16px rgba(96, 192, 240, 0.40); }
+  &:hover { box-shadow: 0 0 16px var(--accent-primary-glow, rgba(96, 192, 240, 0.40)); }
 `;
 
 export const ComingSoon = styled.span`

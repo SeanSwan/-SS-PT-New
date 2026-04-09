@@ -2,7 +2,7 @@
  * Styled components for SupplementsTab — FTC banner, hero, gap analysis, footer.
  * Product catalog styles → SupplementsTab.catalog.styles.ts
  * Extracted to keep all files under 300 lines (CLAUDE.md rule).
- * color-mix() removed — replaced with rgba() for Safari 15 compat.
+ * All colors use var(--token, #fallback) pattern per CLAUDE.md rule 6.
  */
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -18,8 +18,8 @@ export const FtcBanner = styled.div`
   align-items: flex-start;
   gap: 8px;
   padding: 10px 14px;
-  background: rgba(198, 168, 75, 0.08);
-  border: 1px solid rgba(198, 168, 75, 0.20);
+  background: var(--accent-gold-subtle, rgba(198, 168, 75, 0.08));
+  border: 1px solid var(--accent-gold-border, rgba(198, 168, 75, 0.20));
   border-radius: 8px;
   font-size: 11px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.6));
@@ -30,15 +30,19 @@ export const FtcBanner = styled.div`
 export const LoadError = styled.div`
   padding: 10px 14px;
   border-radius: 8px;
-  background: rgba(201, 42, 84, 0.1);
-  border-left: 3px solid #C92A54;
+  background: var(--accent-error-subtle, rgba(201, 42, 84, 0.1));
+  border-left: 3px solid var(--accent-error, #C92A54);
   color: var(--text-primary, #E0ECF4);
   font-size: 13px;
 `;
 
 export const HeroSection = styled.div`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(96, 192, 240, 0.08));
-  border: 1px solid rgba(139, 92, 246, 0.20);
+  background: linear-gradient(
+    135deg,
+    var(--accent-secondary-subtle, rgba(139, 92, 246, 0.12)),
+    var(--accent-primary-subtle, rgba(96, 192, 240, 0.08))
+  );
+  border: 1px solid var(--accent-secondary-border, rgba(139, 92, 246, 0.20));
   border-radius: 12px;
   padding: 20px;
 `;
@@ -48,8 +52,8 @@ export const HeroBadge = styled.span`
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: rgba(198, 168, 75, 0.15);
-  border: 1px solid rgba(198, 168, 75, 0.30);
+  background: var(--accent-gold-light, rgba(198, 168, 75, 0.15));
+  border: 1px solid var(--accent-gold-strong, rgba(198, 168, 75, 0.30));
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
@@ -99,11 +103,11 @@ export const NasmTag = styled.p`
   font-style: italic;
   margin: 0;
   padding-top: 8px;
-  border-top: 1px solid rgba(96, 192, 240, 0.04);
+  border-top: 1px solid var(--accent-primary-faint, rgba(96, 192, 240, 0.04));
 `;
 
 export const GapSection = styled.div`
-  background: rgba(20, 20, 25, 0.80);
+  background: var(--bg-elevated-80, rgba(20, 20, 25, 0.80));
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 12px;
   padding: 20px;
@@ -129,14 +133,14 @@ export const SectionDesc = styled.p`
 export const AnalyzeBtn = styled(motion.button)`
   padding: 12px 24px;
   background: var(--accent-secondary, #8B5CF6);
-  color: #fff;
+  color: var(--color-on-accent, #fff);
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
-  &:hover { box-shadow: 0 0 16px rgba(96, 192, 240, 0.40); }
+  &:hover { box-shadow: 0 0 16px var(--accent-primary-glow, rgba(96, 192, 240, 0.40)); }
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
 `;
 
@@ -168,10 +172,10 @@ export const GapGrid = styled.div`
 
 export const GapCard = styled.div<{ $severity: string }>`
   padding: 14px;
-  background: rgba(26, 26, 36, 0.90);
+  background: var(--bg-surface-90, rgba(26, 26, 36, 0.90));
   border: 1px solid ${p =>
-    p.$severity === 'high' ? 'rgba(201, 42, 84, 0.25)' :
-    p.$severity === 'moderate' ? 'rgba(198, 168, 75, 0.20)' :
+    p.$severity === 'high'     ? 'var(--accent-error-border, rgba(201, 42, 84, 0.25))' :
+    p.$severity === 'moderate' ? 'var(--accent-gold-border, rgba(198, 168, 75, 0.20))' :
     'var(--border-soft, rgba(96, 192, 240, 0.08))'};
   border-radius: 8px;
 `;
