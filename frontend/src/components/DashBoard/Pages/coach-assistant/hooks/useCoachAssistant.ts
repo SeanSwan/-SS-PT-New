@@ -2,17 +2,26 @@
  * ============================================================================
  * FILE: useCoachAssistant.ts
  * PURPOSE: Orchestration hook for Swan Studios Coach Assistant
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-30
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-09
  * AI VILLAGE VALIDATED: 2026-03-30
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Wraps useAIChat with Coach Assistant-specific logic:
- * context switching, response style management, voice I/O coordination,
- * and auto-scrolling.
+ * WHAT THIS FILE DOES: Wraps useAIChat with Coach Assistant-specific logic.
+ * Sprint A: Routes messages through the command lane first. Falls back to the
+ * chat lane for conversational queries. Exposes confirmCommand / cancelCommand
+ * for inline confirmation cards.
+ *
+ * LANE ROUTING:
+ *   sendMessage → executeCommand (POST /api/ai-command/execute)
+ *     ├─ fallback_to_chat | error  → chat lane (sendMessageWithConversation)
+ *     ├─ confirmation_required     → commandMessages (renders ConfirmationCard)
+ *     ├─ executed                  → commandMessages (renders ExecutionResultCard)
+ *     └─ debate_started            → commandMessages (info bubble)
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAIChat } from '../../../../../hooks/useAIChat';
+import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
 
@@ -35,14 +44,21 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   const internalChat = useAIChat();
   const chat = externalChat || internalChat;
+  const {
+    executeCommand,
+    confirmCommand: execConfirm,
+    cancelCommand: execCancel,
+    executingCommand,
+  } = useCoachCommand();
+
   const [context, setContext] = useState<CoachContext>(defaultContext);
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>(defaultStyle);
   const [localMessages, setLocalMessages] = useState<CoachMessageData[]>([]);
+  const [commandMessages, setCommandMessages] = useState<CoachMessageData[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const hasInitRef = useRef(false);
 
-  // ── Sync messages from useAIChat ──
-  const messages: CoachMessageData[] = chat.activeConversation?.messages?.length
+  // ── Merge chat-lane messages with command-lane messages ──
+  const chatMessages: CoachMessageData[] = chat.activeConversation?.messages?.length
     ? chat.activeConversation.messages.map((m, i) => ({
         id: `${chat.activeConversation!.id}-${i}`,
         role: m.role,
@@ -50,43 +66,137 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
         timestamp: m.timestamp,
         metadata: m.metadata,
       }))
-    : localMessages.length
-      ? localMessages
-      : [{
-          id: 'welcome',
-          role: WELCOME_MESSAGE.role,
-          content: WELCOME_MESSAGE.content,
-          timestamp: WELCOME_MESSAGE.timestamp,
-        }];
+    : localMessages;
+
+  const allMessages = [...chatMessages, ...commandMessages];
+
+  const messages: CoachMessageData[] = allMessages.length > 0
+    ? allMessages
+    : [{
+        id: 'welcome',
+        role: WELCOME_MESSAGE.role,
+        content: WELCOME_MESSAGE.content,
+        timestamp: WELCOME_MESSAGE.timestamp,
+      }];
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // ── Send message ──
+  // ── Send message (command lane first, chat lane fallback) ──
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || chat.sending) return;
+    if (!text.trim() || chat.sending || executingCommand) return;
 
-    // Map 'balanced' to 'both' for backend compatibility
-    const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
+    const cmdResult = await executeCommand(text.trim(), { selectedClientId: targetClientId });
 
-    // Use sendMessageWithConversation which atomically creates + sends
-    // This avoids the stale closure bug where createConversation sets
-    // activeConversation but sendMessage still sees null from its closure
-    await chat.sendMessageWithConversation(
-      text.trim(),
-      context as Parameters<typeof chat.sendMessageWithConversation>[1],
-      'Swan Coach Session',
-      targetClientId,
-      backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
+    if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
+      // Route to chat lane as normal
+      const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
+      await chat.sendMessageWithConversation(
+        text.trim(),
+        context as Parameters<typeof chat.sendMessageWithConversation>[1],
+        'Swan Coach Session',
+        targetClientId,
+        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
+      );
+      setLocalMessages([]);
+      return;
+    }
+
+    // Command lane handled — inject messages into commandMessages
+    const userMsg: CoachMessageData = {
+      id: `cmd-user-${Date.now()}`,
+      role: 'user',
+      content: text.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    if (cmdResult.type === 'confirmation_required') {
+      const cmdMsg: CoachMessageData = {
+        id: `cmd-confirm-${Date.now()}`,
+        role: 'assistant',
+        content: cmdResult.message,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          commandConfirmation: {
+            message: cmdResult.message,
+            operationId: cmdResult.operationId,
+            command: cmdResult.command,
+            params: cmdResult.params,
+            client: cmdResult.client,
+            details: cmdResult.details,
+            isDestructive: cmdResult.isDestructive,
+          },
+        },
+      };
+      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
+      setLocalMessages([]);
+      return;
+    }
+
+    if (cmdResult.type === 'executed') {
+      const cmdMsg: CoachMessageData = {
+        id: `cmd-result-${Date.now()}`,
+        role: 'assistant',
+        content: `Done: ${cmdResult.command}`,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          commandResult: {
+            command: cmdResult.command,
+            result: cmdResult.result,
+            client: cmdResult.client,
+          },
+        },
+      };
+      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
+      setLocalMessages([]);
+      return;
+    }
+
+    if (cmdResult.type === 'debate_started') {
+      const cmdMsg: CoachMessageData = {
+        id: `cmd-debate-${Date.now()}`,
+        role: 'assistant',
+        content: cmdResult.message,
+        timestamp: new Date().toISOString(),
+      };
+      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
+      setLocalMessages([]);
+    }
+  }, [chat, context, responseStyle, targetClientId, executeCommand]);
+
+  // ── Confirm a pending destructive/confirmation command ──
+  const confirmCommand = useCallback(async (operationId: string) => {
+    const result = await execConfirm(operationId);
+    setCommandMessages(prev => prev.map(msg => {
+      if (msg.metadata?.commandConfirmation?.operationId !== operationId) return msg;
+      return {
+        ...msg,
+        content: result.message,
+        metadata: {
+          ...msg.metadata,
+          commandConfirmation: undefined,
+          commandResult: {
+            command: msg.metadata.commandConfirmation!.command,
+            result: result.data,
+            client: msg.metadata.commandConfirmation!.client,
+            message: result.message,
+          },
+        },
+      };
+    }));
+  }, [execConfirm]);
+
+  // ── Cancel a pending command ──
+  const cancelCommand = useCallback(async (operationId: string | null) => {
+    if (operationId) await execCancel(operationId);
+    setCommandMessages(prev =>
+      prev.filter(msg => msg.metadata?.commandConfirmation?.operationId !== operationId)
     );
+  }, [execCancel]);
 
-    // Clear local messages once real ones come in
-    setLocalMessages([]);
-  }, [chat, context, responseStyle, targetClientId]);
-
-  // ── Send message with structured food context (from RestaurantTab "Ask Coach") ──
+  // ── Send message with structured food context ──
   const sendMessageWithFood = useCallback(async (
     text: string,
     foodContext: Record<string, unknown>,
@@ -102,16 +212,16 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       foodContext,
     );
     setLocalMessages([]);
-    return result; // caller inspects for paywallRequired / failed
+    return result;
   }, [chat, responseStyle, targetClientId]);
 
   // ── Switch context ──
   const switchContext = useCallback((newContext: CoachContext) => {
     setContext(newContext);
-    // Start a new conversation with the new context on next message
     if (chat.activeConversation) {
       chat.newChat();
       setLocalMessages([]);
+      setCommandMessages([]);
     }
   }, [chat]);
 
@@ -119,11 +229,12 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const clearConversation = useCallback(() => {
     chat.newChat();
     setLocalMessages([]);
+    setCommandMessages([]);
   }, [chat]);
 
   return {
     messages,
-    sending: chat.sending,
+    sending: chat.sending || executingCommand,
     loading: chat.loading,
     error: chat.error,
     context,
@@ -132,6 +243,8 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     switchContext,
     sendMessage,
     sendMessageWithFood,
+    confirmCommand,
+    cancelCommand,
     clearConversation,
     clearError: chat.clearError,
     messagesEndRef,

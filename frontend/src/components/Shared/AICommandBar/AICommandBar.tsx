@@ -52,8 +52,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useAIChat } from '../../../hooks/useAIChat';
-import type { AIContext } from '../../../hooks/useAIChat';
-import { CONTEXT_LABELS } from './AICommandBarTypes';
+import { CONTEXT_LABELS, toHookContext } from './AICommandBarTypes';
 import type { AICommandBarProps, AICommandContext } from './AICommandBarTypes';
 import {
   CommandBarWrapper,
@@ -78,20 +77,8 @@ import {
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Context Mapping
-// PURPOSE: Map AICommandContext to useAIChat's AIContext type
-// WHY: Command bar supports extra contexts not in the hook's union
+// PURPOSE: toHookContext is now centralized in AICommandBarTypes.ts
 // ─────────────────────────────────────────────────────────────
-
-const toHookContext = (ctx: AICommandContext): AIContext => {
-  const mapping: Partial<Record<AICommandContext, AIContext>> = {
-    training: 'workout_generation',
-    biometrics: 'progress_analysis',
-    overview: 'general',
-    settings: 'general',
-    data_analysis: 'general',
-  };
-  return (mapping[ctx] ?? ctx) as AIContext;
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Mobile Detection
@@ -122,11 +109,13 @@ const MessageContent = memo(function MessageContent({
   messages,
   sending,
   error,
+  paywallError,
   contextLabel,
 }: {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   sending: boolean;
   error: string | null;
+  paywallError: string | null;
   contextLabel: string;
 }) {
   const listEndRef = useRef<HTMLDivElement>(null);
@@ -135,7 +124,7 @@ const MessageContent = memo(function MessageContent({
     listEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, sending]);
 
-  if (messages.length === 0 && !sending) {
+  if (messages.length === 0 && !sending && !paywallError) {
     return (
       <EmptyState>
         <span style={{ fontSize: 24 }} aria-hidden="true">&#10024;</span>
@@ -147,6 +136,11 @@ const MessageContent = memo(function MessageContent({
   return (
     <>
       {error && <ErrorBanner role="alert">{error}</ErrorBanner>}
+      {paywallError && (
+        <ErrorBanner role="alert" style={{ borderColor: 'rgba(198,168,75,0.4)', background: 'rgba(198,168,75,0.08)', color: 'var(--accent-gold, #C6A84B)' }}>
+          {paywallError}
+        </ErrorBanner>
+      )}
       {messages.map((msg, i) => (
         <MessageBubble key={i} $role={msg.role}>
           {msg.content}
@@ -176,6 +170,7 @@ const AICommandBar = memo(function AICommandBar({
 }: AICommandBarProps) {
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [paywallError, setPaywallError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -244,13 +239,21 @@ const AICommandBar = memo(function AICommandBar({
       ? `${contextLabel} — ${clientName}`
       : contextLabel;
 
-    await sendMessageWithConversation(
+    setPaywallError(null);
+    const result = await sendMessageWithConversation(
       trimmed,
       hookContext,
       title,
       clientId ?? null,
       'both'
     );
+
+    // Surface paywall as inline upgrade prompt instead of silent failure
+    if (result && (result as any).paywallRequired) {
+      setPaywallError(
+        'Swan Coach requires a subscription upgrade. Visit /ascension to unlock full access.'
+      );
+    }
   }, [inputValue, sending, context, clientName, clientId, contextLabel, sendMessageWithConversation]);
 
   const handleKeyDown = useCallback(
@@ -296,6 +299,7 @@ const AICommandBar = memo(function AICommandBar({
               messages={messages}
               sending={sending}
               error={error}
+              paywallError={paywallError}
               contextLabel={contextLabel}
             />
           </MobileMessageList>
@@ -356,6 +360,7 @@ const AICommandBar = memo(function AICommandBar({
               messages={messages}
               sending={sending}
               error={error}
+              paywallError={paywallError}
               contextLabel={contextLabel}
             />
           </MessageList>

@@ -63,9 +63,8 @@
 
 import React, { useState, useCallback, useRef, useEffect, memo, lazy, Suspense } from 'react';
 import { useAIChat } from '../../../hooks/useAIChat';
-import type { AIContext } from '../../../hooks/useAIChat';
 import { Send } from 'lucide-react';
-import { CONTEXT_LABELS } from '../AICommandBar/AICommandBarTypes';
+import { CONTEXT_LABELS, toHookContext } from '../AICommandBar/AICommandBarTypes';
 import type { AICommandContext } from '../AICommandBar/AICommandBarTypes';
 import {
   DesktopPanel,
@@ -97,19 +96,8 @@ const DictationOrb = lazy(() => import('../../AIAssistant/DictationOrb'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Context Mapping
-// PURPOSE: Map AICommandContext to useAIChat's AIContext type
+// PURPOSE: toHookContext is now centralized in AICommandBarTypes.ts
 // ─────────────────────────────────────────────────────────────
-
-const toHookContext = (ctx: AICommandContext): AIContext => {
-  const mapping: Partial<Record<AICommandContext, AIContext>> = {
-    training: 'workout_generation',
-    biometrics: 'progress_analysis',
-    overview: 'general',
-    settings: 'general',
-    data_analysis: 'general',
-  };
-  return (mapping[ctx] ?? ctx) as AIContext;
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Viewport Hook

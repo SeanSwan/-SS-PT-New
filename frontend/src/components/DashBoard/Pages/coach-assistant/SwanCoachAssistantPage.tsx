@@ -28,10 +28,11 @@
  *            ResponseStyleSelector, CoachInputBar, CoachTeachModePanel
  */
 
-import React, { useCallback, useMemo, useEffect, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
 import { useAIChat } from '../../../../hooks/useAIChat';
+import { useAuth } from '../../../../hooks/useAuth';
 import { usePaywall } from '../../../../context/PaywallContext';
 import { useCoachAssistant } from './hooks/useCoachAssistant';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
@@ -83,8 +84,8 @@ const MainPanel = styled.div`
 `;
 
 const SidebarToggle = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -168,8 +169,8 @@ const NeuralLinkPill = styled.button<{ $active?: boolean }>`
 `;
 
 const TeachModeToggle = styled.button<{ $active?: boolean }>`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: ${({ $active }) => $active
@@ -256,17 +257,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   // Lock background scroll when sidebar overlay is open (iOS fix)
   useScrollLock(sidebar.isOpen);
 
-  // ── Get user role from localStorage ──
-  const userRole = useMemo(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        return (parsed.role || 'admin') as 'admin' | 'trainer' | 'client';
-      }
-    } catch { /* fallback */ }
-    return 'admin' as const;
-  }, []);
+  // ── Get user role from Redux auth store (replaces stale localStorage read) ──
+  const { user: authUser } = useAuth();
+  const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
 
   // ── Handle read aloud ──
   const handleReadAloud = useCallback((text: string) => {
@@ -396,6 +389,8 @@ const SwanCoachAssistantPage: React.FC = () => {
               key={msg.id}
               message={msg}
               onReadAloud={msg.role === 'assistant' ? handleReadAloud : undefined}
+              onConfirmCommand={coach.confirmCommand}
+              onCancelCommand={coach.cancelCommand}
             />
           ))}
 

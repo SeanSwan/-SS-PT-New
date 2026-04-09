@@ -61,6 +61,25 @@ export interface AICommandBarProps {
 // WHY: Displayed in the context badge and placeholder text
 // ─────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Context Mapping Utility
+// PURPOSE: Shared AICommandContext → useAIChat AIContext mapping
+// WHY: Was duplicated in AICommandBar.tsx and AIPersistentPanel.tsx — now canonical
+// ─────────────────────────────────────────────────────────────
+
+import type { AIContext } from '../../../hooks/useAIChat';
+
+export function toHookContext(ctx: AICommandContext): AIContext {
+  const mapping: Partial<Record<AICommandContext, AIContext>> = {
+    training: 'workout_generation',
+    biometrics: 'progress_analysis',
+    overview: 'general',
+    settings: 'general',
+    data_analysis: 'general',
+  };
+  return (mapping[ctx] ?? ctx) as AIContext;
+}
+
 export const CONTEXT_LABELS: Record<AICommandContext, string> = {
   general: 'AI Assistant',
   scheduling: 'Schedule Assistant',

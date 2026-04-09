@@ -24,6 +24,7 @@ import {
 } from './SwanCoachStyles';
 import MarkdownRenderer from './MarkdownRenderer';
 import ProviderBadge from './ProviderBadge';
+import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import type { CoachMessageData } from './SwanCoachTypes';
 
 // ─────────────────────────────────────────────────────────────
@@ -106,9 +107,16 @@ const ProgressBar = styled.div<{ $pct: number }>`
 interface CoachMessageProps {
   message: CoachMessageData;
   onReadAloud?: (text: string) => void;
+  onConfirmCommand?: (operationId: string) => Promise<void>;
+  onCancelCommand?: (operationId: string | null) => Promise<void>;
 }
 
-const CoachMessageComponent: React.FC<CoachMessageProps> = ({ message, onReadAloud }) => {
+const CoachMessageComponent: React.FC<CoachMessageProps> = ({
+  message,
+  onReadAloud,
+  onConfirmCommand,
+  onCancelCommand,
+}) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -141,6 +149,8 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({ message, onReadAlo
 
   const clientCreate = message.metadata?.clientCreateResult;
   const workoutImports = message.metadata?.workoutImportResults;
+  const commandConfirmation = message.metadata?.commandConfirmation;
+  const commandResult = message.metadata?.commandResult;
 
   const copyToClipboard = async (text: string) => {
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
@@ -216,6 +226,30 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({ message, onReadAlo
             </CardRow>
           ))}
         </ActionCard>
+      )}
+
+      {/* Command Confirmation Card */}
+      {commandConfirmation && onConfirmCommand && onCancelCommand && (
+        <ConfirmationCard
+          operationId={commandConfirmation.operationId}
+          command={commandConfirmation.command}
+          params={commandConfirmation.params}
+          client={commandConfirmation.client}
+          details={commandConfirmation.details}
+          isDestructive={commandConfirmation.isDestructive}
+          onConfirm={onConfirmCommand}
+          onCancel={onCancelCommand}
+        />
+      )}
+
+      {/* Command Execution Result Card */}
+      {commandResult && (
+        <ExecutionResultCard
+          command={commandResult.command}
+          result={commandResult.result}
+          client={commandResult.client}
+          message={commandResult.message}
+        />
       )}
 
       <MessageActions>
