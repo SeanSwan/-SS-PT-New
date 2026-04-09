@@ -86,6 +86,24 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     setLocalMessages([]);
   }, [chat, context, responseStyle, targetClientId]);
 
+  // ── Send message with structured food context (from RestaurantTab "Ask Coach") ──
+  const sendMessageWithFood = useCallback(async (
+    text: string,
+    foodContext: Record<string, unknown>,
+  ) => {
+    if (!text.trim() || chat.sending) return;
+    const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
+    await chat.sendMessageWithConversation(
+      text.trim(),
+      'macro_logging' as Parameters<typeof chat.sendMessageWithConversation>[1],
+      'Nutrition Coach',
+      targetClientId,
+      backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
+      foodContext,
+    );
+    setLocalMessages([]);
+  }, [chat, responseStyle, targetClientId]);
+
   // ── Switch context ──
   const switchContext = useCallback((newContext: CoachContext) => {
     setContext(newContext);
@@ -112,6 +130,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     setResponseStyle,
     switchContext,
     sendMessage,
+    sendMessageWithFood,
     clearConversation,
     clearError: chat.clearError,
     messagesEndRef,

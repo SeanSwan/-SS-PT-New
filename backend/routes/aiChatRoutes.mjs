@@ -227,7 +227,7 @@ router.get('/conversations/:id', async (req, res) => {
  */
 router.post('/conversations/:id/messages', requireSubscription('pro', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, foodContext } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({ success: false, error: 'Message is required' });
@@ -332,7 +332,8 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // Only enrich with client data if a client is actually selected
     if (enrichUserId) {
       const userDataContext = await enrichWithUserData(
-        enrichUserId, conversation.role, conversation.context, sequelize
+        enrichUserId, conversation.role, conversation.context, sequelize,
+        foodContext && typeof foodContext === 'object' ? foodContext : null
       );
       if (userDataContext) {
         systemPrompt += userDataContext;

@@ -1058,7 +1058,7 @@ export function getSystemPrompt(role, context, responseStyle = 'both') {
  * 16. Pain/injury entries (body map)
  * 17. Recent sessions (scheduling, attendance)
  */
-export async function enrichWithUserData(userId, role, context, sequelize) {
+export async function enrichWithUserData(userId, role, context, sequelize, foodContext = null) {
   try {
     const dataParts = [];
     const startTime = Date.now();
@@ -1572,6 +1572,18 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
         byDate[d].t.carb += (m.carbs || 0); byDate[d].t.fat += (m.fat || 0);
       }
       dataParts.push(`\n--- NUTRITION ---\n${Object.entries(byDate).map(([d, x]) => `${d}: ${x.meals.join('; ')} TOTAL: ${x.t.cal}cal ${x.t.pro}P ${x.t.carb}C ${x.t.fat}F`).join('\n')}`);
+    }
+
+    // ── RESTAURANT FOOD CONTEXT (injected by Ask Coach button) ──
+    if (foodContext && typeof foodContext === 'object') {
+      const f = foodContext;
+      const lines = [`Name: ${f.foodName || 'Unknown'}`];
+      if (f.restaurantBrand) lines.push(`Brand/Restaurant: ${f.restaurantBrand}`);
+      if (f.serving) lines.push(`Serving: ${f.serving}`);
+      const macros = [`${f.calories ?? '?'}cal`, `${f.protein ?? '?'}g protein`, `${f.carbs ?? '?'}g carbs`, `${f.fat ?? '?'}g fat`];
+      lines.push(`Macros: ${macros.join(', ')}`);
+      if (f.fiber != null) lines.push(`Fiber: ${f.fiber}g | Sugar: ${f.sugar ?? '?'}g | Sodium: ${f.sodium ?? '?'}mg | Sat Fat: ${f.saturatedFat ?? '?'}g`);
+      dataParts.push(`\n--- FOOD ITEM BEING DISCUSSED ---\n${lines.join('\n')}\n(User is asking about this specific food item — tailor your advice to it.)`);
     }
 
     // ── 13. MOVEMENT PROFILE ──

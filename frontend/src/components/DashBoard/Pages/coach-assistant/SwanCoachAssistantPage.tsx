@@ -210,6 +210,23 @@ const SwanCoachAssistantPage: React.FC = () => {
     chat.listConversations();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Auto-send pending food query from RestaurantTab "Ask Coach" ──
+  useEffect(() => {
+    const pending = sessionStorage.getItem('swan:pending-coach-food');
+    if (!pending) return;
+    sessionStorage.removeItem('swan:pending-coach-food');
+    try {
+      const { message, foodContext } = JSON.parse(pending) as {
+        message: string;
+        foodContext: Record<string, unknown>;
+      };
+      const timer = setTimeout(() => {
+        coach.sendMessageWithFood(message, foodContext);
+      }, 400);
+      return () => clearTimeout(timer);
+    } catch { /* malformed entry — ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const sidebar = useConversationSidebar({
     conversations: chat.conversations,
   });

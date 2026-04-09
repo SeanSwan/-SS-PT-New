@@ -22,8 +22,9 @@
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { Search, Plus, Loader2, AlertCircle, Building2, UtensilsCrossed, ChevronRight } from 'lucide-react';
+import { Search, Plus, Loader2, AlertCircle, Building2, UtensilsCrossed, ChevronRight, MessageCircle } from 'lucide-react';
 import { useRestaurantSearch, FoodResult, FoodDetail } from '../../hooks/useRestaurantSearch';
+import { useNutritionCoach } from '../../hooks/useNutritionCoach';
 
 interface RestaurantTabProps {
   onAddFood?: (food: {
@@ -47,6 +48,7 @@ const RestaurantTab: React.FC<RestaurantTabProps> = ({ onAddFood }) => {
   const [query, setQuery] = useState('');
   const [selectedFood, setSelectedFood] = useState<FoodDetail | null>(null);
   const { results, totalResults, loading, error, search, getDetails, detailLoading, configured, page } = useRestaurantSearch();
+  const { askCoach } = useNutritionCoach();
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -208,11 +210,16 @@ const RestaurantTab: React.FC<RestaurantTabProps> = ({ onAddFood }) => {
             </ServingList>
           )}
 
-          {onAddFood && (
-            <AddBtn type="button" onClick={handleAddToLog}>
-              <Plus size={18} /> Add to Food Log
-            </AddBtn>
-          )}
+          <DetailActions>
+            {onAddFood && (
+              <AddBtn type="button" onClick={handleAddToLog}>
+                <Plus size={18} /> Add to Food Log
+              </AddBtn>
+            )}
+            <AskCoachBtn type="button" onClick={() => askCoach(selectedFood!)}>
+              <MessageCircle size={18} /> Ask Swan Coach
+            </AskCoachBtn>
+          </DetailActions>
         </DetailCard>
       )}
 
@@ -582,6 +589,13 @@ const ServingMacros = styled.span`
   color: rgba(224,236,244,0.7);
 `;
 
+const DetailActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+`;
+
 const AddBtn = styled.button`
   display: flex;
   align-items: center;
@@ -604,6 +618,36 @@ const AddBtn = styled.button`
   &:hover {
     box-shadow: 0 0 24px rgba(96, 192, 240, 0.55);
     opacity: 0.92;
+  }
+`;
+
+const AskCoachBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid rgba(96, 192, 240, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 32, 96, 0.5);
+  color: var(--accent-primary, #60C0F0);
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    background: rgba(0, 32, 96, 0.75);
+    border-color: rgba(96, 192, 240, 0.65);
+    box-shadow: 0 0 16px rgba(96, 192, 240, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 

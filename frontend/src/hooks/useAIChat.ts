@@ -270,6 +270,7 @@ export function useAIChat() {
     title?: string,
     targetUserId?: number | string | null,
     responseStyle: ResponseStyle = 'both',
+    foodContext?: Record<string, unknown> | null,
   ) => {
     // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort();
@@ -305,7 +306,7 @@ export function useAIChat() {
       const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${convId}/messages`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, ...(foodContext ? { foodContext } : {}) }),
         signal: abortRef.current.signal,
       });
       const data = await res.json();
