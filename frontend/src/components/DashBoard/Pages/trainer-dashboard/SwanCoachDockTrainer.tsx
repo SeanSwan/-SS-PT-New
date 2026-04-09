@@ -1,0 +1,205 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  COMPONENT: SwanCoachDockTrainer                             ║
+ * ║  PURPOSE: Always-available Swan Coach dock for trainer Home  ║
+ * ║  OWNER: Claude Sonnet 4.6 | LAST MODIFIED: 2026-04-09        ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * GATE MODEL: No consent gate — trainers always have Swan Coach access.
+ *   Trainer Ops Mode is always-on per Swan Coach V1 Spec.
+ *
+ * STATES:
+ *   loading → shimmer skeleton
+ *   ready   → greeting + 3 action chips + AICommandBar (collapsed)
+ *
+ * WIREFRAME:
+ * ┌──────────────────────────────────────────┐
+ * │ [Brain]  "Good morning, Sean."           │
+ * │          3 sessions today  ·  Lv.12      │
+ * │ [Log Session] [View Clients] [Schedule]  │
+ * │ ─────────────────────────────────────── │
+ * │ [✦] Ask Swan Coach...       (Ctrl+K)    │
+ * └──────────────────────────────────────────┘
+ *
+ * PRIVACY: trainerName rendered locally only — never sent to any API.
+ * Sprint A: embeds AICommandBar as the lightweight shell; no second
+ *   command router. Shared logic stays centralized.
+ */
+
+import React from 'react';
+import styled, { keyframes } from 'styled-components';
+import { Brain, ClipboardCheck, Users, Calendar } from 'lucide-react';
+import { AICommandBar } from '../../../Shared/AICommandBar';
+
+// ─── Animations ──────────────────────────────────────────────────────────────
+
+const coachPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
+  50%       { box-shadow: 0 0 30px rgba(139, 92, 246, 0.18); }
+`;
+
+const shimmerAnim = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+// ─── Styled Components ────────────────────────────────────────────────────────
+
+const DockWrap = styled.div`
+  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  border: 1px solid rgba(139, 92, 246, 0.12);
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  animation: ${coachPulse} 5s ease-in-out infinite;
+
+  @media (max-width: 414px) { padding: 1rem 1.125rem; border-radius: 16px; }
+  @media (max-width: 375px) { padding: 0.875rem 1rem; }
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+`;
+
+const DockSkeleton = styled.div`
+  min-height: 215px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  background: linear-gradient(90deg,
+    rgba(139, 92, 246, 0.04) 0%,
+    rgba(139, 92, 246, 0.08) 50%,
+    rgba(139, 92, 246, 0.04) 100%);
+  background-size: 200% 100%;
+  animation: ${shimmerAnim} 1.8s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.5; }
+`;
+
+const CoachRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const CoachAvatar = styled.div`
+  width: 44px; height: 44px; min-width: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg,
+    var(--brand-primary, #002060),
+    var(--accent-secondary, #8B5CF6));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-secondary, #8B5CF6);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+`;
+
+const CoachText = styled.div`
+  flex: 1;
+  overflow: hidden;
+`;
+
+const CoachGreeting = styled.h1`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9375rem; font-weight: 600;
+  color: var(--text-primary, #E0ECF4);
+  margin: 0 0 0.25rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+`;
+
+const CoachMeta = styled.p`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  margin: 0;
+  letter-spacing: 0.04em;
+`;
+
+const ChipRow = styled.div`
+  display: flex; gap: 0.625rem; flex-wrap: wrap;
+  margin-bottom: 1rem;
+  @media (max-width: 375px) { gap: 0.5rem; }
+`;
+
+const Chip = styled.button`
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.06);
+  color: var(--accent-secondary, #8B5CF6);
+  font-family: 'Sora', sans-serif; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+  @media (max-width: 375px) { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
+`;
+
+const CommandDivider = styled.div`
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  margin-bottom: 0.75rem;
+`;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getGreeting(name: string): string {
+  const h = new Date().getHours();
+  const t = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  return `Good ${t}, ${name}.`;
+}
+
+const CHIPS = [
+  { label: 'Log Session',  path: '/dashboard/trainer/log-workout', Icon: ClipboardCheck },
+  { label: 'View Clients', path: '/dashboard/trainer/clients',     Icon: Users          },
+  { label: 'My Schedule',  path: '/dashboard/trainer/schedule',    Icon: Calendar       },
+] as const;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface SwanCoachDockTrainerProps {
+  /** Trainer display name — rendered locally only, never sent to any API */
+  trainerName: string;
+  sessionCount: number;
+  level: number;
+  loading?: boolean;
+  onNavigate: (path: string) => void;
+}
+
+const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
+  trainerName, sessionCount, level, loading = false, onNavigate,
+}) => {
+  if (loading) return <DockSkeleton aria-hidden="true" />;
+
+  const sessLabel = sessionCount === 1 ? '1 session today' : `${sessionCount} sessions today`;
+
+  return (
+    <DockWrap role="region" aria-label="Swan Coach">
+      <CoachRow>
+        <CoachAvatar aria-hidden="true"><Brain size={20} /></CoachAvatar>
+        <CoachText>
+          <CoachGreeting>{getGreeting(trainerName)}</CoachGreeting>
+          <CoachMeta>{sessLabel} &nbsp;·&nbsp; Lv.{level}</CoachMeta>
+        </CoachText>
+      </CoachRow>
+
+      <ChipRow>
+        {CHIPS.map(({ label, path, Icon }) => (
+          <Chip key={path} onClick={() => onNavigate(path)} aria-label={label}>
+            <Icon size={14} aria-hidden="true" />
+            {label}
+          </Chip>
+        ))}
+      </ChipRow>
+
+      <CommandDivider />
+      <AICommandBar context="workout_generation" />
+    </DockWrap>
+  );
+};
+
+export default SwanCoachDockTrainer;

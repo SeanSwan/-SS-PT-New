@@ -21,10 +21,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import {
-  Activity, Users, ClipboardCheck, BarChart3, Target,
+  Users, ClipboardCheck, BarChart3,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
-  ChevronRight, ChevronLeft, Menu, X, Flame, Wrench,
-  HeartPulse, Zap, Home,
+  ChevronRight, ChevronLeft, Menu, X, Flame,
+  Zap, Home,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -436,42 +436,40 @@ const FooterVersion = styled.div`
 
 const trainerNavConfig = [
   {
-    section: 'TRAINING HUB',
+    section: 'HOME',
     items: [
-      { label: 'Training Overview', path: '/dashboard/trainer/overview', icon: Activity },
+      { label: 'Home', path: '/dashboard/trainer/overview', icon: Home },
     ],
   },
   {
-    section: 'CLIENT MANAGEMENT',
+    section: 'CLIENTS',
     items: [
       { label: 'My Clients', path: '/dashboard/trainer/clients', icon: Users },
-      { label: 'Log Client Workout', path: '/dashboard/trainer/log-workout', icon: ClipboardCheck },
       { label: 'Client Progress', path: '/dashboard/trainer/client-progress', icon: BarChart3 },
-      { label: 'Client Pain Charts', path: '/dashboard/trainer/body-map', icon: HeartPulse },
-      { label: 'Form Assessments', path: '/dashboard/trainer/assessments', icon: Target },
+      { label: 'Messages', path: '/dashboard/trainer/messages', icon: MessageSquare },
     ],
   },
   {
-    section: 'CLASS BUILDER',
+    section: 'BUILD',
     items: [
+      { label: 'Workout Forge', path: '/dashboard/trainer/workout-forge', icon: Zap },
+      { label: 'Workout Planner', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
-      { label: 'Sprint Planner', path: '/dashboard/trainer/sprint-planner', icon: Zap },
-      { label: 'Equipment Profiles', path: '/dashboard/trainer/equipment', icon: Wrench },
-    ],
-  },
-  {
-    section: 'CONTENT STUDIO',
-    items: [
-      { label: 'Training Videos', path: '/dashboard/trainer/videos', icon: Video },
-      { label: 'Workout Intelligence', path: '/dashboard/trainer/workout-forge', icon: Brain },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
     ],
   },
   {
-    section: 'UNIVERSAL TOOLS',
+    section: 'SCHEDULE',
     items: [
       { label: 'My Schedule', path: '/dashboard/trainer/schedule', icon: Calendar },
-      { label: 'Client Messages', path: '/dashboard/trainer/messages', icon: MessageSquare },
+      { label: 'Log Session', path: '/dashboard/trainer/log-workout', icon: ClipboardCheck },
+    ],
+  },
+  {
+    section: 'STUDIO',
+    items: [
+      { label: 'Training Videos', path: '/dashboard/trainer/videos', icon: Video },
+      { label: 'Swan Coach', path: '/dashboard/trainer/coach-assistant', icon: Brain },
       { label: 'My Home', path: '/dashboard/trainer/my-home', icon: Home },
     ],
   },

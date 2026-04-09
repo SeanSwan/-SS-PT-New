@@ -116,8 +116,8 @@ const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/Cl
 const ClientWorkoutForgePage = React.lazy(() => import('./Pages/client-dashboard/ClientWorkoutForgePage'));
 const BodyMapPage = React.lazy(() => import('../BodyMap'));
 
-// Trainer dashboard pages (replacing stubs)
-const TrainerOverviewPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerOverviewPage'));
+// Trainer dashboard pages
+const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
 const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
 const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
 const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
@@ -568,7 +568,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
   },
   trainer: {
     routes: [
-      { path: '/overview', component: TrainerOverviewPage, title: 'Training Overview', description: 'Your coaching dashboard' },
+      { path: '/overview', component: TrainerHomeTab, title: 'Home', description: 'Your trainer operations hub' },
       { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
