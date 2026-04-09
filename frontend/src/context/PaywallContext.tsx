@@ -6,6 +6,7 @@ interface PaywallData {
   message?: string;
   code?: string;
   tier?: string;
+  requiredTier?: 'pro' | 'elite';
   upgradeUrl?: string;
 }
 
@@ -60,6 +61,7 @@ export const PaywallProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {state.visible && (
         <FrostedPaywall
           featureName={state.featureName}
+          requiredTier={state.data?.requiredTier ?? 'pro'}
           onClose={hidePaywall}
           onUnlocked={handleUnlocked}
         />

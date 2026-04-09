@@ -17,6 +17,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { authenticateToken } from '../middleware/auth.mjs';
+import { requireTier } from '../middleware/requireTier.mjs';
 import { generateMealPlan, getGolfPresets, getGolfPreset } from '../services/mealPlanService.mjs';
 import { analyzeMealPhoto } from '../services/foodPhotoService.mjs';
 import logger from '../utils/logger.mjs';
@@ -70,7 +71,7 @@ router.get('/golf-presets/:id', (req, res) => {
  * Generates a personalized AI meal plan.
  * Body: { calories, protein, carbs, fat, restrictions[], healthConditions[], activityType, optPhase }
  */
-router.post('/generate', authenticateToken, async (req, res) => {
+router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coaching'), async (req, res) => {
   try {
     const { calories, protein, carbs, fat, restrictions, healthConditions, activityType, optPhase } = req.body;
 
@@ -101,7 +102,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
  * Analyzes a meal photo using Gemini Vision.
  * Multipart form: file (image)
  */
-router.post('/analyze-photo', authenticateToken, upload.single('photo'), async (req, res) => {
+router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.coaching'), upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No photo uploaded. Send an image as "photo" field.' });
