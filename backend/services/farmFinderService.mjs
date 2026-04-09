@@ -26,18 +26,23 @@ const USDA_BASE = 'https://search.ams.usda.gov/farmersmarkets/v1/data.svc';
  * @returns {Object[]} Array of { id, marketname (includes distance) }
  */
 export async function searchByZip(zip) {
+  let res;
   try {
-    const res = await fetch(`${USDA_BASE}/zipSearch?zip=${encodeURIComponent(zip)}`);
-    if (!res.ok) {
-      logger.warn(`[FarmFinder] USDA zip search failed: ${res.status}`);
-      return [];
-    }
-    const data = await res.json();
-    return normalizeSearchResults(data.results || []);
+    res = await fetch(`${USDA_BASE}/zipSearch?zip=${encodeURIComponent(zip)}`);
   } catch (err) {
-    logger.error(`[FarmFinder] Zip search error: ${err.message}`);
-    return [];
+    logger.error(`[FarmFinder] USDA zip search network error: ${err.message}`);
+    const e = new Error('USDA service unreachable');
+    e.apiDown = true;
+    throw e;
   }
+  if (!res.ok) {
+    logger.warn(`[FarmFinder] USDA zip search failed: ${res.status}`);
+    const e = new Error(`USDA API error: ${res.status}`);
+    e.apiDown = true;
+    throw e;
+  }
+  const data = await res.json();
+  return normalizeSearchResults(data.results || []);
 }
 
 /**
@@ -47,18 +52,23 @@ export async function searchByZip(zip) {
  * @returns {Object[]} Array of market summaries
  */
 export async function searchByLocation(lat, lng) {
+  let res;
   try {
-    const res = await fetch(`${USDA_BASE}/locSearch?lat=${lat}&lng=${lng}`);
-    if (!res.ok) {
-      logger.warn(`[FarmFinder] USDA location search failed: ${res.status}`);
-      return [];
-    }
-    const data = await res.json();
-    return normalizeSearchResults(data.results || []);
+    res = await fetch(`${USDA_BASE}/locSearch?lat=${lat}&lng=${lng}`);
   } catch (err) {
-    logger.error(`[FarmFinder] Location search error: ${err.message}`);
-    return [];
+    logger.error(`[FarmFinder] USDA location search network error: ${err.message}`);
+    const e = new Error('USDA service unreachable');
+    e.apiDown = true;
+    throw e;
   }
+  if (!res.ok) {
+    logger.warn(`[FarmFinder] USDA location search failed: ${res.status}`);
+    const e = new Error(`USDA API error: ${res.status}`);
+    e.apiDown = true;
+    throw e;
+  }
+  const data = await res.json();
+  return normalizeSearchResults(data.results || []);
 }
 
 /**

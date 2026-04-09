@@ -11,6 +11,7 @@
  *   GET /api/farms/detail/:id        — Get market details by USDA ID
  */
 import express from 'express';
+import { protect } from '../middleware/authMiddleware.mjs';
 import { searchByZip, searchByLocation, getMarketDetail } from '../services/farmFinderService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -23,7 +24,7 @@ const ZIP_REGEX = /^\d{5}$/;
  * GET /api/farms/search?zip=12345
  * Search farmers markets near a zip code.
  */
-router.get('/search', async (req, res) => {
+router.get('/search', protect, async (req, res) => {
   try {
     const { zip } = req.query;
 
@@ -40,6 +41,9 @@ router.get('/search', async (req, res) => {
     });
   } catch (err) {
     logger.error('[FarmFinderRoutes] Zip search error:', err.message);
+    if (err.apiDown) {
+      return res.status(503).json({ success: false, error: 'Farmers market data is temporarily unavailable', apiDown: true });
+    }
     return res.status(500).json({ success: false, error: 'Failed to search farmers markets' });
   }
 });
@@ -48,7 +52,7 @@ router.get('/search', async (req, res) => {
  * GET /api/farms/nearby?lat=35.2&lng=-80.8
  * Search farmers markets near coordinates.
  */
-router.get('/nearby', async (req, res) => {
+router.get('/nearby', protect, async (req, res) => {
   try {
     const lat = parseFloat(req.query.lat);
     const lng = parseFloat(req.query.lng);
@@ -70,6 +74,9 @@ router.get('/nearby', async (req, res) => {
     });
   } catch (err) {
     logger.error('[FarmFinderRoutes] Location search error:', err.message);
+    if (err.apiDown) {
+      return res.status(503).json({ success: false, error: 'Farmers market data is temporarily unavailable', apiDown: true });
+    }
     return res.status(500).json({ success: false, error: 'Failed to search nearby markets' });
   }
 });
@@ -78,7 +85,7 @@ router.get('/nearby', async (req, res) => {
  * GET /api/farms/detail/:id
  * Get detailed information about a specific farmers market.
  */
-router.get('/detail/:id', async (req, res) => {
+router.get('/detail/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
 

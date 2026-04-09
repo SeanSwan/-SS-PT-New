@@ -11,6 +11,7 @@
  *   GET /api/gardening/filters           — Get available filter options
  */
 import express from 'express';
+import { protect } from '../middleware/authMiddleware.mjs';
 import { getHardinessZone, getPlantRecommendations, getFilterOptions } from '../services/gardeningService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -23,7 +24,7 @@ const ZIP_REGEX = /^\d{5}$/;
  * GET /api/gardening/zone/:zipCode
  * Look up USDA Plant Hardiness Zone by 5-digit zip code.
  */
-router.get('/zone/:zipCode', async (req, res) => {
+router.get('/zone/:zipCode', protect, async (req, res) => {
   try {
     const { zipCode } = req.params;
 
@@ -33,7 +34,7 @@ router.get('/zone/:zipCode', async (req, res) => {
 
     const zoneData = await getHardinessZone(zipCode);
 
-    if (!zoneData) {
+    if (!zoneData || !zoneData.zone) {
       return res.status(404).json({ success: false, error: 'Zone data not found for this zip code' });
     }
 
@@ -49,7 +50,7 @@ router.get('/zone/:zipCode', async (req, res) => {
  * Get plant recommendations for a given zone with optional filters.
  * Query params: zone (required), spaceType, difficulty, category
  */
-router.get('/plants', (req, res) => {
+router.get('/plants', protect, (req, res) => {
   try {
     const { zone, spaceType, difficulty, category } = req.query;
 
@@ -91,7 +92,7 @@ router.get('/plants', (req, res) => {
  * GET /api/gardening/filters
  * Get available filter options for the plant finder.
  */
-router.get('/filters', (_req, res) => {
+router.get('/filters', protect, (_req, res) => {
   return res.json({ success: true, filters: getFilterOptions() });
 });
 
