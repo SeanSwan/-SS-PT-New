@@ -59,7 +59,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 44px;
   transition: all 0.2s ease;
 
   &:hover {
@@ -89,7 +89,7 @@ const VoiceSelectBtn = styled.button`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 44px;
   transition: all 0.2s ease;
 
   &:hover {

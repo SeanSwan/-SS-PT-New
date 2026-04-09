@@ -6,7 +6,10 @@
  * │ ┌───────────────────┐  🎤  📤                              │
  * │ │ Type or tap mic... │  ○   →                              │
  * │ └───────────────────┘                                      │
- * │ Props: { onSend, sending, onVoiceStart, onVoiceEnd, ... }  │
+ * │ Props: { onSend, sending, onVoiceOverlay, externalText, …} │
+ * │                                                             │
+ * │ SPRINT B: externalText prop injects transcript from overlay │
+ * │           Web Speech has a 2-second cancel window           │
  * └─────────────────────────────────────────────────────────────┘
  */
 
@@ -15,12 +18,15 @@ import styled from 'styled-components';
 import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoachStyles';
 import { ORB_SIZE_MAP, ORB_ICON_SIZE_MAP } from './SwanCoachConstants';
+import CoachInputCancelPill from './CoachInputCancelPill';
 import type { OrbSize } from './SwanCoachTypes';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Character Count
 // ─────────────────────────────────────────────────────────────
 const MAX_CHARS = 10000;
+const CANCEL_WINDOW_MS = 2000;
+const MIN_AUTO_SEND_LENGTH = 4; // prevent ambient noise / single phoneme triggering
 
 const InputWrap = styled.div`
   position: relative;
@@ -41,6 +47,11 @@ const CharCount = styled.span<{ $near: boolean }>`
   transition: color 0.2s ease;
 `;
 
+const InputBarWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
 interface CoachInputBarProps {
   onSend: (text: string) => void;
   sending?: boolean;
@@ -49,6 +60,12 @@ interface CoachInputBarProps {
   onTtsToggle?: () => void;
   onVoiceOverlay?: () => void;
   attachButton?: React.ReactNode;
+  /**
+   * SPRINT B: When set, injects this text into the input for editing
+   * (used when user chooses "Edit" from VoiceRecordingOverlay preview state).
+   * Injected once per unique value — tracked via internal ref to prevent loops.
+   */
+  externalText?: string;
 }
 
 // Web Speech API type
@@ -65,17 +82,38 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   onTtsToggle,
   onVoiceOverlay,
   attachButton,
+  externalText,
 }) => {
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState('');
+  const [cancelPillVisible, setCancelPillVisible] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSendTextRef = useRef('');
   const accumulatedRef = useRef('');
+  const lastInjectedRef = useRef('');
 
   // Determine orb size: primary (64px) on mobile, standard (56px) on desktop
   const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 'primary' : 'standard';
+
+  // ── SPRINT B: Inject external transcript text for editing ──
+  useEffect(() => {
+    if (externalText && externalText !== lastInjectedRef.current) {
+      lastInjectedRef.current = externalText;
+      setText(externalText);
+      // Auto-resize textarea on inject
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.style.height = 'auto';
+          inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 200) + 'px';
+          inputRef.current.focus();
+        }
+      });
+    }
+  }, [externalText]);
 
   // ── Handle send ──
   const handleSend = useCallback(() => {
@@ -104,6 +142,14 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     const el = e.target;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }, []);
+
+  // ── SPRINT B: Cancel the pending auto-send ──
+  const handleCancelSend = useCallback(() => {
+    if (cancelSendTimerRef.current) clearTimeout(cancelSendTimerRef.current);
+    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    setCancelPillVisible(false);
+    // Text remains in input for correction
   }, []);
 
   // ── Voice recognition ──
@@ -142,19 +188,36 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
         }
         setInterim(interimText);
 
-        // Auto-send after 750ms of silence
+        // Debounce: wait 750ms of silence before triggering cancel window
         if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-        if (accumulatedRef.current.trim() || (finalText + interimText).trim()) {
+        const accumulated = accumulatedRef.current.trim();
+        if (accumulated || (finalText + interimText).trim()) {
           autoSendTimerRef.current = setTimeout(() => {
-            const msg = (accumulatedRef.current || '').trim();
-            if (msg) {
-              onSend(msg);
-              setText('');
-              accumulatedRef.current = '';
+            const msg = accumulatedRef.current.trim();
+            // SPRINT B: minimum length guard — prevents noise/ambient sound
+            if (msg.length < MIN_AUTO_SEND_LENGTH) {
+              recognitionRef.current?.stop();
+              setListening(false);
+              setInterim('');
+              return;
             }
+            // Show cancel window before dispatching
+            pendingSendTextRef.current = msg;
+            setCancelPillVisible(true);
             recognitionRef.current?.stop();
             setListening(false);
             setInterim('');
+            // After cancel window: actually send
+            cancelSendTimerRef.current = setTimeout(() => {
+              setCancelPillVisible(false);
+              const finalMsg = pendingSendTextRef.current;
+              if (finalMsg) {
+                onSend(finalMsg);
+                setText('');
+                accumulatedRef.current = '';
+                pendingSendTextRef.current = '';
+              }
+            }, CANCEL_WINDOW_MS);
           }, 750);
         }
       };
@@ -182,6 +245,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     return () => {
       recognitionRef.current?.stop();
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+      if (cancelSendTimerRef.current) clearTimeout(cancelSendTimerRef.current);
     };
   }, []);
 
@@ -198,66 +262,76 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   }, [onVoiceOverlay, toggleListening]);
 
   return (
-    <InputBar>
-      {/* TTS Toggle */}
-      {ttsSupported && onTtsToggle && (
-        <TtsToggle
-          $active={ttsEnabled}
-          onClick={onTtsToggle}
-          aria-label={ttsEnabled ? 'Disable voice readback' : 'Enable voice readback'}
-          title={ttsEnabled ? 'Voice readback ON' : 'Voice readback OFF'}
-        >
-          {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        </TtsToggle>
-      )}
-
-      {/* File Attachment */}
-      {attachButton}
-
-      {/* Text Input */}
-      <InputWrap>
-        <ChatInput
-          ref={inputRef}
-          value={displayText}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={listening ? 'Listening...' : 'Type or tap mic...'}
-          disabled={sending}
-          aria-label="Message input"
-          rows={1}
-          maxLength={MAX_CHARS}
+    <InputBarWrap>
+      {/* SPRINT B: Cancel window pill */}
+      {cancelPillVisible && (
+        <CoachInputCancelPill
+          duration={CANCEL_WINDOW_MS}
+          onCancel={handleCancelSend}
         />
-        {text.length > 100 && (
-          <CharCount $near={text.length > MAX_CHARS * 0.9}>
-            {text.length}/{MAX_CHARS}
-          </CharCount>
-        )}
-      </InputWrap>
-
-      {/* Voice Orb */}
-      {hasVoice && (
-        <VoiceOrbWrap
-          $listening={listening}
-          $size={ORB_SIZE_MAP[orbSize]}
-          onClick={handleVoiceClick}
-          aria-label={listening ? 'Stop listening' : 'Start voice input'}
-          title={listening ? 'Tap to stop' : 'Tap to speak'}
-        >
-          {listening
-            ? <MicOff size={ORB_ICON_SIZE_MAP[orbSize]} />
-            : <Mic size={ORB_ICON_SIZE_MAP[orbSize]} />}
-        </VoiceOrbWrap>
       )}
 
-      {/* Send Button */}
-      <SendBtn
-        onClick={handleSend}
-        disabled={!text.trim() || sending}
-        aria-label="Send message"
-      >
-        <Send size={20} />
-      </SendBtn>
-    </InputBar>
+      <InputBar>
+        {/* TTS Toggle */}
+        {ttsSupported && onTtsToggle && (
+          <TtsToggle
+            $active={ttsEnabled}
+            onClick={onTtsToggle}
+            aria-label={ttsEnabled ? 'Disable voice readback' : 'Enable voice readback'}
+            title={ttsEnabled ? 'Voice readback ON' : 'Voice readback OFF'}
+          >
+            {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </TtsToggle>
+        )}
+
+        {/* File Attachment */}
+        {attachButton}
+
+        {/* Text Input */}
+        <InputWrap>
+          <ChatInput
+            ref={inputRef}
+            value={displayText}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={listening ? 'Listening...' : 'Type or tap mic...'}
+            disabled={sending}
+            aria-label="Message input"
+            rows={1}
+            maxLength={MAX_CHARS}
+          />
+          {text.length > 100 && (
+            <CharCount $near={text.length > MAX_CHARS * 0.9}>
+              {text.length}/{MAX_CHARS}
+            </CharCount>
+          )}
+        </InputWrap>
+
+        {/* Voice Orb */}
+        {hasVoice && (
+          <VoiceOrbWrap
+            $listening={listening}
+            $size={ORB_SIZE_MAP[orbSize]}
+            onClick={handleVoiceClick}
+            aria-label={listening ? 'Stop listening' : 'Start voice input'}
+            title={listening ? 'Tap to stop' : 'Tap to speak'}
+          >
+            {listening
+              ? <MicOff size={ORB_ICON_SIZE_MAP[orbSize]} />
+              : <Mic size={ORB_ICON_SIZE_MAP[orbSize]} />}
+          </VoiceOrbWrap>
+        )}
+
+        {/* Send Button */}
+        <SendBtn
+          onClick={handleSend}
+          disabled={!text.trim() || sending}
+          aria-label="Send message"
+        >
+          <Send size={20} />
+        </SendBtn>
+      </InputBar>
+    </InputBarWrap>
   );
 };
 

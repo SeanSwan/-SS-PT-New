@@ -32,7 +32,9 @@ export interface UseGeminiTranscriptionReturn {
 // ─────────────────────────────────────────────────────────────
 // SECTION: API Config
 // ─────────────────────────────────────────────────────────────
-const API_BASE = (import.meta as Record<string, Record<string, string>>).env?.VITE_API_URL || '';
+// SPRINT B fix: align with VITE_API_BASE (matches useCoachCommand and repo standard)
+const API_BASE = import.meta.env.VITE_API_BASE
+  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');

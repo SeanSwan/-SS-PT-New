@@ -30,13 +30,27 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import styled from 'styled-components';
 import {
   X, Send, Plus, Sparkles, MessageSquare,
   ChevronLeft, Trash2,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAIChat';
+import { useCoachCommand } from '../../hooks/useCoachCommand';
 import { CS } from '../../styles/crystallineSwanTheme';
+
+// SPRINT B: compact inline notice for command-lane responses in this lightweight shell
+// Full ConfirmationCard lives in the main Coach page only — not duplicated here.
+const CommandNoticeBanner = styled.div`
+  padding: 8px 16px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, var(--bg-elevated, #141419));
+  border-top: 1px solid rgba(96, 192, 240, 0.12);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  flex-shrink: 0;
+`;
 
 // Sub-components
 import DictationOrb from './DictationOrb';
@@ -78,6 +92,8 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     createConversation, listConversations, loadConversation,
     sendMessage, deleteConversation, newChat, clearError,
   } = useAIChat();
+  const { executeCommand } = useCoachCommand();
+  const [commandNotice, setCommandNotice] = useState<string | null>(null);
 
   const [inputValue, setInputValue] = useState('');
   const [selectedContext, setSelectedContext] = useState<AIContext>(defaultContext);
@@ -161,18 +177,30 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   // Keep ref in sync for auto-send closure
   useEffect(() => { getTargetClientIdRef.current = getTargetClientId; }, [getTargetClientId]);
 
-  // ── Auto-Send Handler ──
+  // ── Auto-Send Handler (SPRINT B: command lane first) ──
   // Called by DictationOrb when speech ends and autoSend is enabled.
-  // Directly sends the full transcribed text without requiring manual interaction.
+  // Routes through command lane; falls back to chat for conversational queries.
   const handleAutoSend = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
 
-    // Flash the auto-send badge so user sees it was voice-triggered
     setAutoSendFlash(true);
     setTimeout(() => setAutoSendFlash(false), 1400);
 
-    // Ensure a conversation exists before sending
+    // SPRINT B: try command lane first
+    const clientId = getTargetClientIdRef.current();
+    const cmdResult = await executeCommand(trimmed, {
+      selectedClientId: clientId ? Number(clientId) : null,
+    });
+
+    if (cmdResult.type !== 'fallback_to_chat' && cmdResult.type !== 'error') {
+      // Command detected — show compact notice. Full ConfirmationCard is on the main Coach page.
+      setCommandNotice('Command received — open Swan Coach to confirm or review the action.');
+      setTimeout(() => setCommandNotice(null), 6000);
+      return;
+    }
+
+    // Fallback: existing chat lane
     if (!activeConversationRef.current) {
       const conv = await createConversationRef.current(
         selectedContextRef.current,
@@ -181,20 +209,17 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
         selectedResponseStyleRef.current,
       );
       if (!conv) {
-        // Conversation creation failed — put text in input so user can retry manually
         setInputValue(trimmed);
         return;
       }
     }
 
-    // Clear input (it may have interim/final text from onTranscript) and send
     setInputValue('');
     const result = await sendMessageRef.current(trimmed);
     if (result?.failed) {
-      // Put the text back so user can retry manually
       setInputValue(result.originalMessage || trimmed);
     }
-  }, [sending]);
+  }, [sending, executeCommand]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
@@ -388,6 +413,11 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               </div>
               <div ref={messagesEndRef} />
             </MessagesArea>
+
+            {/* SPRINT B: compact command lane notice (no full ConfirmationCard in this shell) */}
+            {commandNotice && (
+              <CommandNoticeBanner aria-live="polite">{commandNotice}</CommandNoticeBanner>
+            )}
 
             {/* Input */}
             <InputArea style={{ position: 'relative' }}>

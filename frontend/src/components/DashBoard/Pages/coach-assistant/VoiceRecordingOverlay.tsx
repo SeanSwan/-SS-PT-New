@@ -1,25 +1,31 @@
 /**
  * ┌─── SUB-COMPONENT: VoiceRecordingOverlay ──────────────────┐
  * │ PARENT: SwanCoachAssistantPage                              │
- * │ PURPOSE: Full-screen overlay for voice recording + transcription │
- * │ WIREFRAME:                                                  │
- * │ ┌────────────────────────────────────────┐                  │
- * │ │         ○ Recording... 0:05            │                  │
- * │ │    "Your words appear here..."          │                  │
- * │ │    [Cancel]  [Stop & Send]              │                  │
- * │ └────────────────────────────────────────┘                  │
- * │ Props: { isOpen, onClose, onTranscribed }                   │
- * │ CLICK-OUTCOMES:                                             │
- * │ [Stop & Send] → stop recording → transcribe → onTranscribed │
- * │ [Cancel] → discard recording → onClose                      │
+ * │ PURPOSE: Full-screen overlay — record, transcribe, preview  │
+ * │ WIREFRAME (recording):                                      │
+ * │ ┌─────────────────────────────────┐                         │
+ * │ │      ○ Recording... 0:05        │                         │
+ * │ │   Listening — tap orb to stop   │                         │
+ * │ │   [Cancel]   [Stop & Send]      │                         │
+ * │ └─────────────────────────────────┘                         │
+ * │ WIREFRAME (preview):                                        │
+ * │ ┌─────────────────────────────────┐                         │
+ * │ │  TRANSCRIPT — REVIEW BEFORE...  │                         │
+ * │ │  "Log bench 225 for Marcus..."  │                         │
+ * │ │  [✏ Edit]  [→ Send to Swan Coach]                        │
+ * │ └─────────────────────────────────┘                         │
+ * │ Props: { isOpen, onClose, onTranscribed, onEditTranscript } │
+ * │ SPRINT B: transcript.state = 'done' → preview state.        │
+ * │           No auto-dispatch. User must explicitly send/edit.  │
  * └─────────────────────────────────────────────────────────────┘
  */
 
-import React, { memo, useEffect, useCallback } from 'react';
+import React, { memo, useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Mic, X, Send, Loader } from 'lucide-react';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useGeminiTranscription } from './hooks/useGeminiTranscription';
+import VoiceTranscriptPreview from './VoiceTranscriptPreview';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -106,16 +112,6 @@ const StatusText = styled.div`
   min-height: 20px;
 `;
 
-const TranscriptPreview = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 16px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-  text-align: center;
-  max-width: 400px;
-  min-height: 24px;
-  font-style: italic;
-`;
-
 const ButtonRow = styled.div`
   display: flex;
   gap: 16px;
@@ -142,19 +138,9 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
   min-height: 48px;
   transition: all 0.2s ease;
 
-  &:hover {
-    transform: translateY(-1px);
-    opacity: 0.9;
-  }
-
+  &:hover { transform: translateY(-1px); opacity: 0.9; }
   &:active { transform: scale(0.97); }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none;
-  }
-
+  &:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
@@ -180,16 +166,21 @@ function formatDuration(seconds: number): string {
 interface VoiceRecordingOverlayProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Called when user confirms "Send to Swan Coach" from preview state */
   onTranscribed: (text: string) => void;
+  /** Called when user chooses "Edit" — drops transcript into text input */
+  onEditTranscript?: (text: string) => void;
 }
 
 const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
   isOpen,
   onClose,
   onTranscribed,
+  onEditTranscript,
 }) => {
   const recorder = useVoiceRecorder();
   const transcription = useGeminiTranscription();
+  const [previewReady, setPreviewReady] = useState(false);
 
   // Auto-start recording when overlay opens (desktop only — iOS requires user gesture)
   useEffect(() => {
@@ -208,26 +199,46 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recorder.state, recorder.audioBlob]);
 
-  // Auto-send transcription result
+  // SPRINT B: enter preview state after transcription — do NOT auto-dispatch
   useEffect(() => {
-    if (transcription.state === 'done' && transcription.text) {
-      onTranscribed(transcription.text);
-      handleClose();
+    if (transcription.state === 'done') {
+      setPreviewReady(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcription.state, transcription.text]);
+  }, [transcription.state]);
 
   const handleClose = useCallback(() => {
     recorder.reset();
     transcription.reset();
+    setPreviewReady(false);
     onClose();
   }, [recorder, transcription, onClose]);
+
+  // User confirmed "Send to Swan Coach" from preview
+  const handlePreviewSend = useCallback(() => {
+    onTranscribed(transcription.text);
+    handleClose();
+  }, [transcription.text, onTranscribed, handleClose]);
+
+  // User chose "Edit" — drop transcript into input bar
+  const handlePreviewEdit = useCallback(() => {
+    onEditTranscript?.(transcription.text);
+    handleClose();
+  }, [transcription.text, onEditTranscript, handleClose]);
+
+  // User chose "Try Again" after [inaudible] — restart recording
+  const handleRetry = useCallback(async () => {
+    transcription.reset();
+    recorder.reset();
+    setPreviewReady(false);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS) await recorder.start();
+  }, [recorder, transcription]);
 
   const handleStopAndSend = useCallback(() => {
     recorder.stop();
   }, [recorder]);
 
-  // Close on Escape
+  // Escape closes overlay from any state (recording, transcribing, preview)
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -242,45 +253,57 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
 
   return (
     <Overlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Voice recording">
-      <OrbContainer>
-        {isRecording && <PulseRing />}
-        <RecordingOrb
-          $recording={isRecording}
-          onClick={isRecording ? handleStopAndSend : recorder.state === 'idle' ? () => recorder.start() : undefined}
-          aria-label={isRecording ? 'Stop recording' : 'Tap to start recording'}
-        >
-          {isTranscribing ? <SpinIcon size={28} /> : <Mic size={28} />}
-        </RecordingOrb>
-      </OrbContainer>
+      {previewReady ? (
+        // ── Preview State: user reviews transcript before dispatch ──
+        <VoiceTranscriptPreview
+          transcript={transcription.text}
+          onSend={handlePreviewSend}
+          onEdit={handlePreviewEdit}
+          onRetry={handleRetry}
+        />
+      ) : (
+        // ── Recording / Transcribing State ──
+        <>
+          <OrbContainer>
+            {isRecording && <PulseRing />}
+            <RecordingOrb
+              $recording={isRecording}
+              onClick={isRecording
+                ? handleStopAndSend
+                : recorder.state === 'idle'
+                  ? () => recorder.start()
+                  : undefined}
+              aria-label={isRecording ? 'Stop recording' : 'Tap to start recording'}
+            >
+              {isTranscribing ? <SpinIcon size={28} /> : <Mic size={28} />}
+            </RecordingOrb>
+          </OrbContainer>
 
-      <DurationText>{formatDuration(recorder.duration)}</DurationText>
+          <DurationText>{formatDuration(recorder.duration)}</DurationText>
 
-      <StatusText>
-        {recorder.state === 'requesting' && 'Requesting microphone access...'}
-        {isRecording && 'Listening — tap the orb or press Stop to finish'}
-        {isTranscribing && 'Transcribing your voice...'}
-        {recorder.state === 'error' && (recorder.error || 'Recording error')}
-        {transcription.state === 'error' && (transcription.error || 'Transcription error')}
-      </StatusText>
+          <StatusText>
+            {recorder.state === 'requesting' && 'Requesting microphone access...'}
+            {isRecording && 'Listening — tap the orb or press Stop to finish'}
+            {isTranscribing && 'Transcribing your voice...'}
+            {recorder.state === 'error' && (recorder.error || 'Recording error')}
+            {transcription.state === 'error' && (transcription.error || 'Transcription error')}
+          </StatusText>
 
-      <TranscriptPreview>
-        {transcription.text || ''}
-      </TranscriptPreview>
-
-      <ButtonRow>
-        <ActionBtn $variant="ghost" onClick={handleClose} aria-label="Cancel recording">
-          <X size={18} /> Cancel
-        </ActionBtn>
-        {isRecording && (
-          <ActionBtn onClick={handleStopAndSend} aria-label="Stop and send">
-            <Send size={18} /> Stop & Send
-          </ActionBtn>
-        )}
-      </ButtonRow>
+          <ButtonRow>
+            <ActionBtn $variant="ghost" onClick={handleClose} aria-label="Cancel recording">
+              <X size={18} /> Cancel
+            </ActionBtn>
+            {isRecording && (
+              <ActionBtn onClick={handleStopAndSend} aria-label="Stop and transcribe">
+                <Send size={18} /> Stop & Send
+              </ActionBtn>
+            )}
+          </ButtonRow>
+        </>
+      )}
     </Overlay>
   );
 });
 
 VoiceRecordingOverlay.displayName = 'VoiceRecordingOverlay';
-
 export default VoiceRecordingOverlay;

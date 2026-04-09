@@ -62,10 +62,24 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo, lazy, Suspense } from 'react';
+import styled from 'styled-components';
 import { useAIChat } from '../../../hooks/useAIChat';
+import { useCoachCommand } from '../../../hooks/useCoachCommand';
 import { Send } from 'lucide-react';
 import { CONTEXT_LABELS, toHookContext } from '../AICommandBar/AICommandBarTypes';
 import type { AICommandContext } from '../AICommandBar/AICommandBarTypes';
+
+// SPRINT B: compact status pill for command lane responses in this lightweight shell
+const CommandPill = styled.div`
+  padding: 8px 14px;
+  margin: 0 8px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, var(--bg-surface, #1A1A24));
+  border: 1px solid rgba(96, 192, 240, 0.15);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+`;
 import {
   DesktopPanel,
   DesktopPanelHeader,
@@ -198,6 +212,8 @@ interface InputBarProps {
   sending: boolean;
   placeholder: string;
   inputRef?: React.RefObject<HTMLInputElement>;
+  /** SPRINT B: if provided, voice auto-send is routed here instead of through onSend */
+  onVoiceAutoSend?: (text: string) => Promise<void>;
 }
 
 const InputBar = memo(function InputBar({
@@ -207,6 +223,7 @@ const InputBar = memo(function InputBar({
   sending,
   placeholder,
   inputRef,
+  onVoiceAutoSend,
 }: InputBarProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -226,14 +243,17 @@ const InputBar = memo(function InputBar({
   );
 
   const handleAutoSend = useCallback(
-    (text: string) => {
-      if (text.trim()) {
+    async (text: string) => {
+      if (!text.trim()) return;
+      // SPRINT B: if command routing is wired, use it; otherwise fall through to chat
+      if (onVoiceAutoSend) {
+        await onVoiceAutoSend(text);
+      } else {
         onChange(text);
-        // Small delay so state updates before send
         setTimeout(() => onSend(), 50);
       }
     },
-    [onChange, onSend]
+    [onChange, onSend, onVoiceAutoSend]
   );
 
   const isActive = value.trim().length > 0 && !sending;
@@ -278,6 +298,8 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
   const [context, setContext] = useState<AICommandContext>('general');
   const [inputValue, setInputValue] = useState('');
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  // SPRINT B: compact command lane pill for voice responses
+  const [commandPill, setCommandPill] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isDesktop = useIsDesktop();
 
@@ -288,6 +310,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
     sendMessageWithConversation,
     clearError,
   } = useAIChat();
+  const { executeCommand } = useCoachCommand();
 
   const contextLabel = CONTEXT_LABELS[context];
 
@@ -306,6 +329,31 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
       'both'
     );
   }, [inputValue, sending, context, contextLabel, sendMessageWithConversation, clearError]);
+
+  // SPRINT B: voice auto-send routes through command lane before chat fallback
+  const handleVoiceAutoSend = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+
+    const cmdResult = await executeCommand(trimmed, { selectedClientId: null });
+
+    if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
+      clearError();
+      const hookContext = toHookContext(context);
+      await sendMessageWithConversation(
+        trimmed,
+        hookContext,
+        `${CONTEXT_LABELS[context]} — Dashboard`,
+        null,
+        'both'
+      );
+      return;
+    }
+
+    // Command handled — show compact pill, do NOT render ConfirmationCard in this shell
+    setCommandPill('Command received — open Swan Coach to confirm.');
+    setTimeout(() => setCommandPill(null), 6000);
+  }, [sending, executeCommand, context, sendMessageWithConversation, clearError]);
 
   // Escape to collapse mobile sheet
   useEffect(() => {
@@ -350,6 +398,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
 
         <MessageList messages={messages} sending={sending} error={error} />
 
+        {commandPill && <CommandPill aria-live="polite">{commandPill}</CommandPill>}
         <InputBar
           value={inputValue}
           onChange={setInputValue}
@@ -357,6 +406,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
           sending={sending}
           placeholder={`Ask ${contextLabel}...`}
           inputRef={inputRef}
+          onVoiceAutoSend={handleVoiceAutoSend}
         />
       </DesktopPanel>
     );
@@ -401,6 +451,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
 
           <MessageList messages={messages} sending={sending} error={error} />
 
+          {commandPill && <CommandPill aria-live="polite">{commandPill}</CommandPill>}
           <InputBar
             value={inputValue}
             onChange={setInputValue}
@@ -408,6 +459,7 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
             sending={sending}
             placeholder={`Ask ${contextLabel}...`}
             inputRef={inputRef}
+            onVoiceAutoSend={handleVoiceAutoSend}
           />
         </>
       ) : (

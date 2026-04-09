@@ -206,6 +206,8 @@ const SwanCoachAssistantPage: React.FC = () => {
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
   const [macroLinkActive, setMacroLinkActive] = useState(false);
+  // SPRINT B: transcript text injected into CoachInputBar when user chooses "Edit"
+  const [pendingVoiceEdit, setPendingVoiceEdit] = useState('');
   const attachments = useFileAttachment();
 
   // Load conversation list on mount
@@ -294,10 +296,16 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── Voice overlay handlers ──
   const handleOpenVoiceOverlay = useCallback(() => setVoiceOverlayOpen(true), []);
   const handleCloseVoiceOverlay = useCallback(() => setVoiceOverlayOpen(false), []);
+  // SPRINT B: "Send to Swan Coach" from preview state → command/chat routing
   const handleVoiceTranscribed = useCallback((text: string) => {
     coach.sendMessage(text);
     setVoiceOverlayOpen(false);
   }, [coach]);
+  // SPRINT B: "Edit" from preview state → drop transcript into input bar
+  const handleVoiceEditTranscript = useCallback((text: string) => {
+    setPendingVoiceEdit(text);
+    setVoiceOverlayOpen(false);
+  }, []);
 
   // ── Neural Link: set macro_logging context for next conversation ──
   const handleNeuralLink = useCallback(async () => {
@@ -448,6 +456,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           ttsSupported={tts.supported}
           onTtsToggle={tts.toggleEnabled}
           onVoiceOverlay={handleOpenVoiceOverlay}
+          externalText={pendingVoiceEdit}
           attachButton={
             <FileAttachmentButton
               onFilesSelected={attachments.addFiles}
@@ -468,6 +477,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         isOpen={voiceOverlayOpen}
         onClose={handleCloseVoiceOverlay}
         onTranscribed={handleVoiceTranscribed}
+        onEditTranscript={handleVoiceEditTranscript}
       />
     </PageShell>
   );
