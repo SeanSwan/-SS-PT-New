@@ -223,8 +223,10 @@ const SwanCoachAssistantPage: React.FC = () => {
       };
       (async () => {
         if (cancelled) return;
-        await coach.sendMessageWithFood(message, foodContext);
-        if (!cancelled) sessionStorage.removeItem('swan:pending-coach-food');
+        const result = await coach.sendMessageWithFood(message, foodContext);
+        // Only clear storage on confirmed success — not on paywall, failure, or null/early-exit
+        const succeeded = result && !result.paywallRequired && !result.failed && result.role === 'assistant';
+        if (!cancelled && succeeded) sessionStorage.removeItem('swan:pending-coach-food');
       })();
     } catch {
       // Malformed entry — clear it so it doesn't persist

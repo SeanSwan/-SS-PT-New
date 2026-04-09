@@ -24,6 +24,8 @@ const FOOD_CONTEXT_NUMERIC_KEYS = new Set([
   'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'saturatedFat',
 ]);
 const FOOD_CONTEXT_MAX_STR_LEN = 120;
+// Food-safe characters: word chars, spaces, common food punctuation, extended Latin for accents
+const FOOD_SAFE_RE = /[^\w\s.,'\-+%/()&\u00C0-\u017E]/g;
 function sanitizeFoodContext(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const clean = {};
@@ -33,7 +35,12 @@ function sanitizeFoodContext(raw) {
       const n = Number(raw[key]);
       clean[key] = Number.isFinite(n) ? n : null;
     } else {
-      const s = String(raw[key] ?? '').replace(/[\r\n\t`\\]/g, ' ').trim().slice(0, FOOD_CONTEXT_MAX_STR_LEN);
+      // Two-pass: strip control chars + backticks, then restrict to food-safe chars
+      const s = String(raw[key] ?? '')
+        .replace(/[\r\n\t`\\]/g, ' ')
+        .replace(FOOD_SAFE_RE, '')
+        .trim()
+        .slice(0, FOOD_CONTEXT_MAX_STR_LEN);
       clean[key] = s || null;
     }
   }

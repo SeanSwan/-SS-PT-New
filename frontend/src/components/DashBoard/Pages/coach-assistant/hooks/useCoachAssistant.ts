@@ -91,9 +91,9 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     text: string,
     foodContext: Record<string, unknown>,
   ) => {
-    if (!text.trim() || chat.sending) return;
+    if (!text.trim() || chat.sending) return null;
     const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
-    await chat.sendMessageWithConversation(
+    const result = await chat.sendMessageWithConversation(
       text.trim(),
       'macro_logging' as Parameters<typeof chat.sendMessageWithConversation>[1],
       'Nutrition Coach',
@@ -102,6 +102,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       foodContext,
     );
     setLocalMessages([]);
+    return result; // caller inspects for paywallRequired / failed
   }, [chat, responseStyle, targetClientId]);
 
   // ── Switch context ──
