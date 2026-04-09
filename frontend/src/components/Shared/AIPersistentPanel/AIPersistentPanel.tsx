@@ -18,7 +18,7 @@
  *
  * KEY DECISIONS:
  * - Reuses useAIChat hook (same conversation engine as AICommandBar)
- * - DictationOrb integrated with auto-send
+ * - DictationOrb in transcript-capture mode (autoSend=false) — fills input for user review, user sends explicitly
  * - Context selector maps to dashboard tabs
  * - Theme variables from UniversalThemeContext
  *
@@ -223,11 +223,12 @@ const InputBar = memo(function InputBar({
   return (
     <InputArea>
       <OrbWrapper>
-        {/* Transcript-capture mode: autoSend=false so speech fills the input
-            for user review before they send. No command lane in this shell. */}
+        {/* Transcript-capture mode: autoSend=false — speech APPENDS to existing
+            input text (consistent with AIAssistantDrawer behavior). User reviews
+            and sends explicitly. No command lane in this shell. */}
         <Suspense fallback={<div style={{ width: 44, height: 44 }} />}>
           <DictationOrb
-            onTranscript={(text) => onChange(text)}
+            onTranscript={(text) => onChange(value + (value ? ' ' : '') + text)}
             autoSend={false}
           />
         </Suspense>
@@ -403,7 +404,10 @@ const AIPersistentPanel = memo(function AIPersistentPanel() {
             <Suspense fallback={<div style={{ width: 44, height: 44 }} />}>
               <DictationOrb
                 onTranscript={(text) => {
-                  setInputValue(text);
+                  // Append for consistency with expanded panel and drawer behavior.
+                  // When collapsed, inputValue is unlikely to have content, but
+                  // we append defensively so existing text is never silently dropped.
+                  setInputValue(prev => prev + (prev ? ' ' : '') + text);
                   setMobileExpanded(true);
                 }}
                 autoSend={false}

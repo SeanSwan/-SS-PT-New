@@ -147,7 +147,11 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
           Couldn't hear that clearly. Try speaking closer to the mic.
         </ErrorBox>
         <BtnRow>
-          <Btn $variant="primary" onClick={onRetry} aria-label="Try recording again">
+          {/* autoFocus: VoiceTranscriptPreview mounts when previewReady becomes true
+              inside a role="dialog" aria-modal overlay — WCAG SC 2.4.3 requires
+              focus to move into the dialog on open. autoFocus on first button is
+              the minimal safe fix since the component always mounts fresh. */}
+          <Btn $variant="primary" onClick={onRetry} aria-label="Try recording again" autoFocus>
             <RefreshCw size={16} /> Try Again
           </Btn>
         </BtnRow>
@@ -162,10 +166,13 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
         {transcript}
       </TranscriptBox>
       <BtnRow>
+        {/* autoFocus on first button — same WCAG SC 2.4.3 fix as inaudible branch above */}
         <Btn
           $variant="ghost"
           onClick={onEdit}
           aria-label="Edit transcript in text field"
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
         >
           <Edit3 size={16} /> Edit
         </Btn>

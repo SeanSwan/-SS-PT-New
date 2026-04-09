@@ -22,7 +22,7 @@
 
 import React, { memo, useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Mic, X, Send, Loader } from 'lucide-react';
+import { Mic, X, Send, Loader, RefreshCw } from 'lucide-react';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useGeminiTranscription } from './hooks/useGeminiTranscription';
 import VoiceTranscriptPreview from './VoiceTranscriptPreview';
@@ -319,6 +319,13 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
             {isRecording && (
               <ActionBtn onClick={handleStopAndSend} aria-label="Stop and transcribe">
                 <Send size={18} /> Stop & Send
+              </ActionBtn>
+            )}
+            {/* SPRINT B: surface retry from error state — user must not need to
+                close and reopen the overlay just to try again after a failure */}
+            {(transcription.state === 'error' || recorder.state === 'error') && (
+              <ActionBtn onClick={handleRetry} aria-label="Try recording again">
+                <RefreshCw size={18} /> Try Again
               </ActionBtn>
             )}
           </ButtonRow>

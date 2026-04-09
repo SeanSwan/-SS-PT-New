@@ -35,7 +35,6 @@ import {
   X, Send, Plus, Sparkles, MessageSquare,
   ChevronLeft, Trash2,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAIChat';
 import { CS } from '../../styles/crystallineSwanTheme';
 
@@ -55,7 +54,6 @@ import {
   MessagesArea, TypingIndicator, Dot,
   InputArea, ChatInput, SendBtn, Spinner,
   EmptyState, EmptyIcon, WelcomeText, ErrorBanner,
-  AutoSendBadge,
 } from './AIDrawerStyles';
 
 // ── Component ──────────────────────────────────────────────
@@ -85,7 +83,6 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const [selectedResponseStyle, setSelectedResponseStyle] = useState<ResponseStyle>('both');
   const [view, setView] = useState<'chat' | 'list'>('chat');
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
-  const [autoSendFlash, setAutoSendFlash] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
