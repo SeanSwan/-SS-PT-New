@@ -30,6 +30,30 @@ import { meetsMinimumTier, tierDisplayName, featureLabel, FEATURE_GATES } from '
 import logger from '../utils/logger.mjs';
 
 /**
+ * Resolve the user's CURRENT tier from the Subscription table (server truth).
+ * Caches result on req._resolvedTier so multiple requireTier calls on the
+ * same request don't repeat the DB query.
+ */
+async function resolveCurrentTier(req) {
+  if (req._resolvedTier) return req._resolvedTier;
+
+  try {
+    const { default: Subscription } = await import('../models/Subscription.mjs');
+    const sub = await Subscription.findOne({
+      where: { userId: req.user.id },
+      order: [['createdAt', 'DESC']],
+      attributes: ['tier', 'status'],
+    });
+    req._resolvedTier = sub?.tier || req.user.subscriptionTier || 'free';
+  } catch {
+    // Fallback to JWT claim on DB error — never hard-fail an auth check
+    req._resolvedTier = req.user.subscriptionTier || 'free';
+  }
+
+  return req._resolvedTier;
+}
+
+/**
  * Check if tier gating is enabled via environment variable.
  * Defaults to false (all features open) for safe rollout.
  */
@@ -65,8 +89,8 @@ export function requireTier(minimumTier, featureKey) {
       });
     }
 
-    // Get user's current tier from the user record
-    const userTier = req.user.subscriptionTier || 'free';
+    // Resolve tier from DB (not JWT — JWT can be stale after upgrade)
+    const userTier = await resolveCurrentTier(req);
 
     if (meetsMinimumTier(userTier, minimumTier)) {
       return next();

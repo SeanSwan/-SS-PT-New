@@ -23,6 +23,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Subscription from '../models/Subscription.mjs';
+import sequelize from '../database.mjs';
 import { TIER_DEFINITIONS as CATALOG_TIERS } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -434,33 +435,63 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         // Guardian donation (mode:payment) — one-time, no recurring
         if (session.mode === 'payment') {
           const donationAmount = parseFloat(session.metadata?.amount || '5');
+          const sessionId = session.id;
 
-          // Fetch existing to accumulate lifetime donations
-          const existing = await Subscription.findOne({ where: { userId } });
-          const prevCumulative = parseFloat(existing?.cumulativeDonationAmount || 0);
-          const newCumulative = Math.round((prevCumulative + donationAmount) * 100) / 100;
-
-          await Subscription.upsert({
-            userId,
-            tier: 'pro',
-            status: 'active',
-            amount: donationAmount,
-            cumulativeDonationAmount: newCumulative,
-            stripeCustomerId: session.customer,
-            stripeSubscriptionId: null,
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: null,
-            paymentMethod: 'stripe',
-            cancelledAt: null,
-            cancelReason: null,
-          });
-
-          await UserModel.update(
-            { subscriptionTier: 'pro' },
-            { where: { id: userId } }
+          // C1: Idempotency — skip if this session was already processed
+          const [inserted] = await sequelize.query(
+            `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
+             VALUES (:sessionId, :userId, 'pro', :amount)
+             ON CONFLICT ("sessionId") DO NOTHING
+             RETURNING id`,
+            { replacements: { sessionId, userId, amount: donationAmount }, type: sequelize.QueryTypes.SELECT }
           );
+          if (!inserted) {
+            logger.info(`[Subscription Webhook] Duplicate Guardian session ${sessionId} — skipped`);
+            break;
+          }
 
-          logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId} (cumulative: $${newCumulative})`);
+          // C3: findOne+save in transaction — no upsert, no duplicate rows
+          await sequelize.transaction(async (t) => {
+            let sub = await Subscription.findOne({ where: { userId }, transaction: t, order: [['createdAt', 'DESC']] });
+
+            const prevCumulative = parseFloat(sub?.cumulativeDonationAmount || 0);
+            const newCumulative = Math.round((prevCumulative + donationAmount) * 100) / 100;
+
+            if (sub) {
+              sub.tier = 'pro';
+              sub.status = 'active';
+              sub.amount = donationAmount;
+              sub.cumulativeDonationAmount = newCumulative;
+              sub.stripeCustomerId = session.customer;
+              sub.stripeSubscriptionId = null;
+              sub.currentPeriodStart = new Date();
+              sub.currentPeriodEnd = null;
+              sub.paymentMethod = 'stripe';
+              sub.cancelledAt = null;
+              sub.cancelReason = null;
+              await sub.save({ transaction: t });
+            } else {
+              await Subscription.create({
+                userId,
+                tier: 'pro',
+                status: 'active',
+                amount: donationAmount,
+                cumulativeDonationAmount: newCumulative,
+                stripeCustomerId: session.customer,
+                stripeSubscriptionId: null,
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: null,
+                paymentMethod: 'stripe',
+              }, { transaction: t });
+            }
+
+            await UserModel.update(
+              { subscriptionTier: 'pro' },
+              { where: { id: userId }, transaction: t }
+            );
+
+            logger.info(`[Subscription Webhook] Guardian donation $${donationAmount} for user ${userId} (cumulative: $${newCumulative})`);
+          });
         }
 
         // Crystalline subscription (mode:subscription) — recurring
