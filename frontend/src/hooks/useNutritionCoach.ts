@@ -49,7 +49,7 @@ export function useNutritionCoach() {
 
     try {
       sessionStorage.setItem('swan:pending-coach-food', JSON.stringify({ message, foodContext }));
-    } catch { /* storage full — coach will just get the message text */ }
+    } catch { /* storage full — navigation still proceeds but coach auto-send will not fire */ }
 
     // Derive role from localStorage (same pattern as SwanCoachAssistantPage)
     let role = 'client';

@@ -211,20 +211,26 @@ const SwanCoachAssistantPage: React.FC = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-send pending food query from RestaurantTab "Ask Coach" ──
+  // sessionStorage cleared AFTER send resolves to prevent silent data loss on early failure.
   useEffect(() => {
     const pending = sessionStorage.getItem('swan:pending-coach-food');
     if (!pending) return;
-    sessionStorage.removeItem('swan:pending-coach-food');
+    let cancelled = false;
     try {
       const { message, foodContext } = JSON.parse(pending) as {
         message: string;
         foodContext: Record<string, unknown>;
       };
-      const timer = setTimeout(() => {
-        coach.sendMessageWithFood(message, foodContext);
-      }, 400);
-      return () => clearTimeout(timer);
-    } catch { /* malformed entry — ignore */ }
+      (async () => {
+        if (cancelled) return;
+        await coach.sendMessageWithFood(message, foodContext);
+        if (!cancelled) sessionStorage.removeItem('swan:pending-coach-food');
+      })();
+    } catch {
+      // Malformed entry — clear it so it doesn't persist
+      sessionStorage.removeItem('swan:pending-coach-food');
+    }
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sidebar = useConversationSidebar({

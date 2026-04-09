@@ -14,6 +14,31 @@
  */
 import express from 'express';
 import multer from 'multer';
+
+// Allowlist sanitizer — prevents prompt injection via foodContext fields
+const FOOD_CONTEXT_ALLOWED_KEYS = new Set([
+  'type', 'foodName', 'restaurantBrand', 'serving',
+  'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'saturatedFat',
+]);
+const FOOD_CONTEXT_NUMERIC_KEYS = new Set([
+  'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'saturatedFat',
+]);
+const FOOD_CONTEXT_MAX_STR_LEN = 120;
+function sanitizeFoodContext(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const clean = {};
+  for (const key of FOOD_CONTEXT_ALLOWED_KEYS) {
+    if (!(key in raw)) continue;
+    if (FOOD_CONTEXT_NUMERIC_KEYS.has(key)) {
+      const n = Number(raw[key]);
+      clean[key] = Number.isFinite(n) ? n : null;
+    } else {
+      const s = String(raw[key] ?? '').replace(/[\r\n\t`\\]/g, ' ').trim().slice(0, FOOD_CONTEXT_MAX_STR_LEN);
+      clean[key] = s || null;
+    }
+  }
+  return Object.keys(clean).length ? clean : null;
+}
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { requireSubscription } from '../middleware/requireSubscription.mjs';
@@ -333,7 +358,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     if (enrichUserId) {
       const userDataContext = await enrichWithUserData(
         enrichUserId, conversation.role, conversation.context, sequelize,
-        foodContext && typeof foodContext === 'object' ? foodContext : null
+        sanitizeFoodContext(foodContext)
       );
       if (userDataContext) {
         systemPrompt += userDataContext;

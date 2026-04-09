@@ -310,6 +310,14 @@ export function useAIChat() {
         signal: abortRef.current.signal,
       });
       const data = await res.json();
+
+      // Handle 402 — subscription paywall (mirrors sendMessage paywall path)
+      if (res.status === 402) {
+        setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
+        setSending(false);
+        return { paywallRequired: true, ...data, originalMessage: message } as any;
+      }
+
       if (!data.success) throw new Error(data.error || 'Failed to send message');
 
       // Attach server-side action results to the assistant message metadata
