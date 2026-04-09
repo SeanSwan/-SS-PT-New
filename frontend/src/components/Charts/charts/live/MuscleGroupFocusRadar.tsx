@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryArea, VictoryPolarAxis, VictoryTooltip } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -46,7 +46,7 @@ const MuscleGroupFocusRadar: React.FC<Props> = ({ userId }) => {
             tickValues={[25, 50, 75, 100]}
           />
           <VictoryArea
-            data={data.data}
+            data={sanitizeChartData(data.data)}
             style={{
               data: {
                 fill: hexAlpha(CHART_COLORS.wingPurple, 0.3),

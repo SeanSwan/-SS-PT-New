@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryBar, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -36,7 +36,7 @@ const WorkoutFrequencyBar: React.FC<Props> = ({ userId }) => {
           <VictoryAxis tickFormat={(t: string) => t} />
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}`} />
           <VictoryBar
-            data={data.data}
+            data={sanitizeChartData(data.data)}
             style={{ data: { fill: CHART_COLORS.iceWing } }}
             cornerRadius={{ top: 4 }}
             labels={({ datum }: any) => `${datum.y} workouts`}

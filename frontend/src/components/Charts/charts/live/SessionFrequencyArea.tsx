@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryArea, VictoryLine, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -36,12 +36,12 @@ const SessionFrequencyArea: React.FC<Props> = ({ userId }) => {
           <VictoryAxis tickFormat={(t: string) => t} />
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}`} />
           <VictoryArea
-            data={data.data}
+            data={sanitizeChartData(data.data)}
             style={{ data: { fill: hexAlpha(CHART_COLORS.wingPurple, 0.2), stroke: 'none' } }}
             interpolation="natural"
           />
           <VictoryLine
-            data={data.data}
+            data={sanitizeChartData(data.data)}
             style={{ data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2.5 } }}
             interpolation="natural"
             labels={({ datum }: any) => `${datum.y} sessions\n${datum.minutes || 0} min`}

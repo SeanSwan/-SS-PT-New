@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryLine, VictoryAxis, VictoryLegend, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, FULL_PALETTE, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, FULL_PALETTE, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -58,7 +58,7 @@ const CardioEnduranceLine: React.FC<Props> = ({ userId }) => {
           {series.map(([name, points], i) => (
             <VictoryLine
               key={name}
-              data={points}
+              data={sanitizeChartData(points)}
               style={{ data: { stroke: CARDIO_COLORS[name] || FULL_PALETTE[i % FULL_PALETTE.length], strokeWidth: 2.5 } }}
               interpolation="natural"
               labels={({ datum }: any) => `${name}: ${datum.y}m`}

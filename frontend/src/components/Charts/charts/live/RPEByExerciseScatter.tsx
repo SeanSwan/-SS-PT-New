@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryLine, VictoryScatter, VictoryAxis, VictoryLegend, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, FULL_PALETTE, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, FULL_PALETTE, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -58,12 +58,12 @@ const RPEByExerciseScatter: React.FC<Props> = ({ userId }) => {
             return (
               <React.Fragment key={name}>
                 <VictoryLine
-                  data={pts}
+                  data={sanitizeChartData(pts)}
                   style={{ data: { stroke: color, strokeWidth: 1.5, strokeDasharray: '4 2' } }}
                   interpolation="natural"
                 />
                 <VictoryScatter
-                  data={pts}
+                  data={sanitizeChartData(pts)}
                   size={3.5}
                   style={{ data: { fill: color, stroke: CHART_COLORS.midnightSapphire, strokeWidth: 1 } }}
                   labels={({ datum }: any) => `${name}\nRPE: ${datum.y}\n${datum.x}`}

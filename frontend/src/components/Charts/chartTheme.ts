@@ -365,6 +365,16 @@ export const CenterLabel = styled.div`
   }
 `;
 
+/**
+ * Strips data points where y is undefined, null, or NaN before passing
+ * to any Victory chart. Prevents "Expected number, NaN" SVG path errors
+ * that occur when backend returns sparse or partially-populated data.
+ */
+export function sanitizeChartData<T extends { y: unknown }>(data: T[]): T[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(d => typeof d.y === 'number' && !isNaN(d.y));
+}
+
 // ── Category Tab Components (AI Village Phase 3 consensus) ──
 
 export const CategoryTabsContainer = styled.div`

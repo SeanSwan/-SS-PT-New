@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { VictoryPie, VictoryTooltip } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, MACRO_PALETTE, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, MACRO_PALETTE, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -33,7 +33,7 @@ const MacroSplitDonut: React.FC<Props> = ({ userId }) => {
       </ChartHeader>
       <ChartContainer>
         <VictoryPie
-          data={data.data}
+          data={sanitizeChartData(data.data)}
           innerRadius={70}
           padAngle={2}
           animate={VICTORY_ANIMATE}

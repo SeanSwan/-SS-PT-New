@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { VictoryChart, VictoryBar, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, victoryTheme, VICTORY_ANIMATE } from '../../chartTheme';
+import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, victoryTheme, VICTORY_ANIMATE, sanitizeChartData } from '../../chartTheme';
 import { useAnalytics } from '../../../../hooks/useAnalytics';
 import SkeletonChart from '../../../ui/SkeletonChart';
 
@@ -50,7 +50,7 @@ const MuscleRecoveryHeatmap: React.FC<Props> = ({ userId }) => {
           />
           <VictoryAxis dependentAxis tickFormat={(t: number) => `${t}d`} />
           <VictoryBar
-            data={data.data}
+            data={sanitizeChartData(data.data)}
             style={{
               data: {
                 fill: ({ datum }: any) => STATUS_COLORS[datum.status] || CHART_COLORS.iceWing,
