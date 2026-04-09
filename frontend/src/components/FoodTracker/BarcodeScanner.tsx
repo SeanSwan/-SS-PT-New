@@ -12,6 +12,8 @@ import styled, { keyframes } from 'styled-components';
 import { ScanBarcode, Search, Plus, Loader2, AlertCircle, Camera, CameraOff } from 'lucide-react';
 import { theme } from '../../theme/tokens';
 import { useBarcodeCamera } from '../../hooks/useBarcodeCamera';
+import IngredientSafetyPanel from './IngredientSafetyPanel';
+import type { IngredientSafety } from './IngredientSafetyPanel';
 
 interface ScannedProduct {
   id?: string;
@@ -22,7 +24,11 @@ interface ScannedProduct {
   carbs: number;
   fat: number;
   servingSize?: string;
-  ingredients?: string[];
+  /** Raw ingredient list (string fallback for display only) */
+  ingredientsList?: string;
+  /** Structured ingredient safety data from FoodIngredient model */
+  ingredients?: IngredientSafety[];
+  overallRating?: 'good' | 'bad' | 'okay';
   healthRating?: number;
 }
 
@@ -206,6 +212,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
               <MacroLabel>Fat</MacroLabel>
             </MacroItem>
           </MacroRow>
+
+          {/* Ingredient Safety — Phase 3: shows IARC/EU-banned badges */}
+          {Array.isArray(product.ingredients) && product.ingredients.length > 0 && (
+            <IngredientSafetyPanel ingredients={product.ingredients} />
+          )}
 
           {onAddFood && (
             <AddButton type="button" onClick={handleAddToLog}>
