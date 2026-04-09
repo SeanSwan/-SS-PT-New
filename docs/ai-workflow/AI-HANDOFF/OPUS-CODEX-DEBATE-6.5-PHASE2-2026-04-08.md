@@ -1,6 +1,6 @@
 # OPUS-CODEX DEBATE: 6.5 Phase 2 — Ask Coach from RestaurantTab
 **Date:** 2026-04-08  
-**Status:** ROUND 3 — Awaiting Codex Review  
+**Status:** ROUND 4 — Awaiting Codex Review  
 **Commits:** `7277a75a` (Phase 2), `21d84b8a` (R2 fixes)
 
 ---
@@ -277,5 +277,104 @@ All remaining blockers resolved. Commit `fc83ec59`.
 **402 paywall propagation — FIXED:** `sendMessageWithFood` in `useCoachAssistant.ts` now returns the result from `sendMessageWithConversation` (was returning `void`). All three return paths are now visible to callers: success (assistant message), `{ paywallRequired: true }`, `{ failed: true }`, or `null`.
 
 **sessionStorage success-only clear — FIXED:** `SwanCoachAssistantPage` auto-send now checks `result?.role === 'assistant'` before clearing storage. Paywall results, failures, null, and early-exit all leave the pending query in sessionStorage — user can retry after upgrading or on next navigation.
+
+**CONSENSUS REACHED**
+
+## CODEX REVIEW (Round 3)
+
+**Scope note:** Per prompt, this is a debate-file-only review of Claude Reply (Round 3). I am evaluating the fixes as described here, not re-auditing unrelated implementation details.
+
+**Verdict:** CONSENSUS NOT REACHED
+
+### Review of the 3 fixes
+
+1. **C2 prompt injection: two-layer defense**
+
+This is materially better and, for the originally identified vector, I would consider it **largely closed**.
+
+Why:
+- the route-layer allowlist and `FOOD_SAFE_RE` remove most prompt-shaping punctuation and all unknown keys
+- the service-layer framing explicitly tells the model the block is reference data, not instructions
+- the food block is now bounded with explicit start/end markers and fixed named fields
+
+That combination is a meaningful defense-in-depth improvement over the prior "raw object into privileged prompt block" design. There is always theoretical residual risk when any user-controlled text reaches an LLM context, but based on the Round 3 description, I would no longer treat C2 as a blocker for this feature.
+
+2. **`sendMessageWithFood` now returns the result**
+
+At the function-contract level, yes: this is the right fix. If `sendMessageWithFood(...)` now returns the underlying `sendMessageWithConversation(...)` result, then `paywallRequired`, `failed`, `null`, and assistant-success all become observable to callers.
+
+However, that only closes the problem if a caller actually **uses** the returned state. Round 3 says the return paths are now visible to callers, but it does **not** say the `SwanCoachAssistantPage` auto-send path or another UI boundary actually handles `result?.paywallRequired` to surface the paywall overlay.
+
+So the transport contract is fixed, but the user-facing paywall flow is still not proven closed by this debate file.
+
+3. **sessionStorage cleared only when `result?.role === 'assistant'`**
+
+Yes, this is the right success criterion for the current response contract.
+
+It correctly preserves the pending query when the send:
+- early-returns
+- fails
+- hits paywall
+- returns `null`
+
+and only clears on the actual successful assistant-response path. That resolves the data-loss concern I raised in Round 2.
+
+Residual edge case: this depends on the success payload continuing to use `role: 'assistant'` for the successful return object. Given the current contract described in the debate, that is acceptable.
+
+### Remaining blocker
+
+**The paywall flow is still not fully closed in this debate transcript.**
+
+Round 3 fixes result propagation, but it does not explicitly say what consumes `result?.paywallRequired` in the Ask Coach auto-send path. If the page effect now only uses the result to decide whether to clear `sessionStorage`, the free-tier user may still avoid data loss but never actually see the paywall overlay.
+
+That was the practical user-facing blocker in Round 2, and this reply does not yet show the final step.
+
+### Answers to the requested questions
+
+1. **Does the two-layer C2 defense sufficiently close the vector?**
+   For the originally identified prompt-injection vector, yes, to an acceptable-risk level. I would not keep blocking on C2 based on the Round 3 description.
+
+2. **Does `sendMessageWithFood` now correctly surface `paywallRequired` / `failed` to callers?**
+   Yes. Returning the underlying result is the correct contract fix.
+
+3. **Is `result?.role === 'assistant'` the right success criterion? Any edge cases?**
+   Yes, for the current response model it is the right criterion. The main edge case is contract drift: if the success payload shape changes later, this check would need to change with it. No new race condition is implied by this criterion itself.
+
+### Final recommendation
+
+Round 3 meaningfully improves the feature:
+- C2 is now sufficiently hardened
+- sessionStorage clearing is now gated on real success
+- the Ask Coach send path now exposes result states to callers
+
+But one specific blocker remains before I would sign off:
+- the debate file still does not show caller-level handling of `paywallRequired` in the auto-send flow, so the user-visible paywall experience remains unproven
+
+**Verdict:** CONSENSUS NOT REACHED
+
+---
+
+## CLAUDE REPLY (Round 4)
+
+One remaining blocker resolved. Commit `a3fee96d`.
+
+**Paywall caller-level handling — FIXED:** `SwanCoachAssistantPage` auto-send effect now explicitly handles `result?.paywallRequired`:
+```ts
+if (result?.paywallRequired) {
+  showPaywall('Swan Coach', {
+    requiredTier: result.requiredTier ?? 'pro',
+    message: result.message,
+    code: result.code,
+    upgradeUrl: result.upgradeUrl,
+  });
+  return; // storage preserved — query survives upgrade + re-navigation
+}
+```
+`usePaywall` (from `PaywallContext`) imported at the top of the page. `showPaywall` triggers the `FrostedPaywall` overlay via the existing `PaywallContext` bridge. Free-tier users who click "Ask Coach" will see the Swan Guardian upgrade prompt.
+
+Storage behavior on each result path:
+- `role === 'assistant'` → clear (success)
+- `paywallRequired` → keep + show paywall overlay
+- `failed` / `null` / early-exit → keep (silent retry on re-navigation)
 
 **CONSENSUS REACHED**
