@@ -100,6 +100,16 @@ const ButtonRow = styled.div`
   margin-top: 14px;
 `;
 
+const NudgeText = styled.div`
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  font-style: italic;
+`;
+
 const ActionBtn = styled.button<{ $variant: 'confirm' | 'cancel' | 'destructive' }>`
   min-height: 44px;
   padding: 0 18px;
@@ -143,6 +153,41 @@ const ActionBtn = styled.button<{ $variant: 'confirm' | 'cancel' | 'destructive'
   }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Helpers
+// ─────────────────────────────────────────────────────────────
+
+/** Format a command param value for display in ConfirmationCard.
+ *  exercises arrays get a human-readable per-exercise summary.
+ *  Other objects/arrays are JSON-stringified and truncated at 80 chars. */
+function renderParamValue(key: string, value: unknown): string {
+  if (key === 'exercises' && Array.isArray(value)) {
+    if (value.length === 0) return '(none)';
+    return value.map((ex: Record<string, unknown>) => {
+      const name = String(ex.name ?? ex.exerciseName ?? 'Exercise');
+      const parts: string[] = [name];
+      if (ex.weight != null) parts.push(`${ex.weight}lb`);
+      if (ex.sets != null && ex.reps != null) parts.push(`${ex.sets}×${ex.reps}`);
+      else if (ex.sets != null) parts.push(`${ex.sets} sets`);
+      else if (ex.reps != null) parts.push(`${ex.reps} reps`);
+      return parts.join(' ');
+    }).join(' · ');
+  }
+  if (typeof value === 'object' && value !== null) {
+    const str = JSON.stringify(value);
+    return str.length > 80 ? str.slice(0, 77) + '…' : str;
+  }
+  return String(value);
+}
+
+/** Next-action nudges shown after successful command execution (text only, no buttons). */
+const NEXT_ACTION_MAP: Record<string, string> = {
+  log_workout: 'Want me to generate a session recap?',
+  log_meals: 'Log another meal?',
+  create_client: 'Send the claim link to the client now?',
+  save_workout_plan: 'Review the plan before saving?',
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: ConfirmationCard
@@ -212,7 +257,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
       {paramEntries.map(([k, v]) => (
         <DataRow key={k}>
           <DataLabel>{k}</DataLabel>
-          <DataValue>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</DataValue>
+          <DataValue>{renderParamValue(k, v)}</DataValue>
         </DataRow>
       ))}
       <ButtonRow>
@@ -267,9 +312,12 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
       {resultEntries.map(([k, v]) => (
         <DataRow key={k}>
           <DataLabel>{k}</DataLabel>
-          <DataValue>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</DataValue>
+          <DataValue>{renderParamValue(k, v)}</DataValue>
         </DataRow>
       ))}
+      {NEXT_ACTION_MAP[command] && (
+        <NudgeText>{NEXT_ACTION_MAP[command]}</NudgeText>
+      )}
     </CardShell>
   );
 });

@@ -94,7 +94,7 @@ export function useCoachCommand() {
           params: data.params ?? {},
           client: data.client ?? null,
           details: data.details ?? null,
-          isDestructive: !!(data.details?.operationId),
+          isDestructive: !!(data.isDestructive),
         };
       }
 

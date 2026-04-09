@@ -25,6 +25,45 @@ import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Human-readable result summaries
+// PURPOSE: Replace machine "Done: log_workout" with real copy.
+//          Only describe what we actually know — never invent values.
+// ─────────────────────────────────────────────────────────────
+function commandResultSummary(
+  command: string,
+  result: Record<string, unknown> | null,
+  client: { id?: number; firstName?: string } | null,
+): string {
+  const r = result ?? {};
+  const forClient = client?.firstName ? ` for ${client.firstName}` : '';
+  switch (command) {
+    case 'log_workout': {
+      const count = typeof r.exerciseCount === 'number' ? ` ${r.exerciseCount} exercise(s) saved.` : '';
+      return `Workout logged${forClient}.${count}`;
+    }
+    case 'log_meals': {
+      const cal = r.calories != null ? `${r.calories} kcal` : null;
+      const prot = r.protein != null ? `${r.protein}g protein` : null;
+      const detail = [cal, prot].filter(Boolean).join(', ');
+      return `Meal logged.${detail ? ' ' + detail + '.' : ''}`;
+    }
+    case 'create_client':
+      // Specialized clientCreateResult card handles this — no plain-text needed.
+      return 'Client created.';
+    default: {
+      if (command.startsWith('navigate_') || command.startsWith('scan_command')) {
+        const dest = typeof r.destination === 'string' ? r.destination : command.replace(/_/g, ' ');
+        return `Navigated to ${dest}.`;
+      }
+      if (command.startsWith('view_')) {
+        return `${command.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} loaded.`;
+      }
+      return `${command.replace(/_/g, ' ')} completed.`;
+    }
+  }
+}
+
 interface UseCoachAssistantOptions {
   defaultContext?: CoachContext;
   defaultStyle?: ResponseStyle;
@@ -139,7 +178,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       const cmdMsg: CoachMessageData = {
         id: `cmd-result-${Date.now()}`,
         role: 'assistant',
-        content: `Done: ${cmdResult.command}`,
+        content: commandResultSummary(cmdResult.command, cmdResult.result, cmdResult.client),
         timestamp: new Date().toISOString(),
         metadata: {
           commandResult: {
