@@ -44,6 +44,14 @@ router.get('/status', (_req, res) => {
  */
 router.get('/search', async (req, res) => {
   try {
+    if (!isFatSecretConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'FatSecret API not configured',
+        configured: false,
+      });
+    }
+
     const query = sanitizeQuery(req.query.q);
     if (!query || query.length < 2) {
       return res.status(400).json({ success: false, error: 'Search query must be at least 2 characters' });

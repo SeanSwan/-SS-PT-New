@@ -135,6 +135,37 @@ const ErrorBanner = styled.div`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Main Page Component
 // ─────────────────────────────────────────────────────────────
+const NeuralLinkPill = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin: 0 16px 8px;
+  align-self: flex-start;
+  border-radius: 20px;
+  border: 1px solid ${({ $active }) =>
+    $active ? 'var(--ice-wing, #60C0F0)' : 'rgba(96,192,240,0.3)'};
+  background: ${({ $active }) =>
+    $active ? 'var(--ice-wing, #60C0F0)' : 'rgba(0,32,96,0.4)'};
+  color: ${({ $active }) => $active ? '#030712' : 'var(--ice-wing, #60C0F0)'};
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 32px;
+
+  &:hover {
+    background: ${({ $active }) =>
+      $active ? 'var(--ice-wing, #60C0F0)' : 'rgba(96,192,240,0.15)'};
+    box-shadow: 0 0 12px rgba(96,192,240,0.3);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 const TeachModeToggle = styled.button<{ $active?: boolean }>`
   width: 36px;
   height: 36px;
@@ -171,6 +202,7 @@ const SwanCoachAssistantPage: React.FC = () => {
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
+  const [macroLinkActive, setMacroLinkActive] = useState(false);
   const attachments = useFileAttachment();
 
   // Load conversation list on mount
@@ -234,6 +266,14 @@ const SwanCoachAssistantPage: React.FC = () => {
     coach.sendMessage(text);
     setVoiceOverlayOpen(false);
   }, [coach]);
+
+  // ── Neural Link: set macro_logging context for next conversation ──
+  const handleNeuralLink = useCallback(async () => {
+    setMacroLinkActive(prev => !prev);
+    if (!macroLinkActive) {
+      await chat.createConversation('macro_logging', 'Macro Context Session');
+    }
+  }, [chat, macroLinkActive]);
 
   // ── Track last attempted message for retry on error ──
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
@@ -355,6 +395,16 @@ const SwanCoachAssistantPage: React.FC = () => {
 
         {/* Attachment Preview */}
         <AttachmentPreview files={attachments.files} onRemove={attachments.removeFile} />
+
+        {/* Neural Link pill — pre-loads macro nutrition context */}
+        <NeuralLinkPill
+          type="button"
+          $active={macroLinkActive}
+          onClick={handleNeuralLink}
+          title="Pre-load macro nutrition context for AI responses"
+        >
+          ⚡ Neural Link: Macro Context
+        </NeuralLinkPill>
 
         {/* Input Bar */}
         <CoachInputBar

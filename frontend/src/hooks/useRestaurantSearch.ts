@@ -104,6 +104,9 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (data.configured === false) {
+          setConfigured(false);
+        }
         throw new Error(data.error || `Search failed (${res.status})`);
       }
 
@@ -114,9 +117,6 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
         setPage(pageNum);
         setConfigured(true);
       } else {
-        if (data.error?.includes('not configured')) {
-          setConfigured(false);
-        }
         throw new Error(data.error || 'Search failed');
       }
     } catch (err: unknown) {

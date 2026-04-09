@@ -23,8 +23,10 @@ const FATSECRET_CLIENT_SECRET = process.env.FATSECRET_CLIENT_SECRET;
 const TOKEN_URL = 'https://oauth.fatsecret.com/connect/token';
 const API_BASE = 'https://platform.fatsecret.com/rest/server.api';
 
+// CRIT-01: Promise-lock coalescing prevents token race conditions under concurrent requests
 let cachedToken = null;
 let tokenExpiry = 0;
+let tokenPromise = null;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: OAuth 2.0 Token Management
@@ -38,14 +40,12 @@ export function isFatSecretConfigured() {
 }
 
 /**
- * Get OAuth 2.0 access token (cached, refreshes when expired).
+ * Fetch a new OAuth 2.0 token from FatSecret.
  */
-async function getAccessToken() {
-  if (cachedToken && Date.now() < tokenExpiry) {
-    return cachedToken;
-  }
-
-  const credentials = Buffer.from(`${FATSECRET_CLIENT_ID}:${FATSECRET_CLIENT_SECRET}`).toString('base64');
+async function fetchNewToken() {
+  const credentials = Buffer.from(
+    `${FATSECRET_CLIENT_ID}:${FATSECRET_CLIENT_SECRET}`
+  ).toString('base64');
 
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
@@ -68,6 +68,17 @@ async function getAccessToken() {
   return cachedToken;
 }
 
+/**
+ * Get OAuth 2.0 access token (cached; concurrent requests share a single in-flight promise).
+ */
+async function getAccessToken() {
+  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
+  if (!tokenPromise) {
+    tokenPromise = fetchNewToken().finally(() => { tokenPromise = null; });
+  }
+  return tokenPromise;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: API Calls
 // ─────────────────────────────────────────────────────────────
@@ -81,13 +92,13 @@ async function getAccessToken() {
 async function apiCall(method, params = {}) {
   const token = await getAccessToken();
 
-  const searchParams = new URLSearchParams({
-    method,
-    format: 'json',
-    ...params,
-  });
+  // URLSearchParams ensures all values are properly encoded (no injection risk)
+  const searchParams = new URLSearchParams({ method, format: 'json' });
+  for (const [k, v] of Object.entries(params)) {
+    searchParams.set(k, String(v));
+  }
 
-  const res = await fetch(`${API_BASE}?${searchParams.toString()}`, {
+  const res = await fetch(`${API_BASE}?${searchParams}`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
 

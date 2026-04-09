@@ -31,8 +31,12 @@ import { theme } from '../../theme/tokens';
 interface FoodResult {
   id: string | number; name: string; brand?: string; category?: string;
   calories: number; protein: number; carbs: number; fat: number;
-  servingSize?: string; healthRating?: string; organic?: boolean;
+  servingSize?: string; healthRating?: 'good' | 'okay' | 'bad'; organic?: boolean;
   source?: 'USDA' | 'OFF';
+  // Safety / ingredient metadata (populated if backend enrichment available)
+  iarcGroup?: '1' | '2A' | '2B';
+  isEUBanned?: boolean;
+  isGMO?: boolean;
 }
 
 /** USDA nutrient IDs: 208=Energy(kcal), 203=Protein, 204=Fat, 205=Carbs */
@@ -203,6 +207,29 @@ async function fetchOFF(query: string): Promise<FoodResult[]> {
 }
 
 // ─────────────────────────────────────────────────────────────
+// SECTION: Ingredient / Safety Helpers
+// PURPOSE: Health rating colors + safety badge component
+// ─────────────────────────────────────────────────────────────
+
+const healthBorderColor = (rating?: 'good' | 'okay' | 'bad'): string => {
+  if (rating === 'good') return '#60C0F0'; // Ice Wing
+  if (rating === 'okay') return '#C6A84B'; // Gilded Fern
+  if (rating === 'bad') return '#C92A54';  // Crimson Frost
+  return 'transparent';
+};
+
+interface BadgeProps { group?: '1' | '2A' | '2B'; isEUBanned?: boolean; isGMO?: boolean }
+const IngredientBadge: React.FC<BadgeProps> = ({ group, isEUBanned, isGMO }) => (
+  <>
+    {group === '1' && <SafetyPill $color="#C92A54">IARC-1</SafetyPill>}
+    {group === '2A' && <SafetyPill $color="#C6A84B">IARC-2A</SafetyPill>}
+    {group === '2B' && <SafetyPill $color="#C6A84B" $dim>IARC-2B</SafetyPill>}
+    {isEUBanned && <SafetyPill $color="#C92A54">EU Banned</SafetyPill>}
+    {isGMO && <SafetyPill $color="#C6A84B">GMO</SafetyPill>}
+  </>
+);
+
+// ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // PURPOSE: Crystalline Swan themed UI for search, filter, cards
 // ─────────────────────────────────────────────────────────────
@@ -248,11 +275,13 @@ const Grid = styled.div`
   gap: ${theme.spacing.md};
   @media (max-width: 375px) { grid-template-columns: 1fr; }
 `;
-const Card = styled.div`
+const Card = styled.div<{ $healthRating?: 'good' | 'okay' | 'bad' }>`
   background: rgba(0,32,96,0.6); backdrop-filter: blur(16px);
   border: 1px solid rgba(96,192,240,0.12); border-radius: 16px;
+  border-left: 3px solid ${({ $healthRating }) => healthBorderColor($healthRating)};
   box-shadow: 0 8px 32px rgba(0,0,0,0.4); padding: ${theme.spacing.lg};
   animation: ${fadeUp} 0.3s ease-out both; transition: transform 0.2s, border-color 0.2s;
+  will-change: transform;
   &:hover { transform: translateY(-2px); border-color: rgba(139,92,246,0.4); }
 `;
 const Header = styled.div`
@@ -265,7 +294,7 @@ const Name = styled.h3`
   color: ${theme.colors.text.frost}; line-height: 1.3;
 `;
 const Meta = styled.span`
-  font-size: ${theme.typography.scale.xs}; color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.scale.xs}; color: rgba(224,236,244,0.7);
   font-family: 'Sora', sans-serif;
 `;
 
@@ -293,7 +322,7 @@ const Macro = styled.div<{ $c: string }>`
   flex: 1; text-align: center; padding: ${theme.spacing.sm}; border-radius: 8px;
   background: rgba(0,24,64,0.5);
   .v { font: ${theme.typography.weight.semibold} ${theme.typography.scale.base} 'Fira Code', monospace; color: ${({ $c }) => $c}; }
-  .l { font-size: ${theme.typography.scale.xs}; color: ${theme.colors.text.secondary}; margin-top: 2px; }
+  .l { font-size: ${theme.typography.scale.xs}; color: rgba(224,236,244,0.7); margin-top: 2px; }
 `;
 const AddBtn = styled.button`
   width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center;
@@ -304,6 +333,16 @@ const AddBtn = styled.button`
   &:active { transform: translateY(0); }
 `;
 const Spin = styled(Loader2)`animation: ${spin} 0.8s linear infinite;`;
+
+const SafetyPill = styled.span<{ $color: string; $dim?: boolean }>`
+  display: inline-flex; align-items: center;
+  padding: 2px 6px; border-radius: 4px; margin-left: 4px;
+  font-family: 'Sora', sans-serif; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border: 1px solid ${({ $color }) => $color};
+  color: ${({ $color }) => $color};
+  background: ${({ $color, $dim }) => `${$color}${$dim ? '0F' : '1A'}`};
+`;
 const Empty = styled.div`
   text-align: center; padding: ${theme.spacing['2xl']} ${theme.spacing.lg};
   color: ${theme.colors.text.secondary}; font-family: 'Sora', sans-serif;
@@ -393,10 +432,13 @@ const FoodSearchPanel: React.FC = () => {
       {!loading && filteredResults.length > 0 && (
         <Grid>
           {filteredResults.map((f, i) => (
-            <Card key={f.id ?? i} style={{ animationDelay: `${i * 50}ms` }}>
+            <Card key={f.id ?? i} $healthRating={f.healthRating} style={{ animationDelay: `${i * 50}ms` }}>
               <Header>
                 <div>
-                  <Name>{f.name}</Name>
+                  <Name>
+                    {f.name}
+                    <IngredientBadge group={f.iarcGroup} isEUBanned={f.isEUBanned} isGMO={f.isGMO} />
+                  </Name>
                   {(f.brand || f.servingSize) && (
                     <Meta>{[f.brand, f.servingSize].filter(Boolean).join(' · ')}</Meta>
                   )}

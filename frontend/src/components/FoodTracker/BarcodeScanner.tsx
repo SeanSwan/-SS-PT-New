@@ -7,7 +7,7 @@
  * Gemini directive: cyan corner accents + animated laser scan line
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { ScanBarcode, Search, Plus, Loader2, AlertCircle, Camera, CameraOff } from 'lucide-react';
 import { theme } from '../../theme/tokens';
@@ -80,15 +80,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onAddFood }) => {
     }
   }, []);
 
-  // Camera auto-scan: when barcode detected, auto-lookup and stop camera
+  // CRIT-02: Use a ref so stopCamera is never stale in the callback closure
+  const stopCameraRef = useRef<(() => void) | null>(null);
+
   const handleCameraDetected = useCallback((code: string) => {
     setBarcode(code);
-    stopCamera();
+    stopCameraRef.current?.();
     scanBarcode(code);
   }, [scanBarcode]);
 
   const { videoRef, isScanning, startCamera, stopCamera, cameraError, supported } =
     useBarcodeCamera(handleCameraDetected);
+
+  // Keep ref in sync with latest stopCamera from hook
+  stopCameraRef.current = stopCamera;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,8 +224,8 @@ export default BarcodeScanner;
 // ── Keyframes ──
 
 const laserScan = keyframes`
-  0%, 100% { top: 10%; }
-  50% { top: 85%; }
+  0% { transform: translateY(-80px); }
+  100% { transform: translateY(80px); }
 `;
 
 const spinAnimation = keyframes`
@@ -278,21 +283,19 @@ const CameraButton = styled.button<{ $active: boolean }>`
   border: none;
   border-radius: 12px;
   background: ${({ $active }) => $active
-    ? 'rgba(201, 42, 84, 0.8)'
-    : theme.colors.brand.purple};
-  color: ${theme.colors.text.primary};
+    ? 'var(--midnight-sapphire, #002060)'
+    : 'var(--wing-purple, #8B5CF6)'};
+  color: var(--frost-white, #E0ECF4);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   transition: opacity 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 12px ${({ $active }) => $active
-    ? 'rgba(201, 42, 84, 0.3)'
-    : 'rgba(96, 192, 240, 0.3)'};
+  box-shadow: 0 0 12px ${({ $active }) =>
+    $active ? 'rgba(96, 192, 240, 0.3)' : 'rgba(139, 92, 246, 0.3)'};
 
   &:hover {
-    box-shadow: 0 0 20px ${({ $active }) => $active
-      ? 'rgba(201, 42, 84, 0.5)'
-      : 'rgba(96, 192, 240, 0.5)'};
+    box-shadow: 0 0 20px ${({ $active }) =>
+      $active ? 'rgba(96, 192, 240, 0.5)' : 'rgba(139, 92, 246, 0.5)'};
   }
 `;
 
@@ -303,7 +306,9 @@ const ReticleBox = styled.div`
   height: 200px;
   margin: 0 auto;
   background: rgba(0, 32, 96, 0.4);
-  border-radius: 16px;
+  border: 2px solid var(--ice-wing, #60C0F0);
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(96, 192, 240, 0.3), inset 0 0 0 9999px rgba(10, 10, 15, 0.5);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -345,14 +350,16 @@ const LaserLine = styled.div`
   left: 20px;
   right: 20px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, ${theme.colors.brand.cyan}, transparent);
-  box-shadow: 0 0 8px ${theme.colors.brand.cyan};
-  animation: ${laserScan} 2.5s ease-in-out infinite;
+  background: var(--ice-wing, #60C0F0);
+  box-shadow: 0 0 8px var(--ice-wing, #60C0F0);
+  animation: ${laserScan} 2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
 `;
 
 const ReticleText = styled.span`
-  color: ${theme.colors.text.disabled};
+  color: var(--frost-white, #E0ECF4);
+  text-shadow: 0 1px 3px rgba(10, 10, 15, 0.9);
   font-size: 0.8rem;
+  font-family: 'Sora', sans-serif;
   z-index: 1;
 `;
 

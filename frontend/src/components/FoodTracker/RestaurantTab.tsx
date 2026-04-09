@@ -141,10 +141,14 @@ const RestaurantTab: React.FC<RestaurantTabProps> = ({ onAddFood }) => {
 
       {/* Not configured fallback */}
       {showNotConfigured && (
-        <InfoBox>
-          <AlertCircle size={16} />
-          <span>Restaurant search requires FatSecret API credentials. Add <code>FATSECRET_CLIENT_ID</code> and <code>FATSECRET_CLIENT_SECRET</code> to your environment variables.</span>
-        </InfoBox>
+        <>
+          <NotConfiguredHeading>Awaiting Culinary Target</NotConfiguredHeading>
+          <NotConfiguredSub>Connect FatSecret API to unlock restaurant search</NotConfiguredSub>
+          <InfoBox>
+            <AlertCircle size={16} />
+            <span>Restaurant search requires FatSecret API credentials. Add <code>FATSECRET_CLIENT_ID</code> and <code>FATSECRET_CLIENT_SECRET</code> to your environment variables.</span>
+          </InfoBox>
+        </>
       )}
 
       {error && !showNotConfigured && (
@@ -369,11 +373,11 @@ const ChipRow = styled.div`
 
 const Chip = styled.button`
   padding: 8px 14px;
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 20px;
   border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
   background: var(--bg-surface, #1A1A24);
-  color: var(--text-secondary, rgba(224,236,244,0.6));
+  color: var(--text-secondary, rgba(224,236,244,0.7));
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -382,6 +386,10 @@ const Chip = styled.button`
     border-color: var(--accent-primary, #60C0F0);
     color: var(--text-primary, #E0ECF4);
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--arctic-cyan, #50A0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -470,7 +478,7 @@ const ResultName = styled.div`
 `;
 const ResultMeta = styled.div`
   font-size: 0.75rem;
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: rgba(224,236,244,0.7);
   margin-top: 2px;
 `;
 const ResultMacros = styled.div`
@@ -478,7 +486,7 @@ const ResultMacros = styled.div`
   gap: 8px;
   font-size: 0.75rem;
   font-family: 'Fira Code', monospace;
-  color: var(--text-secondary, rgba(224,236,244,0.6));
+  color: rgba(224,236,244,0.7);
   flex-shrink: 0;
 `;
 
@@ -493,6 +501,7 @@ const DetailCard = styled.div`
   border-radius: 14px;
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  will-change: transform;
 `;
 
 const DetailHeader = styled.div`
@@ -535,7 +544,7 @@ const MacroLbl = styled.div`
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: rgba(224,236,244,0.7);
   margin-top: 2px;
 `;
 
@@ -547,7 +556,7 @@ const MicroRow = styled.div`
 `;
 const MicroItem = styled.span`
   font-size: 0.75rem;
-  color: var(--text-secondary, rgba(224,236,244,0.6));
+  color: rgba(224,236,244,0.7);
   font-family: 'Fira Code', monospace;
   padding: 4px 8px;
   border-radius: 6px;
@@ -570,7 +579,7 @@ const ServingItem = styled.div`
 const ServingMacros = styled.span`
   font-size: 0.75rem;
   font-family: 'Fira Code', monospace;
-  color: var(--text-muted, rgba(224,236,244,0.4));
+  color: rgba(224,236,244,0.7);
 `;
 
 const AddBtn = styled.button`
@@ -583,16 +592,18 @@ const AddBtn = styled.button`
   padding: 12px 16px;
   border: none;
   border-radius: 12px;
-  background: var(--accent-secondary, #8B5CF6);
-  color: var(--text-primary, #E0ECF4);
-  font-weight: 600;
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  color: #030712;
+  font-weight: 700;
   font-size: 0.9rem;
+  font-family: 'Sora', sans-serif;
   cursor: pointer;
   transition: opacity 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  box-shadow: 0 0 12px rgba(96, 192, 240, 0.35);
 
   &:hover {
-    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+    box-shadow: 0 0 24px rgba(96, 192, 240, 0.55);
+    opacity: 0.92;
   }
 `;
 
@@ -617,6 +628,21 @@ const LoadMoreBtn = styled.button`
     color: var(--text-primary, #E0ECF4);
   }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const NotConfiguredHeading = styled.h3`
+  font-size: 18px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  color: var(--frost-white, #E0ECF4);
+  margin: 8px 0 4px;
+`;
+
+const NotConfiguredSub = styled.p`
+  font-size: 14px;
+  font-family: 'Sora', sans-serif;
+  color: var(--swan-lavender, #4070C0);
+  margin: 0 0 12px;
 `;
 
 const Attribution = styled.div`
