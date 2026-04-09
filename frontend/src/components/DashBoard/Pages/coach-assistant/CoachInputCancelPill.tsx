@@ -26,7 +26,7 @@ const Pill = styled.div`
   margin: 0 0 6px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, var(--bg-surface, #1A1A24));
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
@@ -41,6 +41,11 @@ const ProgressBar = styled.div<{ $duration: number }>`
   height: 2px;
   background: var(--accent-secondary, #8B5CF6);
   animation: ${shrink} ${({ $duration }) => $duration}ms linear forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    width: 0%;
+  }
 `;
 
 const CancelBtn = styled.button`
@@ -50,7 +55,7 @@ const CancelBtn = styled.button`
   padding: 4px 12px;
   min-height: 44px;
   border-radius: 6px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
   background: transparent;
   color: var(--accent-secondary, #8B5CF6);
   font-family: 'Sora', sans-serif;
@@ -60,7 +65,7 @@ const CancelBtn = styled.button`
   flex-shrink: 0;
   transition: background 0.15s;
 
-  &:hover { background: rgba(139, 92, 246, 0.12); }
+  &:hover { background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent); }
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;

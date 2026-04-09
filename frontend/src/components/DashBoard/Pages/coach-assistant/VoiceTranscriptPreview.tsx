@@ -52,7 +52,7 @@ const TranscriptBox = styled.div`
   padding: 16px 20px;
   border-radius: 14px;
   background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, var(--bg-surface, #1A1A24));
-  border: 1px solid rgba(96, 192, 240, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   font-family: 'Sora', sans-serif;
   font-size: 16px;
   color: var(--text-primary, #E0ECF4);
@@ -70,8 +70,8 @@ const ErrorBox = styled.div`
   gap: 10px;
   padding: 12px 18px;
   border-radius: 10px;
-  background: rgba(201, 42, 84, 0.08);
-  border: 1px solid rgba(201, 42, 84, 0.3);
+  background: color-mix(in srgb, var(--status-error, #C9294A) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error, #C9294A) 30%, transparent);
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -93,9 +93,13 @@ const Btn = styled.button<{ $variant: 'primary' | 'ghost' }>`
   min-height: 48px;
   border-radius: 12px;
   border: ${({ $variant }) =>
-    $variant === 'ghost' ? '1px solid rgba(96, 192, 240, 0.2)' : 'none'};
+    $variant === 'ghost'
+      ? '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)'
+      : 'none'};
   background: ${({ $variant }) =>
-    $variant === 'ghost' ? 'transparent' : 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
+    $variant === 'ghost'
+      ? 'transparent'
+      : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'};
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -108,6 +112,12 @@ const Btn = styled.button<{ $variant: 'primary' | 'ghost' }>`
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: opacity 0.2s ease;
+    &:hover { transform: none; }
+    &:active { transform: none; }
   }
 `;
 

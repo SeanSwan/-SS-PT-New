@@ -206,8 +206,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
   const [macroLinkActive, setMacroLinkActive] = useState(false);
-  // SPRINT B: transcript text injected into CoachInputBar when user chooses "Edit"
-  const [pendingVoiceEdit, setPendingVoiceEdit] = useState('');
+  // SPRINT B: transcript text injected into CoachInputBar when user chooses "Edit".
+  // Uses { text, seq } nonce so identical text can inject on repeated edits.
+  const [pendingVoiceEdit, setPendingVoiceEdit] = useState<{ text: string; seq: number } | null>(null);
   const attachments = useFileAttachment();
 
   // Load conversation list on mount
@@ -301,9 +302,10 @@ const SwanCoachAssistantPage: React.FC = () => {
     coach.sendMessage(text);
     setVoiceOverlayOpen(false);
   }, [coach]);
-  // SPRINT B: "Edit" from preview state → drop transcript into input bar
+  // SPRINT B: "Edit" from preview state → drop transcript into input bar.
+  // Increments seq so repeated identical transcripts still trigger injection.
   const handleVoiceEditTranscript = useCallback((text: string) => {
-    setPendingVoiceEdit(text);
+    setPendingVoiceEdit(prev => ({ text, seq: (prev?.seq ?? 0) + 1 }));
     setVoiceOverlayOpen(false);
   }, []);
 

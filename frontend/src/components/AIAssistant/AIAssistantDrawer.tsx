@@ -37,20 +37,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAIChat';
-import { useCoachCommand } from '../../hooks/useCoachCommand';
 import { CS } from '../../styles/crystallineSwanTheme';
-
-// SPRINT B: compact inline notice for command-lane responses in this lightweight shell
-// Full ConfirmationCard lives in the main Coach page only — not duplicated here.
-const CommandNoticeBanner = styled.div`
-  padding: 8px 16px;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, var(--bg-elevated, #141419));
-  border-top: 1px solid rgba(96, 192, 240, 0.12);
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-  flex-shrink: 0;
-`;
 
 // Sub-components
 import DictationOrb from './DictationOrb';
@@ -92,8 +79,6 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
     createConversation, listConversations, loadConversation,
     sendMessage, deleteConversation, newChat, clearError,
   } = useAIChat();
-  const { executeCommand } = useCoachCommand();
-  const [commandNotice, setCommandNotice] = useState<string | null>(null);
 
   const [inputValue, setInputValue] = useState('');
   const [selectedContext, setSelectedContext] = useState<AIContext>(defaultContext);
@@ -177,49 +162,13 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   // Keep ref in sync for auto-send closure
   useEffect(() => { getTargetClientIdRef.current = getTargetClientId; }, [getTargetClientId]);
 
-  // ── Auto-Send Handler (SPRINT B: command lane first) ──
-  // Called by DictationOrb when speech ends and autoSend is enabled.
-  // Routes through command lane; falls back to chat for conversational queries.
-  const handleAutoSend = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || sending) return;
-
-    setAutoSendFlash(true);
-    setTimeout(() => setAutoSendFlash(false), 1400);
-
-    // SPRINT B: try command lane first
-    const clientId = getTargetClientIdRef.current();
-    const cmdResult = await executeCommand(trimmed, {
-      selectedClientId: clientId ? Number(clientId) : null,
-    });
-
-    if (cmdResult.type !== 'fallback_to_chat' && cmdResult.type !== 'error') {
-      // Command detected — show compact notice. Full ConfirmationCard is on the main Coach page.
-      setCommandNotice('Command received — open Swan Coach to confirm or review the action.');
-      setTimeout(() => setCommandNotice(null), 6000);
-      return;
-    }
-
-    // Fallback: existing chat lane
-    if (!activeConversationRef.current) {
-      const conv = await createConversationRef.current(
-        selectedContextRef.current,
-        undefined,
-        getTargetClientIdRef.current(),
-        selectedResponseStyleRef.current,
-      );
-      if (!conv) {
-        setInputValue(trimmed);
-        return;
-      }
-    }
-
-    setInputValue('');
-    const result = await sendMessageRef.current(trimmed);
-    if (result?.failed) {
-      setInputValue(result.originalMessage || trimmed);
-    }
-  }, [sending, executeCommand]);
+  // ── Voice transcript capture ──
+  // DictationOrb is set to autoSend=false in this shell. When speech ends,
+  // the transcript lands in the input via onTranscript/handleDictation so the
+  // user can review it before pressing Send. This prevents silent dispatch and
+  // avoids creating unconfirmable command state from a shell that cannot render
+  // the full ConfirmationCard flow. The user chooses to send explicitly.
+  // autoSendFlash is kept for any future transition back to auto-send.
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
@@ -371,7 +320,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                   const isActive = activeConversation.context === ctx;
                   return (
                     <ContextPill key={ctx} $active={isActive} onClick={() => {}} aria-pressed={isActive}
-                      style={{ color: isActive ? '#E0ECF4' : '#4070C0', cursor: 'default' }}>
+                      style={{ color: isActive ? 'var(--text-primary, #E0ECF4)' : 'var(--accent-tertiary, #4070C0)', cursor: 'default' }}>
                       <Icon size={14} />
                       {cfg.label}
                     </ContextPill>
@@ -414,23 +363,16 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               <div ref={messagesEndRef} />
             </MessagesArea>
 
-            {/* SPRINT B: compact command lane notice (no full ConfirmationCard in this shell) */}
-            {commandNotice && (
-              <CommandNoticeBanner aria-live="polite">{commandNotice}</CommandNoticeBanner>
-            )}
-
             {/* Input */}
             <InputArea style={{ position: 'relative' }}>
-              {/* Auto-send visual indicator — flashes when voice message is being sent */}
-              <AutoSendBadge $visible={autoSendFlash} aria-live="polite">
-                Sending voice message...
-              </AutoSendBadge>
+              {/* DictationOrb uses transcript-capture mode: autoSend=false so
+                  speech fills the text input and the user sends explicitly.
+                  This prevents silent dispatch and avoids unconfirmable commands. */}
               <DictationOrb
                 onTranscript={handleDictation}
                 onInterimTranscript={() => {}}
                 disabled={sending}
-                autoSend={true}
-                onAutoSend={handleAutoSend}
+                autoSend={false}
               />
               <Suspense fallback={null}>
                 <VoiceUpload onTranscript={handleDictation} disabled={sending} />

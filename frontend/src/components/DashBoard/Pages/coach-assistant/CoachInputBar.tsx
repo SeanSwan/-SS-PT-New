@@ -61,11 +61,12 @@ interface CoachInputBarProps {
   onVoiceOverlay?: () => void;
   attachButton?: React.ReactNode;
   /**
-   * SPRINT B: When set, injects this text into the input for editing
+   * SPRINT B: When set, injects transcript text into the input for editing
    * (used when user chooses "Edit" from VoiceRecordingOverlay preview state).
-   * Injected once per unique value — tracked via internal ref to prevent loops.
+   * Uses { text, seq } so repeated identical transcripts inject correctly —
+   * injection is gated on seq change, not text equality.
    */
-  externalText?: string;
+  externalText?: { text: string; seq: number } | null;
 }
 
 // Web Speech API type
@@ -94,16 +95,17 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   const cancelSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSendTextRef = useRef('');
   const accumulatedRef = useRef('');
-  const lastInjectedRef = useRef('');
+  const lastInjectedSeqRef = useRef(-1);
 
   // Determine orb size: primary (64px) on mobile, standard (56px) on desktop
   const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 'primary' : 'standard';
 
   // ── SPRINT B: Inject external transcript text for editing ──
+  // Gated on seq change so identical text can inject on repeated edits.
   useEffect(() => {
-    if (externalText && externalText !== lastInjectedRef.current) {
-      lastInjectedRef.current = externalText;
-      setText(externalText);
+    if (externalText && externalText.seq !== lastInjectedSeqRef.current) {
+      lastInjectedSeqRef.current = externalText.seq;
+      setText(externalText.text);
       // Auto-resize textarea on inject
       requestAnimationFrame(() => {
         if (inputRef.current) {

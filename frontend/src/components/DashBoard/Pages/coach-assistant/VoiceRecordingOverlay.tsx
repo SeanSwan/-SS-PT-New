@@ -51,11 +51,15 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 24px;
-  background: rgba(3, 7, 18, 0.92);
+  background: color-mix(in srgb, var(--bg-base, #030712) 92%, transparent);
   backdrop-filter: blur(12px);
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   pointer-events: ${({ $isOpen }) => ($isOpen ? 'auto' : 'none')};
   transition: opacity 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const OrbContainer = styled.div`
@@ -71,7 +75,7 @@ const RecordingOrb = styled.button<{ $recording: boolean }>`
   border-radius: 50%;
   border: none;
   background: ${({ $recording }) => $recording
-    ? 'linear-gradient(135deg, #8B5CF6, #60C0F0)'
+    ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'
     : 'var(--bg-elevated, #141419)'};
   color: var(--text-primary, #E0ECF4);
   display: flex;
@@ -86,6 +90,10 @@ const RecordingOrb = styled.button<{ $recording: boolean }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const PulseRing = styled.span`
@@ -95,6 +103,11 @@ const PulseRing = styled.span`
   border-radius: 50%;
   border: 2px solid var(--accent-primary, #60C0F0);
   animation: ${pulseRing} 1.5s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
+  }
 `;
 
 const DurationText = styled.div`
@@ -129,7 +142,7 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
     : 'none'};
   background: ${({ $variant }) => $variant === 'ghost'
     ? 'transparent'
-    : 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
+    : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'};
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -145,10 +158,20 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'ghost' }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: opacity 0.2s ease;
+    &:hover { transform: none; }
+    &:active { transform: none; }
+  }
 `;
 
 const SpinIcon = styled(Loader)`
   animation: ${spin} 1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────
