@@ -81,11 +81,25 @@ Updated all 4 URL vars in `frontend/.env.production`:
 | File | Change |
 |------|--------|
 | `frontend/.env.production` | All 4 URL vars updated to `sswanstudios.com` |
+| `frontend/src/config.js` | `PROD_BACKEND_URL` updated |
+| `frontend/src/hooks/useBootcampAPI.ts` | Production hostname branch updated |
+| `frontend/src/hooks/useBackendConnection.tsx` | sswanstudios.com branch updated |
+| `frontend/src/services/api.service.ts` | `API_BASE_URL` production value updated |
+| `frontend/src/services/enhancedClientDashboardService.ts` | `PRODUCTION_URL` updated |
+| `frontend/src/services/enterpriseAdminApiService.ts` | Admin WebSocket `wss://` updated |
+| `frontend/src/utils/axiosConfig.ts` | `API_BASE_URL` production value updated |
+| `frontend/src/components/UniversalMasterSchedule/hooks/useRealTimeUpdates.ts` | Default `wsUrl` fallback updated |
+| `frontend/src/pages/contactpage/ContactV2.tsx` | Local `API_BASE_URL` updated |
+| `frontend/src/pages/contactpage/ContactV3.tsx` | Local `API_BASE_URL` updated |
+| `frontend/src/pages/contactpage/EnhancedContactPage.tsx` | Local `API_BASE_URL` updated |
+
+**Note:** 3 debug scripts in `frontend/src/scripts/` still reference the old domain but are not bundled into the production build.
 
 ### What Codex should verify
-- [ ] `frontend/src/context/SocketContext.tsx` — confirm it reads `VITE_BACKEND_URL` and that the updated value flows through correctly
-- [ ] `frontend/src/hooks/useSocket.ts` — confirm it reads `VITE_API_BASE_URL` or `VITE_SOCKET_URL` and will resolve to the correct domain
-- [ ] No other files hardcode `ss-pt-new.onrender.com` that would still send traffic to the old subdomain
+- [x] `frontend/src/context/SocketContext.tsx` — reads `VITE_BACKEND_URL` correctly (PASS per Codex R1)
+- [x] `frontend/src/hooks/useSocket.ts` — reads `VITE_API_BASE_URL` correctly (PASS per Codex R1)
+- [x] No runtime files hardcode `ss-pt-new.onrender.com` (FIXED in commit `1f0f57b0` — 11 files swept)
+- [ ] Codex to re-verify: grep `ss-pt-new.onrender.com` across `frontend/src` confirms only `src/scripts/` remain
 
 ---
 
@@ -155,3 +169,24 @@ Added `react-window` `FixedSizeList` virtualization to both components:
 ### Files changed
 ### What Codex should verify
 -->
+
+## CODEX RESPONSE
+
+1. Fix 2 is incomplete. `frontend/.env.production` is corrected, `frontend/src/context/SocketContext.tsx` correctly uses `import.meta.env.VITE_BACKEND_URL`, and `frontend/src/hooks/useSocket.ts` correctly resolves from `import.meta.env.VITE_API_BASE_URL`, so those two reviewed socket paths now flow to `https://sswanstudios.com`. But the checkbox `No other files hardcode ss-pt-new.onrender.com` is false. I found active frontend/runtime code still pointing at the old domain in `frontend/src/services/api.service.ts`, `frontend/src/components/UniversalMasterSchedule/hooks/useRealTimeUpdates.ts`, `frontend/src/services/enterpriseAdminApiService.ts`, `frontend/src/utils/axiosConfig.ts`, `frontend/src/hooks/useBootcampAPI.ts`, `frontend/src/hooks/useBackendConnection.tsx`, `frontend/src/config.js`, `frontend/src/services/enhancedClientDashboardService.ts`, `frontend/src/pages/contactpage/ContactV2.tsx`, `frontend/src/pages/contactpage/ContactV3.tsx`, and `frontend/src/pages/contactpage/EnhancedContactPage.tsx`.
+
+2. Fix 1 is functionally correct for the NaN-path bug. `sanitizeChartData` is exported from `frontend/src/components/Charts/chartTheme.ts` as `sanitizeChartData<T extends { y: unknown }>(data: T[]): T[]`, returns `[]` for non-arrays, and filters out non-number / `NaN` `y` values. I spot-checked `WeightProgressionLive.tsx`, `MuscleGroupFocusRadar.tsx`, and `RPEByExerciseScatter.tsx` in full, and I also checked the `Victory data={}` call sites across all 9 listed live chart files.
+
+3. The Fix 1 checkbox wording is slightly over-broad. All vulnerable live series data props are wrapped. `MuscleGroupFocusRadar` intentionally leaves `tickValues={data.data.map(d => d.x)}` unwrapped, which is correct because those are string labels, not numeric `y` points. But if taken literally, `Every data={...} prop on every Victory chart component is wrapped` is not true because `VictoryLegend data={legendData}` is still unwrapped in `frontend/src/components/Charts/charts/live/CardioEnduranceLine.tsx` and `frontend/src/components/Charts/charts/live/RPEByExerciseScatter.tsx`. That does not appear to reintroduce the NaN SVG bug, because those legend arrays are not XY point data and would not type-check against `sanitizeChartData` anyway.
+
+4. I did not find any import pattern that bypasses the live-chart sanitization. The live chart files are imported as default components by `ClientAnalyticsPanel.tsx` and `ProfileChartsSection.tsx`; callers do not inject raw `Victory data={}` props into those internals.
+
+Checkbox verdicts:
+
+- Fix 1 `sanitizeChartData` correctly typed/exported: PASS
+- Fix 1 vulnerable Victory series `data={}` props wrapped across the 9 listed live charts: PASS
+- Fix 1 `MuscleGroupFocusRadar` unwrapped `tickValues` intentional: PASS
+- Fix 1 literal `every data prop on every Victory component is wrapped`: NOT LITERALLY TRUE because of the two `VictoryLegend data={legendData}` props above
+- Fix 1 no caller/import bypass found: PASS
+- Fix 2 `SocketContext.tsx` env flow correct: PASS
+- Fix 2 `useSocket.ts` env flow correct: PASS
+- Fix 2 no remaining hardcoded `ss-pt-new.onrender.com`: FAIL
