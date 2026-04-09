@@ -876,7 +876,7 @@ const ContactV3: React.FC = () => {
 
     try {
       const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
-        ? 'https://ss-pt-new.onrender.com'
+        ? 'https://sswanstudios.com'
         : 'http://localhost:5000';
 
       await axios.post(`${API_BASE_URL}/api/contact`, {

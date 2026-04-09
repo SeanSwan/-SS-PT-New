@@ -153,7 +153,7 @@ const API_BASE_URL = import.meta.env.PROD ||
   window.location.hostname.includes('render.com') ||
   window.location.hostname.includes('sswanstudios.com') ||
   window.location.hostname.includes('swanstudios.com')
-    ? 'https://ss-pt-new.onrender.com'
+    ? 'https://sswanstudios.com'
     : 'http://localhost:10000';
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {

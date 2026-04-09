@@ -14,7 +14,7 @@ import { logger } from '@/utils/logger';
 // In production, use correct backend URL
 // In development, use localhost for direct connection
 const API_BASE_URL = import.meta.env.PROD
-  ? 'https://ss-pt-new.onrender.com'
+  ? 'https://sswanstudios.com'
   : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000');
 
 // Format the API URL: remove trailing slash if present

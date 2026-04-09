@@ -25,7 +25,7 @@ const IS_PRODUCTION = import.meta.env.PROD ||
                      window.location.hostname.includes('swanstudios.com');
 
 const API_BASE_URL = IS_PRODUCTION
-  ? 'https://ss-pt-new.onrender.com'
+  ? 'https://sswanstudios.com'
   : 'http://localhost:10000';
 
 logger.log(`[API] Production mode: ${IS_PRODUCTION}`);
