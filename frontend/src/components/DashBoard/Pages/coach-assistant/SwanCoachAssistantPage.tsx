@@ -277,6 +277,7 @@ const SwanCoachAssistantPage: React.FC = () => {
 
   // ── Canonical handler: keeps local state + GlobalClientContext + URL param in sync ──
   // Every code path that selects or clears a client goes through this one function.
+  // setSelectedClient is a stable useState dispatch — included in deps to satisfy exhaustive-deps.
   const adoptClient = useCallback((client: ClientInfo | null) => {
     setSelectedClient(client);
     setActiveClient(
@@ -302,18 +303,39 @@ const SwanCoachAssistantPage: React.FC = () => {
       },
       { replace: true },
     );
-  }, [setActiveClient, setSearchParams]);
+  }, [setSelectedClient, setActiveClient, setSearchParams]);
+
+  // Tracks whether GlobalClientProvider has positively started its first fetch cycle.
+  // loadingClients starts as false (GlobalClientContext.tsx:65) — we cannot distinguish
+  // "not yet started" from "finished loading" using loadingClients alone on the first render.
+  // This ref flips to true the first time we observe loadingClients=true, confirming a real
+  // fetch cycle has begun. After that, loadingClients=false means the cycle is complete.
+  const clientListFetchStartedRef = React.useRef(false);
 
   // ── URL-param hydration + GlobalClientContext fallback ──
   // Precedence: (1) valid URL param wins, (2) keep manual selection, (3) fallback from activeClient.
-  // loadingClients distinguishes "still loading" from "truly not found" so we never prematurely clear.
+  //
+  // Three loading states:
+  //   A) !clientListFetchStartedRef.current && !loadingClients → pre-load window, do nothing
+  //   B)  loadingClients                                        → fetch in progress, do nothing
+  //   C)  clientListFetchStartedRef.current && !loadingClients → load cycle complete, safe to act
   useEffect(() => {
     if (userRole !== 'admin' && userRole !== 'trainer') return;
 
-    if (clientIdNumber !== null) {
-      // URL param present — wait for list to load before concluding anything
-      if (loadingClients) return;
+    // State B: fetch in progress — mark as started and wait.
+    if (loadingClients) {
+      clientListFetchStartedRef.current = true;
+      return;
+    }
 
+    // State A: pre-load window — GlobalClientProvider's useEffect hasn't fired yet.
+    // Do NOT draw any conclusions about the URL param; the list is empty only because
+    // the fetch hasn't started, not because the client truly doesn't exist.
+    if (!clientListFetchStartedRef.current) return;
+
+    // State C: load cycle has completed at least once. Now safe to act.
+
+    if (clientIdNumber !== null) {
       const found = clientList.find(c => c.id === clientIdNumber);
 
       if (found) {
@@ -331,14 +353,15 @@ const SwanCoachAssistantPage: React.FC = () => {
 
       // List loaded, param present, client not found → URL is invalid.
       // Clear everything so the page is honest: no stale previous client under a mismatched URL.
+      // (Handles legitimate zero-client admin correctly — clientList.length===0 after load.)
       adoptClient(null);
       return;
     }
 
-    // No URL param: hydrate from activeClient only if no manual selection is active
-    if (!selectedClient && !loadingClients && activeClient) {
-      // setSelectedClient only — activeClient is already in global context, and we must
-      // not add ?clientId= when this page was opened without one.
+    // No URL param: hydrate from activeClient only if no manual selection is active.
+    // setSelectedClient only — activeClient is already in global context, and we must
+    // not add ?clientId= when this page was opened without one.
+    if (!selectedClient && activeClient) {
       setSelectedClient({
         id: activeClient.id,
         firstName: activeClient.firstName,
