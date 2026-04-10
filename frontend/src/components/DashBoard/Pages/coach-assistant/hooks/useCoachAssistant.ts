@@ -39,8 +39,10 @@ function commandResultSummary(
   const forClient = client?.firstName ? ` for ${client.firstName}` : '';
   switch (command) {
     case 'log_workout': {
-      const count = typeof r.exerciseCount === 'number' ? ` ${r.exerciseCount} exercise(s) saved.` : '';
-      return `Workout logged${forClient}.${count}`;
+      const count = typeof r.exerciseCount === 'number' ? ` ${r.exerciseCount} exercise(s),` : '';
+      const sets = typeof r.totalSets === 'number' ? ` ${r.totalSets} sets.` : '.';
+      const xp = typeof r.xpAwarded === 'number' ? ` +${r.xpAwarded} XP.` : '';
+      return `Workout logged${forClient}.${count}${sets}${xp}`;
     }
     case 'log_meals': {
       const cal = r.calories != null ? `${r.calories} kcal` : null;
@@ -51,6 +53,16 @@ function commandResultSummary(
     case 'create_client':
       // Specialized clientCreateResult card handles this — no plain-text needed.
       return 'Client created.';
+    case 'create_hermes_task': {
+      const agent = typeof r.agentType === 'string' ? r.agentType : 'agent';
+      const id = typeof r.taskId === 'string' ? ` (${r.taskId.slice(0, 8)}…)` : '';
+      return `Task queued for ${agent} agent${id}.`;
+    }
+    case 'list_hermes_tasks': {
+      const count = typeof r.count === 'number' ? r.count : 0;
+      const pending = typeof r.pending === 'number' ? r.pending : 0;
+      return `${count} Hermes task${count !== 1 ? 's' : ''} found — ${pending} pending.`;
+    }
     default: {
       if (command.startsWith('navigate_') || command.startsWith('scan_command')) {
         const dest = typeof r.destination === 'string' ? r.destination : command.replace(/_/g, ' ');
@@ -202,12 +214,30 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
+      return;
+    }
+
+    if (cmdResult.type === 'not_wired') {
+      const cmdMsg: CoachMessageData = {
+        id: `cmd-notwired-${Date.now()}`,
+        role: 'assistant',
+        content: cmdResult.message,
+        timestamp: new Date().toISOString(),
+      };
+      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
+      setLocalMessages([]);
     }
   }, [chat, context, responseStyle, targetClientId, executeCommand]);
 
   // ── Confirm a pending destructive/confirmation command ──
-  const confirmCommand = useCallback(async (operationId: string) => {
+  const confirmCommand = useCallback(async (operationId: string): Promise<{ success: boolean; error?: string }> => {
     const result = await execConfirm(operationId);
+
+    if (!result.success) {
+      // Leave the confirmation card in place — don't upgrade to result card
+      return { success: false, error: result.message };
+    }
+
     setCommandMessages(prev => prev.map(msg => {
       if (msg.metadata?.commandConfirmation?.operationId !== operationId) return msg;
       return {
@@ -218,13 +248,14 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
           commandConfirmation: undefined,
           commandResult: {
             command: msg.metadata.commandConfirmation!.command,
-            result: result.data,
+            result: result.result,
             client: msg.metadata.commandConfirmation!.client,
             message: result.message,
           },
         },
       };
     }));
+    return { success: true };
   }, [execConfirm]);
 
   // ── Cancel a pending command ──

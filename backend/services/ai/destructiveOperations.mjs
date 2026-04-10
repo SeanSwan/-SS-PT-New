@@ -189,6 +189,92 @@ export function verifyAndRetrieveOperation(operationId, userId) {
   return { verified: true, operation, error: null };
 }
 
+// ── Non-destructive Pending Confirmations ───────────────────────────────────
+//
+// For requiresConfirmation: true, destructive: false commands.
+// Reuses the same pendingOps Map, TTL, per-user cap, and cancelOperation as
+// destructive ops — but skips HMAC (no endpoint routing, just dispatcher key).
+
+/**
+ * Prepare a non-destructive pending confirmation.
+ * No HMAC — operation is identified by UUID and keyed to the command dispatcher.
+ *
+ * @param {Object} params
+ * @param {string} params.commandType  - Registry command type (e.g. 'log_workout')
+ * @param {Object} params.params       - Validated command params
+ * @param {number|null} params.clientId - Resolved client ID
+ * @param {number} params.userId       - ID of user requesting confirmation
+ * @param {string} params.description  - Human-readable description for audit log
+ * @returns {{ operationId: string, description: string, expiresAt: string }}
+ */
+export function preparePendingConfirmation({ commandType, params, clientId, userId, description }) {
+  // Apply the same per-user cap as destructive ops
+  const MAX_PENDING_PER_USER = 5;
+  const userCount = getPendingCount(userId);
+  if (userCount >= MAX_PENDING_PER_USER) {
+    throw new Error(`Too many pending operations (${userCount}). Please confirm or cancel existing operations first.`);
+  }
+
+  const opId = crypto.randomUUID();
+  const operation = {
+    id: opId,
+    kind: 'pending_confirmed',  // distinguishes from HMAC-signed destructive ops
+    commandType,
+    params,
+    clientId: clientId ?? null,
+    createdBy: userId,
+    description,
+    createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + OPERATION_TTL_SECONDS * 1000).toISOString(),
+  };
+
+  pendingOps.set(opId, operation);
+
+  logger.info('[DestructiveOps] Pending confirmation prepared', {
+    opId,
+    commandType,
+    userId,
+    expiresAt: operation.expiresAt,
+  });
+
+  return { operationId: opId, description, expiresAt: operation.expiresAt };
+}
+
+/**
+ * Retrieve a non-destructive pending confirmation.
+ * Checks: existence, kind, expiration, ownership.
+ * Deletes on success — single-use.
+ *
+ * @param {string} operationId
+ * @param {number} userId
+ * @returns {{ verified: boolean, operation: Object|null, error: string|null }}
+ */
+export function retrievePendingConfirmation(operationId, userId) {
+  const operation = pendingOps.get(operationId);
+
+  if (!operation || operation.kind !== 'pending_confirmed') {
+    return { verified: false, operation: null, error: 'Pending confirmation not found or already used.' };
+  }
+
+  if (new Date(operation.expiresAt).getTime() < Date.now()) {
+    pendingOps.delete(operationId);
+    return { verified: false, operation: null, error: 'Operation expired (120s). Please re-issue the command.' };
+  }
+
+  if (operation.createdBy !== userId) {
+    logger.warn('[DestructiveOps] Ownership mismatch on pending confirmation', {
+      opId: operationId,
+      expectedUserId: operation.createdBy,
+      actualUserId: userId,
+    });
+    return { verified: false, operation: null, error: 'You cannot confirm another user\'s operation.' };
+  }
+
+  // Single-use — delete immediately on successful retrieval
+  pendingOps.delete(operationId);
+  return { verified: true, operation, error: null };
+}
+
 /**
  * Cancel a pending operation.
  *

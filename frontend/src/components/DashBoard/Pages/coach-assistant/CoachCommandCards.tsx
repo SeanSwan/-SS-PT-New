@@ -110,6 +110,17 @@ const NudgeText = styled.div`
   font-style: italic;
 `;
 
+const ErrorText = styled.div`
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(201, 42, 84, 0.1);
+  border: 1px solid rgba(201, 42, 84, 0.25);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: #C92A54;
+`;
+
 const ActionBtn = styled.button<{ $variant: 'confirm' | 'cancel' | 'destructive' }>`
   min-height: 44px;
   padding: 0 18px;
@@ -187,6 +198,7 @@ const NEXT_ACTION_MAP: Record<string, string> = {
   log_meals: 'Log another meal?',
   create_client: 'Send the claim link to the client now?',
   save_workout_plan: 'Review the plan before saving?',
+  create_hermes_task: 'Check task status? Say "show hermes tasks".',
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -201,7 +213,7 @@ export interface ConfirmationCardProps {
   client: { id?: number; firstName?: string; lastName?: string } | null;
   details: Record<string, unknown> | null;
   isDestructive: boolean;
-  onConfirm: (operationId: string) => Promise<void>;
+  onConfirm: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (operationId: string | null) => Promise<void>;
 }
 
@@ -216,12 +228,18 @@ export const ConfirmationCard = memo(function ConfirmationCard({
 }: ConfirmationCardProps) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const handleConfirm = useCallback(async () => {
     if (!operationId || busy || done) return;
     setBusy(true);
-    await onConfirm(operationId);
-    setDone(true);
+    setConfirmError(null);
+    const result = await onConfirm(operationId);
+    if (result.success) {
+      setDone(true);
+    } else {
+      setConfirmError(result.error ?? 'Confirmation failed. Please try again.');
+    }
     setBusy(false);
   }, [operationId, busy, done, onConfirm]);
 
@@ -278,6 +296,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
           <XCircle size={14} /> Cancel
         </ActionBtn>
       </ButtonRow>
+      {confirmError && <ErrorText>{confirmError}</ErrorText>}
     </CardShell>
   );
 });

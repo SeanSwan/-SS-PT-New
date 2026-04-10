@@ -107,6 +107,17 @@ router.post('/execute', protect, async (req, res) => {
       });
     }
 
+    if (ctx.result?.type === 'not_wired') {
+      return res.json({
+        success: true,
+        type: 'not_wired',
+        message: ctx.result.message,
+        command: ctx.command?.type,
+        client: ctx.resolvedClient,
+        timing: ctx.metadata.timing,
+      });
+    }
+
     if (ctx.result?.type === 'confirmation_required') {
       return res.json({
         success: true,
@@ -117,6 +128,7 @@ router.post('/execute', protect, async (req, res) => {
         params: ctx.intent?.params,
         client: ctx.resolvedClient,
         details: ctx.result.details || null,
+        isDestructive: ctx.result.isDestructive ?? ctx.command?.destructive ?? false,
         timing: ctx.metadata.timing,
       });
     }

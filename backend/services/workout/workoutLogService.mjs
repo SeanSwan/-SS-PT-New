@@ -1,0 +1,351 @@
+/**
+ * ============================================================================
+ * FILE: workoutLogService.mjs
+ * PURPOSE: Shared workout-write logic for HTTP route and AI command lane
+ * OWNER: Claude Sonnet 4.6 | CREATED: 2026-04-10
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ *   Pure service function called by:
+ *     - adminWorkoutLoggerController.mjs (existing HTTP route)
+ *     - commandDispatcher.mjs (AI command lane — log_workout)
+ *
+ * SUPPORTS BOTH EXERCISE PAYLOAD SHAPES:
+ *   Nested (HTTP route):
+ *     { name|exerciseName, sets: [{ setNumber, reps, weight, tempo?, rest?, rpe?, notes? }] }
+ *   Flat (AI command):
+ *     { name, sets: N, reps, weight, tempo?, restSeconds?, rpe?, notes? }
+ *   Detection: Array.isArray(exercise.sets) → nested. Otherwise → flat.
+ *
+ * GUARANTEES:
+ *   - Duplicate-date guard (same client, same day → DUPLICATE_DATE error)
+ *   - Transaction-safe session + log writes
+ *   - Best-effort XP award (failure logs, never fails the workout write)
+ *   - Best-effort social auto-post (failure logs, never fails the workout write)
+ *
+ * ERRORS:
+ *   Throws WorkoutLogError with .code:
+ *     'VALIDATION_ERROR' → 400 (invalid input)
+ *     'DUPLICATE_DATE'   → 409 (session already exists on this date)
+ *   All other throws are unexpected — callers should return 500.
+ * ============================================================================
+ */
+
+import { Op } from 'sequelize';
+import logger from '../../utils/logger.mjs';
+import { getAllModels } from '../../models/index.mjs';
+import { awardWorkoutXP } from '../awardWorkoutXP.mjs';
+
+// ── Typed error for callers to map to HTTP status codes ─────────────────────
+
+export class WorkoutLogError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = 'WorkoutLogError';
+    this.code = code; // 'VALIDATION_ERROR' | 'DUPLICATE_DATE'
+  }
+}
+
+// ── Exercise normalization ───────────────────────────────────────────────────
+
+/**
+ * Normalize exercises (either shape) into flat WorkoutLog rows.
+ * sessionId is injected after the session is created.
+ *
+ * Nested: { name|exerciseName, sets: [{ setNumber, reps, weight, ... }] }
+ * Flat:   { name, sets: N, reps, weight, restSeconds?, ... }
+ *
+ * @param {Object[]} exercises
+ * @param {string|number} sessionId
+ * @returns {Object[]} logRows ready for WorkoutLog.bulkCreate
+ */
+function buildLogRows(exercises, sessionId) {
+  const logRows = [];
+
+  for (const exercise of exercises) {
+    const exName = ((exercise.exerciseName ?? exercise.name) || '').trim();
+    if (!exName) {
+      throw new WorkoutLogError(
+        'Each exercise must have a non-empty name or exerciseName',
+        'VALIDATION_ERROR'
+      );
+    }
+
+    if (Array.isArray(exercise.sets)) {
+      // ── Nested format (existing HTTP route) ────────────────────────────
+      if (exercise.sets.length === 0) {
+        throw new WorkoutLogError(
+          `Exercise "${exName}" must have at least one set`,
+          'VALIDATION_ERROR'
+        );
+      }
+      for (const set of exercise.sets) {
+        const setNumber = Number(set.setNumber);
+        if (!Number.isInteger(setNumber) || setNumber < 1) {
+          throw new WorkoutLogError(
+            'Each set must have an integer setNumber >= 1',
+            'VALIDATION_ERROR'
+          );
+        }
+        const reps = Number(set.reps);
+        if (set.reps != null && (!Number.isInteger(reps) || reps < 0)) {
+          throw new WorkoutLogError(
+            `Invalid reps value "${set.reps}" in set ${setNumber} — must be a non-negative integer`,
+            'VALIDATION_ERROR'
+          );
+        }
+        const weight = Number(set.weight);
+        if (set.weight != null && !Number.isFinite(weight)) {
+          throw new WorkoutLogError(
+            `Invalid weight value "${set.weight}" in set ${setNumber}`,
+            'VALIDATION_ERROR'
+          );
+        }
+        logRows.push({
+          sessionId,
+          exerciseName: exName,
+          setNumber,
+          reps: Number.isInteger(reps) ? reps : 0,
+          weight: Number.isFinite(weight) ? weight : 0,
+          tempo: set.tempo || null,
+          rest: set.rest != null ? Number(set.rest) : null,
+          rpe: set.rpe != null ? Number(set.rpe) : null,
+          notes: set.notes || null,
+        });
+      }
+    } else {
+      // ── Flat format (AI command lane) ──────────────────────────────────
+      // sets is a count; expand to N identical rows with incrementing setNumber
+      const setCount = Math.max(1, Number(exercise.sets) || 1);
+      const reps = Math.max(0, Number(exercise.reps) || 0);
+      const weight = Math.max(0, Number(exercise.weight) || 0);
+      // restSeconds (AI field) maps to rest (DB column)
+      const rest = exercise.restSeconds != null ? Number(exercise.restSeconds) : null;
+
+      for (let i = 0; i < setCount; i++) {
+        logRows.push({
+          sessionId,
+          exerciseName: exName,
+          setNumber: i + 1,
+          reps,
+          weight,
+          tempo: exercise.tempo || null,
+          rest,
+          rpe: exercise.rpe != null ? Number(exercise.rpe) : null,
+          notes: exercise.notes || null,
+        });
+      }
+    }
+  }
+
+  return logRows;
+}
+
+// ── Main service function ────────────────────────────────────────────────────
+
+/**
+ * Log a workout for a client.
+ * Caller is responsible for RBAC and client-existence checks before calling.
+ *
+ * @param {Object} params
+ * @param {number}   params.clientId     - Client user ID (pre-authorized)
+ * @param {Object[]} params.exercises    - Exercise array (nested or flat)
+ * @param {string}  [params.date]        - ISO date string; defaults to today
+ * @param {string}  [params.notes]       - Session notes
+ * @param {string}  [params.title]       - Session title; auto-generated if absent
+ * @param {number}  [params.duration]    - Duration in minutes; defaults to 0
+ * @param {number}  [params.intensity]   - Intensity 1–10; defaults to 5
+ * @param {number}   params.trainerId    - Trainer/admin user ID performing the write
+ * @param {Object}   params.sequelize    - Sequelize instance
+ *
+ * @returns {Promise<{
+ *   sessionId: string|number,
+ *   userId: number,
+ *   title: string,
+ *   date: Date,
+ *   duration: number,
+ *   intensity: number,
+ *   exerciseCount: number,
+ *   totalSets: number,
+ *   totalReps: number,
+ *   totalWeight: number,
+ *   xpAwarded: number|null,
+ *   streakDays: number|null,
+ *   xp: Object|null,
+ * }>}
+ *
+ * @throws {WorkoutLogError} code='VALIDATION_ERROR' | 'DUPLICATE_DATE'
+ */
+export async function logWorkoutForClient({
+  clientId,
+  exercises,
+  date,
+  notes,
+  title,
+  duration,
+  intensity,
+  trainerId,
+  sequelize,
+}) {
+  // ── Input validation ─────────────────────────────────────────────────────
+
+  if (!Array.isArray(exercises) || exercises.length === 0) {
+    throw new WorkoutLogError('exercises must be a non-empty array', 'VALIDATION_ERROR');
+  }
+
+  const parsedDate = new Date(date || new Date().toISOString());
+  if (isNaN(parsedDate.getTime())) {
+    throw new WorkoutLogError('date must be a valid ISO date string', 'VALIDATION_ERROR');
+  }
+  if (parsedDate > new Date()) {
+    throw new WorkoutLogError('date cannot be in the future', 'VALIDATION_ERROR');
+  }
+
+  const parsedDuration = Number(duration ?? 0);
+  if (!Number.isInteger(parsedDuration) || parsedDuration < 0) {
+    throw new WorkoutLogError('duration must be a non-negative integer', 'VALIDATION_ERROR');
+  }
+
+  const parsedIntensity = Number(intensity ?? 5);
+  if (!Number.isFinite(parsedIntensity) || parsedIntensity < 1 || parsedIntensity > 10) {
+    throw new WorkoutLogError('intensity must be between 1 and 10', 'VALIDATION_ERROR');
+  }
+
+  const resolvedTitle = (typeof title === 'string' && title.trim())
+    ? title.trim()
+    : `Session — ${parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+  const { WorkoutSession, WorkoutLog } = getAllModels();
+
+  // ── DB write (single transaction) ────────────────────────────────────────
+
+  const transaction = await sequelize.transaction();
+  let committed = false;
+
+  try {
+    // Duplicate-date guard
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingSession = await WorkoutSession.findOne({
+      where: { userId: clientId, date: { [Op.between]: [startOfDay, endOfDay] } },
+      transaction,
+    });
+    if (existingSession) {
+      await transaction.rollback();
+      throw new WorkoutLogError(
+        'A workout session already exists for this client on this date',
+        'DUPLICATE_DATE'
+      );
+    }
+
+    // Create session
+    const session = await WorkoutSession.create({
+      userId: clientId,
+      date: parsedDate,
+      trainerId: trainerId ?? null,
+      sessionType: 'trainer-led',
+      status: 'completed',
+      completedAt: parsedDate,
+      duration: parsedDuration,
+      notes: notes || null,
+      title: resolvedTitle,
+      intensity: parsedIntensity,
+    }, { transaction });
+
+    // Build and bulk-insert log rows
+    const logRows = buildLogRows(exercises, session.id);
+    await WorkoutLog.bulkCreate(logRows, { transaction, validate: true });
+
+    // Compute and persist aggregates
+    const totalSets = logRows.length;
+    const totalReps = logRows.reduce((sum, r) => sum + (r.reps || 0), 0);
+    const totalWeight = logRows.reduce((sum, r) => sum + (r.reps || 0) * (r.weight || 0), 0);
+    const exerciseCount = exercises.length;
+
+    await session.update({ totalSets, totalReps, totalWeight }, { transaction });
+    await transaction.commit();
+    committed = true;
+
+    logger.info(`[WorkoutLogService] Logged for client ${clientId}: session ${session.id} (${exerciseCount} exercises, ${totalSets} sets)`);
+
+    // ── Best-effort XP (separate transaction) ───────────────────────────
+
+    let xpResult = null;
+    let xpTx = null;
+    try {
+      xpTx = await sequelize.transaction();
+      xpResult = await awardWorkoutXP({
+        userId: clientId,
+        workoutId: session.id,
+        duration: parsedDuration,
+        exercisesCompleted: exerciseCount,
+        workoutDate: parsedDate,
+        awardedBy: trainerId,
+      }, xpTx);
+
+      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+        const { WorkoutSession: WS } = getAllModels();
+        await WS.update(
+          { experiencePoints: xpResult.pointsAwarded },
+          { where: { id: session.id }, transaction: xpTx }
+        );
+      }
+      await xpTx.commit();
+
+      // Best-effort social auto-post
+      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+        try {
+          const { createWorkoutAutoPost, createStreakAutoPost } = await import('../socialAutoPost.mjs');
+          await createWorkoutAutoPost(clientId, {
+            duration: parsedDuration,
+            exercisesCompleted: exerciseCount,
+            pointsAwarded: xpResult.pointsAwarded,
+          });
+          if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
+            await createStreakAutoPost(clientId, xpResult.streakDays);
+          }
+        } catch (autoPostErr) {
+          logger.warn(`[WorkoutLogService] Auto-post failed for session ${session.id}: ${autoPostErr.message}`);
+        }
+      }
+    } catch (xpErr) {
+      try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
+      logger.warn(`[WorkoutLogService] XP award failed for session ${session.id}: ${xpErr.message}`);
+      xpResult = null;
+    }
+
+    // Collapse sameDay / alreadyAwarded → null for both callers
+    const xpResponse = (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded)
+      ? {
+          pointsAwarded: xpResult.pointsAwarded,
+          newBalance: xpResult.newBalance,
+          streakDays: xpResult.streakDays,
+          milestones: (xpResult.awardedMilestones || []).map(m => m.name),
+        }
+      : null;
+
+    return {
+      sessionId: session.id,
+      userId: clientId,
+      title: resolvedTitle,
+      date: session.completedAt,
+      duration: parsedDuration,
+      intensity: parsedIntensity,
+      exerciseCount,
+      totalSets,
+      totalReps,
+      totalWeight,
+      xpAwarded: xpResponse?.pointsAwarded ?? null,
+      streakDays: xpResponse?.streakDays ?? null,
+      xp: xpResponse,
+    };
+  } catch (err) {
+    if (!committed) {
+      try { await transaction.rollback(); } catch (_) { /* already rolled back */ }
+    }
+    throw err;
+  }
+}

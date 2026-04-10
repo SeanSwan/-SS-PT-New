@@ -9,11 +9,10 @@
  */
 
 import logger from '../utils/logger.mjs';
-import { getAllModels } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
-import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
+import { logWorkoutForClient, WorkoutLogError } from '../services/workout/workoutLogService.mjs';
 
 /**
  * POST /api/admin/clients/:clientId/workouts
@@ -28,223 +27,59 @@ import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
  * }
  */
 export const logWorkout = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
   try {
     // --- Access guard ---
     const access = await ensureClientAccess(req, req.params.clientId);
     if (!access.allowed) {
-      await transaction.rollback();
       return res.status(access.status).json({ success: false, message: access.message });
     }
-    const { clientId, models } = access;
-    const { WorkoutSession, WorkoutLog } = models;
+    const { clientId } = access;
 
-    // --- Input validation ---
     const { title, date, duration, intensity, notes, exercises } = req.body;
 
+    // HTTP route requires title (service auto-generates it, but this contract is preserved)
     if (typeof title !== 'string' || !title.trim()) {
-      await transaction.rollback();
       return res.status(400).json({ success: false, message: 'title is required and must be non-empty' });
     }
 
-    const parsedDate = new Date(date);
-    if (!date || isNaN(parsedDate.getTime())) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'date must be a valid ISO date string' });
-    }
-
-    if (parsedDate > new Date()) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'date cannot be in the future' });
-    }
-
-    // Check for duplicate session on same date for same client
-    const startOfDay = new Date(parsedDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(parsedDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    const existingSession = await WorkoutSession.findOne({
-      where: {
-        userId: clientId,
-        date: { [Op.between]: [startOfDay, endOfDay] },
-      },
-      transaction,
-    });
-    if (existingSession) {
-      await transaction.rollback();
-      return res.status(409).json({ success: false, message: 'A workout session already exists for this client on this date' });
-    }
-
-    const parsedDuration = Number(duration);
-    if (!Number.isInteger(parsedDuration) || parsedDuration < 0) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'duration must be a non-negative integer' });
-    }
-
-    const parsedIntensity = Number(intensity);
-    if (!Number.isFinite(parsedIntensity) || parsedIntensity < 1 || parsedIntensity > 10) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'intensity must be between 1 and 10' });
-    }
-
-    if (!Array.isArray(exercises) || exercises.length === 0) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'exercises must be a non-empty array' });
-    }
-
-    // --- Create WorkoutSession ---
-    const session = await WorkoutSession.create({
-      userId: clientId,
-      date: parsedDate,
-      trainerId: req.user?.id ?? null,
-      sessionType: 'trainer-led',
-      status: 'completed',
-      completedAt: parsedDate,
-      duration: parsedDuration,
-      notes: notes || null,
-      title: title.trim(),
-      intensity: parsedIntensity,
-    }, { transaction });
-
-    // --- Build WorkoutLog rows ---
-    const logRows = [];
-    for (const exercise of exercises) {
-      // Accept both { name } and { exerciseName } for flexibility
-      const exName = exercise.exerciseName ?? exercise.name;
-      if (typeof exName !== 'string' || !exName.trim()) {
-        await transaction.rollback();
-        return res.status(400).json({ success: false, message: 'Each exercise must have a non-empty name or exerciseName' });
-      }
-
-      if (!Array.isArray(exercise.sets) || exercise.sets.length === 0) {
-        await transaction.rollback();
-        return res.status(400).json({ success: false, message: `Exercise "${exName}" must have at least one set` });
-      }
-
-      for (const set of exercise.sets) {
-        const setNumber = Number(set.setNumber);
-        if (!Number.isInteger(setNumber) || setNumber < 1) {
-          await transaction.rollback();
-          return res.status(400).json({ success: false, message: 'Each set must have an integer setNumber >= 1' });
-        }
-
-        // Strict integer validation — WorkoutLog.reps is INTEGER
-        const reps = Number(set.reps);
-        if (set.reps != null && (!Number.isInteger(reps) || reps < 0)) {
-          await transaction.rollback();
-          return res.status(400).json({ success: false, message: `Invalid reps value "${set.reps}" in set ${setNumber} — must be a non-negative integer` });
-        }
-        const weight = Number(set.weight);
-        if (set.weight != null && !Number.isFinite(weight)) {
-          await transaction.rollback();
-          return res.status(400).json({ success: false, message: `Invalid weight value "${set.weight}" in set ${setNumber}` });
-        }
-
-        logRows.push({
-          sessionId: session.id,
-          exerciseName: exName.trim(),
-          setNumber,
-          reps: Number.isInteger(reps) ? reps : 0,
-          weight: Number.isFinite(weight) ? weight : 0,
-          tempo: set.tempo || null,
-          rest: set.rest != null ? Number(set.rest) : null,
-          rpe: set.rpe != null ? Number(set.rpe) : null,
-          notes: set.notes || null,
-        });
-      }
-    }
-
-    await WorkoutLog.bulkCreate(logRows, { transaction, validate: true });
-
-    // --- Compute aggregates ---
-    const totalSets = logRows.length;
-    const totalReps = logRows.reduce((sum, r) => sum + (r.reps || 0), 0);
-    const totalWeight = logRows.reduce((sum, r) => sum + (r.reps || 0) * (r.weight || 0), 0);
-
-    await session.update({
-      totalSets,
-      totalReps,
-      totalWeight,
-    }, { transaction });
-
-    await transaction.commit();
-
-    logger.info(`Workout logged for client ${clientId}: ${session.id} (${totalSets} sets, ${exercises.length} exercises)`);
-
-    // --- Best-effort XP award (separate transaction) ---
-    let xpResult = null;
-    let xpTx = null;
+    let serviceResult;
     try {
-      xpTx = await sequelize.transaction();
-      xpResult = await awardWorkoutXP({
-        userId: clientId,
-        workoutId: session.id,
-        duration: parsedDuration,
-        exercisesCompleted: exercises.length,
-        workoutDate: parsedDate,
-        awardedBy: req.user?.id,
-      }, xpTx);
-
-      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-        const { WorkoutSession: WS } = getAllModels();
-        await WS.update(
-          { experiencePoints: xpResult.pointsAwarded },
-          { where: { id: session.id }, transaction: xpTx }
-        );
+      serviceResult = await logWorkoutForClient({
+        clientId,
+        exercises,
+        date,
+        notes,
+        title,
+        duration,
+        intensity,
+        trainerId: req.user?.id ?? null,
+        sequelize,
+      });
+    } catch (err) {
+      if (err instanceof WorkoutLogError) {
+        const status = err.code === 'DUPLICATE_DATE' ? 409 : 400;
+        return res.status(status).json({ success: false, message: err.message });
       }
-      await xpTx.commit();
-
-      // --- Best-effort auto-post to social feed ---
-      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-        try {
-          const { createWorkoutAutoPost, createStreakAutoPost } = await import('../services/socialAutoPost.mjs');
-          await createWorkoutAutoPost(clientId, {
-            duration: parsedDuration,
-            exercisesCompleted: exercises.length,
-            pointsAwarded: xpResult.pointsAwarded,
-          });
-          if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
-            await createStreakAutoPost(clientId, xpResult.streakDays);
-          }
-        } catch (autoPostErr) {
-          logger.warn(`Auto-post failed for workout ${session.id}: ${autoPostErr.message}`);
-        }
-      }
-    } catch (xpErr) {
-      try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
-      logger.warn(`XP award failed for workout ${session.id}: ${xpErr.message}`);
-      xpResult = null;
+      throw err;
     }
-
-    // Collapse sameDay/alreadyAwarded to null for response
-    const xpResponse = (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded)
-      ? {
-          pointsAwarded: xpResult.pointsAwarded,
-          newBalance: xpResult.newBalance,
-          streakDays: xpResult.streakDays,
-          milestones: (xpResult.awardedMilestones || []).map((m) => m.name),
-        }
-      : null;
 
     return res.status(201).json({
       success: true,
       workout: {
-        id: session.id,
-        userId: clientId,
-        title: session.title,
-        date: session.completedAt,
-        duration: session.duration,
-        intensity: session.intensity,
-        totalSets,
-        totalReps,
-        totalWeight,
-        exerciseCount: exercises.length,
+        id: serviceResult.sessionId,
+        userId: serviceResult.userId,
+        title: serviceResult.title,
+        date: serviceResult.date,
+        duration: serviceResult.duration,
+        intensity: serviceResult.intensity,
+        totalSets: serviceResult.totalSets,
+        totalReps: serviceResult.totalReps,
+        totalWeight: serviceResult.totalWeight,
+        exerciseCount: serviceResult.exerciseCount,
       },
-      xp: xpResponse,
+      xp: serviceResult.xp,
     });
   } catch (error) {
-    await transaction.rollback();
     logger.error('Workout logging failed:', error);
     return res.status(500).json({ success: false, message: 'Failed to log workout' });
   }

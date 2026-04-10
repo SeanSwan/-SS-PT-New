@@ -19,9 +19,15 @@ import { classifyIntent } from './intentClassifier.mjs';
 import { getCommand } from './commandRegistry/index.mjs';
 import { resolveClient } from './clientResolver.mjs';
 import { deIdentifyClient, rehydrateResponse } from './deIdentifier.mjs';
-import { prepareDestructiveOperation, verifyAndRetrieveOperation } from './destructiveOperations.mjs';
+import {
+  prepareDestructiveOperation,
+  verifyAndRetrieveOperation,
+  preparePendingConfirmation,
+  retrievePendingConfirmation,
+} from './destructiveOperations.mjs';
 import { startDebate } from './debate/debateOrchestrator.mjs';
 import { checkErrorLoop, recordAction } from './errorLoopPrevention.mjs';
+import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 
 // ── Command Context (flows through pipeline) ────────────────────────────────
 
@@ -294,13 +300,63 @@ async function stepConfirmation(ctx) {
     return ctx;
   }
 
-  // Non-destructive but requires confirmation (creates, etc.)
+  // Non-destructive but requires confirmation
+  // Only mint a real operationId if the command has a dispatcher handler.
+  // Commands without a handler get an honest 'not_wired' response instead of
+  // fake confirmation UI that would silently fail at the /confirm route.
+  if (!hasDispatcher(ctx.command.type)) {
+    ctx.result = {
+      type: 'not_wired',
+      command: ctx.command.type,
+      message: `"${ctx.command.description}" is recognized but not yet wired for execution. Coming soon.`,
+    };
+    ctx.skipRemainingSteps = true;
+    return ctx;
+  }
+
+  const clientName = ctx.resolvedClient
+    ? (ctx.resolvedClient.firstName || `Client #${ctx.resolvedClient.id}`)
+    : null;
+
+  const pending = preparePendingConfirmation({
+    commandType: ctx.command.type,
+    params: ctx.intent.params,
+    clientId: ctx.resolvedClient?.id ?? null,
+    userId: ctx.user.id,
+    description: `${ctx.command.description}${clientName ? ` for ${clientName}` : ''}`,
+  });
+
   ctx.result = {
     type: 'confirmation_required',
-    message: `I'll ${ctx.command.description.toLowerCase()}${ctx.resolvedClient ? ` for ${ctx.resolvedClient.firstName || 'Client #' + ctx.resolvedClient.id}` : ''}. Confirm?`,
+    message: `I'll ${ctx.command.description.toLowerCase()}${clientName ? ` for ${clientName}` : ''}. Confirm?`,
+    operationId: pending.operationId,
     command: ctx.command.type,
     params: ctx.intent.params,
+    isDestructive: false,
   };
+  return ctx;
+}
+
+/** Step 9: Execute the command via the registered dispatcher.
+ *
+ * Only runs when:
+ *   - A command was matched (ctx.command is set)
+ *   - The command is not FRONTEND_DISPATCH (handled by frontend event bus)
+ *   - No prior step already set ctx.result (debate_started / confirmation_required)
+ *
+ * Commands with no dispatcher entry return null → ctx.result stays null →
+ * route returns { type: 'executed', result: null } (unchanged pre-Hermes behavior).
+ */
+async function stepExecute(ctx) {
+  ctx.stage = 'execute';
+  if (!ctx.command) return ctx;                              // chat / clarification
+  if (ctx.command.method === 'FRONTEND_DISPATCH') return ctx; // frontend event bus handles these
+  if (ctx.result !== null) return ctx;                       // debate_started or confirmation_required
+
+  const result = await dispatch(ctx.command.type, ctx.intent?.params || {}, ctx);
+  if (result !== null) {
+    ctx.result = result;
+  }
   return ctx;
 }
 
@@ -315,6 +371,7 @@ const PIPELINE_STEPS = [
   stepResolveClient,
   stepDebateRouting,
   stepConfirmation,
+  stepExecute,
 ];
 
 /**
@@ -416,43 +473,122 @@ function auditPipelineResult(ctx) {
 }
 
 /**
- * Execute a confirmed operation (after user says "confirm").
- * For destructive ops, verifies HMAC signature.
+ * Execute a confirmed operation (after user hits Confirm).
+ *
+ * Handles two kinds:
+ *   1. Non-destructive pending confirmation (kind: 'pending_confirmed')
+ *      — minted by stepConfirmation for requiresConfirmation: true, destructive: false commands
+ *      — dispatches to the registered service function, returns real execution result
+ *
+ *   2. Destructive HMAC-signed operation (no kind field)
+ *      — minted by prepareDestructiveOperation for destructive: true commands
+ *      — verifies HMAC, dispatches to service function if a dispatcher entry exists
+ *      — if no dispatcher entry, returns explicit 'not_wired' (honest, not routing metadata)
  *
  * @param {string} operationId - Pending operation ID
- * @param {Object} user - Authenticated user
+ * @param {Object} user - Authenticated user { id, role, firstName, lastName }
  * @param {Object} sequelize - Sequelize instance
- * @returns {Promise<{ success: boolean, message: string, data: Object|null }>}
+ * @returns {Promise<{
+ *   success: boolean,
+ *   type: 'executed' | 'error' | 'not_wired',
+ *   command?: string,
+ *   result?: Object|null,
+ *   client?: Object|null,
+ *   message: string,
+ * }>}
  */
 export async function executeConfirmedOperation(operationId, user, sequelize) {
+  // ── Path 1: Non-destructive pending confirmation ─────────────────────────
+  const ndResult = retrievePendingConfirmation(operationId, user.id);
+  if (ndResult.verified) {
+    const { operation } = ndResult;
+    try {
+      const result = await dispatch(operation.commandType, operation.params, {
+        user,
+        options: { sequelize },
+        resolvedClient: operation.clientId ? { id: operation.clientId } : null,
+      });
+      logger.info('[CommandExecutor] Non-destructive confirmed op executed', {
+        commandType: operation.commandType,
+        userId: user.id,
+        clientId: operation.clientId,
+      });
+      return {
+        success: true,
+        type: 'executed',
+        command: operation.commandType,
+        result,
+        client: operation.clientId ? { id: operation.clientId } : null,
+        message: `${operation.description} completed.`,
+      };
+    } catch (err) {
+      logger.error('[CommandExecutor] Non-destructive confirm execution failed', {
+        commandType: operation.commandType,
+        operationId,
+        error: err.message,
+      });
+      return {
+        success: false,
+        type: 'error',
+        message: err.message || 'Execution failed. Please try again.',
+      };
+    }
+  }
+
+  // ── Path 2: Destructive HMAC-signed operation ─────────────────────────────
   const { verified, operation, error } = verifyAndRetrieveOperation(operationId, user.id);
 
   if (!verified) {
-    return { success: false, message: error, data: null };
+    return { success: false, type: 'error', message: error };
   }
 
-  // Execute via internal API call
-  try {
-    const command = getCommand(operation.type);
-    // The actual API call will be handled by the route layer
-    // Return the verified operation for the route to execute
-    return {
-      success: true,
-      message: `Operation confirmed: ${operation.description}`,
-      data: {
-        endpoint: operation.endpoint,
-        method: command?.method || 'POST',
-        params: operation.params,
-        operationId: operation.id,
-      },
-    };
-  } catch (err) {
-    logger.error('[CommandExecutor] Confirmed operation execution failed', {
-      operationId,
-      error: err.message,
-    });
-    return { success: false, message: `Execution failed: ${err.message}`, data: null };
+  // Attempt to dispatch if a handler exists.
+  // Note: destructive ops store operation.type = 'DELETE'|'UPDATE', not the command type.
+  // commandType is stored separately via prepareDestructiveOperation's commandParams.commandType
+  // if the caller sets it — currently it is NOT set, so destructive dispatch remains unexecuted
+  // (same behavior as before, but now explicitly honest rather than returning routing metadata).
+  const commandType = operation.commandType || null;
+  if (commandType && hasDispatcher(commandType)) {
+    try {
+      const result = await dispatch(commandType, operation.params, {
+        user,
+        options: { sequelize },
+        resolvedClient: null,
+      });
+      return {
+        success: true,
+        type: 'executed',
+        command: commandType,
+        result,
+        client: null,
+        message: `Operation confirmed: ${operation.description}`,
+      };
+    } catch (err) {
+      logger.error('[CommandExecutor] Destructive confirm dispatch failed', {
+        commandType,
+        operationId,
+        error: err.message,
+      });
+      return {
+        success: false,
+        type: 'error',
+        message: err.message || 'Execution failed.',
+      };
+    }
   }
+
+  // No dispatcher entry for this destructive op yet — return honest not_wired
+  // rather than silently returning routing metadata as if the op executed.
+  logger.warn('[CommandExecutor] Destructive op confirmed but no dispatcher entry', {
+    operationId,
+    commandType,
+    operationType: operation.type,
+  });
+  return {
+    success: false,
+    type: 'not_wired',
+    message: 'This operation was verified but execution is not yet wired. No data was changed.',
+  };
 }
 
 /**

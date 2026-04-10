@@ -50,13 +50,16 @@ export type CommandResponse =
       result: Record<string, unknown> | null;
       client: { id?: number; firstName?: string } | null;
     }
+  | { type: 'not_wired'; message: string; command: string }
   | { type: 'debate_started'; message: string; jobId: string; debateType: string }
   | { type: 'error'; error: string };
 
 export interface ConfirmResult {
   success: boolean;
   message: string;
-  data: Record<string, unknown> | null;
+  /** Execution result from the service (renamed from data — matches executeConfirmedOperation shape) */
+  result: Record<string, unknown> | null;
+  command?: string;
 }
 
 // ── Hook ────────────────────────────────────────────────────────────────────
@@ -102,6 +105,10 @@ export function useCoachCommand() {
         return { type: 'executed', command: data.command ?? '', result: data.result ?? null, client: data.client ?? null };
       }
 
+      if (data.type === 'not_wired') {
+        return { type: 'not_wired', message: data.message ?? 'Command not yet wired.', command: data.command ?? '' };
+      }
+
       if (data.type === 'debate_started') {
         return { type: 'debate_started', message: data.message, jobId: data.jobId, debateType: data.debateType };
       }
@@ -123,7 +130,12 @@ export function useCoachCommand() {
         body: JSON.stringify({ operationId }),
       });
       const data = await res.json();
-      return { success: data.success, message: data.message || '', data: data.data ?? null };
+      return {
+        success: !!data.success,
+        message: data.message || '',
+        result: data.result ?? null,
+        command: data.command ?? undefined,
+      };
     } catch {
       return { success: false, message: 'Confirm request failed.', data: null };
     }

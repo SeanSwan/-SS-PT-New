@@ -220,28 +220,34 @@ describe('awardWorkoutXP — milestone contracts', () => {
 
 // ===== Failure Isolation (2 tests) =====
 
-describe('adminWorkoutLoggerController — XP failure isolation', () => {
-  test('13 — controller catches XP errors and still returns 201', async () => {
+describe('workoutLogService — XP failure isolation', () => {
+  test('13 — service catches XP errors and still returns session data; controller returns 201', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
-    const ctrlDir = path.resolve(path.dirname(__filename), '../../controllers');
-    const source = fs.readFileSync(
-      path.join(ctrlDir, 'adminWorkoutLoggerController.mjs'),
+    const baseDir = path.resolve(path.dirname(__filename), '../..');
+
+    // XP isolation lives in the service (controller is a thin adapter)
+    const svcSource = fs.readFileSync(
+      path.join(baseDir, 'services/workout/workoutLogService.mjs'),
       'utf-8'
     );
-
     // XP block must be in try/catch AFTER main transaction.commit()
-    expect(source).toMatch(/transaction\.commit\(\)/);
+    expect(svcSource).toMatch(/transaction\.commit\(\)/);
     // Must have separate xpTx
-    expect(source).toMatch(/let\s+xpTx\s*=/);
+    expect(svcSource).toMatch(/let\s+xpTx\s*=/);
     // Must catch and log XP errors
-    expect(source).toMatch(/XP award failed/);
+    expect(svcSource).toMatch(/XP award failed/);
     // Must set xpResult = null on failure
-    expect(source).toMatch(/xpResult\s*=\s*null/);
-    // Still returns 201
-    expect(source).toMatch(/res\.status\(201\)/);
+    expect(svcSource).toMatch(/xpResult\s*=\s*null/);
+
+    // Controller thin adapter must still return 201
+    const ctrlSource = fs.readFileSync(
+      path.join(baseDir, 'controllers/adminWorkoutLoggerController.mjs'),
+      'utf-8'
+    );
+    expect(ctrlSource).toMatch(/res\.status\(201\)/);
   });
 
   test('14 — lastActivityDate only updated when workoutDate is newer', async () => {
@@ -261,40 +267,35 @@ describe('adminWorkoutLoggerController — XP failure isolation', () => {
   });
 });
 
-// ===== Controller XP-State Mapping (2 tests) =====
+// ===== Service XP-State Mapping (2 tests) =====
+// (XP-state logic moved from controller to workoutLogService — thin adapter pattern)
 
-describe('adminWorkoutLoggerController — XP-state mapping', () => {
-  test('15 — sameDay XP result maps to xp: null in response', async () => {
+describe('workoutLogService — XP-state mapping', () => {
+  test('15 — sameDay XP result maps to xp: null in service return value', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
-    const ctrlDir = path.resolve(path.dirname(__filename), '../../controllers');
-    const source = fs.readFileSync(
-      path.join(ctrlDir, 'adminWorkoutLoggerController.mjs'),
-      'utf-8'
-    );
+    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
+    const source = fs.readFileSync(svcPath, 'utf-8');
 
-    // Controller must collapse sameDay to null
+    // Service must collapse sameDay to null
     expect(source).toMatch(/xpResult\.sameDay/);
     // XP response is null when sameDay is true
     expect(source).toMatch(/xpResponse.*sameDay.*alreadyAwarded/s);
   });
 
-  test('16 — alreadyAwarded XP result maps to xp: null in response', async () => {
+  test('16 — alreadyAwarded XP result maps to xp: null in service return value', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
-    const ctrlDir = path.resolve(path.dirname(__filename), '../../controllers');
-    const source = fs.readFileSync(
-      path.join(ctrlDir, 'adminWorkoutLoggerController.mjs'),
-      'utf-8'
-    );
+    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
+    const source = fs.readFileSync(svcPath, 'utf-8');
 
-    // Controller must collapse alreadyAwarded to null
+    // Service must collapse alreadyAwarded to null
     expect(source).toMatch(/xpResult\.alreadyAwarded/);
-    // Response includes xp field
+    // Return value includes xp field
     expect(source).toMatch(/xp:\s*xpResponse/);
   });
 });
