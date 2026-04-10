@@ -31,9 +31,11 @@
 import React, { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useAuth } from '../../../../hooks/useAuth';
 import { usePaywall } from '../../../../context/PaywallContext';
+import { useGlobalClient } from '../../../../context/GlobalClientContext';
 import { useCoachAssistant } from './hooks/useCoachAssistant';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { useConversationSidebar } from './hooks/useConversationSidebar';
@@ -264,6 +266,89 @@ const SwanCoachAssistantPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
 
+  // ── Cross-dashboard client handoff (Sprint D) ──
+  const { clientList, activeClient, setActiveClient, loadingClients } = useGlobalClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const clientIdNumber = (() => {
+    const raw = searchParams.get('clientId');
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return isNaN(n) ? null : n;
+  })();
+
+  // ── Canonical handler: keeps local state + GlobalClientContext + URL param in sync ──
+  // Every code path that selects or clears a client goes through this one function.
+  const adoptClient = useCallback((client: ClientInfo | null) => {
+    setSelectedClient(client);
+    setActiveClient(
+      client
+        ? {
+            id: client.id,
+            firstName: client.firstName,
+            lastName: client.lastName,
+            email: client.email,
+            photo: client.profileImageUrl,
+          }
+        : null,
+    );
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (client) {
+          next.set('clientId', String(client.id));
+        } else {
+          next.delete('clientId');
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setActiveClient, setSearchParams]);
+
+  // ── URL-param hydration + GlobalClientContext fallback ──
+  // Precedence: (1) valid URL param wins, (2) keep manual selection, (3) fallback from activeClient.
+  // loadingClients distinguishes "still loading" from "truly not found" so we never prematurely clear.
+  useEffect(() => {
+    if (userRole !== 'admin' && userRole !== 'trainer') return;
+
+    if (clientIdNumber !== null) {
+      // URL param present — wait for list to load before concluding anything
+      if (loadingClients) return;
+
+      const found = clientList.find(c => c.id === clientIdNumber);
+
+      if (found) {
+        // Already showing this exact client — skip redundant dispatch
+        if (selectedClient?.id === clientIdNumber) return;
+        adoptClient({
+          id: found.id,
+          firstName: found.firstName,
+          lastName: found.lastName,
+          email: found.email,
+          profileImageUrl: found.photo,
+        });
+        return;
+      }
+
+      // List loaded, param present, client not found → URL is invalid.
+      // Clear everything so the page is honest: no stale previous client under a mismatched URL.
+      adoptClient(null);
+      return;
+    }
+
+    // No URL param: hydrate from activeClient only if no manual selection is active
+    if (!selectedClient && !loadingClients && activeClient) {
+      // setSelectedClient only — activeClient is already in global context, and we must
+      // not add ?clientId= when this page was opened without one.
+      setSelectedClient({
+        id: activeClient.id,
+        firstName: activeClient.firstName,
+        lastName: activeClient.lastName,
+        email: activeClient.email,
+        profileImageUrl: activeClient.photo,
+      });
+    }
+  }, [clientIdNumber, clientList, loadingClients, activeClient, userRole, selectedClient, adoptClient]);
+
   // ── Handle read aloud ──
   const handleReadAloud = useCallback((text: string) => {
     tts.speak(text);
@@ -373,7 +458,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         {(userRole === 'trainer' || userRole === 'admin') && (
           <ClientPicker
             selectedClient={selectedClient}
-            onSelectClient={setSelectedClient}
+            onSelectClient={adoptClient}
             userRole={userRole}
           />
         )}
