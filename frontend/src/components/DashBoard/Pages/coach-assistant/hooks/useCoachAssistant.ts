@@ -45,10 +45,12 @@ function commandResultSummary(
       return `Workout logged${forClient}.${count}${sets}${xp}`;
     }
     case 'log_meals': {
-      const cal = r.calories != null ? `${r.calories} kcal` : null;
-      const prot = r.protein != null ? `${r.protein}g protein` : null;
-      const detail = [cal, prot].filter(Boolean).join(', ');
-      return `Meal logged.${detail ? ' ' + detail + '.' : ''}`;
+      const count = typeof r.mealsLogged === 'number' ? r.mealsLogged : 0;
+      const dateStr = typeof r.date === 'string' ? ` on ${r.date}` : '';
+      if (count === 0) return `No meals logged${forClient}${dateStr}.`;
+      const cal = typeof r.totalCalories === 'number' ? ` ${r.totalCalories} kcal.` : '.';
+      const prot = typeof r.totalProtein === 'number' && r.totalProtein > 0 ? ` ${r.totalProtein}g protein.` : '';
+      return `${count} meal${count !== 1 ? 's' : ''} logged${forClient}${dateStr}.${cal}${prot}`;
     }
     case 'create_client':
       // Specialized clientCreateResult card handles this — no plain-text needed.

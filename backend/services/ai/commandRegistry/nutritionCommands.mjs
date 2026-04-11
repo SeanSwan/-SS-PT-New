@@ -2,29 +2,29 @@
  * Command Registry — Category E: Nutrition (6 commands)
  */
 import { z } from 'zod';
-import { registerCommands } from './baseSchemas.mjs';
+import { registerCommands, DateSchema } from './baseSchemas.mjs';
 
 const commands = [
   {
     type: 'log_meals',
-    description: 'Log a client\'s meals for today',
-    naturalLanguagePatterns: ['log {client}\'s meals', 'record {client}\'s food', '{client} ate {food}'],
-    method: 'POST', endpoint: '/api/ai-chat/data-update',
+    description: "Log a client's meals for a given day",
+    naturalLanguagePatterns: ['log {client}\'s meals', 'record {client}\'s food', '{client} ate {food}', 'log meals for {client}'],
+    method: 'POST', endpoint: '/api/macros',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
+      date: DateSchema.optional(),  // defaults to today in dispatcher if absent
       meals: z.array(z.object({
-        name: z.string().min(1),
+        description: z.string().min(1).max(500),              // food description (required by DailyMacroLog)
+        mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']).default('snack'),
         calories: z.number().min(0).optional(),
-        protein: z.number().min(0).optional(),
-        carbs: z.number().min(0).optional(),
-        fat: z.number().min(0).optional(),
-        servingSize: z.string().optional(),
+        protein:  z.number().min(0).optional(),
+        carbs:    z.number().min(0).optional(),
+        fat:      z.number().min(0).optional(),
       })).min(1),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: true, category: 'E',
-    dataWriteType: 'macro_log',
   },
   {
     type: 'view_nutrition_log',

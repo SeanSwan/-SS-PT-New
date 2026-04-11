@@ -17,6 +17,7 @@ import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
+import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
 
 const router = express.Router();
 
@@ -91,23 +92,22 @@ router.post('/', async (req, res) => {
     const safeAiConversationId = (typeof aiConversationId === 'string' && aiConversationId.length <= 100)
       ? aiConversationId : null;
 
-    const entry = await DailyMacroLog.create({
-      userId: req.user.id,
-      date: entryDate,
-      mealType: safeMealType,
-      description: description.trim().substring(0, MAX_DESCRIPTION_LENGTH),
-      calories: sanitizeNumber(calories),
-      protein: sanitizeNumber(protein),
-      carbs: sanitizeNumber(carbs),
-      fat: sanitizeNumber(fat),
-      fiber: sanitizeNumber(fiber),
-      sugar: sanitizeNumber(sugar),
-      sodium: sanitizeNumber(sodium),
-      items: safeItems,
-      source: safeSource,
+    // Delegate to shared nutrition write service — normalizes source to model-valid value
+    const entry = await createSingleMacroEntry({
+      date:             entryDate,
+      mealType:         safeMealType,
+      description:      description.trim().substring(0, MAX_DESCRIPTION_LENGTH),
+      calories:         sanitizeNumber(calories),
+      protein:          sanitizeNumber(protein),
+      carbs:            sanitizeNumber(carbs),
+      fat:              sanitizeNumber(fat),
+      fiber:            sanitizeNumber(fiber),
+      sugar:            sanitizeNumber(sugar),
+      sodium:           sanitizeNumber(sodium),
+      items:            safeItems,
       aiConversationId: safeAiConversationId,
-      verified: verified === true,
-    });
+      verified:         verified === true,
+    }, { userId: req.user.id, source: safeSource });
 
     return res.status(201).json({ success: true, entry });
   } catch (err) {

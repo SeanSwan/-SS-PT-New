@@ -34,6 +34,9 @@
  *   E01: view_nutrition_log   → DailyMacroLog.findAll today (flat daily summary)
  *   E02: view_macro_trends    → DailyMacroLog.findAll 7-day (averaged flat summary)
  *
+ *   exec-substrate-v5 (first confirmed nutrition write):
+ *   E03: log_meals            → macroLogService.createMacroEntries (atomic batch)
+ *
  * ADDING FUTURE COMMANDS:
  *   1. Import the service function
  *   2. Add an entry to DISPATCHERS: 'command_type': async (params, ctx) => service.fn(...)
@@ -44,6 +47,7 @@
 import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
+import { createMacroEntries } from '../nutrition/macroLogService.mjs';
 import { getAllModels } from '../../models/index.mjs';
 import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
@@ -111,6 +115,18 @@ const DISPATCHERS = new Map([
         completed: result.completed,
         failed: result.failed,
       };
+    },
+  ],
+  [
+    'log_meals',
+    async (params, ctx) => {
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      // createMacroEntries handles: atomic transaction, source normalization to 'ai_chat',
+      // per-row date assignment, number sanitization, and the missing-table error path.
+      return createMacroEntries(params.meals, {
+        clientId,
+        date: params.date || null,   // service defaults to today when null
+      });
     },
   ],
   [
