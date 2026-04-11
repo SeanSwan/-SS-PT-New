@@ -28,9 +28,12 @@ const commands = [
   },
   {
     type: 'view_nutrition_log',
-    description: 'Show what a client ate recently',
-    naturalLanguagePatterns: ['what did {client} eat yesterday', '{client}\'s meals', 'show {client}\'s nutrition log'],
-    method: 'GET', endpoint: '/api/macro/:clientId',
+    description: "Show what a client ate today (current-day snapshot)",
+    // NOTE: date support is not yet wired — this command always returns today's log.
+    // "yesterday" pattern removed: the Zod schema has no date field, so extracted dates
+    // are stripped at stepValidate. Honest scope: today only.
+    naturalLanguagePatterns: ['{client}\'s meals today', 'show {client}\'s nutrition log', 'what did {client} eat today', '{client}\'s food log'],
+    method: 'GET', endpoint: '/api/macros/summary?date=today&userId={clientId}',
     inputSchema: z.object({ clientId: z.number().int().positive() }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],
@@ -65,9 +68,9 @@ const commands = [
   },
   {
     type: 'view_macro_trends',
-    description: 'Show a client\'s macro trends',
-    naturalLanguagePatterns: ['show {client}\'s macro trends', '{client}\'s nutrition trends', 'macro history for {client}'],
-    method: 'GET', endpoint: '/api/macro/:clientId',
+    description: "Show a client's 7-day macro trends",
+    naturalLanguagePatterns: ['show {client}\'s macro trends', '{client}\'s nutrition trends', 'macro history for {client}', '{client}\'s weekly nutrition'],
+    method: 'GET', endpoint: '/api/macros/weekly?userId={clientId}',
     inputSchema: z.object({ clientId: z.number().int().positive() }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],

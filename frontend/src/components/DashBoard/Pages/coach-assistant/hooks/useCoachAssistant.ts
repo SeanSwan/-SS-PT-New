@@ -53,6 +53,24 @@ function commandResultSummary(
     case 'create_client':
       // Specialized clientCreateResult card handles this — no plain-text needed.
       return 'Client created.';
+    case 'view_nutrition_log': {
+      const count = typeof r.mealCount === 'number' ? r.mealCount : 0;
+      const dateStr = typeof r.date === 'string' ? ` on ${r.date}` : ' today';
+      const cal = typeof r.totalCalories === 'number' ? ` ${r.totalCalories} kcal.` : '.';
+      const prot = typeof r.totalProtein === 'number' && r.totalProtein > 0 ? ` ${r.totalProtein}g protein.` : '';
+      if (count === 0) return `No meals logged${forClient}${dateStr}.`;
+      return `${count} meal${count !== 1 ? 's' : ''}${forClient}${dateStr}.${cal}${prot}`;
+    }
+    case 'view_macro_trends': {
+      const days = typeof r.daysLogged === 'number' ? r.daysLogged : 0;
+      const range = (typeof r.startDate === 'string' && typeof r.endDate === 'string')
+        ? ` (${r.startDate} – ${r.endDate})`
+        : ' (last 7 days)';
+      if (days === 0) return `No nutrition logged${forClient} in the last 7 days.`;
+      const avg = typeof r.avgCalories === 'number' ? ` Avg ${r.avgCalories} kcal/day.` : '.';
+      const prot = typeof r.avgProtein === 'number' && r.avgProtein > 0 ? ` ${r.avgProtein}g protein avg.` : '';
+      return `${days} day${days !== 1 ? 's' : ''} logged${forClient}${range}.${avg}${prot}`;
+    }
     case 'view_workout_history': {
       const count = typeof r.count === 'number' ? r.count : 0;
       const last = typeof r.lastSessionDate === 'string' ? ` Last: ${r.lastSessionDate}.` : '';

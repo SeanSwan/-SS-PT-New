@@ -10,8 +10,9 @@
  *
  * PATTERN:
  *   - Only commands with a registered handler in DISPATCHERS execute.
- *   - Commands with no handler return null → pipeline returns { executed, result: null }
- *     (existing behavior unchanged for all 99 pre-Hermes commands).
+ *   - Commands with no handler return { type: 'not_wired' } via stepExecute (exec-substrate-v3).
+ *     No command can produce a fake 'executed' response with null result.
+ *   - FRONTEND_DISPATCH commands also return not_wired (handled by browser event bus, not server).
  *   - New commands get real execution by adding an entry here + its service function.
  *
  * WHY SERVICE FUNCTIONS, NOT HTTP:
@@ -29,6 +30,10 @@
  *   exec-substrate-v3 (honesty fix + first read command):
  *   R01: view_workout_history → WorkoutSession.findAll (flat scalar summary)
  *
+ *   exec-substrate-v4 (nutrition read slice):
+ *   E01: view_nutrition_log   → DailyMacroLog.findAll today (flat daily summary)
+ *   E02: view_macro_trends    → DailyMacroLog.findAll 7-day (averaged flat summary)
+ *
  * ADDING FUTURE COMMANDS:
  *   1. Import the service function
  *   2. Add an entry to DISPATCHERS: 'command_type': async (params, ctx) => service.fn(...)
@@ -36,16 +41,19 @@
  * ============================================================================
  */
 
+import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
 import { getAllModels } from '../../models/index.mjs';
+import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
 /**
  * Maps command type → async handler(params, ctx) → result object.
- * Return null to pass through (unchanged behavior).
+ * Every registered handler must return a flat result object (no nested arrays/objects)
+ * so ExecutionResultCard can render each field as a DataRow.
  *
  * @type {Map<string, (params: Record<string, unknown>, ctx: import('./commandExecutor.mjs').CommandContext) => Promise<Record<string, unknown>>>}
  */
@@ -125,6 +133,84 @@ const DISPATCHERS = new Map([
         totalSets: rows.reduce((s, r) => s + (r.totalSets || 0), 0),
         totalReps: rows.reduce((s, r) => s + (r.totalReps || 0), 0),
       };
+    },
+  ],
+  [
+    'view_nutrition_log',
+    async (params, ctx) => {
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      const today = new Date().toISOString().slice(0, 10);
+      const empty = { date: today, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
+      try {
+        const rows = await DailyMacroLog.findAll({
+          where: { userId: clientId, date: today },
+          attributes: ['calories', 'protein', 'carbs', 'fat'],
+        });
+        if (rows.length === 0) return empty;
+        const round1 = (n) => Math.round(n * 10) / 10;
+        return {
+          date: today,
+          mealCount: rows.length,
+          totalCalories: round1(rows.reduce((s, r) => s + (r.calories || 0), 0)),
+          totalProtein:  round1(rows.reduce((s, r) => s + (r.protein  || 0), 0)),
+          totalCarbs:    round1(rows.reduce((s, r) => s + (r.carbs    || 0), 0)),
+          totalFat:      round1(rows.reduce((s, r) => s + (r.fat      || 0), 0)),
+        };
+      } catch (err) {
+        // Table may not exist in production yet — return honest empty result
+        if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
+          logger.warn('[CommandDispatcher] daily_macro_logs table not found — returning empty nutrition log');
+          return empty;
+        }
+        throw err;
+      }
+    },
+  ],
+  [
+    'view_macro_trends',
+    async (params, ctx) => {
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      const endDate   = new Date().toISOString().slice(0, 10);
+      const startD    = new Date();
+      startD.setDate(startD.getDate() - 6);          // last 7 days inclusive
+      const startDate = startD.toISOString().slice(0, 10);
+      const empty = { daysLogged: 0, avgCalories: 0, avgProtein: 0, avgCarbs: 0, avgFat: 0, startDate, endDate };
+      try {
+        const rows = await DailyMacroLog.findAll({
+          where: { userId: clientId, date: { [Op.between]: [startDate, endDate] } },
+          attributes: ['date', 'calories', 'protein', 'carbs', 'fat'],
+        });
+        if (rows.length === 0) return empty;
+        // Aggregate per day, then average across days that have entries
+        const daily = {};
+        for (const r of rows) {
+          const d = r.date;
+          if (!daily[d]) daily[d] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+          daily[d].calories += r.calories || 0;
+          daily[d].protein  += r.protein  || 0;
+          daily[d].carbs    += r.carbs    || 0;
+          daily[d].fat      += r.fat      || 0;
+        }
+        const days = Object.values(daily);
+        const n = days.length;
+        const round1 = (v) => Math.round((v / n) * 10) / 10;
+        return {
+          daysLogged:  n,
+          avgCalories: round1(days.reduce((s, d) => s + d.calories, 0)),
+          avgProtein:  round1(days.reduce((s, d) => s + d.protein,  0)),
+          avgCarbs:    round1(days.reduce((s, d) => s + d.carbs,    0)),
+          avgFat:      round1(days.reduce((s, d) => s + d.fat,      0)),
+          startDate,
+          endDate,
+        };
+      } catch (err) {
+        // Table may not exist in production yet — return honest empty result
+        if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
+          logger.warn('[CommandDispatcher] daily_macro_logs table not found — returning empty macro trends');
+          return empty;
+        }
+        throw err;
+      }
     },
   ],
 ]);
