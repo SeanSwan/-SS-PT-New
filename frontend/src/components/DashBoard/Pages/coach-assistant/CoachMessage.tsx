@@ -107,7 +107,7 @@ const ProgressBar = styled.div<{ $pct: number }>`
 interface CoachMessageProps {
   message: CoachMessageData;
   onReadAloud?: (text: string) => void;
-  onConfirmCommand?: (operationId: string) => Promise<void>;
+  onConfirmCommand?: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancelCommand?: (operationId: string | null) => Promise<void>;
 }
 

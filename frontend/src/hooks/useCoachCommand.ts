@@ -137,7 +137,7 @@ export function useCoachCommand() {
         command: data.command ?? undefined,
       };
     } catch {
-      return { success: false, message: 'Confirm request failed.', data: null };
+      return { success: false, message: 'Confirm request failed.', result: null };
     }
   }, []);
 

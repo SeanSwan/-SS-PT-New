@@ -133,6 +133,18 @@ router.post('/execute', protect, async (req, res) => {
       });
     }
 
+    // Backstop: if a command reached this point with null result, be honest (should not happen after stepExecute fix)
+    if (ctx.command && ctx.result === null) {
+      return res.json({
+        success: true,
+        type: 'not_wired',
+        message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution.`,
+        command: ctx.command.type,
+        client: ctx.resolvedClient,
+        timing: ctx.metadata.timing,
+      });
+    }
+
     // Direct execution result
     return res.json({
       success: true,

@@ -53,6 +53,12 @@ function commandResultSummary(
     case 'create_client':
       // Specialized clientCreateResult card handles this — no plain-text needed.
       return 'Client created.';
+    case 'view_workout_history': {
+      const count = typeof r.count === 'number' ? r.count : 0;
+      const last = typeof r.lastSessionDate === 'string' ? ` Last: ${r.lastSessionDate}.` : '';
+      const title = typeof r.recentTitle === 'string' ? ` "${r.recentTitle}"` : '';
+      return `${count} recent session${count !== 1 ? 's' : ''}${forClient}.${last}${title}`;
+    }
     case 'create_hermes_task': {
       const agent = typeof r.agentType === 'string' ? r.agentType : 'agent';
       const id = typeof r.taskId === 'string' ? ` (${r.taskId.slice(0, 8)}…)` : '';

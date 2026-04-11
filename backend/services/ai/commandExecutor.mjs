@@ -349,13 +349,28 @@ async function stepConfirmation(ctx) {
  */
 async function stepExecute(ctx) {
   ctx.stage = 'execute';
-  if (!ctx.command) return ctx;                              // chat / clarification
-  if (ctx.command.method === 'FRONTEND_DISPATCH') return ctx; // frontend event bus handles these
-  if (ctx.result !== null) return ctx;                       // debate_started or confirmation_required
+  if (!ctx.command) return ctx;          // chat / clarification — no command to execute
+  if (ctx.result !== null) return ctx;   // debate_started or confirmation_required already set
+
+  // FRONTEND_DISPATCH commands are handled by the browser event bus, not the server.
+  // Returning a not_wired result here is honest — we never execute these server-side.
+  if (ctx.command.method === 'FRONTEND_DISPATCH') {
+    ctx.result = {
+      type: 'not_wired',
+      message: `${ctx.command.type.replace(/_/g, ' ')} is handled client-side and does not require server confirmation.`,
+    };
+    return ctx;
+  }
 
   const result = await dispatch(ctx.command.type, ctx.intent?.params || {}, ctx);
   if (result !== null) {
     ctx.result = result;
+  } else {
+    // No registered dispatcher — honest not_wired response instead of fake 'executed'
+    ctx.result = {
+      type: 'not_wired',
+      message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution. Ask Sean to enable it.`,
+    };
   }
   return ctx;
 }

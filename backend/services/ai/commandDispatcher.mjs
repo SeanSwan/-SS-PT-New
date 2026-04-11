@@ -26,6 +26,9 @@
  *   exec-substrate-v2 (first confirmed legacy slice):
  *   B03: log_workout        → workoutLogService.logWorkoutForClient
  *
+ *   exec-substrate-v3 (honesty fix + first read command):
+ *   R01: view_workout_history → WorkoutSession.findAll (flat scalar summary)
+ *
  * ADDING FUTURE COMMANDS:
  *   1. Import the service function
  *   2. Add an entry to DISPATCHERS: 'command_type': async (params, ctx) => service.fn(...)
@@ -35,6 +38,7 @@
 
 import * as hermesService from '../hermes/hermesService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
+import { getAllModels } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
@@ -98,6 +102,28 @@ const DISPATCHERS = new Map([
         pending: result.pending,
         completed: result.completed,
         failed: result.failed,
+      };
+    },
+  ],
+  [
+    'view_workout_history',
+    async (params, ctx) => {
+      const { WorkoutSession, WorkoutLog } = getAllModels();
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      const limit = Math.min(20, Math.max(1, Number(params.limit) || 5));
+      const rows = await WorkoutSession.findAll({
+        where: { userId: clientId },
+        include: [{ model: WorkoutLog, as: 'logs' }],
+        order: [['completedAt', 'DESC']],
+        limit,
+      });
+      const last = rows[0];
+      return {
+        count: rows.length,
+        lastSessionDate: last?.completedAt?.toISOString().slice(0, 10) ?? null,
+        recentTitle: last?.title ?? null,
+        totalSets: rows.reduce((s, r) => s + (r.totalSets || 0), 0),
+        totalReps: rows.reduce((s, r) => s + (r.totalReps || 0), 0),
       };
     },
   ],
