@@ -9,7 +9,7 @@ const commands = [
     type: 'add_pain_entry',
     description: 'Add a pain entry for a client',
     naturalLanguagePatterns: ['add a pain entry for {client}', '{client} has pain in {bodyPart}', 'log pain for {client}'],
-    method: 'POST', endpoint: '/api/pain/:clientId',
+    method: 'POST', endpoint: '/api/pain-entries/:userId',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       bodyPart: z.string().min(1).max(100),
@@ -24,7 +24,7 @@ const commands = [
     type: 'view_active_pain',
     description: 'Show a client\'s active pain entries',
     naturalLanguagePatterns: ['what are {client}\'s active pain entries', '{client}\'s pain', 'show pain for {client}'],
-    method: 'GET', endpoint: '/api/pain/:clientId/active',
+    method: 'GET', endpoint: '/api/pain-entries/:userId/active',
     inputSchema: z.object({ clientId: z.number().int().positive() }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],
@@ -34,7 +34,7 @@ const commands = [
     type: 'resolve_pain_entry',
     description: 'Resolve a client\'s pain entry',
     naturalLanguagePatterns: ['resolve {client}\'s {bodyPart} pain', 'mark {client}\'s pain as resolved'],
-    method: 'PUT', endpoint: '/api/pain/:clientId/:entryId/resolve',
+    method: 'PUT', endpoint: '/api/pain-entries/:userId/:entryId/resolve',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       entryId: z.number().int().positive(),
@@ -47,7 +47,7 @@ const commands = [
     type: 'update_pain_entry',
     description: 'Update a client\'s pain level for a body part',
     naturalLanguagePatterns: ['update {client}\'s pain level', 'change {client}\'s {bodyPart} pain to {level}'],
-    method: 'PUT', endpoint: '/api/pain/:clientId/:entryId',
+    method: 'PUT', endpoint: '/api/pain-entries/:userId/:entryId',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       entryId: z.number().int().positive(),

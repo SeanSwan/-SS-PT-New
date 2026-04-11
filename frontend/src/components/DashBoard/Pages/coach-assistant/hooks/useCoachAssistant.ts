@@ -73,6 +73,18 @@ function commandResultSummary(
       const prot = typeof r.avgProtein === 'number' && r.avgProtein > 0 ? ` ${r.avgProtein}g protein avg.` : '';
       return `${days} day${days !== 1 ? 's' : ''} logged${forClient}${range}.${avg}${prot}`;
     }
+    case 'view_latest_measurements': {
+      if (r.measurementDate === null || r.measurementDate === undefined) return `No measurements on file${forClient}.`;
+      const wt = typeof r.weight === 'number' ? ` ${r.weight} ${r.weightUnit ?? 'lbs'}.` : '.';
+      const bf = typeof r.bodyFatPercentage === 'number' && r.bodyFatPercentage > 0
+        ? ` ${r.bodyFatPercentage}% body fat.` : '';
+      return `Latest measurement${forClient} on ${r.measurementDate}.${wt}${bf}`;
+    }
+    case 'log_weighin': {
+      const wt = typeof r.weight === 'number' ? ` ${r.weight} ${r.weightUnit ?? 'lbs'}` : '';
+      const dateStr = typeof r.measurementDate === 'string' ? ` on ${r.measurementDate}` : '';
+      return `Weigh-in logged${forClient}${dateStr}.${wt}.`;
+    }
     case 'view_workout_history': {
       const count = typeof r.count === 'number' ? r.count : 0;
       const last = typeof r.lastSessionDate === 'string' ? ` Last: ${r.lastSessionDate}.` : '';

@@ -12,13 +12,7 @@
  *   - Only commands with a registered handler in DISPATCHERS execute.
  *   - Commands with no handler return { type: 'not_wired' } via stepExecute (exec-substrate-v3).
  *     No command can produce a fake 'executed' response with null result.
- *   - FRONTEND_DISPATCH commands also return not_wired (handled by browser event bus, not server).
- *   - New commands get real execution by adding an entry here + its service function.
- *
- * WHY SERVICE FUNCTIONS, NOT HTTP:
- *   Internal HTTP calls to localhost are circular, auth-entangled, and fragile.
- *   Service functions are directly importable, testable, and have no network overhead.
- *
+ *   - FRONTEND_DISPATCH commands also return not_wired (handled client-side, not server).
  * REGISTERED COMMANDS:
  *   exec-substrate-v1:
  *   M01: create_hermes_task → hermesService.createTask
@@ -37,10 +31,10 @@
  *   exec-substrate-v5 (first confirmed nutrition write):
  *   E03: log_meals            → macroLogService.createMacroEntries (atomic batch)
  *
- * ADDING FUTURE COMMANDS:
- *   1. Import the service function
- *   2. Add an entry to DISPATCHERS: 'command_type': async (params, ctx) => service.fn(...)
- *   3. Done — stepExecute picks it up automatically
+ *   exec-substrate-v6 (measurement reads + weigh-in write):
+ *   D01: view_latest_measurements → BodyMeasurement.findOne | D02: log_weighin → measurementWriteService
+ *
+ * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
  */
 
@@ -48,7 +42,8 @@ import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
 import { createMacroEntries } from '../nutrition/macroLogService.mjs';
-import { getAllModels } from '../../models/index.mjs';
+import { getAllModels, getBodyMeasurement } from '../../models/index.mjs';
+import { logWeighIn } from '../measurementWriteService.mjs';
 import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
 
@@ -227,6 +222,34 @@ const DISPATCHERS = new Map([
         }
         throw err;
       }
+    },
+  ],
+  [
+    'view_latest_measurements',
+    async (params, ctx) => {
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      const BodyMeasurement = getBodyMeasurement();
+      const row = await BodyMeasurement.findOne({
+        where: { userId: clientId },
+        order: [['measurementDate', 'DESC']],
+        attributes: ['measurementDate', 'weight', 'weightUnit', 'bodyFatPercentage'],
+      });
+      if (!row) return { userId: clientId, measurementDate: null, weight: null, weightUnit: 'lbs', bodyFatPercentage: null };
+      const n = (v) => v != null ? parseFloat(v) : null;
+      return {
+        userId:            clientId,
+        measurementDate:   row.measurementDate instanceof Date ? row.measurementDate.toISOString().slice(0, 10) : null,
+        weight:            n(row.weight),
+        weightUnit:        row.weightUnit || 'lbs',
+        bodyFatPercentage: n(row.bodyFatPercentage),
+      };
+    },
+  ],
+  [
+    'log_weighin',
+    async (params, ctx) => {
+      const clientId = params.clientId ?? ctx.resolvedClient?.id;
+      return logWeighIn({ weight: params.weight, weightUnit: 'lbs' }, { clientId, trainerId: ctx.user.id });
     },
   ],
 ]);
