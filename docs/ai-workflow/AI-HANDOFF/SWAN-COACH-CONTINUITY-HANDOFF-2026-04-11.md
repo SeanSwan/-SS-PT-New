@@ -93,7 +93,38 @@ Repo-verified 2026-04-11 by Claude Sonnet:
 - `backend/services/ai/commandRegistry/scheduleCommands.mjs` ✓
 - `backend/services/ai/commandDispatcher.mjs` ✓ — 214 lines (under 300 target)
 
-v14 is complete. Do not re-verify. Move to v15.
+v14 is complete. Do not re-verify.
+
+## v15 Status — CONFIRMED LIVE (2026-04-12)
+
+Repo-verified 2026-04-12 by Claude Opus 4.6 with hostile dual-pass review.
+
+`view_available_slots` read-only command for trainer/admin voice lane.
+
+### Verified surface area
+- `backend/services/ai/dispatchers/availabilityDispatchers.mjs:240` — `dispatchViewAvailableSlots`
+- `backend/services/ai/commandRegistry/scheduleCommands.mjs:71` — Zod schema, non-destructive, admin+trainer roles
+- `backend/services/ai/commandDispatcher.mjs:69,175` — import + dispatcher-map entry (221 lines, under 300 target)
+- `backend/routes/availability.mjs:64` — sibling REST route `/api/availability/:trainerId/slots`, same `parseDateOnlyLocal` validation
+- `frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachAssistant.ts:160-166` — renders `availableSlotCount`, `firstSlotStartUtc`, `lastSlotEndUtc` into the result-card text (explicit "UTC" label carried through to user-facing output)
+- `frontend/src/hooks/useTrainerAvailability.ts` — frontend trainer-availability read hook present in repo; included in the v15 surface-area sweep
+
+### Verification evidence
+- `backend/tests/unit/availabilityDispatchers.test.mjs` — 4/4 pass (trainer self-default, cross-trainer reject, invalid-date reject, empty-slot summary)
+- `backend/tests/api/availabilityRoutes.test.mjs` — 4/4 pass (sibling REST route + impossible-date rejection + duration bounds)
+
+### Review findings
+- RBAC/defaulting contract matches v13/v14: trainer self-defaults to `ctx.user.id`, trainer-on-other rejects, admin must supply explicit `trainerId`
+- Real calendar-date validation via `parseDateOnlyLocal` catches impossible dates like `2026-02-31` before the service call
+- Duration bounded 15–180 min, default 60; schema aligned with REST route validation
+- Empty-slot path returns honest flat nulls (`firstSlotStartUtc: null`, `lastSlotEndUtc: null`)
+- Service has graceful fallback when `TrainerAvailability` table missing
+- Sibling sweep: no other backend service callers of `getAvailableSlots` beyond the REST route and the voice dispatcher; frontend consumers accounted for above
+
+### Deferred polish (NOT a blocker)
+Output fields `firstSlotStartUtc`/`lastSlotEndUtc` slice position 11–16 of the service's ISO string. The service builds local-time dates via `buildDate` then `.toISOString()` converts to UTC, so on a non-UTC dev machine the displayed HH:MM is UTC wall-clock rather than the trainer's local time. Field names are honest (`Utc` suffix) and the frontend carries "UTC" through to the user-facing label. On UTC Render production there is no drift. Revisit only if Sean wants a local-time display on the result card.
+
+v15 is complete. Next: trainer workout logging -> client dashboard visibility audit in the revenue-critical proof-of-value chain.
 
 ### Intended v14 scope
 `exec-substrate-v14` should be:

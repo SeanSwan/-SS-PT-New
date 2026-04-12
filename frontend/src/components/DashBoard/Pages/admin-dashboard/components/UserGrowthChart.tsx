@@ -126,9 +126,9 @@ const UserGrowthChart: React.FC = () => {
       <ChartWrap>
         <VictoryChart
           theme={victoryTheme}
-          animate={{ duration: 800, easing: 'cubicInOut' }}
+          animate={{ onLoad: { duration: 600 } }}
           height={220}
-          padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
+          padding={{ top: 30, bottom: 56, left: 50, right: 20 }}
           containerComponent={
             <VictoryVoronoiContainer
               labels={({ datum }: any) => `${datum.y}`}
@@ -146,7 +146,18 @@ const UserGrowthChart: React.FC = () => {
               { name: 'Signups', symbol: { fill: CHART_COLORS.wingPurple } },
             ]}
           />
-          <VictoryAxis style={{ tickLabels: { fontSize: 10 } }} />
+          <VictoryAxis
+            fixLabelOverlap
+            tickCount={Math.min(data.history.length, 7)}
+            style={{
+              tickLabels: {
+                fontSize: 9,
+                angle: -35,
+                textAnchor: 'end',
+                padding: 6,
+              },
+            }}
+          />
           <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10 } }} />
           <VictoryLine
             data={activeData}

@@ -139,7 +139,7 @@ const RevenueChart: React.FC = () => {
       <ChartWrap>
         <VictoryChart
           theme={victoryTheme}
-          animate={{ duration: 800, easing: 'cubicInOut' }}
+          animate={{ onLoad: { duration: 600 } }}
           height={220}
           padding={{ top: 30, bottom: 40, left: 60, right: 20 }}
           containerComponent={
