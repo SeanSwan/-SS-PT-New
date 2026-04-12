@@ -304,6 +304,25 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `ActivitySection.tsx` — all violations fixed and committed 2026-04-11 ✓
 - `StorefrontItem.mjs` Sequelize validator bug — fixed and deployed 2026-04-10 ✓
 
+### Content Studio — Seedance 2.0 + Exercise Videos (ACTIVE GOAL)
+- **Goal:** Create exercise demo videos with anatomy overlays — muscle activation highlighted as Sean performs perfect-form reps
+- **Seedance skill installed 2026-04-11:** `.agents/skills/seedance-swan-video/skill.md` — invoke with `/seedance-swan-video`
+  - 3 output types: website hero loop, exercise demo (with anatomy overlay markers), brand film
+  - Scroll-sync variant (Section 5) for scroll-activated video like Apple product pages
+  - Full anatomy overlay integration notes (ElevenLabs narration + composited muscle highlight layer)
+- **AI Village refinement PENDING** — skill was written from first principles; schedule a planning/research Village run next session to research Seedance 2.0 prompt engineering best practices and refine
+- **Workflow:** NanoBanana/key.ai for reference image → Seedance 2.0 (via key.ai API or interface) → Claude Code for website integration → anatomy overlay in post (Capcut Pro / DaVinci)
+- **Scroll-activated video technique** (from YouTube research 2026-04-11): Extract frames from video → map to scroll position → `<canvas>` + `requestAnimationFrame`. Claude Code can do this end-to-end from a video file. Very high priority for homepage hero.
+- **Full plan:** `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` (content side) + new Seedance skill
+
+### Claude Code Skills — Status (2026-04-11)
+- **32 skills from skills.sh** installed via `.agents/skills/` → symlinked into `.claude/skills/`
+- **Official Claude Code plugin (`/frontend-design`)** — `installed_plugins.json` is EMPTY. NOT installed yet.
+  - The `frontend-design` you see is the skills.sh community version — good but different
+  - **ACTION NEEDED:** Open Claude Code terminal → type `/plugins` → search `frontend-design` → install globally. This gives plan-mode-specific first-party design intelligence on top of the skills.sh version
+  - Also check `/plugins` for any other first-party plugins you may be missing (look for `ui`, `react`, `accessibility`)
+- **New skill added:** `seedance-swan-video` — Seedance 2.0 video prompt builder with exercise anatomy support
+
 ### Business Priority Order (do not scatter)
 1. **Now:** v15 `view_available_slots` Swan Coach slice → verify end-to-end
 2. **Then:** trainer workout logging → client dashboard visibility (retention/upsell proof)
