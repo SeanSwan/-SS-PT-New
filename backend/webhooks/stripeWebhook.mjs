@@ -52,14 +52,19 @@ const stripeWebhookHandler = async (req, res) => {
         bodyPreview: typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200)
       });
       return res.status(500).json({ error: 'Webhook configuration error' });
-    } else {
-      const signature = req.headers['stripe-signature'];
-      event = stripeClient.webhooks.constructEvent(
-        req.body,
-        signature,
-        webhookSecret
-      );
     }
+
+    if (!stripeClient) {
+      logger.error('CRITICAL: Stripe client not initialized. Cannot verify webhook signature.');
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+
+    const signature = req.headers['stripe-signature'];
+    event = stripeClient.webhooks.constructEvent(
+      req.body,
+      signature,
+      webhookSecret
+    );
   } catch (err) {
     logger.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
