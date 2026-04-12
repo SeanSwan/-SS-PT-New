@@ -169,7 +169,7 @@ const RevenueChart: React.FC = () => {
           />
           <VictoryArea
             data={chartData}
-            interpolation="monotoneX"
+            interpolation="linear"
             style={{
               data: {
                 fill: hexAlpha(CHART_COLORS.gildedFern, 0.15),
@@ -180,7 +180,7 @@ const RevenueChart: React.FC = () => {
           />
           <VictoryLine
             data={chartData}
-            interpolation="monotoneX"
+            interpolation="linear"
             style={{
               data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 },
             }}

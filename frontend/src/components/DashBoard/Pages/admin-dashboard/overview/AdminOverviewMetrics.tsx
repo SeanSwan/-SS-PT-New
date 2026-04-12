@@ -31,7 +31,7 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
           <VictoryGroup standalone={false} width={100} height={32} padding={0}>
             <VictoryLine
               data={data}
-              interpolation="monotoneX"
+              interpolation="linear"
               style={{ data: { stroke: color, strokeWidth: 2 } }}
             />
           </VictoryGroup>

@@ -150,7 +150,7 @@ const UserGrowthChart: React.FC = () => {
           <VictoryAxis dependentAxis style={{ tickLabels: { fontSize: 10 } }} />
           <VictoryLine
             data={activeData}
-            interpolation="monotoneX"
+            interpolation="linear"
             style={{ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2.5 } }}
           />
           <VictoryScatter
@@ -160,7 +160,7 @@ const UserGrowthChart: React.FC = () => {
           />
           <VictoryLine
             data={signupData}
-            interpolation="monotoneX"
+            interpolation="linear"
             style={{ data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2, strokeDasharray: '6 3' } }}
           />
           <VictoryScatter
