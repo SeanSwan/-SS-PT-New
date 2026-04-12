@@ -16,6 +16,24 @@ const parseTrainerId = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const parseDateOnlyLocal = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+};
+
 const ensureTrainerAccess = (req, trainerId) => {
   if (req.user?.role === 'trainer' && Number(req.user.id) !== Number(trainerId)) {
     return false;
@@ -30,7 +48,10 @@ router.get('/:trainerId', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid trainerId' });
     }
 
-    const date = req.query.date ? new Date(String(req.query.date)) : null;
+    const date = req.query.date ? parseDateOnlyLocal(String(req.query.date)) : null;
+    if (req.query.date && !date) {
+      return res.status(400).json({ success: false, message: 'Invalid date. Use YYYY-MM-DD.' });
+    }
     const data = await availabilityService.getAvailabilityForTrainer(trainerId, date);
 
     return res.status(200).json({ success: true, data });
@@ -47,12 +68,19 @@ router.get('/:trainerId/slots', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid trainerId' });
     }
 
-    const date = req.query.date ? new Date(String(req.query.date)) : null;
-    if (!date || Number.isNaN(date.getTime())) {
+    const rawDate = req.query.date ? String(req.query.date) : null;
+    const date = rawDate ? parseDateOnlyLocal(rawDate) : null;
+    if (!rawDate) {
       return res.status(400).json({ success: false, message: 'date query param is required' });
+    }
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'Invalid date. Use YYYY-MM-DD.' });
     }
 
     const duration = Number(req.query.duration || 60);
+    if (!Number.isInteger(duration) || duration < 15 || duration > 180) {
+      return res.status(400).json({ success: false, message: 'duration must be an integer between 15 and 180' });
+    }
     const slots = await availabilityService.getAvailableSlots(trainerId, date, duration);
 
     return res.status(200).json({ success: true, data: slots });

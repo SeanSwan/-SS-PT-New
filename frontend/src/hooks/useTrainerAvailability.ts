@@ -32,6 +32,13 @@ interface AvailabilityData {
   overrides: AvailabilityEntry[];
 }
 
+const formatDateOnlyLocal = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return {
@@ -163,7 +170,7 @@ export const useAvailableSlots = (
 
   // Memoize dateStr to prevent unnecessary recalculations
   const dateStr = useMemo(() => {
-    return date ? date.toISOString().split('T')[0] : null;
+    return date ? formatDateOnlyLocal(date) : null;
   }, [date?.getTime()]);
 
   // Create a stable cache key

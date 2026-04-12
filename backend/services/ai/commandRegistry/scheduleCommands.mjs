@@ -1,5 +1,5 @@
 /**
- * Command Registry — Category C: Scheduling (8 commands)
+ * Command Registry — Category C: Scheduling (9 commands)
  */
 import { z } from 'zod';
 import { registerCommands, DateSchema, TimeSchema } from './baseSchemas.mjs';
@@ -59,9 +59,58 @@ const commands = [
     type: 'view_trainer_availability',
     description: 'Show a trainer\'s availability',
     naturalLanguagePatterns: ['show {trainer}\'s availability', 'when is {trainer} available', 'my availability'],
-    method: 'GET', endpoint: '/api/availability/trainer/:trainerId',
-    inputSchema: z.object({ trainerId: z.number().int().positive() }),
+    method: 'GET', endpoint: '/api/availability/:trainerId',
+    // trainerId is optional: trainer self-queries omit it and the dispatcher defaults to ctx.user.id.
+    // Admin must supply an explicit trainerId — the dispatcher rejects admin queries without one.
+    inputSchema: z.object({ trainerId: z.number().int().positive().optional() }),
     destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'C',
+  },
+  {
+    type: 'view_available_slots',
+    description: 'Show a trainer\'s open slots for a specific date',
+    naturalLanguagePatterns: [
+      'show my available slots on {date}',
+      'what openings do I have on {date}',
+      'show available slots for trainer {trainerId} on {date}',
+    ],
+    method: 'GET', endpoint: '/api/availability/:trainerId/slots',
+    // trainerId is optional: trainer self-queries omit it and the dispatcher defaults to ctx.user.id.
+    // Admin must supply an explicit trainerId — the dispatcher rejects admin queries without one.
+    // Real calendar-date validation happens in the dispatcher to catch impossible dates.
+    inputSchema: z.object({
+      trainerId: z.number().int().positive().optional(),
+      date: DateSchema,
+      duration: z.number().int().min(15).max(180).default(60),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'C',
+  },
+  {
+    type: 'create_availability_override',
+    description: 'Block a trainer\'s availability on a specific date and time range',
+    naturalLanguagePatterns: [
+      'block my availability on {date} from {time} to {time}',
+      'I\'m unavailable on {date} from {time} to {time}',
+      'add vacation block on {date}',
+    ],
+    method: 'POST', endpoint: '/api/availability/:trainerId/override',
+    // trainerId is optional: trainer self-queries omit it and the dispatcher defaults to ctx.user.id.
+    // Admin must supply an explicit trainerId — the dispatcher rejects admin queries without one.
+    // 'available' is excluded from the type enum: type:'available' overrides do not add open time
+    // via the recurring slots logic — they pass through unused and would be misleading.
+    // Real calendar-date validation and endTime > startTime are enforced in the dispatcher.
+    inputSchema: z.object({
+      trainerId: z.number().int().positive().optional(),
+      date:      DateSchema,
+      startTime: TimeSchema,
+      endTime:   TimeSchema,
+      type:      z.enum(['blocked', 'vacation']).default('blocked'),
+      reason:    z.string().max(500).optional(),
+    }),
+    destructive: false, requiresConfirmation: true,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false, category: 'C',
   },

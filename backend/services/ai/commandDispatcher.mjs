@@ -17,35 +17,57 @@
  *   exec-substrate-v1:
  *   M01: create_hermes_task → hermesService.createTask
  *   M02: list_hermes_tasks  → hermesService.listTasks
- *
  *   exec-substrate-v2 (first confirmed legacy slice):
  *   B03: log_workout        → workoutLogService.logWorkoutForClient
- *
  *   exec-substrate-v3 (honesty fix + first read command):
  *   R01: view_workout_history → WorkoutSession.findAll (flat scalar summary)
- *
  *   exec-substrate-v4 (nutrition read slice):
- *   E01: view_nutrition_log   → DailyMacroLog.findAll today (flat daily summary)
- *   E02: view_macro_trends    → DailyMacroLog.findAll 7-day (averaged flat summary)
- *
+ *   E01: view_nutrition_log   → DailyMacroLog.findAll today → nutritionDispatchers
+ *   E02: view_macro_trends    → DailyMacroLog.findAll 7-day → nutritionDispatchers
  *   exec-substrate-v5 (first confirmed nutrition write):
- *   E03: log_meals            → macroLogService.createMacroEntries (atomic batch)
- *
+ *   E03: log_meals            → macroLogService.createMacroEntries → nutritionDispatchers
  *   exec-substrate-v6 (measurement reads + weigh-in write):
  *   D01: view_latest_measurements → BodyMeasurement.findOne | D02: log_weighin → measurementWriteService
+ *   exec-substrate-v7 (pain vertical slice):
+ *   H01: view_active_pain → ClientPainEntry.findAll isActive | H02: add_pain_entry → painWriteService
+ *   exec-substrate-v8 (measurement read closure):
+ *   D03: view_measurement_trends → BodyMeasurement 2x findOne + count (flat scalar delta)
+ *   exec-substrate-v9 (destructive substrate fix + first destructive trainer slice):
+ *   S01: cancel_session → sessionCancelService.cancelSessionForAI
+ *   exec-substrate-v10 (schedule read slice):
+ *   T01: view_today_schedule  → Session.findAll today (role-aware, status=['scheduled','confirmed','completed'])
+ *   T02: view_week_schedule   → Session.findAll 7-day window (same filter, daysWithSessions + first slot)
+ *   T01: view_today_sessions  → alias for view_today_schedule
+ *   exec-substrate-v11 (pain follow-up slice):
+ *   H03: resolve_pain_entry  → painFollowUpService.resolvePainEntry (exact-or-error bodyRegion resolution)
+ *   H04: update_pain_entry   → painFollowUpService.updatePainEntryByRegion (same resolution)
+ *   exec-substrate-v12 (full measurement write):
+ *   D04: log_measurements    → measurementWriteService.logMeasurements (voice schema, shared enrichment)
+ *   exec-substrate-v13 (availability read slice):
+ *   A01: view_trainer_availability → availabilityService.getAvailabilityForTrainer (trainer self/admin explicit)
+ *   exec-substrate-v14 (nutrition extraction + availability write):
+ *   Extraction: log_meals / view_nutrition_log / view_macro_trends moved to nutritionDispatchers.mjs
+ *   A02: create_availability_override → availabilityService.createOverride (single-row, no 'available' type)
+ *   exec-substrate-v15 (availability slot read):
+ *   A03: view_available_slots → availabilityService.getAvailableSlots (date-scoped open-slot summary)
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
  */
 
-import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
-import { createMacroEntries } from '../nutrition/macroLogService.mjs';
-import { getAllModels, getBodyMeasurement } from '../../models/index.mjs';
-import { logWeighIn } from '../measurementWriteService.mjs';
-import DailyMacroLog from '../../models/DailyMacroLog.mjs';
+import { getAllModels } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
+import { logMeals, viewNutritionLog, viewMacroTrends } from './dispatchers/nutritionDispatchers.mjs';
+import { viewActivePain, addPainEntry, dispatchResolvePainEntry, dispatchUpdatePainEntry } from './dispatchers/painDispatchers.mjs';
+import { viewLatestMeasurements, dispatchLogWeighIn, dispatchLogMeasurements, viewMeasurementTrends } from './dispatchers/measurementDispatchers.mjs';
+import { dispatchCancelSession, dispatchViewTodaySchedule, dispatchViewWeekSchedule } from './dispatchers/sessionDispatchers.mjs';
+import {
+  dispatchViewTrainerAvailability,
+  dispatchCreateAvailabilityOverride,
+  dispatchViewAvailableSlots,
+} from './dispatchers/availabilityDispatchers.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -112,18 +134,7 @@ const DISPATCHERS = new Map([
       };
     },
   ],
-  [
-    'log_meals',
-    async (params, ctx) => {
-      const clientId = params.clientId ?? ctx.resolvedClient?.id;
-      // createMacroEntries handles: atomic transaction, source normalization to 'ai_chat',
-      // per-row date assignment, number sanitization, and the missing-table error path.
-      return createMacroEntries(params.meals, {
-        clientId,
-        date: params.date || null,   // service defaults to today when null
-      });
-    },
-  ],
+  ['log_meals',          logMeals],
   [
     'view_workout_history',
     async (params, ctx) => {
@@ -146,112 +157,23 @@ const DISPATCHERS = new Map([
       };
     },
   ],
-  [
-    'view_nutrition_log',
-    async (params, ctx) => {
-      const clientId = params.clientId ?? ctx.resolvedClient?.id;
-      const today = new Date().toISOString().slice(0, 10);
-      const empty = { date: today, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
-      try {
-        const rows = await DailyMacroLog.findAll({
-          where: { userId: clientId, date: today },
-          attributes: ['calories', 'protein', 'carbs', 'fat'],
-        });
-        if (rows.length === 0) return empty;
-        const round1 = (n) => Math.round(n * 10) / 10;
-        return {
-          date: today,
-          mealCount: rows.length,
-          totalCalories: round1(rows.reduce((s, r) => s + (r.calories || 0), 0)),
-          totalProtein:  round1(rows.reduce((s, r) => s + (r.protein  || 0), 0)),
-          totalCarbs:    round1(rows.reduce((s, r) => s + (r.carbs    || 0), 0)),
-          totalFat:      round1(rows.reduce((s, r) => s + (r.fat      || 0), 0)),
-        };
-      } catch (err) {
-        // Table may not exist in production yet — return honest empty result
-        if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
-          logger.warn('[CommandDispatcher] daily_macro_logs table not found — returning empty nutrition log');
-          return empty;
-        }
-        throw err;
-      }
-    },
-  ],
-  [
-    'view_macro_trends',
-    async (params, ctx) => {
-      const clientId = params.clientId ?? ctx.resolvedClient?.id;
-      const endDate   = new Date().toISOString().slice(0, 10);
-      const startD    = new Date();
-      startD.setDate(startD.getDate() - 6);          // last 7 days inclusive
-      const startDate = startD.toISOString().slice(0, 10);
-      const empty = { daysLogged: 0, avgCalories: 0, avgProtein: 0, avgCarbs: 0, avgFat: 0, startDate, endDate };
-      try {
-        const rows = await DailyMacroLog.findAll({
-          where: { userId: clientId, date: { [Op.between]: [startDate, endDate] } },
-          attributes: ['date', 'calories', 'protein', 'carbs', 'fat'],
-        });
-        if (rows.length === 0) return empty;
-        // Aggregate per day, then average across days that have entries
-        const daily = {};
-        for (const r of rows) {
-          const d = r.date;
-          if (!daily[d]) daily[d] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-          daily[d].calories += r.calories || 0;
-          daily[d].protein  += r.protein  || 0;
-          daily[d].carbs    += r.carbs    || 0;
-          daily[d].fat      += r.fat      || 0;
-        }
-        const days = Object.values(daily);
-        const n = days.length;
-        const round1 = (v) => Math.round((v / n) * 10) / 10;
-        return {
-          daysLogged:  n,
-          avgCalories: round1(days.reduce((s, d) => s + d.calories, 0)),
-          avgProtein:  round1(days.reduce((s, d) => s + d.protein,  0)),
-          avgCarbs:    round1(days.reduce((s, d) => s + d.carbs,    0)),
-          avgFat:      round1(days.reduce((s, d) => s + d.fat,      0)),
-          startDate,
-          endDate,
-        };
-      } catch (err) {
-        // Table may not exist in production yet — return honest empty result
-        if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
-          logger.warn('[CommandDispatcher] daily_macro_logs table not found — returning empty macro trends');
-          return empty;
-        }
-        throw err;
-      }
-    },
-  ],
-  [
-    'view_latest_measurements',
-    async (params, ctx) => {
-      const clientId = params.clientId ?? ctx.resolvedClient?.id;
-      const BodyMeasurement = getBodyMeasurement();
-      const row = await BodyMeasurement.findOne({
-        where: { userId: clientId },
-        order: [['measurementDate', 'DESC']],
-        attributes: ['measurementDate', 'weight', 'weightUnit', 'bodyFatPercentage'],
-      });
-      if (!row) return { userId: clientId, measurementDate: null, weight: null, weightUnit: 'lbs', bodyFatPercentage: null };
-      const n = (v) => v != null ? parseFloat(v) : null;
-      return {
-        userId:            clientId,
-        measurementDate:   row.measurementDate instanceof Date ? row.measurementDate.toISOString().slice(0, 10) : null,
-        weight:            n(row.weight),
-        weightUnit:        row.weightUnit || 'lbs',
-        bodyFatPercentage: n(row.bodyFatPercentage),
-      };
-    },
-  ],
-  [
-    'log_weighin',
-    async (params, ctx) => {
-      const clientId = params.clientId ?? ctx.resolvedClient?.id;
-      return logWeighIn({ weight: params.weight, weightUnit: 'lbs' }, { clientId, trainerId: ctx.user.id });
-    },
-  ],
+  ['view_nutrition_log',      viewNutritionLog],
+  ['view_macro_trends',       viewMacroTrends],
+  ['view_latest_measurements', viewLatestMeasurements],
+  ['log_weighin',              dispatchLogWeighIn],
+  ['log_measurements',         dispatchLogMeasurements],
+  ['view_measurement_trends',  viewMeasurementTrends],
+  ['view_active_pain',         viewActivePain],
+  ['add_pain_entry',           addPainEntry],
+  ['resolve_pain_entry',       dispatchResolvePainEntry],
+  ['update_pain_entry',        dispatchUpdatePainEntry],
+  ['cancel_session',           dispatchCancelSession],
+  ['view_today_schedule',         dispatchViewTodaySchedule],
+  ['view_today_sessions',         dispatchViewTodaySchedule],    // alias — same handler
+  ['view_week_schedule',          dispatchViewWeekSchedule],
+  ['view_trainer_availability',    dispatchViewTrainerAvailability],
+  ['view_available_slots',         dispatchViewAvailableSlots],
+  ['create_availability_override', dispatchCreateAvailabilityOverride],
 ]);
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────
