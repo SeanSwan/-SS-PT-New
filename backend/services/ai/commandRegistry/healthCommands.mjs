@@ -8,11 +8,11 @@ const commands = [
   {
     type: 'add_pain_entry',
     description: 'Add a pain entry for a client',
-    naturalLanguagePatterns: ['add a pain entry for {client}', '{client} has pain in {bodyPart}', 'log pain for {client}'],
+    naturalLanguagePatterns: ['add a pain entry for {client}', '{client} has pain in {bodyRegion}', 'log pain for {client}'],
     method: 'POST', endpoint: '/api/pain-entries/:userId',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
-      bodyPart: z.string().min(1).max(100),
+      bodyRegion: z.string().min(1).max(100),
       painLevel: PainLevelSchema,
       notes: z.string().max(500).optional(),
     }),
@@ -32,12 +32,12 @@ const commands = [
   },
   {
     type: 'resolve_pain_entry',
-    description: 'Resolve a client\'s pain entry',
-    naturalLanguagePatterns: ['resolve {client}\'s {bodyPart} pain', 'mark {client}\'s pain as resolved'],
+    description: 'Resolve a client\'s active pain entry by body region',
+    naturalLanguagePatterns: ['resolve {client}\'s {bodyRegion} pain', 'mark {client}\'s {bodyRegion} pain as resolved', '{client}\'s {bodyRegion} pain is resolved'],
     method: 'PUT', endpoint: '/api/pain-entries/:userId/:entryId/resolve',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
-      entryId: z.number().int().positive(),
+      bodyRegion: z.string().min(1).max(100),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['admin', 'trainer'],
@@ -45,12 +45,12 @@ const commands = [
   },
   {
     type: 'update_pain_entry',
-    description: 'Update a client\'s pain level for a body part',
-    naturalLanguagePatterns: ['update {client}\'s pain level', 'change {client}\'s {bodyPart} pain to {level}'],
+    description: 'Update a client\'s active pain level or notes by body region',
+    naturalLanguagePatterns: ['update {client}\'s {bodyRegion} pain level', 'change {client}\'s {bodyRegion} pain to {level}', 'update pain notes for {client}\'s {bodyRegion}'],
     method: 'PUT', endpoint: '/api/pain-entries/:userId/:entryId',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
-      entryId: z.number().int().positive(),
+      bodyRegion: z.string().min(1).max(100),
       painLevel: PainLevelSchema.optional(),
       notes: z.string().max(500).optional(),
     }),

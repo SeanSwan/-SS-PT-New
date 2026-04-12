@@ -43,6 +43,7 @@ function signOperation(op) {
     id: op.id,
     type: op.type,
     endpoint: op.endpoint,
+    commandType: op.commandType,  // exec-substrate-v9: included so tampering with commandType fails verification
     params: op.params,
     createdBy: op.createdBy,
   });
@@ -73,6 +74,7 @@ export function prepareDestructiveOperation({
   type,
   endpoint,
   commandParams,
+  commandType,      // exec-substrate-v9: command-lane type (e.g. 'cancel_session'); HMAC-signed
   userId,
   description,
   affectedRecords = [],
@@ -101,6 +103,7 @@ export function prepareDestructiveOperation({
     id: opId,
     type,
     endpoint,
+    commandType: commandType ?? null,  // signed in HMAC payload — tampering detected on verify
     params: commandParams,
     affectedRecords: affectedRecords.slice(0, 10), // Max 10 in preview
     affectedCount: affectedRecords.length,

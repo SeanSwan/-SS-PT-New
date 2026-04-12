@@ -32,6 +32,7 @@ const TABLE_CREATION_ORDER = [
   'Sessions',
   'client_progress',  // FIXED: ClientProgress uses 'client_progress'
   'Gamifications',   // FIXED: Gamification uses 'Gamifications'
+  'avatar_homes',    // AvatarHome uses 'avatar_homes'
   'Orientations',
   'Notifications',
   'Contacts',

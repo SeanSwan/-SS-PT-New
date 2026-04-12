@@ -423,6 +423,8 @@ const SAFE_USER_ACHIEVEMENT_ATTRS = [
   'pointsAwarded', 'notificationSent', 'createdAt', 'updatedAt'
 ];
 
+const weeklyRecapWorkoutSources = ['workout_completion', 'workout_completed'];
+
 // SECURITY FIX #10: Sanitize error messages for non-admin responses
 // Only admin users see detailed error messages; everyone else gets generic
 const safeError = (req, error) => {
@@ -2675,7 +2677,7 @@ const gamificationController = {
    */
   getWeeklyRecap: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = Number.parseInt(req.params.userId, 10);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
@@ -2710,16 +2712,19 @@ const gamificationController = {
 
       const thisWeekXP = thisWeekTx.reduce((sum, t) => sum + (t.points || 0), 0);
       const lastWeekXP = lastWeekTx.reduce((sum, t) => sum + (t.points || 0), 0);
-      const thisWeekWorkouts = thisWeekTx.filter(t => t.source === 'workout_completed').length;
-      const lastWeekWorkouts = lastWeekTx.filter(t => t.source === 'workout_completed').length;
+      const thisWeekWorkouts = thisWeekTx.filter(t => weeklyRecapWorkoutSources.includes(t.source)).length;
+      const lastWeekWorkouts = lastWeekTx.filter(t => weeklyRecapWorkoutSources.includes(t.source)).length;
 
       // Surprise multipliers this week
       const surprises = thisWeekTx.filter(t =>
-        t.source === 'workout_completed' && t.points > 50
+        weeklyRecapWorkoutSources.includes(t.source) && t.points > 50
       ).length;
 
-      // User's current state
-      const gamRecord = await Gamification.findOne({ where: { userId } });
+      // User's current state - explicit attrs prevent schema drift on unrelated columns
+      const gamRecord = await Gamification.findOne({
+        where: { userId },
+        attributes: ['streakCount', 'longestStreak', 'level', 'currentTier', 'totalXP']
+      });
 
       return res.json({
         success: true,

@@ -109,6 +109,8 @@ const APPEARANCE_TRIGGERS = {
   personal_records:   { thresholds: [1, 5, 15, 30], mods: ['small_blade', 'longsword', 'crystal_lance', 'mythic_weapon'] },
 };
 
+const PET_STATE_ATTRIBUTES = ['petSpecies', 'petName', 'petState', 'petInventory', 'needsState', 'level'];
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Service Class
 // ─────────────────────────────────────────────────────────────
@@ -183,7 +185,7 @@ export class CompanionPetService {
    */
   static async getPetData(userId) {
     const { default: Gamification } = await import('../../models/Gamification.mjs');
-    const record = await Gamification.findOne({ where: { userId } });
+    const record = await Gamification.findOne({ where: { userId }, attributes: PET_STATE_ATTRIBUTES });
 
     if (!record || !record.petSpecies) {
       return { hasPet: false, pet: null };

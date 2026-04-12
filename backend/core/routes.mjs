@@ -179,6 +179,7 @@ import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
 import aiRoutes from '../routes/aiRoutes.mjs';
 import aiChatRoutes from '../routes/aiChatRoutes.mjs';
 import aiCommandRoutes from '../routes/aiCommandRoutes.mjs';
+import hermesRoutes from '../routes/hermesRoutes.mjs';
 import aiDebateRoutes from '../routes/aiDebateRoutes.mjs';
 import aiBffRoutes from '../routes/aiBffRoutes.mjs';
 import aiVillageRoutes from '../routes/aiVillageRoutes.mjs';
@@ -570,6 +571,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/ai', aiRoutes);
   app.use('/api/ai-chat', aiChatRoutes);
   app.use('/api/ai-command', aiCommandRoutes);
+  app.use('/api/hermes', hermesRoutes);
   app.use('/api/ai/debate', aiDebateRoutes);
   app.use('/api/admin/ai-bff', aiBffRoutes);
   app.use('/api/ai-village', aiVillageRoutes);

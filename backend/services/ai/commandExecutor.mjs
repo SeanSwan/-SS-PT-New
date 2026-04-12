@@ -285,6 +285,7 @@ async function stepConfirmation(ctx) {
       type: ctx.command.method === 'DELETE' ? 'DELETE' : 'UPDATE',
       endpoint: ctx.command.endpoint,
       commandParams: ctx.intent.params,
+      commandType: ctx.command.type,   // exec-substrate-v9: signed in HMAC payload
       userId: ctx.user.id,
       description: `${ctx.command.description}${ctx.resolvedClient ? ` for ${ctx.resolvedClient.firstName || 'Client #' + ctx.resolvedClient.id}` : ''}`,
       affectedRecords: ctx.resolvedClient ? [{ id: ctx.resolvedClient.id, name: `${ctx.resolvedClient.firstName} ${ctx.resolvedClient.lastName || ''}`.trim() }] : [],
@@ -564,18 +565,19 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   // (same behavior as before, but now explicitly honest rather than returning routing metadata).
   const commandType = operation.commandType || null;
   if (commandType && hasDispatcher(commandType)) {
+    const clientId = operation.params?.clientId ?? null;
     try {
       const result = await dispatch(commandType, operation.params, {
         user,
         options: { sequelize },
-        resolvedClient: null,
+        resolvedClient: clientId ? { id: clientId } : null,
       });
       return {
         success: true,
         type: 'executed',
         command: commandType,
         result,
-        client: null,
+        client: clientId ? { id: clientId } : null,
         message: `Operation confirmed: ${operation.description}`,
       };
     } catch (err) {
