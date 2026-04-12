@@ -20,11 +20,12 @@ Every component and endpoint must pass these checks BEFORE commit. These rules e
 - **Error boundaries on async UI** — Any component that fetches data needs error state + retry button, not silent failure.
 
 ### Backend Rules
-- **Audit untracked files before every push** — Before pushing any feature that adds `import` statements to already-tracked files, run:
+- **Audit untracked AND modified files before every push** — Before pushing any backend feature, run BOTH commands:
   ```bash
-  git ls-files --others --exclude-standard backend/
+  git ls-files --others --exclude-standard backend/   # untracked files
+  git diff --name-only HEAD backend/                  # modified but uncommitted
   ```
-  Any untracked file that appears in an import chain will cause `ERR_MODULE_NOT_FOUND` on Render and crash-loop the server. This happened 2026-04-12 when 10 dispatcher/service files written during Swan Coach v1–v15 development were never committed. The server crash-looped until each missing file was found and committed. Run this check before every push; it takes under a second.
+  Both cases crash Render identically: untracked files cause `ERR_MODULE_NOT_FOUND`; modified tracked files cause `SyntaxError: does not provide an export named 'X'` when the git version is missing new exports added locally. This happened 2026-04-12 across a series of crash-loops — 10 untracked files + 9 modified-but-uncommitted files from Swan Coach v12–v15. Neither check takes more than a second. Run both before every push.
 
 - **Non-fatal dependency creation** — If creating a child record (e.g., `ClientProgress`) during a parent create (e.g., `User`), check table existence first. Never let optional records kill the transaction.
   ```javascript
@@ -51,4 +52,6 @@ Before every commit, mentally verify:
 4. Backend creates handle missing tables gracefully
 5. All model FKs reference tables that exist in production
 6. Error states exist for every data fetch
-7. **Run `git ls-files --others --exclude-standard backend/` — any untracked file in an import chain will crash Render**
+7. **Run both audit commands before every backend push:**
+   - `git ls-files --others --exclude-standard backend/` → untracked files (crash: `ERR_MODULE_NOT_FOUND`)
+   - `git diff --name-only HEAD backend/` → modified-but-uncommitted (crash: missing export `SyntaxError`)
