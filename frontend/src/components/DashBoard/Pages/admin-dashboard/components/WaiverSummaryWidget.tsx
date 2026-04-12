@@ -11,7 +11,7 @@
  *
  * HOW IT FITS IN THE APP:
  *   AdminOverviewPanel (BentoThird) → WaiverSummaryWidget
- *   Full manager lives at /dashboard/people/waivers
+ *   Full manager lives at /dashboard/admin/waivers
  *
  * API: GET /api/admin/waivers?page=1&limit=5
  */
@@ -277,7 +277,7 @@ const WaiverSummaryWidget: React.FC = () => {
   }, [fetchRecent]);
 
   const pendingCount = records.filter((r) => r.status === 'pending_match').length;
-  const goToWaivers = () => navigate('/dashboard/people/waivers');
+  const goToWaivers = () => navigate('/dashboard/admin/waivers');
 
   return (
     <Widget>

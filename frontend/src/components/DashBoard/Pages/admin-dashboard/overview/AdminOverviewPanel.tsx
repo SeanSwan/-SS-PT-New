@@ -235,31 +235,7 @@ const AdminOverviewPanel: React.FC = () => {
       </BentoFull>
       <BentoFull><AdminOverviewMetrics metrics={metrics} /></BentoFull>
 
-      {/* ── Row 2: Revenue + User Growth Charts (2-col) ── */}
-      <BentoHalf><RevenueChart /></BentoHalf>
-      <BentoHalf><UserGrowthChart /></BentoHalf>
-
-      {/* ── Row 3: Business KPI + Session Tracking (2-col) ── */}
-      <BentoHalf><BusinessKPIDashboard /></BentoHalf>
-      <BentoHalf><SessionTrackingWidget /></BentoHalf>
-
-      {/* ── Row 4: Quick Actions + Activity Feed + Gamification (3-col) ── */}
-      <BentoThird><AdminQuickActions actions={quickActions} /></BentoThird>
-      <BentoThird><RecentActivityFeed /></BentoThird>
-      <BentoThird><GamificationSummaryWidget /></BentoThird>
-
-      {/* ── Row 5: System Health + Pending Payments (2-col) ── */}
-      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
-      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
-
-      {/* ── Row 6: Critical Alerts (2-col) ── */}
-      <BentoHalf><VisitorGeoWidget /></BentoHalf>
-      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
-
-      {/* ── Row 7: Signups + Orientations + Waivers ── */}
-      <BentoFull>
-        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
-      </BentoFull>
+      {/* ── Row 2: Intake Triptych — Orientation + Waivers + Visitor Map (PROMOTED from Row 7) ── */}
       <BentoThird><OrientationIntakeWidget /></BentoThird>
       <BentoThird><WaiverSummaryWidget /></BentoThird>
       <BentoThird>
@@ -267,6 +243,32 @@ const AdminOverviewPanel: React.FC = () => {
           <VisitorWorldMap />
         </Suspense>
       </BentoThird>
+
+      {/* ── Row 3: Real-time Signups (full width) ── */}
+      <BentoFull>
+        <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
+      </BentoFull>
+
+      {/* ── Row 4: Revenue + User Growth Charts (2-col) ── */}
+      <BentoHalf><RevenueChart /></BentoHalf>
+      <BentoHalf><UserGrowthChart /></BentoHalf>
+
+      {/* ── Row 5: Business KPI + Session Tracking (2-col) ── */}
+      <BentoHalf><BusinessKPIDashboard /></BentoHalf>
+      <BentoHalf><SessionTrackingWidget /></BentoHalf>
+
+      {/* ── Row 6: Quick Actions + Activity Feed + Gamification (3-col) ── */}
+      <BentoThird><AdminQuickActions actions={quickActions} /></BentoThird>
+      <BentoThird><RecentActivityFeed /></BentoThird>
+      <BentoThird><GamificationSummaryWidget /></BentoThird>
+
+      {/* ── Row 7: System Health + Pending Payments (2-col) ── */}
+      <BentoHalf><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></BentoHalf>
+      <BentoHalf><PendingPaymentsWidget /></BentoHalf>
+
+      {/* ── Row 8: Critical Alerts (2-col) ── */}
+      <BentoHalf><VisitorGeoWidget /></BentoHalf>
+      <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
 
       {/* ── Rows 8-11: Deep Telemetry Accordion (collapsed by default for scannability) ── */}
       <TelemetryDetails>

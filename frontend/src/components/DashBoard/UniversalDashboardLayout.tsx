@@ -103,6 +103,7 @@ const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planne
 const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'));
+const AdminWaiversManagerPage = React.lazy(() => import('./Pages/admin-waivers/AdminWaiversManager'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -562,7 +563,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
       { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
       { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events — Pull-ups, Push-ups, Sprint' },
-      { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' }
+      { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' },
+      { path: '/waivers', component: AdminWaiversManagerPage, title: 'Waiver Management', description: 'Waiver records, match approval, revocation, and manual linking' }
     ],
     defaultPath: '/coach-assistant'
   },
