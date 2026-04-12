@@ -36,7 +36,7 @@ import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
-  Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck,
+  Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck, FileSignature,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ import {
 const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
-  Flame, Wrench, MessageCircle, Megaphone, ShieldCheck,
+  Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
 };
 
 const getIcon = (name: string, size = 20) => {
@@ -329,30 +329,27 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   border-radius: 10px;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
 
-  /* Crystalline Active State */
+  /* Crystalline Active State (Village Phase A — Royal Depth carve) */
   color: ${({ $active }) =>
     $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, #4070C0)'};
   background: ${({ $active }) =>
-    $active
-      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, transparent 100%)'
-      : 'transparent'};
+    $active ? 'var(--surface-depth, #003080)' : 'transparent'};
   border-left: 3px solid ${({ $active }) =>
-    $active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
+    $active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
   transition: all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
   animation: ${surfaceRise} 400ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   position: relative;
 
   ${({ $active }) =>
     $active &&
-    `box-shadow: inset 4px 0 12px -4px rgba(139, 92, 246, 0.4);`}
+    `box-shadow: inset 4px 0 12px -4px rgba(96, 192, 240, 0.3);`}
 
   &:hover {
     background: ${({ $active }) =>
       $active
-        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, transparent 100%)'
+        ? 'color-mix(in srgb, #003080 80%, #60C0F0 20%)'
         : 'rgba(96, 192, 240, 0.06)'};
     color: var(--text-primary, #E0ECF4);
-    /* DESIGN-4: Ice Wing hover border */
     border-left-color: var(--ice-wing, rgb(96, 192, 240));
   }
 

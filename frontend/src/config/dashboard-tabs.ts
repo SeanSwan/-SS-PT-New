@@ -513,12 +513,13 @@ export interface WorkspaceConfig {
   featureKey?: string; // Per-user feature flag — hides tab for non-admin users without access
 }
 
-// Workspace prefixes must match the actual admin route paths in UniversalDashboardLayout
-// Routes are mounted at /dashboard/admin/{path}, so prefixes must use that namespace
+// Workspace prefixes must match the canonical admin route paths in UnifiedAdminRoutes.tsx.
+// Canonical form: /dashboard/{workspace} (e.g. /dashboard/people, /dashboard/scheduling).
+// /dashboard/admin/... prefixes are LEGACY — they redirect but are NOT canonical.
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'coach', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — Training Assistant' },
   { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
-  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
+  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
   { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & Swan Coach protocols' },
   { id: 'bootcamp', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
   { id: 'equipment', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },

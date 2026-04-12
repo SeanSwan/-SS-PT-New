@@ -89,12 +89,12 @@ describe('AdminWaiversManager', () => {
     });
   });
 
-  it('W4 — calls API with status filter param', async () => {
+  it('W4 — calls API with status filter param when chip clicked', async () => {
     wrap(<AdminWaiversManager />);
     await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
 
-    const select = screen.getByDisplayValue('All Statuses');
-    fireEvent.change(select, { target: { value: 'linked' } });
+    // Quick-filter chip replaced the dropdown — click the "Linked" chip
+    fireEvent.click(screen.getByText('Linked'));
 
     await waitFor(() => {
       const calls = mockGet.mock.calls.filter((c: any[]) => c[0].includes('status=linked'));
@@ -183,6 +183,26 @@ describe('AdminWaiversManager', () => {
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/api/admin/waivers/1/attach-user', { userId: 42 });
     });
+  });
+
+  it('W10 — quick-filter chips render All/Pending Match/Linked/Superseded/Revoked', async () => {
+    wrap(<AdminWaiversManager />);
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+
+    expect(screen.getByText('All')).toBeInTheDocument();
+    expect(screen.getByText('Pending Match')).toBeInTheDocument();
+    expect(screen.getByText('Linked')).toBeInTheDocument();
+    expect(screen.getByText('Superseded')).toBeInTheDocument();
+    expect(screen.getByText('Revoked')).toBeInTheDocument();
+
+    // "All" chip is active by default (aria-pressed=true)
+    const allChip = screen.getByText('All').closest('button');
+    expect(allChip).toHaveAttribute('aria-pressed', 'true');
+
+    // Clicking "Pending Match" activates it
+    fireEvent.click(screen.getByText('Pending Match'));
+    const pendingChip = screen.getByText('Pending Match').closest('button');
+    expect(pendingChip).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('W9 — manual-link modal passes limit and search params to server', async () => {

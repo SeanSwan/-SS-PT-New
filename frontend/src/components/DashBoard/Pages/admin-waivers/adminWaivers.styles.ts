@@ -403,3 +403,87 @@ export const UserSearchItem = styled.div<{ $selected?: boolean }>`
     border-bottom: none;
   }
 `;
+
+// ─── Operational Upgrade Styles ─────────────────────────────
+
+export const QuickFilters = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+`;
+
+export const QuickFilterChip = styled.button<{ $active: boolean }>`
+  padding: 6px 16px;
+  min-height: 36px;
+  border-radius: 20px;
+  border: 1px solid ${({ $active }) => ($active ? '#60C0F0' : 'rgba(139, 92, 246, 0.35)')};
+  background: ${({ $active }) => ($active ? 'rgba(96, 192, 240, 0.15)' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#60C0F0' : 'rgba(255,255,255,0.7)')};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: ${({ $active }) => ($active ? '600' : '400')};
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(96, 192, 240, 0.1);
+    border-color: rgba(96, 192, 240, 0.5);
+    color: #E0ECF4;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 2px;
+  }
+`;
+
+export const StatsRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+export const StatItem = styled.span<{ $urgent?: boolean }>`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: ${({ $urgent }) =>
+    $urgent ? 'rgba(255, 193, 7, 0.15)' : 'rgba(96, 192, 240, 0.1)'};
+  color: ${({ $urgent }) => ($urgent ? '#ffc107' : 'rgba(96, 192, 240, 0.9)')};
+  border: 1px solid ${({ $urgent }) =>
+    $urgent ? 'rgba(255, 193, 7, 0.3)' : 'rgba(96, 192, 240, 0.2)'};
+  white-space: nowrap;
+`;
+
+export const RefreshBtn = styled.button`
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: rgba(96, 192, 240, 0.1);
+    border-color: rgba(96, 192, 240, 0.4);
+    color: #60C0F0;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;

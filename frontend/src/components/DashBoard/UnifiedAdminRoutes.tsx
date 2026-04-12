@@ -133,6 +133,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/trainers/permissions" element={<Navigate to="/dashboard/people/trainers/permissions" replace />} />
     <Route path="/client-trainer-assignments" element={<Navigate to="/dashboard/people/assignments" replace />} />
     <Route path="/client-management" element={<Navigate to="/dashboard/people/progress" replace />} />
+    <Route path="/admin/client-management" element={<Navigate to="/dashboard/people" replace />} />
     <Route path="/clients" element={<Navigate to="/dashboard/people" replace />} />
     <Route path="/client-onboarding" element={<Navigate to="/dashboard/people/onboarding" replace />} />
     <Route path="/admin/nutrition/:clientId?" element={<ParamRedirect base="/dashboard/people/nutrition" />} />

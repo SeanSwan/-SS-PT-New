@@ -54,7 +54,7 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 2rem;
 `;
 
@@ -101,7 +101,7 @@ const InputGroup = styled.div`
 
 const Label = styled.label`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.88);
 `;
 
 const Input = styled.input<{ $error?: boolean }>`
@@ -127,7 +127,7 @@ const WaiverTextContainer = styled.div`
   padding: 1rem;
   background: rgba(5, 5, 20, 0.6);
   margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.92);
   line-height: 1.6;
 
   h1, h2, h3, h4 { color: #60C0F0; margin-top: 1rem; }
@@ -177,6 +177,13 @@ const ConsentRow = styled.label<{ $required?: boolean }>`
     accent-color: #60C0F0;
     flex-shrink: 0;
   }
+`;
+
+const OptionalTag = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 6px;
+  font-weight: 400;
 `;
 
 const SubmitButton = styled.button<{ $disabled?: boolean }>`
@@ -280,7 +287,6 @@ export default function PublicWaiverPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [liabilityAccepted, setLiabilityAccepted] = useState(false);
-  const [aiConsentAccepted, setAiConsentAccepted] = useState(false);
   const [mediaConsentAccepted, setMediaConsentAccepted] = useState(false);
   const [submittedByGuardian, setSubmittedByGuardian] = useState(false);
   const [guardianName, setGuardianName] = useState('');
@@ -373,7 +379,7 @@ export default function PublicWaiverPage() {
         activityTypes: Array.from(selectedActivities),
         signatureData: sigPadRef.current?.toDataURL() || '',
         liabilityAccepted,
-        aiConsentAccepted,
+        aiConsentAccepted: false,
         mediaConsentAccepted,
         source: waiverSource,
         submittedByGuardian: submittedByGuardian || undefined,
@@ -578,18 +584,14 @@ export default function PublicWaiverPage() {
         <ConsentRow>
           <input
             type="checkbox"
-            checked={aiConsentAccepted}
-            onChange={(e) => setAiConsentAccepted(e.target.checked)}
-          />
-          I consent to AI-powered features and personalized workout recommendations.
-        </ConsentRow>
-        <ConsentRow>
-          <input
-            type="checkbox"
             checked={mediaConsentAccepted}
             onChange={(e) => setMediaConsentAccepted(e.target.checked)}
           />
-          I consent to photos/videos being taken during sessions for promotional purposes.
+          <span>
+            SwanStudios may capture class photos or short videos to celebrate our community
+            and inspire others — I'm happy to be included.
+            <OptionalTag>(Optional)</OptionalTag>
+          </span>
         </ConsentRow>
 
         {/* Section 6: Signature */}

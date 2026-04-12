@@ -25,6 +25,7 @@ import AdminQuickActions from './AdminQuickActions';
 import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
 import OracleInsightsWidget from '../components/OracleInsightsWidget';
+import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
 
@@ -126,7 +127,7 @@ const AdminOverviewPanel: React.FC = () => {
           change: Number(revenueData.changePercent ?? 0),
           changeType: mapChangeType(Number(revenueData.changePercent ?? 0)),
           icon: <DollarSign size={24} />,
-          color: '#10b981',
+          color: '#C6A84B',
           description: 'Monthly recurring revenue',
           trend: safeTrend(revenueData.trend),
           target: revenueData.target ?? undefined,
@@ -139,7 +140,7 @@ const AdminOverviewPanel: React.FC = () => {
           change: Number(usersData.changePercent ?? 0),
           changeType: mapChangeType(Number(usersData.changePercent ?? 0)),
           icon: <Users size={24} />,
-          color: '#3b82f6',
+          color: '#60C0F0',
           description: 'Daily active users',
           trend: safeTrend(usersData.trend),
           target: usersData.target ?? undefined,
@@ -152,7 +153,7 @@ const AdminOverviewPanel: React.FC = () => {
           change: Number(workoutsData.changePercent ?? 0),
           changeType: mapChangeType(Number(workoutsData.changePercent ?? 0)),
           icon: <Dumbbell size={24} />,
-          color: '#f59e0b',
+          color: '#8B5CF6',
           description: 'Average workout completion rate',
           trend: safeTrend(workoutsData.trend),
           target: workoutsData.target ?? undefined,
@@ -165,7 +166,7 @@ const AdminOverviewPanel: React.FC = () => {
           change: Number(healthData.changePercent ?? 0),
           changeType: mapChangeType(Number(healthData.changePercent ?? 0)),
           icon: <Monitor size={24} />,
-          color: '#10b981',
+          color: '#4A90D9',
           description: 'Overall system uptime',
           trend: safeTrend(healthData.trend),
           target: 99.9,
@@ -228,7 +229,7 @@ const AdminOverviewPanel: React.FC = () => {
               <option value="90d">Last 90 days</option>
             </CosmicSelect>
             {isLoading && <StatusText>Loading...</StatusText>}
-            {error && <ErrorText>{error}</ErrorText>}
+            {error && <ErrorText role="alert" aria-live="polite">{error}</ErrorText>}
           </ControlsInner>
         </ControlsHeader>
       </BentoFull>
@@ -255,16 +256,17 @@ const AdminOverviewPanel: React.FC = () => {
       <BentoHalf><VisitorGeoWidget /></BentoHalf>
       <BentoHalf><ContactNotifications autoRefresh={true} showActions={true} /></BentoHalf>
 
-      {/* ── Row 7: Signups + Orientations ── */}
+      {/* ── Row 7: Signups + Orientations + Waivers ── */}
       <BentoFull>
         <RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />
       </BentoFull>
-      <BentoHalf><OrientationIntakeWidget /></BentoHalf>
-      <BentoHalf>
+      <BentoThird><OrientationIntakeWidget /></BentoThird>
+      <BentoThird><WaiverSummaryWidget /></BentoThird>
+      <BentoThird>
         <Suspense fallback={<div style={{ minHeight: 400 }} />}>
           <VisitorWorldMap />
         </Suspense>
-      </BentoHalf>
+      </BentoThird>
 
       {/* ── Row 8: Social triptych (3-col) ── */}
       <BentoThird><SocialOverviewWidget /></BentoThird>
@@ -400,9 +402,17 @@ const StatusText = styled.span`
   font-size: 0.875rem;
 `;
 
-const ErrorText = styled.span`
-  color: #C92A54;
-  font-size: 0.875rem;
+const ErrorText = styled.div`
+  display: inline-flex;
+  align-items: center;
+  color: #E5C76B;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.825rem;
+  background: rgba(198, 168, 75, 0.08);
+  padding: 6px 12px;
+  border-radius: 0 6px 6px 0;
+  border-left: 3px solid #C6A84B;
+  box-shadow: inset 0 0 12px rgba(198, 168, 75, 0.02);
 `;
 
 export default AdminOverviewPanel;
