@@ -268,21 +268,27 @@ const AdminOverviewPanel: React.FC = () => {
         </Suspense>
       </BentoThird>
 
-      {/* ── Row 8: Social triptych (3-col) ── */}
-      <BentoThird><SocialOverviewWidget /></BentoThird>
-      <BentoThird><ModerationWidget /></BentoThird>
-      <BentoThird><PostReportsWidget /></BentoThird>
+      {/* ── Rows 8-11: Deep Telemetry Accordion (collapsed by default for scannability) ── */}
+      <TelemetryDetails>
+        <summary>Access Deep Telemetry — Social · Compliance · Operations · Oracle</summary>
+        <TelemetryGrid>
+          {/* Row 8: Social triptych */}
+          <BentoThird><SocialOverviewWidget /></BentoThird>
+          <BentoThird><ModerationWidget /></BentoThird>
+          <BentoThird><PostReportsWidget /></BentoThird>
 
-      {/* ── Row 9: Client Intelligence (2-col) ── */}
-      <BentoHalf><ClientComplianceDashboard /></BentoHalf>
-      <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
+          {/* Row 9: Client Intelligence */}
+          <BentoHalf><ClientComplianceDashboard /></BentoHalf>
+          <BentoHalf><AutomatedCheckInsWidget /></BentoHalf>
 
-      {/* ── Row 10: Operations (2-col) ── */}
-      <BentoHalf><UpcomingChecksWidget /></BentoHalf>
-      <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
+          {/* Row 10: Operations */}
+          <BentoHalf><UpcomingChecksWidget /></BentoHalf>
+          <BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>
 
-      {/* ── Row 11: Swan Oracle ── */}
-      <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
+          {/* Row 11: Swan Oracle */}
+          <BentoFull><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></BentoFull>
+        </TelemetryGrid>
+      </TelemetryDetails>
     </BentoWrapper>
   );
 };
@@ -292,6 +298,34 @@ const AdminOverviewPanel: React.FC = () => {
 const atmosphericPulse = keyframes`
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.8; }
+`;
+
+const fadeInUp = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const bentoItemAnimation = `
+  animation: ${fadeInUp} 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+
+  &:nth-child(1)  { animation-delay: 0ms; }
+  &:nth-child(2)  { animation-delay: 50ms; }
+  &:nth-child(3)  { animation-delay: 100ms; }
+  &:nth-child(4)  { animation-delay: 150ms; }
+  &:nth-child(5)  { animation-delay: 200ms; }
+  &:nth-child(6)  { animation-delay: 250ms; }
+  &:nth-child(7)  { animation-delay: 300ms; }
+  &:nth-child(8)  { animation-delay: 350ms; }
+  &:nth-child(9)  { animation-delay: 400ms; }
+  &:nth-child(10) { animation-delay: 450ms; }
+  &:nth-child(11) { animation-delay: 500ms; }
+  &:nth-child(n+12) { animation-delay: 550ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+  }
 `;
 
 const BentoWrapper = styled.div`
@@ -340,6 +374,7 @@ const BentoFull = styled.div`
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+  ${bentoItemAnimation}
 `;
 
 // Half width (1 of 2 columns, or 3 of 6 on wide screens)
@@ -348,6 +383,7 @@ const BentoHalf = styled.div`
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+  ${bentoItemAnimation}
 
   @media (min-width: 1280px) {
     grid-column: span 3;
@@ -364,6 +400,7 @@ const BentoThird = styled.div`
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+  ${bentoItemAnimation}
 
   @media (min-width: 1280px) {
     grid-column: span 2;
@@ -371,6 +408,64 @@ const BentoThird = styled.div`
 
   @media (max-width: 768px) {
     grid-column: 1 / -1;
+  }
+`;
+
+// Deep Telemetry Accordion (Rows 8-11: Social, Compliance, Operations, Oracle)
+const TelemetryDetails = styled.details`
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  ${bentoItemAnimation}
+
+  &[open] > summary {
+    margin-bottom: 20px;
+  }
+
+  & > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Sora', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #8B5CF6;
+    cursor: pointer;
+    padding: 12px 24px;
+    min-height: 44px;
+    background: rgba(139, 92, 246, 0.05);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 44px;
+    transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    list-style: none;
+    user-select: none;
+
+    &::-webkit-details-marker { display: none; }
+    &::marker { display: none; }
+
+    &:hover {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #8B5CF6;
+      outline-offset: 4px;
+    }
+  }
+`;
+
+const TelemetryGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 `;
 
