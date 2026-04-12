@@ -65,11 +65,11 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             </ValueRow>
             <ChangeRow>
               {metric.changeType === 'increase' ? (
-                <TrendingUp size={14} color="#10b981" />
+                <TrendingUp size={14} color="#60C0F0" />
               ) : metric.changeType === 'decrease' ? (
-                <TrendingDown size={14} color="#ef4444" />
+                <TrendingDown size={14} color="#C92A54" />
               ) : (
-                <Activity size={14} color="#6b7280" />
+                <Activity size={14} color="rgba(224, 236, 244, 0.4)" />
               )}
               <ChangeText $type={metric.changeType}>
                 {metric.change > 0 ? '+' : ''}{metric.change}%
@@ -133,29 +133,56 @@ const TopRow = styled.div`
   align-items: flex-start; margin-bottom: 1rem;
 `;
 
+/* Kirin hero label — Sora 13px uppercase, Frost White 60% */
 const Label = styled.div`
-  color: var(--text-secondary, rgba(224,236,244,0.7));
-  font-size: 0.875rem; margin-bottom: 0.5rem;
+  color: rgba(224, 236, 244, 0.6);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.75rem;
 `;
 
+/* Kirin hero metric — Cormorant Garamond Italic 48px editorial serif */
 const ValueRow = styled.div`
-  font-size: 2rem; font-weight: 700;
-  font-family: 'Fira Code', monospace;
-  margin-bottom: 0.5rem;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1.05;
+  margin-bottom: 0.75rem;
+
+  @media (max-width: 768px) {
+    font-size: 2.25rem;
+  }
 `;
 
 const ValueText = styled.span`
-  font-size: 2rem; font-weight: 700;
-  font-family: 'Fira Code', monospace;
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1.05;
+
+  @media (max-width: 768px) {
+    font-size: 2.25rem;
+  }
 `;
 
 const ChangeRow = styled.div`
   display: flex; align-items: center; gap: 0.5rem;
 `;
 
+/* Fira Code for data readouts; Swan tokens for semantics */
 const ChangeText = styled.span<{ $type: string }>`
-  font-size: 0.875rem; font-weight: 600;
-  color: ${p => p.$type === 'increase' ? '#10b981' : p.$type === 'decrease' ? '#ef4444' : '#6b7280'};
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${p =>
+    p.$type === 'increase' ? '#60C0F0' :
+    p.$type === 'decrease' ? '#C92A54' :
+    'rgba(224, 236, 244, 0.4)'};
 `;
 
 const IconCol = styled.div`

@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { DollarSign, Users, Dumbbell, Monitor, UserPlus, ClipboardList, Mail, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -305,7 +305,7 @@ const fadeInUp = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-const bentoItemAnimation = `
+const bentoItemAnimation = css`
   animation: ${fadeInUp} 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
 
