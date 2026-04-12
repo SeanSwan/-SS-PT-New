@@ -20,6 +20,12 @@ Every component and endpoint must pass these checks BEFORE commit. These rules e
 - **Error boundaries on async UI** — Any component that fetches data needs error state + retry button, not silent failure.
 
 ### Backend Rules
+- **Audit untracked files before every push** — Before pushing any feature that adds `import` statements to already-tracked files, run:
+  ```bash
+  git ls-files --others --exclude-standard backend/
+  ```
+  Any untracked file that appears in an import chain will cause `ERR_MODULE_NOT_FOUND` on Render and crash-loop the server. This happened 2026-04-12 when 10 dispatcher/service files written during Swan Coach v1–v15 development were never committed. The server crash-looped until each missing file was found and committed. Run this check before every push; it takes under a second.
+
 - **Non-fatal dependency creation** — If creating a child record (e.g., `ClientProgress`) during a parent create (e.g., `User`), check table existence first. Never let optional records kill the transaction.
   ```javascript
   // Pattern: Check table exists before insert in transaction
@@ -45,3 +51,4 @@ Before every commit, mentally verify:
 4. Backend creates handle missing tables gracefully
 5. All model FKs reference tables that exist in production
 6. Error states exist for every data fetch
+7. **Run `git ls-files --others --exclude-standard backend/` — any untracked file in an import chain will crash Render**
