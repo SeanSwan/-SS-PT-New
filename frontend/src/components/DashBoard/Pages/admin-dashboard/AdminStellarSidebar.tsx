@@ -329,28 +329,26 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   border-radius: 10px;
   justify-content: ${({ $collapsed }) => ($collapsed ? 'center' : 'flex-start')};
 
-  /* Crystalline Active State (Village Phase A — Royal Depth carve) */
+  /* Kirin Active State (Phase B — Solid Wing Purple fill per Gemini CD spec) */
+  font-weight: ${({ $active }) => ($active ? 600 : 500)};
   color: ${({ $active }) =>
-    $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, #4070C0)'};
+    $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.6)'};
   background: ${({ $active }) =>
-    $active ? 'var(--surface-depth, #003080)' : 'transparent'};
-  border-left: 3px solid ${({ $active }) =>
-    $active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
-  transition: all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    $active ? '#8B5CF6' : 'transparent'};
+  border-left: 3px solid transparent;
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
   animation: ${surfaceRise} 400ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   position: relative;
 
   ${({ $active }) =>
     $active &&
-    `box-shadow: inset 4px 0 12px -4px rgba(96, 192, 240, 0.3);`}
+    `box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);`}
 
   &:hover {
     background: ${({ $active }) =>
-      $active
-        ? 'color-mix(in srgb, #003080 80%, #60C0F0 20%)'
-        : 'rgba(96, 192, 240, 0.06)'};
-    color: var(--text-primary, #E0ECF4);
-    border-left-color: var(--ice-wing, rgb(96, 192, 240));
+      $active ? '#8B5CF6' : '#1A1A24'};
+    color: ${({ $active }) =>
+      $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.88)'};
   }
 
   &:focus-visible {
@@ -362,12 +360,11 @@ const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
     padding: 10px 12px;
   }
 
-  /* Dual-glow: active icon gets Ice Wing glow */
+  /* Kirin icons: Frost White on active (against purple bg), inherit on resting */
   svg {
     color: ${({ $active }) =>
-      $active ? 'var(--accent-primary, #60C0F0)' : 'inherit'};
-    filter: ${({ $active }) =>
-      $active ? 'drop-shadow(0 0 6px rgba(96, 192, 240, 0.5))' : 'none'};
+      $active ? '#E0ECF4' : 'inherit'};
+    filter: none;
     transition: all 250ms ease;
   }
 `;

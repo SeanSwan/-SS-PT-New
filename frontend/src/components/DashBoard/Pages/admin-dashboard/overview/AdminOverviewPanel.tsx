@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { DollarSign, Users, Dumbbell, Monitor, UserPlus, ClipboardList, Mail, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -289,6 +289,11 @@ const AdminOverviewPanel: React.FC = () => {
 
 // === Styled Components — Bento Grid Layout ===
 
+const atmosphericPulse = keyframes`
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+`;
+
 const BentoWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -297,6 +302,27 @@ const BentoWrapper = styled.div`
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  position: relative;
+  isolation: isolate;
+
+  /* Kirin Atmospheric Engine Glow — Wing Purple radial from top center */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -20vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 60vh;
+    background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+    animation: ${atmosphericPulse} 10s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before { animation: none; }
+  }
 
   @media (min-width: 1280px) {
     grid-template-columns: repeat(6, 1fr);
