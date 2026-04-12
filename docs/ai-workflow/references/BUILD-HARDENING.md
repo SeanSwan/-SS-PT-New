@@ -18,6 +18,18 @@ Every component and endpoint must pass these checks BEFORE commit. These rules e
 - **WCAG contrast: 4.5:1 minimum** — Test text color against its background. Common failures: `#64748b` on dark bg (use `#94a3b8`+), `rgba(255,255,255,0.3)` placeholder (use `0.5`+).
 - **Focus trap on modals/drawers** — `role="dialog" aria-modal="true"`, Escape to close, focus returns to trigger on close.
 - **Error boundaries on async UI** — Any component that fetches data needs error state + retry button, not silent failure.
+- **Never interpolate `keyframes` (or any styled-components helper) into a plain JS template string** — Shared animation/style chunks must be wrapped with the `css` helper. Plain strings call `toString()` on the keyframe and bake the generated class name into the CSS output, which crashes styled-components at runtime with error #12 (`An error occurred. Args: <hash>`). This happened 2026-04-12 on `AdminOverviewPanel.tsx` and took down the whole admin dashboard. The build passes, types check, nothing warns at dev time — it only crashes on mount.
+  ```typescript
+  // ❌ BROKEN — plain template string, keyframe stringified
+  const sharedAnim = `animation: ${fadeInUp} 600ms forwards;`;
+  const Box = styled.div`${sharedAnim}`;
+
+  // ✅ CORRECT — use the css helper so interpolation is proper
+  import { css, keyframes } from 'styled-components';
+  const sharedAnim = css`animation: ${fadeInUp} 600ms forwards;`;
+  const Box = styled.div`${sharedAnim}`;
+  ```
+  Rule of thumb: if a template literal will be composed into a styled component AND contains any `${x}` interpolation, it must be a `css\`\`` tagged template, not a plain string.
 
 ### Backend Rules
 - **Audit untracked AND modified files before every push** — Before pushing any backend feature, run BOTH commands:
@@ -55,3 +67,4 @@ Before every commit, mentally verify:
 7. **Run both audit commands before every backend push:**
    - `git ls-files --others --exclude-standard backend/` → untracked files (crash: `ERR_MODULE_NOT_FOUND`)
    - `git diff --name-only HEAD backend/` → modified-but-uncommitted (crash: missing export `SyntaxError`)
+8. **Any shared animation/style chunk with `${}` interpolation uses `css\`\``, not a plain string** — plain-string interpolation of `keyframes` silently stringifies to a generated class name and crashes styled-components error #12 at mount.
