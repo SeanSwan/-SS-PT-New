@@ -32,7 +32,7 @@ Read these in order before analysis or implementation:
 2. Latest `docs/ai-workflow/AI-HANDOFF/VISION-SYNC-*.md` (currently `VISION-SYNC-2026-02-15.md`)
 3. `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
 4. `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
-5. `CLAUDE.md` (build commands, code conventions, no-MUI/styled-components rules, Galaxy-Swan constraints, responsive QA, Git workflow)
+5. `CLAUDE.md` (build commands, code conventions, no-MUI/styled-components rules, Crystalline Swan constraints, responsive QA, Git workflow)
 6. Your status file:
    - Claude Code: `docs/ai-workflow/AI-HANDOFF/CLAUDE-CODE-STATUS.md`
    - Gemini: `docs/ai-workflow/AI-HANDOFF/GEMINI-STATUS.md`
@@ -43,9 +43,6 @@ Read these in order before analysis or implementation:
 7. If UI-related:
    - `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md`
    - `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md`
-8. AI role mapping and approval model:
-   - `AI-Village-Documentation/YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md`
-   - `AI-Village-Documentation/CODE-APPROVAL-PIPELINE.md`
 
 ---
 
@@ -104,7 +101,7 @@ When user asks to improve a prompt:
    - Skill usage chain
    - Token efficiency and duplication control
    - SwanStudios project constraints:
-     - No Material-UI for new/updated UI paths; use styled-components + Galaxy-Swan tokens
+     - No Material-UI for new/updated UI paths; use styled-components + Crystalline Swan tokens
      - Monetization flow protection (checkout, booking, store) with strict visual diff gates
      - Feature-flag strategy (`useNewTheme` runtime or `VITE_USE_NEW_THEME` build-time)
      - Blueprint-first + Level 5/5 documentation for non-trivial changes
@@ -128,7 +125,7 @@ When user sends review feedback from other AIs:
 2. Dedupe overlapping findings by file/behavior.
 3. Flag contradictions and request one tie-break decision only when needed.
    - Contradictions are resolved by the human owner.
-   - If owner is offline, defer to the domain owner from `YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md`.
+   - If owner is offline, defer to the latest explicit human instruction or keep the conflict open.
    - Never auto-resolve contradictory AI findings silently.
 4. Convert accepted findings into concrete tasks:
    - file(s)
@@ -176,22 +173,32 @@ Always optimize mobile first, then desktop:
 ---
 
 ## 10) Installed Skills - Full Utilization Policy
-Installed skills (current set):  
-`verification-before-completion`, `systematic-debugging`, `requesting-code-review`, `test-driven-development`, `webapp-testing`, `web-design-guidelines`, `audit-website`, `agent-browser`, `frontend-design`, `ui-ux-pro-max`.
+
+**Strict model (Phase 2 landed 2026-04-12):** `swan-design-router` is the only default-exposed design brain; `closeout-evidence-lock` is the default closeout skill. `requesting-code-review` is **removed from default use** (broken `superpowers:code-reviewer` dependency). 8 narrow design skills quarantined from default-steering. Full details in `docs/ai-workflow/references/SKILLS-REFERENCE.md`.
+
+**Default-active set (13):**
+- **Swan orchestration (5):** `swan-orchestrator`, `canonical-surface-audit`, `repo-hygiene-scan`, `swan-design-router`, `closeout-evidence-lock`
+- **KEEP core (8):** `verification-before-completion`, `systematic-debugging`, `test-driven-development`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+
+**Reference libraries (router-loaded, not default-steering):** `frontend-design`, `ui-ux-pro-max`
+
+**Quarantined (explicit-invocation-only):** `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`
 
 Canonical location: `.agents/skills/*/SKILL.md`  
+Active runtime surface: `.claude/skills/` (curated subset).
 If `.claude/skills/` symlinks are missing/empty, use `.agents/skills/` directly.
 
 ### Mandatory chains
 1. **Bugfix chain**  
-`systematic-debugging` -> `test-driven-development` -> `verification-before-completion` -> `requesting-code-review`
+`swan-orchestrator` -> `systematic-debugging` -> `test-driven-development` -> `verification-before-completion` -> `closeout-evidence-lock`
 
 2. **UI feature chain**  
-`frontend-design`/`ui-ux-pro-max` -> `webapp-testing` -> `web-design-guidelines` -> `verification-before-completion` -> `requesting-code-review`
+`swan-orchestrator` -> `canonical-surface-audit` (if touching existing surface) -> `swan-design-router` (with 2-3 concept-direction ideation gate for net-new surfaces) -> `webapp-testing` -> `verification-before-completion` -> `closeout-evidence-lock`
    - `webapp-testing` requires a running app target (for local: `cd frontend && npm run dev`).
+   - Do NOT dispatch to `frontend-design`, `ui-ux-pro-max`, `high-end-visual-design`, or any other design skill directly — route through `swan-design-router`.
 
 3. **Pre-release quality chain**  
-`audit-website` -> targeted fixes -> `verification-before-completion`
+`audit-website` -> targeted fixes -> `verification-before-completion` -> `closeout-evidence-lock`
 
 Complexity-based orchestration:
 - Simple/low-risk tasks: minimum 2 relevant skills.

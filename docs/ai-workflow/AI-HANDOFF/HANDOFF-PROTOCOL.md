@@ -84,12 +84,12 @@ All AIs must be aware of the installed skills. See `docs/ai-workflow/SKILLS-INFR
 
 **Mandatory skills per completion claim:**
 - `verification-before-completion` — before ANY "done" or "fixed" claim
-- `requesting-code-review` — before merge to main
+- `closeout-evidence-lock` — at end of every substantial task (supersedes retired `requesting-code-review`; preserves the full substantive code-review checklist — security, performance, test coverage, breaking changes, conventions)
 
 **Mandatory skills per role:**
-- Implementer: `systematic-debugging`, `test-driven-development`, `verification-before-completion`
-- Reviewer A: `requesting-code-review`, `verification-before-completion`
-- Reviewer B: `web-design-guidelines`, `webapp-testing`
+- Implementer: `swan-orchestrator`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `closeout-evidence-lock`
+- Reviewer A: `closeout-evidence-lock`, `verification-before-completion`
+- Reviewer B: `swan-design-router` dual-pass critique, `webapp-testing`
 
 ---
 
@@ -321,8 +321,8 @@ User says: "No" or "Try option B"
 ### **Step 7: Complete & Handoff**
 ```
 1. Run verification-before-completion skill (build, tests, behavior check)
-2. Run requesting-code-review skill (for non-trivial changes)
-3. If UI work: run web-design-guidelines + webapp-testing skills
+2. Run closeout-evidence-lock skill (end-of-task evidence gate — supersedes retired `requesting-code-review`)
+3. If UI work: run swan-design-router dual-pass critique + webapp-testing skills
 4. Unlock files in CURRENT-TASK.md
 5. Update your status file: Set status to "âœ… COMPLETE"
 6. Add to "COMPLETED TODAY" section in CURRENT-TASK.md
@@ -525,12 +525,14 @@ Each AI has a status file. Format:
 
 | Skill | When to Use |
 |-------|-------------|
+| `swan-orchestrator` | Start of any non-trivial task (pre-task gate) |
 | `verification-before-completion` | Before ANY "done" or "fixed" claim |
 | `systematic-debugging` | Any bug, test failure, or unexpected behavior |
-| `requesting-code-review` | After task completion, before merge |
+| `closeout-evidence-lock` | End of every substantial task (supersedes retired `requesting-code-review`) |
 | `test-driven-development` | Before writing production code |
 | `webapp-testing` | After frontend changes with user-facing behavior |
-| `web-design-guidelines` | After UI/styled-component changes |
+| `swan-design-router` | Any UI/visual work — only default-exposed design brain |
+| `canonical-surface-audit` | UI/data-truth audits where the live surface must be proven |
 | `agent-browser` | Form testing, login flows, visual verification |
 | `audit-website` | Pre-launch, regression detection |
 | `frontend-design` | Building new components/pages |

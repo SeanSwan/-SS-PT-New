@@ -94,6 +94,10 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 
 39. **Artifact Recurrence / .gitignore Rule (MANDATORY)** — If a hygiene scan identifies a recurring temp/log/build-artifact class (e.g. `combined.log`, `tsc-errors.txt`, ad hoc root `.png` QA dumps), Claude must propose the matching `.gitignore` update in the same cleanup plan so the same clutter does not repopulate the repo root after cleanup. The `.gitignore` proposal is part of Phase 1 planning output; the actual `.gitignore` edit happens only with Sean's explicit approval in Phase 2.
 
+40. **Design work routes through `swan-design-router` by default (MANDATORY)** — All UI/visual work auto-routes through the Swan design router. The router is the only default-exposed design brain. It loads `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` as its source-of-truth docs, and treats `frontend-design` + `ui-ux-pro-max` as reference libraries (not co-equal steering brains). The 7 narrow aesthetic skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are **explicit-invocation-only** — they do not steer default design work. For net-new pages and major redesigns, the router's 2-3 concept-direction ideation gate is mandatory before coding; small polish tasks can skip it. See `.claude/skills/swan-design-router/SKILL.md`.
+
+41. **Closeout routes through `closeout-evidence-lock` by default (MANDATORY)** — End-of-task closeout for any substantial task auto-routes through the Swan closeout skill. It enforces the Claim-to-Evidence Lock (rule 28), the dual-pass hostile review (rule 17), the post-task hygiene check (rule 38), and the forbidden-language filter (rule 34). It preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from the retired `requesting-code-review` skill. The `requesting-code-review` skill is **removed from default use** — it depends on a missing `superpowers:code-reviewer` subagent and silently fails. Do NOT dispatch to `requesting-code-review` from any new code path. See `.claude/skills/closeout-evidence-lock/SKILL.md`.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -262,6 +266,8 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Visual Diff Loop | `docs/ai-workflow/references/VISUAL-DIFF-LOOP.md` | UI QA screenshots |
 | File Cleanup | `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` | Cleanup tasks |
 | Repo Hygiene Protocol | `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` | **MANDATORY** — before refactors, audits, route-tracing with competing surfaces, or fresh sessions where the repo feels cluttered. Drives rules 32-39. |
+| Swan Cinematic Design System | `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` | **MANDATORY** — source of truth for every Swan visual task. Stack truth, page-level narrative arc (B2), C1-C12 pattern library, generic-pattern bans. Loaded by `swan-design-router`. Supersedes legacy `AI-Village-Documentation/design/CINEMATIC-WEB-DESIGN-SYSTEM.md`. |
+| Swan Asset Storyboarding | `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` | **MANDATORY** for any task that needs generated media. Asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates. Loaded by `swan-design-router`. |
 | Auto Research | `docs/ai-workflow/references/AUTO-RESEARCH.md` | Running skill optimization |
 | App AI Hive Mind | `docs/ai-workflow/references/APP-AI-HIVE-MIND.md` | AI chat features |
 | Hermes + Wiki + Mythos | `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md` | AI command center, Hermes Agent, Karpathy Wiki, Mythos planning |
@@ -271,6 +277,39 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | 3-Tier Workflow | `docs/ai-workflow/references/THREE-TIER-WORKFLOW.md` | Choosing dev workflow tier |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
+
+## Swan Visual Operating System (Phase 1 landed 2026-04-12, commit 10aa70e7)
+
+The strict-model design architecture is live. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
+
+### Default-exposed Swan skills (5)
+| Skill | Role |
+|---|---|
+| `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
+| `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
+| `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
+| `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
+| `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
+
+### KEEP core skills (8, unchanged)
+`systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+
+### Reference libraries loaded by `swan-design-router`, NOT default-steering
+`frontend-design`, `ui-ux-pro-max` — physically in `.claude/skills/` during Phase 1-2. In Phase 3 they relocate OFF the default-exposed surface; their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` (byte-identical copies already present, verified 2026-04-12).
+
+### Quarantined skills — explicit-invocation-only, NOT default-steering (8)
+These skills are in `.claude/skills/` today but must not steer default design work. Do NOT auto-load them. Invoke only when Sean explicitly requests the specific aesthetic or review behavior by slash-command. In Phase 3 they relocate to `archive/quarantined-skills/YYYY-MM-DD/` (reversible via `git mv` back).
+
+| Skill | Why quarantined |
+|---|---|
+| `minimalist-ui` | Narrow aesthetic — warm monochrome + flat bento + no gradients. Conflicts with Swan's dark-luxury direction. |
+| `industrial-brutalist-ui` | Narrow aesthetic — Swiss typographic + military terminal. Conflicts with Swan's cinematic direction. |
+| `high-end-visual-design` | Rigid "Absolute Zero" bans + opinionated "Awwwards-tier" persona. Useful occasionally, not as default. |
+| `design-taste-frontend` | Contains "THE LILA BAN" that **directly contradicts** the Dual-Button Glow rule (bans purple button glows and neon gradients). Hard doctrinal conflict with Swan brand. |
+| `stitch-design-taste` | Niche to Google Stitch DESIGN.md output. |
+| `redesign-existing-projects` | Audit-focused, niche — useful when explicitly asked for a redesign audit, noisy otherwise. |
+| `web-design-guidelines` | Review-only, overlaps with `verification-before-completion` + rules 22-23 design dual-pass. |
+| `requesting-code-review` | **Broken** — depends on a missing `superpowers:code-reviewer` subagent. Substantive checklist preserved in `closeout-evidence-lock`. Do NOT dispatch to this skill from any new code path. |
 
 ## Opus-Codex Recursive Debate Protocol (MANDATORY)
 - **Debate directory:** `docs/ai-workflow/AI-HANDOFF/`

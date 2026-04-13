@@ -77,7 +77,7 @@
 - Keep scope tight; call out out-of-scope debt separately.
 - Update docs when priority shifts, not just code.
 - Run `verification-before-completion` before claiming any task is done.
-- Run `requesting-code-review` before merge to main.
+- Run `closeout-evidence-lock` at end of every substantial task (supersedes retired `requesting-code-review`; preserves substantive code-review checklist).
 
 ---
 

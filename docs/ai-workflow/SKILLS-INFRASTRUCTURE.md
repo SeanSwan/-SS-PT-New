@@ -1,9 +1,20 @@
 # Skills Infrastructure — SwanStudios AI Workflow
 
-**Purpose:** Canonical reference for all installed AI agent skills, their sources, when to use them, and how they integrate with the multi-AI handoff workflow.
-**Last Updated:** 2026-02-15
+**Purpose:** Canonical reference for all installed AI agent skills, their sources, when to use them, and how they integrate with the Swan operating layer and multi-AI handoff workflow.
+**Last Updated:** 2026-04-12 (Phase 2 routing — Swan visual operating system)
 **Owner:** SwanStudios Core Team
 **CLI:** `npx skills` (v1.3.9+) — https://skills.sh/
+
+> See also: `docs/ai-workflow/references/SKILLS-REFERENCE.md` (compact reference), `CLAUDE.md` rules 40-41 (routing), `ACTIVE-INDEX.md` (surface/archive map).
+
+---
+
+## Strict-model discipline (MANDATORY — Phase 2 landed 2026-04-12)
+
+- **`swan-design-router` is the ONLY default-exposed design brain.** All UI/visual work auto-routes through it (CLAUDE.md rule 40).
+- **`closeout-evidence-lock` is the default closeout skill.** All substantial task closeouts auto-route through it (rule 41).
+- **`requesting-code-review` is REMOVED from default use.** It depends on a missing `superpowers:code-reviewer` subagent and silently fails. Its substantive checklist is preserved inside `closeout-evidence-lock`. Do NOT dispatch to `requesting-code-review` from any new code path.
+- **8 skills are quarantined from default-steering** — see "Quarantined skills" section below.
 
 ---
 
@@ -12,66 +23,87 @@
 ### File Layout
 
 ```
-.agents/skills/           ← Universal skill source (all agents)
-├── agent-browser/
-├── audit-website/
-├── frontend-design/
-├── requesting-code-review/
-├── systematic-debugging/
-├── test-driven-development/
-├── ui-ux-pro-max/
-├── verification-before-completion/
-├── webapp-testing/
-└── web-design-guidelines/
+.agents/skills/           ← Broader installed library (34 entries)
+├── swan-orchestrator/              ← Swan layer
+├── canonical-surface-audit/        ← Swan layer
+├── repo-hygiene-scan/              ← Swan layer
+├── swan-design-router/             ← Swan layer (only default design brain)
+├── closeout-evidence-lock/         ← Swan layer (default closeout)
+├── systematic-debugging/           ← KEEP core
+├── test-driven-development/        ← KEEP core
+├── verification-before-completion/ ← KEEP core
+├── webapp-testing/                 ← KEEP core
+├── agent-browser/                  ← KEEP core
+├── audit-website/                  ← KEEP core
+├── full-output-enforcement/        ← KEEP core
+├── seedance-swan-video/            ← KEEP core (Swan-specific)
+├── frontend-design/                ← Reference library (router-loaded)
+├── ui-ux-pro-max/                  ← Reference library (router-loaded)
+├── minimalist-ui/                  ← Quarantined (explicit-invocation-only)
+├── industrial-brutalist-ui/        ← Quarantined
+├── high-end-visual-design/         ← Quarantined
+├── design-taste-frontend/          ← Quarantined (LILA BAN conflict)
+├── stitch-design-taste/            ← Quarantined
+├── redesign-existing-projects/     ← Quarantined
+├── web-design-guidelines/          ← Quarantined
+├── requesting-code-review/         ← Quarantined (broken dependency)
+└── [16 additional technical reference docs not mirrored to .claude/skills — default-steering behavior not relied on here]
 
-.claude/skills/           ← Claude Code symlinks (auto-created)
-└── [symlinks → .agents/skills/*]
+.claude/skills/           ← Active runtime surface (23 entries as of 2026-04-12)
+└── [5 Swan + 8 KEEP core + 2 reference libraries + 8 quarantined = 23]
+    (Phase 3 target: 13 entries — after quarantine move + reference-library relocation)
 ```
-
-### Skill Registry
-
-| # | Skill | Source Repo | Installed | Category |
-|---|-------|-------------|-----------|----------|
-| 1 | `webapp-testing` | `anthropics/skills` | 2026-02-15 | Testing |
-| 2 | `web-design-guidelines` | `vercel-labs/agent-skills` | 2026-02-15 | UI/UX QA |
-| 3 | `verification-before-completion` | `obra/superpowers` | 2026-02-15 | Process |
-| 4 | `systematic-debugging` | `obra/superpowers` | 2026-02-15 | Process |
-| 5 | `requesting-code-review` | `obra/superpowers` | 2026-02-15 | Review |
-| 6 | `test-driven-development` | `obra/superpowers` | 2026-02-15 | Testing |
-| 7 | `agent-browser` | `vercel-labs/agent-browser` | 2026-02-15 | Browser |
-| 8 | `audit-website` | `squirrelscan/skills` | 2026-02-15 | Audit |
-| 9 | `frontend-design` | (pre-installed) | 2026-02-08 | Design |
-| 10 | `ui-ux-pro-max` | (pre-installed) | 2026-02-08 | Design |
 
 ---
 
-## Skill Summaries
+## Skill categories
 
-### Core Process Skills (Mandatory)
+### Swan orchestration layer (5, default-active, Phase 1 landed 2026-04-12)
 
-**`verification-before-completion`** — Enforces evidence-based verification before ANY completion claim. No "Done!" without fresh proof (build output, test results, screenshots). Iron law: run the verification command, read full output, then claim success.
+| # | Skill | Source | Category |
+|---|---|---|---|
+| 1 | `swan-orchestrator` | SS-PT-native (2026-04-12) | Pre-task gate |
+| 2 | `canonical-surface-audit` | SS-PT-native (2026-04-12) | Rules 26-31 execution |
+| 3 | `repo-hygiene-scan` | SS-PT-native (2026-04-12) | Rules 32-39 execution |
+| 4 | `swan-design-router` | SS-PT-native (2026-04-12) | Only default design brain |
+| 5 | `closeout-evidence-lock` | SS-PT-native (2026-04-12) | End-of-task evidence gate |
 
-**`systematic-debugging`** — Root-cause-first debugging. Four phases: (1) Investigate → (2) Pattern Analysis → (3) Hypothesis & Test → (4) Implement. No quick patches without understanding the root cause. After 3+ failed fixes, question the architecture.
+### KEEP core skills (8, default-active, unchanged)
 
-**`requesting-code-review`** — Formalizes review handoff. After each task/feature, dispatch review with: what was implemented, plan reference, changed files, base/head SHAs. Mandatory before merge to main.
+| # | Skill | Source | Category |
+|---|---|---|---|
+| 6 | `systematic-debugging` | `obra/superpowers` | Process (root-cause-first) |
+| 7 | `test-driven-development` | `obra/superpowers` | Process (red-green-refactor) |
+| 8 | `verification-before-completion` | `obra/superpowers` | Process (evidence gate) |
+| 9 | `webapp-testing` | `anthropics/skills` | Testing (Playwright) |
+| 10 | `agent-browser` | `vercel-labs/agent-browser` | Browser automation |
+| 11 | `audit-website` | `squirrelscan/skills` | Site audit (SEO/perf/a11y) |
+| 12 | `full-output-enforcement` | pre-installed | Anti-truncation meta-rule |
+| 13 | `seedance-swan-video` | SS-PT-native | Swan-specific video prompt builder |
 
-**`test-driven-development`** — Write-test-first discipline. Red-Green-Refactor cycle. No production code without a failing test first. Tests answer "What should this do?" not "What does this do?"
+### Reference libraries (router-loaded, NOT default-steering)
 
-### Testing & QA Skills
+| # | Skill | Role |
+|---|---|---|
+| 14 | `frontend-design` | Implementation constraint layer — accessibility, responsiveness, `:focus-visible`, anti-generic discipline. Loaded by `swan-design-router`. |
+| 15 | `ui-ux-pro-max` | Idea library — 50 styles, 21 palettes, 9 stacks. Loaded by `swan-design-router` with Tailwind bias actively rejected. |
 
-**`webapp-testing`** — Playwright-based web app testing. Reconnaissance-then-action pattern: navigate → wait for networkidle → snapshot → identify selectors → execute. Uses `with_server.py` for server lifecycle.
+**Phase 3 target:** these relocate OFF `.claude/skills/` to their canonical `.agents/skills/` paths (byte-identical copies already present — verified 2026-04-12 via `diff -q`).
 
-**`web-design-guidelines`** — Audits UI code against 230+ Web Interface Guidelines (accessibility, contrast, readability, UX patterns). Fetches fresh rules from source before each review.
+### Quarantined skills (8, explicit-invocation-only)
 
-**`audit-website`** — Comprehensive site audit across 21 categories (SEO, performance, security, accessibility, content, schema, legal). Three modes: `quick` (25 pages), `surface` (100 pages), `full` (500 pages). Score targets: Grade A = 95+.
+These skills remain on disk but must NOT steer default design or closeout work. Invoke only when Sean explicitly names the skill by slash-command (`/minimalist-ui`, etc.). Phase 3 relocates them to `archive/quarantined-skills/YYYY-MM-DD/` (reversible via `git mv` back).
 
-### Browser & Design Skills
-
-**`agent-browser`** — Browser automation for AI agents. Navigate → Snapshot (get refs) → Interact using refs → Re-snapshot. Supports session persistence, parallel sessions, screenshot capture.
-
-**`frontend-design`** — Production-grade frontend interface creation. Galaxy-Swan theme integration, distinctive design output.
-
-**`ui-ux-pro-max`** — 50 design styles, 21 palettes, 50 font pairings. Actions: plan, build, review, fix, improve. Styles: glassmorphism, dark mode, responsive.
+| Skill | Reason for quarantine |
+|---|---|
+| `minimalist-ui` | Narrow aesthetic — conflicts with Swan dark-luxury direction |
+| `industrial-brutalist-ui` | Narrow aesthetic — conflicts with Swan cinematic direction |
+| `high-end-visual-design` | Rigid "Absolute Zero" bans + opinionated persona |
+| `design-taste-frontend` | "THE LILA BAN" at line 58 directly contradicts Swan's Dual-Button Glow rule |
+| `stitch-design-taste` | Niche to Google Stitch `DESIGN.md` output |
+| `redesign-existing-projects` | Audit-focused, noisy as default |
+| `web-design-guidelines` | Review-only, overlaps with `verification-before-completion` + CLAUDE.md rules 22-23 |
+| `requesting-code-review` | **Broken** — depends on missing `superpowers:code-reviewer` subagent. Substantive checklist preserved in `closeout-evidence-lock`. |
 
 ---
 
@@ -80,55 +112,74 @@
 ### By Workflow Phase
 
 | Phase | Skill(s) | Trigger |
-|-------|----------|---------|
-| **Bug Report** | `systematic-debugging` | Any test failure, bug report, or unexpected behavior |
-| **Feature Planning** | `test-driven-development` | Before writing any production code |
-| **UI Implementation** | `frontend-design`, `ui-ux-pro-max` | Building new components or pages |
-| **UI Review** | `web-design-guidelines` | After UI changes, before claiming done |
-| **Functional Testing** | `webapp-testing` | After any frontend change with user-facing behavior |
-| **Browser Verification** | `agent-browser` | Form testing, login flows, visual verification |
-| **Completion Gate** | `verification-before-completion` | Before ANY claim of "done", "fixed", or "complete" |
-| **Code Review** | `requesting-code-review` | After task completion, before merge |
-| **Pre-Launch Audit** | `audit-website` | Before production deploys, regression detection |
+|---|---|---|
+| **Task start (non-trivial)** | `swan-orchestrator` | Any feature, bugfix, UI work, audit, refactor |
+| **Route/data-truth audit** | `canonical-surface-audit` | Any UI/data-truth bug, "which dashboard is live" question |
+| **Repo-structural confusion** | `repo-hygiene-scan` | Major refactors, dashboard audits, fresh cluttered sessions |
+| **Bug investigation** | `systematic-debugging` | Any test failure, bug report, or unexpected behavior |
+| **Feature planning** | `test-driven-development` | Before writing any production code |
+| **UI implementation** | `swan-design-router` | Any UI/visual task (router loads design system + asset doc) |
+| **UI review** | `swan-design-router` dual-pass critique + `verification-before-completion` | After UI changes, before claiming done |
+| **Functional testing** | `webapp-testing` | After any frontend change with user-facing behavior |
+| **Browser verification** | `agent-browser` | Form testing, login flows, visual verification |
+| **Completion gate** | `verification-before-completion` | Before ANY claim of "done", "fixed", or "complete" |
+| **End-of-task closeout** | `closeout-evidence-lock` | Every non-trivial task before declaring complete |
+| **Pre-launch audit** | `audit-website` | Before production deploys, regression detection |
 
-### Skill Chains (Common Sequences)
+### Skill chains (common sequences)
 
 ```
 Bug Fix Flow:
-  systematic-debugging → test-driven-development → verification-before-completion → requesting-code-review
+  swan-orchestrator (pre-task gate)
+    → systematic-debugging
+    → test-driven-development
+    → verification-before-completion
+    → closeout-evidence-lock
 
 UI Feature Flow:
-  frontend-design / ui-ux-pro-max → webapp-testing → web-design-guidelines → verification-before-completion
+  swan-orchestrator (pre-task gate)
+    → canonical-surface-audit (if touching existing surface)
+    → swan-design-router (with 2-3 concept-direction ideation gate for net-new surfaces)
+    → test-driven-development (for any non-trivial logic)
+    → webapp-testing
+    → verification-before-completion
+    → closeout-evidence-lock
+
+Repo / Architecture Audit Flow:
+  swan-orchestrator (pre-task gate)
+    → repo-hygiene-scan
+    → canonical-surface-audit (if competing surfaces exist)
+    → closeout-evidence-lock
 
 Pre-Deploy Flow:
-  audit-website → systematic-debugging (for each issue) → verification-before-completion
-
-Review Cycle:
-  requesting-code-review → systematic-debugging (if issues found) → verification-before-completion
+  audit-website
+    → systematic-debugging (per issue)
+    → verification-before-completion
+    → closeout-evidence-lock
 ```
 
 ---
 
 ## Multi-AI Integration
 
-### Required Skills Per Role
+### Required skills per role
 
-| Role | Required Skills | Optional |
-|------|----------------|----------|
-| **Implementer** | `systematic-debugging`, `test-driven-development`, `verification-before-completion` | `frontend-design`, `ui-ux-pro-max` |
-| **Reviewer A (correctness/security)** | `requesting-code-review`, `verification-before-completion` | `audit-website` |
-| **Reviewer B (UX/data)** | `web-design-guidelines`, `webapp-testing` | `agent-browser` |
-| **Tie-break Reviewer** | `verification-before-completion` | All others as needed |
+| Role | Required skills | Optional |
+|---|---|---|
+| **Implementer** | `swan-orchestrator`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `closeout-evidence-lock` | `swan-design-router` (for UI), `canonical-surface-audit` (for audits) |
+| **Reviewer A (correctness/security)** | `closeout-evidence-lock`, `verification-before-completion` | `audit-website`, `canonical-surface-audit` |
+| **Reviewer B (UX/data)** | `swan-design-router` dual-pass critique, `webapp-testing` | `agent-browser` |
+| **Tie-break Reviewer** | `verification-before-completion`, `closeout-evidence-lock` | All others as needed |
 
-### Handoff Evidence Requirements (Skills-Enhanced)
+### Handoff evidence requirements (Swan-enhanced)
 
 When handing off work, the Implementer must provide:
 
-1. **Build/test summary** — Use `verification-before-completion` to verify claims
+1. **Build/test summary** — Use `verification-before-completion`
 2. **Changed files list** — Standard git diff
 3. **Behavior verification** — Use `webapp-testing` or `agent-browser` for UI changes
-4. **Design compliance** — Use `web-design-guidelines` for any UI work
-5. **Review request** — Use `requesting-code-review` before merge
+4. **Canonical Surface Receipt** — From `canonical-surface-audit` if the task touched an existing UI/data-truth surface
+5. **Closeout report** — Use `closeout-evidence-lock` for every substantial task. Report must include Claim-to-Evidence Lock, dual-pass hostile review, and the 5-category substantive code-review checklist.
 
 ---
 
@@ -149,6 +200,7 @@ npx skills add <repo-url> --skill <skill-name> -y
 
 # List installed skills (manual)
 ls .agents/skills/
+ls .claude/skills/
 ```
 
 ---
@@ -157,19 +209,24 @@ ls .agents/skills/
 
 ### Do
 
+- Run `swan-orchestrator` as the first step of any non-trivial task
 - Run `verification-before-completion` before every commit message that says "fix" or "complete"
-- Run `web-design-guidelines` after any styled-component change
+- Run `closeout-evidence-lock` at the end of every substantial task
+- Route UI work through `swan-design-router` — do NOT bypass to `frontend-design`, `ui-ux-pro-max`, `high-end-visual-design`, or any other design skill as a default path
 - Use `systematic-debugging` when a fix attempt fails — never guess twice
-- Chain `webapp-testing` → `verification-before-completion` after UI features
-- Run `audit-website` with `--format llm` for token-efficient output
+- Chain `webapp-testing` → `verification-before-completion` → `closeout-evidence-lock` after UI features
+- Produce a Canonical Surface Receipt before touching any UI/data-truth bug
 
 ### Do Not
 
 - Skip `verification-before-completion` because "it's a small change"
+- Dispatch to `requesting-code-review` — it is broken (missing `superpowers:code-reviewer` dependency) and its intent is preserved in `closeout-evidence-lock`
+- Auto-load quarantined design skills (`minimalist-ui`, `industrial-brutalist-ui`, etc.) — they are explicit-invocation-only
+- Let `design-taste-frontend`'s LILA BAN override Swan's Dual-Button Glow rule (the router explicitly rejects LILA BAN when invoked)
 - Use `agent-browser` for tasks that `webapp-testing` handles better (framework-level testing)
 - Run `audit-website` in `full` mode on every deploy — use `quick` for iterative work
-- Bypass `requesting-code-review` for "simple" changes
 - Claim a fix without `systematic-debugging` Phase 1 (root cause) completed
+- Claim "end-to-end fixed" or "live surface patched" without a Canonical Surface Receipt in the same report (CLAUDE.md rule 28)
 
 ---
 
@@ -177,6 +234,11 @@ ls .agents/skills/
 
 - Skills CLI docs: https://skills.sh/docs
 - Skills CLI commands: https://skills.sh/docs/cli
-- This file: `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
+- Compact skills reference: `docs/ai-workflow/references/SKILLS-REFERENCE.md`
+- Swan visual source of truth: `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`
+- Swan asset + Seedance templates: `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`
+- Repo hygiene protocol: `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`
+- Active index: `ACTIVE-INDEX.md` at repo root
 - Handoff protocol: `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
 - Master handbook: `docs/MASTER-HANDBOOK.md`
+- This file: `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`

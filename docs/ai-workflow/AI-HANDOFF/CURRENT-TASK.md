@@ -5,6 +5,17 @@
 
 ---
 
+## SWAN COACH CONTINUITY POINTER (2026-04-11)
+
+Before starting any new Swan Coach slice, read:
+- `CLAUDE.md`
+- `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md`
+- `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md`
+
+This pointer exists because Swan Coach command-lane work has advanced well beyond the older snapshots in this file.
+
+---
+
 ## ACTIVE: Phase 10 — Production Monitoring Dashboard COMPLETE (2026-02-28)
 
 **Status:** Phase 10 COMPLETE. Persistent DB-backed monitoring, service extraction, threshold-based alerting, eval/drift/AB integration, 12 API endpoints, ~63 new tests, all passing.
@@ -417,8 +428,8 @@ Deterministic, no-network eval harness that tests the AI validation pipeline (`r
 - **Optional:** Manual smoke with trainer account (assigned + unassigned paths)
 
 ### Next-Phase Planning Source
-- **V5 Unified Plan (core):** `AI-Village-Documentation/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN.md` (180 lines)
-- **V5 Unified Plan (appendix):** `AI-Village-Documentation/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN-APPENDIX.md` (detailed 5C/5D/5E scope, Claude prompt)
+- **V5 Unified Plan (core):** `AI-Village-Documentation/plans/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN.md` (180 lines)
+- **V5 Unified Plan (appendix):** `AI-Village-Documentation/plans/SMART-WORKOUT-LOGGER-UNIFIED-V5-PLAN-APPENDIX.md` (detailed 5C/5D/5E scope, Claude prompt)
 - **Phase 5C Contract (core):** `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT.md` (385 lines)
 - **Phase 5C Contract (appendix):** `docs/ai-workflow/blueprints/PHASE-5C-LONG-HORIZON-PLANNING-CONTRACT-APPENDIX.md` (JSON examples, tests, UI details)
 - **Security Protocol:** `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`
@@ -750,14 +761,14 @@ Deterministic, no-network eval harness that tests the AI validation pipeline (`r
   4. `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
 - Record evidence for major changes (build, tests, screenshots/logs when relevant).
 - Use `verification-before-completion` skill before any completion claim.
-- Use `requesting-code-review` skill before merge to main.
+- Use `closeout-evidence-lock` skill at end of every substantial task (supersedes retired `requesting-code-review`; preserves the full substantive code-review checklist).
 - Do not merge unresolved high-severity findings.
 
-### Skills Infrastructure (2026-02-15)
-10 AI agent skills installed in `.agents/skills/`. Key skills:
-- **Process:** `verification-before-completion`, `systematic-debugging`, `requesting-code-review`, `test-driven-development`
-- **Testing/QA:** `webapp-testing`, `web-design-guidelines`, `audit-website`
-- **Browser/Design:** `agent-browser`, `frontend-design`, `ui-ux-pro-max`
+### Skills Infrastructure (Phase 2 routing — 2026-04-12)
+Swan visual operating system landed in commit `10aa70e7`. Strict model: `swan-design-router` is the only default-exposed design brain; `closeout-evidence-lock` is the default closeout skill. `requesting-code-review` removed from default use (broken `superpowers:code-reviewer` dependency; substantive checklist preserved in `closeout-evidence-lock`). 8 narrow design skills quarantined from default-steering (explicit-invocation-only) — see `docs/ai-workflow/references/SKILLS-REFERENCE.md` and `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md` for full list.
+- **Swan orchestration (5):** `swan-orchestrator`, `canonical-surface-audit`, `repo-hygiene-scan`, `swan-design-router`, `closeout-evidence-lock`
+- **KEEP core process (8):** `verification-before-completion`, `systematic-debugging`, `test-driven-development`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+- **Reference libraries (router-loaded, not default-steering):** `frontend-design`, `ui-ux-pro-max`
 - **Full registry:** `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
 - **Maintenance:** `npx skills check` | `npx skills update`
 

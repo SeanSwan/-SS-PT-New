@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-04-12
+**Last updated:** 2026-04-12 (Phase 2 routing)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -12,12 +12,14 @@
 
 ## 🔥 Operating core (read first)
 
-- **`CLAUDE.md`** — root operating rules, 39 mandatory rules, load order, common gotchas
+- **`CLAUDE.md`** — root operating rules, 41 mandatory rules, load order, common gotchas
 - **`ACTIVE-INDEX.md`** — this file (surface/archive map)
 - **`docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`** — cleanup workflow driven by rules 32–39
 - **`docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`** — plan-before-build, mandatory
+- **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — Swan visual source of truth (stack, narrative arc B2, C1-C12 pattern library)
+- **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes + Seedance 2.0 prompt templates
 
-These four files are the operating base. Everything else is loaded on-demand.
+These six files are the operating base. Everything else is loaded on-demand.
 
 ---
 
@@ -31,6 +33,31 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `HANDOFF-PROTOCOL.md` — how cross-AI handoff works
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
+
+---
+
+## 🎨 Swan visual operating system (Phase 1 landed 2026-04-12, commit 10aa70e7)
+
+**Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
+
+### Default-exposed Swan skills (5)
+Location: `.claude/skills/`
+- `swan-orchestrator` — pre-task gate for rules 15/17/26/32
+- `canonical-surface-audit` — rules 26-31 execution surface
+- `repo-hygiene-scan` — rules 32-39 execution surface
+- `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md)
+- `closeout-evidence-lock` — end-of-task evidence gate (preserves substantive code-review checklist from retired `requesting-code-review`)
+
+### Reference libraries loaded by `swan-design-router`, NOT default-steering
+- `frontend-design` — guardrails layer (accessibility, responsiveness, anti-generic)
+- `ui-ux-pro-max` — breadth / idea library
+- In Phase 1-2 these remain in `.claude/skills/`. In Phase 3 they relocate OFF the default-exposed surface; their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` (byte-identical copies already present, verified 2026-04-12).
+
+### Quarantined skills — explicit-invocation-only (8)
+These skills remain on disk but do NOT steer default design or closeout work:
+`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend` (LILA BAN conflict), `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review` (broken `superpowers:code-reviewer` dependency).
+
+**Future Phase 3 quarantine destination:** `archive/quarantined-skills/YYYY-MM-DD/` (date resolved at execution time). Phase 3 move is reversible via `git mv` back.
 
 ---
 
@@ -50,6 +77,8 @@ Core reference set (most frequently used):
 - `PRIVACY-PROXY.md`
 - `BUILD-HARDENING.md`
 - `REPO-HYGIENE-PROTOCOL.md` (NEW 2026-04-12)
+- `SWAN-CINEMATIC-DESIGN-SYSTEM.md` (NEW 2026-04-12)
+- `SWAN-ASSET-STORYBOARDING.md` (NEW 2026-04-12)
 
 Full topic → file table lives in `CLAUDE.md` under **Reference Docs**. Do not duplicate here.
 

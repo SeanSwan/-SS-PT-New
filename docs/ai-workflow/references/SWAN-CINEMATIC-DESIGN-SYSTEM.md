@@ -12,7 +12,7 @@ companions: SWAN-ASSET-STORYBOARDING.md
 
 **Purpose:** the Swan-specific visual operating system. Defines the stack, the visual grammar, the layout and interaction pattern library, the asset direction rules, and the Seedance 2.0 prompt integration for all SS-PT design work.
 
-**Scope:** marketing surfaces, client/trainer/admin dashboards, storefront, content studio, and every public-facing surface of swanstudios.com. This is not a marketing-only document — the same story-first grammar scales into dashboards.
+**Scope:** marketing surfaces, client/trainer/admin dashboards, storefront, content studio, and every public-facing surface of sswanstudios.com. This is not a marketing-only document — the same story-first grammar scales into dashboards.
 
 **Anti-scope:** generic AI layouts, Tailwind class-thinking, Galaxy-Swan tokens, lifeless 4-up KPI grids, centered-heading-plus-two-buttons hero template.
 
