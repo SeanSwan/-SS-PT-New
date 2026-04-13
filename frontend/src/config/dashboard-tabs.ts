@@ -504,39 +504,59 @@ export const CLIENT_DASHBOARD_TABS: DashboardTab[] = [
 ];
 
 // ─── Workspace Configuration (Phase 1) ─────────────────
+export type WorkspaceSection = 'command' | 'clients' | 'training' | 'business' | 'system';
+
 export interface WorkspaceConfig {
   id: string;
   label: string;
   icon: string;
   prefix: string;
   description: string;
+  section: WorkspaceSection;
   featureKey?: string; // Per-user feature flag — hides tab for non-admin users without access
 }
 
-// Workspace prefixes must match the canonical admin route paths in UnifiedAdminRoutes.tsx.
-// Canonical form: /dashboard/{workspace} (e.g. /dashboard/people, /dashboard/scheduling).
-// /dashboard/admin/... prefixes are LEGACY — they redirect but are NOT canonical.
+// Sidebar section headers (Gemini CD Kirin spec — Plus Jakarta Sans uppercase, Swan Lavender 60%)
+export const WORKSPACE_SECTIONS: { id: WorkspaceSection; label: string }[] = [
+  { id: 'command',  label: 'Command' },
+  { id: 'clients',  label: 'Clients & Ops' },
+  { id: 'training', label: 'Training' },
+  { id: 'business', label: 'Business' },
+  { id: 'system',   label: 'System' },
+];
+
+// Workspace prefixes must match the canonical admin route paths.
 export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
-  { id: 'coach', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — Training Assistant' },
-  { id: 'home', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
-  { id: 'people', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
-  { id: 'workouts', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & Swan Coach protocols' },
-  { id: 'bootcamp', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
-  { id: 'equipment', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
-  { id: 'scheduling', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
-  { id: 'gamification', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
-  { id: 'store', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },
-  { id: 'content', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management', featureKey: 'content-studio' },
-  { id: 'analytics', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/admin/revenue', description: 'Data analytics and insights' },
-  { id: 'marketing', label: 'Marketing', icon: 'Megaphone', prefix: '/dashboard/admin/marketing', description: 'SEO, content marketing, and competitor analysis' },
-  { id: 'security', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
-  { id: 'pain-charts', label: 'Pain Charts', icon: 'Heart', prefix: '/dashboard/admin/body-map', description: 'Client pain and injury tracking (body map)' },
-  { id: 'nutrition', label: 'Nutrition', icon: 'Apple', prefix: '/dashboard/admin/meal-planner', description: 'Nutrition intelligence and meal planning' },
-  { id: 'messages', label: 'Messages', icon: 'Mail', prefix: '/dashboard/admin/messages', description: 'Client and trainer messaging hub' },
-  { id: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
-  { id: 'immigration', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },
-  { id: 'my-home', label: 'My Home', icon: 'Home', prefix: '/dashboard/admin/my-home', description: '3D avatar home — unlocks at Level 10' },
-  { id: 'badge-creator', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
+  // ── COMMAND — top-level orchestration ──
+  { id: 'coach', section: 'command', label: 'Coach Assistant', icon: 'MessageCircle', prefix: '/dashboard/admin/coach-assistant', description: 'Swan Studios Coach — Training Assistant' },
+  { id: 'home', section: 'command', label: 'Dashboard', icon: 'Shield', prefix: '/dashboard/admin/overview', description: 'Executive command center' },
+  { id: 'messages', section: 'command', label: 'Messages', icon: 'Mail', prefix: '/dashboard/admin/messages', description: 'Client and trainer messaging hub' },
+
+  // ── CLIENTS & OPS — client lifecycle and scheduling ──
+  { id: 'people', section: 'clients', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/people', description: 'Client and team management' },
+  { id: 'waivers', section: 'clients', label: 'Waivers', icon: 'FileSignature', prefix: '/dashboard/admin/waivers', description: 'Waiver records, match approval, and manual linking' },
+  { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
+
+  // ── TRAINING — fitness programming and health ──
+  { id: 'workouts', section: 'training', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & Swan Coach protocols' },
+  { id: 'bootcamp', section: 'training', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
+  { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },
+  { id: 'pain-charts', section: 'training', label: 'Pain Charts', icon: 'Heart', prefix: '/dashboard/admin/body-map', description: 'Client pain and injury tracking (body map)' },
+  { id: 'nutrition', section: 'training', label: 'Nutrition', icon: 'Apple', prefix: '/dashboard/admin/meal-planner', description: 'Nutrition intelligence and meal planning' },
+
+  // ── BUSINESS — revenue, growth, engagement ──
+  { id: 'store', section: 'business', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },
+  { id: 'analytics', section: 'business', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/admin/revenue', description: 'Data analytics and insights' },
+  { id: 'marketing', section: 'business', label: 'Marketing', icon: 'Megaphone', prefix: '/dashboard/admin/marketing', description: 'SEO, content marketing, and competitor analysis' },
+  { id: 'gamification', section: 'business', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },
+  { id: 'content', section: 'business', label: 'Content Studio', icon: 'Video', prefix: '/dashboard/admin/content', description: 'Video and content management', featureKey: 'content-studio' },
+
+  // ── SYSTEM — infrastructure, personal, tools ──
+  { id: 'security', section: 'system', label: 'Security', icon: 'ShieldCheck', prefix: '/dashboard/admin/security', description: 'Vulnerability scanning, dependency health, and security posture' },
+  { id: 'system', section: 'system', label: 'System', icon: 'Settings', prefix: '/dashboard/admin/style-guide', description: 'System operations and settings' },
+  { id: 'badge-creator', section: 'system', label: 'Badge Creator', icon: 'Sparkles', prefix: '/dashboard/admin/badge-creator', description: 'AI-powered badge and icon generation' },
+  { id: 'immigration', section: 'system', label: 'Canada Immigration', icon: 'Globe', prefix: '/dashboard/admin/immigration', description: 'Immigration tracker & study platform' },
+  { id: 'my-home', section: 'system', label: 'My Home', icon: 'Home', prefix: '/dashboard/admin/my-home', description: '3D avatar home — unlocks at Level 10' },
 ];
 
 export default {

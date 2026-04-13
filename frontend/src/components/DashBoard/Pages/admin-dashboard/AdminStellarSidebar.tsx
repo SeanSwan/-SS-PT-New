@@ -31,12 +31,13 @@ import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useFeatureAccess } from '../../../../context/FeatureAccessContext';
 import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
-import { WORKSPACE_CONFIG, WorkspaceConfig } from '../../../../config/dashboard-tabs';
+import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig, WorkspaceSection } from '../../../../config/dashboard-tabs';
 import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
   Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck, FileSignature,
+  Mail, Heart, Apple, Sparkles, Home,
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
   DollarSign, Video, BarChart3, Settings, Globe,
   Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
+  Mail, Heart, Apple, Sparkles, Home,
 };
 
 const getIcon = (name: string, size = 20) => {
@@ -435,6 +437,34 @@ const Divider = styled.div<{ $collapsed: boolean }>`
   background: var(--border-soft, rgba(224, 236, 244, 0.06));
 `;
 
+/* Kirin section header — Plus Jakarta Sans 11px uppercase, Swan Lavender 60% */
+const SectionHeader = styled.div`
+  padding: 20px 20px 8px 20px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(64, 112, 192, 0.6);
+  user-select: none;
+  pointer-events: none;
+
+  &:first-of-type {
+    padding-top: 8px;
+  }
+`;
+
+/* Collapsed-state section rule — hairline divider, no label */
+const SectionRule = styled.div`
+  height: 1px;
+  margin: 16px 12px 8px 12px;
+  background: rgba(224, 236, 244, 0.06);
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+`;
+
 const SidebarFooter = styled.div<{ $collapsed: boolean }>`
   padding: ${({ $collapsed }) => ($collapsed ? '12px 8px' : '12px 16px')};
   border-top: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
@@ -596,26 +626,44 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         {/* Global Client Selector — only when sidebar is expanded */}
         {(!collapsed || isMobile) && <GlobalClientSelector />}
 
-        {/* Navigation items */}
+        {/* Navigation items — grouped by section with Kirin dividers */}
         <NavScroll>
-          {visibleWorkspaces.map((ws, i) => (
-            <NavItem
-              key={ws.id}
-              $active={isActive(ws.prefix)}
-              $collapsed={collapsed && !isMobile}
-              onClick={() => handleNav(ws.prefix)}
-              role="menuitem"
-              aria-label={ws.label}
-              aria-current={isActive(ws.prefix) ? 'page' : undefined}
-              style={{ animationDelay: `${i * 30}ms` }}
-            >
-              <NavIcon>{getIcon(ws.icon)}</NavIcon>
-              <NavLabel $visible={showLabel}>{ws.label}</NavLabel>
-              {collapsed && !isMobile && (
-                <NavTooltip>{ws.label}</NavTooltip>
-              )}
-            </NavItem>
-          ))}
+          {(() => {
+            let globalIndex = 0;
+            return WORKSPACE_SECTIONS.map((section) => {
+              const sectionItems = visibleWorkspaces.filter((ws) => ws.section === section.id);
+              if (sectionItems.length === 0) return null;
+              return (
+                <React.Fragment key={section.id}>
+                  {(!collapsed || isMobile) && (
+                    <SectionHeader aria-hidden="true">{section.label}</SectionHeader>
+                  )}
+                  {collapsed && !isMobile && <SectionRule aria-hidden="true" />}
+                  {sectionItems.map((ws) => {
+                    const i = globalIndex++;
+                    return (
+                      <NavItem
+                        key={ws.id}
+                        $active={isActive(ws.prefix)}
+                        $collapsed={collapsed && !isMobile}
+                        onClick={() => handleNav(ws.prefix)}
+                        role="menuitem"
+                        aria-label={ws.label}
+                        aria-current={isActive(ws.prefix) ? 'page' : undefined}
+                        style={{ animationDelay: `${i * 30}ms` }}
+                      >
+                        <NavIcon>{getIcon(ws.icon)}</NavIcon>
+                        <NavLabel $visible={showLabel}>{ws.label}</NavLabel>
+                        {collapsed && !isMobile && (
+                          <NavTooltip>{ws.label}</NavTooltip>
+                        )}
+                      </NavItem>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            });
+          })()}
 
           {/* My Training link for admin/trainer */}
           {(user?.role === 'admin' || user?.role === 'trainer') && (
