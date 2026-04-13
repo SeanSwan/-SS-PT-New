@@ -174,19 +174,20 @@ Always optimize mobile first, then desktop:
 
 ## 10) Installed Skills - Full Utilization Policy
 
-**Strict model (Phase 2 landed 2026-04-12):** `swan-design-router` is the only default-exposed design brain; `closeout-evidence-lock` is the default closeout skill. `requesting-code-review` is **removed from default use** (broken `superpowers:code-reviewer` dependency). 8 narrow design skills quarantined from default-steering. Full details in `docs/ai-workflow/references/SKILLS-REFERENCE.md`.
+**Strict model (Phase 3 landed 2026-04-12):** `swan-design-router` is the only default-exposed design brain; `closeout-evidence-lock` is the default closeout skill. `requesting-code-review` is **retired from default use** (broken `superpowers:code-reviewer` dependency; substantive checklist preserved in `closeout-evidence-lock`). 8 narrow design skills have been relocated from `.agents/skills/` to `archive/quarantined-skills/2026-04-12/`. Full details in `docs/ai-workflow/references/SKILLS-REFERENCE.md`.
 
-**Default-active set (13):**
+**Default-exposed `.claude/skills/` = 13 total:**
 - **Swan orchestration (5):** `swan-orchestrator`, `canonical-surface-audit`, `repo-hygiene-scan`, `swan-design-router`, `closeout-evidence-lock`
 - **KEEP core (8):** `verification-before-completion`, `systematic-debugging`, `test-driven-development`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
 
-**Reference libraries (router-loaded, not default-steering):** `frontend-design`, `ui-ux-pro-max`
+**Reference libraries (router-loaded from `.agents/skills/`, NOT default-exposed):**
+- `.agents/skills/frontend-design/SKILL.md`
+- `.agents/skills/ui-ux-pro-max/SKILL.md`
 
-**Quarantined (explicit-invocation-only):** `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`
+**Quarantined (explicit-invocation-only, stored at `archive/quarantined-skills/2026-04-12/`):** `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`
 
-Canonical location: `.agents/skills/*/SKILL.md`  
-Active runtime surface: `.claude/skills/` (curated subset).
-If `.claude/skills/` symlinks are missing/empty, use `.agents/skills/` directly.
+Active runtime surface: `.claude/skills/` (13 entries — Swan orchestration + KEEP core only).
+Reference libraries and quarantined skills are NOT in `.claude/skills/` and are not loaded by default.
 
 ### Mandatory chains
 1. **Bugfix chain**  

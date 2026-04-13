@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-04-12 (Phase 2 routing)
+**Last updated:** 2026-04-12 (Phase 3 quarantine move)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -36,28 +36,39 @@ Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
 
 ---
 
-## 🎨 Swan visual operating system (Phase 1 landed 2026-04-12, commit 10aa70e7)
+## 🎨 Swan visual operating system (Phase 3 landed 2026-04-12)
 
-**Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
+**Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). `.claude/skills/` contains exactly **13** default-exposed entries.
 
-### Default-exposed Swan skills (5)
-Location: `.claude/skills/`
+### Default-exposed `.claude/skills/` (13 total)
+
+**Swan orchestration (5):**
 - `swan-orchestrator` — pre-task gate for rules 15/17/26/32
 - `canonical-surface-audit` — rules 26-31 execution surface
 - `repo-hygiene-scan` — rules 32-39 execution surface
-- `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md)
+- `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md from `docs/ai-workflow/references/`, and the two reference libraries from `.agents/skills/`)
 - `closeout-evidence-lock` — end-of-task evidence gate (preserves substantive code-review checklist from retired `requesting-code-review`)
 
-### Reference libraries loaded by `swan-design-router`, NOT default-steering
-- `frontend-design` — guardrails layer (accessibility, responsiveness, anti-generic)
-- `ui-ux-pro-max` — breadth / idea library
-- In Phase 1-2 these remain in `.claude/skills/`. In Phase 3 they relocate OFF the default-exposed surface; their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` (byte-identical copies already present, verified 2026-04-12).
+**KEEP core (8, unchanged):**
+`systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+
+### Reference libraries loaded by `swan-design-router`, NOT default-exposed
+- `.agents/skills/frontend-design/SKILL.md` — guardrails layer (accessibility, responsiveness, anti-generic)
+- `.agents/skills/ui-ux-pro-max/SKILL.md` — breadth / idea library
+- These sources remain in place at `.agents/skills/`. They are **not archived** and **not quarantined**. They are loaded by the router on demand from their `.agents/skills/` paths. They are not in `.claude/skills/`.
 
 ### Quarantined skills — explicit-invocation-only (8)
-These skills remain on disk but do NOT steer default design or closeout work:
-`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend` (LILA BAN conflict), `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review` (broken `superpowers:code-reviewer` dependency).
+Sources relocated to **`archive/quarantined-skills/2026-04-12/`** as of Phase 3:
+- `minimalist-ui`
+- `industrial-brutalist-ui`
+- `high-end-visual-design`
+- `design-taste-frontend` (LILA BAN conflict)
+- `stitch-design-taste`
+- `redesign-existing-projects`
+- `web-design-guidelines`
+- `requesting-code-review` (retired — broken `superpowers:code-reviewer` dependency; substantive checklist inherited by `closeout-evidence-lock`)
 
-**Future Phase 3 quarantine destination:** `archive/quarantined-skills/YYYY-MM-DD/` (date resolved at execution time). Phase 3 move is reversible via `git mv` back.
+Phase 3 move is reversible via `git mv` back if any quarantined skill needs to return to the default-exposed surface.
 
 ---
 

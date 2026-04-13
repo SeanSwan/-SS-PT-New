@@ -1,7 +1,7 @@
 # AI Agent Skills
 > Reference doc extracted from CLAUDE.md. Loaded on-demand, not every message.
 > Read when: skill management, installed skills overview
-> **Last updated:** 2026-04-12 (Phase 2 routing — Swan visual operating system)
+> **Last updated:** 2026-04-12 (Phase 3 quarantine move — Swan visual operating system)
 
 ---
 
@@ -43,25 +43,20 @@ Location: `.claude/skills/`
 
 ---
 
-## Reference libraries loaded by `swan-design-router` (NOT default-steering)
+## Reference libraries loaded by `swan-design-router` (NOT default-exposed)
 
-| Skill | Role in Swan layer |
-|---|---|
-| `frontend-design` | Implementation constraint layer — accessibility, responsiveness, `:focus-visible`, anti-generic discipline. Router borrows its language for production guardrails. |
-| `ui-ux-pro-max` | Idea library — 50 styles, 21 palettes, 50 font pairings, 9 stacks. Router borrows its breadth for style-space exploration; router rejects Tailwind-biased suggestions. |
+| Skill | Canonical location | Role in Swan layer |
+|---|---|---|
+| `frontend-design` | `.agents/skills/frontend-design/SKILL.md` | Implementation constraint layer — accessibility, responsiveness, `:focus-visible`, anti-generic discipline. Router borrows its language for production guardrails. |
+| `ui-ux-pro-max` | `.agents/skills/ui-ux-pro-max/SKILL.md` | Idea library — 50 styles, 21 palettes, 50 font pairings, 9 stacks. Router borrows its breadth for style-space exploration; router rejects Tailwind-biased suggestions. |
 
-**Phase 1-2 location:** physically in `.claude/skills/` (still visible as user-invocable for explicit access).
-**Phase 3 target:** relocated OFF the default-exposed surface. Canonical post-Phase-3 paths:
-- `.agents/skills/frontend-design/SKILL.md`
-- `.agents/skills/ui-ux-pro-max/SKILL.md`
-
-Byte-identical copies already present in `.agents/skills/` — verified 2026-04-12 via `diff -q` returning zero output. Phase 3 is a file relocation only; no content migration.
+These sources are **not in `.claude/skills/`**. They are **not archived** and **not quarantined**. They are loaded on-demand by the router from their `.agents/skills/` paths. Phase 3 removed their former `.claude/skills/` junction entries from the default-exposed surface on 2026-04-12.
 
 ---
 
 ## Quarantined skills — explicit-invocation-only (8)
 
-These skills remain on disk but must NOT steer default design or closeout work. Invoke only when Sean explicitly names the skill by slash-command (`/minimalist-ui`, etc.). Their file presence in `.claude/skills/` during Phase 1-2 is transitional; Phase 3 physically relocates them.
+These skills have been relocated from `.agents/skills/` to `archive/quarantined-skills/2026-04-12/` as of Phase 3 (2026-04-12). Their former `.claude/skills/` junction entries have been removed from the default-exposed surface. Invoke only when Sean explicitly names the skill by slash-command. The Phase 3 move is reversible via `git mv` back.
 
 | Skill | Reason for quarantine |
 |---|---|
@@ -74,18 +69,14 @@ These skills remain on disk but must NOT steer default design or closeout work. 
 | `web-design-guidelines` | Review-only — overlaps with `verification-before-completion` + CLAUDE.md rules 22-23 design dual-pass. |
 | `requesting-code-review` | **Broken** — depends on missing `superpowers:code-reviewer` subagent. Substantive checklist preserved in `closeout-evidence-lock`. Do NOT dispatch to this skill. |
 
-**Future Phase 3 quarantine destination:** `archive/quarantined-skills/YYYY-MM-DD/` (date resolved at execution time). Phase 3 move is reversible via `git mv` back.
-
 ---
 
-## Skill count summary
+## Skill count summary (post-Phase-3, 2026-04-12)
 
-- **Default-active:** 13 (5 Swan orchestration + 8 KEEP core)
-- **Reference libraries (router-loaded, not steering):** 2 (`frontend-design`, `ui-ux-pro-max`)
-- **Quarantined (explicit-invocation-only):** 8
-- **Broader installed library (`.agents/skills/`):** 34 entries including 16 additional technical reference docs not mirrored into `.claude/skills/` — their default-steering behavior is not relied on here
-
-Post-Phase-3 target `.claude/skills/` count: **13** (Swan orchestration + KEEP core, with reference libraries living at `.agents/skills/` paths).
+- **Default-exposed `.claude/skills/`:** 13 (5 Swan orchestration + 8 KEEP core)
+- **Reference libraries (router-loaded from `.agents/skills/`, not default-exposed):** 2 (`frontend-design`, `ui-ux-pro-max`)
+- **Quarantined (relocated to `archive/quarantined-skills/2026-04-12/`, explicit-invocation-only):** 8
+- **Broader installed library (`.agents/skills/`):** 26 entries remaining after Phase 3 quarantine — including 16 additional technical reference docs not mirrored into `.claude/skills/` (their default-steering behavior is not relied on here) and the 2 reference libraries loaded by `swan-design-router`
 
 ---
 

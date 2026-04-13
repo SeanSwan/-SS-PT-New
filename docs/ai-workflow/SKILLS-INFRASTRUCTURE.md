@@ -1,7 +1,7 @@
 # Skills Infrastructure — SwanStudios AI Workflow
 
 **Purpose:** Canonical reference for all installed AI agent skills, their sources, when to use them, and how they integrate with the Swan operating layer and multi-AI handoff workflow.
-**Last Updated:** 2026-04-12 (Phase 2 routing — Swan visual operating system)
+**Last Updated:** 2026-04-12 (Phase 3 quarantine move — Swan visual operating system)
 **Owner:** SwanStudios Core Team
 **CLI:** `npx skills` (v1.3.9+) — https://skills.sh/
 
@@ -9,7 +9,7 @@
 
 ---
 
-## Strict-model discipline (MANDATORY — Phase 2 landed 2026-04-12)
+## Strict-model discipline (MANDATORY — Phase 3 landed 2026-04-12)
 
 - **`swan-design-router` is the ONLY default-exposed design brain.** All UI/visual work auto-routes through it (CLAUDE.md rule 40).
 - **`closeout-evidence-lock` is the default closeout skill.** All substantial task closeouts auto-route through it (rule 41).
@@ -20,10 +20,10 @@
 
 ## Installed Skills Inventory
 
-### File Layout
+### File Layout (post-Phase-3, 2026-04-12)
 
 ```
-.agents/skills/           ← Broader installed library (34 entries)
+.agents/skills/           ← Broader installed library (26 entries after Phase 3 quarantine)
 ├── swan-orchestrator/              ← Swan layer
 ├── canonical-surface-audit/        ← Swan layer
 ├── repo-hygiene-scan/              ← Swan layer
@@ -37,21 +37,24 @@
 ├── audit-website/                  ← KEEP core
 ├── full-output-enforcement/        ← KEEP core
 ├── seedance-swan-video/            ← KEEP core (Swan-specific)
-├── frontend-design/                ← Reference library (router-loaded)
-├── ui-ux-pro-max/                  ← Reference library (router-loaded)
-├── minimalist-ui/                  ← Quarantined (explicit-invocation-only)
-├── industrial-brutalist-ui/        ← Quarantined
-├── high-end-visual-design/         ← Quarantined
-├── design-taste-frontend/          ← Quarantined (LILA BAN conflict)
-├── stitch-design-taste/            ← Quarantined
-├── redesign-existing-projects/     ← Quarantined
-├── web-design-guidelines/          ← Quarantined
-├── requesting-code-review/         ← Quarantined (broken dependency)
+├── frontend-design/                ← Reference library (router-loaded, NOT mirrored into .claude/skills)
+├── ui-ux-pro-max/                  ← Reference library (router-loaded, NOT mirrored into .claude/skills)
 └── [16 additional technical reference docs not mirrored to .claude/skills — default-steering behavior not relied on here]
 
-.claude/skills/           ← Active runtime surface (23 entries as of 2026-04-12)
-└── [5 Swan + 8 KEEP core + 2 reference libraries + 8 quarantined = 23]
-    (Phase 3 target: 13 entries — after quarantine move + reference-library relocation)
+archive/quarantined-skills/2026-04-12/   ← Phase 3 quarantine destination (8 skills relocated from .agents/skills/)
+├── minimalist-ui/                  ← Narrow aesthetic
+├── industrial-brutalist-ui/        ← Narrow aesthetic
+├── high-end-visual-design/         ← Opinionated persona
+├── design-taste-frontend/          ← LILA BAN conflict
+├── stitch-design-taste/            ← Niche Google Stitch output
+├── redesign-existing-projects/     ← Audit-focused, noisy as default
+├── web-design-guidelines/          ← Review-only, overlaps with core
+└── requesting-code-review/         ← Broken superpowers:code-reviewer dependency
+                                       (code-reviewer.md template preserved alongside SKILL.md)
+
+.claude/skills/           ← Active runtime surface (13 entries as of 2026-04-12)
+└── [5 Swan orchestration + 8 KEEP core = 13]
+    No reference libraries, no quarantined skills. Strict model is fully enforced.
 ```
 
 ---
@@ -81,18 +84,18 @@
 | 12 | `full-output-enforcement` | pre-installed | Anti-truncation meta-rule |
 | 13 | `seedance-swan-video` | SS-PT-native | Swan-specific video prompt builder |
 
-### Reference libraries (router-loaded, NOT default-steering)
+### Reference libraries (router-loaded from `.agents/skills/`, NOT default-exposed)
 
-| # | Skill | Role |
+| # | Canonical path | Role |
 |---|---|---|
-| 14 | `frontend-design` | Implementation constraint layer — accessibility, responsiveness, `:focus-visible`, anti-generic discipline. Loaded by `swan-design-router`. |
-| 15 | `ui-ux-pro-max` | Idea library — 50 styles, 21 palettes, 9 stacks. Loaded by `swan-design-router` with Tailwind bias actively rejected. |
+| 14 | `.agents/skills/frontend-design/SKILL.md` | Implementation constraint layer — accessibility, responsiveness, `:focus-visible`, anti-generic discipline. Loaded by `swan-design-router`. |
+| 15 | `.agents/skills/ui-ux-pro-max/SKILL.md` | Idea library — 50 styles, 21 palettes, 9 stacks. Loaded by `swan-design-router` with Tailwind bias actively rejected. |
 
-**Phase 3 target:** these relocate OFF `.claude/skills/` to their canonical `.agents/skills/` paths (byte-identical copies already present — verified 2026-04-12 via `diff -q`).
+As of Phase 3 (2026-04-12), these are **not in `.claude/skills/`**. Their former junction entries have been removed from the default-exposed surface. They are **not archived** and **not quarantined** — the sources remain in place at `.agents/skills/` and are loaded on-demand by the router.
 
 ### Quarantined skills (8, explicit-invocation-only)
 
-These skills remain on disk but must NOT steer default design or closeout work. Invoke only when Sean explicitly names the skill by slash-command (`/minimalist-ui`, etc.). Phase 3 relocates them to `archive/quarantined-skills/YYYY-MM-DD/` (reversible via `git mv` back).
+As of Phase 3 (2026-04-12), these 8 skills have been relocated from `.agents/skills/` to **`archive/quarantined-skills/2026-04-12/`**. Their former `.claude/skills/` junction entries have been removed from the default-exposed surface. Invoke only when Sean explicitly names the skill by slash-command. The Phase 3 move is reversible via `git mv` back.
 
 | Skill | Reason for quarantine |
 |---|---|

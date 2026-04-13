@@ -46,8 +46,11 @@ docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md — Design philosophy,
 
 ### 3. Design Skills & Protocols
 ```
-.claude/skills/frontend-design/                    — Design quality guidelines, anti-slop rules
-.claude/skills/ui-ux-pro-max/                      — Design intelligence DB (styles, palettes, font pairings, UX rules, chart types). Run `python3 skills/ui-ux-pro-max/scripts/search.py --help` to query.
+.claude/skills/swan-design-router/SKILL.md         — Only default-exposed Swan design brain (loads the two reference libraries by path)
+.agents/skills/frontend-design/SKILL.md            — Implementation constraint layer (accessibility, responsiveness, anti-generic)
+.agents/skills/ui-ux-pro-max/SKILL.md              — Design intelligence DB (styles, palettes, font pairings, UX rules, chart types). Run `python3 .agents/skills/ui-ux-pro-max/scripts/search.py --help` to query.
+docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md  — Swan visual source of truth
+docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md      — Asset + Seedance 2.0 prompt templates
 ```
 
 ### 4. Existing Theme Reference

@@ -7,50 +7,23 @@ description: The only default-exposed design brain for SwanStudios. Routes all U
 
 **Role:** strict-model single default design brain for SS-PT. This is the ONLY skill that should auto-steer design work. All other design skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are explicit-invocation-only.
 
-## Strict-model architecture (final, decided 2026-04-12)
+## Strict-model architecture (Phase 3 landed 2026-04-12)
 
-**Post-quarantine default-exposed design surface = `swan-design-router` ONLY.**
+**Default-exposed design surface = `swan-design-router` ONLY.**
 
-After Phase 3 quarantine execution:
-- `.claude/skills/frontend-design/` is **removed** from the default-exposed surface. It is no longer a user-invocable skill in the runtime skill list.
-- `.claude/skills/ui-ux-pro-max/` is **removed** from the default-exposed surface. Same reason.
-- The canonical source locations for both become their copies under `.agents/skills/` — the broader installed library which already contains them.
-- This router loads them **by file path** from:
-  - `.agents/skills/frontend-design/SKILL.md`
-  - `.agents/skills/ui-ux-pro-max/SKILL.md`
-- If those paths are not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
+As of Phase 3:
+- `.claude/skills/` does **not** contain `frontend-design` or `ui-ux-pro-max`. Their former junction entries have been removed from the default-exposed surface.
+- The canonical source locations for both are at `.agents/skills/`. This router loads them **by file path** from there.
+- The 8 quarantined aesthetic/review skills have been relocated to `archive/quarantined-skills/2026-04-12/` and are no longer on the default-exposed surface. They remain reversible via `git mv` back.
+- If either reference-library path is not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
 
-**Phase timeline for this architecture:**
-
-- **Phase 1 (now):** this router's contract is documented here. `frontend-design` and `ui-ux-pro-max` physically remain in `.claude/skills/` — the router treats them as reference libraries per this contract, but they are still user-invocable until Phase 3 runs.
-- **Phase 2:** CLAUDE.md routing rules (40, 41) and the quarantined-skills list are added. Still no physical moves.
-- **Phase 3:** two distinct actions, no ambiguity:
-  1. **Quarantined skills relocate** to `archive/quarantined-skills/YYYY-MM-DD/` (date resolved at execution time). These 8 skills are quarantined, not deleted, and remain reversible via `git mv` back:
-     - `minimalist-ui`
-     - `industrial-brutalist-ui`
-     - `high-end-visual-design`
-     - `design-taste-frontend`
-     - `stitch-design-taste`
-     - `redesign-existing-projects`
-     - `web-design-guidelines`
-     - `requesting-code-review`
-  2. **Reference libraries `frontend-design` and `ui-ux-pro-max` do NOT go to the quarantine archive.** They simply stop existing on the `.claude/skills/` default-exposed surface. Their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md`, which already hold byte-identical copies (verified 2026-04-12 via `diff -q`). After Phase 3, the router loads them exclusively from `.agents/skills/`.
-
-**Post-Phase-3 `.claude/skills/` design exposure = `swan-design-router` ONLY.** No fallback phrasing, no "_archived" subfolder, no "or outright removal." The architecture says one thing: quarantined skills land in `archive/quarantined-skills/YYYY-MM-DD/`, reference libraries live in `.agents/skills/`, and `.claude/skills/` default-exposes exactly one design brain.
-
-A Phase 1 reader of this file sees two load-order sections below. The **"final load order"** is the Phase 3 target. The **"Phase 1 transitional load order"** is what the router uses today until Phase 3 runs.
-
-## Final load order (post-Phase-3 target — authoritative)
+## Load order (authoritative)
 
 1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
 2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
-3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts)
+3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts), 40-41 (design + closeout routing)
 4. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
 5. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
-
-## Phase 1 transitional load order (active until Phase 3 runs)
-
-Identical to the final load order except items 4 and 5 resolve at `.claude/skills/frontend-design/SKILL.md` and `.claude/skills/ui-ux-pro-max/SKILL.md` respectively. Files are identical at both locations today; only the path changes after Phase 3.
 
 If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
 

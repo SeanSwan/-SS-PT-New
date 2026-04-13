@@ -278,11 +278,13 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
-## Swan Visual Operating System (Phase 1 landed 2026-04-12, commit 10aa70e7)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 13)
 
-The strict-model design architecture is live. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
+The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
 
-### Default-exposed Swan skills (5)
+### Default-exposed `.claude/skills/` = 13 entries
+
+**Swan orchestration (5):**
 | Skill | Role |
 |---|---|
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
@@ -291,14 +293,14 @@ The strict-model design architecture is live. `swan-design-router` is the only d
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 
-### KEEP core skills (8, unchanged)
+**KEEP core (8, unchanged):**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
 
-### Reference libraries loaded by `swan-design-router`, NOT default-steering
-`frontend-design`, `ui-ux-pro-max` — physically in `.claude/skills/` during Phase 1-2. In Phase 3 they relocate OFF the default-exposed surface; their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` (byte-identical copies already present, verified 2026-04-12).
+### Reference libraries loaded by `swan-design-router`, NOT default-exposed
+`frontend-design` and `ui-ux-pro-max` live at `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` respectively. They are **not** in `.claude/skills/`. They are loaded on-demand by the router from their `.agents/skills/` paths. They are not archived and not treated as quarantined.
 
-### Quarantined skills — explicit-invocation-only, NOT default-steering (8)
-These skills are in `.claude/skills/` today but must not steer default design work. Do NOT auto-load them. Invoke only when Sean explicitly requests the specific aesthetic or review behavior by slash-command. In Phase 3 they relocate to `archive/quarantined-skills/YYYY-MM-DD/` (reversible via `git mv` back).
+### Quarantined skills — explicit-invocation-only (8, relocated to `archive/quarantined-skills/2026-04-12/`)
+These skills have been moved off the default-exposed surface. Their sources now live at `archive/quarantined-skills/2026-04-12/<name>/`. Do NOT auto-load them. Invoke only when Sean explicitly requests the specific aesthetic or review behavior by slash-command. The move is reversible via `git mv` back.
 
 | Skill | Why quarantined |
 |---|---|

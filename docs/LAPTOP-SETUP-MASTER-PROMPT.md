@@ -142,28 +142,30 @@ Requires `OPENROUTER_API_KEY` and `GEMINI_API_KEY` in .env.
 
 ### 6. INSTALL CLAUDE CODE SKILLS
 
-The project uses 10 AI agent skills in `.agents/skills/` (symlinked to `.claude/skills/`). Verify they exist:
+The project uses the Swan visual operating system landed 2026-04-12. `.claude/skills/` is the default-exposed runtime surface (Windows directory junctions into `.agents/skills/`). It contains 13 entries:
+
 ```bash
-ls .agents/skills/
+ls .claude/skills/
 ```
 
-You should see:
-- agent-browser/
-- audit-website/
-- frontend-design/
-- requesting-code-review/
-- systematic-debugging/
-- test-driven-development/
-- ui-ux-pro-max/
-- verification-before-completion/
-- web-design-guidelines/
-- webapp-testing/
+You should see (13 total):
+- **Swan orchestration (5):** `swan-orchestrator`, `canonical-surface-audit`, `repo-hygiene-scan`, `swan-design-router`, `closeout-evidence-lock`
+- **KEEP core (8):** `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`
 
-If the symlink is broken, recreate it:
-```bash
-# On Windows (run VS Code terminal as admin)
-mklink /D .claude\skills ..\agents\skills
+Reference libraries loaded by `swan-design-router` (NOT on the default-exposed surface):
+- `.agents/skills/frontend-design/SKILL.md` — implementation constraint layer
+- `.agents/skills/ui-ux-pro-max/SKILL.md` — idea library
+
+Quarantined skills (explicit-invocation-only, stored at `archive/quarantined-skills/2026-04-12/`):
+- `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`
+
+If the `.claude/skills/` junctions are missing on a fresh Windows laptop, recreate them per-entry (run terminal as admin):
+```cmd
+REM Example per Swan skill (repeat for each of the 13 default-exposed entries):
+mklink /J .claude\skills\swan-design-router ..\..\.agents\skills\swan-design-router
 ```
+Full registry + rules: `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
+Compact reference: `docs/ai-workflow/references/SKILLS-REFERENCE.md`
 
 ### 7. VERIFY SETUP
 
