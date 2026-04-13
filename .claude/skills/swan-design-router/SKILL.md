@@ -1,0 +1,271 @@
+---
+name: swan-design-router
+description: The only default-exposed design brain for SwanStudios. Routes all UI/visual work through the Swan Cinematic Design System and Asset Storyboarding source-of-truth docs. Enforces styled-components-first, Crystalline Swan palette, Dual-Button Glow rule, and anti-template discipline. Use for any component build, page design, redesign, or visual audit. Also handles Seedance 2.0 asset brief generation. Invoke at the start of any task that creates or modifies visible UI.
+---
+
+# Swan Design Router
+
+**Role:** strict-model single default design brain for SS-PT. This is the ONLY skill that should auto-steer design work. All other design skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are explicit-invocation-only.
+
+## Strict-model architecture (final, decided 2026-04-12)
+
+**Post-quarantine default-exposed design surface = `swan-design-router` ONLY.**
+
+After Phase 3 quarantine execution:
+- `.claude/skills/frontend-design/` is **removed** from the default-exposed surface. It is no longer a user-invocable skill in the runtime skill list.
+- `.claude/skills/ui-ux-pro-max/` is **removed** from the default-exposed surface. Same reason.
+- The canonical source locations for both become their copies under `.agents/skills/` — the broader installed library which already contains them.
+- This router loads them **by file path** from:
+  - `.agents/skills/frontend-design/SKILL.md`
+  - `.agents/skills/ui-ux-pro-max/SKILL.md`
+- If those paths are not present at runtime, the router falls back to CLAUDE.md + SWAN-CINEMATIC-DESIGN-SYSTEM.md alone and reports the missing reference explicitly in the task thread rather than silently degrading.
+
+**Phase timeline for this architecture:**
+
+- **Phase 1 (now):** this router's contract is documented here. `frontend-design` and `ui-ux-pro-max` physically remain in `.claude/skills/` — the router treats them as reference libraries per this contract, but they are still user-invocable until Phase 3 runs.
+- **Phase 2:** CLAUDE.md routing rules (40, 41) and the quarantined-skills list are added. Still no physical moves.
+- **Phase 3:** two distinct actions, no ambiguity:
+  1. **Quarantined skills relocate** to `archive/quarantined-skills/YYYY-MM-DD/` (date resolved at execution time). These 8 skills are quarantined, not deleted, and remain reversible via `git mv` back:
+     - `minimalist-ui`
+     - `industrial-brutalist-ui`
+     - `high-end-visual-design`
+     - `design-taste-frontend`
+     - `stitch-design-taste`
+     - `redesign-existing-projects`
+     - `web-design-guidelines`
+     - `requesting-code-review`
+  2. **Reference libraries `frontend-design` and `ui-ux-pro-max` do NOT go to the quarantine archive.** They simply stop existing on the `.claude/skills/` default-exposed surface. Their canonical location becomes `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md`, which already hold byte-identical copies (verified 2026-04-12 via `diff -q`). After Phase 3, the router loads them exclusively from `.agents/skills/`.
+
+**Post-Phase-3 `.claude/skills/` design exposure = `swan-design-router` ONLY.** No fallback phrasing, no "_archived" subfolder, no "or outright removal." The architecture says one thing: quarantined skills land in `archive/quarantined-skills/YYYY-MM-DD/`, reference libraries live in `.agents/skills/`, and `.claude/skills/` default-exposes exactly one design brain.
+
+A Phase 1 reader of this file sees two load-order sections below. The **"final load order"** is the Phase 3 target. The **"Phase 1 transitional load order"** is what the router uses today until Phase 3 runs.
+
+## Final load order (post-Phase-3 target — authoritative)
+
+1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
+2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
+3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts)
+4. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
+5. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
+
+## Phase 1 transitional load order (active until Phase 3 runs)
+
+Identical to the final load order except items 4 and 5 resolve at `.claude/skills/frontend-design/SKILL.md` and `.claude/skills/ui-ux-pro-max/SKILL.md` respectively. Files are identical at both locations today; only the path changes after Phase 3.
+
+If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
+
+## Ideation gate — 2-3 concept directions before coding (MANDATORY for net-new surfaces and major redesigns)
+
+Before writing any styled-components for a **net-new page, new surface, or major redesign**, produce 2-3 distinct concept directions in the task thread. Sean steers which one becomes the implementation. This is the ideation gate — Sean's first look at the design, before any file is touched.
+
+### When the ideation gate applies
+- New marketing pages or landing pages
+- New dashboard pages or new dashboard sections that occupy >50% of a surface
+- Any redesign of an existing surface where the visual direction may change
+- Any surface build where Sean has not already approved a direction
+
+### When the ideation gate can be skipped (small polish tasks)
+- Typo fixes
+- Single-property CSS adjustments (color, spacing, one radius)
+- Single-component bug fixes (chart NaN error, mapper shape correction)
+- Work explicitly scoped as "do this specific fix, do not redesign"
+- Any task where Sean has already explicitly named the direction
+
+If in doubt, run the gate. The cost of running it is one paragraph per concept. The cost of skipping it on something that needed it is a redesigned page Sean did not ask for.
+
+### Mandatory output for the ideation gate
+
+Produce 2-3 concept directions, each with this exact structure:
+
+```
+=== CONCEPT DIRECTION [N] ===
+
+NAME: [short evocative name — e.g. "Glacier Cathedral" or "Rainforest Ledger"]
+
+PAGE STORY ARC: [from SWAN-CINEMATIC-DESIGN-SYSTEM.md B2]
+  - Act 1: [what act 1 feels like in this direction]
+  - Act 2: [what act 2 feels like in this direction]
+  - Act 3: [what act 3 feels like in this direction]
+  - Act 4: [what act 4 feels like in this direction]
+  (for dashboards, use the 4-phase arc: orientation / current state / progress-insight / next-best-action)
+
+SECTION PATTERN STACK:
+  Act 1 → [C1/C4/etc.]
+  Act 2 → [C3/C6/C8/etc.]
+  Act 3 → [C2/C5/C9/etc.]
+  Act 4 → [C7/C10/etc.]
+
+EMOTIONAL JOBS PER ACT:
+  Act 1 → [awe/curiosity/etc.]
+  Act 2 → [trust/curiosity/etc.]
+  Act 3 → [momentum/aspiration/etc.]
+  Act 4 → [celebration/intimacy/etc.]
+
+SIGNATURE MOMENT: [the one memorable visual move this direction is built around]
+
+ASSET TYPE NEEDED:
+  [A1 video loop / A2 scroll-scrubbed sequence / A3 hero still / A4 carousel / A5 illustration / A6 3D / A7 letterform-embedded / A8 chart-as-narrative]
+  per act or per section as appropriate
+
+MOTION TIER: [tier-1 full cinema / tier-2 lean / tier-3 reduced — pick baseline expectation]
+
+WHY IT FITS THE PAGE STORY: [2-3 sentences naming what this direction does that the other directions do not]
+
+WHY IT COULD BE WRONG: [one explicit tradeoff or risk — "heavier on motion, may not land on tier-3", "asset-heavy, requires Seedance run first", etc.]
+```
+
+### Rules for the 2-3 directions
+
+1. **They must be meaningfully different.** Three variations of the same hero pattern with different palettes is not three directions. Three directions must disagree about the *story structure*, *pattern stack*, or *signature moment*.
+2. **At least one must be on the more restrained side.** Do not present three maximalist directions. One of the 2-3 must be lower-motion, lower-asset-weight, faster-to-ship — so Sean has a real tradeoff space.
+3. **At least one must use Act 1's emotional target of "awe"** (for marketing) or "orientation clarity" (for dashboards). The opening beat is where Swan wins or loses the user.
+4. **No direction may violate CLAUDE.md rules 1-11, 22-25, or the Dual-Button Glow rule.** All three must be valid Swan directions.
+5. **Each direction must be implementable end-to-end.** Do not present an exploratory fragment as a concept direction. If it cannot be built with the existing pattern library (C1-C12), name the new pattern it would require.
+
+### After Sean picks a direction
+
+Once Sean responds with "go with direction 2" (or similar):
+- Echo back which direction he picked and which he rejected
+- Produce the mandatory pre-task receipt (below) for the chosen direction only
+- Then implementation may begin
+
+If Sean asks for a hybrid ("take the shelf pattern from direction 1 but the dashboard arc from direction 3"), produce a fourth combined direction and wait for explicit sign-off on that one before coding.
+
+### Do not skip the gate under time pressure
+
+The existence of this gate is the single strongest tool against "Claude built something Sean did not actually want." Running it costs 5 minutes of planning. Skipping it costs a redesign.
+
+---
+
+## Mandatory pre-task receipt
+
+Before writing any design code, produce a mini-receipt in the task thread:
+
+```
+SURFACE: [component name or page path]
+SECTION TYPE: [C1-C12 from pattern library]
+EMOTIONAL JOB: [awe|trust|momentum|calm|aspiration|celebration|intimacy|curiosity]
+SIGNATURE MOMENT: [the one memorable visual move this section gets]
+STACK CHECK: styled-components-first confirmed | Victory for any chart | no Tailwind
+PALETTE CHECK: Crystalline Swan tokens only | no Galaxy-Swan | Dual-Button Glow if buttons present
+FALLBACK TIERS: tier-1 [full cinema] | tier-2 [lean] | tier-3 [reduced-motion]
+ASSETS NEEDED: [Seedance brief required? Y/N — if Y, produce brief per SWAN-ASSET-STORYBOARDING.md E1-E2]
+```
+
+No design code before this receipt.
+
+## Swan binding rules this router enforces
+
+### Palette (from CLAUDE.md)
+- Midnight Sapphire `#002060`, Royal Depth `#003080`, Ice Wing `#60C0F0`, Arctic Cyan `#50A0F0` (**data-only, not buttons/glow**), Gilded Fern `#C6A84B`, Frost White `#E0ECF4`, Swan Lavender `#4070C0`, Wing Purple `#8B5CF6`, Obsidian Black `#0A0A0F`, Carbon `#141419`, Graphite `#1A1A24`
+- Retired, **banned**: Galaxy-Swan `#0a0a1a`, `#00FFFF`, `#7851A9`
+
+### Dual-Button Glow rule (mandatory)
+- Blue bg → Purple glow
+- Purple bg → Cyan glow
+- Any library suggestion that conflicts (including `design-taste-frontend`'s LILA BAN) is **rejected**, not adapted
+
+### Typography
+- Plus Jakarta Sans (headings/UI), Cormorant Garamond Italic (drama/editorial), Fira Code (data/code), Sora (gaming-adjacent UI)
+- Never Inter/Roboto/Arial/Helvetica as display faces
+
+### Stack
+- styled-components-first, CSS Grid + Flexbox composition, Framer Motion default, GSAP only when scroll choreography genuinely benefits, R3F only for small surgical moments with `<Suspense>` fallback
+- No Tailwind classes in new code. When `ui-ux-pro-max` suggests a Tailwind idiom, translate it to styled-components idiom or reject it.
+- No MUI (CLAUDE.md rule 1)
+- Victory only for charts (rule 10)
+
+### Composition discipline
+- Grid must break — no `grid-template-columns: repeat(4, 1fr)` as default
+- One signature moment per section
+- Asymmetry > symmetry
+- Editorial hierarchy: headlines 64-120px, stats 96-160px, body 16-18px
+- 10 explicit bans from SWAN-CINEMATIC-DESIGN-SYSTEM.md section B — apply all
+
+## When the router says no
+
+The router actively rejects these outputs even if an underlying reference library suggests them:
+
+1. **Equal 4-up box grid as the default layout** — rejected, require asymmetry or shelf/editions pattern (C5)
+2. **Empty hero with centered heading + 2 buttons + abstract blob** — rejected, every hero needs a media surface co-lead (C1)
+3. **KPI row without media anchors** — rejected, use C9 media-first KPI block
+4. **Generic chart cards with identical framing** — rejected, use C11 premium dashboard chart environment
+5. **Tailwind class strings in styled-components files** — rejected, rewrite as styled-components composition
+6. **Centered everything for every section in sequence** — rejected, break the cadence with left-aligned editorial moments
+7. **Stock photography for full-bleed backgrounds** — rejected, require Seedance-generated asset aligned to the page's story
+8. **Decorative motion without an information job** — rejected, every motion beat must communicate
+9. **Galaxy-Swan color tokens** — hard rejected, retired theme
+10. **Purple button glow banned by LILA BAN** — rejected, Dual-Button Glow rule wins
+
+## Pattern library (C1-C12 quick reference)
+
+Full definitions in SWAN-CINEMATIC-DESIGN-SYSTEM.md section C. Quick reference:
+
+| Pattern | When to use |
+|---|---|
+| C1 Cinematic hero + video header | top-of-funnel declaration |
+| C2 Parallax story section | mid-page story beats (60-70% scroll) |
+| C3 Sticky foreground / changing background | 3-5 feature explanation |
+| C4 Embedded-media wordmark/letterform | signature brand moment |
+| C5 Shelf / editions / poster wall | storefront, content library, lineups |
+| C6 Flippable detail card | front/back content pairs |
+| C7 Hover tilt / depth card | gallery grids, storefront |
+| C8 Clustered / orbiting media nodes | feature discovery, "what can Swan do" |
+| C9 Media-first KPI / counter block | impact sections, about pages |
+| C10 Narrative section divider | every major section boundary |
+| C11 Premium dashboard chart environment | every Victory chart in dashboards |
+| C12 Subtle electric / glass panel system | underlying card/modal/drawer treatment |
+
+## Asset flow (when a task needs generated media)
+
+1. Identify the section type (C1-C12)
+2. Identify the emotional job (awe/trust/momentum/calm/aspiration/celebration/intimacy/curiosity)
+3. Identify the asset archetype from SWAN-ASSET-STORYBOARDING.md section A (A1-A8)
+4. Produce a Seedance brief using the master template (E1) and the matching vertical variant (E2)
+5. Include: scene, style, palette (with hex tokens named explicitly), motion, duration, aspect ratio, fallback still description, negative prompts
+6. Remind Seedance in the negative prompt to avoid retired Galaxy-Swan tones
+7. Document the brief in the task thread for Sean to run through Seedance 2.0
+8. Provision fallback tiers (tier-2 still, tier-3 CSS gradient) in the same component as the tier-1 video
+
+## Responsive audit matrix (required before closeout)
+
+Per CLAUDE.md rule 24, verify layouts at:
+- `320px` minimum handset
+- `375px` small iPhone
+- `414px` iPhone XR / Plus-class portrait
+- `768px` tablet portrait
+- `1024px` tablet landscape / small laptop
+- `1280px` laptop
+- `1440px` desktop
+- `1920px` 1080p desktop
+- `2560px` QHD / scaled 4K
+- `3440px` ultrawide
+
+## Dual-pass design critique (required, CLAUDE.md rule 23)
+
+After the first-pass build, run the hostile design critique checklist from CLAUDE.md's Premium Design Critique Loop before declaring the task complete:
+- generic/template feel
+- weak hierarchy or unclear CTA
+- inconsistent spacing rhythm
+- cheap-looking shadows, borders, or icon treatment
+- flat backgrounds with no depth or atmosphere
+- unreadable density or squeeze on mobile
+- motion that feels dead, noisy, or excessive
+- weak contrast or muddy dark-mode presentation
+- acceptable-but-not-premium components
+
+Fix the weakest areas before closeout. Report what was improved and which viewport widths were actually checked.
+
+## Interaction with other Swan skills
+
+- **`swan-orchestrator`** may call this router as part of task dispatch
+- **`canonical-surface-audit`** may be called before this router if the task is to fix an existing surface (rule 26 receipt first, design work second)
+- **`closeout-evidence-lock`** runs at the end of every task that used this router, to enforce the claim-to-evidence lock and the dual-pass design critique
+
+## Non-goals
+
+- This skill does not produce non-visual code
+- This skill does not perform route tracing or schema audits — that is `canonical-surface-audit`
+- This skill does not perform repo hygiene — that is `repo-hygiene-scan`
+- This skill does not write commits
+- This skill does not invoke quarantined aesthetic skills without explicit user request
