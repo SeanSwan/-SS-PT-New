@@ -61,6 +61,39 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 24. **Responsive audit matrix required** - verify layouts against the viewport matrix below, including `414px` for iPhone XR. Use CSS viewport widths, not marketing resolution labels alone.
 25. **Motion must stay premium and accessible** - motion should feel modern and intentional, but must stay GPU-safe and respect `prefers-reduced-motion`.
 
+26. **Canonical Surface Receipt (MANDATORY)** — Before any UI or data-truth bug fix, produce a written receipt with file:line evidence for: (a) route file that actually mounts the target URL, (b) mounted JSX page/component — a lazy `import()` declaration is NOT proof of mount, JSX usage is, (c) consumer hook/service, (d) exact frontend API path string literal, (e) backend route match, (f) authoritative model fields from the model file (not from nearby mapper code). No code may be written until the receipt exists in the task thread.
+
+27. **Surface Classification Table (MANDATORY)** — If more than one file/component/route/endpoint appears to serve the same product surface, classify each as:
+    - **canonical** — proven mounted in the live route tree, with file:line evidence
+    - **legacy** — not rendered by the currently verified canonical route tree for this surface
+    - **dormant** — exists but has no consumer (new-but-not-yet-wired, or intentional placeholder)
+    - **competing/ambiguous** — two or more surfaces may both be active; resolution required
+    Every row must include file:line evidence. If classification is ambiguous, stop and resolve with Sean before coding.
+
+28. **Claim-to-Evidence Lock (MANDATORY)** — Any closeout phrase of the form "end-to-end fixed," "live surface fixed," "truth restored," or "canonical surface patched" requires a Canonical Surface Receipt (rule 26) in the same report. Fixing a dormant or legacy path does not justify a canonical-surface claim — narrow the claim to "schema drift in legacy/orphaned file" and explicitly state which surface the fix does and does not reach.
+
+29. **Schema Cross-Check Artifact (MANDATORY)** — For any fix that touches a Sequelize (or equivalent ORM) model, the report must include: (a) real column list quoted from the model file with file:line, (b) repo-wide grep across `backend/routes`, `backend/controllers`, `backend/services` for the model name, (c) for every hit, the full list of fields that caller references on the model, (d) a drift table: `caller field → real model column → match | drift`. Memory-based "I think these fields exist" assumptions are forbidden.
+
+30. **Subagent Skepticism Rule (MANDATORY)** — Subagent output is a hypothesis, not root cause. For UI or data-truth work, a subagent's findings are not authoritative unless its output contains a Canonical Surface Receipt. If a subagent lacks that receipt, either re-prompt it with the Receipt requirement or construct the Receipt manually before acting.
+
+31. **Backend Route Ownership / Shadow Audit (MANDATORY)** — When mapping a frontend API path to a backend handler, list every Express `app.use(...)` and `router.(get|post|put|delete)(...)` that could match the **touched path** and any **overlapping sibling paths revealed by the route walk**, in mount order. If overlapping mounts exist (e.g. `/api/workout` and `/api/workout/sessions` both mounted), the shadowing condition must be called out explicitly before the handler is considered verified. Default scope is narrow — do NOT run a whole-repo mount-order audit on every task.
+
+32. **Repo Hygiene Scan Trigger (MANDATORY)** — Run a non-destructive hygiene scan before: major refactors or architecture changes, dashboard audits, route-tracing or debugging tasks with competing surfaces, and any fresh session where Sean says the repo feels confusing or cluttered. Also run after any large workstream that created many artifacts or planning docs. The scan must include root-level file inventory, competing-surface inventory, duplicate-route / duplicate-feature inventory, and a candidate archive/move list. **No files are moved or deleted during the scan.** Full workflow in `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`.
+
+33. **Active vs Archive vs Planned Classification (MANDATORY)** — Any non-trivial file discovered in a hygiene scan must be classified as exactly one of: active runtime code, active reference doc, planned/unimplemented blueprint, legacy but still referenced, orphaned candidate, archive-only historical record, QA artifact / screenshot / temp output. If classification is uncertain, mark it **ambiguous** and do not move it.
+
+34. **No Blind Cleanup Rule (MANDATORY)** — No file may be archived, moved, or deleted until imports/references are grep-checked, route mounts/usages are checked where relevant, and Sean's explicit approval is obtained for the cleanup execution. Fresh-chat cleanup is non-destructive by default. Never auto-clean by assumption. The phrases "safe to delete," "guaranteed deletable," and "nothing to lose" are forbidden — use "likely deletion candidate pending Phase 2 approval," "appears unreferenced based on current grep," or "requires final reference check before destructive action."
+
+35. **Root Directory Minimalism Rule (MANDATORY)** — The repo root stays intentionally lean. `CLAUDE.md` and `ACTIVE-INDEX.md` are the two operating files at root. Root-level screenshots, QA exports, temp logs, ad hoc markdown notes, and one-off artifacts should not accumulate indefinitely at root. But: do not move blindly. Classify first (rule 33), propose relocation into existing archive/QA folders (or a new approved structure), then execute only after approval.
+
+36. **Repo Index Requirement (MANDATORY)** — Maintain a lightweight index at `ACTIVE-INDEX.md` (repo root) that tells future sessions where active, planned, and archived material lives. The index must distinguish: active operating docs, active handoff docs, compact references, planned/unimplemented blueprints, archives (and what's in each), QA artifact locations. Target read time: under 2 minutes.
+
+37. **Cleanup Execution Is a Separate Pass (MANDATORY)** — Protocol creation/inventory and physical cleanup are separate passes. Do not mix new feature implementation, bug fixing, and repo cleanup in the same unbounded task unless explicitly approved by Sean.
+
+38. **Post-Task Hygiene Check (MANDATORY)** — At the end of any substantial task, report whether the work created new temp artifacts, new screenshots, new debate docs, or new obsolete files. If yes, add them to the cleanup backlog or archive plan explicitly.
+
+39. **Artifact Recurrence / .gitignore Rule (MANDATORY)** — If a hygiene scan identifies a recurring temp/log/build-artifact class (e.g. `combined.log`, `tsc-errors.txt`, ad hoc root `.png` QA dumps), Claude must propose the matching `.gitignore` update in the same cleanup plan so the same clutter does not repopulate the repo root after cleanup. The `.gitignore` proposal is part of Phase 1 planning output; the actual `.gitignore` edit happens only with Sean's explicit approval in Phase 2.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -188,17 +221,17 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - Batch multi-step instructions into single messages
 
 - Prefer compact refs in `docs/ai-workflow/references/` over heavyweight docs in `AI-Village-Documentation/`
-- Read `validation-prompts/latest/summary.md` before any full validation report or debate transcript
+- Read `AI-Village-Documentation/validation-prompts/latest/summary.md` before any full validation report or debate transcript
 - Never load `archive/`, `full-report.md`, old onboarding prompts, or the full handbook by default
 - Use exact-file prompts with exact questions and expected output format to avoid broad context waste
 
 ## Source of Truth & Load Order (MANDATORY)
-1. `CLAUDE.md` is the root operating index.
+1. `CLAUDE.md` is the root operating index, paired with `ACTIVE-INDEX.md` (repo root) as the compact surface/archive map for "where does X live" questions.
 2. `docs/ai-workflow/references/*.md` are the compact source-of-truth refs. Load only the exact topic doc needed.
 3. Then read the exact task files, implementation files, or debate file in scope.
-4. For AI Village work, read `validation-prompts/latest/summary.md` first, then only the failing or relevant track reports.
+4. For AI Village work, read `AI-Village-Documentation/validation-prompts/latest/summary.md` first, then only the failing or relevant track reports.
 5. For cross-AI sessions, prefer `AI-Village-Documentation/AI-VILLAGE-BOOTSTRAP-PROMPT.md` over the full onboarding prompt.
-6. Heavy docs stay cold unless the task is explicitly about them: `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`, `AI-Village-Documentation/archive/retired-prompt-surface-2026-04-09/*`, `validation-prompts/archive/*`, `full-report.md`.
+6. Heavy docs stay cold unless the task is explicitly about them: `AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md`, `AI-Village-Documentation/archive/retired-prompt-surface-2026-04-09/*`, `AI-Village-Documentation/validation-prompts/archive/*`, `full-report.md`.
 7. Archives are reference-only, never default reading.
 8. Side-project, internal-only, or experimental plans are never part of default context unless Sean explicitly requests them by name.
 9. If docs conflict: `CLAUDE.md` > compact reference doc in `docs/ai-workflow/references/` > current task/debate file > latest validation outputs > heavyweight handbook/onboarding docs > archives.
@@ -228,6 +261,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Anti-AI-Tells | `docs/ai-workflow/references/ANTI-AI-TELLS.md` | UI component design |
 | Visual Diff Loop | `docs/ai-workflow/references/VISUAL-DIFF-LOOP.md` | UI QA screenshots |
 | File Cleanup | `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` | Cleanup tasks |
+| Repo Hygiene Protocol | `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` | **MANDATORY** — before refactors, audits, route-tracing with competing surfaces, or fresh sessions where the repo feels cluttered. Drives rules 32-39. |
 | Auto Research | `docs/ai-workflow/references/AUTO-RESEARCH.md` | Running skill optimization |
 | App AI Hive Mind | `docs/ai-workflow/references/APP-AI-HIVE-MIND.md` | AI chat features |
 | Hermes + Wiki + Mythos | `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md` | AI command center, Hermes Agent, Karpathy Wiki, Mythos planning |
