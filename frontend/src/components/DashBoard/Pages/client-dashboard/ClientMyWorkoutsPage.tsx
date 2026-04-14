@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
+import ClientMyWorkoutsPagination from './ClientMyWorkoutsPagination';
 import {
   PageContainer, Header, Title, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
   WorkoutCard, WorkoutHeader, WorkoutInfo, WorkoutDate, WorkoutTitle, WorkoutMeta,
@@ -104,6 +105,10 @@ function groupLogs(logs: WorkoutLog[]): Record<string, WorkoutLog[]> {
   return groups;
 }
 
+// Canonical pagination window size. Matches useDashboardQueries default;
+// kept as a local const so the page contract is explicit and testable.
+const PAGE_LIMIT = 50;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // TanStack Query handles caching, deduplication, abort on unmount
@@ -112,9 +117,18 @@ function groupLogs(logs: WorkoutLog[]): Record<string, WorkoutLog[]> {
 const ClientMyWorkoutsPage: React.FC = () => {
   const navigate = useNavigate();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Canonical pagination state. Canonical-surface-audit 2026-04-13: the prior
+  // canonical consumer never sent page>1, so the backend controller's
+  // page→offset translation (added earlier) was unreachable from real UI.
+  // This state + the Next/Previous controls at the bottom of the list make
+  // page 2+ reachable for clients with >50 logged workouts.
+  const [page, setPage] = useState<number>(1);
 
   // TanStack Query: automatic caching + AbortController on unmount
-  const { data: workouts = [] as WorkoutSession[], isLoading, error, refetch } = useWorkoutSessions({ limit: 50 });
+  const { data: workouts = [] as WorkoutSession[], isLoading, error, refetch } = useWorkoutSessions({
+    limit: PAGE_LIMIT,
+    page,
+  });
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -158,37 +172,64 @@ const ClientMyWorkoutsPage: React.FC = () => {
     <PageContainer>
       <Header>
         <Title><Dumbbell size={22} style={{ color: 'var(--accent-primary, #60C0F0)' }} /> My Workouts</Title>
-        <LogBtn onClick={() => navigate('/dashboard/workouts/logger')}>
+        <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
           <Dumbbell size={16} /> Log Workout
         </LogBtn>
       </Header>
 
       {workouts.length === 0 ? (
-        <EmptyState>
-          <Dumbbell size={48} style={{ opacity: 0.3, color: 'var(--accent-primary, #60C0F0)' }} />
-          <EmptyTitle>No workouts logged yet</EmptyTitle>
-          <EmptyText>Complete your first training session to see your workout history with detailed set breakdowns.</EmptyText>
-          <LogBtn onClick={() => navigate('/dashboard/workouts/logger')}>
-            <Dumbbell size={16} /> Log Your First Workout
-          </LogBtn>
-        </EmptyState>
+        // Empty branch splits by page to avoid the "empty-page trap" where
+        // Next past the last real page returns [] and would otherwise strand
+        // the user on a fake-empty state with no Previous control.
+        <>
+          <EmptyState>
+            <Dumbbell size={48} style={{ opacity: 0.3, color: 'var(--accent-primary, #60C0F0)' }} />
+            <EmptyTitle>
+              {page > 1 ? 'End of history' : 'No workouts logged yet'}
+            </EmptyTitle>
+            <EmptyText>
+              {page > 1
+                ? 'No more workouts on this page. Use Previous to go back.'
+                : 'Complete your first training session to see your workout history with detailed set breakdowns.'}
+            </EmptyText>
+            {page === 1 && (
+              <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
+                <Dumbbell size={16} /> Log Your First Workout
+              </LogBtn>
+            )}
+          </EmptyState>
+          {page > 1 && (
+            <ClientMyWorkoutsPagination
+              page={page}
+              currentPageCount={0}
+              limit={PAGE_LIMIT}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => p + 1)}
+            />
+          )}
+        </>
       ) : (
         <>
+          {/* Stat cards reflect the CURRENT PAGE slice only, not lifetime
+              totals — the canonical /api/workout/sessions endpoint does not
+              return a total count, so labels are explicitly page-scoped to
+              avoid the "Total Workouts = 7" misleading-data-truth regression
+              called out in the canonical-surface-audit 2026-04-13 review. */}
           <StatsRow>
             <StatCard>
               <TrendingUp size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
               <StatValue>{totalWorkouts}</StatValue>
-              <StatLabel>Total Workouts</StatLabel>
+              <StatLabel>On This Page</StatLabel>
             </StatCard>
             <StatCard>
               <Calendar size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
               <StatValue>{thisWeek}</StatValue>
-              <StatLabel>This Week</StatLabel>
+              <StatLabel>This Week (on page)</StatLabel>
             </StatCard>
             <StatCard>
               <Weight size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
               <StatValue>{totalVolume > 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</StatValue>
-              <StatLabel>Total Volume (lbs)</StatLabel>
+              <StatLabel>Page Volume (lbs)</StatLabel>
             </StatCard>
           </StatsRow>
 
@@ -267,6 +308,14 @@ const ClientMyWorkoutsPage: React.FC = () => {
               </WorkoutCard>
             );
           })}
+
+          <ClientMyWorkoutsPagination
+            page={page}
+            currentPageCount={workouts.length}
+            limit={PAGE_LIMIT}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+          />
         </>
       )}
     </PageContainer>

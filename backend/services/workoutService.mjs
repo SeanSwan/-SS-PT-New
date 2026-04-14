@@ -24,21 +24,25 @@ import { getAllModels } from '../models/index.mjs';
 async function getWorkoutSessions(userId, options = {}) {
   // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
   const models = getAllModels();
-  const { WorkoutSession, WorkoutExercise, Exercise, MuscleGroup, Equipment, Set } = models;
-  
-  const { limit = 10, offset = 0, status, startDate, endDate, sort = 'startedAt', order = 'DESC' } = options;
-  
-  // 🚀 Build where clause efficiently
+  const { WorkoutSession, WorkoutExercise, Exercise, MuscleGroup, Set, WorkoutLog } = models;
+
+  // Canonical-surface-audit 2026-04-12 fix: admin logger writes detail rows
+  // into WorkoutLog (not WorkoutExercise), leaves startedAt null, and sets
+  // date+completedAt. Without these changes, trainer-logged sessions render
+  // with "No exercise data recorded" and sort to the bottom via NULLS LAST.
+  const { limit = 10, offset = 0, status, startDate, endDate, sort, order = 'DESC' } = options;
+
+  // Where clause — filter by `date` (admin logger's canonical column)
+  // rather than `startedAt` (null for trainer-logged rows).
   const whereClause = { userId, ...(status && { status }) };
-  
   if (startDate || endDate) {
-    whereClause.startedAt = {
+    whereClause.date = {
       ...(startDate && { [Op.gte]: new Date(startDate) }),
       ...(endDate && { [Op.lte]: new Date(endDate) })
     };
   }
-  
-  // Build Exercise sub-includes — only add associations whose join tables exist
+
+  // Exercise sub-includes — only add associations whose join tables exist
   const exerciseIncludes = [];
   if (MuscleGroup) {
     exerciseIncludes.push({
@@ -54,29 +58,70 @@ async function getWorkoutSessions(userId, options = {}) {
   }
   // Equipment association skipped — exercise_equipment join table does not exist in production
 
-  return WorkoutSession.findAll({
-    where: whereClause,
-    include: [{
+  // Build include list. Both hasMany relations use `separate: true` so they
+  // each run as an independent SELECT keyed on the parent row ids. Without
+  // separate, stacking two hasMany includes under a parent LIMIT produces
+  // row multiplication that breaks LIMIT semantics and can return the wrong
+  // parent rows.
+  const include = [];
+
+  // Primary canonical source for trainer-logged detail rows. The admin
+  // workout logger writes one WorkoutLog row per set via bulkCreate.
+  if (WorkoutLog) {
+    include.push({
+      model: WorkoutLog,
+      as: 'logs',
+      separate: true,
+      required: false,
+      attributes: ['id', 'exerciseName', 'setNumber', 'reps', 'weight', 'tempo', 'rest', 'rpe', 'notes'],
+      order: [['setNumber', 'ASC']],
+    });
+  }
+
+  // Legacy normalized workout structure — still supported for consumers
+  // that expect the WorkoutExercise → Exercise → Set chain.
+  if (WorkoutExercise) {
+    const exerciseInnerIncludes = [];
+    if (Exercise) {
+      // Note: no `category` column — Exercise model has id/name/description/difficulty/exerciseType.
+      // Pre-existing stale attribute was previously masked by the controller's silent-failure
+      // fallback on SequelizeDatabaseError; removed here so `separate:true` includes can succeed.
+      exerciseInnerIncludes.push({
+        model: Exercise,
+        as: 'exercise',
+        attributes: ['id', 'name', 'description', 'difficulty', 'exerciseType'],
+        include: exerciseIncludes,
+      });
+    }
+    if (Set) {
+      exerciseInnerIncludes.push({
+        model: Set,
+        as: 'sets',
+        order: [['setNumber', 'ASC']],
+      });
+    }
+    include.push({
       model: WorkoutExercise,
       as: 'exercises',
+      separate: true,
       required: false,
-      include: [
-        {
-          model: Exercise,
-          as: 'exercise',
-          attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
-          include: exerciseIncludes
-        },
-        {
-          model: Set,
-          as: 'sets',
-          order: [['setNumber', 'ASC']]
-        }
-      ]
-    }],
-    order: [[sort, order]],
+      include: exerciseInnerIncludes,
+    });
+  }
+
+  // Ordering: an explicit caller sort always wins (back-compat). Default
+  // fallback ranks trainer-logged (startedAt=null, completedAt+date=set)
+  // and self-logged sessions fairly via a Postgres literal with NULLS LAST.
+  const orderClause = sort
+    ? [[sort, order]]
+    : sequelize.literal('"completedAt" DESC NULLS LAST, "date" DESC NULLS LAST, "startedAt" DESC NULLS LAST');
+
+  return WorkoutSession.findAll({
+    where: whereClause,
+    include,
+    order: orderClause,
     limit,
-    offset
+    offset,
   });
 }
 
@@ -116,7 +161,10 @@ async function getWorkoutSessionById(sessionId) {
           {
             model: Exercise,
             as: 'exercise',
-            attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
+            // Canonical-surface-audit 2026-04-13: `category` column does not exist on
+            // Exercise model (see backend/models/Exercise.mjs). Stale attribute removed
+            // here to match the sibling fix already landed on getWorkoutSessions.
+            attributes: ['id', 'name', 'description', 'difficulty', 'exerciseType'],
             include: exerciseIncludes
           },
           {

@@ -216,27 +216,46 @@ import logger from '../utils/logger.mjs';
 export async function getWorkoutSessions(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
-    
-    // Extract query parameters
-    const { limit, offset, status, startDate, endDate, sort, order } = req.query;
-    
+
+    // Extract query parameters. Canonical-surface-audit 2026-04-12 fix: the
+    // frontend canonical consumer (useDashboardQueries.useWorkoutSessions)
+    // sends { limit, page }; this controller must translate page → offset
+    // so pagination beyond page 1 actually works. Explicit offset wins when
+    // both are provided to preserve back-compat with any older caller.
+    const { limit, offset, page, status, startDate, endDate, sort, order } = req.query;
+
+    const parsedLimit = limit !== undefined ? parseInt(limit, 10) : undefined;
+
+    let parsedOffset;
+    if (offset !== undefined) {
+      parsedOffset = parseInt(offset, 10);
+    } else if (page !== undefined) {
+      const parsedPage = parseInt(page, 10);
+      const pageNum = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+      // Service default limit is 10 — keep the page contract predictable
+      // when the caller omits limit instead of silently returning offset=0.
+      const effectiveLimit = parsedLimit || 10;
+      parsedOffset = (pageNum - 1) * effectiveLimit;
+    }
+
     // Get sessions
     const sessions = await workoutService.getWorkoutSessions(userId, {
-      limit: limit ? parseInt(limit) : undefined,
-      offset: offset ? parseInt(offset) : undefined,
+      limit: parsedLimit,
+      offset: parsedOffset,
       status,
       startDate,
       endDate,
       sort,
       order
     });
-    
+
     return successResponse(res, { sessions });
   } catch (error) {
-    // Non-fatal: table may not exist yet (workout_sessions not migrated)
-    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
-      return successResponse(res, { sessions: [], total: 0 });
-    }
+    // Canonical-surface-audit 2026-04-13: silent-failure mask removed.
+    // The prior `if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist'))`
+    // shortcut swallowed real schema drift (it hid `column "exercise.category" does not exist`
+    // for years, which in turn made every client dashboard show zero data under the old code path).
+    // Every unexpected error now propagates as a logged 500 so drift surfaces loudly.
     logger.error(`Error getting workout sessions: ${error.message}`, { stack: error.stack });
     return errorResponse(res, 500, 'Failed to get workout sessions', error);
   }
