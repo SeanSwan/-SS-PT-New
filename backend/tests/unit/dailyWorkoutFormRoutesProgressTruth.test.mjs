@@ -182,6 +182,60 @@ describe('dailyWorkoutFormRoutes — muscleGroup bucketing truth (Phase 2 writer
   });
 });
 
+describe('dailyWorkoutFormRoutes — writer-default-value defensive locks (Phase 5 UX audit)', () => {
+  // Phase 5 audit 2026-04-13: WorkoutLogger.tsx seeds neutral defaults
+  // (formRating=3 at lines 173/223/266/406/435, set.rpe=5 in createEmptySet
+  // at :423, overallIntensity=5 in state init at :112) and handleSubmit at
+  // :514-548 does not enforce explicit slider interaction before submitting.
+  // A trainer who logs a workout without touching the sliders persists
+  // neutral defaults that render as flat/centered chart output on Form
+  // Quality, RPE Distribution, and Session Intensity.
+  //
+  // The truthful fix is writer-side: change defaults to null/undefined and
+  // gate submit on explicit input. That fix requires touching WorkoutLogger
+  // .tsx (currently dirty with unrelated carryover) and is recommended as a
+  // separate slice. These tests lock the EXISTING null-safe behavior of the
+  // backend reducers so the writer-side fix can land without read-chain
+  // adjustments.
+
+  it('formTrends reducer uses a truthy filter on ex.formRating — handles null/undefined safely', () => {
+    // The current filter is `exercises.filter(ex => ex.formRating)` which
+    // drops 0/null/undefined and keeps 1-5. When the writer-side fix changes
+    // the default from `3` to `null`, untouched exercises will be filtered
+    // out automatically and the chart will only average over real ratings.
+    expect(source).toMatch(/exercises\.filter\(\s*ex\s*=>\s*ex\.formRating\s*\)/);
+  });
+
+  it('RPE bucketing guards on Number.isFinite + 1..10 range — handles null/undefined safely', () => {
+    // The current guard is `Number.isFinite(rpeVal) && rpeVal >= 1 && rpeVal <= 10`.
+    // parseInt(null) and parseInt(undefined) both return NaN, which fails
+    // Number.isFinite, so untouched sets will be silently skipped after the
+    // writer-side fix flips the default to null.
+    expect(source).toMatch(
+      /Number\.isFinite\(rpeVal\)\s*&&\s*rpeVal\s*>=\s*1\s*&&\s*rpeVal\s*<=\s*10/
+    );
+  });
+
+  it('sessionIntensity reducer reads form.formData?.overallIntensity with a defensive coercion', () => {
+    // Today the reducer ships `intensity: form.formData?.overallIntensity || 0`.
+    // Once the writer-side fix flips overallIntensity default to null, this
+    // coercion will produce 0-intensity entries — a follow-up read-chain fix
+    // must add `.filter(s => s.intensity > 0)` before shipping. Lock the
+    // current shape so the follow-up is forced through review.
+    expect(source).toMatch(
+      /intensity:\s*form\.formData\?\.overallIntensity\s*\|\|\s*0/
+    );
+  });
+
+  it('rpeDistribution reducer iterates set.rpe (not session-level intensity)', () => {
+    // Anti-regression: a future "simplification" that swaps per-set rpe for
+    // per-form overallIntensity would change the chart's semantics from
+    // "RPE distribution across all sets" to "RPE distribution across
+    // sessions" — wrong. Lock the per-set iteration shape.
+    expect(source).toMatch(/parseInt\(set\.rpe,\s*10\)/);
+  });
+});
+
 describe('dailyWorkoutFormRoutes — fallback handler per-role access (BLOCKER-1, source-level)', () => {
   // The handler body must enforce what the router-level middleware used to:
   //   - client role → only self (requestingUserId === parsedClientId)
