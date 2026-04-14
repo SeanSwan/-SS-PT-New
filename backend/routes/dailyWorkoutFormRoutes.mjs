@@ -793,23 +793,38 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
 
 /**
  * @route   GET /api/workout-forms/client/:clientId/progress
- * @desc    Get NASM progress data for client charts
- * @access  Trainer (assigned clients) or Admin (all clients)
+ * @desc    Get legacy progress data for client charts
+ * @access  Trainer (assigned clients), Admin (all clients), or Client (self only)
  * @query   ?timeRange=3months&startDate=2025-01-01&endDate=2025-01-31
  */
-router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req, res) => {
+router.get('/client/:clientId/progress', protect, async (req, res) => {
   try {
     const { clientId } = req.params;
     const { timeRange = '3months', startDate, endDate } = req.query;
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
+    const parsedClientId = parseInt(clientId, 10);
+
+    if (!parsedClientId || isNaN(parsedClientId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid client ID is required'
+      });
+    }
 
     // Check access permissions
-    if (requestingUserRole === 'trainer') {
+    if (requestingUserRole === 'client') {
+      if (String(requestingUserId) !== String(parsedClientId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Clients can only view their own progress'
+        });
+      }
+    } else if (requestingUserRole === 'trainer') {
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId),
+          clientId: parsedClientId,
           trainerId: requestingUserId,
           status: 'active'
         }
@@ -821,6 +836,11 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
           message: 'You are not assigned to this client'
         });
       }
+    } else if (requestingUserRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
     }
 
     // Calculate date range
@@ -882,7 +902,7 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
     try {
       forms = await DailyWorkoutForm.findAll({
         where: {
-          clientId: parseInt(clientId),
+          clientId: parsedClientId,
           date: dateRange
         },
         order: [['date', 'ASC']]
@@ -934,14 +954,11 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
       };
     });
 
-    // Mock NASM categories (this would be enhanced with actual NASM data)
-    const categories = [
-      { category: 'Core Stability', level: 750, maxLevel: 1000, percentComplete: 75 },
-      { category: 'Balance', level: 600, maxLevel: 1000, percentComplete: 60 },
-      { category: 'Strength', level: 800, maxLevel: 1000, percentComplete: 80 },
-      { category: 'Power', level: 400, maxLevel: 1000, percentComplete: 40 },
-      { category: 'Agility', level: 550, maxLevel: 1000, percentComplete: 55 }
-    ];
+    // canonical-surface-audit 2026-04-13:
+    // The legacy fallback must not invent NASM category levels. When no
+    // truthful classification exists, return an empty collection so the
+    // mounted client chart can stay hidden.
+    const categories = [];
 
     const progressData = {
       categories,
@@ -950,7 +967,7 @@ router.get('/client/:clientId/progress', protect, trainerOrAdminOnly, async (req
       volumeProgression
     };
 
-    logger.info(`Retrieved progress data for client ${clientId}`, {
+    logger.info(`Retrieved progress data for client ${parsedClientId}`, {
       requestingUserId,
       timeRange,
       totalForms: forms.length
@@ -1100,9 +1117,22 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     });
 
     // ========== Intermediate: build per-exercise data for 1RM, strength, muscle group ==========
-    // exerciseMap: { exerciseName: [{ date, max1RM, totalVolume, frequency }] }
+    // canonical-surface-audit 2026-04-13 (Phase 3 wireup):
+    // Single pass over every persisted set captures everything four
+    // previously-hidden charts need: RPE zone counts, per-exercise PR
+    // (best raw set by Epley 1RM, weight > 0 only), per-exercise frequency,
+    // and per-exercise last-performed date. Adding new aggregates here
+    // costs one extra branch per set and avoids a second pass.
     const exerciseByDate = {}; // { exerciseName: { date: { max1RM, volume } } }
     const exerciseFrequency = {}; // { exerciseName: count }
+    const exerciseLastPerformed = {}; // { exerciseName: 'YYYY-MM-DD' }
+    const bestPRByExercise = {}; // { exerciseName: { date, exercise, weight, reps, estimated1RM } }
+    const rpeZoneCounts = {
+      'Easy (1-3)': 0,
+      'Moderate (4-6)': 0,
+      'Hard (7-8)': 0,
+      'Max Effort (9-10)': 0,
+    };
 
     for (const form of forms) {
       const exercises = form.formData?.exercises || [];
@@ -1112,6 +1142,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
         if (!exerciseFrequency[name]) exerciseFrequency[name] = 0;
         exerciseFrequency[name]++;
 
+        if (!exerciseLastPerformed[name] || form.date > exerciseLastPerformed[name]) {
+          exerciseLastPerformed[name] = form.date;
+        }
+
         let bestSetRM = 0;
         let exVolume = 0;
         for (const set of (ex.sets || [])) {
@@ -1120,6 +1154,32 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
           const rm = calcEpley1RM(w, r);
           if (rm > bestSetRM) bestSetRM = rm;
           exVolume += w * r;
+
+          // RPE zone bucketing — truthful from persisted set.rpe, skipping
+          // unset / invalid values so a missing field never inflates a zone.
+          const rpeVal = parseInt(set.rpe, 10);
+          if (Number.isFinite(rpeVal) && rpeVal >= 1 && rpeVal <= 10) {
+            if (rpeVal <= 3) rpeZoneCounts['Easy (1-3)']++;
+            else if (rpeVal <= 6) rpeZoneCounts['Moderate (4-6)']++;
+            else if (rpeVal <= 8) rpeZoneCounts['Hard (7-8)']++;
+            else rpeZoneCounts['Max Effort (9-10)']++;
+          }
+
+          // Personal record: track best raw set per exercise. Filter w > 0
+          // so bodyweight exercises do not produce meaningless "PR: 0 lbs"
+          // rows from Epley(0, r) === 0.
+          if (w > 0 && rm > 0) {
+            const existingPR = bestPRByExercise[name];
+            if (!existingPR || rm > existingPR.estimated1RM) {
+              bestPRByExercise[name] = {
+                date: form.date,
+                exercise: name,
+                weight: w,
+                reps: r,
+                estimated1RM: rm,
+              };
+            }
+          }
         }
 
         const dateKey = form.date;
@@ -1163,25 +1223,12 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       };
     });
 
-    // ========== 4. NASM Categories (computed from form data) ==========
-    // Derive from actual exercise types/categories if available, else use placeholder structure
-    const nasmCategories = [
-      { category: 'Core Stability', level: 0, maxLevel: 1000, percentComplete: 0 },
-      { category: 'Balance', level: 0, maxLevel: 1000, percentComplete: 0 },
-      { category: 'Strength', level: 0, maxLevel: 1000, percentComplete: 0 },
-      { category: 'Power', level: 0, maxLevel: 1000, percentComplete: 0 },
-      { category: 'Agility', level: 0, maxLevel: 1000, percentComplete: 0 }
-    ];
-    // Scale based on total workouts logged (simple heuristic until NASM classification is richer)
-    const totalWorkouts = forms.length;
-    if (totalWorkouts > 0) {
-      const strengthLevel = Math.min(totalWorkouts * 20, 1000);
-      nasmCategories[2].level = strengthLevel;
-      nasmCategories[2].percentComplete = Math.round((strengthLevel / 1000) * 100);
-      const coreLevel = Math.min(totalWorkouts * 15, 1000);
-      nasmCategories[0].level = coreLevel;
-      nasmCategories[0].percentComplete = Math.round((coreLevel / 1000) * 100);
-    }
+    // ========== 4. NASM Categories ==========
+    // canonical-surface-audit 2026-04-13:
+    // Do not ship fabricated NASM category progress on the mounted client
+    // surface. Until the writer/reader chain can classify real form data into
+    // NASM buckets, return an empty array and let the frontend hide the chart.
+    const nasmCategories = [];
 
     // ========== 5. Body Composition (from BodyMeasurement) ==========
     let bodyComposition = [];
@@ -1246,7 +1293,15 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // ========== 8. Muscle Group Volume ==========
-    // Use exerciseType/category/muscleGroup from formData if available, else derive from name
+    // canonical-surface-audit 2026-04-13 (Phase 2 writer-chain audit):
+    // The ExerciseEntry type in frontend/src/services/nasmApiService.ts has
+    // no muscleGroup / category / exerciseType field, and every WorkoutLogger
+    // handler strips classification metadata when building an entry. Until
+    // the writer chain starts persisting real classification, exercises
+    // without one must be SKIPPED, not bucketed under a fabricated
+    // "Uncategorized" label. An empty muscleGroupVolume array lets the
+    // mounted MuscleGroupRadar chart hide itself via its data.length > 0 gate
+    // instead of rendering a single fake blob.
     const muscleGroupMap = {};
     const previousMidpoint = new Date((startDate.getTime() + now.getTime()) / 2);
 
@@ -1255,7 +1310,8 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       const isPreviousPeriod = formDate < previousMidpoint;
       const exercises = form.formData?.exercises || [];
       for (const ex of exercises) {
-        const group = ex.muscleGroup || ex.category || ex.exerciseType || 'Uncategorized';
+        const group = ex.muscleGroup || ex.category || ex.exerciseType;
+        if (!group) continue;
         if (!muscleGroupMap[group]) muscleGroupMap[group] = { volume: 0, previousVolume: 0 };
         const vol = (ex.sets || []).reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0);
         if (isPreviousPeriod) {
@@ -1318,6 +1374,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     // Weekly average
     const totalDays = Math.max(1, (now - startDate) / (1000 * 60 * 60 * 24));
     const totalWeeks = Math.max(1, totalDays / 7);
+    const totalWorkouts = forms.length;
     const weeklyAverage = Math.round((totalWorkouts / totalWeeks) * 10) / 10;
 
     const summary = {
@@ -1330,6 +1387,54 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       weeklyAverage
     };
 
+    // ========== 10. RPE Distribution (truthful from persisted set.rpe) ==========
+    // canonical-surface-audit 2026-04-13 (Phase 3 wireup):
+    // Caveat: WorkoutLogger initializes set.rpe to 5 on every set and only
+    // updates it when the trainer touches the slider in ExerciseCardComponent
+    // at line 178. Sessions where the slider is never touched will skew the
+    // chart toward "Moderate (4-6)". This is real persisted data, not
+    // fabrication, but the UX truthfulness depends on trainer interaction.
+    const totalRpeCount = Object.values(rpeZoneCounts).reduce((s, c) => s + c, 0);
+    const rpeZoneColors = {
+      'Easy (1-3)': '#50A0F0',
+      'Moderate (4-6)': '#60C0F0',
+      'Hard (7-8)': '#8B5CF6',
+      'Max Effort (9-10)': '#C6A84B',
+    };
+    const rpeDistribution = totalRpeCount > 0
+      ? Object.entries(rpeZoneCounts).map(([zone, count]) => ({
+          zone,
+          count,
+          percentage: Math.round((count / totalRpeCount) * 1000) / 10,
+          color: rpeZoneColors[zone],
+        }))
+      : [];
+
+    // ========== 11. Personal Records (top 10 by estimated 1RM) ==========
+    // Sourced from bestPRByExercise which already filters w > 0 to avoid
+    // bodyweight 0-lb fabrications.
+    const personalRecords = Object.values(bestPRByExercise)
+      .sort((a, b) => b.estimated1RM - a.estimated1RM)
+      .slice(0, 10);
+
+    // ========== 12. Exercise Frequency (count + last performed per exercise) ==========
+    const exerciseFrequencyList = Object.entries(exerciseFrequency).map(([name, count]) => ({
+      exercise: name,
+      count,
+      lastPerformed: exerciseLastPerformed[name] || '',
+    }));
+
+    // ========== 13. Session Intensity (per-form intensity + duration + volume) ==========
+    // Caveat: formData.overallIntensity defaults to 5 in the writer when the
+    // trainer does not adjust the session-level intensity slider. Same UX
+    // truthfulness caveat as RPE Distribution and Form Quality.
+    const sessionIntensity = forms.map((form, i) => ({
+      date: form.date,
+      duration: form.formData?.estimatedDuration || 0,
+      intensity: form.formData?.overallIntensity || 0,
+      totalVolume: volumeProgression[i]?.totalWeight || 0,
+    }));
+
     // ========== Build response ==========
     const progressData = {
       volumeProgression,
@@ -1340,6 +1445,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       strengthProgression,
       consistencyData,
       muscleGroupVolume,
+      rpeDistribution,
+      personalRecords,
+      exerciseFrequency: exerciseFrequencyList,
+      sessionIntensity,
       summary
     };
 

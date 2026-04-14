@@ -33,7 +33,7 @@ import {
   Calendar, Filter, RefreshCw, Eye, EyeOff,
   ChevronLeft, ChevronRight, Settings, Download,
   Dumbbell, Heart, Flame, Radar, Printer, FileDown,
-  Timer, Gauge, Trophy, BarChart2, Crosshair, Share2
+  Gauge, Trophy, BarChart2, Crosshair, Share2
 } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { captureChartAsImage } from '../../utils/chartCapture';
@@ -52,7 +52,8 @@ const MuscleGroupRadar = lazy(() => import('./charts/MuscleGroupRadar'));
 const TrainingLoadChart = lazy(() => import('./charts/TrainingLoadChart'));
 const RPEDistributionChart = lazy(() => import('./charts/RPEDistributionChart'));
 const PersonalRecordsChart = lazy(() => import('./charts/PersonalRecordsChart'));
-const RestComplianceChart = lazy(() => import('./charts/RestComplianceChart'));
+// RestComplianceChart removed from canonical surface — see render-block
+// comment for rationale and the ChartVisibility default-false lock.
 const ExerciseFrequencyChart = lazy(() => import('./charts/ExerciseFrequencyChart'));
 const SessionIntensityChart = lazy(() => import('./charts/SessionIntensityChart'));
 
@@ -457,7 +458,14 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     trainingLoad: true,
     rpeDistribution: true,
     personalRecords: true,
-    restCompliance: true,
+    // canonical-surface-audit 2026-04-13 (Phase 3 wireup):
+    // Rest Compliance is structurally unmeasurable — ExerciseSet has
+    // restTime (goal) but no restTaken (actual). The render block has been
+    // removed from the canonical surface and this default is locked false
+    // so any accidental restoration stays hidden until the writer schema
+    // gains a real actual-rest field. Locked by ClientProgressCharts.test.tsx
+    // source-level regression tests.
+    restCompliance: false,
     exerciseFrequency: true,
     sessionIntensity: true,
   });
@@ -879,7 +887,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
           </ChartCard>
         )}
 
-        {chartVisibility.nasmCategory && (
+        {chartVisibility.nasmCategory && progressData.nasmCategoryData.length > 0 && (
           <ChartCard
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1037,24 +1045,15 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
           </ChartCard>
         )}
 
-        {chartVisibility.restCompliance && progressData.restComplianceData.length > 0 && (
-          <ChartCard
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.95 }}
-          >
-            <ChartHeader>
-              <ChartTitle>
-                <Timer size={20} />
-                Rest Period Compliance
-              </ChartTitle>
-              <ShareIconBtn data-no-capture onClick={(e) => handleShareChart(e.currentTarget.parentElement!.parentElement as HTMLElement, 'Rest Period Compliance')} disabled={isCapturing === 'Rest Period Compliance'} aria-label="Share chart"><Share2 size={16} /></ShareIconBtn>
-            </ChartHeader>
-            <Suspense fallback={<ChartFallback>Loading chart...</ChartFallback>}>
-              <RestComplianceChart data={progressData.restComplianceData} />
-            </Suspense>
-          </ChartCard>
-        )}
+        {/*
+          canonical-surface-audit 2026-04-13 (Phase 3 wireup):
+          Rest Period Compliance chart REMOVED from the canonical surface.
+          ExerciseSet has restTime (goal) but no restTaken (actual), so
+          compliance is structurally unmeasurable. Re-introducing this block
+          requires a writer-side schema change to ExerciseSet + WorkoutLogger
+          + an audit pass. Locked by ClientProgressCharts.test.tsx source
+          regression tests.
+        */}
 
         {chartVisibility.exerciseFrequency && progressData.exerciseFrequencyData.length > 0 && (
           <ChartCard
