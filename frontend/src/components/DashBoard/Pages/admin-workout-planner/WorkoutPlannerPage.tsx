@@ -227,6 +227,43 @@ const WorkoutPlannerPage: React.FC = () => {
     return pool;
   }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
 
+  // ── Add Exercise to Plan ──
+  // canonical-surface-audit 2026-04-13 (Phase 6 production hotfix):
+  // This declaration MUST live above ExerciseRowRenderer because line 262's
+  // useCallback dep array references `addExercise`. When the dep array is
+  // evaluated during the initial render, addExercise must already be
+  // initialized — otherwise it is in the Temporal Dead Zone and the entire
+  // WorkoutPlannerPage component crashes with
+  // "ReferenceError: Cannot access 'addExercise' before initialization".
+  // The crash was masked by minifier ordering before commit 8d5ab1aa
+  // forced a Vite rebundle.
+  const addExercise = useCallback((ex: ExerciseSlim) => {
+    setPlanExercises(prev => {
+      if (prev.some(p => p.exerciseSlim.id === ex.id)) return prev;
+      const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
+      // Parse rest: "3-5min" → 180s (use low end of range in seconds)
+      const restStr = phase.rest.toLowerCase();
+      let restSec = 60;
+      if (restStr.includes('min')) {
+        const minVal = parseInt(restStr) || 3;
+        restSec = minVal * 60;
+      } else {
+        restSec = parseInt(restStr.replace(/[^0-9]/g, '')) || 60;
+      }
+      return [...prev, {
+        id: `${ex.id}-${Date.now()}`,
+        exerciseSlim: ex,
+        sets: defaultSets,
+        reps: phase.reps,
+        tempo: phase.tempo,
+        restSeconds: restSec,
+        intensityPercent: parseInt(phase.intensity.split('-')[0]) || 70,
+        notes: '',
+      }];
+    });
+    setSelectedExercise(ex);
+  }, [phase]);
+
   // ── Virtualized row renderer (react-window v2 List API) ──
   const ExerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const ex = filteredExercises[index];
@@ -280,34 +317,6 @@ const WorkoutPlannerPage: React.FC = () => {
     };
     fetchClients();
   }, [authAxios]);
-
-  // ── Add Exercise to Plan ──
-  const addExercise = useCallback((ex: ExerciseSlim) => {
-    setPlanExercises(prev => {
-      if (prev.some(p => p.exerciseSlim.id === ex.id)) return prev;
-      const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
-      // Parse rest: "3-5min" → 180s (use low end of range in seconds)
-      const restStr = phase.rest.toLowerCase();
-      let restSec = 60;
-      if (restStr.includes('min')) {
-        const minVal = parseInt(restStr) || 3;
-        restSec = minVal * 60;
-      } else {
-        restSec = parseInt(restStr.replace(/[^0-9]/g, '')) || 60;
-      }
-      return [...prev, {
-        id: `${ex.id}-${Date.now()}`,
-        exerciseSlim: ex,
-        sets: defaultSets,
-        reps: phase.reps,
-        tempo: phase.tempo,
-        restSeconds: restSec,
-        intensityPercent: parseInt(phase.intensity.split('-')[0]) || 70,
-        notes: '',
-      }];
-    });
-    setSelectedExercise(ex);
-  }, [phase]);
 
   // ── Remove Exercise ──
   const removeExercise = useCallback((id: string) => {
