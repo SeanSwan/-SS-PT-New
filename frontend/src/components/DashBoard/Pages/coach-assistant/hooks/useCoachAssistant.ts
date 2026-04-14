@@ -401,6 +401,122 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     );
   }, [execCancel]);
 
+  // ── Swan-first transcript intake helpers ──
+  // These three helpers let the page wire useTranscriptIntake into the
+  // existing commandMessages stream without exposing setCommandMessages.
+  // The lifecycle the page drives is:
+  //   1. user attaches transcript file + selects client + hits send
+  //   2. page calls intake.uploadTranscript()
+  //   3. on success: page calls appendTranscriptReview(reviewData)
+  //   4. user clicks confirm in the review card
+  //   5. page calls intake.applyParsedWorkout()
+  //   6. on success: page calls transcriptReviewToResult(msgId, resultData)
+  //   7. on cancel: page calls removeTranscriptMessage(msgId)
+  //
+  // The user-side message bubble is created here too so the conversation
+  // shows "uploaded <filename>" from the user before the assistant card.
+
+  const appendTranscriptReview = useCallback(
+    (review: NonNullable<CoachMessageData['metadata']>['transcriptReview']): { userMsgId: string; reviewMsgId: string } => {
+      if (!review) {
+        return { userMsgId: '', reviewMsgId: '' };
+      }
+      const ts = new Date().toISOString();
+      const userMsgId = `transcript-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const reviewMsgId = `transcript-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      const userMsg: CoachMessageData = {
+        id: userMsgId,
+        role: 'user',
+        content: `Uploaded ${review.fileName} for review`,
+        timestamp: ts,
+      };
+
+      const reviewMsg: CoachMessageData = {
+        id: reviewMsgId,
+        role: 'assistant',
+        // Empty content — the card body is rendered from metadata.transcriptReview
+        content: '',
+        timestamp: ts,
+        metadata: { transcriptReview: review },
+      };
+
+      setCommandMessages(prev => [...prev, userMsg, reviewMsg]);
+      return { userMsgId, reviewMsgId };
+    },
+    [],
+  );
+
+  /**
+   * Update an existing review-card message in place. Used to flip the
+   * `applying` flag during the apply call, and to attach an `applyError`
+   * if the apply failed (so the review stays visible and the user can retry).
+   */
+  const updateTranscriptReview = useCallback(
+    (
+      reviewMsgId: string,
+      patch: Partial<NonNullable<NonNullable<CoachMessageData['metadata']>['transcriptReview']>>,
+    ) => {
+      setCommandMessages(prev =>
+        prev.map(msg => {
+          if (msg.id !== reviewMsgId) return msg;
+          const existing = msg.metadata?.transcriptReview;
+          if (!existing) return msg;
+          return {
+            ...msg,
+            metadata: {
+              ...msg.metadata,
+              transcriptReview: { ...existing, ...patch },
+            },
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  /**
+   * Replace a review card in place with a result card on successful apply.
+   * Drops the transcriptReview metadata and adds transcriptResult so
+   * CoachMessage renders the success state.
+   */
+  const transcriptReviewToResult = useCallback(
+    (
+      reviewMsgId: string,
+      result: NonNullable<NonNullable<CoachMessageData['metadata']>['transcriptResult']>,
+    ) => {
+      setCommandMessages(prev =>
+        prev.map(msg => {
+          if (msg.id !== reviewMsgId) return msg;
+          return {
+            ...msg,
+            content: `Workout logged${result.clientName ? ` for ${result.clientName}` : ''}.`,
+            metadata: {
+              ...msg.metadata,
+              transcriptReview: undefined,
+              transcriptResult: result,
+            },
+          };
+        }),
+      );
+    },
+    [],
+  );
+
+  /**
+   * Remove a transcript message (both the user upload bubble and the
+   * assistant review/result card) from the conversation. Used by the
+   * Cancel button on the review card.
+   */
+  const removeTranscriptMessages = useCallback(
+    (userMsgId: string, reviewMsgId: string) => {
+      setCommandMessages(prev =>
+        prev.filter(msg => msg.id !== userMsgId && msg.id !== reviewMsgId),
+      );
+    },
+    [],
+  );
+
   // ── Send message with structured food context ──
   const sendMessageWithFood = useCallback(async (
     text: string,
@@ -453,5 +569,11 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     clearConversation,
     clearError: chat.clearError,
     messagesEndRef,
+    // Swan-first transcript intake helpers — used by SwanCoachAssistantPage
+    // to inject review/result cards into the existing message stream.
+    appendTranscriptReview,
+    updateTranscriptReview,
+    transcriptReviewToResult,
+    removeTranscriptMessages,
   };
 }

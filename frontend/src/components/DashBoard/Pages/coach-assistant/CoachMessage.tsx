@@ -12,9 +12,12 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import styled from 'styled-components';
-import { Volume2, Copy, Check, UserPlus, Key, Link2, Shield, Dumbbell } from 'lucide-react';
+import {
+  Volume2, Copy, Check, UserPlus, Key, Link2, Shield, Dumbbell,
+  FileAudio, AlertTriangle, X, Loader2, CheckCircle2,
+} from 'lucide-react';
 import {
   MessageBubbleAI,
   MessageBubbleUser,
@@ -104,11 +107,150 @@ const ProgressBar = styled.div<{ $pct: number }>`
   }
 `;
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Transcript intake card styles (Swan-first transcript flow)
+// ─────────────────────────────────────────────────────────────
+const TranscriptCard = styled(ActionCard)`
+  border-color: rgba(96, 192, 240, 0.25);
+`;
+
+const TranscriptDetails = styled.details`
+  margin: 10px 0 6px;
+  & > summary {
+    cursor: pointer;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    color: var(--accent-primary, #60C0F0);
+    padding: 4px 0;
+    list-style: none;
+    user-select: none;
+  }
+  & > summary::-webkit-details-marker { display: none; }
+  & > pre {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+`;
+
+const PainFlagBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: rgba(201, 42, 84, 0.15);
+  border: 1px solid rgba(201, 42, 84, 0.3);
+  color: #ff8fa3;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const ConfidenceBadge = styled.span<{ $level: 'high' | 'medium' | 'low' }>`
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  background: ${({ $level }) =>
+    $level === 'high'
+      ? 'rgba(16, 185, 129, 0.18)'
+      : $level === 'medium'
+        ? 'rgba(96, 192, 240, 0.18)'
+        : 'rgba(201, 42, 84, 0.18)'};
+  color: ${({ $level }) =>
+    $level === 'high' ? '#10B981' : $level === 'medium' ? '#60C0F0' : '#ff8fa3'};
+`;
+
+const TranscriptActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+`;
+
+const TranscriptBtn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: ${({ $primary, $danger }) =>
+    $primary
+      ? 'none'
+      : $danger
+        ? '1px solid rgba(201, 42, 84, 0.4)'
+        : '1px solid rgba(255, 255, 255, 0.15)'};
+  background: ${({ $primary, $danger }) =>
+    $primary
+      ? 'linear-gradient(135deg, #60C0F0, #50A0F0)'
+      : $danger
+        ? 'rgba(201, 42, 84, 0.12)'
+        : 'rgba(255, 255, 255, 0.04)'};
+  color: ${({ $primary, $danger }) =>
+    $primary ? '#0A0A0F' : $danger ? '#ff8fa3' : '#e2e8f0'};
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const TranscriptError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(201, 42, 84, 0.12);
+  border: 1px solid rgba(201, 42, 84, 0.3);
+  color: #ff8fa3;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+`;
+
+function confidenceLevel(c?: number): 'high' | 'medium' | 'low' {
+  if (typeof c !== 'number') return 'low';
+  if (c >= 0.8) return 'high';
+  if (c >= 0.6) return 'medium';
+  return 'low';
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 interface CoachMessageProps {
   message: CoachMessageData;
   onReadAloud?: (text: string) => void;
   onConfirmCommand?: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancelCommand?: (operationId: string | null) => Promise<void>;
+  /** Swan-first transcript intake — confirm the parsed workout */
+  onConfirmTranscript?: (messageId: string) => Promise<void>;
+  /** Swan-first transcript intake — discard the review */
+  onCancelTranscript?: (messageId: string) => void;
 }
 
 const CoachMessageComponent: React.FC<CoachMessageProps> = ({
@@ -116,8 +258,27 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onReadAloud,
   onConfirmCommand,
   onCancelCommand,
+  onConfirmTranscript,
+  onCancelTranscript,
 }) => {
   const [copied, setCopied] = React.useState(false);
+  // Local "user clicked confirm" lock — prevents double-fire while the
+  // applying flag in metadata propagates back through the parent.
+  const [localApplying, setLocalApplying] = useState(false);
+
+  const handleTranscriptConfirm = useCallback(async () => {
+    if (!onConfirmTranscript || localApplying) return;
+    setLocalApplying(true);
+    try {
+      await onConfirmTranscript(message.id);
+    } finally {
+      setLocalApplying(false);
+    }
+  }, [onConfirmTranscript, message.id, localApplying]);
+
+  const handleTranscriptCancel = useCallback(() => {
+    onCancelTranscript?.(message.id);
+  }, [onCancelTranscript, message.id]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -151,6 +312,8 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const workoutImports = message.metadata?.workoutImportResults;
   const commandConfirmation = message.metadata?.commandConfirmation;
   const commandResult = message.metadata?.commandResult;
+  const transcriptReview = message.metadata?.transcriptReview;
+  const transcriptResult = message.metadata?.transcriptResult;
 
   const copyToClipboard = async (text: string) => {
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
@@ -250,6 +413,132 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           client={commandResult.client}
           message={commandResult.message}
         />
+      )}
+
+      {/* ─── Swan-first transcript intake — Review Card ─────────────── */}
+      {transcriptReview && (
+        <TranscriptCard data-testid="transcript-review-card">
+          <CardTitle>
+            <FileAudio size={16} />
+            Transcript parsed — review &amp; apply
+            {typeof transcriptReview.parsedWorkout?.confidence === 'number' && (
+              <ConfidenceBadge $level={confidenceLevel(transcriptReview.parsedWorkout.confidence)}>
+                {Math.round(transcriptReview.parsedWorkout.confidence * 100)}% confidence
+              </ConfidenceBadge>
+            )}
+          </CardTitle>
+
+          <CardRow>
+            <CardLabel>File</CardLabel>
+            <CardValue>{transcriptReview.fileName} ({formatBytes(transcriptReview.fileSize)})</CardValue>
+          </CardRow>
+          {transcriptReview.clientName && (
+            <CardRow>
+              <CardLabel>Client</CardLabel>
+              <CardValue>{transcriptReview.clientName}</CardValue>
+            </CardRow>
+          )}
+          <CardRow>
+            <CardLabel>Exercises</CardLabel>
+            <CardValue>{transcriptReview.parsedWorkout?.exercises?.length ?? 0} parsed</CardValue>
+          </CardRow>
+          {typeof transcriptReview.parsedWorkout?.overallIntensity === 'number' && (
+            <CardRow>
+              <CardLabel>Intensity</CardLabel>
+              <CardValue>{transcriptReview.parsedWorkout.overallIntensity}/10</CardValue>
+            </CardRow>
+          )}
+
+          {transcriptReview.parsedWorkout?.painFlags &&
+            transcriptReview.parsedWorkout.painFlags.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {transcriptReview.parsedWorkout.painFlags.map((flag, i) => (
+                  <PainFlagBadge key={i}>
+                    <AlertTriangle size={11} />
+                    {flag.side ? `${flag.side} ` : ''}{flag.bodyRegion}
+                  </PainFlagBadge>
+                ))}
+              </div>
+            )}
+
+          <TranscriptDetails>
+            <summary>View transcript</summary>
+            <pre>{transcriptReview.transcript}</pre>
+          </TranscriptDetails>
+
+          {transcriptReview.applyError && (
+            <TranscriptError>
+              <AlertTriangle size={14} />
+              {transcriptReview.applyError}
+            </TranscriptError>
+          )}
+
+          <TranscriptActions>
+            <TranscriptBtn
+              $danger
+              onClick={handleTranscriptCancel}
+              disabled={transcriptReview.applying || localApplying}
+              data-testid="transcript-cancel-btn"
+            >
+              <X size={14} /> Discard
+            </TranscriptBtn>
+            <TranscriptBtn
+              $primary
+              onClick={handleTranscriptConfirm}
+              disabled={transcriptReview.applying || localApplying}
+              data-testid="transcript-confirm-btn"
+            >
+              {transcriptReview.applying || localApplying ? (
+                <>
+                  <Loader2 size={14} /> Applying…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} /> Apply to workout log
+                </>
+              )}
+            </TranscriptBtn>
+          </TranscriptActions>
+        </TranscriptCard>
+      )}
+
+      {/* ─── Swan-first transcript intake — Result Card ─────────────── */}
+      {transcriptResult && (
+        <TranscriptCard data-testid="transcript-result-card">
+          <CardTitle>
+            <CheckCircle2 size={16} />
+            Workout logged
+          </CardTitle>
+          <CardRow>
+            <CardLabel>Source</CardLabel>
+            <CardValue>{transcriptResult.fileName}</CardValue>
+          </CardRow>
+          {transcriptResult.clientName && (
+            <CardRow>
+              <CardLabel>Client</CardLabel>
+              <CardValue>{transcriptResult.clientName}</CardValue>
+            </CardRow>
+          )}
+          <CardRow>
+            <CardLabel>Logged</CardLabel>
+            <CardValue>
+              {transcriptResult.exerciseCount} exercise{transcriptResult.exerciseCount !== 1 ? 's' : ''} ·{' '}
+              {transcriptResult.totalSets} set{transcriptResult.totalSets !== 1 ? 's' : ''}
+            </CardValue>
+          </CardRow>
+          {typeof transcriptResult.xpAwarded === 'number' && (
+            <CardRow>
+              <CardLabel>XP awarded</CardLabel>
+              <CardValue style={{ color: '#10B981' }}>+{transcriptResult.xpAwarded} XP</CardValue>
+            </CardRow>
+          )}
+          {typeof transcriptResult.streakDays === 'number' && (
+            <CardRow>
+              <CardLabel>Streak</CardLabel>
+              <CardValue>{transcriptResult.streakDays} day{transcriptResult.streakDays !== 1 ? 's' : ''}</CardValue>
+            </CardRow>
+          )}
+        </TranscriptCard>
       )}
 
       <MessageActions>

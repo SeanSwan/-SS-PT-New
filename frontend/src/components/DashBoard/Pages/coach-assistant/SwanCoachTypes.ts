@@ -104,6 +104,58 @@ export interface CoachMessageData {
       client: { id?: number; firstName?: string } | null;
       message?: string;
     };
+    /**
+     * Injected by Swan-first transcript intake — renders TranscriptReviewCard
+     * in CoachMessage. Set when the upload pipeline returns a parsed workout
+     * but the user has not yet confirmed/applied it. Cleared on confirm or
+     * cancel; replaced by transcriptResult on successful apply.
+     */
+    transcriptReview?: {
+      transcript: string;
+      parsedWorkout: {
+        exercises: Array<{
+          exerciseName: string;
+          sets: Array<{
+            setNumber: number;
+            weight: number | null;
+            reps: number;
+            rpe?: number;
+            notes?: string;
+          }>;
+          formRating?: number;
+          painLevel?: number;
+          performanceNotes?: string;
+        }>;
+        sessionNotes?: string;
+        overallIntensity?: number;
+        painFlags?: Array<{ bodyRegion: string; side: string; mention: string }>;
+        confidence?: number;
+        date?: string;
+      };
+      fileName: string;
+      fileSize: number;
+      fileMimeType: string;
+      clientId: number;
+      clientName?: string;
+      /** True while the apply call is in flight. */
+      applying?: boolean;
+      /** Last apply error if the previous attempt failed. Review stays visible. */
+      applyError?: string;
+    };
+    /**
+     * Injected by Swan-first transcript intake on successful apply.
+     * Renders TranscriptResultCard in CoachMessage.
+     */
+    transcriptResult?: {
+      clientId: number;
+      clientName?: string;
+      exerciseCount: number;
+      totalSets: number;
+      workoutId?: string | number;
+      xpAwarded?: number;
+      streakDays?: number;
+      fileName: string;
+    };
   };
   frontendActions?: FrontendAction[];
 }

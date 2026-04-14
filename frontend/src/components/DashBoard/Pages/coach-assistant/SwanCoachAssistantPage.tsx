@@ -54,7 +54,13 @@ import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 import FileAttachmentButton from './FileAttachmentButton';
 import AttachmentPreview from './AttachmentPreview';
 import VoiceSettingsBar from './VoiceSettingsBar';
-import { useFileAttachment } from './hooks/useFileAttachment';
+import {
+  useFileAttachment,
+  hasTranscriptClassFile,
+  countTranscriptClassFiles,
+  isTranscriptClassMime,
+} from './hooks/useFileAttachment';
+import { useTranscriptIntake } from './hooks/useTranscriptIntake';
 import {
   CoachHeader,
   CoachTitle,
@@ -428,13 +434,157 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── Track last attempted message for retry on error ──
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
 
-  // ── Wrap send to clear attachments after sending ──
-  const handleSend = useCallback((text: string) => {
-    setLastAttempt(text);
-    coach.clearError();
-    coach.sendMessage(text);
-    attachments.clearFiles();
-  }, [coach, attachments]);
+  // ── Swan-first transcript intake ──
+  // canonical-surface-audit 2026-04-14:
+  // The intake hook owns just the two async functions (upload + apply).
+  // Message lifecycle is owned by useCoachAssistant via the four
+  // appendTranscriptReview/updateTranscriptReview/transcriptReviewToResult/
+  // removeTranscriptMessages helpers, called from the page-level handlers
+  // below. This keeps the conversation in a single source of truth
+  // (commandMessages) and avoids a second message store inside the hook.
+  const intake = useTranscriptIntake();
+
+  // Map review message id → backing review data + user message id, so
+  // confirm/cancel handlers can look up and mutate the right message
+  // without parsing back out of metadata.
+  const transcriptReviewsRef = React.useRef<
+    Map<
+      string,
+      {
+        userMsgId: string;
+        review: Parameters<typeof coach.appendTranscriptReview>[0];
+      }
+    >
+  >(new Map());
+
+  // ── Confirm a transcript review — apply parsed workout to the log ──
+  const handleConfirmTranscript = useCallback(
+    async (reviewMsgId: string) => {
+      const entry = transcriptReviewsRef.current.get(reviewMsgId);
+      if (!entry || !entry.review) return;
+      // Mark applying — keeps the review card visible with a spinner
+      coach.updateTranscriptReview(reviewMsgId, { applying: true, applyError: undefined });
+      const apply = await intake.applyParsedWorkout(entry.review);
+      if (apply.ok) {
+        coach.transcriptReviewToResult(reviewMsgId, {
+          clientId: entry.review.clientId,
+          clientName: entry.review.clientName,
+          exerciseCount: apply.result.exerciseCount,
+          totalSets: apply.result.totalSets,
+          workoutId: apply.result.workoutId,
+          xpAwarded: apply.result.xpAwarded,
+          streakDays: apply.result.streakDays,
+          fileName: entry.review.fileName,
+        });
+        transcriptReviewsRef.current.delete(reviewMsgId);
+      } else {
+        // Failure path: keep the review card visible so the user can retry.
+        coach.updateTranscriptReview(reviewMsgId, {
+          applying: false,
+          applyError: apply.failure.error,
+        });
+      }
+    },
+    [coach, intake],
+  );
+
+  // ── Cancel/discard a transcript review — removes both messages ──
+  const handleCancelTranscript = useCallback(
+    (reviewMsgId: string) => {
+      const entry = transcriptReviewsRef.current.get(reviewMsgId);
+      if (!entry) return;
+      coach.removeTranscriptMessages(entry.userMsgId, reviewMsgId);
+      transcriptReviewsRef.current.delete(reviewMsgId);
+    },
+    [coach],
+  );
+
+  // ── Wrap send to route by attachment type ──
+  // Transcript-class attachments take a different path than chat:
+  //   1. Require a selected client (block with clear error if missing)
+  //   2. Allow exactly one transcript-class file (multi-file already
+  //      blocked by useFileAttachment, but defense-in-depth here)
+  //   3. Upload via /api/workout-logs/upload
+  //   4. Inject a review card into the conversation
+  //   5. Clear attachments
+  // Text-only sends and chat-image sends still use the existing flow
+  // unchanged — only the transcript-class branch is new.
+  const handleSend = useCallback(
+    async (text: string) => {
+      coach.clearError();
+      const files = attachments.files;
+
+      // Only intercept if at least one attached file is transcript-class.
+      // Other attachments + plain text continue to use the existing flow.
+      if (files.length > 0 && hasTranscriptClassFile(files)) {
+        // Defense-in-depth: useFileAttachment already enforces single-
+        // transcript-per-send, but re-check at send time so a future
+        // change to the picker can't slip through.
+        if (countTranscriptClassFiles(files) > 1) {
+          coach.clearError();
+          // Surface via the lastAttempt + error path — keeping it minimal.
+          // The picker error already showed when the second file was added.
+          return;
+        }
+
+        // Selected client is mandatory for transcript intake.
+        if (!selectedClient?.id) {
+          coach.clearError();
+          coach.appendTranscriptReview({
+            transcript: '',
+            parsedWorkout: { exercises: [] },
+            fileName: files.find((f) => isTranscriptClassMime(f.type))!.name,
+            fileSize: files.find((f) => isTranscriptClassMime(f.type))!.size,
+            fileMimeType: files.find((f) => isTranscriptClassMime(f.type))!.type,
+            clientId: 0,
+            applyError:
+              'Select a client at the top of the page before uploading a transcript.',
+          });
+          return;
+        }
+
+        const transcriptFile = files.find((f) => isTranscriptClassMime(f.type))!;
+        const upload = await intake.uploadTranscript(
+          transcriptFile.file,
+          selectedClient.id,
+          `${selectedClient.firstName} ${selectedClient.lastName}`.trim(),
+        );
+
+        if (upload.ok) {
+          const { userMsgId, reviewMsgId } = coach.appendTranscriptReview(upload.review);
+          if (reviewMsgId) {
+            transcriptReviewsRef.current.set(reviewMsgId, {
+              userMsgId,
+              review: upload.review,
+            });
+          }
+          attachments.clearFiles();
+          return;
+        }
+
+        // Upload failure — inject an error-only review card so the user
+        // sees what went wrong but does not lose other inputs.
+        coach.appendTranscriptReview({
+          transcript: '',
+          parsedWorkout: { exercises: [] },
+          fileName: transcriptFile.name,
+          fileSize: transcriptFile.size,
+          fileMimeType: transcriptFile.type,
+          clientId: selectedClient.id,
+          clientName: `${selectedClient.firstName} ${selectedClient.lastName}`.trim(),
+          applyError: upload.failure.error,
+        });
+        attachments.clearFiles();
+        return;
+      }
+
+      // Existing flow — text-only or non-transcript attachments.
+      setLastAttempt(text);
+      coach.sendMessage(text);
+      attachments.clearFiles();
+    },
+    [coach, attachments, intake, selectedClient],
+  );
 
   // ── Cleanup TTS on unmount ──
   React.useEffect(() => () => tts.stop(), [tts]);
@@ -509,6 +659,8 @@ const SwanCoachAssistantPage: React.FC = () => {
               onReadAloud={msg.role === 'assistant' ? handleReadAloud : undefined}
               onConfirmCommand={coach.confirmCommand}
               onCancelCommand={coach.cancelCommand}
+              onConfirmTranscript={handleConfirmTranscript}
+              onCancelTranscript={handleCancelTranscript}
             />
           ))}
 
