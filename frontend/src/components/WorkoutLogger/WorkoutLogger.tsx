@@ -194,6 +194,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Loaded Phase ${phase} template — ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
   }, []);
 
+  const loadClientData = useCallback(async () => {
+    await executeLoadClientData();
+  }, [clientId, user]);
+
   // ── Load client on mount ──
   useEffect(() => {
     loadClientData();
@@ -311,7 +315,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [convertAIExercises]);
 
   // ── Client Data ──
-  const loadClientData = useCallback(async () => {
+  const executeLoadClientData = useCallback(async () => {
     setIsLoadingClient(true);
     try {
       const api = new ApiService();
