@@ -22,15 +22,33 @@ interface Props {
   data?: BulletMetric[];
 }
 
+// canonical-surface-audit 2026-04-13: DEMO_DATA fallback is gated to dev only.
+// When this chart is mounted on a canonical user surface (e.g. /dashboard/client/progress
+// via ProfileChartsGrid) and no real `data` prop is passed, production MUST render
+// the empty state — never the hardcoded "(Preview)" goals. Rule-34 fake-data breach.
 const GoalProgressBullet: React.FC<Props> = ({ data }) => {
-  const chartData = data && data.length > 0 ? data : DEMO_DATA;
-  const isDemo = !data || data.length === 0;
+  const hasRealData = !!(data && data.length > 0);
+  const allowDemoFallback = !hasRealData && import.meta.env.DEV;
+  const chartData = hasRealData ? data! : (allowDemoFallback ? DEMO_DATA : []);
+
+  if (chartData.length === 0) {
+    return (
+      <ChartCard role="region" aria-label="Goal progress bullet chart" tabIndex={0}>
+        <ChartHeader>
+          <div>
+            <ChartTitle>Goal Progress</ChartTitle>
+            <ChartSubtitle>No goals set yet</ChartSubtitle>
+          </div>
+        </ChartHeader>
+      </ChartCard>
+    );
+  }
 
   return (
     <ChartCard role="region" aria-label="Goal progress bullet chart" tabIndex={0}>
       <ChartHeader>
         <div>
-          <ChartTitle>Goal Progress{isDemo ? ' (Preview)' : ''}</ChartTitle>
+          <ChartTitle>Goal Progress{allowDemoFallback ? ' (Dev Preview)' : ''}</ChartTitle>
           <ChartSubtitle>Current vs target for key fitness metrics</ChartSubtitle>
         </div>
       </ChartHeader>
@@ -39,7 +57,7 @@ const GoalProgressBullet: React.FC<Props> = ({ data }) => {
           <Row key={m.label}>
             <Label><span>{m.label}</span><span>{m.current}/{m.target}</span></Label>
             <Track>
-              <Fill $p={(m.current/m.max)*100} $c={m.color} $isDemo={isDemo} />
+              <Fill $p={(m.current/m.max)*100} $c={m.color} $isDemo={allowDemoFallback} />
               <Target $pos={(m.target/m.max)*100} />
             </Track>
           </Row>

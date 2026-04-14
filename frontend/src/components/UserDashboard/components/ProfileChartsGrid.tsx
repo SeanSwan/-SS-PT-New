@@ -53,12 +53,23 @@ interface ProfileChartsGridProps {
   isOwnProfile?: boolean;
 }
 
-// Default visible charts for new users (per CLAUDE.md spec)
+// Default visible charts for new users.
+// canonical-surface-audit 2026-04-13 (multi-pass):
+// - `goalProgress` removed — GoalProgressBullet had no live data source and
+//   was rendering hardcoded DEMO_DATA labeled "(Preview)".
+// - `muscleRadar` removed (chart-truth pass) — the underlying data chain
+//   (workout_exercises / sets / exercises / bodyPartCategory) is schema-drifted
+//   AND the real tables are empty in production (0 rows). Real per-set data
+//   lives in `workout_logs` with exerciseName strings, with no muscle-group
+//   mapping. Rewiring the chart is a new feature, not a truth fix. Keeping
+//   this in defaults would silently render "No data yet" on canonical /progress
+//   for every user indefinitely. Registry entry still exists so users who
+//   opt in via ChartTogglePanel still get the empty state.
+// `workoutFrequency` (fed by workout_sessions) and `weightProgression` (fed by
+// body_measurements) are the two canonical charts with proven truthful SQL.
 const DEFAULT_VISIBLE: Partial<ChartVisibility> = {
   workoutFrequency: true,
-  muscleRadar: true,
   weightProgression: true,
-  goalProgress: true,
 };
 
 // ─────────────────────────────────────────────────────────────

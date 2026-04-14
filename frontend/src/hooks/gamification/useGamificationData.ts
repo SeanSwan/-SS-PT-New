@@ -283,7 +283,14 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
           points: raw.points,
           level: raw.level ?? lp.level,
           tier: legacyTier,
-          streakDays: raw.stats?.streakDays ?? 0,
+          // canonical-surface-audit 2026-04-13: backend gamificationController
+          // .getUserProfile returns `{ profile: { ...user.toJSON(), ... } }` and
+          // `streakDays` is a top-level column on the User model
+          // (backend/models/User.mjs:301). The prior `raw.stats?.streakDays`
+          // read a non-existent `stats` sub-object and always returned 0,
+          // which made the canonical /overview MomentumCard and /progress
+          // Streak card silently display 0d for every user.
+          streakDays: (raw as any).streakDays ?? raw.stats?.streakDays ?? 0,
           achievements: legacyAchievements,
           rewards: [],
           milestones: [],

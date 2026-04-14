@@ -48,16 +48,23 @@ export async function getWorkoutFrequencyChart(req, res) {
     if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
     const sequelize = req.app.get('sequelize');
 
+    // canonical-surface-audit 2026-04-13 (chart-truthfulness pass):
+    // Real prod table is `workout_sessions` (snake_case, unquoted).
+    // The prior `"WorkoutSessions"` PascalCase quoted reference did NOT
+    // exist — Postgres quoted identifiers are case-sensitive, information_schema
+    // contains zero PascalCase tables in the public schema, and every call
+    // silently errored through safeQuery → returned [] → canonical /progress
+    // rendered "No data yet" regardless of real workout history.
     const rows = await safeQuery(sequelize,
       `SELECT
          TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
          COUNT(*)::int AS count
-       FROM "WorkoutSessions" ws
+       FROM workout_sessions ws
        WHERE ws."userId" = :userId AND ws.status = 'completed'
          AND ws.date >= NOW() - INTERVAL '12 weeks'
        GROUP BY DATE_TRUNC('week', ws.date)
        ORDER BY DATE_TRUNC('week', ws.date)`,
-      { userId });
+      { userId }, 'getWorkoutFrequencyChart');
 
     res.json({ success: true, data: rows.map(r => ({ x: r.week, y: r.count })) });
   } catch (error) {

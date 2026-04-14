@@ -34,7 +34,7 @@
  *            useWeeklyRecap → weekly stats
  * API Calls: GET /api/v1/gamification/profile
  *            GET /api/gamification/users/:id/weekly-recap
- *            GET /api/analytics/:id/personal-records
+ *            GET /api/client/analytics/personal-records
  * Children:  ProfileChartsGrid (lazy), CompanionPet (lazy)
  */
 
@@ -350,9 +350,13 @@ const ClientProgressDashboardPage: React.FC = () => {
   // Fetch personal records
   useEffect(() => {
     if (!authAxios || !user?.id) return;
-    authAxios.get(`/api/analytics/${user.id}/personal-records`)
-      .then(res => setPersonalRecords(res.data?.records || res.data?.data || []))
-      .catch(() => { /* silent */ });
+    // Client-safe namespace: userId derived from JWT, never from URL.
+    authAxios.get(`/api/client/analytics/personal-records`)
+      .then(res => {
+        const records = res.data?.data ?? res.data?.records ?? [];
+        setPersonalRecords(Array.isArray(records) ? records : []);
+      })
+      .catch(() => setPersonalRecords([]));
   }, [authAxios, user?.id]);
 
   const p = profile.data;
@@ -380,14 +384,19 @@ const ClientProgressDashboardPage: React.FC = () => {
           <StatValue>{(p?.points || 0).toLocaleString()}</StatValue>
         </StatCard>
         <StatCard style={{ '--i': 3 } as React.CSSProperties}>
-          <StatLabel>Workouts</StatLabel>
+          {/* Canonical-surface-audit 2026-04-13: real field is
+              data.thisWeek.workouts from gamificationController.getWeeklyRecap.
+              Removed misleading p?.achievements?.length fallback that was
+              silently rendering achievement count as "workouts" on empty
+              recap responses. Label explicitly scoped to "Wk" (week). */}
+          <StatLabel>Wk Workouts</StatLabel>
           <StatValue $color="var(--accent-secondary, #8B5CF6)">
-            {weeklyRecap?.totalWorkouts || p?.achievements?.length || 0}
+            {weeklyRecap?.thisWeek?.workouts ?? 0}
           </StatValue>
         </StatCard>
         <StatCard style={{ '--i': 4 } as React.CSSProperties}>
           <StatLabel>Streak</StatLabel>
-          <StatValue $color="#F59E0B">{p?.streakDays || 0}d</StatValue>
+          <StatValue $color="#F59E0B">{(weeklyRecap?.current?.streak ?? p?.streakDays) || 0}d</StatValue>
         </StatCard>
         <StatCard style={{ '--i': 5 } as React.CSSProperties}>
           <StatLabel>PRs</StatLabel>
@@ -425,21 +434,29 @@ const ClientProgressDashboardPage: React.FC = () => {
         <Card>
           <CardTitle><Calendar size={16} /> This Week</CardTitle>
           {weeklyRecap ? (
+            // Canonical-surface-audit 2026-04-13: real backend shape is
+            // { thisWeek: { workouts, totalXP, surpriseMultipliers },
+            //   current: { streak, longestStreak, ... } }.
+            // The prior flat reads (workoutsThisWeek, exercisesCompleted,
+            // pointsEarned, streakDays at top level) all silently resolved
+            // to 0 against real data. Exercises count is NOT returned by
+            // the backend — replaced with surpriseMultipliers (Bonuses)
+            // which IS a real field.
             <RecapGrid>
               <RecapItem>
-                <RecapValue>{weeklyRecap.workoutsThisWeek ?? weeklyRecap.workouts ?? 0}</RecapValue>
+                <RecapValue>{weeklyRecap?.thisWeek?.workouts ?? 0}</RecapValue>
                 <RecapLabel>Workouts</RecapLabel>
               </RecapItem>
               <RecapItem>
-                <RecapValue>{weeklyRecap.exercisesCompleted ?? weeklyRecap.exercises ?? 0}</RecapValue>
-                <RecapLabel>Exercises</RecapLabel>
+                <RecapValue>{weeklyRecap?.thisWeek?.surpriseMultipliers ?? 0}</RecapValue>
+                <RecapLabel>Bonuses</RecapLabel>
               </RecapItem>
               <RecapItem>
-                <RecapValue>{weeklyRecap.pointsEarned ?? weeklyRecap.xpEarned ?? 0}</RecapValue>
+                <RecapValue>{weeklyRecap?.thisWeek?.totalXP ?? 0}</RecapValue>
                 <RecapLabel>XP Earned</RecapLabel>
               </RecapItem>
               <RecapItem>
-                <RecapValue>{weeklyRecap.streakDays ?? p?.streakDays ?? 0}</RecapValue>
+                <RecapValue>{(weeklyRecap?.current?.streak ?? p?.streakDays) || 0}</RecapValue>
                 <RecapLabel>Streak Days</RecapLabel>
               </RecapItem>
             </RecapGrid>

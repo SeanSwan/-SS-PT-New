@@ -1,4 +1,5 @@
 import { getWorkoutSession, getModel, Op } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 
 // Models resolved at call time (after initializeModelsCache() runs at startup)
 const getModels = () => ({
@@ -406,63 +407,57 @@ export async function calculateSessionUsageStats(userId, options = {}) {
  * @returns {Array} Array of personal records
  */
 export async function getPersonalRecords(userId) {
+  // canonical-surface-audit 2026-04-13 (PR rewire slice):
+  // The prior implementation used Sequelize ORM with includes through a
+  // schema-drifted empty chain: WorkoutSession → WorkoutExercise → Set.
+  // Real prod schema (verified via information_schema on DATABASE_URL):
+  //   - workout_exercises: 0 rows, no `exerciseName` column
+  //   - sets: 0 rows, real columns are weightUsed/repsCompleted (not weight/reps)
+  //   - workout_sessions: `date` column (not `sessionDate`)
+  // The real per-set data for production sessions lives in `workout_logs`:
+  //   id, sessionId, exerciseName, setNumber, reps, weight, tempo, rest, rpe
+  // Frontend consumer (ClientProgressDashboardPage.tsx:354,478-487) expects
+  // an array of `{ exerciseName, weight, reps, date, sessionId, unit }`, so
+  // the raw query returns the top row per exerciseName (highest weight, then
+  // latest date as tiebreak) and the outer result is sorted by max_weight DESC
+  // to match the frontend's `slice(0, 4)` Highlights block ordering.
   try {
-    const { WorkoutSession, WorkoutExercise, Set } = getModels();
-    if (!WorkoutSession || !WorkoutExercise || !Set) return [];
-    const workoutSessions = await WorkoutSession.findAll({
-      where: {
-        userId,
-        status: 'completed'
-      },
-      include: [{
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [{
-          model: Set,
-          as: 'sets'
-        }]
-      }]
-    });
+    const [rows] = await sequelize.query(
+      `WITH max_per_exercise AS (
+         SELECT DISTINCT ON (wl."exerciseName")
+           wl."exerciseName" AS exercise_name,
+           wl.weight::float AS max_weight,
+           wl.reps AS reps_at_max,
+           ws.date AS session_date,
+           ws.id AS session_id
+         FROM workout_logs wl
+         JOIN workout_sessions ws ON wl."sessionId" = ws.id
+         WHERE ws."userId" = :userId
+           AND ws.status = 'completed'
+           AND wl.weight IS NOT NULL
+           AND wl.weight > 0
+         ORDER BY wl."exerciseName", wl.weight DESC, ws.date DESC
+       )
+       SELECT * FROM max_per_exercise
+       ORDER BY max_weight DESC`,
+      { replacements: { userId } }
+    );
 
-    const exerciseRecords = {};
-
-    for (const workout of workoutSessions) {
-      if (!workout.exercises) continue;
-
-      for (const exercise of workout.exercises) {
-        const exerciseName = exercise.exerciseName;
-
-        if (!exercise.sets || exercise.sets.length === 0) continue;
-
-        for (const set of exercise.sets) {
-          const weight = parseFloat(set.weight) || 0;
-          const reps = parseInt(set.reps) || 0;
-
-          if (weight === 0) continue;
-
-          if (!exerciseRecords[exerciseName]) {
-            exerciseRecords[exerciseName] = {
-              exerciseName,
-              maxWeight: weight,
-              repsAtMax: reps,
-              date: workout.sessionDate,
-              sessionId: workout.id
-            };
-          } else if (weight > exerciseRecords[exerciseName].maxWeight) {
-            exerciseRecords[exerciseName].maxWeight = weight;
-            exerciseRecords[exerciseName].repsAtMax = reps;
-            exerciseRecords[exerciseName].date = workout.sessionDate;
-            exerciseRecords[exerciseName].sessionId = workout.id;
-          }
-        }
-      }
-    }
-
-    return Object.values(exerciseRecords).sort((a, b) => b.maxWeight - a.maxWeight);
-
+    // Defensive map + filter — the SQL already excludes null/zero weight, but
+    // the service must not crash if a row slips through (driver quirks, etc.).
+    return (rows || [])
+      .filter((r) => r && r.max_weight != null && Number(r.max_weight) > 0)
+      .map((r) => ({
+        exerciseName: r.exercise_name,
+        weight: Number(r.max_weight),
+        reps: r.reps_at_max != null ? Number(r.reps_at_max) : null,
+        date: r.session_date,
+        sessionId: r.session_id,
+        unit: 'lbs',
+      }));
   } catch (error) {
     console.error('Error getting personal records:', error);
-    throw error;
+    return [];
   }
 }
 

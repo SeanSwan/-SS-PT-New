@@ -391,11 +391,16 @@ const ClientHomeTab: React.FC = () => {
       />
 
       {/* ── Next Session ───────────────────────────────────── */}
-      {/* /api/schedule/upcoming does not exist yet — static CTA */}
-      <NextSessionCard>
+      {/* canonical-surface-audit 2026-04-13 (weight/measurement/schedule):
+          /api/schedule/upcoming does not exist yet. This card MUST be an
+          explicitly-static CTA — no implied live "next session" data. The
+          prior label "Schedule" + subtext "Book your next training session"
+          was marginally ambiguous; tightened to make the not-booked state
+          unambiguous for a skim reader. */}
+      <NextSessionCard data-testid="next-session-card">
         <SessionInfo>
-          <SessionLabel>Schedule</SessionLabel>
-          <SessionValue>Book your next training session</SessionValue>
+          <SessionLabel>Next Session</SessionLabel>
+          <SessionValue>Not booked yet — tap below to schedule</SessionValue>
         </SessionInfo>
         <BookBtn
           onClick={() => navigate('/dashboard/client/schedule')}
