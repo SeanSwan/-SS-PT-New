@@ -105,7 +105,12 @@ describe('useFileAttachment — transcript-class type acceptance', () => {
 });
 
 describe('useFileAttachment — picker accepts transcript-class files', () => {
-  it('accepts an audio/m4a file under 50MB', () => {
+  // Phase 10 cap alignment 2026-04-14: transcript-class limit is 20MB,
+  // matching the Gemini inline-data cap at voiceTranscriptionService.mjs:16
+  // and the multer limit at workoutLogUploadRoutes.mjs:55. Previously
+  // 50MB here but real uploads silently failed at the Gemini step.
+
+  it('accepts an audio/m4a file under 20MB', () => {
     const { result } = renderHook(() => useFileAttachment());
     act(() => {
       result.current.addFiles([makeFile('voice.m4a', 'audio/m4a', 8 * 1024 * 1024)]);
@@ -115,21 +120,21 @@ describe('useFileAttachment — picker accepts transcript-class files', () => {
     expect(result.current.files[0].type).toBe('audio/m4a');
   });
 
-  it('accepts an audio/mpeg file at exactly 50MB', () => {
+  it('accepts an audio/mpeg file at exactly 20MB', () => {
     const { result } = renderHook(() => useFileAttachment());
     act(() => {
-      result.current.addFiles([makeFile('big.mp3', 'audio/mpeg', 50 * 1024 * 1024)]);
+      result.current.addFiles([makeFile('big.mp3', 'audio/mpeg', 20 * 1024 * 1024)]);
     });
     expect(result.current.error).toBeNull();
     expect(result.current.files).toHaveLength(1);
   });
 
-  it('rejects an audio file over 50MB', () => {
+  it('rejects an audio file over 20MB (Gemini inline-data cap)', () => {
     const { result } = renderHook(() => useFileAttachment());
     act(() => {
-      result.current.addFiles([makeFile('huge.mp3', 'audio/mpeg', 60 * 1024 * 1024)]);
+      result.current.addFiles([makeFile('huge.mp3', 'audio/mpeg', 25 * 1024 * 1024)]);
     });
-    expect(result.current.error).toMatch(/50MB limit/i);
+    expect(result.current.error).toMatch(/20MB limit/i);
     expect(result.current.files).toHaveLength(0);
   });
 

@@ -3,7 +3,7 @@
 **Purpose:** Stable current priority board for SwanStudios production stability and the next implementation slices.
 **Status:** Evergreen file. Update this when production priorities shift.
 **Read after:** `CLAUDE.md`, `ACTIVE-INDEX.md`
-**Last updated:** 2026-04-14 (post Phase 9.1 hotfix — local smoke test surfaced 3 real bugs + 1 UX defect; all fixed, parser provider flagged as next blocker)
+**Last updated:** 2026-04-14 (post Phase 10 — Gemini-first parser rewrite unblocks Gemini-only local transcript intake; 20MB upload cap aligned across frontend/multer/Gemini)
 
 ---
 
@@ -60,21 +60,31 @@ This file is the canonical "what matters now" tracker.
    - Phase 9.1 tests: 92/92 coach-assistant (+29 new); 134/134 frontend scoped; 1471/1471 backend.
    - **Next blocker (NOT fixed this pass, flagged as P2):** `backend/services/workoutLogParserService.mjs:11,28-30` hard-requires `OPENAI_API_KEY`. User's `.env` has only Gemini. After the Phase 9.1 UI fixes land, the smoke test will fail at the parser step with "OPENAI_API_KEY not configured". Requires parser-provider rewrite (OpenAI → Gemini) + backend tests. Scoped as next slice.
 
-4. **P2 - Parser-provider rewrite (NEW — Phase 9.1 next blocker)**
-   - `backend/services/workoutLogParserService.mjs` currently hard-requires `OPENAI_API_KEY`.
-   - User's env has `GOOGLE_API_KEY`/`GEMINI_API_KEY` only.
-   - Blocks the real end-to-end transcript intake smoke test (audio AND text).
-   - Scope: rewrite `parseWorkoutTranscript` to call Gemini via the existing `voiceTranscriptionService.mjs` pattern (same API key chain, same provider), OR route through `backend/services/aiProviderRouter.mjs` if it's stable enough.
-   - Also related: `backend/services/voiceTranscriptionService.mjs:16` enforces a 20MB Gemini inline-data limit while the frontend + multer allow 50MB — misalignment that will bite real Plaud exports > 20MB.
+4. **P2 - Parser-provider rewrite** ✅ **DONE** (Phase 10, 2026-04-14)
+   - `backend/services/workoutLogParserService.mjs` rewritten as Gemini-first with optional OpenAI fallback.
+   - Local/dev users with only `GOOGLE_API_KEY`/`GEMINI_API_KEY` can now parse transcripts end-to-end without `OPENAI_API_KEY`.
+   - Uses direct fetch to `generativelanguage.googleapis.com` matching the proven `voiceTranscriptionService.mjs` pattern (NOT the `geminiAdapter.mjs` in the provider router — that adapter is purpose-built for workout-draft generation and reusing it would require restructuring into `AiGenerationContext` shape, wider than this slice warranted).
+   - Enforces `responseMimeType: 'application/json'` in Gemini generationConfig.
+   - Defensive JSON extraction (`extractJson`) handles fenced markdown / leading commentary / nested braces as a safety net.
+   - Fallback order: Gemini first → OpenAI fallback ONLY when `OPENAI_API_KEY` exists AND Gemini failed. Inverted from Phase 9, which required OpenAI.
+   - **20MB size-limit mismatch aligned**: frontend picker (`useFileAttachment.ts:63`), multer (`workoutLogUploadRoutes.mjs:55`), and Gemini inline-data cap (`voiceTranscriptionService.mjs:16`) are now all 20MB. Previously frontend+multer allowed 50MB and silently failed at the Gemini upload step.
+   - New test file: `backend/tests/unit/workoutLogParserService.test.mjs` — 30/30 passing. Covers provider chain routing, JSON extraction edge cases, error paths, output contract preservation, key-resolution priority.
+   - Test results: backend full 1501/1501 (+30); frontend coach-assistant 98/98 (+0 net — 3 tests updated from 50MB → 20MB assertions but count unchanged).
+   - **Narrow claim:** transcript intake is now locally smoke-testable with a Gemini-only env. This does NOT make transcript intake production-ready — it removes the parser-provider blocker and nothing more. The next real blocker is unknown until Sean reruns the local smoke test against `bc21a4ab` + Phase 10 changes.
 
-5. **P2 - Writer-side default-value fix**
+5. **P3 - Writer-side default-value fix**
    - Fix `formRating`, `set.rpe`, and `overallIntensity` default-value persistence so charts reflect explicit interaction instead of seeded neutral defaults.
 
-6. **P3 - Optional unofficial PLAUD bridge**
+6. **P4 - Optional unofficial PLAUD bridge**
    - Only behind an internal feature flag.
    - Not a production-critical dependency.
 
-7. **Later - Official PLAUD OAuth/webhook integration**
+7. **Later — Official PLAUD OAuth/webhook integration**
+
+8. **Later — Gemini File Upload API for transcripts > 20MB**
+   - Current cap is 20MB (Gemini inline-data limit), enforced at all 3 layers.
+   - Real Plaud exports of long sessions can exceed this.
+   - Requires swapping `voiceTranscriptionService.mjs` inline-data path for the Gemini File Upload API with two-step upload + reference. Separate slice.
    - Only when public and stable.
 
 ---

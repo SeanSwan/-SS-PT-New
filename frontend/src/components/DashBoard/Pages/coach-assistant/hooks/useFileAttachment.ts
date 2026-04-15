@@ -59,12 +59,17 @@ const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /**
- * Transcript-class file size limit. Aligned with the multer config at
- * backend/routes/workoutLogUploadRoutes.mjs:54 (50MB). Audio files exported
- * from PLAUD or recorded on phone routinely exceed 10MB; the chat-default
- * 10MB cap was rejecting real workouts before they ever hit the server.
+ * Transcript-class file size limit. Aligned with the REAL upstream
+ * constraint: the Gemini inline-data cap enforced at
+ * backend/services/voiceTranscriptionService.mjs:16 (20MB). The multer
+ * config at backend/routes/workoutLogUploadRoutes.mjs:55 is also 20MB.
+ *
+ * Phase 10 alignment 2026-04-14: the previous 50MB limit here let real
+ * Plaud exports >20MB pass the picker and silently fail at Gemini
+ * upload. Honest limit is 20MB until the Gemini File Upload API is
+ * wired for larger audio (separate refactor).
  */
-const TRANSCRIPT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const TRANSCRIPT_MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 

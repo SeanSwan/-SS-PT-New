@@ -48,11 +48,18 @@ function rateLimiter(req, res, next) {
   next();
 }
 
-// Multer for audio + text files (memory storage, 50MB limit)
+// Multer for audio + text files (memory storage, 20MB limit).
+// Phase 10 alignment 2026-04-14: the upstream constraint is the Gemini
+// inline-data limit enforced at voiceTranscriptionService.mjs:16
+// (20MB). Accepting 50MB here used to let files pass multer and then
+// fail silently at the Gemini upload step with a confusing error. The
+// real cap is the Gemini one; align the user-facing limit to the truth.
+// The Gemini File Upload API (for >20MB audio) is a separate refactor
+// scoped out of this pass.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max
+    fileSize: 20 * 1024 * 1024, // 20MB max — aligned with Gemini inline-data cap
   },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [

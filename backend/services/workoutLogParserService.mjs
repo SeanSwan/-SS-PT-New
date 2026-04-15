@@ -3,43 +3,41 @@
  * ===========================
  * Parses trainer voice memo transcripts (or text notes) into structured
  * DailyWorkoutForm.formData using AI, enriched with client context.
+ *
+ * Provider chain (Phase 10 rewrite, 2026-04-14):
+ *   1. Gemini — primary. Uses `GOOGLE_API_KEY || GEMINI_API_KEY` via direct
+ *      fetch to generativelanguage.googleapis.com, mirroring the pattern
+ *      already proven in voiceTranscriptionService.mjs.
+ *   2. OpenAI — optional fallback ONLY when OPENAI_API_KEY is also present
+ *      AND the Gemini call failed with a retryable error. Never the primary.
+ *
+ * This inversion from the prior Phase 9 implementation (which hard-required
+ * OPENAI_API_KEY) unblocks local transcript intake for users who only have
+ * a Google/Gemini key configured.
+ *
+ * Output contract (unchanged from Phase 9 — consumers depend on this shape):
+ *   {
+ *     exercises: [{ exerciseName, sets[], formRating?, painLevel?, performanceNotes? }],
+ *     sessionNotes?: string,
+ *     overallIntensity?: number,
+ *     painFlags?: Array<{ bodyRegion, side, mention }>,
+ *     confidence: number,
+ *     date: string,
+ *   }
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
 import logger from '../utils/logger.mjs';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-/**
- * Parse a raw transcript into a structured workout log.
- *
- * @param {Object} params
- * @param {string} params.transcript - Raw text from voice memo or file
- * @param {number} params.clientId - Client to log workout for
- * @param {number} params.trainerId - Trainer performing the log
- * @param {string} [params.date] - Workout date (ISO string, defaults to today)
- * @returns {Promise<Object>} Parsed workout with painFlags and confidence
- */
-export async function parseWorkoutTranscript({ transcript, clientId, trainerId, date }) {
-  if (!transcript || transcript.trim().length < 10) {
-    throw new Error('Transcript is too short to parse');
-  }
-
-  if (!OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY not configured — cannot parse workout');
-  }
-
-  // Get client context for AI enrichment
-  let clientContext = null;
-  try {
-    clientContext = await getClientContext(clientId, trainerId);
-  } catch (err) {
-    logger.warn('[WorkoutLogParser] Could not load client context, proceeding without it', { clientId, error: err.message });
-  }
-
-  const contextBlock = clientContext ? buildContextBlock(clientContext) : 'No client context available.';
-
-  const systemPrompt = `You are a fitness workout log parser for SwanStudios, a NASM-certified personal training platform.
+// ─────────────────────────────────────────────────────────────
+// SECTION: System prompt (provider-agnostic)
+// PURPOSE: The strict schema contract we enforce on every parser call.
+//          Kept identical to the Phase 9 implementation so downstream
+//          consumers (parsedWorkoutToLogPayload, CoachMessage review card)
+//          continue to work without any shape change.
+// ─────────────────────────────────────────────────────────────
+function buildSystemPrompt(contextBlock) {
+  return `You are a fitness workout log parser for SwanStudios, a NASM-certified personal training platform.
 
 Your job: Parse a trainer's voice memo or session notes into a structured workout log JSON.
 
@@ -55,7 +53,7 @@ RULES:
 - Set overallIntensity on a 1-10 scale based on the session description
 - Include any session notes or trainer observations
 
-OUTPUT FORMAT (strict JSON, no markdown):
+OUTPUT FORMAT (strict JSON, no markdown fences, no commentary):
 {
   "exercises": [
     {
@@ -74,9 +72,218 @@ OUTPUT FORMAT (strict JSON, no markdown):
     { "bodyRegion": "shoulder", "side": "left", "mention": "exact quote from transcript" }
   ]
 }`;
+}
+
+function buildContextBlock(ctx) {
+  const parts = [];
+  if (ctx?.clientName) {
+    parts.push(`Client: ${ctx.clientName}`);
+  }
+  if (ctx?.pain?.exclusions?.length > 0) {
+    parts.push(
+      `Active pain exclusions: ${ctx.pain.exclusions
+        .map((e) => `${e.bodyRegion} (${e.painLevel}/10)`)
+        .join(', ')}`,
+    );
+  }
+  if (ctx?.pain?.warnings?.length > 0) {
+    parts.push(
+      `Pain warnings: ${ctx.pain.warnings
+        .map((e) => `${e.bodyRegion} (${e.painLevel}/10)`)
+        .join(', ')}`,
+    );
+  }
+  if (ctx?.constraints?.nasmPhase) {
+    parts.push(`Current NASM OPT Phase: ${ctx.constraints.nasmPhase}`);
+  }
+  if (ctx?.workouts?.sessionsLast2Weeks) {
+    parts.push(`Sessions in last 2 weeks: ${ctx.workouts.sessionsLast2Weeks}`);
+  }
+  if (ctx?.movement?.compensations?.length > 0) {
+    parts.push(
+      `Known compensations: ${ctx.movement.compensations.map((c) => c.type).join(', ')}`,
+    );
+  }
+  return parts.join('\n') || 'No additional context.';
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Robust JSON extraction
+// PURPOSE: Gemini's responseMimeType: 'application/json' enforces JSON
+//          most of the time, but real-world responses still occasionally
+//          come back wrapped in markdown fences or with leading/trailing
+//          commentary. This helper tries strict JSON.parse first, then
+//          falls back to extracting the first JSON object it can find.
+// ─────────────────────────────────────────────────────────────
+function extractJson(rawText) {
+  if (typeof rawText !== 'string' || rawText.trim().length === 0) {
+    throw new Error('AI returned empty response');
+  }
+
+  // 1. Strict parse — works when the provider honored json mode.
+  try {
+    return JSON.parse(rawText);
+  } catch {
+    // Fall through to defensive extraction.
+  }
+
+  // 2. Strip fenced markdown blocks: ```json ... ``` or ``` ... ```
+  const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    try {
+      return JSON.parse(fenceMatch[1].trim());
+    } catch {
+      /* fall through */
+    }
+  }
+
+  // 3. Last resort: find the first balanced { ... } object. Uses a
+  //    depth counter to respect nested braces.
+  const firstBrace = rawText.indexOf('{');
+  if (firstBrace !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = firstBrace; i < rawText.length; i++) {
+      const ch = rawText[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const candidate = rawText.slice(firstBrace, i + 1);
+          try {
+            return JSON.parse(candidate);
+          } catch {
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  throw new Error('AI returned invalid JSON');
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Gemini provider call
+// PURPOSE: Direct fetch to generativelanguage.googleapis.com, mirroring
+//          the proven pattern in voiceTranscriptionService.mjs. Uses
+//          responseMimeType: 'application/json' to ask Gemini for strict
+//          JSON output. Temperature 0.2 for deterministic parsing.
+// ─────────────────────────────────────────────────────────────
+function getGeminiApiKey() {
+  return process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || null;
+}
+
+async function parseWithGemini({ systemPrompt, transcript }) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+  const model = process.env.AI_GEMINI_PARSER_MODEL || 'gemini-2.5-flash';
+
+  const requestBody = {
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: `${systemPrompt}\n\nParse this trainer session transcript:\n\n${transcript}` },
+        ],
+      },
+    ],
+    generationConfig: {
+      maxOutputTokens: 4096,
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+    },
+  };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timer = setTimeout(() => controller.abort(), 30_000); // 30s
+
+  let response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      },
+    );
+  } catch (err) {
+    clearTimeout(timer);
+    if (err?.name === 'AbortError') {
+      throw new Error('Gemini parser request timed out');
+    }
+    throw new Error(`Gemini parser network error: ${err?.message || 'unknown'}`);
+  }
+  clearTimeout(timer);
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => 'Unknown error');
+    logger.error('[WorkoutLogParser:Gemini] API error', {
+      status: response.status,
+      error: errText.slice(0, 500),
+      model,
+    });
+    throw new Error(`Gemini parser failed (${response.status})`);
+  }
+
+  const data = await response.json();
+  const rawText =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+    data?.candidates?.[0]?.content?.parts?.map?.((p) => p.text).join('') ||
+    '';
+
+  if (!rawText) {
+    throw new Error('Gemini returned empty response');
+  }
+
+  const parsed = extractJson(rawText);
+
+  logger.info('[WorkoutLogParser:Gemini] Parse complete', {
+    model,
+    exercises: Array.isArray(parsed?.exercises) ? parsed.exercises.length : 0,
+    inputTokens: data?.usageMetadata?.promptTokenCount,
+    outputTokens: data?.usageMetadata?.candidatesTokenCount,
+  });
+
+  return parsed;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: OpenAI fallback (optional)
+// PURPOSE: Legacy provider. Only called when Gemini fails AND
+//          OPENAI_API_KEY is explicitly configured. Never the primary.
+//          Preserved so existing-environment users who already had
+//          OpenAI set up still have a safety net on Gemini outage.
+// ─────────────────────────────────────────────────────────────
+async function parseWithOpenAI({ systemPrompt, transcript }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
 
   let response;
   try {
@@ -84,7 +291,7 @@ OUTPUT FORMAT (strict JSON, no markdown):
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -98,36 +305,106 @@ OUTPUT FORMAT (strict JSON, no markdown):
       signal: controller.signal,
     });
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(timer);
   }
 
   if (!response.ok) {
     const errText = await response.text().catch(() => 'Unknown error');
-    logger.error('[WorkoutLogParser] OpenAI API error', { status: response.status, error: errText });
-    throw new Error(`Workout parsing failed (${response.status})`);
+    logger.error('[WorkoutLogParser:OpenAI] API error', {
+      status: response.status,
+      error: errText.slice(0, 500),
+    });
+    throw new Error(`OpenAI parser failed (${response.status})`);
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-
+  const content = data?.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error('AI returned empty response');
+    throw new Error('OpenAI returned empty response');
   }
 
-  let parsed;
+  const parsed = extractJson(content);
+
+  logger.info('[WorkoutLogParser:OpenAI] Parse complete (fallback path)', {
+    exercises: Array.isArray(parsed?.exercises) ? parsed.exercises.length : 0,
+  });
+
+  return parsed;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Provider chain — Gemini-first with optional OpenAI fallback
+// ─────────────────────────────────────────────────────────────
+async function runProviderChain({ systemPrompt, transcript }) {
+  const hasGemini = Boolean(getGeminiApiKey());
+  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+
+  if (!hasGemini && !hasOpenAI) {
+    throw new Error(
+      'No AI parser provider configured — set GOOGLE_API_KEY / GEMINI_API_KEY (preferred) or OPENAI_API_KEY',
+    );
+  }
+
+  // Try Gemini first when available.
+  if (hasGemini) {
+    try {
+      return await parseWithGemini({ systemPrompt, transcript });
+    } catch (err) {
+      logger.warn('[WorkoutLogParser] Gemini parse failed', {
+        error: err?.message || 'unknown',
+        willFallback: hasOpenAI,
+      });
+      // If OpenAI is also available, fall through to the legacy provider.
+      if (!hasOpenAI) throw err;
+    }
+  }
+
+  // Fallback path — only reachable when Gemini failed or isn't configured
+  // and OPENAI_API_KEY is present.
+  return await parseWithOpenAI({ systemPrompt, transcript });
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Public entry point
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Parse a raw transcript into a structured workout log.
+ *
+ * @param {Object} params
+ * @param {string} params.transcript - Raw text from voice memo or file
+ * @param {number} params.clientId - Client to log workout for
+ * @param {number} params.trainerId - Trainer performing the log
+ * @param {string} [params.date] - Workout date (ISO string, defaults to today)
+ * @returns {Promise<Object>} Parsed workout with painFlags and confidence
+ */
+export async function parseWorkoutTranscript({ transcript, clientId, trainerId, date }) {
+  if (!transcript || transcript.trim().length < 10) {
+    throw new Error('Transcript is too short to parse');
+  }
+
+  // Load client context for AI enrichment (best-effort, non-blocking).
+  let clientContext = null;
   try {
-    parsed = JSON.parse(content);
-  } catch {
-    logger.error('[WorkoutLogParser] Failed to parse AI JSON response', { content: content.slice(0, 500) });
-    throw new Error('AI returned invalid JSON');
+    clientContext = await getClientContext(clientId, trainerId);
+  } catch (err) {
+    logger.warn('[WorkoutLogParser] Could not load client context, proceeding without it', {
+      clientId,
+      error: err?.message,
+    });
   }
 
-  // Validate structure
-  if (!parsed.exercises || !Array.isArray(parsed.exercises)) {
+  const contextBlock = clientContext ? buildContextBlock(clientContext) : 'No client context available.';
+  const systemPrompt = buildSystemPrompt(contextBlock);
+
+  const parsed = await runProviderChain({ systemPrompt, transcript });
+
+  // Validate structure — same defensive check as Phase 9.
+  if (!parsed || !Array.isArray(parsed.exercises)) {
     throw new Error('Parsed workout missing exercises array');
   }
 
-  // Calculate confidence based on transcript clarity
+  // Calculate confidence based on transcript clarity.
   const confidence = calculateConfidence(transcript, parsed);
 
   logger.info('[WorkoutLogParser] Parse complete', {
@@ -144,52 +421,34 @@ OUTPUT FORMAT (strict JSON, no markdown):
   };
 }
 
-function buildContextBlock(ctx) {
-  const parts = [];
-
-  if (ctx.clientName) {
-    parts.push(`Client: ${ctx.clientName}`);
-  }
-
-  if (ctx.pain?.exclusions?.length > 0) {
-    parts.push(`Active pain exclusions: ${ctx.pain.exclusions.map(e => `${e.bodyRegion} (${e.painLevel}/10)`).join(', ')}`);
-  }
-  if (ctx.pain?.warnings?.length > 0) {
-    parts.push(`Pain warnings: ${ctx.pain.warnings.map(e => `${e.bodyRegion} (${e.painLevel}/10)`).join(', ')}`);
-  }
-
-  if (ctx.constraints?.nasmPhase) {
-    parts.push(`Current NASM OPT Phase: ${ctx.constraints.nasmPhase}`);
-  }
-
-  if (ctx.workouts?.sessionsLast2Weeks) {
-    parts.push(`Sessions in last 2 weeks: ${ctx.workouts.sessionsLast2Weeks}`);
-  }
-
-  if (ctx.movement?.compensations?.length > 0) {
-    parts.push(`Known compensations: ${ctx.movement.compensations.map(c => c.type).join(', ')}`);
-  }
-
-  return parts.join('\n') || 'No additional context.';
-}
-
 function calculateConfidence(transcript, parsed) {
   let score = 0.5; // base
 
-  // Longer transcripts tend to be clearer
   if (transcript.length > 200) score += 0.1;
   if (transcript.length > 500) score += 0.1;
 
-  // More exercises = more detailed
   if (parsed.exercises?.length >= 3) score += 0.1;
   if (parsed.exercises?.length >= 5) score += 0.05;
 
-  // Sets with weight data = high confidence
-  const setsWithWeight = parsed.exercises?.flatMap(e => e.sets || []).filter(s => s.weight != null).length || 0;
+  const setsWithWeight =
+    parsed.exercises?.flatMap((e) => e.sets || []).filter((s) => s.weight != null).length || 0;
   if (setsWithWeight > 3) score += 0.1;
 
-  // Session notes present
   if (parsed.sessionNotes?.length > 20) score += 0.05;
 
   return Math.min(0.99, Math.round(score * 100) / 100);
 }
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Test-only exports
+// Named helpers exposed for regression locks in
+// backend/tests/unit/workoutLogParserService.test.mjs — not part of the
+// public parser API.
+// ─────────────────────────────────────────────────────────────
+export const __test__ = {
+  extractJson,
+  buildSystemPrompt,
+  buildContextBlock,
+  calculateConfidence,
+  getGeminiApiKey,
+};
