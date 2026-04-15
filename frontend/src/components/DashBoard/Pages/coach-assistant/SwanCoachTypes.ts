@@ -156,6 +156,25 @@ export interface CoachMessageData {
       streakDays?: number;
       fileName: string;
     };
+    /**
+     * Injected by Swan-first transcript intake for PRE-upload validation
+     * failures (no client selected) and upload-stage failures (backend
+     * rejected the file, network error, etc). Renders TranscriptErrorCard
+     * in CoachMessage — a simple dismissible error surface with NO fake
+     * "0 parsed" review UI and NO Apply button.
+     *
+     * Apply-stage failures on a REAL parsed review still use
+     * transcriptReview.applyError, because those keep the real review
+     * visible so the user can retry without re-uploading.
+     *
+     * Phase 9.1 hotfix 2026-04-14.
+     */
+    transcriptError?: {
+      kind: 'no_client' | 'upload_failed';
+      fileName: string;
+      fileSize?: number;
+      reason: string;
+    };
   };
   frontendActions?: FrontendAction[];
 }

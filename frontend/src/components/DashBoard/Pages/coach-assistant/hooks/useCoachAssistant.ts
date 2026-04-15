@@ -517,6 +517,65 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     [],
   );
 
+  /**
+   * Append a transcript-intake error card. Used for PRE-upload validation
+   * failures (no client) and upload-stage failures (network / 4xx / 5xx).
+   *
+   * Returns the pair of message ids so the page can track them in the
+   * same ref map used for review cards, enabling Dismiss via
+   * removeTranscriptMessages.
+   *
+   * Phase 9.1 hotfix 2026-04-14 — previously these states were injected
+   * as fake review cards with applyError set, which rendered a misleading
+   * "0 parsed" card with a live (but broken) Apply button.
+   */
+  const appendTranscriptError = useCallback(
+    (
+      error: NonNullable<CoachMessageData['metadata']>['transcriptError'],
+    ): { userMsgId: string; errorMsgId: string } => {
+      if (!error) {
+        return { userMsgId: '', errorMsgId: '' };
+      }
+      const ts = new Date().toISOString();
+      const userMsgId = `transcript-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const errorMsgId = `transcript-error-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      // Phase 9.1.1 polish 2026-04-14:
+      // Truthful user-bubble copy per failure kind. The previous string
+      // ("Uploaded X for review") was inaccurate for both error kinds:
+      //   - no_client: no upload happened, the send was blocked before
+      //     the file touched the network
+      //   - upload_failed: a request was made but the file never reached
+      //     the review step — it failed during upload/transcription/parse
+      // The success path (appendTranscriptReview) still uses
+      // "Uploaded X for review" because there the file actually reached
+      // review state.
+      const userBubbleContent =
+        error.kind === 'upload_failed'
+          ? `Tried to upload ${error.fileName}`
+          : `Attached ${error.fileName}`;
+
+      const userMsg: CoachMessageData = {
+        id: userMsgId,
+        role: 'user',
+        content: userBubbleContent,
+        timestamp: ts,
+      };
+
+      const errorMsg: CoachMessageData = {
+        id: errorMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: ts,
+        metadata: { transcriptError: error },
+      };
+
+      setCommandMessages(prev => [...prev, userMsg, errorMsg]);
+      return { userMsgId, errorMsgId };
+    },
+    [],
+  );
+
   // ── Send message with structured food context ──
   const sendMessageWithFood = useCallback(async (
     text: string,
@@ -575,5 +634,6 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     updateTranscriptReview,
     transcriptReviewToResult,
     removeTranscriptMessages,
+    appendTranscriptError,
   };
 }

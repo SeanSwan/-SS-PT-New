@@ -55,10 +55,18 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
   });
 
   it('handleSend gates transcript-class uploads on a selected client', () => {
-    // The guard must check selectedClient.id before allowing upload.
-    expect(PAGE_SOURCE).toMatch(
-      /hasTranscriptClassFile[\s\S]{0,800}!selectedClient\?\.id/,
-    );
+    // The guard must check selectedClient.id inside the transcript-class
+    // branch. We verify the presence of both anchors; strict proximity is
+    // not tested because Phase 9.1 reordered the branch body.
+    expect(PAGE_SOURCE).toMatch(/hasTranscriptClassFile\(files\)/);
+    expect(PAGE_SOURCE).toMatch(/!selectedClient\?\.id/);
+    // And they must appear in source order (guard before the selected-
+    // client check), so a future refactor that moves the check above the
+    // branch still fails loudly.
+    const guardIdx = PAGE_SOURCE.indexOf('hasTranscriptClassFile(files)');
+    const checkIdx = PAGE_SOURCE.indexOf('!selectedClient?.id');
+    expect(guardIdx).toBeGreaterThan(0);
+    expect(checkIdx).toBeGreaterThan(guardIdx);
   });
 
   it('handleSend calls intake.uploadTranscript for transcript-class files', () => {
@@ -131,11 +139,13 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     expect(PAGE_SOURCE).toMatch(/onCancelTranscript=\{handleCancelTranscript\}/);
   });
 
-  it('handleSend clears attachments on both transcript success and existing-flow paths', () => {
-    // Defense-in-depth: every send path must clear attachments to prevent
-    // a stale file from being re-sent on the next message.
+  it('handleSend clears attachments on the happy-path and existing-flow sends only', () => {
+    // Phase 9.1.1 polish: error branches (no_client + upload_failed) no
+    // longer clear attachments so the user can retry without re-picking
+    // the file. Only the upload-success branch and the text-only
+    // existing-flow branch should clear.
     const clearCount = (PAGE_SOURCE.match(/attachments\.clearFiles\(\)/g) ?? []).length;
-    expect(clearCount).toBeGreaterThanOrEqual(3); // success, failure, existing flow
+    expect(clearCount).toBe(2);
   });
 });
 
@@ -200,6 +210,280 @@ describe('useCoachAssistant — transcript intake helper exports', () => {
     expect(COACH_HOOK_SOURCE).toMatch(/const\s+sendMessage\s*=\s*useCallback\(/);
     expect(COACH_HOOK_SOURCE).toMatch(/executeCommand\(/);
     expect(COACH_HOOK_SOURCE).toMatch(/sendMessageWithConversation\(/);
+  });
+});
+
+describe('Phase 9.1 — selected-client hydration fix', () => {
+  it('flips the fetch-started ref when clientList is already populated (state D)', () => {
+    // The original ref gate only flipped on observed loadingClients=true,
+    // which stranded pages navigated-into after clients were pre-loaded.
+    // The fix: also flip the ref when `clientList.length > 0` because
+    // that's implicit confirmation that a fetch cycle completed.
+    expect(PAGE_SOURCE).toMatch(
+      /!clientListFetchStartedRef\.current\s*&&\s*clientList\.length\s*>\s*0/,
+    );
+    expect(PAGE_SOURCE).toMatch(
+      /clientListFetchStartedRef\.current\s*=\s*true/,
+    );
+  });
+
+  it('still gates on genuine pre-load window (state A: empty list, no fetch observed)', () => {
+    // Anti-regression: the state-A guard must still bail when the list
+    // is empty AND no fetch has been observed. Otherwise the URL-param
+    // branch would incorrectly clear selectedClient on a legitimate
+    // clientId that hasn't loaded yet.
+    expect(PAGE_SOURCE).toMatch(
+      /if\s*\(!clientListFetchStartedRef\.current\)\s*return;/,
+    );
+  });
+});
+
+describe('Phase 9.1 — missing-client validation uses error card, not fake review', () => {
+  it('handleSend calls appendTranscriptError on no-client, NOT appendTranscriptReview', () => {
+    // The no-client branch is the `if (!selectedClient?.id) { ... }` block
+    // followed by `const upload = await intake.uploadTranscript(`. Bound
+    // the search to that range so we don't accidentally match the later
+    // success branch's appendTranscriptReview call.
+    const noClientGuardIdx = PAGE_SOURCE.indexOf('!selectedClient?.id');
+    expect(noClientGuardIdx).toBeGreaterThan(0);
+    const uploadCallIdx = PAGE_SOURCE.indexOf(
+      'const upload = await intake.uploadTranscript(',
+      noClientGuardIdx,
+    );
+    expect(uploadCallIdx).toBeGreaterThan(noClientGuardIdx);
+    const slice = PAGE_SOURCE.slice(noClientGuardIdx, uploadCallIdx);
+    expect(slice).toMatch(/coach\.appendTranscriptError\(/);
+    expect(slice).not.toMatch(/coach\.appendTranscriptReview\(/);
+  });
+
+  it('no-client error path captures errorMsgId into transcriptReviewsRef', () => {
+    // The Phase 9 bug: the no-client branch discarded the return value,
+    // leaving Dismiss as a no-op. Lock that the ids are stored.
+    expect(PAGE_SOURCE).toMatch(
+      /appendTranscriptError[\s\S]{0,800}transcriptReviewsRef\.current\.set\(\s*errorMsgId/,
+    );
+  });
+
+  it('upload-failure branch also uses appendTranscriptError', () => {
+    // Second bug site: the upload-failed branch had the same dead-id bug.
+    expect(PAGE_SOURCE).toMatch(
+      /kind:\s*['"]upload_failed['"][\s\S]{0,500}transcriptReviewsRef\.current\.set\(\s*errorMsgId/,
+    );
+  });
+
+  it('transcriptReviewsRef type allows null review for error entries', () => {
+    // Error entries store `review: null` so handleConfirmTranscript can
+    // safely early-return on non-actionable entries.
+    expect(PAGE_SOURCE).toMatch(/review:\s*Parameters<[^>]+>\[0\]\s*\|\s*null/);
+  });
+});
+
+describe('Phase 9.1 — useCoachAssistant appendTranscriptError helper', () => {
+  it('exports appendTranscriptError from the hook', () => {
+    expect(COACH_HOOK_SOURCE).toMatch(/appendTranscriptError\b/);
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /return\s*\{[\s\S]*appendTranscriptError[\s\S]*\}/,
+    );
+  });
+
+  it('appendTranscriptError returns both userMsgId and errorMsgId', () => {
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /appendTranscriptError[\s\S]{0,1200}\{\s*userMsgId[\s\S]{0,200}errorMsgId/,
+    );
+  });
+
+  it('appendTranscriptError injects a message with transcriptError metadata', () => {
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /metadata:\s*\{\s*transcriptError:/,
+    );
+  });
+
+  it('does not mutate existing transcriptReview helpers', () => {
+    // Anti-regression: all four Phase 9 helpers must still exist alongside
+    // the new error helper.
+    expect(COACH_HOOK_SOURCE).toMatch(/appendTranscriptReview\b/);
+    expect(COACH_HOOK_SOURCE).toMatch(/updateTranscriptReview\b/);
+    expect(COACH_HOOK_SOURCE).toMatch(/transcriptReviewToResult\b/);
+    expect(COACH_HOOK_SOURCE).toMatch(/removeTranscriptMessages\b/);
+  });
+});
+
+describe('Phase 9.1 — CoachMessage transcriptError render branch', () => {
+  it('renders a dedicated error card separate from the review card', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/transcriptError\s*&&/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /data-testid=['"]transcript-error-card['"]/,
+    );
+  });
+
+  it('error card has NO Apply button — only a Dismiss action', () => {
+    // The error card render block must contain the dismiss testid but not
+    // the confirm/apply testid. We locate the error card render slice and
+    // verify the button structure.
+    const errorCardIdx = COACH_MESSAGE_SOURCE.indexOf('transcript-error-card');
+    expect(errorCardIdx).toBeGreaterThan(0);
+    // Grab ~2000 chars after the testid — enough to span the full render block
+    const slice = COACH_MESSAGE_SOURCE.slice(errorCardIdx, errorCardIdx + 2500);
+    expect(slice).toMatch(/data-testid=['"]transcript-error-dismiss-btn['"]/);
+    expect(slice).not.toMatch(/data-testid=['"]transcript-confirm-btn['"]/);
+  });
+
+  it('error card distinguishes no_client from upload_failed visually', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /transcriptError\.kind\s*===\s*['"]no_client['"]/,
+    );
+    expect(COACH_MESSAGE_SOURCE).toMatch(/'Client required'/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/'Upload failed'/);
+  });
+
+  it('existing review card still renders Apply button for real parsed reviews', () => {
+    // Anti-regression: the transcriptReview branch must still render the
+    // Apply control. Phase 9.1 only adds the error card; it must NOT
+    // remove the original review card behavior.
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /data-testid=['"]transcript-confirm-btn['"]/,
+    );
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /data-testid=['"]transcript-review-card['"]/,
+    );
+  });
+});
+
+describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
+  it('appendTranscriptError uses state-specific user bubble copy, not "Uploaded ... for review"', () => {
+    // The Phase 9.1 bug was that errorful paths reused "Uploaded X for
+    // review" which is false: no_client never uploaded, upload_failed
+    // never reached review. Lock that the new helper branches on kind.
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /error\.kind\s*===\s*['"]upload_failed['"]/,
+    );
+    // Both truthful phrasings must be present in the appendTranscriptError
+    // function body.
+    expect(COACH_HOOK_SOURCE).toMatch(/`Tried to upload \$\{error\.fileName\}`/);
+    expect(COACH_HOOK_SOURCE).toMatch(/`Attached \$\{error\.fileName\}`/);
+    // And the stale "Uploaded X for review" must NOT appear inside the
+    // appendTranscriptError function body. (The success-path
+    // appendTranscriptReview helper still uses that phrasing for real
+    // reviews — correctly — so we scope the negative check to the
+    // error function body by slicing.)
+    const errorFnIdx = COACH_HOOK_SOURCE.indexOf('const appendTranscriptError');
+    const nextFnIdx = COACH_HOOK_SOURCE.indexOf('const ', errorFnIdx + 30);
+    expect(errorFnIdx).toBeGreaterThan(0);
+    const errorFnSlice = COACH_HOOK_SOURCE.slice(
+      errorFnIdx,
+      nextFnIdx > 0 ? nextFnIdx : errorFnIdx + 3000,
+    );
+    expect(errorFnSlice).not.toMatch(/Uploaded \$\{error\.fileName\} for review/);
+  });
+
+  it('appendTranscriptReview success-path wording is unchanged', () => {
+    // Anti-regression: the real-review user bubble still says
+    // "Uploaded X for review" because there the file actually reached
+    // review state.
+    expect(COACH_HOOK_SOURCE).toMatch(/`Uploaded \$\{review\.fileName\} for review`/);
+  });
+});
+
+describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', () => {
+  it('no_client branch does NOT call attachments.clearFiles()', () => {
+    // The no-client IF block runs from `!selectedClient?.id` to the next
+    // `const upload = await intake.uploadTranscript(` line. Slice that
+    // range and assert no clearFiles() call is present.
+    const guardIdx = PAGE_SOURCE.indexOf('!selectedClient?.id');
+    const uploadCallIdx = PAGE_SOURCE.indexOf(
+      'const upload = await intake.uploadTranscript(',
+      guardIdx,
+    );
+    expect(guardIdx).toBeGreaterThan(0);
+    expect(uploadCallIdx).toBeGreaterThan(guardIdx);
+    const slice = PAGE_SOURCE.slice(guardIdx, uploadCallIdx);
+    expect(slice).not.toMatch(/attachments\.clearFiles\(\)/);
+  });
+
+  it('upload_failed branch does NOT call attachments.clearFiles()', () => {
+    // The upload-failure branch runs from `kind: 'upload_failed'` to the
+    // next `// Existing flow` comment that starts the text-only path.
+    // Bound the slice explicitly so it does not leak into the existing
+    // flow's legitimate clearFiles() call.
+    const failureIdx = PAGE_SOURCE.indexOf("kind: 'upload_failed'");
+    expect(failureIdx).toBeGreaterThan(0);
+    const existingIdx = PAGE_SOURCE.indexOf('// Existing flow', failureIdx);
+    expect(existingIdx).toBeGreaterThan(failureIdx);
+    const slice = PAGE_SOURCE.slice(failureIdx, existingIdx);
+    expect(slice).not.toMatch(/attachments\.clearFiles\(\)/);
+  });
+
+  it('success branch STILL clears attachments (happy-path unchanged)', () => {
+    // Anti-regression: Phase 9 behavior is intentionally preserved for
+    // the happy path — once a review card is injected, the file has
+    // been consumed and should not re-upload on the next send.
+    const successIdx = PAGE_SOURCE.indexOf('appendTranscriptReview(upload.review)');
+    expect(successIdx).toBeGreaterThan(0);
+    const slice = PAGE_SOURCE.slice(successIdx, successIdx + 500);
+    expect(slice).toMatch(/attachments\.clearFiles\(\)/);
+  });
+
+  it('existing text-only flow STILL clears attachments (unchanged)', () => {
+    // Anti-regression: text-only send + non-transcript image/json
+    // attachments still clear after the chat send fires. That path
+    // is outside the transcript branch entirely.
+    const existingIdx = PAGE_SOURCE.indexOf('// Existing flow');
+    expect(existingIdx).toBeGreaterThan(0);
+    const slice = PAGE_SOURCE.slice(existingIdx, existingIdx + 500);
+    expect(slice).toMatch(/attachments\.clearFiles\(\)/);
+  });
+});
+
+describe('Phase 9.1 — ContextChipBar redesigned as informational', () => {
+  const CONTEXT_BAR_SOURCE = readFileSync(
+    resolve(__dirname, './ContextChipBar.tsx'),
+    'utf8',
+  );
+
+  it('does not render any button element', () => {
+    // The informational taxonomy must not use button semantics.
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/<button\b/i);
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/ContextChipBtn/);
+  });
+
+  it('does not import the button styled component', () => {
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/import\s*\{[^}]*ContextChipBtn/);
+  });
+
+  it('does not attach any onClick handler', () => {
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/onClick=/);
+  });
+
+  it('does not accept activeContext or onContextChange props', () => {
+    // Interface must be lean — the component is informational.
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/activeContext/);
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/onContextChange/);
+  });
+
+  it('uses a section element with a clear label', () => {
+    // Per design spec: "What Swan Coach Can Help With" or similar.
+    expect(CONTEXT_BAR_SOURCE).toMatch(/What Swan Coach Can Help With/);
+  });
+
+  it('uses list semantics (ul/li), not button semantics', () => {
+    expect(CONTEXT_BAR_SOURCE).toMatch(/<InfoList/);
+    expect(CONTEXT_BAR_SOURCE).toMatch(/<InfoItem/);
+  });
+
+  it('pill items use cursor:default — not pointer — to signal non-interactive', () => {
+    expect(CONTEXT_BAR_SOURCE).toMatch(/cursor:\s*default/);
+    // The file should not declare cursor:pointer anywhere (button styles
+    // used to do this). One grep per style block would be ok — we check
+    // the whole file.
+    expect(CONTEXT_BAR_SOURCE).not.toMatch(/cursor:\s*pointer/);
+  });
+
+  it('SwanCoachAssistantPage no longer passes activeContext/onContextChange to ContextChipBar', () => {
+    // The call site must match the new lean interface.
+    expect(PAGE_SOURCE).toMatch(
+      /<ContextChipBar\s+userRole=\{userRole\}\s*\/>/,
+    );
+    expect(PAGE_SOURCE).not.toMatch(/activeContext=\{coach\.context\}/);
   });
 });
 

@@ -3,7 +3,7 @@
 **Purpose:** Stable current priority board for SwanStudios production stability and the next implementation slices.
 **Status:** Evergreen file. Update this when production priorities shift.
 **Read after:** `CLAUDE.md`, `ACTIVE-INDEX.md`
-**Last updated:** 2026-04-14 (post Phase 9 — Coach Assistant transcript intake)
+**Last updated:** 2026-04-14 (post Phase 9.1 hotfix — local smoke test surfaced 3 real bugs + 1 UX defect; all fixed, parser provider flagged as next blocker)
 
 ---
 
@@ -44,25 +44,37 @@ This file is the canonical "what matters now" tracker.
    - Each remaining ref is a silent-redirect-to-Coach-Assistant trap.
    - **Now the next priority** since transcript intake is unblocked.
 
-3. **P1 - Swan-first Coach Assistant transcript intake** ✅ **DONE** (Phase 9, 2026-04-14)
+3. **P1 - Swan-first Coach Assistant transcript intake** ✅ **DONE** (Phase 9, 2026-04-14) + ⚠ **HOTFIXED** (Phase 9.1, 2026-04-14)
    - Coach Assistant accepts transcript-class file attachments (audio + text + pdf).
    - 50MB cap aligned with `backend/routes/workoutLogUploadRoutes.mjs:54`.
    - Routes through `POST /api/workout-logs/upload` → review card → confirm → `POST /api/admin/clients/:clientId/workouts`.
    - Selected-client requirement enforced before upload.
    - Failure path preserves review state for retry.
    - Text-only Coach Assistant sends behave unchanged.
-   - 63/63 coach-assistant tests passing; 1471/1471 backend; 105/105 frontend scoped.
-   - Files added: `parsedWorkoutToLogPayload.ts`, `useTranscriptIntake.ts`, plus tests.
-   - Files modified: `useFileAttachment.ts`, `useCoachAssistant.ts`, `CoachMessage.tsx`, `SwanCoachTypes.ts`, `SwanCoachAssistantPage.tsx`.
+   - Phase 9 tests: 63/63 coach-assistant; 1471/1471 backend; 105/105 frontend scoped.
+   - **Phase 9.1 (2026-04-14): local smoke test surfaced 3 real bugs + 1 UX defect, all fixed in-place on local commit `4d0e445b` (not yet re-committed):**
+     - **BLOCKER-A**: `transcriptReviewsRef` ids not captured on no-client / upload-failure paths → Cancel and Apply buttons no-oped. **Fixed** by using new `appendTranscriptError` helper and storing error-entry ids in the same ref map.
+     - **BLOCKER-B**: Client hydration bail-out when `GlobalClientProvider` loaded BEFORE Coach Assistant mounted. The `clientListFetchStartedRef` gate never flipped in the pre-loaded case, so `activeClient` was never adopted into `selectedClient`, and the picker showed "Select a client..." while the left rail correctly showed the real client. **Fixed** by adding state D: flip the ref when `clientList.length > 0` AND `!loadingClients` (implicit confirmation a fetch completed before mount).
+     - **HIGH-A**: Validation / upload errors rendered as fake review cards with "0 parsed" and an active Apply button. **Fixed** by adding a new `transcriptError` metadata type and a dedicated `TranscriptErrorCard` render branch in `CoachMessage` — dismissible only, no fake Apply.
+     - **HIGH-B**: `ContextChipBar` rendered as interactive buttons despite being perceived as dead controls. **Fixed** by redesigning as informational capability taxonomy — section heading "What Swan Coach Can Help With", list semantics (ul/li), no onClick, no button element, default cursor.
+   - Phase 9.1 tests: 92/92 coach-assistant (+29 new); 134/134 frontend scoped; 1471/1471 backend.
+   - **Next blocker (NOT fixed this pass, flagged as P2):** `backend/services/workoutLogParserService.mjs:11,28-30` hard-requires `OPENAI_API_KEY`. User's `.env` has only Gemini. After the Phase 9.1 UI fixes land, the smoke test will fail at the parser step with "OPENAI_API_KEY not configured". Requires parser-provider rewrite (OpenAI → Gemini) + backend tests. Scoped as next slice.
 
-4. **P2 - Writer-side default-value fix**
+4. **P2 - Parser-provider rewrite (NEW — Phase 9.1 next blocker)**
+   - `backend/services/workoutLogParserService.mjs` currently hard-requires `OPENAI_API_KEY`.
+   - User's env has `GOOGLE_API_KEY`/`GEMINI_API_KEY` only.
+   - Blocks the real end-to-end transcript intake smoke test (audio AND text).
+   - Scope: rewrite `parseWorkoutTranscript` to call Gemini via the existing `voiceTranscriptionService.mjs` pattern (same API key chain, same provider), OR route through `backend/services/aiProviderRouter.mjs` if it's stable enough.
+   - Also related: `backend/services/voiceTranscriptionService.mjs:16` enforces a 20MB Gemini inline-data limit while the frontend + multer allow 50MB — misalignment that will bite real Plaud exports > 20MB.
+
+5. **P2 - Writer-side default-value fix**
    - Fix `formRating`, `set.rpe`, and `overallIntensity` default-value persistence so charts reflect explicit interaction instead of seeded neutral defaults.
 
-5. **P3 - Optional unofficial PLAUD bridge**
+6. **P3 - Optional unofficial PLAUD bridge**
    - Only behind an internal feature flag.
    - Not a production-critical dependency.
 
-6. **Later - Official PLAUD OAuth/webhook integration**
+7. **Later - Official PLAUD OAuth/webhook integration**
    - Only when public and stable.
 
 ---

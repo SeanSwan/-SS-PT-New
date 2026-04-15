@@ -314,6 +314,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const commandResult = message.metadata?.commandResult;
   const transcriptReview = message.metadata?.transcriptReview;
   const transcriptResult = message.metadata?.transcriptResult;
+  const transcriptError = message.metadata?.transcriptError;
 
   const copyToClipboard = async (text: string) => {
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
@@ -497,6 +498,48 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
                   <CheckCircle2 size={14} /> Apply to workout log
                 </>
               )}
+            </TranscriptBtn>
+          </TranscriptActions>
+        </TranscriptCard>
+      )}
+
+      {/* ─── Swan-first transcript intake — Error Card ─────────────── */}
+      {/* Phase 9.1 hotfix: pre-upload validation + upload-stage failures
+          render as a simple dismissible error, NOT a fake review card with
+          "0 parsed" and an active Apply button. Apply-stage failures on a
+          REAL parsed review still use transcriptReview.applyError so the
+          user can retry without losing the parsed data. */}
+      {transcriptError && (
+        <TranscriptCard
+          data-testid="transcript-error-card"
+          style={{ borderColor: 'rgba(201, 42, 84, 0.3)' }}
+        >
+          <CardTitle style={{ color: '#ff8fa3' }}>
+            <AlertTriangle size={16} />
+            {transcriptError.kind === 'no_client'
+              ? 'Client required'
+              : 'Upload failed'}
+          </CardTitle>
+          <CardRow>
+            <CardLabel>File</CardLabel>
+            <CardValue>
+              {transcriptError.fileName}
+              {typeof transcriptError.fileSize === 'number'
+                ? ` (${formatBytes(transcriptError.fileSize)})`
+                : ''}
+            </CardValue>
+          </CardRow>
+          <TranscriptError>
+            <AlertTriangle size={14} />
+            {transcriptError.reason}
+          </TranscriptError>
+          <TranscriptActions>
+            <TranscriptBtn
+              $danger
+              onClick={handleTranscriptCancel}
+              data-testid="transcript-error-dismiss-btn"
+            >
+              <X size={14} /> Dismiss
             </TranscriptBtn>
           </TranscriptActions>
         </TranscriptCard>

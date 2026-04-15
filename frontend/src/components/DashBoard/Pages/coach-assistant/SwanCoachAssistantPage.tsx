@@ -67,7 +67,7 @@ import {
   CoachHeaderIcon,
   MessagesArea,
 } from './SwanCoachStyles';
-import type { CoachContext, ResponseStyle } from './SwanCoachTypes';
+import type { ResponseStyle } from './SwanCoachTypes';
 
 const CoachTeachModePanel = lazy(() => import('./CoachTeachModePanel'));
 
@@ -321,10 +321,22 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── URL-param hydration + GlobalClientContext fallback ──
   // Precedence: (1) valid URL param wins, (2) keep manual selection, (3) fallback from activeClient.
   //
-  // Three loading states:
-  //   A) !clientListFetchStartedRef.current && !loadingClients → pre-load window, do nothing
-  //   B)  loadingClients                                        → fetch in progress, do nothing
-  //   C)  clientListFetchStartedRef.current && !loadingClients → load cycle complete, safe to act
+  // Four loading states:
+  //   A)  !ref && !loadingClients && clientList.length === 0 → pre-load window, do nothing
+  //   B)   loadingClients                                    → fetch in progress, do nothing
+  //   C)    ref && !loadingClients                           → observed a load cycle, safe to act
+  //   D)  !ref && !loadingClients && clientList.length > 0   → list was already populated
+  //                                                            before we mounted (pre-loaded by
+  //                                                            GlobalClientProvider). Implicit
+  //                                                            confirmation of a completed fetch.
+  //                                                            Safe to act AND flip the ref.
+  //
+  // Phase 9.1 hotfix 2026-04-14: Without state D, navigating into Coach
+  // Assistant from another dashboard page (where a client was already
+  // selected) left the picker stuck on "Select a client..." while the
+  // left rail correctly showed activeClient. loadingClients never
+  // transitioned to true during the mount window, so the ref never
+  // flipped, and the hydration fallback was silently stranded.
   useEffect(() => {
     if (userRole !== 'admin' && userRole !== 'trainer') return;
 
@@ -334,12 +346,18 @@ const SwanCoachAssistantPage: React.FC = () => {
       return;
     }
 
-    // State A: pre-load window — GlobalClientProvider's useEffect hasn't fired yet.
+    // State D: list was already populated by a prior page's fetch. Treat as
+    // equivalent to observing a completed load cycle.
+    if (!clientListFetchStartedRef.current && clientList.length > 0) {
+      clientListFetchStartedRef.current = true;
+    }
+
+    // State A: genuine pre-load window — empty list, no fetch observed yet.
     // Do NOT draw any conclusions about the URL param; the list is empty only because
     // the fetch hasn't started, not because the client truly doesn't exist.
     if (!clientListFetchStartedRef.current) return;
 
-    // State C: load cycle has completed at least once. Now safe to act.
+    // State C or D: safe to act.
 
     if (clientIdNumber !== null) {
       const found = clientList.find(c => c.id === clientIdNumber);
@@ -444,20 +462,27 @@ const SwanCoachAssistantPage: React.FC = () => {
   // (commandMessages) and avoids a second message store inside the hook.
   const intake = useTranscriptIntake();
 
-  // Map review message id → backing review data + user message id, so
-  // confirm/cancel handlers can look up and mutate the right message
-  // without parsing back out of metadata.
+  // Map message id → backing review data (or null for error entries) +
+  // user message id, so confirm/cancel handlers can look up and mutate
+  // the right message without parsing back out of metadata.
+  //
+  // Phase 9.1 hotfix: error entries (no-client validation, upload failures)
+  // store `review: null` so handleConfirmTranscript can safely no-op on
+  // non-actionable entries. The Dismiss handler uses the same map.
   const transcriptReviewsRef = React.useRef<
     Map<
       string,
       {
         userMsgId: string;
-        review: Parameters<typeof coach.appendTranscriptReview>[0];
+        review: Parameters<typeof coach.appendTranscriptReview>[0] | null;
       }
     >
   >(new Map());
 
   // ── Confirm a transcript review — apply parsed workout to the log ──
+  // Error entries store `review: null`, so this handler is a safe no-op
+  // for those; the error card never exposes an Apply button anyway, but
+  // defense-in-depth matters for the ref map.
   const handleConfirmTranscript = useCallback(
     async (reviewMsgId: string) => {
       const entry = transcriptReviewsRef.current.get(reviewMsgId);
@@ -527,23 +552,32 @@ const SwanCoachAssistantPage: React.FC = () => {
           return;
         }
 
+        const transcriptFile = files.find((f) => isTranscriptClassMime(f.type))!;
+
         // Selected client is mandatory for transcript intake.
+        // Phase 9.1 hotfix: use the dedicated transcriptError card instead
+        // of a fake review card, and register the ids in the same ref map
+        // so Dismiss actually removes the message (prior bug: Cancel was
+        // a no-op because the validation path never captured the ids).
+        //
+        // Phase 9.1.1 polish 2026-04-14: do NOT clear attachments here.
+        // The user needs to select a client and hit send again — forcing
+        // a re-pick of the file after every mis-click is hostile UX. The
+        // attachment preview's own Remove button lets the user discard
+        // manually if they change their mind.
         if (!selectedClient?.id) {
-          coach.clearError();
-          coach.appendTranscriptReview({
-            transcript: '',
-            parsedWorkout: { exercises: [] },
-            fileName: files.find((f) => isTranscriptClassMime(f.type))!.name,
-            fileSize: files.find((f) => isTranscriptClassMime(f.type))!.size,
-            fileMimeType: files.find((f) => isTranscriptClassMime(f.type))!.type,
-            clientId: 0,
-            applyError:
-              'Select a client at the top of the page before uploading a transcript.',
+          const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+            kind: 'no_client',
+            fileName: transcriptFile.name,
+            fileSize: transcriptFile.size,
+            reason: 'Select a client at the top of the page before uploading a transcript.',
           });
+          if (errorMsgId) {
+            transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+          }
           return;
         }
 
-        const transcriptFile = files.find((f) => isTranscriptClassMime(f.type))!;
         const upload = await intake.uploadTranscript(
           transcriptFile.file,
           selectedClient.id,
@@ -562,19 +596,26 @@ const SwanCoachAssistantPage: React.FC = () => {
           return;
         }
 
-        // Upload failure — inject an error-only review card so the user
-        // sees what went wrong but does not lose other inputs.
-        coach.appendTranscriptReview({
-          transcript: '',
-          parsedWorkout: { exercises: [] },
+        // Upload-stage failure — inject a transcriptError card (dismissible,
+        // NO fake Apply button). The Phase 9 regression was that this path
+        // reused appendTranscriptReview and the discarded return value left
+        // Dismiss as a no-op.
+        //
+        // Phase 9.1.1 polish 2026-04-14: do NOT clear attachments here
+        // either. Most upload-failure kinds are retryable with the same
+        // file (rate limit, network blip, transient 5xx). The few that
+        // are not (unsupported format, oversize) can be discarded
+        // manually via the attachment preview's Remove button. Clearing
+        // unconditionally was hostile to retry flows.
+        const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+          kind: 'upload_failed',
           fileName: transcriptFile.name,
           fileSize: transcriptFile.size,
-          fileMimeType: transcriptFile.type,
-          clientId: selectedClient.id,
-          clientName: `${selectedClient.firstName} ${selectedClient.lastName}`.trim(),
-          applyError: upload.failure.error,
+          reason: upload.failure.error,
         });
-        attachments.clearFiles();
+        if (errorMsgId) {
+          transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+        }
         return;
       }
 
@@ -636,12 +677,8 @@ const SwanCoachAssistantPage: React.FC = () => {
           />
         )}
 
-        {/* Context Chips */}
-        <ContextChipBar
-          activeContext={coach.context}
-          onContextChange={coach.switchContext as (ctx: CoachContext) => void}
-          userRole={userRole}
-        />
+        {/* Capability Taxonomy (informational) */}
+        <ContextChipBar userRole={userRole} />
 
         {/* Messages */}
         <MessagesArea role="log" aria-live="polite" aria-label="Conversation">
