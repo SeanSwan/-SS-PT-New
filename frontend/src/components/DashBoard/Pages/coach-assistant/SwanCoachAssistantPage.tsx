@@ -668,12 +668,14 @@ const SwanCoachAssistantPage: React.FC = () => {
           </TeachModeToggle>
         </CoachHeader>
 
-        {/* Client Picker — trainer/admin only, routes AI data to selected client */}
+        {/* Client Picker — trainer/admin only, routes AI data to selected client.
+            Phase 12 hotfix: client list now comes from GlobalClientContext,
+            so the `userRole` prop is no longer consumed by the picker. Kept
+            off the call site to reduce noise. */}
         {(userRole === 'trainer' || userRole === 'admin') && (
           <ClientPicker
             selectedClient={selectedClient}
             onSelectClient={adoptClient}
-            userRole={userRole}
           />
         )}
 

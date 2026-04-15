@@ -243,9 +243,11 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
           </HeaderActions>
         </DrawerHeader>
 
-        {/* Client Picker — trainer/admin only */}
+        {/* Client Picker — trainer/admin only.
+            Phase 12 hotfix: client list now comes from GlobalClientContext,
+            so the `userRole` prop is no longer consumed. */}
         {isTrainerOrAdmin && (
-          <ClientPicker selectedClient={selectedClient} onSelectClient={setSelectedClient} userRole={userRole} />
+          <ClientPicker selectedClient={selectedClient} onSelectClient={setSelectedClient} />
         )}
 
         {/* Quick Actions — when client selected + no active conversation */}

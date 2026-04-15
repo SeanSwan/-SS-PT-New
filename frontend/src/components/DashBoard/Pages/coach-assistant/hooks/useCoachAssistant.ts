@@ -277,8 +277,15 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     const cmdResult = await executeCommand(text.trim(), { selectedClientId: targetClientId });
 
     if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
-      // Route to chat lane as normal
-      const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
+      // Route to chat lane as normal.
+      // Phase 12 hotfix 2026-04-15: pass responseStyle through unchanged.
+      // The old mapping rewrote 'balanced' → 'both' which forced the
+      // backend's dual-mode "🎓 THE SCIENCE" / "💯 KEEPING IT 100"
+      // template on every Balanced-mode message. The backend accepts
+      // 'balanced' as a first-class style (aiChatService.mjs:988) and
+      // returns a single unified response, which is what the UI label
+      // actually promises.
+      const backendStyle = responseStyle;
       await chat.sendMessageWithConversation(
         text.trim(),
         context as Parameters<typeof chat.sendMessageWithConversation>[1],
@@ -582,7 +589,10 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     foodContext: Record<string, unknown>,
   ) => {
     if (!text.trim() || chat.sending) return null;
-    const backendStyle = responseStyle === 'balanced' ? 'both' : responseStyle;
+    // Phase 12 hotfix 2026-04-15: see comment at the earlier call site.
+    // Pass responseStyle through unchanged; 'balanced' is a first-class
+    // backend style, not an alias for 'both'.
+    const backendStyle = responseStyle;
     const result = await chat.sendMessageWithConversation(
       text.trim(),
       'macro_logging' as Parameters<typeof chat.sendMessageWithConversation>[1],

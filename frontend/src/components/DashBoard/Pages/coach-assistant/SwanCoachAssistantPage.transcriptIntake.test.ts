@@ -211,6 +211,22 @@ describe('useCoachAssistant — transcript intake helper exports', () => {
     expect(COACH_HOOK_SOURCE).toMatch(/executeCommand\(/);
     expect(COACH_HOOK_SOURCE).toMatch(/sendMessageWithConversation\(/);
   });
+
+  it('Phase 12: does NOT rewrite responseStyle "balanced" → "both"', () => {
+    // The Phase 9 code had a mapping `balanced === responseStyle ? 'both' :
+    // responseStyle` at both sendMessage call sites. This forced the
+    // backend's dual-mode "🎓 THE SCIENCE" / "💯 KEEPING IT 100" template
+    // on every Balanced-mode message, even though the backend has a
+    // first-class 'balanced' style that returns a single unified response.
+    // Lock the fix: the backendStyle assignment must not contain the
+    // 'balanced' → 'both' rewrite anywhere in the hook.
+    expect(COACH_HOOK_SOURCE).not.toMatch(
+      /responseStyle\s*===\s*['"]balanced['"]\s*\?\s*['"]both['"]/,
+    );
+    // And backendStyle must still be declared (anti-regression for the
+    // general chat-style pass-through).
+    expect(COACH_HOOK_SOURCE).toMatch(/const\s+backendStyle\s*=\s*responseStyle/);
+  });
 });
 
 describe('Phase 9.1 — selected-client hydration fix', () => {

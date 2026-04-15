@@ -2,48 +2,42 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: ClientPicker                                      ║
  * ║  PURPOSE: Searchable client dropdown for AI context targeting ║
- * ║  PARENT: AIAssistantDrawer                                    ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
+ * ║  PARENT: AIAssistantDrawer, SwanCoachAssistantPage            ║
+ * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-04-15         ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
- * WIREFRAME:
- * ┌─── Collapsed ──────────────────────────────────────┐
- * │ [👤 Jackie Smith              ▾ ] [✕]              │ SelectedClient button
- * └────────────────────────────────────────────────────┘
- * ┌─── Expanded ───────────────────────────────────────┐
- * │ [🔍 Search clients...                        ] [✕] │ SearchInput
- * │ ┌──────────────────────────────────────────────┐   │
- * │ │ [📷] Jackie Smith  jackie@email.com          │   │ ClientItem (scrollable list)
- * │ │ [📷] Sean Swan     sean@swanstudios.com      │   │
- * │ │ ... (max-height: 240px, overflow scroll)     │   │
- * │ └──────────────────────────────────────────────┘   │
- * └────────────────────────────────────────────────────┘
+ * Phase 12 hotfix 2026-04-15:
+ * Previously this component maintained its OWN fetch against
+ * /api/admin/clients with a broken response normalizer
+ * (`data.clients || data.data || [...]`) that returned the paginated
+ * `{clients, pagination}` OBJECT instead of an array, triggering a
+ * TypeError on `.map` that was silently swallowed. Admin dropdowns
+ * were consistently empty. The picker also ignored its own `userRole`
+ * prop, would not respect trainer vs admin endpoint differences, and
+ * hard-capped at limit=10 even if the normalizer had been correct.
  *
- * CLICK OUTCOMES:
- * SelectedClient tap → expands dropdown
- * ClientItem tap → selects client, collapses, fires onSelect
- * Clear (✕) → deselects client, fires onSelect(null)
- * Search input → filters client list by name/email
+ * New architecture: consume the canonical client list from
+ * GlobalClientContext, which already has a correct role-aware
+ * fetch + normalizer + error logging + admin limit=500 override.
+ * Single source of truth for the entire dashboard. No more duplicate
+ * list state.
  *
  * DATA FLOW:
- * Props In:  { onSelect, selectedClient, userRole }
- * State:     { clients[], search, isOpen, loading }
- * API Calls: GET /api/admin/clients (on mount, cached)
+ * Props In:  { onSelect, selectedClient }
+ * Context:   useGlobalClient() → { clientList, loadingClients }
  * Events:    onSelect(client | null)
  *
  * ARCHITECTURE:
  * graph TD
- *   Drawer[AIAssistantDrawer] --> Picker[ClientPicker]
- *   Picker -->|fetch| API[/api/admin/clients]
- *   Picker -->|onSelect| Drawer
- *
- * NOTE: 346 lines — exceeds 300-line rule. TODO: extract styled
- * components to ClientPickerStyles.ts
+ *   Provider[GlobalClientProvider] -->|clientList| Picker[ClientPicker]
+ *   Parent[SwanCoachAssistantPage / AIAssistantDrawer] --> Picker
+ *   Picker -->|onSelect| Parent
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { Search, X, User, ChevronDown } from 'lucide-react';
 import { CS } from '../../styles/crystallineSwanTheme';
+import { useGlobalClient, type ActiveClient } from '../../context/GlobalClientContext';
 
 // ── Styled Components ──
 const PickerWrapper = styled.div`
@@ -192,48 +186,48 @@ export interface ClientInfo {
 interface ClientPickerProps {
   selectedClient: ClientInfo | null;
   onSelectClient: (client: ClientInfo | null) => void;
-  userRole: 'trainer' | 'admin';
+  /**
+   * Kept for backward compat with existing call sites in
+   * SwanCoachAssistantPage and AIAssistantDrawer, but no longer consumed
+   * inside the picker. Role-aware endpoint selection happens in
+   * GlobalClientContext. Safe to omit.
+   */
+  userRole?: 'trainer' | 'admin';
 }
 
-const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectClient, userRole }) => {
+/** Map the canonical ActiveClient shape (context) onto the local ClientInfo
+ *  shape (props). Both shapes are nearly identical — just a field-name swap
+ *  on the avatar URL (`photo` vs `profileImageUrl`). Kept inline so the
+ *  picker stays a plain consumer of the context. */
+function toClientInfo(c: ActiveClient): ClientInfo {
+  return {
+    id: c.id,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    email: c.email,
+    profileImageUrl: c.photo,
+  };
+}
+
+const ClientPicker: React.FC<ClientPickerProps> = ({ selectedClient, onSelectClient }) => {
+  const { clientList, loadingClients } = useGlobalClient();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [clients, setClients] = useState<ClientInfo[]>([]);
-  const [loading, setLoading] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const focusedItemRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch clients on mount
-  useEffect(() => {
-    const fetchClients = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/admin/clients', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // Normalize — API may return { clients: [...] } or { data: [...] } or [...]
-          const list = data.clients || data.data || (Array.isArray(data) ? data : []);
-          setClients(list.map((c: any) => ({
-            id: c.id,
-            firstName: c.firstName || c.first_name || '',
-            lastName: c.lastName || c.last_name || '',
-            email: c.email || '',
-            profileImageUrl: c.profileImageUrl || c.profile_image_url || undefined,
-          })));
-        }
-      } catch {
-        // Silently fail — picker just shows empty
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchClients();
-  }, []);
+  // Phase 12 hotfix: derive the picker's client list from the canonical
+  // GlobalClientContext list. This replaces the prior duplicate fetch
+  // (which had a broken normalizer + silent catch + ignored the paginated
+  // admin endpoint). Memoized so the shape-transform doesn't run on every
+  // render.
+  const clients: ClientInfo[] = useMemo(
+    () => clientList.map(toClientInfo),
+    [clientList],
+  );
+  const loading = loadingClients;
 
   // Focus search input when dropdown opens
   useEffect(() => {
