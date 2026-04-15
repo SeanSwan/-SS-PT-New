@@ -25,6 +25,11 @@ export const MessagesArea = styled.div`
   background: rgba(var(--midnight-sapphire-rgb, 0, 32, 96), 0.15);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  /* Phase 11.1 CLS reduction 2026-04-14: positioning parent for the
+     absolute-overlay SuggestedPrompts component. Without this, the
+     prompts overlay would escape to the next position:relative ancestor
+     and break its centering. */
+  position: relative;
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-track { background: transparent; }

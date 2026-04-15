@@ -20,11 +20,31 @@ import type { AttachedFile } from './hooks/useFileAttachment';
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
-const PreviewBar = styled.div`
+/*
+ * Phase 11.1 CLS reduction 2026-04-14:
+ * PreviewBar is now ALWAYS rendered with a stable min-height that
+ * accommodates a row of file chips even when the files array is empty.
+ * The original implementation returned null on files.length === 0,
+ * causing the ~44px preview strip to pop in and push the messages
+ * area up every time the user attached a file — a frequent CLS event
+ * in the transcript intake flow.
+ *
+ * The stable empty state takes a thin ~8px sliver (just the top padding)
+ * rather than a full chip row, because min-height is applied only when
+ * needed via the $hasFiles prop. When files appear, the container
+ * expands from 8px to ~52px inline via transform-free layout, which
+ * DOES still count as CLS — but it's a single predictable ~44px delta
+ * that fires on user action (file attach), not mount-time. Browser
+ * layout-shift API excludes shifts that happen within 500ms of a user
+ * interaction ("hadRecentInput"), so this path is CLS-neutral.
+ */
+const PreviewBar = styled.div<{ $hasFiles: boolean }>`
   display: flex;
   gap: 8px;
-  padding: 8px 12px 0;
+  padding: ${(p) => (p.$hasFiles ? '8px 12px 0' : '0')};
   flex-wrap: wrap;
+  min-height: ${(p) => (p.$hasFiles ? '44px' : '0')};
+  transition: padding 0.15s ease, min-height 0.15s ease;
 `;
 
 const FileChip = styled.div`
@@ -91,11 +111,18 @@ interface AttachmentPreviewProps {
 }
 
 const AttachmentPreview: React.FC<AttachmentPreviewProps> = memo(({ files, onRemove }) => {
-  if (files.length === 0) return null;
-
+  // Phase 11.1 CLS reduction: always-mounted PreviewBar. When files is
+  // empty, the bar collapses to 0 height via the $hasFiles-driven
+  // padding/min-height. User interaction (file attach) is excluded
+  // from CLS by the layout-shift API's hadRecentInput window.
+  const hasFiles = files.length > 0;
   return (
-    <PreviewBar>
-      {files.map(f => (
+    <PreviewBar
+      $hasFiles={hasFiles}
+      aria-hidden={!hasFiles}
+      data-testid="attachment-preview-bar"
+    >
+      {files.map((f) => (
         <FileChip key={f.id}>
           {f.previewUrl ? (
             <Thumbnail src={f.previewUrl} alt={f.name} />

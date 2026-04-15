@@ -9,7 +9,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Sparkles } from 'lucide-react';
 import type { CoachContext } from './SwanCoachTypes';
 
@@ -85,13 +85,45 @@ const fadeIn = keyframes`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
-const SuggestionsWrap = styled.div`
+/*
+ * Phase 11.1 CLS reduction 2026-04-14:
+ * SuggestionsWrap is now ABSOLUTE-POSITIONED inside the MessagesArea
+ * (which has position:relative set in CoachMessageStyles.ts). The
+ * original implementation returned null on visible=false, causing the
+ * entire ~150px block to unmount from the flex column and every
+ * message below it to reflow up by ~150px — a guaranteed layout shift
+ * on every first message send.
+ *
+ * By pinning the wrap to the center of the message area and controlling
+ * visibility via opacity + pointer-events, messages flow independently
+ * in document flow and no sibling shifts when the prompts appear/hide.
+ * Transforms and opacity changes do NOT count as layout shifts per the
+ * Web Vitals layout-shift API, so this is CLS-neutral.
+ */
+const SuggestionsWrap = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 24px 16px;
-  animation: ${fadeIn} 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 600px;
+  width: 100%;
+  pointer-events: ${(p) => (p.$visible ? 'auto' : 'none')};
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  /* CLAUDE.md rule 43: must use css\`\` helper when interpolating a
+     keyframes object into a styled-component template. Using a plain
+     template literal here would call fadeIn.toString() and bake the
+     generated class name into the CSS output, crashing at mount. */
+  ${(p) =>
+    p.$visible &&
+    css`
+      animation: ${fadeIn} 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    `}
 `;
 
 const SuggestionsLabel = styled.div`
@@ -159,17 +191,27 @@ const SuggestedPrompts: React.FC<SuggestedPromptsProps> = memo(({ context, onSel
     [context]
   );
 
-  if (!visible) return null;
-
+  // Phase 11.1 CLS reduction: always-mounted wrapper, visibility driven
+  // via opacity + pointer-events. Removing `return null` means the DOM
+  // node stays in the tree but contributes ZERO to document flow
+  // because it's position:absolute (see SuggestionsWrap styles above).
   return (
-    <SuggestionsWrap>
+    <SuggestionsWrap
+      $visible={visible}
+      aria-hidden={!visible}
+      data-testid="suggested-prompts"
+    >
       <SuggestionsLabel>
         <Sparkles size={14} />
         Try asking
       </SuggestionsLabel>
       <ChipsGrid>
         {prompts.map(prompt => (
-          <PromptChip key={prompt} onClick={() => onSelect(prompt)}>
+          <PromptChip
+            key={prompt}
+            onClick={() => onSelect(prompt)}
+            tabIndex={visible ? 0 : -1}
+          >
             {prompt}
           </PromptChip>
         ))}

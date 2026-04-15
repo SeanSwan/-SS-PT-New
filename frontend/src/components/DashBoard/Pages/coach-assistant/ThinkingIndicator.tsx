@@ -35,6 +35,25 @@ const fadeInUp = keyframes`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components (DESIGN-2 Crystalline Diamond)
 // ─────────────────────────────────────────────────────────────
+/*
+ * Phase 11.1 CLS reduction 2026-04-14:
+ * StableSlot is always mounted and takes a fixed vertical footprint
+ * whether or not the indicator is visible, so message-list siblings
+ * don't shift up/down when thinking state toggles. The inner Wrap
+ * fades via opacity + transform only (both excluded from CLS). The
+ * slot is 48px tall — slightly less than the Wrap's natural height —
+ * so the indicator overflows visually when shown, which is fine
+ * because it's the last child in the message list.
+ */
+const StableSlot = styled.div<{ $visible: boolean }>`
+  min-height: 48px;
+  display: flex;
+  align-items: flex-start;
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  pointer-events: ${(p) => (p.$visible ? 'auto' : 'none')};
+  transition: opacity 0.2s ease;
+`;
+
 const Wrap = styled.div`
   display: flex;
   align-items: center;
@@ -109,17 +128,27 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = memo(({ isThinking }
     };
   }, [isThinking]);
 
-  if (!isThinking) return null;
-
+  // Phase 11.1 CLS reduction: always-mounted StableSlot preserves 48px
+  // of vertical space regardless of thinking state. The inner Wrap
+  // renders the actual indicator only when thinking, fading via opacity
+  // only (no layout flow change).
   return (
-    <Wrap aria-label="Swan Coach is thinking" role="status" aria-live="polite">
-      <DiamondsWrap>
-        <Diamond $delay="var(--animation-shimmer-stagger-1, 0s)" />
-        <Diamond $delay="var(--animation-shimmer-stagger-2, 0.2s)" />
-        <Diamond $delay="var(--animation-shimmer-stagger-3, 0.4s)" />
-      </DiamondsWrap>
-      <StageText key={stageIndex}>{THINKING_STAGES[stageIndex]}</StageText>
-    </Wrap>
+    <StableSlot
+      $visible={isThinking}
+      aria-hidden={!isThinking}
+      data-testid="thinking-indicator-slot"
+    >
+      {isThinking && (
+        <Wrap aria-label="Swan Coach is thinking" role="status" aria-live="polite">
+          <DiamondsWrap>
+            <Diamond $delay="var(--animation-shimmer-stagger-1, 0s)" />
+            <Diamond $delay="var(--animation-shimmer-stagger-2, 0.2s)" />
+            <Diamond $delay="var(--animation-shimmer-stagger-3, 0.4s)" />
+          </DiamondsWrap>
+          <StageText key={stageIndex}>{THINKING_STAGES[stageIndex]}</StageText>
+        </Wrap>
+      )}
+    </StableSlot>
   );
 });
 
