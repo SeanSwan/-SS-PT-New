@@ -29,6 +29,7 @@ import ClientMiniCard, { type MiniCardClient } from './ClientMiniCard';
 import ClientDetailView from './ClientDetailView';
 import {
   TrainingTabContent,
+  ProgressTabContent,
   BiometricsTabContent,
   OverviewTabContent,
   SettingsTabContent,
@@ -263,6 +264,15 @@ const MasterDetailLayout: React.FC = () => {
     </TabErrorBoundary>
   ), [clientFullName]);
 
+  // Phase 15.3: truthful 12-chart progress view for the selected client,
+  // using the admin-scoped hook (/api/analytics/:userId/chart-*). Do NOT
+  // mount the old ClientProgressDashboard which still says "Preview Mode".
+  const renderProgress = useCallback((cid: number | string) => (
+    <TabErrorBoundary tabName="Progress">
+      <ProgressTabContent clientId={cid} clientName={clientFullName} />
+    </TabErrorBoundary>
+  ), [clientFullName]);
+
   const renderBiometrics = useCallback((cid: number | string) => (
     <TabErrorBoundary tabName="Biometrics">
       <BiometricsTabContent clientId={cid} clientName={clientFullName} />
@@ -494,6 +504,7 @@ const MasterDetailLayout: React.FC = () => {
             client={selectedClient}
             onBack={handleBack}
             renderTraining={renderTraining}
+            renderProgress={renderProgress}
             renderBiometrics={renderBiometrics}
             renderOverview={renderOverview}
             renderSettings={renderSettings}

@@ -149,6 +149,8 @@ export function useClientAnalytics(): UseClientAnalyticsReturn {
               rest: l.rest,
               rpe: l.rpe,
               notes: l.notes,
+              // Phase 15.0: dedicated exercise-note column.
+              exerciseNote: l.exerciseNote,
             })),
           });
         }

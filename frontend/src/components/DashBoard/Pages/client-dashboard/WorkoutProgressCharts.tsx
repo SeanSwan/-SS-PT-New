@@ -110,20 +110,24 @@ const BodyCompositionTreemap: React.FC<{ userId: string }> = ({ userId }) => {
   );
 };
 
-const StrengthProfileRadarChart: React.FC<{ userId: string }> = ({ userId }) => {
+const StrengthProfileRadarChart: React.FC<{ userId: string }> = ({ userId: _userId }) => {
   const [data, setData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await apiService.get(`/api/analytics/${userId}/strength-profile`);
-        setData(response.data);
+        // Client-safe namespace: userId derived from JWT, never from URL.
+        // Response shape: { success, data: { radarData: [...] } }
+        const response = await apiService.get(`/api/client/analytics/strength-profile`);
+        const radarData = response.data?.data?.radarData;
+        setData(Array.isArray(radarData) ? radarData : []);
       } catch (error) {
         console.error("Failed to fetch strength profile data", error);
+        setData([]);
       }
     };
     fetchData();
-  }, [userId]);
+  }, []);
 
   if (data.length === 0) return null;
 

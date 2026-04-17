@@ -21,6 +21,7 @@ import seedStorefrontItems from '../seedStorefrontItems.mjs';
 import seedWaiverVersions from '../seeders/seed-waiver-versions.mjs';
 import { seedExercises } from '../scripts/seedExercises.mjs';
 import logger from '../utils/logger.mjs';
+import { assertPhase15ExerciseNoteColumn } from './schemaGuards/phase15ExerciseNoteGuard.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -199,7 +200,7 @@ const initializeDatabases = async () => {
       logger.info('✅ Startup migrations completed successfully');
     } catch (migrationError) {
       logger.warn('⚠️  ENHANCED: Startup migrations had issues (non-critical):', migrationError.message);
-      
+
       // Categorize migration errors
       if (migrationError.message.includes('relation') && migrationError.message.includes('does not exist')) {
         logger.warn('🔄 Migration failed due to missing table - will retry on next deployment');
@@ -209,6 +210,17 @@ const initializeDatabases = async () => {
         logger.warn('🚑 Unexpected migration error - manual review recommended');
       }
     }
+
+    // Phase 15.2 (2026-04-15): the Phase 15 schema guard has been moved
+    // to `criticalDatabasePreflight()` and now runs PRE-LISTEN in
+    // `initializeServer()` — before `startServer(app)` is called. The
+    // guard in this background path was removed to avoid running it
+    // twice. If `initializeDatabases()` is ever called standalone
+    // (outside the normal boot), the preflight has already ensured
+    // the column exists.
+    //
+    // See `criticalDatabasePreflight()` in this file for the real
+    // fail-fast check.
 
     // Phase 11: Initialize E2EE encryption models
     try {
@@ -374,35 +386,127 @@ const setupGracefulShutdown = ({ server, httpServer }) => {
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 };
 
+// ─────────────────────────────────────────────────────────────
+// SECTION: Phase 15.2 (2026-04-15) critical pre-listen preflight
+//
+// WHAT THIS IS:
+// The minimal set of DB operations that MUST succeed before the server
+// is allowed to start accepting HTTP requests. Failure here is fatal —
+// the server process should exit, not limp along with silent route-
+// level 500s.
+//
+// WHY PRE-LISTEN:
+// The Phase 15.0 code added a dedicated `workout_logs."exerciseNote"`
+// column and hard-referenced it in the WorkoutLog Sequelize model, the
+// workout write/edit service, and Recovery Signal raw SQL. Without
+// this column the server can boot, pass health checks, and then crash
+// on the first admin workout write, edit, or client progress chart
+// load. That "partially running" failure mode is worse than not
+// starting at all — it passes Render health checks while silently
+// serving broken routes to real users.
+//
+// WHAT'S IN THE PREFLIGHT:
+//   1. sequelize.authenticate() — proves the DB is reachable.
+//   2. runStartupMigrations() — applies any pending Sequelize CLI
+//      migrations (including the Phase 15 migration that adds the
+//      column). Logs a warning on failure but does not throw, because
+//      the schema guard immediately after is the real safety net.
+//   3. assertPhase15ExerciseNoteColumn(sequelize) — verifies the
+//      column actually exists. Throws with an actionable "run the
+//      migration" message if it doesn't.
+//
+// Everything else (associations verification, sync, seeders, E2EE,
+// schedulers, Socket.io) is NON-CRITICAL and runs in the background
+// AFTER the server is listening.
+// ─────────────────────────────────────────────────────────────
+
 /**
- * Initialize the complete server - OPTIMIZED FOR RENDER HEALTH CHECKS
+ * Critical database preflight — MUST succeed before `startServer`.
+ * Exported for testability: startup-order tests can call this directly
+ * with a mock sequelize to verify the fail-fast contract.
+ *
+ * @param {import('sequelize').Sequelize} seq - active Sequelize instance
+ * @throws {Error} on DB connectivity failure or Phase 15 schema drift
+ */
+export const criticalDatabasePreflight = async (seq) => {
+  // 1. DB reachability
+  await seq.authenticate();
+  logger.info('✅ PostgreSQL connection established (pre-listen preflight)');
+
+  // 2. Pending migrations — best-effort; the schema guard is the
+  //    real safety net if a migration fails silently.
+  try {
+    await runStartupMigrations();
+    logger.info('✅ Startup migrations applied (pre-listen preflight)');
+  } catch (migrationError) {
+    logger.warn(
+      `⚠️  Pre-listen migrations had issues (schema guard will verify): ${migrationError.message}`,
+    );
+  }
+
+  // 3. Phase 15 schema guard — fail fast if the column is missing.
+  await assertPhase15ExerciseNoteColumn(seq);
+};
+
+/**
+ * Initialize the complete server.
+ *
+ * Phase 15.2 (2026-04-15) startup contract:
+ *
+ *   CRITICAL PRE-LISTEN (synchronous, failure = process.exit)
+ *     1. criticalDatabasePreflight() — DB auth + migrations + schema guard
+ *     2. createRequiredDirectories()
+ *
+ *   SERVER LISTEN
+ *     3. startServer(app) — HTTP listen, health checks pass from here
+ *     4. setupGracefulShutdown()
+ *
+ *   NON-CRITICAL BACKGROUND (best-effort, failure = warn + continue)
+ *     5. initializeDatabases() — full association verification, sync, E2EE
+ *     6. seedInitialData() — storefront, waivers, exercises
+ *     7. Schedulers + event bus
+ *
+ * The pre-listen step takes 2–5s on a warm Render instance (DB
+ * authenticate ≈ 200ms, migrations ≈ 1s, guard introspection ≈ 500ms).
+ * Render's default health-check timeout is 30–60s, so the window is
+ * generous.
  */
 export const initializeServer = async (app) => {
   try {
     logger.info('🌟 Starting SwanStudios Server initialization...');
-    
-    // 1. Start server FIRST for immediate health check response
+
+    // ── CRITICAL PRE-LISTEN ─────────────────────────────────────
+    // These must succeed before the server accepts requests. Failure
+    // here means the DB is unreachable or the schema is drifted —
+    // serving routes in that state would produce silent 500s instead
+    // of a clear "fix and redeploy" signal.
+    logger.info('🗄️  Running critical database preflight (pre-listen)...');
+    await criticalDatabasePreflight(sequelize);
+
+    logger.info('📁 Creating required directories...');
+    await createRequiredDirectories();
+
+    // ── SERVER LISTEN ───────────────────────────────────────────
+    // Only reached after the preflight passes. Health checks start
+    // responding from this point.
     const serverObjects = await startServer(app);
-    
-    // 2. Setup graceful shutdown early
     setupGracefulShutdown(serverObjects);
-    
-    logger.info('✅ Server is LISTENING - health checks will now pass');
-    logger.info('🔄 Background initialization starting...');
-    
-    // 3. Background initialization (non-blocking)
+
+    logger.info('✅ Server is LISTENING — preflight passed, health checks active');
+    logger.info('🔄 Non-critical background initialization starting...');
+
+    // ── NON-CRITICAL BACKGROUND ─────────────────────────────────
+    // Best-effort: seeders, schedulers, E2EE, event bus. Failures
+    // are logged but do not take the server down — degraded
+    // functionality is acceptable for these subsystems.
     setTimeout(async () => {
       try {
-        logger.info('📁 Creating required directories...');
-        await createRequiredDirectories();
-        
-        logger.info('🗄️  Initializing databases...');
+        logger.info('🗄️  Running full database initialization (background)...');
         await initializeDatabases();
-        
+
         logger.info('🌱 Seeding initial data...');
         await seedInitialData();
-        
-        // Start weekly challenge auto-creation scheduler
+
         try {
           const { startWeeklyChallengeScheduler } = await import('../services/weeklyChallengeCron.mjs');
           startWeeklyChallengeScheduler();
@@ -410,7 +514,6 @@ export const initializeServer = async (app) => {
           logger.warn(`Weekly challenge scheduler failed to start: ${schedErr.message}`);
         }
 
-        // Start session reminder scheduler (24h + 1h before sessions)
         try {
           const { startSessionReminderScheduler } = await import('../services/sessionReminderCron.mjs');
           startSessionReminderScheduler();
@@ -418,7 +521,6 @@ export const initializeServer = async (app) => {
           logger.warn(`Session reminder scheduler failed to start: ${reminderErr.message}`);
         }
 
-        // Register cross-component event listeners
         try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
@@ -429,13 +531,11 @@ export const initializeServer = async (app) => {
         logger.info('✅ Background initialization completed successfully!');
       } catch (backgroundError) {
         logger.error(`⚠️  Background initialization failed: ${backgroundError.message}`);
-        logger.error('🚑 Server continues running with basic functionality');
-        // Don't crash the server - continue with degraded functionality
+        logger.error('🚑 Server continues running — preflight already passed, core routes safe');
       }
-    }, 500); // Start background tasks after 500ms
-    
+    }, 500);
+
     return serverObjects;
-    
   } catch (error) {
     logger.error(`❌ Server startup failed: ${error.message}`, { stack: error.stack });
     console.error('Unable to start server:', error);

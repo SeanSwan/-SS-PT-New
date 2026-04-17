@@ -44,14 +44,46 @@ Your job: Parse a trainer's voice memo or session notes into a structured workou
 CLIENT CONTEXT:
 ${contextBlock}
 
-RULES:
+GENERAL RULES:
 - Extract every exercise mentioned with sets, reps, weight, and any notes
 - Detect pain mentions and flag them with body region and side (left/right/bilateral)
 - If the trainer mentions RPE, form quality, or difficulty, include it
 - If weight isn't mentioned, use null (not 0)
 - If reps aren't clear, estimate from context
 - Set overallIntensity on a 1-10 scale based on the session description
-- Include any session notes or trainer observations
+- Never invent NASM OPT phases, movement compensations, or coaching cues that the trainer did not actually say
+- Do not duplicate the same observation across sessionNotes, performanceNotes, and set.notes — place it in exactly ONE appropriate field
+
+NOTES SCOPE — CRITICAL. There are FOUR distinct note channels. Place every observation in the correct one:
+  1. set.notes        — a note about ONE specific set only (e.g. "set 3 had tempo breakdown").
+                        Attach to the exact set it refers to. Leave other sets' notes empty.
+  2. performanceNotes  — a note about the exercise as a whole, across all sets
+                        (e.g. "knees caved on goblet squat", "cueing needed for hip hinge").
+                        This is the exercise-level coaching observation.
+  3. sessionNotes      — session-wide observations that are NOT tied to any one exercise
+                        (e.g. "low energy overall", "great focus today", "skipped cool-down").
+  4. painFlags         — structured pain mentions. ALSO include the pain in performanceNotes
+                        (or set.notes if it was set-specific) so a reader sees it in context.
+
+EXERCISE-SPECIFIC OBSERVATIONS MUST ATTACH TO THE CORRECT EXERCISE. Examples:
+  - "left shoulder hurt during dumbbell bench"     → dumbbell bench performanceNotes + painFlag
+  - "left arm weaker on seated row"                → seated row performanceNotes
+  - "knees caved on goblet squat"                  → goblet squat performanceNotes
+  - "tempo broke down on last set of split squat"  → split squat set N notes (N = last set)
+  - "needed hip-hinge cue on RDL set 2"            → RDL set 2 notes
+  - "good range of motion on overhead press"       → overhead press performanceNotes
+  - "low energy today"                             → sessionNotes (no exercise)
+
+COACHING OBSERVATION TYPES to capture when the trainer mentions them (NASM-aligned):
+  - tempo deviations (e.g. "eccentric collapsed", "pause lost on set 3")
+  - asymmetry (left vs right, unilateral weakness)
+  - compensation (knees caving, butt wink, lumbar extension, scapular winging)
+  - pain or discomfort (captured in painFlags AND the relevant notes channel)
+  - range-of-motion issues (shallow depth, locked out, partial reps)
+  - form breakdown (round back, loss of bracing, bar path drift)
+  - cueing needed (verbal or tactile cue the trainer gave or should give next time)
+
+Only capture these observations if the trainer actually stated them. Do not infer.
 
 OUTPUT FORMAT (strict JSON, no markdown fences, no commentary):
 {

@@ -61,6 +61,7 @@ import {
   isTranscriptClassMime,
 } from './hooks/useFileAttachment';
 import { useTranscriptIntake } from './hooks/useTranscriptIntake';
+import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   CoachHeader,
   CoachTitle,
@@ -140,6 +141,81 @@ const ErrorBanner = styled.div`
     white-space: nowrap;
     &:hover { background: rgba(201, 42, 84, 0.15); }
   }
+`;
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Phase 13.2 transcript processing card
+// PURPOSE: visible in-flight state for transcript/doc send so the user
+//          sees an obvious "we accepted the file and are working on it"
+//          signal between send and review card append. The existing
+//          ThinkingIndicator is chat-only (driven by coach.sending) and
+//          the transcript lane bypasses chat, so we need a dedicated
+//          card here. Keyframes are inlined directly in the template
+//          literal (no `${}` interpolation into styled-components
+//          primitives — complies with CLAUDE.md rule 43).
+// ─────────────────────────────────────────────────────────────
+
+const TranscriptProcessingCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin: 0 12px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, rgba(0, 32, 96, 0.4));
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-left: 3px solid var(--accent-primary, #60C0F0);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  min-height: 56px;
+
+  @keyframes swan-processing-pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+`;
+
+const ProcessingDots = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+`;
+
+const ProcessingDot = styled.span<{ $delay: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-primary, #60C0F0);
+  animation: swan-processing-pulse 1.4s ease-in-out infinite;
+  animation-delay: ${(p) => p.$delay};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0.9;
+  }
+`;
+
+const ProcessingBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+`;
+
+const ProcessingStage = styled.span`
+  font-weight: 600;
+  color: var(--accent-primary, #60C0F0);
+`;
+
+const ProcessingFileName = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -452,6 +528,29 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── Track last attempted message for retry on error ──
   const [lastAttempt, setLastAttempt] = useState<string | null>(null);
 
+  // ── Phase 13.2 (2026-04-15) transcript processing status ──
+  // Drives the visible pending card that appears above the chat while a
+  // transcript/doc file is being uploaded, parsed, or the review is being
+  // built. The existing `coach.sending` flag is chat-only — the transcript
+  // lane bypasses that flag because it does not route through the AI chat
+  // pipeline. Without this, the user sent a file and stared at a silent
+  // UI until the review card appeared (or, on failure, nothing at all).
+  //
+  // Stages:
+  //   - 'uploading' → POST /api/workout-logs/upload is in flight
+  //   - 'parsing'   → upload resolved, review card is being appended
+  //                   (extremely fast in practice, but useful as a stage
+  //                   so the spinner never just blinks)
+  //   - null        → idle
+  //
+  // Failures transition to null here AND route through the existing
+  // `appendTranscriptError` path in useCoachAssistant, so the user gets
+  // both the "we stopped processing" signal AND the scoped error card.
+  const [transcriptProcessing, setTranscriptProcessing] = useState<
+    | { stage: 'uploading' | 'parsing'; fileName: string }
+    | null
+  >(null);
+
   // ── Swan-first transcript intake ──
   // canonical-surface-audit 2026-04-14:
   // The intake hook owns just the two async functions (upload + apply).
@@ -503,14 +602,47 @@ const SwanCoachAssistantPage: React.FC = () => {
         });
         transcriptReviewsRef.current.delete(reviewMsgId);
       } else {
-        // Failure path: keep the review card visible so the user can retry.
+        // Phase 13: propagate failure kind so CoachMessage can render a
+        // duplicate-date / future-date hint in the editable date control.
         coach.updateTranscriptReview(reviewMsgId, {
           applying: false,
           applyError: apply.failure.error,
+          applyErrorKind:
+            apply.failure.kind === 'duplicate_date'
+              ? 'duplicate_date'
+              : apply.failure.kind === 'future_date'
+                ? 'future_date'
+                : apply.failure.kind === 'validation'
+                  ? 'validation'
+                  : apply.failure.kind === 'network'
+                    ? 'network'
+                    : apply.failure.kind === 'server'
+                      ? 'server'
+                      : 'other',
         });
       }
     },
     [coach, intake],
+  );
+
+  // ── Phase 13: user-edited workout date on a transcript review card ──
+  // Mutates the ref-held review (so applyParsedWorkout picks up the new
+  // value at confirm time) and also patches the message metadata (so the
+  // visible date input reflects the edit on every re-render). Clears any
+  // stale duplicate-date/future-date error so the user gets a clean retry.
+  const handleTranscriptDateChange = useCallback(
+    (reviewMsgId: string, nextDate: string) => {
+      const entry = transcriptReviewsRef.current.get(reviewMsgId);
+      if (entry && entry.review) {
+        entry.review.targetWorkoutDate = nextDate;
+      }
+      coach.updateTranscriptReview(reviewMsgId, {
+        targetWorkoutDate: nextDate,
+        applyError: undefined,
+        applyErrorKind: undefined,
+      });
+    },
+    [coach],
   );
 
   // ── Cancel/discard a transcript review — removes both messages ──
@@ -578,6 +710,13 @@ const SwanCoachAssistantPage: React.FC = () => {
           return;
         }
 
+        // Phase 13.2: mark the transcript processing state BEFORE awaiting
+        // the upload so the user sees a visible spinner/stage card as soon
+        // as they hit send. Cleared on all exit paths (success / upload
+        // failure / exception) so we never strand the pending card on
+        // screen.
+        setTranscriptProcessing({ stage: 'uploading', fileName: transcriptFile.name });
+
         const upload = await intake.uploadTranscript(
           transcriptFile.file,
           selectedClient.id,
@@ -585,6 +724,23 @@ const SwanCoachAssistantPage: React.FC = () => {
         );
 
         if (upload.ok) {
+          // Advance the stage briefly so the user sees the transition from
+          // upload to review-building. The append is synchronous but the
+          // stage flip gives the indicator a non-flash moment of "parsing".
+          setTranscriptProcessing({ stage: 'parsing', fileName: transcriptFile.name });
+          // Phase 13: seed targetWorkoutDate so the editable date input has
+          // a stable initial value. Priority: parser-extracted date > today.
+          // The review object in the ref and the metadata are the same
+          // reference at this point — mutating here sets it in both places.
+          // Phase 13.1 (2026-04-15): use LOCAL calendar day, not UTC. Prior
+          // shortcut seeded tomorrow as the "today" default for PDT users
+          // after ~5pm, which then needed an edit before the user even
+          // noticed it was wrong.
+          const seededDate =
+            (upload.review.parsedWorkout.date && upload.review.parsedWorkout.date.trim()) ||
+            getLocalIsoDate();
+          upload.review.targetWorkoutDate = seededDate;
+
           const { userMsgId, reviewMsgId } = coach.appendTranscriptReview(upload.review);
           if (reviewMsgId) {
             transcriptReviewsRef.current.set(reviewMsgId, {
@@ -593,8 +749,16 @@ const SwanCoachAssistantPage: React.FC = () => {
             });
           }
           attachments.clearFiles();
+          // Happy path done — clear the pending card. The visible review
+          // card now carries all subsequent state (confirm / error / retry).
+          setTranscriptProcessing(null);
           return;
         }
+
+        // Upload resolved with an error outcome — clear the pending card
+        // before we inject the transcriptError row so the user sees a
+        // clean handoff from "processing…" to the scoped error card.
+        setTranscriptProcessing(null);
 
         // Upload-stage failure — inject a transcriptError card (dismissible,
         // NO fake Apply button). The Phase 9 regression was that this path
@@ -700,11 +864,40 @@ const SwanCoachAssistantPage: React.FC = () => {
               onCancelCommand={coach.cancelCommand}
               onConfirmTranscript={handleConfirmTranscript}
               onCancelTranscript={handleCancelTranscript}
+              onTranscriptDateChange={handleTranscriptDateChange}
             />
           ))}
 
           {/* Thinking indicator replaces old TypingDots */}
           <ThinkingIndicator isThinking={coach.sending} />
+
+          {/* Phase 13.2: transcript/doc processing card. Visible whenever
+              a transcript-class file is in flight (upload + parse). Scoped
+              to the transcript lane — does NOT overlap with the normal
+              chat ThinkingIndicator above. On success it clears and the
+              review card takes over; on failure it clears and the
+              transcriptError card takes over via useCoachAssistant. */}
+          {transcriptProcessing && (
+            <TranscriptProcessingCard
+              data-testid="transcript-processing-card"
+              role="status"
+              aria-live="polite"
+            >
+              <ProcessingDots aria-hidden="true">
+                <ProcessingDot $delay="0s" />
+                <ProcessingDot $delay="0.2s" />
+                <ProcessingDot $delay="0.4s" />
+              </ProcessingDots>
+              <ProcessingBody>
+                <ProcessingStage data-testid="transcript-processing-stage">
+                  {transcriptProcessing.stage === 'uploading'
+                    ? 'Uploading and transcribing…'
+                    : 'Parsing workout and building review…'}
+                </ProcessingStage>
+                <ProcessingFileName>{transcriptProcessing.fileName}</ProcessingFileName>
+              </ProcessingBody>
+            </TranscriptProcessingCard>
+          )}
 
           {/* Error banner — surfaces errors that were previously silent */}
           {coach.error && !coach.sending && (
@@ -750,19 +943,26 @@ const SwanCoachAssistantPage: React.FC = () => {
         </NeuralLinkPill>
 
         {/* Input Bar */}
+        {/* Phase 13.2: `hasAttachment` unlocks file-only send when a
+            transcript-class file is staged, so users can drop a document
+            and hit send without typing. While a transcript is processing,
+            we also disable the composer so double-fire is impossible. */}
         <CoachInputBar
           onSend={handleSend}
-          sending={coach.sending}
+          sending={coach.sending || transcriptProcessing !== null}
           ttsEnabled={tts.enabled}
           ttsSupported={tts.supported}
           onTtsToggle={tts.toggleEnabled}
           onVoiceOverlay={handleOpenVoiceOverlay}
           externalText={pendingVoiceEdit}
+          hasAttachment={
+            attachments.files.length > 0 && hasTranscriptClassFile(attachments.files)
+          }
           attachButton={
             <FileAttachmentButton
               onFilesSelected={attachments.addFiles}
               inputRef={attachments.inputRef}
-              disabled={coach.sending}
+              disabled={coach.sending || transcriptProcessing !== null}
             />
           }
         />

@@ -22,8 +22,30 @@
  * string contains the correct snake_case table name (unquoted).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-import { getWorkoutFrequencyChart } from '../../controllers/chartDataController.mjs';
+import {
+  // Phase 14 canonical 12
+  getWorkoutFrequencyChart,
+  getAttendanceReliabilityChart,
+  getWeeklyVolumeChart,
+  getSetsRepsTrendChart,
+  getDurationTrendChart,
+  getIntensityRPETrendChart,
+  getPRTimelineChart,
+  getAnchorLiftsChart,
+  getExerciseFrequencyChart,
+  getMovementPatternBalanceChart,
+  getMuscleGroupBalanceChart,
+  getRecoverySignalChart,
+  // Phase 14 deprecated — still routed, must return empty arrays
+  getMuscleGroupFocusChart,
+  getCardioEnduranceChart,
+  getSessionFrequencyChart,
+  getMuscleRecoveryChart,
+  getRPEByExerciseChart,
+} from '../../controllers/chartDataController.mjs';
 
 const makeReqRes = ({ sql = [] } = {}) => {
   const querySpy = vi.fn(async (s) => {
@@ -101,4 +123,327 @@ describe('chartDataController — canonical /progress default-visible charts', (
       expect(executedSql).toMatch(/'completed'/);
     });
   });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Phase 14 (2026-04-15) — 12 canonical chart endpoint locks
+//
+// Every canonical chart endpoint that reads from workout_logs MUST
+// JOIN via the snake_case table names. The five broken pre-Phase-14
+// endpoints that referenced `"WorkoutExercises"` / `"Exercises"` /
+// `"Sets"` are now deprecated to empty-array stubs — the tests below
+// lock that contract.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Shared anti-regression: no canonical SQL may reference any of the
+ * non-existent PascalCase tables from the pre-Phase-14 drift era.
+ */
+const FORBIDDEN_TABLES = [
+  /"WorkoutSessions"/,
+  /"WorkoutExercises"/,
+  /"Exercises"/,
+  /"Sets"/,
+];
+
+function assertNoForbiddenTables(sql) {
+  for (const pattern of FORBIDDEN_TABLES) {
+    expect(sql).not.toMatch(pattern);
+  }
+}
+
+describe('Phase 14 — chart-attendance-reliability', () => {
+  it('groups by ws.status on workout_sessions with a 90 day window', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getAttendanceReliabilityChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_sessions/i);
+    expect(executedSql).toMatch(/GROUP BY\s+ws\.status/i);
+    expect(executedSql).toMatch(/INTERVAL\s+'90 days'/);
+    assertNoForbiddenTables(executedSql);
+  });
+
+  it('returns reliabilityPercent and status totals', async () => {
+    const { req, res } = makeReqRes();
+    await getAttendanceReliabilityChart(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        reliabilityPercent: expect.any(Number),
+        totals: expect.objectContaining({
+          completed: expect.any(Number),
+          skipped: expect.any(Number),
+          cancelled: expect.any(Number),
+          resolved: expect.any(Number),
+        }),
+      }),
+    );
+  });
+});
+
+describe('Phase 14 — chart-weekly-volume', () => {
+  it('computes SUM(wl.weight * wl.reps) grouped by week from workout_logs', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getWeeklyVolumeChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/JOIN\s+workout_sessions\s+ws/i);
+    expect(executedSql).toMatch(/SUM\(wl\.weight\s*\*\s*wl\.reps\)/i);
+    expect(executedSql).toMatch(/DATE_TRUNC\('week'/);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-sets-reps-trend', () => {
+  it('reads counts(*) and SUM(wl.reps) from workout_logs', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getSetsRepsTrendChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/COUNT\(\*\)/);
+    expect(executedSql).toMatch(/SUM\(wl\.reps\)/i);
+    assertNoForbiddenTables(executedSql);
+  });
+
+  it('returns dual series: sets and reps', async () => {
+    const { req, res } = makeReqRes();
+    await getSetsRepsTrendChart(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          sets: expect.any(Array),
+          reps: expect.any(Array),
+        }),
+      }),
+    );
+  });
+});
+
+describe('Phase 14 — chart-duration-trend', () => {
+  it('reads ws.duration from workout_sessions, filters to duration > 0', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getDurationTrendChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_sessions\s+ws/i);
+    expect(executedSql).toMatch(/ws\.duration/i);
+    expect(executedSql).toMatch(/ws\.duration\s*>\s*0/i);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-intensity-rpe-trend', () => {
+  it('joins workout_logs LEFT JOIN with precedence: AVG(wl.rpe) then AVG(ws.intensity)', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getIntensityRPETrendChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_sessions\s+ws/i);
+    expect(executedSql).toMatch(/LEFT JOIN\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/AVG\(wl\.rpe\)/i);
+    expect(executedSql).toMatch(/AVG\(ws\.intensity\)/i);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-pr-timeline', () => {
+  it('reads workout_logs heaviest set per exercise per day, filtered to weight > 0', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getPRTimelineChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/JOIN\s+workout_sessions\s+ws/i);
+    expect(executedSql).toMatch(/wl\.weight\s*>\s*0/);
+    expect(executedSql).toMatch(/DISTINCT ON/i);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-anchor-lifts', () => {
+  it('uses a CTE to pick top-3 exercises by session count, then queries their progression', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getAnchorLiftsChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/WITH\s+top_exercises/i);
+    expect(executedSql).toMatch(/LIMIT\s+3/i);
+    expect(executedSql).toMatch(/FROM\s+workout_logs/i);
+    assertNoForbiddenTables(executedSql);
+  });
+
+  it('returns data keyed by exercise name and a top-level exercises list', async () => {
+    const { req, res } = makeReqRes();
+    await getAnchorLiftsChart(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: expect.any(Object),
+        exercises: expect.any(Array),
+      }),
+    );
+  });
+});
+
+describe('Phase 14 — chart-exercise-frequency', () => {
+  it('groups workout_logs by exerciseName with top-10 limit', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getExerciseFrequencyChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/GROUP BY\s+wl\."exerciseName"/i);
+    expect(executedSql).toMatch(/LIMIT\s+10/);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-movement-pattern-balance', () => {
+  it('uses ILIKE CASE mapping on exerciseName to aggregate by NASM movement pattern', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getMovementPatternBalanceChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/CASE/i);
+    expect(executedSql).toMatch(/ILIKE\s+'%squat%'/i);
+    expect(executedSql).toMatch(/ILIKE\s+'%deadlift%'/i);
+    expect(executedSql).toMatch(/ILIKE\s+'%bench%'/i);
+    expect(executedSql).toMatch(/ILIKE\s+'%row%'/i);
+    expect(executedSql).toMatch(/ELSE\s+'other'/i);
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 — chart-muscle-group-balance', () => {
+  it('replaces the broken muscle-group-focus chain with workout_logs ILIKE mapping', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getMuscleGroupBalanceChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/CASE/i);
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    expect(executedSql).toMatch(/'Chest'/);
+    expect(executedSql).toMatch(/'Back'/);
+    expect(executedSql).toMatch(/'Legs'/);
+    expect(executedSql).toMatch(/'Core'/);
+    assertNoForbiddenTables(executedSql);
+  });
+});
+
+describe('Phase 14 / 15.0 — chart-recovery-signal', () => {
+  it('filters BOTH wl.notes AND wl."exerciseNote" by pain keywords (Phase 15.0)', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getRecoverySignalChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
+    // Phase 15.0: the recovery signal must scan the dedicated
+    // exerciseNote column too, or transcript-derived exercise-level
+    // observations will be silently lost from analytics after the
+    // Phase 13.2 set-1 encoding is removed.
+    expect(executedSql).toMatch(/wl\.notes\s*~\*/);
+    expect(executedSql).toMatch(/wl\."exerciseNote"\s*~\*/);
+    expect(executedSql).toMatch(/pain\|hurt\|sore/);
+    expect(executedSql).toMatch(/\\m/); // Postgres word-boundary anchors
+    expect(executedSql).toMatch(/FILTER\s*\(\s*WHERE\s+wl\.rpe\s*>=\s*9\s*\)/i);
+    assertNoForbiddenTables(executedSql);
+  });
+
+  it('only returns exercises with at least one flag (HAVING clause)', async () => {
+    const { req, res, sql } = makeReqRes();
+    await getRecoverySignalChart(req, res);
+    const executedSql = sql[0];
+    expect(executedSql).toMatch(/HAVING/i);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Deprecated-endpoint contract: 5 pre-Phase-14 broken endpoints
+// must return empty arrays with a `deprecated` marker so legacy
+// callers get a clean 200 instead of a 404 or wrong data.
+// ─────────────────────────────────────────────────────────────
+
+describe('Phase 14 — deprecated PascalCase chart endpoints', () => {
+  it.each([
+    ['getMuscleGroupFocusChart', getMuscleGroupFocusChart, 'chart-muscle-group-balance'],
+    ['getSessionFrequencyChart', getSessionFrequencyChart, 'chart-workout-frequency'],
+    ['getMuscleRecoveryChart',   getMuscleRecoveryChart,   'chart-recovery-signal'],
+  ])('%s returns empty data with a deprecated replacement marker', async (_, handler, replacement) => {
+    const { req, res, querySpy } = makeReqRes();
+    await handler(req, res);
+    // No SQL is executed for deprecated stubs.
+    expect(querySpy).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: [],
+        deprecated: replacement,
+      }),
+    );
+  });
+
+  it('getCardioEnduranceChart returns an empty object (grouped-by-type shape) marked deprecated', async () => {
+    const { req, res, querySpy } = makeReqRes();
+    await getCardioEnduranceChart(req, res);
+    expect(querySpy).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, data: {}, deprecated: true }),
+    );
+  });
+
+  it('getRPEByExerciseChart returns an empty object marked deprecated (replaced by intensity-rpe-trend)', async () => {
+    const { req, res, querySpy } = makeReqRes();
+    await getRPEByExerciseChart(req, res);
+    expect(querySpy).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: {},
+        deprecated: 'chart-intensity-rpe-trend',
+      }),
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Route wiring lock: both client and admin route files must
+// expose all 12 canonical endpoints.
+// ─────────────────────────────────────────────────────────────
+
+describe('Phase 14 — route wiring for 12 canonical chart endpoints', () => {
+  // cwd may be `backend/` or the repo root depending on how vitest is
+  // invoked — resolve against both to keep this test portable.
+  const resolveRoutes = (relative) => {
+    const fromCwd = resolve(process.cwd(), relative);
+    try {
+      return readFileSync(fromCwd, 'utf8');
+    } catch {
+      return readFileSync(resolve(process.cwd(), 'backend', relative), 'utf8');
+    }
+  };
+  const CLIENT_ROUTES = resolveRoutes('routes/clientAnalyticsRoutes.mjs');
+  const ADMIN_ROUTES = resolveRoutes('routes/analyticsRoutes.mjs');
+
+  const CANONICAL_SUFFIXES = [
+    'chart-workout-frequency',
+    'chart-attendance-reliability',
+    'chart-weekly-volume',
+    'chart-sets-reps-trend',
+    'chart-duration-trend',
+    'chart-intensity-rpe-trend',
+    'chart-pr-timeline',
+    'chart-anchor-lifts',
+    'chart-exercise-frequency',
+    'chart-movement-pattern-balance',
+    'chart-muscle-group-balance',
+    'chart-recovery-signal',
+  ];
+
+  it.each(CANONICAL_SUFFIXES)(
+    'clientAnalyticsRoutes.mjs registers %s on the JWT-derived client path',
+    (suffix) => {
+      expect(CLIENT_ROUTES).toContain(`/${suffix}`);
+    },
+  );
+
+  it.each(CANONICAL_SUFFIXES)(
+    'analyticsRoutes.mjs registers /:userId/%s on the admin/trainer path',
+    (suffix) => {
+      expect(ADMIN_ROUTES).toContain(`/:userId/${suffix}`);
+    },
+  );
 });

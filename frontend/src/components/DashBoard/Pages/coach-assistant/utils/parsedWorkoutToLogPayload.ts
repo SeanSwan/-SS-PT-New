@@ -52,6 +52,8 @@
  * existing WorkoutLoggerModal voice-mode prefill uses.
  */
 
+import { getLocalIsoDate } from '../../../../../utils/localDate';
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Input types (mirrors VoiceMemoUpload.tsx ParsedWorkout shape)
 // ─────────────────────────────────────────────────────────────
@@ -62,6 +64,12 @@ export interface ParsedSet {
   rpe?: number;
   formQuality?: number;
   notes?: string;
+  /**
+   * Parser may extract tempo as an "eccentric/pause/concentric" string
+   * (e.g. "3/1/1"). If missing, the canonical mapper substitutes
+   * `DEFAULT_TEMPO` so the log row always has a usable value.
+   */
+  tempo?: string;
 }
 
 export interface ParsedExercise {
@@ -90,11 +98,32 @@ export interface LogWorkoutPayloadSet {
   weight: number;
   rpe?: number;
   notes?: string;
+  /**
+   * Phase 13 (2026-04-15): canonical tempo on every transcript-applied set.
+   * The backend accepts tempo already ([workoutLogService.mjs:110]), the
+   * transcript lane just wasn't feeding it. Parser tempo wins when present;
+   * otherwise the mapper substitutes `DEFAULT_TEMPO` so admin history tables
+   * (and future anatomy/tempo analytics) always have a value.
+   */
+  tempo?: string;
 }
 
 export interface LogWorkoutPayloadExercise {
   name: string;
   sets: LogWorkoutPayloadSet[];
+  /**
+   * Phase 15.0 (2026-04-15): exercise-level coaching note (e.g.
+   * "knees caved on last set" or "shoulder clicking on dumbbell bench").
+   * The backend service stamps this on EVERY row of the exercise group
+   * so deleting any single set preserves the note on the remaining rows.
+   *
+   * Replaces the Phase 13.2 set-1-encoded `Coach: ` marker, which had
+   * two real correctness bugs:
+   *   1. Deleting set 1 in the admin edit flow silently lost the note.
+   *   2. A legitimate trainer-authored set note starting with `Coach: `
+   *      could be misclassified as an exercise note on read.
+   */
+  exerciseNote?: string;
 }
 
 export interface LogWorkoutPayload {
@@ -118,17 +147,63 @@ export interface MapperOptions {
   fallbackDurationMinutes?: number;
   /** Used when the parser does not extract intensity (1-10). */
   fallbackIntensity?: number;
+  /**
+   * Phase 13 (2026-04-15): hard override for the session date.
+   * When set, this value wins over both `parsed.date` and `fallbackDate` —
+   * used by the Coach Assistant review card so a user-corrected date
+   * reaches the backend even when the parser also extracted a date.
+   */
+  targetDate?: string;
 }
 
 const DEFAULT_TITLE = 'Voice Memo Workout';
 const DEFAULT_DURATION_MINUTES = 50;
 const DEFAULT_INTENSITY = 5;
+/**
+ * Phase 13 (2026-04-15): canonical default tempo for transcript-applied sets.
+ * Represents eccentric/pause/concentric in seconds. "1/1/0" is the NASM
+ * baseline for general strength sets with no held pause and a fast concentric,
+ * which matches the intent of a manually logged workout where the coach did
+ * not dictate an explicit tempo.
+ */
+export const DEFAULT_TEMPO = '1/1/0';
+
+/**
+ * Phase 13.2 separator — LEGACY READ-ONLY.
+ *
+ * Phase 15.0 (2026-04-15) replaced this fragile set-1-encoding contract
+ * with a dedicated `workout_logs.exerciseNote` column, stamped on every
+ * row of an exercise group. The mapper no longer emits this separator
+ * on write. It remains exported because `WorkoutHistoryPanel` needs a
+ * single source of truth for the literal marker string when it reads
+ * legacy rows.
+ *
+ * Phase 15.1 scope clarification: ONLY the unambiguous SEPARATOR form
+ * of Phase 13.2 data is auto-recoverable on read:
+ *
+ *     "<set note> · Coach: <exercise note>"   ← split + lazy-migrated on edit
+ *     "Coach: <text>"                         ← NOT touched, rendered verbatim
+ *
+ * Bare `Coach: ` prefixed notes (where Phase 13.2 set 1 had no own set
+ * note) are intentionally left alone. A legitimate trainer-authored set
+ * note that starts with `Coach:` is indistinguishable from such a
+ * legacy row by text alone, so promoting it would reintroduce the same
+ * misclassification bug Phase 15.0 was built to kill. Legacy rows of
+ * that shape will show their `Coach:` prefix in the set-note slot
+ * until an explicit maintenance pass handles them.
+ *
+ * **Do not use this separator for new writes.** The Phase 15 mapper
+ * writes `exerciseNote` as its own top-level field on the exercise.
+ */
+export const EXERCISE_NOTE_SEPARATOR = ' · Coach: ';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers
 // ─────────────────────────────────────────────────────────────
+// Phase 13.1 (2026-04-15): use local-calendar helper, NOT UTC. The prior
+// `toISOString().split` returned tomorrow for PDT users after ~5pm local.
 function todayIsoDate(): string {
-  return new Date().toISOString().split('T')[0];
+  return getLocalIsoDate();
 }
 
 function clampIntensity(value: number | undefined, fallback: number): number {
@@ -169,7 +244,12 @@ export function parsedWorkoutToLogPayload(
   const fallbackDuration = options.fallbackDurationMinutes ?? DEFAULT_DURATION_MINUTES;
   const fallbackIntensity = options.fallbackIntensity ?? DEFAULT_INTENSITY;
 
-  const date = parsed.date && parsed.date.trim() ? parsed.date.trim() : fallbackDate;
+  // targetDate is a hard override (Phase 13): when set it beats BOTH the
+  // parser-extracted date and the fallback. Order: targetDate > parser > fallback.
+  const targetDate = options.targetDate && options.targetDate.trim() ? options.targetDate.trim() : undefined;
+  const date = targetDate
+    ? targetDate
+    : (parsed.date && parsed.date.trim() ? parsed.date.trim() : fallbackDate);
   const intensity = clampIntensity(parsed.overallIntensity, fallbackIntensity);
   const duration = clampDuration(undefined, fallbackDuration);
   const notes = parsed.sessionNotes?.trim() || undefined;
@@ -192,13 +272,32 @@ export function parsedWorkoutToLogPayload(
         };
         if (typeof s.rpe === 'number' && s.rpe > 0) set.rpe = s.rpe;
         if (typeof s.notes === 'string' && s.notes.trim()) set.notes = s.notes.trim();
+        // Phase 13: preserve parser-extracted tempo when present, otherwise
+        // substitute the canonical default. Backend accepts `tempo` already.
+        set.tempo = typeof s.tempo === 'string' && s.tempo.trim() ? s.tempo.trim() : DEFAULT_TEMPO;
         return set;
       });
 
-      return {
+      // Phase 15.0 (2026-04-15): preserve `performanceNotes` as a
+      // first-class `exerciseNote` field on the exercise. The backend
+      // service stamps it on every row of the group, so deleting any
+      // single set no longer loses the note.
+      //
+      // Set-level notes stay in `set.notes` unchanged — a legitimate
+      // trainer-authored set note that starts with `Coach: ` is no
+      // longer reclassified, because read-path code reads the
+      // dedicated column directly.
+      const exerciseNote =
+        typeof ex.performanceNotes === 'string' && ex.performanceNotes.trim()
+          ? ex.performanceNotes.trim()
+          : undefined;
+
+      const out: LogWorkoutPayloadExercise = {
         name: ex.exerciseName.trim(),
         sets: denseSets,
       };
+      if (exerciseNote) out.exerciseNote = exerciseNote;
+      return out;
     })
     .filter((ex) => ex.sets.length > 0); // Drop exercises whose sets all got filtered out.
 

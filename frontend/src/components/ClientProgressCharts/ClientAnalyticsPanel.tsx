@@ -40,16 +40,24 @@ import { useDashboardAnalytics, usePersonalRecords } from '../../hooks/useAnalyt
 import { SafeChart } from '../Charts/SafeChart';
 
 // Lazy-load all charts (per CLAUDE.md — all charts MUST use React.lazy)
+//
+// Phase 15.4 (2026-04-16): swapped 4 deprecated chart components for the
+// Phase 14 canonical replacements, dropped CardioEnduranceLine entirely,
+// and dropped SessionFrequencyArea (it was a redundant view of the same
+// workout-frequency data already rendered by WorkoutFrequencyBar above).
+//   MuscleGroupFocusRadar → MuscleGroupBalanceBars (chart-muscle-group-balance)
+//   CardioEnduranceLine   → REMOVED (no canonical replacement)
+//   SessionFrequencyArea  → REMOVED (duplicate of WorkoutFrequencyBar)
+//   MuscleRecoveryHeatmap → RecoverySignalBars (chart-recovery-signal)
+//   RPEByExerciseScatter  → IntensityRpeTrendLine (chart-intensity-rpe-trend)
 const ExerciseHistoryChart = lazy(() => import('../Charts/ExerciseHistoryChart'));
 const WorkoutFrequencyBar = lazy(() => import('../Charts/charts/live/WorkoutFrequencyBar'));
 const WeightProgressionLive = lazy(() => import('../Charts/charts/live/WeightProgressionLive'));
-const MuscleGroupFocusRadar = lazy(() => import('../Charts/charts/live/MuscleGroupFocusRadar'));
+const MuscleGroupBalanceBars = lazy(() => import('../Charts/charts/live/MuscleGroupBalanceBars'));
 const MacroSplitDonut = lazy(() => import('../Charts/charts/live/MacroSplitDonut'));
-const CardioEnduranceLine = lazy(() => import('../Charts/charts/live/CardioEnduranceLine'));
-const SessionFrequencyArea = lazy(() => import('../Charts/charts/live/SessionFrequencyArea'));
 const BodyFatTrendLine = lazy(() => import('../Charts/charts/live/BodyFatTrendLine'));
-const MuscleRecoveryHeatmap = lazy(() => import('../Charts/charts/live/MuscleRecoveryHeatmap'));
-const RPEByExerciseScatter = lazy(() => import('../Charts/charts/live/RPEByExerciseScatter'));
+const RecoverySignalBars = lazy(() => import('../Charts/charts/live/RecoverySignalBars'));
+const IntensityRpeTrendLine = lazy(() => import('../Charts/charts/live/IntensityRpeTrendLine'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -115,16 +123,14 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({ userId, com
       <ChartGrid>
         <SafeChart chartName="Workout Frequency"><WorkoutFrequencyBar userId={userId} /></SafeChart>
         <SafeChart chartName="Weight Progression"><WeightProgressionLive userId={userId} /></SafeChart>
-        <SafeChart chartName="Muscle Group Focus"><MuscleGroupFocusRadar userId={userId} /></SafeChart>
+        <SafeChart chartName="Muscle Group Volume"><MuscleGroupBalanceBars userId={userId} /></SafeChart>
         <SafeChart chartName="Macro Split"><MacroSplitDonut userId={userId} /></SafeChart>
-        <SafeChart chartName="Cardio Endurance"><CardioEnduranceLine userId={userId} /></SafeChart>
         <SafeChart chartName="Body Fat Trend"><BodyFatTrendLine userId={userId} /></SafeChart>
-        <SafeChart chartName="Session Frequency"><SessionFrequencyArea userId={userId} /></SafeChart>
-        <SafeChart chartName="Muscle Recovery"><MuscleRecoveryHeatmap userId={userId} /></SafeChart>
+        <SafeChart chartName="Recovery Signals"><RecoverySignalBars userId={userId} /></SafeChart>
       </ChartGrid>
 
-      {/* RPE chart spans full width */}
-      <SafeChart chartName="Exercise Intensity (RPE)"><RPEByExerciseScatter userId={userId} /></SafeChart>
+      {/* Effort trend spans full width */}
+      <SafeChart chartName="Effort Trend (RPE)"><IntensityRpeTrendLine userId={userId} /></SafeChart>
 
       {/* Exercise History CSS bars */}
       <SafeChart chartName="Exercise History"><ExerciseHistoryChart userId={userId} /></SafeChart>

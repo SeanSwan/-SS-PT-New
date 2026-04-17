@@ -1,22 +1,66 @@
 /**
  * ============================================================================
  * FILE: chartDataController.mjs
- * PURPOSE: Dedicated chart data endpoints for 9 Victory charts
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
- * AI VILLAGE VALIDATED: 2026-03-22
+ * PURPOSE: Canonical client-progress chart endpoints (Phase 14 rebuild)
+ * LAST MODIFIED: 2026-04-15 (Phase 14 — 12-chart canonical rebuild)
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Provides optimized SQL queries that return pre-shaped
- * data for each Victory chart. One endpoint per chart, each returns array of
- * {x, y} or {label, value} objects ready for Victory consumption.
+ * PHASE 14 (2026-04-15) SOURCE-OF-TRUTH REBUILD:
+ * The pre-Phase-14 controller mixed three patterns:
+ *   1. snake_case tables that actually exist (`workout_sessions`,
+ *      `body_measurements`, `daily_macro_logs`)
+ *   2. PascalCase-quoted tables that DO NOT exist in production
+ *      (`"WorkoutSessions"`, `"WorkoutExercises"`, `"Exercises"`, `"Sets"`)
+ *   3. mixed-up join chains that assumed both
  *
- * HOW IT FITS IN THE APP: Victory Chart Component → useAnalytics → GET /api/analytics/:userId/chart-* → this controller
- * KEY DECISIONS: Server-side aggregation so frontend receives chart-ready data.
- *   No N+1 queries — each endpoint is a single SQL aggregate.
+ * Net result: five of nine chart endpoints (muscle-group-focus,
+ * cardio-endurance, session-frequency, muscle-recovery, rpe-by-exercise)
+ * silently failed through `safeQuery` and returned empty arrays for every
+ * request. The canonical client progress dashboard rendered "No data yet"
+ * regardless of real workout history. This was the "chart source-of-truth
+ * drift" flagged in the Phase 14 audit.
+ *
+ * Phase 14 rebuild establishes `workout_logs` (joined to `workout_sessions`)
+ * as the canonical analytics backbone for workout-driven charts. 12 canonical
+ * chart endpoints are now truthful:
+ *
+ *    1. chart-workout-frequency           — workout_sessions weekly count
+ *    2. chart-attendance-reliability      — workout_sessions.status breakdown
+ *    3. chart-weekly-volume               — SUM(weight*reps) per week from workout_logs
+ *    4. chart-sets-reps-trend             — count(logs) + sum(reps) per week
+ *    5. chart-duration-trend              — workout_sessions.duration per session
+ *    6. chart-intensity-rpe-trend         — avg(wl.rpe) precedence, fallback ws.intensity
+ *    7. chart-pr-timeline                 — running-max best set per exercise
+ *    8. chart-anchor-lifts                — top-3 most-frequent exercises, max weight over time
+ *    9. chart-exercise-frequency          — top-10 exercises by session count from workout_logs
+ *   10. chart-movement-pattern-balance    — volume aggregated into NASM movement patterns
+ *   11. chart-muscle-group-balance        — volume aggregated into NASM muscle groups
+ *   12. chart-recovery-signal             — per-exercise pain-note and high-RPE clustering
+ *
+ * Preserved legacy (still truthful, serve other surfaces):
+ *    - chart-weight-progression           — body_measurements (unchanged)
+ *    - chart-body-fat-trend               — body_measurements (unchanged)
+ *    - chart-macro-split                  — daily_macro_logs (unchanged, nutrition)
+ *
+ * Explicitly deprecated — still routed for back-compat, but return empty
+ * arrays so no caller renders wrong data:
+ *    - chart-muscle-group-focus  (replaced by chart-muscle-group-balance)
+ *    - chart-cardio-endurance    (broken PascalCase join, out of scope)
+ *    - chart-session-frequency   (replaced by chart-workout-frequency)
+ *    - chart-muscle-recovery     (broken PascalCase join, replaced in spirit by chart-recovery-signal)
+ *    - chart-rpe-by-exercise     (replaced by chart-intensity-rpe-trend)
+ *
+ * All new canonical queries use ONLY the real snake_case tables:
+ *   `workout_logs`, `workout_sessions`, `body_measurements`, `daily_macro_logs`
+ *
+ * JWT SECURITY: `userId` always comes from `req.params.userId`, which is
+ * injected by `clientAnalyticsRoutes.mjs` from `req.user.id` (JWT-derived).
+ * Client-facing routes never accept `userId` from the URL; only admin/trainer
+ * routes pass it explicitly through IDOR middleware.
  */
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Helper
+// SECTION: Shared helpers
 // ─────────────────────────────────────────────────────────────
 
 const safeQuery = async (sequelize, sql, replacements, context = '') => {
@@ -38,23 +82,30 @@ const parseUserId = (raw) => {
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
+// Standard short-circuit for all chart endpoints.
+const requireUser = (req, res) => {
+  const userId = parseUserId(req.params.userId);
+  if (!userId) {
+    res.status(400).json({ success: false, message: 'Invalid userId' });
+    return null;
+  }
+  return userId;
+};
+
 // ─────────────────────────────────────────────────────────────
-// SECTION: 1. Workout Frequency — bar chart (workouts per week, last 12 weeks)
+// SECTION: 1. Workout Frequency — bar chart, workouts per week (12 weeks)
+//
+// CANONICAL SOURCE: workout_sessions (status='completed').
+// Phase 14 note: preserved from the 2026-04-13 canonical-surface-audit fix
+// that switched from the broken PascalCase `"WorkoutSessions"` reference.
 // ─────────────────────────────────────────────────────────────
 
 export async function getWorkoutFrequencyChart(req, res) {
   try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
+    const userId = requireUser(req, res);
+    if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
-    // canonical-surface-audit 2026-04-13 (chart-truthfulness pass):
-    // Real prod table is `workout_sessions` (snake_case, unquoted).
-    // The prior `"WorkoutSessions"` PascalCase quoted reference did NOT
-    // exist — Postgres quoted identifiers are case-sensitive, information_schema
-    // contains zero PascalCase tables in the public schema, and every call
-    // silently errored through safeQuery → returned [] → canonical /progress
-    // rendered "No data yet" regardless of real workout history.
     const rows = await safeQuery(sequelize,
       `SELECT
          TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
@@ -74,13 +125,661 @@ export async function getWorkoutFrequencyChart(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: 2. Weight Progression — line chart (body weight over time)
+// SECTION: 2. Attendance Reliability — status breakdown (90 days)
+//
+// CANONICAL SOURCE: workout_sessions.status ENUM
+//   values: planned | in_progress | completed | skipped | cancelled
+// Returns status counts plus a derived reliabilityPercent = completed /
+// (completed + skipped + cancelled). `planned` and `in_progress` are
+// excluded from the denominator because they have not resolved yet.
+// ─────────────────────────────────────────────────────────────
+
+export async function getAttendanceReliabilityChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT ws.status::text AS status,
+              COUNT(*)::int AS count
+       FROM workout_sessions ws
+       WHERE ws."userId" = :userId
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       GROUP BY ws.status
+       ORDER BY count DESC`,
+      { userId }, 'getAttendanceReliabilityChart');
+
+    // Build the status → count map for the reliability calculation.
+    const byStatus = {};
+    for (const r of rows) byStatus[r.status] = r.count;
+    const completed = byStatus.completed || 0;
+    const skipped = byStatus.skipped || 0;
+    const cancelled = byStatus.cancelled || 0;
+    const resolved = completed + skipped + cancelled;
+    const reliabilityPercent = resolved > 0
+      ? Math.round((completed / resolved) * 100)
+      : 0;
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.status, y: r.count })),
+      reliabilityPercent,
+      totals: { completed, skipped, cancelled, resolved },
+    });
+  } catch (error) {
+    console.error('Error getting attendance reliability chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 3. Weekly Training Volume — sum(weight*reps) per week
+//
+// CANONICAL SOURCE: workout_logs JOIN workout_sessions.
+// Returns per-week total lifted volume in lbs (weight * reps). This is
+// the single most load-bearing "progress is real" chart on the dashboard.
+// ─────────────────────────────────────────────────────────────
+
+export async function getWeeklyVolumeChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
+         COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
+         COUNT(DISTINCT wl."sessionId")::int AS workouts
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '12 weeks'
+       GROUP BY DATE_TRUNC('week', ws.date)
+       ORDER BY DATE_TRUNC('week', ws.date)`,
+      { userId }, 'getWeeklyVolumeChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.week, y: Math.round(r.volume), workouts: r.workouts })),
+    });
+  } catch (error) {
+    console.error('Error getting weekly volume chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 4. Total Sets & Reps Trend — dual series per week
+//
+// CANONICAL SOURCE: workout_logs JOIN workout_sessions.
+// Returns two parallel weekly series so a consumer can plot them as
+// grouped bars or stacked lines. Useful as a progression signal even
+// when load is flat (e.g. hypertrophy-phase volume accumulation).
+// ─────────────────────────────────────────────────────────────
+
+export async function getSetsRepsTrendChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
+         COUNT(*)::int AS sets,
+         COALESCE(SUM(wl.reps), 0)::int AS reps
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '12 weeks'
+       GROUP BY DATE_TRUNC('week', ws.date)
+       ORDER BY DATE_TRUNC('week', ws.date)`,
+      { userId }, 'getSetsRepsTrendChart');
+
+    res.json({
+      success: true,
+      data: {
+        sets: rows.map(r => ({ x: r.week, y: r.sets })),
+        reps: rows.map(r => ({ x: r.week, y: r.reps })),
+      },
+    });
+  } catch (error) {
+    console.error('Error getting sets/reps trend chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 5. Session Duration Trend — per-session duration line
+//
+// CANONICAL SOURCE: workout_sessions.duration (integer minutes).
+// Returns the duration of every completed session in the last 90 days.
+// Gracefully excludes sessions with duration = 0 (typical for transcript-
+// intake logs that don't record a duration — the mapper defaults to 50,
+// but pre-Phase-13 applied workouts may be stored at 0).
+// ─────────────────────────────────────────────────────────────
+
+export async function getDurationTrendChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         TO_CHAR(ws.date, 'MM/DD') AS date,
+         ws.duration::int AS duration
+       FROM workout_sessions ws
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.duration > 0
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       ORDER BY ws.date ASC`,
+      { userId }, 'getDurationTrendChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.date, y: r.duration })),
+    });
+  } catch (error) {
+    console.error('Error getting duration trend chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 6. Average Intensity / RPE Trend — weekly precedence
+//
+// CANONICAL SOURCE precedence (documented):
+//   PRIMARY:   workout_logs.rpe  (per-set RPE — trainer-rated, 1-10)
+//   FALLBACK:  workout_sessions.intensity (session-level, 1-10)
+//
+// For each week, if ANY workout_logs row in that week has a non-null rpe,
+// we report the average log-level RPE (source='rpe'). Otherwise we report
+// the average session-level intensity (source='intensity'). This preserves
+// log-level precision when trainers rated individual sets, and degrades
+// gracefully to session-level intensity when they did not.
+// ─────────────────────────────────────────────────────────────
+
+export async function getIntensityRPETrendChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
+         AVG(wl.rpe)::float AS avg_rpe,
+         AVG(ws.intensity)::float AS avg_intensity,
+         COUNT(wl.rpe)::int AS rpe_count
+       FROM workout_sessions ws
+       LEFT JOIN workout_logs wl ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '12 weeks'
+       GROUP BY DATE_TRUNC('week', ws.date)
+       ORDER BY DATE_TRUNC('week', ws.date)`,
+      { userId }, 'getIntensityRPETrendChart');
+
+    const data = rows.map(r => {
+      const hasRpe = r.rpe_count > 0 && r.avg_rpe !== null;
+      const value = hasRpe ? r.avg_rpe : r.avg_intensity;
+      return {
+        x: r.week,
+        y: value === null ? 0 : Math.round(value * 10) / 10,
+        source: hasRpe ? 'rpe' : 'intensity',
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('Error getting intensity/RPE trend chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 7. PR Timeline — running best-set events
+//
+// CANONICAL SOURCE: workout_logs JOIN workout_sessions.
+// Returns the heaviest set of each exercise on each day it was trained.
+// The frontend can then filter to "new PR only" by comparing each row to
+// the running max for that exercise — keeping the consumer free to
+// render either the full progression line or the discrete PR events.
+// ─────────────────────────────────────────────────────────────
+
+export async function getPRTimelineChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT DISTINCT ON (ws.date::date, wl."exerciseName")
+         TO_CHAR(ws.date::date, 'YYYY-MM-DD') AS day,
+         wl."exerciseName" AS exercise,
+         wl.weight::float AS top_weight,
+         wl.reps::int AS top_reps
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND wl.weight > 0
+         AND ws.date >= NOW() - INTERVAL '180 days'
+       ORDER BY ws.date::date, wl."exerciseName", wl.weight DESC`,
+      { userId }, 'getPRTimelineChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({
+        x: r.day,
+        y: r.top_weight,
+        exercise: r.exercise,
+        reps: r.top_reps,
+      })),
+    });
+  } catch (error) {
+    console.error('Error getting PR timeline chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 8. Anchor Lift Progression — top-3 frequency, heaviest per day
+//
+// CANONICAL SOURCE: workout_logs JOIN workout_sessions.
+// Picks the three exercises the client trains most often in the last 90
+// days and returns their heaviest set on each day they were trained.
+// This gives a focused progression signal for the movements the client
+// actually keeps coming back to — the "anchor" lifts.
+// ─────────────────────────────────────────────────────────────
+
+export async function getAnchorLiftsChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `WITH top_exercises AS (
+         SELECT wl."exerciseName" AS exercise
+         FROM workout_logs wl
+         JOIN workout_sessions ws ON wl."sessionId" = ws.id
+         WHERE ws."userId" = :userId AND ws.status = 'completed'
+           AND wl.weight > 0
+           AND ws.date >= NOW() - INTERVAL '90 days'
+         GROUP BY wl."exerciseName"
+         ORDER BY COUNT(DISTINCT wl."sessionId") DESC
+         LIMIT 3
+       )
+       SELECT DISTINCT ON (ws.date::date, wl."exerciseName")
+         TO_CHAR(ws.date::date, 'YYYY-MM-DD') AS day,
+         wl."exerciseName" AS exercise,
+         wl.weight::float AS top_weight,
+         wl.reps::int AS top_reps
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND wl.weight > 0
+         AND wl."exerciseName" IN (SELECT exercise FROM top_exercises)
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       ORDER BY ws.date::date, wl."exerciseName", wl.weight DESC`,
+      { userId }, 'getAnchorLiftsChart');
+
+    // Group by exercise → array of {day, weight, reps}.
+    const byExercise = {};
+    for (const r of rows) {
+      if (!byExercise[r.exercise]) byExercise[r.exercise] = [];
+      byExercise[r.exercise].push({
+        x: r.day,
+        y: r.top_weight,
+        reps: r.top_reps,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: byExercise,
+      exercises: Object.keys(byExercise),
+    });
+  } catch (error) {
+    console.error('Error getting anchor lifts chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 9. Exercise Frequency — top-10 most-trained (90 days)
+//
+// CANONICAL SOURCE: workout_logs.exerciseName JOIN workout_sessions.
+// Returns the top 10 exercises by distinct session count, with total
+// sets as a secondary sort key. Clear snapshot of what the client is
+// actually doing.
+// ─────────────────────────────────────────────────────────────
+
+export async function getExerciseFrequencyChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT wl."exerciseName" AS exercise,
+              COUNT(DISTINCT wl."sessionId")::int AS sessions,
+              COUNT(*)::int AS sets
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       GROUP BY wl."exerciseName"
+       ORDER BY sessions DESC, sets DESC
+       LIMIT 10`,
+      { userId }, 'getExerciseFrequencyChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.exercise, y: r.sessions, sets: r.sets })),
+    });
+  } catch (error) {
+    console.error('Error getting exercise frequency chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 10. Movement Pattern Balance — NASM-aligned patterns
+//
+// CANONICAL SOURCE: workout_logs.exerciseName mapped to NASM movement
+// patterns via ILIKE CASE. Patterns:
+//   squat | hinge | push | pull | carry | core | other
+//
+// Mapping is conservative — uses common exercise-name substrings only.
+// Unmapped exercises fall into 'other' rather than being silently
+// dropped so the chart always reports real total volume.
+// ─────────────────────────────────────────────────────────────
+
+export async function getMovementPatternBalanceChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         CASE
+           WHEN wl."exerciseName" ILIKE '%squat%'
+             OR wl."exerciseName" ILIKE '%lunge%'
+             OR wl."exerciseName" ILIKE '%step-up%'
+             OR wl."exerciseName" ILIKE '%leg press%'
+             THEN 'squat'
+           WHEN wl."exerciseName" ILIKE '%deadlift%'
+             OR wl."exerciseName" ILIKE '%rdl%'
+             OR wl."exerciseName" ILIKE '%hip hinge%'
+             OR wl."exerciseName" ILIKE '%good morning%'
+             OR wl."exerciseName" ILIKE '%hip thrust%'
+             OR wl."exerciseName" ILIKE '%glute bridge%'
+             THEN 'hinge'
+           WHEN wl."exerciseName" ILIKE '%bench%'
+             OR wl."exerciseName" ILIKE '%push-up%'
+             OR wl."exerciseName" ILIKE '%pushup%'
+             OR wl."exerciseName" ILIKE '%overhead press%'
+             OR wl."exerciseName" ILIKE '%shoulder press%'
+             OR wl."exerciseName" ILIKE '%ohp%'
+             OR wl."exerciseName" ILIKE '%dip%'
+             OR wl."exerciseName" ILIKE '%chest fly%'
+             THEN 'push'
+           WHEN wl."exerciseName" ILIKE '%row%'
+             OR wl."exerciseName" ILIKE '%pull-up%'
+             OR wl."exerciseName" ILIKE '%pullup%'
+             OR wl."exerciseName" ILIKE '%chin-up%'
+             OR wl."exerciseName" ILIKE '%chinup%'
+             OR wl."exerciseName" ILIKE '%pulldown%'
+             OR wl."exerciseName" ILIKE '%face pull%'
+             OR wl."exerciseName" ILIKE '%curl%'
+             THEN 'pull'
+           WHEN wl."exerciseName" ILIKE '%carry%'
+             OR wl."exerciseName" ILIKE '%farmer%'
+             OR wl."exerciseName" ILIKE '%sled%'
+             OR wl."exerciseName" ILIKE '%suitcase%'
+             THEN 'carry'
+           WHEN wl."exerciseName" ILIKE '%plank%'
+             OR wl."exerciseName" ILIKE '%crunch%'
+             OR wl."exerciseName" ILIKE '%core%'
+             OR wl."exerciseName" ILIKE '%oblique%'
+             OR wl."exerciseName" ILIKE '%dead bug%'
+             OR wl."exerciseName" ILIKE '%bird dog%'
+             OR wl."exerciseName" ILIKE '%hollow%'
+             OR wl."exerciseName" ILIKE '%russian twist%'
+             OR wl."exerciseName" ILIKE '%sit-up%'
+             OR wl."exerciseName" ILIKE '%situp%'
+             THEN 'core'
+           ELSE 'other'
+         END AS pattern,
+         COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
+         COUNT(*)::int AS sets
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       GROUP BY pattern
+       ORDER BY volume DESC`,
+      { userId }, 'getMovementPatternBalanceChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.pattern, y: Math.round(r.volume), sets: r.sets })),
+    });
+  } catch (error) {
+    console.error('Error getting movement pattern balance chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 11. Muscle Group Volume Balance — replaces broken radar
+//
+// CANONICAL SOURCE: workout_logs.exerciseName mapped to NASM muscle
+// groups via ILIKE CASE. Groups:
+//   Chest | Back | Shoulders | Arms | Legs | Core | Full Body | Other
+//
+// This replaces the broken `chart-muscle-group-focus` which silently
+// returned [] against a non-existent PascalCase join chain. The new
+// implementation reads the ground truth (workout_logs) with explicit
+// keyword mapping that is easy to audit and extend.
+// ─────────────────────────────────────────────────────────────
+
+export async function getMuscleGroupBalanceChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT
+         CASE
+           WHEN wl."exerciseName" ILIKE '%bench%'
+             OR wl."exerciseName" ILIKE '%chest%'
+             OR wl."exerciseName" ILIKE '% fly%'
+             OR wl."exerciseName" ILIKE '%push-up%'
+             OR wl."exerciseName" ILIKE '%pushup%'
+             OR wl."exerciseName" ILIKE '%pec%'
+             OR wl."exerciseName" ILIKE '%dip%'
+             THEN 'Chest'
+           WHEN wl."exerciseName" ILIKE '%row%'
+             OR wl."exerciseName" ILIKE '%pull-up%'
+             OR wl."exerciseName" ILIKE '%pullup%'
+             OR wl."exerciseName" ILIKE '%chin-up%'
+             OR wl."exerciseName" ILIKE '%chinup%'
+             OR wl."exerciseName" ILIKE '%lat%'
+             OR wl."exerciseName" ILIKE '%pulldown%'
+             OR wl."exerciseName" ILIKE '%deadlift%'
+             OR wl."exerciseName" ILIKE '%rdl%'
+             OR wl."exerciseName" ILIKE '%back extension%'
+             THEN 'Back'
+           WHEN wl."exerciseName" ILIKE '%shoulder%'
+             OR wl."exerciseName" ILIKE '%delt%'
+             OR wl."exerciseName" ILIKE '%overhead%'
+             OR wl."exerciseName" ILIKE '%ohp%'
+             OR wl."exerciseName" ILIKE '%lateral raise%'
+             OR wl."exerciseName" ILIKE '%front raise%'
+             OR wl."exerciseName" ILIKE '%military%'
+             OR wl."exerciseName" ILIKE '%arnold%'
+             OR wl."exerciseName" ILIKE '%face pull%'
+             THEN 'Shoulders'
+           WHEN wl."exerciseName" ILIKE '%bicep%'
+             OR wl."exerciseName" ILIKE '%tricep%'
+             OR wl."exerciseName" ILIKE '%curl%'
+             OR wl."exerciseName" ILIKE '%extension%'
+             OR wl."exerciseName" ILIKE '%hammer%'
+             OR wl."exerciseName" ILIKE '%preacher%'
+             OR wl."exerciseName" ILIKE '%skull%'
+             THEN 'Arms'
+           WHEN wl."exerciseName" ILIKE '%squat%'
+             OR wl."exerciseName" ILIKE '% leg%'
+             OR wl."exerciseName" ILIKE '%lunge%'
+             OR wl."exerciseName" ILIKE '%calf%'
+             OR wl."exerciseName" ILIKE '%hamstring%'
+             OR wl."exerciseName" ILIKE '%quad%'
+             OR wl."exerciseName" ILIKE '%hip thrust%'
+             OR wl."exerciseName" ILIKE '%glute%'
+             OR wl."exerciseName" ILIKE '%step-up%'
+             OR wl."exerciseName" ILIKE '%leg press%'
+             THEN 'Legs'
+           WHEN wl."exerciseName" ILIKE '%plank%'
+             OR wl."exerciseName" ILIKE '%crunch%'
+             OR wl."exerciseName" ILIKE '%core%'
+             OR wl."exerciseName" ILIKE '%oblique%'
+             OR wl."exerciseName" ILIKE '%russian twist%'
+             OR wl."exerciseName" ILIKE '%sit-up%'
+             OR wl."exerciseName" ILIKE '%situp%'
+             OR wl."exerciseName" ILIKE '%dead bug%'
+             OR wl."exerciseName" ILIKE '%bird dog%'
+             OR wl."exerciseName" ILIKE '%hollow%'
+             THEN 'Core'
+           WHEN wl."exerciseName" ILIKE '%clean%'
+             OR wl."exerciseName" ILIKE '%snatch%'
+             OR wl."exerciseName" ILIKE '%thruster%'
+             OR wl."exerciseName" ILIKE '%turkish get-up%'
+             OR wl."exerciseName" ILIKE '%farmer%'
+             OR wl."exerciseName" ILIKE '%kettlebell swing%'
+             OR wl."exerciseName" ILIKE '%battle rope%'
+             THEN 'Full Body'
+           ELSE 'Other'
+         END AS muscle_group,
+         COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
+         COUNT(*)::int AS sets
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       GROUP BY muscle_group
+       ORDER BY volume DESC`,
+      { userId }, 'getMuscleGroupBalanceChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({ x: r.muscle_group, y: Math.round(r.volume), sets: r.sets })),
+    });
+  } catch (error) {
+    console.error('Error getting muscle group balance chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: 12. Recovery Signal — pain + high-RPE clustering
+//
+// CANONICAL SOURCES (Phase 15.0, 2026-04-15):
+//   - workout_logs.notes         — set-specific note
+//   - workout_logs."exerciseNote" — Phase 15 dedicated exercise-level note,
+//                                   stamped on every row of a group
+//   - workout_logs.rpe >= 9      — redline sets
+//
+// Phase 15.0 note: this chart now scans BOTH note columns so transcript-
+// derived exercise-level observations (e.g. "shoulder clicking on
+// dumbbell bench") are no longer silently lost from analytics. The
+// Phase 13.2 `Coach: ` encoding embedded such notes into set 1's notes
+// column, which was in scope for this regex already — new Phase 15 rows
+// store the same content in `exerciseNote` instead, so the OR guard
+// here catches both old and new storage shapes.
+//
+// Returns the top 10 exercises where the client has logged
+// pain/discomfort in EITHER note column, or consistently redlined RPE
+// over the last 90 days. Only rows with at least one flag are returned,
+// so an empty array is a truthful "no recovery concerns" state — not
+// a silent failure.
+//
+// Regex uses Postgres word-boundary anchors (\m, \M) so "pull-up" does
+// not match "pull" in notes. Keywords: pain, hurt, sore, tight,
+// discomfort, ache, strain, tweak, injury.
+// ─────────────────────────────────────────────────────────────
+
+export async function getRecoverySignalChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT wl."exerciseName" AS exercise,
+              COUNT(*) FILTER (
+                WHERE (
+                  (wl.notes IS NOT NULL
+                    AND wl.notes ~* '\\m(pain|hurt|sore|tight|discomfort|ache|strain|tweak|injury)\\M')
+                  OR (wl."exerciseNote" IS NOT NULL
+                    AND wl."exerciseNote" ~* '\\m(pain|hurt|sore|tight|discomfort|ache|strain|tweak|injury)\\M')
+                )
+              )::int AS pain_flags,
+              COUNT(*) FILTER (WHERE wl.rpe >= 9)::int AS high_rpe_flags,
+              COUNT(*)::int AS total_sets
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND ws.date >= NOW() - INTERVAL '90 days'
+       GROUP BY wl."exerciseName"
+       HAVING
+         COUNT(*) FILTER (
+           WHERE (
+             (wl.notes IS NOT NULL
+               AND wl.notes ~* '\\m(pain|hurt|sore|tight|discomfort|ache|strain|tweak|injury)\\M')
+             OR (wl."exerciseNote" IS NOT NULL
+               AND wl."exerciseNote" ~* '\\m(pain|hurt|sore|tight|discomfort|ache|strain|tweak|injury)\\M')
+           )
+         ) > 0
+         OR COUNT(*) FILTER (WHERE wl.rpe >= 9) > 0
+       ORDER BY pain_flags DESC, high_rpe_flags DESC
+       LIMIT 10`,
+      { userId }, 'getRecoverySignalChart');
+
+    res.json({
+      success: true,
+      data: rows.map(r => ({
+        x: r.exercise,
+        y: r.pain_flags + r.high_rpe_flags,
+        painFlags: r.pain_flags,
+        highRpeFlags: r.high_rpe_flags,
+        totalSets: r.total_sets,
+      })),
+    });
+  } catch (error) {
+    console.error('Error getting recovery signal chart:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: LEGACY — preserved truthful body-composition endpoints
+// These are NOT part of the 12 canonical client-progress charts, but
+// they are still used by other consumers (profile gallery, admin
+// client detail). The SQL is unchanged from the pre-Phase-14
+// implementation and reads `body_measurements` / `daily_macro_logs`
+// which have always been the correct snake_case tables.
 // ─────────────────────────────────────────────────────────────
 
 export async function getWeightProgressionChart(req, res) {
   try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
+    const userId = requireUser(req, res);
+    if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -91,7 +790,7 @@ export async function getWeightProgressionChart(req, res) {
        WHERE "userId" = :userId AND weight IS NOT NULL
        ORDER BY "measurementDate" ASC
        LIMIT 50`,
-      { userId });
+      { userId }, 'getWeightProgressionChart');
 
     res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.weight })) });
   } catch (error) {
@@ -100,50 +799,33 @@ export async function getWeightProgressionChart(req, res) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: 3. Muscle Group Focus — radar chart (volume by muscle group)
-// ─────────────────────────────────────────────────────────────
-
-export async function getMuscleGroupFocusChart(req, res) {
+export async function getBodyFatTrendChart(req, res) {
   try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
+    const userId = requireUser(req, res);
+    if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
       `SELECT
-         COALESCE(e."bodyPartCategory", 'other') AS muscle,
-         COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0)::float AS volume
-       FROM "WorkoutExercises" we
-       JOIN "Exercises" e ON we."exerciseId" = e.id
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-       WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND ws.date >= NOW() - INTERVAL '90 days'
-       GROUP BY e."bodyPartCategory"
-       ORDER BY volume DESC`,
-      { userId });
+         TO_CHAR("measurementDate", 'MM/DD') AS date,
+         "bodyFatPercentage"::float AS bf
+       FROM body_measurements
+       WHERE "userId" = :userId AND "bodyFatPercentage" IS NOT NULL
+       ORDER BY "measurementDate" ASC
+       LIMIT 50`,
+      { userId }, 'getBodyFatTrendChart');
 
-    // Normalize to 0-100 scale for radar
-    const maxVol = Math.max(...rows.map(r => r.volume), 1);
-    res.json({
-      success: true,
-      data: rows.map(r => ({ x: r.muscle, y: Math.round((r.volume / maxVol) * 100) }))
-    });
+    res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.bf })) });
   } catch (error) {
-    console.error('Error getting muscle group focus chart:', error);
+    console.error('Error getting body fat trend chart:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: 4. Macro Split — pie/donut chart (avg daily macros)
-// ─────────────────────────────────────────────────────────────
-
 export async function getMacroSplitChart(req, res) {
   try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
+    const userId = requireUser(req, res);
+    if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
     const rows = await safeQuery(sequelize,
@@ -154,7 +836,7 @@ export async function getMacroSplitChart(req, res) {
        FROM daily_macro_logs
        WHERE "userId" = :userId
          AND date >= CURRENT_DATE - INTERVAL '7 days'`,
-      { userId });
+      { userId }, 'getMacroSplitChart');
 
     const r = rows[0] || { protein: 0, carbs: 0, fat: 0 };
     const total = r.protein + r.carbs + r.fat;
@@ -175,212 +857,33 @@ export async function getMacroSplitChart(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: 5. Cardio Endurance — line chart (duration by cardio type)
+// SECTION: DEPRECATED — broken PascalCase chains, return empty so
+// legacy consumers don't 404, but never render wrong data. Each
+// deprecated endpoint documents its replacement so consumers can
+// migrate. Phase 15+ may remove these entirely.
 // ─────────────────────────────────────────────────────────────
 
+/** @deprecated Phase 14 — use `chart-muscle-group-balance` instead. */
+export async function getMuscleGroupFocusChart(req, res) {
+  res.json({ success: true, data: [], deprecated: 'chart-muscle-group-balance' });
+}
+
+/** @deprecated Phase 14 — cardio detection is out of the 12-chart scope. */
 export async function getCardioEnduranceChart(req, res) {
-  try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
-    const sequelize = req.app.get('sequelize');
-
-    const rows = await safeQuery(sequelize,
-      `SELECT
-         TO_CHAR(ws.date, 'MM/DD') AS date,
-         ws.date AS raw_date,
-         e.name AS exercise,
-         COALESCE(SUM(s.duration), 0)::int AS duration_sec,
-         COALESCE(SUM(s.distance), 0)::float AS distance
-       FROM "WorkoutExercises" we
-       JOIN "Exercises" e ON we."exerciseId" = e.id
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-       WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND (
-           LOWER(e.name) LIKE '%running%' OR LOWER(e.name) LIKE '%run%'
-           OR LOWER(e.name) LIKE '%bike%' OR LOWER(e.name) LIKE '%cycling%'
-           OR LOWER(e.name) LIKE '%elliptical%'
-           OR LOWER(e.name) LIKE '%swimming%' OR LOWER(e.name) LIKE '%swim%'
-           OR LOWER(e.name) LIKE '%treadmill%'
-           OR LOWER(e.name) LIKE '%rowing%'
-           OR e."bodyPartCategory" = 'cardio'
-         )
-         AND ws.date >= NOW() - INTERVAL '90 days'
-       GROUP BY ws.date, e.name
-       ORDER BY ws.date`,
-      { userId });
-
-    // Group by cardio type
-    const typeMap = {};
-    for (const r of rows) {
-      const name = r.exercise.toLowerCase();
-      let type = 'other';
-      if (name.includes('run') || name.includes('treadmill')) type = 'running';
-      else if (name.includes('bike') || name.includes('cycling')) type = 'cycling';
-      else if (name.includes('elliptical')) type = 'elliptical';
-      else if (name.includes('swim')) type = 'swimming';
-      else if (name.includes('row')) type = 'rowing';
-
-      if (!typeMap[type]) typeMap[type] = [];
-      typeMap[type].push({ x: r.date, y: Math.round(r.duration_sec / 60) });
-    }
-
-    res.json({ success: true, data: typeMap });
-  } catch (error) {
-    console.error('Error getting cardio endurance chart:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.json({ success: true, data: {}, deprecated: true });
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: 6. Session Frequency — area chart (sessions per week, 24 weeks)
-// ─────────────────────────────────────────────────────────────
-
+/** @deprecated Phase 14 — use `chart-workout-frequency` instead. */
 export async function getSessionFrequencyChart(req, res) {
-  try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
-    const sequelize = req.app.get('sequelize');
-
-    const rows = await safeQuery(sequelize,
-      `SELECT
-         TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
-         COUNT(*)::int AS sessions,
-         SUM(ws.duration)::int AS total_minutes
-       FROM "WorkoutSessions" ws
-       WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND ws.date >= NOW() - INTERVAL '24 weeks'
-       GROUP BY DATE_TRUNC('week', ws.date)
-       ORDER BY DATE_TRUNC('week', ws.date)`,
-      { userId });
-
-    res.json({ success: true, data: rows.map(r => ({ x: r.week, y: r.sessions, minutes: r.total_minutes })) });
-  } catch (error) {
-    console.error('Error getting session frequency chart:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.json({ success: true, data: [], deprecated: 'chart-workout-frequency' });
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: 7. Body Fat Trend — line chart (body fat % over time)
-// ─────────────────────────────────────────────────────────────
-
-export async function getBodyFatTrendChart(req, res) {
-  try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
-    const sequelize = req.app.get('sequelize');
-
-    const rows = await safeQuery(sequelize,
-      `SELECT
-         TO_CHAR("measurementDate", 'MM/DD') AS date,
-         "bodyFatPercentage"::float AS bf
-       FROM body_measurements
-       WHERE "userId" = :userId AND "bodyFatPercentage" IS NOT NULL
-       ORDER BY "measurementDate" ASC
-       LIMIT 50`,
-      { userId });
-
-    res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.bf })) });
-  } catch (error) {
-    console.error('Error getting body fat trend chart:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: 8. Muscle Recovery — heatmap (days since last hit per muscle group)
-// ─────────────────────────────────────────────────────────────
-
+/** @deprecated Phase 14 — replaced in spirit by `chart-recovery-signal`. */
 export async function getMuscleRecoveryChart(req, res) {
-  try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
-    const sequelize = req.app.get('sequelize');
-
-    const rows = await safeQuery(sequelize,
-      `SELECT
-         COALESCE(e."bodyPartCategory", 'other') AS muscle,
-         MAX(ws.date) AS last_trained,
-         EXTRACT(DAY FROM NOW() - MAX(ws.date))::int AS days_since,
-         COUNT(DISTINCT ws.id)::int AS times_last_30d
-       FROM "WorkoutExercises" we
-       JOIN "Exercises" e ON we."exerciseId" = e.id
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND ws.date >= NOW() - INTERVAL '30 days'
-       GROUP BY e."bodyPartCategory"
-       ORDER BY days_since DESC`,
-      { userId });
-
-    res.json({
-      success: true,
-      data: rows.map(r => ({
-        x: r.muscle,
-        y: r.days_since,
-        sessions: r.times_last_30d,
-        status: r.days_since <= 2 ? 'recovering' : r.days_since <= 4 ? 'ready' : 'overdue'
-      }))
-    });
-  } catch (error) {
-    console.error('Error getting muscle recovery chart:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.json({ success: true, data: [], deprecated: 'chart-recovery-signal' });
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: 9. RPE by Exercise — scatter/grouped bar (last 24 sessions)
-// ─────────────────────────────────────────────────────────────
-
+/** @deprecated Phase 14 — use `chart-intensity-rpe-trend` instead. */
 export async function getRPEByExerciseChart(req, res) {
-  try {
-    const userId = parseUserId(req.params.userId);
-    if (!userId) return res.status(400).json({ success: false, message: 'Invalid userId' });
-    const sequelize = req.app.get('sequelize');
-
-    // Get the last 24 completed sessions
-    const rows = await safeQuery(sequelize,
-      `SELECT
-         e.name AS exercise,
-         ws.date,
-         TO_CHAR(ws.date, 'MM/DD') AS session_date,
-         COALESCE(AVG(s.rpe), we."difficultyRating", ws.intensity)::float AS avg_rpe
-       FROM "WorkoutExercises" we
-       JOIN "Exercises" e ON we."exerciseId" = e.id
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-       WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND ws.id IN (
-           SELECT id FROM "WorkoutSessions"
-           WHERE "userId" = :userId AND status = 'completed'
-           ORDER BY date DESC LIMIT 24
-         )
-       GROUP BY e.name, ws.date, we."difficultyRating", ws.intensity
-       ORDER BY ws.date, e.name`,
-      { userId });
-
-    // Group by exercise for multi-series
-    const byExercise = {};
-    for (const r of rows) {
-      if (!byExercise[r.exercise]) byExercise[r.exercise] = [];
-      byExercise[r.exercise].push({
-        x: r.session_date,
-        y: Math.round(r.avg_rpe * 10) / 10,
-      });
-    }
-
-    // Return top 8 most frequent exercises
-    const sorted = Object.entries(byExercise)
-      .sort((a, b) => b[1].length - a[1].length)
-      .slice(0, 8);
-
-    res.json({
-      success: true,
-      data: Object.fromEntries(sorted),
-      exercises: sorted.map(([name]) => name),
-    });
-  } catch (error) {
-    console.error('Error getting RPE by exercise chart:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+  res.json({ success: true, data: {}, deprecated: 'chart-intensity-rpe-trend' });
 }

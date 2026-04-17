@@ -29,15 +29,29 @@ import {
   getExerciseVariety
 } from '../controllers/analyticsController.mjs';
 import {
+  // Phase 14 canonical 12 (workout/attendance-driven)
   getWorkoutFrequencyChart,
+  getAttendanceReliabilityChart,
+  getWeeklyVolumeChart,
+  getSetsRepsTrendChart,
+  getDurationTrendChart,
+  getIntensityRPETrendChart,
+  getPRTimelineChart,
+  getAnchorLiftsChart,
+  getExerciseFrequencyChart,
+  getMovementPatternBalanceChart,
+  getMuscleGroupBalanceChart,
+  getRecoverySignalChart,
+  // Legacy-but-truthful body-composition endpoints (other consumers)
   getWeightProgressionChart,
-  getMuscleGroupFocusChart,
+  getBodyFatTrendChart,
   getMacroSplitChart,
+  // Phase 14 deprecated — return empty arrays to avoid 404 on legacy callers
+  getMuscleGroupFocusChart,
   getCardioEnduranceChart,
   getSessionFrequencyChart,
-  getBodyFatTrendChart,
   getMuscleRecoveryChart,
-  getRPEByExerciseChart
+  getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 
@@ -123,35 +137,92 @@ router.get('/exercise-history', getExerciseHistory);
 router.get('/exercise-variety', getExerciseVariety);
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Victory chart data endpoints (client-safe)
-// PURPOSE: Pre-shaped data for each Victory chart component
+// SECTION: Phase 14 canonical client-progress chart endpoints (12)
+//
+// These 12 endpoints power the canonical `/dashboard/client/progress`
+// route. Every single one reads from the truthful snake_case tables
+// (`workout_logs`, `workout_sessions`, `body_measurements`) — no
+// PascalCase joins, no demo data, no preview fallbacks. See
+// `chartDataController.mjs` section header for the Phase 14 rebuild
+// rationale and per-chart source-of-truth documentation.
 // ─────────────────────────────────────────────────────────────
 
-/** @route GET /api/client/analytics/chart-workout-frequency */
+/** @route GET /api/client/analytics/chart-workout-frequency    (Phase 14 #1) */
 router.get('/chart-workout-frequency', getWorkoutFrequencyChart);
+
+/** @route GET /api/client/analytics/chart-attendance-reliability (Phase 14 #2) */
+router.get('/chart-attendance-reliability', getAttendanceReliabilityChart);
+
+/** @route GET /api/client/analytics/chart-weekly-volume          (Phase 14 #3) */
+router.get('/chart-weekly-volume', getWeeklyVolumeChart);
+
+/** @route GET /api/client/analytics/chart-sets-reps-trend        (Phase 14 #4) */
+router.get('/chart-sets-reps-trend', getSetsRepsTrendChart);
+
+/** @route GET /api/client/analytics/chart-duration-trend         (Phase 14 #5) */
+router.get('/chart-duration-trend', getDurationTrendChart);
+
+/** @route GET /api/client/analytics/chart-intensity-rpe-trend    (Phase 14 #6) */
+router.get('/chart-intensity-rpe-trend', getIntensityRPETrendChart);
+
+/** @route GET /api/client/analytics/chart-pr-timeline            (Phase 14 #7) */
+router.get('/chart-pr-timeline', getPRTimelineChart);
+
+/** @route GET /api/client/analytics/chart-anchor-lifts           (Phase 14 #8) */
+router.get('/chart-anchor-lifts', getAnchorLiftsChart);
+
+/** @route GET /api/client/analytics/chart-exercise-frequency     (Phase 14 #9) */
+router.get('/chart-exercise-frequency', getExerciseFrequencyChart);
+
+/** @route GET /api/client/analytics/chart-movement-pattern-balance (Phase 14 #10) */
+router.get('/chart-movement-pattern-balance', getMovementPatternBalanceChart);
+
+/** @route GET /api/client/analytics/chart-muscle-group-balance   (Phase 14 #11) */
+router.get('/chart-muscle-group-balance', getMuscleGroupBalanceChart);
+
+/** @route GET /api/client/analytics/chart-recovery-signal        (Phase 14 #12) */
+router.get('/chart-recovery-signal', getRecoverySignalChart);
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Legacy body-composition chart endpoints (truthful)
+// Kept unchanged — used by the user profile / admin gallery, not part
+// of the canonical 12. `body_measurements` and `daily_macro_logs` are
+// the right snake_case tables.
+// ─────────────────────────────────────────────────────────────
 
 /** @route GET /api/client/analytics/chart-weight-progression */
 router.get('/chart-weight-progression', getWeightProgressionChart);
 
-/** @route GET /api/client/analytics/chart-muscle-group-focus */
-router.get('/chart-muscle-group-focus', getMuscleGroupFocusChart);
+/** @route GET /api/client/analytics/chart-body-fat-trend */
+router.get('/chart-body-fat-trend', getBodyFatTrendChart);
 
 /** @route GET /api/client/analytics/chart-macro-split */
 router.get('/chart-macro-split', getMacroSplitChart);
 
-/** @route GET /api/client/analytics/chart-cardio-endurance */
+// ─────────────────────────────────────────────────────────────
+// SECTION: Deprecated Phase 14 aliases — return empty arrays
+// These five endpoints used to rely on non-existent PascalCase tables
+// (`"WorkoutSessions"`, `"WorkoutExercises"`, `"Exercises"`, `"Sets"`)
+// and silently returned [] for every real user. They remain routed so
+// any cached frontend bundle still running the old contract gets a
+// valid 200 response instead of a 404 — but the payload is explicitly
+// empty and tagged with the canonical replacement. Phase 15+ may
+// remove these entirely once all consumers have migrated.
+// ─────────────────────────────────────────────────────────────
+
+/** @deprecated Phase 14 — replaced by chart-muscle-group-balance */
+router.get('/chart-muscle-group-focus', getMuscleGroupFocusChart);
+
+/** @deprecated Phase 14 — out of 12-chart scope */
 router.get('/chart-cardio-endurance', getCardioEnduranceChart);
 
-/** @route GET /api/client/analytics/chart-session-frequency */
+/** @deprecated Phase 14 — replaced by chart-workout-frequency */
 router.get('/chart-session-frequency', getSessionFrequencyChart);
 
-/** @route GET /api/client/analytics/chart-body-fat-trend */
-router.get('/chart-body-fat-trend', getBodyFatTrendChart);
-
-/** @route GET /api/client/analytics/chart-muscle-recovery */
+/** @deprecated Phase 14 — replaced in spirit by chart-recovery-signal */
 router.get('/chart-muscle-recovery', getMuscleRecoveryChart);
 
-/** @route GET /api/client/analytics/chart-rpe-by-exercise */
+/** @deprecated Phase 14 — replaced by chart-intensity-rpe-trend */
 router.get('/chart-rpe-by-exercise', getRPEByExerciseChart);
 
 export default router;

@@ -85,8 +85,14 @@ const WorkoutCopilotPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel')
 );
 
-const WorkoutHistoryTimeline = React.lazy(
-  () => import('./WorkoutHistoryTimeline')
+// Phase 13 (2026-04-15): Clients & Team "Workout History" tab now mounts the
+// shared WorkoutHistoryPanel — the same architecture used by the admin-clients
+// EnhancedWorkoutsModal (SummaryBar + History/Charts/PRs + conditional
+// Tempo/Rest/RPE/Est.1RM columns). The previous thin WorkoutHistoryTimeline
+// is dormant. Do not reintroduce it — the consolidation point is one shared
+// panel powered by useWorkoutAnalytics.
+const WorkoutHistoryPanel = React.lazy(
+  () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -109,7 +115,7 @@ const SECTIONS: {
   { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
   { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
-  { id: 'history', label: 'Vault History', shortLabel: 'History', icon: <Archive size={18} /> },
+  { id: 'history', label: 'Workout History', shortLabel: 'History', icon: <Archive size={18} /> },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -118,12 +124,39 @@ const SECTIONS: {
 // WHY: CSS custom properties for theme changer compatibility
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Phase 13.2 (2026-04-15) scroll-ownership fix:
+ *
+ * The prior `LayoutWrapper` used `overflow: hidden` with `min-height: 400px`
+ * and `ContentArea` tried to own a nested `overflow-y: auto`. Two things went
+ * wrong on the embedded Workout History tab:
+ *
+ *   1. LayoutWrapper's `overflow: hidden` clipped expanded session cards
+ *      whose content exceeded the container, because no parent in the chain
+ *      gave LayoutWrapper a real height cap — it clipped at natural height.
+ *   2. ContentArea's inner `overflow-y: auto` competed with the page-level
+ *      scroll, and since no parent fed it a min-height:0 flex constraint,
+ *      its inner scroll never activated.
+ *
+ * Net effect: expanded workouts, notes, and edit controls fell below the
+ * visible region with no way to reach them at normal browser zoom.
+ *
+ * Fix: the embedded route owns scroll at the PAGE level (document scroll).
+ * LayoutWrapper no longer clips, and ContentArea no longer traps an inner
+ * scroll. The content grows to its natural height and the browser's normal
+ * page scroll reaches everything.
+ *
+ * Modal variant is untouched — `EnhancedWorkoutsModal`'s WidePanel still
+ * caps at 90vh and its inner ScrollBody still owns modal-local scroll.
+ */
 const LayoutWrapper = styled.div`
   display: flex;
   min-height: 400px;
   gap: 0;
   border-radius: 12px;
-  overflow: hidden;
+  /* overflow: visible so expanded sessions / notes / edit controls are
+     never clipped by the tab wrapper. Page-level scroll owns navigation. */
+  overflow: visible;
   background: var(--bg-surface, #141419);
   border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
 
@@ -260,10 +293,16 @@ const SidebarItem = styled.button<{ $active: boolean }>`
 `;
 
 const ContentArea = styled.div`
+  /* Phase 13.2: min-height: 0 lets this flex child shrink properly in the
+     parent flex row, and overflow: visible hands scroll duty to the page.
+     The prior overflow-y: auto rule never activated because no ancestor
+     gave LayoutWrapper a real height cap, leaving expanded session content
+     unreachable below the viewport fold at normal browser zoom. */
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 16px;
-  overflow-y: auto;
+  overflow: visible;
 `;
 
 const ShimmerLoader = styled.div`
@@ -373,7 +412,12 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
       case 'history':
         return (
           <Suspense fallback={<PlaceholderCard><p>Loading workout history...</p></PlaceholderCard>}>
-            <WorkoutHistoryTimeline clientId={clientId} clientName={clientName} />
+            <WorkoutHistoryPanel
+              clientId={typeof clientId === 'string' ? Number(clientId) : clientId}
+              clientName={clientName || 'Client'}
+              variant="embedded"
+              active={true}
+            />
           </Suspense>
         );
       default:

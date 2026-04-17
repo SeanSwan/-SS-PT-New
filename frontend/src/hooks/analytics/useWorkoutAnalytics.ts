@@ -49,7 +49,15 @@ export interface WorkoutLogEntry {
   tempo?: string;
   rest?: number;
   rpe?: number;
+  /** Set-specific note — stays a set-level field only. */
   notes?: string;
+  /**
+   * Phase 15.0 (2026-04-15): exercise-level coaching note. Stamped on
+   * every row of the exercise group by the backend write path, so
+   * deleting any single set preserves the note on the remaining rows.
+   * Replaces the Phase 13.2 `Coach: ` encoding into set 1's notes.
+   */
+  exerciseNote?: string;
 }
 
 export interface PersonalRecord {
@@ -169,6 +177,8 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
               rest: l.rest,
               rpe: l.rpe,
               notes: l.notes,
+              // Phase 15.0: dedicated exercise-note column.
+              exerciseNote: l.exerciseNote,
             })),
           });
         }

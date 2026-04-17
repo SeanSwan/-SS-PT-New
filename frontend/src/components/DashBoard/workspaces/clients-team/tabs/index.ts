@@ -13,6 +13,7 @@
  */
 
 export { default as TrainingTabContent } from './TrainingTabContent';
+export { default as ProgressTabContent } from './ProgressTabContent';
 export { default as BiometricsTabContent } from './BiometricsTabContent';
 export { default as OverviewTabContent } from './OverviewTabContent';
 export { default as SettingsTabContent } from './SettingsTabContent';

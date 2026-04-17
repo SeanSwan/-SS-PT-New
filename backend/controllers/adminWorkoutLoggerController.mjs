@@ -12,7 +12,11 @@ import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
-import { logWorkoutForClient, WorkoutLogError } from '../services/workout/workoutLogService.mjs';
+import {
+  logWorkoutForClient,
+  parseWorkoutLogDate,
+  WorkoutLogError,
+} from '../services/workout/workoutLogService.mjs';
 
 /**
  * POST /api/admin/clients/:clientId/workouts
@@ -185,8 +189,16 @@ export const editWorkout = async (req, res) => {
     if (intensity != null) updates.intensity = Number(intensity);
     if (notes != null) updates.notes = notes;
     if (date != null) {
-      const parsedDate = new Date(date);
-      if (!isNaN(parsedDate.getTime()) && parsedDate <= new Date()) {
+      // Phase 13.1 parity (Phase 15.4 fix, 2026-04-16): edits use the same
+      // local-calendar parser + end-of-today validation as create. Prior
+      // `new Date(date)` parsed `YYYY-MM-DD` as UTC midnight (drift on local
+      // timezone display), and `<= new Date()` rejected today's date in the
+      // morning when paired with local-noon parsing. See
+      // workoutLogService.mjs:266-278 for the canonical create path.
+      const parsedDate = parseWorkoutLogDate(date);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      if (!isNaN(parsedDate.getTime()) && parsedDate <= endOfToday) {
         updates.date = parsedDate;
         updates.completedAt = parsedDate;
       }
@@ -201,11 +213,20 @@ export const editWorkout = async (req, res) => {
       // Delete existing logs
       await WorkoutLog.destroy({ where: { sessionId: session.id }, transaction });
 
-      // Build new logs
+      // Build new logs.
+      // Phase 15.0 (2026-04-15): the exercise-level note is stamped on
+      // every row in the exercise group, replacing the Phase 13.2
+      // set-1-encoded `Coach: ` marker. Deleting any single row now
+      // preserves the note on the remaining rows of the group.
       const logRows = [];
       for (const exercise of exercises) {
         const exName = exercise.exerciseName ?? exercise.name;
         if (!exName?.trim()) continue;
+
+        const rawExerciseNote =
+          (typeof exercise.exerciseNote === 'string' && exercise.exerciseNote.trim()) ||
+          (typeof exercise.performanceNotes === 'string' && exercise.performanceNotes.trim()) ||
+          null;
 
         const sets = exercise.sets || [{ setNumber: 1, reps: exercise.reps || 0, weight: exercise.weight || 0 }];
         for (const set of sets) {
@@ -219,6 +240,7 @@ export const editWorkout = async (req, res) => {
             rest: set.rest != null ? Number(set.rest) : null,
             rpe: set.rpe != null ? Number(set.rpe) : null,
             notes: set.notes || null,
+            exerciseNote: rawExerciseNote,
           });
         }
       }

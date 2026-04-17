@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { ArrowLeft, Activity, Heart, BarChart3, Settings } from 'lucide-react';
+import { ArrowLeft, Activity, Heart, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import type { MiniCardClient } from './ClientMiniCard';
 import {
   DetailContentWrapper,
@@ -32,13 +32,15 @@ import {
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-type DetailTab = 'training' | 'biometrics' | 'overview' | 'settings';
+type DetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
 
 interface ClientDetailViewProps {
   client: MiniCardClient;
   onBack: () => void;
   /** Render props for tab content — keeps this component lean */
   renderTraining?: (clientId: number | string) => React.ReactNode;
+  /** Phase 15.3: truthful 12-chart progress view for the selected client. */
+  renderProgress?: (clientId: number | string) => React.ReactNode;
   renderBiometrics?: (clientId: number | string) => React.ReactNode;
   renderOverview?: (clientId: number | string) => React.ReactNode;
   renderSettings?: (clientId: number | string) => React.ReactNode;
@@ -50,6 +52,7 @@ interface ClientDetailViewProps {
 
 const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
   { id: 'training', label: 'Training', icon: <Activity size={14} /> },
+  { id: 'progress', label: 'Progress', icon: <TrendingUp size={14} /> },
   { id: 'biometrics', label: 'Biometrics', icon: <Heart size={14} /> },
   { id: 'overview', label: 'Overview', icon: <BarChart3 size={14} /> },
   { id: 'settings', label: 'Settings', icon: <Settings size={14} /> },
@@ -71,6 +74,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   client,
   onBack,
   renderTraining,
+  renderProgress,
   renderBiometrics,
   renderOverview,
   renderSettings,
@@ -92,6 +96,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         return renderTraining ? renderTraining(client.id) : (
           <PlaceholderContent label="Training" description="Workouts, sessions, and Swan Coach generation." />
         );
+      case 'progress':
+        return renderProgress ? renderProgress(client.id) : (
+          <PlaceholderContent label="Progress" description="Truthful workout charts and analytics." />
+        );
       case 'biometrics':
         return renderBiometrics ? renderBiometrics(client.id) : (
           <PlaceholderContent label="Biometrics" description="Measurements, body map, and progress." />
@@ -107,7 +115,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
       default:
         return null;
     }
-  }, [activeTab, client.id, renderTraining, renderBiometrics, renderOverview, renderSettings]);
+  }, [activeTab, client.id, renderTraining, renderProgress, renderBiometrics, renderOverview, renderSettings]);
 
   return (
     <>

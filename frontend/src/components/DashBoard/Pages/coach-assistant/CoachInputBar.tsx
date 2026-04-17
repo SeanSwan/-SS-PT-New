@@ -67,6 +67,15 @@ interface CoachInputBarProps {
    * injection is gated on seq change, not text equality.
    */
   externalText?: { text: string; seq: number } | null;
+  /**
+   * Phase 13.2 (2026-04-15): enables file-only send when a transcript-class
+   * attachment is currently staged. With this flag true, pressing Enter or
+   * clicking Send will fire `onSend('')` so `SwanCoachAssistantPage.handleSend`
+   * can route the attachment through the upload path without requiring the
+   * user to type an accompanying message. Typed text still wins when present.
+   * When false (or unset), legacy behavior: no text → no send.
+   */
+  hasAttachment?: boolean;
 }
 
 // Web Speech API type
@@ -84,6 +93,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   onVoiceOverlay,
   attachButton,
   externalText,
+  hasAttachment = false,
 }) => {
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
@@ -118,14 +128,19 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   }, [externalText]);
 
   // ── Handle send ──
+  // Phase 13.2: when a transcript-class attachment is staged, file-only
+  // send is allowed — `onSend('')` fires so the page handler can route
+  // the upload without requiring typed text. Double-fire is still
+  // prevented by the `sending` guard.
   const handleSend = useCallback(() => {
     const msg = text.trim();
-    if (!msg || sending) return;
+    if (sending) return;
+    if (!msg && !hasAttachment) return;
     onSend(msg);
     setText('');
     setInterim('');
     inputRef.current?.focus();
-  }, [text, sending, onSend]);
+  }, [text, sending, hasAttachment, onSend]);
 
   // ── Keyboard: Enter to send, Shift+Enter for newline, Cmd/Ctrl+Enter always sends ──
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -325,9 +340,11 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
         )}
 
         {/* Send Button */}
+        {/* Phase 13.2: disabled only when there's nothing to send — text OR a
+            staged transcript-class attachment unlocks send. */}
         <SendBtn
           onClick={handleSend}
-          disabled={!text.trim() || sending}
+          disabled={(!text.trim() && !hasAttachment) || sending}
           aria-label="Send message"
         >
           <Send size={20} />

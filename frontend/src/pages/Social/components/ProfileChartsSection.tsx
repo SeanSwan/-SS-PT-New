@@ -25,16 +25,26 @@ import type { ChartVisibility } from './ChartVisibilityToggle';
 // Lazy-load chart components (per CLAUDE.md — all charts MUST be lazy)
 const ExerciseHistoryChart = lazy(() => import('../../../components/Charts/ExerciseHistoryChart'));
 
-// Live Victory charts — wired to /api/analytics/:userId/chart-* endpoints
+// Live Victory charts — wired to /api/analytics/:userId/chart-* endpoints.
+//
+// Phase 15.4 (2026-04-16): visibility keys (`muscleRadar`, `sessionFrequency`,
+// `muscleRecovery`, `rpeByExercise`) are preserved so saved user prefs in
+// the chartVisibility JSONB are not orphaned, but the components behind
+// them are now the Phase 14 canonical replacements:
+//   muscleRadar      → MuscleGroupBalanceBars (chart-muscle-group-balance)
+//   sessionFrequency → WorkoutFrequencyBar (chart-workout-frequency)
+//   muscleRecovery   → RecoverySignalBars (chart-recovery-signal)
+//   rpeByExercise    → IntensityRpeTrendLine (chart-intensity-rpe-trend)
+// The `cardioEndurance` key is dropped from CHART_REGISTRY (no canonical
+// equivalent — out of the 12-chart scope) and falls through harmlessly
+// for any user who had it enabled in saved prefs.
 const WorkoutFrequencyBar = lazy(() => import('../../../components/Charts/charts/live/WorkoutFrequencyBar'));
 const WeightProgressionLive = lazy(() => import('../../../components/Charts/charts/live/WeightProgressionLive'));
-const MuscleGroupFocusRadar = lazy(() => import('../../../components/Charts/charts/live/MuscleGroupFocusRadar'));
+const MuscleGroupBalanceBars = lazy(() => import('../../../components/Charts/charts/live/MuscleGroupBalanceBars'));
 const MacroSplitDonut = lazy(() => import('../../../components/Charts/charts/live/MacroSplitDonut'));
-const CardioEnduranceLine = lazy(() => import('../../../components/Charts/charts/live/CardioEnduranceLine'));
-const SessionFrequencyArea = lazy(() => import('../../../components/Charts/charts/live/SessionFrequencyArea'));
 const BodyFatTrendLine = lazy(() => import('../../../components/Charts/charts/live/BodyFatTrendLine'));
-const MuscleRecoveryHeatmap = lazy(() => import('../../../components/Charts/charts/live/MuscleRecoveryHeatmap'));
-const RPEByExerciseScatter = lazy(() => import('../../../components/Charts/charts/live/RPEByExerciseScatter'));
+const RecoverySignalBars = lazy(() => import('../../../components/Charts/charts/live/RecoverySignalBars'));
+const IntensityRpeTrendLine = lazy(() => import('../../../components/Charts/charts/live/IntensityRpeTrendLine'));
 
 // Victory gallery charts (demo/static data)
 const WorkoutHeatmapCalendar = lazy(() => import('../../../components/Charts/charts/heatmap/WorkoutHeatmapCalendar'));
@@ -66,13 +76,22 @@ interface ChartEntry {
 const CHART_REGISTRY: ChartEntry[] = [
   { key: 'workoutFrequency', label: 'Workout Frequency', Component: WorkoutFrequencyBar },
   { key: 'weightProgression', label: 'Weight Progression', Component: WeightProgressionLive },
-  { key: 'muscleRadar', label: 'Muscle Group Focus', Component: MuscleGroupFocusRadar },
+  // Phase 15.4: muscleRadar key now points at the canonical
+  // muscle-group-balance bar list. Old radar visualization no longer
+  // applies — the underlying data shape is bars, not a polar fill.
+  { key: 'muscleRadar', label: 'Muscle Group Volume', Component: MuscleGroupBalanceBars },
   { key: 'macroSplit', label: 'Macro Split', Component: MacroSplitDonut },
-  { key: 'cardioEndurance', label: 'Cardio Endurance', Component: CardioEnduranceLine },
-  { key: 'sessionFrequency', label: 'Session Frequency', Component: SessionFrequencyArea },
+  // `cardioEndurance` key intentionally omitted — no canonical replacement
+  // (out of Phase 14 12-chart scope). Saved prefs with this key fall
+  // through harmlessly.
+  // Phase 15.4: sessionFrequency reuses the canonical chart-workout-
+  // frequency bar (per Sean's mapping). User-facing label kept distinct
+  // from `workoutFrequency` so a user who has both keys enabled sees
+  // two clearly-labeled bars rather than a duplicate-looking surface.
+  { key: 'sessionFrequency', label: 'Session Frequency', Component: WorkoutFrequencyBar },
   { key: 'bodyFatTrend', label: 'Body Fat Trend', Component: BodyFatTrendLine },
-  { key: 'muscleRecovery', label: 'Muscle Recovery', Component: MuscleRecoveryHeatmap },
-  { key: 'rpeByExercise', label: 'Exercise Intensity (RPE)', Component: RPEByExerciseScatter },
+  { key: 'muscleRecovery', label: 'Recovery Signals', Component: RecoverySignalBars },
+  { key: 'rpeByExercise', label: 'Effort Trend (RPE)', Component: IntensityRpeTrendLine },
   { key: 'exerciseRolodex', label: 'Exercise History', Component: ExerciseHistoryChart, height: 400 },
   { key: 'workoutHeatmap', label: 'Workout Calendar', Component: WorkoutHeatmapCalendar },
   { key: 'goalProgress', label: 'Goal Progress', Component: GoalProgressBullet },

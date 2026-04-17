@@ -50,9 +50,16 @@ import { useGamificationData } from '../../../../hooks/gamification/useGamificat
 import { useSubscription } from '../../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
 
-// Lazy-load heavy components
-const ProfileChartsGrid = React.lazy(
-  () => import('../../../UserDashboard/components/ProfileChartsGrid')
+// Lazy-load heavy components.
+// Phase 14 (2026-04-15): the canonical client progress surface now mounts
+// the 12-chart CanonicalProgressChartsGrid. The old ProfileChartsGrid
+// (which powers the user-profile/social surface and only defaulted to
+// 2 charts on this page after the 5 broken PascalCase endpoints were
+// disabled) is NOT used here anymore. Do not re-introduce it on the
+// canonical /dashboard/client/progress route — the chart registry is
+// now owned by CanonicalProgressChartsGrid + useClientProgressCharts.
+const CanonicalProgressChartsGrid = React.lazy(
+  () => import('./CanonicalProgressChartsGrid')
 );
 const CompanionPet = React.lazy(
   () => import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')
@@ -489,7 +496,9 @@ const ClientProgressDashboardPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Victory Charts Grid */}
+      {/* Phase 14 canonical 12-chart grid. Replaces the pre-Phase-14
+          ProfileChartsGrid, which defaulted to 2 visible charts after
+          the broken PascalCase endpoints were disabled. */}
       <ChartsSection>
         <ChartsSectionHeader>
           <CardTitle style={{ marginBottom: 0 }}>
@@ -502,10 +511,7 @@ const ClientProgressDashboardPage: React.FC = () => {
               Loading charts...
             </div>
           }>
-            <ProfileChartsGrid
-              userId={user.id}
-              isOwnProfile={true}
-            />
+            <CanonicalProgressChartsGrid userId={user.id} />
           </Suspense>
         ) : (
           <Skeleton $h="300px" />

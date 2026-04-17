@@ -71,6 +71,15 @@ WorkoutLog.init(
     notes: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    // Phase 15.0 (2026-04-15): dedicated exercise-level coaching note.
+    // Stamped on EVERY row of an exercise group (same value on each row)
+    // so deleting any single row preserves the note on the others. This
+    // replaces the Phase 13.2 `Coach: ` encoding into set 1's `notes`
+    // string, which silently lost data when set 1 was deleted in edit.
+    exerciseNote: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   },
   {

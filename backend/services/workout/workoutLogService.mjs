@@ -46,6 +46,54 @@ export class WorkoutLogError extends Error {
   }
 }
 
+// ── Phase 13.1 (2026-04-15): local-calendar date parsing ───────────────────
+//
+// Clients (admin, trainer, and the Coach Assistant transcript intake lane)
+// send date-only strings in the form `YYYY-MM-DD`, meaning "the user's
+// intended calendar day". The old implementation used `new Date(dateStr)`,
+// which parses a bare YYYY-MM-DD as UTC midnight. On a UTC-hosted server
+// (Render), that gets stored as 2026-04-15T00:00:00Z for a user who picked
+// "2026-04-15" — but when the same user in PDT refetches, the display
+// renders as 2026-04-14 (5 PM the prior day local). The duplicate-date
+// guard then bounds its WHERE clause by server-local calendar day, which
+// splits the difference inconsistently.
+//
+// Fix: when we receive a date-only string, anchor it to server-local NOON
+// of that calendar day. Noon is robust against ±12h timezone drift — the
+// stored instant always falls within the same calendar day on both the
+// server and any realistic client timezone. Full ISO timestamps (which
+// carry their own TZ anchor) keep their prior behavior untouched.
+export function parseWorkoutLogDate(input) {
+  if (input instanceof Date) {
+    return input;
+  }
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+    if (dateOnly) {
+      const year = Number(dateOnly[1]);
+      const month = Number(dateOnly[2]);
+      const day = Number(dateOnly[3]);
+      // Construct from local components → server-local midnight.
+      // Add 12 hours so the instant lives at server-local noon, giving
+      // >=12h safety against timezone differences when the same instant
+      // is later bucketed by calendar day on the client.
+      const dt = new Date(year, month - 1, day, 12, 0, 0, 0);
+      // Guard against calendar overflow (Feb 30 etc).
+      if (
+        dt.getFullYear() === year &&
+        dt.getMonth() === month - 1 &&
+        dt.getDate() === day
+      ) {
+        return dt;
+      }
+      return new Date(NaN);
+    }
+    return new Date(trimmed);
+  }
+  return new Date(NaN);
+}
+
 // ── Exercise normalization ───────────────────────────────────────────────────
 
 /**
@@ -70,6 +118,21 @@ function buildLogRows(exercises, sessionId) {
         'VALIDATION_ERROR'
       );
     }
+
+    // Phase 15.0 (2026-04-15): exercise-level coaching note.
+    // Stamped on EVERY row of this exercise group so deleting any single
+    // row preserves the note on the remaining rows. This replaces the
+    // Phase 13.2 `Coach: ` encoding into set 1's notes string, which
+    // silently lost data when set 1 was deleted in the edit flow.
+    //
+    // Accepts two input shapes for backward compat:
+    //   - exercise.exerciseNote  (Phase 15 canonical — preferred)
+    //   - exercise.performanceNotes  (Phase 13.2 parser output — legacy)
+    // If both are present, exerciseNote wins.
+    const rawExerciseNote =
+      (typeof exercise.exerciseNote === 'string' && exercise.exerciseNote.trim()) ||
+      (typeof exercise.performanceNotes === 'string' && exercise.performanceNotes.trim()) ||
+      null;
 
     if (Array.isArray(exercise.sets)) {
       // ── Nested format (existing HTTP route) ────────────────────────────
@@ -111,6 +174,8 @@ function buildLogRows(exercises, sessionId) {
           rest: set.rest != null ? Number(set.rest) : null,
           rpe: set.rpe != null ? Number(set.rpe) : null,
           notes: set.notes || null,
+          // Phase 15.0: stamp the exercise-level note on every row.
+          exerciseNote: rawExerciseNote,
         });
       }
     } else {
@@ -133,6 +198,8 @@ function buildLogRows(exercises, sessionId) {
           rest,
           rpe: exercise.rpe != null ? Number(exercise.rpe) : null,
           notes: exercise.notes || null,
+          // Phase 15.0: stamp the exercise-level note on every row.
+          exerciseNote: rawExerciseNote,
         });
       }
     }
@@ -193,11 +260,21 @@ export async function logWorkoutForClient({
     throw new WorkoutLogError('exercises must be a non-empty array', 'VALIDATION_ERROR');
   }
 
-  const parsedDate = new Date(date || new Date().toISOString());
+  // Phase 13.1: parseWorkoutLogDate handles `YYYY-MM-DD` as server-local
+  // noon, preserving full ISO strings unchanged. See the helper above for
+  // the PDT-after-5pm bug this replaces.
+  const parsedDate = date ? parseWorkoutLogDate(date) : new Date();
   if (isNaN(parsedDate.getTime())) {
     throw new WorkoutLogError('date must be a valid ISO date string', 'VALIDATION_ERROR');
   }
-  if (parsedDate > new Date()) {
+  // Phase 13.1: future-date check uses end-of-today in server-local time.
+  // A same-day workout logged at local 11pm by a user picking today's
+  // calendar date must not trip this guard. The prior `parsedDate > new Date()`
+  // comparison was instant-vs-instant and would reject local-noon 2026-04-15
+  // if called at 2026-04-15 08:00 local on the server.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  if (parsedDate > endOfToday) {
     throw new WorkoutLogError('date cannot be in the future', 'VALIDATION_ERROR');
   }
 

@@ -1,10 +1,41 @@
 // backend/routes/clientProgressRoutes.mjs
 import express from 'express';
+import { Op } from 'sequelize';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
-import { getClientProgress, getUser } from '../models/index.mjs';
+import { getClientProgress, getUser, getWorkoutSession } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+// ─────────────────────────────────────────────────────────────
+// Workout history helpers (exported for unit tests)
+// ─────────────────────────────────────────────────────────────
+
+export const parseWorkoutHistoryTimeframe = (timeframe) => {
+  switch (String(timeframe || '').toLowerCase()) {
+    case '1month': return 30;
+    case '3months': return 90;
+    case '6months': return 180;
+    case '1year': return 365;
+    case 'all': return null;
+    default: return 90;
+  }
+};
+
+export const toWorkoutHistoryEntry = (session) => {
+  const raw = session?.toJSON ? session.toJSON() : session;
+  const dateValue = raw?.date ? new Date(raw.date) : null;
+  const isoDate = dateValue && !Number.isNaN(dateValue.getTime())
+    ? dateValue.toISOString().split('T')[0]
+    : null;
+  return {
+    date: isoDate,
+    type: raw?.title || 'Workout',
+    duration: Number.isFinite(raw?.duration) ? raw.duration : 0,
+    intensity: Number.isFinite(raw?.intensity) ? raw.intensity : 0,
+    notes: raw?.notes || undefined,
+  };
+};
 
 /**
  * @route GET /api/client-progress
@@ -212,6 +243,63 @@ router.get('/leaderboard',
       });
     }
 });
+
+/**
+ * @route GET /api/client-progress/:clientId/workout-history
+ * @desc Real workout history for the client dashboard (replaces silent mock fallback)
+ * @access Private — client reading own data; trainer/admin reading any client
+ *
+ * Response: bare WorkoutHistoryEntry[] (matches the caller contract in
+ * frontend/src/services/enhanced-progress-analytics-service.ts getWorkoutHistory).
+ * Returns [] when no sessions exist so the UI renders honest empty state.
+ */
+router.get('/:clientId/workout-history',
+  protect,
+  authorize(['client', 'trainer', 'admin']),
+  async (req, res) => {
+    try {
+      const { clientId } = req.params;
+      const numericClientId = Number(clientId);
+      if (!Number.isFinite(numericClientId) || numericClientId <= 0) {
+        return res.status(400).json({ success: false, message: 'Invalid clientId' });
+      }
+
+      // IDOR guard: clients may only read their own history
+      if (req.user?.role === 'client' && Number(req.user.id) !== numericClientId) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+
+      const WorkoutSession = getWorkoutSession();
+      if (!WorkoutSession) {
+        logger.warn('[workout-history] WorkoutSession model unavailable');
+        return res.status(200).json([]);
+      }
+
+      const days = parseWorkoutHistoryTimeframe(req.query.timeframe);
+      const where = { userId: numericClientId, status: 'completed' };
+      if (days) {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        where.date = { [Op.gte]: since };
+      }
+
+      const sessions = await WorkoutSession.findAll({
+        where,
+        order: [['date', 'DESC']],
+        limit: 200,
+        attributes: ['id', 'title', 'date', 'duration', 'intensity', 'notes'],
+      });
+
+      return res.status(200).json(sessions.map(toWorkoutHistoryEntry));
+    } catch (error) {
+      logger.error('Error fetching client workout history:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error fetching workout history',
+        error: error.message,
+      });
+    }
+  });
 
 /**
  * @route GET /api/client-progress/:userId

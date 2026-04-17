@@ -1,0 +1,190 @@
+/**
+ * useClientProgressCharts — Phase 14 canonical chart hook tests
+ * ==============================================================
+ * Locks the 12-chart canonical contract that powers the client
+ * progress route after the Phase 14 rebuild.
+ *
+ * Covers:
+ *   - exactly 12 canonical chart IDs in the expected order
+ *   - the hook fetches all 12 endpoints under /api/client/analytics/chart-*
+ *   - truthful empty shapes (no demo/preview fallbacks)
+ *   - source-level locks that CanonicalProgressChartsGrid and
+ *     ClientProgressDashboardPage wire everything up correctly
+ */
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import {
+  CANONICAL_CHART_IDS,
+  CANONICAL_CHART_ROUTES,
+  type CanonicalChartId,
+} from './useClientProgressCharts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const HOOK_SOURCE = readFileSync(
+  resolve(__dirname, './useClientProgressCharts.ts'),
+  'utf8',
+);
+const GRID_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.tsx',
+  ),
+  'utf8',
+);
+const PAGE_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.tsx',
+  ),
+  'utf8',
+);
+
+describe('Phase 14 — canonical chart ID registry', () => {
+  it('exports exactly 12 canonical chart IDs', () => {
+    expect(CANONICAL_CHART_IDS).toHaveLength(12);
+  });
+
+  it('registers the expected canonical IDs in the expected order', () => {
+    expect([...CANONICAL_CHART_IDS]).toEqual([
+      'workoutFrequency',
+      'attendanceReliability',
+      'weeklyVolume',
+      'setsRepsTrend',
+      'durationTrend',
+      'intensityRpeTrend',
+      'prTimeline',
+      'anchorLifts',
+      'exerciseFrequency',
+      'movementPatternBalance',
+      'muscleGroupBalance',
+      'recoverySignal',
+    ]);
+  });
+
+  it('maps every canonical ID to a chart-*-kebab route suffix', () => {
+    for (const id of CANONICAL_CHART_IDS) {
+      const suffix = CANONICAL_CHART_ROUTES[id as CanonicalChartId];
+      expect(suffix).toMatch(/^chart-[a-z-]+$/);
+    }
+  });
+
+  it('canonical ID kebab-case matches the backend endpoint suffix', () => {
+    // Lock the exact backend route suffix for each canonical ID so a
+    // frontend rename cannot silently diverge from the server.
+    expect(CANONICAL_CHART_ROUTES.workoutFrequency).toBe('chart-workout-frequency');
+    expect(CANONICAL_CHART_ROUTES.attendanceReliability).toBe('chart-attendance-reliability');
+    expect(CANONICAL_CHART_ROUTES.weeklyVolume).toBe('chart-weekly-volume');
+    expect(CANONICAL_CHART_ROUTES.setsRepsTrend).toBe('chart-sets-reps-trend');
+    expect(CANONICAL_CHART_ROUTES.durationTrend).toBe('chart-duration-trend');
+    expect(CANONICAL_CHART_ROUTES.intensityRpeTrend).toBe('chart-intensity-rpe-trend');
+    expect(CANONICAL_CHART_ROUTES.prTimeline).toBe('chart-pr-timeline');
+    expect(CANONICAL_CHART_ROUTES.anchorLifts).toBe('chart-anchor-lifts');
+    expect(CANONICAL_CHART_ROUTES.exerciseFrequency).toBe('chart-exercise-frequency');
+    expect(CANONICAL_CHART_ROUTES.movementPatternBalance).toBe('chart-movement-pattern-balance');
+    expect(CANONICAL_CHART_ROUTES.muscleGroupBalance).toBe('chart-muscle-group-balance');
+    expect(CANONICAL_CHART_ROUTES.recoverySignal).toBe('chart-recovery-signal');
+  });
+});
+
+describe('Phase 14 — hook fetch contract', () => {
+  it('fetches all 12 canonical endpoints under the client-safe namespace', () => {
+    expect(HOOK_SOURCE).toMatch(
+      /\/api\/client\/analytics\/\$\{suffix\}/,
+    );
+  });
+
+  it('parallelizes the 12 fetches via Promise.all over CANONICAL_CHART_IDS', () => {
+    expect(HOOK_SOURCE).toMatch(/Promise\.all\(\s*CANONICAL_CHART_IDS\.map/);
+  });
+
+  it('has truthful empty shapes (no demo/preview fallbacks)', () => {
+    // EMPTY_BUNDLE must initialize every field to [] or a typed empty obj.
+    expect(HOOK_SOURCE).toMatch(/const\s+EMPTY_BUNDLE:\s*CanonicalProgressCharts/);
+    expect(HOOK_SOURCE).toMatch(/workoutFrequency:\s*\[\]/);
+    expect(HOOK_SOURCE).toMatch(/weeklyVolume:\s*\[\]/);
+    expect(HOOK_SOURCE).toMatch(/recoverySignal:\s*\[\]/);
+
+    // No demo/placeholder symbol in the hook source. The docstring uses
+    // the word "preview" as prose ("no demo / preview / fake fallbacks"),
+    // so we check for the DEMO_DATA identifier shape specifically instead.
+    expect(HOOK_SOURCE).not.toMatch(/DEMO_DATA/);
+    expect(HOOK_SOURCE).not.toMatch(/const\s+PREVIEW_/);
+  });
+
+  it('derives nonEmptyChartCount to drive the grid empty-state summary', () => {
+    expect(HOOK_SOURCE).toMatch(/nonEmptyChartCount/);
+  });
+});
+
+describe('Phase 14 — CanonicalProgressChartsGrid source contract', () => {
+  it('mounts exactly 12 card components', () => {
+    // One <SomethingCard ... /> mount per canonical chart.
+    const cardMountPattern = /<(WorkoutFrequency|AttendanceReliability|WeeklyVolume|SetsRepsTrend|DurationTrend|IntensityRpe|PRTimeline|AnchorLifts|ExerciseFrequency|MovementPatternBalance|MuscleGroupBalance|RecoverySignal)Card\b/g;
+    const mounts = [...GRID_SOURCE.matchAll(cardMountPattern)];
+    expect(mounts).toHaveLength(12);
+  });
+
+  it('each card has a stable data-testid for QA locking', () => {
+    const TESTIDS = [
+      'chart-card-workoutFrequency',
+      'chart-card-attendanceReliability',
+      'chart-card-weeklyVolume',
+      'chart-card-setsRepsTrend',
+      'chart-card-durationTrend',
+      'chart-card-intensityRpeTrend',
+      'chart-card-prTimeline',
+      'chart-card-anchorLifts',
+      'chart-card-exerciseFrequency',
+      'chart-card-movementPatternBalance',
+      'chart-card-muscleGroupBalance',
+      'chart-card-recoverySignal',
+    ];
+    for (const id of TESTIDS) {
+      expect(GRID_SOURCE).toContain(`data-testid="${id}"`);
+    }
+  });
+
+  it('uses truthful empty-state copy instead of hiding empty charts', () => {
+    expect(GRID_SOURCE).toMatch(/No completed workouts yet/);
+    expect(GRID_SOURCE).toMatch(/No attendance data yet/);
+    expect(GRID_SOURCE).toMatch(/No logged lifts yet/);
+    expect(GRID_SOURCE).toMatch(/No PRs recorded yet/);
+    expect(GRID_SOURCE).toMatch(/No recovery flags/);
+  });
+
+  it('consumes useClientProgressCharts (not the legacy useClientAnalytics)', () => {
+    expect(GRID_SOURCE).toMatch(/useClientProgressCharts/);
+    expect(GRID_SOURCE).not.toMatch(/useClientAnalytics/);
+  });
+
+  it('never references demo / preview / DEMO_DATA anywhere in the grid', () => {
+    expect(GRID_SOURCE).not.toMatch(/DEMO_DATA/);
+    expect(GRID_SOURCE).not.toMatch(/Preview/);
+  });
+});
+
+describe('Phase 14 — ClientProgressDashboardPage wires the canonical grid', () => {
+  it('imports CanonicalProgressChartsGrid via React.lazy', () => {
+    expect(PAGE_SOURCE).toMatch(
+      /const\s+CanonicalProgressChartsGrid\s*=\s*React\.lazy\(/,
+    );
+    expect(PAGE_SOURCE).toMatch(
+      /import\(\s*['"]\.\/CanonicalProgressChartsGrid['"]\s*\)/,
+    );
+  });
+
+  it('no longer mounts the pre-Phase-14 ProfileChartsGrid', () => {
+    expect(PAGE_SOURCE).not.toMatch(/<ProfileChartsGrid/);
+    expect(PAGE_SOURCE).not.toMatch(
+      /from\s+['"][^'"]*UserDashboard\/components\/ProfileChartsGrid['"]/,
+    );
+  });
+
+  it('renders <CanonicalProgressChartsGrid /> inside a Suspense fallback', () => {
+    expect(PAGE_SOURCE).toMatch(/<CanonicalProgressChartsGrid\s+userId=\{user\.id\}\s*\/>/);
+  });
+});

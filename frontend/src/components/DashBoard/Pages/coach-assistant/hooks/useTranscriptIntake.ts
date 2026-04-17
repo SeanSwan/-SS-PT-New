@@ -45,6 +45,7 @@
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { createAdminClientService } from '../../../../../services/adminClientService';
+import { getLocalIsoDate, isFutureLocalDate } from '../../../../../utils/localDate';
 import {
   parsedWorkoutToLogPayload,
   type ParsedWorkout,
@@ -66,6 +67,14 @@ export interface TranscriptReviewData {
   /** The client this transcript was uploaded for. */
   clientId: number;
   clientName?: string;
+  /**
+   * Phase 13 (2026-04-15): user-editable target date for the apply step.
+   * Initialized from `parsedWorkout.date` if the parser extracted one,
+   * otherwise today (ISO YYYY-MM-DD). Must be set before `applyParsedWorkout`
+   * is called — empty string is treated as "unset" and the parser/today
+   * fallback is used.
+   */
+  targetWorkoutDate?: string;
 }
 
 export interface TranscriptApplyResult {
@@ -84,8 +93,21 @@ export interface TranscriptApplyResult {
 
 export interface UploadFailure {
   error: string;
-  /** Distinguish 4xx (bad file/no client) from 5xx (server) for UX. */
-  kind: 'validation' | 'rate_limit' | 'network' | 'server' | 'unknown';
+  /**
+   * Distinguish 4xx (bad file/no client) from 5xx (server) for UX.
+   * Phase 13 adds `duplicate_date` (backend 409 — same client already has
+   * a workout on this date) and `future_date` (client-side pre-validation
+   * before the write — backend also rejects these at
+   * workoutLogService.mjs:200-202).
+   */
+  kind:
+    | 'validation'
+    | 'rate_limit'
+    | 'network'
+    | 'server'
+    | 'unknown'
+    | 'duplicate_date'
+    | 'future_date';
 }
 
 export type UploadOutcome =
@@ -227,9 +249,38 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         };
       }
 
+      // Phase 13: resolve the effective workout date for the apply step.
+      // Priority: user-edited targetWorkoutDate > parser-extracted date > today.
+      // An empty string on targetWorkoutDate is treated as "unset".
+      //
+      // Phase 13.1 (2026-04-15): the "today" fallback uses LOCAL calendar
+      // day, not UTC day. The prior `toISOString().split` shortcut drifted
+      // to tomorrow in PDT after ~5pm — callers with that stale value then
+      // tripped the future-date guard on their own workout.
+      const effectiveDate =
+        (review.targetWorkoutDate && review.targetWorkoutDate.trim()) ||
+        (review.parsedWorkout.date && review.parsedWorkout.date.trim()) ||
+        getLocalIsoDate();
+
+      // Phase 13.1: client-side future-date guard now uses local-calendar
+      // semantics. `new Date('YYYY-MM-DD')` is UTC midnight, which in PDT
+      // evaluates as the prior-day evening — same-day workouts logged in
+      // the evening would falsely trip the guard under the prior check.
+      if (isFutureLocalDate(effectiveDate)) {
+        return {
+          ok: false,
+          failure: {
+            error: 'Workout date cannot be in the future. Pick today or an earlier date and retry.',
+            kind: 'future_date',
+          },
+        };
+      }
+
       const payload: LogWorkoutPayload = parsedWorkoutToLogPayload(review.parsedWorkout, {
         fallbackTitle: 'Voice Memo Workout',
         fallbackDate: review.parsedWorkout.date,
+        // Hard override — user-edited date always wins at the mapper boundary.
+        targetDate: effectiveDate,
       });
 
       // The backend rejects empty exercise arrays — surface this as a
@@ -262,11 +313,45 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
           },
         };
       } catch (err: unknown) {
-        const e = err as { message?: string };
+        // Phase 13: classify 409 duplicate-date so the review card can render
+        // a specific "change the date above and retry" hint. The adminClient
+        // service throws an Error whose .message may carry the backend error
+        // body; when axios is visible we can also read response.status directly.
+        const e = err as {
+          message?: string;
+          response?: { status?: number; data?: { error?: string; code?: string } };
+        };
+        const status = e.response?.status;
+        const backendMsg = e.response?.data?.error || e.message || '';
+        const looksLikeDuplicate =
+          status === 409 ||
+          /already exists/i.test(backendMsg) ||
+          e.response?.data?.code === 'DUPLICATE_DATE';
+        const looksLikeFuture = /cannot be in the future/i.test(backendMsg);
+
+        if (looksLikeDuplicate) {
+          return {
+            ok: false,
+            failure: {
+              error:
+                'This client already has a workout logged on that date. Change the date above and retry, or discard and edit the existing session.',
+              kind: 'duplicate_date',
+            },
+          };
+        }
+        if (looksLikeFuture) {
+          return {
+            ok: false,
+            failure: {
+              error: 'Workout date cannot be in the future. Pick today or an earlier date and retry.',
+              kind: 'future_date',
+            },
+          };
+        }
         return {
           ok: false,
           failure: {
-            error: e.message || 'Failed to apply workout to the log',
+            error: backendMsg || 'Failed to apply workout to the log',
             kind: 'server',
           },
         };

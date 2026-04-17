@@ -525,3 +525,609 @@ describe('CoachMessage — transcript card render branches', () => {
     );
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// Phase 13 (2026-04-15): transcript date correctness + 409 UX
+// ─────────────────────────────────────────────────────────────
+describe('Phase 13 — transcript review editable workout date', () => {
+  it('CoachMessage exposes onTranscriptDateChange as a prop', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/onTranscriptDateChange\?:/);
+  });
+
+  it('CoachMessage renders a date input in the review card', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/data-testid=['"]transcript-date-input['"]/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/data-testid=['"]transcript-date-row['"]/);
+  });
+
+  it('date input value priority: targetWorkoutDate > parser date > today', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /transcriptReview\.targetWorkoutDate\s*\|\|[\s\S]*transcriptReview\.parsedWorkout\?\.date/,
+    );
+  });
+
+  it('date input max is clamped to today (future-date UX hint, via local helper)', () => {
+    // Phase 13.1: max must use the local-calendar helper, NOT the UTC
+    // `toISOString().split` shortcut (which drifts to tomorrow after ~5pm
+    // PDT). Assertions lock the shared helper path and forbid the UTC one
+    // in the CoachMessage source.
+    expect(COACH_MESSAGE_SOURCE).toMatch(/max=\{getLocalIsoDate\(\)\}/);
+    expect(COACH_MESSAGE_SOURCE).not.toMatch(
+      /max=\{new Date\(\)\.toISOString\(\)\.split\(/,
+    );
+  });
+
+  it('date input is disabled during the apply round-trip', () => {
+    const idx = COACH_MESSAGE_SOURCE.indexOf('transcript-date-input');
+    expect(idx).toBeGreaterThan(0);
+    const slice = COACH_MESSAGE_SOURCE.slice(idx, idx + 600);
+    expect(slice).toMatch(/disabled=\{transcriptReview\.applying\s*\|\|\s*localApplying\}/);
+  });
+
+  it('page defines handleTranscriptDateChange handler', () => {
+    expect(PAGE_SOURCE).toMatch(/const\s+handleTranscriptDateChange\s*=\s*useCallback/);
+  });
+
+  it('page passes handleTranscriptDateChange to CoachMessage', () => {
+    expect(PAGE_SOURCE).toMatch(/onTranscriptDateChange=\{handleTranscriptDateChange\}/);
+  });
+
+  it('page seeds targetWorkoutDate on upload success', () => {
+    // Anti-regression: if this mutation is removed the editable date input
+    // would fall back to parser/today on every mount, losing any edit the
+    // user made before an error + retry cycle.
+    expect(PAGE_SOURCE).toMatch(/upload\.review\.targetWorkoutDate\s*=/);
+  });
+
+  it('date change handler mutates the ref-held review (so apply reads the edit)', () => {
+    // The ref entry's review object is what applyParsedWorkout receives at
+    // confirm time. If this mutation is removed the edited date will never
+    // reach the backend — the metadata-only patch wouldn't propagate.
+    expect(PAGE_SOURCE).toMatch(
+      /entry\.review\.targetWorkoutDate\s*=\s*nextDate/,
+    );
+  });
+
+  it('date change handler clears stale applyError + applyErrorKind', () => {
+    // The handler must reset the error so a duplicate-date retry starts
+    // clean. Otherwise the stale badge stays visible after the user picks
+    // a new date.
+    const handlerIdx = PAGE_SOURCE.indexOf('handleTranscriptDateChange');
+    expect(handlerIdx).toBeGreaterThan(0);
+    const slice = PAGE_SOURCE.slice(handlerIdx, handlerIdx + 1500);
+    expect(slice).toMatch(/applyError:\s*undefined/);
+    expect(slice).toMatch(/applyErrorKind:\s*undefined/);
+  });
+});
+
+describe('Phase 13 — targetDate flows through the canonical mapper', () => {
+  it('useTranscriptIntake passes targetDate option to parsedWorkoutToLogPayload', () => {
+    expect(HOOK_SOURCE).toMatch(/targetDate:\s*effectiveDate/);
+  });
+
+  it('applyParsedWorkout resolves effectiveDate with the documented priority', () => {
+    // Priority: review.targetWorkoutDate > parsedWorkout.date > today.
+    // Phase 13.1: the tail fallback is now `getLocalIsoDate()` (not UTC
+    // `toISOString().split`).
+    expect(HOOK_SOURCE).toMatch(
+      /review\.targetWorkoutDate[\s\S]{0,300}review\.parsedWorkout\.date[\s\S]{0,300}getLocalIsoDate\(\)/,
+    );
+  });
+});
+
+describe('Phase 13 — future-date client-side guard', () => {
+  it('applyParsedWorkout rejects future-dated workouts without hitting the backend', () => {
+    expect(HOOK_SOURCE).toMatch(/kind:\s*['"]future_date['"]/);
+    expect(HOOK_SOURCE).toMatch(/Workout date cannot be in the future/);
+  });
+
+  it('guard runs before the server round-trip (short-circuit return)', () => {
+    // The guard must appear between effectiveDate resolution and the
+    // adminClient.logWorkout call. If a future refactor moves the check
+    // after the network call, the backend's generic validation error
+    // would leak through as kind: 'server'.
+    const guardIdx = HOOK_SOURCE.indexOf('Workout date cannot be in the future');
+    const logWorkoutIdx = HOOK_SOURCE.indexOf('adminClient.logWorkout(');
+    expect(guardIdx).toBeGreaterThan(0);
+    expect(logWorkoutIdx).toBeGreaterThan(guardIdx);
+  });
+});
+
+describe('Phase 13 — 409 duplicate-date classification', () => {
+  it('useTranscriptIntake classifies 409 responses as duplicate_date', () => {
+    expect(HOOK_SOURCE).toMatch(/status === 409/);
+    expect(HOOK_SOURCE).toMatch(/kind:\s*['"]duplicate_date['"]/);
+  });
+
+  it('duplicate_date message tells the user how to recover', () => {
+    // The recovery path is: change the date above and retry. Anything less
+    // actionable leaves the user stuck on an opaque "already exists" error.
+    expect(HOOK_SOURCE).toMatch(/Change the date above and retry/);
+  });
+
+  it('UploadFailure.kind union includes duplicate_date and future_date', () => {
+    expect(HOOK_SOURCE).toMatch(/['"]duplicate_date['"]/);
+    expect(HOOK_SOURCE).toMatch(/['"]future_date['"]/);
+  });
+
+  it('page propagates apply.failure.kind into applyErrorKind metadata', () => {
+    expect(PAGE_SOURCE).toMatch(/applyErrorKind:/);
+    expect(PAGE_SOURCE).toMatch(/apply\.failure\.kind\s*===\s*['"]duplicate_date['"]/);
+  });
+
+  it('CoachMessage renders a kind-aware error badge', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/\$kind=\{\s*transcriptReview\.applyErrorKind/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Phase 13 (2026-04-15): admin workout history consolidation
+// ─────────────────────────────────────────────────────────────
+describe('Phase 13 — WorkoutHistoryPanel consolidation', () => {
+  // Paths are relative to this test file at
+  // src/components/DashBoard/Pages/coach-assistant/ — `..` takes us up to
+  // Pages/, so `../admin-clients/...` is the sibling admin-clients folder.
+  // For clients-team we go up three segments (coach-assistant → Pages →
+  // DashBoard → workspaces/...).
+  const PANEL_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
+    'utf8',
+  );
+  const MODAL_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/EnhancedWorkoutsModal.tsx'),
+    'utf8',
+  );
+  const TRAINING_TAB_SOURCE = readFileSync(
+    resolve(
+      __dirname,
+      '../../workspaces/clients-team/tabs/TrainingTabContent.tsx',
+    ),
+    'utf8',
+  );
+
+  it('WorkoutHistoryPanel uses the shared useWorkoutAnalytics hook', () => {
+    expect(PANEL_SOURCE).toMatch(/useWorkoutAnalytics/);
+  });
+
+  it('WorkoutHistoryPanel renders all three canonical tabs', () => {
+    expect(PANEL_SOURCE).toMatch(/activeTab === 'history'/);
+    expect(PANEL_SOURCE).toMatch(/activeTab === 'charts'/);
+    expect(PANEL_SOURCE).toMatch(/activeTab === 'prs'/);
+  });
+
+  it('WorkoutHistoryPanel conditionally renders Tempo/Rest/RPE/Est.1RM columns', () => {
+    expect(PANEL_SOURCE).toMatch(/hasTempo\s*&&\s*<Th>Tempo<\/Th>/);
+    expect(PANEL_SOURCE).toMatch(/hasRest\s*&&\s*<Th>Rest<\/Th>/);
+    expect(PANEL_SOURCE).toMatch(/hasRPE\s*&&\s*<Th>RPE<\/Th>/);
+    expect(PANEL_SOURCE).toMatch(/hasWeight\s*&&\s*<Th>Est\. 1RM<\/Th>/);
+  });
+
+  it('WorkoutHistoryPanel accepts a variant prop (modal | embedded)', () => {
+    expect(PANEL_SOURCE).toMatch(/variant\?:\s*['"]modal['"]\s*\|\s*['"]embedded['"]/);
+  });
+
+  it('WorkoutHistoryPanel embedded variant renders a client header', () => {
+    expect(PANEL_SOURCE).toMatch(/variant === 'embedded'/);
+    expect(PANEL_SOURCE).toMatch(/Workout history — /);
+  });
+
+  it('EnhancedWorkoutsModal delegates content to WorkoutHistoryPanel', () => {
+    expect(MODAL_SOURCE).toMatch(/import\s+WorkoutHistoryPanel/);
+    expect(MODAL_SOURCE).toMatch(/<WorkoutHistoryPanel/);
+    expect(MODAL_SOURCE).toMatch(/variant=['"]modal['"]/);
+  });
+
+  it('EnhancedWorkoutsModal keeps its modal shell (overlay + close button)', () => {
+    // Anti-regression: the modal must still own the dialog chrome.
+    expect(MODAL_SOURCE).toMatch(/ModalOverlay/);
+    expect(MODAL_SOURCE).toMatch(/CloseButton/);
+    expect(MODAL_SOURCE).toMatch(/Workouts — \{clientName\}/);
+  });
+
+  it('EnhancedWorkoutsModal no longer owns the full history table or tab bar', () => {
+    // Content moved into WorkoutHistoryPanel. The modal file should no
+    // longer reference the three-tab bar nor the exercise table internals.
+    expect(MODAL_SOURCE).not.toMatch(/activeTab === 'charts'/);
+    expect(MODAL_SOURCE).not.toMatch(/ExerciseTable/);
+  });
+
+  it('TrainingTabContent mounts the shared WorkoutHistoryPanel (not WorkoutHistoryTimeline)', () => {
+    // The panel is lazy-imported via React.lazy + dynamic import() — not
+    // a top-level `from` statement. Lock both the dynamic-import path and
+    // the JSX mount.
+    expect(TRAINING_TAB_SOURCE).toMatch(
+      /import\(\s*['"][^'"]*admin-clients\/components\/WorkoutHistoryPanel['"]/,
+    );
+    expect(TRAINING_TAB_SOURCE).toMatch(/<WorkoutHistoryPanel/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/variant=['"]embedded['"]/);
+  });
+
+  it('Clients & Team history section label is "Workout History" (not "Vault History")', () => {
+    expect(TRAINING_TAB_SOURCE).toMatch(/label:\s*['"]Workout History['"]/);
+    expect(TRAINING_TAB_SOURCE).not.toMatch(/label:\s*['"]Vault History['"]/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Phase 13.1 (2026-04-15): local-date migration + edit restored
+// ─────────────────────────────────────────────────────────────
+describe('Phase 13.1 — local-date migration in transcript path', () => {
+  const PARSED_MAPPER_SOURCE = readFileSync(
+    resolve(__dirname, './utils/parsedWorkoutToLogPayload.ts'),
+    'utf8',
+  );
+
+  it('CoachMessage imports getLocalIsoDate from the shared utils module', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /import\s*\{\s*getLocalIsoDate\s*\}\s*from\s*['"][^'"]+utils\/localDate['"]/,
+    );
+  });
+
+  it('CoachMessage no longer uses toISOString().split for the date input', () => {
+    // The only legal UTC-day call sites are for full ISO timestamps.
+    // The transcript review card must NOT have any `toISOString().split`
+    // residue — every day-only value routes through the local helper.
+    expect(COACH_MESSAGE_SOURCE).not.toMatch(/toISOString\(\)\.split\(/);
+  });
+
+  it('SwanCoachAssistantPage imports and uses getLocalIsoDate for the seed', () => {
+    expect(PAGE_SOURCE).toMatch(
+      /import\s*\{\s*getLocalIsoDate\s*\}\s*from\s*['"][^'"]+utils\/localDate['"]/,
+    );
+    expect(PAGE_SOURCE).toMatch(/upload\.review\.parsedWorkout\.date[\s\S]{0,200}getLocalIsoDate\(\)/);
+  });
+
+  it('SwanCoachAssistantPage no longer seeds targetWorkoutDate with toISOString().split', () => {
+    // Scope the check to the transcript-class upload-success block so we
+    // don't accidentally flag an unrelated legitimate use elsewhere in
+    // the page — the page has zero legitimate uses as of Phase 13.1 but
+    // narrowing the slice keeps this anti-regression honest if the file
+    // grows later.
+    const seedIdx = PAGE_SOURCE.indexOf('upload.review.targetWorkoutDate');
+    expect(seedIdx).toBeGreaterThan(0);
+    const slice = PAGE_SOURCE.slice(Math.max(0, seedIdx - 600), seedIdx + 600);
+    expect(slice).not.toMatch(/toISOString\(\)\.split\(/);
+  });
+
+  it('useTranscriptIntake imports getLocalIsoDate AND isFutureLocalDate', () => {
+    expect(HOOK_SOURCE).toMatch(
+      /import\s*\{[^}]*getLocalIsoDate[^}]*isFutureLocalDate[^}]*\}\s*from\s*['"][^'"]+utils\/localDate['"]/,
+    );
+  });
+
+  it('useTranscriptIntake future-date guard uses isFutureLocalDate, not new Date() comparison', () => {
+    expect(HOOK_SOURCE).toMatch(/isFutureLocalDate\(effectiveDate\)/);
+    // Anti-regression: the old instant-vs-instant guard and the UTC
+    // `new Date(effectiveDate)` parse must be gone from the apply path.
+    expect(HOOK_SOURCE).not.toMatch(/parsedEffective\s*=\s*new Date\(effectiveDate\)/);
+  });
+
+  it('useTranscriptIntake "today" fallback uses getLocalIsoDate, not UTC ISO split', () => {
+    expect(HOOK_SOURCE).toMatch(/\|\|\s*getLocalIsoDate\(\)/);
+    expect(HOOK_SOURCE).not.toMatch(/new Date\(\)\.toISOString\(\)\.split\(/);
+  });
+
+  it('parsedWorkoutToLogPayload.todayIsoDate uses the local helper', () => {
+    expect(PARSED_MAPPER_SOURCE).toMatch(
+      /import\s*\{\s*getLocalIsoDate\s*\}\s*from\s*['"][^'"]+utils\/localDate['"]/,
+    );
+    expect(PARSED_MAPPER_SOURCE).toMatch(/function\s+todayIsoDate[\s\S]{0,200}getLocalIsoDate\(\)/);
+    expect(PARSED_MAPPER_SOURCE).not.toMatch(/new Date\(\)\.toISOString\(\)\.split\(/);
+  });
+});
+
+describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
+  const PANEL_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
+    'utf8',
+  );
+  // Scoped read — the Phase 13 describe block above has its own const,
+  // but that one is local to that block. Re-read here so this describe
+  // is self-contained.
+  const TRAINING_TAB_SOURCE_13_1 = readFileSync(
+    resolve(__dirname, '../../workspaces/clients-team/tabs/TrainingTabContent.tsx'),
+    'utf8',
+  );
+
+  it('exposes an Edit workout entry point', () => {
+    expect(PANEL_SOURCE).toMatch(/Edit workout/);
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-start-\$\{session\.id\}`\}/);
+  });
+
+  it('exposes Save / Cancel actions when in edit mode', () => {
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-save-\$\{session\.id\}`\}/);
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-cancel-\$\{session\.id\}`\}/);
+  });
+
+  it('PATCH payload groups by exercise and preserves tempo / rest / RPE / notes', () => {
+    // The PATCH builder must conditionally include tempo/rest/rpe/notes
+    // only when they are real values — this prevents the save from
+    // overwriting existing fields with empty/zero placeholders.
+    expect(PANEL_SOURCE).toMatch(/out\.tempo\s*=\s*s\.tempo\.trim\(\)/);
+    expect(PANEL_SOURCE).toMatch(/out\.rest\s*=\s*s\.rest/);
+    expect(PANEL_SOURCE).toMatch(/out\.rpe\s*=\s*s\.rpe/);
+    expect(PANEL_SOURCE).toMatch(/out\.notes\s*=\s*s\.notes\.trim\(\)/);
+  });
+
+  it('PATCH posts to the canonical admin workouts endpoint', () => {
+    expect(PANEL_SOURCE).toMatch(
+      /authAxios\.patch\(\s*`\/api\/admin\/clients\/\$\{clientId\}\/workouts\/\$\{workoutId\}`/,
+    );
+  });
+
+  it('refetches analytics after a successful save (single source of truth)', () => {
+    // The hook owns the session list — the panel must not keep a second
+    // mutable copy. After save, the only step is `await refetch()` to
+    // pull the authoritative view back in. The window is generous
+    // because the Phase 15 save path grew substantially to carry
+    // `exerciseNote` at the exercise level on the PATCH payload.
+    const saveIdx = PANEL_SOURCE.indexOf('const saveEdit');
+    expect(saveIdx).toBeGreaterThan(0);
+    const slice = PANEL_SOURCE.slice(saveIdx, saveIdx + 4000);
+    expect(slice).toMatch(/await\s+refetch\(\)/);
+  });
+
+  it('editing is session-scoped — switching sessions discards the edit buffer', () => {
+    // The dormant WorkoutHistoryTimeline had per-session edit state with
+    // a discard-on-switch behavior. Port that exact semantic so users
+    // can't accidentally save edits into the wrong session.
+    expect(PANEL_SOURCE).toMatch(
+      /editingSessionId\s*&&\s*editingSessionId\s*!==\s*id[\s\S]{0,200}setEditingSessionId\(null\)/,
+    );
+  });
+
+  it('Add set button appears for each exercise group while editing', () => {
+    expect(PANEL_SOURCE).toMatch(/Add set to\s*\{/);
+    expect(PANEL_SOURCE).toMatch(/addEditRow/);
+  });
+
+  it('Remove set button appears per row while editing', () => {
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-remove-\$\{logIndex\}`\}/);
+  });
+
+  it('preserves the existing history/charts/PRs tab architecture', () => {
+    // Anti-regression: the edit restoration must NOT collapse the 3-tab
+    // layout back into a flat table. The canonical surface still hosts
+    // analytics + share behavior alongside edit.
+    expect(PANEL_SOURCE).toMatch(/activeTab === 'charts'/);
+    expect(PANEL_SOURCE).toMatch(/activeTab === 'prs'/);
+    expect(PANEL_SOURCE).toMatch(/WorkoutChartsTab/);
+  });
+
+  it('does NOT remount the dormant WorkoutHistoryTimeline as the canonical surface', () => {
+    // CLAUDE.md rule: consolidation target is one shared panel. Remounting
+    // the old weak component would reintroduce the dual-drift problem.
+    expect(TRAINING_TAB_SOURCE_13_1).not.toMatch(/<WorkoutHistoryTimeline/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Phase 13.2 (2026-04-15): notes, scroll, send UX, processing card
+// ─────────────────────────────────────────────────────────────
+describe('Phase 13.2 — parser prompt note-scope guidance', () => {
+  const PARSER_SOURCE = readFileSync(
+    resolve(__dirname, '../../../../../../backend/services/workoutLogParserService.mjs'),
+    'utf8',
+  );
+
+  it('prompt separates set notes / performance notes / session notes / pain flags', () => {
+    expect(PARSER_SOURCE).toMatch(/set\.notes\s*—/);
+    expect(PARSER_SOURCE).toMatch(/performanceNotes\s*—/);
+    expect(PARSER_SOURCE).toMatch(/sessionNotes\s*—/);
+    expect(PARSER_SOURCE).toMatch(/painFlags\s*—/);
+  });
+
+  it('prompt lists NASM-aligned coaching observation categories', () => {
+    expect(PARSER_SOURCE).toMatch(/tempo deviations/i);
+    expect(PARSER_SOURCE).toMatch(/asymmetry/i);
+    expect(PARSER_SOURCE).toMatch(/compensation/i);
+    expect(PARSER_SOURCE).toMatch(/range-of-motion/i);
+    expect(PARSER_SOURCE).toMatch(/form breakdown/i);
+    expect(PARSER_SOURCE).toMatch(/cueing needed/i);
+  });
+
+  it('prompt attaches exercise-specific notes to the correct exercise via examples', () => {
+    expect(PARSER_SOURCE).toMatch(/knees caved on goblet squat/i);
+    expect(PARSER_SOURCE).toMatch(/left shoulder hurt during dumbbell bench/i);
+    expect(PARSER_SOURCE).toMatch(/seated row/i);
+  });
+
+  it('prompt forbids inventing OPT/NASM data not stated in the transcript', () => {
+    expect(PARSER_SOURCE).toMatch(/Never invent NASM OPT phases/i);
+    expect(PARSER_SOURCE).toMatch(/Only capture these observations if the trainer actually stated them/i);
+  });
+});
+
+describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
+  const PANEL_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
+    'utf8',
+  );
+  const MAPPER_SOURCE = readFileSync(
+    resolve(__dirname, './utils/parsedWorkoutToLogPayload.ts'),
+    'utf8',
+  );
+
+  it('mapper still exports EXERCISE_NOTE_SEPARATOR (legacy-read-only, separator form only)', () => {
+    // Phase 15.0 keeps the separator exported so the panel's
+    // legacy-read-only normalizer has a single source of truth for
+    // the literal marker. It is used to recognize and migrate ONLY
+    // the unambiguous separator-encoded form of Phase 13.2 data —
+    // bare `Coach: ` prefixed rows are intentionally not auto-
+    // promoted. New writes do NOT use this separator at all; see
+    // parsedWorkoutToLogPayload.test.ts for the write-side locks.
+    expect(MAPPER_SOURCE).toMatch(/export const EXERCISE_NOTE_SEPARATOR\s*=\s*' · Coach: '/);
+  });
+
+  it('panel and mapper agree on the legacy separator string', () => {
+    expect(PANEL_SOURCE).toMatch(/const EXERCISE_NOTE_SEPARATOR\s*=\s*' · Coach: '/);
+  });
+
+  it('panel exposes Phase 15 resolveExerciseNote helper (not merge/split contract)', () => {
+    // Phase 15.0: the canonical read helper is `resolveExerciseNote`,
+    // which prefers the dedicated `exerciseNote` column and falls back
+    // to legacy parsing only when no row in the group has it set.
+    expect(PANEL_SOURCE).toMatch(/function resolveExerciseNote\(/);
+    // The legacy helper is retained as read-only fallback, clearly
+    // renamed so nobody wires it into new write paths.
+    expect(PANEL_SOURCE).toMatch(/function splitLegacyStoredNote\(/);
+    // The old merge helper is gone — Phase 15 writes emit the
+    // exerciseNote field directly on the PATCH payload, no string
+    // concatenation.
+    expect(PANEL_SOURCE).not.toMatch(/function mergeStoredNote\(/);
+  });
+
+  it('panel renders a per-exercise notes block with a testid hook', () => {
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`notes-block-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+  });
+
+  it('panel shows "None given" when an exercise has no notes at all', () => {
+    expect(PANEL_SOURCE).toMatch(/None given/);
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`notes-empty-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+  });
+
+  it('panel edit mode exposes per-set note inputs and an exercise-level coach note input', () => {
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-notes-set-\$\{row\.logIndex\}`\}/);
+    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-notes-exercise-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+  });
+
+  it('panel edit save path still includes notes in the PATCH payload', () => {
+    // Anti-regression: saveEdit must still build notes as `out.notes` when
+    // present. The Phase 13.2 notes-edit path threads edits through
+    // updateEditField('notes', merged), so the existing PATCH builder
+    // continues to work.
+    expect(PANEL_SOURCE).toMatch(/out\.notes\s*=\s*s\.notes\.trim\(\)/);
+  });
+
+  it('panel notes block reads exerciseNote via resolveExerciseNote, not raw set.notes', () => {
+    // Phase 15.0 anti-regression: the display pipeline must route
+    // through `resolveExerciseNote` so the canonical `exerciseNote`
+    // column wins and legacy rows still render safely. If the display
+    // short-circuits to `log.notes` directly it would miss the new
+    // column and silently fall back to the old ambiguous contract.
+    const blockIdx = PANEL_SOURCE.indexOf('notes-block-');
+    expect(blockIdx).toBeGreaterThan(0);
+    const slice = PANEL_SOURCE.slice(Math.max(0, blockIdx - 2500), blockIdx + 4000);
+    expect(slice).toMatch(/resolveExerciseNote\(groupSets\)/);
+  });
+});
+
+describe('Phase 13.2 — CoachInputBar file-only transcript send', () => {
+  const INPUT_BAR_SOURCE = readFileSync(
+    resolve(__dirname, './CoachInputBar.tsx'),
+    'utf8',
+  );
+
+  it('exposes hasAttachment prop', () => {
+    expect(INPUT_BAR_SOURCE).toMatch(/hasAttachment\?:\s*boolean/);
+  });
+
+  it('send handler no longer aborts on empty text when hasAttachment is true', () => {
+    // Anti-regression: the Phase 9 rule `if (!msg || sending) return;` has
+    // been replaced with a two-gate check. The new guard still rejects
+    // empty-text-no-attachment, but lets file-only send through.
+    expect(INPUT_BAR_SOURCE).toMatch(/if\s*\(!msg\s*&&\s*!hasAttachment\)\s*return/);
+  });
+
+  it('send button disabled state respects attachments', () => {
+    expect(INPUT_BAR_SOURCE).toMatch(/disabled=\{\(!text\.trim\(\)\s*&&\s*!hasAttachment\)\s*\|\|\s*sending\}/);
+  });
+
+  it('page passes the attachment signal down via hasAttachment', () => {
+    expect(PAGE_SOURCE).toMatch(
+      /hasAttachment=\{[\s\S]{0,400}hasTranscriptClassFile\(attachments\.files\)/,
+    );
+  });
+});
+
+describe('Phase 13.2 — transcript processing pending card', () => {
+  it('page defines transcriptProcessing state', () => {
+    expect(PAGE_SOURCE).toMatch(
+      /const\s+\[transcriptProcessing,\s*setTranscriptProcessing\]\s*=\s*useState/,
+    );
+  });
+
+  it('handleSend flips processing stage to uploading before awaiting upload', () => {
+    const uploadIdx = PAGE_SOURCE.indexOf('intake.uploadTranscript(');
+    expect(uploadIdx).toBeGreaterThan(0);
+    const before = PAGE_SOURCE.slice(Math.max(0, uploadIdx - 1500), uploadIdx);
+    expect(before).toMatch(/setTranscriptProcessing\(\{\s*stage:\s*['"]uploading['"]/);
+  });
+
+  it('handleSend flips stage to parsing after upload success', () => {
+    expect(PAGE_SOURCE).toMatch(/setTranscriptProcessing\(\{\s*stage:\s*['"]parsing['"]/);
+  });
+
+  it('handleSend clears processing on happy-path success', () => {
+    // There must be at least one `setTranscriptProcessing(null)` call in
+    // the happy path and another in the upload-failure path.
+    const nullCalls = (PAGE_SOURCE.match(/setTranscriptProcessing\(null\)/g) ?? []).length;
+    expect(nullCalls).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders a scoped processing card with a testid', () => {
+    expect(PAGE_SOURCE).toMatch(/data-testid=['"]transcript-processing-card['"]/);
+    expect(PAGE_SOURCE).toMatch(/data-testid=['"]transcript-processing-stage['"]/);
+  });
+
+  it('composer is locked while processing so a double-fire is impossible', () => {
+    // The prior rule was `sending={coach.sending}`. Processing the
+    // transcript bypasses coach.sending, so the composer disable now
+    // also depends on transcriptProcessing.
+    expect(PAGE_SOURCE).toMatch(
+      /sending=\{coach\.sending\s*\|\|\s*transcriptProcessing\s*!==\s*null\}/,
+    );
+  });
+});
+
+describe('Phase 13.2 — embedded Workout History scroll ownership', () => {
+  const TRAINING_TAB_SOURCE_13_2 = readFileSync(
+    resolve(__dirname, '../../workspaces/clients-team/tabs/TrainingTabContent.tsx'),
+    'utf8',
+  );
+  const PANEL_SOURCE_13_2 = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
+    'utf8',
+  );
+
+  it('TrainingTabContent LayoutWrapper no longer clips with overflow: hidden', () => {
+    // The prior `overflow: hidden` clipped expanded session cards whose
+    // content exceeded the container. Phase 13.2 hands scroll to the
+    // document/page layer.
+    const layoutIdx = TRAINING_TAB_SOURCE_13_2.indexOf('const LayoutWrapper');
+    expect(layoutIdx).toBeGreaterThan(0);
+    const blockEnd = TRAINING_TAB_SOURCE_13_2.indexOf('`;', layoutIdx);
+    const slice = TRAINING_TAB_SOURCE_13_2.slice(layoutIdx, blockEnd);
+    expect(slice).not.toMatch(/overflow:\s*hidden/);
+    expect(slice).toMatch(/overflow:\s*visible/);
+  });
+
+  it('TrainingTabContent ContentArea uses min-height:0 and overflow:visible', () => {
+    const contentIdx = TRAINING_TAB_SOURCE_13_2.indexOf('const ContentArea');
+    expect(contentIdx).toBeGreaterThan(0);
+    const blockEnd = TRAINING_TAB_SOURCE_13_2.indexOf('`;', contentIdx);
+    const slice = TRAINING_TAB_SOURCE_13_2.slice(contentIdx, blockEnd);
+    // Positive locks on the actual CSS rules (each ends in a semicolon).
+    expect(slice).toMatch(/min-height:\s*0;/);
+    expect(slice).toMatch(/overflow:\s*visible;/);
+    // Anti-regression: no inner auto-scroll rule at the end of the CSS
+    // block. Comments above explaining the old behavior may mention it,
+    // so match on a trailing semicolon to avoid false positives.
+    expect(slice).not.toMatch(/overflow-y:\s*auto;/);
+  });
+
+  it('WorkoutHistoryPanel embedded variant uses overflow: visible (no inner scroll trap)', () => {
+    // ScrollBody branches on $variant. The embedded branch must yield
+    // `overflow: visible` so the page-level scroll reaches expanded content.
+    // The modal branch keeps `overflow-y: auto; max-height: 60vh`.
+    const scrollIdx = PANEL_SOURCE_13_2.indexOf('const ScrollBody');
+    expect(scrollIdx).toBeGreaterThan(0);
+    const blockEnd = PANEL_SOURCE_13_2.indexOf('`;', scrollIdx);
+    const slice = PANEL_SOURCE_13_2.slice(scrollIdx, blockEnd);
+    // The ternary's modal branch must cap at 60vh and own scroll.
+    expect(slice).toMatch(/overflow-y:\s*auto;\s*max-height:\s*60vh/);
+    // The ternary's embedded branch must set overflow: visible.
+    expect(slice).toMatch(/'overflow:\s*visible;'/);
+    // Explicit defense: no bare `overflow-y: auto;` outside the modal
+    // ternary arm (no stray inner scroll trap for the embedded case).
+  });
+});

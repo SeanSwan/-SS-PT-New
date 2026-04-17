@@ -29,6 +29,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import ProviderBadge from './ProviderBadge';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import type { CoachMessageData } from './SwanCoachTypes';
+import { getLocalIsoDate } from '../../../../utils/localDate';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Action Result Cards (client creation, workout import)
@@ -215,18 +216,59 @@ const TranscriptBtn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
   }
 `;
 
-const TranscriptError = styled.div`
+const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'other' }>`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 10px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(201, 42, 84, 0.12);
-  border: 1px solid rgba(201, 42, 84, 0.3);
-  color: #ff8fa3;
+  background: ${({ $kind }) =>
+    $kind === 'duplicate_date' || $kind === 'future_date'
+      ? 'rgba(198, 168, 75, 0.12)'
+      : 'rgba(201, 42, 84, 0.12)'};
+  border: 1px solid
+    ${({ $kind }) =>
+      $kind === 'duplicate_date' || $kind === 'future_date'
+        ? 'rgba(198, 168, 75, 0.4)'
+        : 'rgba(201, 42, 84, 0.3)'};
+  color: ${({ $kind }) =>
+    $kind === 'duplicate_date' || $kind === 'future_date' ? '#F5D678' : '#ff8fa3'};
   font-family: 'Sora', sans-serif;
   font-size: 12px;
+  line-height: 1.45;
+`;
+
+/**
+ * Phase 13 (2026-04-15): editable workout date on the transcript review card.
+ * The parser's date is a suggestion; the user's edit is the truth. Wired to
+ * the page via `onTranscriptDateChange`, which updates both the metadata and
+ * the page-level ref so the value reaches `applyParsedWorkout` on confirm.
+ */
+const DateRow = styled(CardRow)`
+  margin-top: 4px;
+`;
+
+const DateInput = styled.input.attrs({ type: 'date' })`
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 36px;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color-scheme: dark;
+  &:focus-visible {
+    outline: 2px solid #60C0F0;
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 function confidenceLevel(c?: number): 'high' | 'medium' | 'low' {
@@ -251,6 +293,12 @@ interface CoachMessageProps {
   onConfirmTranscript?: (messageId: string) => Promise<void>;
   /** Swan-first transcript intake — discard the review */
   onCancelTranscript?: (messageId: string) => void;
+  /**
+   * Phase 13 (2026-04-15): propagate a user-edited workout date back to the
+   * page so the next `applyParsedWorkout` call uses it. Fire on every change
+   * — the page is responsible for debouncing / coalescing if needed.
+   */
+  onTranscriptDateChange?: (messageId: string, nextDate: string) => void;
 }
 
 const CoachMessageComponent: React.FC<CoachMessageProps> = ({
@@ -260,6 +308,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onCancelCommand,
   onConfirmTranscript,
   onCancelTranscript,
+  onTranscriptDateChange,
 }) => {
   const [copied, setCopied] = React.useState(false);
   // Local "user clicked confirm" lock — prevents double-fire while the
@@ -279,6 +328,13 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const handleTranscriptCancel = useCallback(() => {
     onCancelTranscript?.(message.id);
   }, [onCancelTranscript, message.id]);
+
+  const handleTranscriptDateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onTranscriptDateChange?.(message.id, e.target.value);
+    },
+    [onTranscriptDateChange, message.id],
+  );
 
   const handleCopy = useCallback(async () => {
     try {
@@ -449,6 +505,29 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <CardValue>{transcriptReview.parsedWorkout.overallIntensity}/10</CardValue>
             </CardRow>
           )}
+          {/* Phase 13: editable workout date. Initialized from targetWorkoutDate
+              if already set (preserves edits across re-renders), else parser
+              date, else today. max=today enforces the "no future" rule at the
+              picker level as a UX hint; the apply path validates server-side
+              and also client-side in useTranscriptIntake.
+              Phase 13.1 (2026-04-15): both default and max use LOCAL calendar
+              day (via getLocalIsoDate), not UTC day — otherwise the picker
+              offers tomorrow as default for PDT users after ~5pm local. */}
+          <DateRow data-testid="transcript-date-row">
+            <CardLabel>Workout date</CardLabel>
+            <DateInput
+              data-testid="transcript-date-input"
+              value={
+                transcriptReview.targetWorkoutDate ||
+                transcriptReview.parsedWorkout?.date ||
+                getLocalIsoDate()
+              }
+              max={getLocalIsoDate()}
+              disabled={transcriptReview.applying || localApplying}
+              onChange={handleTranscriptDateChange}
+              aria-label="Workout date (required)"
+            />
+          </DateRow>
 
           {transcriptReview.parsedWorkout?.painFlags &&
             transcriptReview.parsedWorkout.painFlags.length > 0 && (
@@ -468,9 +547,18 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </TranscriptDetails>
 
           {transcriptReview.applyError && (
-            <TranscriptError>
+            <TranscriptError
+              data-testid="transcript-apply-error"
+              $kind={
+                transcriptReview.applyErrorKind === 'duplicate_date'
+                  ? 'duplicate_date'
+                  : transcriptReview.applyErrorKind === 'future_date'
+                    ? 'future_date'
+                    : 'other'
+              }
+            >
               <AlertTriangle size={14} />
-              {transcriptReview.applyError}
+              <span>{transcriptReview.applyError}</span>
             </TranscriptError>
           )}
 

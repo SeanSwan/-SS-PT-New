@@ -252,11 +252,13 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.get(`/api/client-progress/${clientId}/workout-history`, {
           params: { timeframe }
         });
-        return response.data;
+        return Array.isArray(response.data) ? response.data : [];
       } catch (error) {
+        // Honest empty state — do NOT fabricate history. Real trainer logs
+        // must flow through the backend route; a failure here is a truth
+        // signal, not a trigger for demo data.
         console.error('Error fetching workout history:', error);
-        // Return mock workout history
-        return getMockWorkoutHistory();
+        return [];
       }
     },
 

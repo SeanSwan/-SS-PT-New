@@ -12,6 +12,27 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
+// ─────────────────────────────────────────────────────────────
+// Workout-history row mapper (exported for unit tests)
+// Matches the real WorkoutSession schema written by workoutLogService
+// (title, duration, totalSets, completedAt) — NOT the stale legacy
+// fields (workoutName, durationMinutes, exercisesCompleted) which
+// never existed on the model and silently rendered blank cards.
+// ─────────────────────────────────────────────────────────────
+export const toClientWorkoutHistoryRow = (session) => {
+  const raw = session?.toJSON ? session.toJSON() : session;
+  const duration = Number.isFinite(raw?.duration) ? raw.duration : null;
+  const totalSets = Number.isFinite(raw?.totalSets) ? raw.totalSets : 0;
+  const dateValue = raw?.completedAt || raw?.date || raw?.createdAt || null;
+  return {
+    id: raw?.id,
+    name: (raw?.title && String(raw.title).trim()) || 'Workout',
+    date: dateValue,
+    duration: duration && duration > 0 ? `${duration} min` : null,
+    exercises: totalSets,
+  };
+};
+
 /**
  * GET /api/workouts/:userId/current
  * Get the client's currently active workout plan
@@ -117,20 +138,16 @@ router.get('/:userId/history', protect, async (req, res) => {
 
     let history = [];
 
-    // Try WorkoutSession model first
+    // Try WorkoutSession model first. Filter to completed sessions so
+    // planned/in-progress rows never render as history cards.
     if (WorkoutSession) {
       const sessions = await WorkoutSession.findAll({
-        where: { userId: clientId },
+        where: { userId: clientId, status: 'completed' },
         order: [['completedAt', 'DESC']],
-        limit
+        limit,
+        attributes: ['id', 'title', 'date', 'completedAt', 'createdAt', 'duration', 'totalSets'],
       });
-      history = sessions.map(s => ({
-        id: s.id,
-        name: s.workoutName || 'Workout',
-        date: s.completedAt || s.createdAt,
-        duration: s.durationMinutes ? `${s.durationMinutes} min` : null,
-        exercises: s.exercisesCompleted || 0
-      }));
+      history = sessions.map(toClientWorkoutHistoryRow);
     }
 
     // Also check completed training sessions

@@ -121,6 +121,7 @@ export interface CoachMessageData {
             reps: number;
             rpe?: number;
             notes?: string;
+            tempo?: string;
           }>;
           formRating?: number;
           painLevel?: number;
@@ -137,10 +138,22 @@ export interface CoachMessageData {
       fileMimeType: string;
       clientId: number;
       clientName?: string;
+      /**
+       * Phase 13 (2026-04-15): user-editable workout date for the apply step.
+       * Initialized from `parsedWorkout.date` if present, else today. This is
+       * the value actually sent to the backend — the parser's date is only the
+       * starting suggestion.
+       */
+      targetWorkoutDate?: string;
       /** True while the apply call is in flight. */
       applying?: boolean;
       /** Last apply error if the previous attempt failed. Review stays visible. */
       applyError?: string;
+      /**
+       * Phase 13: distinguishes the error class so the review card can render
+       * actionable UX (e.g. duplicate-date hint → "change date above and retry").
+       */
+      applyErrorKind?: 'duplicate_date' | 'future_date' | 'validation' | 'server' | 'network' | 'other';
     };
     /**
      * Injected by Swan-first transcript intake on successful apply.

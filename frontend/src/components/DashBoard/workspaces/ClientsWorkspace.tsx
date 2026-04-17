@@ -36,8 +36,16 @@ import { ClientDetailView } from './clients-team';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import type { MiniCardClient } from './clients-team/ClientMiniCard';
 
-// Lazy-load tab content to keep initial bundle lean
+// Lazy-load tab content to keep initial bundle lean.
+//
+// Phase 15.4 (2026-04-16): ProgressTabContent added here on the canonical
+// mount path. Phase 15.3's original wiring was on MasterDetailLayout (a
+// dormant sibling never mounted in the canonical route tree), which meant
+// the live /dashboard/admin/client-management surface rendered the
+// ClientDetailView placeholder "Truthful workout charts and analytics."
+// instead of the real 12-chart Phase 14 grid.
 const TrainingTabContent = lazy(() => import('./clients-team/tabs/TrainingTabContent'));
+const ProgressTabContent = lazy(() => import('./clients-team/tabs/ProgressTabContent'));
 const BiometricsTabContent = lazy(() => import('./clients-team/tabs/BiometricsTabContent'));
 const OverviewTabContent = lazy(() => import('./clients-team/tabs/OverviewTabContent'));
 const SettingsTabContent = lazy(() => import('./clients-team/tabs/SettingsTabContent'));
@@ -343,6 +351,15 @@ const ClientsWorkspace: React.FC = () => {
     </Suspense>
   ), [selectedClient]);
 
+  // Phase 15.4: truthful 12-chart admin-scoped progress view for the
+  // selected client, using /api/analytics/:userId/chart-*. Do NOT mount
+  // the legacy ClientProgressDashboard (the "Preview Mode" surface).
+  const renderProgress = useCallback((clientId: number | string) => (
+    <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>
+      <ProgressTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
+    </Suspense>
+  ), [selectedClient]);
+
   const renderBiometrics = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading biometrics...</LoadingPulse>}>
       <BiometricsTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
@@ -407,6 +424,7 @@ const ClientsWorkspace: React.FC = () => {
               setSearchParams({});
             }}
             renderTraining={renderTraining}
+            renderProgress={renderProgress}
             renderBiometrics={renderBiometrics}
             renderOverview={renderOverview}
             renderSettings={renderSettings}
