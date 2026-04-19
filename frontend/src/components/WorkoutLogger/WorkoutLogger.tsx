@@ -8,7 +8,12 @@
  * Sub-components:
  * - WorkoutLoggerCS.ts — Shared color palette + keyframes
  * - WorkoutLoggerHeader.tsx — Client info, date, stats
- * - NASMProtocolSection.tsx — Warmup/Balance/Cooldown checklists
+ * - CompactProtocolSection.tsx — Small rolodex-first warmup/balance/cooldown
+ *   cards (2026-04-17 replacement for the always-rendered NASMProtocolSection
+ *   checklists that used to dominate the page). Rolodex is now the primary
+ *   add flow; recommended items render as phase-appropriate quick-add chips.
+ * - NASMExerciseRolodex.tsx — Single shared exercise picker with
+ *   sectionContext routing (main | warmup | balance_core | cooldown).
  * - ExerciseCardComponent.tsx — Exercise card with set table
  * - SessionSummaryForm.tsx — Intensity, notes, workout stats (Phase 16
  *   null-honest "Not rated" UI).
@@ -44,17 +49,24 @@ import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 // Sub-components
 import { CS, withAlpha, shimmer, getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION, reducedMotionSafe } from './WorkoutLoggerCS';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
-import NASMProtocolSection, { type NASMItem } from './NASMProtocolSection';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
+// 2026-04-17: CompactProtocolSection replaces the always-rendered 25/20/15
+// static NASMProtocolSection checklists that used to swallow the logger
+// page. Rolodex is now the primary add flow; recommendations are chips.
+import CompactProtocolSection, {
+  type ProtocolSectionKey,
+  type ProtocolSelection,
+} from './CompactProtocolSection';
 import {
-  DEFAULT_WARMUP_ITEMS,
-  DEFAULT_BALANCE_CORE_ITEMS,
-  DEFAULT_COOLDOWN_ITEMS,
+  getRecommendedProtocolItems,
+  findProtocolDefaultById,
+  findProtocolDefaultByName,
+  type NASMDefaultItem,
 } from './NASMProtocolDefaults';
 import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
 import NASMPhaseGuide from './NASMPhaseGuide';
@@ -224,24 +236,91 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     onComplete: () => toast.info('Rest complete — next set!'),
   });
 
-  // ── NASM Protocol State — Full exercise lists from NASMProtocolDefaults ──
-  const [warmupItems, setWarmupItems] = useState<NASMItem[]>(DEFAULT_WARMUP_ITEMS);
-  const [balanceCoreItems, setBalanceCoreItems] = useState<NASMItem[]>(DEFAULT_BALANCE_CORE_ITEMS);
-  const [cooldownItems, setCooldownItems] = useState<NASMItem[]>(DEFAULT_COOLDOWN_ITEMS);
-  const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<string, boolean>>({
-    warmup: true, balanceCore: false, cooldown: false,
+  // ── NASM Protocol State (2026-04-17 rolodex-first rebuild) ──
+  //
+  // Previously this held three arrays of 25/20/15 NASMItem objects that
+  // were rendered as full-height checklists on every page load, pushing
+  // the actual "Search & Add Exercise" rolodex below the fold. The new
+  // model stores only items the user has actually selected (via rolodex
+  // or via a quick-add chip), and the phase-appropriate recommendations
+  // are computed on demand from `getRecommendedProtocolItems`.
+  //
+  // Selected items live here in separate arrays rather than in the main
+  // `exercises` array because they are not logged as weight/reps/RPE
+  // sets — they're coaching checklist items. The canonical submit
+  // payload is unchanged; this is a pure logger-UX compaction.
+  const [selectedWarmup, setSelectedWarmup] = useState<ProtocolSelection[]>([]);
+  const [selectedBalanceCore, setSelectedBalanceCore] = useState<ProtocolSelection[]>([]);
+  const [selectedCooldown, setSelectedCooldown] = useState<ProtocolSelection[]>([]);
+  const [nasmSectionsOpen, setNasmSectionsOpen] = useState<Record<ProtocolSectionKey, boolean>>({
+    warmup: false,
+    balance_core: false,
+    cooldown: false,
   });
 
+  // When the rolodex is opened from a protocol section's Add button we
+  // stash the section here so `onSelectExercise` knows where to route
+  // the selected exercise. null = main exercises section.
+  const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
+
   // ── NASM Helpers ──
-  const toggleNasmSection = useCallback((key: string) =>
+  const toggleNasmSection = useCallback((key: ProtocolSectionKey) =>
     setNasmSectionsOpen(prev => ({ ...prev, [key]: !prev[key] })), []);
 
-  const toggleNasmItem = useCallback((
-    setter: React.Dispatch<React.SetStateAction<NASMItem[]>>,
-    index: number,
-  ) => setter(prev => prev.map((item, i) =>
-    i === index ? { ...item, completed: !item.completed } : item
-  )), []);
+  const protocolSectionSetters: Record<
+    ProtocolSectionKey,
+    React.Dispatch<React.SetStateAction<ProtocolSelection[]>>
+  > = {
+    warmup: setSelectedWarmup,
+    balance_core: setSelectedBalanceCore,
+    cooldown: setSelectedCooldown,
+  };
+
+  const addProtocolPreset = useCallback(
+    (section: ProtocolSectionKey, item: NASMDefaultItem) => {
+      const setter = protocolSectionSetters[section];
+      const entry: ProtocolSelection = {
+        id: item.id,
+        name: item.name,
+        source: 'preset',
+        category: item.category,
+      };
+      setter((prev) => (prev.some((p) => p.id === entry.id) ? prev : [...prev, entry]));
+    },
+    // protocolSectionSetters is stable across renders (useState setters).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const addProtocolFromRolodex = useCallback(
+    (section: ProtocolSectionKey, exercise: ExerciseSlim) => {
+      const setter = protocolSectionSetters[section];
+      const id = `rolodex-${exercise.id}`;
+      const entry: ProtocolSelection = {
+        id,
+        name: exercise.name,
+        source: 'rolodex',
+      };
+      setter((prev) => (prev.some((p) => p.id === id) ? prev : [...prev, entry]));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const removeProtocolItem = useCallback(
+    (section: ProtocolSectionKey, id: string) => {
+      const setter = protocolSectionSetters[section];
+      setter((prev) => prev.filter((p) => p.id !== id));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const requestAddForSection = useCallback((section: ProtocolSectionKey) => {
+    setPendingSectionContext(section);
+    setShowExerciseSearch(true);
+    setNasmSectionsOpen((prev) => ({ ...prev, [section]: true }));
+  }, []);
 
   // ── Load Phase Template ──
   const loadPhaseTemplate = useCallback((phase: number) => {
@@ -273,19 +352,31 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       performanceNotes: '',
     }));
 
-    // Mark warmup items matching template as completed
-    setWarmupItems(prev => prev.map(item => ({
-      ...item,
-      completed: template.warmupIds.includes(item.id),
-    })));
-    setBalanceCoreItems(prev => prev.map(item => ({
-      ...item,
-      completed: template.balanceCoreIds.includes(item.id),
-    })));
-    setCooldownItems(prev => prev.map(item => ({
-      ...item,
-      completed: template.cooldownIds.includes(item.id),
-    })));
+    // 2026-04-17 rolodex-first rebuild: translate template protocol id
+    // lists into ProtocolSelection records on the compact sections.
+    // Previously this "marked" items as completed on the giant static
+    // checklist, which meant the user still had to visually parse 25
+    // warmup rows to see which 5 were highlighted. Now phase templates
+    // populate the compact selected-items list directly.
+    const toSelections = (ids: string[]): ProtocolSelection[] => {
+      const out: ProtocolSelection[] = [];
+      for (const id of ids) {
+        const item = findProtocolDefaultById(id);
+        if (item) {
+          out.push({
+            id: item.id,
+            name: item.name,
+            source: 'template',
+            category: item.category,
+          });
+        }
+      }
+      return out;
+    };
+
+    setSelectedWarmup(toSelections(template.warmupIds));
+    setSelectedBalanceCore(toSelections(template.balanceCoreIds));
+    setSelectedCooldown(toSelections(template.cooldownIds));
 
     setExercises(templateExercises);
     setCurrentOPTPhase(phase);
@@ -372,22 +463,58 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setExercises(prev => [...prev, entry]);
       toast.success(`Added ${d.exerciseName}`);
     };
+    // 2026-04-17: rebuilt for the compact ProtocolSelection model that
+    // replaced the old 25/20/15-row completed-checkbox lists. The
+    // assistant-facing AI_TOGGLE_NASM_ITEM payload contract is unchanged
+    // (`{ section, itemName, markAll, completed }` per
+    // utils/aiWorkoutEvents.ts), so no backend / dispatcher update is
+    // needed. Mapping:
+    //   - markAll: true,  completed: true  → preselect every
+    //                                        phase-appropriate recommendation
+    //   - markAll: true,  completed: false → clear all selected for the section
+    //   - itemName + completed: true       → find-by-name-fragment in the
+    //                                        section's defaults, add to selected
+    //   - itemName + completed: false      → remove matching selected item(s)
     const onToggleItem = (e: Event) => {
       const d = (e as CustomEvent).detail;
       if (!d?.section) return;
-      const setter = d.section === 'warmup' ? setWarmupItems
-        : d.section === 'balance_core' ? setBalanceCoreItems
-        : setCooldownItems;
+      const section = d.section as ProtocolSectionKey;
+      if (section !== 'warmup' && section !== 'balance_core' && section !== 'cooldown') {
+        return;
+      }
+      const setter = protocolSectionSetters[section];
+      const shouldAdd = d.completed !== false; // undefined / true → add; false → remove
+
       if (d.markAll) {
-        setter(prev => prev.map(item => ({ ...item, completed: d.completed ?? true })));
-        toast.success(`Marked all ${d.section} items ${d.completed === false ? 'incomplete' : 'complete'}`);
-      } else if (d.itemName) {
-        const name = d.itemName.toLowerCase();
-        setter(prev => prev.map(item =>
-          item.name.toLowerCase().includes(name)
-            ? { ...item, completed: d.completed ?? true }
-            : item
-        ));
+        if (shouldAdd) {
+          const recs = getRecommendedProtocolItems(section, currentOPTPhase, 12);
+          setter(recs.map((item) => ({
+            id: item.id,
+            name: item.name,
+            source: 'preset' as const,
+            category: item.category,
+          })));
+          toast.success(`Preselected ${recs.length} ${section} items`);
+        } else {
+          setter([]);
+          toast.success(`Cleared ${section} selections`);
+        }
+        return;
+      }
+
+      if (!d.itemName) return;
+
+      if (shouldAdd) {
+        const match = findProtocolDefaultByName(section, d.itemName);
+        if (match) {
+          setter((prev) => (prev.some((p) => p.id === match.id)
+            ? prev
+            : [...prev, { id: match.id, name: match.name, source: 'preset' as const, category: match.category }]
+          ));
+        }
+      } else {
+        const needle = d.itemName.toLowerCase();
+        setter((prev) => prev.filter((p) => !p.name.toLowerCase().includes(needle)));
       }
     };
     window.addEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
@@ -398,7 +525,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
       window.removeEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     };
-  }, [loadPhaseTemplate]);
+    // currentOPTPhase is a dep because the `markAll` path uses it to
+    // pick phase-appropriate recommendations — without it in deps the
+    // listener closure would stale on phase change.
+    // protocolSectionSetters is intentionally omitted: it's rebuilt
+    // every render but its contained setState setters are stable refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadPhaseTemplate, currentOPTPhase]);
 
   // Check sessionStorage on mount for pending AI plan
   useEffect(() => {
@@ -870,14 +1003,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           onLoadTemplate={loadPhaseTemplate}
         />
 
-        {/* NASM Warmup */}
-        <NASMProtocolSection
+        {/* NASM Warmup (2026-04-17: compact rolodex-first card) */}
+        <CompactProtocolSection
           title="Warmup & Corrective"
           icon={<Heart size={18} style={{ color: CS.gaming }} />}
-          items={warmupItems}
+          sectionKey="warmup"
+          selectedItems={selectedWarmup}
+          recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
           isOpen={nasmSectionsOpen.warmup}
           onToggleOpen={() => toggleNasmSection('warmup')}
-          onToggleItem={(idx) => toggleNasmItem(setWarmupItems, idx)}
+          onAddFromRolodex={() => requestAddForSection('warmup')}
+          onQuickAddPreset={(item) => addProtocolPreset('warmup', item)}
+          onRemoveSelected={(id) => removeProtocolItem('warmup', id)}
         />
 
         {/* Exercise Section */}
@@ -891,17 +1028,43 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
           <ExerciseSearchBar>
             <RolodexTrigger
-              onClick={() => setShowExerciseSearch(prev => !prev)}
+              onClick={() => {
+                // Main section add — clear any pending protocol context
+                // so the next rolodex selection lands in `exercises`.
+                setPendingSectionContext(null);
+                setShowExerciseSearch(prev => !prev);
+              }}
               aria-label="Search and add exercises"
               aria-expanded={showExerciseSearch}
             >
               <Plus size={18} />
               Search & Add Exercise
             </RolodexTrigger>
+            {/*
+              2026-04-17: The rolodex is the single shared picker across the
+              main workout body AND all three protocol sections. When a
+              protocol section's Add button is clicked, `pendingSectionContext`
+              is set and the rolodex routes the selection into that section's
+              compact selected-items list. When it's null, selections flow
+              into the main `exercises` array (and through Phase 16's
+              null-honest save path — untouched ratings stay null).
+            */}
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
-              onClose={() => setShowExerciseSearch(false)}
-              onSelectExercise={addExercise}
+              onClose={() => {
+                setShowExerciseSearch(false);
+                setPendingSectionContext(null);
+              }}
+              sectionContext={pendingSectionContext ?? 'main'}
+              onSelectExercise={(exercise) => {
+                if (pendingSectionContext) {
+                  addProtocolFromRolodex(pendingSectionContext, exercise);
+                  setPendingSectionContext(null);
+                  setShowExerciseSearch(false);
+                } else {
+                  addExercise(exercise);
+                }
+              }}
             />
           </ExerciseSearchBar>
 
@@ -957,24 +1120,32 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           )}
         </ExerciseSection>
 
-        {/* NASM Balance & Core */}
-        <NASMProtocolSection
+        {/* NASM Balance & Core (2026-04-17: compact rolodex-first card) */}
+        <CompactProtocolSection
           title="Balance, Core & Stability"
           icon={<Shield size={18} style={{ color: '#8B5CF6' }} />}
-          items={balanceCoreItems}
-          isOpen={nasmSectionsOpen.balanceCore}
-          onToggleOpen={() => toggleNasmSection('balanceCore')}
-          onToggleItem={(idx) => toggleNasmItem(setBalanceCoreItems, idx)}
+          sectionKey="balance_core"
+          selectedItems={selectedBalanceCore}
+          recommendedItems={getRecommendedProtocolItems('balance_core', currentOPTPhase)}
+          isOpen={nasmSectionsOpen.balance_core}
+          onToggleOpen={() => toggleNasmSection('balance_core')}
+          onAddFromRolodex={() => requestAddForSection('balance_core')}
+          onQuickAddPreset={(item) => addProtocolPreset('balance_core', item)}
+          onRemoveSelected={(id) => removeProtocolItem('balance_core', id)}
         />
 
-        {/* NASM Cooldown */}
-        <NASMProtocolSection
+        {/* NASM Cooldown (2026-04-17: compact rolodex-first card) */}
+        <CompactProtocolSection
           title="Cooldown & Recovery"
           icon={<RotateCcw size={18} style={{ color: CS.accent }} />}
-          items={cooldownItems}
+          sectionKey="cooldown"
+          selectedItems={selectedCooldown}
+          recommendedItems={getRecommendedProtocolItems('cooldown', currentOPTPhase)}
           isOpen={nasmSectionsOpen.cooldown}
           onToggleOpen={() => toggleNasmSection('cooldown')}
-          onToggleItem={(idx) => toggleNasmItem(setCooldownItems, idx)}
+          onAddFromRolodex={() => requestAddForSection('cooldown')}
+          onQuickAddPreset={(item) => addProtocolPreset('cooldown', item)}
+          onRemoveSelected={(id) => removeProtocolItem('cooldown', id)}
         />
 
         {/* Session Summary */}

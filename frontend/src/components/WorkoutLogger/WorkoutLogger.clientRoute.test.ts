@@ -383,6 +383,10 @@ describe('Phase 16.2 — Phase 16 + 16.1-UX contracts preserved', () => {
     expect(SOURCE).toMatch(/buildWorkoutFormSubmitBody\s*\(\s*\{/);
   });
 
+  it('CompactProtocolSection imports preserved', () => {
+    expect(SOURCE).toMatch(/import\s+CompactProtocolSection/);
+  });
+
   it('AI_TOGGLE_NASM_ITEM bridge preserved', () => {
     expect(SOURCE).toMatch(/addEventListener\(\s*['"]AI_TOGGLE_NASM_ITEM['"]/);
   });

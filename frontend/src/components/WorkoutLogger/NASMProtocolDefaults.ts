@@ -155,3 +155,103 @@ export const getBalanceCoreForPhase = (phase: number): NASMDefaultItem[] =>
 
 export const getCooldownForPhase = (phase: number): NASMDefaultItem[] =>
   DEFAULT_COOLDOWN_ITEMS.filter(i => i.phases.includes(phase));
+
+// ─── Compact recommendation helper (2026-04-17) ─────────────────────
+//
+// Used by `CompactProtocolSection` to surface a short list of
+// phase-appropriate items for quick-add chips. Kept as a shared helper
+// (not inline in the logger JSX) so Swan Coach / Coach Assistant can
+// import the same recommendation source when emitting AI-driven
+// protocol suggestions. Section keys match the `sectionContext`
+// vocabulary on NASMExerciseRolodex.
+
+export const PROTOCOL_SECTION_KEYS = ['warmup', 'balance_core', 'cooldown'] as const;
+export type ProtocolSectionKey = typeof PROTOCOL_SECTION_KEYS[number];
+
+const SECTION_SOURCES: Record<ProtocolSectionKey, NASMDefaultItem[]> = {
+  warmup: DEFAULT_WARMUP_ITEMS,
+  balance_core: DEFAULT_BALANCE_CORE_ITEMS,
+  cooldown: DEFAULT_COOLDOWN_ITEMS,
+};
+
+/** Look up a protocol default item by its id across all sections. */
+export function findProtocolDefaultById(id: string): NASMDefaultItem | undefined {
+  for (const bucket of Object.values(SECTION_SOURCES)) {
+    const hit = bucket.find((item) => item.id === id);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/** Get the full default list for a given section (all phases). */
+export function getAllProtocolDefaultsForSection(
+  sectionKey: ProtocolSectionKey,
+): NASMDefaultItem[] {
+  return SECTION_SOURCES[sectionKey] ?? [];
+}
+
+/**
+ * Find a protocol default item in a given section whose name contains
+ * the supplied fragment (case-insensitive substring match). Used by the
+ * AI_TOGGLE_NASM_ITEM bridge to translate assistant-supplied item names
+ * into canonical ProtocolSelection records.
+ */
+export function findProtocolDefaultByName(
+  sectionKey: ProtocolSectionKey,
+  nameFragment: string,
+): NASMDefaultItem | undefined {
+  const fragment = nameFragment.trim().toLowerCase();
+  if (!fragment) return undefined;
+  return SECTION_SOURCES[sectionKey]?.find((item) =>
+    item.name.toLowerCase().includes(fragment),
+  );
+}
+
+/**
+ * Return a small curated list of phase-appropriate items for a given
+ * protocol section. Bias the sample across the section's category mix
+ * (e.g. warmup wants a mix of SMR + stretch + dynamic, not eight foam
+ * rolls in a row).
+ *
+ * @param sectionKey  'warmup' | 'balance_core' | 'cooldown'
+ * @param phase       OPT phase 1–5
+ * @param limit       Max items to return (default 6)
+ */
+export function getRecommendedProtocolItems(
+  sectionKey: ProtocolSectionKey,
+  phase: number,
+  limit = 6,
+): NASMDefaultItem[] {
+  const source = SECTION_SOURCES[sectionKey] ?? [];
+  const phaseFiltered = source.filter((i) => i.phases.includes(phase));
+
+  // Round-robin by category so the recommendations don't all come from
+  // the same sub-group. If only one category is present, this is a
+  // no-op; if several are present, each category gets representation
+  // until we hit the limit.
+  const byCategory = new Map<NASMCategory, NASMDefaultItem[]>();
+  for (const item of phaseFiltered) {
+    const bucket = byCategory.get(item.category);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      byCategory.set(item.category, [item]);
+    }
+  }
+
+  const out: NASMDefaultItem[] = [];
+  const buckets = Array.from(byCategory.values());
+  let cursor = 0;
+  while (out.length < limit && buckets.some((b) => b.length > 0)) {
+    const bucket = buckets[cursor % buckets.length];
+    if (bucket.length > 0) {
+      const picked = bucket.shift();
+      if (picked) out.push(picked);
+    }
+    cursor++;
+    // Safety: if we've fully drained all buckets, break.
+    if (cursor > phaseFiltered.length + buckets.length) break;
+  }
+
+  return out;
+}
