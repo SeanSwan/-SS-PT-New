@@ -947,6 +947,13 @@ export const completeSession = async (req, res) => {
           const trainerName = req.user.firstName
             ? `${req.user.firstName} ${req.user.lastName || ''}`.trim()
             : 'Trainer';
+          // Phase 16 (2026-04-16): scheduled-session auto-completion creates
+          // a placeholder WorkoutSession row so trainer/admin dashboards can
+          // see it was completed, but we intentionally do NOT seed a fake
+          // intensity rating. The trainer never explicitly rated this
+          // session, so the column stays null. Postgres AVG() on the
+          // canonical intensity chart excludes null, so these placeholder
+          // rows correctly don't drag the trend line toward 5.0.
           linkedWorkoutSession = await WorkoutSession.create({
             userId: session.client.id,
             trainerId: session.trainerId || req.user.id,
@@ -954,7 +961,7 @@ export const completeSession = async (req, res) => {
             title: `Training Session with ${trainerName}`,
             date: session.sessionDate || new Date(),
             duration: session.duration || 60,
-            intensity: 5,
+            intensity: null,
             totalWeight: 0,
             totalReps: 0,
             totalSets: 0,

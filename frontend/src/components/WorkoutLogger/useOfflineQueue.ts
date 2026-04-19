@@ -26,7 +26,11 @@ interface QueuedWorkout {
     date: string;
     exercises: any[];
     sessionNotes: string;
-    overallIntensity: number;
+    // Phase 16 (2026-04-16): nullable on the wire. Older queued items
+    // written before this change may still carry a number (the old
+    // phantom 5) — they will flush to the backend which accepts either
+    // shape and will persist whatever value was recorded at queue time.
+    overallIntensity?: number | null;
   };
 }
 

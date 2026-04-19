@@ -627,8 +627,20 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
     }
     
     // Client accessing their own data
-    const clientId = parseInt(req.params.clientId || req.body.clientId);
-    if (req.user.role === 'client' && req.user.id === clientId) {
+    //
+    // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
+    // by `protect` (authMiddleware.mjs:359 via toStringId), while clientId
+    // from params/body is parseInt'd to a number. `string === number` is
+    // always false, so the old `req.user.id === clientId` strict-equality
+    // gate silently 403'd every legitimate client self-access, including
+    // the canonical /dashboard/client/log-workout save path.
+    //
+    // Fix: parse req.user.id to a number on the comparison side. Both sides
+    // are now compared as numbers. NaN === NaN is false, so malformed
+    // inputs still fall through to the deny branch safely.
+    const clientId = parseInt(req.params.clientId || req.body.clientId, 10);
+    const userNumericId = parseInt(req.user.id, 10);
+    if (req.user.role === 'client' && userNumericId === clientId) {
       return next();
     }
     
@@ -638,9 +650,11 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
       const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
 
       // Check if this trainer is assigned to this client
+      // Use userNumericId (parseInt from req.user.id) so Sequelize sees a
+      // numeric trainerId against the INT column, matching clientId shape.
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          trainerId: req.user.id,
+          trainerId: userNumericId,
           clientId: clientId,
           status: 'active'
         }

@@ -221,7 +221,7 @@ function buildLogRows(exercises, sessionId) {
  * @param {string}  [params.notes]       - Session notes
  * @param {string}  [params.title]       - Session title; auto-generated if absent
  * @param {number}  [params.duration]    - Duration in minutes; defaults to 0
- * @param {number}  [params.intensity]   - Intensity 1–10; defaults to 5
+ * @param {number|null}  [params.intensity]   - Intensity 1–10. Null / undefined = not rated (Phase 16). Only validated when provided.
  * @param {number}   params.trainerId    - Trainer/admin user ID performing the write
  * @param {Object}   params.sequelize    - Sequelize instance
  *
@@ -283,9 +283,19 @@ export async function logWorkoutForClient({
     throw new WorkoutLogError('duration must be a non-negative integer', 'VALIDATION_ERROR');
   }
 
-  const parsedIntensity = Number(intensity ?? 5);
-  if (!Number.isFinite(parsedIntensity) || parsedIntensity < 1 || parsedIntensity > 10) {
-    throw new WorkoutLogError('intensity must be between 1 and 10', 'VALIDATION_ERROR');
+  // Phase 16 (2026-04-16): null/undefined intensity = "not rated", persisted
+  // as null. Validate the 1-10 range only when the caller actually supplied
+  // a value. Previously this path substituted `?? 5`, seeding phantom 5/10
+  // rows into the canonical intensity chart for every session where the
+  // user hadn't touched the rating slider. Accepts both `undefined` (key
+  // omitted from frontend payload — the wire contract) and explicit `null`
+  // (defensive, mirrors set.rpe handling above).
+  let parsedIntensity = null;
+  if (intensity !== undefined && intensity !== null) {
+    parsedIntensity = Number(intensity);
+    if (!Number.isFinite(parsedIntensity) || parsedIntensity < 1 || parsedIntensity > 10) {
+      throw new WorkoutLogError('intensity must be between 1 and 10', 'VALIDATION_ERROR');
+    }
   }
 
   const resolvedTitle = (typeof title === 'string' && title.trim())

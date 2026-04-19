@@ -147,14 +147,176 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
     expect(names).not.toContain('trainerOrAdminOnly');
   });
 
-  it('POST / (form submission) still requires `trainerOrAdminOnly` — writers are unchanged', () => {
-    // Anti-regression: the fix must be scoped to the read path. Writes must
-    // remain trainer/admin gated so clients cannot forge their own workout logs.
+  it('POST / (form submission) requires `protect` but NOT `trainerOrAdminOnly` — client self-log is supported', () => {
+    // Phase 16.2 round 4 fix (2026-04-18): the docstring at
+    // dailyWorkoutFormRoutes.mjs:378 has always claimed this route supports
+    // "Trainer, Admin, or Client (self only)", but the previous middleware
+    // chain included `trainerOrAdminOnly`, which 403'd clients BEFORE the
+    // handler's self-check could run. The canonical client self-log route
+    // `/dashboard/client/log-workout` hit this on every save attempt.
+    //
+    // The fix is to drop the outer role gate. `checkTrainerClientRelationship`
+    // is role-aware (authMiddleware.mjs:614+): admins pass, clients accessing
+    // their own id pass, trainers must have an active
+    // ClientTrainerAssignment. The handler also enforces client-self at
+    // dailyWorkoutFormRoutes.mjs:414 and trainer edit_workouts permission at
+    // dailyWorkoutFormRoutes.mjs:423-434 — so forging a peer's workout log
+    // from a client session remains impossible.
     const layer = findLayer('post', '/');
     expect(layer).toBeTruthy();
     const names = middlewareNames(layer);
     expect(names).toContain('protect');
-    expect(names).toContain('trainerOrAdminOnly');
+    expect(names).toContain('checkTrainerClientRelationship');
+    expect(names).not.toContain('trainerOrAdminOnly');
+  });
+
+  it('POST / handler body still enforces client-self and trainer-permission checks (defense-in-depth)', () => {
+    // Source-level lock: even though the outer `trainerOrAdminOnly` is gone,
+    // the handler body MUST keep the in-handler client-self check and the
+    // trainer edit_workouts permission check. Removing either would
+    // re-enable the "clients forge peer logs" class of regression.
+    //
+    // Phase 16.2 round 5 update: the client-self check now compares numbers
+    // on both sides (parseInt(clientId, 10) vs userNumericId). Previously
+    // `parseInt(clientId) !== req.user.id` compared number !== string and
+    // was always true — every client save was silently 403'd by the inline
+    // check even when the middleware allowed the request through.
+    expect(source).toMatch(
+      /userRole === 'client' && parseInt\(clientId,\s*10\) !== userNumericId[\s\S]{0,300}Clients can only log their own workouts/
+    );
+    expect(source).toMatch(
+      /userRole === 'trainer'[\s\S]{0,400}checkTrainerPermission\s*\(\s*trainerId\s*,\s*PERMISSION_TYPES\.EDIT_WORKOUTS\s*\)/
+    );
+  });
+
+  it('POST / handler coerces req.user.id to a number once at handler entry (Phase 16.2 round 5)', () => {
+    // Anti-regression lock for the string/number drift that blocked the
+    // canonical client self-log. `protect` stores req.user.id as a string
+    // (authMiddleware.mjs:359), and downstream code compares it against
+    // parseInt results. The handler MUST derive `userNumericId` once at
+    // the top so every comparison/Sequelize lookup uses the numeric form.
+    expect(source).toMatch(
+      /const\s+userNumericId\s*=\s*parseInt\(\s*req\.user\.id\s*,\s*10\s*\)\s*;/
+    );
+    // trainerId used for permission checks and Sequelize lookups must be
+    // the numeric form too.
+    expect(source).toMatch(
+      /const\s+trainerId\s*=\s*userNumericId\s*;/
+    );
+  });
+});
+
+describe('dailyWorkoutFormRoutes — client self-log trainerId attribution (Phase 16.2 round 9)', () => {
+  // For client self-log, the actor (req.user.id) IS the client — so
+  // stamping `trainerId: userNumericId` on the DailyWorkoutForm creates
+  // a row where clientId === trainerId, which the model's
+  // `clientTrainerDifferent` validator (DailyWorkoutForm.mjs:349-353)
+  // rejects with "Client and trainer must be different users".
+  //
+  // Fix: derive `attributedTrainerId` separately from the actor. For
+  // client self-log, look up the client's active ClientTrainerAssignment
+  // and use its trainerId; fall back to the lowest-id admin if no
+  // assignment exists.
+
+  it('derives attributedTrainerId separately from the actor trainerId', () => {
+    expect(source).toMatch(
+      /let\s+attributedTrainerId\s*=\s*trainerId\s*;/,
+    );
+  });
+
+  it('branches on userRole === "client" to look up an active assignment', () => {
+    // Lock the shape of the role-gated derivation. Any refactor that
+    // drops the role branch would re-stamp the actor as the trainer.
+    const idx = source.indexOf('let attributedTrainerId');
+    expect(idx).toBeGreaterThan(-1);
+    const slice = source.slice(idx, idx + 2000);
+    expect(slice).toMatch(/if\s*\(\s*userRole\s*===\s*['"]client['"]\s*\)/);
+    expect(slice).toMatch(/ClientTrainerAssignment[\s\S]{0,300}findOne/);
+    expect(slice).toMatch(/status:\s*['"]active['"]/);
+  });
+
+  it('falls back to the lowest-id admin when no active assignment exists', () => {
+    const idx = source.indexOf('let attributedTrainerId');
+    const slice = source.slice(idx, idx + 2000);
+    expect(slice).toMatch(
+      /User\.findOne\(\s*\{[\s\S]{0,200}role:\s*['"]admin['"][\s\S]{0,300}order:\s*\[\s*\[\s*['"]id['"]\s*,\s*['"]ASC['"]\s*\]/,
+    );
+  });
+
+  it('guards the admin fallback against the self-fallback edge case', () => {
+    // If for any reason the only admin user IS the actor (e.g. an admin
+    // logging their own "client-role" workout via some migration path),
+    // the fallback must not re-introduce the same-user bug.
+    const idx = source.indexOf('let attributedTrainerId');
+    const slice = source.slice(idx, idx + 2000);
+    expect(slice).toMatch(/fallbackAdmin[\s\S]{0,200}=== userNumericId/);
+  });
+
+  it('also guards the assignment path from re-stamping the actor', () => {
+    // Defense-in-depth: if an assignment row somehow has trainerId === clientId
+    // (corrupt data), we must NOT use it.
+    const idx = source.indexOf('let attributedTrainerId');
+    const slice = source.slice(idx, idx + 2000);
+    expect(slice).toMatch(/assignment\?\.trainerId[\s\S]{0,100}!==\s*userNumericId/);
+  });
+
+  it('DailyWorkoutForm.create uses attributedTrainerId for the trainerId column', () => {
+    // The canonical DB write must use the derived attribution id, not
+    // the actor id. This is the specific call site that threw the
+    // validation error in round 9.
+    const createIdx = source.indexOf('DailyWorkoutForm.create({');
+    expect(createIdx).toBeGreaterThan(-1);
+    const slice = source.slice(createIdx, createIdx + 600);
+    expect(slice).toMatch(/trainerId:\s*attributedTrainerId/);
+    // And it must NOT use the bare `trainerId` shorthand (which would be
+    // the actor id — the bug we're locking out).
+    expect(slice).not.toMatch(/\btrainerId\s*,\s*$|\btrainerId\s*,\s*\n\s*date/);
+  });
+});
+
+describe('dailyWorkoutFormRoutes — ESM runtime hygiene (Phase 16.2 round 8)', () => {
+  // The canonical POST /api/workout-forms save path ran `require('crypto')
+  // .randomUUID()` inline when creating a new WorkoutSession. In an .mjs
+  // module `require` is not defined, so every client self-log save that
+  // reached the WorkoutSession.findOrCreate step 500'd with
+  // `require is not defined` AFTER auth, middleware, Phase 16.2 schema
+  // migration, and timestamp mapping were all clean. The fix was to
+  // import `randomUUID` from `node:crypto` at module top and call it
+  // directly.
+  it('does not call CJS require() anywhere in this ESM route file', () => {
+    // Allow `require` inside comments (the fix docstring explains the
+    // previous bug). Strip comments before scanning.
+    const stripComments = (src) => src
+      .replace(/\/\*[\s\S]*?\*\//g, '')     // block comments
+      .replace(/^[^\n]*\/\/[^\n]*$/gm, ''); // line comments (conservative)
+    const codeOnly = stripComments(source);
+    expect(codeOnly).not.toMatch(/\brequire\s*\(/);
+  });
+
+  it('imports randomUUID from node:crypto at the top of the file', () => {
+    // Positive lock on the ESM replacement. If a future refactor removes
+    // this import but re-introduces a bare require() somewhere, the test
+    // above catches the require; this test catches the missing import.
+    expect(source).toMatch(
+      /^import\s*\{\s*randomUUID\s*\}\s*from\s*['"]node:crypto['"];?$/m,
+    );
+  });
+
+  it('WorkoutSession.findOrCreate defaults use randomUUID() directly, not require', () => {
+    // Narrow lock on the specific call site that broke the save path.
+    // Positive lock looks in a wide window so we tolerate future formatting
+    // changes. Negative lock strips comments first so the fix-docstring
+    // (which references the old `require('crypto')` shape as context)
+    // doesn't trip a false positive.
+    const idx = source.indexOf('WorkoutSession.findOrCreate');
+    expect(idx).toBeGreaterThan(-1);
+    const slice = source.slice(idx, idx + 2000);
+    expect(slice).toMatch(/\bid:\s*randomUUID\(\)/);
+
+    const codeOnly = slice
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    expect(codeOnly).not.toMatch(/require\(\s*['"]crypto['"]\s*\)/);
   });
 });
 
@@ -216,15 +378,27 @@ describe('dailyWorkoutFormRoutes — writer-default-value defensive locks (Phase
     );
   });
 
-  it('sessionIntensity reducer reads form.formData?.overallIntensity with a defensive coercion', () => {
-    // Today the reducer ships `intensity: form.formData?.overallIntensity || 0`.
-    // Once the writer-side fix flips overallIntensity default to null, this
-    // coercion will produce 0-intensity entries — a follow-up read-chain fix
-    // must add `.filter(s => s.intensity > 0)` before shipping. Lock the
-    // current shape so the follow-up is forced through review.
-    expect(source).toMatch(
+  it('sessionIntensity reducer is now null-honest (Phase 16, 2026-04-16)', () => {
+    // Phase 16 update: the reducer previously shipped
+    // `intensity: form.formData?.overallIntensity || 0`, which would
+    // zero-fill nulls once the writer flipped to null-honest. The
+    // Phase 16 fix added a guarded coercion instead:
+    //   const rawIntensity = form.formData?.overallIntensity;
+    //   const intensity = (raw === undefined || raw === null) ? null : raw;
+    // Lock the new shape: no `|| 0` fallback on this reader, and
+    // explicit null propagation via the rawIntensity variable.
+    expect(source).not.toMatch(
       /intensity:\s*form\.formData\?\.overallIntensity\s*\|\|\s*0/
     );
+    // Locate the sessionIntensity reducer block and assert the new
+    // guarded pattern lives inside.
+    const sessionIntensityIdx = source.indexOf('sessionIntensity = forms.map');
+    expect(sessionIntensityIdx).toBeGreaterThan(0);
+    const sliceEnd = source.indexOf('Build response', sessionIntensityIdx);
+    const slice = source.slice(sessionIntensityIdx, sliceEnd);
+    expect(slice).toMatch(/rawIntensity/);
+    expect(slice).toMatch(/=== undefined/);
+    expect(slice).toMatch(/=== null/);
   });
 
   it('rpeDistribution reducer iterates set.rpe (not session-level intensity)', () => {

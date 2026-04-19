@@ -366,6 +366,94 @@ router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => 
 });
 
 /**
+ * @route GET /api/exercises/library
+ * @desc Client-safe exercise library listing. Returns the same payload
+ *       shape as /api/exercises/all but is available to any authenticated
+ *       user (including the `client` role), not just trainers and admins.
+ *       Added 2026-04-17 to unblock the client self-log surface at
+ *       /dashboard/client/log-workout, which previously called /all and
+ *       hit 403.
+ * @access Private (any authenticated user — client / trainer / admin)
+ * @note The exercise library itself is non-sensitive reference data
+ *       (names, muscle groups, difficulty, equipment). Trainer-authored
+ *       private programs live on different endpoints and are not
+ *       exposed here.
+ */
+router.get('/library', protect, apiLimiter, async (req, res) => {
+  try {
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({ success: false, message: 'Exercise model not available' });
+    }
+
+    // Same attribute + fallback shape as /all — deliberate duplication
+    // (not extraction) to keep the existing /all behavior exactly as-is
+    // for its current trainer/admin consumers, and avoid coupling
+    // changes on this new client-facing endpoint to the older one.
+    let exercises;
+    try {
+      exercises = await Exercise.findAll({
+        attributes: [
+          'id', 'name', 'exerciseType', 'primaryMuscles',
+          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
+          'description', 'easyVariation', 'hardVariation',
+          'kneeMod', 'shoulderMod', 'ankleMod', 'wristMod', 'backMod', 'elbowMod', 'footMod', 'hipMod',
+        ],
+        where: { isActive: true },
+        order: [['name', 'ASC']],
+        raw: true,
+      });
+    } catch {
+      exercises = await Exercise.findAll({
+        attributes: ['id', 'name', 'exerciseType', 'primaryMuscles', 'difficulty'],
+        order: [['name', 'ASC']],
+        raw: true,
+      });
+    }
+
+    const formatted = exercises.map(ex => {
+      let equipment = [];
+      try {
+        let parsed = ex.equipmentNeeded;
+        if (typeof parsed === 'string') {
+          parsed = JSON.parse(parsed);
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        }
+        equipment = Array.isArray(parsed) ? parsed : [];
+      } catch { equipment = []; }
+      return {
+        id: ex.id,
+        name: ex.name,
+        exerciseKey: ex.exercise_key || '',
+        exerciseType: ex.exerciseType || '',
+        bodyPartCategory: ex.bodyPartCategory || 'Full Body',
+        primaryMuscles: ex.primaryMuscles || [],
+        difficulty: ex.difficulty || 0,
+        equipment,
+        source: ex.source || 'swanstudios',
+        description: ex.description || null,
+        easyVariation: ex.easyVariation || null,
+        hardVariation: ex.hardVariation || null,
+        kneeMod: ex.kneeMod || null,
+        shoulderMod: ex.shoulderMod || null,
+        ankleMod: ex.ankleMod || null,
+        wristMod: ex.wristMod || null,
+        backMod: ex.backMod || null,
+        elbowMod: ex.elbowMod || null,
+        footMod: ex.footMod || null,
+        hipMod: ex.hipMod || null,
+      };
+    });
+
+    res.set('Cache-Control', 'private, max-age=300');
+    res.json({ success: true, exercises: formatted, count: formatted.length });
+  } catch (error) {
+    logger.error('Exercise library error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch exercise library' });
+  }
+});
+
+/**
  * @route GET /api/exercises/:id/teach-mode
  * @desc Deep exercise data for Teach Mode (instructions, cues, safety, biomechanics, progression)
  *       Separate from /:id to avoid bloating the standard exercise response.

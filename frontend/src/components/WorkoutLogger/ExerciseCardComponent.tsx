@@ -32,6 +32,13 @@ interface ExerciseCardComponentProps {
   getOverload?: (exerciseName: string, setIndex: number) => OverloadSuggestionType | null;
   /** Optional: callback when a set is "confirmed" (triggers rest timer) */
   onSetLogged?: (exerciseIndex: number, setIndex: number) => void;
+  /**
+   * When true, GhostDataRow and any other ghost-prefill child skips its
+   * admin-only fetch. Used on the client self-log route (Phase 16.2
+   * round 12). Defaults to false so trainer/admin mounts keep their
+   * ghost data behavior.
+   */
+  ghostSkip?: boolean;
 }
 
 const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo(({
@@ -46,6 +53,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   onRemoveExercise,
   getOverload,
   onSetLogged,
+  ghostSkip = false,
 }) => (
   <CardContainer
     $isSuperset={supersetGroup != null && supersetGroup > 0}
@@ -127,6 +135,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               exerciseName={exercise.exerciseName}
               clientId={clientId}
               setIndex={setIndex}
+              skip={ghostSkip}
             />
           )}
         <SetRow>

@@ -29,6 +29,18 @@ interface GhostDataRowProps {
   exerciseName: string;
   clientId: number;
   setIndex: number;
+  /**
+   * When true, the component becomes a no-op: no network request fires
+   * and nothing renders. Used on the client self-log route (Phase 16.2
+   * round 12) where the underlying `/api/admin/clients/:id/workouts`
+   * endpoint is admin-only and 403s for client sessions. Ghost data is
+   * a speed/UX feature, not correctness — skipping it keeps the client
+   * route clean of forbidden requests.
+   *
+   * This mirrors the `skip` option on `useGhostPreFill`; both share the
+   * same API endpoint and the same client-route avoidance rule.
+   */
+  skip?: boolean;
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
@@ -40,11 +52,15 @@ const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
   exerciseName,
   clientId,
   setIndex,
+  skip = false,
 }) => {
   const [ghostSet, setGhostSet] = useState<GhostSet | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
+    // Round 12 (2026-04-18): bail before any network path. Kept inside
+    // the effect so the component doesn't conditionally call hooks.
+    if (skip) return;
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
@@ -97,7 +113,7 @@ const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
       .catch(() => {
         ghostCache.set(cacheKey, null);
       });
-  }, [exerciseName, clientId, setIndex]);
+  }, [exerciseName, clientId, setIndex, skip]);
 
   if (!ghostSet) return null;
 

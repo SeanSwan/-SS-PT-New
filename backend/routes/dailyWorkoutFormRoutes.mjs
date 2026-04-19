@@ -17,6 +17,7 @@
  */
 
 import express from 'express';
+import { randomUUID } from 'node:crypto';
 import { protect, trainerOrAdminOnly, adminOnly, checkTrainerClientRelationship } from '../middleware/authMiddleware.mjs';
 import {
   getDailyWorkoutForm,
@@ -377,13 +378,33 @@ const processMCPIntegration = async (formId, formData) => {
  * @desc    Submit a daily workout form
  * @access  Trainer (with edit_workouts permission), Admin, or Client (self only)
  * @body    { clientId, date, exercises, sessionNotes?, overallIntensity? }
+ *
+ * 2026-04-18 (Codex round 4 fix): removed `trainerOrAdminOnly` from the
+ * middleware chain. The docstring above has always claimed client
+ * self-log is allowed, and the handler body enforces it at lines 398-405
+ * (client can only submit for themselves). But the previous middleware
+ * chain included `trainerOrAdminOnly`, which 403'd clients BEFORE the
+ * handler's self-check could run. The client self-log route at
+ * `/dashboard/client/log-workout` hit this 403 on every save attempt.
+ *
+ * `checkTrainerClientRelationship` is role-aware
+ * (authMiddleware.mjs:614+): admins pass, clients accessing their own
+ * id pass, trainers must have an active ClientTrainerAssignment. That
+ * middleware is correct as-is. The handler also runs the trainer
+ * edit_workouts permission check inline (lines 408-416) so nothing is
+ * lost by dropping the outer role gate.
  */
-router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, async (req, res) => {
+router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
     const { clientId, date, exercises, sessionNotes, overallIntensity } = req.body;
-    const trainerId = req.user.id;
+    // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
+    // by `protect` (authMiddleware.mjs:359). Callers here need a number for
+    // comparison against parseInt(clientId) and for Sequelize trainerId
+    // lookups against an INT column. Coerce once at the top of the handler.
+    const userNumericId = parseInt(req.user.id, 10);
+    const trainerId = userNumericId;
     const userRole = req.user.role;
 
     // Validate required fields
@@ -396,7 +417,7 @@ router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, as
     }
 
     // Client can only submit for themselves
-    if (userRole === 'client' && parseInt(clientId) !== req.user.id) {
+    if (userRole === 'client' && parseInt(clientId, 10) !== userNumericId) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -419,7 +440,7 @@ router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, as
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId),
+          clientId: parseInt(clientId, 10),
           trainerId,
           status: 'active'
         },
@@ -467,6 +488,54 @@ router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, as
       });
     }
 
+    // 2026-04-18 Phase 16.2 round 9 — derive the DailyWorkoutForm's
+    // trainerId separately from the acting user. `trainerId` above is the
+    // ACTOR (the authenticated user who submitted the request). For client
+    // self-log, the actor IS the client, but the DailyWorkoutForm's
+    // `trainer_id` column cannot be the client's own id — the model's
+    // `clientTrainerDifferent` validator (DailyWorkoutForm.mjs:349-353)
+    // rejects any row with `clientId === trainerId`. The column is also
+    // `allowNull: false` with an FK to users(id), so we can't just set
+    // null without a migration.
+    //
+    // Resolution order for client self-log:
+    //   1. Use the client's active `ClientTrainerAssignment.trainerId` —
+    //      semantically the trainer who oversees this client's program.
+    //   2. Fall back to the lowest-id admin user — represents "no assigned
+    //      trainer, platform-supervised workout" (typical for Move Fitness
+    //      onboarding or unclaimed clients).
+    //   3. If neither exists (no admin seeded), refuse the save with 500.
+    //
+    // Trainer/admin path: actor and form's trainerId are the same user.
+    let attributedTrainerId = trainerId;
+    if (userRole === 'client') {
+      const ClientTrainerAssignment = getClientTrainerAssignment();
+      const assignment = await ClientTrainerAssignment.findOne({
+        where: {
+          clientId: parseInt(clientId, 10),
+          status: 'active',
+        },
+        transaction,
+      });
+      if (assignment?.trainerId && assignment.trainerId !== userNumericId) {
+        attributedTrainerId = assignment.trainerId;
+      } else {
+        const fallbackAdmin = await User.findOne({
+          where: { role: 'admin' },
+          order: [['id', 'ASC']],
+          transaction,
+        });
+        if (!fallbackAdmin || fallbackAdmin.id === userNumericId) {
+          await transaction.rollback();
+          return res.status(500).json({
+            success: false,
+            message: 'Unable to attribute workout — no valid trainer or admin available'
+          });
+        }
+        attributedTrainerId = fallbackAdmin.id;
+      }
+    }
+
     // Check if a workout form already exists for this client on this date
     const DailyWorkoutForm = getDailyWorkoutForm();
     const existingForm = await DailyWorkoutForm.findOne({
@@ -497,12 +566,24 @@ router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, as
         date: date
       },
       defaults: {
-        id: require('crypto').randomUUID(),
+        // 2026-04-18 Phase 16.2 round 8 fix — was `require('crypto').randomUUID()`
+        // inside an .mjs module, which threw `require is not defined` at
+        // runtime on the canonical save path. Switched to the ESM `node:crypto`
+        // import at the top of this file. Same UUID v4 primitive, correct
+        // module system.
+        id: randomUUID(),
         userId: clientId,
         title: `Personal Training Session - ${date}`,
         date: date,
         duration: estimatedDuration,
-        intensity: overallIntensity || 5,
+        // Phase 16 (2026-04-16): honor null when the logger did not record
+        // an intensity rating. The previous `|| 5` fallback seeded a
+        // phantom 5/10 into the canonical chart on every untouched save.
+        // Accepts both `undefined` (key omitted from payload — the wire
+        // contract) and explicit `null`.
+        intensity: (overallIntensity === undefined || overallIntensity === null)
+          ? null
+          : overallIntensity,
         notes: sessionNotes || '',
         status: 'completed',
         completedAt: new Date()
@@ -510,21 +591,32 @@ router.post('/', protect, trainerOrAdminOnly, checkTrainerClientRelationship, as
       transaction
     });
 
-    // Create daily workout form
+    // Create daily workout form.
+    //
+    // Phase 16: when the client logger did not record an overall intensity
+    // rating, omit the key from formData rather than stamping 5. Legacy
+    // daily-form readers treat missing `overallIntensity` as "not rated"
+    // (null-guards added in this phase).
     const formData = {
       exercises,
       sessionNotes: sessionNotes || '',
-      overallIntensity: overallIntensity || 5,
       submittedBy: trainerId,
       submittedAt: new Date(),
       totalSets,
       estimatedDuration
     };
+    if (overallIntensity !== undefined && overallIntensity !== null) {
+      formData.overallIntensity = overallIntensity;
+    }
 
     const dailyForm = await DailyWorkoutForm.create({
       sessionId: workoutSession.id,
       clientId: parseInt(clientId),
-      trainerId,
+      // Use the role-resolved attribution trainer (see round 9 derivation
+      // above). For trainer/admin actors this equals `trainerId`; for
+      // client self-log it's the assigned trainer or admin fallback so
+      // the model's `clientTrainerDifferent` validator passes.
+      trainerId: attributedTrainerId,
       date,
       formData,
       sessionDeducted: false,
@@ -922,15 +1014,26 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
       });
     }
 
-    // Process data for charts (null-safe: formData may be null/undefined)
-    const workoutHistory = forms.map(form => ({
-      date: form.date,
-      duration: form.getEstimatedDuration(),
-      intensity: form.formData?.overallIntensity || 5,
-      totalVolume: form.getTotalVolume(),
-      exerciseCount: form.getExerciseCount(),
-      pointsEarned: form.totalPointsEarned
-    }));
+    // Process data for charts (null-safe: formData may be null/undefined).
+    //
+    // Phase 16 (2026-04-16): `|| 5` fallback removed. When the logger did
+    // not record an intensity rating, propagate null to the reader so
+    // downstream callers can render "not rated" instead of a phantom 5.
+    // Matches the null-honest writer contract on this same file.
+    const workoutHistory = forms.map(form => {
+      const rawIntensity = form.formData?.overallIntensity;
+      const intensity = (rawIntensity === undefined || rawIntensity === null)
+        ? null
+        : rawIntensity;
+      return {
+        date: form.date,
+        duration: form.getEstimatedDuration(),
+        intensity,
+        totalVolume: form.getTotalVolume(),
+        exerciseCount: form.getExerciseCount(),
+        pointsEarned: form.totalPointsEarned
+      };
+    });
 
     const formTrends = forms.map(form => {
       const exercises = form.formData?.exercises || [];
@@ -1425,15 +1528,22 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     }));
 
     // ========== 13. Session Intensity (per-form intensity + duration + volume) ==========
-    // Caveat: formData.overallIntensity defaults to 5 in the writer when the
-    // trainer does not adjust the session-level intensity slider. Same UX
-    // truthfulness caveat as RPE Distribution and Form Quality.
-    const sessionIntensity = forms.map((form, i) => ({
-      date: form.date,
-      duration: form.formData?.estimatedDuration || 0,
-      intensity: form.formData?.overallIntensity || 0,
-      totalVolume: volumeProgression[i]?.totalWeight || 0,
-    }));
+    // Phase 16 (2026-04-16): the writer no longer defaults overallIntensity
+    // to 5. Honor null here so downstream charts can skip unrated sessions
+    // (via `intensity != null` filters) rather than zero-filling and
+    // dragging the trend line toward 0.
+    const sessionIntensity = forms.map((form, i) => {
+      const rawIntensity = form.formData?.overallIntensity;
+      const intensity = (rawIntensity === undefined || rawIntensity === null)
+        ? null
+        : rawIntensity;
+      return {
+        date: form.date,
+        duration: form.formData?.estimatedDuration || 0,
+        intensity,
+        totalVolume: volumeProgression[i]?.totalWeight || 0,
+      };
+    });
 
     // ========== Build response ==========
     const progressData = {

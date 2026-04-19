@@ -307,45 +307,74 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
     throw new Error('At least one exercise is required');
   }
 
-  // Validate and sanitize each exercise
+  // Helper for "only clamp when the caller actually supplied a rating"
+  // (Phase 16 null-honest writer contract).
+  const clampIfProvided = (raw, min, max) => {
+    if (raw === undefined || raw === null || raw === '') return null;
+    const n = parseInt(raw);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(min, Math.min(max, n));
+  };
+
+  // Validate and sanitize each exercise.
+  //
+  // Phase 16 (2026-04-16): stop seeding phantom `rpe: 5`, `formQuality: 3`,
+  // `formRating: 3`, `overallIntensity || 5`. When the AI transcription
+  // extracts a rating we clamp + keep it; when it doesn't, we omit the
+  // field so the persisted row reads as "not rated" rather than a
+  // falsely-confident neutral middle value. `painLevel: 0` stays as-is
+  // per the Phase 16 scope — null-honest painLevel deferred to Phase 16.1.
   const sanitizedExercises = data.exercises.slice(0, 30).map((ex, i) => {
     const name = String(ex.exerciseName || ex.name || `Exercise ${i + 1}`).slice(0, 200);
     const sets = Math.max(1, Math.min(20, parseInt(ex.sets) || 3));
     const reps = Math.max(1, Math.min(100, parseInt(ex.reps) || 10));
     const weight = Math.max(0, Math.min(2000, parseFloat(ex.weight) || 0));
 
-    return {
+    const exRpe = clampIfProvided(ex.rpe, 1, 10);
+    const exFormRating = clampIfProvided(ex.formRating, 1, 5);
+    // formQuality is not currently part of the AI input schema; when
+    // callers start rating per-set form via the AI lane, extend the
+    // schema and thread it through here. For Phase 16 we omit the
+    // field rather than seed 3.
+
+    const entry = {
       exerciseId: `ai-${Date.now()}-${i}`,
       exerciseName: name,
-      sets: Array.from({ length: sets }, (_, j) => ({
-        setNumber: j + 1,
-        weight,
-        reps,
-        rpe: Math.max(1, Math.min(10, parseInt(ex.rpe) || 5)),
-        tempo: String(ex.tempo || '').slice(0, 20),
-        restTime: Math.max(0, Math.min(600, parseInt(ex.restTime) || 60)),
-        formQuality: 3,
-        notes: String(ex.notes || '').slice(0, 500),
-      })),
-      formRating: 3,
+      sets: Array.from({ length: sets }, (_, j) => {
+        const setObj = {
+          setNumber: j + 1,
+          weight,
+          reps,
+          tempo: String(ex.tempo || '').slice(0, 20),
+          restTime: Math.max(0, Math.min(600, parseInt(ex.restTime) || 60)),
+          notes: String(ex.notes || '').slice(0, 500),
+        };
+        if (exRpe !== null) setObj.rpe = exRpe;
+        return setObj;
+      }),
       painLevel: 0,
       performanceNotes: '',
     };
+    if (exFormRating !== null) entry.formRating = exFormRating;
+    return entry;
   });
 
   const formDate = data.date || new Date().toISOString().split('T')[0];
   const sessionNotes = String(data.sessionNotes || 'Logged via AI assistant').slice(0, 2000);
-  const overallIntensity = Math.max(1, Math.min(10, parseInt(data.overallIntensity) || 5));
+  const overallIntensity = clampIfProvided(data.overallIntensity, 1, 10);
 
-  const formData = JSON.stringify({
+  const formDataObj = {
     exercises: sanitizedExercises,
     sessionNotes,
-    overallIntensity,
     submittedBy: trainerId,
     submittedAt: new Date().toISOString(),
     totalSets: sanitizedExercises.reduce((sum, ex) => sum + ex.sets.length, 0),
     source: 'ai_transcription',
-  });
+  };
+  if (overallIntensity !== null) {
+    formDataObj.overallIntensity = overallIntensity;
+  }
+  const formData = JSON.stringify(formDataObj);
 
   await sequelize.query(
     `INSERT INTO daily_workout_forms ("clientId", "trainerId", date, "sessionDeducted",

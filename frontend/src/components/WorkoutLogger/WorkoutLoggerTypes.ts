@@ -81,8 +81,12 @@ export interface ExerciseSet {
   weight: number; // in lbs
   reps: number;
   tempo?: string; // e.g., "2-0-2-0"
-  rpe: number; // Rate of Perceived Exertion (1-10)
-  formQuality: number; // Form rating (1-5 stars)
+  // Phase 16 (2026-04-16): rating fields are nullable. null = "not rated"
+  // by the user. Previously seeded with phantom 5/3 defaults at
+  // construction time, which contaminated the canonical intensity/RPE
+  // chart. Frontend omits these keys from the wire payload when null.
+  rpe: number | null; // Rate of Perceived Exertion (1-10), null = not rated
+  formQuality: number | null; // Form rating (1-5 stars), null = not rated
   notes?: string;
   restTime?: number; // seconds
   completed: boolean;
@@ -121,7 +125,9 @@ export interface WorkoutSession {
   exercises: WorkoutExercise[];
   sessionNotes?: string;
   clientFeedback?: string;
-  overallIntensity: number; // 1-10 scale
+  // Phase 16 (2026-04-16): null = "not rated". Previously `number` forced
+  // phantom 5/10 defaults that contaminated the canonical intensity chart.
+  overallIntensity: number | null; // 1-10 scale, null = not rated
   energyLevel: number; // Client's energy level 1-10
   goals: string[]; // Session goals achieved
   status: WorkoutStatus;
@@ -208,7 +214,8 @@ export interface WorkoutLoggerState {
   // Session Summary
   sessionNotes: string;
   clientFeedback: string;
-  overallIntensity: number;
+  // Phase 16: null = not rated (state-level mirror of the persisted contract).
+  overallIntensity: number | null;
   energyLevel: number;
   goals: string[];
   
@@ -259,15 +266,20 @@ export interface CreateWorkoutLogRequest {
       weight: number;
       reps: number;
       tempo?: string;
-      rpe: number;
-      formQuality: number;
+      // Phase 16 (2026-04-16): rating fields become optional on the wire.
+      // The frontend omits these keys when the user has not rated; the
+      // backend accepts both missing keys and explicit null and persists
+      // as DB null.
+      rpe?: number;
+      formQuality?: number;
       notes?: string;
       restTime?: number;
     }[];
   }[];
   sessionNotes?: string;
   clientFeedback?: string;
-  overallIntensity: number;
+  // Phase 16: nullable on the wire. Backend handles both missing and null.
+  overallIntensity?: number | null;
   energyLevel: number;
   goals: string[];
 }

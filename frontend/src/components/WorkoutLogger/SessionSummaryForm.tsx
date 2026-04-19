@@ -27,8 +27,12 @@ import { Target, Activity, BarChart3, Clock, AlertTriangle } from 'lucide-react'
 import { CS } from './WorkoutLoggerCS';
 
 interface SessionSummaryFormProps {
-  overallIntensity: number;
-  onIntensityChange: (value: number) => void;
+  // Phase 16 (2026-04-16): null = "not rated". The component renders a
+  // visibly dimmed slider with "Not rated" text in this state and keeps
+  // save enabled — the wire contract omits the field from the payload
+  // when null so the backend persists DB null rather than a phantom 5.
+  overallIntensity: number | null;
+  onIntensityChange: (value: number | null) => void;
   sessionNotes: string;
   onNotesChange: (value: string) => void;
   exerciseCount: number;
@@ -44,26 +48,47 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
   exerciseCount,
   totalSets,
   estimatedDuration,
-}) => (
-  <SummaryContainer>
-    <SummaryTitle>
-      <Target size={20} />
-      Session Summary
-    </SummaryTitle>
+}) => {
+  const isRated = overallIntensity !== null && overallIntensity !== undefined;
+  // Render position for the slider handle when "not rated". Using 5
+  // (midpoint) is a visual placeholder only — the wire payload omits
+  // the field entirely. `$unrated` dims the track so the control
+  // reads as "untouched" rather than "picked 5".
+  const sliderValue = isRated ? (overallIntensity as number) : 5;
 
-    <SummaryField>
-      <label>Overall Session Intensity (1-10):</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <SliderInput
-          type="range"
-          min={1}
-          max={10}
-          value={overallIntensity}
-          onChange={(e) => onIntensityChange(parseInt(e.target.value))}
-        />
-        <SliderValue>{overallIntensity}/10</SliderValue>
-      </div>
-    </SummaryField>
+  return (
+    <SummaryContainer>
+      <SummaryTitle>
+        <Target size={20} />
+        Session Summary
+      </SummaryTitle>
+
+      <SummaryField>
+        <label>Overall Session Intensity (1-10, optional):</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <SliderInput
+            type="range"
+            min={1}
+            max={10}
+            value={sliderValue}
+            $unrated={!isRated}
+            onChange={(e) => onIntensityChange(parseInt(e.target.value))}
+            aria-label="Session intensity rating"
+          />
+          <SliderValue $unrated={!isRated}>
+            {isRated ? `${overallIntensity}/10` : 'Not rated'}
+          </SliderValue>
+          {isRated && (
+            <ClearRatingButton
+              type="button"
+              onClick={() => onIntensityChange(null)}
+              aria-label="Clear intensity rating"
+            >
+              Clear
+            </ClearRatingButton>
+          )}
+        </div>
+      </SummaryField>
 
     <SummaryField>
       <label>Session Notes:</label>
@@ -94,7 +119,8 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
       </InfoBadge>
     </StatsGrid>
   </SummaryContainer>
-));
+  );
+});
 
 SessionSummaryForm.displayName = 'SessionSummaryForm';
 export default SessionSummaryForm;
@@ -147,13 +173,18 @@ const SummaryField = styled.div`
   }
 `;
 
-const SliderInput = styled.input`
+// Phase 16 (2026-04-16): `$unrated` dims the slider when overallIntensity
+// is null, giving the control a visibly distinct "not rated" state so
+// users don't confuse it with a deliberate 5/10 rating.
+const SliderInput = styled.input<{ $unrated?: boolean }>`
   width: 100%;
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(90deg, rgba(96, 192, 240, 0.15), rgba(80, 160, 240, 0.2));
   outline: none;
   appearance: none;
+  opacity: ${({ $unrated }) => ($unrated ? 0.35 : 1)};
+  transition: opacity 0.2s ease;
 
   &::-webkit-slider-thumb {
     appearance: none;
@@ -182,14 +213,43 @@ const SliderInput = styled.input`
   }
 `;
 
-const SliderValue = styled.span`
+const SliderValue = styled.span<{ $unrated?: boolean }>`
   font-size: 0.85rem;
   font-weight: 700;
-  color: ${CS.glowLight};
+  color: ${({ $unrated }) => ($unrated ? 'rgba(224, 236, 244, 0.5)' : CS.glowLight)};
+  font-style: ${({ $unrated }) => ($unrated ? 'italic' : 'normal')};
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   min-width: 2.5rem;
   text-align: right;
+`;
+
+// Phase 16: small "Clear" button shown only when an intensity value is
+// set. Gives the user an explicit path from "rated 7/10" back to
+// "not rated" — otherwise the slider can only move between 1 and 10
+// once touched, and there's no natural way to unpick a rating.
+const ClearRatingButton = styled.button`
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(224, 236, 244, 0.15);
+  color: rgba(224, 236, 244, 0.7);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+
+  &:hover {
+    border-color: rgba(224, 236, 244, 0.35);
+    color: rgba(224, 236, 244, 0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.gaming};
+    outline-offset: 4px;
+  }
 `;
 
 const TextArea = styled.textarea`

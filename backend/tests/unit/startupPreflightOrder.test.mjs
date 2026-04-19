@@ -36,6 +36,12 @@ vi.mock('../../core/schemaGuards/phase15ExerciseNoteGuard.mjs', () => ({
   assertPhase15ExerciseNoteColumn: (...args) => mockGuard(...args),
 }));
 
+// Mock the Phase 16 guard so we can control its pass/fail independently.
+const mockPhase16Guard = vi.fn().mockResolvedValue({ status: 'ok' });
+vi.mock('../../core/schemaGuards/phase16WorkoutSessionIntensityNullGuard.mjs', () => ({
+  assertPhase16WorkoutSessionIntensityNullable: (...args) => mockPhase16Guard(...args),
+}));
+
 // Mock logger so test output stays clean.
 vi.mock('../../utils/logger.mjs', () => ({
   default: {
@@ -93,20 +99,23 @@ describe('criticalDatabasePreflight — execution order', () => {
     vi.clearAllMocks();
     // Reset to default success behavior after each test.
     mockGuard.mockResolvedValue({ status: 'ok', column: 'present' });
+    mockPhase16Guard.mockResolvedValue({ status: 'ok' });
     runStartupMigrations.mockResolvedValue(undefined);
   });
 
-  it('calls authenticate THEN runStartupMigrations THEN the schema guard', async () => {
+  it('calls authenticate THEN runStartupMigrations THEN phase15 guard THEN phase16 guard', async () => {
     const callOrder = [];
     const seq = makeFakeSequelize({
       authenticate: vi.fn(async () => { callOrder.push('authenticate'); }),
     });
     runStartupMigrations.mockImplementation(async () => { callOrder.push('migrations'); });
-    mockGuard.mockImplementation(async () => { callOrder.push('guard'); return { status: 'ok' }; });
+    mockGuard.mockImplementation(async () => { callOrder.push('phase15Guard'); return { status: 'ok' }; });
+    mockPhase16Guard.mockImplementation(async () => { callOrder.push('phase16Guard'); return { status: 'ok' }; });
 
     await criticalDatabasePreflight(seq);
 
-    expect(callOrder).toEqual(['authenticate', 'migrations', 'guard']);
+    // Phase 16 (2026-04-16): Phase 16 guard follows Phase 15 in preflight.
+    expect(callOrder).toEqual(['authenticate', 'migrations', 'phase15Guard', 'phase16Guard']);
   });
 
   it('throws if authenticate fails (DB unreachable)', async () => {
@@ -117,14 +126,33 @@ describe('criticalDatabasePreflight — execution order', () => {
     await expect(criticalDatabasePreflight(seq)).rejects.toThrow('ECONNREFUSED');
   });
 
-  it('still runs the guard even if migrations warn (migration failures are non-fatal)', async () => {
+  it('still runs the guards even if migrations warn (migration failures are non-fatal)', async () => {
     const seq = makeFakeSequelize();
     runStartupMigrations.mockRejectedValueOnce(new Error('migration had issues'));
     mockGuard.mockResolvedValueOnce({ status: 'ok', column: 'present' });
+    mockPhase16Guard.mockResolvedValueOnce({ status: 'ok' });
 
-    // Should NOT throw — migration failure is a warning, guard is the real gate.
+    // Should NOT throw — migration failure is a warning, the guards are the real gates.
     await expect(criticalDatabasePreflight(seq)).resolves.not.toThrow();
     expect(mockGuard).toHaveBeenCalledTimes(1);
+    expect(mockPhase16Guard).toHaveBeenCalledTimes(1);
+  });
+
+  it('Phase 16 guard failure propagates as a fatal error (server does not start)', async () => {
+    const seq = makeFakeSequelize();
+    const guardError = new Error('workout_sessions.intensity still NOT NULL');
+    guardError.code = 'PHASE_16_SCHEMA_GUARD_FAILED';
+    mockPhase16Guard.mockRejectedValueOnce(guardError);
+
+    await expect(criticalDatabasePreflight(seq)).rejects.toThrow(
+      /workout_sessions\.intensity still NOT NULL/,
+    );
+  });
+
+  it('passes the sequelize instance through to the Phase 16 guard', async () => {
+    const seq = makeFakeSequelize();
+    await criticalDatabasePreflight(seq);
+    expect(mockPhase16Guard).toHaveBeenCalledWith(seq);
   });
 
   it('throws if the schema guard fails (column missing)', async () => {

@@ -58,12 +58,17 @@ WorkoutSession.init({
   },
   intensity: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    // Phase 16 (2026-04-16): null-honest semantics. null = "not rated",
+    // distinct from a genuine 1-10 rating the user chose. The writer
+    // lanes no longer seed phantom 5/10 defaults on untouched state,
+    // and the read path (chartDataController.getIntensityRPETrendChart)
+    // already excludes null via Postgres AVG() semantics.
+    allowNull: true,
     validate: {
       min: 1,
       max: 10
     },
-    comment: 'Perceived intensity of workout (1-10 scale)'
+    comment: 'Perceived intensity of workout (1-10 scale). Null = not rated (Phase 16).'
   },
   notes: {
     type: DataTypes.TEXT,

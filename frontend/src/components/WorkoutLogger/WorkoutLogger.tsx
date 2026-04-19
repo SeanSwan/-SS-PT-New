@@ -10,7 +10,8 @@
  * - WorkoutLoggerHeader.tsx — Client info, date, stats
  * - NASMProtocolSection.tsx — Warmup/Balance/Cooldown checklists
  * - ExerciseCardComponent.tsx — Exercise card with set table
- * - SessionSummaryForm.tsx — Intensity, notes, workout stats
+ * - SessionSummaryForm.tsx — Intensity, notes, workout stats (Phase 16
+ *   null-honest "Not rated" UI).
  * - WorkoutLoggerFooter.tsx — Action buttons
  */
 
@@ -20,6 +21,9 @@ import styled, { keyframes } from 'styled-components';
 import { Plus, Download, Heart, Shield, RotateCcw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+// 2026-04-17 Codex round 2 fix: self-route default onComplete/onCancel
+// now navigate to a real client route instead of being silent no-ops.
+import { useNavigate } from 'react-router-dom';
 import {
   dailyWorkoutFormService,
   ExerciseEntry,
@@ -43,6 +47,7 @@ import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import NASMProtocolSection, { type NASMItem } from './NASMProtocolSection';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
+import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
@@ -67,9 +72,24 @@ import { useRestTimer } from './useRestTimer';
 // ==================== INTERFACES ====================
 
 interface WorkoutLoggerProps {
-  clientId: number;
-  onComplete: (formData: DailyWorkoutForm) => void;
-  onCancel: () => void;
+  /**
+   * The client whose workout is being logged. Optional because the
+   * canonical client self-log route `/dashboard/client/log-workout`
+   * mounts `<WorkoutLogger />` via the UniversalDashboardLayout role
+   * router with no props — the component resolves the current client
+   * from the authenticated session in that case (see
+   * `effectiveClientId` below). Non-self callers (admin / trainer
+   * via EnhancedWorkoutLogger) continue to pass an explicit `clientId`.
+   */
+  clientId?: number;
+  /**
+   * The admin/trainer-provided onComplete + onCancel callbacks. Optional
+   * for the same self-route reason — when the role router mounts us
+   * directly with no props, we supply safe defaults that navigate away
+   * from the route after save/cancel.
+   */
+  onComplete?: (formData: DailyWorkoutForm) => void;
+  onCancel?: () => void;
   initialData?: Partial<ExerciseEntry[]>;
 }
 
@@ -100,6 +120,57 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   initialData = []
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // 2026-04-17: self-mode resolution for the client `/log-workout`
+  // route. When the role router mounts <WorkoutLogger /> with no
+  // `clientId` prop and the session is a client, the effective client
+  // is the logged-in user themselves. When the prop is provided (admin
+  // / trainer paths via EnhancedWorkoutLogger), that wins — unchanged
+  // behavior. `undefined` in both positions means no valid client
+  // context; the component renders a guarded fallback instead of
+  // requesting `/api/workout-forms/client/undefined/info`.
+  //
+  // 2026-04-17 Codex round 2: coerce user.id via Number() before the
+  // type check. AuthContext.tsx:17 types user.id as string, but the
+  // rest of this component's URLs and hooks expect a numeric id. The
+  // previous `typeof user?.id === 'number'` check would silently fail
+  // to resolve self-mode when the backend returned a string-shaped id.
+  const coerceToNumericId = (raw: unknown): number | undefined => {
+    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+    if (typeof raw === 'string' && raw.trim() !== '') {
+      const n = Number(raw);
+      if (Number.isFinite(n)) return n;
+    }
+    return undefined;
+  };
+  const userNumericId = coerceToNumericId(user?.id);
+  const effectiveClientId: number | undefined =
+    typeof clientId === 'number' && Number.isFinite(clientId)
+      ? clientId
+      : (user?.role === 'client' ? userNumericId : undefined);
+  const isClientSelfMode: boolean =
+    user?.role === 'client' &&
+    typeof effectiveClientId === 'number' &&
+    effectiveClientId === userNumericId;
+
+  // Default callbacks for the self-route mount (role router passes no
+  // callbacks).
+  //
+  // 2026-04-17 Codex round 2 fix: the earlier no-op defaults meant
+  // Cancel did nothing and a successful save silently left the user
+  // on the logger page. When a caller (admin / trainer via
+  // EnhancedWorkoutLogger) passes its own handlers, those win. On the
+  // self-route mount we navigate back to the client home so the user
+  // gets real feedback on action. Both targets are canonical client
+  // routes (see UniversalDashboardLayout.tsx:598-615) so they will
+  // always resolve for an authenticated client.
+  const resolvedOnComplete = onComplete ?? (() => {
+    navigate('/dashboard/client/workouts');
+  });
+  const resolvedOnCancel = onCancel ?? (() => {
+    navigate('/dashboard/client/overview');
+  });
 
   // ── Core State ──
   const [exercises, setExercises] = useState<ExerciseEntry[]>(() => {
@@ -109,7 +180,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return [];
   });
   const [sessionNotes, setSessionNotes] = useState('');
-  const [overallIntensity, setOverallIntensity] = useState(5);
+  // Phase 16 (2026-04-16): null = "not rated", distinct from any 1-10
+  // value the user explicitly picks. Previously `useState(5)` seeded a
+  // phantom 5/10 onto every save, which dragged the canonical
+  // IntensityRpeTrendLine toward a false 5.0 baseline. The save path
+  // omits `overallIntensity` from the /api/workout-forms payload when
+  // this is null, and the backend persists DB null.
+  const [overallIntensity, setOverallIntensity] = useState<number | null>(null);
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,9 +201,24 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isQuickLogMode, setIsQuickLogMode] = useState(false);
 
   // ── Phase 6: Speed Optimization Hooks ──
-  const ghostPreFill = useGhostPreFill(clientId);
+  // 2026-04-17: pass the resolved effective client id so hooks that
+  // need the current client (ghost pre-fill, offline queue) work on
+  // both the self-route mount and the admin/trainer mount. Coerce to
+  // 0 when undefined — neither hook matches id=0 against real data,
+  // so their internal queries become no-ops until the component
+  // guards around `!effectiveClientId` render a fallback instead.
+  //
+  // 2026-04-18 Codex round 4: ghost pre-fill fetches from
+  // /api/admin/clients/:id/workouts which is admin-only. On the client
+  // self-route this would 403 on every exercise add. Skip the hook's
+  // network path for client self-mode — ghost pre-fill is a speed
+  // feature, not correctness, and skipping it keeps the happy path
+  // free of forbidden requests. Trainer/admin mounts keep ghost
+  // pre-fill working as before.
+  const hookClientId = effectiveClientId ?? 0;
+  const ghostPreFill = useGhostPreFill(hookClientId, { skip: isClientSelfMode });
   const sessionStats = useSessionStats(exercises);
-  const offlineQueue = useOfflineQueue(clientId);
+  const offlineQueue = useOfflineQueue(hookClientId);
   const restTimer = useRestTimer({
     defaultSeconds: 60,
     onComplete: () => toast.info('Rest complete — next set!'),
@@ -156,7 +248,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     const template = getPhaseTemplate(phase);
     if (!template) return;
 
-    // Pre-fill exercises from template
+    // Pre-fill exercises from template.
+    //
+    // Phase 16 (2026-04-16): rating fields (rpe, formQuality, formRating)
+    // default to null = "not rated" instead of phantom neutral defaults
+    // (was rpe: 5, formQuality: 3, formRating: 3). The wire contract
+    // strips null keys on submit; the backend persists DB null; the
+    // canonical charts exclude these rows from averages.
     const templateExercises: ExerciseEntry[] = template.exercises.map((ex, i) => ({
       exerciseId: `template-${phase}-${i}-${Date.now()}`,
       exerciseName: ex.name,
@@ -164,13 +262,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         setNumber: s + 1,
         weight: 0,
         reps: ex.reps,
-        rpe: 5,
+        rpe: null,
         tempo: ex.tempo,
         restTime: ex.restSeconds,
-        formQuality: 3,
+        formQuality: null,
         notes: ex.notes || '',
       })),
-      formRating: 3,
+      formRating: null,
       painLevel: 0,
       performanceNotes: '',
     }));
@@ -194,14 +292,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     toast.success(`Loaded Phase ${phase} template — ${templateExercises.length} exercises, ${templateExercises.reduce((s, e) => s + e.sets.length, 0)} sets`);
   }, []);
 
-  const loadClientData = useCallback(async () => {
-    await executeLoadClientData();
-  }, [clientId, user]);
-
-  // ── Load client on mount ──
-  useEffect(() => {
-    loadClientData();
-  }, [loadClientData]);
+  // 2026-04-17 Codex round 3 fix: the earlier `loadClientData` wrapper
+  // was pure indirection (an async useCallback that just awaited
+  // `executeLoadClientData`). Its deps array referenced
+  // `executeLoadClientData`, which is declared ~160 lines below this
+  // point in the component body — accessing that identifier at render
+  // time in the deps array tripped the TDZ and crashed the component
+  // on mount: `ReferenceError: Cannot access 'executeLoadClientData'
+  // before initialization`. The wrapper is deleted and the mount
+  // effect moved adjacent to `executeLoadClientData` (below) so no
+  // TDZ access is possible.
 
   // ── AI-to-Logger prefill ──
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
@@ -214,13 +314,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         setNumber: i + 1,
         weight: ex.weight || 0,
         reps: ex.reps || 10,
-        rpe: 5,
+        // Phase 16: AI-prefilled sets default to null rating (not rated).
+        rpe: null,
         tempo: ex.tempo || '',
         restTime: ex.restTime || 60,
-        formQuality: 3,
+        formQuality: null,
         notes: ex.notes || '',
       })),
-      formRating: 3,
+      formRating: null,
       painLevel: 0,
       performanceNotes: '',
     };});
@@ -257,13 +358,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           setNumber: i + 1,
           weight: d.weight || 0,
           reps: d.reps || 10,
-          rpe: 5,
+          // Phase 16: AI-added exercises default to null rating.
+          rpe: null,
           tempo: d.tempo || '',
           restTime: d.restSeconds || 60,
-          formQuality: 3,
+          formQuality: null,
           notes: d.notes || '',
         })),
-        formRating: 3,
+        formRating: null,
         painLevel: 0,
         performanceNotes: '',
       };
@@ -318,11 +420,22 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const executeLoadClientData = useCallback(async () => {
     setIsLoadingClient(true);
     try {
+      // 2026-04-17: guard against mounting without a resolvable client
+      // context. Before this guard, the self-route mount hit
+      // `/api/workout-forms/client/undefined/info` and 403'd.
+      if (typeof effectiveClientId !== 'number') {
+        setClient(null);
+        return;
+      }
+
       const api = new ApiService();
-      const isSelf = user?.id === clientId;
-      const infoUrl = isSelf && user?.role === 'client'
+      // 2026-04-17: isClientSelfMode already resolved in the outer
+      // scope. Use it instead of re-deriving here. When the logged-in
+      // client is logging their own workout, hit the self endpoint
+      // which does not require an explicit id in the URL.
+      const infoUrl = isClientSelfMode
         ? '/api/workout-forms/my/info'
-        : `/api/workout-forms/client/${clientId}/info`;
+        : `/api/workout-forms/client/${effectiveClientId}/info`;
       const axiosResponse = await api.get(infoUrl);
       const data = axiosResponse?.data ?? axiosResponse;
 
@@ -349,9 +462,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       // Fail-closed: set sessions to 0 on network error to prevent unlimited submissions.
       // Admins bypass the session check (line 482), so they can still submit if needed.
       setClient({
-        id: clientId,
+        id: effectiveClientId ?? 0,
         firstName: 'Client',
-        lastName: `#${clientId}`,
+        lastName: typeof effectiveClientId === 'number' ? `#${effectiveClientId}` : '',
         email: '',
         availableSessions: 0,
         phone: ''
@@ -360,14 +473,33 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingClient(false);
     }
-  }, [clientId, user]);
+  }, [effectiveClientId, isClientSelfMode]);
+
+  // ── Load client on mount ──
+  //
+  // 2026-04-17 Codex round 3 fix: this effect used to live ~165 lines
+  // above via a wrapper `loadClientData` that deps-referenced
+  // `executeLoadClientData`, tripping the TDZ. Placing the effect
+  // directly after the callback it depends on eliminates the ordering
+  // hazard — `executeLoadClientData` is already initialized by the
+  // time this `useEffect` registers its deps.
+  useEffect(() => {
+    executeLoadClientData();
+  }, [executeLoadClientData]);
 
   // ── Load Today's Plan ──
   const loadTodaysPlan = useCallback(async () => {
     setIsLoadingPlan(true);
     try {
       const api = new ApiService();
-      const response = await api.get(`/api/workouts/${clientId}/current`);
+      // 2026-04-17: use the effective (possibly-self) client id. If it
+      // is undefined at this point, short-circuit — no plan to load.
+      if (typeof effectiveClientId !== 'number') {
+        toast.info('No client context — cannot load a plan');
+        setIsLoadingPlan(false);
+        return;
+      }
+      const response = await api.get(`/api/workouts/${effectiveClientId}/current`);
       const data = response?.data ?? response;
 
       if (!data?.plan?.days?.length) {
@@ -397,13 +529,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           setNumber: i + 1,
           weight: ex.weight || 0,
           reps: ex.targetReps || ex.reps || 10,
-          rpe: 5,
+          // Phase 16: today's-plan prefilled sets default to null rating.
+          rpe: null,
           tempo: ex.tempo || '',
           restTime: ex.restTime || 60,
-          formQuality: 3,
+          formQuality: null,
           notes: '',
         })),
-        formRating: 3,
+        formRating: null,
         painLevel: 0,
         performanceNotes: '',
       };});
@@ -416,29 +549,41 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingPlan(false);
     }
-  }, [clientId]);
+  }, [effectiveClientId]);
 
   // ── Exercise CRUD (Phase 6: pre-fill from last session) ──
+  //
+  // Phase 16 (2026-04-16): createEmptySet returns null rating fields
+  // instead of seeded 5/3. addExercise also stamps `formRating: null`
+  // on the new exercise entry. See Phase 16 debate summary for scope.
   const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
-    setNumber, weight: 0, reps: 0, rpe: 5, tempo: '', restTime: 60, formQuality: 3, notes: ''
+    setNumber, weight: 0, reps: 0, rpe: null, tempo: '', restTime: 60, formQuality: null, notes: ''
   }), []);
 
   const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
-    // Trigger ghost data fetch for pre-fill
-    ghostPreFill.fetchExerciseHistory(exercise.name);
+    // Trigger ghost data fetch for pre-fill — but NEVER on client self-mode.
+    // The underlying /api/admin/clients/:id/workouts endpoint is admin-only
+    // and 403s for clients. The hook also guards internally (round 12
+    // no-op return), this call-site guard is defense-in-depth: even if a
+    // future refactor breaks the hook-side defense, client sessions still
+    // cannot fire the admin request from here.
+    // 2026-04-18 Phase 16.2 round 12 (Codex smoke finding).
+    if (!isClientSelfMode) {
+      ghostPreFill.fetchExerciseHistory(exercise.name);
+    }
     const preFilled = ghostPreFill.createPreFilledSet(exercise.name, 1);
 
     setExercises(prev => [...prev, {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       sets: [preFilled],
-      formRating: 3,
+      formRating: null,
       painLevel: 0,
       performanceNotes: ''
     }]);
     setShowExerciseSearch(false);
     toast.success(`Added ${exercise.name} to workout`);
-  }, [ghostPreFill]);
+  }, [ghostPreFill, isClientSelfMode]);
 
   const addSet = useCallback((exerciseIndex: number) => {
     setExercises(prev => prev.map((exercise, i) => {
@@ -531,13 +676,27 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
-    const formData = {
-      clientId,
+    // Phase 16 (2026-04-16): wire contract = omit null rating fields.
+    // Full docstring + unit tests live in
+    // `./workoutLoggerSubmitPayload.ts`. The builder is extracted as a
+    // pure function so the wire contract is independently testable
+    // (see `WorkoutLogger.submitContract.test.tsx` / T10).
+    //
+    // 2026-04-17: submit blocked unless we have a real client id. The
+    // UI disables the submit button upstream, but defend here too.
+    if (typeof effectiveClientId !== 'number') {
+      toast.error('No client context — unable to submit');
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      return;
+    }
+    const formData = buildWorkoutFormSubmitBody({
+      clientId: effectiveClientId,
       date: new Date().toISOString().split('T')[0],
       exercises,
       sessionNotes,
-      overallIntensity
-    };
+      overallIntensity,
+    });
 
     // Phase 6: Offline-first — queue if offline
     if (!offlineQueue.isOnline) {
@@ -556,7 +715,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       if (response.success && response.data) {
         toast.success('Workout logged successfully! Session deducted and points earned.');
         setSubmittedFormId(response.data.id || response.data.formId || null);
-        onComplete(response.data);
+        resolvedOnComplete(response.data);
       } else {
         throw new Error(response.message || 'Failed to submit workout form');
       }
@@ -586,7 +745,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     try {
       const api = new ApiService();
       const payload = {
-        clientId,
+        clientId: effectiveClientId,
         formId: submittedFormId,
         exercises: exercises.map(ex => ({
           exerciseName: ex.exerciseName,
@@ -613,7 +772,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsGeneratingSummary(false);
     }
-  }, [clientId, submittedFormId, exercises, sessionNotes, overallIntensity]);
+  }, [effectiveClientId, submittedFormId, exercises, sessionNotes, overallIntensity]);
 
   // ── Computed Values ──
   const totalSets = useMemo(() =>
@@ -641,17 +800,27 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Equipment Profile Picker */}
-        <EquipmentProfilePicker
-          selectedProfileId={equipmentProfileId}
-          onSelect={setEquipmentProfileId}
-          label="Training Location"
-        />
+        {/*
+          Equipment Profile Picker — 2026-04-17: hidden on the client
+          self-log route. The underlying `/api/equipment-profiles`
+          endpoint is trainer/admin gated (`equipmentRoutes.mjs:72`), so
+          mounting this picker as a client would 403 on every fetch.
+          Equipment profiles are trainer-authored training locations;
+          they are not relevant to client self-logging. Trainer / admin
+          paths (mounted via EnhancedWorkoutLogger) continue to render it.
+        */}
+        {!isClientSelfMode && (
+          <EquipmentProfilePicker
+            selectedProfileId={equipmentProfileId}
+            onSelect={setEquipmentProfileId}
+            label="Training Location"
+          />
+        )}
 
         {/* AI Assistant Panel */}
         <AITerminalPanel
           context="workout_generation"
-          clientId={clientId}
+          clientId={effectiveClientId}
           equipmentProfileId={equipmentProfileId}
           placeholder="Ask Swan Coach to suggest exercises for this client..."
         />
@@ -760,7 +929,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 key={exercise.exerciseId || exerciseIndex}
                 exercise={exercise}
                 exerciseIndex={exerciseIndex}
-                clientId={clientId}
+                clientId={effectiveClientId}
                 onUpdateExercise={updateExercise}
                 onUpdateSet={updateSet}
                 onAddSet={addSet}
@@ -768,6 +937,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 onRemoveExercise={removeExercise}
                 getOverload={ghostPreFill.getOverload}
                 onSetLogged={handleSetLogged}
+                // Round 12 (2026-04-18): suppress GhostDataRow's admin
+                // fetch on the client self-log route. Ghost-prefill and
+                // ghost-data are visible hints only; they shouldn't 403.
+                ghostSkip={isClientSelfMode}
               />
             ))
           )}
@@ -824,7 +997,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
         {/* Footer Actions */}
         <WorkoutLoggerFooter
-          onCancel={onCancel}
+          onCancel={resolvedOnCancel}
           onExportPDF={handleExportPDF}
           onSubmit={handleSubmit}
           onGenerateSummary={handleGenerateSummary}

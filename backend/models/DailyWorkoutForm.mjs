@@ -291,13 +291,35 @@ DailyWorkoutForm.init(
       allowNull: true,
       field: 'client_summary',
       comment: 'Client-ready workout summary (auto-generated or manual)'
+    },
+    // ─── Explicit timestamp mapping (Phase 16.2 round 7, 2026-04-18) ─────────
+    // The live `daily_workout_forms` table has snake_case timestamp columns
+    // `created_at` / `updated_at` (from migration 20250714000002), but this
+    // model has no `underscored: true` and every non-timestamp attribute uses
+    // its own `field:` mapping. Without explicit mapping below, Sequelize
+    // generated a SELECT asking for `"createdAt"` / `"updatedAt"` (quoted
+    // camelCase identifiers), which do not exist in Postgres → the canonical
+    // save path 500'd with `column "createdAt" does not exist` after the
+    // Phase 16.2 processing-field migration cleared the previous blocker.
+    // Mapping them explicitly keeps the JS property camelCase (so `.createdAt`
+    // / `.updatedAt` still work on model instances) and points the DB query
+    // at the real snake_case columns.
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'created_at',
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      field: 'updated_at',
     }
   },
   {
     sequelize,
     modelName: 'DailyWorkoutForm',
     tableName: 'daily_workout_forms',
-    timestamps: true, // Enables createdAt and updatedAt
+    timestamps: true, // Enables createdAt and updatedAt (mapped to created_at / updated_at above)
     paranoid: false, // Hard deletes only (forms are permanent records)
     indexes: [
       // Optimize for common queries

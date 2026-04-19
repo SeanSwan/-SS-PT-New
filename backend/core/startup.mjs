@@ -22,6 +22,7 @@ import seedWaiverVersions from '../seeders/seed-waiver-versions.mjs';
 import { seedExercises } from '../scripts/seedExercises.mjs';
 import logger from '../utils/logger.mjs';
 import { assertPhase15ExerciseNoteColumn } from './schemaGuards/phase15ExerciseNoteGuard.mjs';
+import { assertPhase16WorkoutSessionIntensityNullable } from './schemaGuards/phase16WorkoutSessionIntensityNullGuard.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -414,6 +415,11 @@ const setupGracefulShutdown = ({ server, httpServer }) => {
 //   3. assertPhase15ExerciseNoteColumn(sequelize) — verifies the
 //      column actually exists. Throws with an actionable "run the
 //      migration" message if it doesn't.
+//   4. assertPhase16WorkoutSessionIntensityNullable(sequelize) —
+//      verifies workout_sessions.intensity is nullable. Throws with an
+//      actionable message if still NOT NULL. Phase 16 writer lanes
+//      persist null on untouched state; without this column opening,
+//      every such save would fail with a Sequelize notNull violation.
 //
 // Everything else (associations verification, sync, seeders, E2EE,
 // schedulers, Socket.io) is NON-CRITICAL and runs in the background
@@ -446,6 +452,11 @@ export const criticalDatabasePreflight = async (seq) => {
 
   // 3. Phase 15 schema guard — fail fast if the column is missing.
   await assertPhase15ExerciseNoteColumn(seq);
+
+  // 4. Phase 16 schema guard — fail fast if workout_sessions.intensity
+  //    is still NOT NULL. Writer lanes that persist null on untouched
+  //    state depend on this migration having been applied.
+  await assertPhase16WorkoutSessionIntensityNullable(seq);
 };
 
 /**

@@ -79,10 +79,13 @@ export interface ExerciseSet {
   setNumber: number;
   weight: number;
   reps: number;
-  rpe: number; // 1-10
+  // Phase 16 (2026-04-16): rating fields nullable. null = "not rated".
+  // Frontend omits these keys from the wire payload when null; backend
+  // accepts both missing and explicit null and persists as DB null.
+  rpe: number | null; // 1-10, null = not rated
   tempo?: string;
   restTime: number;
-  formQuality: number; // 1-5
+  formQuality: number | null; // 1-5, null = not rated
   notes?: string;
 }
 
@@ -90,8 +93,9 @@ export interface ExerciseEntry {
   exerciseId: string;
   exerciseName: string;
   sets: ExerciseSet[];
-  formRating: number; // 1-5
-  painLevel: number; // 0-10
+  // Phase 16: null = not rated.
+  formRating: number | null; // 1-5, null = not rated
+  painLevel: number; // 0-10 (kept as number, painLevel null-honesty deferred to Phase 16.1)
   performanceNotes?: string;
 }
 
@@ -105,7 +109,9 @@ export interface DailyWorkoutForm {
   formData: {
     exercises: ExerciseEntry[];
     sessionNotes: string;
-    overallIntensity: number;
+    // Phase 16 (2026-04-16): nullable / optional. When the logger did not
+    // record an overall intensity, this key is omitted from formData.
+    overallIntensity?: number | null;
     submittedBy: number;
     submittedAt: string;
     totalSets?: number;
@@ -537,14 +543,35 @@ export class DailyWorkoutFormService {
     date: string;
     exercises: ExerciseEntry[];
     sessionNotes?: string;
-    overallIntensity?: number;
+    // Phase 16 (2026-04-16): nullable on the wire. WorkoutLogger omits this
+    // field from the payload when the user has not rated; the key is
+    // simply absent rather than serialized as `null`. Backend contract
+    // accepts either shape and persists DB null.
+    overallIntensity?: number | null;
   }): Promise<ApiResponse<DailyWorkoutForm>> {
     try {
-      const response = await this.api.post('/api/workout-forms', data);
+      // 2026-04-18 Phase 16.2 round 13 fix — `this.api.post()` returns
+      // `AxiosResponse<T>`, so the backend payload lives under `.data`,
+      // not on the top-level response object. Reading `response.success`
+      // / `response.form` directly returned `undefined`, which
+      // WorkoutLogger's caller interpreted as a failed save and pushed
+      // the already-persisted workout into `ss-workout-queue-91` while
+      // showing "Failed to submit workout form". The backend had in
+      // fact returned 201 with `{ success: true, form: {...} }`.
+      //
+      // Unwrap `response.data` once, then map the server shape
+      // `{ success, form, message }` to the frontend `ApiResponse<T>`
+      // shape `{ success, data, message }`.
+      const response = await this.api.post<{
+        success: boolean;
+        form: DailyWorkoutForm;
+        message?: string;
+      }>('/api/workout-forms', data);
+      const payload = response.data;
       return {
-        success: response.success,
-        data: response.form,
-        message: response.message
+        success: payload.success,
+        data: payload.form,
+        message: payload.message
       };
     } catch (error) {
       console.error('Error submitting workout form:', error);

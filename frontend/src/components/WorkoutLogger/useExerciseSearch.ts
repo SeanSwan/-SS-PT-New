@@ -91,7 +91,12 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
     setIsLoading(true);
     try {
       const api = new ApiService();
-      const res = await api.get('/api/exercises/all');
+      // 2026-04-17: switched from /api/exercises/all (trainer/admin-only)
+      // to /api/exercises/library (any authenticated user). The client
+      // self-log surface mounted at /dashboard/client/log-workout used
+      // to 403 on the old endpoint; the library endpoint returns the
+      // same payload shape but is role-open.
+      const res = await api.get('/api/exercises/library');
       // ApiService returns AxiosResponse — unwrap .data safely
       const payload = res?.data ?? res;
       const body = (typeof payload === 'object' && payload !== null) ? payload : {};
