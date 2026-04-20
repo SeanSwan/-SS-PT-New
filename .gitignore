@@ -277,3 +277,125 @@ _tmp_login.json
 qa-screenshots/
 playwright-qa-full/
 playwright-qa-screenshots/
+
+# ============================================
+# CREDENTIAL PROTECTION — added 2026-04-19 after settings.local.json leak
+# ============================================
+
+# Claude Code local settings — contains allow-list that can leak commands with credentials
+.claude/settings.local.json
+.claude/**/settings.local.json
+.claude/**/*.local.json
+.claude/projects/
+.claude/memory/
+.claude/todos/
+
+# Comprehensive env file coverage (belt-and-suspenders on top of existing .env rules)
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+!.env.*.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Additional secret-bearing files
+secrets.json
+credentials.json
+*.secrets
+*.credentials.json
+PRODUCTION-SECRETS.env
+*-secrets.env
+*-SECRETS.env
+
+# SSH private keys
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_dsa
+id_dsa.*
+id_ecdsa
+id_ecdsa.*
+*.ppk
+!*.ppk.example
+
+# SSL/TLS certificates and keys
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.pkcs12
+*.jks
+!**/public*.pem
+!**/public*.key
+!**/public*.crt
+
+# GPG / PGP
+*.gpg
+*.asc
+secring.gpg
+secring.*
+
+# Cloud provider credentials
+.aws/
+.azure/
+.gcloud/
+service-account*.json
+gcloud-keys.json
+firebase-service-account*.json
+firebase-adminsdk*.json
+.firebase/
+
+# NPM auth tokens
+.npmrc
+!.npmrc.example
+
+# MCP / AI tool configs (may contain API keys)
+mcp.json
+.mcp.json
+claude_desktop_config.json
+.claude/config.json
+
+# Token / session files
+*.token
+*token.txt
+auth-token.*
+session.json
+.auth/
+.session/
+
+# Terraform state (contains plaintext secrets)
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+*.auto.tfvars
+
+# Kubernetes secrets
+*secret*.yaml
+*secret*.yml
+kubeconfig
+!kubeconfig.example
+
+# Ansible vault
+*.vault
+vault_password
+vault-password.*
+
+# Docker secrets
+docker-compose.override.yml
+.docker/config.json
+
+# JWT / API key dumps from debugging
+*.jwt
+*-token.json
+admin-token.json
+test-admin-token.*
+bearer-token.*
