@@ -71,16 +71,28 @@ export function useActivityTicker() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const apiUrl = import.meta.env.VITE_API_URL || '';
-    const socket = io(apiUrl, {
+    // Vite dev server proxies /api but NOT /socket.io, so window.location.origin
+    // cannot reach the backend socket locally. In production the backend serves
+    // the frontend on the same origin, so window.location.origin is correct.
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL
+      || import.meta.env.VITE_BACKEND_URL
+      || (import.meta.env.DEV
+        ? 'http://localhost:10000'
+        : (typeof window !== 'undefined' ? window.location.origin : ''));
+    const socket = io(socketUrl, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      reconnectionAttempts: 2,
+      timeout: 5000,
     });
 
     socketRef.current = socket;
 
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
+    socket.on('connect_error', () => setIsConnected(false));
 
     // Collect incoming activity events into a rolling buffer
     socket.on('social:activity', (event: Omit<ActivityEvent, 'id'>) => {

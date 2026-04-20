@@ -130,7 +130,11 @@ export interface LogWorkoutPayload {
   title: string;
   date: string;
   duration: number;
-  intensity: number;
+  // Phase 16 (2026-04-16): optional on the wire. When the transcript did
+  // not yield an explicit intensity rating, this key is omitted from the
+  // payload rather than forced to a fallback 5. The backend accepts
+  // missing keys and persists DB null.
+  intensity?: number;
   notes?: string;
   exercises: LogWorkoutPayloadExercise[];
 }
@@ -242,7 +246,6 @@ export function parsedWorkoutToLogPayload(
   const fallbackTitle = options.fallbackTitle?.trim() || DEFAULT_TITLE;
   const fallbackDate = options.fallbackDate || todayIsoDate();
   const fallbackDuration = options.fallbackDurationMinutes ?? DEFAULT_DURATION_MINUTES;
-  const fallbackIntensity = options.fallbackIntensity ?? DEFAULT_INTENSITY;
 
   // targetDate is a hard override (Phase 13): when set it beats BOTH the
   // parser-extracted date and the fallback. Order: targetDate > parser > fallback.
@@ -250,7 +253,21 @@ export function parsedWorkoutToLogPayload(
   const date = targetDate
     ? targetDate
     : (parsed.date && parsed.date.trim() ? parsed.date.trim() : fallbackDate);
-  const intensity = clampIntensity(parsed.overallIntensity, fallbackIntensity);
+
+  // Phase 16 (2026-04-16): stop applying an intensity fallback. When the
+  // parser did not extract an explicit session intensity, omit the field
+  // from the payload entirely so the backend persists DB null. Only
+  // clamp + include when the parser actually returned a valid 1-10 number.
+  // Fallback options still accepted for backward compatibility on callers
+  // that pass an explicit non-null fallback — that non-null value wins.
+  const rawIntensity = parsed.overallIntensity;
+  const parsedIntensity =
+    typeof rawIntensity === 'number' && Number.isFinite(rawIntensity) && rawIntensity > 0
+      ? Math.round(Math.max(1, Math.min(10, rawIntensity)))
+      : (typeof options.fallbackIntensity === 'number' && Number.isFinite(options.fallbackIntensity)
+          ? Math.round(Math.max(1, Math.min(10, options.fallbackIntensity)))
+          : null);
+
   const duration = clampDuration(undefined, fallbackDuration);
   const notes = parsed.sessionNotes?.trim() || undefined;
 
@@ -301,12 +318,19 @@ export function parsedWorkoutToLogPayload(
     })
     .filter((ex) => ex.sets.length > 0); // Drop exercises whose sets all got filtered out.
 
-  return {
+  // Phase 16: include `intensity` only when we have an honest number.
+  // `parsedIntensity` is null when neither the parser nor an explicit
+  // caller-provided fallback yielded a rating — in that case we omit
+  // the key so the backend persists DB null rather than a phantom 5.
+  const out: LogWorkoutPayload = {
     title: fallbackTitle,
     date,
     duration,
-    intensity,
     ...(notes ? { notes } : {}),
     exercises,
   };
+  if (parsedIntensity !== null) {
+    out.intensity = parsedIntensity;
+  }
+  return out;
 }

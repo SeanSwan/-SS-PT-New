@@ -197,10 +197,11 @@ describe('parsedWorkoutToLogPayload — date and intensity fallbacks', () => {
     expect(out.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('clamps intensity to [1,10]', () => {
-    expect(parsedWorkoutToLogPayload(
-      { ...baseParsed, overallIntensity: 0 },
-    ).intensity).toBe(1);
+  it('clamps valid parser-supplied intensity to [1,10]', () => {
+    // Phase 16 (2026-04-16): clamping still applies when the parser
+    // returns a valid number, but 0 is no longer treated as a
+    // clamp-to-1 signal — 0 falls into the "not extracted" bucket and
+    // the field is omitted entirely.
     expect(parsedWorkoutToLogPayload(
       { ...baseParsed, overallIntensity: 15 },
     ).intensity).toBe(10);
@@ -217,11 +218,31 @@ describe('parsedWorkoutToLogPayload — date and intensity fallbacks', () => {
     expect(out.intensity).toBe(6);
   });
 
-  it('uses built-in default intensity (5) when nothing is supplied', () => {
+  // Phase 16 (2026-04-16): replaces the pre-Phase-16 "uses built-in
+  // default intensity (5)" test. The mapper no longer fabricates a
+  // neutral 5 when neither the parser nor the caller supplied a value.
+  it('T9 Phase 16: omits intensity when parser and caller both silent', () => {
     const out = parsedWorkoutToLogPayload({
       exercises: [{ exerciseName: 'X', sets: [{ setNumber: 1, weight: 100, reps: 10 }] }],
     });
-    expect(out.intensity).toBe(5);
+    expect(out.intensity).toBeUndefined();
+    expect('intensity' in out).toBe(false);
+  });
+
+  it('T9 Phase 16: omits intensity when parser returns 0 (below clamp range)', () => {
+    const out = parsedWorkoutToLogPayload({
+      exercises: [{ exerciseName: 'X', sets: [{ setNumber: 1, weight: 100, reps: 10 }] }],
+      overallIntensity: 0,
+    });
+    expect(out.intensity).toBeUndefined();
+  });
+
+  it('T9 Phase 16: omits intensity when parser returns null', () => {
+    const out = parsedWorkoutToLogPayload({
+      exercises: [{ exerciseName: 'X', sets: [{ setNumber: 1, weight: 100, reps: 10 }] }],
+      overallIntensity: null as any,
+    });
+    expect(out.intensity).toBeUndefined();
   });
 
   it('uses built-in default duration (50min) when nothing is supplied', () => {
@@ -236,11 +257,13 @@ describe('parsedWorkoutToLogPayload — empty/edge cases', () => {
   it('returns an empty exercises array when input has no exercises', () => {
     const out = parsedWorkoutToLogPayload({ exercises: [] });
     expect(out.exercises).toEqual([]);
-    // Still produces a valid title/date/duration/intensity envelope
+    // Phase 16 (2026-04-16): envelope no longer guarantees intensity —
+    // null-honest mapper omits it when the parser did not extract one.
+    // Title / date / duration remain required envelope fields.
     expect(out.title).toBeTruthy();
     expect(out.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(out.duration).toBeGreaterThan(0);
-    expect(out.intensity).toBeGreaterThanOrEqual(1);
+    expect(out.intensity).toBeUndefined();
   });
 
   it('omits notes field when sessionNotes is blank', () => {
