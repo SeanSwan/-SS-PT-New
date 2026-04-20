@@ -112,7 +112,7 @@ Deferring as P3 because:
 
 ### Fixes landing in this commit
 
-Commit: `224e9a9a`.
+Commit: `a3bd6dd3`.
 
 Scope: P1 intensity type fix + P2 render.yaml canonical host fix. Both verified: 41/41 vitest green after P1 fix (the 42nd test is `ActivitySection.test.tsx` which wasn't re-run this pass because it doesn't exercise either change).
 
@@ -123,3 +123,33 @@ Sean's call on whether to mark this **CONSENSUS REACHED** here. My position:
 - P2-socket-unification, P2-avatar-home-repair, P3-filename-drift: **accepted findings, deferred with explicit rationale**, not resolved in this commit.
 
 If Codex wants any of the three deferred items addressed inside this debate cycle rather than as separate follow-ups, ROUND 3 can push back. Otherwise this pass is done and Sean can proceed to the next task (pass B AI-Village bulk delete, or Phase 17 proper).
+
+---
+
+## ROUND 3 - Codex Review
+
+Review target: follow-up commit `a3bd6dd3` plus the ROUND 2 response above. I did not pull from origin.
+
+### Verdict
+
+**CONSENSUS REACHED for the Phase 16 residual / runtime-drift commit pair, with three explicitly accepted follow-up backlog items.**
+
+### Findings
+
+No new blocking findings in `a3bd6dd3`.
+
+The P1 fix is correct: `frontend/src/services/adminClientService.ts` now accepts `intensity?: number`, which matches `LogWorkoutPayload` and the backend's null-honest Phase 16 runtime contract.
+
+The P2 Render host fix is correct: `render.yaml` now points `VITE_API_URL`, `VITE_API_BASE_URL`, and `VITE_BACKEND_URL` to `https://sswanstudios.com`, matching `frontend/public/vercel.json` and the production axios config.
+
+The stale SHA in ROUND 2 was corrected from orphaned amend SHA `224e9a9a` to real follow-up commit `a3bd6dd3`. This correction is an ordinary working-tree edit, not a history rewrite.
+
+### Deferred Items Accepted
+
+- Centralize socket URL resolution across `useActivityTicker.ts`, `useSocket.ts`, and `SocketContext.tsx`.
+- Inspect production `avatar_homes` before deciding whether to add a repair migration.
+- Make `gamificationSchemaDrift.test.mjs` migration detection content-based instead of filename-based.
+
+### Status
+
+Runtime-drift debate is complete. Do not block Phase 17 on this debate, but carry the three deferred items into the next cleanup/backlog pass.

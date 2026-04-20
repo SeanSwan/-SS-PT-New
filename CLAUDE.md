@@ -98,6 +98,19 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 
 41. **Closeout routes through `closeout-evidence-lock` by default (MANDATORY)** — End-of-task closeout for any substantial task auto-routes through the Swan closeout skill. It enforces the Claim-to-Evidence Lock (rule 28), the dual-pass hostile review (rule 17), the post-task hygiene check (rule 38), and the forbidden-language filter (rule 34). It preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from the retired `requesting-code-review` skill. The `requesting-code-review` skill is **removed from default use** — it depends on a missing `superpowers:code-reviewer` subagent and silently fails. Do NOT dispatch to `requesting-code-review` from any new code path. See `.claude/skills/closeout-evidence-lock/SKILL.md`.
 
+42. **Pre-Push Backend Audit (MANDATORY)** — Before pushing ANY backend change, run BOTH audit commands and commit anything they surface:
+    ```bash
+    git ls-files --others --exclude-standard backend/   # untracked (crashes Render with ERR_MODULE_NOT_FOUND)
+    git diff --name-only HEAD backend/                  # modified-uncommitted (crashes with SyntaxError: does not provide an export named 'X')
+    ```
+    Both classes of drift crash Render identically at boot. Incident 2026-04-12: a series of crash-loops caused by 10 untracked Swan Coach files + 9 modified-but-uncommitted files whose new exports were missing on the remote. Each check takes under a second — run both every time, no exceptions. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (Backend Rules + Pre-Commit Mental Checklist #7).
+
+43. **styled-components `css` helper required for shared style chunks (MANDATORY)** — Any shared animation, mixin, or style fragment that contains `${}` interpolation AND will be composed into a styled component MUST be wrapped with the `` css`` `` tagged template helper, never a plain JS template string. Plain strings call `toString()` on `keyframes` / helper objects and bake the generated class name into the CSS output, crashing styled-components at mount with error #12 (`An error occurred. Args: <hash>`). The build passes, types check, nothing warns at dev time — it only crashes on mount. Incident 2026-04-12: `AdminOverviewPanel.tsx` `bentoItemAnimation` took down the entire admin dashboard this way. Rule of thumb: if a template literal interpolates a styled-components primitive, it is `` css`` ``, not a plain string. Full detail in `docs/ai-workflow/references/BUILD-HARDENING.md` (React Component Rules + Pre-Commit Mental Checklist #8).
+
+44. **Secret scanning covers writes, not only shell commands (MANDATORY)** — After the 2026-04-19 credential incident, Bash deny patterns are not enough. Before writing or committing any docs, handoffs, scripts, config, or code that may mention credentials, scan the output for API keys, JWTs, DB URLs, PEM/private keys, and known rotated-secret fingerprints. The Codex-caught re-leak was in a Markdown handoff file, not a shell command.
+
+45. **No amend/rewrite without Sean (MANDATORY)** — Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -188,6 +201,13 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `docs/ai-workflow/` — AI coordination docs, blueprints, handoffs, references
 
 ## Active Continuity Handoffs
+- `docs/ai-workflow/AI-HANDOFF/SECURITY-REMEDIATION-2026-04-19.md` — credential leak incident closeout: `.claude/settings.local.json` tracked in public GitHub since 2025-10-29, all creds rotated (Render PG, Gemini, JWT x2, local PG), 2,179 commits rewritten via `git-filter-repo`, force-pushed to `origin/main`, `.gitignore` hardened. Post-rewrite HEAD = `302c6fa3`. Read before any future git-history or secrets work. Includes verification grep commands, Hermes Pi cleanup notes, and deferred follow-ups (repo→private, Secret Scanning, `vickievaldez` test-user delete, Hermes `request_dump` redaction).
+- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-3-BRAIN-PIPELINE-V3-2026-04-19.md` — Codex Round 1 review of the v3 3-Brain Pipeline plan. Status: REVISE before Week 1 permission rollout. Key blocker: credential prevention must scan Write/Edit/pre-commit outputs, not only Bash commands.
+- `docs/ai-workflow/AI-HANDOFF/3-BRAIN-PIPELINE-v3-PATCH-LIST-2026-04-19.md` — ROUND 2 synthesis: 9 targeted patches addressing Codex's CRITICAL/HIGH/MEDIUM/LOW findings on v3. Patches 1–5 match Sean's explicit list (secret scanner, permission pattern syntax verify, `.ai-workflow/audit/` gitignore, enumerate safe scripts vs blanket `node scripts/*`, lint gate defer). Patches 6–9 cover remaining Codex findings. Includes ordered apply sequence + 4 open questions back to Sean. Not yet applied — specifies what to do, doesn't do it.
+- `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-RUNTIME-DRIFT-21639730.md` — Phase 16 residual/runtime-drift debate. ROUND 3 marks consensus after `a3bd6dd3`; remaining follow-ups are socket URL unification, production `avatar_homes` inspection before repair migration, and gamification migration test polish.
+- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-CURRENT-COMPLETION-STATE-2026-04-19.md` — compact current ship state: Phase 16/16.2 smoke, commit order, Phase 17/revenue/legal next priorities, and low-token master-plan pointers
+- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-MASTER-EXECUTION-PLAN-2026-04-19.md` — authoritative Village-ratified master roadmap v2; load only the relevant section after reading the compact current-state handoff
+- `docs/ai-workflow/AI-HANDOFF/HERMES-REMOTE-CODING-BRIDGE-PLAN-2026-04-19.md` — Hermes Telegram ↔ VS Code (Claude Code + Codex) remote coding bridge. HIGH priority per Sean ("extremely important"). 3-5 day effort. Currently awaiting Village review + Sean approval before Phase R1 implementation.
 - `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md` — broader Swan Studios product vision, revenue priorities, premium-gating intent, and sequencing
 - `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
@@ -196,6 +216,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - **Gemini 3.1 Pro (CTO)** — Lead Design Authority. Authoritative on aesthetics, Opus can override.
 - **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
 - **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
+- **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.
 - Consult: `node scripts/consult-gemini.mjs --plan|--design|--review|--ask`
 - Output: `AI-Village-Documentation/gemini-consults/latest.md`
 - **IMPORTANT:** Do NOT use Flash 2.5 or any other model's design vision. Gemini 3.1 Pro creates from scratch.
@@ -262,6 +283,8 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Site Transformation Prompt | `docs/ai-workflow/references/SWANSTUDIOS-SITE-TRANSFORMATION-PROMPT.md` | Piece-by-piece premium site modernization |
 | Theme Compatibility | `docs/ai-workflow/references/THEME-CHANGER-COMPAT.md` | Theme/CSS variable work |
 | Build Hardening | `docs/ai-workflow/references/BUILD-HARDENING.md` | Pre-commit review |
+| Seedance Workflow Rules | `docs/ai-workflow/references/SEEDANCE-WORKFLOW-RULES.md` | **MANDATORY** for any Seedance 2.0 exercise/workout video prompt work. 2499-char hard cap (target ~2400), two-layer CLEAN/TAGGED pairing, 8s single-angle default / 15s expanded optional, five-beat Setup→Action→Signature→Proof→Reset teaching rhythm, clinical-language moderation dodge, reusable base prefix, regression-first for 40–70 clients. Triggered by PIRIFORMIS misspelling + quadruped moderation rejection incidents 2026-04-12. |
+| Seedance Cinematic Video Rules | `docs/ai-workflow/references/SEEDANCE-CINEMATIC-VIDEO-RULES.md` | **MANDATORY** for Seedance 2.0 hero loops, store/card loops, icon micro-loops, ambient b-roll, and non-exercise brand films. Separates cinematic multi-shot work from workout rules with loop integrity, surface-specific duration modes, signature visual beats, and Swan brand-motion discipline. |
 | Anti-AI-Tells | `docs/ai-workflow/references/ANTI-AI-TELLS.md` | UI component design |
 | Visual Diff Loop | `docs/ai-workflow/references/VISUAL-DIFF-LOOP.md` | UI QA screenshots |
 | File Cleanup | `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` | Cleanup tasks |
@@ -278,11 +301,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 13)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 14)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
 
-### Default-exposed `.claude/skills/` = 13 entries
+### Default-exposed `.claude/skills/` = 14 entries
 
 **Swan orchestration (5):**
 | Skill | Role |
@@ -293,11 +316,13 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 
-**KEEP core (8, unchanged):**
-`systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+**KEEP core (9):**
+`systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-workout-video`, `seedance-swan-cinematic-video`
 
 ### Reference libraries loaded by `swan-design-router`, NOT default-exposed
 `frontend-design` and `ui-ux-pro-max` live at `.agents/skills/frontend-design/SKILL.md` and `.agents/skills/ui-ux-pro-max/SKILL.md` respectively. They are **not** in `.claude/skills/`. They are loaded on-demand by the router from their `.agents/skills/` paths. They are not archived and not treated as quarantined.
+
+`seedance-loop-prompt` (v2.0, 2026-04-12 AI Village consensus pass) lives at `.agents/skills/seedance-loop-prompt/SKILL.md`. It is the **general-purpose** Seedance 2.0 shot-by-shot prompt builder (4-section structured output: Timeline / Effects Inventory / Density Map / Energy Arc). It is **not** in `.claude/skills/` — treat it as a reference library for cinematic prompt construction. `seedance-swan-workout-video` is the default-exposed workout branch for exercise demos, anatomy-overlay workflow, and regression-first coaching clips. `seedance-swan-cinematic-video` is the default-exposed cinematic branch for hero loops, card loops, icon motion, ambient b-roll, and brand films. Use `seedance-loop-prompt` when a video needs the full effects-breakdown discipline; use the two Swan split skills for normal SwanStudios production work.
 
 ### Quarantined skills — explicit-invocation-only (8, relocated to `archive/quarantined-skills/2026-04-12/`)
 These skills have been moved off the default-exposed surface. Their sources now live at `archive/quarantined-skills/2026-04-12/<name>/`. Do NOT auto-load them. Invoke only when Sean explicitly requests the specific aesthetic or review behavior by slash-command. The move is reversible via `git mv` back.
@@ -348,6 +373,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 > Read the linked handoff docs for full context. This section is the quick-reference only.
 > Full vision: `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md`
 > Swan Coach command state: `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md`
+> Current production/stability priorities: `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
 
 ### Swan Coach Command Lane (ACTIVE TRACK)
 - **v1–v14 CONFIRMED LIVE** (repo-verified 2026-04-11): 20 commands live, commandDispatcher.mjs 214 lines
@@ -355,6 +381,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Blocked/deferred:** `set_availability` (full-week destructive replace), `reschedule_session` (409 conflict path), `schedule_session` (wrong semantics in live code), `FRONTEND_DISPATCH` (browser-local state)
 - **After v15:** trainer workout logging → client dashboard visibility audit (revenue-critical proof-of-value chain)
 - **After trainer workflow:** PLAUD transcript ingestion → Swan Coach logging, then premium gating/tier alignment
+  - **Reality check (2026-04-14):** Plaud now has an official Developer Platform, but it is still private beta and official OAuth pull from existing Plaud user accounts is still in progress / waitlist-only. Swan already has a live upload+parse path (`/api/workout-logs/upload` + `workoutLogParserService.mjs`), so near-term planning should assume manual export/direct upload first, unofficial Plaud web API only as an internal bridge, and official Plaud OAuth/webhooks later.
 
 ### Hermes on Raspberry Pi (BLOCKED — SSD POWER)
 - **Done:** Telegram bot running as systemd service, dense Swan Coach system prompt, google-genai SDK with 3-model fallback, systemd auto-restart
@@ -381,10 +408,9 @@ These skills have been moved off the default-exposed surface. Their sources now 
 
 ### Content Studio — Seedance 2.0 + Exercise Videos (ACTIVE GOAL)
 - **Goal:** Create exercise demo videos with anatomy overlays — muscle activation highlighted as Sean performs perfect-form reps
-- **Seedance skill installed 2026-04-11:** `.agents/skills/seedance-swan-video/skill.md` — invoke with `/seedance-swan-video`
-  - 3 output types: website hero loop, exercise demo (with anatomy overlay markers), brand film
-  - Scroll-sync variant (Section 5) for scroll-activated video like Apple product pages
-  - Full anatomy overlay integration notes (ElevenLabs narration + composited muscle highlight layer)
+- **Seedance skills split 2026-04-12:**
+  - `.agents/skills/seedance-swan-workout-video/SKILL.md` — invoke with `/seedance-swan-workout-video` for exercise demos, anatomy-overlay workflow, and regression-first workout clips
+  - `.agents/skills/seedance-swan-cinematic-video/SKILL.md` — invoke with `/seedance-swan-cinematic-video` for hero loops, store/card loops, icon motion, ambient b-roll, and brand films
 - **AI Village refinement PENDING** — skill was written from first principles; schedule a planning/research Village run next session to research Seedance 2.0 prompt engineering best practices and refine
 - **Workflow:** NanoBanana/key.ai for reference image → Seedance 2.0 (via key.ai API or interface) → Claude Code for website integration → anatomy overlay in post (Capcut Pro / DaVinci)
 - **Scroll-activated video technique** (from YouTube research 2026-04-11): Extract frames from video → map to scroll position → `<canvas>` + `requestAnimationFrame`. Claude Code can do this end-to-end from a video file. Very high priority for homepage hero.
@@ -396,12 +422,15 @@ These skills have been moved off the default-exposed surface. Their sources now 
   - The `frontend-design` you see is the skills.sh community version — good but different
   - **ACTION NEEDED:** Open Claude Code terminal → type `/plugins` → search `frontend-design` → install globally. This gives plan-mode-specific first-party design intelligence on top of the skills.sh version
   - Also check `/plugins` for any other first-party plugins you may be missing (look for `ui`, `react`, `accessibility`)
-- **New skill added:** `seedance-swan-video` — Seedance 2.0 video prompt builder with exercise anatomy support
+- **New skills added:** `seedance-swan-workout-video`, `seedance-swan-cinematic-video` — retired unified `seedance-swan-video`
 
 ### Business Priority Order (do not scatter)
+Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`.
+
 1. **Now:** v15 `view_available_slots` Swan Coach slice → verify end-to-end
 2. **Then:** trainer workout logging → client dashboard visibility (retention/upsell proof)
 3. **Then:** chart/KPI truthfulness audit (workout, weight, measurements, schedule)
 4. **Then:** PLAUD voice transcript ingestion → Swan Coach log_workout
+   - Use the existing Swan upload/parse pipeline as the default starting point; do not assume official Plaud account sync is ready yet.
 5. **Then:** Swan Coach premium gating aligned to package tiers
 6. **Then:** client dashboard audit → user/social dashboard audit → broader site polish
