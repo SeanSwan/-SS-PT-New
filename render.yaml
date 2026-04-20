@@ -63,12 +63,16 @@ services:
         source: /*
         destination: /index.html
     env:
+      # Canonical production backend host. Matches axiosConfig.ts hard-pin
+      # and the /api rewrite in frontend/public/vercel.json. The retired
+      # ss-pt-new.onrender.com host was purged 2026-04-19 alongside the
+      # runtime-drift cleanup (commit 21639730).
       - key: VITE_API_URL
-        value: https://ss-pt-new.onrender.com
+        value: https://sswanstudios.com
       - key: VITE_API_BASE_URL
-        value: https://ss-pt-new.onrender.com
+        value: https://sswanstudios.com
       - key: VITE_BACKEND_URL
-        value: https://ss-pt-new.onrender.com
+        value: https://sswanstudios.com
       - key: NODE_ENV
         value: production
 

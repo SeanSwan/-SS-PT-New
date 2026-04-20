@@ -498,7 +498,10 @@ class AdminClientService {
     title: string;
     date: string;
     duration: number;
-    intensity: number;
+    // Phase 16 (2026-04-16): optional on the wire. Backend persists DB null
+    // when key is omitted. Kept aligned with LogWorkoutPayload.intensity in
+    // parsedWorkoutToLogPayload.ts.
+    intensity?: number;
     notes?: string;
     exercises: Array<{
       name: string;
