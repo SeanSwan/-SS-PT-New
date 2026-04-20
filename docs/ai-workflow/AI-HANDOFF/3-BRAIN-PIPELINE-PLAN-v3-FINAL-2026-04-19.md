@@ -429,7 +429,7 @@ Each week delivers independent value.
 
 - `.claude/settings.json` — NEW tracked base file: allow/ask/deny block (Phase 1 + 1.5)
 - `config/MODEL_VERSIONS.md` — NEW: registry with `TODO: VERIFY_` blockers
-- `scripts/scan-secrets.sh` — NEW: write-time + pre-commit secret scanner (Patch 1)
+- `scripts/scan-secrets.sh` — NEW: pre-commit secret scanner (Patch 1). Also runs on-demand as audit mode (--all). Actual enforcement point is the pre-commit git hook; there is no Claude Code Write/Edit hook (Codex review 2026-04-20).
 - `scripts/validate-env.sh` — NEW: blocks pipeline if MODEL_VERSIONS.md has VERIFY markers
 - `.husky/pre-commit` — NEW: wraps scan-secrets.sh + lint as pre-commit gate
 - `.secretignore` — NEW: allowlist for docs discussing leak incidents with rotated-secret fingerprints

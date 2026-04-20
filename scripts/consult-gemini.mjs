@@ -26,6 +26,10 @@
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
+// Preflight: blocks execution if MODEL_VERSIONS.md has unverified TODO markers
+// or if required env vars are missing. Side-effect import by design.
+import './lib/preflight.mjs';
+
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';

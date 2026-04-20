@@ -74,7 +74,7 @@ AIzaSyC8B_HGNptADhzjTbi0ZtBsTcWTX0U7S8c
 
 1. Write 5 test Bash commands (2 that should be blocked, 3 that should pass) and verify actual blocking behavior. Document results in `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md`.
 2. If Claude only supports glob — rewrite denies to glob form (e.g., `Bash(*AIza*)` without regex character class).
-3. If Claude only supports exact-match — rewrite denies to specific known-bad commands only, acknowledge pattern-based denies as impossible, and lean harder on Patch 1 (write-time scanning).
+3. If Claude only supports exact-match — rewrite denies to specific known-bad commands only, acknowledge pattern-based denies as impossible, and lean harder on Patch 1 (pre-commit scanner). Note: Claude Code does not expose a Write/Edit pre-hook we can wire, so the enforcement layer is git pre-commit + on-demand audit (not write-time).
 
 **Until Patch 2 is verified, treat Bash denies as advisory, not enforcement.** Patch 1 (write/commit scanning) is the actual enforcement layer.
 

@@ -151,7 +151,7 @@ scan_one() {
       local name="${entry%%|*}"
       local regex="${entry#*|}"
       set +e
-      git show ":$file" 2>/dev/null | scan_stream_for_pattern "$file" "$name" "$regex"
+      scan_stream_for_pattern "$file" "$name" "$regex" < <(git show ":$file" 2>/dev/null)
       local rc=$?
       set -e
       (( rc != 0 )) && hits=$((hits + 1))
@@ -167,7 +167,7 @@ scan_one() {
       local name="${entry%%|*}"
       local regex="${entry#*|}"
       set +e
-      cat "$fullpath" | scan_stream_for_pattern "$file" "$name" "$regex"
+      scan_stream_for_pattern "$file" "$name" "$regex" < "$fullpath"
       local rc=$?
       set -e
       (( rc != 0 )) && hits=$((hits + 1))

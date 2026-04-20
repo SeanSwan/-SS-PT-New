@@ -157,7 +157,7 @@ Save results in this file under the "Verification Log" section below.
 
 Per Codex's finding, the actual credential leak prevention is:
 
-1. **Write tool secret scanner** (`scripts/scan-secrets.sh`) — catches content regardless of source
+1. **Pre-commit secret scanner** (`scripts/scan-secrets.sh --staged`) — scans STAGED BLOBS (not working tree) before every commit. Catches content regardless of source.
 2. **Pre-commit hook** — catches anything that survived layer 1
 3. **Bash coarse globs** — catches casual paste-into-shell mistakes but not targeted attacks
 

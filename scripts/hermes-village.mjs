@@ -95,10 +95,10 @@ const MODELS = {
 
 const CONFIG = {
   maxCodeChars: 60_000,
-  // Primary output: AI Village folder (where you already look for things)
-  promptDir: join(ROOT, 'AI-Village-Documentation', 'validation-prompts'),
+  // Primary output: Hermes Village folder (SEPARATE from SwanStudios Village)
+  promptDir: join(ROOT, 'AI-Village-Documentation', 'hermes-village-prompts'),
   // Legacy mirror (kept for backwards compat)
-  legacyReportDir: join(ROOT, 'docs', 'ai-workflow', 'validation-reports'),
+  legacyReportDir: join(ROOT, 'docs', 'ai-workflow', 'hermes-village-reports'),
   timeout: 240_000,  // 4 min — free models can be slower, DeepSeek needs extra time
   // Stagger delay (ms) between launches to respect rate limits
   staggerMs: 2000,
@@ -618,186 +618,230 @@ ${codeBundle}`,
 // ─────────────────────────────────────────────
 
 function buildDocumentValidatorTracks(documentContent, documentPath) {
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Key differentiators: NASM OPT 5-phase periodization, voice-first AI workout logging, Octalysis gamification, 4-dashboard architecture (Admin/Trainer/Client/Social), 840+ exercise database, social fitness platform. Production: sswanstudios.com. Document: ${documentPath}`;
+  const ctx = `Sean runs a broad solo-operator ecosystem. The Hermes Village is the reviewer for this ecosystem.
+
+ECOSYSTEM SCOPE:
+(a) SwanStudios — production personal-training SaaS (React 18 + TypeScript + styled-components, Node/Express/Sequelize/Postgres, Render deploy, sswanstudios.com). Dark-first Enchanted Apex: Crystalline Swan theme.
+(b) Hermes personal AI agent — Nous Research Hermes Agent framework v0.10.0, running on Raspberry Pi (Kali), Telegram-first bot, with a Pi↔5090 Windows Ollama LAN bridge (gemma3:4b / gemma4:31b / qwen2.5-coder:32b / qwen2.5:72b), multi-provider router (Ollama + Gemini 3 Flash + OpenRouter Claude + OpenRouter GPT-5 + future Mythos), and a privacy gate hook catching PII (client, medical, immigration, birth-cert, financial, biometric, legal) before cloud egress.
+(c) Karpathy Wiki — compounding knowledge base on Pi, accessible to Hermes tools.
+(d) Content Studio — Seedance 2.0 video generation workflow.
+(e) V3 Life OS (future) — expansion agents: Sentinel, Healer, Justice, Scholar, Hunter.
+(f) Client ops — Sean trains paying clients, logs sessions via Plaud NotePin, handles real PII.
+(g) Family ops — Sean + wife immigrating to Canada; birth certs, passports, medical records flow through the same stack.
+
+THE DOCUMENT CAN BE ABOUT ANY PART OF THIS ECOSYSTEM. Do NOT assume it's about fitness, or about SwanStudios, or about Hermes specifically. Read the document first, then apply your specialty to what it actually covers. If the document is off-scope for your specialty, say so briefly and provide what cross-applicable observations you can.
+
+CRITICAL RULES Sean operates by:
+- Zero PII to cloud LLMs (client IDs only; names mapped client-side).
+- Dark-first theme, styled-components only (no Material-UI).
+- Render is PAID Professional plan (~$60/mo), no cold starts.
+- No Grok / X-AI models anywhere. No Chinese models in sensitive roles per 2026-04-06 privacy audit.
+- Recursive planning before building (rule 15), dual-pass completion (rule 17), canonical surface receipts for UI/data-truth fixes (rule 26).
+
+Document path: ${documentPath}`;
 
   return [
     {
-      name: 'Technical Accuracy',
+      name: 'Technical Accuracy & Factual Correctness',
       model: MODELS.claudeSonnet46,
-      prompt: `You are a senior technical reviewer for a fitness SaaS platform. ${ctx}
+      prompt: `You are a senior technical reviewer. ${ctx}
 
-Review this QA/vision alignment document for TECHNICAL ACCURACY:
-1. **Factual correctness** — Are feature descriptions accurate? Does the report match what the codebase actually has?
-2. **Score fairness** — Are the 1-10 scores fair based on the evidence presented? Any over-rated or under-rated?
-3. **Missing features** — Does the report miss any major features that ARE built and working?
-4. **False gaps** — Does the report claim gaps that don't actually exist (features that are built but the tester missed)?
-5. **Architecture accuracy** — Are the technical descriptions of the stack, AI pipeline, and integrations correct?
+Review this document for TECHNICAL ACCURACY:
+1. **Factual correctness** — Are claims about APIs, frameworks, models, protocols, infrastructure accurate? (e.g., "Ollama bound to 0.0.0.0", "Hermes uses agent:start hook", "OpenRouter supports anthropic/claude-opus-4-7".)
+2. **Version / API shape accuracy** — Are library versions, function signatures, config keys correct and current?
+3. **Unsupported claims** — Any assertions without evidence that would need verification?
+4. **Mislabels** — Is anything called by the wrong name? (e.g., confusing "Ollama-cloud" with "Ollama local")
+5. **Missing disclaimers** — Claims stated as certain that are actually uncertain / version-dependent / experimental.
 
-For each finding provide:
-- **Severity:** CRITICAL / HIGH / MEDIUM / LOW
-- **Section:** Which part of the document
-- **Issue:** What's wrong or missing
-- **Correction:** What should be stated instead
+For each finding: **Severity** (CRITICAL / HIGH / MEDIUM / LOW), **Location** in the document, **Issue**, **Correction** (what it should say instead).
 
-DOCUMENT TO REVIEW:
+DOCUMENT:
 ${documentContent}`,
     },
 
     {
-      name: 'Strategic Analysis',
-      model: MODELS.gemini25Flash,
-      prompt: `You are a product strategist and competitive analyst. ${ctx}
-
-Review this vision alignment document for STRATEGIC QUALITY:
-1. **Competitive analysis accuracy** — Are the competitor comparisons fair? Is the market positioning realistic?
-2. **Priority ordering** — Are the Priority 1/2/3 recommendations in the right order? What should be higher/lower?
-3. **Missing opportunities** — What strategic opportunities does the report overlook?
-4. **Risk assessment** — What risks are not addressed? (market, technical, operational)
-5. **Revenue impact** — Which recommendations would have the highest revenue impact?
-6. **Feasibility** — Are the timeline estimates (2-4 weeks, 1-3 months, 3-6 months) realistic?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'UX/Design Gap Validation',
-      model: MODELS.gemini31Flash,
-      prompt: `You are a UX/UI design expert reviewing a QA report for a luxury fitness platform. ${ctx}
-
-Review this document for UX/DESIGN accuracy:
-1. **Gap validity** — Are the identified UI gaps real? (e.g., "no visible recording state" on voice — is that actually missing?)
-2. **Priority accuracy** — Are the UX fixes correctly prioritized? Voice logging is flagged as #1 — do you agree?
-3. **Missing UX issues** — What UX problems does the report NOT mention? (mobile responsiveness, accessibility, loading states, etc.)
-4. **Design recommendations** — Are the strategic design suggestions (wearables, AI form analysis, etc.) the right ones?
-5. **Crystalline Swan compliance** — Does the report correctly assess theme adherence?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'Business & Revenue Validation',
-      model: MODELS.gemini25Flash,
-      prompt: `You are a fitness industry business analyst. ${ctx}
-
-Review this vision alignment report for BUSINESS ACCURACY:
-1. **Market positioning** — Is the "hybrid B2C/B2B" positioning valid? Is the competitive moat real?
-2. **Monetization gaps** — Does the report correctly identify revenue opportunities? What's missing?
-3. **Client onboarding** — The report scores onboarding at 7/10. Is that fair given the 2-tier (SwanStudios/Move Fitness) model?
-4. **Pricing strategy** — Does the report address pricing optimization? Premium vs freemium?
-5. **Growth blockers** — What growth blockers are missing from the analysis?
-6. **White-label viability** — Is the white-label recommendation realistic for this stage?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'Gamification & Engagement Review',
-      model: MODELS.nemotron3Nano,
-      prompt: `You are a gamification and user engagement specialist. The platform uses the Octalysis Framework with 5 tiers (Bronze Forge → Crystalline Swan), 6 skill trees, and badge rarity system. ${ctx}
-
-Review this document's gamification assessment:
-1. **Score accuracy** — Gamification is scored 6/10 PARTIAL. Is this fair? What specific features ARE working vs missing?
-2. **Octalysis implementation** — The report says core drives aren't surfaced in UI. Which drives ARE present (even implicitly)?
-3. **Social-gamification link** — Is the integration between social features and gamification correctly assessed?
-4. **Engagement recommendations** — Are the suggested improvements (badges, streaks, achievements) the RIGHT priorities?
-5. **Retention mechanics** — What retention loops exist that the report doesn't mention?
-6. **Competitor comparison** — How does the gamification compare to Duolingo, Strava, Nike Run Club specifically?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'NASM & Fitness Science Validation',
-      model: MODELS.gemini3Flash,
-      prompt: `You are a certified fitness professional and exercise science reviewer. ${ctx}
-
-Review this document for FITNESS SCIENCE accuracy:
-1. **NASM OPT Protocol** — The report scores AI workout generation 9/10. Validate the OPT phase descriptions are accurate.
-2. **Exercise database** — The report says 840+ exercises aren't browsable. Is the admin exercise command center not counted? What about the exercise autocomplete in the workout builder?
-3. **Periodization accuracy** — Are the tempo, rep ranges, and rest period descriptions in the report correct?
-4. **Voice logging** — Is voice-first workout logging truly the #1 differentiator? Or is NASM AI more important?
-5. **Nutrition integration** — Does the report accurately assess the nutrition-workout connection?
-6. **Recovery & mobility** — Are there recovery features the report misses?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'Security & Privacy Assessment',
-      model: MODELS.nemotron3Nano,
-      prompt: `You are a security and privacy expert. ${ctx}
-
-Review this document for SECURITY & PRIVACY considerations:
-1. **PII handling** — The report mentions "Identity-Blind AI Privacy" as an advantage. Validate this claim.
-2. **Missing security assessment** — The QA report doesn't include security testing. What security gaps should have been assessed?
-3. **Data privacy** — Social fitness data, workout history, health metrics — are privacy controls adequate?
-4. **HIPAA-adjacent concerns** — Personal training data borders on health data. Is this addressed?
-5. **Payment security** — Stripe integration security assessment — was this covered?
-6. **Wearable data risks** — If wearable integration is recommended, what security implications exist?
-
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
-
-DOCUMENT TO REVIEW:
-${documentContent}`,
-    },
-
-    {
-      name: 'Architecture & Implementation Gap',
+      name: 'Security & Threat Modeling',
       model: MODELS.nemotron3Super,
-      prompt: `You are a principal engineer reviewing a QA gap analysis. ${ctx}
+      prompt: `You are a senior security engineer and threat modeler. ${ctx}
 
-Review this document for ARCHITECTURE & IMPLEMENTATION accuracy:
-1. **Built vs visible** — The conclusion says "make the invisible visible." Which features are truly built but not surfaced vs not built at all?
-2. **Exercise database UI** — Report says 5/10. But there IS an AdminExerciseCommandCenter with search/filter. Is this a false gap?
-3. **Voice pipeline** — DictationOrb scored 4/10. Is the backend pipeline (Gemini Flash transcription → GPT-4o-mini parsing) built even if UI feedback is missing?
-4. **Gamification backend** — Is the Octalysis engine backend complete even if UI is partial?
-5. **Content Studio** — Scored 5/10. Are Remotion templates actually built? What's the real state?
-6. **Social platform** — The "0 posts vs 8 posts" data mismatch — is this a real bug or a caching issue?
+Review this document for SECURITY findings. Cover BOTH traditional app security AND AI-agent-specific risks:
+1. **PII exposure surfaces** — Where in the described flow could PII leak to cloud providers, logs, backups, or third parties? Is the privacy-gate coverage complete, or are categories/patterns missing?
+2. **Credential & secret hygiene** — Plaintext keys in .env? Any tokens with excessive lifetimes, scope, or blast radius?
+3. **Supply chain / dependency risk** — Dependencies with history of compromise? Auto-update vs pinned versions?
+4. **Deployment / infra exposure** — Open ports, weak firewall rules, accidentally-exposed services, or trust-all-LAN assumptions?
+5. **Data at rest** — Session transcripts, SQLite databases, log files — encrypted? Retention policy? Deletion plan?
+6. **Logging practice** — Do log files inadvertently capture PII or secrets?
+7. **Agent-specific: prompt-injection resistance** — Can a user input manipulate the agent into unauthorized tool calls?
+8. **Agent-specific: tool scope blast radius** — What's the worst-case reach of the agent's tools if prompt-injected?
+9. **Compliance-adjacent** — HIPAA-ish (health data), immigration law (document handling), PCI (payment info) — which concerns apply here?
+10. **Threat model Sean should care about** — Who realistically could attack this, how, and what's the mitigation?
 
-For each finding provide severity and specific corrections.
+For each finding: **Severity**, **Attack vector**, **Mitigation**, **Priority** (fix-today / this-week / this-month / backlog).
 
-DOCUMENT TO REVIEW:
+DOCUMENT:
 ${documentContent}`,
     },
 
     {
-      name: 'Document Quality & Completeness',
+      name: 'Agent Safety & Prompt Injection Resistance',
+      model: MODELS.nemotron3Nano,
+      prompt: `You are an AI-agent safety specialist reviewing a system where LLMs have autonomous tool use. ${ctx}
+
+Review this document SPECIFICALLY for agent/LLM safety:
+1. **Prompt-injection pathways** — Where could adversarial input (from users, tools, web content, other agents) manipulate the LLM into unintended tool calls?
+2. **Tool scope vs role** — Do the tools granted to each agent match its actual job? (A chat agent probably shouldn't have shell + filesystem access.)
+3. **Capability isolation** — Can the agent escape its intended role via tool chaining? (e.g., read_file → exfiltrate via send_message)
+4. **Output filtering** — Does the agent's output get sanitized before reaching the user (or other agents, or logs)?
+5. **Jailbreak resilience** — Standard jailbreak prompts ("ignore previous instructions", DAN-style, nested-impersonation) — does the architecture resist them structurally or only through prompt alignment?
+6. **LLM hallucination harm** — Where does the agent act on its own output? (e.g., "I've updated your records" hallucination earlier this session.)
+7. **Confused deputy** — Could the agent be tricked into performing actions on behalf of an attacker while believing it's serving the legitimate user?
+8. **Multi-agent / multi-model collusion** — If multiple LLMs talk to each other (AI Village, plugin chains), what safety properties hold across the boundary?
+9. **Tool-call confirmation gaps** — Which tools execute without user confirmation? Should more require it?
+10. **Incident response** — If an agent misbehaves, how does Sean detect, interrupt, and recover?
+
+For each finding: **Severity**, **Attack scenario**, **Concrete fix** (config change, prompt addition, or code patch).
+
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'Architecture & System Design',
+      model: MODELS.trinityLarge,
+      prompt: `You are a principal architect reviewing system design decisions. ${ctx}
+
+Review this document for ARCHITECTURAL SOUNDNESS:
+1. **Coupling vs cohesion** — Are responsibilities cleanly split across services/modules/agents, or are there leaky abstractions?
+2. **Single points of failure** — What breaks the whole system if it goes down?
+3. **State management** — Where does state live? Is the source-of-truth clear for each piece? Consistency guarantees?
+4. **Scaling path** — When Sean goes from 1 user to 100, what breaks first? To 10K?
+5. **Observability** — Can Sean tell what's happening in production? Metrics, logs, traces, alerts?
+6. **Deployability** — Can a change be rolled out safely? Rolled back safely?
+7. **Reversibility of decisions** — Which architectural choices lock Sean in? Which stay reversible?
+8. **Over-engineering** — Anything added "just in case" that isn't actually needed yet?
+9. **Missing pieces** — What foundational capability would you add BEFORE continuing down the current roadmap?
+10. **Integration edge cases** — Where do two systems meet and is that contract clearly defined?
+
+For each finding: **Severity**, **Architectural concern**, **Recommended pattern / refactor**, **Estimated effort**.
+
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'Code Quality & Craft',
       model: MODELS.claudeSonnet46,
-      prompt: `You are a technical documentation quality reviewer. ${ctx}
+      prompt: `You are a senior code-review specialist. ${ctx}
 
-Review this QA report for DOCUMENT QUALITY:
-1. **Methodology** — Was the testing methodology sound? What should have been tested differently?
-2. **Evidence quality** — Are claims backed by specific observations? Any unsupported assertions?
-3. **Bias detection** — Does the report show any bias (overly positive, overly negative, missing context)?
-4. **Actionability** — Are the recommendations specific enough to act on? Or too vague?
-5. **Completeness** — What major areas were NOT assessed? (performance, accessibility, mobile, security, SEO)
-6. **Follow-up plan** — Does the report provide a clear path forward? Can this be used as a sprint planning doc?
+Review any code snippets, config blocks, or pseudo-code in this document for CRAFT:
+1. **Correctness** — Are the algorithms, regex patterns, SQL, config shapes actually right?
+2. **Defensive coding** — Error handling, edge cases, race conditions, unchecked assumptions?
+3. **Readability** — Would a new dev understand this in 6 months? Naming, structure, comments where warranted?
+4. **Idiom fit** — Does the code match the framework's conventions (Hermes hook signatures, React patterns, Node async conventions)?
+5. **Security at the code level** — Input validation, injection safety, secrets handling, path traversal?
+6. **Performance red flags** — O(n²) in a hot loop, repeated IO, unbounded caches, sync-in-async?
+7. **Testability** — Can this be unit tested? Are there obvious test cases that would catch regressions?
+8. **Dead / vestigial code** — Anything that looks unused, superseded, or contradictory with other parts?
+9. **Regex / pattern quality** — For detection regex (like PII): false positives, false negatives, anchoring, case sensitivity?
+10. **API design** — If this code exposes a surface to other code, is that surface well-shaped?
 
-Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
-Output as structured markdown.
+For each finding: **Severity**, **File/snippet**, **Issue**, **Suggested fix** (ideally with diff-style replacement).
 
-DOCUMENT TO REVIEW:
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'UX / Product / User Experience',
+      model: MODELS.gemini31Flash,
+      prompt: `You are a UX and product reviewer. ${ctx}
+
+Review this document for USER-FACING IMPACT. "User" here may be Sean himself (operator UX) or Sean's clients/family (end-user UX):
+1. **Friction points** — Where does a user have to do extra steps that a better design would eliminate?
+2. **Error states** — When things go wrong, does the user know? Can they recover?
+3. **Accessibility** — For any UI described: keyboard nav, screen reader, contrast, motion sensitivity, touch targets?
+4. **Mobile / small-screen** — Does the described flow work on phone / via Telegram / via voice?
+5. **Cognitive load** — Is the user required to remember too much state? Too many commands?
+6. **Default behavior** — Are defaults safe for a rushed / distracted user? (E.g., "type /local before PII" is a user-remembers-to-do-right-thing default.)
+7. **Feedback loops** — Does the user get timely feedback when something's happening / succeeded / failed?
+8. **Discoverability** — How does a user learn about features? Is there /help, is it up-to-date?
+9. **Consistency** — Do similar actions behave similarly? Same iconography / language / structure?
+10. **Joy / delight** — What moment in this flow could be a signature UX moment vs feeling like admin work?
+
+For each finding: **Severity**, **User journey impact**, **Suggested improvement**.
+
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'Operational Reliability & Deployment',
+      model: MODELS.gemini3Flash,
+      prompt: `You are an SRE / platform-ops reviewer. ${ctx}
+
+Review this document for RUNTIME / OPS / DEPLOY concerns:
+1. **Service recovery** — What happens if hermes-gateway.service crashes? Ollama dies? 5090 reboots? Pi reboots?
+2. **Dependency uptime** — If OpenRouter is down, Gemini is rate-limited, Telegram has an outage — what's the user experience?
+3. **Boot order / init** — Cold-boot from power-off, in what order must services come up? Documented?
+4. **Config drift** — Over time, as configs are edited, how does Sean avoid drift between "what I think is configured" and "what actually is"?
+5. **Monitoring / alerting** — How does Sean know when something's broken without checking manually?
+6. **Backups** — Config, audit logs, session databases, wiki — backup plan? Tested restore?
+7. **Time drift, clock skew, timezone** — Any timestamp-sensitive logic (cron, TTLs, audit)?
+8. **Disk, memory, GPU VRAM exhaustion** — Any unbounded growth paths?
+9. **Upgrade path** — When Nous Research ships Hermes v0.11, how does Sean upgrade safely?
+10. **Incident playbook** — Minimum runbook Sean would need if something goes wrong at 2am.
+
+For each finding: **Severity**, **Failure scenario**, **Mitigation or documentation needed**.
+
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'Documentation, Continuity & Memory',
+      model: MODELS.gemini25Flash,
+      prompt: `You are a documentation and knowledge-continuity reviewer. Sean works across multiple AI assistants, multiple sessions, and relies heavily on his CLAUDE.md + MEMORY system + Karpathy Wiki for continuity. ${ctx}
+
+Review this document for CONTINUITY CONCERNS:
+1. **Session-durability** — If Sean stops work now and picks up in 3 weeks, does this document give future-Sean (or future-Claude) what they need?
+2. **Linkability** — Are external references (file paths, URLs, commit hashes, debate files) specific enough to find again later?
+3. **Vocabulary consistency** — Are terms used consistently with Sean's CLAUDE.md and existing memory? (Hermes / Swan Coach / Village / etc.)
+4. **Redundancy vs single-source-of-truth** — Does this doc duplicate info that lives elsewhere? Should the dupe be removed or the other source linked?
+5. **Decay risk** — What parts of this doc will go stale fastest? Version numbers, model names, file paths?
+6. **Missing back-references** — Are prior decisions / debate files / memory entries referenced where relevant?
+7. **Wiki placement** — Should anything in this doc be promoted to the Karpathy Wiki for cross-session compounding?
+8. **Memory-worthy facts** — Specific facts in this doc that should be saved as user/feedback/project/reference memory entries?
+9. **ACTIVE-INDEX.md impact** — Does this document create need to update the repo root index?
+10. **CLAUDE.md impact** — Any new mandatory rule or reference-doc link that should land in CLAUDE.md?
+
+For each finding: **Severity**, **Continuity gap**, **Specific recommendation** (add to X file, save as Y memory, link from Z).
+
+DOCUMENT:
+${documentContent}`,
+    },
+
+    {
+      name: 'Strategic Alignment & Gap Finding',
+      model: MODELS.gemini25Flash,
+      prompt: `You are a strategic reviewer and gap finder. Your explicit license here is to speculate, challenge assumptions, and raise things that aren't in the document at all. ${ctx}
+
+Review this document for STRATEGIC FIT and MISSING CONTEXT:
+1. **What's the document's implicit theory of success?** Is that theory correct?
+2. **What's NOT in this document that a careful reader would expect?** List missing sections, missing considerations, missing stakeholders.
+3. **Opportunity cost** — For the work this doc proposes, what else COULD Sean be doing with the same time/budget? Is this the right thing to prioritize?
+4. **Second-order effects** — What changes downstream if this work ships as described?
+5. **Parallel work** — Is anything in this doc duplicative of work already in flight elsewhere in Sean's stack?
+6. **Over-scoped / under-scoped** — Is the work bigger or smaller than the doc implies?
+7. **Missing stakeholders** — Whose input or concern isn't represented? (Clients, wife, future-Sean, future-collaborators.)
+8. **Failure modes not considered** — What goes wrong that Sean hasn't thought about?
+9. **Quick wins hiding in plain sight** — Is there a 10% effort action that would give 80% of the value?
+10. **Wild card** — One completely-from-left-field suggestion the document implicitly disqualifies but probably shouldn't.
+
+For each finding: **Strategic category**, **What's missing/misaligned**, **Proposed addition or challenge**.
+
+Be explicit when you're speculating vs when you're stating observation. Sean values independent perspective over agreement.
+
+DOCUMENT:
 ${documentContent}`,
     },
   ];
@@ -806,58 +850,65 @@ ${documentContent}`,
 // Document-mode debate prompt builders
 
 function buildDocDebateCodePrompt(documentContent, ctx, phase1Summary) {
-  return `You are the CTO (Chief Technology Officer) reviewing a Vision Alignment QA Report for SwanStudios. ${ctx}
+  return `You are the CTO (Chief Technology Officer) for Sean's ecosystem. ${ctx}
 
 ## YOUR ROLE — CTO (Technical Authority)
 
-A QA report has been generated comparing the live SwanStudios application against the product vision. You must evaluate whether the report's technical assessments are accurate and the priority recommendations are correct.
+This is the Phase 2A debate. Nine Phase 1 validators have already reviewed the document below. Your job is to synthesize their findings, adjudicate technical disagreements between them, and propose the definitive technical path forward.
 
-The CEO will challenge your findings. Defend with evidence or concede.
+The CEO (Claude Sonnet 4.6) will challenge your conclusions. Defend with evidence or concede — whichever is correct.
 
-## Phase 1 Context (9 document validators already ran)
-
+## Phase 1 Summary
 ${phase1Summary}
 
 ## Your Analysis — Round 1
 
-For each assessment in the QA report:
-- **Agree/Disagree:** Do you agree with the score?
-- **Correction:** What should the score or assessment be?
-- **Priority Reorder:** Should any recommendations move up or down in priority?
-- **Missing Items:** What does the report miss entirely?
+1. **Technical correctness synthesis** — Where did Phase 1 validators AGREE on technical claims? Where did they DISAGREE? For each disagreement, name who was right and why.
+2. **Ranked technical concerns** — Based on Phase 1 + the document, what are the top 5 technical issues ranked by severity? Be concrete about what breaks if ignored.
+3. **False alarms** — Did any Phase 1 validator flag something that is actually fine? Name it and explain.
+4. **Missed issues** — What real technical concerns did all 9 Phase 1 validators miss?
+5. **Implementation feasibility** — For anything the document proposes building/fixing, is it realistically doable given Sean's solo-operator bandwidth and stack?
 
-Focus on technical accuracy, implementation feasibility, and business impact.
+Focus on: architecture correctness, security soundness, operational reliability, code craft, and agent safety. Skip market/business/pricing talk — that's not this debate's scope.
 
 DOCUMENT UNDER REVIEW:
 ${documentContent}`;
 }
 
 function buildDocDebateDesignPrompt(documentContent, ctx, phase1UXReport) {
-  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+  return `You are the Creative Director reviewing design, UX, and operator-experience decisions for Sean's ecosystem. ${ctx}
 
-## YOUR ROLE — Creative Director (Design Authority)
+## YOUR ROLE — Creative Director (Design & UX Authority)
 
-A QA report has assessed the visual and UX quality of the SwanStudios platform. You must evaluate whether the design-related assessments are accurate and the design recommendations are the right ones.
+This is the Phase 2C debate. The UX / Product Phase 1 track has already reviewed the document. Your job is to adjudicate UX/product decisions, and raise design concerns that need direct authority.
 
-## Crystalline Swan Design Tokens (MANDATORY)
+"Design" here is broader than pixels:
+- If the document is about SwanStudios UI: pixel-level design (Crystalline Swan tokens, Dual-Button Glow, typography, motion).
+- If the document is about Hermes / agent architecture: operator UX, Telegram conversation design, command surface, error-feedback design, cognitive-load design.
+- If the document is about workflow / ops: task flow design, decision-point design.
+
+## Crystalline Swan Tokens (when SwanStudios UI is involved)
 - Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0
 - Wing Purple #8B5CF6, Gilded Fern #C6A84B, Frost White #E0ECF4
 - Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24
 - Dual-Button Glow: Blue → Purple glow. Purple → Cyan glow.
+- Dark-first default, styled-components only (no Material-UI).
 
-## UX Phase 1 Report
-${phase1UXReport || '_No Phase 1 UX report available._'}
+## Phase 1 UX Report
+${phase1UXReport || '_No Phase 1 UX report available for this run._'}
 
 ## Your Analysis — Round 1
 
-Evaluate the QA report's design assessments:
-- **Voice logging UI (4/10)** — Is the recording state really missing? What should it look like?
-- **Client dashboard sidebar** — Is the sidebar complaint valid? What's the ideal navigation?
-- **Gamification UI** — What should the badge gallery and tier progression look like?
-- **Exercise library** — How should 840+ exercises be browsed? Card grid? Virtual list?
-- **Overall design impression** — Does the report capture the Crystalline Swan aesthetic accurately?
+1. **User-journey critique** — Walk through the user's actual experience described in this document. Where's the friction? Where's the moment of delight (if any)? Where does the user have to carry cognitive load they shouldn't?
+2. **Consistency check** — Are similar actions / affordances / vocabulary used consistently across what this document describes?
+3. **Default-safety** — Are default behaviors safe for a distracted / rushed / tired user?
+4. **Accessibility & device fit** — Keyboard, screen reader, mobile, voice, low-bandwidth — any gaps?
+5. **Signature moment** — Does this design have a distinctive voice, or does it feel generic/template?
+6. **Anti-template discipline** — For visible UI: does this feel like it was built from a design system Sean owns, or like a Bootstrap template with theme tokens swapped?
+7. **Error / recovery design** — When something fails, what does the user see? Can they recover without support?
+8. **Suggested improvements** — Top 5 concrete design changes, ranked by impact-per-effort.
 
-Provide specific pixel measurements, color codes, animation specs for all recommendations.
+If the document has no UI/UX surface at all, say so briefly and move to operator-experience critique instead.
 
 DOCUMENT UNDER REVIEW:
 ${documentContent}`;
@@ -1722,26 +1773,33 @@ async function main() {
 
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════════╗');
-  console.log('  ║    SwanStudios 15-Brain Recursive Consensus System      ║');
+  console.log('  ║    Hermes Village — Ecosystem Recursive Consensus       ║');
   const subtitle = hasGemini31
     ? `${brainCount}-Brain — Specialty Debates + Smart Escalation`
-    : `13-Brain — Phase 1 only (add GEMINI_API_KEY for 15-Brain)`;
+    : `9-Brain — Phase 1 only (add GEMINI_API_KEY for debates)`;
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
-  console.log('  ║    Phase 1: 13 Parallel Validators (OpenRouter)         ║');
-  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
-  console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · Nemotron 3 Nano  ║');
-  console.log('  ║    Gemini 2.5 Flash · MiniMax M2.7 · Nemotron 3     ║');
-  console.log('  ║    Nemotron 3 Super · Step Bug Hunter II · Data Safety   ║');
+  console.log('  ║    Scope: Hermes agent + SwanStudios + Wiki + Life OS    ║');
+  console.log('  ║                                                          ║');
+  console.log('  ║    Phase 1: 9 Parallel Ecosystem Validators             ║');
+  console.log('  ║    1. Technical Accuracy       — Claude Sonnet 4.6      ║');
+  console.log('  ║    2. Security & Threat Model  — Nemotron 3 Super       ║');
+  console.log('  ║    3. Agent Safety & Prompts   — Nemotron 3 Nano        ║');
+  console.log('  ║    4. Architecture & Systems   — Trinity Large 400B     ║');
+  console.log('  ║    5. Code Quality & Craft     — Claude Sonnet 4.6      ║');
+  console.log('  ║    6. UX / Product / User      — Gemini 3.1 Flash       ║');
+  console.log('  ║    7. Operational Reliability  — Gemini 3 Flash         ║');
+  console.log('  ║    8. Docs / Continuity / Mem  — Gemini 2.5 Flash       ║');
+  console.log('  ║    9. Strategic / Gap Finding  — Gemini 2.5 Flash       ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
-    console.log('  ║    A. Security: Step 3.5 ↔ Nemotron 3 Super (FREE)   ║');
-    console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Nemotron 3 Super       ║');
-    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7     ║');
+    console.log('  ║    A. Technical Accuracy: Gemini 3.1 Pro ↔ Claude 4.6  ║');
+    console.log('  ║    B. Security + Agent Safety: Claude ↔ Nemotron Super ║');
+    console.log('  ║    C. Architecture Gaps: Gemini 3.1 Pro ↔ Trinity Large║');
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
-    console.log('  ║    Nemotron Nano Escalation + MiniMax M2.7 — skip if not needed      ║');
+    console.log('  ║    Nemotron Nano + MiniMax M2.7 — skip if not needed    ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
