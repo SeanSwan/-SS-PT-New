@@ -56,34 +56,56 @@ fi
 section "Environment Variables"
 
 check_env() {
-  local var="$1"
-  local severity="${2:-error}"
-  if [[ -z "${!var:-}" ]]; then
-    if [[ "$severity" == "warn" ]]; then
-      echo "⚠ $var not set (optional)"
-      warnings=$((warnings + 1))
-    else
-      echo "✗ $var not set"
-      errors=$((errors + 1))
+  # Check that ANY of the given env var names is set (aliases supported).
+  # Args: <severity> <var1> [<var2> ...]
+  # Severity: error | warn | group-error | group-warn
+  #   group-error: at least one of the aliases must be set, else error
+  #   group-warn:  at least one of the aliases should be set, else warn
+  local severity="$1"; shift
+  local found=""
+  local found_var=""
+  for v in "$@"; do
+    local val="${!v:-}"
+    if [[ -n "$val" ]]; then
+      found="$val"
+      found_var="$v"
+      break
     fi
-  else
-    echo "✓ $var set (${#var} char)"
+  done
+
+  local group_label="$*"
+  if [[ -n "$found" ]]; then
+    # ${#found} = value length, not variable-name length (bug fix from v1)
+    echo "✓ $found_var set (${#found} chars)"
+    return 0
   fi
+
+  case "$severity" in
+    error|group-error)
+      echo "✗ None of: $group_label"
+      errors=$((errors + 1))
+      ;;
+    warn|group-warn)
+      echo "⚠ None of: $group_label (optional)"
+      warnings=$((warnings + 1))
+      ;;
+  esac
 }
 
 # Check env vars as passed in from the caller's shell.
-# We do NOT source .env here — it's fragile (quoting issues, special chars,
-# and callers should inject env from their own dotenv-aware loader anyway).
-# Node scripts use dotenv; Python scripts use python-dotenv. This script just
+# We do NOT source .env here — it's fragile (quoting issues, special chars).
+# Node scripts use dotenv; Python scripts use python-dotenv. This script
 # verifies the variable IS set when invoked.
 #
-# If you want to validate env vars that only live in .env, run:
+# If you want to validate env vars that only live in .env, invoke via:
 #   env $(grep -v '^#' .env | xargs -I{} echo {}) scripts/validate-env.sh
+#
+# Scripts in this repo use multiple aliases for the Gemini key
+# (GEMINI_API_KEY, GOOGLE_API_KEY, GOOGLE_AI_KEY). Accept any one.
 
-check_env GOOGLE_API_KEY
-check_env OPENROUTER_API_KEY warn
-check_env ANTHROPIC_API_KEY warn
-check_env GEMINI_API_KEY warn   # alias, may or may not be set
+check_env group-error GEMINI_API_KEY GOOGLE_API_KEY GOOGLE_AI_KEY
+check_env warn OPENROUTER_API_KEY
+check_env warn ANTHROPIC_API_KEY
 
 # ============================================
 # 3. Secret scanner is executable

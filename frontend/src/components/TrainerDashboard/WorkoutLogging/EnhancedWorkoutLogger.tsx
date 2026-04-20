@@ -451,40 +451,65 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const { activeClient } = useGlobalClient();
   const urlClientId = searchParams.get('clientId');
   const clientId = urlClientId || (activeClient?.id ? String(activeClient.id) : null);
-  
+
+  // Phase 17 (2026-04-20): role-aware navigation + copy.
+  // Admin lands on ClientsWorkspace (Client Hub); trainer lands on MyClientsView.
+  // Client Progress deep-link goes to the Client Hub with the clientId pre-selected
+  // (ClientsWorkspace reads `clientId` from useSearchParams and auto-selects).
+  // `AdminClientProgressView` is intentionally NOT the admin target because it
+  // owns `selectedClientId` as internal state and does not consume a URL param.
+  const isAdmin = user?.role === 'admin';
+  const backToClientsPath = isAdmin
+    ? '/dashboard/admin/client-management'
+    : '/dashboard/trainer/clients';
+  const backToClientsLabel = isAdmin ? 'Back to Client Hub' : 'Back to My Clients';
+  const noClientSelectedMessage = isAdmin
+    ? 'Please select a client from Client Hub.'
+    : 'Please select a client from My Clients view.';
+  const clientProgressPath = (cid: string | number | undefined) =>
+    isAdmin
+      ? `/dashboard/admin/client-management?clientId=${cid}`
+      : `/dashboard/trainer/client-progress?clientId=${cid}`;
+
   // Load client data
   const loadClientData = useCallback(async () => {
     if (!clientId) {
-      setError('No client selected. Please select a client from My Clients view.');
+      setError(`No client selected. ${noClientSelectedMessage}`);
       setLoading(false);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      
-      // Try to load client data from API
-      const response = await authAxios.get(`/api/client-trainer-assignments/client/${clientId}`);
-      
-      if (response.data) {
-        const d = response.data;
-        // Normalize snake_case API fields to camelCase Client interface
+
+      // Phase 17 (2026-04-20): switched from /api/client-trainer-assignments/
+      // client/:id (adminOnly, which 403'd for trainers and silently dropped
+      // the logger into demo mode) to the canonical Codex-approved Option 2:
+      // GET /api/workout-forms/client/:clientId/info — trainer + admin, same
+      // middleware the WorkoutLogger client-self-route already uses.
+      const response = await authAxios.get(`/api/workout-forms/client/${clientId}/info`);
+
+      if (response.data?.success && response.data.client) {
+        const c = response.data.client;
+        // /info returns pure camelCase. totalSessionsCompleted, lastSessionDate
+        // and membershipLevel are not in the /info response — keep defaults so
+        // the card renders without visual gaps.
         setClient({
-          ...d,
-          firstName: d.firstName || d.first_name || d.username || 'Client',
-          lastName: d.lastName || d.last_name || '',
-          email: d.email || '',
-          phone: d.phone || d.phoneNumber || '',
-          availableSessions: d.availableSessions ?? d.available_sessions ?? 0,
-          totalSessionsCompleted: d.totalSessionsCompleted ?? d.total_sessions_completed ?? 0,
-          lastSessionDate: d.lastSessionDate || d.last_session_date || null,
-          membershipLevel: d.membershipLevel || d.membership_level || 'standard',
+          id: String(c.id),
+          firstName: c.firstName || 'Client',
+          lastName: c.lastName || '',
+          email: c.email || '',
+          phone: c.phone || undefined,
+          availableSessions: c.availableSessions ?? 0,
+          totalSessionsCompleted: 0,
+          lastSessionDate: undefined,
+          membershipLevel: 'basic',
         });
       } else {
-        throw new Error('Client not found or not assigned to you');
+        throw new Error('Client not found or not accessible');
       }
-      
+
     } catch (err: any) {
       logger.log('API not available, using demo mode');
       
@@ -500,34 +525,34 @@ const EnhancedWorkoutLogger: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [clientId, authAxios, toast]);
+  }, [clientId, authAxios, toast, noClientSelectedMessage]);
   
   // Initialize component
   useEffect(() => {
     loadClientData();
   }, [loadClientData]);
   
-  // Navigation handlers
+  // Navigation handlers (Phase 17: role-aware back-target, see backToClientsPath above)
   const handleBackToClients = useCallback(() => {
-    navigate('/dashboard/trainer/clients');
-  }, [navigate]);
-  
+    navigate(backToClientsPath);
+  }, [navigate, backToClientsPath]);
+
   const handleWorkoutComplete = useCallback((formData: any) => {
-    toast({ 
-      title: 'Workout Completed!', 
-      description: `Workout logged for ${client?.firstName}. Session deducted and progress updated.`, 
-      variant: 'default' 
+    toast({
+      title: 'Workout Completed!',
+      description: `Workout logged for ${client?.firstName}. Session deducted and progress updated.`,
+      variant: 'default'
     });
-    
-    // Navigate back to My Clients with success state
-    navigate('/dashboard/trainer/clients', { 
+
+    // Navigate back to the role-appropriate clients surface with success state
+    navigate(backToClientsPath, {
       state: { workoutCompleted: true, clientName: `${client?.firstName} ${client?.lastName}` }
     });
-  }, [client, navigate, toast]);
-  
+  }, [client, navigate, toast, backToClientsPath]);
+
   const handleWorkoutCancel = useCallback(() => {
-    navigate('/dashboard/trainer/clients');
-  }, [navigate]);
+    navigate(backToClientsPath);
+  }, [navigate, backToClientsPath]);
   
   const handleTryOriginalLogger = useCallback(() => {
     if (!client) return;
@@ -570,7 +595,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
           <p>{error}</p>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <GlowButton
-              text="Back to My Clients"
+              text={backToClientsLabel}
               theme="purple"
               onClick={handleBackToClients}
               leftIcon={<ArrowLeft size={18} />}
@@ -665,7 +690,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
         
         <NavigationBar>
           <GlowButton
-            text="Back to My Clients"
+            text={backToClientsLabel}
             theme="cosmic"
             onClick={handleBackToClients}
             leftIcon={<ArrowLeft size={18} />}
@@ -684,7 +709,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
               text="Client Progress"
               theme="purple"
               size="small"
-              onClick={() => navigate(`/dashboard/trainer/client-progress?clientId=${client?.id}`)}
+              onClick={() => navigate(clientProgressPath(client?.id))}
               leftIcon={<BarChart3 size={16} />}
             />
           </div>

@@ -28,7 +28,7 @@
 import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageCircle, UserPlus } from 'lucide-react';
+import { MessageCircle, UserPlus, Dumbbell } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import ClientSelectorDropdown from './clients-team/ClientSelectorDropdown';
 import ClientHeaderCard from './clients-team/ClientHeaderCard';
@@ -327,6 +327,16 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [navigate, selectedClient]);
 
+  // Phase 17 (2026-04-20): admin Log Workout CTA.
+  // `ClientGridCard` is already a <button>, so the CTA lives in the top-bar
+  // action area and is only shown when a client is selected. Canonical admin
+  // log-workout route per UniversalDashboardLayout.tsx:541.
+  const handleLogWorkout = useCallback(() => {
+    if (selectedClient) {
+      navigate(`/dashboard/admin/log-workout?clientId=${selectedClient.id}`);
+    }
+  }, [navigate, selectedClient]);
+
   // Map ClientOption to MiniCardClient for ClientDetailView compatibility
   const detailClient: MiniCardClient | null = useMemo(() => {
     if (!selectedClient) return null;
@@ -393,6 +403,12 @@ const ClientsWorkspace: React.FC = () => {
           loading={loading}
         />
         <TopBarActions>
+          {selectedClient && (
+            <ActionBtn onClick={handleLogWorkout} title={`Log a workout for ${selectedClient.firstName}`}>
+              <Dumbbell size={16} />
+              <span>Log Workout</span>
+            </ActionBtn>
+          )}
           <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Swan Coach with this client's context">
             <MessageCircle size={16} />
             <span>Swan Coach</span>
