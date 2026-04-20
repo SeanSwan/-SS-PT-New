@@ -401,3 +401,21 @@ docker-compose.override.yml
 admin-token.json
 test-admin-token.*
 bearer-token.*
+
+# ============================================
+# AI Workflow runtime + archives (added 2026-04-19 per v3 Patch 3)
+# ============================================
+.ai-workflow/
+.ai-workflow/audit/
+.ai-workflow/audit/**
+SOUL.archive/
+SOUL.archive/**
+
+# AI-generated scratch files
+.claude/projects/
+.claude/memory/
+.claude/todos/
+
+# Allowlist for SOUL.md files (the working idea archive is TRACKED per project)
+!SOUL.md
+!**/SOUL.md

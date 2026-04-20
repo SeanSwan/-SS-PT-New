@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# pre-commit hook — Swan Studios
+# Runs scripts/scan-secrets.sh on staged files.
+# Installed via: git config core.hooksPath .githooks
+#
+# To bypass in emergencies (DO NOT MAKE A HABIT):
+#   git commit --no-verify
+# Per CLAUDE.md Rule 44, secret scanning is MANDATORY.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCANNER="$REPO_ROOT/scripts/scan-secrets.sh"
+
+if [[ ! -x "$SCANNER" ]]; then
+  echo "⚠️  scripts/scan-secrets.sh not executable. Run: chmod +x scripts/scan-secrets.sh" >&2
+  exit 1
+fi
+
+echo "[pre-commit] Running secret scan on staged files..."
+if ! "$SCANNER" --staged; then
+  cat >&2 <<'EOF'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMMIT BLOCKED: secret-pattern detected in staged changes.
+
+Next steps:
+1. Remove the secret from the file (use env vars / getpass / read -s instead)
+2. If this is a KNOWN-ROTATED historical fingerprint needed for incident documentation,
+   add an allowlist entry to .secretignore:
+       docs/your/file.md::rotated-render-pg-2026-04
+
+Per CLAUDE.md Rule 44: secret scanning covers writes, not only shell commands.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
+  exit 1
+fi
+
+echo "[pre-commit] Secret scan: CLEAN"
+exit 0

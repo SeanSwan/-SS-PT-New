@@ -414,16 +414,36 @@ Each week delivers independent value.
 
 ---
 
-## Files Changed By This Plan (when rolled out)
+## Files Changed By This Plan (split per Patch 7)
 
-- `.gitignore` — add `.ai-workflow/audit/` + `SOUL.md` (gitignored per-project OR tracked per-project — see Q3 to Sean)
-- `.claude/settings.json` — new base allow/deny block (Phase 1 + 1.5)
-- `config/MODEL_VERSIONS.md` — NEW file
-- `scripts/validate-env.sh` — NEW file
-- `scripts/ai-workflow-run.sh` — NEW file (orchestrates Phase 2 loop)
-- `.ai-workflow/` directory — NEW, gitignored
-- `SOUL.md` — NEW at project root
-- `docs/ai-workflow/references/3-BRAIN-PIPELINE.md` — compact reference for CLAUDE.md to point to
+### EXISTS TODAY (v3 integrates with, no creation needed)
+
+- `scripts/consult-gemini.mjs` — Gemini CTO consult, used by Phase 3 review
+- `scripts/validation-orchestrator.mjs` — 15-brain Village runner (tonight's Village ran this)
+- `docs/ai-workflow/AI-HANDOFF/*` — handoff archive (tonight's session added 7 files here)
+- `docs/ai-workflow/references/*` — compact reference docs
+- `CLAUDE.md` rules 17-45 (security + amend discipline + model-ID discipline added by Codex tonight)
+- `.claude/settings.local.json` — per-user local overrides (gitignored, never tracked)
+
+### CREATED BY WEEK 1 ROLLOUT (new files)
+
+- `.claude/settings.json` — NEW tracked base file: allow/ask/deny block (Phase 1 + 1.5)
+- `config/MODEL_VERSIONS.md` — NEW: registry with `TODO: VERIFY_` blockers
+- `scripts/scan-secrets.sh` — NEW: write-time + pre-commit secret scanner (Patch 1)
+- `scripts/validate-env.sh` — NEW: blocks pipeline if MODEL_VERSIONS.md has VERIFY markers
+- `.husky/pre-commit` — NEW: wraps scan-secrets.sh + lint as pre-commit gate
+- `.secretignore` — NEW: allowlist for docs discussing leak incidents with rotated-secret fingerprints
+- `.ai-workflow/audit/` — NEW directory, gitignored: audit logs + daily cost summary
+- `SOUL.md` — NEW at project root (TRACKED): idea archive, per Q2 hybrid trigger (100 entries or 90 days)
+- `SOUL.archive/` — NEW directory, gitignored: older entries archived from SOUL.md when trigger fires
+- `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` — NEW: verified semantics of Claude Code allow/deny patterns (Patch 2)
+- `docs/ai-workflow/references/3-BRAIN-PIPELINE.md` — NEW compact reference for CLAUDE.md pointers
+- `frontend/.eslintrc.cjs` + `backend/.eslintrc.cjs` — NEW: ESLint config with SwanStudios custom rules (Path B)
+
+### CREATED IN LATER WEEKS (reference only, not Week 1)
+
+- `scripts/ai-workflow-run.sh` — orchestrates Phase 2 loop (Week 3+)
+- `CURRENT_STATE.md`, `DIRECTIVES.md`, `GEMINI_VERDICT.json`, `REVIEW_STATUS.json` — Phase 2 per-session loop files, written at loop runtime, likely gitignored
 
 ---
 
