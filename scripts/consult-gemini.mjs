@@ -27,8 +27,10 @@
  */
 
 // Preflight: blocks execution if MODEL_VERSIONS.md has unverified TODO markers
-// or if required env vars are missing. Side-effect import by design.
+// or if required env vars are missing. Side-effect import runs BEFORE this
+// module body, so registry + .env are guaranteed ready below.
 import './lib/preflight.mjs';
+import { getModelIdOrThrow } from './lib/model-registry.mjs';
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -73,7 +75,9 @@ async function callGemini(prompt, opts = {}) {
     throw new Error('No GEMINI_API_KEY found in .env');
   }
 
-  const model = 'gemini-3.1-pro-preview';
+  // Resolved from config/MODEL_VERSIONS.md at runtime (CLAUDE.md model-ID discipline).
+  // Preflight guarantees this is a verified ID (not a TODO: VERIFY_ marker).
+  const model = getModelIdOrThrow('gemini-pro-model');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const body = {

@@ -278,6 +278,15 @@ These rules directly align with this v3 → Week 1 rollout. They should stay in 
 
 ---
 
+## Migration Debt — Model Registry (Codex review of d0334e19, partial in this commit)
+
+`scripts/lib/model-registry.mjs` exists and `scripts/consult-gemini.mjs` now reads its one model ID (`gemini-pro-model`) from the registry. Two scripts still hard-code model IDs and must be migrated before they're trusted as registry-backed:
+
+- `scripts/validation-orchestrator.mjs` — hard-codes `anthropic/claude-sonnet-4.6`, `google/gemini-3.1-pro-preview`, `google/gemini-3.1-flash-lite-preview`, `nvidia/nemotron-3-nano-30b-a3b:free`, `nvidia/nemotron-3-super-120b-a12b:free`, multiple `google/gemini-*-preview` routes, and OpenRouter model slugs throughout track/debate config. Migration plan: add registry entries for each OpenRouter route (e.g. `openrouter-claude-sonnet`, `openrouter-gemini-pro`, etc.), then replace the constants with `getModelIdOrThrow(...)` calls.
+- `scripts/hermes-village.mjs` — same class of hard-coded OpenRouter slugs; 2,900-line file pulled in as part of commit d0334e19's new-track. Migration plan: same as above.
+
+Both are blocked by preflight today (13 → 9 TODOs remaining in `config/MODEL_VERSIONS.md`), so they physically cannot run until model IDs are verified. But the registry is not yet the runtime source of truth for them — it's only a block gate. Two separate follow-up commits (one per script) are the cleanest path.
+
 ## Deferred to Week 2+ (already in v3, just sequencing)
 
 - Phase 1.5 UI Compliance Gate integration with Gemini concurrent review
