@@ -62,4 +62,27 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
     const hardCodedTrainerNavs = SOURCE.match(/navigate\(\s*['"]\/dashboard\/trainer\/clients['"]/g) ?? [];
     expect(hardCodedTrainerNavs.length).toBe(0);
   });
+
+  // ── Phase 17.1 locks ────────────────────────────────────────────────
+  // Codex's follow-up review caught that successful /info loads were
+  // still routing real users through stale demo placeholders + a
+  // hard-coded "Back to Demo" nav button. These locks prevent a future
+  // edit from regressing to those behaviors.
+
+  it('Phase 17.1: /info success auto-mounts the real WorkoutLogger (setUseOriginalLogger(true))', () => {
+    expect(SOURCE).toMatch(/setUseOriginalLogger\(\s*true\s*\)/);
+  });
+
+  it('Phase 17.1: useOriginalLogger branch back button is role-aware for real clients, "Back to Demo" only for demo fallback', () => {
+    // Locks the ternary: isDemoFallback ? "Back to Demo" : backToClientsLabel
+    expect(SOURCE).toMatch(/isDemoFallback\s*\?\s*['"]Back to Demo['"]\s*:\s*backToClientsLabel/);
+  });
+
+  it('Phase 17.1: the stale "Workout Logger Ready / Start Demo Workout" placeholder block is gone', () => {
+    // After Phase 17.1, real-client auto-mount makes this branch unreachable.
+    // Removing the copy prevents admins/trainers from ever seeing demo-branded
+    // placeholder text after a successful client load.
+    expect(SOURCE).not.toMatch(/Workout Logger Ready/);
+    expect(SOURCE).not.toMatch(/Start Demo Workout/);
+  });
 });

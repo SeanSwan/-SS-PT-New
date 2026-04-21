@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
-  User, Calendar, Activity, AlertTriangle, CheckCircle,
+  User, Calendar, AlertTriangle, CheckCircle,
   ArrowLeft, Save, Plus, Dumbbell, Clock, Target,
   Star, BarChart3, MessageSquare, Edit, Trash2,
   Search, Zap, Award, Timer, Weight, HelpCircle,
@@ -506,6 +506,14 @@ const EnhancedWorkoutLogger: React.FC = () => {
           lastSessionDate: undefined,
           membershipLevel: 'basic',
         });
+        // Phase 17.1 (2026-04-20): auto-mount the real WorkoutLogger on
+        // real-client success. Pre-17.1 an admin/trainer had to click
+        // through a "Workout Logger Ready / Start Demo Workout" placeholder
+        // and then "Try Full Logger" to reach the real logger — that
+        // double-gate only made sense when the API was a mock. With real
+        // data flowing, route directly to the real logger.
+        setShowDemo(false);
+        setUseOriginalLogger(true);
       } else {
         throw new Error('Client not found or not accessible');
       }
@@ -615,18 +623,25 @@ const EnhancedWorkoutLogger: React.FC = () => {
   
   // If using original logger, render it
   if (useOriginalLogger && client) {
+    // Phase 17.1 (2026-04-20): real-client paths auto-enter this branch
+    // via loadClientData success. Those users need role-aware
+    // "Back to Client Hub" / "Back to My Clients" navigation, not the
+    // legacy "Back to Demo" action that drops them into the deleted
+    // placeholder screen. Keep "Back to Demo" only when this branch
+    // was reached via the actual demo-fallback path (API failure).
+    const isDemoFallback = showDemo;
     return (
       <WorkoutContainer>
         <NavigationBar>
           <GlowButton
-            text="Back to Demo"
+            text={isDemoFallback ? 'Back to Demo' : backToClientsLabel}
             theme="cosmic"
             size="small"
-            onClick={handleBackToDemo}
+            onClick={isDemoFallback ? handleBackToDemo : handleBackToClients}
             leftIcon={<ArrowLeft size={16} />}
           />
         </NavigationBar>
-        
+
         <WorkoutLogger
           clientId={parseInt(client.id)}
           onComplete={handleWorkoutComplete}
@@ -884,28 +899,12 @@ const EnhancedWorkoutLogger: React.FC = () => {
         </motion.div>
       )}
       
-      {!showDemo && !useOriginalLogger && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '4rem 2rem',
-          color: 'rgba(255, 255, 255, 0.8)'
-        }}>
-          <Activity size={64} style={{ color: '#8b5cf6', marginBottom: '1.5rem' }} />
-          <h3 style={{ color: 'white', marginBottom: '1rem' }}>
-            Workout Logger Ready
-          </h3>
-          <p style={{ marginBottom: '2rem', maxWidth: '500px', margin: '0 auto 2rem auto' }}>
-            The enhanced workout logging interface is ready to integrate with your backend API. 
-            The component supports NASM-compliant workout tracking with comprehensive exercise library integration.
-          </p>
-          <GlowButton
-            text="Start Demo Workout"
-            theme="purple"
-            onClick={() => setShowDemo(true)}
-            leftIcon={<Dumbbell size={18} />}
-          />
-        </div>
-      )}
+      {/* Phase 17.1 (2026-04-20): deleted the "Workout Logger Ready / Start
+          Demo Workout" placeholder. With real-client auto-mount in
+          loadClientData, this branch became unreachable for real users,
+          and routing real admins/trainers through demo-branded copy was
+          the UX bug Codex flagged. Demo fallback still lives in the
+          showDemo block above (reached only on /info failure). */}
     </WorkoutContainer>
   );
 };
