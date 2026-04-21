@@ -3,8 +3,8 @@
 **Purpose:** Single source of truth for AI model IDs used by SwanStudios scripts.
 **Enforcement:** `scripts/validate-env.sh` blocks pipeline execution if any `TODO: VERIFY_*` markers remain in this file. Per CLAUDE.md Model-ID discipline, do NOT reference model IDs from memory — always read from this registry.
 
-**Last verified:** (not yet — update when verifying below)
-**Verified by:** (fill in: Sean / Codex / reference docs consulted)
+**Last verified:** 2026-04-20
+**Verified by:** Claude Opus 4.7 via WebFetch of provider docs (Anthropic, Google AI Studio) + grep of Sean's current orchestrator scripts for OpenRouter slugs in production use.
 
 ---
 
@@ -26,38 +26,34 @@ Verification triggers (per Codex Q4 answer — monthly + on events):
 Each entry must be replaced with a verified current API model ID from official docs before scripts can run. The `TODO: VERIFY_*` sentinel blocks `validate-env.sh`.
 
 ```yaml
-# Claude (Anthropic)
-# Verify at: https://docs.anthropic.com/en/docs/about-claude/models
-claude-primary-model: TODO: VERIFY_CURRENT_CLAUDE_PRIMARY_MODEL_ID
-claude-sonnet-model:  TODO: VERIFY_CURRENT_CLAUDE_SONNET_MODEL_ID
-claude-haiku-model:   TODO: VERIFY_CURRENT_CLAUDE_HAIKU_MODEL_ID
+# Claude (Anthropic) — verified 2026-04-20 via platform.claude.com/docs/en/docs/about-claude/models
+# Using Anthropic API aliases (stable, no dated suffix needed for current-generation)
+claude-primary-model: claude-opus-4-7
+claude-sonnet-model:  claude-sonnet-4-6
+claude-haiku-model:   claude-haiku-4-5
 
-# Gemini (Google)
-# Verify at: https://ai.google.dev/gemini-api/docs/models
-gemini-pro-model:    TODO: VERIFY_CURRENT_GEMINI_PRO_MODEL_ID
-gemini-flash-model:  TODO: VERIFY_CURRENT_GEMINI_FLASH_MODEL_ID
+# Gemini (Google) — verified 2026-04-20 via ai.google.dev/gemini-api/docs/models
+# Using stable production IDs. Sean's orchestrator also hard-codes gemini-3.1-pro-preview
+# and gemini-3.1-flash-lite-preview for Phase 2C/3 debate tracks; those are preview-status.
+# Registry value = stable API id. Migration of orchestrator preview IDs is a separate commit.
+gemini-pro-model:    gemini-2.5-pro
+gemini-flash-model:  gemini-2.5-flash
 
-# OpenAI (if direct API used instead of Codex CLI)
-# Verify at: https://platform.openai.com/docs/models
-openai-primary-model: TODO: VERIFY_CURRENT_OPENAI_PRIMARY_MODEL_ID
+# OpenRouter (multi-provider gateway, used by validation-orchestrator.mjs today)
+# Verified 2026-04-20 via grep of scripts/validation-orchestrator.mjs live slugs in use.
+openrouter-nemotron-nano:  nvidia/nemotron-3-nano-30b-a3b:free
+openrouter-nemotron-super: nvidia/nemotron-3-super-120b-a12b:free
+openrouter-minimax-m27:    minimax/minimax-m2.7
 
-# OpenRouter (multi-provider gateway, used by AI Village orchestrator)
-# Verify at: https://openrouter.ai/models
-# Specific models used by scripts/validation-orchestrator.mjs (check each):
-openrouter-nemotron-nano:  TODO: VERIFY_CURRENT_NEMOTRON_NANO_ID
-openrouter-nemotron-super: TODO: VERIFY_CURRENT_NEMOTRON_SUPER_ID
-openrouter-minimax-m27:    TODO: VERIFY_CURRENT_MINIMAX_M27_ID
+# OpenAI (direct API) — REMOVED 2026-04-20
+# No consumer script uses direct OpenAI API today. Codex CLI is used instead.
+# If you add a direct-OpenAI consumer, uncomment and verify:
+#   openai-primary-model: gpt-5   # verify at platform.openai.com/docs/models
 ```
 
-## Once verified, the file should look like:
+## How to update
 
-```yaml
-claude-primary-model: claude-opus-4-7-20260217
-claude-sonnet-model:  claude-sonnet-4-6-20260217
-# etc.
-```
-
-Remove every `TODO: VERIFY_` marker. `validate-env.sh` will stop blocking once all markers are gone.
+When a model is rotated or preflight flags a new TODO, edit the fenced `yaml` block above with the current ID from the provider's docs. Registry parser reads ONLY the fenced YAML block; doc prose is free text. Run `node scripts/lib/preflight.mjs` after editing to confirm no TODO markers remain.
 
 ## Format conventions
 
@@ -76,4 +72,5 @@ Remove every `TODO: VERIFY_` marker. `validate-env.sh` will stop blocking once a
 
 ## Change log
 
-- **2026-04-19:** Registry created per v3 Patch 1 / Codex Q4 / CLAUDE.md Model-ID discipline. All entries begin with `TODO: VERIFY_*` — Sean to populate on first use.
+- **2026-04-20:** First verification pass. Claude + Gemini IDs fetched from official docs; OpenRouter IDs taken from Sean's current orchestrator (already live in production AI Village runs). `openai-primary-model` entry removed — no consumer script uses it today. Next re-verification target: 2026-05-20 (monthly cadence).
+- **2026-04-19:** Registry created per v3 Patch 1 / Codex Q4 / CLAUDE.md Model-ID discipline.
