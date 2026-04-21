@@ -102,7 +102,10 @@
     "provider:ab:report": "node eval/ab/runAb.mjs --write-md",
     "provider:ab:live": "node eval/ab/runAb.mjs --live",
     "provider:ab:json": "node eval/ab/runAb.mjs --write-json",
-    "migrate:status:dev": "npx sequelize-cli db:migrate:status --config config/config.cjs --migrations-path migrations --models-path models --env development"
+    "migrate:status:dev": "npx sequelize-cli db:migrate:status --config config/config.cjs --migrations-path migrations --models-path models --env development",
+    "lint": "eslint . --ext .mjs,.js --max-warnings 9999 --ignore-path ../.gitignore",
+    "lint:fix": "eslint . --ext .mjs,.js --fix --ignore-path ../.gitignore",
+    "lint:check": "eslint . --ext .mjs,.js --max-warnings 0 --ignore-path ../.gitignore"
   },
   "keywords": [],
   "author": "",
@@ -160,6 +163,7 @@
     "axios": "^1.9.0",
     "chalk": "^5.4.1",
     "concurrently": "^8.2.2",
+    "eslint": "^8.57.1",
     "nodemon": "^3.1.11",
     "ora": "^8.2.0",
     "sequelize-cli": "^6.6.2",
