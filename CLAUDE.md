@@ -111,6 +111,27 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 
 45. **No amend/rewrite without Sean (MANDATORY)** — Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
 
+46. **Codex is Final Gate in the 3-Brain Review Loop (MANDATORY)** — For any substantial change (feature, refactor, bug fix, production incident, architectural work), the review order is fixed:
+    1. **Claude builds** — implementation + tests, narrow scope
+    2. **Gemini reviews** — invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
+    3. **Codex reviews both** — Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
+    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's **APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
+
+    This ordering is mandatory because Codex has consistently caught what Claude and Gemini both missed:
+    - Credential re-leak in handoff doc (2026-04-19) — Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
+    - Script arg parser bug (2026-04-21) — `consult-gemini.mjs --review --file X` fed "--file" as code to review; Gemini hallucinated a phantom component; Codex diagnosed via argv trace.
+    - Phase 18.A Gemini contradiction (2026-04-21) — Gemini proposed theme-provider tokens that violate rule 6; Codex killed it, kept the two valid fixes.
+    - Cross-platform preflight bug (2026-04-20) — Claude shelled out to `bash` which resolves to WSL on Windows; Codex flagged it from the Windows path.
+
+    Sub-rules:
+    - **Gemini review is mandatory before Codex** so Codex has the third perspective to cross-check. Skipping Gemini leaves Codex with only Claude's self-view.
+    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is the gate.
+    - **CLAUDE.md rules win.** When Gemini suggests anything contradicting an existing rule, Codex rejects Gemini's suggestion and logs the contradiction.
+    - **Village (15-brain) is a separate escalation track** for major architectural decisions. 3-brain per-fix; Village per-phase.
+    - **If Codex service is unavailable** (rate limit, outage), pause and wait. Do NOT commit substantial work without Codex approval to "save time"; that defeats the gate.
+
+    Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
