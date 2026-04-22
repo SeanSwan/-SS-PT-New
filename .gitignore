@@ -414,6 +414,7 @@ bearer-token.*
 # Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
 .ai-workflow/continuity/*
 !.ai-workflow/continuity/README.md
+scripts/continuity-config.local.json
 SOUL.archive/
 SOUL.archive/**
 

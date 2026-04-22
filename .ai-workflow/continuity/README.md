@@ -65,6 +65,8 @@ Recently-curated PROMOTE markers should be processed BEFORE they age out via tri
 - Standalone username `BigotSmasher` → `<USER>`
 - Hostname/IP scrubs from `scripts/continuity-config.json` (Tailscale node names, Pi hostnames, Pi IPs)
 
+`scripts/continuity-config.json` is tracked and should keep placeholder values. Put real local infrastructure identifiers in gitignored `scripts/continuity-config.local.json`. The append script reads `.local.json` when present and falls back to the tracked template otherwise. Placeholder checks run against whichever config file was loaded.
+
 The unredacted candidate NEVER touches disk. Sanitizer runs in-memory only.
 
 ## Lock policy (strict)

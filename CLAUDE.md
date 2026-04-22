@@ -288,7 +288,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
     - Then run `bash scripts/continuity-promotions.sh --count`; if output > 0, mention the backlog in your session opening (e.g. "N pending promotion markers — review via `scripts/continuity-promotions.sh`").
     - To **append a closeout** (ONLY when Sean explicitly says `"log this and close"` or `"session closeout"`):
       `node scripts/continuity-append.mjs --topic "..." --outcome "..." [--files "a,b,c"] [--notes "..."]`
-      The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script hard-fails if unset or if placeholders remain in `scripts/continuity-config.json`.
+      The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script reads gitignored `scripts/continuity-config.local.json` when present, otherwise the tracked template, and hard-fails if placeholders remain in the loaded config.
     - **Closeouts are explicit-trigger-only.** Do not auto-append — the discipline is that Sean decides when a session is meaningful enough to log.
     - Full spec + review chain: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`. Directory README: `.ai-workflow/continuity/README.md`.
 

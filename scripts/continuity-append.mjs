@@ -8,7 +8,8 @@
  *
  * Behavior summary:
  *   1. Hard-fail if SWAN_AGENT_SURFACE env var not set or not in allowed set.
- *   2. Hard-fail if continuity-config.json has any <TODO_FILL_BEFORE_USE…> placeholder.
+ *   2. Read continuity-config.local.json when present; otherwise read continuity-config.json.
+ *      Hard-fail if the loaded config has any <TODO_FILL_BEFORE_USE…> placeholder.
  *   3. Verify repo context via (git-toplevel-matches-multi-shape) AND (git-remote-matches OR marker-file).
  *   4. Acquire append.lock via atomic fs.openSync(path, 'wx'). Strict stale policy:
  *        - same runtime+host: PID-probe-DEAD-only releases. ALIVE/ambiguous → fail loud.
@@ -42,6 +43,7 @@ const CONTINUITY_DIR = '.ai-workflow/continuity';
 const ROLLING_LOG = `${CONTINUITY_DIR}/rolling-last-done.md`;
 const LOCK_FILE = `${CONTINUITY_DIR}/append.lock`;
 const CONFIG_FILE = 'scripts/continuity-config.json';
+const LOCAL_CONFIG_FILE = 'scripts/continuity-config.local.json';
 const SCAN_SCRIPT = 'scripts/scan-secrets.sh';
 const PROMOTIONS_SCRIPT = 'scripts/continuity-promotions.sh';
 
@@ -213,14 +215,15 @@ function assertEnv() {
 }
 
 function loadConfigOrDie() {
-  if (!existsSync(CONFIG_FILE)) {
-    die(EX_CONFIG_PLACEHOLDER, `missing ${CONFIG_FILE}. Run Phase B setup step 1 first.`);
+  const configPath = existsSync(LOCAL_CONFIG_FILE) ? LOCAL_CONFIG_FILE : CONFIG_FILE;
+  if (!existsSync(configPath)) {
+    die(EX_CONFIG_PLACEHOLDER, `missing ${configPath}. Run Phase B setup step 1 first.`);
   }
   let cfg;
   try {
-    cfg = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
+    cfg = JSON.parse(readFileSync(configPath, 'utf8'));
   } catch (err) {
-    die(EX_CONFIG_PLACEHOLDER, `${CONFIG_FILE} is not valid JSON: ${err.message}`);
+    die(EX_CONFIG_PLACEHOLDER, `${configPath} is not valid JSON: ${err.message}`);
   }
 
   // Scan for any placeholder. Hard-fail per Sean 2026-04-22 directive.
@@ -241,7 +244,7 @@ function loadConfigOrDie() {
   scan(cfg, '');
   if (placeholders.length > 0) {
     die(EX_CONFIG_PLACEHOLDER,
-      `${CONFIG_FILE} has ${placeholders.length} placeholder(s). Fill them before running append.\n` +
+      `${configPath} has ${placeholders.length} placeholder(s). Fill it before running append.\n` +
       placeholders.map(p => `  - ${p}`).join('\n'));
   }
   return cfg;
