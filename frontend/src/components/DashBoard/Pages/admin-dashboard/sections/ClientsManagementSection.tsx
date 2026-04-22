@@ -1452,7 +1452,7 @@ const ClientsManagementSection: React.FC = () => {
             <ActionItem whileHover={{ x: 4 }} onClick={() => openBodyMap(menuClient)}>
               <HeartPulse size={14} /> Body Map
             </ActionItem>
-            <ActionItem whileHover={{ x: 4 }} onClick={() => { setActiveActionMenu(null); navigate(`/dashboard/people/movement-screen/new/${menuClient.id}`); }}>
+            <ActionItem whileHover={{ x: 4 }} onClick={() => { setActiveActionMenu(null); navigate(`/dashboard/admin/client-management?clientId=${menuClient.id}`); }}>
               <Activity size={14} /> Movement Screen
             </ActionItem>
             <ActionItem whileHover={{ x: 4 }} onClick={() => openWeighIn(menuClient)}>

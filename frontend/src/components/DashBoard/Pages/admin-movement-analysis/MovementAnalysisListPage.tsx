@@ -270,7 +270,7 @@ const MovementAnalysisListPage: React.FC = () => {
     <PageContainer>
       <Header>
         <Title><Activity size={24} /> Movement Analyses</Title>
-        <NewButton onClick={() => navigate('/dashboard/people/movement-screen/new')}>
+        <NewButton onClick={() => navigate('/dashboard/admin/client-management')}>
           <Plus size={18} /> New Assessment
         </NewButton>
       </Header>
@@ -310,7 +310,7 @@ const MovementAnalysisListPage: React.FC = () => {
             <div style={{ fontSize: 13, marginTop: 8 }}>Start a new assessment to see it here</div>
           </EmptyState>
         ) : analyses.map((a) => (
-          <TableRow key={a.id} onClick={() => navigate(`/dashboard/people/movement-screen/${a.id}`)}>
+          <TableRow key={a.id} onClick={() => navigate('/dashboard/admin/client-management')}>
             <span>
               {a.fullName}
               {(a.pendingMatches?.length || 0) > 0 && (

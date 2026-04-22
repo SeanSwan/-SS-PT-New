@@ -40,23 +40,17 @@ const ALLOWLIST: Record<string, string> = {
   // Canonical file — documentation comment only (Phase 15.4 incident note).
   'frontend/src/components/DashBoard/workspaces/ClientsWorkspace.tsx':
     'canonical — documentation comment only',
-  // Historical audit comment + L3 tab config at line 161 (blocked on
-  // movement-screen canonical decision).
+  // Historical audit comment at dashboard-tabs.ts:535-547 after Phase
+  // 19.A polish. The orphaned tab config at line 161 was retargeted in
+  // Phase 19.B so the only remaining literal here is the comment.
   'frontend/src/config/dashboard-tabs.ts':
-    'historical audit comment + movement-screen tab config blocked on canonical decision',
+    'historical audit comment only (Phase 6 + Phase 19 annotations)',
   // Phase 18.B-blocked impersonation CTAs.
   'frontend/src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx':
     'view-as/* CTAs blocked on Phase 18.B impersonation decision',
   // Measurements-canonical-blocked.
   'frontend/src/components/DashBoard/Pages/admin-clients/components/ClientMeasurementPanel.tsx':
     'measurements/:id CTA blocked on canonical measurements route decision',
-  // Movement-screen-canonical-blocked (L3/L4/L5).
-  'frontend/src/components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx':
-    'movement-screen action blocked on canonical movement-screen route decision',
-  'frontend/src/components/DashBoard/Pages/admin-movement-analysis/MovementAnalysisWizard.tsx':
-    'movement-screen nav blocked on canonical movement-screen route decision',
-  'frontend/src/components/DashBoard/Pages/admin-movement-analysis/MovementAnalysisListPage.tsx':
-    'movement-screen nav blocked on canonical movement-screen route decision',
 };
 
 const FORBIDDEN = '/dashboard/people';

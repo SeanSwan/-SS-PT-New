@@ -158,7 +158,7 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     order: 7.5,
     status: 'new' as TabStatus,
     section: 'management',
-    route: '/dashboard/people/movement-screen',
+    route: '/dashboard/admin/client-management',
     description: 'NASM + Squat University guided movement analysis',
     isNew: true,
   },

@@ -371,10 +371,16 @@ const STEPS = [
 
 interface WizardProps {
   mode?: 'new' | 'edit' | 'view';
+  // Embedded-mount fallback: parent can pass clientId when the wizard
+  // renders outside a client-specific route (e.g. inside a tab's
+  // expanded-card container in BiometricsTabContent). URL params still
+  // win when both are present. Phase 19.B (2026-04-22).
+  propClientId?: string | number;
 }
 
-const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new' }) => {
-  const { id, clientId } = useParams<{ id?: string; clientId?: string }>();
+const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClientId }) => {
+  const { id, clientId: urlClientId } = useParams<{ id?: string; clientId?: string }>();
+  const clientId = urlClientId || (propClientId != null ? String(propClientId) : undefined);
   const navigate = useNavigate();
   const { authAxios } = useAuth() as any;
   const [step, setStep] = useState(0);
@@ -477,8 +483,12 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new' }) => {
 
   const completeAssessment = useCallback(async () => {
     await save(true);
-    navigate('/dashboard/people/movement-screen');
-  }, [save, navigate]);
+    // Phase 19.B: canonical surface is Client Hub. Include clientId
+    // query param so the Hub re-selects this client on return.
+    navigate(data.userId
+      ? `/dashboard/admin/client-management?clientId=${data.userId}`
+      : '/dashboard/admin/client-management');
+  }, [save, navigate, data.userId]);
 
   // Calculate NASM score for display
   const nasmScore = useMemo(() => {
@@ -968,7 +978,9 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new' }) => {
     <PageContainer>
       <Header>
         <Title><Activity size={22} /> Movement Analysis</Title>
-        <CloseBtn onClick={() => navigate('/dashboard/people/movement-screen')}><X size={20} /></CloseBtn>
+        <CloseBtn onClick={() => navigate(data.userId
+          ? `/dashboard/admin/client-management?clientId=${data.userId}`
+          : '/dashboard/admin/client-management')}><X size={20} /></CloseBtn>
       </Header>
 
       <ProgressBar>

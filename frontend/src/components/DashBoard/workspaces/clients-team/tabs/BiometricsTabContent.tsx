@@ -375,7 +375,7 @@ const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
       case 'movement-analysis':
         return (
           <Suspense fallback={<SuspenseFallback />}>
-            <MovementAnalysisWizard />
+            <MovementAnalysisWizard propClientId={clientId} />
           </Suspense>
         );
       case 'form-analysis':
