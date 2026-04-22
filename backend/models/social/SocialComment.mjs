@@ -264,7 +264,7 @@ SocialComment.getContentForModeration = async function(options = {}) {
     sortOrder = 'DESC'
   } = options;
   
-  let whereClause = {};
+  const whereClause = {};
   
   // Filter by moderation status
   if (status !== 'all') {
@@ -369,7 +369,7 @@ SocialComment.prototype.like = async function() {
 SocialComment.getForPost = async function(postId, options = {}) {
   const { limit = 50, offset = 0, includeModerated = false } = options;
   
-  let whereClause = { postId };
+  const whereClause = { postId };
   
   // Only show approved comments unless specifically requested
   if (!includeModerated) {

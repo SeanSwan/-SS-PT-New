@@ -608,7 +608,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           logger.warn(`[AdminGallery] RAW file rejected in batch: ${file.originalname}`);
           throw new Error(`RAW files are not accepted. Please convert "${file.originalname}" to JPEG (Quality 95%, sRGB, 4000px long edge) before uploading.`);
         }
-        let inputBuffer = file.buffer;
+        const inputBuffer = file.buffer;
 
         // Release original buffer to help GC
         file.buffer = null;

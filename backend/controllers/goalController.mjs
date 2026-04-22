@@ -447,7 +447,7 @@ const goalController = {
       }];
 
       // Check milestones
-      let milestonesAchieved = [];
+      const milestonesAchieved = [];
       const updatedMilestones = (goal.milestones || []).map(milestone => {
         if (!milestone.achieved && progressPercentage >= milestone.percentage) {
           milestone.achieved = true;

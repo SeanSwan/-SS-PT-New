@@ -49,7 +49,7 @@ router.post('/record', async (req, res) => {
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
     // Find or create streak for this type
-    let [streak] = await Streak.findOrCreate({
+    const [streak] = await Streak.findOrCreate({
       where: { userId: req.user.id, streakType: type },
       defaults: {
         userId: req.user.id,

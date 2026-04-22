@@ -452,7 +452,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
           // C3: findOne+save in transaction — no upsert, no duplicate rows
           await sequelize.transaction(async (t) => {
-            let sub = await Subscription.findOne({ where: { userId }, transaction: t, order: [['createdAt', 'DESC']] });
+            const sub = await Subscription.findOne({ where: { userId }, transaction: t, order: [['createdAt', 'DESC']] });
 
             const prevCumulative = parseFloat(sub?.cumulativeDonationAmount || 0);
             const newCumulative = Math.round((prevCumulative + donationAmount) * 100) / 100;

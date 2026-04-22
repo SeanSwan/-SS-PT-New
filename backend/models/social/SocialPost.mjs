@@ -314,7 +314,7 @@ SocialPost.getContentForModeration = async function(options = {}) {
     sortOrder = 'DESC'
   } = options;
   
-  let whereClause = {};
+  const whereClause = {};
   
   // Filter by moderation status
   if (status !== 'all') {
@@ -406,7 +406,7 @@ SocialPost.createWorkoutPost = async function(userId, content, workoutSessionId,
 
 SocialPost.createAchievementPost = async function(userId, achievementId, userAchievementId, options = {}) {
   // Fetch achievement name or details if needed to generate content
-  let content = options.content || 'I just earned a new achievement!';
+  const content = options.content || 'I just earned a new achievement!';
   
   return this.create({
     userId,

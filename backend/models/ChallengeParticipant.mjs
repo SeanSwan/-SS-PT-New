@@ -380,7 +380,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
       
       const sortedDates = Object.keys(this.dailyProgress).sort().reverse();
       let streak = 0;
-      let checkDate = new Date();
+      const checkDate = new Date();
       
       for (let i = 0; i < sortedDates.length; i++) {
         const dateStr = checkDate.toISOString().split('T')[0];

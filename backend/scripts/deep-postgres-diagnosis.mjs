@@ -38,7 +38,7 @@ async function deepPostgresDiagnosis() {
     'C:\\PostgreSQL'
   ];
   
-  let foundInstallations = [];
+  const foundInstallations = [];
   
   for (const searchPath of searchPaths) {
     if (fs.existsSync(searchPath)) {

@@ -1408,7 +1408,7 @@ class BusinessIntelligenceService {
       logger.info(`👥 Calculating user analytics for ${timeRange} (type: ${type})`);
 
       const { startDate, endDate } = this.getDateRange(timeRange);
-      let analyticsData = {};
+      const analyticsData = {};
 
       if (type === 'all' || type === 'engagement') {
         analyticsData.engagementData = await this.calculateEngagementData(startDate, endDate);

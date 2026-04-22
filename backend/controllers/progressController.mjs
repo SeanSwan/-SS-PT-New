@@ -359,7 +359,7 @@ const progressController = {
       const limit = Math.min(parseInt(rawLimit) || 20, MAX_LEADERBOARD_LIMIT);
       const offset = (parseInt(page) - 1) * limit;
 
-      let whereClause = {};
+      const whereClause = {};
       let orderBy;
       let includeProgressData = false;
 
@@ -393,7 +393,7 @@ const progressController = {
 
       if (includeProgressData) {
         // Add date filtering for progress data based on timeframe
-        let progressWhere = {};
+        const progressWhere = {};
         if (timeframe !== 'all_time') {
           const now = new Date();
           let startDate;

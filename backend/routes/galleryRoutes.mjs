@@ -446,7 +446,7 @@ router.post('/enhancement-request', requireGalleryAccess, async (req, res) => {
     const freeRemaining = Math.max(0, FREE_ENHANCEMENTS_PER_EVENT - freeUsed);
 
     // Determine how many can be fulfilled
-    let photosToProcess = newPhotoIds.length;
+    const photosToProcess = newPhotoIds.length;
     let freeToUse = 0;
     let creditsToUse = 0;
 

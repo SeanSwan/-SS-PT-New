@@ -382,7 +382,7 @@ export const errorHandler = (err, req, res, next) => {
   }
   
   // Specific error handling based on error type
-  let responseData = {
+  const responseData = {
     success: false,
     message,
     // Only include original error stack in development

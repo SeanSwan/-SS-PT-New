@@ -281,7 +281,7 @@ async function processCompletedOrder(cartId) {
     }
     
     let totalSessionsAdded = 0;
-    let packageNames = [];
+    const packageNames = [];
     
     // Process each item — collect totals first, then batch DB operations
     const subscriptionItems = [];

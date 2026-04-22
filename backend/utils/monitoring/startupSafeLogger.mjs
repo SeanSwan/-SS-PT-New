@@ -4,7 +4,7 @@
  */
 
 let isStartupPhase = true;
-let startupLogs = [];
+const startupLogs = [];
 
 // Disable PII scanning for the first 5 seconds of startup
 setTimeout(() => {

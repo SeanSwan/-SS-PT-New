@@ -384,7 +384,7 @@ router.get('/visitor-geo', protect, adminOnly, async (req, res) => {
     }
 
     // ── 2. Gallery visitors with IPs ──
-    let galleryResults = [];
+    const galleryResults = [];
     try {
       const GalleryVisitor = (await import('../../models/GalleryVisitor.mjs')).default;
       const galleryVisitors = await GalleryVisitor.findAll({

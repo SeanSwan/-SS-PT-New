@@ -441,7 +441,7 @@ const socialController = {
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       // Build where clause for filtering
-      let whereClause = {
+      const whereClause = {
         id: { [Op.ne]: currentUserId }
       };
 
@@ -459,7 +459,7 @@ const socialController = {
         whereClause.id[Op.notIn] = followingIds;
       }
 
-      let includeClause = [];
+      const includeClause = [];
 
       // If looking for mutual follows, modify the query
       if (mutualFollows === 'true') {

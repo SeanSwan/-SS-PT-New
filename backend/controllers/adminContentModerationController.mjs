@@ -173,7 +173,7 @@ class AdminContentModerationController {
         };
 
         // Build where clause
-        let whereClause = {};
+        const whereClause = {};
         
         // Filter by moderation status
         if (status !== 'all') {
@@ -361,7 +361,7 @@ class AdminContentModerationController {
         };
 
         // Build where clause
-        let whereClause = {};
+        const whereClause = {};
         
         // Filter by moderation status
         if (status !== 'all') {
@@ -534,7 +534,7 @@ class AdminContentModerationController {
         };
 
         // Build where clause
-        let whereClause = {};
+        const whereClause = {};
         
         // Filter by content type
         if (type !== 'all') {

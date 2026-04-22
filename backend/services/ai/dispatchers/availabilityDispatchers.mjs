@@ -56,7 +56,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  */
 function resolveTrainerId(rawTrainerId, user) {
   const isTrainer = user.role === 'trainer';
-  let trainerId = rawTrainerId != null ? Number(rawTrainerId) : null;
+  const trainerId = rawTrainerId != null ? Number(rawTrainerId) : null;
 
   if (trainerId == null) {
     if (isTrainer) {

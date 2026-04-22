@@ -49,7 +49,7 @@ export class PIIManager {
     
     try {
       const detectedPII = [];
-      let confidence = 1.0;
+      const confidence = 1.0;
       
       // Scan each pattern with individual error handling
       for (const [type, pattern] of Object.entries(this.piiPatterns)) {

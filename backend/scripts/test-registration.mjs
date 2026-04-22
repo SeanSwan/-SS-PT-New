@@ -61,7 +61,7 @@ const testUser = {
 async function testRegistration() {
   // Try multiple potential ports to find the correct one
   const portOptions = [3000, 5000, 8000, 10000];
-  let succeeded = false;
+  const succeeded = false;
   
   // Get API URL from environment or try multiple ports
   const API_URL = process.env.API_URL;

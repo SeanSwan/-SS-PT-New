@@ -25,8 +25,8 @@ router.get('/', protect, async (req, res) => {
     const userRole = req.user.role;
     const { status, limit = 50, offset = 0 } = req.query;
 
-    let whereClause = {};
-    let include = [];
+    const whereClause = {};
+    const include = [];
 
     // Filter based on user role
     if (userRole === 'client') {

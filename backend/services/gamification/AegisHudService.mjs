@@ -169,7 +169,7 @@ class AegisHudService {
   static async getNeeds(gamificationRecord) {
     if (!gamificationRecord) return this.getDefaultNeeds();
 
-    let needsState = gamificationRecord.needsState || this.getDefaultNeedsState();
+    const needsState = gamificationRecord.needsState || this.getDefaultNeedsState();
     const now = new Date();
 
     // Apply decay to each need based on hours elapsed
@@ -220,7 +220,7 @@ class AegisHudService {
     const replenishMap = ACTION_REPLENISH[actionType];
     if (!replenishMap) return null;
 
-    let needsState = gamificationRecord.needsState || this.getDefaultNeedsState();
+    const needsState = gamificationRecord.needsState || this.getDefaultNeedsState();
     const now = new Date();
 
     // First apply decay, then add replenishment

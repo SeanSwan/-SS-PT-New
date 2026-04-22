@@ -257,7 +257,7 @@ export class MCPMetricsCollector {
       let totalResponseTime = 0;
       let totalRequests = 0;
       let totalErrors = 0;
-      let totalCost = 0;
+      const totalCost = 0;
       let serversWithResponseTime = 0;
       
       for (const [serverName, metrics] of this.metrics) {
@@ -468,7 +468,7 @@ export class MCPMetricsCollector {
     // Calculate totals across all servers
     let totalRequests = 0;
     let totalErrors = 0;
-    let totalCost = 0;
+    const totalCost = 0;
     let totalResponseTime = 0;
     let serversWithMetrics = 0;
     

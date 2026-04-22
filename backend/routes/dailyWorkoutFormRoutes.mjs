@@ -291,7 +291,7 @@ const processMCPIntegration = async (formId, formData) => {
     };
 
     let pointsEarned = 0;
-    let mcpErrors = [];
+    const mcpErrors = [];
 
     try {
       const gamificationUrl = process.env.GAMIFICATION_MCP_URL || 'http://localhost:8002';
@@ -822,7 +822,7 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
     const DailyWorkoutForm = getDailyWorkoutForm();
     const User = getUser();
 
-    let whereCondition = { id };
+    const whereCondition = { id };
     
     // Trainers can only access their own forms
     if (requestingUserRole === 'trainer') {
@@ -939,7 +939,7 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
     let dateRange = {};
     const now = new Date();
     let resolvedStartDate = startDate ? new Date(startDate) : null;
-    let resolvedEndDate = endDate ? new Date(endDate) : now;
+    const resolvedEndDate = endDate ? new Date(endDate) : now;
 
     if (startDate && endDate) {
       dateRange = {
@@ -1462,7 +1462,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       const uniqueDates = [...new Set(forms.map(f => f.date))].sort().reverse();
       const today = now.toISOString().split('T')[0];
       // Start from today or most recent workout date
-      let checkDate = new Date(uniqueDates[0] <= today ? uniqueDates[0] : today);
+      const checkDate = new Date(uniqueDates[0] <= today ? uniqueDates[0] : today);
       for (const d of uniqueDates) {
         const dateStr = checkDate.toISOString().split('T')[0];
         if (d === dateStr) {

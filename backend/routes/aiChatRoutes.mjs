@@ -682,7 +682,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     }
 
     // Check if AI response contains import_workout_log action blocks (historical workout import)
-    let workoutImportResults = [];
+    const workoutImportResults = [];
     if (aiResult.content && (req.user.role === 'admin' || req.user.role === 'trainer')) {
       try {
         const importRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"import_workout_log"[\s\S]*?\})\s*```/g;
@@ -795,7 +795,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
 
     // Extract FRONTEND_DISPATCH action blocks (AI_ADD_EXERCISE, AI_LOAD_TEMPLATE, etc.)
     // These are passed back to the frontend which dispatches them as CustomEvents
-    let frontendActions = [];
+    const frontendActions = [];
     if (aiResult.content) {
       try {
         const dispatchRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"frontend_dispatch"[\s\S]*?\})\s*```/g;

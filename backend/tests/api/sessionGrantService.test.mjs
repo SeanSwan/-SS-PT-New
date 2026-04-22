@@ -232,7 +232,7 @@ describe('SessionGrantService', () => {
   // P0: Concurrent calls grant exactly once
   // ─────────────────────────────────────────────────────────
   it('concurrent calls grant sessions exactly once', async () => {
-    let grantCount = 0;
+    const grantCount = 0;
     const cart = makeCart(1, 100, { sessionsGranted: false });
     const user = makeUser(100);
 

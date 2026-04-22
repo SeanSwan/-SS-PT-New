@@ -420,7 +420,7 @@ export const getUserPosts = async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
 
     // Check if requesting another user's posts (coerce to string for safe compare)
-    let whereClause = { userId };
+    const whereClause = { userId };
 
     if (String(userId) !== String(req.user.id)) {
       // Check friendship status to determine visibility

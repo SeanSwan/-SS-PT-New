@@ -209,7 +209,7 @@ router.post('/log-transaction', async (req, res) => {
     }
 
     // Check if transaction already exists (prevent duplicates)
-    let existingTransaction = await FinancialTransaction.findOne({
+    const existingTransaction = await FinancialTransaction.findOne({
       where: { stripePaymentIntentId }
     });
 

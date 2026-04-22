@@ -106,7 +106,7 @@ const creditsController = {
       const taxCalc = await calculateTax(packageCost, clientState, absorbTax);
 
       // 6. Determine trainer for attribution
-      let finalTrainerId = trainerId;
+      const finalTrainerId = trainerId;
       if (!finalTrainerId && leadSource !== 'platform') {
         // For trainer_brought or resign, trainer is required
         await transaction.rollback();

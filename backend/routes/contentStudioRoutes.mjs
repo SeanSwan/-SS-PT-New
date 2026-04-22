@@ -91,7 +91,7 @@ router.get('/coverage', protect, adminOnly, async (req, res) => {
     });
 
     // Get video counts per exercise from VideoCatalog (if model exists)
-    let videoCounts = {};
+    const videoCounts = {};
     if (VideoCatalog) {
       try {
         const { Sequelize } = await import('sequelize');

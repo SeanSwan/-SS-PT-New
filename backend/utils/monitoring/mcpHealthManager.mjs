@@ -183,7 +183,7 @@ class MCPHealthManager {
     }
 
     const startTime = Date.now();
-    let healthData = {};
+    const healthData = {};
 
     try {
       // Primary health check
@@ -319,7 +319,7 @@ class MCPHealthManager {
   async getMCPEcosystemHealth() {
     const allHealth = await this.checkAllMCPHealth();
     
-    let totalServers = Object.keys(this.mcpServers).length;
+    const totalServers = Object.keys(this.mcpServers).length;
     let healthyServers = 0;
     let averageLatency = 0;
     let totalLatency = 0;

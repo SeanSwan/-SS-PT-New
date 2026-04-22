@@ -50,7 +50,7 @@ export const checkApiKeys = () => {
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
     if (!twilioSid || !twilioToken || !twilioPhone) {
-        let missing = [];
+        const missing = [];
         if (!twilioSid) missing.push('TWILIO_ACCOUNT_SID');
         if (!twilioToken) missing.push('TWILIO_AUTH_TOKEN');
         if (!twilioPhone) missing.push('TWILIO_PHONE_NUMBER');

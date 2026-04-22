@@ -487,7 +487,7 @@ router.get('/users/trainers', protect, async (req, res) => {
     const { specialties, availability, rating, sortBy, limit, page, includeAdmin } = req.query;
 
     // Build filter criteria — include admin users who also function as trainers
-    let whereClause = {
+    const whereClause = {
       role: { [Op.in]: includeAdmin === 'true' ? ['trainer', 'admin'] : ['trainer'] },
       isActive: true
     };
@@ -515,7 +515,7 @@ router.get('/users/trainers', protect, async (req, res) => {
     const offset = (pageValue - 1) * limitValue;
     
     // Build sorting options
-    let order = [];
+    const order = [];
     if (sortBy) {
       switch (sortBy) {
         case 'rating_high':
@@ -557,7 +557,7 @@ router.get('/users/trainers', protect, async (req, res) => {
     const totalPages = Math.ceil(count / limitValue);
 
     // Enrich trainers with real stats from assignments, sessions, and commissions
-    let enrichedTrainers = trainers.map(t => t.toJSON ? t.toJSON() : t);
+    const enrichedTrainers = trainers.map(t => t.toJSON ? t.toJSON() : t);
     try {
       const { getModels } = await import('../models/associations.mjs');
       const models = await getModels();
@@ -640,7 +640,7 @@ router.get('/users/clients', protect, adminOnly, async (req, res) => {
     const { search, status, sortBy, limit, page } = req.query;
     
     // Build filter criteria
-    let whereClause = {
+    const whereClause = {
       role: 'client'
     };
     
@@ -665,7 +665,7 @@ router.get('/users/clients', protect, adminOnly, async (req, res) => {
     const offset = (pageValue - 1) * limitValue;
     
     // Build sorting options
-    let order = [];
+    const order = [];
     if (sortBy) {
       switch (sortBy) {
         case 'name_asc':

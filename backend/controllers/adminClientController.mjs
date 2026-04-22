@@ -425,7 +425,7 @@ class AdminClientController {
       // (replaces N+1 pattern that ran 2 COUNT queries per client)
       const clientIds = clients.map(c => c.id);
 
-      let workoutCountMap = {};
+      const workoutCountMap = {};
       if (WorkoutSession?.findAll && clientIds.length > 0) {
         try {
           const workoutCounts = await WorkoutSession.findAll({
@@ -445,7 +445,7 @@ class AdminClientController {
         }
       }
 
-      let orderCountMap = {};
+      const orderCountMap = {};
       if (Order?.findAll && clientIds.length > 0) {
         try {
           const orderCounts = await Order.findAll({
