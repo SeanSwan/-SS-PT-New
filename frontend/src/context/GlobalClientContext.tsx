@@ -36,6 +36,12 @@ export interface ActiveClient {
   email: string;
   photo?: string;
   role?: string;
+  // Phase 18.A (2026-04-20): additive optional fields. When /api/admin/clients
+  // returns them, consumers (e.g., MyClientsView admin-view-as adapter) can
+  // use them instead of falling back to zeros. Optional so existing consumers
+  // that don't read them continue to work unchanged.
+  availableSessions?: number;
+  membershipLevel?: 'basic' | 'premium' | 'elite';
 }
 
 export interface GlobalClientContextType {
@@ -90,6 +96,11 @@ export function normalizeClientListResponse(
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
       role: c.role,
+      // Phase 18.A: carry through optional admin-roster fields when the
+      // backend provides them. Undefined when absent — consumers default.
+      availableSessions:
+        typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
+      membershipLevel: c.membershipLevel ?? undefined,
     }));
   }
 

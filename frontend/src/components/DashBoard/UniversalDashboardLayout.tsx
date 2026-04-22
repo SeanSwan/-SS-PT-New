@@ -28,6 +28,9 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { X } from 'lucide-react';
+// Phase 18.A (2026-04-20): persistent view-as banner shown when admin is
+// viewing a non-admin dashboard (trainer or client).
+import ViewAsBanner from './components/ViewAsBanner';
 import { useAuth } from '../../context/AuthContext';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
@@ -828,6 +831,16 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
+            {/*
+              Phase 18.A (2026-04-20): persistent view-as banner for admins
+              viewing a non-admin dashboard. userRole is the authenticated
+              role; activeRole is the URL-driven dashboard being viewed.
+              Only renders when they disagree AND the authenticated user
+              is admin. Writes still audit to the real admin (no JWT swap).
+            */}
+            {userRole === 'admin' && (activeRole === 'trainer' || activeRole === 'client') && (
+              <ViewAsBanner activeRole={activeRole} />
+            )}
             <AnimatePresence mode="wait">
               <Suspense fallback={<LoadingState />}>
                 <Routes>

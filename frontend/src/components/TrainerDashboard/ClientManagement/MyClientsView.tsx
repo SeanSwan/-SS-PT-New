@@ -47,6 +47,7 @@ import {
 
 // Context and Services
 import { useAuth } from '../../../context/AuthContext';
+import { useGlobalClient } from '../../../context/GlobalClientContext';
 import { clientTrainerAssignmentService } from '../../../services/clientTrainerAssignmentService';
 import { sessionService } from '../../../services/sessionService';
 import { useToast } from '../../../hooks/use-toast';
@@ -613,6 +614,12 @@ const MyClientsView: React.FC = () => {
   const { user, authAxios } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  // Phase 18.A (2026-04-20): admin-view-as trainer dashboard pulls from the
+  // global admin roster (/api/admin/clients via GlobalClientContext) instead
+  // of the trainer-assignment endpoint — which returns empty for an admin
+  // with no trainer rows. Trainer accounts keep the existing assignment path.
+  const { clientList, loadingClients: loadingGlobalClients } = useGlobalClient();
+  const isAdminViewAs = user?.role === 'admin';
   
   // State
   const [clients, setClients] = useState<ClientAssignment[]>([]);
@@ -655,11 +662,66 @@ const MyClientsView: React.FC = () => {
   // Load client assignments
   const loadClients = useCallback(async () => {
     if (!user) return;
-    
+
+    // Phase 18.A (2026-04-20): admin-view-as branch. When admin visits
+    // /dashboard/trainer/clients, skip the trainer-assignment endpoint
+    // (which 403s or returns empty for an admin user with no trainer rows)
+    // and synthesize ClientAssignment[] from GlobalClientContext.clientList,
+    // which is already populated from /api/admin/clients. No backend
+    // change, no JWT swap. The view-as banner rendered by
+    // UniversalDashboardLayout makes the mode explicit. All writes still
+    // audit to the real admin account.
+    if (isAdminViewAs) {
+      // Wait for the global context to finish its own fetch before adapting.
+      if (loadingGlobalClients) return;
+
+      setLoading(true);
+      setError(null);
+
+      const adapted: ClientAssignment[] = clientList.map((c): ClientAssignment => ({
+        id: `admin-viewas-${c.id}`,
+        assignedAt: new Date().toISOString(),
+        isActive: true,
+        notes: undefined,
+        client: {
+          id: String(c.id),
+          firstName: c.firstName,
+          lastName: c.lastName,
+          email: c.email,
+          phone: undefined,
+          photo: c.photo,
+          availableSessions: c.availableSessions ?? 0,
+          totalSessionsCompleted: 0,
+          lastSessionDate: undefined,
+          nextSessionDate: undefined,
+          status: 'active',
+          goals: { current: 0, completed: 0 },
+          // Phase 18.A: deterministic progress fallback per Codex ROUND 1.
+          // The Math.random() stubs in the trainer branch below are
+          // pre-existing TODOs and intentionally left untouched to keep
+          // this scope narrow — admin-view-as path explicitly must not
+          // fake randomized progress for real clients.
+          progress: {
+            overallProgress: 0,
+            recentTrend: 'stable',
+            lastAssessment: undefined,
+          },
+          membershipLevel: c.membershipLevel ?? 'basic',
+          joinDate: new Date().toISOString(),
+          notes: undefined,
+        },
+      }));
+
+      setClients(adapted);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch trainer's client assignments
       // Use the trainer-specific endpoint (GET /) is admin-only, trainers use /trainer/:id
       const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
@@ -717,7 +779,7 @@ const MyClientsView: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, authAxios, toast]);
+  }, [user, authAxios, toast, isAdminViewAs, clientList, loadingGlobalClients]);
   
   // Initialize component
   useEffect(() => {
