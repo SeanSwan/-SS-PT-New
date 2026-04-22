@@ -10,7 +10,7 @@
  * opens a detail modal (approve/reject matches, revoke, manual link).
  *
  * HOW IT FITS IN THE APP:
- *   UnifiedAdminRoutes → /dashboard/people/waivers → AdminWaiversManager
+ *   UniversalDashboardLayout → /dashboard/admin/waivers → AdminWaiversManager
  *   Also reachable via sidebar "Waivers" workspace item.
  *
  * KEY DECISIONS:

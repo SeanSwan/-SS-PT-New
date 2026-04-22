@@ -269,7 +269,7 @@ const sendOrientationNotifications = async (orientation, formData) => {
     title: 'New Orientation Form Submission',
     message: `${fullName} has submitted an orientation form. Experience level: ${experienceLevel || 'Not specified'}`,
     type: 'orientation',
-    link: `/dashboard/people/orientations`,
+    link: `/dashboard/admin/client-management`,
   });
   
   logger.info(`Notifications sent for orientation ${orientation.id}`, {

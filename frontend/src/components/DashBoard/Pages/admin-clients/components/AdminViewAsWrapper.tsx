@@ -20,7 +20,7 @@
  * │ └──────────────────────────────────────────────────────────┘ │
  * │ Props: { userId (from URL param) }                           │
  * │ CLICK-OUTCOMES:                                              │
- * │ [Exit View] → navigates back to /dashboard/people            │
+ * │ [Exit View] → /dashboard/admin/client-management             │
  * │ SECURITY: Admin-only, data-fetch only, no JWT swap           │
  * └──────────────────────────────────────────────────────────────┘
  */
@@ -327,7 +327,7 @@ const AdminViewAsWrapper: React.FC = () => {
 
   useEffect(() => { fetchViewAsData(); }, [fetchViewAsData]);
 
-  const handleExit = () => navigate('/dashboard/people');
+  const handleExit = () => navigate('/dashboard/admin/client-management');
 
   if (loading) {
     return (

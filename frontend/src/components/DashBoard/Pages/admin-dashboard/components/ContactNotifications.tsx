@@ -469,7 +469,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       contact: '/dashboard/home/notifications',
       purchase: '/dashboard/analytics/revenue',
       high_value_purchase: '/dashboard/analytics/revenue',
-      new_user: '/dashboard/people',
+      new_user: '/dashboard/admin/client-management',
       payment_failed: '/dashboard/store',
       system_alert: '/dashboard/system/health',
       security_alert: '/dashboard/system/security',

@@ -533,17 +533,20 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'messages', section: 'command', label: 'Messages', icon: 'Mail', prefix: '/dashboard/admin/messages', description: 'Client and trainer messaging hub' },
 
   // ── CLIENTS & OPS — client lifecycle and scheduling ──
-  // canonical-surface-audit 2026-04-13 (Phase 6 production hotfix):
+  // canonical-surface-audit 2026-04-13 (Phase 6 production hotfix),
+  // updated 2026-04-21 (Phase 19 dead-route cleanup):
   // The previous prefix `/dashboard/people` resolved to UnifiedAdminRoutes
   // which is no longer mounted in the active routing tree (only
   // UniversalDashboardLayout is mounted at /dashboard/* per
-  // routes/main-routes.tsx:909). With no matching route, the inner
-  // catch-all at UniversalDashboardLayout.tsx:856/861 redirected admins
-  // to defaultPath (/dashboard/admin/coach-assistant), so clicking
-  // "Clients & Team" silently navigated to Coach Assistant. The
+  // routes/DashboardRoutes.tsx:49-58). With no matching route, the inner
+  // catch-all at UniversalDashboardLayout.tsx:869/874 redirects admins
+  // to defaultPath (/dashboard/admin/overview), so any stray link to
+  // /dashboard/people silently navigates to the Command Center. The
   // working canonical path is /dashboard/admin/client-management which
   // mounts ClientsWorkspace via the admin role config at
-  // UniversalDashboardLayout.tsx:497.
+  // UniversalDashboardLayout.tsx:500. Remaining dormant references and
+  // their replacement decisions are tracked in
+  // docs/ai-workflow/AI-HANDOFF/PHASE-19-CANONICAL-SURFACE-RECEIPT-2026-04-21.md.
   { id: 'people', section: 'clients', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
   { id: 'waivers', section: 'clients', label: 'Waivers', icon: 'FileSignature', prefix: '/dashboard/admin/waivers', description: 'Waiver records, match approval, and manual linking' },
   { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
