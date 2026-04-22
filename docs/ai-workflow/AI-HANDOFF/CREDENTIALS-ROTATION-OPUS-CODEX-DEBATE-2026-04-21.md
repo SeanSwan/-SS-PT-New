@@ -34,10 +34,10 @@ All counts/lines reference the current file (270 lines, 257 allow entries).
 | # | Secret | Value prefix | Lines | Severity |
 |---|---|---|---|---|
 | 1 | **Production Render PostgreSQL password** | `swanadmin:NOAkH3...` @ `dpg-cv1qga1u0jms738nc8lg-a.oregon-postgres.render.com/swanstudios` | 120, 121, 122, 161, 162 | 🔴 CRITICAL |
-| 2 | **Gemini API key** | `AIzaSyC8B_...` | 212 | 🟠 HIGH |
+| 2 | **Gemini API key** | `[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]...` | 212 | 🟠 HIGH |
 | 3 | **Sean's production admin password** (cleartext) | `[redacted-admin-pw-prefix]` via `TEST_PASSWORD=` arg to `npx playwright test` | 170 | 🟠 HIGH |
 | 4 | **Local dev PG password** | `[REDACTED-LOCAL-PG-ROTATED-2026-04-19]` | 177, 178, 180–186 | 🟡 MEDIUM (local-only) |
-| 5 | **Admin JWT tokens** (6 distinct tokens) | `eyJhbGciOi...` | 11, 53, 110, 113, 164, 201 | 🟡 MEDIUM (time-limited) |
+| 5 | **Admin JWT tokens** (6 distinct tokens) | `[REDACTED-JWT]` | 11, 53, 110, 113, 164, 201 | 🟡 MEDIUM (time-limited) |
 
 **Additional context:** The Gemini key at line 212 is NOT the one rotated earlier this week per session summary. It's either an older key pre-dating the April 19 incident or a third in-flight key. Either way, it needs rotation or confirmation it is already revoked.
 
@@ -58,8 +58,8 @@ Second `git-filter-repo` rewrite is warranted to purge these commits, OR at mini
 **Other passwords/keys in git history:** Recommended additional greps before committing tonight:
 
 - `git log -S '[redacted-admin-pw-prefix]' --all --oneline` — how many commits touched this string
-- `git log -S 'NOAkH30o3n' --all --oneline` — whether prod DB password ever leaked to tests/docs too
-- `git log -S 'AIzaSyC8B_' --all --oneline` — whether this Gemini key leaked to tracked files too
+- `git log -S '[REDACTED-PROD-PG-ROTATED-2026-04-21]' --all --oneline` — whether prod DB password ever leaked to tests/docs too
+- `git log -S '[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]' --all --oneline` — whether this Gemini key leaked to tracked files too
 - `git log -S '[REDACTED-LOCAL-PG-ROTATED-2026-04-19]' --all --oneline` — whether local dev PG password leaked to tracked files too
 
 ---
@@ -126,7 +126,7 @@ Delete the following entries entirely:
 - Any entry containing `[REDACTED-LOCAL-PG-ROTATED-2026-04-19]`
 - Any entry containing `[REDACTED-GEMINI-KEY-ROTATED-2026-04-19]`
 - Any entry containing `[REDACTED-ADMIN-PW-ROTATED-2026-04-21]!`
-- Any entry with a JWT body (regex: `eyJhbGciOi[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+`)
+- Any entry with a JWT body (regex: `[REDACTED-JWT][A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+`)
 
 ### What gets added (wildcards that keep ergonomics)
 
@@ -167,7 +167,7 @@ Idempotent Python migration script (separate from rotations; runs locally; no ne
 - **Production outage window:** Step 1 causes 30-90s of 5xx. Acceptable tonight (low US traffic 11pm+).
 - **Missed downstream:** If a script or env file still references the old password, that consumer 500s silently. Mitigation: grep for old password fragment after rotation, update remaining hits.
 - **Settings cleanup false-positive:** The wildcard patterns change ergonomics — Claude Code will ask once per new DATABASE_URL-containing command until Sean approves the wildcard pattern; this is a one-time cost per pattern.
-- **Old Gemini key still used somewhere:** If `AIzaSyC8B_...` is active in production (backend calling Gemini directly), revoking it mid-request kills in-flight calls. Mitigate by updating all env vars FIRST then revoking.
+- **Old Gemini key still used somewhere:** If `[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]...` is active in production (backend calling Gemini directly), revoking it mid-request kills in-flight calls. Mitigate by updating all env vars FIRST then revoking.
 
 ---
 
@@ -237,7 +237,7 @@ Replace the original 7 questions with these (still numbered 1-7 to match Sean's 
 1. **APPROVE / REVISE / REJECT** the cleanup-only sequence above (secrets are already rotated, so this is hygiene, not incident response)?
 2. Is removing the 3 cleartext password entries from `tests/playwright-*.py` files SUFFICIENT tonight, or should we also remove the file references from any CI workflow that might still feed them into test runs?
 3. For the settings.local.json wildcards — any that are too permissive? Specifically `Bash(DATABASE_URL=* node:*)` and `Bash(PGPASSWORD=* psql:*)`.
-4. Should tonight's scope also run a repo-wide grep for the OTHER already-rotated passwords (`[REDACTED-LOCAL-PG-ROTATED-2026-04-19]`, `NOAkH30o3n...`, `AIzaSyC8B_...`) across `tests/`, `scripts/`, `docs/`, `backend/`, `frontend/` — and remove every occurrence — or is that out of scope until a scheduled filter-repo pass?
+4. Should tonight's scope also run a repo-wide grep for the OTHER already-rotated passwords (`[REDACTED-LOCAL-PG-ROTATED-2026-04-19]`, `[REDACTED-PROD-PG-ROTATED-2026-04-21]...`, `[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]...`) across `tests/`, `scripts/`, `docs/`, `backend/`, `frontend/` — and remove every occurrence — or is that out of scope until a scheduled filter-repo pass?
 5. Hermes Nemotron hallucination hardening (the `terminal` unknown-tool loop) — keep as scheduled separate workstream, or does Codex see a link to credentials hygiene?
 6. The repo hygiene inventory at `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-04-21.md` — should the cleanup pass we execute tonight update that inventory with the secrets cleanup as a new entry?
 7. For the scheduled (not tonight) git-filter-repo pass: does Codex want to own that via a follow-up debate file, or is this one sufficient as the record?
@@ -247,7 +247,7 @@ Replace the original 7 questions with these (still numbered 1-7 to match Sean's 
 - **A.** Should credentials cleanup preempt Hermes prompt/toolset hardening and repo hygiene Phase 2? — My view: yes, because tonight's scope is small and unblocks the cleanup-hygiene backlog.
 - **B.** Which work must be kept out of tonight's commit? — My view: any Hermes prompt/toolset edits, any repo hygiene Phase 2 moves, any lint/autofix runs. Commit only: the Playwright test files' `os.environ` refactor.
 - **C.** Hardening to prevent `.claude/settings.local.json` re-accumulation of cleartext secrets? — My view: enforce it via a `scripts/scan-secrets.sh` extension that also scans `.claude/settings.local.json` weekly + document the wildcard pattern for future env-var-containing commands.
-- **D.** Immediate credential-specific action needed on the Hermes bridge? — My view: no, Hermes is already on the rotated Gemini key; the stale `AIzaSyC8B_...` key on the Pi (if still in `~/.hermes/.env` or `~/.hermes/auth.json`) is dead weight and should be replaced when we next touch Hermes config, but doesn't need tonight's pass.
+- **D.** Immediate credential-specific action needed on the Hermes bridge? — My view: no, Hermes is already on the rotated Gemini key; the stale `[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]...` key on the Pi (if still in `~/.hermes/.env` or `~/.hermes/auth.json`) is dead weight and should be replaced when we next touch Hermes config, but doesn't need tonight's pass.
 
 ---
 
@@ -275,7 +275,7 @@ Replace the original 7 questions with these (still numbered 1-7 to match Sean's 
 
 ### Codex-prescribed serialized order (tonight)
 
-1. **Grep tracked worktree** for all 4 stale fingerprints (`[REDACTED-ADMIN-PW-ROTATED-2026-04-21]`, `NOAkH30o3n...`, `AIzaSyC8B_...`, `[REDACTED-LOCAL-PG-ROTATED-2026-04-19]`) before any edit
+1. **Grep tracked worktree** for all 4 stale fingerprints (`[REDACTED-ADMIN-PW-ROTATED-2026-04-21]`, `[REDACTED-PROD-PG-ROTATED-2026-04-21]...`, `[REDACTED-GEMINI-KEY-ROTATED-2026-04-21]...`, `[REDACTED-LOCAL-PG-ROTATED-2026-04-19]`) before any edit
 2. **Clean `.claude/settings.local.json`** — strip literals, add NARROW command-shape wildcards only (script-specific, not generic `node:*`)
 3. **Patch 3 Playwright test files** — `TEST_PASSWORD` from `os.environ`, fail fast on missing (no defaults)
 4. **Grep again** — verify zero literal secret hits in tracked worktree

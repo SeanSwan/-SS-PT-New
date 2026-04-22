@@ -43,6 +43,7 @@ PATTERNS=(
   "mongodb-url|mongodb(\\+srv)?://[^[:space:]'\"@]+:[^[:space:]'\"@]+@[^[:space:]'\"/]+"
   "mysql-url|mysql://[^[:space:]'\"@]+:[^[:space:]'\"@]+@[^[:space:]'\"/]+"
   "jwt-token|eyJ[A-Za-z0-9_=-]{5,}\\.eyJ[A-Za-z0-9_=-]{5,}\\.[A-Za-z0-9_.+/=-]{10,}"
+  "rotated-password-shape|([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Pp][Aa][Ss][Ss])[^[:cntrl:]]{0,160}K[a-z]{4}K[a-z]{4}[0-9]{2,}!?|K[a-z]{4}K[a-z]{4}[0-9]{2,}!?[^[:cntrl:]]{0,160}([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Pp][Aa][Ss][Ss])"
   "pem-private-key|-----BEGIN (RSA|EC|DSA|OPENSSH|PGP|ENCRYPTED) PRIVATE KEY-----"
   "ssh-private-key|-----BEGIN OPENSSH PRIVATE KEY-----"
 )
