@@ -3,7 +3,7 @@
 **Purpose:** Stable current priority board for SwanStudios production stability and the next implementation slices.
 **Status:** Evergreen file. Update this when production priorities shift.
 **Read after:** `CLAUDE.md`, `ACTIVE-INDEX.md`
-**Last updated:** 2026-04-14 (post Phase 10 — Gemini-first parser rewrite unblocks Gemini-only local transcript intake; 20MB upload cap aligned across frontend/multer/Gemini)
+**Last updated:** 2026-04-21 (post Phase 19.A — dead-route cleanup landed at `3fb88a9ed`; backend prefer-const lint triage landed at `30666aa49` as rule-42 push-gate follow-up)
 
 ---
 
@@ -38,11 +38,29 @@ This file is the canonical "what matters now" tracker.
    - Both prior fixes (`WorkoutPlannerPage.tsx:240/268`, `WorkoutLogger.tsx:197/202`) re-verified intact.
    - Result: safe to touch Coach Assistant for transcript wire-up — done in same pass.
 
-2. **P1 - `/dashboard/people/*` dead-route cleanup** (still open)
-   - 41 total references across `frontend/src`, ~10 operational files.
-   - Only one fix landed so far: sidebar entry in commit `19931c25`.
-   - Each remaining ref is a silent-redirect-to-Coach-Assistant trap.
-   - **Now the next priority** since transcript intake is unblocked.
+2. **P1 - `/dashboard/people/*` dead-route cleanup** (Phase 19)
+   - **Phase 19.A ✅ DONE** (2026-04-21, commits `3fb88a9ed` + `30666aa49`)
+     - Fixed 4 high-confidence live traps:
+       - `AdminViewAsWrapper.tsx:330` `handleExit` → `/dashboard/admin/client-management`
+       - `ContactNotifications.tsx:472` `new_user` notification destination → `/dashboard/admin/client-management`
+       - `backend/controllers/orientationController.mjs:272` admin notification link → `/dashboard/admin/client-management`
+       - `AdminWaiversManager.tsx:13` JSDoc pointer corrected (`UnifiedAdminRoutes` → `UniversalDashboardLayout`)
+     - Corrected stale Phase 6 audit comment in `dashboard-tabs.ts:535-547` (landing surface: Coach Assistant → Overview; mount cite: `main-routes.tsx:909` → `DashboardRoutes.tsx:49-58`; catch-all lines: `856/861` → `869/874`).
+     - Added `frontend/src/__tests__/no-dead-people-routes.test.ts` — vitest source-text guard with hard allowlist + existence sanity check, 2/2 passing.
+     - Canonical Surface Receipt: `docs/ai-workflow/AI-HANDOFF/PHASE-19-CANONICAL-SURFACE-RECEIPT-2026-04-21.md`.
+     - 3-brain review (Gemini skipped per Sean's direction): `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-PHASE-19-DEAD-ROUTE-CLEANUP-2026-04-21.md` — Codex Round 1 APPROVE.
+     - Rule-42 triage: 34 backend `let`→`const` WIP (ESLint auto-fix, pre-existing) committed separately as `30666aa49`. Backend tests: 1677/1677 passing.
+     - Clarification: the trap ACTIVE-PRIORITIES previously described as "silent-redirect-to-Coach-Assistant" actually routes to `/dashboard/admin/overview` (Command Center) now — admin `defaultPath` was changed after Phase 6 from `coach-assistant` to `/overview`.
+   - **Phase 19.B PENDING** — movement-screen canonical route decision
+     - Blocked on: decide the canonical `/dashboard/admin/<movement-screen-surface>` route, or create one. Current admin routes have `/body-map` and `/video-call` but no dedicated movement-screen surface.
+     - Once decided, retarget deferred L3/L4/L5 dead links:
+       - L3: `ClientsManagementSection.tsx:1455` action menu "Movement Screen"
+       - L4: `MovementAnalysisWizard.tsx:480,971` completeAssessment + close
+       - L5: `MovementAnalysisListPage.tsx:273,313` NewButton + TableRow
+       - Plus the L3 tab config at `dashboard-tabs.ts:161`.
+     - Update guard test allowlist to remove these files as they're cleaned.
+   - **Phase 18.B deferred entries (still allowlisted in guard):** L6 admin view-as in `EnhancedAdminClientManagementView.tsx:1841,2130`; L7 measurements CTA in `ClientMeasurementPanel.tsx:365`.
+   - **Dormant cleanup deferred** — `UnifiedAdminRoutes.tsx` + `MasterDetailLayout.tsx` deletion pass needs Sean's approval per rule 34.
 
 3. **P1 - Swan-first Coach Assistant transcript intake** ✅ **DONE** (Phase 9, 2026-04-14) + ⚠ **HOTFIXED** (Phase 9.1, 2026-04-14)
    - Coach Assistant accepts transcript-class file attachments (audio + text + pdf).
@@ -115,6 +133,8 @@ The platform decision is locked:
 
 ## Latest Verified Commits
 
+- `30666aa49` - refactor(backend): prefer const in lint cleanup (rule-42 triage, 34 files, 1677/1677 tests)
+- `3fb88a9ed` - fix(phase-19a): retarget live /dashboard/people links + guard test (Codex APPROVE)
 - `0f5d8fe4` - fix(workout-logger): hoist loadClientData wrapper to fix TDZ crash on every mount
 - `19931c25` - fix(admin-nav): point Clients & Team sidebar to canonical client-management route
 - `1c039619` - fix(workout-planner): hoist addExercise above ExerciseRowRenderer to fix TDZ crash
