@@ -404,15 +404,109 @@ If §4.2 smoke shows AGENTS.md doesn't trigger startup read in Codex CLI:
 | 4 | Codex Round 2 — REVISE (small): 1 HIGH (age-based force-release still allows concurrent writers if hung-alive holder resumes), 1 MEDIUM (no explicit contention smoke in §6), 1 LOW (PROMOTE count source not concrete). No Gemini needed. | ✅ COMPLETE |
 | 5 | Claude Round 5 — all 3 R4 findings addressed: §3.3 lock policy strictened (PID-dead-only, never age alone, fail-loud otherwise; `--force-stale-release` operator override), §6 step 5 inserted (lock+rename contention smoke), §8 row 5 specifies `scripts/continuity-promotions.sh --count` as the count source. | ✅ COMPLETE |
 | 6 | Codex Round 3 — APPROVE. All 3 R4 findings addressed. CLAUDE.md compliance confirmed (rules 17/28/44/46). Non-blocking cleanup of §8 row 1 wording applied. No Gemini second opinion needed. | ✅ COMPLETE |
-| 7 | Implementation in progress | ⏳ ACTIVE |
+| 7 | Implementation + Sean close-out review (BLOCKER gitignore shape, HIGH `.gitattributes` LF, 2 MEDIUMs, 1 LOW — all addressed) | ✅ COMPLETE |
 
 Review depth options (same Path 1/2/3 from previous debates):
 - **Path 1 (full 3-brain):** Gemini → Codex → consensus.
 - **Path 2 (compressed Codex):** Codex only.
 - **Path 3 (Sean only):** executive review.
 
-**My recommendation: Path 2.** Phase B is architecturally heavier than Phase A or the orchestrator-fix, but Sean has already locked most of the architecture in conversation. Codex's value-add is high (file-locking semantics, atomic write correctness, sanitizer pattern audit, Hermes daemon integration risk). Gemini's value-add is marginal here — this is plumbing, not design.
+**Chosen: Path 2.** Codex caught real issues across 3 REVISE cycles (deprecated `on-failure`, D3 verification gap, age-based force-release risk). Gemini not needed.
 
 ---
 
-*Phase B is plumbing for cross-surface memory. Architecturally simple, operationally meaningful. The hard part is discipline — closeout only on explicit trigger, promotion only by Sean.*
+## 10. Implementation log
+
+Chunked delivery 2026-04-22.
+
+### Chunk 1 — Local repo scaffolding + append/read helpers (committed `3620e4579`)
+
+- `.gitignore` carve-out (later shape-fixed after Sean caught BLOCKER)
+- `.gitattributes` — `scripts/*.sh text eol=lf` (durable CRLF defense, caught by Sean as HIGH)
+- `.ai-workflow/continuity/README.md` (tracked)
+- `docs/ai-workflow/AI-HANDOFF/CONTINUITY-GOOD-IDEAS.md` (empty template)
+- `scripts/continuity-config.json` (tracked placeholders + hard-fail)
+- `scripts/continuity-append.mjs` (~470 lines — lock/sanitizer/trim/dedup/cwd)
+- `scripts/continuity-promotions.sh` (`--count` + list)
+- `scripts/scan-secrets.sh` — additive `--stdin` (spawn+stdin pipe, redacted errors)
+- `CLAUDE.md` item 10 — startup-read directive
+
+**Two real bugs caught during Chunk 1 smoke:**
+1. CRLF line endings on `scan-secrets.sh` → `.gitattributes` enforcement added.
+2. `die()` / `process.exit()` bypasses `finally{releaseLock()}` → added `lockHeldByThisProcess` flag + `process.on('exit')` backstop + explicit release-before-die.
+
+**Five Chunk-1 review fixes applied before the next commit:**
+- BLOCKER gitignore carve-out shape (`.ai-workflow/*` + `!continuity/` pattern)
+- HIGH `.gitattributes` created
+- MEDIUM duplicate-handling exit code changed to 0 (warn-only) per debate §8 row 11
+- MEDIUM stale-lock reacquire now sets `lockHeldByThisProcess`
+- LOW scanner error wording clarified (pattern + candidate line, not "field")
+
+### Chunk 1 follow-up — `.local.json` override pattern (pending commit)
+
+- `scripts/continuity-config.local.json` (gitignored) — real Tailscale/Pi identifiers
+- `continuity-append.mjs` reads `.local.json` first, falls back to tracked template
+- `.gitignore` adds `scripts/continuity-config.local.json`
+- README documents the pattern
+
+### Chunk 2 — Codex AGENTS.md startup-read
+
+- `~/.codex/AGENTS.md` sentinel smoke: PASS (fresh `codex exec --ephemeral` printed `AGENTS_MD_WORKS_2026_04_22`)
+- Real Phase B `vs-codex` directive landed (backup `~/.codex/AGENTS.md.bak-sentinel-20260422-102636`)
+- D8 fallback not needed
+
+### Chunk 3 — Hermes-Telegram Pi-side
+
+- **3.1 File-access smoke:** Path B confirmed (Pi has no `/mnt/c/...` mount, `exit=2 readable=1`)
+- **3.2 Daemon patch:** `~/.hermes/hermes-agent/run_agent.py` — `_build_continuity_bridge_context()` helper + insertion point inside `_build_system_prompt()` (once-per-session cache). Reuses the `SSH_TARGET` constant from existing `tools/remote_ai_bridge_tool.py` (real value lives there, not in tracked docs). Session-lifetime cache + fail-soft on read failure.
+- **3.3 Isolated prepend smoke:** PASS (Telegram returned `HERMES_PREPEND_WORKS_2026_04_22` from startup context)
+- Diagnostic log line temporarily added for journalctl verification, then removed
+
+### Chunk 4 — End-to-end 4-surface smoke
+
+- **4.1 First real closeouts:** vs-codex + vs-claude both appended Phase B closeouts with PROMOTE markers
+- **4.2 Local verify:** vs-claude read rolling log, verified both entries + Layer 2 scrubs (0 raw username occurrences in any new content, all paths scrubbed to `<USER_HOME>`)
+- **4.3 Hermes daemon code path verified:** single Hermes surface test returned both entries accurately, no tool calls. Since tg-claude + tg-codex share `_build_system_prompt()`, one pass = daemon code path verified. Not overclaimed as "two independent Telegram model surfaces."
+- **4.4 Sentinel cleanup:** HERMES SMOKE SENTINEL stub removed from rolling log; real Phase B closeouts preserved as first durable entries
+
+**One LOW issue caught + fixed in Chunk 4.5:** `continuity-promotions.sh --count` undercounted multi-marker-per-line entries (4 markers reported as 2). Fixed with `grep -oE '<!-- PROMOTE:' | wc -l` — counts occurrences not lines. Portable. List mode kept as-is (line context reads better for humans).
+
+---
+
+## 11. Verification log
+
+| Gate | Status | Evidence |
+|---|---|---|
+| `§2` path-sync verified | ✅ narrow | WSL tmux → SwanStudios repo (pwd + git-toplevel + REPO_OK) |
+| Contention smoke (3 concurrent appends, mixed namespaces) | ✅ | 3/3 exit 0, no corruption, lock cleaned up, all entries landed |
+| Sanitizer Layer 1 (hit rejects + lock releases cleanly) | ✅ | EX_SANITIZER_HIT + clean lock state |
+| Sanitizer Layer 2 (9 path shapes + username + config scrubs) | ✅ | 0 raw username in output |
+| Duplicate detection | ✅ | Dup warn + exit 0 (debate §8 row 11 semantic) |
+| Trim at 30 KB cap | ✅ | 74 KB pre-fill → 19 KB post-trim, header preserved |
+| Placeholder hard-fail | ✅ | EX_CONFIG_PLACEHOLDER with 5 TODO list |
+| `.local.json` override pattern | ✅ | Both paths smoke-verified (no override → placeholder fail; override present → succeed) |
+| Chunk 2 AGENTS.md startup-read | ✅ | Sentinel smoke: fresh Codex session printed `AGENTS_MD_WORKS_2026_04_22` |
+| Chunk 3.1 Path B file-access | ✅ | `rolling-last-done.md: rc=0, SENTINEL_FOUND` via SSH/cat |
+| Chunk 3.3 Hermes prepend isolated smoke | ✅ | Telegram: `HERMES_PREPEND_WORKS_2026_04_22` without tool calls |
+| Chunk 4.3 Hermes daemon code-path end-to-end | ✅ | Both real closeouts cited accurately, no tool calls |
+
+---
+
+## 12. Final consensus
+
+**CONSENSUS REACHED 2026-04-22.** Phase B continuity bridge is LIVE on all 4 agent surfaces. Filesystem sync (Windows) + Hermes daemon Path B (Pi→SSH/cat→Windows WSL) verified. Layer-1 + Layer-2 sanitizers operational. Lock policy strict per §3.3. First real closeouts seeded. Hermes-Telegram startup prepend confirmed reading new entries after session reset.
+
+**Known limitations (LOW, all deferred separately):**
+- Session-lifetime cache on Hermes Path B means fresh content needs a session reset (accepted trade-off per §4.3)
+- PROMOTE-count fidelity: fixed in Chunk 4.5 (grep -oE occurrences).
+- Codex plugin-sync 403 noise: separate Codex CLI concern.
+- `.local.json` override refactor: pending second commit after Chunk 1.
+- Pi-side daemon patch: no git history; backup files on Pi are rollback surface. Canonical spec in `docs/ai-workflow/AI-HANDOFF/HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md`.
+
+**Durable lessons captured:** 4 PROMOTE markers in first real closeouts (Sean's vs-codex + Claude's vs-claude) ready for curation to `CONTINUITY-GOOD-IDEAS.md`. See also `memory/project_phase_b_continuity_bridge_complete_2026_04_22.md`.
+
+**Next workstream:** post-Phase-B priorities per `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`.
+
+---
+
+*Phase B is plumbing for cross-surface memory. Architecturally simple, operationally meaningful. The hard part was discipline — closeout only on explicit trigger, promotion only by Sean. Both enforced by design, not just convention.*

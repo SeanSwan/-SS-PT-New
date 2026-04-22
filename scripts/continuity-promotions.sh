@@ -35,10 +35,19 @@ case "$mode" in
       echo "0"
       exit 0
     fi
-    # Require closing --> on the same line so we don't match documentation
-    # references to the marker syntax (e.g. in the header).
-    count=$(grep -cE '<!-- PROMOTE: .* -->' "$ROLLING" 2>/dev/null || true)
-    [[ -z "$count" ]] && count=0
+    # Count actual marker occurrences, not lines. With `grep -c`, multiple markers
+    # on the same line collapse into 1 — real total was undercounted during Phase B
+    # Chunk 4 closeout (4 markers reported as 2 because 3 were inline in one Notes
+    # field).
+    #
+    # Why awk and not `grep -oE ... | wc -l`: this script runs with `set -euo pipefail`,
+    # and `grep` exits 1 when there are zero matches — that trips the pipeline even
+    # though `wc -l` succeeds. awk always exits 0 and `print n+0` forces the value to
+    # 0 when no matches were found. Pattern allows optional whitespace after `<!--`
+    # to be tolerant of stylistic variants.
+    count=$(awk 'BEGIN { n = 0 }
+                 { while (match($0, /<!--[[:space:]]*PROMOTE:/)) { n++; $0 = substr($0, RSTART + RLENGTH) } }
+                 END { print n + 0 }' "$ROLLING")
     echo "$count"
     exit 0
     ;;
