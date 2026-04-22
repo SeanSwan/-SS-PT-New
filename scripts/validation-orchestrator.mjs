@@ -78,7 +78,7 @@ const MODELS = {
   minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — design debate partner only
   // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
   escalation1:    'nvidia/nemotron-3-nano-30b-a3b:free',   // FREE — NVIDIA/US — replaces GLM-4.7 (was Z-AI/China)
-  escalation2:    'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — CRITICAL escalation only
+  escalation2:    'nvidia/nemotron-3-super-120b-a12b:free', // FREE — NVIDIA/US — CRITICAL escalation deep-dive (was MiniMax M2.7, removed by ORCHESTRATOR-DRIFT-FIX 2026-04-22 Site C — escalation receives the most sensitive findings, worst place for a Chinese model)
   // ── Google GenAI (direct API, not via OpenRouter) ──
   gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Google/US — Phase 2C UX debate authority
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
@@ -92,6 +92,61 @@ const MODELS = {
   // qwen36Plus:   'qwen/qwen3.6-plus:free'       — REMOVED: Alibaba/China doing code architecture analysis
   // mercury2:     'z-ai/glm-4.7-flash'           — REMOVED: Z-AI/China in escalation role
 };
+
+// ─────────────────────────────────────────────
+// Audit-compliance fail-fast guard
+// Added 2026-04-22 by ORCHESTRATOR-DRIFT-FIX-DEBATE-2026-04-22.md
+// (full rationale: memory/project_validation_orchestrator_drift_2026_04_22.md)
+// ─────────────────────────────────────────────
+
+const DISALLOWED_PROVIDER_PREFIXES = ['minimax/', 'stepfun/', 'qwen/', 'deepseek/', 'z-ai/'];
+
+/**
+ * Hard-fails (process.exit(2)) if any policy-constrained track or escalation slot
+ * uses a Chinese-provider model.
+ *
+ * Policy (per MODELS comment line 67-68): Chinese models allowed ONLY in design-debate slots.
+ *
+ * Smallest reliable signal: resolved model ID string, lowercased + prefix-match.
+ * Labels are NOT trusted — they were the thing that drifted in 2026-04-22 audit.
+ *
+ * Phase 2C UX/UI design debate is exempt BY CODE PATH (it does NOT call this function),
+ * NOT by label match. Adding a new non-design Chinese-model invocation would require
+ * explicitly creating a new code path that bypasses this function — visible in code review.
+ *
+ * Limitation: this function relies on the calling code passing the correct tracks. It does
+ * NOT auto-discover all model invocations in the file. If a future maintainer adds a third
+ * Phase 1 mode, they must remember to invoke this guard — there is no global enforcement.
+ *
+ * @param {Array<{name: string, model: string}>} tracks - Phase 1 tracks (any mode)
+ * @param {Array<string>} escalationModels - Escalation model ID strings
+ * @param {{checkpoint: string}} opts - Human-readable enforcement-point label
+ */
+function assertNoChineseProviderInPolicyConstrainedTracks(tracks, escalationModels, opts) {
+  const violations = [];
+  for (const track of (tracks || [])) {
+    const id = String(track.model || '').toLowerCase();
+    if (DISALLOWED_PROVIDER_PREFIXES.some(p => id.startsWith(p))) {
+      violations.push(`[${opts.checkpoint}] track "${track.name}" -> ${track.model}`);
+    }
+  }
+  for (const id of (escalationModels || [])) {
+    const normalized = String(id || '').toLowerCase();
+    if (DISALLOWED_PROVIDER_PREFIXES.some(p => normalized.startsWith(p))) {
+      violations.push(`[${opts.checkpoint}] escalation slot -> ${id}`);
+    }
+  }
+  if (violations.length) {
+    console.error('');
+    console.error('  [AUDIT-FAIL] Disallowed provider in policy-constrained slot:');
+    violations.forEach(v => console.error(`    - ${v}`));
+    console.error('  See memory/project_validation_orchestrator_drift_2026_04_22.md');
+    console.error('  Phase 2C UX/UI design debate is the only exempt site (separate code path).');
+    console.error('');
+    process.exit(2);
+  }
+  console.log(`  [audit-compliance] OK at ${opts.checkpoint} — no disallowed providers in Phase 1 tracks or escalation`);
+}
 
 const CONFIG = {
   maxCodeChars: 60_000,
@@ -380,8 +435,10 @@ ${codeBundle}`,
 
     {
       name: 'Architecture & Bug Hunter',
-      model: MODELS.minimaxM27,
-      prompt: `You are a principal software engineer doing a deep architecture review and bug hunt. You are the #1 ranked programming AI — act like it. ${ctx}
+      // Privacy-audit fix 2026-04-22 (ORCHESTRATOR-DRIFT-FIX Site A): was MODELS.minimaxM27.
+      // Per policy (line 67-68): MiniMax M2.7 only allowed in design-debate slots.
+      model: MODELS.nemotron3Super,
+      prompt: `You are a principal software engineer doing a deep architecture review and bug hunt. Use your 120B MoE reasoning to find bugs. ${ctx}
 
 This is the most important review. Think step-by-step using your reasoning capabilities.
 
@@ -536,7 +593,7 @@ ${codeBundle}`,
     },
 
     {
-      name: 'Code Architecture (Qwen)',
+      name: 'Code Architecture (Nemotron Super)',
       model: MODELS.nemotron3Super,
       prompt: `You are Nvidia Nemotron 3 Super — a 120B MoE model with 262K context, specialized in code architecture analysis. ${ctx}
 
@@ -558,7 +615,7 @@ ${codeBundle}`,
     },
 
     {
-      name: 'Bug Hunter II (Step)',
+      name: 'Bug Hunter II (Nemotron Nano)',
       model: MODELS.nemotron3Nano,
       prompt: `You are Nvidia Nemotron 3 Nano — deployed as a SECOND bug hunter (the primary Bug Hunter uses Gemini 2.5 Flash). Use your MoE reasoning to find bugs the primary hunter missed. ${ctx}
 
@@ -1007,7 +1064,9 @@ ${planContent}`,
 
     {
       name: 'Implementation Risk Assessment',
-      model: MODELS.minimaxM27,
+      // Privacy-audit fix 2026-04-22 (ORCHESTRATOR-DRIFT-FIX Site B): was MODELS.minimaxM27.
+      // Per policy (line 67-68): MiniMax M2.7 only allowed in design-debate slots.
+      model: MODELS.nemotron3Nano,
       prompt: `You are a project manager and risk assessor for a software project. ${ctx}
 
 Review this implementation plan for risks and feasibility:
@@ -1682,9 +1741,9 @@ ${extractFindings(results, 'HIGH')}
 ---
 
 *SwanStudios 15-Brain Recursive Consensus System v14.0*
-*Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Nemotron 3 Nano + Gemini 3 Flash + Gemini 3.1 Flash + Nemotron 3 Nano + Gemini 2.5 Flash + MiniMax M2.7 + Nemotron 3 Super + Nemotron 3 Super + Step Bug Hunter II + Data Safety (Claude) + Trinity Large 400B*
-*Phase 2: 3 Specialty Debates — Security (Step ↔ Nemotron) + Code Quality (Claude ↔ Qwen) + UX/UI (Gemini 3.1 Pro ↔ M2.5:free)*
-*Phase 3: Smart Escalation — Nemotron Nano Escalation + MiniMax M2.7 (CRITICAL only)*
+*Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Nemotron 3 Nano + Gemini 3 Flash + Gemini 3.1 Flash + Nemotron 3 Nano + Gemini 2.5 Flash + Nemotron 3 Super (Architecture/Bug Hunter) + Gemini 3.1 Flash + Claude Sonnet 4.6 (Data Safety) + Nemotron 3 Super + Nemotron 3 Super + Nemotron 3 Nano (Bug Hunter II) + Trinity Large 400B*
+*Phase 2: 3 Specialty Debates — Security (Nemotron Nano ↔ Nemotron Super) + Code Quality (Claude ↔ Nemotron Super) + UX/UI (Gemini 3.1 Pro ↔ MiniMax M2.7, design role only)*
+*Phase 3: Smart Escalation — Nemotron Nano + Nemotron Super (CRITICAL only)*
 `;
 
   return { md, timestamp };
@@ -1729,19 +1788,19 @@ async function main() {
   console.log(`  ║    ${subtitle.padEnd(54)}║`);
   console.log('  ║                                                          ║');
   console.log('  ║    Phase 1: 13 Parallel Validators (OpenRouter)         ║');
-  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Step 3.5    ║');
+  console.log('  ║    Gemini 2.5 Flash · Claude Sonnet 4.6 · Nemotron Nano  ║');
   console.log('  ║    Gemini 3 Flash · Gemini 3.1 Flash · Nemotron 3 Nano  ║');
-  console.log('  ║    Gemini 2.5 Flash · MiniMax M2.7 · Nemotron 3     ║');
-  console.log('  ║    Nemotron 3 Super · Step Bug Hunter II · Data Safety   ║');
+  console.log('  ║    Gemini 2.5 Flash · Nemotron 3 Super · Gemini 3.1 Flash║');
+  console.log('  ║    Nemotron 3 Super · Nemotron 3 Super · Data Safety     ║');
   if (hasGemini31) {
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
-    console.log('  ║    A. Security: Step 3.5 ↔ Nemotron 3 Super (FREE)   ║');
+    console.log('  ║    A. Security: Nemotron Nano ↔ Nemotron Super (FREE)  ║');
     console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Nemotron 3 Super       ║');
-    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7     ║');
+    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7 (design only)║');
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
-    console.log('  ║    Nemotron Nano Escalation + MiniMax M2.7 — skip if not needed      ║');
+    console.log('  ║    Nemotron Nano + Nemotron Super — skip if not needed ║');
   }
   console.log('  ╚══════════════════════════════════════════════════════════╝');
   console.log('');
@@ -1787,6 +1846,7 @@ async function main() {
     const tracks = buildDocumentValidatorTracks(documentContent, opts.document);
     const phase1Tracks = tracks;
 
+    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-docs' });
     console.log(`  Phase 1: Launching ${phase1Tracks.length} document validators (staggered 2s apart)...`);
     if (hasGemini31) {
       console.log(`  Phase 2: Technical Accuracy recursive debate (Gemini CTO ↔ Claude CEO)...`);
@@ -1963,13 +2023,14 @@ async function main() {
     const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
 
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
+    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-planning' });
     console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
     if (groundedCount > 0) {
       console.log(`           ${groundedCount} brain(s) with Google Search Grounding (real-time web research)`);
     }
     if (hasGemini31) {
       console.log(`  Phase 2: 3 Planning Specialty Debates...`);
-      console.log(`    A. Security Planning: Step 3.5 ↔ Nemotron 3 Super (FREE)`);
+      console.log(`    A. Security Planning: Nemotron Nano ↔ Nemotron 3 Super (both FREE)`);
       console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Nemotron 3 Super`);
       console.log(`    C. UX/UI Design: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7`);
       console.log(`  Phase 3: Smart Escalation (only if CRITICAL gaps or stalled debates)`);
@@ -2087,6 +2148,9 @@ async function main() {
         const p2cResult = await runRecursiveConsensus({
           topic: 'UX/UI Design Specification',
           modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director (Lead Design Authority)' },
+          // Policy exception: Phase 2C is UX/UI design review, where MiniMax M2.7 is allowed.
+          // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally
+          // does NOT scan this code path — see policy comment at MODELS definition (line 67-68).
           modelB: { name: 'MiniMax M2.7', model: MODELS.minimaxM27, provider: 'openrouter', role: 'Design Implementation Reviewer' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateDesignPrompt(planContent, ctx, uxReport),
@@ -2134,16 +2198,18 @@ async function main() {
         }
 
         if (hasCritical) {
-          console.log('  MiniMax M2.7 — deep-diving CRITICAL planning gaps...');
+          // Privacy-audit fix 2026-04-22 (ORCHESTRATOR-DRIFT-FIX Site C, planning escalation): was MODELS.minimaxM27.
+          // Escalation receives the most sensitive findings — worst place for a Chinese model.
+          console.log('  Nemotron Super Escalation — deep-diving CRITICAL planning gaps...');
           try {
-            const m27Start = Date.now();
+            const escStart = Date.now();
             const criticalFindings = allDebateTexts.split('\n').filter(l => l.toUpperCase().includes('CRITICAL')).slice(0, 20).join('\n');
-            const m27Result = await callOpenRouter(apiKey, MODELS.minimaxM27, `You are MiniMax M2.7 — #3 ranked AI overall. CRITICAL gaps have been found in a feature implementation plan. Deep-dive each one:\n1. Is this truly CRITICAL or over-classified?\n2. Specific mitigation strategy\n3. Should this block implementation or be addressed in parallel?\n4. Priority order\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull plan:\n${planContent}`);
-            console.log(`    [OK] MiniMax M2.7 — ${((Date.now() - m27Start) / 1000).toFixed(1)}s`);
-            debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'SUCCESS', text: m27Result.text, inputTokens: m27Result.inputTokens, outputTokens: m27Result.outputTokens, costUSD: (m27Result.inputTokens / 1_000_000 * 0.30) + (m27Result.outputTokens / 1_000_000 * 1.20), durationMs: Date.now() - m27Start });
+            const escResult = await callOpenRouter(apiKey, MODELS.escalation2, `You are Nemotron 3 Super (NVIDIA, 120B MoE) — final escalation reviewer. CRITICAL gaps have been found in a feature implementation plan. Deep-dive each one:\n1. Is this truly CRITICAL or over-classified?\n2. Specific mitigation strategy\n3. Should this block implementation or be addressed in parallel?\n4. Priority order\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull plan:\n${planContent}`);
+            console.log(`    [OK] Nemotron Super Escalation — ${((Date.now() - escStart) / 1000).toFixed(1)}s`);
+            debateResults.push({ name: 'Smart Escalation (Nemotron Super)', model: MODELS.escalation2, status: 'SUCCESS', text: escResult.text, inputTokens: escResult.inputTokens, outputTokens: escResult.outputTokens, costUSD: 0, durationMs: Date.now() - escStart });
           } catch (err) {
-            console.error(`    [FAIL] MiniMax M2.7: ${err.message}`);
-            debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+            console.error(`    [FAIL] Nemotron Super Escalation: ${err.message}`);
+            debateResults.push({ name: 'Smart Escalation (Nemotron Super)', model: MODELS.escalation2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
           }
         }
       } else {
@@ -2261,6 +2327,7 @@ async function main() {
   const phase1Tracks = tracks;
   const totalPhases = hasGemini31 ? 3 : 1;
 
+  assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-code-review' });
   console.log(`  Phase 1: Launching ${phase1Tracks.length} validators (staggered 2s apart)...`);
   if (hasGemini31) {
     console.log(`  Phase 2: 3 Specialty Debates (Security, Code Quality, UX/UI)...`);
@@ -2327,7 +2394,7 @@ async function main() {
           provider: 'openrouter',
           role: 'Secondary Security Auditor (120B MoE)',
         },
-        finalAuthority: 'A', // Step 3.5 = primary security authority (74.4% SWE-bench)
+        finalAuthority: 'A', // Nemotron 3 Nano = primary security authority (post-2026-04-06 privacy audit replacement for Step 3.5)
         initialPrompt: `You are the PRIMARY security auditor. Here are both security scan results from Phase 1. Identify areas of agreement and disagreement. For disagreements, provide evidence.\n\n## Your Phase 1 Report:\n${securityReport}\n\n## Nemotron's Phase 1 Report:\n${nemotronReport}\n\n## CODE:\n${codeBundle}`,
         callModel: callModelForDebate,
         onRound: (round, speaker, text) => {
@@ -2387,7 +2454,7 @@ async function main() {
         model: `${MODELS.claudeSonnet46} ↔ ${MODELS.nemotron3Super}`,
         status: 'SUCCESS', text: phase2Result.finalVerdict,
         inputTokens: phase2Result.totalTokens.input, outputTokens: phase2Result.totalTokens.output,
-        costUSD: (phase2Result.totalTokens.input / 1_000_000 * 1.5) + (phase2Result.totalTokens.output / 1_000_000 * 7.5), // Only Claude costs, Qwen is free
+        costUSD: (phase2Result.totalTokens.input / 1_000_000 * 1.5) + (phase2Result.totalTokens.output / 1_000_000 * 7.5), // Only Claude costs, Nemotron Super is free
         durationMs: p2bDuration, debateLog: phase2Result.debateLog, consensusReached: phase2Result.consensusReached,
       });
     } catch (err) {
@@ -2412,6 +2479,9 @@ async function main() {
           provider: 'gemini-direct',
           role: 'Creative Director (Lead Design Authority)',
         },
+        // Policy exception: Phase 2C is UX/UI design review, where MiniMax M2.7 is allowed.
+        // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally
+        // does NOT scan this code path — see policy comment at MODELS definition (line 67-68).
         modelB: {
           name: 'MiniMax M2.7',
           model: MODELS.minimaxM27,
@@ -2471,22 +2541,24 @@ async function main() {
       }
 
       if (hasCritical) {
-        console.log('  MiniMax M2.7 — deep-diving CRITICAL findings...');
+        // Privacy-audit fix 2026-04-22 (ORCHESTRATOR-DRIFT-FIX Site C, code-review escalation): was MODELS.minimaxM27.
+        // Escalation receives the most sensitive findings — worst place for a Chinese model.
+        console.log('  Nemotron Super Escalation — deep-diving CRITICAL findings...');
         try {
-          const m27Start = Date.now();
+          const escStart = Date.now();
           const criticalFindings = allDebateTexts.split('\n').filter(l => l.toUpperCase().includes('CRITICAL')).slice(0, 20).join('\n');
-          const m27Result = await callOpenRouter(apiKey, MODELS.minimaxM27, `You are MiniMax M2.7 — the #3 ranked AI overall, #2 in Programming. CRITICAL security and code findings have been detected by the AI Village. Deep-dive into each one and provide:\n1. Is this truly CRITICAL or over-classified?\n2. Exact fix with code snippet\n3. Blast radius — how many users affected?\n4. Priority order for fixing\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull context:\n${codeBundle}`);
-          console.log(`    [OK] MiniMax M2.7 escalation — ${((Date.now() - m27Start) / 1000).toFixed(1)}s`);
+          const escResult = await callOpenRouter(apiKey, MODELS.escalation2, `You are Nemotron 3 Super (NVIDIA, 120B MoE) — final escalation reviewer. CRITICAL security and code findings have been detected by the AI Village. Deep-dive into each one and provide:\n1. Is this truly CRITICAL or over-classified?\n2. Exact fix with code snippet\n3. Blast radius — how many users affected?\n4. Priority order for fixing\n\nCRITICAL Findings:\n${criticalFindings}\n\nFull context:\n${codeBundle}`);
+          console.log(`    [OK] Nemotron Super Escalation — ${((Date.now() - escStart) / 1000).toFixed(1)}s`);
           debateResults.push({
-            name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27,
-            status: 'SUCCESS', text: m27Result.text,
-            inputTokens: m27Result.inputTokens, outputTokens: m27Result.outputTokens,
-            costUSD: (m27Result.inputTokens / 1_000_000 * 0.30) + (m27Result.outputTokens / 1_000_000 * 1.20),
-            durationMs: Date.now() - m27Start,
+            name: 'Smart Escalation (Nemotron Super)', model: MODELS.escalation2,
+            status: 'SUCCESS', text: escResult.text,
+            inputTokens: escResult.inputTokens, outputTokens: escResult.outputTokens,
+            costUSD: 0,
+            durationMs: Date.now() - escStart,
           });
         } catch (err) {
-          console.error(`    [FAIL] MiniMax M2.7: ${err.message}`);
-          debateResults.push({ name: 'Smart Escalation (MiniMax M2.7)', model: MODELS.minimaxM27, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+          console.error(`    [FAIL] Nemotron Super Escalation: ${err.message}`);
+          debateResults.push({ name: 'Smart Escalation (Nemotron Super)', model: MODELS.escalation2, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
         }
       }
     } else {
@@ -2581,12 +2653,17 @@ const TRACK_SLUGS = {
   'Frontend UX & Code Patterns': '08-frontend-ux-patterns',
   'Data Safety & Integrity': '09-data-safety',
   'Security II (Nemotron)': '10-security-nemotron',
+  'Code Architecture (Nemotron Super)': '11-code-architecture-nemotron',
+  'Bug Hunter II (Nemotron Nano)': '12-bug-hunter-nemotron',
+  // Legacy slugs (backwards compat for older runs that named these tracks differently — pre-ORCHESTRATOR-DRIFT-FIX 2026-04-22)
   'Code Architecture (Qwen)': '11-code-architecture-qwen',
   'Bug Hunter II (Step)': '12-bug-hunter-step',
   'Security Debate (Phase 2A)': '13-security-debate',
   'Code Quality Debate (Phase 2B)': '14-code-quality-debate',
   'UX/UI Design Debate (Phase 2C)': '15-design-debate',
   'Smart Escalation (Nemotron Nano Escalation)': '16-escalation-mercury',
+  'Smart Escalation (Nemotron Super)': '17-escalation-nemotron-super',
+  // Legacy slug (backwards compat for older runs that named this differently)
   'Smart Escalation (MiniMax M2.7)': '17-escalation-minimax',
   // Legacy slugs (backwards compat)
   'Code Quality Debate (Phase 2)': '14-code-quality-debate',
@@ -2729,10 +2806,10 @@ Each track has its own file — read only the ones relevant to your task:
 | \`08-frontend-ux-patterns.md\` | React patterns, styled-components, animations |
 | \`09-data-safety.md\` | Data integrity, destructive operations, PII |
 | \`10-security-nemotron.md\` | Security II — Nemotron 3 Super deep scan |
-| \`11-code-architecture-qwen.md\` | Code Architecture — Nemotron 3 Super review |
-| \`12-bug-hunter-step.md\` | Bug Hunter II — edge cases, race conditions |
-| \`13-security-debate.md\` | Phase 2A: Security debate (Step ↔ Nemotron) |
-| \`14-code-quality-debate.md\` | Phase 2B: Code quality debate (Claude ↔ Qwen) |
+| \`11-code-architecture-nemotron.md\` | Code Architecture — Nemotron 3 Super review |
+| \`12-bug-hunter-nemotron.md\` | Bug Hunter II — Nemotron Nano edge cases / race conditions |
+| \`13-security-debate.md\` | Phase 2A: Security debate (Nemotron Nano ↔ Nemotron Super) |
+| \`14-code-quality-debate.md\` | Phase 2B: Code quality debate (Claude ↔ Nemotron Super) |
 | \`15-design-debate.md\` | Phase 2C: UX/UI debate (Gemini ↔ M2.5:free) |
 | \`debate-log.md\` | Full Phase 2B code quality debate transcript |
 | \`design-debate-log.md\` | Full Phase 2C design debate transcript |
