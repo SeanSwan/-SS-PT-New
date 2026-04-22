@@ -405,9 +405,15 @@ bearer-token.*
 # ============================================
 # AI Workflow runtime + archives (added 2026-04-19 per v3 Patch 3)
 # ============================================
-.ai-workflow/
-.ai-workflow/audit/
+# Shape changed 2026-04-22: was `.ai-workflow/` (opaque-dir), now `.ai-workflow/*`
+# so we can un-ignore specific subdirs like continuity/ (Phase B needs README tracked).
+# git cannot re-include paths inside an opaque-ignored parent, so the parent must be `/*` style.
+.ai-workflow/*
+!.ai-workflow/continuity/
 .ai-workflow/audit/**
+# Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
+.ai-workflow/continuity/*
+!.ai-workflow/continuity/README.md
 SOUL.archive/
 SOUL.archive/**
 

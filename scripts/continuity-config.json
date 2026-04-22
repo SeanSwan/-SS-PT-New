@@ -1,0 +1,22 @@
+{
+  "_doc": "Phase B continuity sanitizer config. PLACEHOLDER VALUES MUST BE REPLACED before first append. Created 2026-04-22 by Phase B.",
+  "version": 1,
+  "scrub": {
+    "tailscale_nodes": [
+      "<TODO_FILL_BEFORE_USE_tailscale_node_1>",
+      "<TODO_FILL_BEFORE_USE_tailscale_node_2_or_remove>"
+    ],
+    "pi_hostnames": [
+      "<TODO_FILL_BEFORE_USE_hermes_pi_hostname>"
+    ],
+    "pi_ips": [
+      "<TODO_FILL_BEFORE_USE_hermes_pi_lan_ip>",
+      "<TODO_FILL_BEFORE_USE_hermes_pi_tailscale_ip>"
+    ]
+  },
+  "_substitution_tokens": {
+    "tailscale_nodes": "<TS_NODE_N>",
+    "pi_hostnames": "<HERMES_PI>",
+    "pi_ips": "<HERMES_IP>"
+  }
+}

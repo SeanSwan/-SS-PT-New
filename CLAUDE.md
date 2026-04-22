@@ -281,6 +281,16 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 7. Archives are reference-only, never default reading.
 8. Side-project, internal-only, or experimental plans are never part of default context unless Sean explicitly requests them by name.
 9. If docs conflict: `CLAUDE.md` > compact reference doc in `docs/ai-workflow/references/` > current task/debate file > latest validation outputs > heavyweight handbook/onboarding docs > archives.
+10. **Continuity bridge (Phase B, added 2026-04-22 — applies to all 4 agent surfaces):**
+    - At session start, after CLAUDE.md + ACTIVE-INDEX.md but before exploring the task, read:
+      - `.ai-workflow/continuity/rolling-last-done.md` (rolling closeout log, ≤30 KB, auto-trimmed)
+      - `docs/ai-workflow/AI-HANDOFF/CONTINUITY-GOOD-IDEAS.md` (curated promotions)
+    - Then run `bash scripts/continuity-promotions.sh --count`; if output > 0, mention the backlog in your session opening (e.g. "N pending promotion markers — review via `scripts/continuity-promotions.sh`").
+    - To **append a closeout** (ONLY when Sean explicitly says `"log this and close"` or `"session closeout"`):
+      `node scripts/continuity-append.mjs --topic "..." --outcome "..." [--files "a,b,c"] [--notes "..."]`
+      The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script hard-fails if unset or if placeholders remain in `scripts/continuity-config.json`.
+    - **Closeouts are explicit-trigger-only.** Do not auto-append — the discipline is that Sean decides when a session is meaningful enough to log.
+    - Full spec + review chain: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`. Directory README: `.ai-workflow/continuity/README.md`.
 
 ## Reference Docs (Read ONLY when needed for current task)
 | Topic | File | When to Read |

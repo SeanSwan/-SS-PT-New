@@ -1,0 +1,10 @@
+# Git attributes — line-ending enforcement
+# Created: 2026-04-22 (Phase B continuity bridge implementation)
+#
+# Context: Windows checkouts with core.autocrlf=true will reintroduce CRLF line
+# endings into shell scripts on every checkout. WSL bash fails hard on CRLF
+# ("$'\r': command not found"). Phase B scan-secrets.sh --stdin is invoked from
+# continuity-append.mjs running under WSL (Hermes-Telegram surface), so durable
+# LF on scripts/*.sh is required.
+
+scripts/*.sh text eol=lf

@@ -12,6 +12,7 @@
 #   scripts/scan-secrets.sh --staged         pre-commit mode (staged blobs)
 #   scripts/scan-secrets.sh --all            audit mode (entire tracked tree + hot-spots)
 #   scripts/scan-secrets.sh --hot-spots      audit known-risky gitignored paths only
+#   scripts/scan-secrets.sh --stdin          scan content piped via stdin (in-memory; used by continuity-append.mjs)
 #   scripts/scan-secrets.sh <file>...        specific files on disk
 #
 # Allowlist via .secretignore at repo root.
@@ -226,12 +227,45 @@ case "$mode" in
     fi
     scan_mode="--workingtree"
     ;;
+  --stdin)
+    # ADDITIVE 2026-04-22 (Phase B continuity bridge):
+    # Read candidate content from stdin and scan in-memory. Content stays in this
+    # process only — never persisted to disk. Output to stderr; exit 0/1 same as
+    # other modes so callers (continuity-append.mjs) can fail-closed on hit.
+    echo "=== Secret scan: STDIN mode (in-memory only) ===" >&2
+    stdin_content="$(cat)"
+    if [[ -z "$stdin_content" ]]; then
+      echo "  [stdin empty — no scan needed]" >&2
+      exit 0
+    fi
+    stdin_hits=0
+    for entry in "${PATTERNS[@]}"; do
+      name="${entry%%|*}"
+      regex="${entry#*|}"
+      set +e
+      scan_stream_for_pattern "<stdin>" "$name" "$regex" <<< "$stdin_content"
+      rc=$?
+      set -e
+      (( rc != 0 )) && stdin_hits=$((stdin_hits + 1))
+    done
+    echo "" >&2
+    echo "=== Stdin scan summary ===" >&2
+    echo "Hits: $stdin_hits" >&2
+    if (( stdin_hits > 0 )); then
+      echo "" >&2
+      echo "SECRETS DETECTED in stdin candidate. Caller should refuse to write." >&2
+      exit 1
+    fi
+    echo "STDIN CLEAN." >&2
+    exit 0
+    ;;
   -h|--help|"")
     cat <<EOF
 Usage:
   $0 --staged               Scan STAGED BLOBS (pre-commit mode). Reads from git index.
   $0 --all                  Scan every tracked file + hot-spots (gitignored risky paths)
   $0 --hot-spots            Scan ONLY known-risky gitignored paths (e.g. .claude/settings.local.json)
+  $0 --stdin                Scan content piped via stdin (in-memory only). Used by continuity-append.mjs.
   $0 <file> [<file>...]     Scan specific files on disk
 
 Output: file + pattern name + line numbers ONLY. Matched content never echoed.
