@@ -11,9 +11,9 @@
  * ║                                                                  ║
  * ║  Usage (from Claude or CLI):                                     ║
  * ║    node scripts/consult-gemini.mjs --plan "plan text here"      ║
- * ║    node scripts/consult-gemini.mjs --file path/to/plan.md       ║
+ * ║    node scripts/consult-gemini.mjs --plan --file path/to/plan.md║
  * ║    node scripts/consult-gemini.mjs --design "component desc"    ║
- * ║    node scripts/consult-gemini.mjs --review path/to/file.tsx    ║
+ * ║    node scripts/consult-gemini.mjs --review --file path/to/file.tsx ║
  * ║                                                                  ║
  * ║  Modes:                                                          ║
  * ║    --plan    Review an implementation plan for gaps/enhancements ║
@@ -34,7 +34,7 @@ import { getModelIdOrThrow } from './lib/model-registry.mjs';
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -315,23 +315,28 @@ Provide your expert answer with specific, actionable guidance. Include exact val
 // Args
 // ─────────────────────────────────────────────
 
-function parseArgs() {
-  const args = process.argv.slice(2);
+export function parseArgs(rawArgs = process.argv.slice(2)) {
+  const args = rawArgs;
   const opts = { mode: null, input: '', useGrounding: false };
+
+  // Only consume the next arg as inline input for a mode flag if it
+  // exists AND does not start with '--'. Prevents greedy flag-swallowing
+  // (e.g. `--review --file X` used to bind opts.input = '--file').
+  const hasInlineNext = (i) => args[i + 1] && !args[i + 1].startsWith('--');
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--plan') {
       opts.mode = 'plan';
-      opts.input = args[++i] || '';
+      if (hasInlineNext(i)) opts.input = args[++i];
     } else if (args[i] === '--design') {
       opts.mode = 'design';
-      opts.input = args[++i] || '';
+      if (hasInlineNext(i)) opts.input = args[++i];
     } else if (args[i] === '--review') {
       opts.mode = 'review';
-      opts.input = args[++i] || '';
+      if (hasInlineNext(i)) opts.input = args[++i];
     } else if (args[i] === '--ask') {
       opts.mode = 'ask';
-      opts.input = args[++i] || '';
+      if (hasInlineNext(i)) opts.input = args[++i];
     } else if (args[i] === '--research') {
       opts.useGrounding = true;
     } else if (args[i] === '--file') {
@@ -514,7 +519,25 @@ ${result.text}
   }
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+// Only auto-run main() when this file is invoked directly as an entry
+// point, not when imported (e.g. by the parseArgs regression test).
+// Cross-platform via file URL comparison. Null-safe: some import
+// contexts run without process.argv[1] populated (e.g. worker threads,
+// some test runners), so we explicitly gate on a non-empty string
+// before calling pathToFileURL (which throws on empty input).
+function isDirectExecution() {
+  const entry = process.argv[1];
+  if (typeof entry !== 'string' || entry.length === 0) return false;
+  try {
+    return import.meta.url === pathToFileURL(entry).href;
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectExecution()) {
+  main().catch(err => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+  });
+}

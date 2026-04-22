@@ -1,0 +1,10 @@
+This is a parseArgs regression-test fixture.
+
+Its only purpose is to verify that scripts/consult-gemini.mjs
+argv parser reads --file contents correctly after the
+2026-04-21 `--review --file X` greedy-consume bug fix.
+
+If parseArgs works, opts.input equals this entire text
+(not the literal string "--file").
+
+Do not delete — regression test depends on this exact file.
