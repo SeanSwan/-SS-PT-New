@@ -45,12 +45,6 @@ const ALLOWLIST: Record<string, string> = {
   // Phase 19.B so the only remaining literal here is the comment.
   'frontend/src/config/dashboard-tabs.ts':
     'historical audit comment only (Phase 6 + Phase 19 annotations)',
-  // Phase 18.B-blocked impersonation CTAs.
-  'frontend/src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx':
-    'view-as/* CTAs blocked on Phase 18.B impersonation decision',
-  // Measurements-canonical-blocked.
-  'frontend/src/components/DashBoard/Pages/admin-clients/components/ClientMeasurementPanel.tsx':
-    'measurements/:id CTA blocked on canonical measurements route decision',
 };
 
 const FORBIDDEN = '/dashboard/people';

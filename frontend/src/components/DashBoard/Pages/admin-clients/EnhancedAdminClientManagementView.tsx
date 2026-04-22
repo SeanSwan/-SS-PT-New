@@ -1838,7 +1838,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                     <ViewDashboardButton
                       title="View client dashboard"
                       aria-label="View client dashboard"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/people/view-as/${client.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/admin/client-management?clientId=${client.id}`); }}
                     >
                       <LayoutDashboard size={18} color="#60C0F0" />
                     </ViewDashboardButton>
@@ -2127,7 +2127,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             $variant="outlined"
             onClick={() => {
               if (selectedClient) {
-                navigate(`/dashboard/people/view-as/${selectedClient.id}`);
+                navigate(`/dashboard/admin/coach-assistant?clientId=${selectedClient.id}`);
               } else {
                 alert('Please select a client first to view Swan Coach insights.');
               }

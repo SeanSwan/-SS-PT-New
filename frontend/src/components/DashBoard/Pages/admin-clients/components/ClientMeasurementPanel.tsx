@@ -362,7 +362,7 @@ const ClientMeasurementPanel: React.FC<Props> = ({ clientId, clientName, onClose
         <ActionBar>
           <PrimaryButton onClick={() => {
             onClose();
-            navigate(`/dashboard/people/measurements/${clientId}`);
+            navigate(`/dashboard/admin/client-management?clientId=${clientId}`);
           }}>
             <ExternalLink size={16} />
             New Full Measurement
