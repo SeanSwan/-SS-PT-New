@@ -54,8 +54,8 @@ eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+
 -----BEGIN (RSA|EC|DSA|OPENSSH|PGP) PRIVATE KEY-----
 
 # Known rotated secret fingerprints (bake in tonight's)
-NOAkH30o3nFKgpAxFXHEY2UlZ236FdA1
-AIzaSyC8B_HGNptADhzjTbi0ZtBsTcWTX0U7S8c
+[REDACTED-PROD-PG-ROTATED-2026-04-19]
+[REDACTED-GEMINI-KEY-ROTATED-2026-04-19]
 ```
 
 **Creates 2 new files:**

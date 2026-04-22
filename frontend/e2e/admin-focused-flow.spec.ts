@@ -30,8 +30,8 @@ const credentialCandidates: CredentialCandidate[] = [
     password: process.env.TEST_PASSWORD || '',
   },
   { username: 'admin@swanstudios.com', password: 'admin123' },
-  { username: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
-  { username: 'admin@swanstudios.com', password: 'KlackKlack80' },
+  { username: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD },
+  { username: 'admin@swanstudios.com', password: process.env.TEST_PASSWORD },
 ].filter((candidate) => candidate.username.trim() && candidate.password.trim());
 
 let cachedSession: AdminSession | null = null;

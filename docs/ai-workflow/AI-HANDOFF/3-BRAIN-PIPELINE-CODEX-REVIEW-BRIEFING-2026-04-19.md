@@ -144,8 +144,8 @@ You have a different vantage point. Village is 11 parallel analysts + 2 debate p
 
 The plan claims to prevent tonight's credential leak via pattern-based Bash denies. Test this mentally:
 
-- Would the deny pattern `Bash(*PGPASSWORD=*)` block: `Bash(PGPASSWORD=Hollywood1980 psql -U swanadmin ...)` — yes/no?
-- Would `Bash(*AIza[A-Za-z0-9_-]{35}*)` block: `Bash(GEMINI_API_KEY=AIzaSyC8B_HGNpt... node scripts/consult-gemini.mjs)` — yes/no?
+- Would the deny pattern `Bash(*PGPASSWORD=*)` block: `Bash(PGPASSWORD=[REDACTED-LOCAL-PG-ROTATED-2026-04-19] psql -U swanadmin ...)` — yes/no?
+- Would `Bash(*AIza[A-Za-z0-9_-]{35}*)` block: `Bash(GEMINI_API_KEY=[REDACTED-GEMINI-KEY-PREFIX]... node scripts/consult-gemini.mjs)` — yes/no?
 - Any edge cases where the pattern matcher could miss a leak? (e.g., env var set separately, token pasted inline, URL-encoded)
 
 ### 5. Deliver findings in this format

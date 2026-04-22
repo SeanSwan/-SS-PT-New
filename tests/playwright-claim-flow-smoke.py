@@ -19,7 +19,9 @@ BASE_URL = "https://sswanstudios.com"
 API_BASE = f"{BASE_URL}/api"
 RESULTS_DIR = "tests/screenshots/claim-flow-smoke"
 ADMIN_EMAIL = "SeanSwan"
-ADMIN_PASS = "KlackKlack806780!"
+ADMIN_PASS = os.environ.get("TEST_PASSWORD")
+if not ADMIN_PASS:
+    raise SystemExit("TEST_PASSWORD env var required (no default for security - see CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md)")
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)

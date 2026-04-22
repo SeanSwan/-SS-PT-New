@@ -13,7 +13,7 @@
 | Credential | Old Value (prefix only) | Rotation Status |
 |---|---|---|
 | Render PostgreSQL password | `[REDACTED_OLD_PG_SECRET]` | ✅ Rotated via Render dashboard. User `swanadmin` replaced with `swanadmin2`. Old credential deleted. |
-| Gemini API key | `AIzaSyC8B_HGNpt...` | ✅ Revoked in Google AI Studio. New key deployed on Render env + Pi Hermes (`auth.json` + `.env` `GOOGLE_API_KEY`) |
+| Gemini API key | `[REDACTED-GEMINI-KEY-PREFIX-ROTATED-2026-04-19]` | ✅ Revoked in Google AI Studio. New key deployed on Render env + Pi Hermes (`auth.json` + `.env` `GOOGLE_API_KEY`) |
 | JWT_SECRET | (not exposed directly, but tokens were) | ✅ Regenerated on Render. All existing admin/user tokens invalidated |
 | JWT_REFRESH_SECRET | (not exposed directly) | ✅ Regenerated on Render |
 | Local Postgres password | `[REDACTED_OLD_SECRET]` | ✅ Rotated to random 24-char via `ALTER USER swanadmin PASSWORD ...`. Updated `backend/.env`. |
@@ -47,7 +47,7 @@ git log --all --full-history -- .claude/settings.local.json    # empty
 ## Hermes Pi Cleanup
 
 - **Session dump purge:** 9 `request_dump_*.json` files deleted from `~/.hermes/sessions/` (all contained old Gemini key in `Authorization` header + conversation body)
-- **Session state files:** 17 `session_*.json` files LEFT IN PLACE — grep confirmed they do NOT contain the old key prefix `AIzaSyC8B_HGNpt`. They hold Hermes conversation memory, valuable. PII audit deferred.
+- **Session state files:** 17 `session_*.json` files LEFT IN PLACE — grep confirmed they do NOT contain the old key prefix `[REDACTED-GEMINI-KEY-PREFIX-ROTATED-2026-04-19]`. They hold Hermes conversation memory, valuable. PII audit deferred.
 - **Hermes auth.json:** `gemini` credential was auto-pruned by Hermes when the old key failed. Rebuilt from scratch with new key + fresh ID.
 - **`.env` cleanup:** Orphan `AIza` line removed, duplicate `EXA_API_KEY` deduplicated, `GOOGLE_API_KEY` now set correctly.
 

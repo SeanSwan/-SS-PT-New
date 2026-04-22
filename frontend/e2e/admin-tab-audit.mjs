@@ -19,10 +19,10 @@ const credentialCandidates = [
     password: process.env.E2E_ADMIN_PASSWORD,
     source: 'env:E2E_ADMIN_*_USERNAME',
   },
-  { username: 'ogpswan@yahoo.com', password: 'KlackKlack80', source: 'project-env-admin' },
-  { username: 'ogpswan', password: 'KlackKlack80', source: 'project-env-admin-username' },
+  { username: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD, source: 'project-env-admin' },
+  { username: 'ogpswan', password: process.env.TEST_PASSWORD, source: 'project-env-admin-username' },
   // TODO: Replace hardcoded credentials with env-only auth before production/CI.
-  { username: 'admin@swanstudios.com', password: 'KlackKlack80', source: 'seed-admin' },
+  { username: 'admin@swanstudios.com', password: process.env.TEST_PASSWORD, source: 'seed-admin' },
 ]
   .map((c) => ({ ...c, username: clean(c.username), password: clean(c.password) }))
   .filter((c) => c.username && c.password);

@@ -8,6 +8,11 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 from playwright.sync_api import sync_playwright
 
+ADMIN_PASS = os.environ.get("TEST_PASSWORD")
+if not ADMIN_PASS:
+    raise SystemExit("TEST_PASSWORD env var required (no default for security - see CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md)")
+
+
 BASE_URL = "https://sswanstudios.com"
 
 def run():
@@ -28,7 +33,7 @@ def run():
         username_input = page.locator('input[placeholder*="Username"], input[type="text"]').first
         password_input = page.locator('input[type="password"]').first
         username_input.fill("SeanSwan")
-        password_input.fill("KlackKlack806780!")
+        password_input.fill(ADMIN_PASS)
         page.locator('button:has-text("Sign In")').click()
         page.wait_for_timeout(3000)
 

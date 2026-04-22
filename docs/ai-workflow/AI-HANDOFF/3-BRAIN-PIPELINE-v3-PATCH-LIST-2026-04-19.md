@@ -51,9 +51,9 @@ REDIS_PASSWORD=\S+
 
 # Rotated-fingerprint file (per-project)
 # scripts/known-rotated-fingerprints.txt — one prefix per line, e.g.:
-#   NOAkH30o3nF
-#   AIzaSyC8B_HGNpt
-#   Hollywood1980
+#   [REDACTED-PROD-PG-PREFIX]
+#   [REDACTED-GEMINI-KEY-PREFIX]
+#   [REDACTED-LOCAL-PG-ROTATED-2026-04-19]
 # Any match = block (these are PREFIXES of already-rotated secrets that
 # should never appear in new code or docs again)
 ```

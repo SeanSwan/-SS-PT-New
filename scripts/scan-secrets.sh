@@ -2,6 +2,7 @@
 # scan-secrets.sh — pre-commit + audit secret scanner
 # Created: 2026-04-19 (3-Brain Pipeline v3 Patch 1)
 # Hardened: 2026-04-20 (Codex review of commit 933fbf99)
+# Extended: 2026-04-21 (hot-spots mode for gitignored local files per Codex credentials-cleanup REVISE)
 #
 # Scans staged git blobs (pre-commit) or working-tree files for credential patterns.
 # Output discipline: file path + pattern name + line numbers ONLY.
@@ -9,10 +10,16 @@
 #
 # Usage:
 #   scripts/scan-secrets.sh --staged         pre-commit mode (staged blobs)
-#   scripts/scan-secrets.sh --all            audit mode (entire working tree)
+#   scripts/scan-secrets.sh --all            audit mode (entire tracked tree + hot-spots)
+#   scripts/scan-secrets.sh --hot-spots      audit known-risky gitignored paths only
 #   scripts/scan-secrets.sh <file>...        specific files on disk
 #
 # Allowlist via .secretignore at repo root.
+#
+# Hot-spots: paths that are gitignored but historically accumulate literal secrets.
+# `.claude/settings.local.json` is the canonical example — Claude Code stores every
+# approved Bash command verbatim, including inline env-var values. Credentials-cleanup
+# 2026-04-21 closeout: tests/**/*.py is covered by standard --all mode (tracked).
 
 set -euo pipefail
 
@@ -38,6 +45,14 @@ PATTERNS=(
   "jwt-token|eyJ[A-Za-z0-9_=-]{5,}\\.eyJ[A-Za-z0-9_=-]{5,}\\.[A-Za-z0-9_.+/=-]{10,}"
   "pem-private-key|-----BEGIN (RSA|EC|DSA|OPENSSH|PGP|ENCRYPTED) PRIVATE KEY-----"
   "ssh-private-key|-----BEGIN OPENSSH PRIVATE KEY-----"
+)
+
+# Known-risky paths that are gitignored and so NEVER appear in `git ls-files`.
+# These are scanned by --hot-spots and --all modes as an extra defense layer.
+# Add paths here as new hot-spot classes are identified (e.g., other IDE plugin
+# configs, local CI credentials files).
+HOT_SPOT_PATHS=(
+  ".claude/settings.local.json"
 )
 
 SKIP_PATH_PATTERNS=(
@@ -186,15 +201,36 @@ case "$mode" in
     scan_mode="--stagedblob"
     ;;
   --all)
-    echo "=== Secret scan: entire working tree ==="
+    echo "=== Secret scan: entire tracked tree + hot-spots ==="
     mapfile -t files < <(git ls-files)
+    # Append known-risky gitignored hot-spot paths that ls-files misses
+    for hs in "${HOT_SPOT_PATHS[@]}"; do
+      if [[ -f "$REPO_ROOT/$hs" ]]; then
+        files+=("$hs")
+      fi
+    done
+    scan_mode="--workingtree"
+    ;;
+  --hot-spots)
+    echo "=== Secret scan: hot-spots only (known-risky gitignored paths) ==="
+    files=()
+    for hs in "${HOT_SPOT_PATHS[@]}"; do
+      if [[ -f "$REPO_ROOT/$hs" ]]; then
+        files+=("$hs")
+      fi
+    done
+    if [[ ${#files[@]} -eq 0 ]]; then
+      echo "No hot-spot paths present. Clean."
+      exit 0
+    fi
     scan_mode="--workingtree"
     ;;
   -h|--help|"")
     cat <<EOF
 Usage:
   $0 --staged               Scan STAGED BLOBS (pre-commit mode). Reads from git index.
-  $0 --all                  Scan every tracked file in working tree
+  $0 --all                  Scan every tracked file + hot-spots (gitignored risky paths)
+  $0 --hot-spots            Scan ONLY known-risky gitignored paths (e.g. .claude/settings.local.json)
   $0 <file> [<file>...]     Scan specific files on disk
 
 Output: file + pattern name + line numbers ONLY. Matched content never echoed.

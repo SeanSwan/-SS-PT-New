@@ -27,7 +27,9 @@ from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://sswanstudios.com"
 ADMIN_USERNAME = "SeanSwan"
-ADMIN_PASSWORD = "KlackKlack806780!"
+ADMIN_PASSWORD = os.environ.get("TEST_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise SystemExit("TEST_PASSWORD env var required (no default for security - see CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md)")
 BRAVE_PATH = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 
 SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "screenshots", "ai-assistant-onboarding")

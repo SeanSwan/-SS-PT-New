@@ -17,8 +17,8 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:10000';
 const credentialCandidates = [
   { username: process.env.TEST_EMAIL || '', password: process.env.TEST_PASSWORD || '' },
   { username: 'admin@swanstudios.com', password: 'admin123' },
-  { username: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
-  { username: 'admin@swanstudios.com', password: 'KlackKlack80' },
+  { username: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD },
+  { username: 'admin@swanstudios.com', password: process.env.TEST_PASSWORD },
 ].filter(c => c.username.trim() && c.password.trim());
 
 let cachedToken: { token: string; user: any } | null = null;

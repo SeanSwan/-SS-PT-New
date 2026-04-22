@@ -18,8 +18,8 @@ const BACKEND_URL = 'http://localhost:10000';
 const ADMIN_CANDIDATES = [
   { email: process.env.E2E_ADMIN_EMAIL || '', password: process.env.E2E_ADMIN_PASSWORD || '' },
   { email: 'admin@swanstudios.com', password: 'admin123' },
-  { email: 'ogpswan@yahoo.com', password: 'KlackKlack80' },
-  { email: 'admin@swanstudios.com', password: 'KlackKlack80' },
+  { email: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD },
+  { email: 'admin@swanstudios.com', password: process.env.TEST_PASSWORD },
 ].filter(c => c.email.trim() && c.password.trim());
 
 const CLIENT_EMAIL = process.env.E2E_CLIENT_EMAIL || 'client@test.com';

@@ -1,18 +1,22 @@
 @echo off
+REM OBSOLETE AS OF 2026-04-21 — superseded by scripts/scan-secrets.sh
+REM Password fingerprint literal redacted 2026-04-21 (credentials cleanup)
+REM Use `bash scripts/scan-secrets.sh --all` for current-gen secret scanning.
 echo.
 echo ✅ SECRETS SUCCESSFULLY REMOVED FROM FILES
 echo ==========================================
 echo.
 echo I have removed the 3 files that contained secrets:
 echo ✅ QUICK-LOGIN-FIX.bat (moved to .backup)
-echo ✅ EMERGENCY-LOGIN-FIX.mjs (moved to .backup)  
+echo ✅ EMERGENCY-LOGIN-FIX.mjs (moved to .backup)
 echo ✅ DEPLOY-LOGIN-FIX.bat (moved to .backup)
 echo ✅ Updated .gitignore to exclude backup files
 echo.
 
 echo 🔍 Verifying no secrets remain...
 echo =================================
-findstr /R "KlackKlack80" *.* 2>nul | findstr /V ".backup" && echo ❌ Password still found! || echo ✅ No passwords in tracked files
+REM Literal fingerprint redacted. Run `bash scripts/scan-secrets.sh --all` instead.
+echo (obsolete scanner; use scripts/scan-secrets.sh --all)
 findstr /R "SG\." *.* 2>nul | findstr /V ".backup" && echo ❌ SendGrid key found! || echo ✅ No SendGrid keys
 findstr /R "sk_" *.* 2>nul | findstr /V ".backup" && echo ❌ Stripe key found! || echo ✅ No Stripe keys
 echo.

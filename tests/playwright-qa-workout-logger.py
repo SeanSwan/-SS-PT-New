@@ -16,7 +16,9 @@ from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://sswanstudios.com"
 ADMIN_USERNAME = "ogpswan"
-ADMIN_PASSWORD = "KlackKlack80"
+ADMIN_PASSWORD = os.environ.get("TEST_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise SystemExit("TEST_PASSWORD env var required (no default for security - see CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md)")
 SCREENSHOT_DIR = "tests/qa-screenshots"
 
 results = []
@@ -116,12 +118,12 @@ def run_qa():
             print("    Attempting API login to get JWT token...")
             try:
                 token_result = page.evaluate("""
-                    async () => {
+                    async (password) => {
                         try {
                             const res = await fetch('https://ss-pt-new.onrender.com/api/auth/login', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ username: 'ogpswan', password: 'KlackKlack80' })
+                                body: JSON.stringify({ username: 'ogpswan', password: password })
                             });
                             const data = await res.json();
                             if (data.token) {
@@ -134,7 +136,7 @@ def run_qa():
                             return { success: false, error: e.message };
                         }
                     }
-                """)
+                """, ADMIN_PASSWORD)
                 print(f"    API login result: {json.dumps(token_result)}")
                 if token_result.get("success"):
                     logged_in = True

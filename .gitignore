@@ -419,3 +419,6 @@ SOUL.archive/**
 # Allowlist for SOUL.md files (the working idea archive is TRACKED per project)
 !SOUL.md
 !**/SOUL.md
+
+# Playwright MCP session recordings (may capture typed-in credentials)
+.playwright-mcp/

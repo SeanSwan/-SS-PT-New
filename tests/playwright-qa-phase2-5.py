@@ -21,7 +21,9 @@ from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://sswanstudios.com"
 ADMIN_USERNAME = "ogpswan"
-ADMIN_PASSWORD = "KlackKlack80"
+ADMIN_PASSWORD = os.environ.get("TEST_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise SystemExit("TEST_PASSWORD env var required (no default for security - see CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md)")
 SCREENSHOT_DIR = "tests/qa-screenshots/phase2-5"
 
 results = []
