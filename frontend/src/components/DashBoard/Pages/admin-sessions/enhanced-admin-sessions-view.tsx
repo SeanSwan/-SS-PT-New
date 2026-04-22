@@ -991,7 +991,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
   });
 
   const sortedSessions = React.useMemo(() => {
-    let sortableItems = [...filteredSessions];
+    const sortableItems = [...filteredSessions];
     if (sortConfig) {
       sortableItems.sort((a, b) => {
         let aValue: any = null;

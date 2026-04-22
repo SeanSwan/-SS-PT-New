@@ -141,7 +141,7 @@ export const useTrainerGamification = () => {
   // Get client data from MCP servers
   const fetchClientFromMcp = useCallback(async (clientId: string) => {
     try {
-      let clientData: any = {};
+      const clientData: any = {};
       let hasData = false;
       
       // Get workout data from workout MCP if available

@@ -821,7 +821,7 @@ const OptimizedSignupModal: React.FC = () => {
     }
     
     // Format emergency contact as a string
-    let formattedData = { ...formData };
+    const formattedData = { ...formData };
     if (formData.emergencyContactName || formData.emergencyContactPhone) {
       // Combine the name and phone into a single string
       const name = formData.emergencyContactName || '';

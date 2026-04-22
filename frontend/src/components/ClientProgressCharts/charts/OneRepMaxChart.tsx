@@ -104,7 +104,7 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    let sortedData = [...data];
+    const sortedData = [...data];
 
     // Apply sorting
     switch (currentSort) {

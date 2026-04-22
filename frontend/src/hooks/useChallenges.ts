@@ -120,8 +120,8 @@ export function useChallenges(): UseChallengesReturn {
       const apiChallenges = allRes.data.challenges || [];
 
       // Fetch user participations if logged in
-      let userParticipationIds = new Set<number>();
-      let userProgressMap = new Map<number, number>();
+      const userParticipationIds = new Set<number>();
+      const userProgressMap = new Map<number, number>();
 
       if (user?.id) {
         try {

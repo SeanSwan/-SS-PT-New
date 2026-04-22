@@ -89,7 +89,7 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     // sendMessage AFTER it in source order.
     const guardIdx = PAGE_SOURCE.indexOf('hasTranscriptClassFile(files)');
     const sendIdxs: number[] = [];
-    let from = 0;
+    const from = 0;
     let m: RegExpExecArray | null;
     const re = /coach\.sendMessage\(/g;
     while ((m = re.exec(PAGE_SOURCE)) !== null) sendIdxs.push(m.index);

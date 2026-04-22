@@ -29,7 +29,7 @@ export interface NotificationOptions {
 }
 
 // Mock notification storage (in a real app, this would come from a backend)
-let mockNotifications: Notification[] = [
+const mockNotifications: Notification[] = [
   {
     id: '1',
     type: 'session_created',

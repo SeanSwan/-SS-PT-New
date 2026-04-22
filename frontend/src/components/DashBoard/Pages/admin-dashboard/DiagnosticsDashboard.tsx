@@ -517,7 +517,7 @@ const DiagnosticsDashboard: React.FC = () => {
 
         // For each order, verify if it created sessions when it should have
         const purchaseWithSessions = [];
-        let purchaseFlowErrors = [];
+        const purchaseFlowErrors = [];
 
         for (const order of recentOrders) {
           // Check if order contains session packages

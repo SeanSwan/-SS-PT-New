@@ -116,7 +116,7 @@ export function generateSlots(
   const slots: string[] = [];
 
   // Start at the first slot that's >= min and aligned to step
-  let start = Math.ceil(minMin / s) * s;
+  const start = Math.ceil(minMin / s) * s;
   for (let m = start; m <= maxMin; m += s) {
     if (m >= 0 && m < 1440) {
       slots.push(minutesToTime(m));

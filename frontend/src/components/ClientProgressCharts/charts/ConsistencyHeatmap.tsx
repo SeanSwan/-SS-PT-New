@@ -186,7 +186,7 @@ const ConsistencyHeatmap: React.FC<ConsistencyHeatmapProps> = ({ data }) => {
     const weeksArr: Array<Array<{ date: string; count: number; volume?: number; inRange: boolean }>> = [];
     const monthLabelsArr: Array<{ label: string; weekIndex: number }> = [];
 
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
     let lastMonth = -1;
 
     while (currentDate <= today || weeksArr.length === 0 || weeksArr[weeksArr.length - 1].length < 7) {

@@ -286,7 +286,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
             : 'low' as const,
         });
 
-        let mappedOrders = rawOrders.map((o: any) => mapOrder(o, 'pending_manual_payment'));
+        const mappedOrders = rawOrders.map((o: any) => mapOrder(o, 'pending_manual_payment'));
 
         // For 'all' mode, also fetch the other endpoint
         if (viewMode === 'all') {

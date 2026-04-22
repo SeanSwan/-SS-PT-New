@@ -87,7 +87,7 @@ const useWorkoutSessionsState = (userId?: string): UseWorkoutSessionsStateReturn
     // Apply time filter
     if (timeFilter !== 'all') {
       const now = new Date();
-      let cutoffDate = new Date();
+      const cutoffDate = new Date();
       
       switch (timeFilter) {
         case 'week':
