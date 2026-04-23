@@ -194,12 +194,14 @@ Not applicable — this is a Telegram bot surface, not a backend HTTP route. The
 
 ### 4.1 `/refresh` command — PC-1 + PC-2 + PC-5 + PC-6 + PC-7
 
-**Entry point:** new `CommandHandler("refresh", self._handle_refresh, filters=<allowlist-filter>)` registered inside the same function that currently calls `add_handler(...)` at telegram.py:645–662. **Insertion position is NOT fixed yet** — §6 pre-apply verification decides. Preference order:
+**Entry point (FINAL — Option P locked Codex round 3):** No new PTB `CommandHandler` registration. `/refresh` enters via the **already-existing** `filters.COMMAND` MessageHandler at telegram.py:649 → `_handle_command` → `self.handle_message(event)` → `GatewayRunner._handle_message` at run.py:2696 → `_is_user_authorized` gate at :2722 → flat canonical dispatch chain → new `if canonical == "refresh":` case at run.py:3138 (see §6.2 Answer). Per-command plumbing:
 
-1. **Before the four existing `TelegramMessageHandler` registrations at :645/:649/:653/:657** if any of them could match slash-prefixed text (e.g. a generic text catch-all). This is the safer default to prevent shadowing.
-2. After :662 only if §6.2 proves every existing MessageHandler excludes `filters.COMMAND` (i.e. none is a catch-all that would swallow `/refresh`).
+1. **`hermes_cli/commands.py`** — add `CommandDef("refresh", ..., gateway_only=True)` after the existing `restart` entry at :152. Automatically registers `/refresh` in `GATEWAY_KNOWN_COMMANDS`, `gateway_help_lines()`, and the Telegram BotCommand menu.
+2. **`gateway/run.py`** — add `_handle_refresh_command(self, event) -> str` method on `GatewayRunner`. First line is the Telegram platform guard (Codex MEDIUM #3). Auth has already run at :2722 — no redundant check inside the handler.
+3. **`gateway/platforms/base.py`** — add `"refresh"` to the active-session bypass tuple at :1582 so `/refresh` works while an LLM session is hung.
+4. **No `gateway/platforms/telegram.py` handler-registration edits.** The only telegram.py work is PC-3 bridge worker lifecycle hooks (§4.3) + the §6.5 inline boot-confirmation read after `self._mark_connected()`.
 
-The final position MUST be appended to this doc under `§6.2 Answer` before code edit.
+See §6.2 Answer below for the evidence-locked dispatch-chain insertion line and §5.1 manifest for full file list.
 
 **Control flow (atomic, fail-closed):**
 
@@ -380,11 +382,16 @@ maybe_notify(old, new, now):
 
 ## 5. File manifest
 
-### 5.1 Modified files (Pi-side)
+### 5.1 Modified files (Pi-side) — REVISED 2026-04-23 for Option P
 
-| Path | Change |
-|---|---|
-| `~/.hermes/hermes-agent/gateway/platforms/telegram.py` | Add `_handle_refresh`, `_handle_help`; register 2 `CommandHandler`s at the insertion point resolved by §6.2 (before :645 or after :662 — not locked here); wire allowlist filter using the helper captured in §6.1; install the startup-confirmation + bridge-worker creation hook at the lifecycle point resolved by §6.5 (either `Application.builder().post_init(...)` if §6.5 proves it fires, or an inline `await ...` immediately after `await self._app.start()` at :684 if it does not); install the bridge-worker cancellation in the adapter stop/shutdown hook resolved by §6.6 |
+Sprint 1 scope is **`/refresh` only**. `/help` is already implemented at run.py:4558 and is NOT re-added (see §9 closeout scope).
+
+| Path | Change | Blast |
+|---|---|---|
+| `~/.hermes/hermes-agent/hermes_cli/commands.py` | Add 1 new `CommandDef("refresh", ..., gateway_only=True)` entry after the existing `CommandDef("restart", ...)` at commands.py:151–152 in the "Info" category. | +4 lines. `GATEWAY_KNOWN_COMMANDS`, `COMMANDS`, `COMMANDS_BY_CATEGORY`, Telegram BotCommand menu, and `gateway_help_lines()` all pick up `/refresh` automatically. |
+| `~/.hermes/hermes-agent/gateway/run.py` | (a) Add new `async def _handle_refresh_command(self, event: MessageEvent) -> str` method on `GatewayRunner`. First line: Telegram platform guard. Implements PC-1 (detached restart dispatch) + PC-2 (atomic sessions.json purge, Telegram-prefix keys only) + PC-6 (notify-recipient write) + PC-7 (refresh marker write). On restart-dispatch failure, flips marker to `status="failed"` per single-policy §4.1 step 6b. (b) Add 3 lines to the main dispatch chain — `if canonical == "refresh": return await self._handle_refresh_command(event)` — immediately before the `if self._draining:` check at current :3139. (c) Expose a helper method `read_and_confirm_refresh_marker(self, send_callback)` that `telegram.py`'s §6.5 inline startup hook calls during its boot-confirmation phase. The helper owns the marker file read, stale/failed/pending branching, and marker cleanup; `send_callback` is supplied by the adapter because only the adapter owns `self._bot`. **The §6.5 inline startup hook itself is installed in `telegram.py` after `_mark_connected()` (see telegram.py entry below), NOT in run.py.** | ~80 lines added to run.py (handler method + helpers), +3 lines in dispatcher. No existing lines deleted. |
+| `~/.hermes/hermes-agent/gateway/platforms/base.py` | Add `"refresh"` to the active-session bypass tuple at :1582. | +1 token (inside an existing tuple literal). |
+| `~/.hermes/hermes-agent/gateway/platforms/telegram.py` | **§6.5 inline startup hook lives HERE** (between `self._mark_connected()` at :769 and `_setup_dm_topics()` at :773, per §6.5 Option B). The hook performs two actions: (a) creates the PC-3 bridge-readiness worker task (`self._bridge_worker_task = asyncio.create_task(...)`); (b) invokes the runner's `read_and_confirm_refresh_marker(send_callback)` helper, passing a small closure that calls `self._bot.send_message(chat_id=..., text="✅ Refresh complete")` — the runner owns marker semantics, the adapter owns Telegram I/O. Worker cancellation inside `disconnect()` — insertion between :801 and :803 per §6.6. | ~40 lines added to telegram.py (worker + hook + send closure). **No PTB `CommandHandler` registration.** No changes to :645–:662 MessageHandler block. |
 
 ### 5.2 New files (Pi-side)
 
@@ -413,13 +420,10 @@ Each check below fills a gap the receipt could not cover. **Every one must be ca
 **Meta-note (Codex-flagged):** The §3b–§3g gateway-focused receipt grep was helpful but is demonstrably incomplete — the receipt missed the adapter's wrapped `effective_user`/`chat_id` access style in §17 and did not dump `_action_status()`'s body in §12. **Final code insertion points and state-mapping MUST come from live `nl -ba <file>` reads on the Pi, not grep-only evidence.**
 
 ### 6.1 Allowlist helper function
-Live-read `telegram.py:150–260`. Capture the exact function name that returns the PTB filter derived from `TELEGRAM_ALLOWED_USERS`. New CommandHandlers MUST pass that filter by reference, not re-parse the env var.
+**SUPERSEDED — retained as history.** Original intent: find a PTB-level allowlist filter for direct CommandHandler registrations. Under the final Option P architecture (Codex round-3 ruling), no direct PTB `CommandHandler` is registered; allowlist enforcement is inherited from the canonical `GatewayRunner._is_user_authorized(source)` at run.py:2580 which runs BEFORE the main dispatch chain. Pre-check resolved via v4 §6.1d evidence rather than this adapter-level lookup. See §6.1 Answer for the locked decision.
 
-### 6.2 MessageHandler filter contents — decides §4.1 insertion point
-Live-read `telegram.py:640–680` with `nl -ba` so every line number is visible. For each of the 4 `add_handler(TelegramMessageHandler(...))` calls at :645/:649/:653/:657, capture the exact `filters` argument. Decision rule:
-- If any handler uses `filters.ALL`, `filters.TEXT` without `~filters.COMMAND`, or any other pattern that can swallow `/refresh` → **insert CommandHandlers BEFORE :645**.
-- Otherwise → **insert CommandHandlers AFTER :662**.
-Record decision + justification here.
+### 6.2 MessageHandler filter contents — SUPERSEDED
+**SUPERSEDED — retained as history.** Original intent: decide whether a new PTB `CommandHandler` should be registered before or after the existing MessageHandler at telegram.py:649 (which uses `filters.COMMAND`). Under the final Option P architecture (Codex round-3 ruling), no direct PTB `CommandHandler` is registered; `/refresh` rides the existing `filters.COMMAND` MessageHandler through the canonical pipeline. The adapter-level insertion-point question is moot. New final insertion point is in `GatewayRunner._handle_message`'s dispatch chain at run.py:3138 — see §6.2 Answer for evidence-locked details.
 
 ### 6.3 Sessions read/write helpers
 Live-grep the adapter + `gateway/platforms/base.py` for `sessions.json` access patterns. Capture function names + signatures. Our purge code must NOT hold a stale file-handle open across write, and MUST use the same read/write primitives the adapter already uses (to avoid a racing writer clobbering the atomic replace).
@@ -471,6 +475,325 @@ If `_action_status()` cannot distinguish SSH-failure from tmux-missing, the work
 
 ---
 
+## 6.x Answers (appended 2026-04-23, Gate B step 6)
+
+Live pre-reads executed on Pi `<HERMES_PI_HOST>` via `hermes-sprint1-prereads-v2.sh`; receipt `/tmp/hermes-prereads-v2.out` (32,067 bytes, 3 leak audits clean, mode `-rw-------`). Bridge state at pre-read time: healthy (both `claude-session` + `codex-session` alive). All file:line citations below come directly from the redacted receipt output.
+
+### 6.1 Answer — Allowlist helper + command routing (LOCKED 2026-04-23 after v3/v4/v5/v6)
+
+**Final answer: Option P — route `/refresh` through the existing gateway command pipeline.** Codex-approved round-3 ruling. No direct PTB `CommandHandler` registration.
+
+**Canonical auth function (v4 evidence):**
+- `def _is_user_authorized(self, source: SessionSource) -> bool:` at `gateway/run.py:2580`
+- Method of `class GatewayRunner` at `gateway/run.py:554`
+- Body spans :2580–:2687. 5-step precedence per docstring at :2584–:2589:
+  1. Per-platform allow-all flag (e.g. `TELEGRAM_ALLOW_ALL_USERS`)
+  2. Env allowlists (`TELEGRAM_ALLOWED_USERS` + `GATEWAY_ALLOWED_USERS`, OR-semantic)
+  3. DM pairing-store approval
+  4. Global allow-all (`GATEWAY_ALLOW_ALL_USERS`)
+  5. Default deny
+- Synchronous method. Signature takes a single `SessionSource` (extracts `user_id` at :2599).
+
+**v2 correction recorded:** The earlier claim of `_is_authorized_user(source, user_id) at run.py:2696` is **STRUCK**. The real name is `_is_user_authorized` (word order reversed) and `run.py:2696` is `_handle_message`.
+
+**Verified end-to-end auth chain (v4 + v5 evidence):**
+
+```
+Telegram /refresh  (DM from authorized operator)
+  ↓
+telegram.py:649 filters.COMMAND MessageHandler
+  ↓ (registered at :645–:662, matches slash commands)
+telegram.py:2249 TelegramAdapter._handle_command
+  ↓ _should_process_message(is_command=True) — DM passes trivially (:2212–2213)
+  ↓ event = _build_message_event(...)                   (:2256)
+  ↓ await self.handle_message(event)                    (:2257)
+base.py:1552 PlatformAdapter.handle_message
+  ↓ if session active AND cmd in bypass-set at :1582:
+  │    → direct inline dispatch: await self._message_handler(event)  (:1589)
+  ↓ else: spawn bg task → _process_message_background → awaits _message_handler
+  ↓
+run.py:2696 GatewayRunner._handle_message
+  ↓ if not self._is_user_authorized(source):   (:2722)   ← CANONICAL GATE
+  │    → unauthorized path: pairing flow or silent drop
+  ↓ authorized — flows through active-session branch (:2844)
+  │    → /refresh not intercepted there; falls through
+  ↓ main dispatch chain at :3003–:3137, flat `if canonical == X:` pattern
+  ↓ (NEW in Sprint 1) if canonical == "refresh":
+       return await self._handle_refresh_command(event)
+```
+
+**Platform guard (Codex MEDIUM #3, APPROVED):** first line of `_handle_refresh_command` asserts `event.source.platform == Platform.TELEGRAM`; else returns a generic `"/refresh is not available on this platform."` string. Prevents a configuration accident (e.g. someone adds `/refresh` to Discord menu via COMMAND_REGISTRY) from allowing non-Telegram platforms to bounce the shared gateway service.
+
+**`_should_process_message` context:** v4 §6.1e dumped the body at `telegram.py:2201–2231`. It is a **group-chat trigger gate**, not an auth check. For DMs (Sean's operator chat), it returns True immediately at :2213. Safe to let `/refresh` flow through.
+
+**Active-session bypass — add `"refresh"` to the tuple at base.py:1582.** Current set (v5 §6.1j):
+```python
+if cmd in ("approve", "deny", "status", "stop", "new", "reset", "background", "restart", "queue", "q"):
+```
+New set adds `"refresh"` at end. Rationale: `/refresh` must work when the LLM session is hung — that's precisely when Sean wants it. Auth still runs first (bypass only bypasses the active-session routing, NOT `_is_user_authorized`).
+
+### 6.2 Answer — Dispatch insertion point (LOCKED 2026-04-23 after v5/v6; prior "BEFORE_645" RETRACTED)
+
+**Retraction notice (Codex round 3 ruling):** The round-1 answer "insert PTB `CommandHandler` BEFORE line 645" is **retracted**. Option P routes `/refresh` through the existing command pipeline; no direct PTB handler is added. The existing `filters.COMMAND` MessageHandler at telegram.py:649 already routes all slash commands through `_handle_command` → `handle_message` → `GatewayRunner._handle_message` → `_is_user_authorized` → main dispatch chain.
+
+**Dispatch-chain insertion — LOCKED via v6 evidence.**
+
+v6 receipt §6.1l dumped the full chain at `run.py:3021–3137`. It is a flat `if canonical == X:` series:
+
+```
+:3021  if canonical == "new":      → _handle_reset_command
+:3024  if canonical == "help":     → _handle_help_command         ← already exists
+:3027  if canonical == "commands": → _handle_commands_command
+:3030  if canonical == "profile":  → _handle_profile_command
+:3033  if canonical == "status":   → _handle_status_command
+:3036  if canonical == "restart":  → _handle_restart_command      ← Sprint-1 sibling
+:3039  if canonical == "stop":     → _handle_stop_command
+... (flat chain continues: reasoning, fast, verbose, yolo, model, provider,
+     personality, plan, retry, undo, sethome, compress, usage, insights,
+     reload-mcp, approve, deny, update, debug, title, resume, branch,
+     rollback, background, btw, voice)
+:3137  if canonical == "voice":    → _handle_voice_command
+:3139  if self._draining:          ← fallthrough: "gateway draining" message
+:3142+ user-defined quick_commands; :3185+ plugin-registered slash commands
+```
+
+**Insertion LOCKED — new dispatch case goes between :3137 and :3139.** Add 3 new lines (two blank + the case) or 2 lines (just the case + blank) immediately before the `if self._draining:` check. Chosen placement rationale:
+- At the END of the canonical chain, minimizing churn to existing line numbers above
+- BEFORE the `_draining` check — if the gateway is draining, `/refresh` is exactly the command you want to succeed to kick things loose
+- BEFORE the user-defined `quick_commands` and plugin registrations at :3142+/:3185+ — avoids any chance of user shadowing
+
+**Proposed insertion (3 lines, new code around current :3138–:3140):**
+```python
+        if canonical == "refresh":
+            return await self._handle_refresh_command(event)
+
+```
+Immediately before the existing `if self._draining:` at current :3139. Post-insert line numbers in run.py shift by +3 from :3139 onward.
+
+**CommandDef entry — LOCKED via v6 §6.1m evidence.**
+
+Registry at `hermes_cli/commands.py:59–169`. CommandDef dataclass (frozen) at :41–52 with 9 fields: `name`, `description`, `category`, `aliases`, `args_hint`, `subcommands`, `cli_only`, `gateway_only`, `gateway_config_gate`.
+
+Insertion point in registry: **immediately after the existing `restart` entry** at commands.py:151–152 in the "Info" category, keeping `/refresh` adjacent to `/restart` since they are semantically related (both affect gateway lifecycle):
+
+```python
+CommandDef("refresh",
+           "Purge Telegram session cache and restart the gateway",
+           "Info",
+           gateway_only=True),
+```
+
+`gateway_only=True` matches the existing convention for ops commands (`restart`, `approve`, `deny`, `commands`, `sethome`, `update`). Category `"Info"` matches the surrounding block.
+
+**Automatic consequence of COMMAND_REGISTRY insertion:**
+- `GATEWAY_KNOWN_COMMANDS` (commands.py:249) picks up `/refresh` automatically.
+- `/help` output from `_handle_help_command` at run.py:4558 (which calls `gateway_help_lines()` from commands.py) gets a `/refresh` line for free — **this is how Sean's existing `/help` surface learns about `/refresh`** without any edit to the help handler itself. Sprint 1 delivers /refresh and /help-mention-of-/refresh in a single commit.
+- Telegram BotCommand menu at telegram.py:748 (`telegram_menu_commands(max_commands=100)`) picks up `/refresh` automatically on next service restart.
+
+**Handler style reference (v6 §6.1n).** `_handle_help_command` at run.py:4558–4578:
+- `async def` returning `str`
+- Takes `event: MessageEvent`
+- Imports from `hermes_cli.commands` locally inside method
+- No explicit auth check (auth already run at :2722)
+- Returns markdown-formatted string
+
+`_handle_refresh_command` follows this shape, with the Telegram platform guard as the first line.
+
+### 6.3 Answer — Sessions read/write helpers (REVISED 2026-04-23 after v3 §6.3b)
+
+**gateway/session.py full inspection (1090 lines, v3 receipt §6.3b):**
+
+- **`class SessionStore` at :498** — the persistent store.
+- **`self._lock = threading.Lock()` at :512** — in-process mutex. Note: thread lock used from async context (unusual but present).
+- **Write path at :555–566:**
+  ```python
+  sessions_file = self.sessions_dir / "sessions.json"
+  ...
+  with os.fdopen(fd, "w", encoding="utf-8") as f:
+      json.dump(data, f, indent=2)
+      f.flush()
+      os.fsync(f.fileno())
+  os.replace(tmp_path, sessions_file)
+  ```
+  SessionStore already uses the **exact same atomic-write pattern** PC-2 plans (tempfile + fsync + os.replace).
+- **Read path at :534–555** — open + json.load, inside `self._lock`.
+- **No explicit public purge / flush / close / shutdown API** — v3 grep for `def save_|load_|persist_|flush_|close_|shutdown_|purge_|clear_|remove_|delete_|drop_|write_|read_` returned only one hit: `def load_transcript` at :1011 (transcript-specific, unrelated).
+- **Module-level constants / classes in order:** `_now`, `_hash_id`, `_hash_sender_id`, `_hash_chat_id`, `SessionSource` (:66), `SessionContext` (:142), `_PII_SAFE_PLATFORMS`, `build_session_context_prompt` (:186), `SessionEntry` (:332), `build_session_key` (:439), `SessionStore` (:498), `build_session_context` (:1060).
+
+**Decision for PC-2 atomic purge — LOCKED based on evidence:**
+
+File-level atomic write is **safe against corruption** because SessionStore uses the same `tempfile + fsync + os.replace` pattern we do — `os.replace` is atomic on Linux (same-filesystem rename), so both writers produce valid files; the only race is last-write-wins at the `os.replace` call itself.
+
+**Race analysis:**
+- Our purge: read → filter keys → tempfile + fsync + os.replace, elapsed ~5–20 ms
+- SessionStore write: happens on message traffic
+- Race window: ~5–20 ms between our `os.replace` and the systemd-run detached restart dispatch
+
+**Mitigation:** systemd-run dispatches in ~1 s → SIGTERM → service bounce. Any SessionStore writer racing us has at most ~1 s to write over our purge. Worst case outcome: purge is silently clobbered, `/refresh` effectively no-ops for cache-bust (not a correctness bug, just a reliability regression).
+
+**Hard safety guarantees (evidence-based):**
+- No partial-write corruption (both writers use atomic rename)
+- No JSON-parse corruption (both writers produce valid JSON)
+- No data loss for non-telegram keys (our filter preserves every `^(?!agent:main:telegram:dm:)` prefix; SessionStore writing atomically over us is OK because it writes the full live state, including our non-telegram preserves)
+
+**Rejected alternative (acquire `SessionStore._lock`):** the lock is private state, cross-module acquisition of a `threading.Lock` from an async context is fragile and violates API boundary. Not worth it for ~20ms of race window when imminent restart kills the racer anyway.
+
+**Follow-up §6.3c (deferred, NON-blocking):** propose a public `SessionStore.purge_prefix(prefix: str) -> int` API in a future refactor so `/refresh` can call the store directly with full lock coordination. Not required for Sprint 1 — file-level purge is evidence-backed safe.
+
+### 6.4 Answer — Global gateway allowlist precedence
+
+Receipt `§6.4` quoted `gateway/run.py:2620–2700` verbatim; v4 §6.1d captured the enclosing `def` header. The authoritative auth check is **`GatewayRunner._is_user_authorized(source: SessionSource) -> bool` at `gateway/run.py:2580`**, body spanning :2580–:2687, method of `class GatewayRunner` at :554. Precedence **in order**:
+
+1. `<PLATFORM>_ALLOW_ALL_USERS=true` short-circuit → authorized.
+2. `pairing_store.is_approved(platform, user_id)` → authorized.
+3. Compute `allowed_ids = set(TELEGRAM_ALLOWED_USERS split) ∪ set(GATEWAY_ALLOWED_USERS split)` — **OR semantics** (run.py:2659–2663).
+4. `"*"` in the union → allow everyone.
+5. Platform-specific WhatsApp alias normalization (not relevant here).
+6. Final: `check_ids & allowed_ids` non-empty → authorized.
+7. Fallback if no allowlists set AND no allow-all flag → **denied**.
+
+**Decision for Sprint 1 /refresh (LOCKED — Path A / Option P, Codex round-3 ruling):** the canonical auth gate is **`GatewayRunner._is_user_authorized(source: SessionSource) -> bool` at `gateway/run.py:2580`**, invoked at run.py:2722 before any dispatch. `/refresh` inherits this check for free by riding the existing `filters.COMMAND` pipeline. All five precedence steps above apply. No parallel or narrower helper is used. Sean's operator Telegram account is already in `TELEGRAM_ALLOWED_USERS` (otherwise existing commands would reject his traffic). `/help` is not a Sprint 1 deliverable.
+
+### 6.5 Answer — post_init firing (DECISION: Option B)
+
+**PROVEN. `post_init` does NOT fire in this adapter's lifecycle.**
+
+Smoking-gun evidence from the venv PTB v22.7 source at `venv/lib/python3.11/site-packages/telegram/ext/_application.py`:
+
+```
+479:    Does *not* call :attr:`post_init` - that is only done by :meth:`run_polling` and
+480:    :meth:`run_webhook`.
+```
+
+This is the docstring of `Application.initialize()` (line 470). The adapter at telegram.py:672 calls `await self._app.initialize()` directly (inside a connect-retry loop), then :684 `await self._app.start()`, then :737 `await self._app.updater.start_polling(...)`. Neither `run_polling()` nor `run_webhook()` is invoked — the adapter uses the "custom logic for startup" path explicitly called out in PTB docs at line 601–603 of _application.py. Confirmed by the other post_init occurrence at :1055–1056 which is inside the `run_polling` wrapper (not reached here).
+
+**Decision LOCKED — Option B from §4.1.** Install the boot-refresh-confirmation call and the bridge-worker creation **inline, after the polling/webhook setup block completes, before the `_setup_dm_topics()` try/except at :776.** Specifically: insert between `self._mark_connected()` at :769 and `# Set up DM topics` at :773 — that's the point where the adapter is fully connected and the service has logged `"Connected to Telegram (polling mode)"` at :771, guaranteeing we're past the point where startup failure would have already raised. Bridge-worker cancellation goes in §6.6's resolved hook.
+
+### 6.6 Answer — Stop hook for worker cancellation (LOCKED 2026-04-23 after v3 §6.6b)
+
+**Full `disconnect()` body captured at telegram.py:793–824 (v3 receipt §6.6b).** Structure:
+
+```
+:793  async def disconnect(self) -> None:
+:794      """Stop polling/webhook, cancel pending album flushes, and disconnect."""
+:795–801  # Cancel + gather self._media_group_tasks
+:803      if self._app:
+:804–812      # Stop updater, stop app, shutdown app (try/except)
+:813      self._release_platform_lock()
+:815–819  # Cancel + clear self._pending_photo_batch_tasks
+:821–824  # _mark_disconnected, null _app/_bot, log
+```
+
+**Decision LOCKED:** insert bridge-worker cancellation **between line 801 (`self._media_group_events.clear()`) and line 803 (`if self._app:`)** — BEFORE the `_app` shutdown sequence. This ordering matters:
+
+- Our worker calls `self._bot.send_message(...)` for state-change pushes; if the worker is still active when `await self._app.shutdown()` fires at :810, we'd get `RuntimeError: This Application is no longer running`.
+- Cancel before the `_app` branch so the worker's current iteration unwinds cleanly while `_app` is still usable, even though the worker is about to stop touching it.
+
+**Insertion code pattern:**
+
+```python
+# (Sprint 1 addition) Cancel bridge-readiness worker before shutting down _app
+# so the worker's in-flight Telegram send doesn't race with app.shutdown().
+if self._bridge_worker_task and not self._bridge_worker_task.done():
+    self._bridge_worker_task.cancel()
+    try:
+        await asyncio.wait_for(self._bridge_worker_task, timeout=2.0)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        pass
+self._bridge_worker_task = None
+```
+
+**No conflict with existing cleanup pattern** — `disconnect()` already uses cancel-then-gather for `_media_group_tasks` (:795–799), so this reuses the same idiom.
+
+### 6.7 Answer — `_action_status()` return shape + PC-3 state mapping
+
+Receipt `§6.7a` dumped the body at remote_ai_bridge_tool.py:79–93. Return shape is **dual-variant**:
+
+**Healthy / partial-healthy variant** (no "error" key):
+```python
+{
+  "claude_alive": bool,           # True when SESSION_MAP["claude"] in tmux session list
+  "codex_alive": bool,            # True when SESSION_MAP["codex"] in tmux session list
+  "claude_session_info": str,     # "claude-session: 1 windows ..." OR "(not running)"
+  "codex_session_info": str,      # same pattern
+}
+```
+
+**Error variant** (only an "error" key):
+```python
+{"error": "tmux ls failed (rc=<N>): <stderr-or-stdout>"}
+```
+
+§6.7b live call confirmed healthy shape:
+```json
+{
+  "claude_alive": true,
+  "claude_session_info": "claude-session: 1 windows (created Mon Apr 20 23:40:54 2026)",
+  "codex_alive": true,
+  "codex_session_info": "codex-session: 1 windows (created Mon Apr 20 23:40:54 2026)"
+}
+```
+
+**Key limitation confirmed:** `_action_status()` cannot distinguish SSH-failure from tmux-missing — both collapse to `{"error": "tmux ls failed (rc=N): ..."}`. The `_run_ssh()` body at :60–68 gives `rc=124` on `TimeoutExpired` but on network/auth failure returns `proc.returncode` which is typically 255 for SSH. Discriminating these from the error string alone is fragile.
+
+**Decision LOCKED — 4-step explicit probe chain (REVISED per Codex Gate B review #4).** Previous version incorrectly collapsed post-SSH tmux errors into `ssh-bridge-unreachable`. Corrected mapping — once `_run_ssh("true")` has already succeeded, any subsequent `_wsl_tmux("ls")` failure is **not** SSH-level and must be classified as `tmux-missing`:
+
+```
+Step 1 — Tailscale JSON (subprocess.run, timeout=10s):
+    BackendState != "Running" OR Self.Online == False    → "pi-tailscale-down"  (STOP)
+    no peer with OS=windows AND Online=true              → "desktop-peer-unreachable"  (STOP)
+
+Step 2 — _run_ssh("true", timeout=10)                    [explicit bare SSH probe]:
+    rc != 0                                              → "ssh-bridge-unreachable"  (STOP)
+
+Step 3 — _run_ssh(_wsl_tmux("ls"), timeout=10)           [explicit tmux-layer probe]:
+    rc != 0                                              → "tmux-missing"  (STOP)
+        (SSH passed at step 2, so this failure is
+         WSL/tmux-layer, not bridge-layer — explicit
+         separation as required by Codex.)
+
+Step 4 — _action_status()                                [defensive final check]:
+    "error" in result                                    → "tmux-missing"
+        (Should not normally fire if steps 2+3 passed.
+         Defensive bucket for edge cases like race between
+         steps 3 and 4 where tmux died in between. Do NOT
+         classify as ssh-bridge-unreachable here.)
+    claude_alive AND codex_alive both True               → "healthy"
+    either claude_alive OR codex_alive False             → "tmux-missing"
+        (tmux ls succeeded in step 3, but expected session
+         names SESSION_MAP["claude"] / SESSION_MAP["codex"]
+         are absent — classic tmux-missing.)
+```
+
+**State-distinguishability audit (addresses Codex #4):**
+- `pi-tailscale-down` ← step 1 Tailscale state only
+- `desktop-peer-unreachable` ← step 1 peers[] only
+- `ssh-bridge-unreachable` ← step 2 only (bare SSH fails)
+- `tmux-missing` ← step 3 (SSH OK, tmux-ls fails) OR step 4 (all OK but sessions absent)
+- `healthy` ← all four steps clean
+
+Four degraded states clearly separable. No overloading. Note that `tmux-missing` covers both "tmux daemon not running" and "tmux up but expected sessions absent" — if future needs demand finer granularity, add a distinct state `tmux-sessions-absent` at step 4; Sprint 1 treats both as one alert class because recovery action (manual intervention on the Windows peer) is identical.
+
+**Cost:** 3 SSH round-trips per health cycle (steps 2, 3, 4) at 30s cadence = acceptable. Step 2's `ssh ... true` is ~100ms; step 3's tmux ls is ~150ms; step 4 repeats tmux ls internally. Could fold steps 3+4 by skipping step 3 when `_action_status()` returns a healthy dict (no "error" key), saving one SSH round-trip per healthy cycle. Implement as optimization only after smoke confirms correctness.
+
+### Summary booleans (for Codex Gate B step 7 review — FINAL after v6)
+
+| Item | Resolution |
+|---|---|
+| `allowlist_helper_name` | **`GatewayRunner._is_user_authorized(source: SessionSource) -> bool` at `gateway/run.py:2580`** (v4 §6.1d). Path A (Option P) LOCKED — canonical gate runs at run.py:2722 as part of the existing pipeline. No parallel handler-side check needed. The v2 struck claim "_is_authorized_user at run.py:2696" is STRUCK. |
+| `insertion_point_decision` | **NO PTB CommandHandler registration** (prior "BEFORE_645" RETRACTED). Sprint 1 adds `/refresh` via: (1) `CommandDef("refresh", ..., gateway_only=True)` after commands.py:152; (2) new `_handle_refresh_command` method on GatewayRunner; (3) 3-line dispatch case `if canonical == "refresh":` between run.py:3137 and :3139; (4) `"refresh"` added to base.py:1582 bypass tuple. |
+| `platform_guard` | **LOCKED YES** (Codex MEDIUM #3). First line of `_handle_refresh_command` asserts `event.source.platform == Platform.TELEGRAM`; else returns generic "not available on this platform." string. |
+| `help_command` | **NOT IN SPRINT 1 SCOPE** (v5 §6.1k discovery). `_handle_help_command` at run.py:4558 already exists and uses `gateway_help_lines()` from commands.py — it will automatically surface `/refresh` once the CommandDef entry lands. Zero edit to the help handler. |
+| `sessions_helpers_found` | File-level atomic write LOCKED as safe (v3 §6.3b). `SessionStore` at `gateway/session.py:498` uses `threading.Lock()` + `tempfile+fsync+os.replace` at :555–566 — same atomic pattern we plan. No corruption risk; race window ~5–20 ms bounded by imminent systemd-run restart. |
+| `global_allowlist_semantics` | **OR semantics** (evidence at run.py:2659–2663). Union of `TELEGRAM_ALLOWED_USERS` + `GATEWAY_ALLOWED_USERS`. With v4 evidence, the enclosing function is confirmed as `_is_user_authorized` at run.py:2580. |
+| `post_init_verified` | **B_USE_INLINE** (v3 §6.5 PTB docstring line 479: "Does **not** call post_init"). Adapter uses manual `initialize()+start()+updater.start_polling()` at telegram.py:672/684/737 — post_init never fires. Hook inserted inline between telegram.py:769 (`self._mark_connected()`) and :773 (`_setup_dm_topics`). |
+| `stop_hook_found` | `async def disconnect(self)` at `telegram.py:793`. Bridge-worker cancel insertion LOCKED between :801 and :803 (before `if self._app:` shutdown branch). |
+| `action_status_shape` | Known dual-variant (healthy dict OR `{"error": ...}`). 4-step explicit probe chain LOCKED — Tailscale JSON, `_run_ssh("true")`, `_run_ssh(_wsl_tmux("ls"))`, `_action_status()`. No collapse of tmux-missing into ssh-bridge-unreachable. |
+| `dispatch_chain_location` | **run.py:3021–3137** — flat `if canonical == X:` series. New `/refresh` case inserted between :3137 (voice) and :3139 (draining check). |
+| `command_def_shape` | 9-field frozen dataclass at commands.py:41–52. Sprint 1 entry: `CommandDef("refresh", "Purge Telegram session cache and restart the gateway", "Info", gateway_only=True)`. |
+
+---
+
 ## 7. Smoke test plan (rule 17 hostile review + DoD)
 
 **Two-gate clarification (Codex R2 #6):** Smoke tests are the **implementation-closeout gate for Sprint 1**, NOT the docs-commit gate. The docs-commit gate is Codex APPROVE on the planning (this patch doc + architecture-doc addendum) after Gemini review. Smoke tests below run AFTER the docs-commit, during Pi apply, and gate the subsequent implementation-closeout commit + Sprint 1 done-claim. See §10 for the full order.
@@ -517,7 +840,7 @@ If `_action_status()` cannot distinguish SSH-failure from tmux-missing, the work
 
 7. **Bridge flap.** Script `tailscale up; sleep 5; tailscale down; sleep 5; ...` 4 times in 60s. Expect: one "⚠️ Bridge flapping" message, no flood.
 
-8. **/help** Authorized chat sends `/help`. Expect: static 2-command reference reply. Unauthorized → same denial as /refresh.
+8. **Existing /help regression.** Authorized chat sends `/help`. Expect: existing gateway help format still renders and includes `/refresh` from the new `CommandDef("refresh", ...)` registry entry. No new `/help` handler was added. Unauthorized behavior follows the existing gateway auth path.
 
 All 8 must pass before Gate B implementation-closeout approval and closeout commit. The docs-commit gate (Gate A) does not require Pi smoke tests.
 
@@ -528,14 +851,14 @@ All 8 must pass before Gate B implementation-closeout approval and closeout comm
 | Risk | Blast | Mitigation |
 |---|---|---|
 | sessions.json purge corrupts the file | Telegram sessions lost across all platforms | `.bak` copy before purge; prefix-scoped key filter (only `agent:main:telegram:dm:*`); json parse+re-emit via tempfile+os.replace |
-| CommandHandler shadowed by an earlier MessageHandler catching `/` | `/refresh` never fires | §6.2 live pre-check; register CommandHandlers with `filters.COMMAND` explicit |
+| `/refresh` canonical dispatch case placed wrong in run.py | `/refresh` reaches `_draining` fallthrough or falls out of dispatch entirely | §6.2 Answer locks insertion between :3137 and :3139, BEFORE the `_draining` check and BEFORE user `quick_commands` / plugin registrations — so a user-defined `/refresh` cannot shadow ours |
 | Restart fires BEFORE handler reply delivered | "Refresh initiated" message never arrives on phone | 1s `--on-active=1s` delay in systemd-run gives handler time to return. Reply is sent before systemd-run call. |
 | §6.5-resolved startup hook not fired on some restart path | Stale marker persists | The resolved hook MUST run idempotently on every service boot regardless of restart origin; §6.5 Answer captures the exact invocation guarantee |
 | Bridge worker deadlocks polling loop | no bridge alerts | `asyncio.wait_for(..., timeout=10)` on each subprocess; task respawn on crash |
 | `notify-recipient.json` leaks chat_id | privacy | 0600 mode; logs use `<CHAT_ID>` placeholder, never raw int |
 
-**Rollback:**
-1. Revert `gateway/platforms/telegram.py` to pre-patch version: `cd ~/.hermes/hermes-agent && git checkout -- gateway/platforms/telegram.py` (Hermes is a git checkout of nous-research/hermes-agent per §1 dir listing showing `.git/`)
+**Rollback (Option P — revert 4 files):**
+1. Revert the 4 modified files to pre-patch state: `cd ~/.hermes/hermes-agent && git checkout -- hermes_cli/commands.py gateway/run.py gateway/platforms/base.py gateway/platforms/telegram.py` (Hermes is a git checkout of nous-research/hermes-agent per §1 dir listing showing `.git/`).
 2. `rm -rf ~/.hermes/runtime/`
 3. `sudo systemctl restart hermes-gateway.service`
 4. sessions.json remains whatever it is after purge (non-telegram keys preserved); restore from `.bak` if sessions were lost.
@@ -544,9 +867,13 @@ All 8 must pass before Gate B implementation-closeout approval and closeout comm
 
 ## 9. Closeout claim scope (rule 28 Claim-to-Evidence Lock)
 
+**PC-5 scope revised 2026-04-23 after v5 discovery:** `_handle_help_command` already exists at run.py:4558. Sprint 1 ships `/refresh` **only**. The existing `/help` output AUTOMATICALLY gains a `/refresh` line because `gateway_help_lines()` (commands.py) derives from `COMMAND_REGISTRY`, and Sprint 1 adds a `CommandDef("refresh", ...)` entry to that registry. Sean's existing `/help` surface therefore surfaces `/refresh` with zero edit to the help handler.
+
 After Sprint 1 apply + Codex APPROVE on the implementation + smoke pass, the closeout report SHALL claim:
 
-> Sprint 1 ships `/refresh`, `/help`, and bridge-readiness polling on the canonical Telegram adapter at `~/.hermes/hermes-agent/gateway/platforms/telegram.py`. Verified end-to-end against the handlers registered at the insertion point resolved in §6.2 Answer and the startup-confirmation / worker-cancellation hooks resolved in §6.5 / §6.6 Answers. Exact file:line citations are inserted into the closeout only from the post-apply live reads, not predicted here.
+> Sprint 1 ships `/refresh` (Telegram-only, PC-1/PC-2/PC-5/PC-6/PC-7) and bridge-readiness polling (PC-3) via Option P — routing through the canonical gateway command pipeline. `/refresh` is registered in `hermes_cli/commands.py` COMMAND_REGISTRY, dispatched by a new `if canonical == "refresh":` case in `GatewayRunner._handle_message`, implemented by a new `_handle_refresh_command` method on `GatewayRunner`, and gated by the existing `_is_user_authorized` auth chain at `gateway/run.py:2580` + a Telegram platform guard as the handler's first line. The existing `_handle_help_command` at `run.py:4558` automatically surfaces `/refresh` via its `gateway_help_lines()` derivation. Bridge-readiness worker lives in `gateway/platforms/telegram.py`, created via the §6.5 Option B inline startup hook, cancelled in `disconnect()` at the §6.6 insertion point. Exact post-apply file:line citations are inserted into the closeout only from the live post-apply reads, not predicted here.
+
+It SHALL NOT claim `/help` as a Sprint 1 deliverable — `/help` already existed before this sprint.
 
 It SHALL NOT claim:
 
