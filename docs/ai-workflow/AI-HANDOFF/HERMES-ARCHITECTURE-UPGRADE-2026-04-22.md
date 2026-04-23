@@ -325,3 +325,29 @@ After all 6 core sprints ship:
 ---
 
 *Phase B gave the brains shared memory. This phase turns the bridge into a conversational remote control — with the exact safety discipline Village validated.*
+
+---
+
+## 14. Q1–Q5 Locked Decisions (added 2026-04-22, PC-4)
+
+Sean answered the §8 Open Questions. Decisions locked for Sprint 1 and all downstream sprints unless explicitly reopened in a new debate file.
+
+### Q1 LOCKED — `/task` routing LLM
+**OpenRouter Sonnet 4.6 primary + Gemini 3 Flash fallback.** Surfaces: `tg-claude` + `tg-codex` only. **NO Kimi.** Privacy constraint: open-weights Kimi would only be acceptable air-gapped on the 5090; 5090 heat + quantization-quality loss make it impractical for bridge-path routing. Expected cost: ~$2/mo at current `/task` volume projections.
+
+### Q2 LOCKED — `/run` allowlist v1
+**9 entries, all `tg-claude` surface:** `status`, `tests-fe`, `tests-be`, `build-fe`, `typecheck-fe`, `lint-fe`, `audit-backend`, `secrets-scan`, `promote-count`. Deliberately excluded: `logs` (too broad, needs arg), composite `deploy-check` (defer until Sprint 4 redesigns), `tsc-be` (backend typecheck command is not yet canonical — waiting on tsconfig settle). All 9 verified against live `package.json` scripts and repo tool scripts.
+
+### Q3 LOCKED — N2 approval timeout
+**30-minute flat auto-DENY**, no tiering in v1. Frozen-request message format: `❄️ Request frozen — 30m timeout reached. Task paused. Use /task to resume.`. Rolling continuity `[TIMEOUT]` entry logged automatically with: surface, agent, command, risk tier, timestamp, and the literal string `"auto-denied after 30m"`. No silent approve path. 30m replaces the 15m Village recommendation because Sean does deep-work sessions longer than 15m where a permission prompt can correctly be left pending during real thinking.
+
+### Q4 LOCKED — Push-on-change
+**HYBRID, ON by default for high-signal events.** High-signal (push always, unless in quiet hours): N2 permission prompts, desktop Claude/Codex crashes, Render deploy FAIL, new rolling-continuity entry. Low-signal (opt-in via `/notify <event>`): routine deploy success, test-run completion, background-task heartbeat. **Quiet hours: 00:00–06:00 local time**; during quiet hours only N2 prompts + deploy FAIL bypass and push immediately, everything else is deferred to a wake-time digest delivered at 06:00.
+
+### Q5 LOCKED — `/run --unsafe` approval authority
+**Option (C) — command-text-scoped trust-per-approval (hybrid).** Dual-button inline keyboard: `[✅ Approve once]` + `[🔒 Approve + trust this exact command 15m]`. Trust window: 15 minutes, scoped to **identical command text only** (hash match, not semantic similarity) — a different command still prompts. `callback_data` HMAC-signed with a secret pulled from `gateway/platforms/telegram.py` config (not hardcoded) to prevent replay of an older approval. No global session-trust mode.
+
+### Consequences for sprint plan
+- Sprint 1 is unaffected by Q1/Q2/Q5 (no `/task`, no `/run`, no `--unsafe` yet).
+- Sprint 1 IS affected by Q3 timeout format (shared copy used across [TIMEOUT] logging) and Q4 quiet-hours (bridge-readiness push-on-change respects quiet hours immediately).
+- Sprint 1 patch doc: `docs/ai-workflow/AI-HANDOFF/HERMES-DAEMON-SPRINT-1-PATCH-2026-04-22.md`.
