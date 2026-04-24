@@ -15,6 +15,7 @@ import { setupMiddleware } from './middleware/index.mjs';
 import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
 import { initializeSession } from '../config/session.mjs';
+import { viewAsWriteBlocker } from '../middleware/viewAsGuard.mjs';
 import logger from '../utils/logger.mjs';
 
 /**
@@ -297,6 +298,8 @@ export const createApp = async () => {
 
   // ===================== MIDDLEWARE SETUP =====================
   await setupMiddleware(app);
+
+  app.use(viewAsWriteBlocker);
 
   // ===================== ROUTES SETUP =====================
   await setupRoutes(app);
