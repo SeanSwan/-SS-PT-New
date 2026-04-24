@@ -30,6 +30,7 @@ import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, X, Dumbbell, Flame, Trophy, Star, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { TIER_DISPLAY, type TierName } from '../../../../../types/gamification';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -287,12 +288,32 @@ const AdminViewAsWrapper: React.FC = () => {
       if (gamRes.status === 'fulfilled' && gamRes.value.data) {
         const g = gamRes.value.data.profile || gamRes.value.data.data || gamRes.value.data;
         const hasExplicitXpProgress = g.xpProgress != null || g.nextLevelProgress != null;
+        const totalPoints = g.totalPoints ?? g.points ?? 0;
+        // Backend `nextLevelPoints` is the ABSOLUTE threshold for the next
+        // level (gamificationController.mjs:679), NOT remaining XP. Compute
+        // remaining here so the "XP to next level" label is factually correct.
+        // Clamp at 0 to avoid negative display if points somehow exceed the
+        // threshold before a level recompute runs.
+        const nextLevelThreshold = g.nextLevelPoints ?? g.xpToNextLevel ?? g.pointsToNextLevel;
+        const xpToNextLevel = nextLevelThreshold != null
+          ? Math.max(0, nextLevelThreshold - totalPoints)
+          : 100;
+        // Tier: backend returns a slug (e.g. 'bronze_forge') from User.tier
+        // (User.mjs:295). Map through the canonical TIER_DISPLAY helper so
+        // the UI shows a friendly label. Fall back to any backend-provided
+        // human name, then raw value, then a safe default.
+        const tierSlug = g.tier as TierName | undefined;
+        const tierDisplay =
+          (tierSlug && TIER_DISPLAY[tierSlug]?.name)
+          ?? g.tierName
+          ?? g.tier
+          ?? 'Bronze Forge';
         gamification = {
           level: g.level ?? 0,
-          totalPoints: g.totalPoints ?? g.points ?? 0,
+          totalPoints,
           currentStreak: g.currentStreak ?? g.streak ?? g.streakDays ?? 0,
-          tier: g.tierName ?? g.tier ?? 'Bronze Forge',
-          xpToNextLevel: g.xpToNextLevel ?? g.pointsToNextLevel ?? g.nextLevelPoints ?? 100,
+          tier: tierDisplay,
+          xpToNextLevel,
           xpProgress: g.xpProgress ?? g.nextLevelProgress ?? 0,
         };
         // Calculate XP progress percentage if not provided

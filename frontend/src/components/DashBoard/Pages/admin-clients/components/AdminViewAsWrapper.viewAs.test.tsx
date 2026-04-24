@@ -46,6 +46,12 @@ const okClientProfile = {
   },
 };
 const okEmpty = { data: {} };
+// Fixture mirrors the REAL canonical backend payload:
+//   - gamificationController.mjs:679 sets `nextLevelPoints` as the absolute
+//     threshold for the next level (here: 2000 total points to reach lvl 8),
+//     NOT remaining XP. The UI must compute `threshold - currentPoints`.
+//   - User.mjs:295 stores `tier` as a slug (here: 'silver_edge'). The UI
+//     must map through the TIER_DISPLAY helper to render "Silver Edge".
 const okGamificationProfile = {
   data: {
     success: true,
@@ -53,7 +59,7 @@ const okGamificationProfile = {
       level: 7,
       points: 1234,
       streakDays: 5,
-      tier: 'Silver Edge',
+      tier: 'silver_edge',
       nextLevelPoints: 2000,
       nextLevelProgress: 62,
     },
@@ -98,8 +104,13 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
     expect(await screen.findByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getAllByText('7').length).toBeGreaterThan(0);
+    // Tier slug 'silver_edge' → mapped through TIER_DISPLAY → 'Silver Edge'.
+    // Regression guard against rendering the raw backend slug in the UI.
     expect(screen.getByText('Silver Edge — Level 7')).toBeInTheDocument();
-    expect(screen.getByText('2,000 XP to next level')).toBeInTheDocument();
+    // nextLevelPoints (2000) is the THRESHOLD, not remaining. UI must show
+    // 2000 - 1234 = 766. Regression guard against the earlier bug where
+    // the threshold was rendered verbatim as "2,000 XP to next level".
+    expect(screen.getByText('766 XP to next level')).toBeInTheDocument();
   });
 
   it('never calls the legacy nonexistent path /api/gamification/profile/:userId', async () => {
