@@ -257,7 +257,13 @@ const AdminViewAsWrapper: React.FC = () => {
         authAxios.get(`/api/admin/clients/${userId}`),
         authAxios.get(`/api/admin/clients/${userId}/workouts`, { params: { limit: 10 } }),
         authAxios.get(`/api/sessions`, { params: { userId, limit: 10, upcoming: true } }),
-        authAxios.get(`/api/gamification/profile/${userId}`),
+        // Phase 18.C.1A/1B: canonical viewAs read. Backend routes
+        // `/api/v1/gamification/profile` through viewAsGuard (admin-only,
+        // strict positive-integer, active-client target). The legacy
+        // `/api/gamification/profile/:userId` path had no backend handler
+        // and 404'd silently via Promise.allSettled, which is why this
+        // panel rendered zeros for every admin view before this fix.
+        authAxios.get('/api/v1/gamification/profile', { params: { viewAs: userId } }),
       ]);
 
       // Extract profile (required)
