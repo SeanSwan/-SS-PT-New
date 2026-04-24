@@ -285,17 +285,18 @@ const AdminViewAsWrapper: React.FC = () => {
       // Extract gamification (optional)
       let gamification = null;
       if (gamRes.status === 'fulfilled' && gamRes.value.data) {
-        const g = gamRes.value.data.data || gamRes.value.data;
+        const g = gamRes.value.data.profile || gamRes.value.data.data || gamRes.value.data;
+        const hasExplicitXpProgress = g.xpProgress != null || g.nextLevelProgress != null;
         gamification = {
-          level: g.level || 0,
-          totalPoints: g.totalPoints || g.points || 0,
-          currentStreak: g.currentStreak || g.streak || 0,
-          tier: g.tier || g.tierName || 'Bronze Forge',
-          xpToNextLevel: g.xpToNextLevel || g.pointsToNextLevel || 100,
-          xpProgress: g.xpProgress || 0,
+          level: g.level ?? 0,
+          totalPoints: g.totalPoints ?? g.points ?? 0,
+          currentStreak: g.currentStreak ?? g.streak ?? g.streakDays ?? 0,
+          tier: g.tierName ?? g.tier ?? 'Bronze Forge',
+          xpToNextLevel: g.xpToNextLevel ?? g.pointsToNextLevel ?? g.nextLevelPoints ?? 100,
+          xpProgress: g.xpProgress ?? g.nextLevelProgress ?? 0,
         };
         // Calculate XP progress percentage if not provided
-        if (!gamification.xpProgress && gamification.xpToNextLevel > 0) {
+        if (!hasExplicitXpProgress && gamification.xpToNextLevel > 0) {
           const pointsInLevel = gamification.totalPoints % gamification.xpToNextLevel;
           gamification.xpProgress = Math.round((pointsInLevel / gamification.xpToNextLevel) * 100);
         }

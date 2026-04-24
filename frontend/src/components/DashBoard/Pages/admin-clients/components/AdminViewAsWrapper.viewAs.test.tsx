@@ -14,15 +14,16 @@
  * behavior is covered by the Phase 18.C.1A API integration tests at
  * backend/tests/api/gamificationViewAs.test.mjs.
  */
-import { render, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockAuthAxiosGet = vi.fn();
+const mockAuthAxios = { get: mockAuthAxiosGet };
 
 vi.mock('../../../../../context/AuthContext', () => ({
   useAuth: () => ({
-    authAxios: { get: mockAuthAxiosGet },
+    authAxios: mockAuthAxios,
     user: { id: 1, role: 'admin' },
   }),
 }));
@@ -45,8 +46,25 @@ const okClientProfile = {
   },
 };
 const okEmpty = { data: {} };
+const okGamificationProfile = {
+  data: {
+    success: true,
+    profile: {
+      level: 7,
+      points: 1234,
+      streakDays: 5,
+      tier: 'Silver Edge',
+      nextLevelPoints: 2000,
+      nextLevelProgress: 62,
+    },
+  },
+};
 
 describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: all four parallel fetches succeed with empty-ish data so the
@@ -66,6 +84,22 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
         { params: { viewAs: '42' } }
       );
     });
+  });
+
+  it('renders non-zero gamification values from the canonical profile response shape', async () => {
+    mockAuthAxiosGet.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients/42') return Promise.resolve(okClientProfile);
+      if (url === '/api/v1/gamification/profile') return Promise.resolve(okGamificationProfile);
+      return Promise.resolve({ data: { data: [] } });
+    });
+
+    renderAt('/dashboard/people/view-as/42');
+
+    expect(await screen.findByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0);
+    expect(screen.getByText('Silver Edge — Level 7')).toBeInTheDocument();
+    expect(screen.getByText('2,000 XP to next level')).toBeInTheDocument();
   });
 
   it('never calls the legacy nonexistent path /api/gamification/profile/:userId', async () => {
