@@ -1,0 +1,655 @@
+diff --git a/gateway/platforms/base.py b/gateway/platforms/base.py
+index 82d09f3a..a6fdb84e 100644
+--- a/gateway/platforms/base.py
++++ b/gateway/platforms/base.py
+@@ -1579,7 +1579,7 @@ class BasePlatformAdapter(ABC):
+             # session lifecycle and its cleanup races with the running task
+             # (see PR #4926).
+             cmd = event.get_command()
+-            if cmd in ("approve", "deny", "status", "stop", "new", "reset", "background", "restart", "queue", "q"):
++            if cmd in ("approve", "deny", "status", "stop", "new", "reset", "background", "restart", "queue", "q", "refresh"):
+                 logger.debug(
+                     "[%s] Command '/%s' bypassing active-session guard for %s",
+                     self.name, cmd, session_key,
+diff --git a/gateway/platforms/telegram.py b/gateway/platforms/telegram.py
+index 2f4ec932..4eeabfd3 100644
+--- a/gateway/platforms/telegram.py
++++ b/gateway/platforms/telegram.py
+@@ -161,6 +161,8 @@ class TelegramAdapter(BasePlatformAdapter):
+         self._polling_error_task: Optional[asyncio.Task] = None
+         self._polling_conflict_count: int = 0
+         self._polling_network_error_count: int = 0
++        # Sprint 1: PC-3 bridge-readiness polling worker task handle
++        self._bridge_worker_task: Optional[asyncio.Task] = None
+         self._polling_error_callback_ref = None
+         # DM Topics: map of topic_name -> message_thread_id (populated at startup)
+         self._dm_topics: Dict[str, int] = {}
+@@ -770,6 +772,23 @@ class TelegramAdapter(BasePlatformAdapter):
+             mode = "webhook" if self._webhook_mode else "polling"
+             logger.info("[%s] Connected to Telegram (%s mode)", self.name, mode)
+ 
++            # Sprint 1 inline startup hook (PTB post_init does not fire in manual initialize/start).
++            try:
++                async def _refresh_send_callback(chat_id, text):
++                    if self._bot is None:
++                        raise RuntimeError("_bot unavailable during boot-confirm send")
++                    await self._bot.send_message(chat_id=chat_id, text=text)
++                _runner = getattr(self._message_handler, "__self__", None) if self._message_handler else None
++                if _runner is not None and hasattr(_runner, "read_and_confirm_refresh_marker"):
++                    await _runner.read_and_confirm_refresh_marker(_refresh_send_callback)
++            except Exception as e:
++                logger.warning("[%s] refresh-marker boot-confirmation hook failed: %s", self.name, e, exc_info=True)
++
++            if self._bridge_worker_task is None or self._bridge_worker_task.done():
++                self._bridge_worker_task = asyncio.create_task(self._run_bridge_worker(), name=f"{self.name}:bridge-readiness")
++            else:
++                logger.info("[%s] bridge-readiness worker already running - skipping re-create", self.name)
++
+             # Set up DM topics (Bot API 9.4 — Private Chat Topics)
+             # Runs after connection is established so the bot can call createForumTopic.
+             # Failures here are non-fatal — the bot works fine without topics.
+@@ -790,6 +809,201 @@ class TelegramAdapter(BasePlatformAdapter):
+             logger.error("[%s] Failed to connect to Telegram: %s", self.name, e, exc_info=True)
+             return False
+     
++    async def _run_bridge_worker(self) -> None:
++        """PC-3 bridge-readiness polling worker. 30s cadence, non-blocking via asyncio.to_thread."""
++        import json as _json
++        import subprocess as _sub
++        from datetime import datetime as _dt, time as _time
++        from zoneinfo import ZoneInfo as _ZoneInfo
++        from pathlib import Path as _Path
++        import os as _os
++        import time as _time_mod
++
++        POLL_INTERVAL = 30.0
++        QUIET_HOURS_START = _time(0, 0)
++        QUIET_HOURS_END = _time(6, 0)
++        RATE_LIMIT_SECONDS = 60.0
++        FLAP_WINDOW_SECONDS = 60.0
++        FLAP_THRESHOLD = 2
++
++        hermes_home_str = _os.environ.get("HERMES_HOME", "").strip()
++        hermes_home = _Path(hermes_home_str) if hermes_home_str else _Path.home() / ".hermes"
++        recipient_path = hermes_home / "runtime" / "notify-recipient.json"
++
++        last_state = "unknown"
++        transition_history: list = []
++        last_alert_ts: Dict[tuple, float] = {}
++        flap_suppression_until: float = 0.0
++        wake_digest: list = []
++
++        ALERT_TIMEZONE = _os.environ.get("HERMES_ALERT_TIMEZONE", "America/Los_Angeles").strip() or "America/Los_Angeles"
++
++        def _alert_now() -> _dt:
++            try:
++                return _dt.now(_ZoneInfo(ALERT_TIMEZONE))
++            except Exception as e:
++                logger.warning(
++                    "[%s] bridge-worker invalid HERMES_ALERT_TIMEZONE=%r; falling back to system local time: %s",
++                    self.name, ALERT_TIMEZONE, e,
++                )
++                return _dt.now()
++
++        def _quiet_now() -> bool:
++            now = _alert_now().time()
++            if QUIET_HOURS_START <= QUIET_HOURS_END:
++                return QUIET_HOURS_START <= now < QUIET_HOURS_END
++            return now >= QUIET_HOURS_START or now < QUIET_HOURS_END
++
++        def _load_recipient():
++            try:
++                if not recipient_path.exists():
++                    return None
++                with open(recipient_path, "r", encoding="utf-8") as f:
++                    payload = _json.load(f)
++                return payload.get("chat_id_disk") if isinstance(payload, dict) else None
++            except (OSError, _json.JSONDecodeError):
++                return None
++
++        async def _push(chat_id, text: str) -> None:
++            if self._bot is None or chat_id is None:
++                return
++            try:
++                await self._bot.send_message(chat_id=chat_id, text=text)
++            except Exception as e:
++                logger.warning("[%s] bridge-worker push failed: %s", self.name, e)
++
++        def _probe_state() -> str:
++            try:
++                result = _sub.run(["tailscale", "status", "--json"], capture_output=True, text=True, timeout=10)
++                if result.returncode == 0 and result.stdout.strip():
++                    data = _json.loads(result.stdout)
++                    if data.get("BackendState") != "Running":
++                        return "pi-tailscale-down"
++                    if not (data.get("Self") or {}).get("Online"):
++                        return "pi-tailscale-down"
++                    peers = data.get("Peer", {}) or {}
++                    windows_online = False
++                    for peer in peers.values():
++                        os_val = (peer.get("OS") or "").lower()
++                        host_name = (peer.get("HostName") or "").lower()
++                        is_windows = os_val == "windows" or "win" in host_name or "desktop" in host_name or "pc" in host_name
++                        if is_windows and peer.get("Online"):
++                            windows_online = True
++                            break
++                    if not windows_online:
++                        return "desktop-peer-unreachable"
++                else:
++                    return "pi-tailscale-down"
++            except (FileNotFoundError, _sub.TimeoutExpired, OSError, _json.JSONDecodeError) as e:
++                logger.debug("[%s] bridge-worker tailscale probe failed: %s", self.name, e)
++                return "pi-tailscale-down"
++
++            try:
++                from tools.remote_ai_bridge_tool import _run_ssh
++                rc_ssh, _, _ = _run_ssh("echo ok", timeout=10)
++                if rc_ssh != 0:
++                    return "ssh-bridge-unreachable"
++            except Exception as e:
++                logger.debug("[%s] bridge-worker ssh-true probe failed: %s", self.name, e)
++                return "ssh-bridge-unreachable"
++
++            try:
++                from tools.remote_ai_bridge_tool import _run_ssh, _wsl_tmux
++                rc_tmux, _, _ = _run_ssh(_wsl_tmux("ls"), timeout=10)
++                if rc_tmux != 0:
++                    return "tmux-missing"
++            except Exception as e:
++                logger.debug("[%s] bridge-worker tmux-ls probe failed: %s", self.name, e)
++                return "tmux-missing"
++
++            try:
++                from tools.remote_ai_bridge_tool import _action_status
++                status = _action_status()
++                if isinstance(status, dict) and "error" in status:
++                    return "tmux-missing"
++                if not isinstance(status, dict):
++                    return "tmux-missing"
++                if status.get("claude_alive") and status.get("codex_alive"):
++                    return "healthy"
++                return "tmux-missing"
++            except Exception as e:
++                logger.debug("[%s] bridge-worker action_status failed: %s", self.name, e)
++                return "tmux-missing"
++
++        def _format_transition(old: str, new: str) -> str:
++            if new == "healthy":
++                return f"Bridge online (was {old})."
++            if old == "healthy":
++                return f"Bridge offline ({new})."
++            return f"Bridge state {old} -> {new}."
++
++        try:
++            while True:
++                try:
++                    current = await asyncio.to_thread(_probe_state)
++                except Exception as e:
++                    logger.warning("[%s] bridge-worker probe unexpected exception: %s", self.name, e, exc_info=True)
++                    current = "pi-tailscale-down"
++
++                now_epoch = _time_mod.time()
++                if last_state != "unknown" and current != last_state:
++                    transition_history.append(now_epoch)
++                    transition_history[:] = [t for t in transition_history if now_epoch - t <= FLAP_WINDOW_SECONDS]
++
++                    if now_epoch < flap_suppression_until:
++                        logger.debug("[%s] bridge-worker transition suppressed (flap)", self.name)
++                    elif len(transition_history) > FLAP_THRESHOLD:
++                        transition_count = len(transition_history)
++                        if _quiet_now():
++                            existing_flap = next((item for item in wake_digest if item.get("new") == "flapping"), None)
++                            if existing_flap is None:
++                                wake_digest.append({"old": "multiple", "new": "flapping", "at": _dt.utcnow().isoformat() + "Z", "note": f"{transition_count} transitions in last 60s", "windows": 1, "total_transitions": transition_count})
++                            else:
++                                existing_flap["at"] = _dt.utcnow().isoformat() + "Z"
++                                existing_flap["windows"] = existing_flap.get("windows", 1) + 1
++                                existing_flap["total_transitions"] = existing_flap.get("total_transitions", 0) + transition_count
++                                existing_flap["note"] = f"{existing_flap['windows']} flap windows, {existing_flap['total_transitions']} total transitions"
++                            logger.debug("[%s] bridge flapping queued/coalesced (%d this window)", self.name, transition_count)
++                        else:
++                            chat_id = _load_recipient()
++                            if chat_id is not None:
++                                await _push(chat_id, f"Bridge flapping - {transition_count} transitions in 60s, alerts suppressed for 60s.")
++                        flap_suppression_until = now_epoch + FLAP_WINDOW_SECONDS
++                    else:
++                        key = (last_state, current)
++                        if now_epoch - last_alert_ts.get(key, 0.0) >= RATE_LIMIT_SECONDS:
++                            if _quiet_now():
++                                if current == "healthy" or last_state == "healthy":
++                                    wake_digest.append({"old": last_state, "new": current, "at": _dt.utcnow().isoformat() + "Z"})
++                                    logger.debug("[%s] bridge transition queued for wake digest: %s -> %s", self.name, last_state, current)
++                            else:
++                                chat_id = _load_recipient()
++                                if chat_id is not None:
++                                    await _push(chat_id, _format_transition(last_state, current))
++                                    last_alert_ts[key] = now_epoch
++                                else:
++                                    logger.debug("[%s] bridge transition %s->%s no recipient", self.name, last_state, current)
++
++                last_state = current
++
++                if wake_digest and not _quiet_now():
++                    chat_id = _load_recipient()
++                    if chat_id is not None:
++                        lines = ["Overnight bridge transitions:"]
++                        for item in wake_digest:
++                            line = f"  {item['at']}: {item['old']} -> {item['new']}"
++                            note = item.get("note")
++                            if note:
++                                line += f" ({note})"
++                            lines.append(line)
++                        await _push(chat_id, "\n".join(lines))
++                    wake_digest.clear()
++
++                await asyncio.sleep(POLL_INTERVAL)
++        except asyncio.CancelledError:
++            logger.info("[%s] bridge-worker cancelled", self.name)
++            raise
++
+     async def disconnect(self) -> None:
+         """Stop polling/webhook, cancel pending album flushes, and disconnect."""
+         pending_media_group_tasks = list(self._media_group_tasks.values())
+@@ -800,6 +1014,15 @@ class TelegramAdapter(BasePlatformAdapter):
+         self._media_group_tasks.clear()
+         self._media_group_events.clear()
+ 
++        # Sprint 1: cancel PC-3 bridge-readiness worker BEFORE _app.shutdown()
++        if self._bridge_worker_task is not None and not self._bridge_worker_task.done():
++            self._bridge_worker_task.cancel()
++            try:
++                await asyncio.wait_for(self._bridge_worker_task, timeout=2.0)
++            except (asyncio.CancelledError, asyncio.TimeoutError):
++                pass
++        self._bridge_worker_task = None
++
+         if self._app:
+             try:
+                 # Only stop the updater if it's running
+diff --git a/gateway/run.py b/gateway/run.py
+index ba7ea43a..670f82c2 100644
+--- a/gateway/run.py
++++ b/gateway/run.py
+@@ -24,9 +24,11 @@ import signal
+ import tempfile
+ import threading
+ import time
++import uuid
++import subprocess
+ from contextvars import copy_context
+ from pathlib import Path
+-from datetime import datetime
++from datetime import datetime, timedelta
+ from typing import Dict, Optional, Any, List
+ 
+ # ---------------------------------------------------------------------------
+@@ -3136,6 +3138,9 @@ class GatewayRunner:
+         if canonical == "voice":
+             return await self._handle_voice_command(event)
+ 
++        if canonical == "refresh":
++            return await self._handle_refresh_command(event)
++
+         if self._draining:
+             return f"⏳ Gateway is {self._status_action_gerund()} and is not accepting new work right now."
+ 
+@@ -4555,6 +4560,344 @@ class GatewayRunner:
+             return f"⏳ Draining {active_agents} active agent(s) before restart..."
+         return "♻ Restarting gateway. If you aren't notified within 60 seconds, restart from the console with `hermes gateway restart`."
+ 
++    @staticmethod
++    def _atomic_json_write(path: Path, data: Any, mode: int = 0o600) -> None:
++        """Tempfile + fsync + os.replace - matches SessionStore pattern at session.py:555-566."""
++        tmp_fd, tmp_path = tempfile.mkstemp(
++            prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent)
++        )
++        try:
++            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
++                json.dump(data, f)
++                f.flush()
++                os.fsync(f.fileno())
++            os.chmod(tmp_path, mode)
++            os.replace(tmp_path, str(path))
++        except Exception:
++            try:
++                if os.path.exists(tmp_path):
++                    os.unlink(tmp_path)
++            except OSError:
++                pass
++            raise
++
++    async def _handle_refresh_command(self, event: "MessageEvent") -> Optional[str]:
++        """Handle /refresh - purge Telegram session cache + restart gateway (Telegram-only)."""
++        if event.source.platform is None or event.source.platform.value != "telegram":
++            return "\u26a0\ufe0f /refresh is not available on this platform (Telegram only)."
++
++        _adapter = self.adapters.get(event.source.platform)
++        if _adapter is not None:
++            try:
++                await _adapter.send(
++                    chat_id=event.source.chat_id,
++                    content="\u23f3 Refresh initiated",
++                    reply_to=event.message_id,
++                )
++            except Exception as e:
++                logger.warning("/refresh: pre-dispatch send failed (non-fatal): %s", e)
++
++        hermes_home_str = os.environ.get("HERMES_HOME", "").strip()
++        hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
++        runtime_dir = hermes_home / "runtime"
++        sessions_file = hermes_home / "sessions" / "sessions.json"
++
++        try:
++            runtime_dir.mkdir(mode=0o700, exist_ok=True)
++            try:
++                os.chmod(str(runtime_dir), 0o700)
++            except OSError:
++                pass
++        except OSError as e:
++            logger.error("/refresh: failed to create/tighten runtime dir: %s", e)
++            return "\u274c Runtime directory not writable - /refresh aborted."
++
++        try:
++            chat_id_disk: Any = int(event.source.chat_id)
++        except (TypeError, ValueError):
++            chat_id_disk = str(event.source.chat_id)
++            logger.warning("/refresh: non-integer chat_id, storing string form")
++
++        now_utc_iso = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
++
++        purged_count = 0
++        if sessions_file.exists():
++            bak_path: Optional[Path] = None
++            try:
++                import shutil
++                bak_path = sessions_file.with_name(
++                    f"sessions.json.bak-{now_utc_iso.replace(':', '').replace('-', '')}"
++                )
++                shutil.copy2(str(sessions_file), str(bak_path))
++            except OSError as e:
++                logger.error("/refresh: sessions.json backup failed: %s", e)
++                return "\u274c Session backup failed - /refresh aborted. Gateway NOT restarted."
++
++            try:
++                with open(sessions_file, "r", encoding="utf-8") as f:
++                    data = json.load(f)
++            except (OSError, json.JSONDecodeError) as e:
++                logger.error("/refresh: sessions.json read/parse failed: %s", e)
++                return (
++                    f"\u274c Session store unreadable ({type(e).__name__}). "
++                    f"Gateway NOT restarted. Backup kept at {bak_path.name if bak_path else '?'}."
++                )
++
++            if not isinstance(data, dict):
++                logger.error("/refresh: sessions.json top-level is not a dict (got %s)", type(data).__name__)
++                return "\u274c Session store format unexpected - /refresh aborted. Gateway NOT restarted."
++
++            keep = {k: v for k, v in data.items() if not str(k).startswith("agent:main:telegram:dm:")}
++            purged_count = len(data) - len(keep)
++
++            try:
++                self._atomic_json_write(sessions_file, keep, mode=0o600)
++            except OSError as e:
++                logger.error("/refresh: atomic sessions.json write failed: %s", e)
++                return (
++                    f"\u274c Session purge write failed ({type(e).__name__}). "
++                    f"Gateway NOT restarted. Backup at {bak_path.name if bak_path else '?'}."
++                )
++
++            logger.info(
++                "/refresh: purged %d keys of shape=agent:main:telegram:dm:<digits:10>; backup=%s",
++                purged_count, bak_path.name if bak_path else "?",
++            )
++
++        try:
++            recipient_payload = {
++                "chat_id_disk": chat_id_disk,
++                "platform": "telegram",
++                "learned_at": now_utc_iso,
++            }
++            self._atomic_json_write(runtime_dir / "notify-recipient.json", recipient_payload, mode=0o600)
++            logger.info("/refresh: notify-recipient.json written (chat_id=<CHAT_ID>)")
++        except OSError as e:
++            logger.warning("/refresh: notify-recipient.json write failed (non-fatal): %s", e)
++
++        marker_path = runtime_dir / "refresh-request.json"
++        marker = {
++            "request_id": str(uuid.uuid4()),
++            "created_at": now_utc_iso,
++            "chat_id": chat_id_disk,
++            "initiator_shape": "agent:main:telegram:dm:<digits:10>",
++            "status": "pending",
++        }
++        try:
++            self._atomic_json_write(marker_path, marker, mode=0o600)
++        except OSError as e:
++            logger.error("/refresh: refresh-request marker write failed: %s", e)
++            return "\u274c Marker write failed - Gateway NOT restarted. Session purge already applied."
++
++        _force_fail = os.environ.get("HERMES_REFRESH_FORCE_RESTART_FAIL", "").strip() == "1"
++        proc = None
++        if _force_fail:
++            logger.info(
++                "/refresh: HERMES_REFRESH_FORCE_RESTART_FAIL=1 set - forcing rc=1 "
++                "(test hook; systemd-run NOT dispatched)"
++            )
++            rc = 1
++        else:
++            try:
++                proc = subprocess.run(
++                    [
++                        "sudo", "-n", "systemd-run",
++                        "--unit=hermes-refresh",
++                        "--on-active=1s",
++                        "systemctl", "restart", "hermes-gateway.service",
++                    ],
++                    timeout=5,
++                    check=False,
++                    capture_output=True,
++                    text=True,
++                )
++                rc = proc.returncode
++            except subprocess.TimeoutExpired as e:
++                _stderr_ex = (getattr(e, "stderr", None) or "")[-500:]
++                _stdout_ex = (getattr(e, "stdout", None) or "")[-500:]
++                logger.error(
++                    "/refresh: systemd-run timed out after 5s stderr=%r stdout=%r",
++                    _stderr_ex, _stdout_ex,
++                )
++                rc = 1
++            except OSError as e:
++                logger.error("/refresh: systemd-run dispatch OSError: %s", e)
++                rc = 1
++            except Exception as e:
++                logger.error("/refresh: systemd-run dispatch exception: %s", e)
++                rc = 1
++
++        if rc != 0:
++            if proc is not None:
++                _stderr_ex = (proc.stderr or "").strip()[-500:]
++                _stdout_ex = (proc.stdout or "").strip()[-500:]
++                logger.error(
++                    "/refresh: restart dispatch rc=%d stderr=%r stdout=%r",
++                    rc, _stderr_ex, _stdout_ex,
++                )
++            else:
++                logger.error("/refresh: restart dispatch rc=%d (no subprocess output available)", rc)
++
++            marker["status"] = "failed"
++            marker_cleared = False
++            try:
++                self._atomic_json_write(marker_path, marker, mode=0o600)
++                marker_cleared = True
++                logger.error("/refresh: marker flipped to failed")
++            except OSError as e:
++                logger.error("/refresh: flip marker to failed failed (%s) - attempting delete", e)
++                try:
++                    marker_path.unlink()
++                    marker_cleared = True
++                    logger.error("/refresh: marker deleted after failed flip")
++                except FileNotFoundError:
++                    marker_cleared = True
++                except OSError as e2:
++                    logger.error("/refresh: marker delete also failed: %s - MANUAL INTERVENTION REQUIRED", e2)
++
++            if not marker_cleared:
++                return (
++                    "\u26a0\ufe0f Restart command failed AND the refresh marker could not "
++                    f"be cleared at {marker_path}. "
++                    "DO NOT manually restart hermes-gateway.service until you "
++                    "`rm` that file - otherwise a false '\u2705 Refresh complete' "
++                    "push will fire at boot. Session purge already applied."
++                )
++
++            return "\u26a0\ufe0f Restart command failed - see journalctl. Session purge already applied."
++
++        logger.info("/refresh success: purged %d telegram-dm keys, systemd-run dispatched", purged_count)
++        return None
++
++    async def read_and_confirm_refresh_marker(self, send_callback) -> None:
++        """Two-phase at-most-once-or-no-send boot confirmation."""
++        hermes_home_str = os.environ.get("HERMES_HOME", "").strip()
++        hermes_home = Path(hermes_home_str) if hermes_home_str else Path.home() / ".hermes"
++        marker_path = hermes_home / "runtime" / "refresh-request.json"
++
++        if not marker_path.exists():
++            return
++
++        def _delete_marker_quietly() -> None:
++            try:
++                marker_path.unlink()
++            except OSError:
++                pass
++
++        try:
++            with open(marker_path, "r", encoding="utf-8") as f:
++                marker = json.load(f)
++        except (OSError, json.JSONDecodeError) as e:
++            logger.warning("refresh marker read/parse failed: %s - deleting", e)
++            _delete_marker_quietly()
++            return
++
++        if not isinstance(marker, dict):
++            logger.warning("refresh marker malformed (not a dict) - deleting")
++            _delete_marker_quietly()
++            return
++
++        status = marker.get("status", "pending")
++        created_at = marker.get("created_at")
++        chat_id = marker.get("chat_id")
++
++        if status == "failed":
++            logger.info("refresh marker was failed, never confirming - deleting")
++            _delete_marker_quietly()
++            return
++
++        if status == "confirmed":
++            logger.info("refresh marker already confirmed - deleting, no re-send")
++            _delete_marker_quietly()
++            return
++
++        if status == "confirming":
++            logger.info(
++                "refresh marker in uncertain 'confirming' state from prior attempt - "
++                "deleting, no re-send (outcome was indeterminate)"
++            )
++            _delete_marker_quietly()
++            return
++
++        if isinstance(created_at, str):
++            try:
++                created_dt = datetime.fromisoformat(created_at.rstrip("Z"))
++                if datetime.utcnow() - created_dt > timedelta(minutes=5):
++                    logger.info("refresh marker stale (>5m) - deleting, no push")
++                    _delete_marker_quietly()
++                    return
++            except ValueError:
++                logger.warning("refresh marker has unparseable created_at - deleting")
++                _delete_marker_quietly()
++                return
++        else:
++            logger.warning("refresh marker missing created_at - deleting")
++            _delete_marker_quietly()
++            return
++
++        if status != "pending":
++            logger.warning("refresh marker unknown status=%r - deleting", status)
++            _delete_marker_quietly()
++            return
++
++        if chat_id is None:
++            logger.warning("refresh marker missing chat_id - deleting")
++            _delete_marker_quietly()
++            return
++
++        marker["status"] = "confirming"
++        try:
++            self._atomic_json_write(marker_path, marker, mode=0o600)
++        except OSError as e:
++            logger.warning(
++                "refresh marker pre-send status=confirming write failed: %s - aborting send, attempting delete",
++                e,
++            )
++            deleted = False
++            try:
++                marker_path.unlink()
++                deleted = True
++            except FileNotFoundError:
++                deleted = True
++            except OSError as e2:
++                logger.critical(
++                    "refresh marker pre-send confirming-write AND unlink both failed: "
++                    "write_err=%r unlink_err=%r path=%s - MANUAL INTERVENTION REQUIRED: "
++                    "delete %s before next service restart",
++                    e, e2, marker_path, marker_path,
++                )
++            if deleted:
++                logger.info("refresh marker pre-send flip failed but pending marker deleted - safe, no re-send")
++            return
++
++        try:
++            await send_callback(chat_id, "\u2705 Refresh complete")
++        except Exception as e:
++            logger.warning("refresh marker send failed: %s - flipping to failed, no retry", e)
++            marker["status"] = "failed"
++            try:
++                self._atomic_json_write(marker_path, marker, mode=0o600)
++            except OSError as e2:
++                logger.warning(
++                    "refresh marker flip-to-failed post-send-fail also failed: %s "
++                    "(confirming state on disk is still safe - boot hook will not re-send)",
++                    e2,
++                )
++            _delete_marker_quietly()
++            return
++
++        marker["status"] = "confirmed"
++        try:
++            self._atomic_json_write(marker_path, marker, mode=0o600)
++        except OSError as e:
++            logger.warning(
++                "refresh marker status=confirmed write failed: %s "
++                "(status=confirming on disk is still safe - boot hook will not re-send)",
++                e,
++            )
++        logger.info("refresh marker confirmation sent to <CHAT_ID>")
++        _delete_marker_quietly()
++
+     async def _handle_help_command(self, event: MessageEvent) -> str:
+         """Handle /help command - list available commands."""
+         from hermes_cli.commands import gateway_help_lines
+diff --git a/hermes_cli/commands.py b/hermes_cli/commands.py
+index 09ecfca5..1e717497 100644
+--- a/hermes_cli/commands.py
++++ b/hermes_cli/commands.py
+@@ -150,6 +150,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
+     CommandDef("help", "Show available commands", "Info"),
+     CommandDef("restart", "Gracefully restart the gateway after draining active runs", "Session",
+                gateway_only=True),
++    CommandDef("refresh",
++               "Purge Telegram session cache and restart the gateway",
++               "Info",
++               gateway_only=True),
+     CommandDef("usage", "Show token usage and rate limits for the current session", "Info"),
+     CommandDef("insights", "Show usage insights and analytics", "Info",
+                args_hint="[days]"),
