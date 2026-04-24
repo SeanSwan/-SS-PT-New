@@ -17,7 +17,11 @@ import socialController from '../controllers/socialController.mjs';
 
 // Import middleware
 import { protect, adminOnly, trainerOnly, trainerOrAdminOnly, authorizeResourceAccess, requireAnyRole } from '../middleware/authMiddleware.mjs';
+import { viewAsGuard } from '../middleware/viewAsGuard.mjs';
 import logger from '../utils/logger.mjs';
+
+// Import viewAs read-identity helper (Phase 18.C.1A)
+import { getEffectiveReadUserId } from '../utils/viewAs/getEffectiveReadUserId.mjs';
 
 // Import service layer (replaces mock-res controller calls)
 import { getDashboardData, getFeaturedData, searchGamification } from '../services/gamificationDashboardService.mjs';
@@ -485,8 +489,8 @@ router.patch('/notifications/:notificationId/read', authenticate, requireUser, g
  * @desc    Get current user's gamification profile (convenience route)
  * @access  Authenticated users
  */
-router.get('/profile', authenticate, requireUser, (req, res) => {
-  req.params.userId = req.user.id;
+router.get('/profile', authenticate, requireUser, viewAsGuard, (req, res) => {
+  req.params.userId = getEffectiveReadUserId(req);
   return gamificationController.getUserProfile(req, res);
 });
 
@@ -506,9 +510,9 @@ router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('user
  * @desc    Get comprehensive dashboard data
  * @access  Authenticated users
  */
-router.get('/dashboard', authenticate, requireUser, async (req, res) => {
+router.get('/dashboard', authenticate, requireUser, viewAsGuard, async (req, res) => {
   try {
-    const dashboard = await getDashboardData(req.user.id);
+    const dashboard = await getDashboardData(getEffectiveReadUserId(req));
     return res.status(200).json({ success: true, dashboard });
   } catch (error) {
     logger.error('[Gamification] Dashboard error:', { error: error.message });
