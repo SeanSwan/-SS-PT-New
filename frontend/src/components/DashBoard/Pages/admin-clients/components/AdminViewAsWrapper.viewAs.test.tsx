@@ -1,6 +1,10 @@
 /**
- * Phase 18.C.1B.1 — AdminViewAsWrapper viewAs wiring tests
- * ========================================================
+ * Phase 18.C.1B.1 / 1R — AdminViewAsWrapper viewAs wiring tests
+ * =============================================================
+ * Canonical mount (Phase 18.C.1B.1R, 2026-04-24):
+ *   /dashboard/admin/client-management/view-as/:userId
+ *   registered in UniversalDashboardLayout.tsx admin roleConfigurations.
+ *
  * Locks the canonical admin "view as client" gamification fetch to:
  *   GET /api/v1/gamification/profile?viewAs=<userId>
  *
@@ -8,7 +12,15 @@
  *   - The legacy/nonexistent path `/api/gamification/profile/:userId`
  *     must never be called again (it 404'd silently via Promise.allSettled
  *     for the entire life of the admin view-as page pre-fix).
- *   - The short-circuit at line 250 (no route userId → no fetch) must hold.
+ *   - The short-circuit in fetchViewAsData (no route userId → no fetch)
+ *     must hold.
+ *
+ * NOTE on synthesized-mount risk (Phase 18.C.1B.1R lesson): MemoryRouter
+ * paths here must match the REAL canonical mount in UniversalDashboardLayout
+ * .tsx. The route guard test at UniversalDashboardLayout.adminViewAsRoute
+ * .test.ts asserts that match. Changing one path here without updating the
+ * guard (or vice versa) would reintroduce the "test passes while production
+ * route is dead" failure mode.
  *
  * Scope: component-level fetch-URL assertions only. The backend end-to-end
  * behavior is covered by the Phase 18.C.1A API integration tests at
@@ -34,15 +46,16 @@ const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/dashboard/people/view-as/:userId" element={<AdminViewAsWrapper />} />
-        <Route path="/dashboard/people/view-as" element={<AdminViewAsWrapper />} />
+        <Route path="/dashboard/admin/client-management/view-as/:userId" element={<AdminViewAsWrapper />} />
+        <Route path="/dashboard/admin/client-management/view-as" element={<AdminViewAsWrapper />} />
       </Routes>
     </MemoryRouter>
   );
 
 const okClientProfile = {
   data: {
-    client: { id: 42, firstName: 'Jackie', lastName: 'Smith', role: 'client' },
+    // Synthetic fixture — keep production PII out of commit-bound files (rule 44).
+    client: { id: 42, firstName: 'Fixture', lastName: 'Client', role: 'client' },
   },
 };
 const okEmpty = { data: {} };
@@ -82,7 +95,7 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
   });
 
   it('calls canonical /api/v1/gamification/profile with ?viewAs=<userId>', async () => {
-    renderAt('/dashboard/people/view-as/42');
+    renderAt('/dashboard/admin/client-management/view-as/42');
 
     await waitFor(() => {
       expect(mockAuthAxiosGet).toHaveBeenCalledWith(
@@ -99,7 +112,7 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
       return Promise.resolve({ data: { data: [] } });
     });
 
-    renderAt('/dashboard/people/view-as/42');
+    renderAt('/dashboard/admin/client-management/view-as/42');
 
     expect(await screen.findByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
@@ -114,7 +127,7 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
   });
 
   it('never calls the legacy nonexistent path /api/gamification/profile/:userId', async () => {
-    renderAt('/dashboard/people/view-as/42');
+    renderAt('/dashboard/admin/client-management/view-as/42');
 
     await waitFor(() => {
       expect(mockAuthAxiosGet).toHaveBeenCalled();
@@ -129,7 +142,7 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
   it('does not fetch gamification profile when route userId is missing', async () => {
     // Short-circuit guard at AdminViewAsWrapper.tsx:250 — if useParams yields
     // no userId, the whole fetchViewAsData bails before Promise.allSettled.
-    renderAt('/dashboard/people/view-as');
+    renderAt('/dashboard/admin/client-management/view-as');
 
     // Give React a tick to flush the initial effect.
     await new Promise((resolve) => setTimeout(resolve, 0));

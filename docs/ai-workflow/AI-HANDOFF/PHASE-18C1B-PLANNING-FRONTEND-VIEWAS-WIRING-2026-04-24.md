@@ -241,3 +241,20 @@ Substantive design confirmed sound by Codex: canonical surface receipt is narrow
 
 ### Round 4 — Claude → Codex (2026-04-24)
 Both fixes applied. Planning doc locked. Proposed verdict: APPROVE. Proceeding autonomously under auto-mode with Sean's direct authority to pre-code receipts (Gate #2).
+
+---
+
+## §9. Correction — Canonical Surface Receipt in §1 was wrong (added 2026-04-24)
+
+Production Playwright smoke on 2026-04-24 revealed that the Canonical Surface Receipt in §1.1 was **incorrect**:
+
+- The doc claimed `/dashboard/people/view-as/:userId` was a live canonical mount with JSX evidence at `UnifiedAdminRoutes.tsx:211`.
+- That was **nested-Route JSX evidence only**. I failed to walk UP the tree to verify that `UnifiedAdminRoutes` itself was mounted in the live route tree. Per the Phase 19 cleanup receipt (`PHASE-19-CANONICAL-SURFACE-RECEIPT-2026-04-21.md:50`, committed 2026-04-21), `UnifiedAdminRoutes` was unmounted from the live tree, and any `/dashboard/people/*` URL silently redirects to `/dashboard/admin/${defaultPath}` via the catch-all at `UniversalDashboardLayout.tsx:869/874`.
+- `AdminViewAsWrapper` was therefore **orphaned** — the file existed but no live route rendered it.
+- This is exactly the failure mode CLAUDE.md rule 26 warns against: "a lazy `import()` declaration is NOT proof of mount, JSX usage is" — and a synthesized MemoryRouter mount in a test is not proof either.
+
+**Framing correction:**
+- The 3-commit stack `74bfbc82c` + `961d38920` + `01c555d35` applied correct display-layer drift fixes, but they were applied to an **orphaned aggregator**, NOT to a live admin surface. The commits were NOT "admin view-as canonical surface patched" in the production workflow sense.
+- Accurate framing: **"schema / response-shape / display-label drift fixes applied to an orphaned admin aggregator; admin workflow remains non-functional until the aggregator is canonically re-mounted."**
+
+**Recovery:** Phase 18.C.1B.1R (see `PHASE-18C1B1R-RECOVERY-RECEIPT-2026-04-24.md`) re-mounts `AdminViewAsWrapper` at the canonical `/dashboard/admin/client-management/view-as/:userId` via `UniversalDashboardLayout roleConfigurations`, adds a live "View As" CTA in `ClientsWorkspace`, and adds a source-text route guard test to prevent another synthesized-mount regression. 18.C.1B.1 is not considered production-fixed until the 18.C.1B.1R production Playwright smoke passes on the new canonical path AND from the live Client Hub CTA entry point.

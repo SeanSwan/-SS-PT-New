@@ -10,7 +10,7 @@
  * ┌──────────────────────────────────────────────────────────────┐
  * │ [Client Selector ▼]          [+ New Client]   [🤖 AI Coach] │
  * ├──────────────────────────────────────────────────────────────┤
- * │ 📷 Ron W. — Move Fitness · 60yo · Beginner                  │
+ * │ 📷 Fixture Client — SwanStudios · 30yo · Beginner            │
  * │    Onboarding: 50% [████░░░░] 4/8 sections                  │
  * ├──────────────────────────────────────────────────────────────┤
  * │ [Overview] [Training] [Biometrics] [Settings]                │
@@ -28,7 +28,7 @@
 import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageCircle, UserPlus, Dumbbell } from 'lucide-react';
+import { MessageCircle, UserPlus, Dumbbell, Eye } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import ClientSelectorDropdown from './clients-team/ClientSelectorDropdown';
 import ClientHeaderCard from './clients-team/ClientHeaderCard';
@@ -337,6 +337,17 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [navigate, selectedClient]);
 
+  // Phase 18.C.1B.1R (2026-04-24): admin "View As" CTA. Navigates to the
+  // canonical AdminViewAsWrapper mount at
+  // /dashboard/admin/client-management/view-as/:userId, which was re-mounted
+  // in UniversalDashboardLayout.tsx this slice after Phase 19 unmounted
+  // the previous UnifiedAdminRoutes-backed route. Gated on selectedClient.
+  const handleViewAsClient = useCallback(() => {
+    if (selectedClient) {
+      navigate(`/dashboard/admin/client-management/view-as/${selectedClient.id}`);
+    }
+  }, [navigate, selectedClient]);
+
   // Map ClientOption to MiniCardClient for ClientDetailView compatibility
   const detailClient: MiniCardClient | null = useMemo(() => {
     if (!selectedClient) return null;
@@ -407,6 +418,12 @@ const ClientsWorkspace: React.FC = () => {
             <ActionBtn onClick={handleLogWorkout} title={`Log a workout for ${selectedClient.firstName}`}>
               <Dumbbell size={16} />
               <span>Log Workout</span>
+            </ActionBtn>
+          )}
+          {selectedClient && (
+            <ActionBtn onClick={handleViewAsClient} title={`View ${selectedClient.firstName}'s dashboard as admin (read-only)`}>
+              <Eye size={16} />
+              <span>View As</span>
             </ActionBtn>
           )}
           <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Swan Coach with this client's context">

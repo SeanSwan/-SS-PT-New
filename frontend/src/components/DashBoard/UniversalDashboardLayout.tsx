@@ -107,6 +107,11 @@ const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveS
 const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'));
 const AdminWaiversManagerPage = React.lazy(() => import('./Pages/admin-waivers/AdminWaiversManager'));
+// Phase 18.C.1B.1R (2026-04-24): canonical re-mount of the admin view-as
+// aggregator. Lazy-loaded — rare admin route, kept out of base bundle.
+// Previous mount at UnifiedAdminRoutes.tsx:211 went dead when Phase 19
+// cleanup unmounted UnifiedAdminRoutes from the live tree.
+const AdminViewAsWrapper = React.lazy(() => import('./Pages/admin-clients/components/AdminViewAsWrapper'));
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
@@ -498,6 +503,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       
       // 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT
       { path: '/client-management', component: React.lazy(() => import('./workspaces/ClientsWorkspace')), title: 'Client Hub', description: 'Unified client management with selector, cards, and detail tabs' },
+      { path: '/client-management/view-as/:userId', component: AdminViewAsWrapper, title: 'View As Client', description: 'Read-only admin impersonation view of a single client profile, workouts, sessions, and gamification' },
       { path: '/client-details', component: EnhancedAdminClientManagementView, title: 'Advanced Client Management', description: 'Detailed client management interface' },
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },

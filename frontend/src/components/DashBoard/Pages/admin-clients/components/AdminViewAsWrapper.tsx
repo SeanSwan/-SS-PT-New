@@ -1,12 +1,16 @@
 /**
  * ┌─── SUB-COMPONENT: AdminViewAsWrapper ──────────────────────┐
- * │ PARENT: UnifiedAdminRoutes / ClientsWorkspace                │
+ * │ PARENT: UniversalDashboardLayout roleConfigurations (admin)  │
+ * │         Mounted at /dashboard/admin/client-management/       │
+ * │         view-as/:userId (Phase 18.C.1B.1R, 2026-04-24).     │
+ * │         Previous mount at UnifiedAdminRoutes.tsx:211 went    │
+ * │         dead when Phase 19 cleanup unmounted that parent.   │
  * │ PURPOSE: Data-fetch impersonation — admin sees a client's    │
  * │          dashboard data without JWT swap (audit-safe)         │
  * │ OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-23         │
  * │ WIREFRAME:                                                   │
  * │ ┌──────────────────────────────────────────────────────────┐ │
- * │ │ 🛡 Viewing as [Jackie Smith] (client) [Exit View]       │ │
+ * │ │ 🛡 Viewing as [Fixture Client] (client) [Exit View]      │ │
  * │ ├──────────────────────────────────────────────────────────┤ │
  * │ │ [Summary Cards: Workouts | Streak | XP | Level]         │ │
  * │ ├──────────────────────────────────────────────────────────┤ │
