@@ -6,7 +6,7 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 - **Theme:** Enchanted Apex: Crystalline Swan (dark-first, frozen enchanted forest + deep-ocean luxury vault)
 - **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use
 
-- **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them.
+- **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
 ## Build & Run
 - **Local dev:** `npm run dev` (from root — backend:10000 + frontend:5173 concurrently, auto-opens browser)
@@ -131,6 +131,127 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
     - **If Codex service is unavailable** (rate limit, outage), pause and wait. Do NOT commit substantial work without Codex approval to "save time"; that defeats the gate.
 
     Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
+
+47. **Supervised Read-Only Launcher Pattern (MANDATORY for all remote/Pi/production work)** — Established 2026-04-25 after the W1.0 manual-command workflow proved too fragile for Sean. Any semi-automated work that touches a remote system (Pi, Hermes, Render, third-party server) MUST run via a local launcher. Long copy-paste shell command sequences are forbidden; Claude does not hand Sean a wall of commands to run by hand.
+
+    **Required launcher properties:**
+    - Lives locally at `c:/tmp/<task-name>.ps1` (or `scripts/launchers/<task>.ps1` if persistent).
+    - Tees all output to a local Windows file at `c:/tmp/<task-name>.out.txt`. Output path is local-only — never on the remote.
+    - Embeds the remote script (typically base64-encoded) and runs it via SSH stdin or single-command argv.
+    - Performs redaction at the remote source BEFORE output reaches stdout. Required redactions: 8+ digit numeric IDs → `<REDACTED-NUM>`; emails → `<REDACTED-EMAIL>`; key/token shapes (`sk-`, `sk_live_`, `sk_test_`, `rk_live_`, `whsec_`, `xoxb-`, `AIza`, JWT `eyJ...`, Telegram bot tokens) → `<REDACTED-KEY>`; env values → `KEY=<REDACTED>` or `KEY=<N chars>`.
+    - Read-only by default. **No remote writes.** Forbidden remote operations: `tee`, `>`, `>>`, `touch`, `sed -i`, editor saves, `cat >`, `mkdir`, `rm`, `mv`, `cp <to-remote>`, package installs, `git add|commit|push|checkout|reset|rebase`, `systemctl restart|reload|daemon-reload|enable|disable|start|stop`, env file edits, Telegram bot config changes, feature flag toggles, test mode toggles.
+    - Prompts Sean for SSH/sudo credentials interactively only. Never embeds passwords, never hardcodes credentials, never reads `.env` files for SSH auth.
+    - Exits cleanly. Sean types `done` in chat; Claude reads the local output file and continues the task.
+
+    **Required disclosure before Claude hands Sean a launcher command:**
+    - Exact local file paths created.
+    - Confirmation the embedded remote script contains zero Pi-write operations (Claude must have grep-checked the script for the forbidden ops above).
+    - Confirmation the output path is local Windows only.
+    - The STOP rule: if any raw secret (chat_id digits, API key, JWT, email, token shape, password) appears in the output file, Claude halts and tells Sean immediately. Don't continue parsing or filling receipts with leaked output.
+
+    **Why:** 2026-04-25 incident — the W1.0 runtime-layout discovery was first delivered as a 10-step manual command sequence with copy-paste blocks for Sean to run interactively over SSH. Sean called this "too much work on my end and I am not up for it" and required the workflow be revised to a launcher pattern. The fragility of long manual sequences is its own security risk: tired hands paste wrong commands, skip redaction steps, paste raw secrets back into the chat. A launcher pattern enforces redaction at the source, captures output mechanically, and lets Sean focus on credentials only.
+
+    **How to apply:** Any task that says "SSH into the Pi" / "run this on Render" / "check this on the server" → build a launcher first. Show the disclosure block. Then hand Sean one command. Wait for `done`. The W1.0 launcher at `c:/tmp/wiki-w1.0-discovery.ps1` is the canonical first instance.
+
+    **Exception:** A single one-shot read-only command Sean explicitly asks for ("just run `git log` for me on the Pi") is fine without a launcher. The trigger for the launcher pattern is multi-step / multi-section discovery, not one-liners.
+
+48. **Phase Completion Audit Record (MANDATORY at the close of every phase, sprint, feature, fix, or substantial workstream)** — Established 2026-04-25. After any phase is finalized and considered good-to-go, before declaring the work fully done, Claude MUST produce a single self-contained Markdown audit record documenting that phase's files, logic, security posture, best-practices applied, and explicit re-review hooks. The intent is permanent: Sean (or Codex / Gemini / a future AI) returns weeks or months later to look for security gaps, data-leak risks, performance wins, UX improvements, or "loopholes a malicious actor could exploit." Memory is not enough. Skill outputs are not enough. The audit record is the load-bearing artifact.
+
+    **File location + naming:**
+    - `docs/ai-workflow/AI-HANDOFF/<PHASE-NAME>-AUDIT-RECORD-<YYYY-MM-DD>.md`
+    - Example: `HERMES-WIKI-BRIDGE-W2-AUDIT-RECORD-2026-04-30.md`
+    - One file per phase. Self-contained: a future reviewer should be able to read this single file and produce useful security/perf/UX feedback without re-reading 20 other docs.
+
+    **Required sections (in this order):**
+    1. **Phase header** — phase name, scope, start/end dates, who reviewed (Codex / Gemini / Village / Sean), final verdict (APPROVED / SHIPPED / SUPERSEDED).
+    2. **Files involved** — every file created, modified, or deleted, organized by repo location. Include line counts and one-line purpose for each. New + modified runtime code is the priority; docs/handoffs as supporting context.
+    3. **Architecture & runtime flow** — how the feature actually works end-to-end. Diagrams in ASCII or markdown tables are fine. A reader who has never seen the phase should be able to trace UI → API → service → DB → response from this section alone.
+    4. **Security logic & posture** — explicit list of every security control: zero-PII patterns used, secret-handling, redaction patterns, allowlists, fail-closed gates, rate limits, audit logs, input validation, path-escape prevention, symlink protections, operator gates, kill switches, env var guards, default-off flags. For each control: WHAT it blocks, WHY it was added, and HOW it can be bypassed if implemented wrong (so future reviewers know what to attack).
+    5. **Best practices applied** — explicit reference to which CLAUDE.md rules and which industry standards were followed (e.g. "Rule 6 token-with-fallback; Rule 8 zero PII to LLMs; Rule 26 canonical surface receipt; OWASP A01 access control via fail-closed operator gate").
+    6. **Known limitations / non-goals** — what was deliberately NOT done and why. This prevents future reviewers from flagging "missing" features that were intentionally deferred.
+    7. **Performance & UX considerations** — minimum clicks, latency budget, mobile responsiveness, accessibility, keyboard navigation, loading/empty/error states. UX choices made and rejected (e.g. "considered modal flow, picked inline confirm because 1 fewer click on mobile").
+    8. **Test coverage summary** — what tests exist, what they prove, what was NOT tested and why. Include test file paths.
+    9. **Rollback plan** — exact steps to revert this phase if a problem emerges later (kill-switch flag, git revert range, env var to flip, systemd restart command, DB migration to roll back). A reviewer should be able to roll back without paging Sean.
+    10. **Future review hooks** — **the most important section.** A bullet list of explicit prompts for the next reviewer: "re-examine the redaction regex against new key formats published since 2026-04," "audit rate-limit window for DoS feasibility," "check if `wiki/clients/` gating still aligns with privacy policy when client count grows past 50," "verify the kill-switch still disables all six tools after future toolset additions." Each hook is one specific thing to look at, not vague handwaving.
+    11. **Codex / AI review log** — chronological list of every review pass, verdict, and what changed in response. Captures the dialectic that produced the final state (Rev 1 → Rev 2 → Rev 3 → APPROVE).
+    12. **Sign-off** — Sean's explicit "this phase is complete" timestamp, the commit SHA(s) that ship the phase, and the next-action pointer (next phase / parking / monitoring window).
+
+    **When this triggers (mandatory):**
+    - Sean says any of: "phase complete," "ship and close," "we're good," "consider this done," "wrap this up," "log this and close."
+    - A multi-day workstream merges to `main`.
+    - A feature flag is flipped from off to on in production.
+    - A security-sensitive change ships (auth, redaction, allowlist, env handling, anything touching PII or credentials).
+    - A debate file reaches CONSENSUS REACHED.
+    - W1.0 / W1.1 / W2 / W3 / W4 of any plan completes (sprint-style sub-phases also qualify).
+
+    **When this does NOT trigger:**
+    - Single-line bug fixes (record in commit message; no audit doc).
+    - Trivial doc edits, typo fixes, formatting passes.
+    - Mid-phase work-in-progress (the audit record lands at phase CLOSE, not during).
+
+    **Reviewer-friendliness checklist before declaring the audit record complete:**
+    - [ ] Could an AI with no prior context find every relevant file from this doc alone?
+    - [ ] Is every security control labeled with WHAT/WHY/HOW-IT-BREAKS?
+    - [ ] Are the "Future review hooks" specific enough to act on without follow-up questions?
+    - [ ] Is the rollback plan executable by someone who didn't build the phase?
+
+    **Why:** Sean's words 2026-04-25 — "I'm always gonna want to come back and analyze and relook at logic and code to make sure that everything is running in best practices to prevent data leaks and security break-ins and hackers… or even just as an overall better way to code the logic so that it could be allowed to run faster… and have better features for the logic which would make everything more convenient and easy to use because we want everything to be as easy to use as possible and we want everything to take the least amount of time as possible and we want everything to have the least amount of clicks as possible." A phase that ships without this artifact is a phase whose security posture cannot be re-audited later — that is unacceptable for a production SaaS handling client PII, payment data, and (via Hermes) family/medical/immigration data.
+
+    **How to apply:**
+    - When Sean signals phase close, draft the audit record FIRST, then declare the work done.
+    - Land the audit record in `docs/ai-workflow/AI-HANDOFF/`. Add a one-line pointer in `ACTIVE-INDEX.md` if the phase is significant enough to be discoverable from the index.
+    - The closeout-evidence-lock skill (rule 41) is the per-task closeout gate; this rule 48 audit record is the per-phase permanent artifact. They are complementary, not duplicative — closeout runs at every task close; the audit record runs at every phase close.
+    - Future re-review: Sean re-opens the audit record, runs through "Future review hooks," and either invokes Codex/Gemini/Village or works the items down himself.
+
+49. **No Manual Code Inspection by Sean (MANDATORY)** — Established 2026-04-26. Claude MUST NEVER ask Sean to manually open, read, paste, eyeball, or inspect code from the codebase to answer a structural question about it. If a question can be answered by automated structural analysis — Python `ast` parsing, scoped grep, file inventory, callsite enumeration, return-statement analysis, import graph walk, etc. — Claude builds a narrow Rule 47 supervised read-only launcher that produces a structural digest. Sean's role is to RUN the launcher, not to read the file.
+
+    **Disallowed phrasings (Claude must never produce these):**
+    - "please open this file in your editor and tell me what line X says"
+    - "manually inspect the function body and confirm whether..."
+    - "read lines N-M and report back"
+    - "eyeball the code and let me know if..."
+    - "could you check that helper and tell me..."
+    - "verify by hand that..."
+
+    **Required substitution:** any of the above is replaced with a tiny Rule 47 launcher (`c:/tmp/<task>-<slice>.{ps1,sh,out.txt}`) that uses `ast.parse` / scoped `grep` / file metadata to answer the structural question with redacted, structural-digest-only output (file:line, function names, boolean signals, counts, return-statement analysis). Sean runs the launcher, types `done`, Claude reads the output. Total Sean interaction: one launcher invocation, not a code-reading session.
+
+    **Categories of structural questions answerable by launcher (non-exhaustive):**
+    - "What does this function return when env var X is unset?" → AST walk for `Return` nodes inside the function, classify each return value as constant True/False/None or non-literal expression.
+    - "Where is helper X called?" → walk all `.py` files (with scoped exclusions), find every `Call` node where the resolved name matches X, output `file:enclosing_function:line`.
+    - "Is this gate fail-open or fail-closed?" → walk the function's top-level body, examine early `Return` constants, classify by branch.
+    - "How many handlers match pattern Y?" → AST count, no body content.
+    - "Does this module import X?" → inspect `Import`/`ImportFrom` nodes only.
+    - "Is variable Z set in the running process?" → `/proc/$PID/environ` presence check, value reported as count/length only.
+
+    **Why:** Sean's words 2026-04-26 — "I don't want to ever have to manually inspect code." Manual inspection is slow, error-prone, and creates new risk (Sean copy-pastes code into chat → leaks sensitive content into LLM context, which has caused upstream API content-policy refusals during this session). Launchers are auditable, deterministic, fail-safe, and don't depend on human grep skill or willingness to scroll through unfamiliar files. The W1.0c → W1.0d → W1.0e chain established that any structural question about Hermes runtime code can be answered with a 30-80 line digest from a 50-line launcher.
+
+    **How to apply:** Whenever Claude is about to write a sentence like "could you check..." / "manually verify..." / "read lines X-Y and tell me..." / "what does this function return when..." — STOP, build the launcher instead. Show the disclosure block per Rule 47, hand Sean one command, wait for `done`, read the digest. The only acceptable Sean-as-reader role is for Markdown documentation Claude has produced (where Sean reviews FINDINGS or PLANS, not raw source code).
+
+    **Exception:** Sean may CHOOSE to inspect code on his own initiative — for his own learning, sanity-check, or to volunteer information. That's fine. The rule prohibits Claude from REQUESTING manual inspection as a protocol step. If Sean offers manual inspection unprompted, Claude accepts that input but does not normalize it into a future protocol — the next similar question must still go through a launcher.
+
+50. **Three-Layer QA Pipeline (MANDATORY)** — Every change passes through up to three review/verification layers, picked by scope:
+    - **Tier A — Deterministic tooling.** Type-check, linter, formatter, unit/integration tests, secret scan, repo-hygiene scan. Always-on; cheap; runs first.
+    - **Tier B — AI cross-review.** The 3-Brain pipeline (Claude builds → Gemini reviews → Codex is final gate, per rule 46). Mandatory for substantial changes; not optional.
+    - **Tier C — AI Village (14-Brain).** Episodic, paid, reserved. Only invoked when one of six binary triggers fires (auth/authz, Stripe webhook, multi-tenant scoping, Sean-declared pre-launch hardening, minor's-data path, cross-service architectural change). Even when a trigger fires, requires Sean's explicit per-run permission (rule 16).
+
+    QA tier (review/verification) is **orthogonal** to workflow path (Fast / Standard / Deploy execution shape). A Fast-Path change still passes Tier-A; a Deploy-Path change passes A + B + (when triggered) C. Full doctrine: `docs/ai-workflow/references/QA-PIPELINE.md`. Workflow paths: `docs/ai-workflow/references/WORKFLOW-PATHS.md`.
+
+51. **Confidence-Tag Discipline (MANDATORY)** — Non-trivial factual or causal claims about the codebase or system behavior carry exactly one tag: `[VERIFIED]` (confirmed by file read, executed test, observed network response, or other reproducible evidence in the current session), `[LIKELY]` (high confidence based on consistent evidence; not directly verified for the current claim), `[HYPOTHESIS]` (reasoned guess; could be wrong; must be verified before acting on it), `[UNKNOWN]` (don't know, haven't checked, no usable evidence yet).
+
+    **Scoping — what these tags do NOT apply to:**
+    - **Routine status updates** ("file edited successfully," "test passes," "commit created at SHA abc123").
+    - **Tool call results.** Tool output speaks for itself; no tag needed.
+    - **Basic acknowledgments** ("understood," "proceeding with the slice you approved," "noted").
+    - **Direct file reads quoted with file:line citation** — the citation IS the evidence; the read result is `[VERIFIED]` by construction.
+
+    The tags exist to surface uncertainty about **claims** — assertions that the reader might act on. They are not a label that goes on every sentence. Burying uncertainty inside confident prose ("the storage is likely safe but I'm not sure") = doctrine violation; either tag explicitly or rewrite with concrete evidence. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 5.
+
+52. **Anti-Rework Burden of Proof (MANDATORY)** — Before flagging code as broken, check git history and context. The area is "recently-passed gate" if EITHER condition is true:
+
+    - **Closeout artifact exists:** any file under `docs/ai-workflow/AI-HANDOFF/` whose filename contains the literal substring `CLOSEOUT` (case-insensitive).
+    - **Codex APPROVE within 14 days:** file matching `docs/ai-workflow/AI-HANDOFF/OPUS-CODEX-DEBATE-*.md` that names the file/area AND contains literal token `APPROVE` or `APPROVED` AND has filesystem mtime within 14 calendar days.
+
+    If recently-passed-gate, burden of proof to re-flag is HIGH: failing test exercising the actual code path, specific file:line evidence, OR citation of the rule/contract being violated. Sean-relayed external claims ("Codex says X is broken") are treated as `[HYPOTHESIS]` until verified — first response is "Before I change this, I need to verify. What's the reproduction?" Sean may explicitly override the verification gate; the override is on him and the change carries `[UNVERIFIED]` annotation. The 14-day clock is filesystem mtime, not Sean's last-touched-this-conversation date. Full doctrine: `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` Doctrine 3.
 
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
@@ -325,10 +446,17 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Auto Research | `docs/ai-workflow/references/AUTO-RESEARCH.md` | Running skill optimization |
 | App AI Hive Mind | `docs/ai-workflow/references/APP-AI-HIVE-MIND.md` | AI chat features |
 | Hermes + Wiki + Mythos | `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md` | AI command center, Hermes Agent, Karpathy Wiki, Mythos planning |
+| Hermes ↔ SwanStudios Operator Bridge | `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` | **Boundary clarifier.** Distinguishes public Swan Coach (in-app product feature) from Sean-only Hermes Operator Mode (Pi+Telegram). Read when scoping any task that crosses Hermes/SwanStudios. Reaffirms: SwanStudios production stability outranks Hermes polish unless Sean names Hermes the active task; Hermes assists rule-46 review loop but never bypasses Codex final gate. |
 | Plaud Audio Intelligence | `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` | Voice logging, Plaud NotePin, audio import, transcript parsing, session recap |
 | OpenClaw (SUPERSEDED) | `docs/ai-workflow/references/OPENCLAW-PLAN.md` | SUPERSEDED by Hermes plan — kept for reference only |
 | Skills Reference | `docs/ai-workflow/references/SKILLS-REFERENCE.md` | Skill management |
-| 3-Tier Workflow | `docs/ai-workflow/references/THREE-TIER-WORKFLOW.md` | Choosing dev workflow tier |
+| QA Pipeline | `docs/ai-workflow/references/QA-PIPELINE.md` | **MANDATORY** — defines the three-layer review/verification pipeline (Tier-A deterministic tooling, Tier-B AI cross-review, Tier-C AI Village). Read before invoking Tier-C, before designing a Tier-B review checklist, or when uncertain which tier a change requires. Encodes rules 50–52. |
+| Reviewer Discipline | `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` | **MANDATORY** when writing a review (Tier-B), responding to a user-relayed claim ("the other AI said X is broken"), or before any non-trivial factual/causal claim leaves your output. Six anti-sycophancy doctrines. Encodes rules 50–52. |
+| Workflow Paths | `docs/ai-workflow/references/WORKFLOW-PATHS.md` | Choosing how to run a change end-to-end (Fast / Standard / Deploy execution shape). **Orthogonal** to QA tier — see QA-PIPELINE.md for the review/verification layers. |
+| ESLint Setup | `docs/ai-workflow/references/ESLINT-SETUP.md` | Tier-A linter install/config (deferred install slice). |
+| Claude Permission Syntax | `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` | `.claude/settings.json` permission patterns — read when editing allow/deny rules. |
+| Karpathy Wiki Operations | `docs/ai-workflow/references/KARPATHY-WIKI-OPERATIONS.md` | Hermes Wiki Bridge runtime ops, ingest, redaction posture. |
+| SwanStudios Full Vision | `docs/ai-workflow/references/SWANSTUDIOS-FULL-VISION.md` | Long-form product/business vision. Read for "where is this going" framing; for sequencing, defer to `SWANSTUDIOS-EXECUTION-ROADMAP.md`. |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 

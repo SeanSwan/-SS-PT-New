@@ -5,10 +5,27 @@
 ---
 
 ## 14-Brain Recursive Consensus System (MANDATORY)
-SwanStudios uses a 14-Brain AI validation pipeline for Sean's development work. **Run before every production deploy.**
+SwanStudios uses a 14-Brain AI validation pipeline for Sean's development work. **Episodic, paid, reserved.** Tier-C escalation only — see "When to invoke" below.
+
+### When to invoke (Tier-C trigger gate)
+
+The Village is the **Tier-C** layer of the QA pipeline. Canonical trigger list lives in `QA-PIPELINE.md` §"Tier C — AI Village (episodic, reserved)". Do **not** duplicate the list here — invoke this doc only after the trigger check has been satisfied per QA-PIPELINE.md.
+
+Triggers, by name only (full binary definitions in QA-PIPELINE.md):
+
+1. Auth or authz code path
+2. Stripe payment or webhook code path
+3. Multi-tenant data scoping change
+4. Sean-declared pre-launch hardening (literal-phrase enumeration in QA-PIPELINE.md)
+5. Minor's-data code path
+6. Cross-service architectural change (3+ top-level dirs)
+
+**Permission gate:** even when a trigger fires, Village invocation requires Sean's explicit per-run permission (CLAUDE.md rule 16). Trigger means "Sean SHOULD consider Village; surface the qualifying trigger and ask," not "auto-run."
+
+**Anti-pattern:** running this orchestrator for changes outside the trigger list. That is a tier-inflation violation per `QA-PIPELINE.md`. Use Tier-A + Tier-B only for non-trigger work.
 
 ```bash
-# Run validation on recent changes
+# Run validation on recent changes (only after Tier-C trigger satisfied + Sean's per-run permission)
 node scripts/validation-orchestrator.mjs
 
 # Run on specific files
