@@ -5,8 +5,8 @@
 **Commits:**
 - Commit A — `b3c55bad5` — `docs(ai-workflow): formalize three-layer QA pipeline + anti-sycophancy doctrine`
 - Commit B — `1518a5f56` — `docs(ai-workflow): track previously-untracked references resolved by doctrine refactor`
-**Push status:** held pending Sean's explicit push authorization
-**Verdict (pre-push):** PENDING SEAN PUSH AUTHORIZATION
+**Push status:** landed at `b3c55bad5..d4ef5ba0e` on `origin/main` 2026-04-27
+**Verdict:** APPROVED
 
 ---
 
@@ -40,7 +40,7 @@
 
 ## 2. Self-Validation Moments — the doctrine validating itself during its own creation
 
-This refactor was novel in that the doctrine being installed was repeatedly applied to its own creation. Six moments where it caught real precision gaps:
+This refactor was novel in that the doctrine being installed was repeatedly applied to its own creation. Seven moments where it caught real precision gaps:
 
 ### Moment 1 — FULL-VISION archive recommendation reversed (Doctrine 2: disagreement is a feature)
 The initial audit recommended archiving `SWANSTUDIOS-FULL-VISION.md` as redundant with `EXECUTION-ROADMAP.md`. Honest diff showed only ~25-30% overlap — vision content was substantively distinct from sequencing content. Reversed the recommendation: kept the file, added an index entry, tightened §7 only. **Caught:** premature consolidation that would have lost vision-framing content.
@@ -63,6 +63,13 @@ While staging Commit C, re-verification using `git ls-files --error-unmatch` rev
 **Caught:** a closeout artifact about to lock in `APPROVED` status under Rule 52 with a factually wrong sweep finding embedded in it. Future Claude sessions reading the closeout would have planned a `git filter-repo` slice scoped to files that don't need it, and would have failed to plan the audit-before-track work for files that do.
 
 **Methodology fix going forward:** sweeps targeting "tracked files only" must use `git grep <pattern>` (which only searches tracked content by default) or `grep <pattern> $(git ls-files)`. Plain `grep` against the worktree silently includes untracked drift and produces false-positive remediation scope.
+
+### Moment 7 — Stale push-status line caught at Commit D staging gate (Doctrine 1: evidence-first claims)
+While staging Commit D (the post-push verdict flip), re-reading the closeout's top-of-file metadata revealed the `Push status:` line still said "held pending Sean's explicit push authorization" — factually false the moment push of A+B+C landed. The original Commit D spec was a single-line verdict flip; expanding to also update the push-status line was a minor scope expansion (2 lines instead of 1) but eliminated a residual inaccuracy at the exact gate intended to bring the artifact in line with post-push reality.
+
+**Caught:** an artifact about to assert `APPROVED` while still containing a stale "push held" claim above the verdict line. Without the catch, Rule 52 binary detection would have fired correctly (filename + `APPROVED` token + fresh mtime) but a careful reader of the artifact would have seen contradictory metadata in the same document.
+
+**Pattern:** the doctrine validated itself seven times during its creation — including this final self-correction at the literal last gate of the slice. The pattern to keep is "re-read every artifact at every commit gate, not just at major checkpoints," because staleness compounds quickly when a document is written across many sessions and the underlying state changes between writes.
 
 ---
 
@@ -276,6 +283,6 @@ These are not part of this slice. Calling them out so future sessions can pick t
 
 ## 6. Verdict
 
-**APPROVED** — slice complete pending Sean's push authorization. Doctrine validated itself six times during its own creation, including a final closeout-staging-gate catch where `git ls-files --error-unmatch` re-verification corrected a sweep methodology error that would have over-stated the history-rewrite remediation scope by ~3x. Net outcome: two follow-up slices scoped — `git-history-redaction-family-pii-2026-04` (tracked exposure, history rewrite, target by 2026-05-03) and `worktree-redaction-family-pii-2026-04` (untracked exposure, audit-before-track gate, no fixed deadline).
+**APPROVED** — slice complete; A+B+C landed on `origin/main` 2026-04-27. Doctrine validated itself seven times during its own creation, including a final commit-D-staging catch where re-reading the artifact's own metadata caught a stale `Push status:` line that would have left contradictory state alongside the `APPROVED` verdict. Net outcome: two follow-up slices scoped — `git-history-redaction-family-pii-2026-04` (tracked exposure, history rewrite, target by 2026-05-03) and `worktree-redaction-family-pii-2026-04` (untracked exposure, audit-before-track gate, no fixed deadline).
 
 This artifact's filename contains the literal substring `CLOSEOUT` per Rule 52 binary detection; future sessions querying "is this area a recently-passed gate?" against the doctrine refactor scope (CLAUDE.md rules 50-52, QA-PIPELINE.md, REVIEWER-DISCIPLINE.md, WORKFLOW-PATHS.md) should treat the answer as YES until 2026-05-10 (14 calendar days from artifact mtime) and apply the burden-of-proof gate accordingly.
