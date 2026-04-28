@@ -327,11 +327,114 @@ After Sprint A: SwanStudios is professionally usable. After Sprint B: it has a m
 
 ---
 
-## §10 — Playwright Run Results
+## §10 — Playwright Run Results (executed 2026-04-28 06:17-06:22 UTC)
 
-> **PENDING.** Browser MCP locked at session-start time. Section will be populated when the lock clears or Sean unblocks.
+**Browser:** Playwright MCP, Sean's admin session (id=2, role=admin), JWT iat=1777357047 / exp=1777367847 (3h lifetime per F-4).
+**Coverage:** 17 of 17 client-dashboard tabs navigated. Token decoded; auth confirmed.
 
-When this section is filled, expect: per-tab screenshot, per-tab network request count, per-tab console error count, controlled-fail evidence for the food-intake 500, controlled-fail evidence for the challenge-modal stub, and any unexpected findings.
+### §10.1 Per-tab verdict
+
+| Tab | Route | Console errors | Network errors | Verdict |
+|---|---|---|---|---|
+| Home | `/dashboard/client/overview` | 2 | 1 | ⚠️ `GET /api/ai/consent/status` returns **400** |
+| My Workouts | `/dashboard/client/workouts` | 0 | 0 | ✅ CLEAN |
+| Log Workout | `/dashboard/client/log-workout` | 0 | 0 | ✅ CLEAN |
+| Progress | `/dashboard/client/progress` | 24 | **12** | ❌ **CRITICAL — all 12 chart endpoints 400** |
+| Detailed Analytics | `/dashboard/client/progress/detailed` | **182** | (compounds 12×400) | ❌ **HIGH — Victory SVG NaN flood** when chart data is empty |
+| Coach Privacy | `/dashboard/client/ai-consent` | 2 | 1 | ⚠️ Same `/api/ai/consent/status` 400 |
+| Nutrition | `/dashboard/client/meal-planner` | 0 (initial) | 0 (initial) | ❌ **CRITICAL — food intake POST 500** (verified §10.2) |
+| Schedule | `/dashboard/client/schedule` | 0 | 0 | ✅ CLEAN |
+| Community | `/dashboard/client/community` | 0 | 0 | ✅ **All 8 social endpoints 200** — clears §4.2 [HIGH] verification need |
+| Messages | `/dashboard/client/messages` | 0 | 0 | ✅ CLEAN |
+| Profile | `/dashboard/client/profile` | 0 | 0 | ✅ CLEAN — analytics charts read with userId-in-path correctly |
+| Rewards | `/dashboard/client/rewards` | 0 | 0 | ✅ CLEAN |
+| Pain Chart | `/dashboard/client/body-map` | 0 | 0 | ✅ CLEAN |
+| Live | `/dashboard/client/live` | 0 | 0 | ✅ CLEAN |
+| Creators | `/dashboard/client/creators` | 0 | 0 | ✅ CLEAN |
+| My Home | `/dashboard/client/my-home` | 0 | 0 | ✅ CLEAN (locked behind Lvl 10) |
+| Virtual Olympics | `/dashboard/client/virtual-olympics` | 1 | 1 | ❌ **HIGH — `/api/olympics/events` returns 500** |
+| Coach Assistant (client) | `/dashboard/client/coach-assistant` | 0 | 0 | ✅ CLEAN |
+
+### §10.2 Food Intake 500 — full evidence captured
+
+**Triggered:** filled form (`QA Test Food`, `1 cup`, `100 cal`, `20p / 10c / 5f`, breakfast), clicked "Log Food Intake".
+**Request:** `POST /api/macros` body shape exactly as recon §3.2 predicted.
+**Response:** `HTTP 500` — body `{"success":false,"error":"Failed to log food entry"}` (52 bytes — generic catch-all from [dailyMacroRoutes.mjs:114](backend/routes/dailyMacroRoutes.mjs#L114)).
+**Auth verified:** localStorage `token` length 251 present; JWT decodes to `{id: 2, role: "admin"}`; `GET /api/macros/summary?date=...` on the same controller returns 200, **proving auth middleware attaches `req.user` correctly**.
+**Conclusion:** the recon's prime hypothesis (auth-attach gap, §3.4) is **disproven**. Auth is fine. The 500 is server-side — likely Sequelize validator failure, missing column on production, or a hook throwing inside `createSingleMacroEntry`. **Render logs needed to root-cause.** This is a 30-60 min slice once the actual exception is captured.
+
+### §10.3 Progress charts 12-fold 400 — root-caused live
+
+**The headline finding of this run, larger than the food-intake bug.**
+
+Frontend hits `/api/client/analytics/chart-*` (12 endpoints). All 12 return `HTTP 400` body `{"success":false,"message":"Invalid userId"}`. Even with `?userId=2` query, still 400.
+
+**Probed alternates:**
+- `/api/client/analytics/chart-workout-frequency` → **400 Invalid userId**
+- `/api/client/analytics/chart-workout-frequency?userId=2` → **400 Invalid userId**
+- `/api/client/analytics/2/chart-workout-frequency` → **404 endpoint not found**
+- `/api/analytics/2/chart-workout-frequency` → ✅ **200** with `{"success":true,"data":[]}`
+
+**Root cause:** the frontend's `useClientAnalytics`-class hooks call the wrong endpoint family. The canonical handler lives at `/api/analytics/{userId}/chart-*` (path-positioned userId). The path the frontend uses (`/api/client/analytics/chart-*`) either expects userId in a different position, or is a legacy route that no longer accepts the request. **Empty `data: []` is expected** — admin (id=2) has no workout sessions logged. That's not a bug; that's data state. The bug is the route mismatch.
+
+**Fix scope:** find the frontend hook(s) that build these URLs and correct the path shape (likely 1-2 lines per hook, unified through a base-URL helper). ~30-60 min once the file is found.
+
+### §10.4 Detailed Progress 182× SVG NaN errors
+
+`/dashboard/client/progress/detailed` floods console with errors of shape:
+```
+<tspan> attribute x: Expected length, "NaN".
+<text> attribute x: Expected length, "NaN".
+<line> attribute x1: Expected length, "NaN".
+<line> attribute x2: Expected length, "NaN".
+```
+
+**Root cause hypothesis `[LIKELY]`:** Victory chart components compute axis ticks from data extents. When data is empty (because the §10.3 endpoint 400'd OR because admin has no sessions), `min(data) / max(data)` produce `NaN`, and Victory passes those `NaN`s into SVG coordinate attributes. **Even after §10.3 is fixed**, this remains a real bug for any client whose history is genuinely empty (new users on day 1).
+
+**Fix:** wrap each chart in an empty-state guard — `if (data.length === 0) return <EmptyChartState />`. Or pass safe-default domain bounds when data is empty. ~1-2 hours across the chart grid.
+
+### §10.5 `/api/ai/consent/status` 400 — reproducible on two tabs
+
+Reproduces on `/dashboard/client/overview` AND `/dashboard/client/ai-consent`. Server returns 400 — likely missing query param or scope mismatch (similar pattern to chart endpoints). Not blocking core flow but pollutes console and breaks the consent-status banner state.
+
+**Fix scope:** ~15-30 min once the controller validator is read.
+
+### §10.6 Virtual Olympics 500
+
+`GET /api/olympics/events` returns `HTTP 500` with `{"success":false,"error":"Failed to load events"}` (generic catch-all, no useful body). Same pattern as food intake. Render log needed.
+
+### §10.7 Surfaces verified clean
+
+These tabs had **zero console errors and zero network 4xx/5xx**: Workouts, Log Workout, Schedule, Community, Messages, Profile, Rewards, Pain Chart, Live, Creators, My Home, Coach Assistant. **12 of 17 tabs are clean.**
+
+### §10.8 Updated bug priority (after live evidence)
+
+| Priority | Finding | Source | Estimated fix |
+|---|---|---|---|
+| **[CRITICAL]** | All 12 progress charts 400 — frontend hits wrong endpoint family | §10.3 | ~30-60 min |
+| **[CRITICAL]** | Food intake POST 500 | §10.2 (and §3) | ~30-60 min once Render log captured |
+| **[HIGH]** | Detailed Progress 182× SVG NaN flood when data empty | §10.4 | ~1-2 hrs across chart grid |
+| **[HIGH]** | `/api/ai/consent/status` 400 | §10.5 | ~15-30 min |
+| **[HIGH]** | Virtual Olympics events 500 | §10.6 | ~30-60 min once Render log captured |
+| **[HIGH]** | Community challenge detail modal stubbed (recon, not Playwright-confirmed but visible in code) | recon §4.1 | ~80-120 lines |
+| **[MEDIUM]** | Profile-edit form save handler — verify wired | recon §4.3 | 5 min file read |
+| **[CLEARED]** | Social endpoints exist | §10 Community row | none — all 200 |
+
+### §10.9 Updated fix sequence (replaces §9)
+
+**Sprint A — Critical Plumbing (3-5 days):**
+1. **Progress chart endpoint fix** — find frontend `useClientAnalytics` hook, correct URL shape from `/api/client/analytics/chart-*` to `/api/analytics/:userId/chart-*`. ~30-60 min + Canonical Surface Receipt + tests.
+2. **Detailed Progress empty-state guard** — wrap charts in `data.length === 0 → <EmptyChartState/>`. ~1-2 hrs.
+3. **Food intake 500 fix** — capture Render log → identify Sequelize/validator/missing-column → fix. ~30-60 min once log captured.
+4. **AI consent status 400 fix** — read controller validator → fix call site. ~15-30 min.
+5. **Olympics events 500 fix** — capture Render log → fix. ~30-60 min.
+6. **Phase 19 trainer-coaching-note visibility** — already scoped in `PHASE-19-TRAINER-VISIBILITY-RECEIPT-2026-04-27.md`. ~80 lines.
+
+After Sprint A: every tab loads cleanly, every chart renders, every form saves. The user dashboard is **production-grade usable.**
+
+**Sprint B — Engagement (5-7 days):** unchanged from §9 — share card, asymmetric trainer/client view, daily readiness, bounded leaderboard, auto-recap, challenge modal.
+
+**Sprint C — Stickiness (5-7 days):** unchanged from §9 — daily check-in, streak forgiveness, monthly badge cycle.
 
 ---
 
