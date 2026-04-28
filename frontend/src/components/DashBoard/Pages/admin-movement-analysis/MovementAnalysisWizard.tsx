@@ -396,7 +396,10 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
       }).catch(() => {});
     } else if (clientId && authAxios) {
       authAxios.get(`/api/admin/clients/${clientId}`).then((res: any) => {
-        const c = res.data?.data || res.data;
+        // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps
+        // the client one extra level deep: `{ data: { client, mcpStats } }`.
+        // Pierce that first; preserve `data.client` / `data` legacy fallbacks.
+        const c = res.data?.data?.client || res.data?.data || res.data;
         if (c) {
           setData((d) => ({
             ...d,

@@ -35,6 +35,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, X, Dumbbell, Flame, Trophy, Star, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { TIER_DISPLAY, type TierName } from '../../../../../types/gamification';
+import EnhancedWorkoutsModal from './EnhancedWorkoutsModal';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -165,6 +166,31 @@ const ListItem = styled.div`
   &:last-child { border-bottom: none; }
 `;
 
+const ClickableListItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: rgba(96, 192, 240, 0.06); }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+`;
+
 const Badge = styled.span<{ $color?: string }>`
   font-size: 0.6875rem;
   padding: 2px 8px;
@@ -250,6 +276,7 @@ const AdminViewAsWrapper: React.FC = () => {
   const [data, setData] = useState<ViewAsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const fetchViewAsData = useCallback(async () => {
     if (!userId || !authAxios) return;
@@ -275,7 +302,14 @@ const AdminViewAsWrapper: React.FC = () => {
       if (profileRes.status !== 'fulfilled' || !profileRes.value.data) {
         throw new Error('Failed to load user profile');
       }
-      const profile = profileRes.value.data.client || profileRes.value.data.user || profileRes.value.data;
+      // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps the
+      // client one extra level deep: `{ success, data: { client, mcpStats } }`.
+      // Older shapes (`{ client }` / `{ user }`) are kept in the fallback chain
+      // so legacy callers and tests don't break.
+      const profile = profileRes.value.data?.data?.client
+                   || profileRes.value.data?.client
+                   || profileRes.value.data?.user
+                   || profileRes.value.data;
 
       // Extract workouts (optional)
       const workouts = workoutsRes.status === 'fulfilled'
@@ -392,7 +426,7 @@ const AdminViewAsWrapper: React.FC = () => {
         <Shield size={18} color="#60C0F0" />
         <BannerText>
           Viewing as <strong>{user.firstName} {user.lastName}</strong> ({user.role})
-          — This is a read-only preview of their dashboard
+          — Admin preview of their dashboard
         </BannerText>
         <ExitBtn onClick={handleExit} aria-label="Exit impersonation view">
           <X size={14} /> Exit View
@@ -443,7 +477,12 @@ const AdminViewAsWrapper: React.FC = () => {
             <EmptyState>No workouts logged yet</EmptyState>
           ) : (
             workouts.map(w => (
-              <ListItem key={w.id}>
+              <ClickableListItem
+                key={w.id}
+                type="button"
+                onClick={() => setHistoryModalOpen(true)}
+                aria-label={`Open workout history (${w.title})`}
+              >
                 <Dumbbell size={14} color="#60C0F0" />
                 <div>
                   <div>{w.title}</div>
@@ -454,7 +493,7 @@ const AdminViewAsWrapper: React.FC = () => {
                 <Badge $color={w.status === 'completed' ? '#4caf50' : '#60C0F0'}>
                   {w.status}
                 </Badge>
-              </ListItem>
+              </ClickableListItem>
             ))
           )}
         </Panel>
@@ -479,6 +518,13 @@ const AdminViewAsWrapper: React.FC = () => {
           )}
         </Panel>
       </TwoCol>
+
+      <EnhancedWorkoutsModal
+        open={historyModalOpen}
+        clientId={user.id}
+        clientName={`${user.firstName} ${user.lastName}`.trim() || 'Client'}
+        onClose={() => setHistoryModalOpen(false)}
+      />
     </Wrapper>
   );
 };

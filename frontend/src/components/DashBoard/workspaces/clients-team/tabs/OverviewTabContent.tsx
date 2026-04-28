@@ -178,7 +178,10 @@ function useClientOverview(clientId: number | string) {
     })
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then(json => {
-        const c = json.client || json.data || json;
+        // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps
+        // the client one extra level deep: `{ data: { client, mcpStats } }`.
+        // Pierce that first; preserve legacy `client` / `data` fallbacks.
+        const c = json.data?.client || json.client || json.data || json;
         setData({
           totalWorkouts: c.totalWorkouts || c.workoutCount || 0,
           points: c.points || 0,
