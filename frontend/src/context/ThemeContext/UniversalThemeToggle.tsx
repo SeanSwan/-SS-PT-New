@@ -5,8 +5,8 @@
  * Crystalline Swan Theme Toggle Component
  *
  * Features:
- * - Four-state toggle: Crystalline Swan -> Arctic Dawn -> Void Crystal -> Monochrome
- * - Icons: Sparkles (default) -> Sun (light) -> Zap (dark/neon) -> Moon (mono)
+ * - Cycles through every registered theme in the shared themeCycle order
+ * - Per-theme icons and accessible descriptions
  * - Per-theme styling: glass glow for dark themes, clean solid for light
  * - Smooth morphing animations between states
  * - Mobile-optimized touch interactions (44px minimum target)
@@ -17,8 +17,8 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords, Flower2, TreePine, Waves, Crown, Leaf } from 'lucide-react';
-import { useUniversalTheme, ThemeId } from './UniversalThemeContext';
+import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords, Flower2, TreePine, Waves, Crown, Leaf, Gem, Orbit, Layers } from 'lucide-react';
+import { useUniversalTheme, ThemeId, themeCycle } from './UniversalThemeContext';
 
 // === KEYFRAME ANIMATIONS ===
 const stellarPulse = keyframes`
@@ -361,6 +361,7 @@ const ThemeIcon = styled(motion.div)`
   height: 100%;
   position: relative;
   z-index: 2;
+  pointer-events: none;
 `;
 
 const TooltipContainer = styled(motion.div)`
@@ -431,75 +432,91 @@ const TooltipContainer = styled(motion.div)`
   }
 `;
 
+type ThemeToggleIconKey =
+  | 'sparkles'
+  | 'sun'
+  | 'zap'
+  | 'moon'
+  | 'flame'
+  | 'snowflake'
+  | 'contrast'
+  | 'swords'
+  | 'flower'
+  | 'tree'
+  | 'waves'
+  | 'crown'
+  | 'leaf'
+  | 'gem'
+  | 'orbit'
+  | 'layers';
+
+export const themeToggleMetadata: Record<ThemeId, {
+  description: string;
+  icon: ThemeToggleIconKey;
+}> = {
+  'crystalline-default': { description: 'Crystalline Swan', icon: 'sparkles' },
+  'crystalline-light': { description: 'Arctic Dawn', icon: 'sun' },
+  'crystalline-dark': { description: 'Crystalline Dark', icon: 'zap' },
+  'crystalline-mono': { description: 'Monochrome', icon: 'moon' },
+  'cinematic-ember': { description: 'Obsidian Ember', icon: 'flame' },
+  'frozen-aurora': { description: 'Frozen Aurora', icon: 'snowflake' },
+  'obsidian-black': { description: 'Obsidian Black', icon: 'contrast' },
+  'cyberpunk-edgerunners': { description: 'Cyberpunk Cyan', icon: 'swords' },
+  'obsidian-bloom': { description: 'Obsidian Bloom', icon: 'flower' },
+  'frozen-canopy': { description: 'Frozen Canopy', icon: 'tree' },
+  'ember-realm': { description: 'Ember Realm', icon: 'flame' },
+  'twilight-lagoon': { description: 'Twilight Lagoon', icon: 'waves' },
+  'nebula-crown': { description: 'Nebula Crown', icon: 'crown' },
+  'enchanted-forest': { description: 'Enchanted Forest', icon: 'leaf' },
+  'void-crystal': { description: 'Void Crystal', icon: 'gem' },
+  'deep-ocean': { description: 'Deep Ocean', icon: 'waves' },
+  'obsidian-aurora': { description: 'Obsidian Aurora', icon: 'orbit' },
+  'carbon-fiber': { description: 'Carbon Fiber', icon: 'layers' },
+};
+
 // === THEME ICON MAPPING ===
 const getThemeIcon = (themeId: ThemeId, size = 20) => {
-  switch (themeId) {
-    case 'crystalline-default':
-      return <Sparkles size={size} />;
-    case 'crystalline-light':
+  const icon = themeToggleMetadata[themeId].icon;
+
+  switch (icon) {
+    case 'sun':
       return <Sun size={size} />;
-    case 'crystalline-dark':
+    case 'zap':
       return <Zap size={size} />;
-    case 'crystalline-mono':
+    case 'moon':
       return <Moon size={size} />;
-    case 'cinematic-ember':
+    case 'flame':
       return <Flame size={size} />;
-    case 'frozen-aurora':
+    case 'snowflake':
       return <Snowflake size={size} />;
-    case 'obsidian-black':
+    case 'contrast':
       return <Contrast size={size} />;
-    case 'cyberpunk-edgerunners':
+    case 'swords':
       return <Swords size={size} />;
-    case 'obsidian-bloom':
+    case 'flower':
       return <Flower2 size={size} />;
-    case 'frozen-canopy':
+    case 'tree':
       return <TreePine size={size} />;
-    case 'ember-realm':
-      return <Flame size={size} />;
-    case 'twilight-lagoon':
+    case 'waves':
       return <Waves size={size} />;
-    case 'nebula-crown':
+    case 'crown':
       return <Crown size={size} />;
-    case 'enchanted-forest':
+    case 'leaf':
       return <Leaf size={size} />;
+    case 'gem':
+      return <Gem size={size} />;
+    case 'orbit':
+      return <Orbit size={size} />;
+    case 'layers':
+      return <Layers size={size} />;
+    case 'sparkles':
     default:
       return <Sparkles size={size} />;
   }
 };
 
 const getThemeDescription = (themeId: ThemeId) => {
-  switch (themeId) {
-    case 'crystalline-default':
-      return 'Crystalline Swan';
-    case 'crystalline-light':
-      return 'Arctic Dawn';
-    case 'crystalline-dark':
-      return 'Void Crystal';
-    case 'crystalline-mono':
-      return 'Monochrome';
-    case 'cinematic-ember':
-      return 'Obsidian Ember';
-    case 'frozen-aurora':
-      return 'Frozen Aurora';
-    case 'obsidian-black':
-      return 'Obsidian Black';
-    case 'cyberpunk-edgerunners':
-      return 'Cyberpunk Edgerunners';
-    case 'obsidian-bloom':
-      return 'Obsidian Bloom';
-    case 'frozen-canopy':
-      return 'Frozen Canopy';
-    case 'ember-realm':
-      return 'Ember Realm';
-    case 'twilight-lagoon':
-      return 'Twilight Lagoon';
-    case 'nebula-crown':
-      return 'Nebula Crown';
-    case 'enchanted-forest':
-      return 'Enchanted Forest';
-    default:
-      return 'Crystalline Swan';
-  }
+  return themeToggleMetadata[themeId].description;
 };
 
 // === MAIN COMPONENT ===
@@ -514,15 +531,14 @@ const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
   size = 'medium',
   className
 }) => {
-  const { currentTheme, toggleTheme, availableThemes } = useUniversalTheme();
+  const { currentTheme, toggleTheme } = useUniversalTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltipState, setShowTooltipState] = useState(false);
 
   // Get next theme for tooltip
-  const themeIds = availableThemes.map(t => t.id);
-  const currentIndex = themeIds.indexOf(currentTheme);
-  const nextIndex = (currentIndex + 1) % themeIds.length;
-  const nextTheme = themeIds[nextIndex];
+  const currentIndex = themeCycle.indexOf(currentTheme);
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeCycle.length : 0;
+  const nextTheme = themeCycle[nextIndex];
 
   // Handle tooltip display
   useEffect(() => {

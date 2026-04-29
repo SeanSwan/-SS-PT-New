@@ -237,7 +237,7 @@ const crystallineLight = {
  */
 const crystallineDark = {
   id: 'crystalline-dark' as const,
-  name: 'Crystalline Swan',
+  name: 'Crystalline Dark',
   fonts,
   effects: {
     glassmorphism: true,
@@ -1592,6 +1592,8 @@ export const themes = {
 
 export type ThemeId = keyof typeof themes;
 
+export const themeCycle = Object.keys(themes) as ThemeId[];
+
 // === THEME TYPE (union of all theme variants) ===
 export type CrystallineTheme = (typeof themes)[ThemeId];
 
@@ -1646,15 +1648,9 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
 
   // Cycle through all themes
   const toggleTheme = () => {
-    const cycle: ThemeId[] = [
-      'crystalline-default', 'crystalline-light', 'crystalline-dark',
-      'crystalline-mono', 'cinematic-ember', 'frozen-aurora', 'obsidian-black',
-      'cyberpunk-edgerunners', 'obsidian-bloom', 'frozen-canopy',
-      'ember-realm', 'twilight-lagoon', 'nebula-crown', 'enchanted-forest',
-    ];
-    const currentIndex = cycle.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % cycle.length;
-    setTheme(cycle[nextIndex]);
+    const currentIndex = themeCycle.indexOf(currentTheme);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeCycle.length : 0;
+    setTheme(themeCycle[nextIndex]);
   };
 
   // Available themes list
