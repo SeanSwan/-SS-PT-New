@@ -61,10 +61,10 @@ export const slideInRight = keyframes`
 
 export const subtleGlow = keyframes`
   0%, 100% {
-    box-shadow: 0 0 20px rgba(96, 192, 240, 0.1), 0 8px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), 0 8px 32px rgba(0, 0, 0, 0.12);
   }
   50% {
-    box-shadow: 0 0 30px rgba(96, 192, 240, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent), 0 12px 40px rgba(0, 0, 0, 0.15);
   }
 `;
 
@@ -124,9 +124,9 @@ export const ProfileContainer = styled(motion.div)`
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+    background: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent-gold, #C6A84B) 5%, transparent) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
   }
@@ -243,7 +243,7 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   background: ${({ $backgroundImage, theme }) =>
     $backgroundImage
       ? `url(${$backgroundImage})`
-      : theme.gradients?.hero || 'linear-gradient(135deg, #002060 0%, #003080 40%, #4070C0 100%)'
+      : theme.gradients?.hero || 'linear-gradient(135deg, var(--bg-base, #002060) 0%, var(--bg-surface, #003080) 40%, var(--accent-secondary, #4070C0) 100%)'
   };
   background-size: cover;
   background-position: center;
@@ -301,11 +301,11 @@ export const BannerUploadButton = styled.button`
   gap: 6px;
   padding: 8px 14px;
   min-height: 44px;
-  border: 1px solid rgba(198, 168, 75, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent);
   border-radius: 12px;
-  background: rgba(0, 32, 96, 0.65);
+  background: color-mix(in srgb, var(--bg-base, #002060) 65%, transparent);
   backdrop-filter: blur(16px);
-  color: #E0ECF4;
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -316,9 +316,9 @@ export const BannerUploadButton = styled.button`
 
   &:hover {
     opacity: 1;
-    background: rgba(0, 48, 128, 0.85);
-    border-color: #60C0F0;
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.3);
+    background: color-mix(in srgb, var(--bg-surface, #003080) 85%, transparent);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
     transform: translateY(-1px);
   }
 
@@ -379,14 +379,14 @@ export const BadgeIcon = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: rgba(0, 32, 96, 0.6);
-  border: 2px solid rgba(96, 192, 240, 0.3);
-  box-shadow: 0 0 12px rgba(96, 192, 240, 0.15);
+  background: color-mix(in srgb, var(--bg-base, #002060) 60%, transparent);
+  border: 2px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #60C0F0;
-    box-shadow: 0 0 20px rgba(96, 192, 240, 0.35);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
     transform: translateY(-2px);
   }
 
@@ -450,10 +450,10 @@ export const ProfileImageContainer = styled(motion.div)`
     border-radius: 50%;
     background: conic-gradient(
       from 0deg,
-      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0deg,
-      ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 120deg,
-      ${({ theme }) => theme.colors?.accent || '#F59E0B'} 240deg,
-      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 360deg
+      var(--accent-primary, #60C0F0) 0deg,
+      var(--accent-secondary, #8B5CF6) 120deg,
+      var(--accent-gold, #C6A84B) 240deg,
+      var(--accent-primary, #60C0F0) 360deg
     );
     animation: ${pulseScale} 4s ease-in-out infinite;
     opacity: 0.8;
@@ -550,11 +550,11 @@ export const ProfileImage = styled.div<{ $image?: string }>`
       border: 4px solid var(--bg-base, #002060);
     `
     : css`
-      background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
+      background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-white, #E0ECF4);
       font-size: 3.5rem;
       font-weight: 700;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -606,11 +606,11 @@ export const ImageUploadButton = styled(motion.button)`
   height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg,
-    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
-    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
+    var(--accent-primary, #60C0F0) 0%,
+    var(--accent-secondary, #8B5CF6) 100%
   );
   border: 3px solid var(--bg-base, #002060);
-  color: white;
+  color: var(--color-white, #E0ECF4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -630,8 +630,8 @@ export const ImageUploadButton = styled(motion.button)`
       0 4px 12px rgba(0, 0, 0, 0.3),
       inset 0 1px 2px rgba(255, 255, 255, 0.3);
     background: linear-gradient(135deg,
-      ${({ theme }) => theme.colors?.accent || '#F59E0B'} 0%,
-      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 100%
+      var(--accent-gold, #C6A84B) 0%,
+      var(--accent-primary, #60C0F0) 100%
     );
   }
 
@@ -728,10 +728,10 @@ export const DisplayName = styled.h1`
   font-weight: 800;
   background: linear-gradient(
     135deg,
-    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
-    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 35%,
-    ${({ theme }) => theme.colors?.accent || '#F59E0B'} 70%,
-    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 100%
+    var(--accent-primary, #60C0F0) 0%,
+    var(--accent-secondary, #8B5CF6) 35%,
+    var(--accent-gold, #C6A84B) 70%,
+    var(--accent-primary, #60C0F0) 100%
   );
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -753,10 +753,10 @@ export const DisplayName = styled.h1`
     left: 0;
     background: linear-gradient(
       135deg,
-      rgba(59, 130, 246, 0.1) 0%,
-      rgba(139, 92, 246, 0.1) 35%,
-      rgba(245, 158, 11, 0.1) 70%,
-      rgba(59, 130, 246, 0.1) 100%
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent) 0%,
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent) 35%,
+      color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent) 70%,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent) 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -829,10 +829,10 @@ export const UserRole = styled(motion.span)`
   padding: 0.75rem 1.5rem;
   background: linear-gradient(
     135deg,
-    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
-    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
+    var(--accent-primary, #60C0F0) 0%,
+    var(--accent-secondary, #8B5CF6) 100%
   );
-  color: white;
+  color: var(--color-white, #E0ECF4);
   border-radius: 30px;
   font-size: 1rem;
   font-weight: 700;
@@ -997,9 +997,9 @@ export const StatItem = styled(motion.div)`
       0 12px 32px rgba(0, 0, 0, 0.2),
       0 6px 16px rgba(0, 0, 0, 0.15),
       inset 0 1px 2px rgba(255, 255, 255, 0.1),
-      0 0 20px rgba(139, 92, 246, 0.05);
+      0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
     /* V3: Cyan glow on hover */
-    border-color: rgba(139, 92, 246, 0.15);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
 
     &::before {
       left: 100%;
@@ -1048,9 +1048,9 @@ export const StatValue = styled.div`
   font-weight: 800;
   background: linear-gradient(
     135deg,
-    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
-    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 50%,
-    ${({ theme }) => theme.colors?.accent || '#F59E0B'} 100%
+    var(--accent-primary, #60C0F0) 0%,
+    var(--accent-secondary, #8B5CF6) 50%,
+    var(--accent-gold, #C6A84B) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1063,7 +1063,7 @@ export const StatValue = styled.div`
 
   /* Fallback for browsers that don't support background-clip */
   @supports not (-webkit-background-clip: text) {
-    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    color: var(--accent-primary, #60C0F0);
     background: none;
   }
 
@@ -1188,8 +1188,8 @@ export const PrimaryButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #60C0F0, #8B5CF6)'};
-  color: white;
+  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))'};
+  color: var(--color-white, #E0ECF4);
   border: none;
   border-radius: 12px;
   font-weight: 600;
@@ -1241,8 +1241,8 @@ export const SecondaryButton = styled(motion.button)`
     background: var(--bg-surface, var(--bg-elevated));
     transform: translateY(-2px);
     /* V3: Cyan glow on hover */
-    border-color: rgba(139, 92, 246, 0.15);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.05);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
   }
 
   @media (max-width: 768px) {
@@ -1305,8 +1305,8 @@ export const SidebarCard = styled(motion.div)`
   backdrop-filter: blur(24px);
 
   &:hover {
-    border-color: rgba(139, 92, 246, 0.15);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2), 0 0 20px rgba(139, 92, 246, 0.05);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2), 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
   }
 
   /* V3: Extended breakpoints */
@@ -1416,7 +1416,7 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
     $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6))' : 'transparent'
   };
   color: ${({ $active }) =>
-    $active ? 'white' : 'var(--text-secondary)'
+    $active ? 'var(--color-white, #E0ECF4)' : 'var(--text-secondary)'
   };
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1428,7 +1428,7 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
       $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6))' : 'var(--bg-surface, var(--bg-elevated))'
     };
     color: ${({ $active }) =>
-      $active ? 'white' : 'var(--text-primary)'
+      $active ? 'var(--color-white, #E0ECF4)' : 'var(--text-primary)'
     };
   }
 
@@ -1464,7 +1464,7 @@ export const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  color: ${({ theme }) => theme.colors?.primary || '#60C0F0'};
+  color: var(--accent-primary, #60C0F0);
 `;
 
 export const LoadingSpinner = styled.div`
@@ -1480,4 +1480,3 @@ export const LoadingSpinner = styled.div`
     100% { transform: rotate(360deg); }
   }
 `;
-

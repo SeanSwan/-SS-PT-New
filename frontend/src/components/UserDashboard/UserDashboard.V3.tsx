@@ -114,10 +114,10 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
             onClick={() => window.location.reload()}
             style={{
               padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
+              background: 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))',
               border: 'none',
               borderRadius: '8px',
-              color: 'white',
+              color: 'var(--color-white, #E0ECF4)',
               cursor: 'pointer',
               fontWeight: '600'
             }}
@@ -475,19 +475,19 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                         alignItems: 'center',
                         padding: '0.5rem 0.75rem',
                         borderRadius: '10px',
-                        background: 'rgba(96, 192, 240, 0.04)',
-                        border: '1px solid rgba(96, 192, 240, 0.06)',
+                        background: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)',
                         transition: 'all 0.2s ease',
                       }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(224, 236, 244, 0.7)', fontSize: '0.9rem' }}>
-                          <span style={{ color: '#60C0F0', opacity: 0.6 }}>{stat.icon}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary, #94a3b8)', fontSize: '0.9rem' }}>
+                          <span style={{ color: 'var(--accent-primary, #60C0F0)', opacity: 0.6 }}>{stat.icon}</span>
                           {stat.label}
                         </span>
                         <span style={{
                           fontFamily: "'Fira Code', monospace",
                           fontWeight: 700,
                           fontSize: '1.1rem',
-                          color: theme.colors?.primary || '#60C0F0',
+                          color: 'var(--accent-primary, #60C0F0)',
                         }}>
                           {stat.value}
                         </span>

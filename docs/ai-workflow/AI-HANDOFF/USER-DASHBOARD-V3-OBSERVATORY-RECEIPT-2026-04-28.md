@@ -773,6 +773,76 @@ File-size discipline:
 - 19A.2 closeout includes a raw-color inventory for changed dashboard files; any remaining raw color must be classified or the audit remains incomplete.
 - 19A.3 success, when run, means 20 selectable presets are present in the header toggle cycle and every preset has an automated contrast smoke result.
 
+## 19A.2 Closeout - Dashboard Token Audit
+
+Status: `[VERIFIED]` implemented as a value-only token audit. No dashboard hooks, API paths, tab IDs, upload handlers, callback wiring, route fallback, or JSX structure were changed.
+
+Files changed:
+
+| File | Runtime impact | Line-count result |
+|---|---:|---:|
+| `frontend/src/components/UserDashboard/UserDashboard.V3.tsx` | Existing inline style string values only | 609 -> 609 |
+| `frontend/src/components/UserDashboard/styles/DashboardV3Styles.ts` | Existing styled-component color values only | 1483 -> 1482 |
+| `frontend/src/components/UserDashboard/UserDashboardTokenAudit.test.ts` | New source-contract test, no production bundle impact | new 46-line test |
+
+Pre-edit inventory:
+
+| File | Raw scan result before edit | Classification |
+|---|---:|---|
+| `UserDashboard.V3.tsx` | 8 raw color values | Existing inline style values; approved value-only path |
+| `DashboardV3Styles.ts` | 124 hits | 122 real color/gradient/rgba hits + 2 `white-space` false positives |
+| Source-contract red run | 66 unresolved values | Confirmed the test failed before the substitutions |
+
+Post-edit classified inventory:
+
+| File | Category | Count | Status |
+|---|---:|---:|---|
+| `UserDashboard.V3.tsx` | token fallback hex | 8 | `[VERIFIED]` allowed `var(--token, #fallback)` |
+| `UserDashboard.V3.tsx` | token-name `--color-white` | 1 | `[VERIFIED]` existing token from `themeUtils.ts:56` |
+| `UserDashboard.V3.tsx` | CSS keyword (`transparent` / `currentColor`) | 2 | `[VERIFIED]` allowed CSS keyword |
+| `DashboardV3Styles.ts` | token fallback hex | 64 | `[VERIFIED]` allowed `var(--token, #fallback)` |
+| `DashboardV3Styles.ts` | token-name `--color-white` | 6 | `[VERIFIED]` existing token from `themeUtils.ts:56` |
+| `DashboardV3Styles.ts` | neutral overlay / shadow rgba | 39 | `[VERIFIED]` intentionally not mapped to `--bg-base` |
+| `DashboardV3Styles.ts` | CSS keyword (`transparent` / `currentColor`) | 42 | `[VERIFIED]` allowed CSS keyword |
+| `DashboardV3Styles.ts` | `white-space` false positive | 2 | `[VERIFIED]` scanner false positive |
+
+Residual conclusion:
+- `[VERIFIED]` zero unresolved raw dashboard chroma colors remain in the two changed dashboard runtime files.
+- `[VERIFIED]` changed dashboard files contain none of retired Galaxy colors: `#0a0a1a`, `#00FFFF`, `#7851A9`.
+- `[VERIFIED]` `--color-white` is an existing emitted CSS variable, not a new semantic variable, at `frontend/src/utils/theme/themeUtils.ts:56`.
+- `[VERIFIED]` neutral black/white rgba values remain classified as overlay/shadow physics. They were not mapped to `--bg-base` to avoid white/invisible shadows on light themes.
+
+19A.3 open questions:
+- Consider introducing semantic `--text-on-accent` across all selectable themes, then migrating the 7 current dashboard `--color-white` filled-surface callsites to that semantic token.
+- Consider introducing semantic `--shadow-color` / `--overlay-highlight-color` across all selectable themes. Current dashboard residual cost: 39 neutral rgba overlay/shadow callsites in `DashboardV3Styles.ts`.
+- `cyberpunk-edgerunners` still emits `#00FFFF` as its theme accent. This was observed in 19A.2 smoke and remains the 19A.3 retirement-or-rebrand decision; it was not introduced by this dashboard token audit.
+
+Verification:
+
+| Check | Result |
+|---|---|
+| `npx vitest run src/components/UserDashboard/UserDashboardTokenAudit.test.ts src/components/UserDashboard/components/ActivitySection.test.tsx src/components/UserDashboard/components/ProfileChartsGrid.test.tsx src/context/ThemeContext/UniversalThemeContext.themeCycle.test.ts` | `[VERIFIED]` pass: 4 files, 6 tests |
+| `npm run build` | `[VERIFIED]` pass; existing Vite dynamic-import/chunk warnings remain |
+| UserDashboard route chunk | `[VERIFIED]` post-edit `UserDashboard.V3.DdvLlnaF.js` = 39.42 kB, gzip 8.87 kB |
+| Full `npm run type-check` with `NODE_OPTIONS=--max-old-space-size=16384` | `[UNVERIFIED]` timed out at 10 minutes; leftover `tsc` node process PID 24996 stopped |
+| Browser smoke, production preview `/user-dashboard` at 1440px | `[VERIFIED with caveats]` route rendered, all five tabs clicked, upload button opened file chooser, feed rendered 10-post first batch after scroll, reduced-motion media emulation applied |
+| Theme reactivity smoke | `[VERIFIED]` dashboard CSS variables changed without reload across `crystalline-default`, `crystalline-light`, `crystalline-dark`, `crystalline-mono`, `cinematic-ember`, `cyberpunk-edgerunners`, and `frozen-canopy` |
+| Browser smoke caveats | `[VERIFIED inherited]` local preview produced external Socket.IO CORS noise and existing 401s for `/api/subscriptions/status` and `/api/macros/summary`; neither endpoint is touched by 19A.2 |
+| Theme-toggle automation caveat | `[VERIFIED with caveat]` Playwright required forced clicks on the animated header theme toggle because the element did not stabilize. Carry this into 19B reduced-motion/browser-smoke review. |
+
+Rule 46 review log:
+- `[VERIFIED]` Gemini review ran on `DashboardV3Styles.ts`; output saved to `AI-Village-Documentation/gemini-consults/2026-04-29T07-14-02-review.md`.
+- `[VERIFIED]` Gemini review ran on `UserDashboard.V3.tsx`; output saved to `AI-Village-Documentation/gemini-consults/2026-04-29T07-15-35-review.md` and `latest.md`.
+- Codex disposition: no Gemini finding blocks 19A.2. Gemini's requested `theme.ts` / app `ThemeProvider` rewrite, button redesign, background replacement, persistent layout change, inline-style extraction, badge icon redesign, and tab redesign conflict with the approved value-only token audit scope. Carry the useful design critique into 19B, especially inline-style extraction and reduced-motion/browser-smoke stabilization for animated controls.
+
+19A.2 scope lock:
+- No new theme presets were added.
+- No Observatory shell was added.
+- No custom theme creator work was started.
+- No backend code was touched.
+- No fallback flatten was touched in this slice.
+- Phase 19B remains the selected-dashboard-image implementation target after this token audit lands.
+
 ## Pending Review Questions
 
 1. Does Third Eye approve the fallback flatten after the sibling sweep shows only `main-routes.tsx:356` is affected by the bare-directory import?
