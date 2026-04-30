@@ -10,7 +10,7 @@
 
 ## Section 1 - Status
 
-**Verdict:** PRE-CODE RECEIPT ONLY. Runtime implementation remains blocked until Sean / Third Eye review returns APPROVE.
+**Verdict:** This is a **Rule 26 Canonical Surface Receipt** for the Phase 20 implementation slice. It is **NOT** a Rule 48 phase-close audit record. The Rule 48 Phase 20 audit record fires AT phase close when Sean explicitly declares Phase 20 complete (matching the Phase 19 close pattern at commit `ae4a69c74`). Anyone reading "Phase 20 receipt exists" should NOT pattern-match that as "Phase 20 closed."
 
 **Phase 20 scope (locked after Sean's Q1-Q4 decisions 2026-04-29):**
 - Surface A: **Trending hashtags right-rail panel** - mount existing `TrendingHashtags` in the dashboard right rail. Placed between Top Badges and Next Best Action panels (Q3 answer (a)).
@@ -165,9 +165,9 @@ The dashboard must hold visual quality across the full device spectrum:
 | Standard desktop | 1280-1920 viewport, integrated GPU | 1920-2560 viewport, dedicated GPU | Full `backdrop-filter` + glow + ambient motion + SVG aurora animation OK |
 | High-end desktop | 2560-3840 4K | 3840+ ultrawide | Above + may include opt-in extra cinematic flourish (Phase 20C asset path is the eventual home for this) |
 
-**Scaling strategy (applied in Phase 20):**
+**Scaling strategy (applied in Phase 20 - actual implementation):**
 
-1. **Default-light, enhance-on-capable.** Start every visual at the simplest cost. Use `@media (hover: hover) and (pointer: fine) and (min-width: 1280px)` to enhance on mouse-driven desktop class. This naturally excludes touch devices from the heaviest treatments.
+1. **Default-rich, simplify-on-touch.** The full visual treatment ships by default for every viewport that is not explicitly downgraded. `@media (hover: none) and (pointer: coarse)` strips the heaviest layers (drop-shadow on the hex badge, `::before` aurora overlay on the banner) so phones and tablets get a cheaper render. Mouse-driven desktops (mid-range and up) inherit the rich treatment. This is the inverse of a strict "default-light, enhance-on-capable" strategy and was a deliberate trade-off: the iPhone XR / Android-mid floor was protected by the simplify-on-touch query rather than by gating enhancements on min-width + pointer:fine. Receipt-and-code parity restored 2026-04-30 (Phase 20.1 hostile-review B2).
 2. **`prefers-reduced-motion: reduce` honored everywhere.** Already standard in Phase 19 styles; Phase 20 surfaces extend the same discipline. Aurora animation is animated-static (CSS gradient at fixed phase) when reduced motion is requested.
 3. **`backdrop-filter` only on existing glass panels.** Phase 20 does not introduce new `backdrop-filter` surfaces. Existing 4 glass panels (left rail nav, momentum cards, right rail panels) continue with their existing blur(12px) per Phase 19 spec.
 4. **Glow ring rendered as static box-shadow, not animated.** A 2-layer box-shadow on `ProfileImageContainer` is GPU-cheap on iPhone XR. No keyframe animation on the ring itself.
@@ -207,14 +207,24 @@ The dashboard must hold visual quality across the full device spectrum:
 
 ## Section 7 - Success Criteria
 
-- Trending hashtags panel renders in the right rail with real backend data.
-- Avatar shows glow ring + hex Level badge with real `levelProgress.level` value.
+### Pre-deploy (commit-time gates)
+
+- Trending hashtags panel mounts in the right rail markup with the boundary + Suspense scaffolding.
+- Avatar Hex Level badge JSX renders only when `levelProgress?.level` is defined.
 - Cinematic banner CSS treatment renders when `bannerPhoto` is unset; real banner photo takes precedence when set.
 - All Phase 19 spec rows still hold: no Crystal Voyager hardcode, no global +25 XP hardcode, no weekday completion dots, no decorative Top Categories label, no Reels Spotlight stats, no Strength Surge specifics, no persistent fake XP toast, no dead Inbox icon.
 - Targeted vitest 4 files / 6 tests still green.
 - `npm run build` passes.
-- Production smoke clean at 1280 + 1440 for the new panel and the avatar/banner upgrades.
-- Theme reactivity holds across the new surfaces.
+
+### Post-deploy (production smoke gates)
+
+- Trending panel renders real backend data OR the boundary fallback OR the loading-state Suspense fallback (never a silent empty header).
+- Hex Level badge appears with the real value on tabs that render the ProfileHeader (not on Home).
+- Cinematic banner gradient renders for users without `bannerPhoto`; real banner photo unchanged for users with one set.
+- Theme reactivity holds across 4-7 representative themes without reload.
+- Zero new console errors / network failures.
+- Captured screenshots at 414 / 1024 / 1280 / 1440.
+- iOS Safari 16.2+ (and equivalent capable browsers) see the color-mix gradient stack; iOS <= 16.1 fall back to the flat-color first-declaration without invisible elements (`@supports` not strictly required because the cascade-fallback pattern handles it - see Section 5.5 #6).
 
 ---
 
@@ -230,6 +240,60 @@ The dashboard must hold visual quality across the full device spectrum:
 - `UserDashboard-optimized.tsx` orphan deletion (Rule 38 cleanup-backlog).
 
 ---
+
+## Section 8.1 - Hostile Review Disposition (Phase 20.1, 2026-04-30)
+
+After the initial Phase 20 commit `784c81dfb`, a hostile code review surfaced four blockers and five high-priority findings. All addressed in the Phase 20.1 fix commit before any phase-close declaration.
+
+| Finding | Severity | Resolution |
+|---|---|---|
+| **B1 - Silent-failure on Trending lazy chunk** | Blocker | `TrendingHashtagsBoundary` class component wrapping the `Suspense` block; visible "Trending unavailable right now." fallback when ChunkLoadError fires. Suspense fallback also upgraded to a "Loading trending..." message instead of `null`. |
+| **B2 - Strategy doc contradicted code** | Blocker | Section 5.5 #1 rewritten to describe the actual "default-rich, simplify-on-touch" implementation rather than the inverse "default-light, enhance-on-capable" strategy. Code unchanged; doc-and-code parity restored. |
+| **B3 - color-mix browser floor vs iPhone XR floor** | Blocker | Flat-color `background:` declared FIRST in `BackgroundSection` and `HexLevelBadge` as the iOS <= 16.1 fallback. The `color-mix` gradient stack follows on the next declaration; CSS cascade resolves to the supported declaration. No `@supports` block required because the property-cascade pattern handles it transparently. |
+| **B4 - Phase-close audit record missing** | Blocker | This receipt is explicitly a **Rule 26 Canonical Surface Receipt** for the Phase 20 implementation slice. It is **NOT** a Rule 48 phase-close audit record. The Rule 48 Phase 20 audit record will be produced at phase close when Sean explicitly declares Phase 20 complete (matching the Phase 19 close pattern at `ae4a69c74`). Disclaimer added to Section 1 status block. |
+| **H1 - Production smoke success criteria mismatched** | High | Section 7 split into pre-deploy (commit-time) and post-deploy (production smoke) gates. Production smoke is now correctly classified as a post-deploy verification gate, not a pre-commit success criterion. |
+| **H2 - Two TrendingHashtags files not classified** | High | Classified per Rule 27 in Section 8.2 below. |
+| **H3 - Sibling-sweep evidence missing** | High | `rg` output for `from '.*TrendingHashtags'` recorded in Section 8.3 below. |
+| **H4 - Banner fallback drift to Wing Purple** | High | `--accent-secondary` fallback changed from `#4070C0` (Swan Lavender) to `#8B5CF6` (Wing Purple) is intentional and matches the project-wide convention. Documented in inline comment at the BackgroundSection declaration. |
+| **H5 - Bottom fade fallback drift to Obsidian Black** | High | `--bg-base` fallback changed from `#002060` (old Royal Depth) to `#0A0A0F` (Obsidian Black) is intentional and matches the active dark-first theme. Verify smooth fade against light theme variants in production smoke; if visible band appears on `crystalline-light`, switch to `transparent` end-stop. |
+| **M2 - Hex badge "1" flicker on data load** | Medium | Render guard added: badge only renders when `levelProgress?.level !== undefined`. Returning Level-N user no longer sees a confident "1" before real data resolves. |
+| **M3 - pointer-events: none + screen reader** | Medium | `aria-label="Level X"` is on the badge node. Most screen readers announce labelled non-interactive elements; the visible text content is the label content. Acceptable for Phase 20.1; revisit in a dedicated a11y pass if NVDA/VoiceOver smoke surfaces issues. |
+| **M4 - DashboardV3Styles.ts now 1,609 lines (Rule 4)** | Medium | Pre-existing debt worsened by Phase 20. Logged to Rule 38 cleanup-backlog. Future slice should split DashboardV3Styles.ts into `ProfileHeaderStyles.ts`, `BannerStyles.ts`, `AvatarStyles.ts`, `TabNavStyles.ts`, etc. Not in Phase 20 scope. |
+| **M1, L1-L3** | Cosmetic / observational | Acknowledged. Hex polygon is stretched-pointy not regular (cosmetic, not regression). `prefers-reduced-motion` opacity halving on a static `::before` is a no-op rule that can be removed in a follow-up cleanup. |
+
+## Section 8.2 - Two-TrendingHashtags Surface Classification (Rule 27 - resolves H2)
+
+| File | Surface served | Classification | Consumers |
+|---|---|---|---|
+| `frontend/src/components/Social/Feed/TrendingHashtags.tsx` | Dashboard right rail (Phase 20) + SocialFeed full variant | **canonical for feed/dashboard surface** | `SocialFeed.tsx:28` (full variant, line 562); `ObservatoryRightRail.tsx` (Phase 20 lazy mount) |
+| `frontend/src/components/Social/Hashtags/TrendingHashtags.tsx` | Social Explore + Feed Filter Bar | **canonical for hashtags surface** | `Social/Explore/ExploreView.tsx:41`; `Social/Hashtags/FeedFilterBar.tsx:52`; `Social/Hashtags/index.ts:13` (re-export) |
+
+Both files are legitimate canonical surfaces serving different consumer chains. Neither is dormant. **Cleanup-backlog candidate (Rule 38):** rename to disambiguate (e.g., `FeedTrendingHashtags` and `HashtagsTrendingPanel`). Not in Phase 20 scope; future search-and-replace slice.
+
+## Section 8.3 - Rule 54 Sibling-Sweep Evidence
+
+Search command:
+
+```
+rg -n "from '.*TrendingHashtags'" frontend/src
+```
+
+Output (verified 2026-04-30):
+
+```
+frontend/src/components/Social/Explore/ExploreView.tsx:41:import TrendingHashtags from '../Hashtags/TrendingHashtags';
+frontend/src/components/Social/Feed/SocialFeed.tsx:28:import TrendingHashtags from './TrendingHashtags';
+frontend/src/components/Social/Hashtags/FeedFilterBar.tsx:52:import TrendingHashtags from './TrendingHashtags';
+frontend/src/components/Social/Hashtags/index.ts:13:export { default as TrendingHashtags } from './TrendingHashtags';
+```
+
+Plus the Phase 20 lazy mount inside `ObservatoryRightRail.tsx` (not picked up by the import-statement regex because it uses dynamic `import()` syntax):
+
+```
+ObservatoryRightRail.tsx: const TrendingHashtags = lazy(() => import('../../Social/Feed/TrendingHashtags'));
+```
+
+Total surfaces touching TrendingHashtags components: 5 call sites across 4 distinct surfaces. None duplicate the right-rail fetch (compact SocialFeed at `SocialFeed.tsx:562` only renders TrendingHashtags when `variant === 'full'`).
 
 ## Section 9 - Pending Review Questions
 

@@ -25,6 +25,7 @@ import {
   ObservatoryPanelHeader,
   ObservatoryPanelTitle,
 } from '../styles/ObservatoryShellLayoutStyles';
+import { RightRailEmptyState } from '../styles/ObservatoryRightRailStyles';
 
 /* Phase 20 Surface A: mount existing self-fetching TrendingHashtags
    component inside the dashboard right rail. No new fetch on the
@@ -32,6 +33,37 @@ import {
    one incremental fetch on dashboard load. Lazy to keep the
    right-rail bundle lean. */
 const TrendingHashtags = lazy(() => import('../../Social/Feed/TrendingHashtags'));
+
+/* Phase 20.1 (B1 fix): error boundary around the lazy chunk so a
+   ChunkLoadError (stale Render bundle, ad-blocker, network blip)
+   does not leave users staring at an empty "Trending" header.
+   Renders an honest fallback message and logs the failure. */
+class TrendingHashtagsBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    // eslint-disable-next-line no-console
+    console.error('[TrendingHashtagsBoundary] failed to load:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <RightRailEmptyState>
+          Trending unavailable right now.
+        </RightRailEmptyState>
+      );
+    }
+    return this.props.children;
+  }
+}
 import {
   RightRailTierRow,
   RightRailTierIcon,
@@ -97,14 +129,21 @@ const ObservatoryRightRail: React.FC<ObservatoryRightRailProps> = ({
 
       {/* Phase 20 Surface A: Trending hashtags. Placed between Top Badges
           and Next Best Action per spec Q3 answer (a). Lazy so the bundle
-          loads only when the right rail renders (>=1280px viewport). */}
+          loads only when the right rail renders (>=1280px viewport).
+          Phase 20.1 B1: error boundary catches ChunkLoadError so a stale
+          Render bundle / ad-blocker / network blip does not silently
+          ship an empty panel header. */}
       <ObservatoryGlassPanel>
         <ObservatoryPanelHeader>
           <ObservatoryPanelTitle>Trending</ObservatoryPanelTitle>
         </ObservatoryPanelHeader>
-        <Suspense fallback={null}>
-          <TrendingHashtags />
-        </Suspense>
+        <TrendingHashtagsBoundary>
+          <Suspense fallback={
+            <RightRailEmptyState>Loading trending...</RightRailEmptyState>
+          }>
+            <TrendingHashtags />
+          </Suspense>
+        </TrendingHashtagsBoundary>
       </ObservatoryGlassPanel>
 
       <ObservatoryGlassPanel>

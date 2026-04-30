@@ -242,11 +242,26 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   position: relative;
   /* Phase 20: when bannerPhoto is unset, render a token-driven cinematic
      aurora layer instead of a flat gradient. Real banner photos take
-     precedence (the url() branch is unchanged). */
+     precedence (the url() branch is unchanged).
+     Phase 20.1 B3: flat-color background declared FIRST as the
+     iOS <= 16.1 fallback. color-mix() is Safari 16.2+; on older
+     devices the entire background rule would be invalid without this.
+     CSS cascade picks the last-supported declaration; on capable
+     browsers the gradient stack wins, on iOS 16.1 the flat color holds.
+     Phase 20.1 H4 doc: the --accent-secondary fallback (Wing Purple)
+     replaces the prior Swan Lavender to match the project-wide
+     fallback convention; verified vs OnboardClientCard / BadgeCreator
+     / BodyMap / VaultDecryption in the rule-54 sweep. */
   background: ${({ $backgroundImage }) =>
     $backgroundImage
       ? `url(${$backgroundImage}) center / cover no-repeat`
-      : `
+      : `var(--bg-elevated, #141419)`
+  };
+  background:
+    ${({ $backgroundImage }) =>
+      $backgroundImage
+        ? `url(${$backgroundImage}) center / cover no-repeat`
+        : `
         radial-gradient(
           ellipse 80% 60% at 30% 20%,
           color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent) 0%,
@@ -662,7 +677,10 @@ export const ProfileImage = styled.div<{ $image?: string }>`
 /* Phase 20: Hex Level badge overlaid on the avatar's lower-left.
    Reads the real level value from useGamificationData; no hardcoded number.
    Pure CSS - clip-path hex + token gradient. No motion. GPU-cheap on
-   iPhone XR class. */
+   iPhone XR class.
+   Phase 20.1 B3: flat-color background declared first as iOS <= 16.1
+   fallback (color-mix is Safari 16.2+). Capable browsers see the
+   gold gradient; older iOS sees the solid Gilded Fern token color. */
 export const HexLevelBadge = styled.div`
   position: absolute;
   bottom: 4px;
@@ -675,6 +693,7 @@ export const HexLevelBadge = styled.div`
   z-index: 3;
   pointer-events: none;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--accent-gold, #C6A84B);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent-gold, #C6A84B) 95%, transparent) 0%,

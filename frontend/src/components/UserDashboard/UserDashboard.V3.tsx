@@ -410,10 +410,16 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     <Camera size={20} />
                   </ImageUploadButton>
                   {/* Phase 20: Hex Level badge reads real level from
-                      useGamificationData. No hardcoded number. */}
-                  <HexLevelBadge aria-label={`Level ${observatoryLevel}`}>
-                    {observatoryLevel}
-                  </HexLevelBadge>
+                      useGamificationData. No hardcoded number.
+                      Phase 20.1 M2: render only after level data has
+                      resolved (levelProgress?.level is defined) so a
+                      returning Level-47 user does not see a confident
+                      "1" flicker before the real value loads. */}
+                  {levelProgress?.level !== undefined && (
+                    <HexLevelBadge aria-label={`Level ${levelProgress.level}`}>
+                      {levelProgress.level}
+                    </HexLevelBadge>
+                  )}
                 </ProfileImageContainer>
               </ProfileImageSection>
 
