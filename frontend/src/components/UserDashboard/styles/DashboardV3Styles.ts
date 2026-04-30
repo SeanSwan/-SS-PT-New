@@ -1528,6 +1528,11 @@ export const TabNavigation = styled.div`
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  /* Phase 20.2: scroll-snap so users at <=414px who horizontally scroll
+     the tab strip land on tab edges rather than mid-tab. overscroll-
+     behavior-x prevents the dashboard from triggering history nav. */
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
 
   /* V3: Enhanced glassmorphism */
   backdrop-filter: blur(24px);
@@ -1558,6 +1563,10 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
   min-height: 44px;
   border: none;
   border-radius: 12px;
+  /* Phase 20.2: scroll-snap-align matches the parent TabNavigation's
+     scroll-snap-type so each tab snaps to start when the strip is
+     scrolled horizontally on mobile. */
+  scroll-snap-align: start;
   background: ${({ $active }) =>
     $active ? 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary, #8B5CF6))' : 'transparent'
   };
@@ -1578,9 +1587,18 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
     };
   }
 
+  /* Phase 20.2: tighten padding/gap below 414px so all 5 tabs are
+     more visible at iPhone XR portrait without page horizontal
+     overflow. min-height: 44px touch target preserved (parent rule). */
+  @media (max-width: 414px) {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.85rem;
+    gap: 0.375rem;
+  }
+
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.625rem;
     font-size: 0.8rem;
     gap: 0.3rem;
   }

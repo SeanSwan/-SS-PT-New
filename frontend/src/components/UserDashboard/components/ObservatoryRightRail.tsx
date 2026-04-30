@@ -141,7 +141,11 @@ const ObservatoryRightRail: React.FC<ObservatoryRightRailProps> = ({
           <Suspense fallback={
             <RightRailEmptyState>Loading trending...</RightRailEmptyState>
           }>
-            <TrendingHashtags />
+            {/* Phase 20.2: showEmptyState makes the dashboard rail render
+                an honest "No trending hashtags yet." message instead of
+                returning null when the backend returns 0 hashtags, so the
+                outer panel header is never visually orphaned. */}
+            <TrendingHashtags showEmptyState />
           </Suspense>
         </TrendingHashtagsBoundary>
       </ObservatoryGlassPanel>

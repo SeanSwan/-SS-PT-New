@@ -305,3 +305,28 @@ Total surfaces touching TrendingHashtags components: 5 call sites across 4 disti
 ---
 
 **End of Phase 20 receipt.** Pre-code only. Runtime code untouched.
+
+## Section 8.4 - Section 20.2 Closeout - Mobile + Trending Smoke Gaps 2026-04-30
+
+Production smoke after `4e314f62d` surfaced four real findings beyond the hostile-review B1-B5 set. Phase 20.2 ships targeted fixes for three of them. SD2 (global asymmetric mobile gutter) is deferred as a cross-route layout investigation, not a feed-specific bug.
+
+| Finding | Resolution |
+|---|---|
+| **Surface A.1 - Trending empty-data UX** | `TrendingHashtags.tsx` now accepts `showEmptyState?: boolean` prop. Default `false` preserves SocialFeed-full-variant behavior unchanged. Dashboard right rail passes `showEmptyState`, so the no-data case renders an honest "No trending hashtags yet." instead of leaving the panel header orphaned. Loading state (`loaded` state flag) prevents the empty message from flickering before the API resolves. |
+| **Surface A.2 - Trending false affordance** | Removed `cursor: pointer` and `&:hover { opacity: 0.8 }` from `TagRow`. The rows had no click handler and no hashtag-filter route is wired - the affordance was a Rule 28 false-UI promise. If hashtag filtering ships later, restore the cursor + hover alongside the real onClick handler. |
+| **SD1 - Mobile tab strip clipping at 375** | `TabNavigation` already had `overflow-x: auto` but lacked scroll-snap discipline. Added `scroll-snap-type: x proximity` + `overscroll-behavior-x: contain` to the strip; added `scroll-snap-align: start` to each `Tab`. New `@media (max-width: 414px)` breakpoint tightens tab padding from `0.75rem 1rem` to `0.625rem 0.75rem` and font-size from default to `0.85rem`. Min 44px touch target preserved. All five tabs now reachable at 375 portrait without page horizontal overflow. |
+| **SD3 - Quick Stats vs Hex badge level mismatch** | Introduced `canonicalLevel = levelProgress?.level ?? stats?.level ?? 0` as the single source of truth used by BOTH the Sidebar Quick Stats card AND the Observatory hex Level badge. `displayStats.level` source updated from `stats?.level || 1` to `stats?.level ?? 0` so the no-data default is honest. The "Level 1" Quick Stats row no longer contradicts a "Level 0" hex badge for the same user. Inline `var(--text-secondary, #94a3b8)` Tailwind-slate fallback in the Sidebar replaced with Crystalline `rgba(224, 236, 244, 0.6)` Frost-White. |
+| **SD2 - Global asymmetric mobile gutter** | DEFERRED. Body width 404 (vs viewport 414) and `right: 20` on outermost MAIN element are global dashboard layout behavior present across all routes at mobile. Not a feed-specific or Phase 20 regression. Logged for separate investigation phase covering UniversalDashboardLayout / page-level wrapper. |
+| **SD4 - Post action row probe gap** | Logged as smoke-test gap. Not a code blocker - posts visually render at 375/414. Deeper probe in a future Surface D follow-up if action buttons turn out cramped at narrow widths. |
+
+Files changed in Phase 20.2:
+- `frontend/src/components/Social/Feed/TrendingHashtags.tsx` - empty-state prop, loading state, false-affordance removal, new `TagEmptyState` styled component.
+- `frontend/src/components/UserDashboard/components/ObservatoryRightRail.tsx` - pass `showEmptyState`.
+- `frontend/src/components/UserDashboard/styles/DashboardV3Styles.ts` - tab scroll-snap + 414 padding breakpoint.
+- `frontend/src/components/UserDashboard/UserDashboard.V3.tsx` - `canonicalLevel` source, Quick Stats Level row, inline Crystalline fallback.
+
+Verification:
+- Targeted vitest 4 files / 6 tests: pass
+- `npm run build`: pass
+- Full `tsc --noEmit`: still `[UNVERIFIED]` per Rule 56
+- Production re-smoke at 375 / 414 / 1024 / 1280 / 1440 pending after deploy.

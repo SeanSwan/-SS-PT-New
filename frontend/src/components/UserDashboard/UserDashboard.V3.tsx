@@ -215,19 +215,30 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
-  // Memoized stats with fallbacks
+  // Memoized stats with fallbacks.
+  // Phase 20.2: level no longer falls back to 1 - that produced a "Level 1"
+  // Quick Stats row for users whose real level is 0, contradicting the
+  // hex Level badge that reads from levelProgress?.level. Use 0 as the
+  // honest no-data default; the canonical level source below combines
+  // levelProgress (gamification record) with stats.level (profile stats)
+  // and falls through to 0 only when neither is available.
   const displayStats = React.useMemo(() => ({
     posts: stats?.posts || 0,
     followers: stats?.followers || 0,
     following: stats?.following || 0,
     workouts: stats?.workouts || 0,
     points: stats?.points || 0,
-    level: stats?.level || 1
+    level: stats?.level ?? 0,
   }), [stats]);
+
+  // Phase 20.2: single canonical level source used by BOTH the Sidebar
+  // Quick Stats card and the Observatory hex Level badge so the two
+  // surfaces never disagree.
+  const canonicalLevel = levelProgress?.level ?? stats?.level ?? 0;
 
   // Observatory shell props derive from existing dashboard data only.
   const observatoryStreakDays = gamProfile?.data?.streakDays ?? 0;
-  const observatoryLevel = levelProgress?.level ?? displayStats.level;
+  const observatoryLevel = canonicalLevel;
   const observatoryProgressPct = levelProgress?.progressPercent ?? 0;
   const observatoryTierName = levelProgress?.tierDisplay?.name ?? 'Bronze Forge';
   const observatoryXpToNext = levelProgress?.pointsToNextLevel ?? 0;
@@ -521,7 +532,10 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {[
                       { label: 'Workouts', value: displayStats.workouts, icon: <Dumbbell size={16} /> },
-                      { label: 'Level', value: displayStats.level, icon: <Crown size={16} /> },
+                      // Phase 20.2: Level reads from canonicalLevel so the
+                      // Quick Stats Level row matches the Observatory hex
+                      // Level badge for the same user.
+                      { label: 'Level', value: canonicalLevel, icon: <Crown size={16} /> },
                       { label: 'Points', value: displayStats.points, icon: <Sparkles size={16} /> },
                     ].map((stat) => (
                       <div key={stat.label} style={{
@@ -534,7 +548,9 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                         border: '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)',
                         transition: 'all 0.2s ease',
                       }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary, #94a3b8)', fontSize: '0.9rem' }}>
+                        {/* Phase 20.2: Tailwind-slate inline fallback
+                            replaced with Crystalline Frost-White at 60%. */}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))', fontSize: '0.9rem' }}>
                           <span style={{ color: 'var(--accent-primary, #60C0F0)', opacity: 0.6 }}>{stat.icon}</span>
                           {stat.label}
                         </span>

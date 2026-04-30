@@ -31,20 +31,47 @@ interface TrendingTag {
   category: string;
 }
 
+interface TrendingHashtagsProps {
+  /* Phase 20.2: when true, render an honest empty state ("No trending
+     hashtags yet.") instead of returning null on no-data. Default false
+     preserves the existing SocialFeed-full-variant behavior (where the
+     parent already gates rendering and a null is fine). */
+  showEmptyState?: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 
-const TrendingHashtags: React.FC = memo(() => {
+const TrendingHashtags: React.FC<TrendingHashtagsProps> = memo(({ showEmptyState = false }) => {
   const [tags, setTags] = useState<TrendingTag[]>([]);
+  /* Phase 20.2: track loading so the empty state does not flicker before
+     the API responds. While loading we render null (parent panel header
+     still shows); after the fetch resolves we either render tags or the
+     empty state. */
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     api.get('/api/social/hashtags/trending?limit=8')
       .then(res => setTags(res.data.hashtags || res.data || []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
-  if (!tags.length) return null;
+  if (!loaded) return null;
+
+  if (!tags.length) {
+    if (!showEmptyState) return null;
+    return (
+      <TrendingWrap>
+        <TrendingTitle>
+          <TrendingUp size={14} />
+          Trending
+        </TrendingTitle>
+        <TagEmptyState>No trending hashtags yet.</TagEmptyState>
+      </TrendingWrap>
+    );
+  }
 
   return (
     <TrendingWrap>
@@ -93,15 +120,25 @@ const TrendingTitle = styled.h4`
   margin: 0 0 10px;
 `;
 
+/* Phase 20.2: removed cursor: pointer + hover opacity. The rows have
+   no click handler and no real hashtag-filter route is wired, so the
+   pointer/hover cues were a Rule 28 false affordance. If hashtag
+   filtering ships later, restore these cues alongside the real
+   onClick handler that navigates to the filtered feed. */
 const TagRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 0;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
+`;
 
-  &:hover { opacity: 0.8; }
+const TagEmptyState = styled.p`
+  margin: 0;
+  padding: 4px 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  text-align: center;
 `;
 
 const TagName = styled.span`
