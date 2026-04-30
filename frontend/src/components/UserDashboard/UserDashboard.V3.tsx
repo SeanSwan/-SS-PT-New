@@ -82,6 +82,7 @@ import {
   HiddenInput,
   LoadingContainer,
   LoadingSpinner,
+  HexLevelBadge,
 } from './styles/DashboardV3Styles';
 import type { TabId } from './types/UserDashboardTypes';
 import ObservatoryShell from './components/ObservatoryShell';
@@ -408,6 +409,11 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   >
                     <Camera size={20} />
                   </ImageUploadButton>
+                  {/* Phase 20: Hex Level badge reads real level from
+                      useGamificationData. No hardcoded number. */}
+                  <HexLevelBadge aria-label={`Level ${observatoryLevel}`}>
+                    {observatoryLevel}
+                  </HexLevelBadge>
                 </ProfileImageContainer>
               </ProfileImageSection>
 

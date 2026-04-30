@@ -240,17 +240,66 @@ export const ProfileHeader = styled(motion.div)`
 export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   height: 320px;
   position: relative;
-  background: ${({ $backgroundImage, theme }) =>
+  /* Phase 20: when bannerPhoto is unset, render a token-driven cinematic
+     aurora layer instead of a flat gradient. Real banner photos take
+     precedence (the url() branch is unchanged). */
+  background: ${({ $backgroundImage }) =>
     $backgroundImage
-      ? `url(${$backgroundImage})`
-      : theme.gradients?.hero || 'linear-gradient(135deg, var(--bg-base, #002060) 0%, var(--bg-surface, #003080) 40%, var(--accent-secondary, #4070C0) 100%)'
+      ? `url(${$backgroundImage}) center / cover no-repeat`
+      : `
+        radial-gradient(
+          ellipse 80% 60% at 30% 20%,
+          color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent) 0%,
+          transparent 60%
+        ),
+        radial-gradient(
+          ellipse 70% 55% at 75% 35%,
+          color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent) 0%,
+          transparent 65%
+        ),
+        radial-gradient(
+          ellipse 100% 80% at 50% 100%,
+          color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent) 0%,
+          transparent 70%
+        ),
+        linear-gradient(
+          180deg,
+          var(--bg-base, #0A0A0F) 0%,
+          color-mix(in srgb, var(--bg-elevated, #141419) 92%, var(--accent-secondary, #8B5CF6) 8%) 60%,
+          var(--bg-base, #0A0A0F) 100%
+        )
+      `
   };
-  background-size: cover;
-  background-position: center;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
   overflow: hidden;
+  contain: paint;
+
+  /* Phase 20: aurora streak overlay - static SVG path approximating the
+     mountain ridge / aurora sweep from the mockup. Hidden on touch /
+     low-power devices and when prefers-reduced-motion is active.
+     Pure CSS - no per-frame animation, no GPU compositing cost beyond
+     the static painted layer. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(
+        circle at 20% 10%,
+        color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent) 0%,
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 85% 25%,
+        color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent) 0%,
+        transparent 22%
+      );
+    opacity: ${({ $backgroundImage }) => ($backgroundImage ? 0 : 0.85)};
+    pointer-events: none;
+    z-index: 0;
+  }
 
   /* Bottom gradient fade into page background */
   &::after {
@@ -260,14 +309,26 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
     left: 0;
     right: 0;
     height: 120px;
-    background: linear-gradient(transparent, var(--bg-base, #002060));
+    background: linear-gradient(transparent, var(--bg-base, #0A0A0F));
     z-index: 1;
     pointer-events: none;
   }
 
-  /* Hide the old overlay — replaced by BannerUploadButton */
+  /* Hide the old overlay - replaced by BannerUploadButton */
   .upload-overlay {
     display: none;
+  }
+
+  /* Performance: simplify aurora on touch / low-power devices.
+     iPhone XR class + Android mid-tier benefit. The radial layers
+     stay on the base background, only the secondary ::before
+     overlay is dropped. */
+  @media (hover: none) and (pointer: coarse) {
+    &::before { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before { opacity: ${({ $backgroundImage }) => ($backgroundImage ? 0 : 0.5)}; }
   }
 
   @media (max-width: 768px) {
@@ -595,6 +656,67 @@ export const ProfileImage = styled.div<{ $image?: string }>`
 
   @media (min-width: 3840px) {
     font-size: 5.5rem;
+  }
+`;
+
+/* Phase 20: Hex Level badge overlaid on the avatar's lower-left.
+   Reads the real level value from useGamificationData; no hardcoded number.
+   Pure CSS - clip-path hex + token gradient. No motion. GPU-cheap on
+   iPhone XR class. */
+export const HexLevelBadge = styled.div`
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-gold, #C6A84B) 95%, transparent) 0%,
+    color-mix(in srgb, var(--accent-gold, #C6A84B) 60%, var(--accent-primary, #60C0F0)) 100%
+  );
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--bg-base, #0A0A0F);
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--bg-base, #0A0A0F) 35%, transparent);
+  filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--accent-gold, #C6A84B) 40%, transparent));
+
+  @media (max-width: 768px) {
+    width: 44px;
+    height: 44px;
+    font-size: 0.9375rem;
+    bottom: 2px;
+    left: 2px;
+  }
+
+  @media (max-width: 320px) {
+    width: 38px;
+    height: 38px;
+    font-size: 0.8125rem;
+  }
+
+  @media (min-width: 2560px) {
+    width: 68px;
+    height: 68px;
+    font-size: 1.375rem;
+  }
+
+  @media (min-width: 3840px) {
+    width: 84px;
+    height: 84px;
+    font-size: 1.625rem;
+  }
+
+  /* Performance: drop the soft drop-shadow on touch / low-power devices. */
+  @media (hover: none) and (pointer: coarse) {
+    filter: none;
   }
 `;
 

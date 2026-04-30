@@ -17,7 +17,7 @@
  * ============================================================================
  */
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Crown } from 'lucide-react';
 import {
   ObservatoryRightRail as RightRailContainer,
@@ -25,6 +25,13 @@ import {
   ObservatoryPanelHeader,
   ObservatoryPanelTitle,
 } from '../styles/ObservatoryShellLayoutStyles';
+
+/* Phase 20 Surface A: mount existing self-fetching TrendingHashtags
+   component inside the dashboard right rail. No new fetch on the
+   compact SocialFeed path (which doesn't render this component);
+   one incremental fetch on dashboard load. Lazy to keep the
+   right-rail bundle lean. */
+const TrendingHashtags = lazy(() => import('../../Social/Feed/TrendingHashtags'));
 import {
   RightRailTierRow,
   RightRailTierIcon,
@@ -86,6 +93,18 @@ const ObservatoryRightRail: React.FC<ObservatoryRightRailProps> = ({
             Earn achievements to fill your showcase.
           </RightRailEmptyState>
         )}
+      </ObservatoryGlassPanel>
+
+      {/* Phase 20 Surface A: Trending hashtags. Placed between Top Badges
+          and Next Best Action per spec Q3 answer (a). Lazy so the bundle
+          loads only when the right rail renders (>=1280px viewport). */}
+      <ObservatoryGlassPanel>
+        <ObservatoryPanelHeader>
+          <ObservatoryPanelTitle>Trending</ObservatoryPanelTitle>
+        </ObservatoryPanelHeader>
+        <Suspense fallback={null}>
+          <TrendingHashtags />
+        </Suspense>
       </ObservatoryGlassPanel>
 
       <ObservatoryGlassPanel>
