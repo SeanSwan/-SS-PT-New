@@ -162,7 +162,7 @@ No LLM calls added. No new PII surfaces. Tier value, level value, streak count, 
 - Rule 32-39 (repo hygiene): cleanup-backlog carries logged in receipt and Section 10 below.
 - Rule 40 (swan-design-router): inherited from Phase 19B receipt; no net-new design-router gate needed for token + scroll-snap edits.
 - Rule 43 (styled-components css helper): no shared style fragment with `${}` interpolation of styled primitives introduced.
-- Rule 44 (secret scan covers writes): all three commits passed pre-commit secret scan CLEAN.
+- Rule 44 (secret scan covers writes): all three implementation commits and the audit-record commit passed `scripts/scan-secrets.sh --staged` (content scan over staged git blobs, not Bash deny-pattern only). No matches across pattern set.
 - Rule 46 (Codex final gate): 20.1 was driven by Codex hostile review; 20.2 was Sean-approved fix slice.
 - Rule 48 (this audit record): produced.
 - Rule 51 (confidence-tag discipline): receipt and audit record use `[VERIFIED]` / `[UNVERIFIED]` per Rule 56.
@@ -364,7 +364,7 @@ The most important section. Each bullet is a specific actionable item for the ne
 - Verify Rule 56 baseline has been recovered when the next phase's audit record is written.
 
 ### Minor cosmetic carries
-- `[VERIFIED minor cosmetic carry]` 375px tab `font-size` media rule did not apply. Padding works; font stays at default 16px. Functionality intact.
+- `[VERIFIED]` minor cosmetic carry: 375px tab `font-size` media rule did not apply. Padding works; font stays at default 16px. Functionality intact. Deferred to Phase 20D follow-up if Sean cares about the tighter font on mobile.
 
 ---
 
@@ -378,7 +378,7 @@ Chronological. Captures the dialectic that produced the final state.
 |---|---|---|---|
 | Pre-build | Third Eye | APPROVE 3-surface scope (Q1 + Q3 + Q4 recommendations + Q2 BOTH paths) | Build proceeds with Surfaces A, B, C; 20A and 20B deferred. |
 | Build complete | Build-side | Targeted vitest 4/6 pass, build pass | Sean commits `784c81dfb`, pushes. |
-| Post-deploy | Third Eye production smoke | 5-viewport verification, all 3 surfaces visible | Three real findings emerge: Trending empty-data UX, false affordance, mobile tab clipping, level mismatch. |
+| Post-deploy | Third Eye production smoke | 4-viewport verification (375 / 414 / 1280 / 1440), all 3 surfaces visible | Three real findings emerge: Trending empty-data UX, false affordance, mobile tab clipping, level mismatch. |
 
 ### Phase 20.1 - hostile-review revisions
 
