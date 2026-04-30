@@ -23,6 +23,13 @@ import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistry, getExerciseRegistryFromDB, generateSwapSuggestions } from './variationEngine.mjs';
 import { getRecommendedWeight } from './oneRepMaxService.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  GOAL_CONFIG,
+  normalizeGoal,
+  resolveStartingPhase,
+  buildGoalPhaseSequence,
+  getGoalOptBias,
+} from './workoutBuilderGoalConfig.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
@@ -177,7 +184,49 @@ function filterExercises(exercises, constraints, equipmentItems) {
 
 // ── Helper: Select exercises for category ────────────────────────────
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase) {
+function exerciseMatchesBias(exercise, bias) {
+  const muscles = Array.isArray(exercise.muscles) ? exercise.muscles : [];
+  const key = String(exercise.key || exercise.name || '').toLowerCase();
+  const text = [
+    exercise.exerciseType,
+    exercise.category,
+    exercise.movementPattern,
+    key,
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  switch (bias) {
+    case 'compound':
+      return muscles.length >= 3
+        || ['push', 'pull', 'squat', 'hinge', 'lunge', 'compound'].includes(exercise.category);
+    case 'isolation':
+      return muscles.length > 0 && muscles.length <= 2 && !['core', 'corrective'].includes(exercise.category);
+    case 'stability':
+      return (exercise.nasmLevel || 2) <= 2
+        || ['core', 'corrective'].includes(exercise.category)
+        || /plank|bird_dog|pallof|band|bridge|single_leg|side_plank/.test(key);
+    case 'core':
+      return exercise.category === 'core'
+        || muscles.some((m) => ['core', 'obliques', 'tva'].includes(m));
+    case 'plyometric':
+      return (exercise.nasmLevel || 0) >= 5
+        || /jump|plyo|power|medicine_ball|throw|slam|bound/.test(key);
+    case 'balance':
+      return /single_leg|balance|lunge|split|step_up|bird_dog|side_plank/.test(key);
+    default:
+      return text.includes(String(bias).toLowerCase());
+  }
+}
+
+function scoreExerciseForGoalBias(exercise, goalBias) {
+  if (!goalBias || !Array.isArray(goalBias.exerciseBias)) return 0;
+
+  return goalBias.exerciseBias.reduce((score, bias, index) => {
+    if (!exerciseMatchesBias(exercise, bias)) return score;
+    return score + (goalBias.exerciseBias.length - index);
+  }, 0);
+}
+
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const categoryExercises = registry
@@ -201,7 +250,7 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
     }
   }
 
-  // Sort by NASM level match, then by not-recently-used
+  // Sort by recency, then goal fit, then NASM level match.
   const recentSet = new Set(constraints.recentlyUsedExercises);
   const targetLevel = nasmPhase || 2;
 
@@ -209,6 +258,10 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
     const aRecent = recentSet.has(a.key) ? 1 : 0;
     const bRecent = recentSet.has(b.key) ? 1 : 0;
     if (aRecent !== bRecent) return aRecent - bRecent;
+
+    const aBiasScore = scoreExerciseForGoalBias(a, goalBias);
+    const bBiasScore = scoreExerciseForGoalBias(b, goalBias);
+    if (aBiasScore !== bBiasScore) return bBiasScore - aBiasScore;
 
     const aLevelDiff = Math.abs((a.nasmLevel || 2) - targetLevel);
     const bLevelDiff = Math.abs((b.nasmLevel || 2) - targetLevel);
@@ -220,8 +273,27 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
 
 // ── Helper: Apply OPT parameters to exercise ─────────────────────────
 
-function applyOPTParams(exercise, phase) {
+function midpoint([min, max]) {
+  return Math.ceil((min + max) / 2);
+}
+
+function formatBiasedRange([min, max], bias, suffix = '') {
+  if (bias === 'low') return `${min}-${midpoint([min, max])}${suffix}`;
+  if (bias === 'high') return `${midpoint([min, max])}-${max}${suffix}`;
+  return `${min}-${max}${suffix}`;
+}
+
+function chooseBiasedSet([min, max], bias) {
+  if (bias === 'high') return max;
+  return min;
+}
+
+function applyOPTParams(exercise, phase, goalBias = null) {
   const params = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
+  const setBias = goalBias?.setBias || 'mid';
+  const repBias = goalBias?.repBias || 'mid';
+  const restBias = goalBias?.restBias || 'mid';
+
   return {
     exerciseKey: exercise.key,
     exerciseName: formatExerciseName(exercise.key),
@@ -230,11 +302,12 @@ function applyOPTParams(exercise, phase) {
     equipment: exercise.equipment || [],
     nasmLevel: exercise.nasmLevel,
     movementPattern: exercise.movementPattern || null,
-    sets: params.sets[0],
-    reps: `${params.reps[0]}-${params.reps[1]}`,
+    sets: chooseBiasedSet(params.sets, setBias),
+    reps: formatBiasedRange(params.reps, repBias),
     tempo: params.tempo,
-    rest: `${params.rest[0]}-${params.rest[1]}s`,
+    rest: formatBiasedRange(params.rest, restBias, 's'),
     intensity: params.intensity,
+    intensityBias: goalBias?.intensityBias || 'mid',
   };
 }
 
@@ -264,10 +337,18 @@ export async function generateWorkout(options) {
     equipmentProfileId = null,
     exerciseCount = 6,
     rotationPattern = 'standard',
+    primaryGoal: rawPrimaryGoal,
+    nasmPhase: phaseOverride,
   } = options;
 
   if (!clientId) throw new Error('clientId is required');
   if (!trainerId) throw new Error('trainerId is required');
+
+  // Goal+phase plumbing (Phase A - rule-46-approved goal-aware generation).
+  // Goal is normalized via the helper allowlist; unknown -> general_fitness.
+  // Phase override (1-5) takes precedence over the client baseline; otherwise
+  // we fall back to whatever phase the context indicates.
+  const primaryGoal = normalizeGoal(rawPrimaryGoal);
 
   // Step 1: Get client context (parallel subsystem queries)
   let context;
@@ -292,7 +373,11 @@ export async function generateWorkout(options) {
 
   // Step 3: Get exercise registry from DB (840+) with hardcoded fallback (81)
   const registry = await getExerciseRegistryFromDB();
-  const nasmPhase = context.constraints.nasmPhase || 2;
+  const nasmPhase = resolveStartingPhase({
+    startingPhaseOverride: phaseOverride,
+    contextPhase: context.constraints.nasmPhase || 2,
+  });
+  const goalBias = getGoalOptBias({ primaryGoal, phase: nasmPhase });
 
   // Get equipment for selected location
   let equipmentItems = [];
@@ -316,7 +401,7 @@ export async function generateWorkout(options) {
   for (const moveCat of movementCategories) {
     const catExercises = selectExercises(
       registry, moveCat, exercisesPerCategory,
-      context.constraints, equipmentItems, nasmPhase
+      context.constraints, equipmentItems, nasmPhase, goalBias
     );
     selectedExercises.push(...catExercises);
   }
@@ -340,7 +425,7 @@ export async function generateWorkout(options) {
 
   // Step 6: Apply OPT parameters
   const workoutExercises = selectedExercises.map(ex =>
-    applyOPTParams(ex, nasmPhase)
+    applyOPTParams(ex, nasmPhase, goalBias)
   );
 
   // Step 7: Build warmup and cooldown
@@ -395,6 +480,9 @@ export async function generateWorkout(options) {
     }
   }
 
+  const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
+  const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
+
   // Step 8: Build explanations
   const explanations = [];
 
@@ -447,11 +535,15 @@ export async function generateWorkout(options) {
     message: `NASM OPT Phase ${nasmPhase}: ${OPT_PHASE_PARAMS[nasmPhase]?.name || 'Strength Endurance'}`,
   });
 
-  // Goal-aware explanations
-  if (context.goals?.primaryGoal) {
+  explanations.push({
+    type: 'selected_goal',
+    message: `Trainer-selected goal: ${goalLabel}. Exercise selection and OPT targets biased toward ${goalBias.exerciseBias.join(' > ')}.`,
+  });
+
+  if (context.goals?.primaryGoal && context.goals.primaryGoal !== primaryGoal) {
     explanations.push({
       type: 'client_goal',
-      message: `Primary goal: ${context.goals.primaryGoal}. Exercise selection prioritized for this objective.`,
+      message: `Client stored goal: ${context.goals.primaryGoal}. Trainer selection overrides it for this generated workout.`,
     });
   }
 
@@ -484,7 +576,14 @@ export async function generateWorkout(options) {
     });
   }
 
-  const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
+  // Phase A: structured rationale array describing how goal+phase shaped THIS workout.
+  // Frontend may render or ignore; emitted unconditionally so trainers can audit logic.
+  const rationale = [
+    `Goal: ${goalLabel}. ${GOAL_CONFIG[primaryGoal]?.description || ''}`.trim(),
+    `NASM OPT Phase ${nasmPhase}: ${phaseParams.name}. Focus: ${phaseParams.focus}.`,
+    `Set bias: ${goalBias.setBias}, rep bias: ${goalBias.repBias}, rest bias: ${goalBias.restBias}, intensity bias: ${goalBias.intensityBias}.`,
+    `Exercise selection priority: ${goalBias.exerciseBias.join(' > ')}.`,
+  ];
 
   return {
     clientId,
@@ -495,9 +594,15 @@ export async function generateWorkout(options) {
     sessionType,
     category,
     nasmPhase,
+    primaryGoal,
+    goalBias,
+    rationale,
     phaseParams: {
       name: phaseParams.name,
       focus: phaseParams.focus,
+      sets: `${phaseParams.sets[0]}-${phaseParams.sets[1]}`,
+      reps: `${phaseParams.reps[0]}-${phaseParams.reps[1]}`,
+      rest: `${phaseParams.rest[0]}-${phaseParams.rest[1]}s`,
       intensity: phaseParams.intensity,
       tempo: phaseParams.tempo,
     },
@@ -554,7 +659,8 @@ export async function generatePlan(options) {
     trainerId,
     durationWeeks = 12,
     sessionsPerWeek = 3,
-    primaryGoal = 'general_fitness',
+    primaryGoal: rawPrimaryGoal = 'general_fitness',
+    startingPhaseOverride,
     equipmentProfileId = null,
   } = options;
 
@@ -563,7 +669,16 @@ export async function generatePlan(options) {
   if (!trainerId) throw new Error('trainerId is required');
 
   const context = await getClientContext(clientId, trainerId);
-  const startingPhase = context.constraints.nasmPhase || 1;
+
+  // Phase A: goal+phase plumbing.
+  // - Goal normalized via the helper allowlist; unknown -> general_fitness.
+  // - Trainer phase override beats client baseline; absent override falls
+  //   back to context phase.
+  const primaryGoal = normalizeGoal(rawPrimaryGoal);
+  const startingPhase = resolveStartingPhase({
+    startingPhaseOverride,
+    contextPhase: context.constraints.nasmPhase || 1,
+  });
 
   // Extract equipment items for plan context
   let equipmentItems = [];
@@ -574,13 +689,20 @@ export async function generatePlan(options) {
     }
   }
 
-  // Build mesocycles (4-week blocks)
-  const mesocycleCount = Math.ceil(durationWeeks / 4);
+  // Phase A: goal-aware mesocycle phase sequence (replaces legacy Math.floor(i/2) ramp).
+  // Sequence length = ceil(durationWeeks / 4). Each phase clamped to [startingPhase, 5].
+  const phaseSequence = buildGoalPhaseSequence({
+    primaryGoal,
+    startingPhase,
+    durationWeeks,
+  });
+  const mesocycleCount = phaseSequence.length;
   const mesocycles = [];
 
   for (let i = 0; i < mesocycleCount; i++) {
-    const phase = Math.min(5, startingPhase + Math.floor(i / 2));
+    const phase = phaseSequence[i];
     const phaseParams = OPT_PHASE_PARAMS[phase] || OPT_PHASE_PARAMS[2];
+    const bias = getGoalOptBias({ primaryGoal, phase });
 
     const weekStart = i * 4 + 1;
     const weekEnd = Math.min((i + 1) * 4, durationWeeks);
@@ -592,12 +714,14 @@ export async function generatePlan(options) {
       phaseName: phaseParams.name,
       focus: phaseParams.focus,
       params: {
-        sets: `${phaseParams.sets[0]}-${phaseParams.sets[1]}`,
-        reps: `${phaseParams.reps[0]}-${phaseParams.reps[1]}`,
+        sets: formatBiasedRange(phaseParams.sets, bias.setBias),
+        reps: formatBiasedRange(phaseParams.reps, bias.repBias),
         intensity: phaseParams.intensity,
+        intensityBias: bias.intensityBias,
         tempo: phaseParams.tempo,
-        rest: `${phaseParams.rest[0]}-${phaseParams.rest[1]}s`,
+        rest: formatBiasedRange(phaseParams.rest, bias.restBias, 's'),
       },
+      goalBias: bias,
       overloadStrategy: phase <= 2
         ? 'Add 1-2 reps per week, increase weight when hitting top of rep range'
         : phase <= 4
@@ -628,6 +752,20 @@ export async function generatePlan(options) {
     });
   }
 
+  // Phase A: structured rationale array describing how goal+phase shaped THIS plan.
+  const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
+  const phaseSequenceSummary = phaseSequence.join(' -> ');
+  const rationale = [
+    `Goal: ${goalLabel}. ${GOAL_CONFIG[primaryGoal]?.description || ''}`.trim(),
+    `Starting NASM OPT phase: ${startingPhase}${
+      Number.isInteger(startingPhaseOverride) && startingPhaseOverride >= 1 && startingPhaseOverride <= 5
+        ? ' (trainer override)'
+        : ' (from client baseline assessment)'
+    }.`,
+    `Mesocycle phase sequence (${mesocycleCount} blocks of 4 weeks): ${phaseSequenceSummary}.`,
+    `Plan length: ${durationWeeks} weeks at ${sessionsPerWeek} sessions/week.`,
+  ];
+
   return {
     clientId,
     trainerId,
@@ -643,6 +781,7 @@ export async function generatePlan(options) {
       equipmentProfileId,
     },
 
+    rationale,
     mesocycles,
     weeklySchedule,
 
@@ -672,9 +811,7 @@ export async function generatePlan(options) {
         : null,
       `Start at NASM OPT Phase ${startingPhase} and progress based on assessment scores`,
       `Use ${context.variation.currentPattern} rotation pattern for exercise variation`,
-      context.goals?.primaryGoal
-        ? `Plan aligned with primary goal: ${context.goals.primaryGoal}`
-        : null,
+      `Plan aligned with trainer-selected goal: ${goalLabel}`,
       context.baseline?.nasmAssessmentScore
         ? `NASM assessment: ${context.baseline.nasmAssessmentScore}/100 — ${context.baseline.nasmAssessmentScore < 60 ? 'prioritize corrective phases' : 'ready for progressive loading'}`
         : null,

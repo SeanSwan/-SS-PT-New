@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
+import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
 
@@ -39,6 +40,12 @@ async function verifyClientAccess(userId, userRole, clientId) {
   }
 }
 
+function parseOptionalPhase(value) {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : undefined;
+}
+
 const router = Router();
 
 router.use(protect);
@@ -51,7 +58,10 @@ router.use(workoutBuilderLimiter);
  */
 router.post('/generate', async (req, res) => {
   try {
-    const { clientId, category, equipmentProfileId, exerciseCount, rotationPattern } = req.body;
+    const {
+      clientId, category, equipmentProfileId, exerciseCount, rotationPattern,
+      primaryGoal, nasmPhase,
+    } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
     if (isNaN(parsedClientId) || parsedClientId < 1) {
@@ -69,6 +79,11 @@ router.post('/generate', async (req, res) => {
     const safeCategory = VALID_CATEGORIES.includes(category) ? category : 'full_body';
     const safePattern = VALID_PATTERNS.includes(rotationPattern) ? rotationPattern : 'standard';
     const safeExerciseCount = Math.min(Math.max(parseInt(exerciseCount, 10) || 6, 1), 20);
+    // Phase A: optional goal+phase steering on single-workout path. Both are
+    // absent-or-valid; invalid values are dropped silently so the service falls
+    // back to general_fitness / client baseline.
+    const safeGoal = ALLOWED_GOALS.includes(primaryGoal) ? primaryGoal : undefined;
+    const safePhase = parseOptionalPhase(nasmPhase);
 
     const workout = await generateWorkout({
       clientId: parsedClientId,
@@ -77,6 +92,8 @@ router.post('/generate', async (req, res) => {
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
       exerciseCount: safeExerciseCount,
       rotationPattern: safePattern,
+      primaryGoal: safeGoal,
+      nasmPhase: safePhase,
     });
 
     return res.json({ success: true, workout });
@@ -92,7 +109,10 @@ router.post('/generate', async (req, res) => {
  */
 router.post('/plan', async (req, res) => {
   try {
-    const { clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId } = req.body;
+    const {
+      clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
+      startingPhaseOverride,
+    } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
     if (isNaN(parsedClientId) || parsedClientId < 1) {
@@ -105,10 +125,12 @@ router.post('/plan', async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not authorized for this client' });
     }
 
-    const VALID_GOALS = ['general_fitness', 'hypertrophy', 'strength', 'fat_loss', 'athletic_performance', 'golf_performance'];
-    const safeGoal = VALID_GOALS.includes(primaryGoal) ? primaryGoal : 'general_fitness';
+    const safeGoal = ALLOWED_GOALS.includes(primaryGoal) ? primaryGoal : 'general_fitness';
     const safeDuration = Math.min(Math.max(parseInt(durationWeeks, 10) || 12, 1), 52);
     const safeSessions = Math.min(Math.max(parseInt(sessionsPerWeek, 10) || 3, 1), 7);
+    // Phase A: optional trainer phase override. Drop silently if out of range
+    // so the service falls back to client baseline.
+    const safeOverride = parseOptionalPhase(startingPhaseOverride);
 
     const plan = await generatePlan({
       clientId: parsedClientId,
@@ -116,6 +138,7 @@ router.post('/plan', async (req, res) => {
       durationWeeks: safeDuration,
       sessionsPerWeek: safeSessions,
       primaryGoal: safeGoal,
+      startingPhaseOverride: safeOverride,
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
     });
 

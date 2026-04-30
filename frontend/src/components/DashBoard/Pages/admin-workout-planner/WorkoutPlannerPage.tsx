@@ -344,6 +344,8 @@ const WorkoutPlannerPage: React.FC = () => {
         category,
         exerciseCount: 6,
         rotationPattern: 'standard',
+        primaryGoal: goal,
+        nasmPhase: phaseNumber,
       });
       if (res.data?.success && res.data.workout) {
         const workout: GeneratedWorkout = res.data.workout;
@@ -413,7 +415,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, selectedClientId, category]);
+  }, [authAxios, selectedClientId, category, goal, phaseNumber]);
 
   // ── Coach AI: Generate Multi-Week Plan ──
   const handleGeneratePlan = useCallback(async () => {
@@ -427,6 +429,7 @@ const WorkoutPlannerPage: React.FC = () => {
         durationWeeks: Number(planDuration),
         sessionsPerWeek,
         primaryGoal: goal,
+        startingPhaseOverride: phaseNumber,
       });
       if (res.data?.success && res.data.plan) {
         setGeneratedPlan(res.data.plan);
@@ -440,7 +443,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal]);
+  }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal, phaseNumber]);
 
   // ── Save Plan ──
   const handleSave = useCallback(async () => {
