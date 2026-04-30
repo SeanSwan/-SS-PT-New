@@ -1068,3 +1068,25 @@ QA artifacts created:
 Codex final-gate decision for runtime source: **APPROVE WITH CAVEATS**. Caveats are production smoke without local dev overlays, full typecheck baseline recovery, and selective staging because the repo contains many unrelated dirty files outside the Phase 19B dashboard slice.
 
 Per Sean's directive (Rule 48), once Sean declares Phase 19 complete after 19B ships, produce `docs/ai-workflow/AI-HANDOFF/PHASE-19-USER-DASHBOARD-V3-OBSERVATORY-AUDIT-RECORD-2026-04-29.md` covering 19A.1 → 19A.2 → 19B as the permanent re-review artifact.
+
+## Section 19B.1 Closeout Addendum - Right Rail Breakpoint Alignment 2026-04-29
+
+Production smoke after `be8dd791a` deploy revealed the right rail was hidden at 1024-1439px viewports. Initial diagnosis proposed a one-character fix (right rail `1440 -> 1024`) but Codex review caught that this would create a NEW visual bug: the `ObservatoryGrid` is intentionally a two-column tablet layout at 1024-1439, so changing only the right rail's breakpoint would auto-place the right rail into an implicit grid track outside the declared template.
+
+Safer fix landed: add an intermediate `1280px` breakpoint to `ObservatoryGrid` that promotes the layout to a compact three-column desktop, then sync `ObservatoryRightRail`'s display-flex breakpoint to the same `1280px` so the rail's appearance is in lockstep with the grid template.
+
+Final responsive matrix:
+
+| Viewport | Grid | Left rail | Right rail | Mobile bottom nav |
+|---|---|---|---|---|
+| 320-1023 | 1 column | hidden | hidden | visible |
+| 1024-1279 | 2 columns (left + main) | visible | hidden (intentional tablet two-col) | hidden |
+| 1280-1439 | 3 columns (compact) | visible | visible | hidden |
+| 1440+ | 3 columns (full) | visible | visible | hidden |
+
+File touched: `frontend/src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts` only. No JSX, no hooks, no tabs, no upload logic, no theme presets, no fake surfaces touched.
+
+Verification:
+- Targeted vitest 4 files / 6 tests: pass
+- `npm run build`: pass
+- Production re-smoke pending after deploy lands.

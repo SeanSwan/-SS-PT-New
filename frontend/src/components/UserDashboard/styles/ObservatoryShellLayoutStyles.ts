@@ -28,6 +28,13 @@ export const ObservatoryGrid = styled.div`
     gap: 1.25rem;
   }
 
+  /* 1280px: compact three-column desktop. Right rail joins at this width
+     in lockstep with ObservatoryRightRail's display:flex breakpoint. */
+  @media (min-width: 1280px) {
+    grid-template-columns: minmax(220px, 240px) minmax(480px, 1fr) minmax(240px, 260px);
+    gap: 1.25rem;
+  }
+
   @media (min-width: 1440px) {
     grid-template-columns: minmax(220px, 240px) minmax(560px, 1fr) minmax(260px, 280px);
     gap: 1.25rem;
@@ -67,7 +74,9 @@ export const ObservatoryMain = styled.div`
 export const ObservatoryRightRail = styled.aside`
   display: none;
 
-  @media (min-width: 1440px) {
+  /* 1280px in lockstep with the ObservatoryGrid 3-column breakpoint above.
+     1024-1279 stays intentional tablet two-column (left rail + main only). */
+  @media (min-width: 1280px) {
     display: flex;
     flex-direction: column;
     gap: 1rem;
