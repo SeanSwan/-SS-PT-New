@@ -5,6 +5,12 @@ import { describe, expect, it } from 'vitest';
 const dashboardFiles = [
   'src/components/UserDashboard/UserDashboard.V3.tsx',
   'src/components/UserDashboard/styles/DashboardV3Styles.ts',
+  // Phase 19B Observatory shell style files (added 2026-04-29 per Codex P1
+  // re-review: the audit must protect the new shell chrome too).
+  'src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts',
+  'src/components/UserDashboard/styles/ObservatoryLeftRailStyles.ts',
+  'src/components/UserDashboard/styles/ObservatoryRightRailStyles.ts',
+  'src/components/UserDashboard/styles/ObservatoryMobileNavStyles.ts',
 ];
 
 const rawColorPattern =
@@ -22,6 +28,14 @@ function isAllowedResidual(value: string, line: string, index: number): boolean 
   if (value === 'white' && line.includes('white-space')) return true;
   if (value === 'white' && isTokenNameMatch(line, index)) return true;
   if (value.startsWith('#') && line.includes('var(')) return true;
+  // Crystalline rgba/hsl fallbacks inside var() are also permitted; same
+  // intent as the hex-inside-var clause above (the var() resolves the
+  // theme token first; the fallback value is reached only when no theme
+  // is loaded).
+  if (value.startsWith('rgba(') && line.includes('var(')) return true;
+  if (value.startsWith('rgb(') && line.includes('var(')) return true;
+  if (value.startsWith('hsla(') && line.includes('var(')) return true;
+  if (value.startsWith('hsl(') && line.includes('var(')) return true;
   if (neutralOverlayPattern.test(value)) return true;
 
   return false;

@@ -297,7 +297,7 @@ const CTAGrid = styled.div`
   }
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   }
 `;
 
@@ -461,7 +461,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.9, ease: 'easeOut', delay: 0.35 }}
             />
           </XPBarTrack>
-          <MomentumCaption>{progressPercent}% there</MomentumCaption>
+          <MomentumCaption>{Math.round(progressPercent)}% there</MomentumCaption>
         </MomentumSection>
       </MomentumCard>
 

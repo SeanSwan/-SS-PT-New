@@ -18,7 +18,7 @@
  * (320-3840px), and enhanced glassmorphism. All logic preserved from V2.
  */
 
-import React, { useState, useRef, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   Camera,
@@ -84,6 +84,13 @@ import {
   LoadingSpinner,
 } from './styles/DashboardV3Styles';
 import type { TabId } from './types/UserDashboardTypes';
+import ObservatoryShell from './components/ObservatoryShell';
+import {
+  OBSERVATORY_NAV_ITEMS,
+  buildObservatoryNextBestActions,
+  getTransformationPhotos,
+  getTransformationVisibility,
+} from './components/ObservatoryShellAdapter';
 
 // Simplified Error Boundary
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -143,6 +150,7 @@ const ActivitySection = lazy(() => import('./components/ActivitySection'));
 const NutritionWorkspace = lazy(() => import('../DashBoard/workspaces/NutritionWorkspace'));
 const WorkoutsTab = lazy(() => import('./components/WorkoutsTab'));
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
+const TransformationPhotoShowcase = lazy(() => import('./components/TransformationPhotoShowcase'));
 
 // Main component interface
 interface UserDashboardV3Props {}
@@ -216,7 +224,29 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
     level: stats?.level || 1
   }), [stats]);
 
-  // File upload handlers — AI Village: blob URL leak fix + file validation
+  // Observatory shell props derive from existing dashboard data only.
+  const observatoryStreakDays = gamProfile?.data?.streakDays ?? 0;
+  const observatoryLevel = levelProgress?.level ?? displayStats.level;
+  const observatoryProgressPct = levelProgress?.progressPercent ?? 0;
+  const observatoryTierName = levelProgress?.tierDisplay?.name ?? 'Bronze Forge';
+  const observatoryXpToNext = levelProgress?.pointsToNextLevel ?? 0;
+
+  const transformationPhotos = useMemo(
+    () => getTransformationPhotos(profile as Record<string, unknown> | null | undefined),
+    [profile],
+  );
+
+  const transformationVisibility = useMemo(
+    () => getTransformationVisibility(profile as Record<string, unknown> | null | undefined),
+    [profile],
+  );
+
+  const observatoryNextBest = useMemo(
+    () => buildObservatoryNextBestActions(navigate, setActiveTab),
+    [navigate],
+  );
+
+  // File upload handlers - AI Village: blob URL leak fix + file validation
   const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -335,7 +365,20 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
         {/* V3: Main content z-index wrapper sits above noise */}
         <MainContentZWrapper>
           <ContentWrapper>
-            {/* Profile Header — hidden on Home tab so it's home-first, not profile-first */}
+            <ObservatoryShell
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onNavigate={navigate}
+              observatoryLevel={observatoryLevel}
+              observatoryTierName={observatoryTierName}
+              observatoryProgressPct={observatoryProgressPct}
+              observatoryXpToNext={observatoryXpToNext}
+              observatoryStreakDays={observatoryStreakDays}
+              topBadges={topBadges}
+              navItems={OBSERVATORY_NAV_ITEMS}
+              nextBestActions={observatoryNextBest}
+            >
+            {/* Profile Header - hidden on Home tab so it's home-first, not profile-first */}
             {activeTab !== 'home' && <ProfileHeader
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -449,9 +492,9 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
               </ProfileInfo>
             </ProfileHeader>}
 
-            {/* Content Grid — full-width on Home tab (no sidebar needed) */}
+            {/* Content Grid - full-width on Home tab (no sidebar needed) */}
             <ContentGrid $fullWidth={activeTab === 'home'}>
-              {/* Sidebar — hidden on Home tab; MomentumCard already shows key stats */}
+              {/* Sidebar - hidden on Home tab; MomentumCard already shows key stats */}
               {activeTab !== 'home' && <Sidebar
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -503,7 +546,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                {/* Tab Navigation — ARIA tablist pattern */}
+                {/* Tab Navigation - ARIA tablist pattern */}
                 <TabNavigation role="tablist" aria-label="Dashboard sections">
                   {([
                     { id: 'home',      label: 'Home',      icon: Home },
@@ -532,7 +575,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                   })}
                 </TabNavigation>
 
-                {/* Tab Panels — ARIA tabpanel pattern */}
+                {/* Tab Panels - ARIA tabpanel pattern */}
                 <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
                   {activeTab === 'home' && (
                     <div role="tabpanel" id="panel-home" aria-labelledby="tab-home">
@@ -562,6 +605,12 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                     <div role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
                       <TabStack>
                         <AboutSection />
+                        {/* Phase 19B Sean decision A: mount existing transformation surface. */}
+                        <TransformationPhotoShowcase
+                          photos={transformationPhotos}
+                          visibility={transformationVisibility}
+                          isOwnProfile
+                        />
                         <CreativeGallery />
                         <PhotoGallery />
                       </TabStack>
@@ -570,6 +619,7 @@ const UserDashboardV3: React.FC<UserDashboardV3Props> = () => {
                 </Suspense>
               </MainContent>
             </ContentGrid>
+            </ObservatoryShell>
 
             {/* Hidden File Inputs */}
             <HiddenInput

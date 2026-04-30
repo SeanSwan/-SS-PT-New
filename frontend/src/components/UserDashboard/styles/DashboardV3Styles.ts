@@ -1377,12 +1377,16 @@ export const MainContent = styled(motion.div)`
 
 export const TabNavigation = styled.div`
   display: flex;
+  gap: 0.25rem;
   background: var(--bg-elevated);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 0.5rem;
+  max-width: 100%;
   overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 
   /* V3: Enhanced glassmorphism */
   backdrop-filter: blur(24px);
@@ -1407,6 +1411,7 @@ export const TabNavigation = styled.div`
 export const Tab = styled(motion.button)<{ $active?: boolean }>`
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   min-height: 44px;
