@@ -153,6 +153,21 @@ const ContentArea = styled.div`
   flex-direction: column;
 `;
 
+/**
+ * Scroll container for the ClientDetailView branch only. ContentArea above
+ * stays overflow:hidden because the alternate CardGrid branch owns its own
+ * vertical scroll. Without this wrapper the detail tabs (Training, Progress,
+ * etc.) get clipped at the HubContainer height cap with no way to reach
+ * content below the fold — that was the "Workout History tab unscrollable"
+ * bug at normal browser zoom.
+ */
+const DetailScrollWrap = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+`;
+
 const CardGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -450,18 +465,20 @@ const ClientsWorkspace: React.FC = () => {
       {/* Content: either detail tabs or client card grid */}
       <ContentArea>
         {selectedClient && detailClient ? (
-          <ClientDetailView
-            client={detailClient}
-            onBack={() => {
-              setSelectedClient(null);
-              setSearchParams({});
-            }}
-            renderTraining={renderTraining}
-            renderProgress={renderProgress}
-            renderBiometrics={renderBiometrics}
-            renderOverview={renderOverview}
-            renderSettings={renderSettings}
-          />
+          <DetailScrollWrap>
+            <ClientDetailView
+              client={detailClient}
+              onBack={() => {
+                setSelectedClient(null);
+                setSearchParams({});
+              }}
+              renderTraining={renderTraining}
+              renderProgress={renderProgress}
+              renderBiometrics={renderBiometrics}
+              renderOverview={renderOverview}
+              renderSettings={renderSettings}
+            />
+          </DetailScrollWrap>
         ) : loading ? (
           <LoadingPulse>Loading clients...</LoadingPulse>
         ) : clients.length === 0 ? (

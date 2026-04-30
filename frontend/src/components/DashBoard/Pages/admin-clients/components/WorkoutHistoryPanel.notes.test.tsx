@@ -53,8 +53,12 @@ vi.mock('../../../../../hooks/analytics/useWorkoutAnalytics', async () => {
   };
 });
 
-// WorkoutChartsTab is lazy-imported; stub it so Suspense doesn't block.
-vi.mock('./WorkoutChartsTab', () => ({ default: () => <div data-testid="mock-charts-tab" /> }));
+// AdminProgressChartsGrid is lazy-imported by the Charts tab; stub it so
+// Suspense doesn't block test rendering.
+vi.mock(
+  '../../../workspaces/clients-team/tabs/AdminProgressChartsGrid',
+  () => ({ default: () => <div data-testid="mock-charts-tab" /> }),
+);
 
 // ShareToFeedModal is heavy; stub it out.
 vi.mock('../../../../Shared/ShareToFeedModal', () => ({

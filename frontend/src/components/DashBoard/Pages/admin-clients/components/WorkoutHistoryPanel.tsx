@@ -196,7 +196,17 @@ function resolveExerciseNote(
   return { exerciseNote: '', source: 'empty' };
 }
 
-const WorkoutChartsTab = lazy(() => import('./WorkoutChartsTab'));
+/**
+ * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
+ * admin-selected client (same component the ClientDetailView "Progress" tab
+ * uses). This replaced the older `WorkoutChartsTab`, which rendered an
+ * ad-hoc Weekly-Training-Volume + mixed-chart layout off the legacy
+ * `useWorkoutAnalytics` shape and did not match the canonical Phase 14
+ * 12-chart contract that the client-side dashboard already uses.
+ */
+const AdminProgressChartsGrid = lazy(
+  () => import('../../../workspaces/clients-team/tabs/AdminProgressChartsGrid'),
+);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components (extracted verbatim from the modal)
@@ -1427,10 +1437,13 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
           </>
         )}
 
-        {/* CHARTS TAB */}
-        {!isLoading && !error && activeTab === 'charts' && data && (
+        {/* CHARTS TAB — canonical 12-chart Victory grid (admin-scoped).
+            AdminProgressChartsGrid owns its own data fetch via
+            useAdminClientProgressCharts(clientId), so we don't gate on the
+            local `data` shape from useWorkoutAnalytics. */}
+        {activeTab === 'charts' && (
           <Suspense fallback={<CenterContent><Spinner /><p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Loading charts...</p></CenterContent>}>
-            <WorkoutChartsTab data={data} />
+            <AdminProgressChartsGrid clientId={clientId} clientName={clientName} />
           </Suspense>
         )}
 

@@ -53,9 +53,9 @@ export async function calculateExerciseTotals(userId, options = {}) {
 
     // Apply date range filter
     if (options.startDate || options.endDate) {
-      whereClause.sessionDate = {};
-      if (options.startDate) whereClause.sessionDate[Op.gte] = options.startDate;
-      if (options.endDate) whereClause.sessionDate[Op.lte] = options.endDate;
+      whereClause.date = {};
+      if (options.startDate) whereClause.date[Op.gte] = options.startDate;
+      if (options.endDate) whereClause.date[Op.lte] = options.endDate;
     }
 
     // Get all workout sessions
@@ -69,7 +69,7 @@ export async function calculateExerciseTotals(userId, options = {}) {
           as: 'sets'
         }]
       }],
-      order: [['sessionDate', 'DESC']]
+      order: [['date', 'DESC']]
     });
 
     // Initialize category totals
@@ -225,9 +225,9 @@ export async function calculateVolumeOverTime(userId, options = {}) {
     };
 
     if (startDate || endDate) {
-      whereClause.sessionDate = {};
-      if (startDate) whereClause.sessionDate[Op.gte] = startDate;
-      if (endDate) whereClause.sessionDate[Op.lte] = endDate;
+      whereClause.date = {};
+      if (startDate) whereClause.date[Op.gte] = startDate;
+      if (endDate) whereClause.date[Op.lte] = endDate;
     }
 
     const workoutSessions = await WorkoutSession.findAll({
@@ -240,14 +240,14 @@ export async function calculateVolumeOverTime(userId, options = {}) {
           as: 'sets'
         }]
       }],
-      order: [['sessionDate', 'ASC']]
+      order: [['date', 'ASC']]
     });
 
     // Group sessions by time period
     const groupedData = {};
 
     for (const workout of workoutSessions) {
-      const dateKey = getDateGroupKey(workout.sessionDate, groupBy);
+      const dateKey = getDateGroupKey(workout.date, groupBy);
 
       if (!groupedData[dateKey]) {
         groupedData[dateKey] = {
@@ -363,9 +363,9 @@ export async function calculateSessionUsageStats(userId, options = {}) {
     };
 
     if (options.startDate || options.endDate) {
-      whereClause.sessionDate = {};
-      if (options.startDate) whereClause.sessionDate[Op.gte] = options.startDate;
-      if (options.endDate) whereClause.sessionDate[Op.lte] = options.endDate;
+      whereClause.date = {};
+      if (options.startDate) whereClause.date[Op.gte] = options.startDate;
+      if (options.endDate) whereClause.date[Op.lte] = options.endDate;
     }
 
     const [soloCount, trainerLedCount, totalWorkouts] = await Promise.all([
@@ -479,9 +479,9 @@ export async function getWorkoutFrequency(userId, days = 30) {
       where: {
         userId,
         status: 'completed',
-        sessionDate: { [Op.gte]: startDate }
+        date: { [Op.gte]: startDate }
       },
-      order: [['sessionDate', 'ASC']]
+      order: [['date', 'ASC']]
     });
 
     const totalWorkouts = workouts.length;
@@ -492,7 +492,7 @@ export async function getWorkoutFrequency(userId, days = 30) {
     let longestStreak = 0;
     let streakDays = 0;
 
-    const workoutDates = workouts.map(w => new Date(w.sessionDate).toISOString().split('T')[0]);
+    const workoutDates = workouts.map(w => new Date(w.date).toISOString().split('T')[0]);
     const uniqueDates = [...new Set(workoutDates)].sort();
 
     for (let i = 0; i < uniqueDates.length; i++) {

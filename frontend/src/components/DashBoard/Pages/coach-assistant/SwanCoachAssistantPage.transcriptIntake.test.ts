@@ -890,7 +890,10 @@ describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
     // analytics + share behavior alongside edit.
     expect(PANEL_SOURCE).toMatch(/activeTab === 'charts'/);
     expect(PANEL_SOURCE).toMatch(/activeTab === 'prs'/);
-    expect(PANEL_SOURCE).toMatch(/WorkoutChartsTab/);
+    // Charts tab now mounts the canonical 12-chart admin-scoped Victory
+    // grid (AdminProgressChartsGrid), replacing the legacy WorkoutChartsTab
+    // weekly-volume-only surface. The 3-tab architecture is preserved.
+    expect(PANEL_SOURCE).toMatch(/AdminProgressChartsGrid/);
   });
 
   it('does NOT remount the dormant WorkoutHistoryTimeline as the canonical surface', () => {

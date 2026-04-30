@@ -17,6 +17,7 @@ import { setupErrorHandling } from './middleware/errorHandler.mjs';
 import { initializeSession } from '../config/session.mjs';
 import { viewAsWriteBlocker } from '../middleware/viewAsGuard.mjs';
 import logger from '../utils/logger.mjs';
+import sequelize from '../database.mjs';
 
 /**
  * Create and configure Express application
@@ -24,6 +25,17 @@ import logger from '../utils/logger.mjs';
 export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // Wire the canonical Sequelize instance into the Express app so controllers
+  // can resolve it via `req.app.get('sequelize')`. Without this, the Phase 14
+  // chartDataController's `req.app.get('sequelize')` returns undefined; its
+  // raw-SQL queries throw "Cannot read properties of undefined (reading
+  // 'query')" which `safeQuery` swallows silently → all 12 canonical client
+  // progress chart endpoints return empty arrays regardless of real data.
+  // The schema-drift test rig has always passed a mocked sequelize via this
+  // same `app.get('sequelize')` lookup, so the production wiring just makes
+  // runtime match the design contract the tests already assume.
+  app.set('sequelize', sequelize);
 
   // Trust first proxy (Render reverse proxy) so req.ip returns real client IP
   // Required for accurate rate limiting behind Render's load balancer
