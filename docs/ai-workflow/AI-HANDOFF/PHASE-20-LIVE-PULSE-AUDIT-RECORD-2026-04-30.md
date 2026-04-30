@@ -378,7 +378,7 @@ Chronological. Captures the dialectic that produced the final state.
 |---|---|---|---|
 | Pre-build | Third Eye | APPROVE 3-surface scope (Q1 + Q3 + Q4 recommendations + Q2 BOTH paths) | Build proceeds with Surfaces A, B, C; 20A and 20B deferred. |
 | Build complete | Build-side | Targeted vitest 4/6 pass, build pass | Sean commits `784c81dfb`, pushes. |
-| Post-deploy | Third Eye production smoke | 4-viewport verification (375 / 414 / 1280 / 1440), all 3 surfaces visible | Three real findings emerge: Trending empty-data UX, false affordance, mobile tab clipping, level mismatch. |
+| Post-deploy | Third Eye production smoke | 4-viewport verification, all 3 surfaces visible (matrix details for this initial-ship smoke not retained in this record; the retained matrix in §8 is the 20.2 one at `e7cf654a5`) | Three real findings emerge: Trending empty-data UX, false affordance, mobile tab clipping, level mismatch. |
 
 ### Phase 20.1 - hostile-review revisions
 
