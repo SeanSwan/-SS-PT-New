@@ -727,18 +727,25 @@ const MyClientsView: React.FC = () => {
       const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
       const assignmentsData = response.data?.assignments || response.data || [];
 
-      // Enhance with session data for each client
+      // Normalize API response to ClientAssignment shape. Backend returns
+      // assignment.status ('active'|'inactive'|'pending') and the inner
+      // client object without a status field. The local type expects
+      // assignment.isActive: boolean and client.status: string for the
+      // filter + stats memos. The /trainer/:id endpoint already filters
+      // to active rows server-side, so isActive is true for every result.
       const enhancedAssignments = await Promise.all(
         (Array.isArray(assignmentsData) ? assignmentsData : []).map(async (assignment: any) => {
+          const assignmentStatus: string = assignment.status || 'active';
           try {
             // Get client's session history and upcoming sessions
             const [sessions, upcomingSessions] = await Promise.all([
               authAxios.get(`/api/sessions/history/${assignment.client.id}?limit=5`),
               authAxios.get(`/api/sessions/upcoming/${assignment.client.id}?limit=3`)
             ]);
-            
+
             const client: Client = {
               ...assignment.client,
+              status: assignmentStatus as Client['status'],
               totalSessionsCompleted: sessions.data.filter((s: any) => s.status === 'completed').length,
               lastSessionDate: sessions.data[0]?.sessionDate,
               nextSessionDate: upcomingSessions.data[0]?.sessionDate,
@@ -753,14 +760,22 @@ const MyClientsView: React.FC = () => {
               },
               membershipLevel: assignment.client.membershipLevel || 'basic'
             };
-            
+
             return {
               ...assignment,
+              isActive: assignmentStatus === 'active',
               client
             };
           } catch (err) {
             logger.warn('Error fetching client session data:', err);
-            return assignment;
+            return {
+              ...assignment,
+              isActive: assignmentStatus === 'active',
+              client: {
+                ...assignment.client,
+                status: assignmentStatus as Client['status'],
+              },
+            };
           }
         })
       );
