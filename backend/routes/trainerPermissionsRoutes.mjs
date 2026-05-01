@@ -134,8 +134,9 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
 
-    // Trainers can only view their own permissions, admins can view any
-    if (requestingUserRole === 'trainer' && parseInt(trainerId) !== requestingUserId) {
+    // Trainers can only view their own permissions, admins can view any.
+    // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
+    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only view their own permissions'
@@ -507,8 +508,9 @@ router.post('/check', protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    // Trainers can only check their own permissions, admins can check any
-    if (requestingUserRole === 'trainer' && parseInt(trainerId) !== requestingUserId) {
+    // Trainers can only check their own permissions, admins can check any.
+    // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
+    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only check their own permissions'

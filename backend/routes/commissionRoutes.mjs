@@ -141,8 +141,9 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     const { TrainerCommission, User, Order } = getCommissionModels();
     const { trainerId } = req.params;
 
-    // Trainers can only see their own commissions
-    if (req.user.role === 'trainer' && req.user.id !== parseInt(trainerId)) {
+    // Trainers can only see their own commissions. String()-coerce:
+    // req.user.id is a string (authMiddleware.mjs:631).
+    if (req.user.role === 'trainer' && String(req.user.id) !== String(trainerId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 

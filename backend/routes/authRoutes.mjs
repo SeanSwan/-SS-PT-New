@@ -734,9 +734,11 @@ router.get('/users/:id', protect, async (req, res) => {
   try {
     const userId = req.params.id;
     
-    // Check permissions
+    // Check permissions. String()-coerce: req.user.id is a string
+    // (authMiddleware.mjs:631), parseInt returns number → strict === always
+    // false without coercion, so users were locked out of their own profile.
     const isAdmin = req.user.role === 'admin';
-    const isSameUser = req.user.id === parseInt(userId);
+    const isSameUser = String(req.user.id) === String(userId);
     
     // If not admin or same user, check if trainer relationship exists
     let hasTrainerAccess = false;

@@ -391,8 +391,9 @@ router.get('/user/:userId', protect, async (req, res) => {
     const limit = Math.min(parseInt(qLimit, 10) || 200, 1000);
     const offset = parseInt(qOffset, 10) || 0;
 
-    // Authorization: admin, trainer, or self
-    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && req.user.id !== parseInt(userId, 10)) {
+    // Authorization: admin, trainer, or self. String()-coerce: req.user.id
+    // is a string (authMiddleware.mjs:631).
+    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && String(req.user.id) !== String(userId)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
@@ -426,7 +427,8 @@ router.get('/user/:userId/summary', protect, async (req, res) => {
     const { userId } = req.params;
     const weeks = parseInt(req.query.weeks, 10) || 12;
 
-    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && req.user.id !== parseInt(userId, 10)) {
+    // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
+    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && String(req.user.id) !== String(userId)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 

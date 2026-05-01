@@ -432,8 +432,11 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
 
-    // Trainers can only view their own assignments, admins can view any
-    if (requestingUserRole === 'trainer' && parseInt(trainerId) !== requestingUserId) {
+    // Trainers can only view their own assignments, admins can view any.
+    // String() both sides: req.user.id is stored as a string (see
+    // authMiddleware.mjs:631 round-5 fix); parseInt(trainerId) returns a
+    // number; strict !== between number and string is always true → 403.
+    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only view their own assigned clients'
