@@ -477,6 +477,53 @@ User.init(
   }
 );
 
+// Sequelize/PostgreSQL cannot cast '' to DATE/DATEONLY/FLOAT/INTEGER/etc.
+// The frontend (OptimizedSignupModal and similar forms) initializes optional
+// fields as '' rather than null, and the resulting cast failure escapes
+// Sequelize as SequelizeDatabaseError, which then escapes the controller's
+// catch block and 500s the endpoint.
+//
+// Incident 2026-04-30: blank dateOfBirth / weight / height in
+// OptimizedSignupModal triggered 500 from authController.register's outer
+// catch. Fix is at the model layer so every entry point benefits (register,
+// profile update, admin user-create, etc.) — not just the one controller.
+const TYPED_FIELD_KINDS_REQUIRING_NULL_NORMALIZATION = new Set([
+  'DATE',
+  'DATEONLY',
+  'TIME',
+  'FLOAT',
+  'DOUBLE',
+  'INTEGER',
+  'BIGINT',
+  'DECIMAL',
+  'BOOLEAN',
+]);
+
+/**
+ * Normalize empty-string values to null for nullable typed fields.
+ * Pure function exported for unit testing without Sequelize instantiation.
+ * @param {Object} userLike - object with field values (may be a Sequelize
+ *                            instance or a plain object)
+ * @param {Object} rawAttributes - Sequelize rawAttributes definition
+ *                                 (each entry: { type: { key }, allowNull, ... })
+ */
+export function normalizeEmptyTypedFields(userLike, rawAttributes) {
+  if (!userLike || !rawAttributes) return;
+  for (const [field, def] of Object.entries(rawAttributes)) {
+    const kind = def?.type?.key;
+    if (!kind) continue;
+    if (!TYPED_FIELD_KINDS_REQUIRING_NULL_NORMALIZATION.has(kind)) continue;
+    if (def.allowNull === false) continue;
+    if (userLike[field] === '') {
+      userLike[field] = null;
+    }
+  }
+}
+
+User.beforeValidate((user) => {
+  normalizeEmptyTypedFields(user, User.rawAttributes);
+});
+
 // Hash password before creating a new user
 User.beforeCreate(async (user) => {
   try {
