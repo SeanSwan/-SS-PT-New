@@ -294,18 +294,27 @@ export const getAiConsentStatus = async (req, res) => {
 /**
  * Resolve the target userId from raw input, respecting role rules.
  *
- * Behavior by role:
- *   - client:  defaults to self (requesterId) when userId is omitted
- *   - trainer: requires explicit userId (returns null if omitted -> 400)
- *   - admin:   requires explicit userId (returns null if omitted -> 400)
+ * Behavior:
+ *   - rawUserId provided + parses to integer  -> that integer
+ *   - rawUserId provided + non-integer        -> null (caller returns 400)
+ *   - rawUserId omitted                       -> requesterId (self)
  *
- * This is intentional: trainers and admins must specify which user they are
- * acting on. Clients always act on themselves.
+ * Self-default applies to all roles. Cross-user authorization is enforced
+ * by the per-role gates in the calling controllers (clients 403'd cross-user;
+ * trainers blocked outright on grant/withdraw and assignment-checked on
+ * status; admins trusted by design). This matches the GET /consent/status
+ * paramless mount which has always defaulted to self for all roles.
+ *
+ * Prior behavior (until 2026-04-30): admin/trainer with no userId returned
+ * null, producing a 400 on the consent settings UI for non-client roles
+ * because the consent settings page is a self-service surface that does
+ * not send a userId. The 400 was a false-positive — a self-service surface
+ * always means "act on the requester."
  */
 function resolveTargetUser(rawUserId, requesterId, requesterRole) {
-  if (rawUserId) {
+  if (rawUserId !== undefined && rawUserId !== null && rawUserId !== '') {
     const parsed = Number(rawUserId);
     return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null;
   }
-  return requesterRole === 'client' ? requesterId : null;
+  return requesterId;
 }

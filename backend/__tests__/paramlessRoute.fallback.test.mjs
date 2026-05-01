@@ -14,11 +14,24 @@ vi.mock('../models/index.mjs', () => ({
       findOne: vi.fn().mockResolvedValue({
         userId: 42,
         consentGranted: true,
+        aiEnabled: true,
+        withdrawnAt: null,
         toJSON() { return { userId: 42, consentGranted: true }; },
+        update: vi.fn().mockResolvedValue(undefined),
       }),
+      findOrCreate: vi.fn().mockImplementation(async ({ where }) => [
+        {
+          userId: where.userId,
+          aiEnabled: true,
+          consentVersion: '1.0',
+          consentedAt: new Date(),
+          update: vi.fn().mockResolvedValue(undefined),
+        },
+        true,
+      ]),
     },
     User: {
-      findByPk: vi.fn(async (id) => ({ id: Number(id) })),
+      findByPk: vi.fn(async (id) => ({ id: Number(id), role: 'client' })),
     },
     ClientTrainerAssignment: {
       findOne: vi.fn().mockResolvedValue(null),
@@ -36,7 +49,11 @@ vi.mock('../services/waiverEligibility.mjs', () => ({
 }), { virtual: true });
 
 const { getWorkoutFrequencyChart } = await import('../controllers/chartDataController.mjs');
-const { getAiConsentStatus } = await import('../controllers/aiConsentController.mjs');
+const {
+  getAiConsentStatus,
+  grantAiConsent,
+  withdrawAiConsent,
+} = await import('../controllers/aiConsentController.mjs');
 
 // Test app builder: minimal Express, no real auth/middleware chain, just a fake protect that
 // injects req.user from headers, then mounts the handler under test on the SAME paramless
@@ -87,6 +104,8 @@ function buildConsentApp() {
   });
   app.get('/consent/status', getAiConsentStatus);
   app.get('/consent/status/:userId', getAiConsentStatus);
+  app.post('/consent/grant', grantAiConsent);
+  app.post('/consent/withdraw', withdrawAiConsent);
   return app;
 }
 
@@ -194,5 +213,74 @@ describe('Triage Slice 1 - getAiConsentStatus :userId path role gates preserved'
       .set('x-test-user-id', '42')
       .set('x-test-user-role', 'trainer');
     expect(res.status).toBe(403);
+  });
+});
+
+describe('Phase 20.X - resolveTargetUser self-default for non-client roles (grant 400 fix)', () => {
+  // Regression for production 400 reported 2026-04-30:
+  //   POST /api/ai/consent/grant returned 400 "Missing or invalid userId"
+  //   when admin user hit the consent settings page (which sends body {}).
+  // Fix: resolveTargetUser defaults to requesterId for ALL roles when
+  //   rawUserId is omitted; per-role gates downstream still enforce
+  //   cross-user authorization.
+
+  it('client POST /consent/grant {} -> 200 (existing self-default preserved)', async () => {
+    const app = buildConsentApp();
+    const res = await request(app)
+      .post('/consent/grant')
+      .send({})
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.profile.userId).toBe(42);
+  });
+
+  it('admin POST /consent/grant {} -> 200 (was 400, now self-defaults)', async () => {
+    const app = buildConsentApp();
+    const res = await request(app)
+      .post('/consent/grant')
+      .send({})
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'admin');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.profile.userId).toBe(7);
+  });
+
+  it('admin POST /consent/grant { userId: "abc" } -> 400 (invalid still rejected)', async () => {
+    const app = buildConsentApp();
+    const res = await request(app)
+      .post('/consent/grant')
+      .send({ userId: 'abc' })
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'admin');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/userId/i);
+  });
+
+  it('trainer POST /consent/grant {} -> 403 (gate at line 50-55 fires; better semantics than prior 400)', async () => {
+    const app = buildConsentApp();
+    const res = await request(app)
+      .post('/consent/grant')
+      .send({})
+      .set('x-test-user-id', '11')
+      .set('x-test-user-role', 'trainer');
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/Trainers cannot grant/i);
+  });
+
+  it('admin POST /consent/withdraw {} -> targets self (no 400 missing-userId)', async () => {
+    // withdraw also calls resolveTargetUser; self-default applies symmetrically.
+    // findOne mock returns a profile, so withdraw will succeed; the assertion
+    // we care about is "not 400 missing-userId" which would have fired before.
+    const app = buildConsentApp();
+    const res = await request(app)
+      .post('/consent/withdraw')
+      .send({})
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'admin');
+    expect(res.status).not.toBe(400);
+    expect([200, 404]).toContain(res.status);
   });
 });
