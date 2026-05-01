@@ -25,6 +25,11 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import {
+  verifyClientAccessByUserId,
+  verifyClientAccessByPlanId,
+  filterPlansByTrainerAssignment,
+} from '../middleware/verifyClientAccess.mjs';
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -63,7 +68,10 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
       limit: 50
     });
 
-    res.json({ success: true, plans, count: plans.length });
+    // Phase B IDOR mitigation: filter to trainer's assigned clients (admin sees all).
+    const filteredPlans = await filterPlansByTrainerAssignment(req, plans);
+
+    res.json({ success: true, plans: filteredPlans, count: filteredPlans.length });
   } catch (error) {
     logger.error('[WorkoutPlan] GET / error: %s', error.message);
     res.status(500).json({ success: false, message: 'Failed to fetch workout plans' });
@@ -81,7 +89,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
  * @route GET /api/workout-plans/client/:userId
  * @access Trainer/Admin
  */
-router.get('/client/:userId', protect, trainerOrAdminOnly, async (req, res) => {
+router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
     const userId = parseInt(req.params.userId, 10);
@@ -126,15 +134,10 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, async (req, res) => {
  * @route GET /api/workout-plans/:id
  * @access Trainer/Admin
  */
-router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
+router.get('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    const WorkoutPlan = getWorkoutPlan();
-    const plan = await WorkoutPlan.findByPk(req.params.id);
-
-    if (!plan) {
-      return res.status(404).json({ success: false, message: 'Workout plan not found' });
-    }
-
+    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
+    const plan = req.workoutPlan;
     const currentSession = extractCurrentSession(plan);
 
     res.json({ success: true, plan, currentSession });
@@ -154,7 +157,7 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
  * @route POST /api/workout-plans
  * @access Trainer/Admin
  */
-router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
+router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId', bodyField: 'userId' }), async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
     const {
@@ -216,14 +219,10 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
  * @route PUT /api/workout-plans/:id
  * @access Trainer/Admin
  */
-router.put('/:id', protect, trainerOrAdminOnly, async (req, res) => {
+router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    const WorkoutPlan = getWorkoutPlan();
-    const plan = await WorkoutPlan.findByPk(req.params.id);
-
-    if (!plan) {
-      return res.status(404).json({ success: false, message: 'Workout plan not found' });
-    }
+    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
+    const plan = req.workoutPlan;
 
     // Whitelist updatable fields to prevent mass-assignment
     const allowedFields = [
@@ -266,14 +265,10 @@ router.put('/:id', protect, trainerOrAdminOnly, async (req, res) => {
  * @access Trainer/Admin
  * @body { trainerNotes?: string } — optional notes for the completed session
  */
-router.put('/:id/advance', protect, trainerOrAdminOnly, async (req, res) => {
+router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    const WorkoutPlan = getWorkoutPlan();
-    const plan = await WorkoutPlan.findByPk(req.params.id);
-
-    if (!plan) {
-      return res.status(404).json({ success: false, message: 'Workout plan not found' });
-    }
+    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
+    const plan = req.workoutPlan;
 
     if (plan.status !== 'active') {
       return res.status(400).json({
@@ -369,14 +364,10 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, async (req, res) => {
  * @route DELETE /api/workout-plans/:id
  * @access Trainer/Admin
  */
-router.delete('/:id', protect, trainerOrAdminOnly, async (req, res) => {
+router.delete('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
-    const WorkoutPlan = getWorkoutPlan();
-    const plan = await WorkoutPlan.findByPk(req.params.id);
-
-    if (!plan) {
-      return res.status(404).json({ success: false, message: 'Workout plan not found' });
-    }
+    // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
+    const plan = req.workoutPlan;
 
     await plan.update({ status: 'completed' });
 
