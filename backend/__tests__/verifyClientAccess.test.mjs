@@ -138,24 +138,15 @@ describe('assertAssignmentOrAdmin', () => {
     expect(result).toBe(false); // Fail-closed semantics preserved.
   });
 
-  it('trainer role fails closed when ClientTrainerAssignment model is unavailable', async () => {
-    // Simulate getModel returning null for ClientTrainerAssignment.
-    // We restore via a temporary getAllModels stub override. Easier: assert the
-    // log path via spy. We test the boolean outcome here - if Model is null,
-    // the helper returns false without calling findOne.
-    const { getModel } = await import('../models/index.mjs');
-    const originalGetModel = getModel;
-    // Re-mock just for this test
-    const mockedModule = await import('../models/index.mjs');
-    const spy = vi.spyOn(mockedModule, 'getModel').mockReturnValue(null);
-    try {
-      // We can't easily replace inside the SUT after import; just confirm the
-      // mock infrastructure (already returning null when getModel('Foo')) works.
-      // The actual null-Model path is exercised in the integration tests below.
-      expect(typeof originalGetModel).toBe('function');
-    } finally {
-      spy.mockRestore();
-    }
+  it('trainer role fails closed when ClientTrainerAssignment.findOne THROWS (model unavailable)', async () => {
+    // Hostile-review fix 2026-04-30: getModel() actually THROWS when the model
+    // isn't in the cache (does not return null). Simulate that by making the
+    // findOne mock itself throw with a "Model 'X' not found in cache" error.
+    // The helper must catch this and fail closed - same path as a runtime
+    // query throw.
+    mockAssignmentFindOne.mockRejectedValue(new Error("Model 'ClientTrainerAssignment' not found in cache"));
+    const result = await assertAssignmentOrAdmin(1, 'trainer', 42);
+    expect(result).toBe(false);
   });
 
   it('unknown role returns false (deny by default)', async () => {

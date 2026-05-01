@@ -2,10 +2,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 
-// Mock auth middleware to bypass token check + inject a fake trainer user.
+// Mock auth middleware to bypass token check + inject a fake user.
+// Defaults to admin (preserves all 24 existing field-validation tests' assumptions).
+// Tests that need a trainer/client role can set `x-test-user-id` and
+// `x-test-user-role` headers - hostile-review M2 fix 2026-04-30.
 vi.mock('../middleware/auth.mjs', () => ({
   protect: (req, _res, next) => {
-    req.user = { id: 99, role: 'admin' }; // admin bypasses verifyClientAccess
+    if (req.headers['x-test-user-id']) {
+      req.user = {
+        id: parseInt(req.headers['x-test-user-id'], 10),
+        role: req.headers['x-test-user-role'] || 'admin',
+      };
+    } else {
+      req.user = { id: 99, role: 'admin' };
+    }
     next();
   },
   authorize: () => (_req, _res, next) => next(),
@@ -22,9 +32,16 @@ vi.mock('express-rate-limit', () => ({
   default: () => (_req, _res, next) => next(),
 }));
 
-// Mock sequelize so verifyClientAccess admin shortcut path is fine.
-vi.mock('../database.mjs', () => ({
-  default: { query: vi.fn(), QueryTypes: { SELECT: 'SELECT' } },
+// Mock the ClientTrainerAssignment model contract for trainer-path tests
+// (M2 hostile-review fix). Default to no assignment; individual tests override.
+const mockAssignmentFindOne = vi.fn();
+vi.mock('../models/index.mjs', () => ({
+  getModel: (name) => {
+    if (name === 'ClientTrainerAssignment') {
+      return { findOne: mockAssignmentFindOne };
+    }
+    return null;
+  },
 }));
 
 const { generateWorkout, generatePlan } = await import('../services/workoutBuilderService.mjs');
@@ -177,4 +194,63 @@ describe('POST /api/workout-builder/plan - field validation', () => {
       expect(args.primaryGoal).toBe(goal);
     }
   );
+});
+
+// ─────────────────────────────────────────────────────────────
+// M2 hostile-review fix 2026-04-30: trainer-path coverage.
+// The pre-fix validation file ran every test as admin, masking trainer-path
+// bugs. The schema-mismatch BLOCKER shipped in f34f1199c because nothing in
+// this file exercised the trainer code path through verifyClientAccess.
+// These tests close the structural gap.
+// ─────────────────────────────────────────────────────────────
+
+describe('workoutBuilderRoutes - trainer-path verifyClientAccess', () => {
+  beforeEach(() => {
+    mockAssignmentFindOne.mockReset();
+  });
+
+  it('trainer WITH active assignment passes verifyClientAccess - reaches handler', async () => {
+    mockAssignmentFindOne.mockResolvedValue({ id: 'asgn-42', status: 'active' });
+    const res = await request(app)
+      .post('/api/workout-builder/generate')
+      .send({ clientId: 99, category: 'full_body' })
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'trainer');
+    expect(res.status).not.toBe(403);
+    // Service was reached
+    expect(generateWorkout).toHaveBeenCalled();
+  });
+
+  it('trainer WITHOUT assignment gets 403 (matches existing route handler behavior)', async () => {
+    mockAssignmentFindOne.mockResolvedValue(null);
+    const res = await request(app)
+      .post('/api/workout-builder/generate')
+      .send({ clientId: 999, category: 'full_body' })
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'trainer');
+    expect(res.status).toBe(403);
+    expect(generateWorkout).not.toHaveBeenCalled();
+  });
+
+  it('trainer assignment query uses status=active contract (NOT isActive bool) - schema regression', async () => {
+    mockAssignmentFindOne.mockResolvedValue({ id: 'a-1' });
+    await request(app)
+      .post('/api/workout-builder/plan')
+      .send({ clientId: 42, durationWeeks: 12, primaryGoal: 'hypertrophy' })
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'trainer');
+    const where = mockAssignmentFindOne.mock.calls[0][0].where;
+    expect(where).toEqual({ trainerId: 7, clientId: 42, status: 'active' });
+    expect(where).not.toHaveProperty('isActive');
+  });
+
+  it('trainer assignment query failing throws (model unavailable / DB down) -> fails closed -> 403', async () => {
+    mockAssignmentFindOne.mockRejectedValue(new Error("Model 'ClientTrainerAssignment' not found in cache"));
+    const res = await request(app)
+      .post('/api/workout-builder/plan')
+      .send({ clientId: 42, durationWeeks: 12, primaryGoal: 'hypertrophy' })
+      .set('x-test-user-id', '7')
+      .set('x-test-user-role', 'trainer');
+    expect(res.status).toBe(403);
+  });
 });
