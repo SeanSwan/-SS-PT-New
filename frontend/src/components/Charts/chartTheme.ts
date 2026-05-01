@@ -366,13 +366,27 @@ export const CenterLabel = styled.div`
 `;
 
 /**
- * Strips data points where y is undefined, null, or NaN before passing
- * to any Victory chart. Prevents "Expected number, NaN" SVG path errors
- * that occur when backend returns sparse or partially-populated data.
+ * Strips data points where x or y is undefined, null, NaN, or otherwise
+ * unparseable before passing to any Victory chart. Prevents "Expected
+ * number, NaN" SVG path errors that occur when backend returns sparse
+ * or partially-populated data.
+ *
+ * 2026-05-01 hardening: prior version only validated y. When x was an
+ * unparseable date string or null, Victory produced paths like
+ * "M NaN, 137.8..." flooding the console with hundreds of errors. Now
+ * also validates x: numbers must be finite; strings must be non-empty
+ * (Victory accepts string categorical x); other shapes are dropped.
  */
-export function sanitizeChartData<T extends { y: unknown }>(data: T[]): T[] {
+export function sanitizeChartData<T extends { x?: unknown; y: unknown }>(data: T[]): T[] {
   if (!Array.isArray(data)) return [];
-  return data.filter(d => typeof d.y === 'number' && !isNaN(d.y));
+  return data.filter(d => {
+    if (typeof d.y !== 'number' || isNaN(d.y) || !isFinite(d.y)) return false;
+    if (d.x === undefined || d.x === null) return false;
+    if (typeof d.x === 'number') return isFinite(d.x);
+    if (typeof d.x === 'string') return d.x.length > 0;
+    if (d.x instanceof Date) return !isNaN(d.x.getTime());
+    return true;
+  });
 }
 
 // ── Category Tab Components (AI Village Phase 3 consensus) ──
