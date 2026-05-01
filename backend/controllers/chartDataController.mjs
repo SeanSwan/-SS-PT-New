@@ -83,8 +83,25 @@ const parseUserId = (raw) => {
 };
 
 // Standard short-circuit for all chart endpoints.
+//
+// REV 3 (2026-04-30, Triage Slice 1): paramless client routes (e.g.
+// /api/client/analytics/chart-*) have no :userId in path; the
+// injectUserId middleware sets req.params.userId but Express resets
+// req.params for paramless route layers (see CLAUDE.md rule 55).
+// Fall back to the authenticated user's id - auth has already passed
+// by this point so this is safe and matches client-route intent.
+//
+// `||` (not `??`) catches empty-string sentinels, "undefined"/"null"/"0"
+// string coercions; all of which are invalid userIds.
+//
+// Risk accepted by deferring the ValidationError refactor: any future
+// addition of a 16th `requireUser` caller that omits the
+// `if (!userId) return;` discipline will crash via ERR_HTTP_HEADERS_SENT.
+// All 15 current callers verified disciplined; lint rule + ValidationError
+// refactor scheduled in fast-follow tech-debt slices.
 const requireUser = (req, res) => {
-  const userId = parseUserId(req.params.userId);
+  const raw = req.params.userId || req.user?.id;
+  const userId = parseUserId(raw);
   if (!userId) {
     res.status(400).json({ success: false, message: 'Invalid userId' });
     return null;

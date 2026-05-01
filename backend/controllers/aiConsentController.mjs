@@ -198,11 +198,30 @@ export const getAiConsentStatus = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const rawUserId = req.params?.userId || req.query?.userId;
-    const targetUserId = resolveTargetUser(rawUserId, requesterId, requesterRole);
+    // REV 3 (2026-04-30, Triage Slice 1): drop req.query?.userId entirely.
+    // The paramless mount /api/ai/consent/status now ALWAYS returns the
+    // authenticated user's own consent profile - no user-controlled
+    // selector accepted on this mount. The /:userId mount continues to
+    // accept the path param and run the downstream role-based gates at
+    // lines 208-231 (client 403'd cross-user; trainer assignment-gated;
+    // admin trusted by design).
+    //
+    // Village CRITICAL-01 (Sonnet 4.6 disputed by GPT-5.5 to HIGH-conditional):
+    // attack surface reduction is mandatory regardless of severity. Removing
+    // the query selector also makes the IDOR review trivial in future audits.
+    const pathUserId = req.params?.userId;
 
-    if (!targetUserId) {
-      return res.status(400).json({ success: false, message: 'Missing or invalid userId' });
+    let targetUserId;
+    if (!pathUserId) {
+      // Paramless mount: ALWAYS the authenticated user's own profile.
+      targetUserId = requesterId;
+    } else {
+      // Explicit /:userId mount: full role-based resolution + downstream
+      // ownership/trainer-assignment gates at lines 208-231.
+      targetUserId = resolveTargetUser(pathUserId, requesterId, requesterRole);
+      if (!targetUserId) {
+        return res.status(400).json({ success: false, message: 'Missing or invalid userId' });
+      }
     }
 
     if (requesterRole === 'client' && targetUserId !== requesterId) {
