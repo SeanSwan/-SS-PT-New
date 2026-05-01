@@ -263,14 +263,16 @@ const creditsController = {
     const transaction = await sequelize.transaction();
 
     try {
-      // 1. Check if trainer is assigned to this client (unless admin)
+      // 1. Check if trainer is assigned to this client (unless admin).
+      // 2026-05-01 schema fix: prior query used { isActive: true } on a
+      // non-existent column. Real column is status='active' (rule 58).
       if (trainerRole !== 'admin') {
         const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
         const assignment = await ClientTrainerAssignment.findOne({
           where: {
-            clientId,
-            trainerId,
-            isActive: true
+            clientId: parseInt(clientId, 10),
+            trainerId: parseInt(trainerId, 10),
+            status: 'active'
           },
           transaction
         });

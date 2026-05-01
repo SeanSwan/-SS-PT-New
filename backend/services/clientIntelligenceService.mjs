@@ -231,9 +231,25 @@ export async function getClientContext(clientId, trainerId) {
   if (requestingUser.role === 'trainer') {
     const ClientTrainerAssignment = safeGetModel('ClientTrainerAssignment');
     if (ClientTrainerAssignment) {
+      // 2026-05-01 schema fix: prior query used { isActive: true } on a column
+      // that doesn't exist. Real column is status='active' (see model file:115
+      // and the migration). The query threw, the .catch silently nulled the
+      // result, and every legitimate trainer-with-assignment workflow tripped
+      // "Trainer does not have an active assignment". Same rule-58 bug class
+      // as the route-layer fixes earlier this session — switching to the
+      // model contract used by verifyClientAccess.mjs.
       const assignment = await ClientTrainerAssignment.findOne({
-        where: { clientId, trainerId, isActive: true },
-      }).catch(() => null);
+        where: {
+          clientId: parseInt(clientId, 10),
+          trainerId: parseInt(trainerId, 10),
+          status: 'active',
+        },
+      }).catch((err) => {
+        logger.warn('[ClientIntelligence] Assignment lookup error', {
+          clientId, trainerId, error: err?.message,
+        });
+        return null;
+      });
       if (!assignment) {
         throw new Error('Trainer does not have an active assignment with this client');
       }

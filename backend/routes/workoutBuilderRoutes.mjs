@@ -89,7 +89,14 @@ router.post('/generate', async (req, res) => {
     return res.json({ success: true, workout });
   } catch (err) {
     logger.error('[WorkoutBuilder] Generate failed:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to generate workout' });
+    // Surface err.message as `details` so the frontend's inline error
+    // display can show the real cause (frontend reads errData.details ||
+    // errData.error). Generic `error` stays for backwards compatibility.
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate workout',
+      details: err.message,
+    });
   }
 });
 
@@ -135,7 +142,11 @@ router.post('/plan', async (req, res) => {
     return res.json({ success: true, plan });
   } catch (err) {
     logger.error('[WorkoutBuilder] Plan generation failed:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to generate plan' });
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate plan',
+      details: err.message,
+    });
   }
 });
 
