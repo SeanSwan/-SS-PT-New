@@ -5,7 +5,9 @@
  * │                                                              │
  * │ Features:                                                    │
  * │ - Countdown from restSeconds to 0                           │
- * │ - Audio alert when timer completes (navigator.vibrate(50))  │
+ * │ - Audio beep on completion (UI-2 fix 2026-04-30)            │
+ * │   3 short beeps at 800Hz via Web Audio API; no asset file   │
+ * │ - Vibration alert when timer completes (navigator.vibrate)  │
  * │ - Web Worker for background precision (falls back to setInterval) │
  * │ - Proper cleanup in useEffect (no memory leaks)             │
  * │ - prefers-reduced-motion: disables vibration                │
@@ -23,6 +25,51 @@ interface UseRestTimerOptions {
   onComplete?: () => void;
   /** Enable vibration alert (CEO Ruling: navigator.vibrate(50) only) */
   enableVibration?: boolean;
+  /** Enable audio beep on completion (UI-2 2026-04-30) */
+  enableAudio?: boolean;
+}
+
+/**
+ * Play 3 short 800Hz beeps via Web Audio API. No asset file required —
+ * generates the tone in-browser. Called when the rest timer completes.
+ *
+ * Failure modes:
+ * - AudioContext unavailable (very old browsers) → silent fail
+ * - Browser autoplay restrictions → silent fail (timer was started by user
+ *   click so the audio context should be unlocked, but if not, no throw)
+ */
+function playRestCompleteBeep(): void {
+  try {
+    const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const beepCount = 3;
+    const beepDurationMs = 120;
+    const gapMs = 80;
+    for (let i = 0; i < beepCount; i++) {
+      const startSec = ctx.currentTime + i * (beepDurationMs + gapMs) / 1000;
+      const stopSec = startSec + beepDurationMs / 1000;
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 800;
+      // Brief ramp prevents the click/pop a hard-edged tone produces.
+      gain.gain.setValueAtTime(0, startSec);
+      gain.gain.linearRampToValueAtTime(0.18, startSec + 0.01);
+      gain.gain.setValueAtTime(0.18, stopSec - 0.01);
+      gain.gain.linearRampToValueAtTime(0, stopSec);
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(startSec);
+      oscillator.stop(stopSec);
+    }
+    // Clean up the context after all beeps would have played.
+    setTimeout(() => {
+      try { ctx.close(); } catch { /* already closed */ }
+    }, beepCount * (beepDurationMs + gapMs) + 200);
+  } catch {
+    // Silent — the timer's vibration + onComplete callback still fire.
+  }
 }
 
 interface UseRestTimerReturn {
@@ -43,6 +90,7 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
     defaultSeconds = 60,
     onComplete,
     enableVibration = true,
+    enableAudio = true,
   } = options;
 
   const [secondsLeft, setSecondsLeft] = useState(defaultSeconds);
@@ -69,14 +117,20 @@ export function useRestTimer(options: UseRestTimerOptions = {}): UseRestTimerRet
     }
   }, []);
 
-  // Fire completion alert
+  // Fire completion alert: audio beep + vibration + onComplete callback.
   const fireAlert = useCallback(() => {
-    // CEO Ruling V2.0: navigator.vibrate(50) only, prefers-reduced-motion disables
+    // CEO Ruling V2.0: navigator.vibrate(50) only, prefers-reduced-motion disables.
     if (enableVibration && !prefersReducedMotion && navigator.vibrate) {
       navigator.vibrate(50);
     }
+    // UI-2 (2026-04-30): audio beep on completion. prefers-reduced-motion does not
+    // gate audio (system pref is for motion, not sound). Consumers can disable via
+    // enableAudio: false if they want a silent timer.
+    if (enableAudio) {
+      playRestCompleteBeep();
+    }
     onCompleteRef.current?.();
-  }, [enableVibration, prefersReducedMotion]);
+  }, [enableVibration, enableAudio, prefersReducedMotion]);
 
   // Start the timer
   const start = useCallback((seconds?: number) => {
