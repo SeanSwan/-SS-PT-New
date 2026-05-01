@@ -28,7 +28,7 @@
 import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageCircle, UserPlus, Dumbbell, Eye } from 'lucide-react';
+import { MessageCircle, UserPlus, Dumbbell, Eye, UserCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import ClientSelectorDropdown from './clients-team/ClientSelectorDropdown';
 import ClientHeaderCard from './clients-team/ClientHeaderCard';
@@ -363,6 +363,18 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [navigate, selectedClient]);
 
+  // UI-9 (2026-05-01): "Trainer Assignments" CTA. The drag-and-drop
+  // ClientTrainerAssignments page has stayed mounted at
+  // /dashboard/admin/client-trainer-assignments (UniversalDashboardLayout.tsx:526)
+  // but its entry point was removed from this workspace when the dormant
+  // MasterDetailLayout fell out of the canonical route tree (Phase 19).
+  // Re-add the button so admins can reach trainer↔client assignment
+  // management again. Always shown (not gated on selectedClient) since
+  // it's a workspace-level operation.
+  const handleManageAssignments = useCallback(() => {
+    navigate('/dashboard/admin/client-trainer-assignments');
+  }, [navigate]);
+
   // Map ClientOption to MiniCardClient for ClientDetailView compatibility
   const detailClient: MiniCardClient | null = useMemo(() => {
     if (!selectedClient) return null;
@@ -441,6 +453,10 @@ const ClientsWorkspace: React.FC = () => {
               <span>View As</span>
             </ActionBtn>
           )}
+          <ActionBtn onClick={handleManageAssignments} title="Manage trainer↔client assignments (drag-and-drop)">
+            <UserCheck size={16} />
+            <span>Trainer Assignments</span>
+          </ActionBtn>
           <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Swan Coach with this client's context">
             <MessageCircle size={16} />
             <span>Swan Coach</span>
