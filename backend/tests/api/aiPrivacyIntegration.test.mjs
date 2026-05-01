@@ -588,7 +588,15 @@ describe('AI Consent Controller', () => {
       expect(res.body.message).toContain('not found');
     });
 
-    it('should return 400 when admin/trainer omits userId', async () => {
+    it('should self-default to requester status when admin omits userId on paramless route', async () => {
+      mockModels.AiPrivacyProfile.findOne.mockResolvedValue({
+        userId: 1,
+        aiEnabled: true,
+        consentVersion: '1.0',
+        consentedAt: new Date(),
+        withdrawnAt: null,
+      });
+
       const req = createReq({
         user: { id: 1, role: 'admin' },
         params: {},
@@ -598,7 +606,12 @@ describe('AI Consent Controller', () => {
 
       await getAiConsentStatus(req, res);
 
-      expect(res.statusCode).toBe(400);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.profile.userId).toBe(1);
+      expect(mockModels.User.findByPk).not.toHaveBeenCalled();
+      expect(mockModels.AiPrivacyProfile.findOne).toHaveBeenCalledWith({
+        where: { userId: 1 },
+      });
     });
 
     // ── 5W-F: waiverEligibility field in status response ──────
