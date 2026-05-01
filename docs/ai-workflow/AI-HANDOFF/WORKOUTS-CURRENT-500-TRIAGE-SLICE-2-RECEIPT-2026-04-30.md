@@ -1,6 +1,6 @@
 # Triage Slice 2 - GET /api/workouts/:id/current 500 - Receipt - 2026-04-30
 
-**Status:** Pre-code receipt. Fix is `[HYPOTHESIS]` until live error reproduction supplies the actual stack trace (rule 55).
+**Status:** `[VERIFIED]` live root cause captured 2026-05-01; implementation slice opened.
 **Scope:** Bug 3 from the original triage chain. WorkoutLogger.tsx:639 calls `GET /api/workouts/<clientId>/current`; production returns 500. Different defect class from Slice 1 (server error, not param validation).
 **Authority:** CLAUDE.md rules 17, 21, 26, 51, 55.
 
@@ -22,7 +22,7 @@
 - **`[VERIFIED]`** that `WorkoutPlanDay` and `WorkoutPlanDayExercise` model files exist ([backend/models/WorkoutPlanDay.mjs](backend/models/WorkoutPlanDay.mjs), [backend/models/WorkoutPlanDayExercise.mjs](backend/models/WorkoutPlanDayExercise.mjs)).
 - **`[UNVERIFIED]`** whether `WorkoutPlan.hasMany(WorkoutPlanDay, { as: 'days' })` is actually declared in [associations.mjs](backend/models/associations.mjs). A grep for `as: 'days'` in associations.mjs returned no hits, but that's a partial-pattern check, not a confirmation.
 - **`[VERIFIED]`** that Phase A's authoritative WorkoutPlan model schema stores plan structure as **JSONB at `planData`** ([WorkoutPlan.mjs:124-130](backend/models/WorkoutPlan.mjs#L124-L130) - "Full plan structure: weeks -> sessions -> exercises"). The JSONB is the canonical storage; the `WorkoutPlanDay` / `WorkoutPlanDayExercise` ORM models may be vestigial / pre-JSONB-migration code.
-- **`[HYPOTHESIS]`** the include chain throws `EagerLoadingError: WorkoutPlanDay is not associated to WorkoutPlan!` at runtime, caught by the local try/catch, and returns 500.
+- **`[VERIFIED]`** the include chain throws `WorkoutPlanDay is not associated to WorkoutPlan!` at runtime, caught by the local try/catch, and returns 500.
 
 ### D3 - Required probe before fix lands (rule 55)
 
@@ -36,11 +36,18 @@ To convert D2 from `[HYPOTHESIS]` to `[VERIFIED]`:
 6. If error matches `not associated` / `EagerLoadingError` -> D2 confirmed.
 7. If error is something else -> root cause is different; receipt re-diagnoses.
 
-**This slice does NOT include the probe.** Sean to run + paste the error message before the proposed fix below ships.
+**Probe completed 2026-05-01 via authenticated client smoke:**
+
+```text
+GET /api/workouts/99/current -> HTTP 500
+body.error: "WorkoutPlanDay is not associated to WorkoutPlan!"
+```
+
+This converts D2 from `[HYPOTHESIS]` to `[VERIFIED]` per rule 55.
 
 ---
 
-## Section 2 - Proposed fix (HYPOTHESIS-grade pending probe)
+## Section 2 - Proposed fix
 
 ### 2.1 - Remove the include chain; return planData JSONB intact
 
@@ -98,9 +105,9 @@ OR backend returns a shape adapter that derives `data.plan.days[]` from `planDat
 
 - D1 route mount: `[VERIFIED]`
 - D1 paramfull (no reset bug): `[VERIFIED]`
-- D2 association missing: `[HYPOTHESIS]`
+- D2 association missing: `[VERIFIED]`
 - D2 JSONB is canonical storage: `[VERIFIED]`
-- Proposed fix shape: `[HYPOTHESIS]` pending probe
+- Proposed fix shape: `[VERIFIED]` by mounted route regression test after implementation
 
 ---
 
