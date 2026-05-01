@@ -833,27 +833,33 @@ export const requireOwnershipOrTrainer = async (req, res, next) => {
       return next();
     }
 
-    // Trainers can access their assigned clients
+    // Trainers can access their assigned clients.
+    //
+    // 2026-05-01 schema fix: prior raw SQL queried "ClientTrainerAssignments"
+    // (PascalCase), which doesn't exist. Real table is client_trainer_assignments
+    // (snake_case, see ClientTrainerAssignment.mjs:115). The PascalCase query
+    // threw, the catch silently logged a warning, and every legitimate trainer
+    // access to /api/analytics/:userId/* fell through to 403. Same bug class
+    // as the workoutBuilderRoutes mismatch fixed earlier — switch to the model
+    // contract so future schema changes touch ONE place.
     if (req.user.role === 'trainer') {
       try {
-        const [assignments] = await import('../models/index.mjs')
-          .then(m => m.default?.sequelize || m.sequelize)
-          .then(seq => seq.query(
-            `SELECT 1 FROM "ClientTrainerAssignments"
-             WHERE "trainerId" = :trainerId AND "clientId" = :clientId AND status = 'active'
-             LIMIT 1`,
-            { replacements: { trainerId: req.user.id, clientId: targetUserId } }
-          ));
-
-        if (assignments && assignments.length > 0) {
+        const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+        const assignment = await ClientTrainerAssignment.findOne({
+          where: {
+            trainerId: parseInt(req.user.id, 10),
+            clientId: parseInt(targetUserId, 10),
+            status: 'active',
+          },
+        });
+        if (assignment) {
           return next();
         }
       } catch (assignmentError) {
-        // Table may not exist — fall through to deny
         logger.warn('Trainer assignment check failed', {
           error: assignmentError.message,
           trainerId: req.user.id,
-          clientId: targetUserId
+          clientId: targetUserId,
         });
       }
     }
