@@ -13,7 +13,7 @@ import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import logger from '../utils/logger.mjs';
-import sequelize from '../database.mjs';
+import { getModel } from '../models/index.mjs';
 
 // Workout builder rate limiter: 10 requests/minute per IP (DB-intensive operations)
 const workoutBuilderLimiter = rateLimit({
@@ -24,17 +24,26 @@ const workoutBuilderLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Client-trainer ownership check — admins bypass, trainers must be assigned
+// Client-trainer ownership check — admins bypass, trainers must be assigned.
+//
+// REVISION 2026-04-30 (Codex BLOCKER post-Phase-B-merge): the original raw SQL
+// queried `"ClientTrainerAssignments"."isActive" = true`, but the real schema
+// is `client_trainer_assignments.status = 'active'`. The wrong query failed
+// closed for every trainer with a valid assignment - bug only invisible
+// because admins (who bypass) drove all testing. Replaced with the model
+// contract.
 async function verifyClientAccess(userId, userRole, clientId) {
   if (userRole === 'admin') return true;
+  // getModel() THROWS when the model isn't in the cache (it does not return
+  // null). Wrap getModel + findOne together so missing model + query throw
+  // both route through the fail-closed branch.
   try {
-    const [rows] = await sequelize.query(
-      `SELECT 1 FROM "ClientTrainerAssignments" WHERE "trainerId" = :trainerId AND "clientId" = :clientId AND "isActive" = true LIMIT 1`,
-      { replacements: { trainerId: userId, clientId }, type: sequelize.QueryTypes.SELECT }
-    );
-    return !!rows;
+    const Model = getModel('ClientTrainerAssignment');
+    const assignment = await Model.findOne({
+      where: { trainerId: Number(userId), clientId: Number(clientId), status: 'active' },
+    });
+    return !!assignment;
   } catch (err) {
-    // Table may not exist yet — fail closed for security
     logger.warn('[WorkoutBuilder] ClientTrainerAssignment check failed, denying access', err?.message);
     return false;
   }

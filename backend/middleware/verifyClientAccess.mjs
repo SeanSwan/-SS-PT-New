@@ -47,13 +47,20 @@
  * ============================================================================
  */
 
-import sequelize from '../database.mjs';
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 /**
  * Core helper - returns boolean. Used by both middleware variants and exposed
  * for direct test use.
+ *
+ * REVISION 2026-04-30 (Codex BLOCKER post-Phase-B-merge): replaced obsolete raw
+ * SQL against `"ClientTrainerAssignments"."isActive"` with the real model
+ * contract `client_trainer_assignments.status = 'active'`. The original SQL
+ * was inherited from workoutBuilderRoutes.mjs Phase A and was broken there
+ * too - both call sites query a non-existent table name + non-existent column,
+ * causing fail-closed denials for every trainer with a valid assignment. The
+ * bug never surfaced in admin-driven testing because admins bypass.
  *
  * @param {number} userId - requester id (req.user.id)
  * @param {string} userRole - requester role ('admin' | 'trainer' | 'client')
@@ -66,17 +73,20 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
     return Number(userId) === Number(clientId);
   }
   if (userRole !== 'trainer') return false;
-  // Trainer: query ClientTrainerAssignments
+  // Trainer: look up via the ClientTrainerAssignment model (real schema:
+  // table=client_trainer_assignments, column=status with 'active'/'inactive'/'pending').
+  //
+  // NOTE: getModel() THROWS when the model isn't in the cache (it does not
+  // return null). The try/catch below wraps both the lookup AND the findOne
+  // call so that ANY failure - missing model, query throw, malformed cache -
+  // routes through the fail-closed branch. Hostile-review fix 2026-04-30.
   try {
-    const [rows] = await sequelize.query(
-      `SELECT 1 FROM "ClientTrainerAssignments"
-       WHERE "trainerId" = :trainerId AND "clientId" = :clientId AND "isActive" = true
-       LIMIT 1`,
-      { replacements: { trainerId: userId, clientId }, type: sequelize.QueryTypes.SELECT }
-    );
-    return !!rows;
+    const Model = getModel('ClientTrainerAssignment');
+    const assignment = await Model.findOne({
+      where: { trainerId: Number(userId), clientId: Number(clientId), status: 'active' },
+    });
+    return !!assignment;
   } catch (err) {
-    // Table missing OR query error: fail closed.
     logger.warn('[verifyClientAccess] ClientTrainerAssignment check failed - denying access', {
       userId, clientId, error: err?.message,
     });
