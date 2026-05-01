@@ -180,6 +180,46 @@ describe('normalizeClientListResponse — trainer path', () => {
     const out = normalizeClientListResponse(response, 'trainer');
     expect(out[0].firstName).toBe('Dave');
   });
+
+  it('maps the LIVE flat root shape { success, assignments: [...], totalClients }', () => {
+    // Regression test for production incident 2026-05-01: backend returns
+    // assignments at the root of the response body, not nested under data.
+    // The previous normalizer fell back to []; the trainer-side dropdown
+    // (Client Progress, Coach Assistant, etc.) stayed empty even when the
+    // API returned active assignments. Verified via curl probe against
+    // /api/client-trainer-assignments/trainer/98 on production (3 rows).
+    const response = {
+      success: true,
+      assignments: [
+        {
+          id: 50,
+          clientId: 99,
+          trainerId: 98,
+          status: 'active',
+          client: { id: 99, firstName: 'QaClient', lastName: 'Test', email: 'qa@example.com' },
+        },
+        {
+          id: 51,
+          clientId: 91,
+          trainerId: 98,
+          status: 'active',
+          client: { id: 91, firstName: 'QA', lastName: 'TestClient', email: 'qa.tc@example.com' },
+        },
+      ],
+      totalClients: 2,
+    };
+    const out = normalizeClientListResponse(response, 'trainer');
+    expect(out).toHaveLength(2);
+    expect(out[0]).toEqual({
+      id: 99,
+      firstName: 'QaClient',
+      lastName: 'Test',
+      email: 'qa@example.com',
+      photo: undefined,
+      role: undefined,
+    });
+    expect(out[1].firstName).toBe('QA');
+  });
 });
 
 describe('ADMIN_CLIENT_LIST_LIMIT constant', () => {

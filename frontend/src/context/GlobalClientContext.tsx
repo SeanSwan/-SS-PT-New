@@ -77,8 +77,9 @@ export const ADMIN_CLIENT_LIST_LIMIT = 500;
  *   { success: true, data: { clients: [...], pagination: {...} } }
  *
  * Trainer response shape varies by route version:
- *   { success: true, data: [...assignments] }  OR
- *   { success: true, data: { assignments: [...] } }
+ *   { success: true, data: [...assignments] }                 OR
+ *   { success: true, data: { assignments: [...] } }           OR
+ *   { success: true, assignments: [...], totalClients: N }    (current backend)
  * Each assignment has a nested `client` / `Client` object.
  */
 export function normalizeClientListResponse(
@@ -104,8 +105,19 @@ export function normalizeClientListResponse(
     }));
   }
 
-  // Trainer — assignments have a nested client object
-  const assignments = Array.isArray(data?.data) ? data.data : data?.data?.assignments ?? [];
+  // Trainer — assignments have a nested client object.
+  // 2026-05-01 shape-drift fix: backend returns flat
+  // { success, assignments: [...], totalClients } (verified via curl
+  // probe against /api/client-trainer-assignments/trainer/:id). The prior
+  // pair of fallbacks only handled data.data array / data.data.assignments
+  // — neither matched the live shape, so the dropdown stayed empty even
+  // when the API returned 3 active assignments. Add data.assignments
+  // (root-level) as a third fallback to match the live shape.
+  const assignments = Array.isArray(data?.assignments)
+    ? data.assignments
+    : Array.isArray(data?.data)
+    ? data.data
+    : data?.data?.assignments ?? [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return assignments.map((a: any) => {
     const c = a.client ?? a.Client ?? a;
