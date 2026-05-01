@@ -299,14 +299,29 @@ const WorkoutPlannerPage: React.FC = () => {
   }, [filteredExercises, selectedExercise, addExercise, setSelectedExercise]);
 
   // ── Fetch Clients ──
+  // 2026-05-01 role-aware fix: /api/auth/clients is adminOnly. Trainers
+  // (now landing on the workout planner with active assignments) must
+  // hit /api/client-trainer-assignments/trainer/:id instead. Admins keep
+  // the global /api/auth/clients path. Same routing pattern as
+  // GlobalClientContext provider.
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const res = await authAxios.get('/api/auth/clients');
-        if (res.data?.success && Array.isArray(res.data.clients)) {
-          setClients(res.data.clients);
-          if (res.data.clients.length > 0) {
-            setSelectedClientId(res.data.clients[0].id);
+        if (user?.role === 'trainer' && user.id) {
+          const res = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
+          const assignments = res.data?.assignments || res.data?.data?.assignments || [];
+          const clients = (Array.isArray(assignments) ? assignments : [])
+            .map((a: any) => a.client || a.Client)
+            .filter(Boolean);
+          setClients(clients);
+          if (clients.length > 0) setSelectedClientId(clients[0].id);
+        } else {
+          const res = await authAxios.get('/api/auth/clients');
+          if (res.data?.success && Array.isArray(res.data.clients)) {
+            setClients(res.data.clients);
+            if (res.data.clients.length > 0) {
+              setSelectedClientId(res.data.clients[0].id);
+            }
           }
         }
       } catch {
@@ -316,7 +331,7 @@ const WorkoutPlannerPage: React.FC = () => {
       }
     };
     fetchClients();
-  }, [authAxios]);
+  }, [authAxios, user?.role, user?.id]);
 
   // ── Remove Exercise ──
   const removeExercise = useCallback((id: string) => {
@@ -531,6 +546,69 @@ const WorkoutPlannerPage: React.FC = () => {
   useEffect(() => {
     fetchSavedPlans(selectedClientId);
   }, [selectedClientId, fetchSavedPlans]);
+
+  // ── Phase B: Saved-plan click-to-load hydration ──
+  const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
+  const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
+  const isDirty = planExercises.length > 0 && !loadedPlanId;
+
+  const handleLoadPlan = useCallback(async (planId: string, planName: string) => {
+    // Dirty-state confirm: if user has unsaved exercises in builder, warn before overwrite.
+    if (isDirty) {
+      const proceed = window.confirm(
+        `You have unsaved changes in the builder. Load "${planName}" and discard them?`
+      );
+      if (!proceed) return;
+    }
+    try {
+      const res = await authAxios.get(`/api/workout-plans/${planId}`);
+      const plan = res.data?.plan;
+      if (!plan) {
+        setStatusMsg({ type: 'error', text: 'Plan not found or not authorized.' });
+        return;
+      }
+      // Hydrate builder state from plan.planData JSONB structure.
+      const planData = plan.planData || {};
+      const firstWeek = planData.weeks?.[0];
+      const firstDay = firstWeek?.days?.[0] || firstWeek?.sessions?.[0];
+      const exercises = firstDay?.exercises || [];
+
+      // Build PlanExercise[] from saved structure.
+      const hydrated: PlanExercise[] = exercises.map((ex: Record<string, unknown>, i: number) => ({
+        id: `loaded-${planId}-${i}-${Date.now()}`,
+        exerciseSlim: {
+          id: String(ex.exerciseId || ''),
+          name: String(ex.exerciseName || ex.name || 'Unknown'),
+          exerciseKey: String(ex.exerciseId || ''),
+          exerciseType: 'compound',
+          bodyPartCategory: 'Full Body',
+          primaryMuscles: [],
+          difficulty: 300,
+        },
+        sets: Number(ex.sets) || 3,
+        reps: String(ex.reps || ex.repGoal || '8-12'),
+        tempo: String(ex.tempo || ''),
+        restSeconds: typeof ex.restPeriod === 'number' ? ex.restPeriod : 60,
+        intensityPercent: 70,
+        notes: String(ex.notes || ''),
+      }));
+
+      setPlanExercises(hydrated);
+      if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
+      if (planData.goal) setGoal(planData.goal as PlanGoal);
+      if (planData.category) setCategory(planData.category as WorkoutCategory);
+      setLoadedPlanId(String(planId));
+      setLoadedPlanName(planName);
+      setStatusMsg({ type: 'success', text: `Loaded plan: ${planName}` });
+    } catch (err: unknown) {
+      const errData = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+      if (errData?.status === 404) {
+        setStatusMsg({ type: 'error', text: 'Plan not found or not authorized.' });
+      } else {
+        setStatusMsg({ type: 'error', text: 'Failed to load plan. Please try again.' });
+      }
+    }
+  }, [authAxios, isDirty]);
 
   // ── Filter chip handler ──
   const handleChipClick = useCallback((bodyPart: string) => {
@@ -1088,7 +1166,24 @@ const WorkoutPlannerPage: React.FC = () => {
           ) : (
             <MesocycleGrid>
               {savedPlans.map(plan => (
-                <MesocycleCard key={plan.id} $phase={1} style={{ cursor: 'default' }}>
+                <MesocycleCard
+                  key={plan.id}
+                  $phase={1}
+                  style={{
+                    cursor: 'pointer',
+                    outline: loadedPlanId === plan.id ? '2px solid var(--accent-primary, #60C0F0)' : undefined,
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Load plan: ${plan.name}`}
+                  onClick={() => handleLoadPlan(plan.id, plan.name)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleLoadPlan(plan.id, plan.name);
+                    }
+                  }}
+                >
                   <MesocycleHeader>
                     <MesocycleTitle style={{ fontSize: '0.85rem' }}>{plan.name}</MesocycleTitle>
                     <MesocycleWeeks style={{

@@ -272,6 +272,74 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
 56. **Tier-A Baseline Disclosure (MANDATORY)** — Established 2026-04-28 after Codex flagged that "tsc --noEmit clean for slice files" understated the broader baseline non-cleanliness. The rule scopes to **broad/global quality claims** — phrases like "Tier-A green," "tsc --noEmit clean," "lint clean," "all tests pass," "build is clean." It does NOT apply to narrowly reported exact commands and their outputs (e.g. "ran `npx vitest run path/to/file.test.tsx` → 7/7 pass" is fine on its own). When a slice makes a broad/global claim, the artifact MUST distinguish slice-clean from baseline-clean. If the full repo baseline is not clean, the artifact must say so explicitly and either (a) confirm the slice introduces zero new errors, with the comparison-against-baseline disclosed as `[VERIFIED]` or `[UNVERIFIED]`, or (b) avoid the global claim entirely and report only the targeted command results. **Why:** future readers conflate slice-clean with baseline-clean and assume the repo is in good shape when it isn't. **How to apply:** "Tier-A green" alone is not enough; require "Tier-A green for slice files; full baseline status: [clean | N pre-existing errors of class X | UNVERIFIED]." Targeted command outputs do not need this framing.
 
+57. **Dual-Tier Session Summary at Substantial Inflection Points (MANDATORY)** — Established 2026-04-30. At natural session inflection points, Claude MUST provide a two-part inline summary in chat: a **plain-English summary** (outcome-framed, no jargon) and a **technical summary** (files, commits, tests, deferred items). Both in the same response, plain-English first.
+
+    **When this triggers:**
+    - After a phase ships to production (regardless of whether the rule-48 audit record has landed yet — that's a separate file artifact).
+    - After a deploy goes live and is health-verified.
+    - When Sean explicitly asks for a summary, recap, "what did we do," or similar.
+    - At session close on a substantial workstream when the conversation is winding down.
+    - After a multi-round review chain (rule 46) reaches APPROVE, even if no deploy has occurred yet.
+
+    **When this does NOT trigger:**
+    - Routine task completion (single-file edit, doc fix, trivial bugfix, typo).
+    - Mid-task progress updates (those stay one sentence per the tone rules).
+    - Conversation about plans that have not yet been executed.
+    - Receipt-only or audit-record-only writes (those land in their own files).
+
+    **Format requirements:**
+    - **Plain-English first.** Frames work in outcome terms ("we fixed X so Y now works") and avoids file paths, function names, and protocol jargon (no "IDOR," no "rule 26," no "TDD," no commit SHAs in the plain section). Frames blockers as "we deferred this because of a security issue we'll fix in the next slice," not "Phase B is gated on the IDOR mitigation."
+    - **Technical second.** File paths and commits welcome here. Includes: files changed (paths), commit SHA(s) if a commit landed, test counts (e.g. 86/86 pass), review-chain verdict (Codex APPROVE / REVISE / REJECT), deferred items with the specific reason gate (security blocker, scope, etc.).
+    - Use markdown headings so the two parts are visually scannable.
+
+    **Distinct from related artifacts:**
+    - **Rule 41 closeout-evidence-lock** is the per-task evidence gate that runs BEFORE declaring done. Rule 57 runs AFTER ship/approve and is for narrative continuity.
+    - **Rule 48 audit record** is a per-phase permanent FILE artifact at `docs/ai-workflow/AI-HANDOFF/`. Rule 57 is the inline-readable CHAT narrative Sean can scroll back to without opening a file.
+    - **Continuity bridge `rolling-last-done.md`** is auto-trimmed cross-session log written only on Sean's explicit "log this and close." Rule 57 is unprompted at the moments above.
+
+    **Why:** Sean's words 2026-04-30 — "we're getting so much work done now that it's easy to get lost and I need to be able to look at my prompts etcetera and see what it was that we actually did so I can continue to make the best decisions or where we move next." The Phase A workout-builder slice that triggered this rule shipped in one session with a dense pre-code receipt (3 revisions), 3 test suites, a 3-brain review chain (REVISE round 1, REVISE round 2, APPROVE), a deploy lag, and 4 deferred follow-up phases — exactly the density where Sean needs an inline narrative to stay oriented.
+
+    **How to apply:** When a trigger fires, write the dual-tier summary BEFORE moving to the next task or pausing. The goal: "Sean opens this chat in two weeks and reconstructs what happened in 90 seconds."
+
+58. **Proactive Schema-Drift Detection (MANDATORY)** — Established 2026-05-01 after multiple cascading 403/500 bugs in one session, all rooted in schema drift. Schema drift is a recurring root-cause class in this codebase: model files declare one shape, the production DB has another, and the drift only surfaces at runtime when a code path actually executes. Sean's words: "we're gonna have to make sure that we make a rule to search for schema drift because this is a issue that I see a lot." Whenever Claude reads, edits, or reasons about ANY Sequelize model, raw SQL, or DB-aware code, Claude MUST proactively check for these drift classes — not just when fixing a known bug.
+
+    **Drift classes to look for (any of these is a confirmed bug class observed in this codebase):**
+
+    1. **Column-name case drift** — Model declares `field: 'snake_case_name'` mapping to a snake_case DB column, but the real DB column is camelCase (or vice versa). Symptom: `column "snake_case_name" does not exist`. Example incident 2026-05-01: `TrainerPermissions.mjs` mapped `field: 'trainer_id'` but DB has `trainerId`.
+    2. **Table-name drift (PascalCase vs snake_case)** — Code references `"ClientTrainerAssignments"` (PascalCase, the model class name) but the real table is `client_trainer_assignments` (snake_case). Symptom: `relation "ClientTrainerAssignments" does not exist`. Example incidents 2026-05-01: `authMiddleware.mjs:842` raw SQL + earlier `workoutBuilderRoutes.mjs` raw SQL.
+    3. **FK target table drift** — FK constraint references `users` (lowercase, stale duplicate) but the canonical user table is `"Users"` (PascalCase). Symptom: `violates foreign key constraint` when inserting a row that references a user that exists in `"Users"` but not in `users`. CLAUDE.md gotcha: "Dual `users`/`"Users"` table in production — FK constraints must reference `"Users"`."
+    4. **Field existence drift** — Model declares column X (e.g. `deactivatedBy`, `deactivatedAt`, `reason`) but DB has different columns serving the same purpose (e.g. `revokedAt`, `notes`). Symptom: `column "deactivatedBy" does not exist` OR silent `null` writes that lose data.
+    5. **Field-type drift** — Model declares `INTEGER` but DB has `STRING` (or vice versa). Less common but happens — Sequelize sometimes coerces silently. Symptom: type-coercion bugs at the JS level (`req.user.id === parseInt(x)` always false because one is string, one is number).
+    6. **Wrong field name in caller** — Caller (route, controller, service) uses `assignment.isActive` but the real model field is `assignment.status` (`'active'|'inactive'|'pending'`). Symptom: filter/check always returns falsy → silent denial. Example incident 2026-05-01: `MyClientsView.tsx` filter on `assignment.isActive` while API returns `status: 'active'`.
+    7. **Frontend response-shape drift** — Frontend normalizer expects `data.data.assignments` (nested) but backend returns `data.assignments` (flat at root). Symptom: dropdowns / lists silently render empty. Example incident 2026-05-01: `GlobalClientContext.tsx:108`.
+
+    **When this triggers (mandatory):**
+    - Reading or editing ANY Sequelize model file (`backend/models/*.mjs`).
+    - Reading or editing ANY raw SQL query (`sequelize.query`, `pg`, knex, etc.).
+    - Reading or editing ANY route or controller that hits the DB.
+    - Reading or editing ANY frontend normalizer / adapter / shape mapper.
+    - When a 403, 500, or unexplained empty list surfaces during runtime testing.
+    - Before claiming a model or query "looks correct" — actively cross-check.
+    - When a fix touches the SAME model, table, or response shape that another file in the same workstream just touched (sibling-sweep angle).
+
+    **How to apply (the proactive cross-check):**
+    1. **Open the model file.** Note: declared field names, declared `field:` mappings, declared column types, declared associations.
+    2. **Open the migration files.** Confirm the migrations match the model's declared shape (or note the divergence).
+    3. **Run a real-DB schema check when in doubt.** Use a quick read-only diagnostic: `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'X' ORDER BY ordinal_position`. The real DB is the source of truth. (Pattern: see `backend/scripts/inspect-trainer-permissions-schema.mjs` and `inspect-trainer-permissions-fks.mjs`.)
+    4. **Cross-reference all callers.** Every code path that touches the model must use the field names the real DB has. If a sibling caller uses different field names, that's drift — flag it in the same pass (rule 20 sibling sweep).
+    5. **Cross-reference frontend response shapes.** When backend returns `{ assignments: [...] }` but the frontend normalizer reads `data.data.assignments`, the dropdown silently breaks. Verify both ends.
+    6. **For FK constraints, verify the target table.** `REFERENCES "users"` vs `REFERENCES "Users"` is a real bug class. Run `SELECT ... FROM information_schema.table_constraints` to confirm FK targets.
+    7. **Surface the finding even when not asked.** If Claude is reading a model file for any reason and notices drift, mention it. Don't wait for a bug report — drift compounds.
+
+    **Why:** schema drift hides at runtime, breaks live users not local tests, and travels in clusters (one drift in a model file means siblings have likely drifted too). The 2026-05-01 session shipped 5+ schema-drift fixes in one chain — `clientTrainerAssignmentRoutes` raw SQL, `workoutBuilderRoutes` raw SQL, `authMiddleware:842` raw SQL, `TrainerPermissions` model fields, `GlobalClientContext` normalizer shape — all the same root pattern. Proactive detection collapses these from "discover at runtime, fix in production" to "catch at read time, fix in the same slice."
+
+    **What this rule does NOT require:**
+    - It does NOT require running a full schema audit on every task. Only the touched models / tables / shapes.
+    - It does NOT require fixing all drift discovered. If drift is out-of-scope, Claude reports it as a finding (with file:line + classification) and Sean decides whether to expand scope.
+    - It does NOT require a separate doc artifact (rule 29 covers that for fixes). This rule is about DETECTION during regular work.
+
+    **Cross-references:** Rule 26 (Canonical Surface Receipt) gates UI/data-truth fixes; Rule 27 (Surface Classification) handles competing surfaces; Rule 29 (Schema Cross-Check Artifact) is the artifact for shipped fixes; Rule 51 (`[VERIFIED]` confidence tags) requires evidence; Rule 20 (Sibling Sweep) ensures all parallel callers get checked. This rule (58) is the proactive trigger that surfaces drift before any of those other rules fire.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
