@@ -525,6 +525,49 @@ const WorkoutPlannerPage: React.FC = () => {
     };
   }, [phase.name, phaseNumber, category, planExercises, goal]);
 
+  // ── Phase B: Saved-plan click-to-load hydration ──
+  // 2026-05-01 hoisted from below the save handlers to fix TDZ
+  // (handleSaveDraft etc. reference loadedPlanId / currentExercisesSig in
+  // their dep arrays; declarations must precede those handlers).
+  const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
+  const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
+
+  // W1A-2 (2026-05-01): track the planExercises snapshot at the last
+  // "saved/loaded" point so editing a loaded plan is correctly detected
+  // as dirty. Prior `isDirty = exercises.length > 0 && !loadedPlanId`
+  // never went dirty after load → clicking another saved plan silently
+  // overwrote unsaved edits to the first one. Snapshot resets on:
+  //   - successful load (snapshot = the exercises just hydrated)
+  //   - successful save (snapshot = the exercises just persisted)
+  //   - clear / reset (snapshot = null)
+  // AI-generated workouts that haven't been saved yet leave snapshot null,
+  // matching the prior "newly built, not yet saved" dirty semantic.
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+
+  // Stable serialization of the current builder state for diff comparison.
+  // Only the fields that round-trip through save/load are compared; UI-only
+  // fields like `id` (which is a render-time ephemeral) are excluded so a
+  // freshly-loaded plan is byte-equal to its snapshot.
+  const currentExercisesSig = useMemo(() => JSON.stringify(
+    planExercises.map(p => ({
+      e: p.exerciseSlim?.id || '',
+      s: p.sets,
+      r: p.reps,
+      t: p.tempo || '',
+      rest: p.restSeconds,
+      i: p.intensityPercent,
+      n: p.notes || '',
+    })),
+  ), [planExercises]);
+
+  const isDirty = useMemo(() => {
+    if (planExercises.length === 0) return false;
+    // No snapshot → freshly built or generated, treat as dirty.
+    if (savedSnapshot === null) return true;
+    // Snapshot exists → dirty iff current state differs from snapshot.
+    return currentExercisesSig !== savedSnapshot;
+  }, [planExercises.length, savedSnapshot, currentExercisesSig]);
+
   // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as status='draft' so the new partial unique index never trips.
   // Trainer can promote to current later via Activate.
@@ -748,45 +791,9 @@ const WorkoutPlannerPage: React.FC = () => {
     fetchSavedPlans(selectedClientId);
   }, [selectedClientId, fetchSavedPlans]);
 
-  // ── Phase B: Saved-plan click-to-load hydration ──
-  const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
-  const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
-
-  // W1A-2 (2026-05-01): track the planExercises snapshot at the last
-  // "saved/loaded" point so editing a loaded plan is correctly detected
-  // as dirty. Prior `isDirty = exercises.length > 0 && !loadedPlanId`
-  // never went dirty after load → clicking another saved plan silently
-  // overwrote unsaved edits to the first one. Snapshot resets on:
-  //   - successful load (snapshot = the exercises just hydrated)
-  //   - successful save (snapshot = the exercises just persisted)
-  //   - clear / reset (snapshot = null)
-  // AI-generated workouts that haven't been saved yet leave snapshot null,
-  // matching the prior "newly built, not yet saved" dirty semantic.
-  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
-
-  // Stable serialization of the current builder state for diff comparison.
-  // Only the fields that round-trip through save/load are compared; UI-only
-  // fields like `id` (which is a render-time ephemeral) are excluded so a
-  // freshly-loaded plan is byte-equal to its snapshot.
-  const currentExercisesSig = useMemo(() => JSON.stringify(
-    planExercises.map(p => ({
-      e: p.exerciseSlim?.id || '',
-      s: p.sets,
-      r: p.reps,
-      t: p.tempo || '',
-      rest: p.restSeconds,
-      i: p.intensityPercent,
-      n: p.notes || '',
-    })),
-  ), [planExercises]);
-
-  const isDirty = useMemo(() => {
-    if (planExercises.length === 0) return false;
-    // No snapshot → freshly built or generated, treat as dirty.
-    if (savedSnapshot === null) return true;
-    // Snapshot exists → dirty iff current state differs from snapshot.
-    return currentExercisesSig !== savedSnapshot;
-  }, [planExercises.length, savedSnapshot, currentExercisesSig]);
+  // (loadedPlanId / loadedPlanName / savedSnapshot / currentExercisesSig /
+  // isDirty are now declared earlier in the component, before the save
+  // matrix handlers, to avoid TDZ.)
 
   const handleLoadPlan = useCallback(async (planId: string, planName: string) => {
     // Dirty-state confirm: if user has unsaved exercises in builder, warn before overwrite.
