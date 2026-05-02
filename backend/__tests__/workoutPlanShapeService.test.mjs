@@ -310,3 +310,39 @@ describe('Empty-array-truthy guard (Codex MEDIUM 2026-05-02)', () => {
     expect(days[0].name).toBe('Sessions Day');
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// L1 REV 2 round-2 (Codex 2026-05-02 round-2 finding)
+//
+// extractCurrentSession() and planDataToWorkoutDays() must agree on
+// which entry array wins when a week carries BOTH populated days[] and
+// sessions[]. planDataToWorkoutDays + LongHorizonScheduleView already
+// pick days[] first; the cursor extractor used to pick sessions[] first,
+// which would render days[0] in the schedule but currentSession from
+// sessions[0] - same week/day, two different "today's workout".
+// ─────────────────────────────────────────────────────────────
+
+describe('extractCurrentSession + planDataToWorkoutDays - precedence agreement', () => {
+  it('both helpers pick the same entry when a week has populated days[] AND sessions[]', () => {
+    const plan = {
+      currentWeek: 1,
+      currentDay: 1,
+      planData: {
+        weeks: [{
+          days: [{ dayNumber: 1, name: 'DAYS_DAY', exercises: [{ exerciseId: 'day-ex', exerciseName: 'Day Ex' }] }],
+          sessions: [{ dayNumber: 1, name: 'SESSIONS_DAY', exercises: [{ exerciseId: 'session-ex', exerciseName: 'Session Ex' }] }],
+        }],
+      },
+    };
+
+    const cursor = extractCurrentSession(plan);
+    const flattened = planDataToWorkoutDays(plan.planData, 1);
+
+    expect(cursor).not.toBeNull();
+    expect(flattened).toHaveLength(1);
+    // Both helpers must converge on the SAME entry (days[] wins).
+    expect(cursor.dayLabel).toBe('DAYS_DAY');
+    expect(flattened[0].name).toBe('DAYS_DAY');
+    expect(cursor.exercises[0].exerciseId).toBe('day-ex');
+  });
+});

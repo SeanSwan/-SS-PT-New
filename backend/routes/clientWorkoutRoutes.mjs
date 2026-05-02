@@ -40,9 +40,10 @@ export const toClientWorkoutHistoryRow = (session) => {
   };
 };
 
-// (Plan-shape helpers were migrated to ../services/workoutPlanShapeService.mjs
-// in L1, 2026-05-01. They are re-exported above for backwards compat with
-// existing tests that import them directly from this route file.)
+// Plan-shape helpers live in ../services/workoutPlanShapeService.mjs.
+// Import them directly from the service in tests and other consumers —
+// the L1 REV 2 (2026-05-02) cleanup removed the route-level re-exports
+// after the test file was updated to point at the shared service.
 
 /**
  * GET /api/workouts/:userId/current

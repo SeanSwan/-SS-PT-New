@@ -147,9 +147,12 @@ export const extractCurrentSession = (plan) => {
 
   // Primary path: planData.weeks[].days/sessions[].
   // Empty-array-truthy guard: prefer the populated sibling. (Codex 2026-05-02.)
+  // Precedence: days[] BEFORE sessions[] so this helper agrees with
+  // planDataToWorkoutDays() and LongHorizonScheduleView when a week happens
+  // to carry both populated arrays (Codex 2026-05-02 round-2 finding).
   if (Array.isArray(planData.weeks) && planData.weeks.length > 0 && planData.weeks[weekIndex]) {
     const week = planData.weeks[weekIndex];
-    const entries = pickFirstNonEmptyArray(week.sessions, week.days);
+    const entries = pickFirstNonEmptyArray(week.days, week.sessions);
     const session = entries[dayIndex] || null;
     if (session) {
       return buildSessionView({
