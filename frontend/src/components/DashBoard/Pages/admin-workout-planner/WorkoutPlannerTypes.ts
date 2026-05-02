@@ -77,7 +77,54 @@ export interface GeneratedWorkout {
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Generated Plan (from backend)
+//
+// L1 (2026-05-01) added two strictly additive top-level fields:
+//   - `weeks[]`         — populated per-day exercise schedule for the
+//                         entire horizon, the source of truth for the
+//                         L2.C Month/Week/Day drill-down view.
+//   - `recommendationDetails[]` — source-cited mirror of `recommendations`
+//                         (kept as plain string[] for backwards compat).
+// Both are optional in the type so older saved plans without them keep
+// type-checking. Frontend consumers MUST treat absent shapes as "show
+// the legacy weekly summary only."
 // ─────────────────────────────────────────────────────────────
+
+export interface GeneratedPlanWeekDay {
+  dayNumber: number;
+  name?: string;
+  dayName?: string;
+  focus?: string;
+  category?: string;
+  exercises: Array<{
+    exerciseId?: string;
+    exerciseName?: string;
+    name?: string;
+    sets?: number | unknown[];
+    reps?: number | string;
+    targetReps?: number | string;
+    restSeconds?: number;
+    restTime?: number;
+    tempo?: string;
+    notes?: string;
+    rotationFallback?: boolean;
+  }>;
+}
+
+export interface GeneratedPlanWeek {
+  weekNumber: number;
+  focus?: string;
+  mesocycle?: number;
+  nasmPhase?: number;
+  days?: GeneratedPlanWeekDay[];
+  sessions?: GeneratedPlanWeekDay[];
+}
+
+export interface GeneratedPlanRecommendationDetail {
+  type: string;
+  text: string;
+  sourceCitation?: string;
+}
+
 export interface GeneratedPlan {
   clientId: number;
   clientName: string;
@@ -90,7 +137,7 @@ export interface GeneratedPlan {
   };
   mesocycles: {
     mesocycle: number;
-    weeks: number;
+    weeks: string | number;
     nasmPhase: number;
     phaseName: string;
     focus: string;
@@ -104,6 +151,9 @@ export interface GeneratedPlan {
     category: string;
   }[];
   recommendations: string[];
+  // L1 additive (2026-05-01) - optional for backwards compat with pre-L1 saved plans.
+  weeks?: GeneratedPlanWeek[];
+  recommendationDetails?: GeneratedPlanRecommendationDetail[];
 }
 
 // ─────────────────────────────────────────────────────────────

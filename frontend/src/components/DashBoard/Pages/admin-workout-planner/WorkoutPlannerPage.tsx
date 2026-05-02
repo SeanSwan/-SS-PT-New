@@ -59,6 +59,8 @@ import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 // Plan Library slice (2026-05-01): extracted card component holds the
 // stopPropagation matrix + per-card action affordances.
 import SavedPlanCard from './SavedPlanCard';
+// L2.C (2026-05-02): drill-down for the populated long-horizon weeks[].
+import LongHorizonScheduleView from './LongHorizonScheduleView';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -1455,6 +1457,15 @@ const WorkoutPlannerPage: React.FC = () => {
             ))}
           </MesocycleGrid>
 
+          {/* L2.C — Long-horizon detailed schedule (Month → Week → Day).
+              Only renders for plans with >= 4 weeks of populated data,
+              since the existing weekly summary already covers single-
+              mesocycle plans. Backwards-compat: pre-L1 saved plans
+              without `weeks[]` simply skip this section. */}
+          {Array.isArray(generatedPlan.weeks) && generatedPlan.weeks.length >= 4 && (
+            <LongHorizonScheduleView weeks={generatedPlan.weeks} />
+          )}
+
           {/* Recommendations */}
           {generatedPlan.recommendations.length > 0 && (
             <>
@@ -1462,9 +1473,27 @@ const WorkoutPlannerPage: React.FC = () => {
                 AI Recommendations
               </PlanModeLabel>
               <RecommendationList>
-                {generatedPlan.recommendations.map((rec, i) => (
-                  <RecommendationItem key={i}>{rec}</RecommendationItem>
-                ))}
+                {generatedPlan.recommendations.map((rec, i) => {
+                  const detail = generatedPlan.recommendationDetails?.[i];
+                  return (
+                    <RecommendationItem key={i}>
+                      {rec}
+                      {detail?.sourceCitation ? (
+                        <span
+                          style={{
+                            marginLeft: 8,
+                            fontFamily: "'Fira Code', monospace",
+                            fontSize: '0.65rem',
+                            color: 'var(--text-muted, rgba(224,236,244,0.5))',
+                          }}
+                          title={`source: ${detail.sourceCitation}`}
+                        >
+                          ({detail.type})
+                        </span>
+                      ) : null}
+                    </RecommendationItem>
+                  );
+                })}
               </RecommendationList>
             </>
           )}
