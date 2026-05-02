@@ -226,11 +226,47 @@ function scoreExerciseForGoalBias(exercise, goalBias) {
   }, 0);
 }
 
+/**
+ * L1 REV 2 round-4 (Codex 2026-05-02 final review HIGH):
+ * Expand schedule-level day labels (`upper` / `lower` / `legs`) to the
+ * movement-category names the production registry actually uses
+ * (`push`, `pull`, `squat`, `hinge`, `lunge`, `compound`, `core`,
+ * `cardio`, `corrective`). The single-workout path already maps
+ * client-facing labels via `categoryMap` in `variationEngine.mjs`
+ * (`legs → squat`); the long-horizon plan populator was passing the
+ * raw schedule labels straight into `selectExercises`, which exact-
+ * matched `ex.category` and produced empty days for `sessionsPerWeek=3`
+ * (`upper`/`lower` rotation) and 25% of `sessionsPerWeek=4` days
+ * (`legs` slots in the rotation pool).
+ *
+ * The fix accepts either a string (existing callers — single-workout
+ * path) or array of strings (movement category list). Both are handled
+ * by the same filter rule.
+ */
+function expandScheduleCategoryToMovementCategories(category) {
+  // Each schedule label expands to a list that includes both:
+  //   1. The label itself (so test fixtures or any future registry that
+  //      tags exercises with the schedule label like `category: 'legs'`
+  //      keep matching — backwards compat).
+  //   2. The production movement-category names (`squat`, `hinge`,
+  //      `lunge`, `push`, `pull`) that variationEngine.mjs's
+  //      `categoryMap` actually emits when transforming
+  //      `bodyPartCategory` from the Exercise model.
+  switch (category) {
+    case 'upper':     return ['upper', 'push', 'pull'];
+    case 'lower':     return ['lower', 'legs', 'squat', 'hinge', 'lunge'];
+    case 'legs':      return ['legs', 'squat', 'hinge', 'lunge'];
+    case 'full_body': return null;  // wildcard sentinel — preserve existing semantics
+    default:          return [category];  // push, pull, core, etc. — direct match
+  }
+}
+
 function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
+  const movementCats = expandScheduleCategoryToMovementCategories(category);
   const categoryExercises = registry
-    .filter(ex => ex.category === category || category === 'full_body');
+    .filter(ex => movementCats === null || movementCats.includes(ex.category));
 
   // Apply constraints
   const available = filterExercises(categoryExercises, constraints, equipmentItems);
@@ -817,8 +853,15 @@ export async function generatePlan(options) {
       const focus = dayFocusFor(cat);
 
       // Eligible pool size for THIS category × constraints × equipment.
+      // L1 REV 2 round-4 (Codex 2026-05-02): use the same schedule→movement
+      // category expansion as selectExercises so the eligible-pool count
+      // reflects the actual exercises available for the rotation window.
+      // Without this, `cat='legs'` would compute pool=0 here while
+      // selectExercises (post-fix) returns 6 — driving spurious
+      // rotationFallback metadata.
+      const movementCatsForCount = expandScheduleCategoryToMovementCategories(cat);
       const categoryRegistry = registry.filter(
-        (ex) => ex.category === cat || cat === 'full_body'
+        (ex) => movementCatsForCount === null || movementCatsForCount.includes(ex.category)
       );
       const eligibleAfterFilter = filterExercises(
         categoryRegistry, context.constraints, equipmentItems

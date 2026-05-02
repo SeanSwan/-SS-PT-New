@@ -76,6 +76,25 @@ describe('ClientPlanGenToggle', () => {
     expect(screen.getByText(/500 Server error/i)).toBeTruthy();
   });
 
+  it('resyncs local state when clientId or initialValue prop changes (round-2 prop-sync)', async () => {
+    updateClientMock.mockResolvedValue({});
+    const { rerender } = render(<ClientPlanGenToggle clientId={1} initialValue={false} />);
+    let sw = screen.getByRole('switch');
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+
+    // Parent swaps to a different client whose flag is true. Without
+    // the round-2 prop-sync effect the toggle would still show false.
+    rerender(<ClientPlanGenToggle clientId={2} initialValue={true} />);
+    sw = screen.getByRole('switch');
+    expect(sw.getAttribute('aria-checked')).toBe('true');
+
+    // Parent updates initialValue for the same client (e.g. server
+    // refresh after a sibling action) - toggle resyncs.
+    rerender(<ClientPlanGenToggle clientId={2} initialValue={false} />);
+    sw = screen.getByRole('switch');
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+  });
+
   it('ignores clicks while saving', async () => {
     // Resolve never - simulate a slow request - so isSaving stays true.
     let resolver: ((v: unknown) => void) | null = null;

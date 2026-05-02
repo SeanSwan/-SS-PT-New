@@ -16,7 +16,7 @@
  * Crystalline Swan styling. Dark-first. Uses var(--token, #fallback)
  * per Rule 6. 44px min touch target per Rule 2.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { adminClientService } from '../../../../../services/adminClientService';
@@ -35,6 +35,17 @@ const ClientPlanGenToggleBase: React.FC<Props> = ({
   const [enabled, setEnabled] = useState<boolean>(!!initialValue);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // L5.8 round-2 (Codex 2026-05-02 final review LOW): re-sync local
+  // state when the parent swaps to a different client (or refreshes
+  // the row's `canGenerateWorkoutPlans` value). Without this effect a
+  // mounted toggle reused across clients in a details drawer would
+  // show stale state until the user clicks. The dep on `clientId`
+  // ensures we only re-sync when the parent actually changed targets.
+  useEffect(() => {
+    setEnabled(!!initialValue);
+    setError(null);
+  }, [clientId, initialValue]);
 
   const handleToggle = async () => {
     if (isSaving) return;

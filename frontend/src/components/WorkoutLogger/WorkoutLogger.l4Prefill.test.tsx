@@ -253,6 +253,51 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     expect(toastMock.success).not.toHaveBeenCalled();
   });
 
+  it('reads cursor from data.data.currentSession when top-level is missing (round-2 fallback)', async () => {
+    // L4 round-2 (Codex 2026-05-02 final review LOW): defensive
+    // fallback chain. The backend currently emits `currentSession`
+    // at THREE levels (top, data, plan) all deep-equal post-JSON.
+    // If a future tweak ever drops the top-level copy, this test
+    // proves the consumer survives by falling through to data.data
+    // (and then data.plan).
+    apiGetMock.mockImplementation((url: string) => {
+      if (url.endsWith('/current')) {
+        return Promise.resolve(buildCurrentResponse({
+          success: true,
+          // No top-level currentSession.
+          plan: { id: 'plan-Z', name: 'Plan Z', days: [] },
+          data: {
+            id: 'plan-Z', name: 'Plan Z', days: [],
+            currentSession: {
+              weekNumber: 5, dayNumber: 3, dayLabel: 'Mid-Plan Day',
+              session: { exercises: [{ exerciseId: 'fx-from-data', exerciseName: 'FromData' }] },
+              exercises: [
+                { exerciseId: 'fx-from-data', exerciseName: 'FromData', sets: 3, targetReps: '10', restTime: 60 },
+              ],
+              totalWeeks: 24, totalSessionsThisWeek: 4,
+              isLastSessionOfWeek: false, isLastWeek: false,
+            },
+          },
+        }));
+      }
+      return Promise.resolve(defaultClientInfoPayload);
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger clientId={CLIENT_ID} />
+      </MemoryRouter>,
+    );
+
+    const loadBtn = await screen.findByRole('button', { name: /load today/i });
+    fireEvent.click(loadBtn);
+
+    await waitFor(() => expect(toastMock.success).toHaveBeenCalled());
+    const successMsg = toastMock.success.mock.calls.map((c) => c[0]).join(' | ');
+    expect(successMsg).toMatch(/Week 5 — Mid-Plan Day/);
+    expect(successMsg).toMatch(/1 exercises/);
+  });
+
   it('treats currentSession.exercises=[] as empty and falls through to legacy match', async () => {
     // Empty cursor must not block the fallback — an empty array is not
     // a hit. Pin the legacy day to today so the regex assertion holds

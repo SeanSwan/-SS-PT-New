@@ -671,7 +671,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       };
 
       // ── L4 primary path: cursor-driven currentSession.exercises ──
-      const cursorSession = data?.currentSession;
+      // L4 round-2 (Codex 2026-05-02 final review LOW): the backend
+      // emits currentSession at THREE levels (top, data, plan) all
+      // deep-equal post-JSON. Read top-level FIRST, then fall through
+      // to `data.currentSession` and `plan.currentSession` so this
+      // consumer survives if a future backend tweak drops the top-level
+      // copy (defensive — the contract today guarantees all three).
+      const cursorSession =
+        data?.currentSession
+        ?? data?.data?.currentSession
+        ?? data?.plan?.currentSession
+        ?? null;
       const cursorExercises = Array.isArray(cursorSession?.exercises) ? cursorSession.exercises : [];
       if (cursorExercises.length > 0) {
         const prefilled = cursorExercises.map(exerciseToEntry);
