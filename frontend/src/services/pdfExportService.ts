@@ -713,3 +713,286 @@ export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string
   const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'AI-Plan';
   finalizeAndDownload(doc, `SwanStudios-AI-Plan-${fname}.pdf`);
 }
+
+
+// =====================================================================
+//  5. POPULATED LONG-HORIZON PLAN PDF (L3, 2026-05-02)
+// =====================================================================
+//
+// Renders the per-day exercise breakdown for a plan whose
+// `weeks[].days[].exercises[]` are populated by the L1 backend
+// (workoutBuilderService). Distinct from `exportLongHorizonPDF` above —
+// that exporter renders mesocycle SUMMARY only; this one walks every
+// session in the horizon. For a 24-week × 4×/wk plan that is ~96
+// session sections and ~576 exercise rows.
+//
+// Co-branding: Move Fitness clients get a text-based MF mark in the
+// header. The receipt §G8 listed an MF logo image asset as a non-
+// engineering blocker (Sean to confirm MF's approval before bundling
+// the image asset). When that lands, swap the text mark for an
+// `addImage()` call alongside the Swan brand bar.
+//
+// Light palette: receipt §6 flagged a Crystalline Swan light variant as
+// a Gemini consult prerequisite. The conservative print-friendly
+// palette below uses the existing BRAND constants (white bg, midnight-
+// sapphire/wing-purple accents on dark text) — when the documented
+// light variant lands, swap the per-section accent colors here.
+
+export interface PDFLongHorizonExercise {
+  exerciseId?: string;
+  exerciseName?: string;
+  name?: string;
+  sets?: number | unknown[];
+  reps?: number | string;
+  targetReps?: number | string;
+  restSeconds?: number;
+  restTime?: number;
+  tempo?: string;
+  notes?: string;
+  rotationFallback?: boolean;
+}
+
+export interface PDFLongHorizonDay {
+  dayNumber: number;
+  name?: string;
+  dayName?: string;
+  focus?: string;
+  category?: string;
+  exercises: PDFLongHorizonExercise[];
+}
+
+export interface PDFLongHorizonWeek {
+  weekNumber: number;
+  focus?: string;
+  mesocycle?: number;
+  nasmPhase?: number;
+  days?: PDFLongHorizonDay[];
+  sessions?: PDFLongHorizonDay[];
+}
+
+export interface PDFLongHorizonMesocycle {
+  mesocycle: number | string;
+  weeks: number | string;
+  nasmPhase?: number;
+  phaseName?: string;
+  focus?: string;
+  params?: { sets?: string; reps?: string; intensity?: string; tempo?: string; rest?: string };
+  overloadStrategy?: string;
+  deloadWeek?: number | null;
+}
+
+export interface PDFLongHorizonRecommendationDetail {
+  type: string;
+  text: string;
+  sourceCitation?: string;
+}
+
+export interface PDFPopulatedPlan {
+  planSummary: {
+    durationWeeks: number;
+    sessionsPerWeek: number;
+    totalSessions: number;
+    primaryGoal: string;
+    startingPhase: number;
+  };
+  mesocycles: PDFLongHorizonMesocycle[];
+  weeks: PDFLongHorizonWeek[];
+  recommendations: string[];
+  recommendationDetails?: PDFLongHorizonRecommendationDetail[];
+}
+
+export type PDFClientSource = 'swanstudios' | 'move_fitness' | 'external' | undefined;
+
+const pickFirstNonEmpty = <T>(...arrays: (T[] | undefined)[]): T[] => {
+  for (const a of arrays) if (Array.isArray(a) && a.length > 0) return a;
+  return [];
+};
+
+/**
+ * L3 (2026-05-02) - branded PDF export of the populated long-horizon
+ * workout plan. Walks every week in the horizon and prints each day's
+ * exercises in a compact table. Co-brands with Move Fitness when the
+ * client is an MF-tier client (text mark for now; image asset can drop
+ * in later when MF approves logo licensing per receipt §G8).
+ */
+export function exportPopulatedPlanPDF(
+  plan: PDFPopulatedPlan,
+  clientName?: string,
+  clientSource?: PDFClientSource,
+): void {
+  const doc = createPDF();
+  const pageW = doc.internal.pageSize.getWidth();
+  const horizonMonths = Math.ceil(plan.planSummary.durationWeeks / 4);
+
+  // ── Header (Swan + optional MF co-brand text mark) ─────────────────
+  const titleLine = `${horizonMonths}-Month Periodized Plan`;
+  const subtitle = `${plan.planSummary.totalSessions} sessions · ${plan.planSummary.sessionsPerWeek}×/week${clientName ? ` · ${clientName}` : ''}`;
+  let y = addHeader(doc, titleLine, subtitle);
+
+  if (clientSource === 'move_fitness') {
+    // Co-brand mark. Receipt §G8: Move Fitness logo image asset is a
+    // non-engineering blocker. Until MF approves the logo for export
+    // PDFs, render a text mark in the gilded-fern accent so the brand
+    // pairing is visually intentional rather than absent.
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...BRAND.gildedFern);
+    doc.text('IN PARTNERSHIP WITH MOVE FITNESS', pageW - 14, 19, { align: 'right' });
+  }
+
+  // ── Plan Summary ───────────────────────────────────────────────────
+  y = addSectionTitle(doc, y, 'Plan Summary');
+  y = addKeyValue(doc, y, 'Duration', `${plan.planSummary.durationWeeks} weeks (${horizonMonths} months)`);
+  y = addKeyValue(doc, y, 'Sessions per week', String(plan.planSummary.sessionsPerWeek));
+  y = addKeyValue(doc, y, 'Total sessions', String(plan.planSummary.totalSessions));
+  y = addKeyValue(doc, y, 'Primary goal', plan.planSummary.primaryGoal);
+  y = addKeyValue(doc, y, 'Starting NASM phase', `Phase ${plan.planSummary.startingPhase}`);
+  y += 2;
+
+  // ── Mesocycle Breakdown table ──────────────────────────────────────
+  y = addSectionTitle(doc, y, 'Mesocycles');
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Phase', 'Weeks', 'Focus', 'Sets', 'Reps', 'Intensity', 'Rest']],
+    body: plan.mesocycles.map((m) => [
+      String(m.mesocycle),
+      m.phaseName ? `${m.phaseName} (P${m.nasmPhase ?? '?'})` : `Phase ${m.nasmPhase ?? '?'}`,
+      String(m.weeks),
+      m.focus || '-',
+      m.params?.sets || '-',
+      m.params?.reps || '-',
+      m.params?.intensity || '-',
+      m.params?.rest || '-',
+    ]),
+    theme: 'grid',
+    headStyles: { fillColor: BRAND.midnightSapphire, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
+    alternateRowStyles: { fillColor: BRAND.lightGray },
+    styles: { cellPadding: 2, lineColor: BRAND.borderGray, lineWidth: 0.2 },
+    margin: { left: 16, right: 16 },
+    columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { fontStyle: 'bold' } },
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── Recommendations ────────────────────────────────────────────────
+  if (plan.recommendations.length > 0) {
+    y = checkPageBreak(doc, y, 12 + plan.recommendations.length * 5);
+    y = addSectionTitle(doc, y, 'AI Recommendations');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    plan.recommendations.forEach((rec, i) => {
+      const detail = plan.recommendationDetails?.[i];
+      const bullet = `• ${rec}`;
+      doc.setTextColor(...BRAND.textDark);
+      const lines = doc.splitTextToSize(bullet, pageW - 36);
+      doc.text(lines, 18, y);
+      y += lines.length * 4;
+      if (detail?.type) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(6.5);
+        doc.setTextColor(...BRAND.textMuted);
+        doc.text(`  source type: ${detail.type}`, 22, y);
+        y += 3.5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+      }
+      y += 1;
+    });
+    y += 2;
+  }
+
+  // ── Per-week per-day exercise listing ──────────────────────────────
+  // Group weeks into months (4-week chunks) for readability. Each month
+  // gets a section header; each week is a small subheader; each day is
+  // a compact 5-column table.
+  if (Array.isArray(plan.weeks) && plan.weeks.length > 0) {
+    plan.weeks.forEach((week, wIdx) => {
+      const monthIndex = Math.floor(wIdx / 4) + 1;
+      const isFirstWeekOfMonth = wIdx % 4 === 0;
+
+      if (isFirstWeekOfMonth) {
+        y = checkPageBreak(doc, y, 14);
+        y = addSectionTitle(doc, y, `Month ${monthIndex}`);
+      }
+
+      y = checkPageBreak(doc, y, 10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...BRAND.wingPurple);
+      doc.text(`Week ${week.weekNumber}${week.focus ? ` — ${week.focus}` : ''}`, 16, y);
+      y += 5;
+
+      const days = pickFirstNonEmpty(week.days, week.sessions);
+      if (days.length === 0) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(...BRAND.textMuted);
+        doc.text('(no sessions populated for this week)', 18, y);
+        y += 5;
+        return;
+      }
+
+      days.forEach((day) => {
+        const dayLabel = day.name || day.dayName || `Day ${day.dayNumber}`;
+        y = checkPageBreak(doc, y, 18 + (day.exercises?.length || 0) * 5);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...BRAND.midnightSapphire);
+        doc.text(`${dayLabel}${day.focus ? ` · ${day.focus}` : ''}`, 18, y);
+        y += 4;
+
+        if (Array.isArray(day.exercises) && day.exercises.length > 0) {
+          doc.autoTable({
+            startY: y,
+            head: [['Exercise', 'Sets', 'Reps', 'Rest', 'Notes']],
+            body: day.exercises.map((ex) => {
+              const setCount = Array.isArray(ex.sets)
+                ? ex.sets.length
+                : (typeof ex.sets === 'number' ? ex.sets : 3);
+              const reps = ex.targetReps ?? ex.reps ?? '10';
+              const rest = ex.restSeconds ?? ex.restTime ?? '';
+              const restCell = rest ? `${rest}s` : '-';
+              const noteCell = [
+                ex.tempo ? `tempo ${ex.tempo}` : null,
+                ex.rotationFallback ? '⚑ fallback' : null,
+                ex.notes || null,
+              ].filter(Boolean).join(' · ') || '-';
+              return [
+                ex.exerciseName || ex.name || 'Unknown',
+                String(setCount),
+                String(reps),
+                restCell,
+                noteCell,
+              ];
+            }),
+            theme: 'grid',
+            headStyles: { fillColor: BRAND.royalDepth, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold' },
+            bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
+            alternateRowStyles: { fillColor: BRAND.lightGray },
+            styles: { cellPadding: 1.5, lineColor: BRAND.borderGray, lineWidth: 0.15 },
+            margin: { left: 18, right: 16 },
+            columnStyles: {
+              0: { fontStyle: 'bold', cellWidth: 60 },
+              1: { cellWidth: 12, halign: 'center' },
+              2: { cellWidth: 16, halign: 'center' },
+              3: { cellWidth: 14, halign: 'center' },
+            },
+          });
+          y = doc.lastAutoTable.finalY + 4;
+        } else {
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(7);
+          doc.setTextColor(...BRAND.textMuted);
+          doc.text('(no exercises populated)', 22, y);
+          y += 5;
+        }
+      });
+
+      y += 2;
+    });
+  }
+
+  const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'Plan';
+  finalizeAndDownload(doc, `SwanStudios-${horizonMonths}mo-Plan-${fname}.pdf`);
+}

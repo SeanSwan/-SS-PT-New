@@ -89,6 +89,8 @@ import {
   RecommendationList, RecommendationItem,
   // L5 (2026-05-02): self-service status pill rendered below ControlRow.
   ClientSelfGenPill, PillHint,
+  // L3 (2026-05-02): branded PDF export trigger.
+  ExportPdfBtn,
 } from './WorkoutPlannerStyles';
 
 // ─────────────────────────────────────────────────────────────
@@ -1405,6 +1407,30 @@ const WorkoutPlannerPage: React.FC = () => {
             <Calendar size={18} />
             {generatedPlan.planSummary.durationWeeks}-Week Periodized Plan
             — {generatedPlan.planSummary.totalSessions} Total Sessions
+            {/* L3 (2026-05-02): branded PDF export. Available whenever a
+                plan is loaded; reads the populated weeks[] when present
+                and falls back to mesocycle/weeklySchedule summary if
+                weeks[] is missing (pre-L1 plans). */}
+            <ExportPdfBtn
+              type="button"
+              onClick={async () => {
+                const { exportPopulatedPlanPDF } = await import('../../../../services/pdfExportService');
+                exportPopulatedPlanPDF(
+                  generatedPlan as unknown as Parameters<typeof exportPopulatedPlanPDF>[0],
+                  selectedClient
+                    ? `${selectedClient.firstName} ${selectedClient.lastName}`
+                    : undefined,
+                  // Client source for MF co-brand mark. PlannerClient does not
+                  // carry clientSource yet; pass undefined to render Swan-only.
+                  // When PlannerClient gains the field, wire it here.
+                  undefined,
+                );
+              }}
+              aria-label="Export this plan as a branded PDF"
+            >
+              <Download size={14} />
+              Export PDF
+            </ExportPdfBtn>
           </MesocycleSectionTitle>
 
           {/* Weekly Schedule — clickable day tabs */}

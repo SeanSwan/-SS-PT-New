@@ -1114,3 +1114,37 @@ export const PillHint = styled.span`
   color: var(--text-muted, rgba(224, 236, 244, 0.45));
   font-weight: 400;
 `;
+
+// L3 (2026-05-02): Export PDF button rendered next to the
+// MesocycleSectionTitle. Compact, non-cosmic styling so it does not
+// compete with the primary "Generate Plan" CTA in the control row.
+export const ExportPdfBtn = styled.button`
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419));
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, var(--bg-elevated, #141419));
+    color: var(--text-primary, #E0ECF4);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 55%, transparent);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
