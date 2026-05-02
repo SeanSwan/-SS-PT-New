@@ -1067,3 +1067,50 @@ export const RecommendationItem = styled.li`
     color: var(--accent-primary, #60C0F0);
   }
 `;
+
+// ─────────────────────────────────────────────────────────────
+// L5 (2026-05-02) — Client self-service status pill
+// Renders a small read-only chip below the planner's ControlRow that
+// surfaces the selected client's `canGenerateWorkoutPlans` flag. Three
+// states: enabled (purple/secondary), disabled (muted), blocked
+// (warning/red — fires only when the viewer IS the affected client).
+// ─────────────────────────────────────────────────────────────
+type SelfGenPillStatus = 'enabled' | 'disabled' | 'blocked' | 'unknown';
+
+export const ClientSelfGenPill = styled.div<{ $status: SelfGenPillStatus }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
+  border: 1px solid ${({ $status }) =>
+    $status === 'enabled'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent)'
+      : $status === 'blocked'
+        ? 'color-mix(in srgb, var(--accent-error, #F87171) 45%, transparent)'
+        : 'color-mix(in srgb, var(--text-muted, rgba(224,236,244,0.4)) 30%, transparent)'};
+  background: ${({ $status }) =>
+    $status === 'enabled'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, var(--bg-elevated, #141419))'
+      : $status === 'blocked'
+        ? 'color-mix(in srgb, var(--accent-error, #F87171) 12%, var(--bg-elevated, #141419))'
+        : 'var(--bg-elevated, #141419)'};
+  color: ${({ $status }) =>
+    $status === 'enabled'
+      ? 'var(--accent-secondary, #8B5CF6)'
+      : $status === 'blocked'
+        ? 'var(--accent-error, #F87171)'
+        : 'var(--text-muted, rgba(224, 236, 244, 0.55))'};
+  & strong {
+    color: var(--text-primary, #E0ECF4);
+    font-weight: 700;
+  }
+`;
+
+export const PillHint = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  font-weight: 400;
+`;

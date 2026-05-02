@@ -165,6 +165,10 @@ export interface PlannerClient {
   lastName: string;
   username: string;
   photo?: string;
+  // L5 (2026-05-02): per-client opt-in for self-service workout plan
+  // generation. Optional in case a stale client object lacks the flag.
+  // The backend GET /clients endpoint includes this attribute as of L5.8.
+  canGenerateWorkoutPlans?: boolean;
 }
 
 // L2.A (2026-05-02): annual option is 48 weeks (12 × 4-week mesocycles),

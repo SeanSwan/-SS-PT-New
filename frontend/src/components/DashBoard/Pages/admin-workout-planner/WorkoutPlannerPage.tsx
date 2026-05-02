@@ -87,6 +87,8 @@ import {
   MesocycleParams, MesocycleParam, MesocycleOverload, DeloadBadge,
   ScheduleRow, ScheduleDay, ScheduleDayNumber, ScheduleDayFocus,
   RecommendationList, RecommendationItem,
+  // L5 (2026-05-02): self-service status pill rendered below ControlRow.
+  ClientSelfGenPill, PillHint,
 } from './WorkoutPlannerStyles';
 
 // ─────────────────────────────────────────────────────────────
@@ -162,6 +164,27 @@ const WorkoutPlannerPage: React.FC = () => {
   const [clients, setClients] = useState<PlannerClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
+
+  // L5 (2026-05-02): per-client self-service flag derived from the
+  // currently-selected client. Admins / trainers stay unblocked - they
+  // generate plans for clients regardless of this flag. The flag matters
+  // only for the (currently dormant) client-self-service path: a client
+  // viewing their OWN planner with the flag off must see a disabled
+  // generate button. Today the planner is admin-only so the disable
+  // branch is defensive; the visible pill below gives admins a quick
+  // read on whether the client could self-generate if exposed.
+  const selectedClient = useMemo(
+    () => clients.find(c => c.id === selectedClientId) || null,
+    [clients, selectedClientId],
+  );
+  const clientSelfGenStatus: 'enabled' | 'disabled' | 'unknown' =
+    selectedClient
+      ? (selectedClient.canGenerateWorkoutPlans ? 'enabled' : 'disabled')
+      : 'unknown';
+  const isViewerClient = user?.role === 'client';
+  const clientGenBlocked = isViewerClient
+    && Number(user?.id) === Number(selectedClientId)
+    && !selectedClient?.canGenerateWorkoutPlans;
 
   // ── Planner State ──
   const [phaseNumber, setPhaseNumber] = useState(2);
@@ -940,12 +963,37 @@ const WorkoutPlannerPage: React.FC = () => {
         <ActionBtn
           $variant="cosmic"
           onClick={planDuration === 'single' ? handleAIGenerate : handleGeneratePlan}
-          disabled={generating || generatingPlan || !selectedClientId}
+          disabled={generating || generatingPlan || !selectedClientId || clientGenBlocked}
+          title={clientGenBlocked
+            ? 'Self-service workout plan generation is not enabled for your account. Ask your admin to turn it on.'
+            : undefined}
         >
           {generating || generatingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
           {generating || generatingPlan ? 'Generating...' : planDuration === 'single' ? 'Swan Coach Generate' : 'Generate Plan'}
         </ActionBtn>
       </ControlRow>
+
+      {/* L5 (2026-05-02): client self-service status pill. Visible to
+          admins/trainers as a quick read on whether the selected client
+          could self-generate if exposed to a client-facing surface.
+          The pill goes red when the viewer IS the affected client AND
+          the flag is off (dormant client-self-service guard). */}
+      {selectedClient ? (
+        <ClientSelfGenPill $status={clientGenBlocked ? 'blocked' : clientSelfGenStatus}>
+          <Sparkles size={12} />
+          <span>
+            Self-service plan generation:{' '}
+            <strong>{
+              clientGenBlocked
+                ? 'Disabled for your account'
+                : clientSelfGenStatus === 'enabled' ? 'Enabled' : 'Disabled'
+            }</strong>
+            {!isViewerClient && clientSelfGenStatus === 'disabled' ? (
+              <PillHint> · admins can flip this from the client details panel</PillHint>
+            ) : null}
+          </span>
+        </ClientSelfGenPill>
+      ) : null}
 
       {/* Plan Duration Controls */}
       <PlanModeBar>
