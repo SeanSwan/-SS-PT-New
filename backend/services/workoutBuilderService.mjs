@@ -662,6 +662,10 @@ export async function generatePlan(options) {
     primaryGoal: rawPrimaryGoal = 'general_fitness',
     startingPhaseOverride,
     equipmentProfileId = null,
+    // L1 (2026-05-01) — for tests: inject a controlled exercise registry to
+    // make rotation + filtering assertions deterministic. Production callers
+    // omit this; getExerciseRegistryFromDB() is used.
+    registryOverride = null,
   } = options;
 
   // L6 FIX: Validate inputs
@@ -766,6 +770,188 @@ export async function generatePlan(options) {
     `Plan length: ${durationWeeks} weeks at ${sessionsPerWeek} sessions/week.`,
   ];
 
+  // ── L1 (2026-05-01): per-day populator ───────────────────────────────
+  // Produces weeks[].days[].exercises[] for the entire horizon. Reuses
+  // selectExercises + applyOPTParams. Maintains a sliding window of the
+  // last 7 sessions' exercise keys for "no recent repeat" rotation.
+  // When eligible pool < 7 distinct, uses least-recent fallback and tags
+  // each exercise with rotationFallback: true (R7 metadata).
+  // ─────────────────────────────────────────────────────────────────────
+  const registry = registryOverride || (await getExerciseRegistryFromDB());
+  const recentExerciseKeys = [];               // sliding window of last 7 sessions' exercises (flattened)
+
+  // Per-day category — same pattern logic as `weeklySchedule` builder above,
+  // but extended for population. Per-week, sessionsPerWeek determines pattern.
+  const dayCategoryFor = (day) => {
+    const rotationPool = ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
+    return sessionsPerWeek >= 4
+      ? rotationPool[day % rotationPool.length]
+      : ['full_body', 'upper', 'lower'][day % 3];
+  };
+  const dayFocusFor = (cat) => (
+    cat === 'push' ? 'chest + shoulders + triceps'
+    : cat === 'pull' ? 'back + biceps'
+    : cat === 'legs' ? 'quads + hamstrings + glutes'
+    : cat === 'upper' ? 'chest + back + shoulders + arms'
+    : cat === 'lower' ? 'quads + hamstrings + glutes + core'
+    : 'full body'
+  );
+
+  const weeks = [];
+  let dayInPlan = 0;
+  for (let w = 0; w < durationWeeks; w++) {
+    const weekNumber = w + 1;
+    const monthNumber = Math.floor(w / 4) + 1;        // 4-week mesocycle months
+    const weekInMonth = (w % 4) + 1;
+    const mesocycleIndex = Math.floor(w / 4);
+    const meso = mesocycles[Math.min(mesocycleIndex, mesocycles.length - 1)];
+    const phase = meso.nasmPhase;
+    const isDeloadWeek = !!meso.deloadWeek && (w + 1 === meso.deloadWeek);
+    const goalBias = meso.goalBias || null;
+
+    const days = [];
+    for (let d = 0; d < sessionsPerWeek; d++) {
+      const dayNumber = d + 1;
+      dayInPlan += 1;
+      const cat = dayCategoryFor(d);
+      const focus = dayFocusFor(cat);
+
+      // Eligible pool size for THIS category × constraints × equipment.
+      const categoryRegistry = registry.filter(
+        (ex) => ex.category === cat || cat === 'full_body'
+      );
+      const eligibleAfterFilter = filterExercises(
+        categoryRegistry, context.constraints, equipmentItems
+      );
+      const eligiblePoolSize = new Set(eligibleAfterFilter.map((ex) => ex.key)).size;
+
+      // Use last 7 sessions of recent keys for "no recent repeat" — this
+      // OVERRIDES context.constraints.recentlyUsedExercises so the
+      // rotation operates ACROSS the generated horizon, not just the
+      // immediate prior session.
+      const constraintsForDay = {
+        ...context.constraints,
+        recentlyUsedExercises: recentExerciseKeys.slice(-7),
+      };
+
+      const exerciseCount = 6;                          // default per-day exercise target
+      const selected = selectExercises(
+        registry, cat, exerciseCount,
+        constraintsForDay, equipmentItems, phase, goalBias
+      );
+
+      // Detect rotation fallback: if pool size < 7 distinct AND any selected
+      // exercise was in the recent-7 window, the rotation could not honor
+      // strict no-repeat. Mark fallback with metadata.
+      const recentSet = new Set(recentExerciseKeys.slice(-7));
+      const rotationFallbackForThisDay = (eligiblePoolSize < 7) && selected.some((ex) => recentSet.has(ex.key));
+
+      const exercises = selected.map((ex, i) => {
+        const opt = applyOPTParams(ex, phase, goalBias);
+        const setNum = chooseBiasedSet(OPT_PHASE_PARAMS[phase].sets, goalBias?.setBias);
+        const repString = formatBiasedRange(OPT_PHASE_PARAMS[phase].reps, goalBias?.repBias);
+        const restNum = midpoint(OPT_PHASE_PARAMS[phase].rest);
+        return {
+          exerciseId: ex.key,
+          exerciseName: opt.exerciseName,
+          orderInWorkout: i + 1,
+          sets: setNum,
+          reps: repString,
+          setScheme: `${setNum}x${repString}`,
+          repGoal: repString,
+          restPeriod: restNum,
+          tempo: OPT_PHASE_PARAMS[phase].tempo,
+          intensityGuideline: OPT_PHASE_PARAMS[phase].intensity,
+          notes: '',
+          source: 'auto-populated',
+          ...(rotationFallbackForThisDay ? { rotationFallback: true } : {}),
+        };
+      });
+
+      // Update sliding window with this day's exercises.
+      for (const ex of selected) {
+        recentExerciseKeys.push(ex.key);
+      }
+
+      days.push({
+        dayNumber,
+        dayInPlan,
+        name: `Day ${dayNumber}: ${focus}`,
+        focus,
+        dayType: isDeloadWeek ? 'deload' : 'training',
+        optPhase: OPT_PHASE_PARAMS[phase].name.toLowerCase().replace(/\s+/g, '_'),
+        exercises,
+      });
+    }
+
+    weeks.push({
+      weekNumber,
+      monthNumber,
+      weekInMonth,
+      mesocycleNumber: meso.mesocycle,
+      isDeloadWeek,
+      days,
+    });
+  }
+  // ───────────────────────────────────────────────────────────────────
+
+  // L1 (2026-05-01): recommendationDetails[] mirrors recommendations[]
+  // with structured type + sourceCitation (SCHEMA-PATH only — rule 8).
+  const buildRecommendationDetails = () => {
+    const details = [];
+    if (equipmentItems.length > 0) {
+      details.push({
+        type: 'equipment',
+        text: `Available equipment: ${equipmentItems.map(i => i.name).join(', ')} — constrain exercises to this equipment`,
+        sourceCitation: 'context.equipment[].items',
+      });
+    }
+    if (context.pain.exclusions.length > 0) {
+      details.push({
+        type: 'pain',
+        text: `Avoid exercises targeting: ${context.pain.exclusions.map(e => e.bodyRegion).join(', ')}`,
+        sourceCitation: 'context.pain.exclusions[].bodyRegion',
+      });
+    }
+    if (context.movement.compensations.length > 0) {
+      details.push({
+        type: 'baseline',
+        text: `Include CES corrective warmup for: ${context.movement.compensations.map(c => c.type).join(', ')}`,
+        sourceCitation: 'context.movement.compensations[].type',
+      });
+    }
+    details.push({
+      type: 'progression',
+      text: `Start at NASM OPT Phase ${startingPhase} and progress based on assessment scores`,
+      sourceCitation: 'context.constraints.nasmPhase',
+    });
+    details.push({
+      type: 'progression',
+      text: `Use ${context.variation.currentPattern} rotation pattern for exercise variation`,
+      sourceCitation: 'context.variation.currentPattern',
+    });
+    details.push({
+      type: 'goal',
+      text: `Plan aligned with trainer-selected goal: ${goalLabel}`,
+      sourceCitation: 'options.primaryGoal',
+    });
+    if (context.baseline?.nasmAssessmentScore) {
+      details.push({
+        type: 'baseline',
+        text: `NASM assessment: ${context.baseline.nasmAssessmentScore}/100 — ${context.baseline.nasmAssessmentScore < 60 ? 'prioritize corrective phases' : 'ready for progressive loading'}`,
+        sourceCitation: 'context.baseline.nasmAssessmentScore',
+      });
+    }
+    if (context.nutrition?.dailyCalories) {
+      details.push({
+        type: 'baseline',
+        text: `Nutrition plan: ${context.nutrition.dailyCalories} kcal/day (${context.nutrition.proteinGrams}g protein) — adjust volume for recovery capacity`,
+        sourceCitation: 'context.nutrition.dailyCalories',
+      });
+    }
+    return details;
+  };
+
   return {
     clientId,
     trainerId,
@@ -829,5 +1015,16 @@ export async function generatePlan(options) {
       progressLevels: context.progressLevels || null,
       streak: context.streak || null,
     },
+
+    // L1 (2026-05-01) — NEW additive fields per receipt §4.A.
+    // weeks[]: full long-horizon populated structure. Each day has an
+    //   exercises[] array selected per NASM rules with rotation across
+    //   the horizon. Frontend (L2) will navigate Month → Week → Day
+    //   from here. Existing fields above (planSummary, mesocycles[],
+    //   weeklySchedule[], rationale, recommendations) are PRESERVED for
+    //   backward compatibility with the current frontend type.
+    // recommendationDetails[]: source-cited mirror of recommendations[].
+    weeks,
+    recommendationDetails: buildRecommendationDetails(),
   };
 }

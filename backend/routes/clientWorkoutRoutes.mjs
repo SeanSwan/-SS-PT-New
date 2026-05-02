@@ -9,8 +9,22 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
+// L1 (2026-05-01): plan-shape helpers migrated to a shared service so this
+// route and workoutPlanRoutes share one transformation layer. See REV 3
+// receipt §C2. Re-exported below for backwards compat with existing test
+// (clientWorkoutRoutes.current.test.mjs:28 imports planDataToWorkoutDays).
+import {
+  planDataToWorkoutDays as _planDataToWorkoutDays,
+  toCurrentWorkoutPlanResponse as _toCurrentWorkoutPlanResponse,
+  extractCurrentSession,
+} from '../services/workoutPlanShapeService.mjs';
 
 const router = express.Router();
+
+// Re-exports for backwards compat. Existing test file imports these
+// directly from this route module (line 28 of the test).
+export const planDataToWorkoutDays = _planDataToWorkoutDays;
+export const toCurrentWorkoutPlanResponse = _toCurrentWorkoutPlanResponse;
 
 // ─────────────────────────────────────────────────────────────
 // Workout-history row mapper (exported for unit tests)
@@ -33,98 +47,9 @@ export const toClientWorkoutHistoryRow = (session) => {
   };
 };
 
-const toPlainObject = (value) => (value?.toJSON ? value.toJSON() : value);
-
-const toPositiveInteger = (value, fallback) => {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
-
-const toExerciseName = (entry) => (
-  entry?.exerciseName
-  || entry?.name
-  || entry?.exercise?.name
-  || entry?.exercise?.exerciseName
-  || 'Unknown Exercise'
-);
-
-const toCurrentPlanExercise = (entry, index) => {
-  const exercise = toPlainObject(entry) || {};
-  const name = toExerciseName(exercise);
-
-  return {
-    id: exercise.id || exercise.exerciseId || `plan-exercise-${index + 1}`,
-    exerciseId: exercise.exerciseId || exercise.id || null,
-    name,
-    exerciseName: name,
-    sets: exercise.sets ?? exercise.setScheme ?? 3,
-    reps: exercise.reps ?? exercise.targetReps ?? exercise.repGoal ?? '10',
-    targetReps: exercise.targetReps ?? exercise.reps ?? exercise.repGoal ?? '10',
-    restSeconds: exercise.restSeconds ?? exercise.restTime ?? exercise.restPeriod ?? null,
-    restTime: exercise.restTime ?? exercise.restSeconds ?? exercise.restPeriod ?? 60,
-    tempo: exercise.tempo || '',
-    notes: exercise.notes || '',
-    videoUrl: exercise.videoUrl || exercise.exercise?.videoUrl || null,
-  };
-};
-
-export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
-  const data = toPlainObject(planData) || {};
-  const weeks = Array.isArray(data.weeks) ? data.weeks : [];
-  const weekIndex = Math.max(toPositiveInteger(currentWeek, 1) - 1, 0);
-  const currentWeekData = weeks[weekIndex] || weeks[0] || null;
-
-  const entries = (
-    (currentWeekData && (currentWeekData.days || currentWeekData.sessions))
-    || data.days
-    || data.sessions
-    || data.weeklySchedule
-    || []
-  );
-
-  if (!Array.isArray(entries)) {
-    return [];
-  }
-
-  return entries.map((entry, index) => {
-    const day = toPlainObject(entry) || {};
-    const dayNumber = toPositiveInteger(day.dayNumber ?? day.day ?? index + 1, index + 1);
-    const dayName = day.dayName || day.dayLabel || day.name || `Day ${dayNumber}`;
-    const exercises = Array.isArray(day.exercises) ? day.exercises : [];
-
-    return {
-      id: day.id || `plan-day-${dayNumber}`,
-      dayNumber,
-      dayName,
-      name: day.name || dayName,
-      focus: day.focus || day.category || null,
-      exercises: exercises.map(toCurrentPlanExercise),
-    };
-  });
-};
-
-export const toCurrentWorkoutPlanResponse = (plan) => {
-  const raw = toPlainObject(plan) || {};
-  const planData = raw.planData || raw.plan_data || { weeks: [] };
-  const days = planDataToWorkoutDays(planData, raw.currentWeek);
-
-  return {
-    id: raw.id,
-    name: raw.title,
-    title: raw.title,
-    description: raw.description,
-    createdAt: raw.createdAt,
-    durationWeeks: raw.durationWeeks,
-    difficulty: raw.difficulty,
-    tags: raw.tags || [],
-    currentWeek: raw.currentWeek,
-    currentDay: raw.currentDay,
-    planData,
-    days,
-    frequency: `${raw.durationWeeks || 0} weeks`,
-    duration: days.length ? `${days.length} days/week` : 'Custom',
-  };
-};
+// (Plan-shape helpers were migrated to ../services/workoutPlanShapeService.mjs
+// in L1, 2026-05-01. They are re-exported above for backwards compat with
+// existing tests that import them directly from this route file.)
 
 /**
  * GET /api/workouts/:userId/current
@@ -163,11 +88,16 @@ router.get('/:userId/current', protect, async (req, res) => {
     }
 
     const formattedPlan = toCurrentWorkoutPlanResponse(plan);
+    // L1 (REV 3 §C4): currentSession is embedded inside formattedPlan
+    // (so data.currentSession AND plan.currentSession both expose it)
+    // AND lifted to top level for direct access.
+    const currentSession = formattedPlan.currentSession || null;
 
     return res.status(200).json({
       success: true,
       data: formattedPlan,
-      plan: formattedPlan
+      plan: formattedPlan,
+      currentSession,
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);

@@ -34,6 +34,10 @@ import {
 } from '../middleware/verifyClientAccess.mjs';
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+// L1 (2026-05-01): plan-shape helpers moved to a shared module so both
+// workoutPlanRoutes (admin/trainer view) and clientWorkoutRoutes (logger
+// view) can use the same extractor + adapter. See REV 3 receipt §C2.
+import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 
 const router = express.Router();
 
@@ -538,33 +542,7 @@ router.delete('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ 
  * @param {Object} plan - WorkoutPlan model instance
  * @returns {Object|null} Current session with week context
  */
-function extractCurrentSession(plan) {
-  const planData = plan.planData || { weeks: [] };
-  const weekIndex = plan.currentWeek - 1;
-  const dayIndex = plan.currentDay - 1;
-
-  if (!planData.weeks || !planData.weeks[weekIndex]) {
-    return null;
-  }
-
-  const week = planData.weeks[weekIndex];
-  // Support both "sessions" (legacy) and "days" (new frontend) keys
-  const entries = week.sessions || week.days || [];
-  const session = entries[dayIndex] || null;
-
-  if (!session) return null;
-
-  return {
-    weekNumber: plan.currentWeek,
-    weekFocus: week.focus || session.focus || null,
-    dayNumber: plan.currentDay,
-    dayLabel: session.dayLabel || session.name || `Day ${plan.currentDay}`,
-    session,
-    totalWeeks: planData.weeks.length,
-    totalSessionsThisWeek: entries.length,
-    isLastSessionOfWeek: plan.currentDay >= entries.length,
-    isLastWeek: plan.currentWeek >= planData.weeks.length
-  };
-}
+// extractCurrentSession migrated to backend/services/workoutPlanShapeService.mjs
+// (L1, 2026-05-01) — see REV 3 receipt §C2. Imported at top of this file.
 
 export default router;
