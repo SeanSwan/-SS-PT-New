@@ -185,3 +185,128 @@ describe('toCurrentWorkoutPlanResponse — embeds currentSession (C4)', () => {
     expect(formatted.planData).toBeDefined();
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// L1 REV 2 (2026-05-02) — Codex post-implementation review fixes.
+//
+//   1. extractCurrentSession must accept top-level planData.days[] and
+//      planData.sessions[] for legacy single-week plans, so that the
+//      cursor extractor and planDataToWorkoutDays agree on which shapes
+//      are renderable. (Codex HIGH 2026-05-02.)
+//
+//   2. Empty arrays are truthy in JS — `week.sessions || week.days` would
+//      pick a populated `days[]` only if `sessions` was undefined, not
+//      when `sessions: []`. Both helpers must skip empty arrays and fall
+//      through to populated siblings. (Codex MEDIUM 2026-05-02.)
+// ─────────────────────────────────────────────────────────────
+
+describe('extractCurrentSession — top-level days/sessions fallback (Codex HIGH 2026-05-02)', () => {
+  it('extracts the current session from planData.days[] when no weeks[] is present', () => {
+    const planTopLevelDays = {
+      id: 'top-level-plan',
+      currentWeek: 1,
+      currentDay: 2,
+      durationWeeks: 1,
+      planData: {
+        days: [
+          { dayNumber: 1, name: 'Day 1', exercises: [{ exerciseId: 'a', exerciseName: 'A', sets: 3, reps: '10' }] },
+          { dayNumber: 2, name: 'Day 2', exercises: [{ exerciseId: 'b', exerciseName: 'B', sets: 3, reps: '10' }] },
+        ],
+      },
+    };
+    const result = extractCurrentSession(planTopLevelDays);
+    expect(result).not.toBeNull();
+    expect(result.dayLabel).toBe('Day 2');
+    expect(result.exercises).toHaveLength(1);
+    expect(result.exercises[0].exerciseId).toBe('b');
+    // C1 lift still applies on this path
+    expect(result.exercises).toBe(result.session.exercises);
+  });
+
+  it('extracts the current session from planData.sessions[] alias too', () => {
+    const planTopLevelSessions = {
+      id: 'top-level-sessions',
+      currentWeek: 1,
+      currentDay: 1,
+      durationWeeks: 1,
+      planData: {
+        sessions: [
+          { dayNumber: 1, name: 'Only Day', exercises: [{ exerciseId: 'z', exerciseName: 'Z', sets: 3, reps: '10' }] },
+        ],
+      },
+    };
+    const result = extractCurrentSession(planTopLevelSessions);
+    expect(result).not.toBeNull();
+    expect(result.dayLabel).toBe('Only Day');
+    expect(result.exercises[0].exerciseId).toBe('z');
+  });
+
+  it('agrees with planDataToWorkoutDays — both render the same plan shape', () => {
+    const planTopLevelDays = {
+      id: 'agreement-plan',
+      currentWeek: 1,
+      currentDay: 1,
+      durationWeeks: 1,
+      planData: {
+        days: [{ dayNumber: 1, exercises: [{ exerciseId: 'agree', exerciseName: 'Agree', sets: 1, reps: '1' }] }],
+      },
+    };
+    const session = extractCurrentSession(planTopLevelDays);
+    const days = planDataToWorkoutDays(planTopLevelDays.planData, 1);
+    // Receipt §C2: the two helpers must agree on supported legacy shapes
+    expect(days).toHaveLength(1);
+    expect(session).not.toBeNull();
+    expect(session.exercises).toHaveLength(1);
+  });
+});
+
+describe('Empty-array-truthy guard (Codex MEDIUM 2026-05-02)', () => {
+  it('extractCurrentSession falls back to week.days[] when week.sessions is []', () => {
+    const planEmptySessions = {
+      currentWeek: 1,
+      currentDay: 1,
+      planData: {
+        weeks: [
+          {
+            sessions: [],
+            days: [
+              { dayNumber: 1, name: 'Real Day', exercises: [{ exerciseId: 'real', exerciseName: 'Real', sets: 3, reps: '10' }] },
+            ],
+          },
+        ],
+      },
+    };
+    const result = extractCurrentSession(planEmptySessions);
+    expect(result).not.toBeNull();
+    expect(result.dayLabel).toBe('Real Day');
+    expect(result.exercises[0].exerciseId).toBe('real');
+  });
+
+  it('planDataToWorkoutDays falls back to weeklySchedule when data.days is []', () => {
+    const data = {
+      days: [],
+      weeklySchedule: [
+        { dayNumber: 1, name: 'WS Day', exercises: [{ exerciseId: 'ws', exerciseName: 'WS' }] },
+      ],
+    };
+    const days = planDataToWorkoutDays(data, 1);
+    expect(days).toHaveLength(1);
+    expect(days[0].name).toBe('WS Day');
+  });
+
+  it('planDataToWorkoutDays falls back from currentWeekData.days=[] to currentWeekData.sessions[]', () => {
+    const data = {
+      weeks: [
+        {
+          days: [],
+          sessions: [
+            { dayNumber: 1, name: 'Sessions Day', exercises: [{ exerciseId: 'sess', exerciseName: 'Sess' }] },
+          ],
+        },
+      ],
+    };
+    const days = planDataToWorkoutDays(data, 1);
+    expect(days).toHaveLength(1);
+    expect(days[0].name).toBe('Sessions Day');
+  });
+});

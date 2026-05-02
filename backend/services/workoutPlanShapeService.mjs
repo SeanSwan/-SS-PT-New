@@ -75,23 +75,29 @@ const toCurrentPlanExercise = (entry, index) => {
 //   Handles legacy weeklySchedule + new weeks[].days[] / weeks[].sessions[].
 // ─────────────────────────────────────────────────────────────
 
+// Pick the first candidate that is a non-empty array. Empty arrays are
+// truthy in JS, so a naive `a || b` chain treats `[]` as a valid hit and
+// blocks fallback to a populated sibling. (Codex 2026-05-02 finding.)
+const pickFirstNonEmptyArray = (...candidates) => {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) return candidate;
+  }
+  return [];
+};
+
 export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
   const data = toPlainObject(planData) || {};
   const weeks = Array.isArray(data.weeks) ? data.weeks : [];
   const weekIndex = Math.max(toPositiveInteger(currentWeek, 1) - 1, 0);
   const currentWeekData = weeks[weekIndex] || weeks[0] || null;
 
-  const entries = (
-    (currentWeekData && (currentWeekData.days || currentWeekData.sessions))
-    || data.days
-    || data.sessions
-    || data.weeklySchedule
-    || []
+  const entries = pickFirstNonEmptyArray(
+    currentWeekData?.days,
+    currentWeekData?.sessions,
+    data.days,
+    data.sessions,
+    data.weeklySchedule,
   );
-
-  if (!Array.isArray(entries)) {
-    return [];
-  }
 
   return entries.map((entry, index) => {
     const day = toPlainObject(entry) || {};
@@ -123,25 +129,54 @@ export const extractCurrentSession = (plan) => {
   const weekIndex = (planObj.currentWeek || 1) - 1;
   const dayIndex = (planObj.currentDay || 1) - 1;
 
-  // Primary path: weeks[].days/sessions[]
-  if (planData.weeks && planData.weeks[weekIndex]) {
+  const buildSessionView = ({ session, weekFocus, totalSessionsThisWeek, totalWeeks, isLastWeek }) => {
+    const exercises = Array.isArray(session.exercises) ? session.exercises : [];
+    return {
+      weekNumber: planObj.currentWeek || 1,
+      weekFocus: weekFocus || session.focus || null,
+      dayNumber: planObj.currentDay || 1,
+      dayLabel: session.dayLabel || session.name || `Day ${planObj.currentDay || 1}`,
+      session,                              // legacy nested — preserved
+      exercises,                            // C1 lift — top-level reference; future consumers use this
+      totalWeeks,
+      totalSessionsThisWeek,
+      isLastSessionOfWeek: (planObj.currentDay || 1) >= totalSessionsThisWeek,
+      isLastWeek,
+    };
+  };
+
+  // Primary path: planData.weeks[].days/sessions[].
+  // Empty-array-truthy guard: prefer the populated sibling. (Codex 2026-05-02.)
+  if (Array.isArray(planData.weeks) && planData.weeks.length > 0 && planData.weeks[weekIndex]) {
     const week = planData.weeks[weekIndex];
-    const entries = week.sessions || week.days || [];
+    const entries = pickFirstNonEmptyArray(week.sessions, week.days);
     const session = entries[dayIndex] || null;
     if (session) {
-      const exercises = Array.isArray(session.exercises) ? session.exercises : [];
-      return {
-        weekNumber: planObj.currentWeek || 1,
-        weekFocus: week.focus || session.focus || null,
-        dayNumber: planObj.currentDay || 1,
-        dayLabel: session.dayLabel || session.name || `Day ${planObj.currentDay || 1}`,
-        session,                              // legacy nested — preserved
-        exercises,                            // C1 lift — top-level reference; future consumers use this
-        totalWeeks: planData.weeks.length,
+      return buildSessionView({
+        session,
+        weekFocus: week.focus,
         totalSessionsThisWeek: entries.length,
-        isLastSessionOfWeek: (planObj.currentDay || 1) >= entries.length,
+        totalWeeks: planData.weeks.length,
         isLastWeek: (planObj.currentWeek || 1) >= planData.weeks.length,
-      };
+      });
+    }
+  }
+
+  // Top-level fallback (Codex 2026-05-02 HIGH): planDataToWorkoutDays
+  // accepts top-level `planData.days[]` / `planData.sessions[]` for legacy
+  // single-week plans, so the cursor extractor must agree — otherwise an
+  // active plan renders `days[]` correctly but reports `currentSession: null`.
+  const topLevelEntries = pickFirstNonEmptyArray(planData.sessions, planData.days);
+  if (topLevelEntries.length > 0) {
+    const session = topLevelEntries[dayIndex] || null;
+    if (session) {
+      return buildSessionView({
+        session,
+        weekFocus: null,
+        totalSessionsThisWeek: topLevelEntries.length,
+        totalWeeks: planObj.durationWeeks || 1,
+        isLastWeek: (planObj.currentWeek || 1) >= (planObj.durationWeeks || 1),
+      });
     }
   }
 
@@ -153,19 +188,13 @@ export const extractCurrentSession = (plan) => {
   if (Array.isArray(planData.weeklySchedule)) {
     const legacyDay = planData.weeklySchedule[dayIndex] || null;
     if (legacyDay && Array.isArray(legacyDay.exercises) && legacyDay.exercises.length > 0) {
-      const exercises = legacyDay.exercises;
-      return {
-        weekNumber: planObj.currentWeek || 1,
-        weekFocus: legacyDay.focus || null,
-        dayNumber: planObj.currentDay || 1,
-        dayLabel: legacyDay.dayLabel || legacyDay.name || `Day ${planObj.currentDay || 1}`,
-        session: legacyDay,                   // legacy nested — preserved
-        exercises,                            // C1 lift
-        totalWeeks: planObj.durationWeeks || 1,
+      return buildSessionView({
+        session: legacyDay,
+        weekFocus: legacyDay.focus,
         totalSessionsThisWeek: planData.weeklySchedule.length,
-        isLastSessionOfWeek: (planObj.currentDay || 1) >= planData.weeklySchedule.length,
+        totalWeeks: planObj.durationWeeks || 1,
         isLastWeek: false,
-      };
+      });
     }
   }
 

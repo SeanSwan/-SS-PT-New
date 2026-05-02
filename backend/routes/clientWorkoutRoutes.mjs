@@ -9,22 +9,15 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
-// L1 (2026-05-01): plan-shape helpers migrated to a shared service so this
-// route and workoutPlanRoutes share one transformation layer. See REV 3
-// receipt §C2. Re-exported below for backwards compat with existing test
-// (clientWorkoutRoutes.current.test.mjs:28 imports planDataToWorkoutDays).
-import {
-  planDataToWorkoutDays as _planDataToWorkoutDays,
-  toCurrentWorkoutPlanResponse as _toCurrentWorkoutPlanResponse,
-  extractCurrentSession,
-} from '../services/workoutPlanShapeService.mjs';
+// L1 (2026-05-01): plan-shape helpers live in a shared service so this
+// route and workoutPlanRoutes share one transformation layer (REV 3 §C2).
+// L1 REV 2 (2026-05-02, Codex follow-up): the existing route-level
+// re-exports were dropped — the only consumer was the test file at
+// clientWorkoutRoutes.current.test.mjs:28, which now imports directly from
+// the shared service.
+import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 
 const router = express.Router();
-
-// Re-exports for backwards compat. Existing test file imports these
-// directly from this route module (line 28 of the test).
-export const planDataToWorkoutDays = _planDataToWorkoutDays;
-export const toCurrentWorkoutPlanResponse = _toCurrentWorkoutPlanResponse;
 
 // ─────────────────────────────────────────────────────────────
 // Workout-history row mapper (exported for unit tests)

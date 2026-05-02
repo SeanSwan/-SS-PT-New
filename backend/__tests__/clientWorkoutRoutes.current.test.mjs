@@ -23,10 +23,10 @@ vi.mock('../utils/logger.mjs', () => ({
   default: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-const {
-  default: clientWorkoutRoutes,
-  planDataToWorkoutDays,
-} = await import('../routes/clientWorkoutRoutes.mjs');
+const { default: clientWorkoutRoutes } = await import('../routes/clientWorkoutRoutes.mjs');
+// L1 REV 2 (2026-05-02): planDataToWorkoutDays now lives in the shared
+// shape service (Codex follow-up — receipt §8 file-touch list lock).
+const { planDataToWorkoutDays } = await import('../services/workoutPlanShapeService.mjs');
 
 const buildApp = () => {
   const app = express();
