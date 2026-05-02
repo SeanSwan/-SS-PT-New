@@ -621,6 +621,19 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [executeLoadClientData]);
 
   // ── Load Today's Plan ──
+  //
+  // L4 (2026-05-02): primary source is `currentSession.exercises`, the
+  // cursor-driven "what's next" the L1 backend computes from
+  // planData.weeks[currentWeek-1].days[currentDay-1]. This respects
+  // mid-week navigation (e.g. user is on Week 3 Day 2 — load THAT day,
+  // not whichever day matches the calendar). We fall through to the
+  // legacy day-of-week match against `plan.days[]` when no cursor is
+  // present (legacy plans without weeks[] structure).
+  //
+  // Receipt §C4: the backend exposes currentSession at three levels
+  // (body.currentSession, body.data.currentSession, body.plan.currentSession),
+  // all deep-equal post-JSON. We read `data.currentSession` for symmetry
+  // with the existing `data.plan.*` reads below.
   const loadTodaysPlan = useCallback(async () => {
     setIsLoadingPlan(true);
     try {
@@ -635,6 +648,41 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const response = await api.get(`/api/workouts/${effectiveClientId}/current`);
       const data = response?.data ?? response;
 
+      const exerciseToEntry = (ex: any): ExerciseEntry => {
+        const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
+        return {
+          exerciseId: ex.exerciseId || ex.id || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
+          sets: Array.from({ length: setCount }, (_, i) => ({
+            setNumber: i + 1,
+            weight: ex.weight || 0,
+            reps: ex.targetReps || ex.reps || 10,
+            // Phase 16: today's-plan prefilled sets default to null rating.
+            rpe: null,
+            tempo: ex.tempo || '',
+            restTime: ex.restTime || ex.restSeconds || 60,
+            formQuality: null,
+            notes: '',
+          })),
+          formRating: null,
+          painLevel: 0,
+          performanceNotes: '',
+        };
+      };
+
+      // ── L4 primary path: cursor-driven currentSession.exercises ──
+      const cursorSession = data?.currentSession;
+      const cursorExercises = Array.isArray(cursorSession?.exercises) ? cursorSession.exercises : [];
+      if (cursorExercises.length > 0) {
+        const prefilled = cursorExercises.map(exerciseToEntry);
+        setExercises(prev => [...prev, ...prefilled]);
+        const weekNum = cursorSession.weekNumber ?? '?';
+        const dayLabel = cursorSession.dayLabel || `Day ${cursorSession.dayNumber ?? '?'}`;
+        toast.success(`Loaded ${prefilled.length} exercises from Week ${weekNum} — ${dayLabel}`);
+        return;
+      }
+
+      // ── L4 fallback: legacy day-of-week match against plan.days[] ──
       if (!data?.plan?.days?.length) {
         toast.info('No active workout plan found for this client');
         return;
@@ -653,27 +701,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         return;
       }
 
-      const prefilled: ExerciseEntry[] = planDay.exercises.map((ex: any) => {
-        const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
-        return {
-        exerciseId: ex.exerciseId || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
-        sets: Array.from({ length: setCount }, (_, i) => ({
-          setNumber: i + 1,
-          weight: ex.weight || 0,
-          reps: ex.targetReps || ex.reps || 10,
-          // Phase 16: today's-plan prefilled sets default to null rating.
-          rpe: null,
-          tempo: ex.tempo || '',
-          restTime: ex.restTime || 60,
-          formQuality: null,
-          notes: '',
-        })),
-        formRating: null,
-        painLevel: 0,
-        performanceNotes: '',
-      };});
-
+      const prefilled = planDay.exercises.map(exerciseToEntry);
       setExercises(prev => [...prev, ...prefilled]);
       toast.success(`Loaded ${prefilled.length} exercises from ${todayName}'s plan`);
     } catch (error: unknown) {
