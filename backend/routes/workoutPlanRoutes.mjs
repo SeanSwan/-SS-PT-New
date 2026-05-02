@@ -23,6 +23,8 @@
  */
 
 import express from 'express';
+import { Op } from 'sequelize';
+import sequelize from '../database.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import {
@@ -34,6 +36,14 @@ import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+// Plan Library slice (REV 2 receipt §6.2). Activate handler retries on
+// SQLSTATE 23505 (Postgres unique_violation), which fires when the partial
+// unique index `workout_plans_one_active_per_user` catches a concurrent
+// activate that slipped past the row lock.
+const ACTIVATE_MAX_RETRIES = 2;
+const isUniqueViolation = (err) =>
+  err?.original?.code === '23505' || err?.parent?.code === '23505';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
@@ -247,6 +257,142 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     logger.error('[WorkoutPlan] PUT /:id error: %s', error.message);
     res.status(500).json({ success: false, message: 'Failed to update workout plan' });
   }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: PUT /api/workout-plans/:id/activate    (Plan Library slice)
+// PURPOSE: Make this plan the canonical "active" plan for its client.
+//          Demotes any sibling active plan(s) to 'paused' atomically.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Activate a plan as the client's current. Atomically demotes sibling
+ * active plans to 'paused'.
+ *
+ * Concurrency strategy:
+ *   1) Per-user row lock via `SELECT ... FOR UPDATE` serializes concurrent
+ *      activates for the same client. Different clients don't lock each other.
+ *   2) Partial unique index `workout_plans_one_active_per_user` is the DB-level
+ *      backstop — any race that escapes the row lock raises SQLSTATE 23505.
+ *   3) On 23505, retry up to ACTIVATE_MAX_RETRIES times before failing.
+ *
+ * @route PUT /api/workout-plans/:id/activate
+ * @access Trainer (assigned client) / Admin
+ */
+router.put('/:id/activate', protect, trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  async (req, res) => {
+    const WorkoutPlan = getWorkoutPlan();
+    const targetPlan = req.workoutPlan; // attached by middleware
+
+    for (let attempt = 0; attempt <= ACTIVATE_MAX_RETRIES; attempt++) {
+      const t = await sequelize.transaction();
+      try {
+        // Lock all of this user's plans to serialize concurrent activates.
+        await WorkoutPlan.findAll({
+          where: { userId: targetPlan.userId },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+
+        // Demote sibling active plans to 'paused'.
+        await WorkoutPlan.update(
+          { status: 'paused' },
+          {
+            where: {
+              userId: targetPlan.userId,
+              status: 'active',
+              id: { [Op.ne]: targetPlan.id },
+            },
+            transaction: t,
+          },
+        );
+
+        // Activate the target. Refetch to get a fresh instance bound to the
+        // transaction so .update() persists; req.workoutPlan was loaded
+        // outside the transaction by the middleware.
+        const fresh = await WorkoutPlan.findByPk(targetPlan.id, { transaction: t });
+        if (!fresh) {
+          await t.rollback();
+          return res.status(404).json({ success: false, message: 'Plan not found' });
+        }
+        await fresh.update({ status: 'active' }, { transaction: t });
+
+        await t.commit();
+        logger.info('[WorkoutPlan] Activated plan #%d for client %d (trainer %d)',
+          fresh.id, fresh.userId, req.user.id);
+        return res.json({ success: true, plan: fresh });
+      } catch (err) {
+        await t.rollback();
+        if (isUniqueViolation(err) && attempt < ACTIVATE_MAX_RETRIES) {
+          logger.warn('[WorkoutPlan] Activate race caught by unique index, retrying (attempt %d)', attempt);
+          continue;
+        }
+        logger.error('[WorkoutPlan] Activate error: %s', err.message);
+        return res.status(500).json({ success: false, message: 'Failed to activate plan' });
+      }
+    }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: POST /api/workout-plans/:id/duplicate    (Plan Library slice)
+// PURPOSE: Server-side clone of an existing plan. New copy is always 'draft'
+//          so the partial unique index never trips (drafts don't count toward
+//          active uniqueness). Trainer can activate later if desired.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Duplicate a plan. Saved-plan list does NOT include `planData`, so the
+ * frontend cannot construct an accurate copy; the clone happens server-side
+ * to guarantee field fidelity. The duplicate is always status='draft' per
+ * product rule "exactly one active plan per client."
+ *
+ * Body (optional): { title?: string }
+ *
+ * @route POST /api/workout-plans/:id/duplicate
+ * @access Trainer (assigned client) / Admin
+ */
+router.post('/:id/duplicate', protect, trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  async (req, res) => {
+    const WorkoutPlan = getWorkoutPlan();
+    const original = req.workoutPlan;
+    const { title } = req.body || {};
+
+    try {
+      // Deep-clone JSONB: serializing prevents accidental shared-reference
+      // bugs at test time. JSONB persists fine either way; explicit clone
+      // makes intent unambiguous.
+      const clonedPlanData = original.planData
+        ? JSON.parse(JSON.stringify(original.planData))
+        : { weeks: [] };
+
+      const copy = await WorkoutPlan.create({
+        userId: original.userId,
+        trainerId: req.user.id,
+        title: (typeof title === 'string' && title.trim().length > 0)
+          ? title.trim()
+          : `${original.title} (copy)`,
+        description: original.description,
+        nasmPhase: original.nasmPhase,
+        durationWeeks: original.durationWeeks,
+        status: 'draft', // ALWAYS draft per product rule
+        currentWeek: 1,
+        currentDay: 1,
+        planData: clonedPlanData,
+        progressNotes: [],
+        createdBy: 'trainer',
+        metadata: { duplicatedFrom: original.id },
+      });
+
+      logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',
+        original.id, copy.id, original.userId, req.user.id);
+
+      return res.status(201).json({ success: true, plan: copy });
+    } catch (err) {
+      logger.error('[WorkoutPlan] Duplicate error: %s', err.message);
+      return res.status(500).json({ success: false, message: 'Failed to duplicate plan' });
+    }
 });
 
 // ─────────────────────────────────────────────────────────────

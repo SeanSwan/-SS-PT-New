@@ -56,6 +56,9 @@ import { logApiError } from '../../../../utils/logApiError';
 // W1A-5 (2026-05-01): scope lazy-panel failures to the panel instead of
 // letting them bubble to the app-level ErrorBoundary (white-screen).
 import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
+// Plan Library slice (2026-05-01): extracted card component holds the
+// stopPropagation matrix + per-card action affordances.
+import SavedPlanCard from './SavedPlanCard';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -484,65 +487,236 @@ const WorkoutPlannerPage: React.FC = () => {
     }
   }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal, phaseNumber]);
 
-  // ── Save Plan ──
-  const handleSave = useCallback(async () => {
+  // ── Plan Library helpers ──
+  // buildPlanData: compose the JSONB payload from current builder state.
+  // Reused by Save Draft, Save & Make Current, Update Plan, Update & Make Current.
+  const buildPlanData = useCallback(() => {
+    const phaseToOpt: Record<number, string> = {
+      1: 'stabilization_endurance', 2: 'strength_endurance',
+      3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
+    };
+    const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
+    return {
+      weeks: [{
+        weekNumber: 1,
+        days: [{
+          dayNumber: 1,
+          name: `${phase.name} Workout`,
+          focus: categoryLabel,
+          dayType: 'training',
+          optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
+          exercises: planExercises.map((p, i) => ({
+            exerciseId: p.exerciseSlim.id,
+            exerciseName: p.exerciseSlim.name,
+            orderInWorkout: i + 1,
+            sets: p.sets,
+            reps: p.reps,
+            setScheme: `${p.sets}x${p.reps}`,
+            repGoal: p.reps,
+            restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
+            tempo: p.tempo,
+            intensityGuideline: `${p.intensityPercent}% 1RM`,
+            notes: p.notes || '',
+          })),
+        }],
+      }],
+      goal,
+      category,
+    };
+  }, [phase.name, phaseNumber, category, planExercises, goal]);
+
+  // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
+  // POSTs as status='draft' so the new partial unique index never trips.
+  // Trainer can promote to current later via Activate.
+  const handleSaveDraft = useCallback(async () => {
     if (!selectedClientId || planExercises.length === 0) return;
     setSaving(true);
     try {
       const client = clients.find(c => c.id === selectedClientId);
-      // Map to backend WorkoutPlan model schema:
-      // { userId, title, description, nasmPhase, status, planData }
-      const phaseToOpt: Record<number, string> = {
-        1: 'stabilization_endurance', 2: 'strength_endurance',
-        3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
-      };
       const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
-      await authAxios.post('/api/workout/plans', {
+      const res = await authAxios.post('/api/workout-plans', {
         userId: selectedClientId,
         title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
         description: `${categoryLabel} — ${goal}`,
         nasmPhase: phaseNumber,
-        planData: {
-          weeks: [{
-            weekNumber: 1,
-            days: [{
-              dayNumber: 1,
-              name: `${phase.name} Workout`,
-              focus: categoryLabel,
-              dayType: 'training',
-              optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
-              exercises: planExercises.map((p, i) => ({
-                exerciseId: p.exerciseSlim.id,
-                exerciseName: p.exerciseSlim.name,
-                orderInWorkout: i + 1,
-                sets: p.sets,
-                reps: p.reps,
-                setScheme: `${p.sets}x${p.reps}`,
-                repGoal: p.reps,
-                restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
-                tempo: p.tempo,
-                intensityGuideline: `${p.intensityPercent}% 1RM`,
-                notes: p.notes || '',
-              })),
-            }],
-          }],
-          goal,
-          category,
-        },
+        status: 'draft',
+        planData: buildPlanData(),
       });
-      setStatusMsg({ type: 'success', text: 'Workout plan saved successfully!' });
-      // W1A-2: capture the just-saved state as the dirty-comparison baseline
-      // so the trainer can keep editing and we'll detect changes from here.
+      setStatusMsg({ type: 'success', text: 'Plan saved as draft.' });
       setSavedSnapshot(currentExercisesSig);
-      // Refresh saved plans list
+      // Capture the new id so subsequent edits become "Update Plan" mode
+      const newId = res.data?.plan?.id ? String(res.data.plan.id) : null;
+      if (newId) {
+        setLoadedPlanId(newId);
+        setLoadedPlanName(res.data?.plan?.title || null);
+      }
       fetchSavedPlans(selectedClientId);
     } catch (err) {
-      logApiError('Save failed', err);
+      logApiError('Save draft failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to save plan. Please try again.' });
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, planExercises, phase, category, goal, clients, planDuration]);
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig]);
+
+  // ── Save & Make Current ── (Plan Library §5.1, no-loaded-plan path)
+  // POSTs as draft, then activates. Two requests; backend invariant on activate
+  // ensures any existing active plan is demoted atomically.
+  const handleSaveAndActivate = useCallback(async () => {
+    if (!selectedClientId || planExercises.length === 0) return;
+    setSaving(true);
+    try {
+      const client = clients.find(c => c.id === selectedClientId);
+      const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
+      const res = await authAxios.post('/api/workout-plans', {
+        userId: selectedClientId,
+        title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
+        description: `${categoryLabel} — ${goal}`,
+        nasmPhase: phaseNumber,
+        status: 'draft',
+        planData: buildPlanData(),
+      });
+      const newId = res.data?.plan?.id;
+      if (!newId) throw new Error('Backend returned no plan id');
+      await authAxios.put(`/api/workout-plans/${newId}/activate`);
+      setStatusMsg({ type: 'success', text: 'Plan saved and made current.' });
+      setSavedSnapshot(currentExercisesSig);
+      setLoadedPlanId(String(newId));
+      setLoadedPlanName(res.data?.plan?.title || null);
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Save & activate failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to save & activate plan.' });
+    } finally {
+      setSaving(false);
+    }
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig]);
+
+  // ── Update Loaded Plan ── (Plan Library §5.1, loaded-plan path)
+  // PUT /:id with the new planData. Does NOT change activation state.
+  const handleUpdateLoaded = useCallback(async () => {
+    if (!selectedClientId || !loadedPlanId || planExercises.length === 0) return;
+    setSaving(true);
+    try {
+      await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
+        nasmPhase: phaseNumber,
+        planData: buildPlanData(),
+      });
+      setStatusMsg({ type: 'success', text: 'Plan updated.' });
+      setSavedSnapshot(currentExercisesSig);
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Update plan failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to update plan.' });
+    } finally {
+      setSaving(false);
+    }
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig]);
+
+  // ── Update & Make Current ── (Plan Library §5.1, loaded-non-current path)
+  // PUT /:id then PUT /:id/activate.
+  const handleUpdateAndActivate = useCallback(async () => {
+    if (!selectedClientId || !loadedPlanId || planExercises.length === 0) return;
+    setSaving(true);
+    try {
+      await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
+        nasmPhase: phaseNumber,
+        planData: buildPlanData(),
+      });
+      await authAxios.put(`/api/workout-plans/${loadedPlanId}/activate`);
+      setStatusMsg({ type: 'success', text: 'Plan updated and made current.' });
+      setSavedSnapshot(currentExercisesSig);
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Update & activate failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to update & activate plan.' });
+    } finally {
+      setSaving(false);
+    }
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig]);
+
+  // ── Plan Library card-action handlers (§5.2) ──
+
+  // Activate (Make Current). Backend transactionally demotes siblings.
+  const handleCardActivate = useCallback(async (planId: string, planName: string) => {
+    if (!selectedClientId) return;
+    try {
+      await authAxios.put(`/api/workout-plans/${planId}/activate`);
+      setStatusMsg({ type: 'success', text: `${planName} is now the current plan.` });
+      // If we have this plan loaded in the builder, update savedSnapshot — the
+      // builder state was identical to the activated plan's persisted state.
+      if (loadedPlanId === planId) {
+        setSavedSnapshot(currentExercisesSig);
+      }
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Activate plan failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to make plan current. Please try again.' });
+    }
+  }, [authAxios, selectedClientId, loadedPlanId, currentExercisesSig]);
+
+  // Rename — PUT /:id with title only; planData untouched.
+  const handleCardRename = useCallback(async (planId: string, newName: string) => {
+    if (!selectedClientId) return;
+    try {
+      await authAxios.put(`/api/workout-plans/${planId}`, { title: newName });
+      setStatusMsg({ type: 'success', text: `Renamed to "${newName}".` });
+      // If we have this plan loaded, update the displayed name
+      if (loadedPlanId === planId) {
+        setLoadedPlanName(newName);
+      }
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Rename plan failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to rename plan.' });
+    }
+  }, [authAxios, selectedClientId, loadedPlanId]);
+
+  // Duplicate — server-side clone via POST /:id/duplicate. Always status='draft'.
+  const handleCardDuplicate = useCallback(async (planId: string, planName: string) => {
+    if (!selectedClientId) return;
+    try {
+      await authAxios.post(`/api/workout-plans/${planId}/duplicate`, {});
+      setStatusMsg({ type: 'success', text: `Duplicated "${planName}" as draft.` });
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Duplicate plan failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to duplicate plan.' });
+    }
+  }, [authAxios, selectedClientId]);
+
+  // Archive — DELETE /:id (soft delete; sets status='completed').
+  const handleCardArchive = useCallback(async (planId: string, planName: string) => {
+    if (!selectedClientId) return;
+    if (!window.confirm(`Archive "${planName}"? This moves the plan to the archive but keeps history.`)) {
+      return;
+    }
+    try {
+      await authAxios.delete(`/api/workout-plans/${planId}`);
+      setStatusMsg({ type: 'success', text: `Archived "${planName}".` });
+      // If the archived plan was loaded, clear the builder's loaded reference
+      // so the next save acts as a fresh draft instead of trying to PUT a
+      // soft-deleted plan.
+      if (loadedPlanId === planId) {
+        setLoadedPlanId(null);
+        setLoadedPlanName(null);
+        setSavedSnapshot(null);
+      }
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Archive plan failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to archive plan.' });
+    }
+  }, [authAxios, selectedClientId, loadedPlanId]);
+
+  // Compute archive-blocked state per card. Per §5.4: block archive of the
+  // currently-active plan when it's the ONLY active plan, to avoid leaving
+  // the client with zero active plans (the strict "exactly one active" rule).
+  const activePlanCount = savedPlans.filter(p => p.status === 'active').length;
+  const archiveBlockedFor = useCallback((planStatus: string) =>
+    planStatus === 'active' && activePlanCount <= 1,
+    [activePlanCount],
+  );
 
   // ── Fetch Saved Plans for Client ──
   const fetchSavedPlans = useCallback(async (clientId: number | null) => {
@@ -940,11 +1114,78 @@ const WorkoutPlannerPage: React.FC = () => {
         <Panel style={degradedIntelligence ? { border: '1px solid #C6A84B' } : undefined}>
           <PanelHeader>
             <PanelTitle><Zap size={16} /> Workout Builder</PanelTitle>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <ActionBtn onClick={handleSave} disabled={saving || planExercises.length === 0}>
-                {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                Save Plan
-              </ActionBtn>
+            {/* Plan Library save matrix — 4 modes per REV 2 §5.1.
+                State decides which buttons are enabled:
+                  - No loaded plan + exercises:    "Save Draft" + "Save & Make Current"
+                  - Loaded current plan, dirty:    "Update Plan" + "Save as Copy"
+                  - Loaded non-current, dirty:     "Update Plan" + "Update & Make Current" + "Save as Copy"
+                  - Loaded plan, clean (!isDirty): "Save as Copy" only
+                  - No exercises:                  all save buttons disabled
+                isDirty + savedSnapshot from W1A drive enable/disable.
+                Loaded-plan current detection comes from savedPlans.find(...). */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {(() => {
+                const hasExercises = planExercises.length > 0;
+                const noLoaded = !loadedPlanId;
+                const loadedPlan = loadedPlanId
+                  ? savedPlans.find(p => p.id === loadedPlanId)
+                  : null;
+                const loadedIsCurrent = loadedPlan?.status === 'active';
+                return (
+                  <>
+                    {noLoaded && (
+                      <>
+                        <ActionBtn
+                          onClick={handleSaveDraft}
+                          disabled={saving || !hasExercises}
+                          aria-label="Save current builder as a new draft plan"
+                        >
+                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
+                          Save Draft
+                        </ActionBtn>
+                        <ActionBtn
+                          onClick={handleSaveAndActivate}
+                          disabled={saving || !hasExercises}
+                          aria-label="Save and make current"
+                        >
+                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
+                          Save & Make Current
+                        </ActionBtn>
+                      </>
+                    )}
+                    {loadedPlanId && (
+                      <>
+                        <ActionBtn
+                          onClick={handleUpdateLoaded}
+                          disabled={saving || !hasExercises || !isDirty}
+                          aria-label="Update the loaded plan with current builder state"
+                        >
+                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
+                          Update Plan
+                        </ActionBtn>
+                        {!loadedIsCurrent && (
+                          <ActionBtn
+                            onClick={handleUpdateAndActivate}
+                            disabled={saving || !hasExercises}
+                            aria-label="Update the loaded plan and make it current"
+                          >
+                            {saving ? <Loader2 size={14} /> : <Save size={14} />}
+                            Update & Make Current
+                          </ActionBtn>
+                        )}
+                        <ActionBtn
+                          onClick={() => loadedPlanId && handleCardDuplicate(loadedPlanId, loadedPlanName || 'plan')}
+                          disabled={saving}
+                          aria-label="Save current as a new copy"
+                        >
+                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
+                          Save as Copy
+                        </ActionBtn>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </PanelHeader>
           <PanelBody>
@@ -1251,53 +1492,17 @@ const WorkoutPlannerPage: React.FC = () => {
           ) : (
             <MesocycleGrid>
               {savedPlans.map(plan => (
-                <MesocycleCard
+                <SavedPlanCard
                   key={plan.id}
-                  $phase={1}
-                  style={{
-                    cursor: 'pointer',
-                    outline: loadedPlanId === plan.id ? '2px solid var(--accent-primary, #60C0F0)' : undefined,
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Load plan: ${plan.name}`}
-                  onClick={() => handleLoadPlan(plan.id, plan.name)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleLoadPlan(plan.id, plan.name);
-                    }
-                  }}
-                >
-                  <MesocycleHeader>
-                    <MesocycleTitle style={{ fontSize: '0.85rem' }}>{plan.name}</MesocycleTitle>
-                    <MesocycleWeeks style={{
-                      background: plan.status === 'active'
-                        ? 'color-mix(in srgb, #22c55e 20%, transparent)'
-                        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
-                      color: plan.status === 'active' ? '#22c55e' : undefined,
-                    }}>
-                      {plan.status}
-                    </MesocycleWeeks>
-                  </MesocycleHeader>
-                  {plan.goal && (
-                    <div style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-muted, rgba(224,236,244,0.5))',
-                      fontFamily: "'Fira Code', monospace",
-                      marginBottom: 4,
-                    }}>
-                      Goal: {plan.goal.replace(/_/g, ' ')}
-                    </div>
-                  )}
-                  <div style={{
-                    fontSize: '0.65rem',
-                    color: 'var(--text-muted, rgba(224,236,244,0.4))',
-                    fontFamily: "'Fira Code', monospace",
-                  }}>
-                    Created: {new Date(plan.createdAt).toLocaleDateString()}
-                  </div>
-                </MesocycleCard>
+                  plan={plan}
+                  loaded={loadedPlanId === plan.id}
+                  archiveBlocked={archiveBlockedFor(plan.status)}
+                  onLoad={handleLoadPlan}
+                  onActivate={handleCardActivate}
+                  onRename={handleCardRename}
+                  onDuplicate={handleCardDuplicate}
+                  onArchive={handleCardArchive}
+                />
               ))}
             </MesocycleGrid>
           )}
