@@ -95,6 +95,40 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
 }
 
 /**
+ * L5 (2026-05-02) - Fresh DB read of the per-client `canGenerateWorkoutPlans`
+ * flag. JWT-based reads are explicitly NOT acceptable here: an admin who
+ * revokes a client's flag in the middle of an active session must take
+ * effect immediately on the NEXT request. Reading from the JWT (which is
+ * frozen at issue time) would let the client keep generating plans until
+ * their token rotates.
+ *
+ * Fail-closed semantics:
+ *   - missing User model → false (deny)
+ *   - missing user row   → false (deny)
+ *   - query throws       → false (deny)
+ *
+ * Codex 2026-05-02 round-2 (L5 pre-impl review) prescribed this exact
+ * fresh-DB-read shape and explicit fail-closed behavior.
+ *
+ * @param {number} userId - the requester's user id (req.user.id)
+ * @returns {Promise<boolean>}
+ */
+export async function loadFreshCanGenerateFlag(userId) {
+  const id = Number(userId);
+  if (!Number.isInteger(id) || id < 1) return false;
+  try {
+    const User = getModel('User');
+    const user = await User.findByPk(id, { attributes: ['id', 'canGenerateWorkoutPlans'] });
+    return !!user?.canGenerateWorkoutPlans;
+  } catch (err) {
+    logger.warn('[verifyClientAccess] canGenerateWorkoutPlans read failed - denying access', {
+      userId: id, error: err?.message,
+    });
+    return false;
+  }
+}
+
+/**
  * Middleware factory: resolve clientId from request, verify access, allow next.
  *
  * @param {Object} options

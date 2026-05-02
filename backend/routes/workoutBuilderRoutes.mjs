@@ -13,7 +13,75 @@ import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import logger from '../utils/logger.mjs';
-import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import {
+  assertAssignmentOrAdmin,
+  loadFreshCanGenerateFlag,
+} from '../middleware/verifyClientAccess.mjs';
+
+/**
+ * L5 (2026-05-02) — Client self-service plan generation gate.
+ *
+ * Codex 2026-05-02 round-2 review prescribed this exact gate ordering for
+ * the workout builder route after the role allowlist was expanded from
+ * `['admin', 'trainer']` to `['admin', 'trainer', 'client']`:
+ *
+ *   1. ENV flag (`ENABLE_CLIENT_PLAN_SELFGEN`) must be enabled before any
+ *      `client` role can pass the gate. Default OFF — this is the
+ *      kill-switch that lets us roll back without a code deploy.
+ *   2. CLIENT must be requesting their OWN data (`req.user.id === clientId`).
+ *      Without this, an authenticated client with the flag could try to
+ *      generate plans for OTHER clients.
+ *   3. CLIENT must have `canGenerateWorkoutPlans = true` per a FRESH DB
+ *      read. JWT-based reads are unsafe — admin revocation must take
+ *      effect on the next request, not at token rotation.
+ *   4. TRAINER / ADMIN paths fall through to the existing
+ *      `assertAssignmentOrAdmin` check. Self-bypass NEVER skips the
+ *      permission flag check.
+ *
+ * Returns `null` when the request is allowed; otherwise sends the response
+ * and returns the response object so callers can early-return.
+ */
+const CLIENT_SELFGEN_ENABLED = () =>
+  process.env.ENABLE_CLIENT_PLAN_SELFGEN === 'true';
+
+async function enforceWorkoutGenAccess(req, res, parsedClientId) {
+  const role = req.user?.role;
+  const requesterId = Number(req.user?.id);
+
+  if (role === 'client') {
+    // Step 1 — feature kill switch.
+    if (!CLIENT_SELFGEN_ENABLED()) {
+      return res
+        .status(403)
+        .json({ success: false, error: 'Client workout generation is not enabled' });
+    }
+    // Step 2 — self-only.
+    if (requesterId !== parsedClientId) {
+      return res
+        .status(403)
+        .json({ success: false, error: 'Not authorized for this client' });
+    }
+    // Step 3 — fresh DB read of the per-client flag. Self-bypass NEVER
+    // skips this — that is the bug class Codex flagged in pre-impl review.
+    const canGenerate = await loadFreshCanGenerateFlag(requesterId);
+    if (!canGenerate) {
+      return res.status(403).json({
+        success: false,
+        error: 'Workout plan generation is not enabled for your account',
+      });
+    }
+    return null; // allowed
+  }
+
+  // Step 4 — trainer/admin path: existing assignment check.
+  const hasAccess = await assertAssignmentOrAdmin(requesterId, role, parsedClientId);
+  if (!hasAccess) {
+    return res
+      .status(403)
+      .json({ success: false, error: 'Not authorized for this client' });
+  }
+  return null; // allowed
+}
 
 // Workout builder rate limiter: 10 requests/minute per IP (DB-intensive operations)
 const workoutBuilderLimiter = rateLimit({
@@ -75,7 +143,12 @@ function safeWorkoutBuilderDetails(err) {
 const router = Router();
 
 router.use(protect);
-router.use(authorize(['admin', 'trainer']));
+// L5 (2026-05-02): allowlist now includes 'client' so self-service plan
+// generation is possible. Per-route enforceWorkoutGenAccess() applies the
+// 4-step gate (env kill switch + self-only + fresh-DB flag) before any
+// service call. Trainer/admin paths are unchanged (still go through
+// assertAssignmentOrAdmin).
+router.use(authorize(['admin', 'trainer', 'client']));
 router.use(workoutBuilderLimiter);
 
 /**
@@ -94,11 +167,10 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
 
-    // Verify trainer is assigned to this client (admins bypass)
-    const hasAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedClientId);
-    if (!hasAccess) {
-      return res.status(403).json({ success: false, error: 'Not authorized for this client' });
-    }
+    // L5 (2026-05-02) — 4-step gate: env flag → self-only (clients) →
+    // fresh-DB canGenerateWorkoutPlans (clients) → assignment (trainers).
+    const gateResult = await enforceWorkoutGenAccess(req, res, parsedClientId);
+    if (gateResult !== null) return gateResult;
 
     const VALID_CATEGORIES = ['full_body', 'chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
     const VALID_PATTERNS = ['standard', 'aggressive', 'conservative'];
@@ -152,11 +224,10 @@ router.post('/plan', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
 
-    // Verify trainer is assigned to this client (admins bypass)
-    const hasAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedClientId);
-    if (!hasAccess) {
-      return res.status(403).json({ success: false, error: 'Not authorized for this client' });
-    }
+    // L5 (2026-05-02) — 4-step gate: env flag → self-only (clients) →
+    // fresh-DB canGenerateWorkoutPlans (clients) → assignment (trainers).
+    const gateResult = await enforceWorkoutGenAccess(req, res, parsedClientId);
+    if (gateResult !== null) return gateResult;
 
     const safeGoal = ALLOWED_GOALS.includes(primaryGoal) ? primaryGoal : 'general_fitness';
     const safeDuration = Math.min(Math.max(parseInt(durationWeeks, 10) || 12, 1), 52);

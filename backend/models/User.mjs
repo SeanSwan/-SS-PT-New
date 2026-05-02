@@ -249,6 +249,12 @@ User.init(
       defaultValue: false,
       comment: 'Whether user completed onboarding questionnaire'
     },
+    canGenerateWorkoutPlans: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'L5 (2026-05-02): per-client opt-in for self-service workout plan generation. Backend ALSO requires ENABLE_CLIENT_PLAN_SELFGEN env flag. Migration 20260502000000.'
+    },
     lastLogin: {
       type: DataTypes.DATE,
       allowNull: true,
