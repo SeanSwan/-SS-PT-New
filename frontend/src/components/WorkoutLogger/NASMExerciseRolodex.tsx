@@ -46,7 +46,35 @@ interface NASMExerciseRolodexProps {
 // ─── Constants ──────────────────────────────────────────────
 
 const ROW_HEIGHT = 56;
-const MAX_VISIBLE_ROWS = 6;
+// Mobile keeps the compact 6-row dropdown so the on-screen keyboard +
+// search input + chips still fit on a 320-414px handset. Desktop bumps
+// to 10 rows so trainers see ~75% more results without scrolling.
+// L2.B (2026-05-02): viewport-adaptive density per the long-horizon receipt.
+const MAX_ROWS_MOBILE = 6;
+const MAX_ROWS_DESKTOP = 10;
+const DESKTOP_BREAKPOINT_MQ = '(min-width: 768px)';
+
+function useVisibleRowCount(): number {
+  const [rows, setRows] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return MAX_ROWS_MOBILE;
+    return window.matchMedia(DESKTOP_BREAKPOINT_MQ).matches ? MAX_ROWS_DESKTOP : MAX_ROWS_MOBILE;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(DESKTOP_BREAKPOINT_MQ);
+    const handler = (e: MediaQueryListEvent) => setRows(e.matches ? MAX_ROWS_DESKTOP : MAX_ROWS_MOBILE);
+    // Older WebKit uses addListener/removeListener; modern uses addEventListener.
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+    // @ts-expect-error legacy MediaQueryList API
+    mq.addListener(handler);
+    // @ts-expect-error legacy MediaQueryList API
+    return () => mq.removeListener(handler);
+  }, []);
+  return rows;
+}
 
 const EQUIPMENT_TYPES = ['All', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine', 'Cable', 'Band', 'Kettlebell', 'Ball', 'BOSU'];
 const EXERCISE_TYPES = ['All', 'Compound', 'Isolation', 'Calisthenics', 'Stability', 'Flexibility'];
@@ -150,6 +178,8 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useListRef();
+  // L2.B (2026-05-02): viewport-adaptive density. Mobile = 6 rows, desktop = 10.
+  const maxVisibleRows = useVisibleRowCount();
 
   // Section-aware filtering
   const sectionFiltered = useMemo(() => {
@@ -268,7 +298,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   if (!isOpen) return null;
 
-  const listHeight = Math.min(filteredResults.length, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
+  const listHeight = Math.min(filteredResults.length, maxVisibleRows) * ROW_HEIGHT;
 
   return (
     <Wrapper ref={wrapperRef}>
@@ -553,8 +583,12 @@ const PreviewSide = styled.div`
   font-size: 0.78rem;
   line-height: 1.5;
   color: ${CS.textSecondary};
-  max-height: ${MAX_VISIBLE_ROWS * ROW_HEIGHT}px;
+  /* L2.B: matches list-side height per breakpoint (6 mobile / 10 desktop). */
+  max-height: ${MAX_ROWS_MOBILE * ROW_HEIGHT}px;
   overflow-y: auto;
+  @media ${DESKTOP_BREAKPOINT_MQ} {
+    max-height: ${MAX_ROWS_DESKTOP * ROW_HEIGHT}px;
+  }
 `;
 
 const PreviewHeader = styled.div`

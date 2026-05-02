@@ -117,7 +117,12 @@ export interface PlannerClient {
   photo?: string;
 }
 
-export type PlanDuration = 'single' | '1' | '4' | '8' | '12' | '16' | '24' | '36' | '52';
+// L2.A (2026-05-02): annual option is 48 weeks (12 × 4-week mesocycles),
+// not 52 calendar weeks. NASM OPT periodization runs in 4-week blocks,
+// so 12 months of programming = 12 mesocycles = 48 weeks. The backend
+// validator still caps at 52 to leave slack for non-mesocycle plans
+// (see backend/services/ai/outputValidator.mjs:80).
+export type PlanDuration = 'single' | '1' | '4' | '8' | '12' | '16' | '24' | '36' | '48';
 export type PlanGoal = 'general_fitness' | 'hypertrophy' | 'strength' | 'fat_loss' | 'athletic_performance' | 'golf_performance';
 export type WorkoutCategory = 'full_body' | 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core';
 
@@ -130,7 +135,7 @@ export const PLAN_DURATIONS: { value: PlanDuration; label: string; description: 
   { value: '16', label: '4 Months (16 weeks)', description: 'Contest/event prep' },
   { value: '24', label: '6 Months (24 weeks)', description: 'Long-horizon periodization' },
   { value: '36', label: '9 Months (36 weeks)', description: 'Seasonal athlete plan' },
-  { value: '52', label: '12 Months (52 weeks)', description: 'Annual periodization' },
+  { value: '48', label: '12 Months (48 weeks)', description: 'Annual periodization (12 × 4-week mesocycles)' },
 ];
 
 export const PLAN_GOALS: { value: PlanGoal; label: string }[] = [
