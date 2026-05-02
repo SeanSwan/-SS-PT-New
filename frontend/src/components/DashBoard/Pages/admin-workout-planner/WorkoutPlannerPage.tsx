@@ -50,6 +50,12 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import TeachModeSidebar from './TeachModeSidebar';
+// W1A-4 (2026-05-01): replace bare console.error(err) with sanitized helper
+// that strips Axios error.config.headers (JWT) before logging.
+import { logApiError } from '../../../../utils/logApiError';
+// W1A-5 (2026-05-01): scope lazy-panel failures to the panel instead of
+// letting them bubble to the app-level ErrorBoundary (white-screen).
+import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -77,6 +83,17 @@ import {
   ScheduleRow, ScheduleDay, ScheduleDayNumber, ScheduleDayFocus,
   RecommendationList, RecommendationItem,
 } from './WorkoutPlannerStyles';
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Stable skeleton row widths (W1A-1, 2026-05-01)
+// PURPOSE: Pre-computed [bar1%, bar2%] pairs so skeleton render is stable.
+// Old code used Math.random() inline during render → re-renders re-rolled
+// the widths → jitter + DOM-write thrash. Module-level constant stays
+// stable across re-renders, with enough variance to look organic.
+// ─────────────────────────────────────────────────────────────
+const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
+  [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
+];
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Body Part Filter Categories
@@ -406,6 +423,13 @@ const WorkoutPlannerPage: React.FC = () => {
             : '',
         }));
         setPlanExercises(generated);
+        // W1A-2: AI-generated workouts haven't been saved yet — clear
+        // saved-snapshot AND loadedPlanId so isDirty correctly reflects
+        // "newly built, not yet saved." Prevents stale comparison against
+        // a previously-loaded plan.
+        setSavedSnapshot(null);
+        setLoadedPlanId(null);
+        setLoadedPlanName(null);
 
         // Store explanations from the AI reasoning pipeline
         if (workout.explanations && workout.explanations.length > 0) {
@@ -414,7 +438,7 @@ const WorkoutPlannerPage: React.FC = () => {
         }
       }
     } catch (err: unknown) {
-      console.error('AI generation failed:', err);
+      logApiError('AI generation failed', err);
       // Surface specific failure reason from backend error response
       const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
       const specificMsg = errData?.details || errData?.error;
@@ -451,7 +475,7 @@ const WorkoutPlannerPage: React.FC = () => {
         setStatusMsg({ type: 'success', text: `${res.data.plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
       }
     } catch (err: unknown) {
-      console.error('Plan generation failed:', err);
+      logApiError('Plan generation failed', err);
       const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
       const specificMsg = errData?.details || errData?.error;
       setStatusMsg({ type: 'error', text: specificMsg ? `Plan generation failed: ${specificMsg}` : 'Failed to generate training plan. Check client data and try again.' });
@@ -507,10 +531,13 @@ const WorkoutPlannerPage: React.FC = () => {
         },
       });
       setStatusMsg({ type: 'success', text: 'Workout plan saved successfully!' });
+      // W1A-2: capture the just-saved state as the dirty-comparison baseline
+      // so the trainer can keep editing and we'll detect changes from here.
+      setSavedSnapshot(currentExercisesSig);
       // Refresh saved plans list
       fetchSavedPlans(selectedClientId);
     } catch (err) {
-      console.error('Save failed:', err);
+      logApiError('Save failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to save plan. Please try again.' });
     } finally {
       setSaving(false);
@@ -550,7 +577,42 @@ const WorkoutPlannerPage: React.FC = () => {
   // ── Phase B: Saved-plan click-to-load hydration ──
   const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
   const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
-  const isDirty = planExercises.length > 0 && !loadedPlanId;
+
+  // W1A-2 (2026-05-01): track the planExercises snapshot at the last
+  // "saved/loaded" point so editing a loaded plan is correctly detected
+  // as dirty. Prior `isDirty = exercises.length > 0 && !loadedPlanId`
+  // never went dirty after load → clicking another saved plan silently
+  // overwrote unsaved edits to the first one. Snapshot resets on:
+  //   - successful load (snapshot = the exercises just hydrated)
+  //   - successful save (snapshot = the exercises just persisted)
+  //   - clear / reset (snapshot = null)
+  // AI-generated workouts that haven't been saved yet leave snapshot null,
+  // matching the prior "newly built, not yet saved" dirty semantic.
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+
+  // Stable serialization of the current builder state for diff comparison.
+  // Only the fields that round-trip through save/load are compared; UI-only
+  // fields like `id` (which is a render-time ephemeral) are excluded so a
+  // freshly-loaded plan is byte-equal to its snapshot.
+  const currentExercisesSig = useMemo(() => JSON.stringify(
+    planExercises.map(p => ({
+      e: p.exerciseSlim?.id || '',
+      s: p.sets,
+      r: p.reps,
+      t: p.tempo || '',
+      rest: p.restSeconds,
+      i: p.intensityPercent,
+      n: p.notes || '',
+    })),
+  ), [planExercises]);
+
+  const isDirty = useMemo(() => {
+    if (planExercises.length === 0) return false;
+    // No snapshot → freshly built or generated, treat as dirty.
+    if (savedSnapshot === null) return true;
+    // Snapshot exists → dirty iff current state differs from snapshot.
+    return currentExercisesSig !== savedSnapshot;
+  }, [planExercises.length, savedSnapshot, currentExercisesSig]);
 
   const handleLoadPlan = useCallback(async (planId: string, planName: string) => {
     // Dirty-state confirm: if user has unsaved exercises in builder, warn before overwrite.
@@ -599,6 +661,17 @@ const WorkoutPlannerPage: React.FC = () => {
       if (planData.category) setCategory(planData.category as WorkoutCategory);
       setLoadedPlanId(String(planId));
       setLoadedPlanName(planName);
+      // W1A-2: capture the just-hydrated state as the dirty-comparison
+      // baseline so subsequent edits flip isDirty to true.
+      setSavedSnapshot(JSON.stringify(hydrated.map(p => ({
+        e: p.exerciseSlim?.id || '',
+        s: p.sets,
+        r: p.reps,
+        t: p.tempo || '',
+        rest: p.restSeconds,
+        i: p.intensityPercent,
+        n: p.notes || '',
+      }))));
       setStatusMsg({ type: 'success', text: `Loaded plan: ${planName}` });
     } catch (err: unknown) {
       const errData = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
@@ -742,17 +815,22 @@ const WorkoutPlannerPage: React.FC = () => {
         </DegradedBanner>
       )}
 
-      {/* Embedded AI Terminal — workout generation context */}
-      <Suspense fallback={null}>
-        <AITerminalPanel
-          context="workout_generation"
-          clientId={selectedClientId ?? undefined}
-          label="Workout Swan Coach Assistant"
-          placeholder="Ask me about exercise selection, periodization, NASM protocols..."
-          compact
-          defaultOpen={false}
-        />
-      </Suspense>
+      {/* Embedded AI Terminal — workout generation context.
+          W1A-5: PanelErrorBoundary scopes lazy-load / runtime failures to
+          this panel only; app-level ErrorBoundary at App.tsx:224 would
+          otherwise white-screen the dashboard on any failure here. */}
+      <PanelErrorBoundary panelName="Swan Coach Assistant">
+        <Suspense fallback={null}>
+          <AITerminalPanel
+            context="workout_generation"
+            clientId={selectedClientId ?? undefined}
+            label="Workout Swan Coach Assistant"
+            placeholder="Ask me about exercise selection, periodization, NASM protocols..."
+            compact
+            defaultOpen={false}
+          />
+        </Suspense>
+      </PanelErrorBoundary>
 
       {/* Three-Panel Layout */}
       <ThreePanel $teachModeOpen={teachModeOpen}>
@@ -881,12 +959,19 @@ const WorkoutPlannerPage: React.FC = () => {
             {generating ? (
               <GeneratingSkeletonWrap role="status" aria-live="polite" aria-label="Generating workout">
                 <GeneratingLabel>Swan Coach is analyzing client data and building your workout...</GeneratingLabel>
-                {Array.from({ length: 6 }, (_, i) => (
+                {/* W1A-1 (2026-05-01): use STABLE skeleton widths instead of
+                    Math.random(). The previous code recomputed widths on
+                    every render while `generating` was true, causing
+                    DOM-write thrash and visible jitter. Stable values keep
+                    the skeleton calm and React reconciliation cheap.
+                    NOT a hydration fix — this app is CSR-only (Vite, no
+                    SSR). */}
+                {SKELETON_ROW_WIDTHS.map(([w1, w2], i) => (
                   <GeneratingSkeletonRow key={i} style={{ animationDelay: `${i * 100}ms` }}>
                     <SkeletonCircle />
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <SkeletonBar $width={`${60 + Math.random() * 30}%`} />
-                      <SkeletonBar $width={`${30 + Math.random() * 20}%`} />
+                      <SkeletonBar $width={`${w1}%`} />
+                      <SkeletonBar $width={`${w2}%`} />
                     </div>
                   </GeneratingSkeletonRow>
                 ))}

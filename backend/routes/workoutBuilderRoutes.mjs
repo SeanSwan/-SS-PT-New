@@ -36,6 +36,42 @@ function parseOptionalPhase(value) {
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : undefined;
 }
 
+/**
+ * Map an internal Error.message to a UI-safe details string.
+ *
+ * Why this exists: prior commit cf08ee98a added `details: err.message` to
+ * the 500 response so the frontend inline error display could surface real
+ * causes. Codex / Village review (2026-05-01) flagged that as an info-leak
+ * risk — internal error strings can carry stack hints, DB error fragments,
+ * or third-party error metadata. This helper maps the small set of expected
+ * trainer-facing errors to safe wording, and falls through to a generic
+ * message for everything else.
+ *
+ * Add new mappings here when the service throws a new known error class.
+ * NEVER pass through err.message directly.
+ */
+function safeWorkoutBuilderDetails(err) {
+  const raw = String(err?.message || '');
+  // Known classes — keep wording trainer-friendly, no stack/DB internals
+  if (raw.includes('client context unavailable')) {
+    return 'Unable to load client data. Verify the client has an active profile, pain entries, and an equipment profile.';
+  }
+  if (raw.includes('not have an active assignment')) {
+    return 'You are not assigned to this client. Ask an admin to create the assignment.';
+  }
+  if (raw.includes('clientId is required') || raw.includes('trainerId is required')) {
+    return 'Missing required client or trainer reference.';
+  }
+  if (raw.includes('Invalid trainer ID')) {
+    return 'Trainer account not recognized. Sign out and sign in again.';
+  }
+  if (raw.toLowerCase().includes('equipment')) {
+    return 'Equipment profile issue — please verify the client\'s equipment profile is set up.';
+  }
+  // Unknown class — generic message (no leak)
+  return 'Generation failed. Please try again or contact support if it persists.';
+}
+
 const router = Router();
 
 router.use(protect);
@@ -89,13 +125,13 @@ router.post('/generate', async (req, res) => {
     return res.json({ success: true, workout });
   } catch (err) {
     logger.error('[WorkoutBuilder] Generate failed:', err.message);
-    // Surface err.message as `details` so the frontend's inline error
-    // display can show the real cause (frontend reads errData.details ||
-    // errData.error). Generic `error` stays for backwards compatibility.
+    // 2026-05-01 W1A-3: route err.message through safe-message dictionary
+    // before surfacing to UI. Prevents leaking internal error strings,
+    // stack hints, or DB fragments via the `details` field.
     return res.status(500).json({
       success: false,
       error: 'Failed to generate workout',
-      details: err.message,
+      details: safeWorkoutBuilderDetails(err),
     });
   }
 });
@@ -145,7 +181,7 @@ router.post('/plan', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to generate plan',
-      details: err.message,
+      details: safeWorkoutBuilderDetails(err),
     });
   }
 });
