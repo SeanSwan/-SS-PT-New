@@ -169,7 +169,10 @@ export const extractCurrentSession = (plan) => {
   // accepts top-level `planData.days[]` / `planData.sessions[]` for legacy
   // single-week plans, so the cursor extractor must agree — otherwise an
   // active plan renders `days[]` correctly but reports `currentSession: null`.
-  const topLevelEntries = pickFirstNonEmptyArray(planData.sessions, planData.days);
+  // Precedence: days[] BEFORE sessions[] to match planDataToWorkoutDays
+  // (Codex 2026-05-02 round-3: a plan with both populated otherwise produced
+  // mismatched cursor vs schedule output).
+  const topLevelEntries = pickFirstNonEmptyArray(planData.days, planData.sessions);
   if (topLevelEntries.length > 0) {
     const session = topLevelEntries[dayIndex] || null;
     if (session) {

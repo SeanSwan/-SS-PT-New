@@ -345,4 +345,29 @@ describe('extractCurrentSession + planDataToWorkoutDays - precedence agreement',
     expect(flattened[0].name).toBe('DAYS_DAY');
     expect(cursor.exercises[0].exerciseId).toBe('day-ex');
   });
+
+  it('top-level days[] AND sessions[] - both helpers pick days (Codex round-3 finding)', () => {
+    // Legacy single-week plan with BOTH top-level `days[]` and `sessions[]`
+    // populated. planDataToWorkoutDays prefers `data.days` first; the cursor
+    // extractor used to prefer `planData.sessions` first, producing a
+    // mismatched "today's workout" between the schedule and the cursor.
+    const plan = {
+      currentWeek: 1,
+      currentDay: 1,
+      durationWeeks: 1,
+      planData: {
+        days: [{ name: 'TOP_DAYS', exercises: [{ exerciseId: 'top-day-ex', exerciseName: 'Top Day Ex' }] }],
+        sessions: [{ name: 'TOP_SESSIONS', exercises: [{ exerciseId: 'top-sess-ex', exerciseName: 'Top Sess Ex' }] }],
+      },
+    };
+
+    const cursor = extractCurrentSession(plan);
+    const flattened = planDataToWorkoutDays(plan.planData, 1);
+
+    expect(cursor).not.toBeNull();
+    expect(flattened).toHaveLength(1);
+    expect(cursor.dayLabel).toBe('TOP_DAYS');
+    expect(flattened[0].name).toBe('TOP_DAYS');
+    expect(cursor.exercises[0].exerciseId).toBe('top-day-ex');
+  });
 });
