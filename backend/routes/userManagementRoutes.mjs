@@ -391,15 +391,18 @@ router.get('/clients', protect, adminOnly, async (req, res) => {
     const clients = await User.findAll({
       where: { role: 'client' },
       attributes: [
-        'id', 
-        'firstName', 
-        'lastName', 
-        'email', 
-        'phone', 
-        'photo', 
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'phone',
+        'photo',
         'availableSessions',
         'createdAt',
-        'lastLogin'
+        'lastLogin',
+        // L5 (2026-05-02): per-client self-service plan generation flag.
+        // Frontend admin UI reads this to render the toggle state.
+        'canGenerateWorkoutPlans',
       ],
       order: [['lastName', 'ASC'], ['firstName', 'ASC']]
     });
@@ -557,10 +560,10 @@ router.post('/user', protect, adminOnly, async (req, res) => {
 router.put('/user/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      firstName, 
-      lastName, 
-      email, 
+    const {
+      firstName,
+      lastName,
+      email,
       phone,
       role,
       availableSessions,
@@ -568,7 +571,12 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
       certifications,
       bio,
       hourlyRate,
-      password
+      password,
+      // L5 (2026-05-02): admin-controlled per-client opt-in for self-service
+      // workout plan generation. Backend route ALSO requires the
+      // ENABLE_CLIENT_PLAN_SELFGEN env flag - this column on its own grants
+      // nothing until the env var is "true". See workoutBuilderRoutes.mjs.
+      canGenerateWorkoutPlans,
     } = req.body;
     
     // Find the user
@@ -603,7 +611,13 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
     if (password) {
       user.password = password;
     }
-    
+
+    // L5 (2026-05-02): per-client opt-in flag for workout plan generation.
+    // Coerce to a strict boolean - admins can flip true / false / null off.
+    if (canGenerateWorkoutPlans !== undefined) {
+      user.canGenerateWorkoutPlans = canGenerateWorkoutPlans === true || canGenerateWorkoutPlans === 'true';
+    }
+
     await user.save();
     
     // Return updated user without password

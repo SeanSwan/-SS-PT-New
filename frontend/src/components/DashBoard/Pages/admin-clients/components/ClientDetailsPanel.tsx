@@ -76,6 +76,8 @@ import { useToast } from '../../../../hooks/use-toast';
 
 // P0: Billing & Sessions Card
 import BillingSessionsCard from './BillingSessionsCard';
+// L5 (2026-05-02): per-client opt-in for self-service workout plan generation.
+import ClientPlanGenToggle from './ClientPlanGenToggle';
 
 // Client source logos for identification
 import MoveFitLogo3D from '../../../../../assets/MoveFitLogo-3d.png';
@@ -676,6 +678,9 @@ interface Client {
   availableSessions: number;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   isActive: boolean;
+  // L5 (2026-05-02): per-client opt-in for self-service workout plan
+  // generation. Optional in case a stale client object lacks the flag.
+  canGenerateWorkoutPlans?: boolean;
   createdAt: string;
   updatedAt: string;
   assignedTrainer?: {
@@ -845,6 +850,17 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
               clientId={client.id}
               clientName={`${client.firstName} ${client.lastName}`}
               onUpdate={handleBillingUpdate}
+            />
+          </GridItem>
+          {/* L5 (2026-05-02): per-client toggle for self-service plan
+              generation. Lives next to billing/sessions because it is a
+              "what can this client do" admin control. */}
+          <GridItem>
+            <ClientPlanGenToggle
+              clientId={client.id}
+              clientName={`${client.firstName} ${client.lastName}`}
+              initialValue={!!client.canGenerateWorkoutPlans}
+              onUpdated={(next) => onUpdate({ ...client, canGenerateWorkoutPlans: next })}
             />
           </GridItem>
         </GridContainer>

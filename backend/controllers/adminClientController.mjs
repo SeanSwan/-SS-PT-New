@@ -769,15 +769,28 @@ class AdminClientController {
       const { clientId } = req.params;
       const updates = req.body;
 
-      // Strict whitelist — isActive excluded to force changes through soft-delete endpoint
+      // Strict whitelist — isActive excluded to force changes through soft-delete endpoint.
+      // L5 (2026-05-02): canGenerateWorkoutPlans added so admins can flip the
+      // per-client opt-in for self-service workout plan generation. Coerced
+      // to a strict boolean below so non-boolean payloads can't sneak truthy
+      // strings past the gate (the route additionally requires the
+      // ENABLE_CLIENT_PLAN_SELFGEN env flag for clients to actually reach
+      // the workout builder route).
       const allowedFields = [
         'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender',
         'weight', 'height', 'fitnessGoal', 'trainingExperience',
-        'healthConcerns', 'emergencyContact', 'clientSource', 'accountStatus'
+        'healthConcerns', 'emergencyContact', 'clientSource', 'accountStatus',
+        'canGenerateWorkoutPlans',
       ];
       const safeUpdates = {};
       for (const field of allowedFields) {
-        if (updates[field] !== undefined) safeUpdates[field] = updates[field];
+        if (updates[field] !== undefined) {
+          if (field === 'canGenerateWorkoutPlans') {
+            safeUpdates[field] = updates[field] === true || updates[field] === 'true';
+          } else {
+            safeUpdates[field] = updates[field];
+          }
+        }
       }
 
       const client = await User.findOne({
