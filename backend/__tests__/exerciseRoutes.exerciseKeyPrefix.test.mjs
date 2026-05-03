@@ -89,12 +89,32 @@ describe('V3b.3 MEDIUM 3 — exerciseKeyPrefix server-side filter', () => {
     expect(call.where.exercise_key).toBeUndefined();
   });
 
-  it('truncates oversize prefix (>64 chars) to 64', async () => {
+  it('rejects prefix longer than 64 chars with 400', async () => {
     const longPrefix = 'a'.repeat(120);
-    await request(app).get(`/api/exercises?limit=500&exerciseKeyPrefix=${longPrefix}`);
-    const call = mockFindAll.mock.calls[0][0];
-    const startsWithSymbol = Object.getOwnPropertySymbols(call.where.exercise_key)[0];
-    expect(call.where.exercise_key[startsWithSymbol].length).toBe(64);
+    const res = await request(app).get(`/api/exercises?limit=500&exerciseKeyPrefix=${longPrefix}`);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/Invalid exerciseKeyPrefix/i);
+    expect(mockFindAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects SQL LIKE wildcards (Codex closeout LOW)', async () => {
+    // % decodes to a SQL LIKE wildcard. Without the whitelist,
+    // Op.startsWith would still pass it through and match every row.
+    const res = await request(app).get('/api/exercises?limit=500&exerciseKeyPrefix=%25');
+    expect(res.status).toBe(400);
+    expect(mockFindAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects underscore wildcard', async () => {
+    const res = await request(app).get('/api/exercises?limit=500&exerciseKeyPrefix=ces_');
+    expect(res.status).toBe(400);
+    expect(mockFindAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects backslash escape character', async () => {
+    const res = await request(app).get('/api/exercises?limit=500&exerciseKeyPrefix=ces%5C');
+    expect(res.status).toBe(400);
+    expect(mockFindAll).not.toHaveBeenCalled();
   });
 
   it('omits exerciseKeyPrefix when not provided', async () => {

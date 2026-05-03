@@ -235,11 +235,27 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
     // smoke can fetch ALL ces-* rows in one round-trip regardless
     // of registry growth.
     //
-    // Defensively length-bound the prefix at 64 chars and reject
-    // wildcards (the % is escaped via Sequelize's Op.startsWith).
-    if (exerciseKeyPrefix && typeof exerciseKeyPrefix === 'string') {
-      const safePrefix = exerciseKeyPrefix.trim().slice(0, 64);
+    // Codex Round LOW (2026-05-03): the prior implementation only
+    // length-bounded + trimmed; SQL LIKE wildcards (% and _) and
+    // backslash were silently passed through to Op.startsWith,
+    // which compiles to `LIKE 'prefix%'`. Result: a request with
+    // exerciseKeyPrefix=%25 (URL-decoded `%`) would match every row.
+    // Not a security vector (the route already allows broad listing
+    // without the prefix), but a contract bug.
+    //
+    // Fix: whitelist the actual namespace alphabet (lowercase ASCII
+    // letters + digits + hyphen). Anything else returns 400. This
+    // matches the seeder's exercise_key vocabulary
+    // (e.g. ces-foam-roll-tfl) without ambiguity.
+    if (typeof exerciseKeyPrefix === 'string') {
+      const safePrefix = exerciseKeyPrefix.trim();
       if (safePrefix.length > 0) {
+        if (!/^[a-z0-9-]{1,64}$/i.test(safePrefix)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid exerciseKeyPrefix — only [a-z0-9-]{1,64} allowed',
+          });
+        }
         whereClause.exercise_key = { [Op.startsWith]: safePrefix };
       }
     }
