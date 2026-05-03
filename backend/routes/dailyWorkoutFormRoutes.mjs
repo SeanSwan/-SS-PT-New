@@ -596,10 +596,53 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const estimatedDuration = Math.min(totalSets * 3, 120); // 3 minutes per set, cap at 2 hours
 
     // Create or update workout session
+    //
+    // Phase 1 Slice 1.1 (2026-05-03): two correctness fixes for the
+    // trainer-logging → client-dashboard data path that the canonical
+    // surface receipt audit found:
+    //
+    //   Bug 1 — totalSets always 0 on WorkoutSession. The defaults
+    //   block previously omitted `totalSets`, so the model default 0
+    //   was used on CREATE. Reader maps totalSets → exercises and
+    //   the dashboard always showed "0 exercises".
+    //
+    //   Bug 2 — pre-existing 'planned' WorkoutSession (e.g. created
+    //   by the V3a planner via workoutService.mjs:1427) stayed
+    //   'planned' after a trainer logged against it. findOrCreate
+    //   defaults only apply on CREATE. The DailyWorkoutForm got
+    //   sessionId, but the WorkoutSession's status was never moved
+    //   to 'completed'. Reader filters status='completed' and
+    //   silently dropped these from the dashboard. Trainer logged,
+    //   server data stored, dashboard showed nothing.
+    //
+    // Fix: include totalSets in the defaults block. After
+    // findOrCreate, if the row already existed, reconcile it via
+    // update() unconditionally — status, completedAt, totalSets,
+    // duration, intensity, notes. Codex Round 1 (2026-05-03) flagged
+    // a status-only guard as insufficient: a stale `'completed'`
+    // WorkoutSession with totalSets=0 / notes='' / old completedAt
+    // would NOT be reconciled when the matching DailyWorkoutForm
+    // had been deleted. The route already passed the existingForm
+    // 409 guard, so the new submission is being accepted as the
+    // canonical log for this client/date — the WorkoutSession MUST
+    // match what the trainer just submitted.
+    // Title is preserved (the planner-generated title may be more
+    // descriptive than our generic "Personal Training Session - X").
+    const completionFields = {
+      status: 'completed',
+      completedAt: new Date(),
+      duration: estimatedDuration,
+      totalSets,
+      intensity: (overallIntensity === undefined || overallIntensity === null)
+        ? null
+        : overallIntensity,
+      notes: sessionNotes || '',
+    };
+
     const WorkoutSession = getWorkoutSession();
-    const [workoutSession] = await WorkoutSession.findOrCreate({
-      where: { 
-        userId: clientId, 
+    const [workoutSession, created] = await WorkoutSession.findOrCreate({
+      where: {
+        userId: clientId,
         date: date
       },
       defaults: {
@@ -612,21 +655,42 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         userId: clientId,
         title: `Personal Training Session - ${date}`,
         date: date,
-        duration: estimatedDuration,
         // Phase 16 (2026-04-16): honor null when the logger did not record
         // an intensity rating. The previous `|| 5` fallback seeded a
         // phantom 5/10 into the canonical chart on every untouched save.
         // Accepts both `undefined` (key omitted from payload — the wire
         // contract) and explicit `null`.
-        intensity: (overallIntensity === undefined || overallIntensity === null)
-          ? null
-          : overallIntensity,
-        notes: sessionNotes || '',
-        status: 'completed',
-        completedAt: new Date()
+        ...completionFields,
       },
       transaction
     });
+
+    // Phase 1 Slice 1.1 Bug 2 fix: if the row was found-not-created,
+    // reconcile it against the submitted completionFields
+    // unconditionally. The route already passed the existingForm 409
+    // guard, so this submission is being accepted as the new
+    // canonical log for this client/date — the WorkoutSession MUST
+    // match what the trainer just submitted.
+    //
+    // Codex Round 1 (2026-05-03) flagged the previous status-only
+    // guard: if a `'completed'` WorkoutSession existed but its
+    // matching DailyWorkoutForm had been deleted, the new POST
+    // would be accepted, the new form would be created, but the
+    // session's stale `totalSets=0` / `notes=''` / old `completedAt`
+    // would NOT be reconciled. Reader queries WorkoutSession (not
+    // DailyWorkoutForm) for `totalSets` / `duration` / `notes`, so
+    // the dashboard would still show stale data.
+    //
+    // Stronger invariant: "if the route accepts a new DailyWorkoutForm,
+    // the associated WorkoutSession must reflect the submitted
+    // completion fields." Update unconditionally on !created.
+    //
+    // The findOrCreate(planned) → update(completed) path remains the
+    // primary use case (planner pre-created the row); the
+    // already-completed-but-stale path is the edge case Codex caught.
+    if (!created) {
+      await workoutSession.update(completionFields, { transaction });
+    }
 
     // Create daily workout form.
     //
