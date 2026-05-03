@@ -9,6 +9,34 @@
 import { getModel, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { upsertMovementProfileFromOHSA } from '../services/ohsaCompensationAggregator.mjs';
+
+/**
+ * V3c.4 — propagate OHSA wizard data into MovementProfile.commonCompensations
+ * so the workout planner's V3c.3 corrective injection actually fires for
+ * clients who got assessed via the wizard. Failure-tolerant: a propagation
+ * error is logged but never blocks the parent assessment save.
+ */
+async function propagateOHSAToMovementProfile(analysis, transaction) {
+  if (!analysis?.userId || !analysis?.overheadSquatAssessment) return;
+  const MovementProfile = getModel('MovementProfile');
+  if (!MovementProfile) {
+    logger.warn('[V3c.4] MovementProfile model unavailable; skipping commonCompensations propagation');
+    return;
+  }
+  try {
+    await upsertMovementProfileFromOHSA({
+      userId: analysis.userId,
+      ohsa: analysis.overheadSquatAssessment,
+      lastDetected: analysis.assessmentDate || analysis.completedAt || analysis.updatedAt || new Date(),
+      MovementProfile,
+      logger,
+      transaction,
+    });
+  } catch (err) {
+    logger.warn(`[V3c.4] commonCompensations propagation failed for user ${analysis.userId}: ${err.message}`);
+  }
+}
 
 // ─── 1. Create Movement Analysis ──────────────────────────────────
 export const createMovementAnalysis = async (req, res) => {
@@ -83,6 +111,10 @@ export const createMovementAnalysis = async (req, res) => {
       await autoMatchProspect(analysis, User);
     }
 
+    // V3c.4: propagate compensations into MovementProfile so the workout
+    // planner's V3c.3 corrective injection sees them.
+    await propagateOHSAToMovementProfile(analysis);
+
     return res.status(201).json({ success: true, data: analysis });
   } catch (error) {
     logger.error('[MovementAnalysis] create error:', error);
@@ -147,6 +179,12 @@ export const updateMovementAnalysis = async (req, res) => {
       await transaction.rollback();
       throw txError;
     }
+
+    // V3c.4: propagate compensations into MovementProfile so the workout
+    // planner's V3c.3 corrective injection sees the latest assessment.
+    // Runs OUTSIDE the parent transaction so a propagation failure
+    // doesn't roll back the assessment update.
+    await propagateOHSAToMovementProfile(analysis);
 
     return res.json({ success: true, data: analysis });
   } catch (error) {
