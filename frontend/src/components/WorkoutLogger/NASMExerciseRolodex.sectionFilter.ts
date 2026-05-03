@@ -53,12 +53,18 @@ export interface ExerciseSlimSubset {
  *     'corrective' (NEW — generic catch-all for future taggings).
  *
  * BALANCE / CORE / STABILITY:
- *   categories: 'core' (existing), 'recovery' (NEW — many balance
- *     exercises like single-leg stands tag bodyPartCategory='Recovery'
- *     in the seeder), 'corrective' (NEW — same reason).
+ *   categories: 'core' (existing), 'corrective' (NEW — production
+ *     registry uses 'corrective' for balance/stabilization work).
  *   types: 'balance' / 'stability' / 'stabilizers' / 'core' (ALL NEW —
  *     pre-V3b.1 had types=[] for balance_core, silently excluding all
  *     30+ seeded balance/stability/stabilizers exercises).
+ *
+ *   V3b.1.1 (Codex 2026-05-03 F.1): REMOVED 'recovery' from categories
+ *   because the live production smoke showed 216 → 423 jump and the
+ *   delta was largely cooldown/recovery exercises bleeding into the
+ *   balance/core display, not actual balance/stability work. The
+ *   exerciseType-based match (balance/stability/stabilizers/core) is
+ *   the correct narrowing.
  *
  * COOLDOWN / RECOVERY:
  *   categories: 'recovery' (existing), 'corrective' (NEW).
@@ -77,7 +83,10 @@ export const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
     nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective|activation|mobility/i,
   },
   balance_core: {
-    categories: ['core', 'recovery', 'corrective'],
+    // V3b.1.1 (Codex 2026-05-03 F.1): 'recovery' removed — was causing
+    // cooldown/recovery exercises to bleed into the balance/core/stability
+    // display. exerciseType-based match is the correct narrowing.
+    categories: ['core', 'corrective'],
     types: ['core', 'balance', 'stability', 'stabilizers'],
     nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof|single.?leg|bosu|wall slide/i,
   },
