@@ -1,26 +1,31 @@
 /**
- * Migration: Create `_v3b3_seeder_log` (V3b.3.5)
+ * Migration: Create `_v3b3_seeder_log` (V3b.3.6)
  * ===============================================
  *
  * Provenance ledger for the V3b.3.3 NASM corrective starter seeder.
  *
- * Codex Round 2 review (2026-05-03T06:44:49) flagged two HIGHs against
- * the seeder's previous timestamp-based provenance:
+ * Codex Round 3 review (2026-05-03T06:58:31) closed the down()-overbreadth
+ * and timestamp-brittleness HIGHs from Round 2 for the runtime seeder
+ * path, but flagged that this migration's BACKFILL still used the
+ * same timestamp heuristic + blanket `LIKE 'ces-%'`. That made the
+ * ledger correct for our specific production snapshot but unsafe for
+ * any other environment whose pre-ledger state differs.
  *
- *   1. `down()` queries used `LIKE 'ces-%'` predicates which are not
- *      scoped to this seeder's manifest — a future seeder/source that
- *      inserts a `ces-*` row would be silently deleted on rollback.
- *   2. The `createdAt` cutoff ('2026-05-02 21:00:00+00') misclassifies
- *      legitimate pre-existing rows whose `createdAt` happens to land
- *      after the cutoff (e.g. an admin manually adds a `Bird Dog` row
- *      tomorrow → seeder enriches it → rollback deletes it because
- *      createdAt > cutoff).
+ * V3b.3.6 fix: backfill is now driven by static, hardcoded keylists.
+ * No timestamps, no blanket LIKE. The 32 V3b.3.3 manifest keys are
+ * partitioned into:
+ *   - V3B3_ENRICHED_KEYS — 8 rows that pre-existed in production and
+ *     were enriched by Branch B on the first seeder run.
+ *   - V3B3_INSERTED_KEYS — 24 rows that the seeder inserted fresh.
  *
- * Fix: a dedicated provenance table that records, for every row this
- * seeder touches, whether the row was INSERTED or ENRICHED. The seeder
- * `down()` then consults this table — restricted to the seeder's
- * manifest — and rolls back exactly what it did, regardless of
- * timestamps and regardless of any other ces-* rows that exist.
+ * Backfill rule:
+ *   - Only insert ledger entries for ces-* rows whose key is in the
+ *     manifest (no `LIKE 'ces-%'` net).
+ *   - Action is determined by which keylist the key appears in.
+ *   - For environments where some manifest keys haven't been seeded
+ *     yet, the backfill is a no-op for those keys (they don't exist
+ *     in Exercises yet); the seeder will record their provenance when
+ *     it runs.
  *
  * Schema:
  *   _v3b3_seeder_log (
@@ -29,16 +34,8 @@
  *     run_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
  *   )
  *
- * Backfill: the seeder already ran in production (commit a580df8ba
- * onward). Before the log existed, we have 24 inserted rows and 8
- * enriched rows. This migration backfills entries for those existing
- * rows using the SAME timestamp cutoff that the prior down() used —
- * but the cutoff is now isolated to a one-shot, runs-only-once
- * migration. After backfill, all subsequent provenance is recorded by
- * the seeder itself via direct branch assignment, not heuristics.
- *
  * SAFETY:
- *   - Idempotent: information_schema check before CREATE TABLE.
+ *   - Idempotent: `to_regclass` check before CREATE TABLE.
  *   - Backfill is INSERT … ON CONFLICT DO NOTHING — never overwrites
  *     existing log entries.
  *   - Transaction-wrapped.
@@ -47,10 +44,52 @@
 
 'use strict';
 
-const V3B3_SHIP_CUTOFF = '2026-05-02 21:00:00+00';
+// V3b.3.6: static keylist partition. Determined from the actual
+// V3b.3.3 first-run audit (2026-05-02). These 8 names already lived in
+// the production registry (inserted by other seeders months prior —
+// foam-roll/stretch/core drills); Branch B enriched them in place.
+const V3B3_ENRICHED_KEYS = [
+  'ces-90-90-hip-stretch',
+  'ces-foam-roll-it-band',
+  'ces-kneeling-hip-flexor-stretch',
+  'ces-prone-cobra',
+  'ces-quadruped-hip-extension',
+  'ces-levator-scap-stretch',
+  'ces-standing-quad-stretch',
+  'ces-dead-bug',
+];
+
+// V3b.3.6: the remaining 24 V3b.3.3 manifest keys. Branch C inserted
+// these fresh on the first run (no name collision in the registry).
+const V3B3_INSERTED_KEYS = [
+  'ces-foam-roll-pec',
+  'ces-foam-roll-lat',
+  'ces-foam-roll-upper-trap',
+  'ces-lacrosse-scm',
+  'ces-doorway-pec-stretch',
+  'ces-upper-trap-stretch',
+  'ces-lat-overhead-stretch',
+  'ces-chin-tuck',
+  'ces-wall-slides',
+  'ces-ytw-stability-ball',
+  'ces-foam-roll-tfl',
+  'ces-foam-roll-hip-flexor',
+  'ces-foam-roll-erectors',
+  'ces-foam-roll-adductors',
+  'ces-childs-pose',
+  'ces-glute-bridge',
+  'ces-bird-dog',
+  'ces-foam-roll-peroneals',
+  'ces-gastrocnemius-stretch',
+  'ces-adductor-stretch',
+  'ces-single-leg-balance-reach',
+  'ces-lateral-band-walks',
+  'ces-single-leg-squat-tap',
+  'ces-squat-to-row-cable',
+];
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
@@ -75,30 +114,49 @@ module.exports = {
         console.log('⏭  _v3b3_seeder_log already exists');
       }
 
-      // Backfill ledger entries for the 32 ces-* rows that already exist
-      // in production from the V3b.3.3 first run. Classified via the
-      // timestamp cutoff (the only signal we have for already-shipped
-      // rows). ON CONFLICT DO NOTHING so re-running this migration on a
-      // partially-backfilled state is safe.
-      const [backfillResult] = await queryInterface.sequelize.query(
-        `INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
-         SELECT exercise_key,
-                CASE WHEN "createdAt" > :cutoff THEN 'inserted' ELSE 'enriched' END AS action,
-                NOW()
-           FROM "Exercises"
-          WHERE exercise_key LIKE 'ces-%'
-         ON CONFLICT (exercise_key) DO NOTHING
-         RETURNING exercise_key, action`,
-        { replacements: { cutoff: V3B3_SHIP_CUTOFF }, transaction },
+      // V3b.3.6 backfill: static keylists, manifest-restricted. Only
+      // backfills entries for rows whose key is BOTH in the V3b.3
+      // manifest AND already present in "Exercises". Other rows
+      // (manifest keys not yet seeded) get their provenance recorded
+      // by the seeder when it runs.
+      let enrichedBackfilled = 0;
+      let insertedBackfilled = 0;
+
+      if (V3B3_ENRICHED_KEYS.length > 0) {
+        const [enrichedResult] = await queryInterface.sequelize.query(
+          `INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
+           SELECT exercise_key, 'enriched', NOW()
+             FROM "Exercises"
+            WHERE exercise_key IN (:keys)
+           ON CONFLICT (exercise_key) DO NOTHING
+           RETURNING exercise_key`,
+          { replacements: { keys: V3B3_ENRICHED_KEYS }, transaction },
+        );
+        enrichedBackfilled = (enrichedResult || []).length;
+      }
+
+      if (V3B3_INSERTED_KEYS.length > 0) {
+        const [insertedResult] = await queryInterface.sequelize.query(
+          `INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
+           SELECT exercise_key, 'inserted', NOW()
+             FROM "Exercises"
+            WHERE exercise_key IN (:keys)
+           ON CONFLICT (exercise_key) DO NOTHING
+           RETURNING exercise_key`,
+          { replacements: { keys: V3B3_INSERTED_KEYS }, transaction },
+        );
+        insertedBackfilled = (insertedResult || []).length;
+      }
+
+      console.log(
+        `✅ V3b.3.6 backfilled ${enrichedBackfilled} 'enriched' + ${insertedBackfilled} 'inserted' provenance entries`,
       );
-      const backfilled = (backfillResult || []).length;
-      console.log(`✅ V3b.3.5 backfilled ${backfilled} provenance entries for existing ces-* rows`);
 
       await transaction.commit();
-      console.log('✅ V3b.3.5 migration completed successfully');
+      console.log('✅ V3b.3.6 migration completed successfully');
     } catch (error) {
       await transaction.rollback();
-      console.error('❌ V3b.3.5 migration failed:', error.message);
+      console.error('❌ V3b.3.6 migration failed:', error.message);
       throw error;
     }
   },
