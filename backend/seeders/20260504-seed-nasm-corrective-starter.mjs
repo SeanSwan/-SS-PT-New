@@ -675,13 +675,22 @@ const allCorrectiveExercises = [...upperCrossed, ...lowerCrossed, ...pronationDi
 // keying the conflict on `exercise_key` per Codex Diff D so re-runs
 // patch corrective metadata onto already-seeded rows without overwriting
 // trainer-edited fields like coaching cues or descriptions.
-// V3b.3.4 ship cutoff — used by `down` to distinguish rows the seeder
-// inserted (createdAt > cutoff → DELETE) from rows it enriched in place
-// (createdAt < cutoff → strip V3b.3 metadata + clear exercise_key,
-// preserve the row). Set to "just before the V3b.3.3 first-run" to keep
-// existing inserted rows correctly classified. Future V3b.3.X follow-ups
-// that add new ces-* rows will pass the timestamp check and be deletable.
-const V3B3_SHIP_CUTOFF = '2026-05-02 21:00:00+00';
+// V3b.3.5: provenance is now persisted in `_v3b3_seeder_log` (created by
+// migration 20260504000001-create-v3b3-seeder-log.cjs). The seeder
+// records action='inserted' or action='enriched' for each row it
+// processes, and `down()` consults the log + this seeder's manifest to
+// roll back exactly what was done. No more timestamp heuristics, no
+// more `LIKE 'ces-%'` blanket predicates that could touch unrelated
+// rows owned by a future seeder/source.
+//
+// Codex Round 2 (2026-05-03T06:44:49) caught this. Round 1's HIGH 2
+// fix (createdAt cutoff) closed the immediate logic bomb but left two
+// new HIGH conditions: (a) a future seeder inserting a `ces-*` row
+// post-cutoff would be silently deleted on this seeder's down(), and
+// (b) an admin manually adding a name-match row tomorrow would be
+// enriched by Branch B and then deleted on rollback because the
+// timestamp scheme cannot tell "row I inserted" from "row I enriched
+// after the cutoff." A dedicated ledger is the right architecture.
 
 export default {
   /**
@@ -757,10 +766,36 @@ export default {
         AND (exercise_key IS NULL OR exercise_key = '')
     `;
 
+    // V3b.3.5: every row this seeder touches gets a provenance entry
+    // logged into _v3b3_seeder_log. Branch A (key match) preserves any
+    // existing log entry; Branches B/C write fresh entries with the
+    // appropriate action. ON CONFLICT DO NOTHING preserves the original
+    // action across re-runs — a row that was 'enriched' in run 1 stays
+    // 'enriched' in run 2 even though Branch A only sees it by key.
+    const logProvenanceSql = `
+      INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
+      VALUES (:exercise_key, :action, NOW())
+      ON CONFLICT (exercise_key) DO NOTHING
+    `;
+
     let inserted = 0;
     let updatedByKey = 0;
     let enrichedByName = 0;
     const skipped = []; // [{name, exercise_key, reason}]
+
+    // Sanity: confirm the provenance log table exists. If the migration
+    // hasn't run yet, fail fast with a clear error rather than ploughing
+    // ahead and writing data we can't safely roll back.
+    const [logTableExists] = await queryInterface.sequelize.query(
+      `SELECT to_regclass('public._v3b3_seeder_log') AS exists`,
+      { type: queryInterface.sequelize.QueryTypes.SELECT },
+    );
+    if (!logTableExists?.exists) {
+      throw new Error(
+        'V3b.3.3 seeder refused to ship: _v3b3_seeder_log table does not exist. ' +
+          'Run migration 20260504000001-create-v3b3-seeder-log.cjs first.',
+      );
+    }
 
     await queryInterface.sequelize.transaction(async (transaction) => {
       for (const row of allCorrectiveExercises) {
@@ -784,6 +819,13 @@ export default {
             type: queryInterface.sequelize.QueryTypes.UPDATE,
             transaction,
           });
+          // Branch A preserves any pre-existing provenance entry. The
+          // ON CONFLICT DO NOTHING is the load-bearing semantic — if the
+          // row's action is 'enriched' from a prior run, we don't
+          // overwrite it to 'inserted' here. If no entry exists yet
+          // (shouldn't happen post-migration backfill, but defensively),
+          // we fall through with no action — a sanity check at the end
+          // catches it.
           updatedByKey += 1;
           continue;
         }
@@ -807,15 +849,22 @@ export default {
             type: queryInterface.sequelize.QueryTypes.UPDATE,
             transaction,
           });
+          // Record provenance: this row was ENRICHED, not inserted. On
+          // down() we'll strip the V3b.3 fields + clear exercise_key
+          // and leave the row alive.
+          await queryInterface.sequelize.query(logProvenanceSql, {
+            replacements: { exercise_key: row.exercise_key, action: 'enriched' },
+            type: queryInterface.sequelize.QueryTypes.INSERT,
+            transaction,
+          });
           enrichedByName += 1;
           continue;
         }
 
         // Before inserting, verify there's no name collision with a row
-        // that already has a non-null exercise_key (i.e. owned by another
-        // seeder/source). If there is, this is a skip — don't try to
-        // INSERT (would hit the unique-name constraint and crash the
-        // transaction) and don't silently take over the row.
+        // that already has a non-null exercise_key (owned by another
+        // seeder/source). If there is, skip — don't INSERT (would crash
+        // on unique-name) and don't silently take over.
         const [nameCollision] = await queryInterface.sequelize.query(
           `SELECT exercise_key FROM "Exercises" WHERE name = :name LIMIT 1`,
           {
@@ -840,18 +889,45 @@ export default {
           type: queryInterface.sequelize.QueryTypes.INSERT,
           transaction,
         });
+        await queryInterface.sequelize.query(logProvenanceSql, {
+          replacements: { exercise_key: row.exercise_key, action: 'inserted' },
+          type: queryInterface.sequelize.QueryTypes.INSERT,
+          transaction,
+        });
         inserted += 1;
       }
 
       if (skipped.length > 0) {
-        // Failing inside the transaction body rolls back everything — Codex
-        // V3b.3.4 HIGH 3 fix. The thrown error propagates to the runner.
         const detail = skipped
           .map((s) => `  - ${s.name} (${s.exercise_key}): ${s.reason}`)
           .join('\n');
         throw new Error(
           `V3b.3.3 seeder refused to ship: ${skipped.length} row(s) could not be safely upserted. ` +
             `Transaction rolled back. Resolve the conflicts and re-run.\n${detail}`,
+        );
+      }
+
+      // Sanity check: every row in our manifest must have a provenance
+      // entry. If Branch A processed a row whose log entry is missing
+      // (i.e. backfill didn't run, or someone manually deleted from
+      // the log), we want to know — failing inside the transaction
+      // rolls everything back.
+      const manifestKeys = allCorrectiveExercises.map((r) => r.exercise_key);
+      const [logEntries] = await queryInterface.sequelize.query(
+        `SELECT exercise_key FROM _v3b3_seeder_log WHERE exercise_key IN (:keys)`,
+        {
+          replacements: { keys: manifestKeys },
+          transaction,
+        },
+      );
+      const loggedKeys = new Set((logEntries || []).map((r) => r.exercise_key));
+      const missingFromLog = manifestKeys.filter((k) => !loggedKeys.has(k));
+      if (missingFromLog.length > 0) {
+        throw new Error(
+          `V3b.3.3 seeder integrity check failed: ${missingFromLog.length} manifest key(s) ` +
+            `have no provenance entry in _v3b3_seeder_log. Re-run migration ` +
+            `20260504000001-create-v3b3-seeder-log.cjs to backfill, then re-run this seeder.\n` +
+            `Missing: ${missingFromLog.join(', ')}`,
         );
       }
     });
@@ -862,55 +938,91 @@ export default {
   },
 
   /**
-   * Provenance-aware rollback (V3b.3.4 HIGH 2 fix):
+   * Provenance-driven rollback (V3b.3.5):
    *
-   *   - Rows the seeder INSERTED (`createdAt > V3B3_SHIP_CUTOFF`)
-   *       → DELETE. They didn't exist before the seeder ran, so
-   *         removing them returns the registry to its pre-V3b.3 state.
+   * Reads `_v3b3_seeder_log` and operates ONLY on rows whose key is in
+   * BOTH the log AND this seeder's static manifest. This double-scoping
+   * means down() cannot:
    *
-   *   - Rows the seeder ENRICHED (`createdAt < V3B3_SHIP_CUTOFF`)
-   *       → UPDATE: clear the V3b.3 metadata (`nasmCorrectiveCategory`,
-   *         `cesProtocolStep`, `sourceCitation`) and clear the
-   *         `exercise_key` we assigned. The row itself stays alive
-   *         because it pre-dated the seeder.
+   *   - delete a `ces-*` row inserted by a future seeder/source (not
+   *     in the manifest);
+   *   - delete a row enriched after some arbitrary cutoff (no longer
+   *     uses timestamps);
+   *   - touch any row whose provenance log entry is missing.
    *
-   * The previous implementation issued a blanket
-   * `DELETE WHERE exercise_key LIKE 'ces-%'` which would have deleted
-   * pre-existing production exercises (Glute Bridge, Bird Dog, Dead Bug,
-   * etc.) along with the seeder's own inserts — a logic bomb Codex
-   * caught before it fired.
+   * For each in-scope key:
+   *   - action='inserted'  → DELETE the Exercises row.
+   *   - action='enriched'  → UPDATE: clear exercise_key + V3b.3 fields,
+   *                          row preserved.
+   *
+   * Then the corresponding log rows are deleted so re-running up() will
+   * record fresh provenance.
+   *
+   * The whole operation is a single transaction — partial failure
+   * rolls back, no half-applied rollback state.
    */
   async down(queryInterface) {
-    const [deletedRows] = await queryInterface.sequelize.query(
-      `DELETE FROM "Exercises"
-        WHERE exercise_key LIKE 'ces-%'
-          AND "createdAt" > :cutoff
-        RETURNING name, exercise_key`,
-      {
-        replacements: { cutoff: V3B3_SHIP_CUTOFF },
-        type: queryInterface.sequelize.QueryTypes.RAW,
-      },
-    );
+    const manifestKeys = allCorrectiveExercises.map((r) => r.exercise_key);
 
-    const [strippedRows] = await queryInterface.sequelize.query(
-      `UPDATE "Exercises" SET
-         exercise_key             = NULL,
-         "nasmCorrectiveCategory" = NULL,
-         "cesProtocolStep"        = NULL,
-         "sourceCitation"         = NULL,
-         "updatedAt"              = NOW()
-       WHERE exercise_key LIKE 'ces-%'
-         AND "createdAt" <= :cutoff
-       RETURNING name`,
-      {
-        replacements: { cutoff: V3B3_SHIP_CUTOFF },
-        type: queryInterface.sequelize.QueryTypes.RAW,
-      },
-    );
+    await queryInterface.sequelize.transaction(async (transaction) => {
+      // Sanity: log table must exist.
+      const [logTableExists] = await queryInterface.sequelize.query(
+        `SELECT to_regclass('public._v3b3_seeder_log') AS exists`,
+        { type: queryInterface.sequelize.QueryTypes.SELECT, transaction },
+      );
+      if (!logTableExists?.exists) {
+        throw new Error(
+          'V3b.3.3 down() refused: _v3b3_seeder_log does not exist. ' +
+            'The seeder cannot safely roll back without provenance. ' +
+            'Run migration 20260504000001-create-v3b3-seeder-log.cjs first.',
+        );
+      }
 
-    console.log(
-      `✅ V3b.3.3 rollback — ${(deletedRows || []).length} inserted rows deleted, ${(strippedRows || []).length} enriched rows stripped (preserved)`,
-    );
+      const [insertedRows] = await queryInterface.sequelize.query(
+        `DELETE FROM "Exercises"
+          WHERE exercise_key IN (:keys)
+            AND exercise_key IN (
+              SELECT exercise_key FROM _v3b3_seeder_log WHERE action = 'inserted'
+            )
+         RETURNING name, exercise_key`,
+        {
+          replacements: { keys: manifestKeys },
+          transaction,
+        },
+      );
+
+      const [strippedRows] = await queryInterface.sequelize.query(
+        `UPDATE "Exercises" SET
+           exercise_key             = NULL,
+           "nasmCorrectiveCategory" = NULL,
+           "cesProtocolStep"        = NULL,
+           "sourceCitation"         = NULL,
+           "updatedAt"              = NOW()
+         WHERE exercise_key IN (:keys)
+           AND exercise_key IN (
+             SELECT exercise_key FROM _v3b3_seeder_log WHERE action = 'enriched'
+           )
+         RETURNING name`,
+        {
+          replacements: { keys: manifestKeys },
+          transaction,
+        },
+      );
+
+      await queryInterface.sequelize.query(
+        `DELETE FROM _v3b3_seeder_log WHERE exercise_key IN (:keys)`,
+        {
+          replacements: { keys: manifestKeys },
+          transaction,
+        },
+      );
+
+      console.log(
+        `✅ V3b.3.3 rollback — ${(insertedRows || []).length} inserted rows deleted, ` +
+          `${(strippedRows || []).length} enriched rows stripped (preserved), ` +
+          `provenance log cleared.`,
+      );
+    });
   },
 
   // For test introspection
