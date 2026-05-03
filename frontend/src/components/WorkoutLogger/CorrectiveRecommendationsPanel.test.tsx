@@ -333,4 +333,133 @@ describe('CorrectiveRecommendationsPanel — refetch on compensation change', ()
     await new Promise((r) => setTimeout(r, 30));
     expect(mockPost).toHaveBeenCalledTimes(1);
   });
+
+  // V3c.6.2 (Codex Round 1 LOW 2): canonical key — same content, different key order.
+  it('does NOT refetch when compensation object key ORDER changes but content is identical', async () => {
+    mockPost.mockResolvedValue({
+      data: { success: true, recommendations: FAKE_RECOMMENDATIONS },
+    });
+
+    const { rerender } = render(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={[{ type: 'knee_valgus', avgSeverity: 5 }]}
+      />,
+    );
+    await screen.findByText('Foam Roll TFL');
+    expect(mockPost).toHaveBeenCalledTimes(1);
+
+    // Same content — different key order. Naive JSON.stringify would
+    // produce a different string and refetch; the canonical key
+    // builder must normalize.
+    rerender(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={[{ avgSeverity: 5, type: 'knee_valgus' }]}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 30));
+    expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT refetch when compensation array ORDER changes but content is identical', async () => {
+    mockPost.mockResolvedValue({
+      data: { success: true, recommendations: FAKE_RECOMMENDATIONS },
+    });
+
+    const { rerender } = render(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['knee_valgus', 'low_back_arch']}
+      />,
+    );
+    await screen.findByText('Foam Roll TFL');
+    expect(mockPost).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['low_back_arch', 'knee_valgus']}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 30));
+    expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+});
+
+// V3c.6.2 (Codex Round 1 MEDIUM 1): stale data + sequence guard.
+describe('CorrectiveRecommendationsPanel — stale data + race protection', () => {
+  it('clears old recs when compensations change to prevent showing stale rows during the new fetch', async () => {
+    // First fetch — slow.
+    let resolveFirst: (value: unknown) => void = () => {};
+    mockPost.mockImplementationOnce(() => new Promise((r) => { resolveFirst = r; }));
+
+    const { rerender } = render(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['knee_valgus']}
+      />,
+    );
+    resolveFirst({ data: { success: true, recommendations: FAKE_RECOMMENDATIONS } });
+    await screen.findByText('Foam Roll TFL');
+
+    // Second fetch — pending. Old recs must NOT remain visible.
+    mockPost.mockImplementationOnce(() => new Promise(() => {})); // never resolves
+
+    rerender(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['low_back_arch']}
+      />,
+    );
+
+    // While the new fetch is pending, the loading state should show
+    // (recs cleared on query-key change).
+    await waitFor(() => expect(screen.getByText(/Loading corrective recommendations/i)).toBeInTheDocument());
+    expect(screen.queryByText('Foam Roll TFL')).not.toBeInTheDocument();
+  });
+
+  it('drops stale responses when a newer fetch races ahead', async () => {
+    let resolveSlow: (value: unknown) => void = () => {};
+    mockPost.mockImplementationOnce(() => new Promise((r) => { resolveSlow = r; }));
+
+    const SLOW_RECS = {
+      ...FAKE_RECOMMENDATIONS,
+      inhibit: [{
+        id: 'slow', name: 'OLD Foam Roll',
+        exerciseKey: 'ces-old-foam-roll',
+        bodyPartCategory: 'recovery',
+        sourceCitation: 'NASM-CES OLD',
+      }],
+    };
+
+    const { rerender } = render(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['knee_valgus']}
+      />,
+    );
+
+    // Second (newer) request starts before the first resolves and
+    // resolves first.
+    rerender(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['low_back_arch']}
+      />,
+    );
+    mockPost.mockResolvedValueOnce({
+      data: { success: true, recommendations: FAKE_RECOMMENDATIONS },
+    });
+
+    await screen.findByText('Foam Roll TFL'); // newer response rendered
+
+    // Now the slow first response arrives. It must NOT overwrite the
+    // newer state — sequence guard drops it.
+    resolveSlow({ data: { success: true, recommendations: SLOW_RECS } });
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(screen.queryByText('OLD Foam Roll')).not.toBeInTheDocument();
+    expect(screen.getByText('Foam Roll TFL')).toBeInTheDocument();
+  });
 });

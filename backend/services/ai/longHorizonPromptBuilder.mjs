@@ -225,6 +225,42 @@ function buildTemplateSectionForLongHorizon(templateContext) {
   return lines.join('\n');
 }
 
+// ── V3c.5.1 (Codex Round 1 MEDIUM): prompt-string sanitization ──
+//
+// Defense-in-depth on every string that gets interpolated into the
+// prompt. The compensation `type` and `trend` are enum-validated by
+// `sanitizeCompensation` upstream, but registry fields (exercise
+// `name`, `sourceCitation`, `bodyPartCategory`) come from the
+// Exercise model and could in principle contain control characters.
+// This helper strips ASCII control chars, normalizes whitespace, and
+// kills any backtick fences or "Ignore previous instructions"-style
+// jailbreak text patterns that could subvert the surrounding prompt.
+
+const PROMPT_INJECTION_HINTS = [
+  /ignore (previous|above|prior|all) (instruction|rule)/gi,
+  /disregard (previous|above|prior|all)/gi,
+  /you are now/gi,
+  /system\s*:/gi,
+  /assistant\s*:/gi,
+  /\bjailbreak\b/gi,
+];
+
+function safePromptString(s, fallback = '') {
+  if (typeof s !== 'string') return fallback;
+  let out = s;
+  // Strip ASCII control characters (newlines, tabs, etc).
+  out = out.replace(/[\x00-\x1F\x7F]/g, ' ');
+  // Kill markdown code fences that could break out of prompt blocks.
+  out = out.replace(/```/g, '———');
+  // Neuter common prompt-injection phrases (replace with bracketed marker).
+  for (const pattern of PROMPT_INJECTION_HINTS) {
+    out = out.replace(pattern, '[REDACTED]');
+  }
+  // Collapse whitespace runs and trim.
+  out = out.replace(/\s+/g, ' ').trim();
+  return out || fallback;
+}
+
 /**
  * V3c.5: Build the Corrective Allowlist section.
  *
@@ -256,10 +292,15 @@ function buildCorrectiveBiasSection(bias) {
 
   if (Array.isArray(bias.compensations) && bias.compensations.length > 0) {
     const compLines = bias.compensations.map((c) => {
-      const sev = Number.isFinite(c.avgSeverity) ? `severity ${c.avgSeverity}/10` : 'severity unknown';
-      const freq = Number.isFinite(c.frequency) && c.frequency > 0 ? `freq ${c.frequency}` : null;
-      const trend = c.trend || 'stable';
-      return `  - ${c.type} (${[sev, freq, `trend ${trend}`].filter(Boolean).join(', ')})`;
+      // Severity / frequency / trend are upstream-validated by
+      // sanitizeCompensation in the context builder, so they are
+      // safe primitives here. `type` is also enum-validated. We
+      // still defensively round numerics to avoid float-formatting
+      // surprises.
+      const sev = `severity ${Number(c.avgSeverity) || 0}/10`;
+      const freq = Number(c.frequency) > 0 ? `freq ${Number(c.frequency)}` : null;
+      const trend = `trend ${safePromptString(c.trend, 'stable')}`;
+      return `  - ${safePromptString(c.type, 'unknown')} (${[sev, freq, trend].filter(Boolean).join(', ')})`;
     });
     lines.push('Detected compensations:', ...compLines);
   }
@@ -267,23 +308,35 @@ function buildCorrectiveBiasSection(bias) {
   if (bias.matchedCount === 0 || !bias.allowlist) {
     lines.push(
       'Registry coverage: no V3b.3 corrective rows matched these compensations.',
-      'Direction: include CES blocks; trainer/AI may freely select stretches and activation drills consistent with the listed patterns.',
+      'Direction: include CES blocks; trainer/AI may freely select stretches and activation drills consistent with the listed patterns. For any corrective exercise emitted, set `exerciseKey: null` and `outsideAllowlistJustification: "<why this picks fits the compensation>"` so downstream wiring can audit non-allowlist choices.',
     );
     return lines.join('\n');
   }
 
+  const safeTags = (bias.tags || []).map((t) => safePromptString(t)).filter(Boolean).join(', ');
   lines.push(
-    `Registry coverage: ${bias.matchedCount} V3b.3-validated corrective(s) matched (tags: ${(bias.tags || []).join(', ')}).`,
-    'Use these as the preferred warmup / CES-block picks. Reference the exerciseKey when emitting your plan so downstream wiring can resolve to the registry row.',
+    `Registry coverage: ${bias.matchedCount} V3b.3-validated corrective(s) matched (tags: ${safeTags}).`,
+    // V3c.5.2 (Codex Round 1 LOW 1) — closed-set is now an auditable
+    // contract: every corrective exercise emitted MUST carry
+    // exerciseKey OR outsideAllowlistJustification. This makes
+    // deviations from the allowlist detectable in downstream output
+    // validators without forcing the AI to ONLY use registry rows
+    // (which would produce empty plans when registry coverage gaps).
+    'Closed-set contract: when emitting corrective warmup or CES-block exercises, prefer rows from the allowlist below. EVERY corrective exercise object in your output JSON must include either:',
+    '  - `exerciseKey`: a key from this allowlist (e.g. "ces-foam-roll-tfl"), OR',
+    '  - `exerciseKey: null` AND `outsideAllowlistJustification: "<reason>"` describing why no allowlist row fit.',
+    'This contract makes non-allowlist choices auditable. Do NOT silently drop the field.',
   );
 
   const renderStep = (label, rows) => {
     if (!rows || rows.length === 0) return;
     lines.push(`Step: ${label}`);
     for (const r of rows.slice(0, 8)) {
-      const cite = r.sourceCitation ? ` [${r.sourceCitation}]` : '';
-      const cat = r.bodyPartCategory ? ` cat=${r.bodyPartCategory}` : '';
-      lines.push(`  - ${r.name} (key=${r.exerciseKey})${cat}${cite}`);
+      const safeName = safePromptString(r.name, 'unknown exercise');
+      const safeKey = safePromptString(r.exerciseKey, '');
+      const safeCat = r.bodyPartCategory ? ` cat=${safePromptString(r.bodyPartCategory)}` : '';
+      const safeCite = r.sourceCitation ? ` [${safePromptString(r.sourceCitation)}]` : '';
+      lines.push(`  - ${safeName} (key=${safeKey})${safeCat}${safeCite}`);
     }
   };
   renderStep('inhibit (SMR / foam-roll work)', bias.allowlist.inhibit);
@@ -292,7 +345,7 @@ function buildCorrectiveBiasSection(bias) {
   renderStep('integrate (integration patterns)', bias.allowlist.integrate);
 
   lines.push(
-    'Directive: integrate the inhibit + lengthen rows into Phase 1 stabilization warmups; integrate the activate + integrate rows as the corrective bias inside CES blocks. Soft directive — you may pick consistent alternatives, but always cite the rationale.',
+    'Directive: integrate the inhibit + lengthen rows into Phase 1 stabilization warmups; integrate the activate + integrate rows as the corrective bias inside CES blocks. Allowlist alternatives are acceptable when justified per the closed-set contract above.',
   );
 
   return lines.join('\n');

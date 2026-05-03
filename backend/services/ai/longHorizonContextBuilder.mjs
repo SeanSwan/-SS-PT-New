@@ -519,6 +519,44 @@ export function computeBodyCompositionTrend(measurements) {
   return { available: true, trend, dataPoints: values.length };
 }
 
+// ── V3c.5.1 (Codex Round 1 MEDIUM): compensation sanitization ───────
+//
+// `MovementProfile.commonCompensations` is JSONB sourced from the OHSA
+// wizard via V3c.4. V3c.4 produces only known-safe values today (type
+// from a hardcoded enum, trend='stable'), but the prompt builder must
+// not trust that contract — any future writer to this column could
+// embed newlines or instruction text and subvert the AI prompt.
+// Defense-in-depth: closed-set validate `type`, `trend`; numeric-coerce
+// `avgSeverity` and `frequency`. Anything failing the gate is dropped.
+
+const VALID_COMPENSATION_TYPES = new Set([
+  'foot_pronation',
+  'knee_valgus',
+  'knee_varus',
+  'excessive_forward_lean',
+  'low_back_arch',
+  'arms_fall_forward',
+  'head_protrusion',
+  'shoulder_elevation',
+  'hip_drop',
+  'heels_rise',
+]);
+
+const VALID_TRENDS = new Set(['improving', 'stable', 'worsening']);
+
+function sanitizeCompensation(c) {
+  if (!c || typeof c !== 'object') return null;
+  if (typeof c.type !== 'string' || !VALID_COMPENSATION_TYPES.has(c.type)) return null;
+  const trend = (typeof c.trend === 'string' && VALID_TRENDS.has(c.trend)) ? c.trend : 'stable';
+  const avgSeverity = Number.isFinite(c.avgSeverity)
+    ? Math.max(0, Math.min(10, Math.round(c.avgSeverity)))
+    : 0;
+  const frequency = Number.isFinite(c.frequency)
+    ? Math.max(0, Math.min(999, Math.round(c.frequency)))
+    : 0;
+  return { type: c.type, avgSeverity, frequency, trend };
+}
+
 // ── V3c.5: Corrective bias context ──────────────────────────────────
 
 /**
@@ -561,11 +599,18 @@ async function buildCorrectiveBiasContext(movementProfile, models) {
 
   // Sequelize JSONB columns return parsed arrays. Defensive parse for
   // raw-query callers.
-  let comps = movementProfile.commonCompensations;
-  if (typeof comps === 'string') {
-    try { comps = JSON.parse(comps); } catch { return empty; }
+  let rawComps = movementProfile.commonCompensations;
+  if (typeof rawComps === 'string') {
+    try { rawComps = JSON.parse(rawComps); } catch { return empty; }
   }
-  if (!Array.isArray(comps) || comps.length === 0) return empty;
+  if (!Array.isArray(rawComps) || rawComps.length === 0) return empty;
+
+  // V3c.5.1: sanitize before ANY downstream use. Every entry that
+  // reaches the prompt or the V3c.1 service is enum-validated.
+  const comps = rawComps
+    .map(sanitizeCompensation)
+    .filter((c) => c !== null);
+  if (comps.length === 0) return empty;
 
   const Exercise = models?.Exercise;
   if (!Exercise) {
@@ -575,12 +620,7 @@ async function buildCorrectiveBiasContext(movementProfile, models) {
     return {
       ...empty,
       available: true,
-      compensations: comps.map((c) => ({
-        type: c.type,
-        frequency: c.frequency || 0,
-        avgSeverity: c.avgSeverity || 0,
-        trend: c.trend || 'stable',
-      })),
+      compensations: comps,
     };
   }
 
@@ -600,12 +640,7 @@ async function buildCorrectiveBiasContext(movementProfile, models) {
     }));
     return {
       available: true,
-      compensations: comps.map((c) => ({
-        type: c.type,
-        frequency: c.frequency || 0,
-        avgSeverity: c.avgSeverity || 0,
-        trend: c.trend || 'stable',
-      })),
+      compensations: comps,
       tags: result.tags,
       matchedCount: result.matchedCount,
       allowlist: {

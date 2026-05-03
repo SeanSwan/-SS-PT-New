@@ -23,7 +23,7 @@
  * is tier-2 (lean) by default — gentle stagger fade + hover row glow,
  * collapses to instant render on `prefers-reduced-motion`.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { ApiService } from '../../services/api.service';
 import { CS, withAlpha, reducedMotionSafe } from './WorkoutLoggerCS';
@@ -390,10 +390,36 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Stable serialization for effect dependency — we don't want a fresh
-  // array reference to trigger a refetch when contents are unchanged.
-  const compsKey = useMemo(() => JSON.stringify(compensations || []), [compensations]);
-  const stepsKey = useMemo(() => JSON.stringify(includeSteps || null), [includeSteps]);
+  // V3c.6.2 (Codex Round 1 LOW): canonical key builder. JSON.stringify
+  // on a fresh object literal is order-sensitive, so two semantically
+  // equivalent compensation arrays could produce different keys and
+  // trigger a redundant refetch. The canonical key normalizes shape
+  // (string entries → { type }) and sorts by type.
+  const compsKey = useMemo(() => {
+    if (!Array.isArray(compensations)) return '[]';
+    const normalized = compensations
+      .map((c) => {
+        if (typeof c === 'string') return { type: c };
+        return {
+          type: c?.type ?? '',
+          avgSeverity: c?.avgSeverity ?? null,
+          frequency: c?.frequency ?? null,
+          trend: c?.trend ?? null,
+        };
+      })
+      .sort((a, b) => (a.type || '').localeCompare(b.type || ''));
+    return JSON.stringify(normalized);
+  }, [compensations]);
+  const stepsKey = useMemo(() => {
+    if (!Array.isArray(includeSteps)) return 'null';
+    return JSON.stringify([...includeSteps].sort());
+  }, [includeSteps]);
+
+  // V3c.6.2 (Codex Round 1 MEDIUM 1): sequence guard against stale
+  // responses overwriting newer state. A monotonically increasing
+  // requestId is captured at fetch start; only the latest id can
+  // write state when the response arrives.
+  const requestIdRef = useRef<number>(0);
 
   const fetchRecommendations = useCallback(async () => {
     if (!clientId || !Array.isArray(compensations) || compensations.length === 0) {
@@ -402,10 +428,18 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
       // visual; this guard prevents a no-op API call.
       setRecs(null);
       setLoading(false);
+      setError(null);
       return;
     }
+    // V3c.6.2 (Codex Round 1 MEDIUM 1): clear stale data when the
+    // query key changes so the populated branch can't show old recs
+    // for the wrong client/compensations during the new fetch.
+    setRecs(null);
     setLoading(true);
     setError(null);
+
+    const requestId = ++requestIdRef.current;
+
     try {
       const api = new ApiService();
       const body: Record<string, unknown> = { clientId, compensations };
@@ -413,6 +447,8 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
         body.includeSteps = includeSteps;
       }
       const res = await api.post('/api/workout-builder/corrective-recommendations', body);
+      // Stale response — a newer fetch already started, drop this one.
+      if (requestId !== requestIdRef.current) return;
       const payload = res?.data ?? res;
       if (payload && typeof payload === 'object' && (payload as { success?: boolean }).success) {
         setRecs((payload as { recommendations: CorrectiveRecommendations }).recommendations);
@@ -423,10 +459,13 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
         setError(message);
       }
     } catch (err: unknown) {
+      if (requestId !== requestIdRef.current) return;
       const message = err instanceof Error ? err.message : 'Network error';
       setError(message);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
     // compsKey/stepsKey are intentionally the trigger — clientId is
     // already in the closure.
