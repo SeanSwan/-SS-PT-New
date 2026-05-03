@@ -47,6 +47,12 @@ const buildGeneratedPlan = (overrides: Partial<GeneratedPlan> = {}): GeneratedPl
     { type: 'hydration', text: 'Hydrate 3L/day', sourceCitation: 'context.constraints.bodyWeight' },
     { type: 'tracking', text: 'Track RPE', sourceCitation: 'context.constraints.nasmPhase' },
   ],
+  rationale: [
+    'Goal: General Fitness.',
+    'Starting NASM OPT phase: 2 (from client baseline assessment).',
+    'Mesocycle phase sequence (1 blocks of 4 weeks): Stabilization Endurance.',
+    'Plan length: 4 weeks at 3 sessions/week.',
+  ],
   weeks: Array.from({ length: 4 }, (_, w) => ({
     weekNumber: w + 1, focus: 'foundation',
     days: Array.from({ length: 3 }, (_, d) => ({
@@ -119,6 +125,9 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     expect(result.recommendations).toEqual(generatedPlan.recommendations);
     expect(result.recommendationDetails).toEqual(generatedPlan.recommendationDetails);
     expect(result.planSummary).toEqual(generatedPlan.planSummary);
+    // Codex 2026-05-03 round-2: rationale[] must persist (backend emits it
+    // at workoutBuilderService.mjs:721-727; was silently dropped before).
+    expect(result.rationale).toEqual(generatedPlan.rationale);
   });
 
   it('omits recommendationDetails when not present (backwards compat)', () => {
@@ -267,6 +276,57 @@ describe('buildPlanData - generated mode at every supported sessionsPerWeek (Sea
     expect(sig4).not.toBe(sig5);
     expect(sig5).not.toBe(sig6);
     expect(sig4).not.toBe(sig6);
+  });
+});
+
+describe('buildContentSignature - round-trip parity (Codex 2026-05-03 MED-2)', () => {
+  // The handler that loads a saved plan must use buildContentSignature for
+  // the savedSnapshot baseline so the wrapper shape matches the live
+  // currentExercisesSig and dirty-state stays false on a clean load.
+
+  it('manual signature matches between load-time and live-state when nothing changes', () => {
+    const exercises = [
+      buildManualExercise('a', 'Squat'),
+      buildManualExercise('b', 'Row', { sets: 4, reps: '8' }),
+    ];
+    // Snapshot baseline written at load time:
+    const loadTimeSig = buildContentSignature({
+      mode: 'manual',
+      phaseName: 'Strength Endurance',
+      phaseNumber: 2,
+      category: 'full_body',
+      categoryLabel: 'Full Body',
+      goal: 'general_fitness',
+      planExercises: exercises,
+    });
+    // Live signature on next render with no edits:
+    const liveSig = buildContentSignature({
+      mode: 'manual',
+      phaseName: 'Strength Endurance',
+      phaseNumber: 2,
+      category: 'full_body',
+      categoryLabel: 'Full Body',
+      goal: 'general_fitness',
+      planExercises: exercises,
+    });
+    expect(loadTimeSig).toBe(liveSig);
+  });
+
+  it('generated signature matches between load-time and live-state when nothing changes', () => {
+    const generatedPlan = buildGeneratedPlan();
+    const loadTimeSig = buildContentSignature({
+      mode: 'generated',
+      generatedPlan,
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+    const liveSig = buildContentSignature({
+      mode: 'generated',
+      generatedPlan,
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+    expect(loadTimeSig).toBe(liveSig);
   });
 });
 

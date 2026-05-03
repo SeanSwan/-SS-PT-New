@@ -154,6 +154,10 @@ export interface GeneratedPlan {
   // L1 additive (2026-05-01) - optional for backwards compat with pre-L1 saved plans.
   weeks?: GeneratedPlanWeek[];
   recommendationDetails?: GeneratedPlanRecommendationDetail[];
+  // Phase A (workoutBuilderService.mjs:721-727): structured rationale array
+  // describing how goal+phase shaped THIS plan. Codex 2026-05-03 found
+  // planDataBuilder was dropping it on save.
+  rationale?: string[];
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -59,6 +59,10 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
       mesocycles: generatedPlan.mesocycles ?? [],
       weeklySchedule: generatedPlan.weeklySchedule ?? [],
       recommendations: generatedPlan.recommendations ?? [],
+      // Phase A backend emits a structured rationale[] string array
+      // describing how goal+phase shaped THIS plan. Carry it through.
+      // Codex 2026-05-03 round-2 finding: was being silently dropped.
+      rationale: generatedPlan.rationale ?? [],
       planSummary: generatedPlan.planSummary,
       goal,
       category,

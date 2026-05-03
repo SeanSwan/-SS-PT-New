@@ -602,12 +602,16 @@ const WorkoutPlannerPage: React.FC = () => {
   }, [planExercises, hasGeneratedHorizonPlan, generatedPlan, category, goal, phase.name, phaseNumber]);
 
   const isDirty = useMemo(() => {
-    if (planExercises.length === 0) return false;
+    // Codex 2026-05-03 round-2 MED-1: dirty-state must consider
+    // `hasGeneratedHorizonPlan` so swapping a 4×/wk plan for a 6×/wk plan
+    // in the same loaded-plan session enables Update Plan even when
+    // `planExercises` is empty.
+    if (planExercises.length === 0 && !hasGeneratedHorizonPlan) return false;
     // No snapshot → freshly built or generated, treat as dirty.
     if (savedSnapshot === null) return true;
     // Snapshot exists → dirty iff current state differs from snapshot.
     return currentExercisesSig !== savedSnapshot;
-  }, [planExercises.length, savedSnapshot, currentExercisesSig]);
+  }, [planExercises.length, savedSnapshot, currentExercisesSig, hasGeneratedHorizonPlan]);
 
   // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as status='draft' so the new partial unique index never trips.
@@ -863,7 +867,8 @@ const WorkoutPlannerPage: React.FC = () => {
       const firstDay = firstWeek?.days?.[0] || firstWeek?.sessions?.[0];
       const exercises = firstDay?.exercises || [];
 
-      // Build PlanExercise[] from saved structure.
+      // Build PlanExercise[] from saved structure (used for the manual
+      // builder hydration AND for the manual-mode signature baseline).
       const hydrated: PlanExercise[] = exercises.map((ex: Record<string, unknown>, i: number) => ({
         id: `loaded-${planId}-${i}-${Date.now()}`,
         exerciseSlim: {
@@ -889,17 +894,66 @@ const WorkoutPlannerPage: React.FC = () => {
       if (planData.category) setCategory(planData.category as WorkoutCategory);
       setLoadedPlanId(String(planId));
       setLoadedPlanName(planName);
-      // W1A-2: capture the just-hydrated state as the dirty-comparison
-      // baseline so subsequent edits flip isDirty to true.
-      setSavedSnapshot(JSON.stringify(hydrated.map(p => ({
-        e: p.exerciseSlim?.id || '',
-        s: p.sets,
-        r: p.reps,
-        t: p.tempo || '',
-        rest: p.restSeconds,
-        i: p.intensityPercent,
-        n: p.notes || '',
-      }))));
+
+      // Codex 2026-05-03 round-2 HIGH-2: a saved long-horizon plan must
+      // restore generatedPlan state on load - otherwise Update Plan
+      // would persist a flattened one-week manual-mode payload that
+      // overwrites the saved 48×6 weeks[]. Detect by weeks.length >= 2
+      // (single-week saves stay in manual mode).
+      const isLongHorizon =
+        Array.isArray(planData.weeks)
+        && planData.weeks.length > 1;
+
+      if (isLongHorizon) {
+        // Reconstruct the generatedPlan shape from the saved JSONB. The
+        // JSONB carries every L1 additive field by construction (the save
+        // path uses planDataBuilder generated mode), so this is a faithful
+        // rehydration.
+        const restored: GeneratedPlan = {
+          clientId: Number(plan.userId) || (selectedClientId ?? 0),
+          clientName: planData.clientName || '',
+          planSummary: planData.planSummary || {
+            durationWeeks: planData.weeks.length,
+            sessionsPerWeek: firstWeek?.days?.length || firstWeek?.sessions?.length || 0,
+            totalSessions: 0,
+            primaryGoal: planData.goal || 'general_fitness',
+            startingPhase: plan.nasmPhase || 2,
+          },
+          mesocycles: planData.mesocycles || [],
+          weeklySchedule: planData.weeklySchedule || [],
+          recommendations: planData.recommendations || [],
+          recommendationDetails: planData.recommendationDetails,
+          rationale: planData.rationale,
+          weeks: planData.weeks,
+        };
+        setGeneratedPlan(restored);
+        // Codex 2026-05-03 round-2 MED-2: snapshot baseline must use the
+        // shared signature builder so dirty-comparison shapes match. Use
+        // the generated branch since we just restored a long-horizon plan.
+        const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === (planData.category || category))?.label || 'Full Body';
+        setSavedSnapshot(buildContentSignature({
+          mode: 'generated',
+          generatedPlan: restored,
+          category: (planData.category as WorkoutCategory) || category,
+          goal: (planData.goal as PlanGoal) || goal,
+        }));
+      } else {
+        // Single-week / manual-mode load. Clear any stale generatedPlan
+        // so the persistence path stays in manual mode for subsequent
+        // saves.
+        setGeneratedPlan(null);
+        // MED-2: same shared-signature snapshot, manual branch.
+        const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === (planData.category || category))?.label || 'Full Body';
+        setSavedSnapshot(buildContentSignature({
+          mode: 'manual',
+          phaseName: phase.name,
+          phaseNumber: plan.nasmPhase || phaseNumber,
+          category: (planData.category as WorkoutCategory) || category,
+          categoryLabel,
+          goal: (planData.goal as PlanGoal) || goal,
+          planExercises: hydrated,
+        }));
+      }
       setStatusMsg({ type: 'success', text: `Loaded plan: ${planName}` });
     } catch (err: unknown) {
       const errData = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
@@ -909,7 +963,7 @@ const WorkoutPlannerPage: React.FC = () => {
         setStatusMsg({ type: 'error', text: 'Failed to load plan. Please try again.' });
       }
     }
-  }, [authAxios, isDirty]);
+  }, [authAxios, isDirty, category, goal, phase.name, phaseNumber, selectedClientId]);
 
   // ── Filter chip handler ──
   const handleChipClick = useCallback((bodyPart: string) => {
