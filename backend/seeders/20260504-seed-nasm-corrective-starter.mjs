@@ -675,27 +675,38 @@ const allCorrectiveExercises = [...upperCrossed, ...lowerCrossed, ...pronationDi
 // keying the conflict on `exercise_key` per Codex Diff D so re-runs
 // patch corrective metadata onto already-seeded rows without overwriting
 // trainer-edited fields like coaching cues or descriptions.
+// V3b.3.4 ship cutoff — used by `down` to distinguish rows the seeder
+// inserted (createdAt > cutoff → DELETE) from rows it enriched in place
+// (createdAt < cutoff → strip V3b.3 metadata + clear exercise_key,
+// preserve the row). Set to "just before the V3b.3.3 first-run" to keep
+// existing inserted rows correctly classified. Future V3b.3.X follow-ups
+// that add new ces-* rows will pass the timestamp check and be deletable.
+const V3B3_SHIP_CUTOFF = '2026-05-02 21:00:00+00';
+
 export default {
   /**
-   * Upserts each row by `exercise_key` (Codex Diff D). On conflict,
-   * updates ONLY the V3b.3 corrective fields + updatedAt — preserves
-   * any trainer edits to other columns. New rows are inserted.
+   * Three-way upsert per row, transaction-wrapped:
+   *
+   *   A. exercise_key match (already V3b.3-owned) → UPDATE V3b.3 fields only.
+   *      Preserves bodyPartCategory, exerciseType, instructions, coachingCues
+   *      so trainer edits aren't blown away on re-run.
+   *
+   *   B. name match AND exercise_key IS NULL/empty → ENRICH in place: assign
+   *      exercise_key and write V3b.3 fields. Does NOT touch bodyPartCategory
+   *      or exerciseType — preserves existing classification per Codex
+   *      V3b.3.4 HIGH 1 finding ("seeder shouldn't silently reclassify a
+   *      production row by name match alone"). The exercise_key NULL guard
+   *      ensures we never claim a key from another seeder/owner.
+   *
+   *   C. otherwise → INSERT a new row.
+   *
+   * Failure semantics: if any row falls through to skipped (couldn't find
+   * by key, couldn't enrich by name with NULL key guard, couldn't insert),
+   * the entire transaction rolls back and the seeder throws — the runner
+   * exits non-zero and the orchestrator step fails loudly. Codex V3b.3.4
+   * HIGH 3 finding ("partial failure must not look like success").
    */
   async up(queryInterface) {
-    /*
-     * Three-way upsert per row:
-     *   A. If a row matches `exercise_key`     → UPDATE V3b.3 fields by exercise_key.
-     *   B. Else if a row matches `name`        → ENRICH the existing row by setting
-     *      its exercise_key to ours + writing the V3b.3 fields. Preserves the
-     *      existing row's id/coaching cues/etc.
-     *   C. Else                                → INSERT new row.
-     *
-     * V3b.3.3d (post-first-prod-run): added the name-collision branch (B)
-     * after the first run failed 8 rows on the unique-name constraint.
-     * Common corrective drills like "Glute Bridge" / "Bird Dog" / "Dead Bug"
-     * already exist in the production registry without exercise_key or
-     * V3b.3 metadata. Branch B enriches them in-place rather than skipping.
-     */
     const insertSql = `
       INSERT INTO "Exercises" (
         id, name, description, instructions,
@@ -732,27 +743,27 @@ export default {
       WHERE exercise_key = :exercise_key
     `;
 
-    // Branch B: when a name-match row exists, enrich it. Also assigns
-    // our exercise_key (overwrites any prior value). bodyPartCategory
-    // is updated so the row routes into the right Rolodex section.
+    // V3b.3.4 HIGH 1 fix: name-match rows are only claimed when their
+    // exercise_key is null/empty. bodyPartCategory and exerciseType are
+    // explicitly NOT updated — pre-existing classification wins.
     const enrichByNameSql = `
       UPDATE "Exercises" SET
         exercise_key             = :exercise_key,
-        "bodyPartCategory"       = :bodyPartCategory,
         "nasmCorrectiveCategory" = :nasmCorrectiveCategory,
         "cesProtocolStep"        = :cesProtocolStep,
         "sourceCitation"         = :sourceCitation,
         "updatedAt"              = NOW()
       WHERE name = :name
+        AND (exercise_key IS NULL OR exercise_key = '')
     `;
 
     let inserted = 0;
     let updatedByKey = 0;
     let enrichedByName = 0;
-    let skipped = 0;
+    const skipped = []; // [{name, exercise_key, reason}]
 
-    for (const row of allCorrectiveExercises) {
-      try {
+    await queryInterface.sequelize.transaction(async (transaction) => {
+      for (const row of allCorrectiveExercises) {
         const replacements = {
           ...row,
           coachingCues: row.coachingCues ? JSON.stringify(row.coachingCues) : null,
@@ -763,63 +774,143 @@ export default {
           {
             replacements: { exercise_key: row.exercise_key },
             type: queryInterface.sequelize.QueryTypes.SELECT,
+            transaction,
           },
         );
 
         if (existingByKey) {
-          // Branch A: exercise_key already owned by us → update V3b.3 fields.
           await queryInterface.sequelize.query(updateByKeySql, {
             replacements,
             type: queryInterface.sequelize.QueryTypes.UPDATE,
+            transaction,
           });
           updatedByKey += 1;
           continue;
         }
 
-        const [existingByName] = await queryInterface.sequelize.query(
-          `SELECT 1 FROM "Exercises" WHERE name = :name LIMIT 1`,
+        // Branch B candidate: name-match with NULL/empty exercise_key.
+        const [enrichTarget] = await queryInterface.sequelize.query(
+          `SELECT 1 FROM "Exercises"
+            WHERE name = :name
+              AND (exercise_key IS NULL OR exercise_key = '')
+            LIMIT 1`,
           {
             replacements: { name: row.name },
             type: queryInterface.sequelize.QueryTypes.SELECT,
+            transaction,
           },
         );
 
-        if (existingByName) {
-          // Branch B: name-match → enrich in place, claim the exercise_key.
+        if (enrichTarget) {
           await queryInterface.sequelize.query(enrichByNameSql, {
             replacements,
             type: queryInterface.sequelize.QueryTypes.UPDATE,
+            transaction,
           });
           enrichedByName += 1;
           continue;
         }
 
-        // Branch C: brand new row → insert.
+        // Before inserting, verify there's no name collision with a row
+        // that already has a non-null exercise_key (i.e. owned by another
+        // seeder/source). If there is, this is a skip — don't try to
+        // INSERT (would hit the unique-name constraint and crash the
+        // transaction) and don't silently take over the row.
+        const [nameCollision] = await queryInterface.sequelize.query(
+          `SELECT exercise_key FROM "Exercises" WHERE name = :name LIMIT 1`,
+          {
+            replacements: { name: row.name },
+            type: queryInterface.sequelize.QueryTypes.SELECT,
+            transaction,
+          },
+        );
+
+        if (nameCollision) {
+          skipped.push({
+            name: row.name,
+            exercise_key: row.exercise_key,
+            reason: `name collides with existing row owned by exercise_key='${nameCollision.exercise_key}' — refusing to take over`,
+          });
+          continue;
+        }
+
+        // Branch C: brand new row.
         await queryInterface.sequelize.query(insertSql, {
           replacements,
           type: queryInterface.sequelize.QueryTypes.INSERT,
+          transaction,
         });
         inserted += 1;
-      } catch (err) {
-        console.warn(`  ⚠ V3b.3.3 skipped "${row.name}" (${row.exercise_key}): ${err.message}`);
-        skipped += 1;
       }
-    }
+
+      if (skipped.length > 0) {
+        // Failing inside the transaction body rolls back everything — Codex
+        // V3b.3.4 HIGH 3 fix. The thrown error propagates to the runner.
+        const detail = skipped
+          .map((s) => `  - ${s.name} (${s.exercise_key}): ${s.reason}`)
+          .join('\n');
+        throw new Error(
+          `V3b.3.3 seeder refused to ship: ${skipped.length} row(s) could not be safely upserted. ` +
+            `Transaction rolled back. Resolve the conflicts and re-run.\n${detail}`,
+        );
+      }
+    });
 
     console.log(
-      `✅ V3b.3.3 NASM corrective starter — ${inserted} inserted, ${updatedByKey} updated by key, ${enrichedByName} enriched by name, ${skipped} skipped, ${allCorrectiveExercises.length} total`,
+      `✅ V3b.3.3 NASM corrective starter — ${inserted} inserted, ${updatedByKey} updated by key, ${enrichedByName} enriched by name, 0 skipped, ${allCorrectiveExercises.length} total`,
     );
   },
 
   /**
-   * Removes ONLY the V3b.3.3 starter rows (matched by exact exercise_key
-   * prefix `ces-`). Does NOT touch any other exercise rows.
+   * Provenance-aware rollback (V3b.3.4 HIGH 2 fix):
+   *
+   *   - Rows the seeder INSERTED (`createdAt > V3B3_SHIP_CUTOFF`)
+   *       → DELETE. They didn't exist before the seeder ran, so
+   *         removing them returns the registry to its pre-V3b.3 state.
+   *
+   *   - Rows the seeder ENRICHED (`createdAt < V3B3_SHIP_CUTOFF`)
+   *       → UPDATE: clear the V3b.3 metadata (`nasmCorrectiveCategory`,
+   *         `cesProtocolStep`, `sourceCitation`) and clear the
+   *         `exercise_key` we assigned. The row itself stays alive
+   *         because it pre-dated the seeder.
+   *
+   * The previous implementation issued a blanket
+   * `DELETE WHERE exercise_key LIKE 'ces-%'` which would have deleted
+   * pre-existing production exercises (Glute Bridge, Bird Dog, Dead Bug,
+   * etc.) along with the seeder's own inserts — a logic bomb Codex
+   * caught before it fired.
    */
   async down(queryInterface) {
-    await queryInterface.sequelize.query(
-      `DELETE FROM "Exercises" WHERE exercise_key LIKE 'ces-%'`,
+    const [deletedRows] = await queryInterface.sequelize.query(
+      `DELETE FROM "Exercises"
+        WHERE exercise_key LIKE 'ces-%'
+          AND "createdAt" > :cutoff
+        RETURNING name, exercise_key`,
+      {
+        replacements: { cutoff: V3B3_SHIP_CUTOFF },
+        type: queryInterface.sequelize.QueryTypes.RAW,
+      },
     );
-    console.log('✅ V3b.3.3 starter rows removed');
+
+    const [strippedRows] = await queryInterface.sequelize.query(
+      `UPDATE "Exercises" SET
+         exercise_key             = NULL,
+         "nasmCorrectiveCategory" = NULL,
+         "cesProtocolStep"        = NULL,
+         "sourceCitation"         = NULL,
+         "updatedAt"              = NOW()
+       WHERE exercise_key LIKE 'ces-%'
+         AND "createdAt" <= :cutoff
+       RETURNING name`,
+      {
+        replacements: { cutoff: V3B3_SHIP_CUTOFF },
+        type: queryInterface.sequelize.QueryTypes.RAW,
+      },
+    );
+
+    console.log(
+      `✅ V3b.3.3 rollback — ${(deletedRows || []).length} inserted rows deleted, ${(strippedRows || []).length} enriched rows stripped (preserved)`,
+    );
   },
 
   // For test introspection
