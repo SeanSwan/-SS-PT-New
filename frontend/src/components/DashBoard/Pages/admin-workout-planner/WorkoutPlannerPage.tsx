@@ -898,13 +898,26 @@ const WorkoutPlannerPage: React.FC = () => {
       // Codex 2026-05-03 round-2 HIGH-2: a saved long-horizon plan must
       // restore generatedPlan state on load - otherwise Update Plan
       // would persist a flattened one-week manual-mode payload that
-      // overwrites the saved 48×6 weeks[]. Detect by weeks.length >= 2
-      // (single-week saves stay in manual mode).
-      const isLongHorizon =
+      // overwrites the saved 48×6 weeks[].
+      //
+      // Codex 2026-05-03 round-3 HIGH-3: weeks.length > 1 was too strict.
+      // The 1-week trial duration ('1') generates a 1-week × N-day plan
+      // through the same /api/workout-builder/plan generator, which still
+      // emits planSummary + mesocycles + every L1 additive field. A
+      // weeks.length === 1 save was getting falsely tagged as manual on
+      // load, then collapsed to one-day on Update. The reliable "this was
+      // generated" signal is the presence of `planSummary` (manual-mode
+      // saves do NOT emit it - see planDataBuilder.ts manual branch),
+      // optionally tightened by also requiring a populated `weeks[]`.
+      const wasGenerated =
         Array.isArray(planData.weeks)
-        && planData.weeks.length > 1;
+        && planData.weeks.length > 0
+        && (
+          planData.planSummary
+          || (Array.isArray(planData.mesocycles) && planData.mesocycles.length > 0)
+        );
 
-      if (isLongHorizon) {
+      if (wasGenerated) {
         // Reconstruct the generatedPlan shape from the saved JSONB. The
         // JSONB carries every L1 additive field by construction (the save
         // path uses planDataBuilder generated mode), so this is a faithful
@@ -992,10 +1005,19 @@ const WorkoutPlannerPage: React.FC = () => {
         <Select
           value={selectedClientId ?? ''}
           onChange={e => {
+            // Codex 2026-05-03 round-3 HIGH-4: clearing planExercises +
+            // generatedPlan alone left `loadedPlanId` (and savedSnapshot)
+            // pointing at the PRIOR client's plan. Subsequent Update Plan
+            // would PUT the new client's data into the old client's plan
+            // id - cross-client data corruption. Switching clients is
+            // a hard reset of the loaded-plan identity.
             setSelectedClientId(Number(e.target.value));
             setPlanExercises([]);
             setGeneratedPlan(null);
             setExplanations([]);
+            setLoadedPlanId(null);
+            setLoadedPlanName(null);
+            setSavedSnapshot(null);
           }}
           aria-label="Select client"
         >
