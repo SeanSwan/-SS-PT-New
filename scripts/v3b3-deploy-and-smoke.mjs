@@ -192,53 +192,59 @@ if (!SKIP_WAIT) {
 }
 
 // ─── Step 2: seed ──────────────────────────────────────────────
+//
+// Direct-runner path: sequelize-cli 6.6.2's `--seed FILE` flag silently
+// fails to resolve `.mjs` seeders ("Unable to find migration: …" — yes,
+// CLI calls them migrations in that error path). The direct runner
+// imports the seeder module and calls up() against the live
+// queryInterface, which works identically against any DATABASE_URL.
 if (!SKIP_SEED) {
   stepN += 1;
   logStep(stepN, TOTAL_STEPS, 'Seeding V3b.3.3 corrective starter rows against production');
-  runShell(
-    'npx',
-    [
-      'sequelize-cli',
-      'db:seed',
-      '--seed',
-      '20260504-seed-nasm-corrective-starter.mjs',
-      '--config',
-      'config/config.cjs',
-      '--seeders-path',
-      'seeders',
-      '--models-path',
-      'models',
-      '--env',
-      'production',
-    ],
-    { cwd: BACKEND_DIR, env: { NODE_ENV: 'production' } },
-  );
+  runShell('node', ['scripts/v3b3-run-seeder-prod.mjs'], {
+    cwd: BACKEND_DIR,
+  });
   logSub(C.green('✓ Seed complete'));
 } else {
   logSub(C.yellow('⏭  --skip-seed set, skipping seeder run'));
 }
 
 // ─── Step 3: smoke ─────────────────────────────────────────────
+//
+// Two-tier verification:
+//   (a) DB-level (always): direct SQL count + V3b.3 metadata presence
+//       + section-routing replay. Fast (~2s) and needs no auth creds.
+//   (b) API-level Playwright (best-effort): runs only if TEST_PASSWORD
+//       or E2E_ADMIN_PASSWORD is set. Skipped silently otherwise.
 if (!SKIP_SMOKE) {
   stepN += 1;
-  logStep(stepN, TOTAL_STEPS, 'Running Playwright API smoke against production');
-  runShell(
-    'npx',
-    [
-      'playwright',
-      'test',
-      'e2e/api/v3b3-corrective-smoke.spec.ts',
-      '--project=API Tests',
-      '--reporter=list',
-    ],
-    {
-      cwd: FRONTEND_DIR,
-      env: { BASE_URL: PROD_BASE },
-    },
-  );
-  logSub(C.green('✓ Smoke spec passed'));
+  logStep(stepN, TOTAL_STEPS, 'Verifying V3b.3.3 in production');
+
+  logSub('(a) DB-level smoke (always runs)');
+  runShell('node', ['scripts/v3b3-verify-prod.mjs'], { cwd: BACKEND_DIR });
+  logSub(C.green('    ✓ DB-level smoke passed'));
+
+  const haveAuth = !!(process.env.TEST_PASSWORD || process.env.E2E_ADMIN_PASSWORD);
+  if (haveAuth) {
+    logSub('(b) Playwright API smoke');
+    runShell(
+      'npx',
+      [
+        'playwright',
+        'test',
+        'e2e/api/v3b3-corrective-smoke.spec.ts',
+        '--project=API Tests',
+        '--reporter=list',
+      ],
+      { cwd: FRONTEND_DIR, env: { BASE_URL: PROD_BASE } },
+    );
+    logSub(C.green('    ✓ Playwright smoke passed'));
+  } else {
+    logSub(C.yellow('(b) Playwright API smoke — skipped (no TEST_PASSWORD / E2E_ADMIN_PASSWORD in env).'));
+    logSub(C.dim('    To run the Playwright tier later: TEST_PASSWORD=… node scripts/v3b3-deploy-and-smoke.mjs --skip-wait --skip-seed'));
+  }
 } else {
-  logSub(C.yellow('⏭  --skip-smoke set, skipping Playwright run'));
+  logSub(C.yellow('⏭  --skip-smoke set, skipping verification'));
 }
 
 log(C.bold(C.green('\n✅ V3b.3 Deploy-and-Smoke complete.')));

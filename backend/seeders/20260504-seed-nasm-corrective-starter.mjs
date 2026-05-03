@@ -682,7 +682,21 @@ export default {
    * any trainer edits to other columns. New rows are inserted.
    */
   async up(queryInterface) {
-    const sql = `
+    /*
+     * Three-way upsert per row:
+     *   A. If a row matches `exercise_key`     → UPDATE V3b.3 fields by exercise_key.
+     *   B. Else if a row matches `name`        → ENRICH the existing row by setting
+     *      its exercise_key to ours + writing the V3b.3 fields. Preserves the
+     *      existing row's id/coaching cues/etc.
+     *   C. Else                                → INSERT new row.
+     *
+     * V3b.3.3d (post-first-prod-run): added the name-collision branch (B)
+     * after the first run failed 8 rows on the unique-name constraint.
+     * Common corrective drills like "Glute Bridge" / "Bird Dog" / "Dead Bug"
+     * already exist in the production registry without exercise_key or
+     * V3b.3 metadata. Branch B enriches them in-place rather than skipping.
+     */
+    const insertSql = `
       INSERT INTO "Exercises" (
         id, name, description, instructions,
         "exerciseType", "primaryMuscles", "secondaryMuscles",
@@ -707,29 +721,44 @@ export default {
         :nasmCorrectiveCategory, :cesProtocolStep, :sourceCitation,
         NOW(), NOW()
       )
-      ON CONFLICT (exercise_key) DO UPDATE SET
-        "nasmCorrectiveCategory" = EXCLUDED."nasmCorrectiveCategory",
-        "cesProtocolStep"        = EXCLUDED."cesProtocolStep",
-        "sourceCitation"         = EXCLUDED."sourceCitation",
+    `;
+
+    const updateByKeySql = `
+      UPDATE "Exercises" SET
+        "nasmCorrectiveCategory" = :nasmCorrectiveCategory,
+        "cesProtocolStep"        = :cesProtocolStep,
+        "sourceCitation"         = :sourceCitation,
         "updatedAt"              = NOW()
+      WHERE exercise_key = :exercise_key
+    `;
+
+    // Branch B: when a name-match row exists, enrich it. Also assigns
+    // our exercise_key (overwrites any prior value). bodyPartCategory
+    // is updated so the row routes into the right Rolodex section.
+    const enrichByNameSql = `
+      UPDATE "Exercises" SET
+        exercise_key             = :exercise_key,
+        "bodyPartCategory"       = :bodyPartCategory,
+        "nasmCorrectiveCategory" = :nasmCorrectiveCategory,
+        "cesProtocolStep"        = :cesProtocolStep,
+        "sourceCitation"         = :sourceCitation,
+        "updatedAt"              = NOW()
+      WHERE name = :name
     `;
 
     let inserted = 0;
-    let updated = 0;
+    let updatedByKey = 0;
+    let enrichedByName = 0;
     let skipped = 0;
 
     for (const row of allCorrectiveExercises) {
       try {
-        // coachingCues is JSON; rest are scalar / JSON-string per corr() helper.
         const replacements = {
           ...row,
           coachingCues: row.coachingCues ? JSON.stringify(row.coachingCues) : null,
         };
 
-        // Detect whether the row already existed by querying first. Cheap;
-        // we expect ~32 rows total. Lets us log a meaningful insert/update
-        // split without parsing pg's row-count return shape.
-        const [existing] = await queryInterface.sequelize.query(
+        const [existingByKey] = await queryInterface.sequelize.query(
           `SELECT 1 FROM "Exercises" WHERE exercise_key = :exercise_key LIMIT 1`,
           {
             replacements: { exercise_key: row.exercise_key },
@@ -737,20 +766,49 @@ export default {
           },
         );
 
-        await queryInterface.sequelize.query(sql, {
+        if (existingByKey) {
+          // Branch A: exercise_key already owned by us → update V3b.3 fields.
+          await queryInterface.sequelize.query(updateByKeySql, {
+            replacements,
+            type: queryInterface.sequelize.QueryTypes.UPDATE,
+          });
+          updatedByKey += 1;
+          continue;
+        }
+
+        const [existingByName] = await queryInterface.sequelize.query(
+          `SELECT 1 FROM "Exercises" WHERE name = :name LIMIT 1`,
+          {
+            replacements: { name: row.name },
+            type: queryInterface.sequelize.QueryTypes.SELECT,
+          },
+        );
+
+        if (existingByName) {
+          // Branch B: name-match → enrich in place, claim the exercise_key.
+          await queryInterface.sequelize.query(enrichByNameSql, {
+            replacements,
+            type: queryInterface.sequelize.QueryTypes.UPDATE,
+          });
+          enrichedByName += 1;
+          continue;
+        }
+
+        // Branch C: brand new row → insert.
+        await queryInterface.sequelize.query(insertSql, {
           replacements,
           type: queryInterface.sequelize.QueryTypes.INSERT,
         });
-
-        if (existing) updated += 1;
-        else inserted += 1;
+        inserted += 1;
       } catch (err) {
         console.warn(`  ⚠ V3b.3.3 skipped "${row.name}" (${row.exercise_key}): ${err.message}`);
         skipped += 1;
       }
     }
 
-    console.log(`✅ V3b.3.3 NASM corrective starter — ${inserted} inserted, ${updated} updated, ${skipped} skipped, ${allCorrectiveExercises.length} total`);
+    console.log(
+      `✅ V3b.3.3 NASM corrective starter — ${inserted} inserted, ${updatedByKey} updated by key, ${enrichedByName} enriched by name, ${skipped} skipped, ${allCorrectiveExercises.length} total`,
+    );
   },
 
   /**
