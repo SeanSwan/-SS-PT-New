@@ -31,6 +31,11 @@ import { Search, Loader, BookOpen, Plus } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import ExerciseFilterChips from './ExerciseFilterChips';
 import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
+// V3b.1 (2026-05-03): SECTION_PATTERNS extracted to its own module so
+// the matching rules can be regression-tested directly. The in-component
+// filter (matchesSectionContext below) imports the patterns from there
+// so there's a single source of truth.
+import { SECTION_PATTERNS as V3B1_SECTION_PATTERNS } from './NASMExerciseRolodex.sectionFilter';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -81,27 +86,11 @@ const EXERCISE_TYPES = ['All', 'Compound', 'Isolation', 'Calisthenics', 'Stabili
 
 // ─── Section Context Filters ─────────────────────────────
 
-const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
-  categories: string[];
-  types: string[];
-  nameKeywords: RegExp;
-}> = {
-  warmup: {
-    categories: ['recovery'],
-    types: ['flexibility'],
-    nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective/i,
-  },
-  balance_core: {
-    categories: ['core'],
-    types: [],
-    nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof/i,
-  },
-  cooldown: {
-    categories: ['recovery'],
-    types: [],
-    nameKeywords: /stretch|foam roll|breathing|cool down|cooldown|recovery/i,
-  },
-};
+// V3b.1 (2026-05-03): the SECTION_PATTERNS source of truth lives in
+// NASMExerciseRolodex.sectionFilter.ts so the rules can be regression-
+// tested directly without mounting this virtualized component. We
+// alias the import here so the rest of this file stays unchanged.
+const SECTION_PATTERNS = V3B1_SECTION_PATTERNS;
 
 function matchesSectionContext(ex: ExerciseSlim, ctx?: SectionContext): boolean {
   if (!ctx || ctx === 'main') return true;
