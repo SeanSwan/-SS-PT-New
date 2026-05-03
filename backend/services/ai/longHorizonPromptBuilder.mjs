@@ -155,6 +155,16 @@ export function buildLongHorizonPrompt({
     parts.push('');
   }
 
+  // ── V3c.5: Corrective bias allowlist ───────────────────────
+  // Closed-set hint: when the client has OHSA-detected compensations,
+  // surface the V3b.3 corrective registry rows that match those
+  // compensations and instruct the AI to include them in CES blocks
+  // and Phase 1 stabilization warmups. Soft directive — the AI may
+  // still choose other exercises, but ours are the validated picks.
+  if (longHorizonContext?.correctiveBias?.available) {
+    parts.push(buildCorrectiveBiasSection(longHorizonContext.correctiveBias), '');
+  }
+
   // ── NASM constraints (server-derived) ──────────────────────
   if (nasmConstraints) {
     const constraintsForPrompt = { ...nasmConstraints };
@@ -211,6 +221,79 @@ function buildTemplateSectionForLongHorizon(templateContext) {
   if (corr && Array.isArray(corr.relevantCompensations) && corr.relevantCompensations.length > 0) {
     lines.push('Corrective needs: include CES blocks or integrate corrective work in early phases.');
   }
+
+  return lines.join('\n');
+}
+
+/**
+ * V3c.5: Build the Corrective Allowlist section.
+ *
+ * Surfaces the V3b.3 NASM CES corrective exercises that match the
+ * client's OHSA-detected compensations, grouped by 4-step protocol
+ * (inhibit / lengthen / activate / integrate). The AI is instructed
+ * to include these as the preferred picks for CES blocks and Phase 1
+ * stabilization warmups.
+ *
+ * Why a "soft directive" (preferred-not-mandatory):
+ *   - Some compensations may not have full registry coverage yet.
+ *     Forcing the AI to use only allowlist names would produce empty
+ *     warmups when the registry has gaps.
+ *   - The AI can still propose its own mesocycle structure; this
+ *     section just biases its exercise selection toward the
+ *     validated, citation-backed corrective set.
+ *
+ * Privacy posture (rule 8): the section emits exercise data
+ * (exerciseKey, name, bodyPartCategory, sourceCitation) and
+ * compensation taxonomy (type, severity, frequency). Zero client
+ * PII passes through this path.
+ *
+ * @param {Object} bias — buildCorrectiveBiasContext output
+ * @returns {string}
+ */
+function buildCorrectiveBiasSection(bias) {
+  const lines = [];
+  lines.push('--- V3c.5 Corrective Allowlist (preferred picks, NASM CES-validated) ---');
+
+  if (Array.isArray(bias.compensations) && bias.compensations.length > 0) {
+    const compLines = bias.compensations.map((c) => {
+      const sev = Number.isFinite(c.avgSeverity) ? `severity ${c.avgSeverity}/10` : 'severity unknown';
+      const freq = Number.isFinite(c.frequency) && c.frequency > 0 ? `freq ${c.frequency}` : null;
+      const trend = c.trend || 'stable';
+      return `  - ${c.type} (${[sev, freq, `trend ${trend}`].filter(Boolean).join(', ')})`;
+    });
+    lines.push('Detected compensations:', ...compLines);
+  }
+
+  if (bias.matchedCount === 0 || !bias.allowlist) {
+    lines.push(
+      'Registry coverage: no V3b.3 corrective rows matched these compensations.',
+      'Direction: include CES blocks; trainer/AI may freely select stretches and activation drills consistent with the listed patterns.',
+    );
+    return lines.join('\n');
+  }
+
+  lines.push(
+    `Registry coverage: ${bias.matchedCount} V3b.3-validated corrective(s) matched (tags: ${(bias.tags || []).join(', ')}).`,
+    'Use these as the preferred warmup / CES-block picks. Reference the exerciseKey when emitting your plan so downstream wiring can resolve to the registry row.',
+  );
+
+  const renderStep = (label, rows) => {
+    if (!rows || rows.length === 0) return;
+    lines.push(`Step: ${label}`);
+    for (const r of rows.slice(0, 8)) {
+      const cite = r.sourceCitation ? ` [${r.sourceCitation}]` : '';
+      const cat = r.bodyPartCategory ? ` cat=${r.bodyPartCategory}` : '';
+      lines.push(`  - ${r.name} (key=${r.exerciseKey})${cat}${cite}`);
+    }
+  };
+  renderStep('inhibit (SMR / foam-roll work)', bias.allowlist.inhibit);
+  renderStep('lengthen (stretches)', bias.allowlist.lengthen);
+  renderStep('activate (corrective drills)', bias.allowlist.activate);
+  renderStep('integrate (integration patterns)', bias.allowlist.integrate);
+
+  lines.push(
+    'Directive: integrate the inhibit + lengthen rows into Phase 1 stabilization warmups; integrate the activate + integrate rows as the corrective bias inside CES blocks. Soft directive — you may pick consistent alternatives, but always cite the rationale.',
+  );
 
   return lines.join('\n');
 }

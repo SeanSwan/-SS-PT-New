@@ -20,6 +20,9 @@
  */
 import { Op } from 'sequelize';
 import { buildProgressContext } from './progressContextBuilder.mjs';
+import {
+  getCorrectiveExercisesForCompensations,
+} from './correctiveExerciseService.mjs';
 import logger from '../../utils/logger.mjs';
 
 // ── Horizon → window mapping ────────────────────────────────────────
@@ -45,12 +48,16 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - window.weeks * 7);
 
-  // Parallel data fetches — each is null-safe on failure
-  const [sessions, baseline, goals, bodyMeasurements] = await Promise.all([
+  // Parallel data fetches — each is null-safe on failure.
+  // V3c.5: also fetch the user's MovementProfile so the AI prompt
+  // can include the closed-set corrective bias derived from
+  // OHSA-detected compensations.
+  const [sessions, baseline, goals, bodyMeasurements, movementProfile] = await Promise.all([
     fetchWorkoutSessions(userId, cutoffDate, models),
     fetchLatestBaseline(userId, models),
     fetchActiveGoals(userId, models),
     fetchBodyMeasurements(userId, cutoffDate, models),
+    fetchMovementProfile(userId, models),
   ]);
 
   // Extract per-set logs from sessions
@@ -77,6 +84,11 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
   const goalProgress = extractGoalProgress(goals);
   const bodyComposition = computeBodyCompositionTrend(bodyMeasurements);
 
+  // V3c.5: corrective bias — compensations → V3b.3 registry rows the
+  // AI should preferentially place into Phase 1 / CES blocks. Failure-
+  // tolerant: a registry lookup error must NOT block plan generation.
+  const correctiveBias = await buildCorrectiveBiasContext(movementProfile, models);
+
   return {
     progressSummary,
     progressionTrends,
@@ -85,6 +97,7 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
     injuryRestrictions,
     goalProgress,
     bodyComposition,
+    correctiveBias,
   };
 }
 
@@ -163,6 +176,21 @@ async function fetchBodyMeasurements(userId, cutoffDate, models) {
   } catch (err) {
     logger.warn('5C-B: Failed to fetch body measurements:', err.message);
     return [];
+  }
+}
+
+// V3c.5: fetch the user's MovementProfile for compensation extraction.
+// Same null-safe pattern as the other fetchers — a missing model or
+// query failure returns null and the corrective bias context degrades
+// gracefully to "no bias."
+async function fetchMovementProfile(userId, models) {
+  try {
+    const { MovementProfile } = models;
+    if (!MovementProfile) return null;
+    return await MovementProfile.findOne({ where: { userId } });
+  } catch (err) {
+    logger.warn('V3c.5: Failed to fetch MovementProfile:', err.message);
+    return null;
   }
 }
 
@@ -489,6 +517,108 @@ export function computeBodyCompositionTrend(measurements) {
   }
 
   return { available: true, trend, dataPoints: values.length };
+}
+
+// ── V3c.5: Corrective bias context ──────────────────────────────────
+
+/**
+ * Build the closed-set corrective allowlist the AI prompt should
+ * preferentially draw from. Sources compensations from the user's
+ * MovementProfile and queries the V3b.3 corrective registry via the
+ * V3c.1 service.
+ *
+ * Output is PII-free by construction:
+ *   - compensations: only types + severity + frequency + trend (no
+ *     client name, no IDs leak — types are taxonomic strings).
+ *   - tags: V3b.3 nasmCorrectiveCategory tags (taxonomic strings).
+ *   - allowlist: registry rows (exercise_key + name + protocol step
+ *     + bodyPartCategory + sourceCitation). Exercise data, not user data.
+ *
+ * Failure-tolerant: every error path returns the empty/disabled
+ * shape rather than throwing — corrective bias is a SOFT hint to
+ * the AI, never a precondition of plan generation.
+ *
+ * @param {Object|null} movementProfile - MovementProfile record or null
+ * @param {Object} models - Sequelize models object
+ * @returns {Promise<{
+ *   available: boolean,
+ *   compensations: Array<{type, frequency, avgSeverity, trend}>,
+ *   tags: string[],
+ *   matchedCount: number,
+ *   allowlist: { inhibit: Array, lengthen: Array, activate: Array, integrate: Array },
+ * }>}
+ */
+async function buildCorrectiveBiasContext(movementProfile, models) {
+  const empty = {
+    available: false,
+    compensations: [],
+    tags: [],
+    matchedCount: 0,
+    allowlist: { inhibit: [], lengthen: [], activate: [], integrate: [] },
+  };
+
+  if (!movementProfile) return empty;
+
+  // Sequelize JSONB columns return parsed arrays. Defensive parse for
+  // raw-query callers.
+  let comps = movementProfile.commonCompensations;
+  if (typeof comps === 'string') {
+    try { comps = JSON.parse(comps); } catch { return empty; }
+  }
+  if (!Array.isArray(comps) || comps.length === 0) return empty;
+
+  const Exercise = models?.Exercise;
+  if (!Exercise) {
+    // No registry — surface the compensations alone so the prompt
+    // can still tell the AI "include corrective work for these
+    // patterns" even without the named allowlist.
+    return {
+      ...empty,
+      available: true,
+      compensations: comps.map((c) => ({
+        type: c.type,
+        frequency: c.frequency || 0,
+        avgSeverity: c.avgSeverity || 0,
+        trend: c.trend || 'stable',
+      })),
+    };
+  }
+
+  try {
+    const result = await getCorrectiveExercisesForCompensations({
+      compensations: comps,
+      Exercise,
+    });
+    // Project each row to a PII-safe, prompt-ready shape: drop
+    // primaryMuscles/secondaryMuscles JSON strings and keep only the
+    // fields the AI needs to reference an exercise.
+    const project = (rows) => (rows || []).map((r) => ({
+      exerciseKey: r.exercise_key,
+      name: r.name,
+      bodyPartCategory: r.bodyPartCategory,
+      sourceCitation: r.sourceCitation,
+    }));
+    return {
+      available: true,
+      compensations: comps.map((c) => ({
+        type: c.type,
+        frequency: c.frequency || 0,
+        avgSeverity: c.avgSeverity || 0,
+        trend: c.trend || 'stable',
+      })),
+      tags: result.tags,
+      matchedCount: result.matchedCount,
+      allowlist: {
+        inhibit: project(result.inhibit),
+        lengthen: project(result.lengthen),
+        activate: project(result.activate),
+        integrate: project(result.integrate),
+      },
+    };
+  } catch (err) {
+    logger.warn('V3c.5: corrective bias lookup failed:', err.message);
+    return empty;
+  }
 }
 
 // ── Internal helpers ────────────────────────────────────────────────
