@@ -114,15 +114,37 @@ module.exports = {
         console.log('⏭  _v3b3_seeder_log already exists');
       }
 
-      // V3b.3.6 backfill: static keylists, manifest-restricted. Only
-      // backfills entries for rows whose key is BOTH in the V3b.3
-      // manifest AND already present in "Exercises". Other rows
-      // (manifest keys not yet seeded) get their provenance recorded
-      // by the seeder when it runs.
+      // V3b.3.7 precondition gate: backfill is production-snapshot-specific.
+      // The static keylist partition only describes the post-V3b.3.3-first-run
+      // production state. For any other environment (fresh dev, partial
+      // manual state, mid-migration), backfilling with our static actions
+      // would encode fiction. So we backfill ONLY when ALL 32 manifest keys
+      // exist in "Exercises" — a strong signal that this env actually ran
+      // the seeder and is now reaching for the ledger.
+      //
+      // For environments where the precondition fails (fresh installs,
+      // partial state, etc.), the seeder's runtime branches will record
+      // their own provenance directly when they run. The seeder also
+      // tolerates missing log entries on Branch A by defaulting to
+      // 'enriched' (data-loss-safe per Codex Round 4 option C).
+      const allManifestKeys = [...V3B3_ENRICHED_KEYS, ...V3B3_INSERTED_KEYS];
+      const [manifestPresenceRows] = await queryInterface.sequelize.query(
+        `SELECT COUNT(*) AS n
+           FROM "Exercises"
+          WHERE exercise_key IN (:keys)`,
+        { replacements: { keys: allManifestKeys }, transaction },
+      );
+      const manifestPresent = parseInt(manifestPresenceRows[0]?.n || '0', 10);
+      const expected = allManifestKeys.length; // 32
+
       let enrichedBackfilled = 0;
       let insertedBackfilled = 0;
 
-      if (V3B3_ENRICHED_KEYS.length > 0) {
+      if (manifestPresent === expected) {
+        console.log(
+          `✓ V3b.3.7 backfill precondition met (${manifestPresent}/${expected} manifest keys present in Exercises)`,
+        );
+
         const [enrichedResult] = await queryInterface.sequelize.query(
           `INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
            SELECT exercise_key, 'enriched', NOW()
@@ -133,9 +155,7 @@ module.exports = {
           { replacements: { keys: V3B3_ENRICHED_KEYS }, transaction },
         );
         enrichedBackfilled = (enrichedResult || []).length;
-      }
 
-      if (V3B3_INSERTED_KEYS.length > 0) {
         const [insertedResult] = await queryInterface.sequelize.query(
           `INSERT INTO _v3b3_seeder_log (exercise_key, action, run_at)
            SELECT exercise_key, 'inserted', NOW()
@@ -146,11 +166,17 @@ module.exports = {
           { replacements: { keys: V3B3_INSERTED_KEYS }, transaction },
         );
         insertedBackfilled = (insertedResult || []).length;
-      }
 
-      console.log(
-        `✅ V3b.3.6 backfilled ${enrichedBackfilled} 'enriched' + ${insertedBackfilled} 'inserted' provenance entries`,
-      );
+        console.log(
+          `✅ V3b.3.7 backfilled ${enrichedBackfilled} 'enriched' + ${insertedBackfilled} 'inserted' provenance entries`,
+        );
+      } else {
+        console.log(
+          `⏭  V3b.3.7 backfill SKIPPED — only ${manifestPresent}/${expected} manifest keys present in "Exercises". ` +
+            `This is the expected behavior for environments that haven't seeded yet, partial states, or fresh installs. ` +
+            `The seeder will record provenance directly when it runs.`,
+        );
+      }
 
       await transaction.commit();
       console.log('✅ V3b.3.6 migration completed successfully');

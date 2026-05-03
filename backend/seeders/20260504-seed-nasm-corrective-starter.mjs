@@ -819,13 +819,21 @@ export default {
             type: queryInterface.sequelize.QueryTypes.UPDATE,
             transaction,
           });
-          // Branch A preserves any pre-existing provenance entry. The
-          // ON CONFLICT DO NOTHING is the load-bearing semantic — if the
-          // row's action is 'enriched' from a prior run, we don't
-          // overwrite it to 'inserted' here. If no entry exists yet
-          // (shouldn't happen post-migration backfill, but defensively),
-          // we fall through with no action — a sanity check at the end
-          // catches it.
+          // V3b.3.7 (Codex Round 4 option C — data-loss-safe default):
+          // if no log entry exists yet for this key (e.g. migration's
+          // backfill precondition didn't fire because the env didn't
+          // match the production snapshot), default to 'enriched'. That
+          // means rollback will STRIP rather than DELETE — the
+          // conservative choice. This costs us exact-rollback fidelity
+          // in some edge cases (a row that was actually inserted by us
+          // gets stripped instead of deleted on down()), but it cannot
+          // cause data loss for non-seeder rows that happen to share
+          // our keyspace.
+          await queryInterface.sequelize.query(logProvenanceSql, {
+            replacements: { exercise_key: row.exercise_key, action: 'enriched' },
+            type: queryInterface.sequelize.QueryTypes.INSERT,
+            transaction,
+          });
           updatedByKey += 1;
           continue;
         }
