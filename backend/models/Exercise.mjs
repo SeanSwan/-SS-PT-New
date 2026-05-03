@@ -241,6 +241,31 @@ Exercise.init(
       comment: 'Origin: nasm, free-exercise-db, wrkout, p90x, custom',
     },
 
+    // V3b.3 (2026-05-03) — NASM Corrective Exercise Specialist (CES) tagging.
+    // Migration: 20260504000000-add-nasm-corrective-fields.cjs.
+    // Authoritative reference: docs/ai-workflow/references/NASM-CES-TAXONOMY.md.
+    nasmCorrectiveCategory: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'Array of NASM CES compensation tags (e.g. ["upper_crossed_syndrome","forward_head"]). NULL for non-corrective exercises. See NASM-CES-TAXONOMY.md §1 for the canonical tag list.',
+    },
+    cesProtocolStep: {
+      type: DataTypes.STRING(32),
+      allowNull: true,
+      validate: {
+        isIn: {
+          args: [['inhibit', 'lengthen', 'activate', 'integrate']],
+          msg: 'cesProtocolStep must be one of: inhibit, lengthen, activate, integrate',
+        },
+      },
+      comment: 'NASM CES 4-step protocol position. STRING (not enum) per Codex 2026-05-03 review so future values land without migration.',
+    },
+    sourceCitation: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      comment: 'Authoritative citation for V3b.3 corrective exercises. Distinct from `source` (which records origin). See NASM-CES-TAXONOMY.md §6 for allowed citation list.',
+    },
+
     // Biomechanical classification
     force: {
       type: DataTypes.STRING(20),
