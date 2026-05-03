@@ -644,7 +644,12 @@ const pronationDistortion = [
     description: 'Whole-chain integration — glutes + scapular retraction.',
     instructions: '1. Hold cable at chest, squat down. 2. Stand and pull cable to ribs simultaneously. 3. Slow eccentric.',
     exerciseType: 'compound',
-    bodyPartCategory: 'full_body',
+    // V3b.3.3c: bodyPartCategory='core' (not 'full_body') so the
+    // integration row routes into the balance/core/stability section
+    // of the Rolodex via SECTION_PATTERNS.balance_core.categories. The
+    // integration step in NASM CES is functionally a core-under-load
+    // exercise, so the labeling is accurate, not a hack.
+    bodyPartCategory: 'core',
     primaryMuscles: ['Quadriceps', 'Gluteus Maximus', 'Latissimus Dorsi'],
     secondaryMuscles: ['Rhomboids'],
     equipmentNeeded: ['Cable'],
