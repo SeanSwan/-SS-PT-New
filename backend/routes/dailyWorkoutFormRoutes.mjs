@@ -1136,12 +1136,23 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
       };
     });
 
+    // Phase 2 Slice 2.1 (2026-05-03): null-honest formTrends.
+    // Was `(ex.formRating || 3)` summed across ALL exercises divided by
+    // exercises.length — a phantom 3/5 was seeded for every untouched
+    // exercise and dragged the average toward 3. Mirrors the
+    // /progress-detailed canonical reader at line 1418-1428: filter to
+    // rated exercises, average only those, return null when no exercise
+    // was rated. Matches the Phase 16 null-honest writer contract.
     const formTrends = forms.map(form => {
       const exercises = form.formData?.exercises || [];
-      const ratingSum = exercises.reduce((sum, ex) => sum + (ex.formRating || 3), 0);
+      const ratings = exercises
+        .filter(ex => ex.formRating !== undefined && ex.formRating !== null)
+        .map(ex => ex.formRating);
       return {
         date: form.date,
-        averageFormRating: exercises.length > 0 ? ratingSum / exercises.length : 0,
+        averageFormRating: ratings.length > 0
+          ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10
+          : null,
         exerciseCount: form.getExerciseCount()
       };
     });

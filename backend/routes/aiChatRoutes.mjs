@@ -749,13 +749,26 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
             }
 
             // Create session
+            //
+            // Phase 2 Slice 2.1 (2026-05-03): null-honest intensity.
+            // Was `intensity || 5` — when an AI-extracted import payload
+            // omitted intensity, this writer seeded a phantom 5/10 onto
+            // WorkoutSession.intensity, polluting
+            // chartDataController.getIntensityRPETrendChart's AVG().
+            // Matches the Phase 16 null-honest contract on
+            // dailyWorkoutFormRoutes:636-638 and the model declaration
+            // on WorkoutSession.mjs:59-71 (allowNull: true, null = "not
+            // rated"). Accepts both `undefined` and explicit `null`.
+            const importedIntensity = (intensity === undefined || intensity === null)
+              ? null
+              : intensity;
             const session = await WorkoutSession.create({
               userId: clientId,
               trainerId: req.user.id,
               title: title || `Imported Workout — ${date}`,
               date: workoutDate,
               duration: duration || 60,
-              intensity: intensity || 5,
+              intensity: importedIntensity,
               notes: notes || 'Imported from previous training platform',
               status: 'completed',
               completedAt: workoutDate,
