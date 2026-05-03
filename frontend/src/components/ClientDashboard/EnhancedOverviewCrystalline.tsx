@@ -766,9 +766,32 @@ const EnhancedOverviewCrystalline: React.FC = () => {
                       {w.duration ? ` \u00B7 ${w.duration}` : ''}
                     </div>
                   </div>
-                  {w.exercises != null && (
-                    <div style={{ color: '#60C0F0', fontSize: '0.85rem' }}>{w.exercises} exercises</div>
-                  )}
+                  {/* Slice 1.2: render the truthful counters. exerciseCount
+                      is the count of distinct exercises (preferred);
+                      setsCount is the count of sets across them. Renders
+                      both when both available, falls back gracefully. */}
+                  {(() => {
+                    const ex = w.exerciseCount;
+                    const sets = w.setsCount;
+                    if (typeof ex === 'number' && ex > 0) {
+                      return (
+                        <div style={{ color: '#60C0F0', fontSize: '0.85rem' }}>
+                          {ex} exercise{ex === 1 ? '' : 's'}
+                          {typeof sets === 'number' && sets > 0 && (
+                            <span style={{ color: 'rgba(96, 192, 240, 0.6)', marginLeft: '0.4rem' }}>
+                              ({sets} sets)
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    if (typeof sets === 'number' && sets > 0) {
+                      return (
+                        <div style={{ color: '#60C0F0', fontSize: '0.85rem' }}>{sets} sets</div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ))}
             </div>

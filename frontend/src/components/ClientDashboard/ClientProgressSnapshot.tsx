@@ -65,7 +65,13 @@ interface WorkoutEntry {
   name: string;
   date: string;
   duration?: string | null;
-  exercises?: number;
+  /**
+   * Phase 1 Slice 1.2 (2026-05-03): true count of distinct exercises
+   * (from joined DailyWorkoutForm.formData), null when not available.
+   */
+  exerciseCount?: number | null;
+  /** Slice 1.2: count of SETS across all exercises (was named `exercises` pre-1.2). */
+  setsCount?: number;
   type?: string;
 }
 
@@ -765,9 +771,15 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                     {lastWorkout.duration}
                   </span>
                 )}
-                {lastWorkout.exercises && (
-                  <span>{lastWorkout.exercises} exercises</span>
-                )}
+                {/* Slice 1.2: prefer exerciseCount when present, fall
+                    back to setsCount. Renders the truthful value. */}
+                {typeof lastWorkout.exerciseCount === 'number' && lastWorkout.exerciseCount > 0 ? (
+                  <span>
+                    {lastWorkout.exerciseCount} exercise{lastWorkout.exerciseCount === 1 ? '' : 's'}
+                  </span>
+                ) : (typeof lastWorkout.setsCount === 'number' && lastWorkout.setsCount > 0 ? (
+                  <span>{lastWorkout.setsCount} sets</span>
+                ) : null)}
               </WorkoutMeta>
             </WorkoutInfo>
             <ChevronRight size={18} style={{ color: 'rgba(255,255,255,0.3)' }} />

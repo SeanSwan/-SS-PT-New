@@ -736,7 +736,20 @@ const LogsAndTrackers: React.FC = () => {
                       <div>
                         <h5 style={{ margin: 0, color: '#fff' }}>{log.name || 'Workout'}</h5>
                         <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
-                          {log.duration || `${log.exercises || 0} exercises`}
+                          {/* Slice 1.2: prefer exerciseCount + setsCount when present.
+                              Falls back to duration alone, then a clean "no data" line. */}
+                          {(() => {
+                            const ex = log.exerciseCount;
+                            const sets = log.setsCount;
+                            const parts: string[] = [];
+                            if (log.duration) parts.push(log.duration);
+                            if (typeof ex === 'number' && ex > 0) {
+                              parts.push(sets && sets > 0 ? `${ex} exercises (${sets} sets)` : `${ex} exercises`);
+                            } else if (typeof sets === 'number' && sets > 0) {
+                              parts.push(`${sets} sets`);
+                            }
+                            return parts.length > 0 ? parts.join(' · ') : 'Logged workout';
+                          })()}
                         </p>
                       </div>
                       <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{formatLogDate(log.date)}</span>

@@ -11,7 +11,19 @@ export interface WorkoutHistoryEntry {
   name: string;
   date: string;
   duration?: string | null;
-  exercises?: number;
+  /**
+   * Phase 1 Slice 1.2 (2026-05-03): true count of distinct exercises
+   * in the workout, derived from the joined DailyWorkoutForm.formData.
+   * `null` when the form association wasn't joined (defensive — older
+   * data paths may not include it).
+   */
+  exerciseCount?: number | null;
+  /**
+   * Phase 1 Slice 1.2: count of SETS across all exercises. Was named
+   * `exercises` pre-Slice-1.2, but a workout with 6 exercises × 4 sets
+   * has totalSets=24, not 24 exercises. Renamed for accuracy.
+   */
+  setsCount?: number;
   type?: string;
 }
 

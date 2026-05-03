@@ -25,18 +25,76 @@ const router = express.Router();
 // (title, duration, totalSets, completedAt) — NOT the stale legacy
 // fields (workoutName, durationMinutes, exercisesCompleted) which
 // never existed on the model and silently rendered blank cards.
+//
+// Phase 1 Slice 1.2 (2026-05-03): semantic correctness fix. The
+// pre-Slice-1.2 mapper output had `exercises: totalSets`, which the
+// frontend rendered as "X exercises" — but `totalSets` is the count
+// of SETS across all exercises, not the count of distinct exercises.
+// A trainer logging 6 exercises with 4 sets each saw "24 exercises"
+// on the dashboard.
+//
+// This mapper now outputs:
+//   setsCount: <totalSets>             — accurate set count
+//   exerciseCount: <distinct count>    — derived from the joined
+//                                        DailyWorkoutForm.formData
+//                                        when available, or null
+//                                        when the form wasn't joined
+//   exercises: <legacy alias>          — DEPRECATED. Codex Slice 1.2
+//                                        R1 caught the clean-break as
+//                                        too aggressive without a
+//                                        verified consumer inventory.
+//                                        Kept for one release as
+//                                        `exerciseCount ?? totalSets`
+//                                        — truthful when known,
+//                                        backward-compat when unknown.
+//                                        Remove when consumer
+//                                        inventory is verified.
+// Frontend consumers in this repo migrated to setsCount/exerciseCount
+// in the same commit; the alias only protects out-of-tree consumers.
 // ─────────────────────────────────────────────────────────────
 export const toClientWorkoutHistoryRow = (session) => {
   const raw = session?.toJSON ? session.toJSON() : session;
   const duration = Number.isFinite(raw?.duration) ? raw.duration : null;
   const totalSets = Number.isFinite(raw?.totalSets) ? raw.totalSets : 0;
   const dateValue = raw?.completedAt || raw?.date || raw?.createdAt || null;
+
+  // Slice 1.2: derive exerciseCount from the joined dailyForms
+  // association. WorkoutSession.hasMany(DailyWorkoutForm, as: 'dailyForms').
+  // Include latest form's exercises array length when available.
+  // Falls back to null (not 0) when the association wasn't joined,
+  // so frontend can distinguish "no data" from "0 exercises."
+  let exerciseCount = null;
+  const forms = raw?.dailyForms;
+  if (Array.isArray(forms) && forms.length > 0) {
+    // formData may be JSON-stringified from raw queries or parsed
+    // from the JSONB column. Defensive parse.
+    let formData = forms[0]?.formData;
+    if (typeof formData === 'string') {
+      try { formData = JSON.parse(formData); } catch { formData = null; }
+    }
+    if (formData && Array.isArray(formData.exercises)) {
+      exerciseCount = formData.exercises.length;
+    }
+  }
+
   return {
     id: raw?.id,
     name: (raw?.title && String(raw.title).trim()) || 'Workout',
     date: dateValue,
     duration: duration && duration > 0 ? `${duration} min` : null,
-    exercises: totalSets,
+    setsCount: totalSets,
+    exerciseCount,
+    // Codex Slice 1.2 Round 1 MEDIUM 1 — keep `exercises` as a
+    // DEPRECATED alias for one release so unknown consumers
+    // (mobile app, internal tools, cached frontend builds, third-
+    // party integrations) don't break on the contract change.
+    // When exerciseCount is known, prefer it (the truthful value);
+    // when null, fall back to totalSets (the pre-Slice-1.2 behavior,
+    // wrong but stable). Frontend consumers in this repo migrated to
+    // setsCount/exerciseCount in the same commit; this alias only
+    // protects out-of-tree consumers. Remove when consumer
+    // inventory is verified.
+    exercises: exerciseCount ?? totalSets,
   };
 };
 
@@ -115,19 +173,57 @@ router.get('/:userId/history', protect, async (req, res) => {
     }
 
     const { clientId, models } = access;
-    const { WorkoutSession, Session } = models;
-    const limit = parseInt(req.query.limit) || 10;
+    const { WorkoutSession, Session, DailyWorkoutForm } = models;
+    // Slice 1.2 Codex R1 MEDIUM 2: clamp limit. `parseInt(...) || 10`
+    // previously accepted huge values, and the new dailyForms JOIN
+    // (which reads JSONB formData per session) made the unbounded
+    // cost worse. Cap at 100 — comfortable headroom for dashboard
+    // history without enabling abuse.
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), 100)
+      : 10;
 
     let history = [];
 
     // Try WorkoutSession model first. Filter to completed sessions so
     // planned/in-progress rows never render as history cards.
+    //
+    // Phase 1 Slice 1.2 (2026-05-03): include the dailyForms
+    // association so the mapper can derive exerciseCount from
+    // formData.exercises.length. WorkoutSession.totalSets is the
+    // count of SETS, not exercises — they're not interchangeable.
+    // The mapper falls back gracefully if dailyForms isn't joined
+    // (e.g. if the model isn't available in this models bundle).
     if (WorkoutSession) {
+      const include = [];
+      if (DailyWorkoutForm) {
+        // Slice 1.2 Codex R1 LOW: ORDER the included dailyForms by
+        // createdAt DESC so the mapper's `dailyForms[0]` selection
+        // is deterministic when multiple forms exist for the same
+        // session (race conditions, manual writes, etc.). The
+        // route-level 409 guard makes duplicates rare in practice,
+        // but a deterministic order is cheap insurance.
+        include.push({
+          model: DailyWorkoutForm,
+          as: 'dailyForms',
+          attributes: ['id', 'formData', 'createdAt'],
+          required: false,
+          separate: true,
+          // Secondary sort on `id DESC` is the tie-breaker — when
+          // two forms share createdAt to the millisecond, primary-key
+          // order is the deterministic fallback. Codex Slice 1.2 R2
+          // LOW caught the missing tie-breaker.
+          order: [['createdAt', 'DESC'], ['id', 'DESC']],
+          limit: 1,
+        });
+      }
       const sessions = await WorkoutSession.findAll({
         where: { userId: clientId, status: 'completed' },
         order: [['completedAt', 'DESC']],
         limit,
         attributes: ['id', 'title', 'date', 'completedAt', 'createdAt', 'duration', 'totalSets'],
+        include,
       });
       history = sessions.map(toClientWorkoutHistoryRow);
     }
