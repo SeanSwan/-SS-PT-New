@@ -248,6 +248,23 @@ const PROMPT_INJECTION_HINTS = [
 function safePromptString(s, fallback = '') {
   if (typeof s !== 'string') return fallback;
   let out = s;
+  // V3c.5.3 (Codex Round 2 LOW): NFKC-normalize before any other
+  // transform. Otherwise compatibility-equivalent characters (full-
+  // width digits, ligatures, etc.) sneak past the regex filters even
+  // though an LLM would still read them as the original word.
+  try { out = out.normalize('NFKC'); } catch { /* malformed string — let later strips handle it */ }
+  // V3c.5.3: strip Unicode zero-width + bidi format controls.
+  // These are invisible characters that can split words in the
+  // injection-hint regex (e.g. "Igno​re previous instructions"
+  // would otherwise survive). Range covers:
+  //   U+200B-200F  zero-width / LRM-RLM-LRE-RLE-PDF
+  //   U+202A-202E  bidi overrides (LRO/RLO etc.)
+  //   U+2060-206F  word joiner / invisible separators
+  //   U+FEFF       BOM / zero-width no-break space
+  // V3c.5.3: replace with empty (NOT space) so "Igno<ZWS>re" merges
+  // back to "Ignore" rather than splitting to "Igno re" \u2014 the latter
+  // would defeat the contiguous-word PROMPT_INJECTION_HINTS regex.
+  out = out.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
   // Strip ASCII control characters (newlines, tabs, etc).
   out = out.replace(/[\x00-\x1F\x7F]/g, ' ');
   // Kill markdown code fences that could break out of prompt blocks.
@@ -308,7 +325,7 @@ function buildCorrectiveBiasSection(bias) {
   if (bias.matchedCount === 0 || !bias.allowlist) {
     lines.push(
       'Registry coverage: no V3b.3 corrective rows matched these compensations.',
-      'Direction: include CES blocks; trainer/AI may freely select stretches and activation drills consistent with the listed patterns. For any corrective exercise emitted, set `exerciseKey: null` and `outsideAllowlistJustification: "<why this picks fits the compensation>"` so downstream wiring can audit non-allowlist choices.',
+      'Allowlist guidance: include CES blocks; freely select stretches and activation drills consistent with the listed patterns. When a downstream slice extends this prompt to per-exercise output, every corrective exercise will be required to cite an allowlist exerciseKey OR include outsideAllowlistJustification.',
     );
     return lines.join('\n');
   }
@@ -316,16 +333,17 @@ function buildCorrectiveBiasSection(bias) {
   const safeTags = (bias.tags || []).map((t) => safePromptString(t)).filter(Boolean).join(', ');
   lines.push(
     `Registry coverage: ${bias.matchedCount} V3b.3-validated corrective(s) matched (tags: ${safeTags}).`,
-    // V3c.5.2 (Codex Round 1 LOW 1) — closed-set is now an auditable
-    // contract: every corrective exercise emitted MUST carry
-    // exerciseKey OR outsideAllowlistJustification. This makes
-    // deviations from the allowlist detectable in downstream output
-    // validators without forcing the AI to ONLY use registry rows
-    // (which would produce empty plans when registry coverage gaps).
-    'Closed-set contract: when emitting corrective warmup or CES-block exercises, prefer rows from the allowlist below. EVERY corrective exercise object in your output JSON must include either:',
-    '  - `exerciseKey`: a key from this allowlist (e.g. "ces-foam-roll-tfl"), OR',
-    '  - `exerciseKey: null` AND `outsideAllowlistJustification: "<reason>"` describing why no allowlist row fit.',
-    'This contract makes non-allowlist choices auditable. Do NOT silently drop the field.',
+    // V3c.5.3 (Codex Round 2 honesty fix) — the long-horizon schema
+    // (LongHorizonPlanOutputSchema in longHorizonOutputValidator.mjs)
+    // emits MesocycleBlock objects with `notes`, NOT per-exercise
+    // objects. So `exerciseKey` / `outsideAllowlistJustification`
+    // CANNOT be schema-enforced at this layer — earlier "closed-set
+    // contract" wording was unenforceable here. Wording is now
+    // "Allowlist guidance" — prescriptive but explicitly NOT an
+    // auditable contract. The schema-enforceable closed-set lives in
+    // a future slice when V3c.5 bias is wired into the per-exercise
+    // (single-workout) prompt path where exercises actually surface.
+    'Allowlist guidance: when phase notes or CES-block focus references corrective work, prefer the allowlist below. Reference exercise names as written and cite the exerciseKey when applicable, so downstream per-day generation can resolve the recommendation against the registry.',
   );
 
   const renderStep = (label, rows) => {
@@ -345,7 +363,7 @@ function buildCorrectiveBiasSection(bias) {
   renderStep('integrate (integration patterns)', bias.allowlist.integrate);
 
   lines.push(
-    'Directive: integrate the inhibit + lengthen rows into Phase 1 stabilization warmups; integrate the activate + integrate rows as the corrective bias inside CES blocks. Allowlist alternatives are acceptable when justified per the closed-set contract above.',
+    'Directive: integrate the inhibit + lengthen rows into Phase 1 stabilization warmups; integrate the activate + integrate rows as the corrective bias inside CES blocks. Allowlist alternatives are acceptable when consistent with the listed patterns; cite the rationale in the block notes.',
   );
 
   return lines.join('\n');

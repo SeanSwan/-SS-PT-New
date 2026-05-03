@@ -422,6 +422,15 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
   const requestIdRef = useRef<number>(0);
 
   const fetchRecommendations = useCallback(async () => {
+    // V3c.6.3 (Codex Round 2 MEDIUM): increment the sequence id BEFORE
+    // any early return so empty/invalid-state transitions invalidate
+    // any in-flight request from the previous query. Without this,
+    // a non-empty → empty transition leaves the prior request's id
+    // matching ref.current; when it resolves, it bypasses the
+    // stale-check and can re-populate `recs` with stale data even
+    // though the panel is now in the empty state.
+    const requestId = ++requestIdRef.current;
+
     if (!clientId || !Array.isArray(compensations) || compensations.length === 0) {
       // Empty / no-OHSA case — render the empty-state UI without
       // hitting the network. The render-branch guard handles the
@@ -437,8 +446,6 @@ const CorrectiveRecommendationsPanel: React.FC<Props> = ({
     setRecs(null);
     setLoading(true);
     setError(null);
-
-    const requestId = ++requestIdRef.current;
 
     try {
       const api = new ApiService();

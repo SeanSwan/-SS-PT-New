@@ -419,6 +419,41 @@ describe('CorrectiveRecommendationsPanel — stale data + race protection', () =
     expect(screen.queryByText('Foam Roll TFL')).not.toBeInTheDocument();
   });
 
+  // V3c.6.3 (Codex Round 2 MEDIUM): non-empty → empty transition must
+  // also invalidate the prior in-flight request, not just non-empty →
+  // non-empty transitions.
+  it('drops stale responses after compensations transition to empty', async () => {
+    let resolveSlow: (value: unknown) => void = () => {};
+    mockPost.mockImplementationOnce(() => new Promise((r) => { resolveSlow = r; }));
+
+    const { rerender } = render(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={['knee_valgus']}
+      />,
+    );
+    // Confirm the fetch fired and we're in the loading state.
+    await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
+
+    // Transition to empty compensations BEFORE the original request resolves.
+    rerender(
+      <CorrectiveRecommendationsPanel
+        clientId={1}
+        compensations={[]}
+      />,
+    );
+    await screen.findByText(/No OHSA compensations on file/i);
+
+    // Now the slow original response arrives. Without the V3c.6.3 fix
+    // (requestId++ before the empty-state early return), this would
+    // setRecs(...) and replace the empty-state UI with stale recs.
+    resolveSlow({ data: { success: true, recommendations: FAKE_RECOMMENDATIONS } });
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(screen.queryByText('Foam Roll TFL')).not.toBeInTheDocument();
+    expect(screen.getByText(/No OHSA compensations on file/i)).toBeInTheDocument();
+  });
+
   it('drops stale responses when a newer fetch races ahead', async () => {
     let resolveSlow: (value: unknown) => void = () => {};
     mockPost.mockImplementationOnce(() => new Promise((r) => { resolveSlow = r; }));
