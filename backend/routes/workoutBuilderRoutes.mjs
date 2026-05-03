@@ -12,6 +12,8 @@ import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
+import { getCorrectiveExercisesForCompensations } from '../services/ai/correctiveExerciseService.mjs';
+import { getExercise } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import {
   assertAssignmentOrAdmin,
@@ -252,6 +254,84 @@ router.post('/plan', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to generate plan',
+      details: safeWorkoutBuilderDetails(err),
+    });
+  }
+});
+
+/**
+ * POST /api/workout-builder/corrective-recommendations  (V3c.2)
+ *
+ * Bridges OHSA compensation data to the V3b.3 NASM CES corrective
+ * registry (32 ces-* exercises). Returns the matching corrective
+ * exercises grouped by CES protocol step
+ * (inhibit | lengthen | activate | integrate).
+ *
+ * Body:
+ *   - clientId       (required) — used for access-gate enforcement.
+ *   - compensations  (required) — array of compensation type strings
+ *                    (e.g. `['knee_valgus', 'low_back_arch']`) OR
+ *                    objects in the clientIntelligenceService shape
+ *                    (e.g. `[{ type: 'knee_valgus', avgSeverity: 7 }]`).
+ *                    Unknown types are dropped silently.
+ *   - includeSteps   (optional) — array of CES protocol step names
+ *                    to include. Defaults to all four steps.
+ *
+ * Response: { success: true, recommendations: { tags, matchedCount,
+ *   inhibit, lengthen, activate, integrate } }
+ *
+ * Access: same gate as /generate and /plan — admin/trainer can call
+ * for any clientId; client can only call for their own (with the
+ * ENABLE_CLIENT_PLAN_SELFGEN env flag).
+ *
+ * Note (V3c scope): this slice takes compensations directly in the
+ * body. A future slice (V3c.4) will let the route auto-fetch from
+ * the client's MovementProfile when compensations are omitted.
+ */
+router.post('/corrective-recommendations', async (req, res) => {
+  try {
+    const { clientId, compensations, includeSteps } = req.body;
+
+    const parsedClientId = parseInt(clientId, 10);
+    if (isNaN(parsedClientId) || parsedClientId < 1) {
+      return res.status(400).json({ success: false, error: 'Valid clientId is required' });
+    }
+
+    if (!Array.isArray(compensations)) {
+      return res.status(400).json({
+        success: false,
+        error: 'compensations must be an array',
+      });
+    }
+
+    const gateResult = await enforceWorkoutGenAccess(req, res, parsedClientId);
+    if (gateResult !== null) return gateResult;
+
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res
+        .status(503)
+        .json({ success: false, error: 'Exercise model not available' });
+    }
+
+    const safeIncludeSteps = Array.isArray(includeSteps)
+      ? includeSteps.filter(
+          (s) => typeof s === 'string' && ['inhibit', 'lengthen', 'activate', 'integrate'].includes(s),
+        )
+      : undefined;
+
+    const recommendations = await getCorrectiveExercisesForCompensations({
+      compensations,
+      Exercise,
+      includeSteps: safeIncludeSteps,
+    });
+
+    return res.json({ success: true, recommendations });
+  } catch (err) {
+    logger.error('[WorkoutBuilder] Corrective recommendations failed:', err.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch corrective recommendations',
       details: safeWorkoutBuilderDetails(err),
     });
   }
