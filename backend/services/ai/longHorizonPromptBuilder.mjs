@@ -253,18 +253,18 @@ function safePromptString(s, fallback = '') {
   // width digits, ligatures, etc.) sneak past the regex filters even
   // though an LLM would still read them as the original word.
   try { out = out.normalize('NFKC'); } catch { /* malformed string — let later strips handle it */ }
-  // V3c.5.3: strip Unicode zero-width + bidi format controls.
-  // These are invisible characters that can split words in the
-  // injection-hint regex (e.g. "Igno​re previous instructions"
-  // would otherwise survive). Range covers:
-  //   U+200B-200F  zero-width / LRM-RLM-LRE-RLE-PDF
-  //   U+202A-202E  bidi overrides (LRO/RLO etc.)
-  //   U+2060-206F  word joiner / invisible separators
-  //   U+FEFF       BOM / zero-width no-break space
-  // V3c.5.3: replace with empty (NOT space) so "Igno<ZWS>re" merges
-  // back to "Ignore" rather than splitting to "Igno re" \u2014 the latter
-  // would defeat the contiguous-word PROMPT_INJECTION_HINTS regex.
-  out = out.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  out = out.replace(/\p{Default_Ignorable_Code_Point}/gu, '');
   // Strip ASCII control characters (newlines, tabs, etc).
   out = out.replace(/[\x00-\x1F\x7F]/g, ' ');
   // Kill markdown code fences that could break out of prompt blocks.
