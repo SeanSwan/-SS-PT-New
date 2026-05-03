@@ -22,6 +22,7 @@ import {
   buildWeeklyDayTypes,
   expandV3aDayTypeToMovementCategories,
   focusForDayType,
+  recoveryDayPrescriptionOverride,
   DAY_TYPE,
   NASM_PHASE,
 } from '../services/planDayTypeService.mjs';
@@ -160,12 +161,22 @@ describe('expandV3aDayTypeToMovementCategories', () => {
     expect(cats).toContain('flexibility');
   });
 
-  it('core_stability_balance expands ONLY to core + balance + stability + stabilizers', () => {
+  it('core_stability_balance expands to core + corrective + balance + stability + stabilizers (V3a round-2)', () => {
     const cats = expandV3aDayTypeToMovementCategories(DAY_TYPE.core_stability_balance);
-    expect(cats).toEqual(['core', 'balance', 'stability', 'stabilizers']);
-    // Should NOT include push/pull/legs categories.
+    // V3a round-2 (Codex MEDIUM-1): expanded to include the production
+    // category `corrective` because variationEngine.mjs's categoryMap
+    // routes recovery exercises to that label, and the seeded NASM
+    // stabilization/balance work tags as exerciseType=stabilizers but
+    // bodyPartCategory=recovery → mapped category=corrective.
+    expect(cats).toContain('core');
+    expect(cats).toContain('corrective');
+    expect(cats).toContain('balance');
+    expect(cats).toContain('stability');
+    expect(cats).toContain('stabilizers');
+    // Should still NOT include push/pull/legs categories.
     expect(cats).not.toContain('push');
     expect(cats).not.toContain('squat');
+    expect(cats).not.toContain('pull');
   });
 
   it('active_recovery expands to mobility + flexibility + recovery exercises', () => {
@@ -212,6 +223,86 @@ describe('focusForDayType', () => {
 // ─────────────────────────────────────────────────────────────
 // NASM_PHASE constant export (sanity)
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// V3a round-2 (Codex 2026-05-03 MEDIUM-1): V3a category expansion
+// must include PRODUCTION registry category names (`compound`,
+// `corrective`, `core`, `cardio`) — the labels variationEngine.mjs's
+// categoryMap actually emits for live DB rows. Without these, the
+// filter ran but matched zero exercises in production.
+// ─────────────────────────────────────────────────────────────
+
+describe('expandV3aDayTypeToMovementCategories - production registry compat (MED-1)', () => {
+  it('full_body_stabilization includes production category names', () => {
+    const cats = expandV3aDayTypeToMovementCategories(DAY_TYPE.full_body_stabilization);
+    // Production category names from variationEngine.mjs categoryMap
+    expect(cats).toContain('compound');
+    expect(cats).toContain('core');
+    expect(cats).toContain('corrective');
+  });
+
+  it('core_stability_balance includes production category names', () => {
+    const cats = expandV3aDayTypeToMovementCategories(DAY_TYPE.core_stability_balance);
+    expect(cats).toContain('core');
+    expect(cats).toContain('corrective');
+  });
+
+  it('active_recovery includes production category names', () => {
+    const cats = expandV3aDayTypeToMovementCategories(DAY_TYPE.active_recovery);
+    expect(cats).toContain('corrective');
+    expect(cats).toContain('cardio');
+  });
+
+  it('full_core stays as production-name `core` only', () => {
+    expect(expandV3aDayTypeToMovementCategories(DAY_TYPE.full_core)).toEqual(['core']);
+  });
+
+  it('seeder labels are preserved alongside production names (forward-compat for V3b)', () => {
+    // V3b will add exerciseType-aware filtering; the seeded NASM
+    // exercises tag balance/stability/etc. as exerciseType. Keep the
+    // labels in the list so V3b doesn't need a second migration.
+    const cats = expandV3aDayTypeToMovementCategories(DAY_TYPE.full_body_stabilization);
+    expect(cats).toContain('balance');
+    expect(cats).toContain('stability');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// V3a round-2 (Codex 2026-05-03 MEDIUM-2): active recovery days
+// must NOT receive Phase 2 strength prescriptions (70-80%, 8-12 reps,
+// 2-0-2 tempo). Recovery is duration-based mobility/SMR/breathwork.
+// ─────────────────────────────────────────────────────────────
+
+describe('recoveryDayPrescriptionOverride (MED-2)', () => {
+  it('returns null for non-recovery day types', () => {
+    expect(recoveryDayPrescriptionOverride(DAY_TYPE.push)).toBeNull();
+    expect(recoveryDayPrescriptionOverride(DAY_TYPE.full_body)).toBeNull();
+    expect(recoveryDayPrescriptionOverride(DAY_TYPE.core_stability_balance)).toBeNull();
+    expect(recoveryDayPrescriptionOverride(DAY_TYPE.full_core)).toBeNull();
+    expect(recoveryDayPrescriptionOverride(DAY_TYPE.full_body_stabilization)).toBeNull();
+  });
+
+  it('returns recovery-specific prescription for active_recovery', () => {
+    const override = recoveryDayPrescriptionOverride(DAY_TYPE.active_recovery);
+    expect(override).not.toBeNull();
+    // Lower exercise count vs default 6
+    expect(override.exerciseCount).toBeLessThan(6);
+    // Single set, duration-based reps (NOT 8-12)
+    expect(override.sets).toBe(1);
+    expect(String(override.reps)).toMatch(/s$|sec|hold|duration/i);
+    // NOT high-intensity strength tempo
+    expect(override.tempo).not.toBe('2-0-2');
+    expect(override.tempo).not.toBe('4-2-1');
+    // Intensity tag should signal recovery, not load %
+    expect(String(override.intensityGuideline).toLowerCase()).toMatch(/recovery|sub-rpe|rpe \d|mobility/i);
+    expect(String(override.intensityGuideline)).not.toMatch(/70-80|80-90|85-100/);
+  });
+
+  it('exercise count is 4 (not 6) for recovery days', () => {
+    const override = recoveryDayPrescriptionOverride(DAY_TYPE.active_recovery);
+    expect(override.exerciseCount).toBe(4);
+  });
+});
 
 describe('NASM_PHASE constants', () => {
   it('exposes all 5 phases with stable numeric values', () => {

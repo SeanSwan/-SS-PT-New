@@ -163,21 +163,76 @@ function clampPhase(value) {
  * (push, pull, legs, full_body, upper, lower) are NOT remapped here —
  * the workoutBuilder's existing expandScheduleCategoryToMovementCategories
  * already handles them. This service ONLY contributes the V3a-new types.
+ *
+ * V3a round-2 (Codex 2026-05-03 MEDIUM-1): each list now includes BOTH
+ *   1. Production registry category names (`compound`, `corrective`, `core`,
+ *      `cardio`) — these are the values `variationEngine.mjs:categoryMap`
+ *      actually emits for live DB rows mapped from `bodyPartCategory`.
+ *   2. NASM seeder-style labels (`balance`, `stability`, `stabilizers`,
+ *      `flexibility`, `injury_recovery`, `recovery`) — preserved so when
+ *      the V3b corrective database expansion lands AND `selectExercises`
+ *      gains exerciseType-aware matching, the same filter list keeps
+ *      working without a second migration.
+ *
+ * Without (1), the filter ran but matched zero exercises in production
+ * because production tags say `'corrective'` not `'balance'`. Sean would
+ * have seen the day-type label change but no exercises populate.
  */
 export function expandV3aDayTypeToMovementCategories(dayType) {
   switch (dayType) {
     case DAY_TYPE.full_body_stabilization:
-      // Phase 1: balance + stability + core + corrective + light compound
-      return ['balance', 'stability', 'stabilizers', 'core', 'compound', 'corrective', 'flexibility'];
+      // Phase 1 priority: proprioception + light compound + corrective.
+      // Production: `compound` + `core` + `corrective` cover the bulk.
+      // Seeder labels included for V3b-forward-compat.
+      return [
+        'compound', 'core', 'corrective',                // production
+        'balance', 'stability', 'stabilizers', 'flexibility',  // seeder
+      ];
     case DAY_TYPE.core_stability_balance:
-      return ['core', 'balance', 'stability', 'stabilizers'];
+      return [
+        'core', 'corrective',                            // production
+        'balance', 'stability', 'stabilizers',           // seeder
+      ];
     case DAY_TYPE.active_recovery:
-      // Mobility, foam-roll/SMR, stretch, breathwork
-      return ['flexibility', 'corrective', 'injury_recovery', 'recovery', 'cardio'];
+      // Mobility, foam-roll/SMR, stretch, breathwork.
+      // Production: `corrective` + `cardio` cover most recovery work.
+      return [
+        'corrective', 'cardio',                          // production
+        'flexibility', 'injury_recovery', 'recovery',    // seeder
+      ];
     case DAY_TYPE.full_core:
-      // Abs + lower-back + obliques
+      // Abs + lower-back + obliques. Both production & seeder label as `core`.
       return ['core'];
     default:
       return null; // not a V3a-new type; caller falls through to legacy expansion
   }
+}
+
+// ─── V3a round-2 (Codex MEDIUM-2) — recovery-day prescription overrides ──
+
+/**
+ * Active recovery days SHOULD NOT use Phase 2 strength-endurance OPT
+ * params (sets 2-4, reps 8-12, intensity 70-80%, tempo 2-0-2). Mobility
+ * + foam-roll + breathwork are duration-based, not load-based.
+ *
+ * The populator calls this when assigning per-day OPT params; if it
+ * returns non-null the populator overrides the phase defaults.
+ *
+ * Returns `null` for all non-recovery day types so the populator falls
+ * through to the existing OPT_PHASE_PARAMS-driven prescription.
+ */
+export function recoveryDayPrescriptionOverride(dayType) {
+  if (dayType !== DAY_TYPE.active_recovery) return null;
+  return {
+    // Lower count - 4 mobility/recovery items beats 6 strength-endurance.
+    exerciseCount: 4,
+    // Override OPT params with recovery-specific values.
+    sets: 1,
+    reps: '30-60s',                  // duration-style hold/move
+    setScheme: '1×30-60s',
+    repGoal: '30-60s',
+    restPeriod: 30,                  // short transitions
+    tempo: 'controlled',             // not 4-2-1; not 2-0-2
+    intensityGuideline: 'recovery / sub-RPE 3',
+  };
 }

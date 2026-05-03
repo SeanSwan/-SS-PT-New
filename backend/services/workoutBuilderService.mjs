@@ -26,6 +26,8 @@ import {
   buildWeeklyDayTypes,
   expandV3aDayTypeToMovementCategories,
   focusForDayType,
+  recoveryDayPrescriptionOverride,
+  DAY_TYPE,
 } from './planDayTypeService.mjs';
 import logger from '../utils/logger.mjs';
 import {
@@ -891,7 +893,13 @@ export async function generatePlan(options) {
         recentlyUsedExercises: recentExerciseKeys.slice(-7),
       };
 
-      const exerciseCount = 6;                          // default per-day exercise target
+      // V3a round-2 (Codex 2026-05-03 MEDIUM-2): active-recovery days
+      // get a recovery-specific prescription instead of strength OPT
+      // params. Without this override the populator emitted 70-80%
+      // intensity / 8-12 reps / 2-0-2 tempo on a recovery day, which
+      // contradicts the day-type's stated mobility/SMR/breathwork intent.
+      const recoveryOverride = recoveryDayPrescriptionOverride(cat);
+      const exerciseCount = recoveryOverride?.exerciseCount ?? 6;
       const selected = selectExercises(
         registry, cat, exerciseCount,
         constraintsForDay, equipmentItems, phase, goalBias
@@ -905,20 +913,26 @@ export async function generatePlan(options) {
 
       const exercises = selected.map((ex, i) => {
         const opt = applyOPTParams(ex, phase, goalBias);
-        const setNum = chooseBiasedSet(OPT_PHASE_PARAMS[phase].sets, goalBias?.setBias);
-        const repString = formatBiasedRange(OPT_PHASE_PARAMS[phase].reps, goalBias?.repBias);
-        const restNum = midpoint(OPT_PHASE_PARAMS[phase].rest);
+        // Recovery override skips chooseBiasedSet/formatBiasedRange — it
+        // prescribes duration-based mobility/SMR holds, not load-based sets.
+        const setNum = recoveryOverride?.sets
+          ?? chooseBiasedSet(OPT_PHASE_PARAMS[phase].sets, goalBias?.setBias);
+        const repString = recoveryOverride?.reps
+          ?? formatBiasedRange(OPT_PHASE_PARAMS[phase].reps, goalBias?.repBias);
+        const restNum = recoveryOverride?.restPeriod
+          ?? midpoint(OPT_PHASE_PARAMS[phase].rest);
         return {
           exerciseId: ex.key,
           exerciseName: opt.exerciseName,
           orderInWorkout: i + 1,
           sets: setNum,
           reps: repString,
-          setScheme: `${setNum}x${repString}`,
-          repGoal: repString,
+          setScheme: recoveryOverride?.setScheme ?? `${setNum}x${repString}`,
+          repGoal: recoveryOverride?.repGoal ?? repString,
           restPeriod: restNum,
-          tempo: OPT_PHASE_PARAMS[phase].tempo,
-          intensityGuideline: OPT_PHASE_PARAMS[phase].intensity,
+          tempo: recoveryOverride?.tempo ?? OPT_PHASE_PARAMS[phase].tempo,
+          intensityGuideline: recoveryOverride?.intensityGuideline
+            ?? OPT_PHASE_PARAMS[phase].intensity,
           notes: '',
           source: 'auto-populated',
           ...(rotationFallbackForThisDay ? { rotationFallback: true } : {}),
@@ -930,12 +944,16 @@ export async function generatePlan(options) {
         recentExerciseKeys.push(ex.key);
       }
 
+      // V3a round-2 (Codex MEDIUM-2): mark active-recovery days with
+      // dayType='recovery' so the frontend / PDF / logger can render
+      // them with a recovery-specific affordance.
+      const isRecoveryDay = cat === DAY_TYPE.active_recovery;
       days.push({
         dayNumber,
         dayInPlan,
         name: `Day ${dayNumber}: ${focus}`,
         focus,
-        dayType: isDeloadWeek ? 'deload' : 'training',
+        dayType: isDeloadWeek ? 'deload' : (isRecoveryDay ? 'recovery' : 'training'),
         optPhase: OPT_PHASE_PARAMS[phase].name.toLowerCase().replace(/\s+/g, '_'),
         exercises,
       });
