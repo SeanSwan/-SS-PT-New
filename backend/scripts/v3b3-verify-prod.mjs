@@ -22,20 +22,16 @@
  * Run:  cd backend && node scripts/v3b3-verify-prod.mjs
  * Exit: 0 on pass, 1 on fail.
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 import sequelize from '../database.mjs';
+import sharedPatterns from '../../shared/sectionPatterns.mjs';
 
-// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is now sourced
-// from shared/sectionPatterns.json — same source the frontend
+// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is sourced from
+// shared/sectionPatterns.mjs — same source the frontend
 // sectionFilter.ts compiles. Previously this script kept a hand-
 // copied mirror that could drift silently, producing false-positive
-// PASS even after the canonical filter changed.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const sharedPatternsPath = resolve(__dirname, '../../shared/sectionPatterns.json');
-const sharedPatterns = JSON.parse(readFileSync(sharedPatternsPath, 'utf-8'));
+// PASS even after the canonical filter changed. V3c closeout:
+// switched from .json to .mjs ESM import to avoid Node 22+ JSON
+// import-attribute requirements.
 
 function compileSectionPattern(entry) {
   return {

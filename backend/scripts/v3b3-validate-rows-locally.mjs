@@ -15,20 +15,16 @@
  * Run:  cd backend && node scripts/v3b3-validate-rows-locally.mjs
  * Exit: 0 if all rows are routable, 1 if any orphan exists.
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 import seederModule from '../seeders/20260504-seed-nasm-corrective-starter.mjs';
+import sharedPatterns from '../../shared/sectionPatterns.mjs';
 
 // V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS sourced from
-// shared/sectionPatterns.json so this validator can never silently
+// shared/sectionPatterns.mjs so this validator can never silently
 // drift from the frontend filter. The previous "Kept inline ... if
 // the frontend file changes, update this constant in lockstep"
-// approach was the exact failure mode Codex flagged.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const sharedPatternsPath = resolve(__dirname, '../../shared/sectionPatterns.json');
-const sharedPatterns = JSON.parse(readFileSync(sharedPatternsPath, 'utf-8'));
+// approach was the exact failure mode Codex flagged. V3c closeout:
+// switched from .json to .mjs ESM import to avoid Node 22+ JSON
+// import-attribute requirements.
 
 function compileSectionPattern(entry) {
   return {

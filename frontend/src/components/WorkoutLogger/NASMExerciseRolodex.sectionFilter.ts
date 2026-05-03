@@ -72,15 +72,22 @@ export interface ExerciseSlimSubset {
  *     stretching), 'injury_recovery' (NEW — the 25 seeded recovery
  *     entries, e.g. 90/90 hip stretch, child's pose, breathing drills).
  */
-// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is now sourced
-// from shared/sectionPatterns.json so the backend v3b3-verify-prod.mjs
+// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is sourced from
+// shared/sectionPatterns.mjs so the backend v3b3-verify-prod.mjs
 // and v3b3-validate-rows-locally.mjs scripts consume the SAME data.
 // Previously the backend kept a hand-copied JS mirror that could
-// drift from this file silently — the verifier would pass against
-// stale logic. The JSON file stores nameKeywords as a regex source
-// string (no slashes) + flags so both TS and Node-MJS can compile
-// them identically via `new RegExp(source, flags)`.
-import sharedPatterns from '../../../../shared/sectionPatterns.json';
+// drift silently — the verifier would pass against stale logic.
+//
+// V3c closeout (2026-05-03): switched from .json to .mjs to dodge
+// Node 22+'s `with { type: 'json' }` import-attribute requirement,
+// which TS tooling support is uneven for. Plain ESM module export
+// works in Vite, Node ESM, and Playwright's runner identically.
+//
+// The shared module stores nameKeywords as a regex source string
+// (no slashes) + flags so both TS and Node-MJS compile them via
+// `new RegExp(source, flags)`.
+// @ts-expect-error — JS file referenced from TS; types declared inline below.
+import sharedPatterns from '../../../../shared/sectionPatterns.mjs';
 
 interface SharedPatternEntry {
   categories: string[];
