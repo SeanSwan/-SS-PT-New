@@ -758,13 +758,29 @@ const EnhancedOverviewCrystalline: React.FC = () => {
           ) : (workoutHistory?.length ?? 0) > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {workoutHistory!.slice(0, 3).map((w: any) => (
-                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'rgba(139, 92, 246,0.05)', borderRadius: '10px', border: '1px solid rgba(139, 92, 246,0.1)' }}>
-                  <div>
+                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.75rem 1rem', background: 'rgba(139, 92, 246,0.05)', borderRadius: '10px', border: '1px solid rgba(139, 92, 246,0.1)' }}>
+                  <div style={{ flex: 1, minWidth: 0, marginRight: '0.5rem' }}>
                     <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.95rem' }}>{w.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
                       {new Date(w.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       {w.duration ? ` \u00B7 ${w.duration}` : ''}
                     </div>
+                    {/* Slice 1.3 (2026-05-03): exercise names preview. */}
+                    {Array.isArray(w.exerciseNames) && w.exerciseNames.length > 0 && (
+                      <div
+                        style={{
+                          color: 'rgba(96, 192, 240, 0.7)',
+                          fontSize: '0.75rem',
+                          marginTop: '0.2rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {(w.exerciseNames as string[]).slice(0, 3).join(', ')}
+                        {w.exerciseNames.length > 3 && ` +${w.exerciseNames.length - 3} more`}
+                      </div>
+                    )}
                   </div>
                   {/* Slice 1.2: render the truthful counters. exerciseCount
                       is the count of distinct exercises (preferred);

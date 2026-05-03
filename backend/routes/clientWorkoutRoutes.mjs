@@ -63,7 +63,16 @@ export const toClientWorkoutHistoryRow = (session) => {
   // Include latest form's exercises array length when available.
   // Falls back to null (not 0) when the association wasn't joined,
   // so frontend can distinguish "no data" from "0 exercises."
+  //
+  // Slice 1.3 (2026-05-03): also extract the exercise NAMES from the
+  // same form so the dashboard can render "Squat, Bench, Deadlift"
+  // instead of just "6 exercises". Names come from
+  // formData.exercises[].exerciseName (with `.name` as fallback —
+  // both shapes are observed across writers, e.g.
+  // dailyWorkoutFormRoutes.mjs:745 and :1344). Non-string / blank
+  // names are dropped.
   let exerciseCount = null;
+  let exerciseNames = null;
   const forms = raw?.dailyForms;
   if (Array.isArray(forms) && forms.length > 0) {
     // formData may be JSON-stringified from raw queries or parsed
@@ -74,6 +83,19 @@ export const toClientWorkoutHistoryRow = (session) => {
     }
     if (formData && Array.isArray(formData.exercises)) {
       exerciseCount = formData.exercises.length;
+      // Slice 1.3: build the names array. Always emit an array
+      // (possibly empty) when the form was joined so consumers can
+      // distinguish "joined-but-empty" from "not-joined-at-all" via
+      // null vs []. The deprecation alias for `exercises:` keeps
+      // working because we never overwrite it with this names array.
+      const names = [];
+      for (const ex of formData.exercises) {
+        const candidate = (typeof ex?.exerciseName === 'string' && ex.exerciseName.trim())
+          || (typeof ex?.name === 'string' && ex.name.trim())
+          || null;
+        if (candidate) names.push(candidate);
+      }
+      exerciseNames = names;
     }
   }
 
@@ -84,6 +106,12 @@ export const toClientWorkoutHistoryRow = (session) => {
     duration: duration && duration > 0 ? `${duration} min` : null,
     setsCount: totalSets,
     exerciseCount,
+    // Slice 1.3 (2026-05-03): list of distinct exercise names for
+    // the dashboard preview. Array (possibly empty) when the form
+    // was joined; null when join didn't happen. Frontend handles
+    // truncation ("Squat, Bench, Deadlift +3 more") since the size
+    // depends on screen real estate.
+    exerciseNames,
     // Codex Slice 1.2 Round 1 MEDIUM 1 — keep `exercises` as a
     // DEPRECATED alias for one release so unknown consumers
     // (mobile app, internal tools, cached frontend builds, third-

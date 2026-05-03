@@ -38,6 +38,7 @@ describe('toClientWorkoutHistoryRow', () => {
       duration: '55 min',
       setsCount: 18,
       exerciseCount: null, // No joined dailyForms
+      exerciseNames: null, // Slice 1.3: null when join didn't happen
       // Slice 1.2 Codex R1 MEDIUM 1: deprecated `exercises` alias.
       // When exerciseCount is null, falls back to totalSets (the
       // pre-Slice-1.2 wrong-but-stable behavior). When known, uses
@@ -222,5 +223,152 @@ describe('toClientWorkoutHistoryRow', () => {
     expect(row.exerciseCount).toBeNull();
     expect(row.setsCount).toBe(5);
     expect(row.exercises).toBe(5);
+  });
+
+  // ─── Phase 1 Slice 1.3 (2026-05-03) — exerciseNames extraction ───
+
+  it('Slice 1.3: extracts exerciseNames from joined formData.exercises[].exerciseName', () => {
+    const session = {
+      id: 'a',
+      title: 'Push Day',
+      totalSets: 18,
+      dailyForms: [
+        {
+          formData: {
+            exercises: [
+              { exerciseName: 'Bench Press', sets: [{}, {}, {}, {}] },
+              { exerciseName: 'Overhead Press', sets: [{}, {}, {}] },
+              { exerciseName: 'Cable Fly', sets: [{}, {}, {}] },
+            ],
+          },
+        },
+      ],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toEqual([
+      'Bench Press',
+      'Overhead Press',
+      'Cable Fly',
+    ]);
+  });
+
+  it('Slice 1.3: falls back to `name` field when `exerciseName` missing (mixed writer shapes)', () => {
+    // dailyWorkoutFormRoutes.mjs:745 + :1344 both use the
+    // `ex.exerciseName || ex.name || 'unknown'` pattern. Mapper
+    // mirrors that fallback so it accepts either shape.
+    const session = {
+      id: 'b',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [
+        {
+          formData: {
+            exercises: [
+              { name: 'Squat' },
+              { exerciseName: 'Deadlift' },
+            ],
+          },
+        },
+      ],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toEqual(['Squat', 'Deadlift']);
+  });
+
+  it('Slice 1.3: drops blank/whitespace/non-string names defensively', () => {
+    const session = {
+      id: 'c',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [
+        {
+          formData: {
+            exercises: [
+              { exerciseName: 'Squat' },
+              { exerciseName: '   ' },        // blank → drop
+              { exerciseName: '' },            // empty → drop
+              { exerciseName: null },           // null → drop
+              { exerciseName: 42 },            // non-string → drop
+              { name: 'Deadlift' },            // fallback OK
+            ],
+          },
+        },
+      ],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toEqual(['Squat', 'Deadlift']);
+  });
+
+  it('Slice 1.3: returns empty array (NOT null) when joined form has zero exercises', () => {
+    // Distinguishes "join happened, no exercises yet" from "join
+    // didn't happen at all" — the frontend uses Array.isArray(...)
+    // to decide whether to render the names line.
+    const session = {
+      id: 'd',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [{ formData: { exercises: [] } }],
+    };
+    const row = toClientWorkoutHistoryRow(session);
+    expect(Array.isArray(row.exerciseNames)).toBe(true);
+    expect(row.exerciseNames).toEqual([]);
+  });
+
+  it('Slice 1.3: exerciseNames=null when dailyForms missing entirely (no join)', () => {
+    const session = { id: 'e', title: 'A', totalSets: 5 };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toBeNull();
+  });
+
+  it('Slice 1.3: handles JSON-stringified formData (raw query path)', () => {
+    const session = {
+      id: 'f',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [
+        {
+          formData: JSON.stringify({
+            exercises: [
+              { exerciseName: 'Pullup' },
+              { exerciseName: 'Row' },
+            ],
+          }),
+        },
+      ],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toEqual(['Pullup', 'Row']);
+  });
+
+  it('Slice 1.3: returns null exerciseNames when JSON-stringified formData is malformed', () => {
+    const session = {
+      id: 'g',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [{ formData: 'this is not json {{{' }],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toBeNull();
+  });
+
+  it('Slice 1.3: preserves the order of names as written in formData', () => {
+    // The mapper does NOT alphabetize or dedupe — order matters
+    // because the dashboard "+N more" pattern shows the FIRST 3.
+    // The trainer's order should be the rendered order.
+    const session = {
+      id: 'h',
+      title: 'A',
+      totalSets: 0,
+      dailyForms: [
+        {
+          formData: {
+            exercises: [
+              { exerciseName: 'Squat' },
+              { exerciseName: 'Squat' }, // duplicates preserved
+              { exerciseName: 'Romanian Deadlift' },
+            ],
+          },
+        },
+      ],
+    };
+    expect(toClientWorkoutHistoryRow(session).exerciseNames).toEqual([
+      'Squat',
+      'Squat',
+      'Romanian Deadlift',
+    ]);
   });
 });

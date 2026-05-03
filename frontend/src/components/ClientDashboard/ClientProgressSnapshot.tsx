@@ -72,6 +72,8 @@ interface WorkoutEntry {
   exerciseCount?: number | null;
   /** Slice 1.2: count of SETS across all exercises (was named `exercises` pre-1.2). */
   setsCount?: number;
+  /** Slice 1.3: distinct exercise names from joined form, null when not joined. */
+  exerciseNames?: string[] | null;
   type?: string;
 }
 
@@ -780,6 +782,14 @@ const ClientProgressSnapshot: React.FC<ClientProgressSnapshotProps> = ({ userId 
                 ) : (typeof lastWorkout.setsCount === 'number' && lastWorkout.setsCount > 0 ? (
                   <span>{lastWorkout.setsCount} sets</span>
                 ) : null)}
+                {/* Slice 1.3: short names preview when available. */}
+                {Array.isArray(lastWorkout.exerciseNames) && lastWorkout.exerciseNames.length > 0 && (
+                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {' · '}
+                    {lastWorkout.exerciseNames.slice(0, 3).join(', ')}
+                    {lastWorkout.exerciseNames.length > 3 && ` +${lastWorkout.exerciseNames.length - 3}`}
+                  </span>
+                )}
               </WorkoutMeta>
             </WorkoutInfo>
             <ChevronRight size={18} style={{ color: 'rgba(255,255,255,0.3)' }} />

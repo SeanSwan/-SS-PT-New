@@ -732,8 +732,8 @@ const LogsAndTrackers: React.FC = () => {
                       border: '1px solid rgba(139, 92, 246, 0.1)'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <h5 style={{ margin: 0, color: '#fff' }}>{log.name || 'Workout'}</h5>
                         <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
                           {/* Slice 1.2: prefer exerciseCount + setsCount when present.
@@ -751,8 +751,26 @@ const LogsAndTrackers: React.FC = () => {
                             return parts.length > 0 ? parts.join(' · ') : 'Logged workout';
                           })()}
                         </p>
+                        {/* Slice 1.3 (2026-05-03): exercise names preview.
+                            Show up to 3 names, then "+N more" when more exist.
+                            Renders as a subtle muted line under the duration/count. */}
+                        {Array.isArray(log.exerciseNames) && log.exerciseNames.length > 0 && (
+                          <p
+                            style={{
+                              margin: '0.25rem 0 0',
+                              color: 'rgba(96, 192, 240, 0.7)',
+                              fontSize: '0.75rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {log.exerciseNames.slice(0, 3).join(', ')}
+                            {log.exerciseNames.length > 3 && ` +${log.exerciseNames.length - 3} more`}
+                          </p>
+                        )}
                       </div>
-                      <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{formatLogDate(log.date)}</span>
+                      <span style={{ color: '#ffd700', fontSize: '0.8rem', flexShrink: 0, marginLeft: '0.75rem' }}>{formatLogDate(log.date)}</span>
                     </div>
                   </div>
                 ))

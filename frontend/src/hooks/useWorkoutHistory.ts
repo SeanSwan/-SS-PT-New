@@ -24,6 +24,13 @@ export interface WorkoutHistoryEntry {
    * has totalSets=24, not 24 exercises. Renamed for accuracy.
    */
   setsCount?: number;
+  /**
+   * Phase 1 Slice 1.3 (2026-05-03): list of distinct exercise names
+   * for the dashboard preview (e.g. ["Squat", "Bench Press", "Deadlift"]).
+   * Array (possibly empty) when the joined form was available; null when
+   * not joined. Frontend handles truncation per surface.
+   */
+  exerciseNames?: string[] | null;
   type?: string;
 }
 
