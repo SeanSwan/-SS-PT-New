@@ -145,6 +145,131 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
   });
 });
 
+describe('buildPlanData - generated mode at every supported sessionsPerWeek (Sean 2026-05-02)', () => {
+  // Sean's explicit ask after the CRITICAL-4 fix: persistence must hold
+  // for 1, 2, 3, 4, 5, AND 6 sessions/week — not just the 4×/wk × 3 days
+  // shape the original tests covered. The persistence module is purely
+  // structural (it carries through whatever `weeks[]` shape it receives),
+  // so these tests assert the round-trip preserves both the week count
+  // AND the per-week day count for every frequency.
+  const buildPlanAtFrequency = (sessionsPerWeek: number, durationWeeks: number): GeneratedPlan => ({
+    clientId: 99,
+    clientName: 'Frequency Test',
+    planSummary: {
+      durationWeeks,
+      sessionsPerWeek,
+      totalSessions: durationWeeks * sessionsPerWeek,
+      primaryGoal: 'general_fitness',
+      startingPhase: 2,
+    },
+    mesocycles: [
+      { mesocycle: 1, weeks: `1-${durationWeeks}`, nasmPhase: 1, phaseName: 'Stabilization Endurance',
+        focus: 'foundation', params: { sets: '3', reps: '12-15', intensity: 'low', tempo: '4-2-1', rest: '60s' },
+        overloadStrategy: 'Add 1-2 reps per week', deloadWeek: null },
+    ],
+    weeklySchedule: Array.from({ length: sessionsPerWeek }, (_, d) => ({
+      dayNumber: d + 1, focus: `day ${d + 1}`, category: d % 3 === 0 ? 'push' : d % 3 === 1 ? 'pull' : 'legs',
+    })),
+    recommendations: ['Hydrate', 'Track RPE'],
+    recommendationDetails: [
+      { type: 'hydration', text: 'Hydrate', sourceCitation: 'context.bodyWeight' },
+      { type: 'tracking', text: 'Track RPE', sourceCitation: 'context.nasmPhase' },
+    ],
+    weeks: Array.from({ length: durationWeeks }, (_, w) => ({
+      weekNumber: w + 1,
+      focus: 'foundation',
+      days: Array.from({ length: sessionsPerWeek }, (_, d) => ({
+        dayNumber: d + 1,
+        name: `W${w + 1}D${d + 1}`,
+        focus: 'full body',
+        exercises: Array.from({ length: 6 }, (_, e) => ({
+          exerciseId: `ex-${w}-${d}-${e}`,
+          exerciseName: `Exercise W${w + 1}D${d + 1}E${e + 1}`,
+          sets: 3,
+          targetReps: '10',
+          restSeconds: 60,
+        })),
+      })),
+    })),
+  });
+
+  for (const sessionsPerWeek of [1, 2, 3, 4, 5, 6] as const) {
+    it(`persists a 4-week plan at ${sessionsPerWeek}×/wk - all weeks and all days survive`, () => {
+      const generatedPlan = buildPlanAtFrequency(sessionsPerWeek, 4);
+      const result = buildPlanData({
+        mode: 'generated',
+        generatedPlan,
+        category: 'full_body',
+        goal: 'general_fitness',
+      });
+
+      const weeks = result.weeks as Array<{
+        weekNumber: number;
+        days: Array<{ exercises: unknown[] }>;
+      }>;
+      // Week count survives.
+      expect(weeks).toHaveLength(4);
+      // Per-week day count matches sessionsPerWeek (NOT collapsed).
+      weeks.forEach((week) => {
+        expect(week.days).toHaveLength(sessionsPerWeek);
+        // Per-day exercise count survives.
+        week.days.forEach((day) => {
+          expect(day.exercises).toHaveLength(6);
+        });
+      });
+      // Total session count is week × sessionsPerWeek (4 × N).
+      const totalSessions = weeks.reduce((sum, w) => sum + w.days.length, 0);
+      expect(totalSessions).toBe(4 * sessionsPerWeek);
+      // planSummary.totalSessions is preserved.
+      expect((result.planSummary as { totalSessions: number }).totalSessions).toBe(4 * sessionsPerWeek);
+    });
+  }
+
+  it('persists a full 12-month plan at 6×/wk (the heaviest realistic shape) - 48 weeks × 6 days = 288 sessions', () => {
+    const generatedPlan = buildPlanAtFrequency(6, 48);
+    const result = buildPlanData({
+      mode: 'generated',
+      generatedPlan,
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+
+    const weeks = result.weeks as Array<{ days: Array<{ exercises: unknown[] }> }>;
+    expect(weeks).toHaveLength(48);
+    const totalSessions = weeks.reduce((sum, w) => sum + w.days.length, 0);
+    expect(totalSessions).toBe(288);
+    const totalExercises = weeks.reduce(
+      (sum, w) => sum + w.days.reduce((daySum, d) => daySum + d.exercises.length, 0),
+      0,
+    );
+    expect(totalExercises).toBe(288 * 6); // 1,728 prescriptions
+  });
+
+  it('content signature differs across frequencies (4 days/wk vs 5 days/wk plans don’t collide)', () => {
+    const sig4 = buildContentSignature({
+      mode: 'generated',
+      generatedPlan: buildPlanAtFrequency(4, 4),
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+    const sig5 = buildContentSignature({
+      mode: 'generated',
+      generatedPlan: buildPlanAtFrequency(5, 4),
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+    const sig6 = buildContentSignature({
+      mode: 'generated',
+      generatedPlan: buildPlanAtFrequency(6, 4),
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+    expect(sig4).not.toBe(sig5);
+    expect(sig5).not.toBe(sig6);
+    expect(sig4).not.toBe(sig6);
+  });
+});
+
 describe('buildContentSignature', () => {
   it('manual signatures are stable and equality-comparable', () => {
     const exercises = [buildManualExercise('a', 'Squat'), buildManualExercise('b', 'Row')];
