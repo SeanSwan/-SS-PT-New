@@ -29,6 +29,11 @@ import {
   recoveryDayPrescriptionOverride,
   DAY_TYPE,
 } from './planDayTypeService.mjs';
+import {
+  getCorrectiveExercisesForCompensations,
+  mapCompensationToCesTags,
+} from './ai/correctiveExerciseService.mjs';
+import { getExercise } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import {
   GOAL_CONFIG,
@@ -482,26 +487,87 @@ export async function generateWorkout(options) {
   const warmupType = CATEGORY_TO_WARMUP[category] || 'general';
   const warmup = [...WARMUP_TEMPLATES[warmupType]];
 
-  // Add compensation-specific warmup exercises
-  for (const comp of context.movement.compensations.slice(0, 3)) {
-    if (comp.cesStrategy) {
-      const inhibit = comp.cesStrategy.inhibit?.[0];
-      const activate = comp.cesStrategy.activate?.[0];
-      if (inhibit) {
-        warmup.push({
-          name: `Foam Roll ${formatExerciseName(inhibit)}`,
-          duration: '30s',
-          type: 'inhibit',
-          reason: `Addressing ${comp.type} compensation`,
+  // V3c.3 (2026-05-03): replace synthetic CES_MAP warmup names with real
+  // V3b.3 registry exercises. Each compensation gets ≤1 inhibit + ≤1
+  // activate row pulled from the 32-row ces-* registry, matched by the
+  // compensation's V3b.3 tag set. Falls back to the legacy synthetic
+  // entry only when the registry has no match (covers edge cases like a
+  // future compensation type that's not yet in the V3b.3 mapping).
+  if (context.movement.compensations.length > 0) {
+    let registryCorrectives = null;
+    try {
+      const Exercise = getExercise();
+      if (Exercise) {
+        registryCorrectives = await getCorrectiveExercisesForCompensations({
+          compensations: context.movement.compensations,
+          Exercise,
+          includeSteps: ['inhibit', 'activate'],
         });
       }
-      if (activate) {
+    } catch (err) {
+      // Don't fail workout generation if the corrective lookup misfires —
+      // log it and fall through to the legacy CES_MAP path below.
+      logger.warn('[WorkoutBuilder] V3c.3 corrective registry lookup failed; falling back to CES_MAP', err.message);
+    }
+
+    const findRegistryRowForComp = (comp, step) => {
+      if (!registryCorrectives) return null;
+      const compTags = mapCompensationToCesTags(comp.type);
+      if (compTags.length === 0) return null;
+      const stepRows = registryCorrectives[step] || [];
+      return stepRows.find((row) => {
+        let rowTags = row.nasmCorrectiveCategory;
+        if (typeof rowTags === 'string') {
+          try { rowTags = JSON.parse(rowTags); } catch { return false; }
+        }
+        return Array.isArray(rowTags) && rowTags.some((t) => compTags.includes(t));
+      }) || null;
+    };
+
+    for (const comp of context.movement.compensations.slice(0, 3)) {
+      const reason = `Addressing ${comp.type} compensation`;
+
+      // INHIBIT: prefer V3b.3 row, fall back to CES_MAP synthetic.
+      const inhibitRow = findRegistryRowForComp(comp, 'inhibit');
+      if (inhibitRow) {
         warmup.push({
-          name: `Activate ${formatExerciseName(activate)}`,
+          name: inhibitRow.name,
+          exerciseKey: inhibitRow.exercise_key,
+          duration: '30s',
+          type: 'inhibit',
+          reason,
+          source: 'v3b3-corrective-registry',
+        });
+      } else if (comp.cesStrategy?.inhibit?.[0]) {
+        warmup.push({
+          name: `Foam Roll ${formatExerciseName(comp.cesStrategy.inhibit[0])}`,
+          duration: '30s',
+          type: 'inhibit',
+          reason,
+          source: 'ces-map-fallback',
+        });
+      }
+
+      // ACTIVATE: prefer V3b.3 row, fall back to CES_MAP synthetic.
+      const activateRow = findRegistryRowForComp(comp, 'activate');
+      if (activateRow) {
+        warmup.push({
+          name: activateRow.name,
+          exerciseKey: activateRow.exercise_key,
           sets: 1,
           reps: 12,
           type: 'activate',
-          reason: `Addressing ${comp.type} compensation`,
+          reason,
+          source: 'v3b3-corrective-registry',
+        });
+      } else if (comp.cesStrategy?.activate?.[0]) {
+        warmup.push({
+          name: `Activate ${formatExerciseName(comp.cesStrategy.activate[0])}`,
+          sets: 1,
+          reps: 12,
+          type: 'activate',
+          reason,
+          source: 'ces-map-fallback',
         });
       }
     }
