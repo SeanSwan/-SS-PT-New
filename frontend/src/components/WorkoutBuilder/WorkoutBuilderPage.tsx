@@ -6,7 +6,7 @@
  * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
  * Cosmic Purple (#8B5CF6), glassmorphic panels.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkoutBuilderAPI } from '../../hooks/useWorkoutBuilderAPI';
@@ -17,6 +17,9 @@ import type {
   WorkoutExercise,
   Explanation,
 } from '../../hooks/useWorkoutBuilderAPI';
+import CorrectiveRecommendationsPanel, {
+  type CompensationInput,
+} from '../WorkoutLogger/CorrectiveRecommendationsPanel';
 
 // --- Styled Components ---
 
@@ -321,6 +324,13 @@ const WorkoutBuilderPage: React.FC = () => {
 
   // Config
   const [clientId, setClientId] = useState('');
+  // V3c.6: stable clientId + compensations for the corrective panel.
+  // The panel itself ignores invalid clientId (renders empty), but
+  // a stable parsed number lets the panel's effect dep work cleanly.
+  const parsedClientId = useMemo(() => {
+    const n = parseInt(clientId, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [clientId]);
   const [category, setCategory] = useState('full_body');
   const [exerciseCount, setExerciseCount] = useState('6');
   const [rotationPattern, setRotationPattern] = useState('standard');
@@ -449,6 +459,19 @@ const WorkoutBuilderPage: React.FC = () => {
                     ).join(', ')}
                   </ContextMeta>
                 </ContextCard>
+              )}
+
+              {/* V3c.6: full corrective recommendations panel — pulls
+                  V3b.3 registry rows for the client's compensations.
+                  Only renders meaningful content when comps exist; the
+                  panel handles empty/loading/error states internally. */}
+              {parsedClientId && context.movement.compensations.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <CorrectiveRecommendationsPanel
+                    clientId={parsedClientId}
+                    compensations={context.movement.compensations as CompensationInput[]}
+                  />
+                </div>
               )}
 
               <ContextCard $severity="info">
