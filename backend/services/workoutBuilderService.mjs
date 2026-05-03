@@ -22,6 +22,11 @@
 import { getClientContext } from './clientIntelligenceService.mjs';
 import { getExerciseRegistry, getExerciseRegistryFromDB, generateSwapSuggestions } from './variationEngine.mjs';
 import { getRecommendedWeight } from './oneRepMaxService.mjs';
+import {
+  buildWeeklyDayTypes,
+  expandV3aDayTypeToMovementCategories,
+  focusForDayType,
+} from './planDayTypeService.mjs';
 import logger from '../utils/logger.mjs';
 import {
   GOAL_CONFIG,
@@ -244,6 +249,13 @@ function scoreExerciseForGoalBias(exercise, goalBias) {
  * by the same filter rule.
  */
 function expandScheduleCategoryToMovementCategories(category) {
+  // V3a (2026-05-03): consult planDayTypeService FIRST for the new day
+  // types (full_body_stabilization / core_stability_balance / active_recovery
+  // / full_core). If it returns a non-null list, use that. Otherwise fall
+  // through to the legacy schedule labels below.
+  const v3aMatch = expandV3aDayTypeToMovementCategories(category);
+  if (v3aMatch !== null) return v3aMatch;
+
   // Each schedule label expands to a list that includes both:
   //   1. The label itself (so test fixtures or any future registry that
   //      tags exercises with the schedule label like `category: 'legs'`
@@ -771,26 +783,25 @@ export async function generatePlan(options) {
     });
   }
 
-  // Category rotation across the week
-  const weeklySchedule = [];
-  const rotationPool = ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
-
-  for (let day = 0; day < sessionsPerWeek; day++) {
-    const cat = sessionsPerWeek >= 4
-      ? rotationPool[day % rotationPool.length]
-      : ['full_body', 'upper', 'lower'][day % 3];
-
-    weeklySchedule.push({
-      dayNumber: day + 1,
-      focus: cat === 'push' ? 'chest + shoulders + triceps'
-        : cat === 'pull' ? 'back + biceps'
-        : cat === 'legs' ? 'quads + hamstrings + glutes'
-        : cat === 'upper' ? 'chest + back + shoulders + arms'
-        : cat === 'lower' ? 'quads + hamstrings + glutes + core'
-        : 'full body',
-      category: cat,
-    });
-  }
+  // V3a (2026-05-03): NASM-correct weekly day-type schedule.
+  // Replaces the prior fixed `rotationPool` literal that produced
+  // push/pull/legs/push/pull/legs/full_body regardless of phase or
+  // session count. Now computed via planDayTypeService:
+  //   - Phase 1 (Stabilization): every day = full_body_stabilization
+  //   - Phase 2-5: hybrid with frequency-aware rules including
+  //     core_stability_balance / active_recovery / full_core slots
+  //     (Sean L1-L3, AI Village 2026-05-03 NASM track CRITICAL).
+  // The summary uses the STARTING phase for the recurring template;
+  // per-mesocycle phase variation is handled in the populator below.
+  const weeklySchedule = buildWeeklyDayTypes({
+    sessionsPerWeek,
+    phase: startingPhase,
+    goal: primaryGoal,
+  }).map((dayType, idx) => ({
+    dayNumber: idx + 1,
+    focus: focusForDayType(dayType),
+    category: dayType,
+  }));
 
   // Phase A: structured rationale array describing how goal+phase shaped THIS plan.
   const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
@@ -816,22 +827,20 @@ export async function generatePlan(options) {
   const registry = registryOverride || (await getExerciseRegistryFromDB());
   const recentExerciseKeys = [];               // sliding window of last 7 sessions' exercises (flattened)
 
-  // Per-day category — same pattern logic as `weeklySchedule` builder above,
-  // but extended for population. Per-week, sessionsPerWeek determines pattern.
-  const dayCategoryFor = (day) => {
-    const rotationPool = ['push', 'pull', 'legs', 'push', 'pull', 'legs', 'full_body'];
-    return sessionsPerWeek >= 4
-      ? rotationPool[day % rotationPool.length]
-      : ['full_body', 'upper', 'lower'][day % 3];
-  };
-  const dayFocusFor = (cat) => (
-    cat === 'push' ? 'chest + shoulders + triceps'
-    : cat === 'pull' ? 'back + biceps'
-    : cat === 'legs' ? 'quads + hamstrings + glutes'
-    : cat === 'upper' ? 'chest + back + shoulders + arms'
-    : cat === 'lower' ? 'quads + hamstrings + glutes + core'
-    : 'full body'
-  );
+  // V3a (2026-05-03): per-day category now phase-aware. Each week's
+  // mesocycle phase determines the day-type layout — Phase 1 forces
+  // full-body stabilization; Phase 2-5 use the hybrid frequency rules
+  // (4-day adds core_stability_balance, 5-day adds full_core, 6-day
+  // adds active_recovery, etc.). See planDayTypeService for the full
+  // rule table.
+  // The schedule is computed PER WEEK because the mesocycle phase
+  // changes across the horizon.
+  const dayTypeForWeek = (weekPhase) => buildWeeklyDayTypes({
+    sessionsPerWeek,
+    phase: weekPhase,
+    goal: primaryGoal,
+  });
+  const dayFocusFor = (dayType) => focusForDayType(dayType);
 
   const weeks = [];
   let dayInPlan = 0;
@@ -845,11 +854,16 @@ export async function generatePlan(options) {
     const isDeloadWeek = !!meso.deloadWeek && (w + 1 === meso.deloadWeek);
     const goalBias = meso.goalBias || null;
 
+    // V3a (2026-05-03): the day-type schedule is now phase-aware AND
+    // computed per-week so a Phase 1 mesocycle uses full_body_stabilization
+    // every day while a Phase 3 mesocycle uses Push/Pull/Legs splits.
+    const weekDayTypes = dayTypeForWeek(phase);
+
     const days = [];
     for (let d = 0; d < sessionsPerWeek; d++) {
       const dayNumber = d + 1;
       dayInPlan += 1;
-      const cat = dayCategoryFor(d);
+      const cat = weekDayTypes[d];
       const focus = dayFocusFor(cat);
 
       // Eligible pool size for THIS category × constraints × equipment.

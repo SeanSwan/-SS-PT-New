@@ -50,7 +50,15 @@ export type BuildPlanDataInputs = ManualBuildInputs | GeneratedBuildInputs;
  */
 export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unknown> {
   if (inputs.mode === 'generated') {
-    const { generatedPlan, category, goal } = inputs;
+    const { generatedPlan, goal } = inputs;
+    // V3a (2026-05-03) Codex Diff #7 — multi-week plans are ALWAYS full-body
+    // by definition (a 12-month plan covers every body part across the
+    // mesocycles). Sean's L4: "if I'm picking full body and I'm doing a three
+    // month plan a one week plan a 12 month plan … all of those are going
+    // to have to be full body because they're going to be a plan for not
+    // just one day". Force category='full_body' regardless of UI state so
+    // misleading metadata can never reach the database via this path.
+    const generatedCategory = 'full_body';
     // Carry through every L1 additive field exactly as the generator emitted
     // it. Optional fields are included only when present so V1 / pre-L1
     // plan loaders that don't recognize them are unaffected.
@@ -65,7 +73,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
       rationale: generatedPlan.rationale ?? [],
       planSummary: generatedPlan.planSummary,
       goal,
-      category,
+      category: generatedCategory,
     };
     if (generatedPlan.recommendationDetails) {
       payload.recommendationDetails = generatedPlan.recommendationDetails;

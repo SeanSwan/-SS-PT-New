@@ -1040,15 +1040,32 @@ const WorkoutPlannerPage: React.FC = () => {
             <option key={p.phase} value={p.phase}>Phase {p.phase}: {p.name}</option>
           ))}
         </Select>
-        <Select
-          value={category}
-          onChange={e => setCategory(e.target.value as WorkoutCategory)}
-          aria-label="Select workout category"
-        >
-          {WORKOUT_CATEGORIES.map(c => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </Select>
+        {/* V3a (2026-05-03) — Sean L4: multi-week plans are always full-body
+            by definition (a 12-month plan covers every body part across the
+            mesocycles). Lock the dropdown to "Full Body" for any duration
+            other than 'single'. The persistence layer (planDataBuilder
+            generated mode) ALSO normalizes to full_body so the UI lock is
+            UX-only; the backend cannot be tricked by direct API calls. */}
+        {planDuration === 'single' ? (
+          <Select
+            value={category}
+            onChange={e => setCategory(e.target.value as WorkoutCategory)}
+            aria-label="Select workout category"
+          >
+            {WORKOUT_CATEGORIES.map(c => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </Select>
+        ) : (
+          <Select
+            value="full_body"
+            disabled
+            aria-label="Workout category (locked to Full Body for multi-week plans)"
+            title="Multi-week plans cover the full body across the mesocycles. Switch Plan Duration to 'Single Session' to pick a specific category."
+          >
+            <option value="full_body">Full Body (multi-week plans)</option>
+          </Select>
+        )}
         <Select
           value={goal}
           onChange={e => setGoal(e.target.value as PlanGoal)}

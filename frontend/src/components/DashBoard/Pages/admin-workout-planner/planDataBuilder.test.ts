@@ -130,6 +130,34 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     expect(result.rationale).toEqual(generatedPlan.rationale);
   });
 
+  it('V3a Codex Diff #7 — generated mode ALWAYS normalizes category to full_body regardless of input', () => {
+    // Sean L4: multi-week plans are always full-body by definition; the
+    // dropdown is misleading for multi-week durations. The persistence
+    // layer enforces this so misleading metadata can never reach the DB.
+    for (const dropdownCategory of ['chest', 'back', 'arms', 'legs', 'core', 'full_body'] as const) {
+      const result = buildPlanData({
+        mode: 'generated',
+        generatedPlan: buildGeneratedPlan(),
+        category: dropdownCategory,
+        goal: 'general_fitness',
+      });
+      expect(result.category).toBe('full_body');
+    }
+  });
+
+  it('manual mode preserves the input category (single-day workouts still differentiate)', () => {
+    // Manual mode is for single-workout builds where category IS meaningful.
+    // V3a normalization applies ONLY to generated multi-week plans.
+    const result = buildPlanData({
+      mode: 'manual',
+      phaseName: 'Strength Endurance', phaseNumber: 2,
+      category: 'chest', categoryLabel: 'Chest',
+      goal: 'general_fitness',
+      planExercises: [buildManualExercise('a', 'Bench')],
+    });
+    expect(result.category).toBe('chest');
+  });
+
   it('omits recommendationDetails when not present (backwards compat)', () => {
     const generatedPlan = buildGeneratedPlan({ recommendationDetails: undefined });
     const result = buildPlanData({
