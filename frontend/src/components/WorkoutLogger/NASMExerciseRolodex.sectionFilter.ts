@@ -72,29 +72,43 @@ export interface ExerciseSlimSubset {
  *     stretching), 'injury_recovery' (NEW — the 25 seeded recovery
  *     entries, e.g. 90/90 hip stretch, child's pose, breathing drills).
  */
+// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is now sourced
+// from shared/sectionPatterns.json so the backend v3b3-verify-prod.mjs
+// and v3b3-validate-rows-locally.mjs scripts consume the SAME data.
+// Previously the backend kept a hand-copied JS mirror that could
+// drift from this file silently — the verifier would pass against
+// stale logic. The JSON file stores nameKeywords as a regex source
+// string (no slashes) + flags so both TS and Node-MJS can compile
+// them identically via `new RegExp(source, flags)`.
+import sharedPatterns from '../../../../shared/sectionPatterns.json';
+
+interface SharedPatternEntry {
+  categories: string[];
+  types: string[];
+  nameKeywords: string;
+  nameKeywordsFlags: string;
+}
+
+function compilePattern(entry: SharedPatternEntry): {
+  categories: string[];
+  types: string[];
+  nameKeywords: RegExp;
+} {
+  return {
+    categories: entry.categories,
+    types: entry.types,
+    nameKeywords: new RegExp(entry.nameKeywords, entry.nameKeywordsFlags),
+  };
+}
+
 export const SECTION_PATTERNS: Record<Exclude<SectionContext, 'main'>, {
   categories: string[];
   types: string[];
   nameKeywords: RegExp;
 }> = {
-  warmup: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_prevention', 'corrective'],
-    nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective|activation|mobility/i,
-  },
-  balance_core: {
-    // V3b.1.1 (Codex 2026-05-03 F.1): 'recovery' removed — was causing
-    // cooldown/recovery exercises to bleed into the balance/core/stability
-    // display. exerciseType-based match is the correct narrowing.
-    categories: ['core', 'corrective'],
-    types: ['core', 'balance', 'stability', 'stabilizers'],
-    nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof|single.?leg|bosu|wall slide/i,
-  },
-  cooldown: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_recovery'],
-    nameKeywords: /stretch|foam roll|breathing|cool down|cooldown|recovery|child.?s pose|90.?90/i,
-  },
+  warmup: compilePattern(sharedPatterns.warmup as SharedPatternEntry),
+  balance_core: compilePattern(sharedPatterns.balance_core as SharedPatternEntry),
+  cooldown: compilePattern(sharedPatterns.cooldown as SharedPatternEntry),
 };
 
 /**

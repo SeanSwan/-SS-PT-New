@@ -97,34 +97,24 @@ async function fetchAllExercises(token: string): Promise<ApiExerciseRow[]> {
     baseURL: BASE_URL,
     extraHTTPHeaders: { Authorization: `Bearer ${token}` },
   });
-  // The route caps limit at 500. 1500+ rows in prod means we page.
-  const all: ApiExerciseRow[] = [];
-  let page = 0;
-  const PAGE = 500;
-  // No offset support on this route per current backend; we rely on a
-  // single page=500 call for now and warn if it looks truncated. The
-  // CES rows are a 32-row band — they will all fit comfortably.
-  // (If V3c needs strict pagination, add ?offset support upstream.)
-  for (; page < 4; page += 1) {
-    const res = await ctx.get(`/api/exercises?limit=${PAGE}`);
-    if (!res.ok()) {
-      await ctx.dispose();
-      throw new Error(
-        `V3b.3 smoke: GET /api/exercises returned ${res.status()} from ${BASE_URL}: ${await res.text()}`,
-      );
-    }
-    const body = await res.json();
-    const exs = (body?.exercises || []) as ApiExerciseRow[];
-    if (exs.length === 0) break;
-    all.push(...exs);
-    if (exs.length < PAGE) break;
-    // Backend doesn't support offset on this route today, so a second
-    // page can only happen via a different filter; we break to avoid
-    // an infinite loop.
-    break;
+  // V3b.3 MEDIUM 3 fix (2026-05-03): use the exerciseKeyPrefix=ces-
+  // server-side filter introduced for this exact pagination concern.
+  // The smoke now narrows server-side to the ces-* namespace, so the
+  // 32-row band returns in one request regardless of total registry
+  // size. Codex Round 1 flagged the prior fetch as fragile if total
+  // rows ever exceed 500 AND ces-* sorts past row 500. The new
+  // filter eliminates both halves of that condition.
+  const res = await ctx.get('/api/exercises?limit=500&exerciseKeyPrefix=ces-');
+  if (!res.ok()) {
+    await ctx.dispose();
+    throw new Error(
+      `V3b.3 smoke: GET /api/exercises returned ${res.status()} from ${BASE_URL}: ${await res.text()}`,
+    );
   }
+  const body = await res.json();
+  const exs = (body?.exercises || []) as ApiExerciseRow[];
   await ctx.dispose();
-  return all;
+  return exs;
 }
 
 function classifySection(ex: ApiExerciseRow): SectionContext[] {

@@ -194,7 +194,7 @@ router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {
  */
 router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const { search, limit = 50, type, muscleGroup } = req.query;
+    const { search, limit = 50, type, muscleGroup, exerciseKeyPrefix } = req.query;
     const Exercise = getExercise();
     if (!Exercise) {
       return res.status(503).json({ success: false, message: 'Exercise model not available' });
@@ -224,6 +224,24 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
         { primaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } },
         { secondaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } }
       );
+    }
+
+    // V3b.3 MEDIUM 3 fix (2026-05-03): exerciseKeyPrefix filter for
+    // namespace-scoped queries. The V3b.3 Playwright smoke spec used
+    // to fetch `?limit=500` and rely on alphabetic ordering placing
+    // ces-* rows in the first page; if the registry grew past 500
+    // rows AND ces-* sorted past row 500, the smoke false-failed.
+    // exerciseKeyPrefix narrows the result set server-side so the
+    // smoke can fetch ALL ces-* rows in one round-trip regardless
+    // of registry growth.
+    //
+    // Defensively length-bound the prefix at 64 chars and reject
+    // wildcards (the % is escaped via Sequelize's Op.startsWith).
+    if (exerciseKeyPrefix && typeof exerciseKeyPrefix === 'string') {
+      const safePrefix = exerciseKeyPrefix.trim().slice(0, 64);
+      if (safePrefix.length > 0) {
+        whereClause.exercise_key = { [Op.startsWith]: safePrefix };
+      }
     }
 
     let exercises;

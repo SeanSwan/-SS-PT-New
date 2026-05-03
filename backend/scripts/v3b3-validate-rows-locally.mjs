@@ -15,27 +15,33 @@
  * Run:  cd backend && node scripts/v3b3-validate-rows-locally.mjs
  * Exit: 0 if all rows are routable, 1 if any orphan exists.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import seederModule from '../seeders/20260504-seed-nasm-corrective-starter.mjs';
 
-// Mirrored from frontend/src/components/WorkoutLogger/NASMExerciseRolodex.sectionFilter.ts
-// Kept inline to avoid a TS-import dance from node. If the frontend file
-// changes, update this constant in lockstep.
+// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS sourced from
+// shared/sectionPatterns.json so this validator can never silently
+// drift from the frontend filter. The previous "Kept inline ... if
+// the frontend file changes, update this constant in lockstep"
+// approach was the exact failure mode Codex flagged.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const sharedPatternsPath = resolve(__dirname, '../../shared/sectionPatterns.json');
+const sharedPatterns = JSON.parse(readFileSync(sharedPatternsPath, 'utf-8'));
+
+function compileSectionPattern(entry) {
+  return {
+    categories: entry.categories,
+    types: entry.types,
+    nameKeywords: new RegExp(entry.nameKeywords, entry.nameKeywordsFlags || 'i'),
+  };
+}
+
 const SECTION_PATTERNS = {
-  warmup: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_prevention', 'corrective'],
-    nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective|activation|mobility/i,
-  },
-  balance_core: {
-    categories: ['core', 'corrective'],
-    types: ['core', 'balance', 'stability', 'stabilizers'],
-    nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof|single.?leg|bosu|wall slide/i,
-  },
-  cooldown: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_recovery'],
-    nameKeywords: /stretch|foam roll|breathing|cool down|cooldown|recovery|child.?s pose|90.?90/i,
-  },
+  warmup: compileSectionPattern(sharedPatterns.warmup),
+  balance_core: compileSectionPattern(sharedPatterns.balance_core),
+  cooldown: compileSectionPattern(sharedPatterns.cooldown),
 };
 
 function matchesSection(ex, ctx) {

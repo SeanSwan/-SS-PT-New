@@ -22,25 +22,33 @@
  * Run:  cd backend && node scripts/v3b3-verify-prod.mjs
  * Exit: 0 on pass, 1 on fail.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import sequelize from '../database.mjs';
 
-// Mirror of frontend/src/components/WorkoutLogger/NASMExerciseRolodex.sectionFilter.ts
+// V3b.3 MEDIUM 2 fix (2026-05-03): SECTION_PATTERNS is now sourced
+// from shared/sectionPatterns.json — same source the frontend
+// sectionFilter.ts compiles. Previously this script kept a hand-
+// copied mirror that could drift silently, producing false-positive
+// PASS even after the canonical filter changed.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const sharedPatternsPath = resolve(__dirname, '../../shared/sectionPatterns.json');
+const sharedPatterns = JSON.parse(readFileSync(sharedPatternsPath, 'utf-8'));
+
+function compileSectionPattern(entry) {
+  return {
+    categories: entry.categories,
+    types: entry.types,
+    nameKeywords: new RegExp(entry.nameKeywords, entry.nameKeywordsFlags || 'i'),
+  };
+}
+
 const SECTION_PATTERNS = {
-  warmup: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_prevention', 'corrective'],
-    nameKeywords: /foam roll|stretch|dynamic|warmup|warm up|corrective|activation|mobility/i,
-  },
-  balance_core: {
-    categories: ['core', 'corrective'],
-    types: ['core', 'balance', 'stability', 'stabilizers'],
-    nameKeywords: /balance|plank|stability|bird dog|dead bug|pallof|single.?leg|bosu|wall slide/i,
-  },
-  cooldown: {
-    categories: ['recovery', 'corrective'],
-    types: ['flexibility', 'injury_recovery'],
-    nameKeywords: /stretch|foam roll|breathing|cool down|cooldown|recovery|child.?s pose|90.?90/i,
-  },
+  warmup: compileSectionPattern(sharedPatterns.warmup),
+  balance_core: compileSectionPattern(sharedPatterns.balance_core),
+  cooldown: compileSectionPattern(sharedPatterns.cooldown),
 };
 
 function matchesSection(row, ctx) {

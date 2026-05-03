@@ -644,11 +644,26 @@ const pronationDistortion = [
     description: 'Whole-chain integration — glutes + scapular retraction.',
     instructions: '1. Hold cable at chest, squat down. 2. Stand and pull cable to ribs simultaneously. 3. Slow eccentric.',
     exerciseType: 'compound',
-    // V3b.3.3c: bodyPartCategory='core' (not 'full_body') so the
-    // integration row routes into the balance/core/stability section
-    // of the Rolodex via SECTION_PATTERNS.balance_core.categories. The
-    // integration step in NASM CES is functionally a core-under-load
-    // exercise, so the labeling is accurate, not a hack.
+    // V3b.3.3c (2026-05-02) — kept at 'core' (not 'full_body').
+    //
+    // Codex V3b.3 Round 1 MEDIUM 4 flagged this as routing-driven
+    // taxonomy. The taxonomically pure value is 'full_body' since
+    // Squat to Row is a whole-chain compound movement. We chose
+    // 'core' so the row routes into the balance/core/stability
+    // section of the Rolodex via SECTION_PATTERNS.balance_core.
+    //
+    // Codex's preferred fix: revert to 'full_body' AND add a
+    // `cesProtocolStep === 'integrate'` clause to SECTION_PATTERNS.
+    // That requires `cesProtocolStep` to be exposed in the
+    // /api/exercises response (currently only id/name/exerciseType/
+    // bodyPartCategory/primaryMuscles/exercise_key/source/description
+    // ship — see backend/routes/exerciseRoutes.mjs line ~234). That
+    // route surface change is V3c.7 scope, not in this V3b.3 slice.
+    //
+    // Trade-off accepted: one row's bodyPartCategory is slightly
+    // off-label (core vs full_body) for accurate UI routing today.
+    // The integration step in NASM CES is functionally a core-
+    // under-load exercise, so 'core' is defensible if not pure.
     bodyPartCategory: 'core',
     primaryMuscles: ['Quadriceps', 'Gluteus Maximus', 'Latissimus Dorsi'],
     secondaryMuscles: ['Rhomboids'],
