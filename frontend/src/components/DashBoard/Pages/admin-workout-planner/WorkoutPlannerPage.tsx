@@ -61,6 +61,10 @@ import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 import SavedPlanCard from './SavedPlanCard';
 // L2.C (2026-05-02): drill-down for the populated long-horizon weeks[].
 import LongHorizonScheduleView from './LongHorizonScheduleView';
+// AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
+// Persists generatedPlan.weeks[] when present instead of flattening to a
+// one-week shape, so V2 long-horizon work survives save.
+import { buildPlanData as composePlanData, buildContentSignature } from './planDataBuilder';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -517,40 +521,40 @@ const WorkoutPlannerPage: React.FC = () => {
   // ── Plan Library helpers ──
   // buildPlanData: compose the JSONB payload from current builder state.
   // Reused by Save Draft, Save & Make Current, Update Plan, Update & Make Current.
+  //
+  // AI Village CRITICAL-4 fix (2026-05-02): when a multi-month plan was
+  // generated via POST /api/workout-builder/plan, persist the FULL
+  // generatedPlan.weeks[] structure (and every L1 additive field) so
+  // long-horizon work survives save. Manual one-day Plan Builder mode
+  // is preserved when no generatedPlan is present. Logic lives in the
+  // tested planDataBuilder module so the persistence contract has
+  // Tier-A coverage.
+  const hasGeneratedHorizonPlan = !!(
+    generatedPlan
+    && Array.isArray(generatedPlan.weeks)
+    && generatedPlan.weeks.length > 0
+  );
+
   const buildPlanData = useCallback(() => {
-    const phaseToOpt: Record<number, string> = {
-      1: 'stabilization_endurance', 2: 'strength_endurance',
-      3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
-    };
     const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
-    return {
-      weeks: [{
-        weekNumber: 1,
-        days: [{
-          dayNumber: 1,
-          name: `${phase.name} Workout`,
-          focus: categoryLabel,
-          dayType: 'training',
-          optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
-          exercises: planExercises.map((p, i) => ({
-            exerciseId: p.exerciseSlim.id,
-            exerciseName: p.exerciseSlim.name,
-            orderInWorkout: i + 1,
-            sets: p.sets,
-            reps: p.reps,
-            setScheme: `${p.sets}x${p.reps}`,
-            repGoal: p.reps,
-            restPeriod: typeof p.restSeconds === 'number' ? p.restSeconds : parseInt(String(p.restSeconds)) || 60,
-            tempo: p.tempo,
-            intensityGuideline: `${p.intensityPercent}% 1RM`,
-            notes: p.notes || '',
-          })),
-        }],
-      }],
-      goal,
+    if (hasGeneratedHorizonPlan && generatedPlan) {
+      return composePlanData({
+        mode: 'generated',
+        generatedPlan,
+        category,
+        goal,
+      });
+    }
+    return composePlanData({
+      mode: 'manual',
+      phaseName: phase.name,
+      phaseNumber,
       category,
-    };
-  }, [phase.name, phaseNumber, category, planExercises, goal]);
+      categoryLabel,
+      goal,
+      planExercises,
+    });
+  }, [phase.name, phaseNumber, category, planExercises, goal, hasGeneratedHorizonPlan, generatedPlan]);
 
   // ── Phase B: Saved-plan click-to-load hydration ──
   // 2026-05-01 hoisted from below the save handlers to fix TDZ
@@ -575,17 +579,27 @@ const WorkoutPlannerPage: React.FC = () => {
   // Only the fields that round-trip through save/load are compared; UI-only
   // fields like `id` (which is a render-time ephemeral) are excluded so a
   // freshly-loaded plan is byte-equal to its snapshot.
-  const currentExercisesSig = useMemo(() => JSON.stringify(
-    planExercises.map(p => ({
-      e: p.exerciseSlim?.id || '',
-      s: p.sets,
-      r: p.reps,
-      t: p.tempo || '',
-      rest: p.restSeconds,
-      i: p.intensityPercent,
-      n: p.notes || '',
-    })),
-  ), [planExercises]);
+  // AI Village CRITICAL-4 fix (2026-05-02): when a generated multi-month
+  // plan is loaded, the dirty signature must change with the generated
+  // content (not the manual planExercises which may be empty in that
+  // mode). Otherwise the Update Plan button never lights up after a
+  // long-horizon generate. The shared signature builder also makes
+  // manual ↔ generated mode transitions visible to dirty tracking.
+  const currentExercisesSig = useMemo(() => {
+    const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === category)?.label || 'Full Body';
+    if (hasGeneratedHorizonPlan && generatedPlan) {
+      return buildContentSignature({ mode: 'generated', generatedPlan, category, goal });
+    }
+    return buildContentSignature({
+      mode: 'manual',
+      phaseName: phase.name,
+      phaseNumber,
+      category,
+      categoryLabel,
+      goal,
+      planExercises,
+    });
+  }, [planExercises, hasGeneratedHorizonPlan, generatedPlan, category, goal, phase.name, phaseNumber]);
 
   const isDirty = useMemo(() => {
     if (planExercises.length === 0) return false;
@@ -599,7 +613,10 @@ const WorkoutPlannerPage: React.FC = () => {
   // POSTs as status='draft' so the new partial unique index never trips.
   // Trainer can promote to current later via Activate.
   const handleSaveDraft = useCallback(async () => {
-    if (!selectedClientId || planExercises.length === 0) return;
+    // AI Village CRITICAL-4 fix: a generated multi-month plan with no
+    // manual planExercises is still saveable — the generatedPlan.weeks[]
+    // is the source of truth in that mode.
+    if (!selectedClientId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
     setSaving(true);
     try {
       const client = clients.find(c => c.id === selectedClientId);
@@ -627,13 +644,16 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig]);
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
 
   // ── Save & Make Current ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as draft, then activates. Two requests; backend invariant on activate
   // ensures any existing active plan is demoted atomically.
   const handleSaveAndActivate = useCallback(async () => {
-    if (!selectedClientId || planExercises.length === 0) return;
+    // AI Village CRITICAL-4 fix: a generated multi-month plan with no
+    // manual planExercises is still saveable — the generatedPlan.weeks[]
+    // is the source of truth in that mode.
+    if (!selectedClientId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
     setSaving(true);
     try {
       const client = clients.find(c => c.id === selectedClientId);
@@ -660,12 +680,12 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig]);
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
 
   // ── Update Loaded Plan ── (Plan Library §5.1, loaded-plan path)
   // PUT /:id with the new planData. Does NOT change activation state.
   const handleUpdateLoaded = useCallback(async () => {
-    if (!selectedClientId || !loadedPlanId || planExercises.length === 0) return;
+    if (!selectedClientId || !loadedPlanId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
     setSaving(true);
     try {
       await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
@@ -681,12 +701,12 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig]);
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
 
   // ── Update & Make Current ── (Plan Library §5.1, loaded-non-current path)
   // PUT /:id then PUT /:id/activate.
   const handleUpdateAndActivate = useCallback(async () => {
-    if (!selectedClientId || !loadedPlanId || planExercises.length === 0) return;
+    if (!selectedClientId || !loadedPlanId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
     setSaving(true);
     try {
       await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
@@ -703,7 +723,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig]);
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
 
   // ── Plan Library card-action handlers (§5.2) ──
 
@@ -1184,7 +1204,9 @@ const WorkoutPlannerPage: React.FC = () => {
                 Loaded-plan current detection comes from savedPlans.find(...). */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {(() => {
-                const hasExercises = planExercises.length > 0;
+                // AI Village CRITICAL-4 fix: a generated multi-month plan
+                // is saveable even when manual planExercises is empty.
+                const hasExercises = planExercises.length > 0 || hasGeneratedHorizonPlan;
                 const noLoaded = !loadedPlanId;
                 const loadedPlan = loadedPlanId
                   ? savedPlans.find(p => p.id === loadedPlanId)
