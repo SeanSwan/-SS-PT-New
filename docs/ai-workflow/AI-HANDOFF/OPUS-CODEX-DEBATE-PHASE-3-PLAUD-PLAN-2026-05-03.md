@@ -92,12 +92,97 @@ Sean is the final say. If you disagree with Sean's six decisions in §10, flag i
 
 ---
 
-## ROUND 1 — Codex's review
+## ROUND 1 — Codex review (2026-05-04 00:35 UTC)
 
-(awaiting Codex output — Sean to paste here, OR run `node scripts/consult-gemini.mjs --review --file docs/ai-workflow/AI-HANDOFF/PHASE-3-PLAUD-MERGE-INGESTION-PLAN-2026-05-03.md` then route to Codex via the existing review chain)
+**Input:** v2 plan (`PHASE-3-PLAUD-MERGE-INGESTION-PLAN-2026-05-03.md`)
+**Tool:** `node scripts/consult-codex.mjs --review --file ...`
+**Tokens:** 10,034 in / 8,192 out (truncated)
+**Verdict:** REVISE
+**Findings:** 5 CRIT + 6 HIGH + ~10 MED/LOW + 6 RULE VIOLATIONS + 15 GAPS
+**Saved to:** `AI-Village-Documentation/codex-consults/2026-05-04T00-35-02.md`
+
+**Top blockers:**
+- CRIT #1: sync/async mismatch (cancel + progress on sync endpoint)
+- CRIT #2: no durable plaud_clips metadata (Render restart loses queue)
+- CRIT #3: R2 mirror has no retry/outbox (silent failure)
+- CRIT #4: idempotency cache contradicts "no transcript persisted"
+- CRIT #5: audit approval contradicts "apply path untouched"
+
+**Path forward (Sean's directive 2026-05-04):** Path A+ — descope cancel/progress/idempotency/re-merge to Phase 3.x, ADD durable plaud_clips + R2 outbox + cipher state + browser-close failsafe. Plus PLAUD app feature parity research (autoflow, custom vocab, speaker labels).
 
 ---
 
-## ROUND 2+ — Opus iterations
+## ROUND 2 — Codex review (2026-05-04 00:49 UTC)
 
-(populated as needed)
+**Input:** v3 plan
+**Tokens:** 12,863 in / 8,192 out (truncated)
+**Verdict:** REVISE (narrower)
+**Findings:** 4 CRIT + 6 HIGH + 5 MED + 3 LOW + 2 RULE VIOLATIONS = 20 surgical patches
+**Saved to:** `AI-Village-Documentation/codex-consults/2026-05-04T00-49-39.md`
+
+**Top blockers:**
+- CRIT #1: plaud_clips EXCLUDE constraint blocks 2+ pending clips per user
+- CRIT #2: AES-GCM unsafe (one IV/tag for two ciphertexts)
+- CRIT #3: R2 mirror state machine inconsistent
+- CRIT #4: apply path approval needs guarded UPDATE invariants
+- 6 HIGH around merge order, lock timeout, slice ordering, feature flag default, PII language, R2 retention, boundary segment confidence
+
+**Patches applied to v3.1.**
+
+---
+
+## ROUND 3 — Codex review (2026-05-04 00:59 UTC)
+
+**Input:** v3.1 plan
+**Tokens:** 17,455 in / 8,192 out
+**Verdict:** REVISE (no CRITICALs)
+**Findings:** 0 CRIT + 4 HIGH + 3 MED + 1 LOW + 1 RULE-58 GAP = 9 narrow patches
+**Saved to:** `AI-Village-Documentation/codex-consults/2026-05-04T00-59-13.md`
+
+**HIGH findings:**
+- Stale in_flight mirror jobs after worker crash (no recovery path)
+- Upload commits durable row before bytes on disk (data inconsistency on crash)
+- Stale processing merge requests forever-stuck (no cron sweeper)
+- Lock fencing missing before final side effects (race with takeover)
+
+**Patches applied to v3.2.**
+
+---
+
+## ROUND 4 — Codex review (2026-05-04 01:04 UTC)
+
+**Input:** v3.2 plan
+**Tokens:** 19,311 in / 5,972 out
+**Verdict:** REVISE (atomicity only)
+**Findings:** 0 CRIT + 1 HIGH + 4 MED + 2 LOW = 7 narrow patches
+
+**HIGH:** lock fencing not atomic with side effects — fence check, completed-update, clip update, lock release must be single transaction with FOR UPDATE on lock row.
+
+**Patches applied to v3.3.**
+
+---
+
+## ROUND 5 — Codex review (2026-05-04 01:09 UTC)
+
+**Input:** v3.3 plan
+**Tokens:** 19,986 in / 3,344 out
+**Verdict:** ✅ **APPROVE — implementation begins at Slice 3.1.**
+
+All 7 Round 4 patches verified clean. No blocking findings. One implementation note: §11 prose has duplicate `spawn`/`join` import lines — clean up during Slice 3.6 (not a plan blocker).
+
+**Convergence trend:**
+| Round | CRIT | HIGH | Verdict |
+|---|---|---|---|
+| 1 | 5 | 6 | REVISE |
+| 2 | 4 | 6 | REVISE narrower |
+| 3 | 0 | 4 | REVISE |
+| 4 | 0 | 1 | REVISE atomicity |
+| 5 | 0 | 0 | **APPROVE** |
+
+---
+
+## CONSENSUS REACHED
+
+Plan v3.3 (`PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md`) is the implementation blueprint. Slice 3.1 begins immediately per Sean's "keep on coding" directive.
+
+Codex pass 2 (cumulative code review covering Phase 1 + 2 + 3 implementation) will run after slice 3.15 closes Phase 3.
