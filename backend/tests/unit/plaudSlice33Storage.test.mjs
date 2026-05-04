@@ -83,8 +83,8 @@ describe('Slice 3.3 — plaudClipStorageDualTier source contract', () => {
     expect(STORAGE_SRC).toMatch(/R2 delete failed \(continuing\)/);
   });
 
-  it('clipId regex prevents path traversal (UUID format only)', () => {
-    expect(STORAGE_SRC).toMatch(/\/\^\[0-9a-fA-F-\]\{36\}\$\//);
+  it('clipId regex prevents path traversal (UUID format only — canonical via PLAUD_UUID_REGEX after slice 3.15)', () => {
+    expect(STORAGE_SRC).toMatch(/PLAUD_UUID_REGEX\.test/);
   });
 
   it('storage_ext regex limits to alnum 1-8 chars', () => {

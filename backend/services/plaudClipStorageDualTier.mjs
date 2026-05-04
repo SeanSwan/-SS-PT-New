@@ -81,7 +81,9 @@ function diskPathFor(userId, clipId, ext) {
 
 export function computeR2Key(userId, clipId, ext) {
   if (!Number.isInteger(userId)) throw new Error(`Invalid userId: ${userId}`);
-  if (!/^[0-9a-fA-F-]{36}$/.test(clipId)) throw new Error(`Invalid clipId: ${clipId}`);
+  // Codex Pass 2 Round 2 LOW finding: tightened to canonical UUID regex
+  // for consistency with diskPathFor() and the rest of the PLAUD code.
+  if (!PLAUD_UUID_REGEX.test(clipId)) throw new Error(`Invalid clipId: ${clipId}`);
   if (!/^[a-z0-9]{1,8}$/i.test(ext)) throw new Error(`Invalid ext: ${ext}`);
   return `plaud-clips/${userId}/${clipId}.${ext}`;
 }
