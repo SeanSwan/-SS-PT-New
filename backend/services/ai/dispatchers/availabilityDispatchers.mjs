@@ -86,6 +86,16 @@ function resolveTrainerId(rawTrainerId, user) {
  * @returns {Date}
  */
 function parseDateOnlyLocal(date) {
+  // Phase 4 Codex hardening (2026-05-04): require strict zero-padded
+  // YYYY-MM-DD format. Without this, "2026-5-15" passes the round-trip
+  // check (because Number('5') === 5) and silently sneaks through —
+  // a real risk on the AI/voice lane where natural-language extraction
+  // may not zero-pad single-digit months.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
+    throw new Error(
+      `"${date}" is not a valid calendar date. Please provide a real date in YYYY-MM-DD format.`,
+    );
+  }
   const [year, month, day] = String(date).split('-').map(Number);
   const parsed = new Date(year, month - 1, day);
   if (

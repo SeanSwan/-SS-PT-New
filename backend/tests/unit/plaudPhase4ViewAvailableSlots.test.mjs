@@ -143,6 +143,18 @@ describe('Phase 4 — v15 view_available_slots dispatcher (behavior)', () => {
     )).rejects.toThrow();
   });
 
+  it('rejects non-zero-padded dates (Codex Phase 4 hardening)', async () => {
+    // 2026-5-15 currently round-trips successfully because Number('5') === 5,
+    // so without the strict format check it would silently parse as May 15 2026.
+    // The AI/voice lane may emit non-zero-padded dates from natural-language
+    // extraction — strict format catches this class.
+    await expect(dispatchViewAvailableSlots(
+      { date: '2026-5-15' },
+      { user: { id: 42, role: 'trainer' } },
+    )).rejects.toThrow(/YYYY-MM-DD|valid calendar date/i);
+    expect(availabilityService.getAvailableSlots).not.toHaveBeenCalled();
+  });
+
   it('honors custom duration when supplied', async () => {
     vi.mocked(availabilityService.getAvailableSlots).mockResolvedValue([]);
     await dispatchViewAvailableSlots(
