@@ -53,6 +53,13 @@ import { initializeSocket } from './socket/socket.mjs';
 import { closeRedisConnection } from './config/session.mjs';
 import logger from './utils/logger.mjs';
 
+// Phase 3 PLAUD multi-clip merge — in-process workers + cron jobs
+// (Slice 3.9). Both bootstrap functions self-gate on env flags
+// (PLAUD_WORKER_ENABLED, PLAUD_TTL_CRON_ENABLED) and are no-ops
+// when off — safe to call unconditionally.
+import { startPlaudR2MirrorWorker, stopPlaudR2MirrorWorker } from './jobs/plaudR2MirrorWorker.mjs';
+import { startPlaudCronJobs, stopPlaudCronJobs } from './jobs/plaudCronJobs.mjs';
+
 // ===================== GLOBAL ERROR HANDLERS =====================
 // Prevent server crashes from unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -109,6 +116,16 @@ let appInstance = null;
     const httpServer = await initializeServer(app);
     initializeSocket(httpServer);
 
+    // Phase 3 PLAUD: start in-process workers + cron jobs.
+    // No-ops unless PLAUD_WORKER_ENABLED / PLAUD_TTL_CRON_ENABLED env
+    // flags are 'true'. Default off; flip per-environment after smoke.
+    try {
+      startPlaudR2MirrorWorker();
+      startPlaudCronJobs();
+    } catch (plaudErr) {
+      logger.error('PLAUD worker/cron bootstrap failed (non-fatal): %s', plaudErr.message);
+    }
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
 
   } catch (error) {
@@ -122,6 +139,14 @@ let appInstance = null;
 // Handle graceful shutdown for Redis connection cleanup
 const gracefulShutdown = async (signal) => {
   logger.info(`${signal} signal received: closing HTTP server and cleaning up resources`);
+
+  // Phase 3 PLAUD: stop the in-process workers + crons before exit
+  try {
+    stopPlaudR2MirrorWorker();
+    stopPlaudCronJobs();
+  } catch (err) {
+    logger.warn('PLAUD worker/cron shutdown error: %s', err.message);
+  }
 
   if (appInstance && appInstance.locals.redisClient) {
     await closeRedisConnection(appInstance.locals.redisClient);
