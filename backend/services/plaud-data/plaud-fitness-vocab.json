@@ -1,0 +1,67 @@
+{
+  "_comment": "Phase 3 Slice 3.7 — fitness vocabulary biased into transcription prompts to improve recognition of NASM/CPT exercise names, anatomy, and PT jargon. Inspired by PLAUD app's custom vocabulary feature (Pro tier).",
+  "version": 1,
+  "lastUpdated": "2026-05-04",
+  "categories": {
+    "exercises": [
+      "squat", "back squat", "front squat", "goblet squat", "split squat", "bulgarian split squat",
+      "deadlift", "romanian deadlift", "stiff-leg deadlift", "trap bar deadlift", "sumo deadlift",
+      "bench press", "incline bench press", "decline bench press", "close-grip bench press",
+      "overhead press", "military press", "push press", "arnold press", "shoulder press",
+      "pull-up", "chin-up", "lat pulldown", "wide-grip pulldown", "neutral-grip pulldown",
+      "row", "barbell row", "bent-over row", "seated row", "cable row", "single-arm row", "t-bar row",
+      "lunge", "reverse lunge", "walking lunge", "lateral lunge", "curtsy lunge",
+      "step-up", "box step-up", "weighted step-up",
+      "hip thrust", "barbell hip thrust", "glute bridge", "single-leg glute bridge",
+      "calf raise", "standing calf raise", "seated calf raise",
+      "bicep curl", "barbell curl", "dumbbell curl", "hammer curl", "preacher curl", "concentration curl",
+      "tricep extension", "skullcrusher", "overhead tricep extension", "tricep pushdown", "dip",
+      "lateral raise", "front raise", "rear delt fly", "face pull", "upright row",
+      "plank", "side plank", "high plank", "forearm plank", "plank with shoulder tap",
+      "russian twist", "v-up", "hollow hold", "dead bug", "bird dog", "hanging leg raise",
+      "kettlebell swing", "goblet kettlebell swing", "kettlebell snatch", "kettlebell clean", "turkish get-up",
+      "clean and press", "power clean", "hang clean", "snatch", "thruster",
+      "burpee", "mountain climber", "jumping jack", "high knees", "box jump", "broad jump",
+      "farmer's carry", "suitcase carry", "overhead carry", "sled push", "sled pull", "battle rope",
+      "wall ball", "medicine ball slam", "rotational throw", "chop", "lift",
+      "pallof press", "anti-rotation press", "anti-extension"
+    ],
+    "anatomy": [
+      "quadriceps", "hamstrings", "glutes", "gluteus maximus", "gluteus medius", "gluteus minimus",
+      "calves", "gastrocnemius", "soleus", "tibialis anterior",
+      "hip flexors", "psoas", "iliopsoas", "tensor fasciae latae", "TFL", "adductors", "abductors",
+      "core", "rectus abdominis", "transverse abdominis", "obliques", "erector spinae", "multifidus",
+      "lats", "latissimus dorsi", "trapezius", "traps", "rhomboids", "serratus anterior",
+      "deltoids", "anterior deltoid", "posterior deltoid", "lateral deltoid", "rotator cuff",
+      "supraspinatus", "infraspinatus", "teres minor", "subscapularis",
+      "pectoralis major", "pec major", "pec minor",
+      "biceps brachii", "triceps brachii", "brachialis", "brachioradialis",
+      "scapula", "scapulae", "thoracic spine", "lumbar spine", "cervical spine", "spinal flexion", "spinal extension",
+      "knee", "ankle", "hip", "shoulder girdle", "patellar tendon", "achilles tendon", "IT band"
+    ],
+    "movement_quality": [
+      "form", "tempo", "eccentric", "concentric", "isometric",
+      "range of motion", "ROM", "full ROM", "partial ROM",
+      "RPE", "rate of perceived exertion", "intensity", "load",
+      "sets", "reps", "repetitions", "rounds", "circuits",
+      "warmup", "warm up", "cooldown", "cool down", "stretching", "mobility",
+      "stability", "balance", "proprioception", "coordination",
+      "compensation", "valgus", "varus", "anterior pelvic tilt", "posterior pelvic tilt",
+      "neutral spine", "rounded shoulders", "knee cave", "knee valgus", "hip drop"
+    ],
+    "nasm_corrective": [
+      "inhibit", "lengthen", "activate", "integrate",
+      "SMR", "self myofascial release", "foam roll", "lacrosse ball",
+      "static stretch", "active stretch", "PNF stretch",
+      "isolated activation", "integrated dynamic movement",
+      "OHSA", "overhead squat assessment", "single leg squat assessment", "pushing assessment", "pulling assessment",
+      "kinetic chain checkpoints", "feet flatten", "knees bow", "low back arch", "arms fall forward"
+    ],
+    "equipment": [
+      "barbell", "dumbbell", "kettlebell", "cable", "smith machine",
+      "resistance band", "TRX", "suspension trainer", "medicine ball", "slam ball",
+      "foam roller", "bench", "incline bench", "decline bench", "stability ball",
+      "BOSU ball", "rower", "ergometer", "treadmill", "assault bike", "battle ropes"
+    ]
+  }
+}
