@@ -8,6 +8,11 @@ import DashboardPage from '../components/DashboardView/DashboardPage';
 // Import Protected Route component
 import ProtectedRoute from './protected-route';
 
+// Phase 3 Slice 3.13: PLAUD multi-clip merge page (admin/trainer only).
+// Lives at /dashboard/plaud-merge, gated by feature flag at backend layer
+// (returns 503 PLAUD_DISABLED when off, hooks render empty/error state).
+const PlaudMergePage = React.lazy(() => import('../pages/dashboard/PlaudMergePage'));
+
 /**
  * DashboardRoutes Component - REVOLUTIONARY UNIFIED EDITION
  * 
@@ -45,17 +50,34 @@ const DashboardRoutes: React.FC = () => {
         }
       />
       
-      {/* UNIVERSAL DASHBOARD SYSTEM - All roles use /dashboard/* */}
-      <Route 
-        path="/dashboard/*" 
+      {/* Phase 3 Slice 3.13: PLAUD multi-clip merge — admin/trainer only.
+          Mounted BEFORE the catch-all /dashboard/* so React Router matches
+          this exact path first. */}
+      <Route
+        path="/dashboard/plaud-merge"
         element={
-          <ProtectedRoute 
-            allowedRoles={['admin', 'trainer', 'client']} 
+          <ProtectedRoute
+            allowedRoles={['admin', 'trainer']}
+            fallbackPath="/unauthorized"
+          >
+            <React.Suspense fallback={<div style={{ padding: 24, color: '#E0ECF4' }}>Loading PLAUD merge…</div>}>
+              <PlaudMergePage />
+            </React.Suspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* UNIVERSAL DASHBOARD SYSTEM - All roles use /dashboard/* */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <ProtectedRoute
+            allowedRoles={['admin', 'trainer', 'client']}
             fallbackPath="/unauthorized"
           >
             <UniversalDashboardLayout />
           </ProtectedRoute>
-        } 
+        }
       />
       
       {/* LEGACY ROUTE REDIRECTS - Maintain backward compatibility */}
