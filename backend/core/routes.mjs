@@ -70,6 +70,8 @@ import oracleRoutes from '../routes/oracleRoutes.mjs';
 import bootcampRoutes from '../routes/bootcampRoutes.mjs';
 import sprintRoutes from '../routes/sprintRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
+// Phase 3 PLAUD multi-clip merge ingestion (Slice 3.5)
+import plaudClipsRoutes from '../routes/plaud/plaudClipsRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
@@ -356,6 +358,9 @@ export const setupRoutes = async (app) => {
   app.use('/api/bootcamp', bootcampRoutes);
   app.use('/api/bootcamp/sprints', sprintRoutes);
   app.use('/api/workout-logs', workoutLogUploadRoutes);
+  // Phase 3 PLAUD: clip lifecycle (upload, list, delete). Merge endpoints in slice 3.7.
+  // Router is mounted always; plaudFeatureFlag middleware returns structured 503 when off.
+  app.use('/api/plaud/clips', plaudClipsRoutes);
 
   // ===================== CLIENT ANALYTICS (IDOR-PROTECTED) =====================
   app.use('/api/analytics', analyticsRoutes);             // Client workout analytics (owner/trainer/admin)
