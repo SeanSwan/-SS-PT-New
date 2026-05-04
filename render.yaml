@@ -11,6 +11,14 @@ services:
     branch: main
     rootDir: ./
     buildCommand: |
+      # Phase 3 PLAUD audio pipeline: install ffmpeg + ffprobe system
+      # binaries (used by audioMergeService normalize+concat and
+      # audioProbeService duration/silence detection). Falls through
+      # cleanly if apt-get is unavailable so the rest of the build still
+      # runs and the existing services keep working — PLAUD merge is
+      # gated behind PLAUD_MERGE_ENABLED=false anyway, so an ffmpeg
+      # install miss only blocks PLAUD merge, nothing else.
+      apt-get update -y && apt-get install -y ffmpeg || echo "[render-build] apt-get ffmpeg install failed — PLAUD merge will not work until ffmpeg is provisioned via alternate path (ffmpeg-static npm package)"
       # Install backend dependencies and run migrations
       cd backend && npm install && npm run migrate:production
       # Install frontend dependencies and build
