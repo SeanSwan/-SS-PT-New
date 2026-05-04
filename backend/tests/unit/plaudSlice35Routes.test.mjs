@@ -125,8 +125,8 @@ describe('Slice 3.5 — plaudListController', () => {
     expect(LIST_SRC).toMatch(/\(uploaded_at,\s*clip_id\)\s*<\s*\(:cursorUploadedAt,\s*:cursorClipId\)/);
   });
 
-  it('cursor decoder rejects malformed UUIDs (path-traversal-via-cursor guard)', () => {
-    expect(LIST_SRC).toMatch(/\/\^\[0-9a-fA-F-\]\{36\}\$\//);
+  it('cursor decoder rejects malformed UUIDs (path-traversal-via-cursor guard, canonical via PLAUD_UUID_REGEX)', () => {
+    expect(LIST_SRC).toMatch(/PLAUD_UUID_REGEX\.test/);
   });
 
   it('limit clamped to MAX_LIMIT (100) and minimum 1', () => {

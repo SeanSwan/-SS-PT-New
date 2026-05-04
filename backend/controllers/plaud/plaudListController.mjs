@@ -12,6 +12,7 @@
  */
 import sequelize from '../../database.mjs';
 import { deleteClip } from '../../services/plaudClipStorageDualTier.mjs';
+import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -26,7 +27,7 @@ function decodeCursor(cursor) {
     const decoded = Buffer.from(String(cursor), 'base64url').toString('utf8');
     const [uploadedAt, clipId] = decoded.split('|');
     if (!uploadedAt || !clipId) return null;
-    if (!/^[0-9a-fA-F-]{36}$/.test(clipId)) return null;
+    if (!PLAUD_UUID_REGEX.test(clipId)) return null;
     if (Number.isNaN(Date.parse(uploadedAt))) return null;
     return { uploadedAt, clipId };
   } catch {
@@ -101,7 +102,7 @@ export async function deleteHandler(req, res) {
   }
 
   const clipId = String(req.params.clipId || '');
-  if (!/^[0-9a-fA-F-]{36}$/.test(clipId)) {
+  if (!PLAUD_UUID_REGEX.test(clipId)) {
     return res.status(400).json({
       success: false,
       error: { code: 'INVALID_CLIP_ID', message: 'Invalid clipId format' },

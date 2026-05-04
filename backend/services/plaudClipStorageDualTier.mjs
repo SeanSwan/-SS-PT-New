@@ -48,6 +48,7 @@ import {
 } from '@aws-sdk/client-s3';
 import logger from '../utils/logger.mjs';
 import { getPlaudR2Client, isPlaudR2Configured } from './plaudR2Client.mjs';
+import { PLAUD_UUID_REGEX } from '../utils/plaudUuidRegex.mjs';
 
 // Read env on each call so tests can override PLAUD_DISK_BASE before
 // invoking the service. Default '/tmp/plaud' is the production layout.
@@ -69,7 +70,7 @@ function diskPathFor(userId, clipId, ext) {
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new Error(`Invalid userId: ${userId}`);
   }
-  if (!/^[0-9a-fA-F-]{36}$/.test(clipId)) {
+  if (!PLAUD_UUID_REGEX.test(clipId)) {
     throw new Error(`Invalid clipId: ${clipId}`);
   }
   if (!/^[a-z0-9]{1,8}$/i.test(ext)) {
@@ -142,11 +143,22 @@ export async function readClip(userId, clipId, ext, opts = {}) {
 
   // Restore to disk so next reader (and the merge ffmpeg invocation)
   // hits disk instead of paying R2 latency again.
+  //
+  // Codex Pass 2 MEDIUM #3 fix: when the caller requires disk-backed
+  // reads (the merge pipeline does — ffmpeg consumes the disk path),
+  // restore failure must throw rather than silently log. Default
+  // requireDiskRestore = true matches the merge pipeline; pass
+  // requireDiskRestore: false for buffer-only consumers.
   try {
     await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
     await fs.writeFile(target, buffer, { mode: 0o600 });
   } catch (err) {
-    logger.warn('[plaudStorage] R2-restore-to-disk failed (clip will still work this read): %s', err.message);
+    if (opts.requireDiskRestore !== false) {
+      throw new ClipNotFoundError(
+        `disk hit + R2 hit but disk restore failed (clipId=${clipId}): ${err.message}`,
+      );
+    }
+    logger.warn('[plaudStorage] R2-restore-to-disk failed (caller opted out of disk restore): %s', err.message);
   }
   return buffer;
 }

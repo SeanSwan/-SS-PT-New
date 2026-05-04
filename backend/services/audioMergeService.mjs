@@ -194,7 +194,8 @@ export async function mergeAndCleanup(clips, mergeRequestId, outputPath) {
   if (!Array.isArray(clips) || clips.length === 0) {
     throw new Error('mergeAndCleanup: clips array required');
   }
-  if (!/^[0-9a-fA-F-]{36}$/.test(String(mergeRequestId || ''))) {
+  // Codex Pass 2 MEDIUM #2 fix: canonical UUID regex with hyphen positions
+  if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(mergeRequestId || ''))) {
     throw new Error(`mergeAndCleanup: invalid mergeRequestId ${mergeRequestId}`);
   }
 

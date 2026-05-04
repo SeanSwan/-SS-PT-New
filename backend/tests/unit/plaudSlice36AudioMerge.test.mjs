@@ -101,7 +101,9 @@ describe('Slice 3.6 — audioMergeService source contract', () => {
 
   it('mergeAndCleanup namespaces normalized intermediate by mergeRequestId UUID', () => {
     expect(SRC).toMatch(/_normalized.*mergeRequestId/);
-    expect(SRC).toMatch(/\/\^\[0-9a-fA-F-\]\{36\}\$\//);
+    // Slice 3.15 (Codex Pass 2 MEDIUM #2) tightened to canonical UUID regex
+    // with hyphen positions. Previously was loose /^[0-9a-fA-F-]{36}$/.
+    expect(SRC).toMatch(/\[0-9a-fA-F\]\{8\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{12\}/);
   });
 
   it('mergeAndCleanup deletes normalized intermediates in finally', () => {

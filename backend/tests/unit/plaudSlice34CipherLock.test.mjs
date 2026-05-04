@@ -202,8 +202,8 @@ describe('Slice 3.4 — plaudMergeLockService source contract', () => {
     expect(LOCK_SRC).toMatch(/WHERE\s+user_id\s*=\s*:userId\s+AND\s+job_id\s*=\s*:jobId/);
   });
 
-  it('jobId regex prevents non-UUID values', () => {
-    expect(LOCK_SRC).toMatch(/\/\^\[0-9a-fA-F-\]\{36\}\$\//);
+  it('jobId regex prevents non-UUID values (canonical UUID via PLAUD_UUID_REGEX)', () => {
+    expect(LOCK_SRC).toMatch(/PLAUD_UUID_REGEX\.test/);
   });
 
   it('default TTL is 15 minutes', () => {

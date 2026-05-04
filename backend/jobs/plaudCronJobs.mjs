@@ -137,8 +137,13 @@ export async function plaudClipTtlCron() {
  * audit; approved/discarded already cipher-clean).
  */
 export async function plaudCipherPurgeCron() {
+  // Codex Pass 2 HIGH #1 fix: do NOT expire 'processing' rows that still
+  // have an active lock — that would race with an in-flight merge whose
+  // finalization is about to commit. Processing rows without an active
+  // lock are stale and safe to expire (they'd be flipped to 'failed' by
+  // plaudStaleMergeSweeper anyway, but expiring is also acceptable).
   const [, meta] = await sequelize.query(
-    `UPDATE plaud_merge_requests
+    `UPDATE plaud_merge_requests mr
      SET status = CASE
            WHEN status IN ('processing', 'completed') THEN 'expired'
            ELSE status
@@ -149,7 +154,12 @@ export async function plaudCipherPurgeCron() {
          cipher_purged_at = NOW()
      WHERE expires_at      < NOW()
        AND cipher_purged_at IS NULL
-       AND status NOT IN ('approved', 'discarded')`,
+       AND status NOT IN ('approved', 'discarded')
+       AND NOT EXISTS (
+         SELECT 1 FROM plaud_merge_locks l
+         WHERE l.job_id = mr.merge_request_id
+           AND l.locked_until > NOW()
+       )`,
   );
   const count = meta?.rowCount || 0;
   if (count > 0) logger.info('[plaudCron:cipherPurge] purged cipher on %d merge_requests', count);

@@ -47,6 +47,7 @@ import { getFitnessVocabBiasPrompt } from '../../services/fitnessTranscriptionVo
 import { transcribeAudio } from '../../services/voiceTranscriptionService.mjs';
 import { parseWorkoutTranscript } from '../../services/workoutLogParserService.mjs';
 import { assertTrainerAssignedToClient, PlaudAuthzError } from '../../middleware/plaudAuthz.mjs';
+import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const MAX_MERGED_BYTES = Number(process.env.PLAUD_MAX_MERGED_BYTES) || 20 * 1024 * 1024;
 const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 min
@@ -116,7 +117,7 @@ export async function mergeHandler(req, res) {
     return jsonError(res, 400, 'TOO_MANY_FILES', 'merge accepts at most 5 clipIds');
   }
   for (const cid of clipIds) {
-    if (typeof cid !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(cid)) {
+    if (!PLAUD_UUID_REGEX.test(cid || '')) {
       return jsonError(res, 400, 'INVALID_CLIP_ID', `Invalid clipId: ${cid}`);
     }
   }
@@ -202,9 +203,11 @@ export async function mergeHandler(req, res) {
     for (const c of clips) {
       try {
         // readClip returns a Buffer; we need disk path for ffmpeg.
-        // The storage layer guarantees that after readClip succeeds,
-        // the file is on disk at the expected path.
-        await readClip(userId, c.clip_id, c.storage_ext);
+        // After readClip succeeds with requireDiskRestore=true (the
+        // default), the file is GUARANTEED on disk at the expected
+        // path — Codex Pass 2 MEDIUM #3 fix promotes restore failure
+        // to ClipNotFoundError instead of silent warn.
+        await readClip(userId, c.clip_id, c.storage_ext, { requireDiskRestore: true });
       } catch (err) {
         if (err instanceof ClipNotFoundError) {
           await markMergeFailed(mergeRequestId, 'CLIP_NOT_FOUND', err.message);
@@ -295,8 +298,11 @@ export async function mergeHandler(req, res) {
         return jsonError(res, 409, 'MERGE_LOCK_LOST', 'Lock was lost during merge');
       }
 
-      // Step 14b: complete merge_request
-      await sequelize.query(
+      // Step 14b: complete merge_request — Codex Pass 2 HIGH #1 fix:
+      // RETURNING + row count check prevents committing clips as merged
+      // when the merge_request was already moved out of 'processing'
+      // (e.g., by the cipher-purge cron racing with a long-running merge).
+      const [completeRows] = await sequelize.query(
         `UPDATE plaud_merge_requests
          SET status                = 'completed',
              transcript_hash       = :hash,
@@ -308,7 +314,8 @@ export async function mergeHandler(req, res) {
              boundary_warning      = :warning::jsonb,
              completed_at          = NOW()
          WHERE merge_request_id = :mergeRequestId
-           AND status           = 'processing'`,
+           AND status           = 'processing'
+         RETURNING merge_request_id`,
         {
           replacements: {
             mergeRequestId,
@@ -323,6 +330,13 @@ export async function mergeHandler(req, res) {
           transaction,
         },
       );
+      if (!Array.isArray(completeRows) || completeRows.length !== 1) {
+        await transaction.rollback();
+        await markMergeFailed(mergeRequestId, 'MERGE_LOCK_LOST',
+          'merge_request not in processing state at finalization (cipher purge or status drift)');
+        return jsonError(res, 409, 'MERGE_LOCK_LOST',
+          'Merge request was no longer in processing state at finalization');
+      }
 
       // Step 14c: mark clips merged WITH WHERE guard (Codex Round 4 MED #4)
       const [, clipUpdateMeta] = await sequelize.query(

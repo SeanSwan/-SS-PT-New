@@ -16,6 +16,7 @@
 import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
 import { decryptPayload, CipherDecryptFailedError, CipherKeyVersionUnavailableError } from '../../services/plaudCipherService.mjs';
+import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -97,7 +98,7 @@ export async function detailHandler(req, res) {
     return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
   }
   const mergeRequestId = String(req.params.mergeRequestId || '');
-  if (!/^[0-9a-fA-F-]{36}$/.test(mergeRequestId)) {
+  if (!PLAUD_UUID_REGEX.test(mergeRequestId)) {
     return jsonError(res, 400, 'INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format');
   }
 
@@ -186,7 +187,7 @@ export async function discardHandler(req, res) {
     return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
   }
   const mergeRequestId = String(req.params.mergeRequestId || '');
-  if (!/^[0-9a-fA-F-]{36}$/.test(mergeRequestId)) {
+  if (!PLAUD_UUID_REGEX.test(mergeRequestId)) {
     return jsonError(res, 400, 'INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format');
   }
 

@@ -29,6 +29,7 @@
  */
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { PLAUD_UUID_REGEX } from '../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_TTL_MIN = 15;
 
@@ -39,7 +40,7 @@ const DEFAULT_TTL_MIN = 15;
  */
 export async function acquireLock({ userId, jobId, ttlMinutes = DEFAULT_TTL_MIN }) {
   if (!Number.isInteger(userId) || userId <= 0) throw new Error(`Invalid userId: ${userId}`);
-  if (!/^[0-9a-fA-F-]{36}$/.test(String(jobId || ''))) throw new Error(`Invalid jobId: ${jobId}`);
+  if (!PLAUD_UUID_REGEX.test(String(jobId || ''))) throw new Error(`Invalid jobId: ${jobId}`);
   const ttl = Number.isFinite(ttlMinutes) && ttlMinutes > 0 ? Math.floor(ttlMinutes) : DEFAULT_TTL_MIN;
   const [rows] = await sequelize.query(
     `INSERT INTO plaud_merge_locks (user_id, job_id, locked_until)
