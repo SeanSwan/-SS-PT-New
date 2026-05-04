@@ -8,12 +8,26 @@
  */
 
 import { spawn } from 'child_process';
+import ffmpegStaticPath from 'ffmpeg-static';
+import ffprobeStatic from 'ffprobe-static';
 
 console.log('SwanStudios Backend Starting on Render');
 console.log('======================================');
 console.log('Environment:', process.env.NODE_ENV || 'not set');
 console.log('Port:', process.env.PORT || '10000');
 console.log('Database:', process.env.DATABASE_URL ? 'CONFIGURED' : 'NOT CONFIGURED');
+
+// PLAUD audio pipeline binaries. Render's build sandbox is read-only so
+// apt-get install ffmpeg fails; we ship the binaries via npm instead and
+// resolve their paths here before the server child process inherits env.
+if (!process.env.PLAUD_FFMPEG_PATH && ffmpegStaticPath) {
+  process.env.PLAUD_FFMPEG_PATH = ffmpegStaticPath;
+  console.log('PLAUD ffmpeg path:', ffmpegStaticPath);
+}
+if (!process.env.PLAUD_FFPROBE_PATH && ffprobeStatic?.path) {
+  process.env.PLAUD_FFPROBE_PATH = ffprobeStatic.path;
+  console.log('PLAUD ffprobe path:', ffprobeStatic.path);
+}
 
 function run(cmd, args, cwd) {
   return new Promise((resolve, reject) => {
