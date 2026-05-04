@@ -100,6 +100,11 @@ const setupAssociations = async () => {
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
     const TrainerAvailabilityModule = await import('./TrainerAvailability.mjs');
     const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
+    // Phase 3 (PLAUD multi-clip merge ingestion) — Slice 3.1
+    const PlaudClipModule = await import('./PlaudClip.mjs');
+    const PlaudMergeRequestModule = await import('./PlaudMergeRequest.mjs');
+    const PlaudClipMirrorJobModule = await import('./PlaudClipMirrorJob.mjs');
+    const PlaudMergeLockModule = await import('./PlaudMergeLock.mjs');
     const ClientBaselineMeasurementsModule = await import('./ClientBaselineMeasurements.mjs');
     const ClientOnboardingQuestionnaireModule = await import('./ClientOnboardingQuestionnaire.mjs');
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
@@ -290,6 +295,11 @@ const setupAssociations = async () => {
     const TrainerPermissions = TrainerPermissionsModule.default;
     const TrainerAvailability = TrainerAvailabilityModule.default;
     const DailyWorkoutForm = DailyWorkoutFormModule.default;
+    // Phase 3 PLAUD models (Slice 3.1)
+    const PlaudClip = PlaudClipModule.default;
+    const PlaudMergeRequest = PlaudMergeRequestModule.default;
+    const PlaudClipMirrorJob = PlaudClipMirrorJobModule.default;
+    const PlaudMergeLock = PlaudMergeLockModule.default;
     const ClientBaselineMeasurements = ClientBaselineMeasurementsModule.default;
     const ClientOnboardingQuestionnaire = ClientOnboardingQuestionnaireModule.default;
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
@@ -490,7 +500,9 @@ const setupAssociations = async () => {
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
         // Video Chat + Avatar + Olympics Models
-        VideoSession, AvatarHome, OlympicEvent
+        VideoSession, AvatarHome, OlympicEvent,
+        // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
+        PlaudClip, PlaudMergeRequest, PlaudClipMirrorJob, PlaudMergeLock
       };
       } // end: if (allCriticalExist) return early
     } // end: if (hasUserAssociations || ...)
@@ -1396,6 +1408,12 @@ const setupAssociations = async () => {
 
       // Subscription Models
       ...(Subscription ? { Subscription } : {}),
+
+      // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
+      PlaudClip,
+      PlaudMergeRequest,
+      PlaudClipMirrorJob,
+      PlaudMergeLock,
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
