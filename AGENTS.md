@@ -760,4 +760,3 @@ Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOF
    - Use the existing Swan upload/parse pipeline as the default starting point; do not assume official Plaud account sync is ready yet.
 5. **Then:** Swan Coach premium gating aligned to package tiers
 6. **Then:** client dashboard audit â†’ user/social dashboard audit â†’ broader site polish
-
