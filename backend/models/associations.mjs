@@ -105,6 +105,8 @@ const setupAssociations = async () => {
     const PlaudMergeRequestModule = await import('./PlaudMergeRequest.mjs');
     const PlaudClipMirrorJobModule = await import('./PlaudClipMirrorJob.mjs');
     const PlaudMergeLockModule = await import('./PlaudMergeLock.mjs');
+    // Phase 5 (PLAUD Auto-Ingestion via Applaud webhook) — Slice 5.1
+    const PlaudWebhookNonceModule = await import('./PlaudWebhookNonce.mjs');
     const ClientBaselineMeasurementsModule = await import('./ClientBaselineMeasurements.mjs');
     const ClientOnboardingQuestionnaireModule = await import('./ClientOnboardingQuestionnaire.mjs');
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
@@ -300,6 +302,8 @@ const setupAssociations = async () => {
     const PlaudMergeRequest = PlaudMergeRequestModule.default;
     const PlaudClipMirrorJob = PlaudClipMirrorJobModule.default;
     const PlaudMergeLock = PlaudMergeLockModule.default;
+    // Phase 5 PLAUD Auto-Ingestion model (Slice 5.1)
+    const PlaudWebhookNonce = PlaudWebhookNonceModule.default;
     const ClientBaselineMeasurements = ClientBaselineMeasurementsModule.default;
     const ClientOnboardingQuestionnaire = ClientOnboardingQuestionnaireModule.default;
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
@@ -502,7 +506,9 @@ const setupAssociations = async () => {
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
-        PlaudClip, PlaudMergeRequest, PlaudClipMirrorJob, PlaudMergeLock
+        PlaudClip, PlaudMergeRequest, PlaudClipMirrorJob, PlaudMergeLock,
+        // Phase 5 PLAUD Auto-Ingestion via Applaud webhook (Slice 5.1)
+        PlaudWebhookNonce
       };
       } // end: if (allCriticalExist) return early
     } // end: if (hasUserAssociations || ...)
@@ -1414,6 +1420,8 @@ const setupAssociations = async () => {
       PlaudMergeRequest,
       PlaudClipMirrorJob,
       PlaudMergeLock,
+      // Phase 5 PLAUD Auto-Ingestion via Applaud webhook (Slice 5.1)
+      PlaudWebhookNonce,
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

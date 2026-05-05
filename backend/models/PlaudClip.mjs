@@ -5,6 +5,9 @@
  * multi-clip merge ingestion workflow.
  *
  * Phase 3 Slice 3.1 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md §4.1.
+ * Phase 5 Slice 5.1 (2026-05-04): added clipSource, clipExternalId,
+ *   applaudEventId for Applaud webhook auto-ingestion. Plan:
+ *   PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.2-2026-05-04.md §7.1.
  * Schema preflight (Rule 58, 2026-05-04): Users table is "Users" PascalCase.
  */
 import { DataTypes, Model } from 'sequelize';
@@ -108,6 +111,29 @@ PlaudClip.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'deleted_at',
+    },
+    // Phase 5 Slice 5.1 — Applaud webhook auto-ingestion source tracking.
+    // Default 'manual_upload' covers all existing pre-Phase-5 rows.
+    clipSource: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'manual_upload',
+      field: 'clip_source',
+      validate: { isIn: [['manual_upload', 'applaud_webhook']] },
+    },
+    // Plaud's recording_id (UUID-ish from Applaud). NULL for manual uploads.
+    // Partial UNIQUE index (clip_source, clip_external_id, user_id)
+    // WHERE clip_external_id IS NOT NULL enforces dedup for webhook ingestion.
+    clipExternalId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'clip_external_id',
+    },
+    // Applaud's per-event ID. Used for forensic tracing only — not unique.
+    applaudEventId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'applaud_event_id',
     },
     createdAt: {
       type: DataTypes.DATE,

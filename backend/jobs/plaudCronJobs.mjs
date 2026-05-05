@@ -29,6 +29,8 @@ const CLIP_TTL_INTERVAL_MS = 5 * 60 * 1000;
 const CIPHER_PURGE_INTERVAL_MS = 5 * 60 * 1000;
 const LOCK_SWEEP_INTERVAL_MS = 60 * 1000;
 const STALE_MERGE_INTERVAL_MS = 5 * 60 * 1000;
+// Phase 5 Slice 5.1 — webhook nonce cleanup (60-second sweep per §7.2)
+const WEBHOOK_NONCE_CLEANUP_INTERVAL_MS = 60 * 1000;
 
 // Stale-uploading threshold (Codex Round 3 HIGH #2)
 const STALE_UPLOADING_MIN = 5;
@@ -48,15 +50,16 @@ export function startPlaudCronJobs() {
     return;
   }
 
-  logger.info('[plaudCron] starting clip TTL, cipher purge, lock sweep, stale merge sweepers');
+  logger.info('[plaudCron] starting clip TTL, cipher purge, lock sweep, stale merge, webhook-nonce sweepers');
 
-  // Run all four once at startup, then schedule
+  // Run all five once at startup, then schedule
   runAll().catch((err) => logger.error('[plaudCron] startup run failed: %s', err.message));
 
   _intervals.push(scheduleJob(plaudClipTtlCron, CLIP_TTL_INTERVAL_MS, 'clipTtl'));
   _intervals.push(scheduleJob(plaudCipherPurgeCron, CIPHER_PURGE_INTERVAL_MS, 'cipherPurge'));
   _intervals.push(scheduleJob(plaudMergeLockSweepCron, LOCK_SWEEP_INTERVAL_MS, 'lockSweep'));
   _intervals.push(scheduleJob(plaudStaleMergeSweeper, STALE_MERGE_INTERVAL_MS, 'staleMerge'));
+  _intervals.push(scheduleJob(plaudWebhookNonceCleanupCron, WEBHOOK_NONCE_CLEANUP_INTERVAL_MS, 'webhookNonceCleanup'));
 }
 
 export function stopPlaudCronJobs() {
@@ -86,7 +89,32 @@ async function runAll() {
     plaudCipherPurgeCron(),
     plaudMergeLockSweepCron(),
     plaudStaleMergeSweeper(),
+    plaudWebhookNonceCleanupCron(),
   ]);
+}
+
+/**
+ * Phase 5 Slice 5.1 — webhook nonce cleanup (60-second sweep).
+ * Plan: PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.2-2026-05-04.md §7.2.
+ *
+ * Deletes nonce rows past their expires_at. Idempotent. Safe under
+ * concurrent webhook ingest because nonce TTL (10 min) is much larger
+ * than the sweep interval (1 min) — a nonce can't be both "active" and
+ * "expired" simultaneously by more than the sweep latency.
+ *
+ * idx_plaud_webhook_nonces_expires_at supports the WHERE clause.
+ */
+export async function plaudWebhookNonceCleanupCron() {
+  const [, meta] = await sequelize.query(
+    `DELETE FROM plaud_webhook_nonces
+     WHERE expires_at < NOW()`,
+  );
+  // pg returns rowCount on DELETE in the meta tuple; log only when something
+  // was cleaned (avoids noise on quiet systems with no recent webhook traffic).
+  const deleted = meta?.rowCount ?? 0;
+  if (deleted > 0) {
+    logger.info('[plaudCron:webhookNonceCleanup] purged %d expired nonces', deleted);
+  }
 }
 
 /**
