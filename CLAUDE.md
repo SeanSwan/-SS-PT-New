@@ -340,6 +340,50 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Cross-references:** Rule 26 (Canonical Surface Receipt) gates UI/data-truth fixes; Rule 27 (Surface Classification) handles competing surfaces; Rule 29 (Schema Cross-Check Artifact) is the artifact for shipped fixes; Rule 51 (`[VERIFIED]` confidence tags) requires evidence; Rule 20 (Sibling Sweep) ensures all parallel callers get checked. This rule (58) is the proactive trigger that surfaces drift before any of those other rules fire.
 
+59. **Read-Time Secret Exposure Prevention (MANDATORY)** — Established 2026-05-04 after a Claude `Grep` tool call surfaced the live `OPENROUTER_API_KEY` value from `.env` line 132 into chat context while diagnosing a script's API-key load failure. Rule 44 only covers WRITES (commits, edits, doc generation). This rule (59) covers READS — any tool result that could surface a secret VALUE into chat output, even when the secret is already present in the user's local files.
+
+    **What "secret-bearing files" means:** any of the following, no matter what the file contents look like, are PRESUMED to contain secrets and must be treated under this rule:
+    - `.env`, `.env.*`, `.env.local`, `.env.production`, `.env.development`, `.env.staging`, `.env.test`
+    - `secrets.*`, `credentials.*`, `*.secret`, `*.secrets`
+    - `*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`, `*.p12`, `*.pfx`, `*.jks`
+    - Files matching `**/keys/**`, `**/credentials/**`, `**/.aws/credentials`, `**/.ssh/**`
+    - Any file the user explicitly identifies as containing credentials
+    - Render service-shell session output that may include `printenv` results
+    - Outputs from `cat /proc/*/environ`, `env`, `printenv`, `set` (process env dumps)
+
+    **Forbidden actions on secret-bearing files (will surface values to chat):**
+    - `Grep` with `output_mode: "content"` — emits matching lines including the value
+    - `Grep` with `-A`, `-B`, `-C` context flags — same risk
+    - `Read` tool on the whole file (or a range that covers a secret line)
+    - `Bash` commands that pipe file content to stdout: `cat .env`, `head .env`, `tail .env`, `awk '/PATTERN/' .env`, `grep PATTERN .env` (the bare grep CLI, not the Grep tool)
+    - `Bash` with `echo $SECRET_VAR`, `echo ${VAR}`, `printenv VAR`
+    - Any tool that returns the value through its result channel
+
+    **Required substitutes (verify presence without exposing value):**
+    - `Grep` with `output_mode: "files_with_matches"` — confirms the file contains the pattern, returns only the file path
+    - `Grep` with `output_mode: "count"` — returns the match count, not the matching content
+    - `Bash` with redacting transformations: `grep -c '^OPENROUTER_API_KEY=' .env` (count only), `awk -F= '/^OPENROUTER_API_KEY=/{print "found, "length($2)" chars"}' .env`, `[ -n "$VAR" ] && echo "set, ${#VAR} chars" || echo "missing"`
+    - When a script needs the value, load it INSIDE the script (script reads file or `process.env`, never echoes to stdout) — example: `export OPENROUTER_API_KEY=$(grep '^OPENROUTER_API_KEY=' .env | cut -d= -f2) && node script.mjs` is acceptable because the value goes to env, not to stdout (no `echo`, no `set -x`)
+    - When configuring `Edit` to modify a secret-bearing file, never include the secret VALUE in `old_string` or `new_string` — use unique non-secret context lines as anchors
+
+    **Mandatory response when a secret leaks anyway** (mistake, hook output, system reminder, or unanticipated tool behavior):
+    1. **STOP** the current workflow.
+    2. **Flag the exposure to the user IMMEDIATELY** — name the specific tool call, the specific value class (API key / JWT / DB URL), and the source file.
+    3. **Recommend rotation** — provide the rotation procedure for that specific secret class.
+    4. **Log the incident** in the closeout audit record (Rule 48) — incident date, secret type, exposure path, rotation status.
+    5. **Do not re-emit** — never quote the leaked value again in the same conversation, even when the user asks "what was the value?" Tell them to look at their `.env` directly.
+    6. **Continue work only after** the user acknowledges the rotation plan or explicitly defers it.
+
+    **Why:** Chat context is persistent. Anthropic's chat history, Claude Code transcripts, telemetry, and any conversation-replay or memory feature creates new copies of any secret that enters chat. Even if the secret is in the user's gitignored `.env`, exposing it to chat creates a new copy in a less-controlled location. The 2026-05-04 incident — Claude grepped `OPENROUTER_API_KEY` from `.env` with `output_mode: "content"` while diagnosing a script's env-load failure — established this gap in Rule 44 (which only covers writes). The previous-day AI Village runs Sean references did NOT trigger this because they used the orchestrator's own internal `.env` loading (Node.js `process.env`, never grep), not a Claude tool call.
+
+    **How to apply:**
+    - Whenever Claude is about to grep, read, or `cat` a `.env`-class file: STOP and use the presence-only substitutes above.
+    - Whenever Claude is troubleshooting a "key not loading" failure: load INSIDE the script, never grep+echo.
+    - Whenever Claude is about to run an env dump (`printenv`, `set`, `env`): redact secret-shaped values BEFORE displaying, OR use targeted checks instead.
+    - Whenever the user pastes a tool output (e.g. Render shell session) that may contain secrets: scan the paste, redact secret-shaped values from your response, and tell the user the redacted version.
+
+    **Cross-references:** Rule 44 (write-time secret scanning — companion rule); Rule 47 (Supervised Read-Only Launcher Pattern — its redaction-at-source rule applies the same principle to remote shells); Rule 48 (Phase Completion Audit Record — closeout records secret-handling posture).
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
