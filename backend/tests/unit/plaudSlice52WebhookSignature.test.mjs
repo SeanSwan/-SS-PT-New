@@ -358,6 +358,43 @@ describe('Slice 5.2 — verifyWebhookRequest orchestrator', () => {
 
   function fakeResolver(_keyId) { return TEST_SECRET; }
 
+  function buildApplaudV0510Request(opts = {}) {
+    const body = opts.body ?? {
+      event: opts.event ?? 'audio_ready',
+      recording: {
+        id: opts.recordingId ?? '74560101636422f79bacd66696bab17b',
+        filename: opts.filename ?? 'Test Recording',
+        start_time_ms: 1775929909000,
+        end_time_ms: 1775929931000,
+        duration_ms: 22000,
+        filesize_bytes: opts.filesizeBytes ?? 95744,
+        serial_number: '8810B30227298497',
+      },
+      files: {
+        folder: '2026-04-11_Test__74560101',
+        audio: '2026-04-11_Test__74560101/audio.ogg',
+        transcript: '2026-04-11_Test__74560101/transcript.json',
+        summary: '2026-04-11_Test__74560101/summary.md',
+      },
+      http_urls: {
+        audio: 'http://127.0.0.1:44471/media/2026-04-11_Test__74560101/audio.ogg',
+        transcript: 'http://127.0.0.1:44471/media/2026-04-11_Test__74560101/transcript.json',
+        summary: 'http://127.0.0.1:44471/media/2026-04-11_Test__74560101/summary.md',
+      },
+    };
+    const rawText = JSON.stringify(body);
+    const sig = createHmac('sha256', opts.secret ?? TEST_SECRET).update(rawText).digest('hex');
+    return {
+      headers: {
+        'x-forwarded-proto': opts.proto ?? 'https',
+        'x-applaud-signature': opts.sigHeader ?? `sha256=${sig}`,
+        'x-applaud-event': body.event,
+      },
+      rawBody: Buffer.from(rawText),
+      body,
+    };
+  }
+
   it('happy path returns ok=true, replayed=false', async () => {
     const req = buildSignedRequest();
     const out = await verifyWebhookRequest(req, {
@@ -487,6 +524,55 @@ describe('Slice 5.2 — verifyWebhookRequest orchestrator', () => {
     // Confirm the env name does NOT leak in the response
     expect(out.message || '').not.toContain('SECRET_V99');
     expect(out.message || '').not.toContain('PLAUD_APPLAUD_WEBHOOK_SECRET');
+  });
+
+  it('accepts Applaud v0.5.10 X-Applaud-Signature and normalizes nested audio_ready payload', async () => {
+    const req = buildApplaudV0510Request();
+    const out = await verifyWebhookRequest(req, {
+      sequelize: mockSeq(true),
+      secretResolver: fakeResolver,
+      keyIdEnv: 'V1',
+      mediaBaseUrl: 'https://applaud-tunnel.sswanstudios.com',
+    });
+    expect(out.ok).toBe(true);
+    expect(out.replayed).toBe(false);
+    expect(out.parsed).toMatchObject({
+      event_type: 'audio_ready',
+      recording_id: '74560101636422f79bacd66696bab17b',
+      audio_url: 'https://applaud-tunnel.sswanstudios.com/media/2026-04-11_Test__74560101/audio.ogg',
+      audio_size_bytes: 95744,
+      audio_mimetype: 'audio/ogg',
+      audio_filename: 'Test Recording.ogg',
+      device_serial: '8810B30227298497',
+    });
+    expect(out.parsed.event_id).toMatch(/^applaud:audio_ready:/);
+  });
+
+  it('rejects Applaud v0.5.10 payload when raw body changes after signing', async () => {
+    const req = buildApplaudV0510Request();
+    req.rawBody = Buffer.from(req.rawBody.toString() + ' ');
+    const out = await verifyWebhookRequest(req, {
+      sequelize: mockSeq(true),
+      secretResolver: fakeResolver,
+      keyIdEnv: 'V1',
+      mediaBaseUrl: 'https://applaud-tunnel.sswanstudios.com',
+    });
+    expect(out.ok).toBe(false);
+    expect(out.status).toBe(401);
+    expect(out.code).toBe('SIGNATURE_INVALID');
+  });
+
+  it('rejects Applaud v0.5.10 audio_ready payload when media base URL is absent', async () => {
+    const req = buildApplaudV0510Request();
+    const out = await verifyWebhookRequest(req, {
+      sequelize: mockSeq(true),
+      secretResolver: fakeResolver,
+      keyIdEnv: 'V1',
+      mediaBaseUrl: '',
+    });
+    expect(out.ok).toBe(false);
+    expect(out.status).toBe(500);
+    expect(out.code).toBe('AUDIO_URL_ALLOWLIST_UNCONFIGURED');
   });
 });
 

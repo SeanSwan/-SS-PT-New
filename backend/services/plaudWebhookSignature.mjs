@@ -39,6 +39,10 @@
  */
 import crypto from 'node:crypto';
 import { QueryTypes } from 'sequelize';
+import {
+  hasApplaudV0510Signature,
+  verifyApplaudV0510WebhookRequest,
+} from './applaudV0510WebhookAdapter.mjs';
 
 const SIG_REGEX = /^[0-9a-f]{64}$/i;     // HMAC-SHA256 = 32 bytes = 64 hex chars
 const NONCE_REGEX = /^[0-9a-f]{32}$/i;   // 16 random bytes per §4.1
@@ -46,11 +50,7 @@ const DEFAULT_TIMESTAMP_WINDOW_SEC = 300;
 const DEFAULT_NONCE_TTL_SEC = 600;
 const MIN_SECRET_LENGTH = 32;            // HIGH-7: refuse pathologically short secrets
 
-/**
- * Parse the `Plaud-Webhook-Signature: t=<unix>,nonce=<hex>,sig=<hex>[,kid=<str>]` header.
- * Returns null on malformed input; returns parsed object otherwise.
- * Tolerates whitespace around `=` and `,`.
- */
+/** Parse the forward-spec signature header. */
 export function parseSignatureHeader(value) {
   if (typeof value !== 'string' || value.length === 0) return null;
   const parts = {};
@@ -65,11 +65,7 @@ export function parseSignatureHeader(value) {
   return parts;
 }
 
-/**
- * M-1: validate hex format + length on sig and nonce BEFORE passing to
- * crypto.timingSafeEqual. timingSafeEqual throws on length mismatch which
- * would crash to 500 instead of returning 401.
- */
+/** Validate hex format + length before any constant-time compare. */
 export function validateSignatureShape(parts) {
   if (!parts) return false;
   if (!SIG_REGEX.test(parts.sig || '')) return false;
@@ -89,11 +85,7 @@ export function isTimestampInWindow(tSec, nowSec, windowSec = DEFAULT_TIMESTAMP_
   return Math.abs(nowSec - tSec) <= windowSec;
 }
 
-/**
- * Body hash binding (Codex ICR-2): computed over the EXACT raw bytes
- * Applaud signed, NOT over JSON.stringify(parsed). Two equivalent JSON
- * objects with different whitespace produce different hashes.
- */
+/** Compute SHA-256 over the exact raw request bytes. */
 export function computeBodyHash(rawBody) {
   if (!Buffer.isBuffer(rawBody)) {
     throw new Error('computeBodyHash: rawBody must be Buffer');
@@ -103,9 +95,6 @@ export function computeBodyHash(rawBody) {
 
 /**
  * Canonical payload format (plan §4.1): one field per line, no trailing
- * newline. Fields: timestamp, nonce, event_type, recording_id, body_hash.
- * The receiver MUST build this identically to how Applaud signed it; any
- * deviation (extra whitespace, reordering) breaks verification.
  */
 export function buildCanonicalPayload({ t, nonce, eventType, recordingId, bodyHash }) {
   return `${t}\n${nonce}\n${eventType}\n${recordingId}\n${bodyHash}`;
@@ -114,8 +103,6 @@ export function buildCanonicalPayload({ t, nonce, eventType, recordingId, bodyHa
 /**
  * HMAC compute + constant-time hex compare. Returns true on match.
  * `sigHex` MUST be pre-validated by validateSignatureShape() — otherwise
- * Buffer.from(sigHex, 'hex') could produce a wrong-length buffer and
- * crypto.timingSafeEqual would throw.
  */
 export function verifyHmac(canonicalPayload, sigHex, secret) {
   const expected = crypto.createHmac('sha256', secret).update(canonicalPayload).digest();
@@ -152,9 +139,6 @@ export function resolveWebhookSecret(keyId, env = process.env) {
 
 /**
  * M-2: if the body includes `timestamp` or `nonce` fields, they MUST equal
- * the signed header values. The header is authoritative (that's what was
- * signed); divergent body values indicate Applaud version skew or tamper.
- *
  * Body fields are optional — Applaud may or may not duplicate them.
  * We only check when present.
  */
@@ -201,10 +185,7 @@ export async function claimNonce(sequelize, { source, nonce, ttlSec = DEFAULT_NO
 }
 
 /**
- * Top-level orchestrator. Composes parseSignatureHeader, validateSignatureShape,
- * isTimestampInWindow, computeBodyHash, buildCanonicalPayload, verifyHmac,
- * verifyBodyConsistency, and claimNonce.
- *
+ * Verify an incoming webhook and return normalized metadata for the controller.
  * Does NOT validate audio_url — the controller (Slice 5.4) does that
  * conditionally based on event_type (Codex HIGH-4: transcript_ready
  * events have no audio_url).
@@ -224,6 +205,7 @@ export async function verifyWebhookRequest(req, opts) {
     nowSec = Math.floor(Date.now() / 1000),
     secretResolver = resolveWebhookSecret,
     keyIdEnv = process.env.PLAUD_APPLAUD_WEBHOOK_KEY_ID,
+    mediaBaseUrl = process.env.PLAUD_APPLAUD_MEDIA_BASE_URL,
   } = opts || {};
   if (!sequelize) {
     return { ok: false, status: 500, code: 'INTERNAL_ERROR', message: 'sequelize required' };
@@ -232,6 +214,15 @@ export async function verifyWebhookRequest(req, opts) {
   // Step 0: HTTPS check (defense-in-depth — Render terminates TLS but verify)
   if (req.headers['x-forwarded-proto'] !== 'https') {
     return { ok: false, status: 400, code: 'HTTPS_REQUIRED' };
+  }
+
+  // Applaud signs once before retrying; controller dedup handles replays.
+  if (hasApplaudV0510Signature(req)) {
+    return verifyApplaudV0510WebhookRequest(req, {
+      keyIdEnv,
+      mediaBaseUrl,
+      secretResolver,
+    });
   }
 
   // Step 1: parse + format-validate sig header
