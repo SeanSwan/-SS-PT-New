@@ -20,6 +20,7 @@
  * 3.3; this file only manages the cron jobs.
  */
 import sequelize from '../database.mjs';
+import { QueryTypes } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { sweepExpired as sweepExpiredLocks } from '../services/plaudMergeLockService.mjs';
 import { deleteClip } from '../services/plaudClipStorageDualTier.mjs';
@@ -105,13 +106,17 @@ async function runAll() {
  * idx_plaud_webhook_nonces_expires_at supports the WHERE clause.
  */
 export async function plaudWebhookNonceCleanupCron() {
-  const [, meta] = await sequelize.query(
+  // Codex H-IMPL-7: use QueryTypes.DELETE for predictable return shape.
+  // QueryTypes.DELETE returns the meta object directly (with rowCount).
+  const meta = await sequelize.query(
     `DELETE FROM plaud_webhook_nonces
      WHERE expires_at < NOW()`,
+    { type: QueryTypes.DELETE },
   );
-  // pg returns rowCount on DELETE in the meta tuple; log only when something
-  // was cleaned (avoids noise on quiet systems with no recent webhook traffic).
-  const deleted = meta?.rowCount ?? 0;
+  // The shape returned by QueryTypes.DELETE is dialect-dependent; for pg
+  // it's an array `[ [], { rowCount } ]` in some sequelize versions and just
+  // metadata in others. Defensive access:
+  const deleted = (meta && (meta.rowCount ?? meta[1]?.rowCount)) ?? 0;
   if (deleted > 0) {
     logger.info('[plaudCron:webhookNonceCleanup] purged %d expired nonces', deleted);
   }

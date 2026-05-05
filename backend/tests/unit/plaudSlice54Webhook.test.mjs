@@ -132,25 +132,26 @@ describe('Slice 5.4 — getApplaudUserId', () => {
   });
 });
 
-// ─── TERMINAL_DEDUP_STATES (HIGH-1) ───
-describe('Slice 5.4 — TERMINAL_DEDUP_STATES (Codex HIGH-1)', () => {
-  it('contains pending_merge / merged / discarded only', () => {
+// ─── TERMINAL_DEDUP_STATES (HIGH-1 + Codex NH-7 status drift fix) ───
+describe('Slice 5.4 — TERMINAL_DEDUP_STATES (Codex HIGH-1 + NH-7)', () => {
+  it('contains pending_merge / merged / deleted / expired (terminal-success states)', () => {
     const set = _internal.TERMINAL_DEDUP_STATES;
     expect(set.has('pending_merge')).toBe(true);
     expect(set.has('merged')).toBe(true);
-    expect(set.has('discarded')).toBe(true);
+    expect(set.has('deleted')).toBe(true);
+    expect(set.has('expired')).toBe(true);
   });
-  it('does NOT contain uploading (HIGH-1: uploading triggers 429 retry path)', () => {
+  it('does NOT contain uploading (uploading triggers 429 retry path)', () => {
     expect(_internal.TERMINAL_DEDUP_STATES.has('uploading')).toBe(false);
   });
-  it('does NOT contain failed (HIGH-1: failed triggers DELETE + retry path)', () => {
-    expect(_internal.TERMINAL_DEDUP_STATES.has('failed')).toBe(false);
-  });
-  it('does NOT contain lost', () => {
+  it('does NOT contain lost (lost triggers DELETE + retry path)', () => {
     expect(_internal.TERMINAL_DEDUP_STATES.has('lost')).toBe(false);
   });
-  it('does NOT contain expired', () => {
-    expect(_internal.TERMINAL_DEDUP_STATES.has('expired')).toBe(false);
+  it('does NOT contain "failed" (Codex NH-7: not in PlaudClip model enum — would be unreachable)', () => {
+    expect(_internal.TERMINAL_DEDUP_STATES.has('failed')).toBe(false);
+  });
+  it('does NOT contain "discarded" (Codex NH-7: not in PlaudClip model enum)', () => {
+    expect(_internal.TERMINAL_DEDUP_STATES.has('discarded')).toBe(false);
   });
 });
 
@@ -252,9 +253,13 @@ describe('Slice 5.4 — controller source-text locks (Codex CR-1..CR-6)', () => 
     expect(CONTROLLER_SRC).toMatch(/Retry-After['"\s,]+,?\s*'300'/);
   });
 
-  it('status-aware dedup (HIGH-1): failed row → DELETE then retry', () => {
+  it('status-aware dedup (HIGH-1 + NH-7): lost row → DELETE then retry', () => {
+    // Per Codex NH-7: the model enum has 'lost' (abandoned/stuck), not
+    // 'failed'. Earlier code branched on 'failed' but the model would reject
+    // that value at INSERT time → unreachable code. Fixed: lost is the
+    // recoverable state.
     expect(CONTROLLER_SRC).toMatch(
-      /existing\.status === 'failed'[\s\S]{0,200}DELETE FROM plaud_clips/,
+      /existing\.status === 'lost'[\s\S]{0,500}DELETE FROM plaud_clips/,
     );
   });
 

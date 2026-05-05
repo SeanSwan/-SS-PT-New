@@ -73,8 +73,10 @@ import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.5 + 3.7)
 import plaudClipsRoutes from '../routes/plaud/plaudClipsRoutes.mjs';
 import { mergeActionRouter, mergeRequestsRouter } from '../routes/plaud/plaudMergeRoutes.mjs';
-// Phase 5 Slice 5.5 — Applaud Auto-Ingestion webhook (conditional mount)
-import plaudWebhookRoutes, { shouldMountApplaudWebhookRoute } from '../routes/plaud/plaudWebhookRoutes.mjs';
+// Phase 5 Slice 5.5 — Applaud Auto-Ingestion webhook is LAZY-IMPORTED inside
+// setupRoutes only when the feature flag is on. Static import was a Codex
+// NC-CRIT-1 finding (route module would load even when flag off, exposing
+// production to crashes from any import-time error in the webhook stack).
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
@@ -371,14 +373,21 @@ export const setupRoutes = async (app) => {
   // Codex CR-5: route is mounted ONLY when feature flag is on; otherwise the
   // URL returns Express 404 (NO 503 path in v1.2). Codex HIGH-7: mount-time
   // env validation refuses to mount on misconfiguration.
-  try {
-    if (await shouldMountApplaudWebhookRoute()) {
-      app.use('/api/plaud/webhook', plaudWebhookRoutes);
+  // Codex NC-CRIT-1: webhook route module is LAZY-IMPORTED only when the
+  // feature flag is on. Static import would expose production to crashes
+  // from any import-time error in the webhook stack even with flag=off.
+  if (process.env.PLAUD_APPLAUD_WEBHOOK_ENABLED === 'true') {
+    try {
+      const { default: plaudWebhookRoutes, shouldMountApplaudWebhookRoute }
+        = await import('../routes/plaud/plaudWebhookRoutes.mjs');
+      if (await shouldMountApplaudWebhookRoute()) {
+        app.use('/api/plaud/webhook', plaudWebhookRoutes);
+      }
+    } catch (mountErr) {
+      // Fail-closed: any unexpected error during lazy-import or mount-decision
+      // skips the mount and logs. The route stays absent (404).
+      console.error('[plaudApplaudWebhook] lazy-import or mount-decision threw — route NOT mounted:', mountErr.message);
     }
-  } catch (mountErr) {
-    // Fail-closed: any unexpected error during mount-decision skips the
-    // mount and logs. The route stays absent (404).
-    console.error('[plaudApplaudWebhook] mount-decision threw — route NOT mounted:', mountErr.message);
   }
 
   // ===================== CLIENT ANALYTICS (IDOR-PROTECTED) =====================

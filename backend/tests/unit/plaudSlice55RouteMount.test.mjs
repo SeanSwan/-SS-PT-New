@@ -45,6 +45,34 @@ function setValidEnv() {
   vi.stubEnv('PLAUD_APPLAUD_MEDIA_BASE_URL', 'https://applaud-tunnel.test.local');
 }
 
+// Per Codex CR-IMPL-1 + NC-CRIT-2: shouldMountApplaudWebhookRoute now
+// REQUIRES models.User AND a schema check. Provide a fully-valid mock that
+// makes the function return true; specific tests override portions.
+function makeValidModelsAndSchema() {
+  return {
+    models: {
+      User: {
+        findByPk: vi.fn().mockResolvedValue({ id: 42, role: 'admin' }),
+      },
+    },
+    sequelizeOverride: {
+      query: vi.fn().mockImplementation((sql) => {
+        if (sql.includes('information_schema.columns')) {
+          return Promise.resolve([
+            { column_name: 'clip_source' },
+            { column_name: 'clip_external_id' },
+            { column_name: 'applaud_event_id' },
+          ]);
+        }
+        if (sql.includes('plaud_webhook_nonces')) {
+          return Promise.resolve([{ exists: 'plaud_webhook_nonces' }]);
+        }
+        return Promise.resolve([]);
+      }),
+    },
+  };
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
   _resetRateLimiterForTests();
@@ -52,9 +80,9 @@ afterEach(() => {
 
 // ─── shouldMountApplaudWebhookRoute (Codex HIGH-7 + §13.2) ────────────
 describe('Slice 5.5 — shouldMountApplaudWebhookRoute', () => {
-  it('returns true with all valid env (no models check)', async () => {
+  it('returns true with all valid env + valid models + valid schema', async () => {
     setValidEnv();
-    const result = await shouldMountApplaudWebhookRoute();
+    const result = await shouldMountApplaudWebhookRoute(makeValidModelsAndSchema());
     expect(result).toBe(true);
   });
 
@@ -153,52 +181,78 @@ describe('Slice 5.5 — shouldMountApplaudWebhookRoute', () => {
     expect(await shouldMountApplaudWebhookRoute()).toBe(false);
   });
 
-  it('skips user existence check when models is null (early-boot mount path)', async () => {
+  it('returns false when user_id does not exist (models check is now mandatory per CR-IMPL-1)', async () => {
     setValidEnv();
-    const result = await shouldMountApplaudWebhookRoute({ models: null });
-    expect(result).toBe(true);
-  });
-
-  it('returns false when user_id does not exist (models check)', async () => {
-    setValidEnv();
-    const fakeModels = {
-      User: { findByPk: vi.fn().mockResolvedValue(null) },
-    };
-    const result = await shouldMountApplaudWebhookRoute({ models: fakeModels });
+    const args = makeValidModelsAndSchema();
+    args.models.User.findByPk = vi.fn().mockResolvedValue(null);
+    const result = await shouldMountApplaudWebhookRoute(args);
     expect(result).toBe(false);
-    expect(fakeModels.User.findByPk).toHaveBeenCalledWith(42, expect.any(Object));
+    expect(args.models.User.findByPk).toHaveBeenCalledWith(42, expect.any(Object));
   });
 
-  it('returns false when user role is not trainer/admin (models check)', async () => {
+  it('returns false when user role is not trainer/admin', async () => {
     setValidEnv();
-    const fakeModels = {
-      User: { findByPk: vi.fn().mockResolvedValue({ id: 42, role: 'client' }) },
-    };
-    expect(await shouldMountApplaudWebhookRoute({ models: fakeModels })).toBe(false);
+    const args = makeValidModelsAndSchema();
+    args.models.User.findByPk = vi.fn().mockResolvedValue({ id: 42, role: 'client' });
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(false);
   });
 
-  it('returns true when user role is trainer (models check)', async () => {
+  it('returns true when user role is trainer', async () => {
     setValidEnv();
-    const fakeModels = {
-      User: { findByPk: vi.fn().mockResolvedValue({ id: 42, role: 'trainer' }) },
-    };
-    expect(await shouldMountApplaudWebhookRoute({ models: fakeModels })).toBe(true);
+    const args = makeValidModelsAndSchema();
+    args.models.User.findByPk = vi.fn().mockResolvedValue({ id: 42, role: 'trainer' });
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(true);
   });
 
-  it('returns true when user role is admin (models check)', async () => {
+  it('returns true when user role is admin', async () => {
     setValidEnv();
-    const fakeModels = {
-      User: { findByPk: vi.fn().mockResolvedValue({ id: 42, role: 'admin' }) },
-    };
-    expect(await shouldMountApplaudWebhookRoute({ models: fakeModels })).toBe(true);
+    expect(await shouldMountApplaudWebhookRoute(makeValidModelsAndSchema())).toBe(true);
   });
 
   it('returns false when user lookup throws (fail-closed)', async () => {
     setValidEnv();
-    const fakeModels = {
-      User: { findByPk: vi.fn().mockRejectedValue(new Error('DB unreachable')) },
-    };
-    expect(await shouldMountApplaudWebhookRoute({ models: fakeModels })).toBe(false);
+    const args = makeValidModelsAndSchema();
+    args.models.User.findByPk = vi.fn().mockRejectedValue(new Error('DB unreachable'));
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(false);
+  });
+
+  it('returns false when Phase 5 plaud_clips columns missing (Codex NC-CRIT-2 schema check)', async () => {
+    setValidEnv();
+    const args = makeValidModelsAndSchema();
+    // Schema check returns only 1 column instead of 3 — migration not applied
+    args.sequelizeOverride.query = vi.fn().mockImplementation((sql) => {
+      if (sql.includes('information_schema.columns')) {
+        return Promise.resolve([{ column_name: 'clip_source' }]);  // missing 2
+      }
+      return Promise.resolve([{ exists: 'plaud_webhook_nonces' }]);
+    });
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(false);
+  });
+
+  it('returns false when plaud_webhook_nonces table missing (Codex NC-CRIT-2)', async () => {
+    setValidEnv();
+    const args = makeValidModelsAndSchema();
+    args.sequelizeOverride.query = vi.fn().mockImplementation((sql) => {
+      if (sql.includes('information_schema.columns')) {
+        return Promise.resolve([
+          { column_name: 'clip_source' },
+          { column_name: 'clip_external_id' },
+          { column_name: 'applaud_event_id' },
+        ]);
+      }
+      if (sql.includes('plaud_webhook_nonces')) {
+        return Promise.resolve([{ exists: null }]);  // table absent
+      }
+      return Promise.resolve([]);
+    });
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(false);
+  });
+
+  it('returns false when schema introspection throws (fail-closed)', async () => {
+    setValidEnv();
+    const args = makeValidModelsAndSchema();
+    args.sequelizeOverride.query = vi.fn().mockRejectedValue(new Error('DB locked'));
+    expect(await shouldMountApplaudWebhookRoute(args)).toBe(false);
   });
 });
 
@@ -306,21 +360,34 @@ describe('Slice 5.5 — applaudRateLimiter', () => {
 
 // ─── core/routes.mjs wiring ───────────────────────────────────────────
 describe('Slice 5.5 — core/routes.mjs wiring', () => {
-  it('imports plaudWebhookRoutes + shouldMountApplaudWebhookRoute', () => {
-    expect(CORE_ROUTES_SRC).toMatch(
-      /import\s+plaudWebhookRoutes,\s*\{\s*shouldMountApplaudWebhookRoute\s*\}\s+from\s+['"][\s\S]{0,80}plaudWebhookRoutes\.mjs['"]/,
+  it('does NOT statically import the webhook route module (Codex NC-CRIT-1 fix)', () => {
+    // The route module was previously statically imported. Codex NC-CRIT-1
+    // flagged: even with flag=off, any import-time error in the webhook
+    // stack would crash production boot. v1.2 fix: lazy-import only when
+    // the feature flag is on.
+    expect(CORE_ROUTES_SRC).not.toMatch(
+      /^import\s+plaudWebhookRoutes/m,
     );
   });
 
-  it('mounts the webhook route conditionally (await shouldMount...) at /api/plaud/webhook', () => {
+  it('lazy-imports the webhook route ONLY when PLAUD_APPLAUD_WEBHOOK_ENABLED === "true"', () => {
+    expect(CORE_ROUTES_SRC).toMatch(
+      /if\s*\(\s*process\.env\.PLAUD_APPLAUD_WEBHOOK_ENABLED\s*===\s*['"]true['"]\s*\)/,
+    );
+    expect(CORE_ROUTES_SRC).toMatch(
+      /await\s+import\(\s*['"][\s\S]{0,80}plaudWebhookRoutes\.mjs['"]/,
+    );
+  });
+
+  it('mounts the webhook route conditionally on shouldMountApplaudWebhookRoute() at /api/plaud/webhook', () => {
     expect(CORE_ROUTES_SRC).toMatch(
       /if\s*\(\s*await\s+shouldMountApplaudWebhookRoute\(\)\s*\)\s*\{[\s\S]{0,200}app\.use\(\s*['"]\/api\/plaud\/webhook['"]\s*,\s*plaudWebhookRoutes/,
     );
   });
 
-  it('mount-decision is wrapped in try/catch (fail-closed on any error)', () => {
+  it('mount-decision is wrapped in try/catch (fail-closed on lazy-import or mount error)', () => {
     expect(CORE_ROUTES_SRC).toMatch(
-      /try\s*\{[\s\S]{0,400}shouldMountApplaudWebhookRoute[\s\S]{0,400}\}\s*catch/,
+      /try\s*\{[\s\S]{0,500}shouldMountApplaudWebhookRoute[\s\S]{0,500}\}\s*catch/,
     );
   });
 });

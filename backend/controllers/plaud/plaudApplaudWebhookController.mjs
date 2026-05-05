@@ -79,9 +79,17 @@ const MIMETYPE_TO_EXT = {
 };
 
 // Status states that count as "already terminally processed" (HIGH-1).
-// 'uploading' and 'failed' are NOT in this set — they trigger different
-// recovery paths in step 4.
-const TERMINAL_DEDUP_STATES = new Set(['pending_merge', 'merged', 'discarded']);
+// Must align with PlaudClip model's status enum: ['uploading', 'pending_merge',
+// 'merged', 'expired', 'deleted', 'lost']. Codex NH-7 caught earlier drift —
+// 'failed' and 'discarded' are NOT in the model enum; if the controller branched
+// on them they'd be unreachable code. Removed.
+//
+// Recovery paths (also see step 4 below):
+//   pending_merge / merged / deleted → already_processed (terminal-success)
+//   expired                          → already_processed (TTL'd; trainer dropped it)
+//   uploading                        → 429 retry-after (in-flight or stuck; reaper at 5min)
+//   lost                              → DELETE row + retry fresh
+const TERMINAL_DEDUP_STATES = new Set(['pending_merge', 'merged', 'deleted', 'expired']);
 
 // Concurrency cap per Codex CR-6. Read once at module load; PLAUD_APPLAUD_MAX_CONCURRENCY
 // env var override is documented but takes effect on next restart only.
@@ -167,15 +175,28 @@ async function handleApplaudWebhookCore(req, res) {
     return jsonError(res, 400, 'UNKNOWN_EVENT_TYPE', `event_type "${body.event_type}" not supported`);
   }
 
-  // Validate audio_ready required fields
+  // Validate audio_ready required fields + DB column lengths (Codex CR-IMPL-5,
+  // NH-5, NH-8: defensive length checks before INSERT. Migration enforces
+  // VARCHAR limits; oversized payloads would otherwise become DB 500s →
+  // Applaud retry storm).
   const recording_id = body.recording_id;
   const audio_url = body.audio_url;
   const audio_size_bytes = Number(body.audio_size_bytes);
   const audio_mimetype = body.audio_mimetype;
-  if (typeof audio_url !== 'string' || !audio_url
-      || !Number.isFinite(audio_size_bytes) || audio_size_bytes <= 0
-      || typeof audio_mimetype !== 'string' || !audio_mimetype) {
-    return jsonError(res, 400, 'INVALID_PAYLOAD', 'audio_ready missing required field');
+  if (typeof recording_id !== 'string' || !recording_id || recording_id.length > 255) {
+    return jsonError(res, 400, 'INVALID_PAYLOAD', 'recording_id missing or too long');
+  }
+  if (event_id && (typeof event_id !== 'string' || event_id.length > 255)) {
+    return jsonError(res, 400, 'INVALID_PAYLOAD', 'event_id too long');
+  }
+  if (typeof audio_url !== 'string' || !audio_url || audio_url.length > 2048) {
+    return jsonError(res, 400, 'INVALID_PAYLOAD', 'audio_url missing or too long');
+  }
+  if (!Number.isFinite(audio_size_bytes) || audio_size_bytes <= 0) {
+    return jsonError(res, 400, 'INVALID_PAYLOAD', 'audio_size_bytes missing or invalid');
+  }
+  if (typeof audio_mimetype !== 'string' || !audio_mimetype || audio_mimetype.length > 64) {
+    return jsonError(res, 400, 'INVALID_PAYLOAD', 'audio_mimetype missing or too long');
   }
 
   let userId;
@@ -213,11 +234,13 @@ async function handleApplaudWebhookCore(req, res) {
       'previous ingest of this recording is in progress or stuck; retry after stale-row reaper',
     );
   }
-  if (existing && (existing.status === 'failed' || existing.status === 'lost')) {
-    // Allow retry by clearing the failed/lost row first. Codex HIGH-1.
+  if (existing && existing.status === 'lost') {
+    // Allow retry by clearing the lost row first. Codex HIGH-1 / NH-7:
+    // 'failed' is not in the actual model enum; only 'lost' represents
+    // a recoverable abandoned-ingest state.
     await sequelize.query(
       `DELETE FROM plaud_clips
-       WHERE clip_id = :clipId AND status IN ('failed', 'lost')`,
+       WHERE clip_id = :clipId AND status = 'lost'`,
       {
         replacements: { clipId: existing.clip_id },
         type: QueryTypes.DELETE,
@@ -289,11 +312,22 @@ async function handleApplaudWebhookCore(req, res) {
       replacements: {
         clipId,
         userId,
-        filename: (body.audio_filename || `applaud_${recording_id}.${ext}`).slice(0, 255),
+        // Codex H-IMPL-9: preserve extension when truncating overlong filenames.
+        // Reserve ext.length+1 chars for the trailing ".ext" so the saved name
+        // remains parseable. Default fallback when filename absent.
+        filename: (() => {
+          const raw = body.audio_filename || `applaud_${recording_id}.${ext}`;
+          if (raw.length <= 255) return raw;
+          const reserved = ext.length + 1; // for ".ext"
+          return raw.slice(0, 255 - reserved) + '.' + ext;
+        })(),
         ext,
         mimetype: audio_mimetype,
         size: audio.bytes.length,
-        duration: meta.durationSec || null,
+        // Codex H-IMPL-4: nullish-coalesce instead of `||` so duration=0 (edge
+        // case impossible in practice but defends against silent data loss)
+        // doesn't get coerced to NULL.
+        duration: meta.durationSec ?? null,
         externalId: recording_id,
         eventId: event_id || null,
         ttlHours: String(Number(process.env.PLAUD_CLIP_TTL_HOURS) || 24),
@@ -329,7 +363,10 @@ async function handleApplaudWebhookCore(req, res) {
       },
     ).catch(() => {});
     logger.error('[plaudApplaudWebhook] disk write failed for %s: %s', insertedClipId, err.message);
-    return jsonError(res, 500, 'INTERNAL_ERROR', `disk write failed: ${err.message}`);
+    // Codex NH-6 / M-IMPL-5: do NOT echo err.message to webhook caller.
+    // Internal detail (filesystem paths, library internals, env names) belongs
+    // in logs only. Generic message externally.
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'disk write failed');
   }
 
   // Step 9: transactional flip status='pending_merge' + insert mirror_job.
@@ -362,8 +399,16 @@ async function handleApplaudWebhookCore(req, res) {
   } catch (err) {
     await transaction.rollback().catch(() => {});
     logger.error('[plaudApplaudWebhook] phase-C transaction failed for %s: %s', insertedClipId, err.message);
-    return jsonError(res, 500, 'INTERNAL_ERROR', `phase-C failed: ${err.message}`);
+    // Codex NH-6 / M-IMPL-5: sanitize external error.
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'phase-C failed');
   }
+
+  // Codex H-IMPL-1 / NM-5: queued log line for operator visibility.
+  // Required by plan §9.1 final receipt log.
+  logger.info(
+    '[plaudApplaudWebhook] queued clip_id=%s event_id=%s recording_id=%s',
+    insertedClipId, event_id || '<none>', recording_id,
+  );
 
   return res.status(200).json({
     success: true,

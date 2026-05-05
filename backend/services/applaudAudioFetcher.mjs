@@ -294,7 +294,9 @@ export function isPrivateOrLocalAddress(ip) {
   if (ip.includes(':')) {
     if (ip === '::1' || ip === '::') return true;
     if (/^[fF][cCdD]/.test(ip)) return true;            // fc00::/7 ULA
-    if (/^[fF][eE]8/.test(ip)) return true;             // fe80::/10 link-local
+    // fe80::/10 link-local. Range covers fe80 - febf (NOT just fe80-fe89).
+    // Bug fix per Codex NH-4 — original /^[fF][eE]8/ missed fea0-febf.
+    if (/^[fF][eE][89aAbB]/.test(ip)) return true;      // fe80::/10 link-local
     if (/^[fF][fF]/.test(ip)) return true;              // ff00::/8 multicast
     // IPv4-mapped IPv6 (::ffff:1.2.3.4) — extract and recurse
     const v4mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);

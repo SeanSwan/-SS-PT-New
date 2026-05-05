@@ -270,7 +270,15 @@ export async function verifyWebhookRequest(req, opts) {
   try {
     secret = secretResolver(parts.kid || keyIdEnv);
   } catch (err) {
-    return { ok: false, status: 500, code: 'WEBHOOK_KEY_UNAVAILABLE', message: err.message };
+    // Codex NH-1 / NH-6: do NOT leak resolver error message to caller. The
+    // err.message contains the env var name (e.g. "PLAUD_APPLAUD_WEBHOOK_SECRET_V99
+    // not set in env"), which would tell an attacker which key versions exist
+    // by probing different `kid` values. Treat any kid resolution failure as
+    // SIGNATURE_INVALID externally; log internally with full detail.
+    // Caller-supplied logger isn't available here; emit via console.warn so
+    // the redaction layer in logger.mjs doesn't apply (this path doesn't
+    // include secret values, only env names which are not redacted).
+    return { ok: false, status: 401, code: 'SIGNATURE_INVALID' };
   }
   if (!verifyHmac(canonicalPayload, parts.sig, secret)) {
     return { ok: false, status: 401, code: 'SIGNATURE_INVALID' };

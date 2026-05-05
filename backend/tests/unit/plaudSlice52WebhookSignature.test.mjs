@@ -472,14 +472,21 @@ describe('Slice 5.2 — verifyWebhookRequest orchestrator', () => {
     expect(out.code).toBe('BODY_TIMESTAMP_MISMATCH');
   });
 
-  it('returns 500 WEBHOOK_KEY_UNAVAILABLE when secret resolution throws', async () => {
+  it('returns 401 SIGNATURE_INVALID when secret resolution throws (Codex NH-1: no env-name leak)', async () => {
+    // Hardened per Codex NH-1: previous version leaked the resolver error
+    // (e.g. "PLAUD_APPLAUD_WEBHOOK_SECRET_V99 not set") to the caller, allowing
+    // an attacker to probe which key versions exist via different `kid` headers.
+    // Now any kid resolution failure is bucketed as SIGNATURE_INVALID externally.
     const req = buildSignedRequest();
-    const throwingResolver = () => { throw new Error('test: not configured'); };
+    const throwingResolver = () => { throw new Error('test: PLAUD_APPLAUD_WEBHOOK_SECRET_V99 not set'); };
     const out = await verifyWebhookRequest(req, {
       sequelize: mockSeq(), secretResolver: throwingResolver, keyIdEnv: 'V1',
     });
-    expect(out.status).toBe(500);
-    expect(out.code).toBe('WEBHOOK_KEY_UNAVAILABLE');
+    expect(out.status).toBe(401);
+    expect(out.code).toBe('SIGNATURE_INVALID');
+    // Confirm the env name does NOT leak in the response
+    expect(out.message || '').not.toContain('SECRET_V99');
+    expect(out.message || '').not.toContain('PLAUD_APPLAUD_WEBHOOK_SECRET');
   });
 });
 

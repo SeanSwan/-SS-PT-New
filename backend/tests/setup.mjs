@@ -11,15 +11,23 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
 process.env.JWT_EXPIRES_IN = '1h';
 
-// Mock logger to prevent console noise during tests
-vi.mock('../utils/logger.mjs', () => ({
-  default: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }
-}));
+// Mock logger to prevent console noise during tests.
+// Phase 5 Slice 5.5 — also re-export redactString / redactValue from the
+// real logger so loggerRedaction.test.mjs can exercise them. The redactor
+// has no console side-effect (pure functions) so it's safe to use the real impl.
+vi.mock('../utils/logger.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    default: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+    redactString: actual.redactString,
+    redactValue: actual.redactValue,
+  };
+});
 
 // Mock email service
 vi.mock('../services/emailService.mjs', () => ({

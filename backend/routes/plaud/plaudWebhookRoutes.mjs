@@ -26,6 +26,8 @@
  *   4. applaudWebhookHandler (concurrency cap is INSIDE the handler)
  */
 import express from 'express';
+import sequelize from '../../database.mjs';
+import { QueryTypes } from 'sequelize';
 import logger from '../../utils/logger.mjs';
 import { applaudWebhookHandler } from '../../controllers/plaud/plaudApplaudWebhookController.mjs';
 import { resolveWebhookSecret } from '../../services/plaudWebhookSignature.mjs';
@@ -37,14 +39,21 @@ import { resolveWebhookSecret } from '../../services/plaudWebhookSignature.mjs';
  * Caller (core/routes.mjs) skips mount when false; the URL then 404s.
  *
  * Fail-closed on every check: missing env, malformed URL, invalid user,
- * unresolvable secret. Logs a single line per outcome for operator visibility.
+ * unresolvable secret, missing schema columns, missing nonce table.
  *
- * The user_id existence check is OPTIONAL (controlled by `models` arg);
- * when models is missing/null we skip it and emit a warning. This lets
- * the route mount during early boot before the models cache is ready,
- * with the runtime check in the controller as the safety net.
+ * Codex CR-IMPL-1 + NC-CRIT-2 fix: validation is now self-contained.
+ * - User existence + role check via lazy-loaded models from models/index.mjs
+ *   (no longer optional; previous version skipped this when models arg was
+ *   absent, which caused the wired mount path to skip the check entirely)
+ * - Schema presence check confirms migrations ran before the route mounts
+ *   (prevents the "route mounts, every webhook 500s on missing column" failure
+ *   mode if a migration silently failed)
+ *
+ * The optional `models` arg is preserved for tests that want to inject a fake.
+ * In production, models is loaded via lazy import.
  */
-export async function shouldMountApplaudWebhookRoute({ models = null } = {}) {
+export async function shouldMountApplaudWebhookRoute({ models = null, sequelizeOverride = null } = {}) {
+  const seq = sequelizeOverride || sequelize;
   if (process.env.PLAUD_APPLAUD_WEBHOOK_ENABLED !== 'true') {
     logger.info('[plaudApplaudWebhook] PLAUD_APPLAUD_WEBHOOK_ENABLED != "true" — route not mounted');
     return false;
@@ -102,30 +111,74 @@ export async function shouldMountApplaudWebhookRoute({ models = null } = {}) {
     return false;
   }
 
-  // OPTIONAL user existence + role check. Skipped when models is unavailable
-  // (early boot path); the controller's getApplaudUserId throws on unset env
-  // as a runtime backstop.
-  if (models && models.User && typeof models.User.findByPk === 'function') {
+  // User existence + role check. Codex CR-IMPL-1 fix: now mandatory (was
+  // optional and skipped at the wired mount path). If `models` arg not
+  // supplied, lazy-import models/index.mjs.
+  let resolvedModels = models;
+  if (!resolvedModels) {
     try {
-      const user = await models.User.findByPk(userId, { attributes: ['id', 'role'] });
-      if (!user) {
-        logger.error('[plaudApplaudWebhook] PLAUD_APPLAUD_USER_ID=%d does not exist — route NOT mounted', userId);
-        return false;
-      }
-      if (!['trainer', 'admin'].includes(user.role)) {
-        logger.error('[plaudApplaudWebhook] PLAUD_APPLAUD_USER_ID=%d role=%s — must be trainer/admin — route NOT mounted',
-          userId, user.role);
-        return false;
+      const modelsModule = await import('../../models/index.mjs');
+      const getModels = modelsModule.default || modelsModule.getModels;
+      if (typeof getModels === 'function') {
+        resolvedModels = await getModels();
+      } else if (modelsModule.User) {
+        resolvedModels = modelsModule;
       }
     } catch (err) {
-      logger.error('[plaudApplaudWebhook] user_id verification failed: %s — route NOT mounted', err.message);
+      logger.error('[plaudApplaudWebhook] models cache load failed: %s — route NOT mounted', err.message);
       return false;
     }
-  } else {
-    logger.warn('[plaudApplaudWebhook] models cache unavailable at mount time — user_id check deferred to runtime');
+  }
+  if (!resolvedModels || !resolvedModels.User || typeof resolvedModels.User.findByPk !== 'function') {
+    logger.error('[plaudApplaudWebhook] User model unavailable — route NOT mounted');
+    return false;
+  }
+  try {
+    const user = await resolvedModels.User.findByPk(userId, { attributes: ['id', 'role'] });
+    if (!user) {
+      logger.error('[plaudApplaudWebhook] PLAUD_APPLAUD_USER_ID=%d does not exist — route NOT mounted', userId);
+      return false;
+    }
+    if (!['trainer', 'admin'].includes(user.role)) {
+      logger.error('[plaudApplaudWebhook] PLAUD_APPLAUD_USER_ID=%d role=%s — must be trainer/admin — route NOT mounted',
+        userId, user.role);
+      return false;
+    }
+  } catch (err) {
+    logger.error('[plaudApplaudWebhook] user_id verification failed: %s — route NOT mounted', err.message);
+    return false;
   }
 
-  logger.info('[plaudApplaudWebhook] route mounting for user_id=%d', userId);
+  // Codex NC-CRIT-2 fix: schema presence check. Refuse to mount if the
+  // required Phase 5 columns/tables don't exist (migration didn't run, or
+  // ran partially). Without this, the route would mount and every webhook
+  // would 500 on the first INSERT.
+  try {
+    const requiredColumns = await seq.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'plaud_clips'
+         AND column_name IN ('clip_source', 'clip_external_id', 'applaud_event_id')`,
+      { type: QueryTypes.SELECT },
+    );
+    if (!Array.isArray(requiredColumns) || requiredColumns.length < 3) {
+      logger.error('[plaudApplaudWebhook] Phase 5 plaud_clips columns missing (got %d/3) — route NOT mounted',
+        requiredColumns?.length ?? 0);
+      return false;
+    }
+    const nonceTable = await seq.query(
+      `SELECT to_regclass('public.plaud_webhook_nonces')::text AS exists`,
+      { type: QueryTypes.SELECT },
+    );
+    if (!nonceTable?.[0]?.exists) {
+      logger.error('[plaudApplaudWebhook] plaud_webhook_nonces table missing — route NOT mounted');
+      return false;
+    }
+  } catch (err) {
+    logger.error('[plaudApplaudWebhook] schema check failed: %s — route NOT mounted', err.message);
+    return false;
+  }
+
+  logger.info('[plaudApplaudWebhook] route mounting for user_id=%d (schema verified)', userId);
   return true;
 }
 
