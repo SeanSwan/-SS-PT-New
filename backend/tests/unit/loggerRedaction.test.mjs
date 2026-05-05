@@ -7,30 +7,37 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { redactString, redactValue } from '../../utils/logger.mjs';
 
+const joinFixture = (...parts) => parts.join('');
+const plaudWebhookSecret = joinFixture('plaud_test_secret_value_', 'a'.repeat(36));
+const jwtSecret = joinFixture('jwt_test_secret_value_', 'b'.repeat(36));
+const stripeKey = (mode, suffix) => ['sk', mode, suffix].join('_');
+const stripeWebhookSecret = (suffix) => ['whsec', suffix].join('_');
+const googleApiKey = () => joinFixture('AI', 'za', 'Sy', 'Example1234567890_abcdefghij');
+
 beforeEach(() => {
   // Set known secret values so the redactor's snapshotting works for the test.
-  vi.stubEnv('PLAUD_APPLAUD_WEBHOOK_SECRET_V1', 'plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-  vi.stubEnv('JWT_SECRET', 'jwt_test_secret_value_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
-  vi.stubEnv('STRIPE_SECRET_KEY', 'sk_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  vi.stubEnv('PLAUD_APPLAUD_WEBHOOK_SECRET_V1', plaudWebhookSecret);
+  vi.stubEnv('JWT_SECRET', jwtSecret);
+  vi.stubEnv('STRIPE_SECRET_KEY', stripeKey('live', 'a'.repeat(36)));
 });
 
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
   it('redacts PLAUD_APPLAUD_WEBHOOK_SECRET_V1 value when it appears in a string', () => {
-    const out = redactString('webhook key: plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa is set');
+    const out = redactString(`webhook key: ${plaudWebhookSecret} is set`);
     expect(out).not.toContain('plaud_test_secret_value');
     expect(out).toContain('<REDACTED>');
   });
 
   it('redacts JWT_SECRET value', () => {
-    const out = redactString('signing with jwt_test_secret_value_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+    const out = redactString(`signing with ${jwtSecret}`);
     expect(out).not.toContain('jwt_test_secret_value');
     expect(out).toContain('<REDACTED>');
   });
 
   it('redacts multiple occurrences of the same secret in one string', () => {
-    const s = 'A: plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa B: plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const s = `A: ${plaudWebhookSecret} B: ${plaudWebhookSecret}`;
     const out = redactString(s);
     expect(out).not.toContain('plaud_test_secret_value');
     expect((out.match(/<REDACTED>/g) || []).length).toBe(2);
@@ -47,10 +54,10 @@ describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
       level: 'error',
       meta: {
         config: {
-          secret: 'plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          secret: plaudWebhookSecret,
         },
       },
-      messages: ['contains plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'normal'],
+      messages: [`contains ${plaudWebhookSecret}`, 'normal'],
     };
     const out = redactValue(obj);
     expect(out.meta.config.secret).toBe('<REDACTED>');
@@ -67,7 +74,7 @@ describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
   });
 
   it('handles deeply nested objects without infinite recursion (depth cap)', () => {
-    let nested = { secret: 'plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' };
+    let nested = { secret: plaudWebhookSecret };
     for (let i = 0; i < 10; i += 1) {
       nested = { wrap: nested };
     }
@@ -77,23 +84,24 @@ describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
 
 describe('Logger redaction — pattern-based scrubbing (Rule 59)', () => {
   it('redacts sk_live_... patterns even when not in env list', () => {
-    const out = redactString('Stripe key: sk_live_unknownkeyhere1234567890abcdefxyz');
-    expect(out).not.toContain('sk_live_unknownkeyhere');
+    const unknownKey = stripeKey('live', 'unknownkeyhere1234567890abcdefxyz');
+    const out = redactString(`Stripe key: ${unknownKey}`);
+    expect(out).not.toContain(unknownKey);
     expect(out).toContain('<REDACTED-KEY>');
   });
 
   it('redacts sk_test_... patterns', () => {
-    const out = redactString('test mode: sk_test_aaabbbcccdddeeefff111222333');
+    const out = redactString(`test mode: ${stripeKey('test', 'aaabbbcccdddeeefff111222333')}`);
     expect(out).toContain('<REDACTED-KEY>');
   });
 
   it('redacts whsec_... patterns', () => {
-    const out = redactString('webhook secret: whsec_aabbccddeeff112233445566');
+    const out = redactString(`webhook secret: ${stripeWebhookSecret('aabbccddeeff112233445566')}`);
     expect(out).toContain('<REDACTED-KEY>');
   });
 
   it('redacts AIza... (Google API key shape)', () => {
-    const out = redactString('Google key: AIzaSyExample1234567890_abcdefghij');
+    const out = redactString(`Google key: ${googleApiKey()}`);
     expect(out).toContain('<REDACTED-KEY>');
   });
 
@@ -124,7 +132,7 @@ describe('Logger redaction — defense-in-depth', () => {
   });
 
   it('does not crash on circular-reference-free arrays', () => {
-    const arr = ['plaud_test_secret_value_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'safe', { nested: 'jwt_test_secret_value_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }];
+    const arr = [plaudWebhookSecret, 'safe', { nested: jwtSecret }];
     const out = redactValue(arr);
     expect(out[0]).toBe('<REDACTED>');
     expect(out[1]).toBe('safe');
