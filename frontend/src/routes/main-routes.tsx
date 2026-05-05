@@ -342,6 +342,12 @@ const UniversalDashboardLayout = lazyLoadWithErrorHandling(
   () => import('../components/DashBoard/UniversalDashboardLayout'),
   'Universal Dashboard Layout'
 );
+
+// Phase 3 Slice 3.13: PLAUD multi-clip merge — admin/trainer only.
+const PlaudMergePage = lazyLoadWithErrorHandling(
+  () => import('../pages/dashboard/PlaudMergePage'),
+  'PLAUD Merge Page'
+);
 const TheAestheticCodex = lazyLoadWithErrorHandling(
   () => import('../core/TheAestheticCodex'),
   'The Aesthetic Codex'
@@ -903,6 +909,21 @@ const MainRoutes: RouteObject = {
       )
     }] : []),
     
+    // Phase 3 Slice 3.13: PLAUD multi-clip merge — admin/trainer only.
+    // Mounted BEFORE the dashboard/* catch-all so React Router matches this
+    // exact path first and routes to PlaudMergePage instead of falling through
+    // to UniversalDashboardLayout's default tab.
+    {
+      path: 'dashboard/plaud-merge',
+      element: (
+        <ProtectedRoute allowedRoles={['admin', 'trainer']}>
+          <Suspense fallback={<PageLoader />}>
+            <PlaudMergePage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
     // Universal Dashboard Routes — serves admin, trainer, and client roles
     // UniversalDashboardLayout handles role detection and renders role-specific sidebar + routes
     {
