@@ -21,14 +21,22 @@ const isProduction = process.env.NODE_ENV === 'production';
 export const setupMiddleware = async (app) => {
   // ===================== BODY PARSING =====================
   const bodyLimit = isProduction ? '10mb' : '50mb';
-  // Stripe webhooks require the raw body Buffer for HMAC signature verification.
+  // Webhook routes require the raw body Buffer for HMAC signature verification.
   // express.json() consumes the body stream and sets req._body=true, which causes
-  // express.raw() inside the webhook router to skip — leaving req.body as a parsed
-  // JS object. constructEvent() then receives "[object Object]" and signature fails.
-  // Fix: skip JSON parsing for all webhook paths so express.raw() sees the raw stream.
+  // downstream express.raw() / express.json({verify}) to skip — leaving the raw
+  // bytes inaccessible. constructEvent()/HMAC then sees a re-serialized parsed
+  // body and signature fails.
+  //
+  // Path-filter exclusion (Codex HIGH-5 Option B for Phase 5 Slice 5.5):
+  //   - /api/webhook, /webhooks       — Stripe webhook routes
+  //   - /api/plaud/webhook            — PLAUD Auto-Ingestion (Phase 5)
+  // Each webhook route applies its own raw-aware parser (express.raw for
+  // Stripe; express.json with verify hook for PLAUD).
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/webhook') || req.path.startsWith('/webhooks')) {
-      return next(); // Raw body needed — webhook route applies express.raw() itself
+    if (req.path.startsWith('/api/webhook')
+        || req.path.startsWith('/webhooks')
+        || req.path.startsWith('/api/plaud/webhook')) {
+      return next();
     }
     return express.json({ limit: bodyLimit })(req, res, next);
   });
