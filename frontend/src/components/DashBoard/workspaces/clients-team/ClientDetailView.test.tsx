@@ -48,6 +48,10 @@ const ADMIN_GRID_SOURCE = readFileSync(
   resolve(__dirname, './tabs/AdminProgressChartsGrid.tsx'),
   'utf8',
 );
+const TRAINING_TAB_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/TrainingTabContent.tsx'),
+  'utf8',
+);
 
 describe('Phase 15.3 — Clients & Team Progress tab', () => {
   it('ClientDetailView TABS array includes a progress entry', () => {
@@ -122,6 +126,20 @@ describe('Phase 15.4 — Canonical consumer (ClientsWorkspace) Progress wiring',
     expect(CLIENTS_WORKSPACE_SOURCE).toMatch(/renderBiometrics=\{renderBiometrics\}/);
     expect(CLIENTS_WORKSPACE_SOURCE).toMatch(/renderOverview=\{renderOverview\}/);
     expect(CLIENTS_WORKSPACE_SOURCE).toMatch(/renderSettings=\{renderSettings\}/);
+  });
+});
+
+describe('Phase 5.9 - Clients & Team PLAUD placement', () => {
+  it('Training tab exposes a PLAUD Uploads sub-section', () => {
+    expect(TRAINING_TAB_SOURCE).toMatch(/id:\s*['"]plaud['"]/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/label:\s*['"]PLAUD Uploads['"]/);
+  });
+
+  it('PLAUD Uploads mounts the reusable merge workspace with selected client locked', () => {
+    expect(TRAINING_TAB_SOURCE).toMatch(/PlaudMergeWorkspace/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/initialClientId=\{Number\(clientId\)\}/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/lockClientId=\{true\}/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/embedded=\{true\}/);
   });
 });
 

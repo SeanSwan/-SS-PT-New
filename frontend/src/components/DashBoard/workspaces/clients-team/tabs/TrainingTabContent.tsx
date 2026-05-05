@@ -64,7 +64,7 @@
 
 import React, { useState, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
-import { Wand2, Play, Sparkles, Archive } from 'lucide-react';
+import { Wand2, Play, Sparkles, Archive, FileAudio } from 'lucide-react';
 // AICommandBar now embedded at workspace level, not per-tab
 
 // ─────────────────────────────────────────────────────────────
@@ -79,6 +79,11 @@ const WorkoutPlanBuilder = React.lazy(
 
 const WorkoutLogger = React.lazy(
   () => import('../../../../WorkoutLogger/WorkoutLogger')
+);
+
+const PlaudMergeWorkspace = React.lazy(
+  () => import('../../../../PlaudClipMerge/PlaudMergeWorkspace')
+    .then((m) => ({ default: m.PlaudMergeWorkspace }))
 );
 
 const WorkoutCopilotPanel = React.lazy(
@@ -99,7 +104,7 @@ const WorkoutHistoryPanel = React.lazy(
 // SECTION: Types & Configuration
 // ─────────────────────────────────────────────────────────────
 
-type TrainingSection = 'architect' | 'logger' | 'copilot' | 'history';
+type TrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
 
 interface TrainingTabContentProps {
   clientId: number | string;
@@ -114,6 +119,7 @@ const SECTIONS: {
 }[] = [
   { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
+  { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },
   { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
   { id: 'history', label: 'Workout History', shortLabel: 'History', icon: <Archive size={18} /> },
 ];
@@ -400,6 +406,16 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
               onCancel={() => {
                 setActiveSection('architect');
               }}
+            />
+          </Suspense>
+        );
+      case 'plaud':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <PlaudMergeWorkspace
+              initialClientId={Number(clientId)}
+              lockClientId={true}
+              embedded={true}
             />
           </Suspense>
         );

@@ -56,79 +56,87 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudMergePage.tsx'), 'utf8');
-const ROUTES_SRC = readFileSync(resolve(__dirname, '../../routes/DashboardRoutes.tsx'), 'utf8');
+const WORKSPACE_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.tsx'), 'utf8');
+const WORKSPACE_STYLES_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.styles.ts'), 'utf8');
+const ROUTES_SRC = readFileSync(resolve(__dirname, '../../routes/main-routes.tsx'), 'utf8');
 
 describe('Slice 3.13 — PlaudMergePage source contract', () => {
   it('uses styled-components + Crystalline Swan tokens', () => {
-    expect(PAGE_SRC).toMatch(/import\s+styled\s+from\s+['"]styled-components['"]/);
-    expect(PAGE_SRC).toMatch(/var\(--text-primary,\s*#E0ECF4\)/);
-    expect(PAGE_SRC).not.toMatch(/from\s+['"]@mui/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/import\s+styled\s+from\s+['"]styled-components['"]/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/var\(--text-primary,\s*#E0ECF4\)/);
+    expect(WORKSPACE_STYLES_SRC).not.toMatch(/from\s+['"]@mui/);
   });
 
   it('two-column layout: single col mobile, 1.5fr+1fr at 1024px+', () => {
-    expect(PAGE_SRC).toMatch(/grid-template-columns:\s*1fr;/);
-    expect(PAGE_SRC).toMatch(/min-width:\s*1024px[\s\S]{0,200}grid-template-columns:\s*1\.5fr\s+1fr/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/grid-template-columns:\s*1fr;/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/min-width:\s*1024px[\s\S]{0,200}grid-template-columns:\s*1\.5fr\s+1fr/);
   });
 
   it('three-state machine: queue / review / confirmed', () => {
-    expect(PAGE_SRC).toMatch(/reviewState/);
-    expect(PAGE_SRC).toMatch(/confirmState/);
-    expect(PAGE_SRC).toMatch(/handleResetReview/);
+    expect(WORKSPACE_SRC).toMatch(/reviewState/);
+    expect(WORKSPACE_SRC).toMatch(/confirmState/);
+    expect(WORKSPACE_SRC).toMatch(/handleResetReview/);
   });
 
   it('apply path passes source: plaud_merge + mergeRequestId', () => {
-    expect(PAGE_SRC).toMatch(/source:\s*['"]plaud_merge['"]/);
-    expect(PAGE_SRC).toMatch(/mergeRequestId:\s*args\.mergeRequestId/);
+    expect(WORKSPACE_SRC).toMatch(/source:\s*['"]plaud_merge['"]/);
+    expect(WORKSPACE_SRC).toMatch(/mergeRequestId:\s*args\.mergeRequestId/);
   });
 
   it('apply path POSTs to /api/admin/clients/:clientId/workouts', () => {
-    expect(PAGE_SRC).toMatch(/\/api\/admin\/clients\/\$\{args\.clientId\}\/workouts/);
+    expect(WORKSPACE_SRC).toMatch(/\/api\/admin\/clients\/\$\{args\.clientId\}\/workouts/);
   });
 
   it('boundary banner shown when warning=true with re-select handler', () => {
-    expect(PAGE_SRC).toMatch(/PlaudMergeBoundaryBanner/);
-    expect(PAGE_SRC).toMatch(/onReSelect=\{handleResetReview\}/);
+    expect(WORKSPACE_SRC).toMatch(/PlaudMergeBoundaryBanner/);
+    expect(WORKSPACE_SRC).toMatch(/onReSelect=\{handleResetReview\}/);
   });
 
   it('confirm screen offers "Process another merge" reset action', () => {
-    expect(PAGE_SRC).toMatch(/Process another merge/);
+    expect(WORKSPACE_SRC).toMatch(/Process another merge/);
   });
 
   it('44px+ button heights (Rule 2 touch targets)', () => {
-    expect(PAGE_SRC).toMatch(/height:\s*44px/);
-    expect(PAGE_SRC).toMatch(/height:\s*48px/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/height:\s*44px/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/height:\s*48px/);
   });
 
   it('mobile-first responsive media queries scale up at 768px and 1024px', () => {
-    expect(PAGE_SRC).toMatch(/@media\s*\(\s*min-width:\s*768px\s*\)/);
-    expect(PAGE_SRC).toMatch(/@media\s*\(\s*min-width:\s*1024px\s*\)/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/@media\s*\(\s*min-width:\s*768px\s*\)/);
+    expect(WORKSPACE_STYLES_SRC).toMatch(/@media\s*\(\s*min-width:\s*1024px\s*\)/);
   });
 
   it('bearer token sourced from localStorage for apply request', () => {
-    expect(PAGE_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(WORKSPACE_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
   });
 
   it('parsed exercises empty -> shows red error banner', () => {
-    expect(PAGE_SRC).toMatch(/No exercises parsed/);
+    expect(WORKSPACE_SRC).toMatch(/No exercises parsed/);
+  });
+
+  it('route shell passes optional clientId query into reusable workspace', () => {
+    expect(PAGE_SRC).toMatch(/useSearchParams/);
+    expect(PAGE_SRC).toMatch(/parseClientId\(searchParams\.get\(['"]clientId['"]\)\)/);
+    expect(PAGE_SRC).toMatch(/initialClientId=\{initialClientId\}/);
   });
 });
 
-describe('Slice 3.13 — DashboardRoutes mount', () => {
+describe('Slice 3.13 - canonical main-routes mount', () => {
   it('mounts /dashboard/plaud-merge with admin+trainer protectedRoute', () => {
-    expect(ROUTES_SRC).toMatch(/path="\/dashboard\/plaud-merge"/);
+    expect(ROUTES_SRC).toMatch(/path:\s*['"]dashboard\/plaud-merge['"]/);
     expect(ROUTES_SRC).toMatch(/allowedRoles=\{\[['"]admin['"],\s*['"]trainer['"]\]\}/);
   });
 
   it('mounts BEFORE the catch-all /dashboard/* (specificity ordering)', () => {
-    const exactIdx = ROUTES_SRC.indexOf('/dashboard/plaud-merge"');
-    const catchAllIdx = ROUTES_SRC.indexOf('/dashboard/*"');
-    expect(exactIdx).toBeGreaterThan(0);
-    expect(catchAllIdx).toBeGreaterThan(exactIdx);
+    const exactMatch = /path:\s*['"]dashboard\/plaud-merge['"]/.exec(ROUTES_SRC);
+    const catchAllMatch = /path:\s*['"]dashboard\/\*['"]/.exec(ROUTES_SRC);
+    expect(exactMatch?.index).toBeGreaterThan(0);
+    expect(catchAllMatch?.index).toBeGreaterThan(exactMatch?.index ?? 0);
   });
 
   it('lazy-imports PlaudMergePage with React.Suspense fallback', () => {
-    expect(ROUTES_SRC).toMatch(/React\.lazy\(\s*\(\)\s*=>\s*import\(['"][^'"]*PlaudMergePage['"]\)\s*\)/);
-    expect(ROUTES_SRC).toMatch(/React\.Suspense/);
+    expect(ROUTES_SRC).toMatch(/lazyLoadWithErrorHandling\([\s\S]{0,120}PlaudMergePage/);
+    expect(ROUTES_SRC).toMatch(/Suspense/);
   });
 });
 

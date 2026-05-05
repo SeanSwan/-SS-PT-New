@@ -19,6 +19,7 @@ const __dirname = dirname(__filename);
 const UPLOADER_SRC = readFileSync(resolve(__dirname, 'PlaudClipUploader.tsx'), 'utf8');
 const QUEUE_SRC = readFileSync(resolve(__dirname, 'PlaudClipQueue.tsx'), 'utf8');
 const PANEL_SRC = readFileSync(resolve(__dirname, 'PlaudClipMergePanel.tsx'), 'utf8');
+const PANEL_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClipMergePanel.styles.ts'), 'utf8');
 const BANNER_SRC = readFileSync(resolve(__dirname, 'PlaudMergeBoundaryBanner.tsx'), 'utf8');
 
 describe('Slice 3.11 — PlaudClipUploader source contract', () => {
@@ -141,10 +142,11 @@ describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
     expect(PANEL_SRC).toMatch(/clearSelection\(\)/);
     expect(PANEL_SRC).toMatch(/queue\.refresh\(\)/);
     expect(PANEL_SRC).toMatch(/onMergeReady\(/);
+    expect(PANEL_SRC).toMatch(/onMergeReady\(response,\s*\{\s*clientId:\s*parsedClientId\s*\}\)/);
   });
 
   it('Merge button emits cyan glow per Dual-Button-Glow rule', () => {
-    expect(PANEL_SRC).toMatch(/box-shadow:[\s\S]{0,80}rgba\(96,192,240/);
+    expect(PANEL_STYLES_SRC).toMatch(/box-shadow:[\s\S]{0,80}rgba\(96,192,240/);
   });
 });
 
