@@ -59,14 +59,18 @@ const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 min
  */
 async function loadClipsInOrder(clipIds, userId) {
   if (clipIds.length === 0) return [];
-  // Use ARRAY_POSITION for ordered fetch by clipIds order
+  // PG array literal — UUIDs are pre-validated by PLAUD_UUID_REGEX in callers,
+  // so safe to embed without per-element quoting. Sequelize replacements
+  // would expand a JS array as a comma list (e.g. 'a','b','c'), which breaks
+  // ANY(...) and array_position(...) — both need a real Postgres array.
+  const clipIdsLiteral = `{${clipIds.join(',')}}`;
   const [rows] = await sequelize.query(
     `SELECT clip_id, storage_ext, mimetype, status, expires_at, deleted_at
      FROM plaud_clips
-     WHERE clip_id = ANY(:clipIds::uuid[])
+     WHERE clip_id = ANY(:clipIdsLiteral::uuid[])
        AND user_id = :userId
-     ORDER BY array_position(:clipIds::uuid[], clip_id)`,
-    { replacements: { clipIds, userId } },
+     ORDER BY array_position(:clipIdsLiteral::uuid[], clip_id)`,
+    { replacements: { clipIdsLiteral, userId } },
   );
   return rows;
 }
@@ -344,7 +348,7 @@ export async function mergeHandler(req, res) {
          SET status     = 'merged',
              merged_at  = NOW()
          WHERE user_id    = :userId
-           AND clip_id    = ANY(:clipIds::uuid[])
+           AND clip_id    IN (:clipIds)
            AND status     = 'pending_merge'
            AND deleted_at IS NULL`,
         {

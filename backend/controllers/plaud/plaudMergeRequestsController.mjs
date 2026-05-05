@@ -43,48 +43,53 @@ function statusFilterArray(raw) {
  * (smaller PII surface per Codex Round 2 MEDIUM #5).
  */
 export async function listHandler(req, res) {
-  const userId = Number(req.user?.id);
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+    }
+    const limit = Math.min(MAX_LIMIT, Math.max(1, Number.parseInt(req.query.limit, 10) || DEFAULT_LIMIT));
+    const statusFilter = statusFilterArray(req.query.status);
+
+    const [rows] = await sequelize.query(
+      `SELECT mr.merge_request_id, mr.status, mr.client_id, mr.clip_ids,
+              mr.parsed_exercise_count, mr.boundary_warning,
+              mr.error_code, mr.payload_cipher IS NOT NULL AS has_cipher,
+              mr.cipher_purged_at IS NOT NULL AS cipher_purged,
+              mr.created_at, mr.completed_at, mr.expires_at,
+              u."firstName" AS client_first_name,
+              u."lastName"  AS client_last_name
+       FROM plaud_merge_requests mr
+       LEFT JOIN "Users" u ON u.id = mr.client_id
+       WHERE mr.user_id = :userId
+         AND mr.status IN (:statusFilter)
+       ORDER BY mr.created_at DESC
+       LIMIT :limit`,
+      { replacements: { userId, statusFilter, limit } },
+    );
+
+    return res.status(200).json({
+      success: true,
+      mergeRequests: (rows || []).map((r) => ({
+        mergeRequestId: r.merge_request_id,
+        status: r.status,
+        clientId: r.client_id,
+        clientName: [r.client_first_name, r.client_last_name].filter(Boolean).join(' ') || null,
+        clipCount: Array.isArray(r.clip_ids) ? r.clip_ids.length : null,
+        parsedExerciseCount: r.parsed_exercise_count,
+        boundaryWarning: r.boundary_warning,
+        hasCipher: !!r.has_cipher,
+        cipherPurged: !!r.cipher_purged,
+        errorCode: r.error_code,
+        createdAt: r.created_at,
+        completedAt: r.completed_at,
+        expiresAt: r.expires_at,
+      })),
+    });
+  } catch (err) {
+    logger.error('[plaudMergeRequests.listHandler] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to list merge requests');
   }
-  const limit = Math.min(MAX_LIMIT, Math.max(1, Number.parseInt(req.query.limit, 10) || DEFAULT_LIMIT));
-  const statusFilter = statusFilterArray(req.query.status);
-
-  const [rows] = await sequelize.query(
-    `SELECT mr.merge_request_id, mr.status, mr.client_id, mr.clip_ids,
-            mr.parsed_exercise_count, mr.boundary_warning,
-            mr.error_code, mr.payload_cipher IS NOT NULL AS has_cipher,
-            mr.cipher_purged_at IS NOT NULL AS cipher_purged,
-            mr.created_at, mr.completed_at, mr.expires_at,
-            u."firstName" AS client_first_name,
-            u."lastName"  AS client_last_name
-     FROM plaud_merge_requests mr
-     LEFT JOIN "Users" u ON u.id = mr.client_id
-     WHERE mr.user_id = :userId
-       AND mr.status = ANY(:statusFilter::varchar[])
-     ORDER BY mr.created_at DESC
-     LIMIT :limit`,
-    { replacements: { userId, statusFilter, limit } },
-  );
-
-  return res.status(200).json({
-    success: true,
-    mergeRequests: (rows || []).map((r) => ({
-      mergeRequestId: r.merge_request_id,
-      status: r.status,
-      clientId: r.client_id,
-      clientName: [r.client_first_name, r.client_last_name].filter(Boolean).join(' ') || null,
-      clipCount: Array.isArray(r.clip_ids) ? r.clip_ids.length : null,
-      parsedExerciseCount: r.parsed_exercise_count,
-      boundaryWarning: r.boundary_warning,
-      hasCipher: !!r.has_cipher,
-      cipherPurged: !!r.cipher_purged,
-      errorCode: r.error_code,
-      createdAt: r.created_at,
-      completedAt: r.completed_at,
-      expiresAt: r.expires_at,
-    })),
-  });
 }
 
 /**
