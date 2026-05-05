@@ -19,6 +19,7 @@ export default defineConfig({
     include: [
       'tests/integration/waiverConstraints.test.mjs',
       'tests/integration/plaudApplaudSchemaDrift.test.mjs',
+      'tests/integration/plaudApplaudWebhookIntegration.test.mjs',
     ],
     testTimeout: 60000,
     hookTimeout: 60000,
