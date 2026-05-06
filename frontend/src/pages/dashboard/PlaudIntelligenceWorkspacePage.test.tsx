@@ -9,6 +9,10 @@ const PENDING_REVIEWS_SRC = readFileSync(
   resolve(__dirname, '../../components/PlaudClipMerge/PlaudPendingReviewsList.tsx'),
   'utf8',
 );
+const INTAKE_SERVICE_SRC = readFileSync(
+  resolve(__dirname, '../../services/plaudIntakeService.ts'),
+  'utf8',
+);
 const TRAINER_SIDEBAR_SRC = readFileSync(
   resolve(__dirname, '../../components/DashBoard/Pages/trainer-dashboard/TrainerStellarSidebar.tsx'),
   'utf8',
@@ -53,5 +57,13 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/querySelector\('\[data-testid="plaud-pending-reviews"\]'\)/);
     expect(PENDING_REVIEWS_SRC).toMatch(/tabIndex=\{-1\}/);
     expect(PENDING_REVIEWS_SRC).toMatch(/aria-label="Pending PLAUD reviews"/);
+  });
+
+  it('consumes the unified PLAUD intake endpoint instead of static-only queue copy', () => {
+    expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue/);
+    expect(PAGE_SRC).toMatch(/Unified intake queue/);
+    expect(PAGE_SRC).toMatch(/Applaud/);
+    expect(PAGE_SRC).toMatch(/Ready review/);
+    expect(INTAKE_SERVICE_SRC).toMatch(/\/api\/plaud\/intake/);
   });
 });

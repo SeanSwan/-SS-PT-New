@@ -31,6 +31,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
+import { usePlaudIntakeQueue } from '../../hooks/usePlaudIntakeQueue';
 import {
   ActionButton,
   ActionItem,
@@ -48,16 +49,33 @@ import {
   WorkspaceHeader,
   WorkspaceShell,
 } from './PlaudIntelligenceWorkspacePage.styles';
+import {
+  IntakePreviewItem,
+  IntakePreviewList,
+  IntakeSnapshot,
+  IntakeSnapshotHeader,
+  IntakeStat,
+  IntakeStats,
+  SourceBadge,
+} from './PlaudIntakeSnapshot.styles';
 
 function useDashboardRole(): 'admin' | 'trainer' {
   const location = useLocation();
   return location.pathname.includes('/dashboard/trainer/') ? 'trainer' : 'admin';
 }
 
+function formatQueueStatus(status: string): string {
+  return status
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
   const role = useDashboardRole();
   const coachPath = `/dashboard/${role}/coach-assistant`;
+  const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue();
 
   const focusQueue = useCallback(() => {
     const queue = document.querySelector('[data-testid="plaud-pending-reviews"]');
@@ -92,6 +110,52 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
           </ActionButton>
         </HeaderActions>
       </WorkspaceHeader>
+
+      <IntakeSnapshot aria-label="Unified PLAUD intake queue">
+        <IntakeSnapshotHeader>
+          <h2>Unified intake queue</h2>
+          <ActionButton type="button" onClick={refresh}>
+            <Clock3 size={17} aria-hidden="true" />
+            Refresh
+          </ActionButton>
+        </IntakeSnapshotHeader>
+        <IntakeStats>
+          <IntakeStat>
+            <dt>Actionable</dt>
+            <dd>{summary.actionable}</dd>
+          </IntakeStat>
+          <IntakeStat>
+            <dt>Unprocessed</dt>
+            <dd>{summary.unprocessed}</dd>
+          </IntakeStat>
+          <IntakeStat>
+            <dt>Ready review</dt>
+            <dd>{summary.readyReview}</dd>
+          </IntakeStat>
+          <IntakeStat>
+            <dt>Needs client</dt>
+            <dd>{summary.needsClient}</dd>
+          </IntakeStat>
+        </IntakeStats>
+        <IntakePreviewList>
+          {isLoading ? (
+            <IntakePreviewItem><span>Loading intake queue</span><span /></IntakePreviewItem>
+          ) : error ? (
+            <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
+          ) : intakeItems.length === 0 ? (
+            <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
+          ) : intakeItems.map((item) => (
+            <IntakePreviewItem key={item.id}>
+              <span>
+                <strong>{item.clientName || 'Client pending'}</strong>
+                {' - '}
+                {formatQueueStatus(item.queueStatus)}
+              </span>
+              <SourceBadge>{item.sourceLabel}</SourceBadge>
+            </IntakePreviewItem>
+          ))}
+        </IntakePreviewList>
+      </IntakeSnapshot>
 
       <CommandRail aria-label="PLAUD intake lanes">
         <CommandTile>

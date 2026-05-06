@@ -72,6 +72,7 @@ import sprintRoutes from '../routes/sprintRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.5 + 3.7)
 import plaudClipsRoutes from '../routes/plaud/plaudClipsRoutes.mjs';
+import plaudIntakeRoutes from '../routes/plaud/plaudIntakeRoutes.mjs';
 import { mergeActionRouter, mergeRequestsRouter } from '../routes/plaud/plaudMergeRoutes.mjs';
 // Phase 5 Slice 5.5 — Applaud Auto-Ingestion webhook is LAZY-IMPORTED inside
 // setupRoutes only when the feature flag is on. Static import was a Codex
@@ -366,6 +367,7 @@ export const setupRoutes = async (app) => {
   // Phase 3 PLAUD: clip lifecycle (upload, list, delete) + merge orchestration.
   // Router is mounted always; plaudFeatureFlag middleware returns structured 503 when off.
   app.use('/api/plaud/clips', plaudClipsRoutes);
+  app.use('/api/plaud/intake', plaudIntakeRoutes);
   app.use('/api/plaud/merge', mergeActionRouter);
   app.use('/api/plaud/merge-requests', mergeRequestsRouter);
 
