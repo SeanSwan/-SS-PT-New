@@ -7,6 +7,7 @@ import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
 import { getMergeRequest, type MergeResponse, type MergeRequestDetail } from '../../services/plaudMergeService';
 import { PlaudApiError } from '../../services/plaudClipService';
 import { applyMergeApproval } from './PlaudMergeWorkspace.apply';
+import { getPlaudDateSplitApprovalBlock } from './plaudDateSplitApprovalGuard';
 import {
   ActionRow,
   BackLink,
@@ -167,6 +168,8 @@ export function PlaudMergeWorkspace({
 
   if (reviewState) {
     const exercises = reviewState.parsedWorkout?.exercises || [];
+    const dateSplitApprovalBlock = getPlaudDateSplitApprovalBlock(reviewState.dateSplitCandidates);
+    const approveDisabled = isApplying || exercises.length === 0 || !reviewState.clientId || Boolean(dateSplitApprovalBlock);
     return (
       <PageWrap data-testid="plaud-merge-page" $embedded={embedded}>
         <Header>
@@ -243,8 +246,14 @@ export function PlaudMergeWorkspace({
               {applyError}
             </ErrorBanner>
           ) : null}
+          {dateSplitApprovalBlock ? (
+            <ErrorBanner role="alert">
+              <AlertTriangle size={16} aria-hidden="true" />
+              {dateSplitApprovalBlock}
+            </ErrorBanner>
+          ) : null}
           <ActionRow>
-            <Button type="button" $primary onClick={handleApprove} disabled={isApplying || exercises.length === 0 || !reviewState.clientId}>
+            <Button type="button" $primary onClick={handleApprove} disabled={approveDisabled}>
               {isApplying ? 'Logging...' : 'Confirm and log'}
             </Button>
             <Button type="button" onClick={handleResetReview}>Discard</Button>
