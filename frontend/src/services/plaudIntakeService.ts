@@ -35,6 +35,9 @@ export interface PlaudIntakeItem {
   errorCode: string | null;
   status: string;
   createdAt: string;
+  timelineAt?: string | null;
+  timelineAtSource?: 'recorded_at' | 'uploaded_at' | 'created_at';
+  recordedAt?: string | null;
   completedAt: string | null;
   expiresAt: string | null;
   durationSec?: number | null;

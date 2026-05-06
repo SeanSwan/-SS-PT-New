@@ -85,6 +85,10 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
       clientId: 42,
       clientName: 'Test Client',
       canReview: false,
+      createdAt: '2026-05-05T20:00:00.000Z',
+      timelineAt: '2026-05-05T20:00:00.000Z',
+      timelineAtSource: 'uploaded_at',
+      recordedAt: null,
     });
   });
 
@@ -115,6 +119,9 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
       clipCount: 3,
       parsedExerciseCount: 8,
       canReview: true,
+      timelineAt: '2026-05-05T21:00:00.000Z',
+      timelineAtSource: 'created_at',
+      recordedAt: null,
     });
   });
 

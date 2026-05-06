@@ -99,32 +99,64 @@ function minutesBetween(previousIso, nextIso) {
   return Math.max(0, Math.round((next - previous) / 60_000));
 }
 
+function timelineInfo(piece) {
+  if (piece?.recordedAt) {
+    return {
+      at: piece.recordedAt,
+      source: 'recorded_at',
+      confidence: 'exact',
+    };
+  }
+  if (piece?.timelineAt) {
+    return {
+      at: piece.timelineAt,
+      source: piece.timelineAtSource || 'best_available',
+      confidence: piece.timelineAtSource === 'recorded_at' ? 'exact' : 'best_available',
+    };
+  }
+  return {
+    at: piece?.createdAt || null,
+    source: piece?.kind === 'clip' ? 'uploaded_at' : 'created_at',
+    confidence: 'best_available',
+  };
+}
+
 function summarizeAudioPieces(items, { queueRoute, gapThresholdMinutes }) {
   const pieces = [...(items || [])]
     .filter((item) => item?.kind === 'clip' && item?.queueStatus !== 'archived')
-    .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    .sort((a, b) => new Date(timelineInfo(a).at || 0).getTime() - new Date(timelineInfo(b).at || 0).getTime());
 
   const withGaps = pieces.map((piece, index) => {
     const next = pieces[index + 1];
+    const currentTimeline = timelineInfo(piece);
+    const nextTimeline = next ? timelineInfo(next) : null;
     return {
       ...piece,
-      gapAfterMinutes: next ? minutesBetween(piece.createdAt, next.createdAt) : null,
+      timelineAt: currentTimeline.at,
+      timelineSource: currentTimeline.source,
+      timelineConfidence: currentTimeline.confidence,
+      gapAfterMinutes: next ? minutesBetween(currentTimeline.at, nextTimeline?.at) : null,
     };
   });
   const gaps = withGaps
     .map((piece) => piece.gapAfterMinutes)
     .filter((gap) => typeof gap === 'number');
   const largeGaps = gaps.filter((gap) => gap >= gapThresholdMinutes);
+  const sources = new Set(withGaps.map((piece) => piece.timelineSource).filter(Boolean));
+  const confidences = new Set(withGaps.map((piece) => piece.timelineConfidence).filter(Boolean));
   const timeline = withGaps.map((piece, index) => {
     const duration = typeof piece.durationSec === 'number' ? `${Math.round(piece.durationSec)}s` : 'duration unknown';
     const gap = typeof piece.gapAfterMinutes === 'number' ? `, gap ${piece.gapAfterMinutes}m` : '';
-    return `${index + 1}. ${piece.source} ${piece.createdAt || 'time unknown'} ${duration}${gap}`;
+    return `${index + 1}. ${piece.source} ${piece.timelineSource || 'time'}=${piece.timelineAt || 'unknown'} ${duration}${gap}`;
   }).join(' | ');
 
   return {
     pieceCount: withGaps.length,
     manualUploadCount: withGaps.filter((piece) => piece.source === 'manual_upload').length,
     applaudCount: withGaps.filter((piece) => piece.source === 'applaud_webhook').length,
+    recordedAtAvailableCount: withGaps.filter((piece) => piece.timelineSource === 'recorded_at').length,
+    timelineTimeSource: sources.size === 1 ? [...sources][0] : (sources.size > 1 ? 'mixed' : null),
+    timelineConfidence: confidences.has('best_available') ? 'best_available' : (confidences.has('exact') ? 'exact' : null),
     suggestedGroupCount: withGaps.length === 0 ? 0 : largeGaps.length + 1,
     largeGapCount: largeGaps.length,
     largestGapMinutes: gaps.length ? Math.max(...gaps) : null,
@@ -134,8 +166,8 @@ function summarizeAudioPieces(items, { queueRoute, gapThresholdMinutes }) {
     targetRoute: `${queueRoute}?pieces=pending`,
     queueRoute,
     commandHint: withGaps.length >= 2
-      ? 'Open the PLAUD workspace and select the audio pieces in chronological order; split groups at large gaps.'
-      : 'Open the PLAUD workspace to upload or wait for more audio pieces before merging.',
+      ? 'Open the PLAUD workspace and select the audio pieces in chronological order; this uses upload/ingest timestamps until recorded_at metadata is available.'
+      : 'Open the PLAUD workspace to upload or wait for more audio pieces before merging; timeline uses upload/ingest timestamps until recorded_at metadata is available.',
   };
 }
 
@@ -183,4 +215,5 @@ export const _internal = {
   resolvePlaudQueueRoute,
   scalarSummary,
   summarizeAudioPieces,
+  timelineInfo,
 };

@@ -282,6 +282,9 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       largeGapCount: 1,
       largestGapMinutes: 49,
       gapThresholdMinutes: 30,
+      timelineTimeSource: 'uploaded_at',
+      timelineConfidence: 'best_available',
+      recordedAtAvailableCount: 0,
       orderedPieceIds: [
         'clip:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         'clip:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
@@ -289,7 +292,8 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       ].join(' > '),
       targetRoute: '/dashboard/trainer/plaud?pieces=pending',
     });
-    expect(result.pieceTimeline).toMatch(/1\. applaud_webhook .*45s/);
+    expect(result.commandHint).toMatch(/upload\/ingest timestamps/i);
+    expect(result.pieceTimeline).toMatch(/1\. applaud_webhook uploaded_at=.*45s/);
     expect(result.pieceTimeline).toMatch(/gap 49m/);
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
   });
