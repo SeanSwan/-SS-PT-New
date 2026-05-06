@@ -50,6 +50,8 @@
  *   A02: create_availability_override → availabilityService.createOverride (single-row, no 'available' type)
  *   exec-substrate-v15 (availability slot read):
  *   A03: view_available_slots → availabilityService.getAvailableSlots (date-scoped open-slot summary)
+ *   exec-substrate-v16 (PLAUD read commands):
+ *   N01/N02: view_plaud_intake_queue + review_next_plaud_intake → plaudDispatchers
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -68,6 +70,10 @@ import {
   dispatchCreateAvailabilityOverride,
   dispatchViewAvailableSlots,
 } from './dispatchers/availabilityDispatchers.mjs';
+import {
+  dispatchReviewNextPlaudIntake,
+  dispatchViewPlaudIntakeQueue,
+} from './dispatchers/plaudDispatchers.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -174,6 +180,8 @@ const DISPATCHERS = new Map([
   ['view_trainer_availability',    dispatchViewTrainerAvailability],
   ['view_available_slots',         dispatchViewAvailableSlots],
   ['create_availability_override', dispatchCreateAvailabilityOverride],
+  ['view_plaud_intake_queue',      dispatchViewPlaudIntakeQueue],
+  ['review_next_plaud_intake',     dispatchReviewNextPlaudIntake],
 ]);
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────
