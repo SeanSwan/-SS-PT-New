@@ -47,7 +47,6 @@ describe('getPlaudDateSplitApprovalBlock', () => {
   it('blocks future-dated workout segments first', () => {
     const message = getPlaudDateSplitApprovalBlock(candidates([
       segment({ futureDateBlocked: true, needsDateConfirmation: true, date: '2026-05-08' }),
-      segment({ segmentId: 'segment-2', needsDateConfirmation: true }),
     ]));
 
     expect(message).toMatch(/lands in the future/);
@@ -62,7 +61,16 @@ describe('getPlaudDateSplitApprovalBlock', () => {
     expect(message).toBe('1 workout date needs confirmation before logging.');
   });
 
-  it('allows approval when every date segment is ready', () => {
+  it('blocks multi-segment transcripts until the multi-workout flow handles them', () => {
+    const message = getPlaudDateSplitApprovalBlock(candidates([
+      segment({ segmentId: 'segment-1', segmentIndex: 1 }),
+      segment({ segmentId: 'segment-2', segmentIndex: 2, date: '2026-05-04' }),
+    ]));
+
+    expect(message).toBe('2 workout segments were detected. Use the multi-workout review flow before logging.');
+  });
+
+  it('allows approval when the only date segment is ready', () => {
     expect(getPlaudDateSplitApprovalBlock(candidates([segment()]))).toBeNull();
   });
 });

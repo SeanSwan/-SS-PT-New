@@ -9,6 +9,9 @@ import type { PlaudDateSplitCandidates } from '../../services/plaudMergeService'
 export function getPlaudDateSplitApprovalBlock(candidates?: PlaudDateSplitCandidates | null): string | null {
   const segments = candidates?.segments || [];
   if (segments.length === 0) return null;
+  if (segments.length > 1) {
+    return `${segments.length} workout segments were detected. Use the multi-workout review flow before logging.`;
+  }
 
   const blockedCount = candidates?.futureDateBlockedCount
     ?? segments.filter((segment) => segment.futureDateBlocked).length;
