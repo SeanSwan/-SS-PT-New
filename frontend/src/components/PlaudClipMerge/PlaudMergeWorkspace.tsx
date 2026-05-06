@@ -126,6 +126,7 @@ export function PlaudMergeWorkspace({
   if (reviewState) {
     return (
       <PlaudMergeReview
+        key={reviewState.mergeRequestId}
         reviewState={reviewState}
         embedded={embedded}
         onBack={handleResetReview}

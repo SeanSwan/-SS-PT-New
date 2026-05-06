@@ -116,15 +116,17 @@ export function PlaudMergeReview({
       setApplyError('Confirm a valid non-future date before approving this split workout.');
       return;
     }
+    const currentApproval = segmentApprovalsRef.current[segment.segmentId];
+    if (currentApproval?.status === 'parsing' || currentApproval?.status === 'logged') {
+      return;
+    }
     const effectiveSegment = buildEffectiveSegment(segment, dateOverride);
-    setSegmentApprovals((prev) => {
-      const next = {
-        ...prev,
-        [segment.segmentId]: { status: 'parsing' },
-      };
-      segmentApprovalsRef.current = next;
-      return next;
-    });
+    const nextParsingState = {
+      ...segmentApprovalsRef.current,
+      [segment.segmentId]: { status: 'parsing' as const },
+    };
+    segmentApprovalsRef.current = nextParsingState;
+    setSegmentApprovals(nextParsingState);
     setApplyError(null);
     try {
       const parsed = await parseMergeRequestSegment({

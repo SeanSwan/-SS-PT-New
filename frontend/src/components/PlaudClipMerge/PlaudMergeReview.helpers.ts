@@ -1,5 +1,7 @@
 import type { PlaudDateSplitSegment } from '../../services/plaudMergeService';
 
+const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
 export function browserTimeZone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
@@ -15,12 +17,18 @@ export function errorMessage(err: unknown, fallback: string): string {
   return code || message ? `${code || 'ERROR'}: ${message || fallback}` : fallback;
 }
 
+export function isRealIsoDate(value?: string): boolean {
+  if (!value || !ISO_DATE_ONLY_REGEX.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 export function isValidSegmentDateOverride(value?: string): boolean {
-  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+  return isRealIsoDate(value);
 }
 
 export function isSegmentDateOverrideFuture(value: string | undefined, referenceDate: string | undefined): boolean {
-  if (!value || !referenceDate) return false;
+  if (!isRealIsoDate(value) || !isRealIsoDate(referenceDate)) return false;
   return value > referenceDate;
 }
 
@@ -30,6 +38,7 @@ export function isSegmentReadyForApproval(
 ): boolean {
   if (!segment.futureDateBlocked && !segment.needsDateConfirmation) return true;
   if (!isValidSegmentDateOverride(dateOverride)) return false;
+  if (!isRealIsoDate(segment.referenceDate)) return false;
   return !isSegmentDateOverrideFuture(dateOverride, segment.referenceDate);
 }
 

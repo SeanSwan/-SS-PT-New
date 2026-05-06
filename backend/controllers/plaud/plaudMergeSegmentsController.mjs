@@ -16,9 +16,9 @@ import {
 import { buildPlaudMergeDateSplitCandidates } from '../../services/plaudMergeDateSplitService.mjs';
 import { parseWorkoutTranscript } from '../../services/workoutLogParserService.mjs';
 import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
+import { isRealIsoDate } from '../../utils/isoDateOnly.mjs';
 
 const SEGMENT_ID_REGEX = /^segment-\d+$/;
-const DATE_OVERRIDE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function jsonError(res, status, code, message) {
   return res.status(status).json({
@@ -65,16 +65,25 @@ function resolveSegmentDate({ segment, dateOverride }) {
     };
   }
 
-  if (!DATE_OVERRIDE_REGEX.test(dateOverride)) {
+  if (!isRealIsoDate(dateOverride)) {
     return {
       ok: false,
       code: 'INVALID_DATE_OVERRIDE',
-      message: 'dateOverride must use YYYY-MM-DD',
+      message: 'dateOverride must be a real YYYY-MM-DD calendar date',
       date: segment.date,
     };
   }
 
-  if (segment.referenceDate && dateOverride > segment.referenceDate) {
+  if (!isRealIsoDate(segment.referenceDate)) {
+    return {
+      ok: false,
+      code: 'SEGMENT_REFERENCE_DATE_INVALID',
+      message: 'Segment reference date is unavailable; rebuild the merge review',
+      date: segment.date,
+    };
+  }
+
+  if (dateOverride > segment.referenceDate) {
     return {
       ok: false,
       code: 'SEGMENT_DATE_IN_FUTURE',
