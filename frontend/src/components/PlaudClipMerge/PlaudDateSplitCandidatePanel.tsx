@@ -16,6 +16,7 @@ import {
   DateSplitTopline,
   ReviewHeading,
 } from './PlaudMergeWorkspace.styles';
+import { DateOverrideInput, DateOverrideRow } from './PlaudDateSplitCandidatePanel.styles';
 
 interface PlaudDateSplitCandidatePanelProps {
   candidates?: PlaudDateSplitCandidates | null;
@@ -25,6 +26,9 @@ interface PlaudDateSplitCandidatePanelProps {
     error?: string;
   }>;
   canApproveSegments?: boolean;
+  canApproveSegment?: (segment: PlaudDateSplitSegment) => boolean;
+  dateOverrides?: Record<string, string>;
+  onDateOverrideChange?: (segmentId: string, value: string) => void;
   onApproveSegment?: (segment: PlaudDateSplitSegment) => void;
 }
 
@@ -56,6 +60,9 @@ export function PlaudDateSplitCandidatePanel({
   candidates,
   approvalStates = {},
   canApproveSegments = false,
+  canApproveSegment,
+  dateOverrides = {},
+  onDateOverrideChange,
   onApproveSegment,
 }: PlaudDateSplitCandidatePanelProps): JSX.Element | null {
   const segments = candidates?.segments || [];
@@ -70,6 +77,10 @@ export function PlaudDateSplitCandidatePanel({
         {segments.map((segment) => {
           const tone = toneForSegment(segment);
           const approval = approvalStates[segment.segmentId];
+          const canApproveThisSegment = canApproveSegment
+            ? canApproveSegment(segment)
+            : canApproveSegments;
+          const needsTrainerDate = tone !== 'ready';
           return (
             <DateSplitCard key={segment.segmentId} $tone={tone}>
               <DateSplitTopline>
@@ -88,12 +99,22 @@ export function PlaudDateSplitCandidatePanel({
               <DateSplitExcerpt>{segment.text}</DateSplitExcerpt>
               {onApproveSegment ? (
                 <ActionRow>
+                  {needsTrainerDate && onDateOverrideChange ? (
+                    <DateOverrideRow>
+                      Trainer-confirmed date for segment {segment.segmentIndex}
+                      <DateOverrideInput
+                        type="date"
+                        value={dateOverrides[segment.segmentId] || ''}
+                        onChange={(event) => onDateOverrideChange(segment.segmentId, event.target.value)}
+                        aria-label={`Trainer-confirmed date for segment ${segment.segmentIndex}`}
+                      />
+                    </DateOverrideRow>
+                  ) : null}
                   <Button
                     type="button"
-                    $primary={tone === 'ready'}
+                    $primary={canApproveThisSegment}
                     disabled={
-                      !canApproveSegments
-                      || tone !== 'ready'
+                      !canApproveThisSegment
                       || approval?.status === 'parsing'
                       || approval?.status === 'logged'
                     }
@@ -103,7 +124,9 @@ export function PlaudDateSplitCandidatePanel({
                       ? 'Parsing...'
                       : approval?.status === 'logged'
                         ? `Logged${approval.workoutId ? ` #${approval.workoutId}` : ''}`
-                        : 'Approve segment'}
+                        : tone === 'ready'
+                          ? 'Approve segment'
+                          : 'Approve with date'}
                   </Button>
                   {approval?.status === 'error' && approval.error ? (
                     <span role="alert">{approval.error}</span>

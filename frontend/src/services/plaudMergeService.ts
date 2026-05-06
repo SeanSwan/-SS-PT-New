@@ -219,6 +219,7 @@ export async function approveMergeRequest(mergeRequestId: string): Promise<void>
 export async function parseMergeRequestSegment(args: {
   mergeRequestId: string;
   segmentId: string;
+  dateOverride?: string;
   timeZone?: string;
 }): Promise<PlaudParsedSegmentResponse> {
   if (!/^[0-9a-fA-F-]{36}$/.test(args.mergeRequestId)) {
@@ -227,10 +228,13 @@ export async function parseMergeRequestSegment(args: {
   if (!/^segment-\d+$/.test(args.segmentId)) {
     throw new PlaudApiError('INVALID_SEGMENT_ID', 'Invalid segmentId format', 400);
   }
+  if (args.dateOverride && !/^\d{4}-\d{2}-\d{2}$/.test(args.dateOverride)) {
+    throw new PlaudApiError('INVALID_DATE_OVERRIDE', 'Invalid date override format', 400);
+  }
   try {
     const { data } = await mergeRequestsApi.post<{ success: boolean } & PlaudParsedSegmentResponse>(
       `/${encodeURIComponent(args.mergeRequestId)}/segments/${encodeURIComponent(args.segmentId)}/parse`,
-      { timeZone: args.timeZone },
+      { timeZone: args.timeZone, dateOverride: args.dateOverride },
     );
     return {
       mergeRequestId: data.mergeRequestId,

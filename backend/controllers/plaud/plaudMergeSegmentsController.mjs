@@ -18,6 +18,7 @@ import { parseWorkoutTranscript } from '../../services/workoutLogParserService.m
 import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const SEGMENT_ID_REGEX = /^segment-\d+$/;
+const DATE_OVERRIDE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 function jsonError(res, status, code, message) {
   return res.status(status).json({
@@ -52,6 +53,42 @@ function decryptMergePayload(row, res) {
     jsonError(res, 500, 'INTERNAL_ERROR', 'Decrypt error');
     return null;
   }
+}
+
+function resolveSegmentDate({ segment, dateOverride }) {
+  if (!dateOverride) {
+    return {
+      ok: !segment.futureDateBlocked && !segment.needsDateConfirmation,
+      code: 'SEGMENT_DATE_UNRESOLVED',
+      message: 'Confirm the segment date before parsing',
+      date: segment.date,
+    };
+  }
+
+  if (!DATE_OVERRIDE_REGEX.test(dateOverride)) {
+    return {
+      ok: false,
+      code: 'INVALID_DATE_OVERRIDE',
+      message: 'dateOverride must use YYYY-MM-DD',
+      date: segment.date,
+    };
+  }
+
+  if (segment.referenceDate && dateOverride > segment.referenceDate) {
+    return {
+      ok: false,
+      code: 'SEGMENT_DATE_IN_FUTURE',
+      message: 'Segment date cannot be after the recording reference date',
+      date: segment.date,
+    };
+  }
+
+  return {
+    ok: true,
+    code: null,
+    message: null,
+    date: dateOverride,
+  };
 }
 
 export async function parseSegmentHandler(req, res) {
@@ -103,8 +140,12 @@ export async function parseSegmentHandler(req, res) {
   if (!segment) {
     return jsonError(res, 404, 'SEGMENT_NOT_FOUND', 'Date split segment not found');
   }
-  if (segment.futureDateBlocked || segment.needsDateConfirmation) {
-    return jsonError(res, 409, 'SEGMENT_DATE_UNRESOLVED', 'Confirm the segment date before parsing');
+  const dateResolution = resolveSegmentDate({
+    segment,
+    dateOverride: typeof req.body?.dateOverride === 'string' ? req.body.dateOverride : null,
+  });
+  if (!dateResolution.ok) {
+    return jsonError(res, 409, dateResolution.code, dateResolution.message);
   }
 
   try {
@@ -112,14 +153,14 @@ export async function parseSegmentHandler(req, res) {
       transcript: segment.text,
       clientId: Number(row.client_id),
       trainerId: Number(row.user_id),
-      date: segment.date,
+      date: dateResolution.date,
     });
 
     return res.status(200).json({
       success: true,
       mergeRequestId,
       segmentId,
-      date: segment.date,
+      date: dateResolution.date,
       parsedWorkout,
     });
   } catch (err) {

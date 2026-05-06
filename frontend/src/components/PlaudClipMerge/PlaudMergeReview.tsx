@@ -29,6 +29,13 @@ import {
   Title,
   TranscriptBlock,
 } from './PlaudMergeWorkspace.styles';
+import {
+  browserTimeZone,
+  buildEffectiveSegment,
+  errorMessage,
+  isSegmentReadyForApproval,
+  isValidSegmentDateOverride,
+} from './PlaudMergeReview.helpers';
 
 type SegmentApprovalStatus = 'idle' | 'parsing' | 'logged' | 'error';
 
@@ -45,21 +52,6 @@ interface PlaudMergeReviewProps {
   onApproved: (state: PlaudMergeConfirmState) => void;
 }
 
-function browserTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
-  } catch {
-    return 'America/Los_Angeles';
-  }
-}
-
-function errorMessage(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { message?: string; errorCode?: string; error?: { code?: string; message?: string } } } };
-  const code = e.response?.data?.errorCode || e.response?.data?.error?.code;
-  const message = e.response?.data?.message || e.response?.data?.error?.message;
-  return code || message ? `${code || 'ERROR'}: ${message || fallback}` : fallback;
-}
-
 export function PlaudMergeReview({
   reviewState,
   embedded = false,
@@ -69,6 +61,7 @@ export function PlaudMergeReview({
   const [applyError, setApplyError] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [segmentApprovals, setSegmentApprovals] = useState<Record<string, SegmentApprovalState>>({});
+  const [segmentDateOverrides, setSegmentDateOverrides] = useState<Record<string, string>>({});
   const segmentApprovalsRef = useRef<Record<string, SegmentApprovalState>>({});
   const exercises = reviewState.parsedWorkout?.exercises || [];
   const segments = useMemo(
@@ -76,8 +69,7 @@ export function PlaudMergeReview({
     [reviewState.dateSplitCandidates],
   );
   const dateSplitApprovalBlock = getPlaudDateSplitApprovalBlock(reviewState.dateSplitCandidates);
-  const allSegmentsReady = segments.length > 1
-    && segments.every((segment) => !segment.futureDateBlocked && !segment.needsDateConfirmation);
+  const shouldRenderSegmentApproval = segments.length > 1 || Boolean(dateSplitApprovalBlock);
   const approveDisabled = isApplying || exercises.length === 0 || !reviewState.clientId || Boolean(dateSplitApprovalBlock);
 
   const loggedWorkoutIds = useMemo(() => (
@@ -110,11 +102,21 @@ export function PlaudMergeReview({
     }
   }, [onApproved, reviewState]);
 
+  const canApproveSegment = useCallback((segment: PlaudDateSplitSegment) => (
+    isSegmentReadyForApproval(segment, segmentDateOverrides[segment.segmentId])
+  ), [segmentDateOverrides]);
+
+  const handleDateOverrideChange = useCallback((segmentId: string, value: string) => {
+    setSegmentDateOverrides((prev) => ({ ...prev, [segmentId]: value }));
+  }, []);
+
   const handleApproveSegment = useCallback(async (segment: PlaudDateSplitSegment) => {
-    if (!reviewState.clientId || !allSegmentsReady) {
-      setApplyError('Resolve every split workout date before approving segments.');
+    const dateOverride = segmentDateOverrides[segment.segmentId];
+    if (!reviewState.clientId || !canApproveSegment(segment)) {
+      setApplyError('Confirm a valid non-future date before approving this split workout.');
       return;
     }
+    const effectiveSegment = buildEffectiveSegment(segment, dateOverride);
     setSegmentApprovals((prev) => {
       const next = {
         ...prev,
@@ -128,12 +130,13 @@ export function PlaudMergeReview({
       const parsed = await parseMergeRequestSegment({
         mergeRequestId: reviewState.mergeRequestId,
         segmentId: segment.segmentId,
+        dateOverride: isValidSegmentDateOverride(dateOverride) ? dateOverride : undefined,
         timeZone: reviewState.dateSplitCandidates?.timeZone || browserTimeZone(),
       });
       const result = await applyMergeSegmentApproval({
         clientId: reviewState.clientId,
         mergeRequestId: reviewState.mergeRequestId,
-        segment,
+        segment: effectiveSegment,
         parsedWorkout: parsed.parsedWorkout,
       });
       const next = {
@@ -167,7 +170,7 @@ export function PlaudMergeReview({
         return next;
       });
     }
-  }, [allSegmentsReady, onApproved, reviewState, segments]);
+  }, [canApproveSegment, onApproved, reviewState, segmentDateOverrides, segments]);
 
   return (
     <PageWrap data-testid="plaud-merge-page" $embedded={embedded}>
@@ -213,8 +216,10 @@ export function PlaudMergeReview({
         <PlaudDateSplitCandidatePanel
           candidates={reviewState.dateSplitCandidates}
           approvalStates={segmentApprovals}
-          canApproveSegments={allSegmentsReady}
-          onApproveSegment={segments.length > 1 ? handleApproveSegment : undefined}
+          canApproveSegment={canApproveSegment}
+          dateOverrides={segmentDateOverrides}
+          onDateOverrideChange={handleDateOverrideChange}
+          onApproveSegment={shouldRenderSegmentApproval ? handleApproveSegment : undefined}
         />
         {loggedWorkoutIds.length > 0 ? (
           <Sub>{loggedWorkoutIds.length} split workout log {loggedWorkoutIds.length === 1 ? 'is' : 'are'} complete.</Sub>

@@ -114,4 +114,26 @@ describe('PlaudDateSplitCandidatePanel', () => {
     expect(button).toBeTruthy();
     expect(button.disabled).toBe(true);
   });
+
+  it('lets trainer enter a date override for unresolved split segments', () => {
+    const onDateOverrideChange = vi.fn();
+    const onApprove = vi.fn();
+    render(
+      <PlaudDateSplitCandidatePanel
+        candidates={{ ...candidates, segments: [candidates.segments[1]] }}
+        canApproveSegment={() => true}
+        dateOverrides={{ 'segment-2': '2026-05-03' }}
+        onDateOverrideChange={onDateOverrideChange}
+        onApproveSegment={onApprove}
+      />,
+    );
+
+    const input = screen.getByLabelText('Trainer-confirmed date for segment 2') as HTMLInputElement;
+    expect(input.value).toBe('2026-05-03');
+    fireEvent.change(input, { target: { value: '2026-05-02' } });
+    expect(onDateOverrideChange).toHaveBeenCalledWith('segment-2', '2026-05-02');
+
+    fireEvent.click(screen.getByText('Approve with date'));
+    expect(onApprove).toHaveBeenCalledWith(candidates.segments[1]);
+  });
 });

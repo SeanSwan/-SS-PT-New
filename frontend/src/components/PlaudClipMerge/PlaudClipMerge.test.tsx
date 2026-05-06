@@ -298,7 +298,12 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
     expect(REVIEW_SRC).toMatch(/parseMergeRequestSegment/);
     expect(REVIEW_SRC).toMatch(/applyMergeSegmentApproval/);
     expect(REVIEW_SRC).toMatch(/approveMergeRequest/);
+    expect(REVIEW_SRC).toMatch(/segmentDateOverrides/);
+    expect(REVIEW_SRC).toMatch(/buildEffectiveSegment/);
+    expect(REVIEW_SRC).toMatch(/shouldRenderSegmentApproval/);
+    expect(DATE_SPLIT_SRC).toMatch(/Trainer-confirmed date/);
     expect(MERGE_SERVICE_SRC).toMatch(/\/segments\/\$\{encodeURIComponent\(args\.segmentId\)\}\/parse/);
+    expect(MERGE_SERVICE_SRC).toMatch(/dateOverride/);
     expect(APPROVAL_SRC).toMatch(/source:\s*'plaud_merge_segment'/);
     expect(APPROVAL_SRC).toMatch(/targetDate:\s*args\.segment\.date/);
   });

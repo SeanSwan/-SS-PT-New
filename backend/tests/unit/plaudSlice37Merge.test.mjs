@@ -268,6 +268,9 @@ describe('Slice 3.7 — plaudMergeRequestsController source contract', () => {
     expect(SEGMENTS_CTRL_SRC).toMatch(/buildPlaudMergeDateSplitCandidates/);
     expect(SEGMENTS_CTRL_SRC).toMatch(/parseWorkoutTranscript/);
     expect(SEGMENTS_CTRL_SRC).toMatch(/SEGMENT_DATE_UNRESOLVED/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/dateOverride/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/INVALID_DATE_OVERRIDE/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/SEGMENT_DATE_IN_FUTURE/);
     expect(SEGMENTS_CTRL_SRC).not.toMatch(/logWorkoutForClient/);
     expect(SEGMENTS_CTRL_SRC).not.toMatch(/status\s*=\s*'approved'/);
   });
