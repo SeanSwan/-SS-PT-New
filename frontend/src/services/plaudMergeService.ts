@@ -69,6 +69,33 @@ export interface MergeClipTimelineItem {
   orderMode: string;
 }
 
+export interface PlaudDateSplitSegment {
+  segmentId: string;
+  segmentIndex: number;
+  date: string;
+  dateSource: string;
+  dateConfidence: 'high' | 'low' | 'blocked_future' | 'invalid_date' | string;
+  needsDateConfirmation: boolean;
+  futureDateBlocked: boolean;
+  evidence: string | null;
+  referenceDate: string;
+  referenceSource: string;
+  timeZone: string;
+  startLine: number | null;
+  endLine: number | null;
+  text: string;
+}
+
+export interface PlaudDateSplitCandidates {
+  referenceDate: string;
+  timeZone: string;
+  referenceSource: string;
+  segmentCount: number;
+  needsDateReviewCount: number;
+  futureDateBlockedCount: number;
+  segments: PlaudDateSplitSegment[];
+}
+
 export interface MergeResponse {
   mergeRequestId: string;
   transcript: string;
@@ -98,6 +125,7 @@ export interface MergeRequestDetail extends MergeRequestSummary {
   transcriptHash: string;
   transcript: string;
   parsedWorkout: ParsedWorkout;
+  dateSplitCandidates?: PlaudDateSplitCandidates;
   clipTimeline?: MergeClipTimelineItem[];
 }
 

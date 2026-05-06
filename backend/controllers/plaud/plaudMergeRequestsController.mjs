@@ -18,6 +18,7 @@ import sequelize from '../../database.mjs';
 import { QueryTypes } from 'sequelize';
 import logger from '../../utils/logger.mjs';
 import { decryptPayload, CipherDecryptFailedError, CipherKeyVersionUnavailableError } from '../../services/plaudCipherService.mjs';
+import { buildPlaudMergeDateSplitCandidates } from '../../services/plaudMergeDateSplitService.mjs';
 import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_LIMIT = 20;
@@ -176,6 +177,11 @@ export async function detailHandler(req, res) {
       transcriptHash: row.transcript_hash,
       transcript: payload.transcript,
       parsedWorkout: payload.parsedWorkout,
+      dateSplitCandidates: buildPlaudMergeDateSplitCandidates({
+        payload,
+        row,
+        timeZone: req.query?.timeZone || 'America/Los_Angeles',
+      }),
       clipTimeline: payload.clipTimeline || [],
       createdAt: row.created_at,
       completedAt: row.completed_at,
