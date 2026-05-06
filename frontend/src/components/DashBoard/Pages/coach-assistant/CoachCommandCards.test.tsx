@@ -13,14 +13,14 @@ describe('ExecutionResultCard route actions', () => {
           result={{
             readyReview: 2,
             unprocessed: 1,
-            queueRoute: '/dashboard/training/plaud',
+            queueRoute: '/dashboard/admin/plaud',
           }}
         />
       </MemoryRouter>,
     );
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/training/plaud');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
     expect(screen.queryByText('queueRoute')).toBeNull();
   });
 });

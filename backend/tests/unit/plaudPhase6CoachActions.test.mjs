@@ -110,9 +110,34 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextIntakeId: 'merge:11111111-1111-1111-1111-111111111111',
       nextKind: 'merge_request',
       nextQueueStatus: 'ready_review',
-      queueRoute: '/dashboard/training/plaud',
+      queueRoute: '/dashboard/trainer/plaud',
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|transcript/i);
+  });
+
+  it('returns the role-dashboard PLAUD route for admins', async () => {
+    vi.mocked(listPlaudIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 10,
+      summary: {
+        total: 0,
+        actionable: 0,
+        today: 0,
+        unprocessed: 0,
+        processing: 0,
+        readyReview: 0,
+        failed: 0,
+        needsClient: 0,
+      },
+      items: [],
+    });
+
+    const result = await dispatchViewPlaudIntakeQueue(
+      {},
+      { user: { id: 7, role: 'admin' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result.queueRoute).toBe('/dashboard/admin/plaud');
   });
 
   it('review-next prioritizes ready review items over unprocessed clips', async () => {
@@ -157,8 +182,16 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextKind: 'merge_request',
       nextQueueStatus: 'ready_review',
       nextCanReview: true,
-      queueRoute: '/dashboard/training/plaud',
+      queueRoute: '/dashboard/trainer/plaud',
     });
+  });
+
+  it('rejects client-role PLAUD queue commands', async () => {
+    await expect(dispatchViewPlaudIntakeQueue(
+      {},
+      { user: { id: 12, role: 'client' }, options: { sequelize: sequelizeOverride } },
+    )).rejects.toThrow(/requires an admin or trainer role/i);
+    expect(listPlaudIntakeItems).not.toHaveBeenCalled();
   });
 
   it('fails closed when PLAUD merge is disabled', async () => {

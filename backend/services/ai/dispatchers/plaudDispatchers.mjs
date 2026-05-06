@@ -7,7 +7,6 @@
  */
 import { listPlaudIntakeItems } from '../../plaudIntakeQueueService.mjs';
 
-const QUEUE_ROUTE = '/dashboard/training/plaud';
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
 const MAX_QUEUE_LIMIT = 20;
@@ -33,6 +32,13 @@ function resolveUserId(ctx) {
   return userId;
 }
 
+function resolvePlaudQueueRoute(ctx) {
+  const role = String(ctx?.user?.role || '').toLowerCase();
+  if (role === 'admin') return '/dashboard/admin/plaud';
+  if (role === 'trainer') return '/dashboard/trainer/plaud';
+  throw new Error('Access requires an admin or trainer role for PLAUD queue commands.');
+}
+
 function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return fallback;
@@ -54,7 +60,7 @@ function pickNextItem(items = []) {
     })[0] || null;
 }
 
-function scalarSummary(result, nextItem) {
+function scalarSummary(result, nextItem, queueRoute) {
   const summary = result?.summary || {};
   return {
     total: Number(summary.total || 0),
@@ -70,7 +76,7 @@ function scalarSummary(result, nextItem) {
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
-    queueRoute: QUEUE_ROUTE,
+    queueRoute,
     commandHint: nextItem
       ? 'Open the PLAUD workspace and continue with the next intake item.'
       : 'No PLAUD intake items need action.',
@@ -80,6 +86,7 @@ function scalarSummary(result, nextItem) {
 async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimit = DEFAULT_QUEUE_LIMIT } = {}) {
   assertPlaudEnabled();
   const userId = resolveUserId(ctx);
+  const queueRoute = resolvePlaudQueueRoute(ctx);
   const scope = params?.scope || defaultScope;
   const limit = normalizeLimit(params?.limit, defaultLimit);
   const result = await listPlaudIntakeItems({
@@ -88,24 +95,25 @@ async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimi
     limit,
     sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
   });
-  return { result, nextItem: pickNextItem(result?.items || []) };
+  return { result, nextItem: pickNextItem(result?.items || []), queueRoute };
 }
 
 export async function dispatchViewPlaudIntakeQueue(params = {}, ctx = {}) {
-  const { result, nextItem } = await readQueue(params, ctx);
-  return scalarSummary(result, nextItem);
+  const { result, nextItem, queueRoute } = await readQueue(params, ctx);
+  return scalarSummary(result, nextItem, queueRoute);
 }
 
 export async function dispatchReviewNextPlaudIntake(params = {}, ctx = {}) {
-  const { result, nextItem } = await readQueue(params, ctx, {
+  const { result, nextItem, queueRoute } = await readQueue(params, ctx, {
     defaultScope: 'actionable',
     defaultLimit: REVIEW_NEXT_LIMIT,
   });
-  return scalarSummary(result, nextItem);
+  return scalarSummary(result, nextItem, queueRoute);
 }
 
 export const _internal = {
   normalizeLimit,
   pickNextItem,
+  resolvePlaudQueueRoute,
   scalarSummary,
 };
