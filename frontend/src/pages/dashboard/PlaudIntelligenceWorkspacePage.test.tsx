@@ -9,6 +9,10 @@ const PENDING_REVIEWS_SRC = readFileSync(
   resolve(__dirname, '../../components/PlaudClipMerge/PlaudPendingReviewsList.tsx'),
   'utf8',
 );
+const MERGE_PANEL_SRC = readFileSync(
+  resolve(__dirname, '../../components/PlaudClipMerge/PlaudClipMergePanel.tsx'),
+  'utf8',
+);
 const INTAKE_SERVICE_SRC = readFileSync(
   resolve(__dirname, '../../services/plaudIntakeService.ts'),
   'utf8',
@@ -63,6 +67,13 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/URLSearchParams\(location\.search\)/);
     expect(PAGE_SRC).toMatch(/params\.get\('review'\)\s*!==\s*'next'/);
     expect(PAGE_SRC).toMatch(/setTimeout\(focusQueue/);
+  });
+
+  it('honors Swan Coach audio-piece links by focusing the merge panel from ?pieces=pending', () => {
+    expect(PAGE_SRC).toMatch(/querySelector\('\[data-testid="plaud-merge-panel"\]'\)/);
+    expect(PAGE_SRC).toMatch(/params\.get\('pieces'\)\s*===\s*'pending'/);
+    expect(PAGE_SRC).toMatch(/setTimeout\(focusMergePanel/);
+    expect(MERGE_PANEL_SRC).toMatch(/tabIndex=\{-1\}/);
   });
 
   it('consumes the unified PLAUD intake endpoint instead of static-only queue copy', () => {

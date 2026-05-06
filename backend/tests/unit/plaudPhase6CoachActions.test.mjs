@@ -26,6 +26,7 @@ vi.mock('../../services/plaudIntakeQueueService.mjs', () => ({
 
 import { listPlaudIntakeItems } from '../../services/plaudIntakeQueueService.mjs';
 import {
+  dispatchInspectPlaudAudioPieces,
   dispatchReviewNextPlaudIntake,
   dispatchViewPlaudIntakeQueue,
 } from '../../services/ai/dispatchers/plaudDispatchers.mjs';
@@ -40,6 +41,7 @@ describe('Phase 6 — PLAUD Swan Coach registry source contract', () => {
     expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewPlaudIntakeQueue/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_plaud_intake_queue',\s*dispatchViewPlaudIntakeQueue\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['review_next_plaud_intake',\s*dispatchReviewNextPlaudIntake\]/);
+    expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_plaud_audio_pieces',\s*dispatchInspectPlaudAudioPieces\]/);
   });
 });
 
@@ -204,5 +206,91 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       { user: { id: 42, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
     )).rejects.toThrow(/PLAUD merge feature is not enabled/i);
     expect(listPlaudIntakeItems).not.toHaveBeenCalled();
+  });
+
+  it('summarizes pending audio pieces in chronological order without PII fields', async () => {
+    vi.mocked(listPlaudIntakeItems).mockResolvedValue({
+      scope: 'unprocessed',
+      limit: 20,
+      summary: {
+        total: 3,
+        actionable: 3,
+        today: 3,
+        unprocessed: 3,
+        processing: 0,
+        readyReview: 0,
+        failed: 0,
+        needsClient: 0,
+      },
+      items: [
+        {
+          id: 'clip:cccccccc-cccc-cccc-cccc-cccccccccccc',
+          entityId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+          kind: 'clip',
+          source: 'manual_upload',
+          sourceLabel: 'Manual upload',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          createdAt: '2026-05-05T12:55:00.000Z',
+          durationSec: 65,
+          sizeBytes: 3000,
+          clientName: 'Do Not Return',
+          title: 'Do Not Return',
+          transcript: 'Do Not Return',
+        },
+        {
+          id: 'clip:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          entityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          kind: 'clip',
+          source: 'applaud_webhook',
+          sourceLabel: 'Applaud',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          createdAt: '2026-05-05T12:00:00.000Z',
+          durationSec: 45,
+          sizeBytes: 1000,
+        },
+        {
+          id: 'clip:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          entityId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          kind: 'clip',
+          source: 'manual_upload',
+          sourceLabel: 'Manual upload',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          createdAt: '2026-05-05T12:06:00.000Z',
+          durationSec: 30,
+          sizeBytes: 2000,
+        },
+      ],
+    });
+
+    const result = await dispatchInspectPlaudAudioPieces(
+      { gapThresholdMinutes: 30 },
+      { user: { id: 42, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(listPlaudIntakeItems).toHaveBeenCalledWith({
+      userId: 42,
+      scope: 'unprocessed',
+      limit: 20,
+      sequelizeOverride,
+    });
+    expect(result).toMatchObject({
+      pieceCount: 3,
+      suggestedGroupCount: 2,
+      largeGapCount: 1,
+      largestGapMinutes: 49,
+      gapThresholdMinutes: 30,
+      orderedPieceIds: [
+        'clip:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'clip:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        'clip:cccccccc-cccc-cccc-cccc-cccccccccccc',
+      ].join(' > '),
+      targetRoute: '/dashboard/trainer/plaud?pieces=pending',
+    });
+    expect(result.pieceTimeline).toMatch(/1\. applaud_webhook .*45s/);
+    expect(result.pieceTimeline).toMatch(/gap 49m/);
+    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
   });
 });

@@ -4,12 +4,12 @@
  * Merges all 14 domain-split command registries into a unified registry.
  * Call initializeRegistry() once at server startup.
  *
- * 104 commands across categories A-N:
+ * 105 commands across categories A-N:
  * A: Client Management (14)   B: Workouts (12)      C: Scheduling (9)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)
  * G: Dashboard (8)            H: Trainer Mgmt (6)    I: Goals (6)
  * J: Onboarding (6)           K: System (4)          L: Client Self-Service (10)
- * M: Hermes Agent (2)       N: PLAUD Intake (2)
+ * M: Hermes Agent (2)       N: PLAUD Intake (3)
  */
 import { register as registerClient } from './clientCommands.mjs';
 import { register as registerWorkout } from './workoutCommands.mjs';
@@ -61,5 +61,5 @@ export function initializeRegistry() {
 
   initialized = true;
 
-  logger.info(`[CommandRegistry] Initialized with 104 commands across 14 categories`);
+  logger.info(`[CommandRegistry] Initialized with 105 commands across 14 categories`);
 }

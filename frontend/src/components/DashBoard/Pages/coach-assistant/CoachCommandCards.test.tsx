@@ -43,4 +43,24 @@ describe('ExecutionResultCard route actions', () => {
     expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
     expect(screen.queryByText('reviewRoute')).toBeNull();
   });
+
+  it('prefers targetRoute over queueRoute for workspace-focused commands', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_plaud_audio_pieces"
+          client={null}
+          result={{
+            pieceCount: 3,
+            queueRoute: '/dashboard/trainer/plaud',
+            targetRoute: '/dashboard/trainer/plaud?pieces=pending',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open plaud workspace/i });
+    expect(link).toHaveAttribute('href', '/dashboard/trainer/plaud?pieces=pending');
+    expect(screen.queryByText('targetRoute')).toBeNull();
+  });
 });

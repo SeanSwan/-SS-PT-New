@@ -86,7 +86,7 @@ export function PlaudClipMergePanel({
   const isDisabled = isMerging || queue.isUploading;
 
   return (
-    <PanelWrap data-testid="plaud-merge-panel">
+    <PanelWrap data-testid="plaud-merge-panel" tabIndex={-1} aria-label="PLAUD audio merge panel">
       <SectionHeader>
         <Title>PLAUD merge</Title>
         <Sub>Upload session clips, pick the ones for this client, click merge.</Sub>

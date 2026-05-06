@@ -38,7 +38,7 @@ const commands = [
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false,
     category: 'N',
-    relatedCommands: ['review_next_plaud_intake'],
+    relatedCommands: ['review_next_plaud_intake', 'inspect_plaud_audio_pieces'],
   },
   {
     type: 'review_next_plaud_intake',
@@ -59,7 +59,29 @@ const commands = [
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false,
     category: 'N',
-    relatedCommands: ['view_plaud_intake_queue'],
+    relatedCommands: ['view_plaud_intake_queue', 'inspect_plaud_audio_pieces'],
+  },
+  {
+    type: 'inspect_plaud_audio_pieces',
+    description: 'Summarize pending PLAUD audio pieces and chronology gaps before merge',
+    naturalLanguagePatterns: [
+      'help me order my PLAUD clips',
+      'inspect pending PLAUD audio pieces',
+      'summarize PLAUD audio pieces before merge',
+      'which PLAUD sound bites go together',
+    ],
+    method: 'GET',
+    endpoint: '/api/plaud/intake?scope=unprocessed',
+    inputSchema: z.object({
+      gapThresholdMinutes: z.number().int().min(5).max(240).default(45),
+      limit: z.number().int().min(1).max(20).default(20),
+    }),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['view_plaud_intake_queue', 'review_next_plaud_intake'],
   },
 ];
 

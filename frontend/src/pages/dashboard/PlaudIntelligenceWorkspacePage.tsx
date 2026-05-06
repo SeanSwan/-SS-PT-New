@@ -86,12 +86,29 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     }
   }, []);
 
+  const focusMergePanel = useCallback(() => {
+    const panel = document.querySelector('[data-testid="plaud-merge-panel"]');
+    if (panel instanceof HTMLElement) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      panel.focus?.();
+    }
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('review') !== 'next') return;
+    if (params.get('review') !== 'next') return undefined;
     const timer = window.setTimeout(focusQueue, 120);
     return () => window.clearTimeout(timer);
   }, [focusQueue, location.search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('pieces') === 'pending') {
+      const timer = window.setTimeout(focusMergePanel, 120);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [focusMergePanel, location.search]);
 
   return (
     <WorkspaceShell data-testid="plaud-intelligence-workspace">

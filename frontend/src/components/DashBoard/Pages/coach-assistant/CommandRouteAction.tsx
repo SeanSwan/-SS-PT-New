@@ -66,8 +66,8 @@ interface CommandRouteActionProps {
 export function CommandRouteAction({ command, result }: CommandRouteActionProps) {
   const route = result
     ? safeInternalRoute(result.reviewRoute) ||
-      safeInternalRoute(result.queueRoute) ||
-      safeInternalRoute(result.targetRoute)
+      safeInternalRoute(result.targetRoute) ||
+      safeInternalRoute(result.queueRoute)
     : null;
 
   if (!route) return null;
