@@ -59,6 +59,12 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PENDING_REVIEWS_SRC).toMatch(/aria-label="Pending PLAUD reviews"/);
   });
 
+  it('honors Swan Coach review-next links by focusing the queue from ?review=next', () => {
+    expect(PAGE_SRC).toMatch(/URLSearchParams\(location\.search\)/);
+    expect(PAGE_SRC).toMatch(/params\.get\('review'\)\s*!==\s*'next'/);
+    expect(PAGE_SRC).toMatch(/setTimeout\(focusQueue/);
+  });
+
   it('consumes the unified PLAUD intake endpoint instead of static-only queue copy', () => {
     expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue/);
     expect(PAGE_SRC).toMatch(/Unified intake queue/);

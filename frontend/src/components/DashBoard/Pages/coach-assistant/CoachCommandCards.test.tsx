@@ -23,4 +23,24 @@ describe('ExecutionResultCard route actions', () => {
     expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
     expect(screen.queryByText('queueRoute')).toBeNull();
   });
+
+  it('prefers reviewRoute over queueRoute for review-next commands', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_plaud_intake"
+          client={null}
+          result={{
+            readyReview: 2,
+            queueRoute: '/dashboard/admin/plaud',
+            reviewRoute: '/dashboard/admin/plaud?review=next',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open plaud workspace/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+    expect(screen.queryByText('reviewRoute')).toBeNull();
+  });
 });

@@ -76,6 +76,7 @@ function scalarSummary(result, nextItem, queueRoute) {
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
+    reviewRoute: nextItem ? `${queueRoute}?review=next` : null,
     queueRoute,
     commandHint: nextItem
       ? 'Open the PLAUD workspace and continue with the next intake item.'

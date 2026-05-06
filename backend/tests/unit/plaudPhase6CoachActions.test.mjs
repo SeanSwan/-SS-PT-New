@@ -111,6 +111,7 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextKind: 'merge_request',
       nextQueueStatus: 'ready_review',
       queueRoute: '/dashboard/trainer/plaud',
+      reviewRoute: '/dashboard/trainer/plaud?review=next',
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|transcript/i);
   });
@@ -183,6 +184,7 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextQueueStatus: 'ready_review',
       nextCanReview: true,
       queueRoute: '/dashboard/trainer/plaud',
+      reviewRoute: '/dashboard/trainer/plaud?review=next',
     });
   });
 

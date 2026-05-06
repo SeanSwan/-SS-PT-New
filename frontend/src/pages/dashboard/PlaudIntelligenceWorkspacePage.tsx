@@ -17,7 +17,7 @@
  * clip ordering, splitting, or auto-log actions are live before those actions
  * exist in commandDispatcher and the PLAUD backend.
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Brain,
@@ -73,6 +73,7 @@ function formatQueueStatus(status: string): string {
 
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const role = useDashboardRole();
   const coachPath = `/dashboard/${role}/coach-assistant`;
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue();
@@ -84,6 +85,13 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
       queue.focus?.();
     }
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('review') !== 'next') return;
+    const timer = window.setTimeout(focusQueue, 120);
+    return () => window.clearTimeout(timer);
+  }, [focusQueue, location.search]);
 
   return (
     <WorkspaceShell data-testid="plaud-intelligence-workspace">

@@ -7,7 +7,6 @@
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ArrowRight } from 'lucide-react';
-import { isCommandRouteKey } from './commandRouteKeys';
 
 const ActionWrap = styled.div`
   margin-top: 12px;
@@ -66,10 +65,9 @@ interface CommandRouteActionProps {
 
 export function CommandRouteAction({ command, result }: CommandRouteActionProps) {
   const route = result
-    ? Object.entries(result).reduce<string | null>((found, [key, value]) => {
-        if (found || !isCommandRouteKey(key)) return found;
-        return safeInternalRoute(value);
-      }, null)
+    ? safeInternalRoute(result.reviewRoute) ||
+      safeInternalRoute(result.queueRoute) ||
+      safeInternalRoute(result.targetRoute)
     : null;
 
   if (!route) return null;
