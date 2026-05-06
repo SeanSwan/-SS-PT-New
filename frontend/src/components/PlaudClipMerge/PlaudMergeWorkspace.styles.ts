@@ -131,6 +131,87 @@ export const ExerciseRow = styled.li`
   border-radius: 10px;
 `;
 
+export const DateSplitGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const DateSplitCard = styled.article<{ $tone: 'ready' | 'review' | 'blocked' }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 0.875rem;
+  background: ${({ $tone }) => (
+    $tone === 'blocked'
+      ? 'var(--status-error-soft, rgba(239, 68, 68, 0.1))'
+      : $tone === 'review'
+        ? 'var(--accent-gold-soft, rgba(198, 168, 75, 0.1))'
+        : 'var(--accent-primary-soft, rgba(96, 192, 240, 0.1))'
+  )};
+  border: 1px solid ${({ $tone }) => (
+    $tone === 'blocked'
+      ? 'var(--status-error-border, rgba(239, 68, 68, 0.32))'
+      : $tone === 'review'
+        ? 'var(--accent-gold-border, rgba(198, 168, 75, 0.36))'
+        : 'var(--accent-primary-border, rgba(96, 192, 240, 0.3))'
+  )};
+  border-radius: 8px;
+`;
+
+export const DateSplitTopline = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+`;
+
+export const DateSplitTitle = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+
+  & strong {
+    color: var(--text-primary, #E0ECF4);
+  }
+
+  & span {
+    color: var(--text-secondary, rgba(224,236,244,0.72));
+    font-size: 0.8rem;
+  }
+`;
+
+export const DateSplitBadge = styled.span<{ $tone: 'ready' | 'review' | 'blocked' }>`
+  flex: 0 0 auto;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  color: var(--text-primary, #E0ECF4);
+  background: ${({ $tone }) => (
+    $tone === 'blocked'
+      ? 'var(--status-error-soft-strong, rgba(239, 68, 68, 0.2))'
+      : $tone === 'review'
+        ? 'var(--accent-gold-soft-strong, rgba(198, 168, 75, 0.22))'
+        : 'var(--accent-primary-soft-strong, rgba(96, 192, 240, 0.18))'
+  )};
+  font-size: 0.75rem;
+  font-weight: 800;
+`;
+
+export const DateSplitExcerpt = styled.p`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-height: 4.7rem;
+  overflow: hidden;
+`;
+
 export const SetList = styled.ul`
   margin: 0.4rem 0 0 1.1rem;
 `;

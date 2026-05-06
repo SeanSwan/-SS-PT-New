@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
 import { PlaudPendingReviewsList } from './PlaudPendingReviewsList';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
+import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
 import { getMergeRequest, type MergeResponse, type MergeRequestDetail } from '../../services/plaudMergeService';
 import { PlaudApiError } from '../../services/plaudClipService';
 import { applyMergeApproval } from './PlaudMergeWorkspace.apply';
@@ -49,6 +50,7 @@ export function PlaudMergeWorkspace({
     clientName?: string | null;
     transcript: string;
     parsedWorkout: MergeResponse['parsedWorkout'];
+    dateSplitCandidates?: MergeRequestDetail['dateSplitCandidates'];
     clipTimeline: NonNullable<MergeResponse['clipTimeline']>;
     boundaryWarning: MergeResponse['boundaryWarning'];
     source: 'fresh' | 'resume';
@@ -67,6 +69,7 @@ export function PlaudMergeWorkspace({
       clientName: context.clientName || initialClientName || null,
       transcript: response.transcript,
       parsedWorkout: response.parsedWorkout,
+      dateSplitCandidates: undefined,
       clipTimeline: response.clipTimeline || [],
       boundaryWarning: response.boundaryWarning,
       source: 'fresh',
@@ -90,6 +93,7 @@ export function PlaudMergeWorkspace({
       clientName: detail.clientName,
       transcript: detail.transcript,
       parsedWorkout: detail.parsedWorkout,
+      dateSplitCandidates: detail.dateSplitCandidates,
       clipTimeline: detail.clipTimeline || [],
       boundaryWarning: detail.boundaryWarning,
       source: 'resume',
@@ -204,6 +208,7 @@ export function PlaudMergeWorkspace({
               </ExerciseList>
             </>
           ) : null}
+          <PlaudDateSplitCandidatePanel candidates={reviewState.dateSplitCandidates} />
           <ReviewHeading>Merged transcript</ReviewHeading>
           <TranscriptBlock>{reviewState.transcript}</TranscriptBlock>
           <ReviewHeading>Parsed exercises ({exercises.length})</ReviewHeading>

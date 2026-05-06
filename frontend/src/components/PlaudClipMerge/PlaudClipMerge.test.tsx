@@ -25,6 +25,7 @@ const RESOLVER_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.tsx'),
 const RESOLVER_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.styles.ts'), 'utf8');
 const BANNER_SRC = readFileSync(resolve(__dirname, 'PlaudMergeBoundaryBanner.tsx'), 'utf8');
 const WORKSPACE_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.tsx'), 'utf8');
+const DATE_SPLIT_SRC = readFileSync(resolve(__dirname, 'PlaudDateSplitCandidatePanel.tsx'), 'utf8');
 const APPROVAL_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.apply.ts'), 'utf8');
 const MERGE_SERVICE_SRC = readFileSync(resolve(__dirname, '../../services/plaudMergeService.ts'), 'utf8');
 
@@ -282,5 +283,12 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
     expect(MERGE_SERVICE_SRC).toMatch(/MergeClipTimelineItem/);
     expect(WORKSPACE_SRC).toMatch(/clipTimeline/);
     expect(WORKSPACE_SRC).toMatch(/Source clip timeline/);
+  });
+
+  it('surfaces deterministic date split candidates in review', () => {
+    expect(WORKSPACE_SRC).toMatch(/PlaudDateSplitCandidatePanel/);
+    expect(WORKSPACE_SRC).toMatch(/dateSplitCandidates/);
+    expect(DATE_SPLIT_SRC).toMatch(/futureDateBlocked/);
+    expect(DATE_SPLIT_SRC).toMatch(/needsDateConfirmation/);
   });
 });
