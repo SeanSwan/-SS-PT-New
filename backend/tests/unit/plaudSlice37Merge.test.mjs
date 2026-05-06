@@ -16,9 +16,6 @@ const __dirname = dirname(__filename);
 const BOUNDARY_SRC = readFileSync(
   resolve(__dirname, '../../services/clientNameBoundaryDetector.mjs'), 'utf8',
 );
-const VOCAB_SRC = readFileSync(
-  resolve(__dirname, '../../services/fitnessTranscriptionVocabService.mjs'), 'utf8',
-);
 const VOCAB_DATA = readFileSync(
   resolve(__dirname, '../../services/plaud-data/plaud-fitness-vocab.json'), 'utf8',
 );
@@ -27,6 +24,9 @@ const MERGE_CTRL_SRC = readFileSync(
 );
 const REQUESTS_CTRL_SRC = readFileSync(
   resolve(__dirname, '../../controllers/plaud/plaudMergeRequestsController.mjs'), 'utf8',
+);
+const SEGMENTS_CTRL_SRC = readFileSync(
+  resolve(__dirname, '../../controllers/plaud/plaudMergeSegmentsController.mjs'), 'utf8',
 );
 const ROUTES_SRC = readFileSync(
   resolve(__dirname, '../../routes/plaud/plaudMergeRoutes.mjs'), 'utf8',
@@ -262,6 +262,15 @@ describe('Slice 3.7 — plaudMergeRequestsController source contract', () => {
   it('detail returns decrypted clip timeline metadata for review', () => {
     expect(REQUESTS_CTRL_SRC).toMatch(/clipTimeline:\s*payload\.clipTimeline\s*\|\|\s*\[\]/);
   });
+
+  it('segment parser decrypts one ready date-split segment without writing logs', () => {
+    expect(SEGMENTS_CTRL_SRC).toMatch(/parseSegmentHandler/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/buildPlaudMergeDateSplitCandidates/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/parseWorkoutTranscript/);
+    expect(SEGMENTS_CTRL_SRC).toMatch(/SEGMENT_DATE_UNRESOLVED/);
+    expect(SEGMENTS_CTRL_SRC).not.toMatch(/logWorkoutForClient/);
+    expect(SEGMENTS_CTRL_SRC).not.toMatch(/status\s*=\s*'approved'/);
+  });
 });
 
 describe('Slice 3.7 — plaudMergeRoutes mounting', () => {
@@ -274,6 +283,7 @@ describe('Slice 3.7 — plaudMergeRoutes mounting', () => {
     expect(ROUTES_SRC).toMatch(/export\s+const\s+mergeRequestsRouter/);
     expect(ROUTES_SRC).toMatch(/r\.get\(\s*['"]\/['"]\s*,\s*listMergeRequestsHandler/);
     expect(ROUTES_SRC).toMatch(/r\.get\(\s*['"]\/:mergeRequestId['"]\s*,\s*detailMergeRequestHandler/);
+    expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/:mergeRequestId\/segments\/:segmentId\/parse['"]\s*,\s*parseMergeSegmentHandler/);
     expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/:mergeRequestId\/approve['"]\s*,\s*approveMergeRequestHandler/);
     expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/:mergeRequestId\/discard['"]\s*,\s*discardMergeRequestHandler/);
   });

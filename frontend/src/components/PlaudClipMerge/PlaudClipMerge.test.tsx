@@ -25,6 +25,7 @@ const RESOLVER_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.tsx'),
 const RESOLVER_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.styles.ts'), 'utf8');
 const BANNER_SRC = readFileSync(resolve(__dirname, 'PlaudMergeBoundaryBanner.tsx'), 'utf8');
 const WORKSPACE_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.tsx'), 'utf8');
+const REVIEW_SRC = readFileSync(resolve(__dirname, 'PlaudMergeReview.tsx'), 'utf8');
 const DATE_SPLIT_SRC = readFileSync(resolve(__dirname, 'PlaudDateSplitCandidatePanel.tsx'), 'utf8');
 const APPROVAL_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.apply.ts'), 'utf8');
 const MERGE_SERVICE_SRC = readFileSync(resolve(__dirname, '../../services/plaudMergeService.ts'), 'utf8');
@@ -266,7 +267,7 @@ describe('PlaudClientResolver source contract', () => {
 
 describe('PlaudMergeWorkspace Coach handoff contract', () => {
   it('delegates approval mapping to the shared Coach transcript mapper', () => {
-    expect(WORKSPACE_SRC).toMatch(/applyMergeApproval/);
+    expect(REVIEW_SRC).toMatch(/applyMergeApproval/);
     expect(WORKSPACE_SRC).not.toMatch(/axios\.post/);
     expect(APPROVAL_SRC).toMatch(/parsedWorkoutToLogPayload/);
     expect(APPROVAL_SRC).toMatch(/source:\s*'plaud_merge'/);
@@ -281,14 +282,24 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
 
   it('surfaces encrypted source clip timeline metadata in review', () => {
     expect(MERGE_SERVICE_SRC).toMatch(/MergeClipTimelineItem/);
-    expect(WORKSPACE_SRC).toMatch(/clipTimeline/);
-    expect(WORKSPACE_SRC).toMatch(/Source clip timeline/);
+    expect(REVIEW_SRC).toMatch(/clipTimeline/);
+    expect(REVIEW_SRC).toMatch(/Source clip timeline/);
   });
 
   it('surfaces deterministic date split candidates in review', () => {
-    expect(WORKSPACE_SRC).toMatch(/PlaudDateSplitCandidatePanel/);
-    expect(WORKSPACE_SRC).toMatch(/dateSplitCandidates/);
+    expect(REVIEW_SRC).toMatch(/PlaudDateSplitCandidatePanel/);
+    expect(REVIEW_SRC).toMatch(/dateSplitCandidates/);
+    expect(WORKSPACE_SRC).toMatch(/getMergeRequest\(response\.mergeRequestId\)/);
     expect(DATE_SPLIT_SRC).toMatch(/futureDateBlocked/);
     expect(DATE_SPLIT_SRC).toMatch(/needsDateConfirmation/);
+  });
+
+  it('supports per-segment parsing and log writes for split workouts', () => {
+    expect(REVIEW_SRC).toMatch(/parseMergeRequestSegment/);
+    expect(REVIEW_SRC).toMatch(/applyMergeSegmentApproval/);
+    expect(REVIEW_SRC).toMatch(/approveMergeRequest/);
+    expect(MERGE_SERVICE_SRC).toMatch(/\/segments\/\$\{encodeURIComponent\(args\.segmentId\)\}\/parse/);
+    expect(APPROVAL_SRC).toMatch(/source:\s*'plaud_merge_segment'/);
+    expect(APPROVAL_SRC).toMatch(/targetDate:\s*args\.segment\.date/);
   });
 });

@@ -1,12 +1,13 @@
 /**
  * PlaudDateSplitCandidatePanel
  * ============================
- * Compact review panel for deterministic multi-date transcript split findings.
- * It is intentionally read-only in this slice: later review-workspace slices will
- * turn these candidates into per-workout approve, hold, and date-confirm actions.
+ * Compact review panel for deterministic multi-date transcript split findings
+ * with optional per-segment approval actions.
  */
 import type { PlaudDateSplitCandidates, PlaudDateSplitSegment } from '../../services/plaudMergeService';
 import {
+  ActionRow,
+  Button,
   DateSplitBadge,
   DateSplitCard,
   DateSplitExcerpt,
@@ -18,6 +19,13 @@ import {
 
 interface PlaudDateSplitCandidatePanelProps {
   candidates?: PlaudDateSplitCandidates | null;
+  approvalStates?: Record<string, {
+    status: 'idle' | 'parsing' | 'logged' | 'error';
+    workoutId?: number | string;
+    error?: string;
+  }>;
+  canApproveSegments?: boolean;
+  onApproveSegment?: (segment: PlaudDateSplitSegment) => void;
 }
 
 function toneForSegment(segment: PlaudDateSplitSegment): 'ready' | 'review' | 'blocked' {
@@ -46,6 +54,9 @@ function lineLabel(segment: PlaudDateSplitSegment): string {
 
 export function PlaudDateSplitCandidatePanel({
   candidates,
+  approvalStates = {},
+  canApproveSegments = false,
+  onApproveSegment,
 }: PlaudDateSplitCandidatePanelProps): JSX.Element | null {
   const segments = candidates?.segments || [];
   if (segments.length === 0) return null;
@@ -58,6 +69,7 @@ export function PlaudDateSplitCandidatePanel({
       <DateSplitGrid>
         {segments.map((segment) => {
           const tone = toneForSegment(segment);
+          const approval = approvalStates[segment.segmentId];
           return (
             <DateSplitCard key={segment.segmentId} $tone={tone}>
               <DateSplitTopline>
@@ -74,6 +86,30 @@ export function PlaudDateSplitCandidatePanel({
                 <DateSplitBadge $tone={tone}>{statusLabel(segment)}</DateSplitBadge>
               </DateSplitTopline>
               <DateSplitExcerpt>{segment.text}</DateSplitExcerpt>
+              {onApproveSegment ? (
+                <ActionRow>
+                  <Button
+                    type="button"
+                    $primary={tone === 'ready'}
+                    disabled={
+                      !canApproveSegments
+                      || tone !== 'ready'
+                      || approval?.status === 'parsing'
+                      || approval?.status === 'logged'
+                    }
+                    onClick={() => onApproveSegment(segment)}
+                  >
+                    {approval?.status === 'parsing'
+                      ? 'Parsing...'
+                      : approval?.status === 'logged'
+                        ? `Logged${approval.workoutId ? ` #${approval.workoutId}` : ''}`
+                        : 'Approve segment'}
+                  </Button>
+                  {approval?.status === 'error' && approval.error ? (
+                    <span role="alert">{approval.error}</span>
+                  ) : null}
+                </ActionRow>
+              ) : null}
             </DateSplitCard>
           );
         })}

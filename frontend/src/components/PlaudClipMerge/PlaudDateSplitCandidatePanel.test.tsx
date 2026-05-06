@@ -4,8 +4,8 @@
  * Locks the user-visible status language for deterministic PLAUD date split
  * candidates before the later per-workout approval workflow builds on it.
  */
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { PlaudDateSplitCandidates } from '../../services/plaudMergeService';
 import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
 
@@ -84,5 +84,34 @@ describe('PlaudDateSplitCandidatePanel', () => {
     const { container } = render(<PlaudDateSplitCandidatePanel candidates={{ ...candidates, segments: [] }} />);
 
     expect(container.textContent).toBe('');
+  });
+
+  it('enables ready segment approval only when split dates are fully resolved', () => {
+    const onApprove = vi.fn();
+    render(
+      <PlaudDateSplitCandidatePanel
+        candidates={{ ...candidates, segments: [candidates.segments[0]] }}
+        canApproveSegments
+        onApproveSegment={onApprove}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Approve segment'));
+    expect(onApprove).toHaveBeenCalledWith(candidates.segments[0]);
+  });
+
+  it('shows logged state for completed segment approvals', () => {
+    render(
+      <PlaudDateSplitCandidatePanel
+        candidates={{ ...candidates, segments: [candidates.segments[0]] }}
+        approvalStates={{ 'segment-1': { status: 'logged', workoutId: 42 } }}
+        canApproveSegments
+        onApproveSegment={() => {}}
+      />,
+    );
+
+    const button = screen.getByText('Logged #42') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    expect(button.disabled).toBe(true);
   });
 });

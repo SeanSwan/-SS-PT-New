@@ -129,6 +129,13 @@ export interface MergeRequestDetail extends MergeRequestSummary {
   clipTimeline?: MergeClipTimelineItem[];
 }
 
+export interface PlaudParsedSegmentResponse {
+  mergeRequestId: string;
+  segmentId: string;
+  date: string;
+  parsedWorkout: ParsedWorkout;
+}
+
 export async function submitMerge(args: {
   clipIds: string[];
   clientId: number;
@@ -209,4 +216,38 @@ export async function approveMergeRequest(mergeRequestId: string): Promise<void>
   }
 }
 
-export default { submitMerge, listMergeRequests, getMergeRequest, discardMergeRequest, approveMergeRequest };
+export async function parseMergeRequestSegment(args: {
+  mergeRequestId: string;
+  segmentId: string;
+  timeZone?: string;
+}): Promise<PlaudParsedSegmentResponse> {
+  if (!/^[0-9a-fA-F-]{36}$/.test(args.mergeRequestId)) {
+    throw new PlaudApiError('INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format', 400);
+  }
+  if (!/^segment-\d+$/.test(args.segmentId)) {
+    throw new PlaudApiError('INVALID_SEGMENT_ID', 'Invalid segmentId format', 400);
+  }
+  try {
+    const { data } = await mergeRequestsApi.post<{ success: boolean } & PlaudParsedSegmentResponse>(
+      `/${encodeURIComponent(args.mergeRequestId)}/segments/${encodeURIComponent(args.segmentId)}/parse`,
+      { timeZone: args.timeZone },
+    );
+    return {
+      mergeRequestId: data.mergeRequestId,
+      segmentId: data.segmentId,
+      date: data.date,
+      parsedWorkout: data.parsedWorkout,
+    };
+  } catch (err) {
+    unwrapError(err, 'Failed to parse PLAUD workout segment');
+  }
+}
+
+export default {
+  submitMerge,
+  listMergeRequests,
+  getMergeRequest,
+  discardMergeRequest,
+  approveMergeRequest,
+  parseMergeRequestSegment,
+};

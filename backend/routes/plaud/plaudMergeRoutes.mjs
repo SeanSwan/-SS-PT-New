@@ -21,6 +21,9 @@ import {
   approveHandler as approveMergeRequestHandler,
   discardHandler as discardMergeRequestHandler,
 } from '../../controllers/plaud/plaudMergeRequestsController.mjs';
+import {
+  parseSegmentHandler as parseMergeSegmentHandler,
+} from '../../controllers/plaud/plaudMergeSegmentsController.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
@@ -42,7 +45,7 @@ export const mergeActionRouter = (() => {
   r.use(express.json({ limit: '64kb' }));
   r.post('/', mergeHandler);
   r.use(handlePlaudAuthzError);
-  r.use((err, req, res, next) => {
+  r.use((err, req, res, _next) => {
     logger.error('[plaudMergeRoutes:merge] unhandled: %s', err.message);
     return res.status(500).json({
       success: false,
@@ -60,10 +63,11 @@ export const mergeRequestsRouter = (() => {
   r.use(express.json({ limit: '64kb' }));
   r.get('/', listMergeRequestsHandler);
   r.get('/:mergeRequestId', detailMergeRequestHandler);
+  r.post('/:mergeRequestId/segments/:segmentId/parse', parseMergeSegmentHandler);
   r.post('/:mergeRequestId/approve', approveMergeRequestHandler);
   r.post('/:mergeRequestId/discard', discardMergeRequestHandler);
   r.use(handlePlaudAuthzError);
-  r.use((err, req, res, next) => {
+  r.use((err, req, res, _next) => {
     logger.error('[plaudMergeRoutes:merge-requests] unhandled: %s', err.message);
     return res.status(500).json({
       success: false,

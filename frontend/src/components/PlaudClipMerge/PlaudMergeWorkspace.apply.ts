@@ -6,7 +6,11 @@
  * canonical admin workout-log write endpoint.
  */
 import axios from 'axios';
-import { approveMergeRequest, type MergeResponse } from '../../services/plaudMergeService';
+import {
+  approveMergeRequest,
+  type MergeResponse,
+  type PlaudDateSplitSegment,
+} from '../../services/plaudMergeService';
 import {
   parsedWorkoutToLogPayload,
   type ParsedWorkout,
@@ -74,5 +78,36 @@ export async function applyMergeApproval(args: {
     success: !!response.data?.success,
     workoutId: response.data?.workout?.id,
     mergeMarkedApproved,
+  };
+}
+
+export async function applyMergeSegmentApproval(args: {
+  clientId: number;
+  mergeRequestId: string;
+  segment: PlaudDateSplitSegment;
+  parsedWorkout: MergeResponse['parsedWorkout'];
+}): Promise<{ success: boolean; workoutId?: number | string }> {
+  const coachParsedWorkout = normalizeForCoachMapper(args.parsedWorkout);
+  const body = {
+    ...parsedWorkoutToLogPayload(coachParsedWorkout, {
+      fallbackTitle: `PLAUD segment ${args.segment.segmentIndex} ${args.segment.date}`,
+      fallbackDate: args.segment.date,
+      targetDate: args.segment.date,
+      fallbackDurationMinutes: 60,
+    }),
+    source: 'plaud_merge_segment',
+    mergeRequestId: args.mergeRequestId,
+    plaudSegmentId: args.segment.segmentId,
+    plaudSegmentIndex: args.segment.segmentIndex,
+  };
+
+  const token = localStorage.getItem('token');
+  const response = await axios.post(`${API_BASE_URL}/api/admin/clients/${args.clientId}/workouts`, body, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  return {
+    success: !!response.data?.success,
+    workoutId: response.data?.workout?.id,
   };
 }
