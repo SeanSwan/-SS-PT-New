@@ -33,9 +33,11 @@
  * └──────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { CheckCircle, XCircle, AlertTriangle, Terminal } from 'lucide-react';
+import { CommandRouteAction } from './CommandRouteAction';
+import { isCommandRouteKey } from './commandRouteKeys';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Shared styled primitives
@@ -320,7 +322,9 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   message,
 }: ExecutionResultCardProps) {
   const clientLabel = client?.firstName ?? null;
-  const resultEntries = result ? Object.entries(result).slice(0, 6) : [];
+  const resultEntries = result
+    ? Object.entries(result).filter(([key]) => !isCommandRouteKey(key)).slice(0, 6)
+    : [];
 
   return (
     <CardShell>
@@ -334,6 +338,7 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
           <DataValue>{renderParamValue(k, v)}</DataValue>
         </DataRow>
       ))}
+      <CommandRouteAction command={command} result={result} />
       {NEXT_ACTION_MAP[command] && (
         <NudgeText>{NEXT_ACTION_MAP[command]}</NudgeText>
       )}
