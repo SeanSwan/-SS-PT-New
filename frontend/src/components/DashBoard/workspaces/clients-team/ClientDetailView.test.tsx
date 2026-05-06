@@ -135,10 +135,11 @@ describe('Phase 5.9 - Clients & Team PLAUD placement', () => {
     expect(TRAINING_TAB_SOURCE).toMatch(/label:\s*['"]PLAUD Uploads['"]/);
   });
 
-  it('PLAUD Uploads mounts the reusable merge workspace with selected client locked', () => {
+  it('PLAUD Uploads mounts the reusable merge workspace with editable selected-client context', () => {
     expect(TRAINING_TAB_SOURCE).toMatch(/PlaudMergeWorkspace/);
     expect(TRAINING_TAB_SOURCE).toMatch(/initialClientId=\{Number\(clientId\)\}/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/lockClientId=\{true\}/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/initialClientName=\{clientName\}/);
+    expect(TRAINING_TAB_SOURCE).not.toMatch(/lockClientId=\{true\}/);
     expect(TRAINING_TAB_SOURCE).toMatch(/embedded=\{true\}/);
   });
 });

@@ -799,6 +799,7 @@ export interface AdminClientServiceInterface {
   getClients(params?: any): Promise<any>;
   getClientDetails(clientId: string): Promise<any>;
   createClient(clientData: any): Promise<any>;
+  createExternalClient(clientData: CreateExternalClientRequest): Promise<any>;
   updateClient(clientId: string, updateData: any): Promise<any>;
   deleteClient(clientId: string): Promise<boolean>;
   assignTrainer(clientId: string, trainerId: string): Promise<any>;

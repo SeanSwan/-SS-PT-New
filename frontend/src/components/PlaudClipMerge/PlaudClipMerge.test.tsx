@@ -20,6 +20,8 @@ const UPLOADER_SRC = readFileSync(resolve(__dirname, 'PlaudClipUploader.tsx'), '
 const QUEUE_SRC = readFileSync(resolve(__dirname, 'PlaudClipQueue.tsx'), 'utf8');
 const PANEL_SRC = readFileSync(resolve(__dirname, 'PlaudClipMergePanel.tsx'), 'utf8');
 const PANEL_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClipMergePanel.styles.ts'), 'utf8');
+const RESOLVER_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.tsx'), 'utf8');
+const RESOLVER_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.styles.ts'), 'utf8');
 const BANNER_SRC = readFileSync(resolve(__dirname, 'PlaudMergeBoundaryBanner.tsx'), 'utf8');
 
 describe('Slice 3.11 — PlaudClipUploader source contract', () => {
@@ -124,14 +126,15 @@ describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
     expect(PANEL_SRC).toMatch(/submitMerge/);
   });
 
-  it('Merge button disabled until 2-5 selected AND clientId provided', () => {
+  it('Merge button disabled until 2-5 selected AND client resolved', () => {
     expect(PANEL_SRC).toMatch(/queue\.canMerge/);
-    expect(PANEL_SRC).toMatch(/parsedClientId/);
+    expect(PANEL_SRC).toMatch(/resolvedClient/);
   });
 
-  it('clientId input type=number with inputMode=numeric (mobile keyboard)', () => {
-    expect(PANEL_SRC).toMatch(/type="number"/);
-    expect(PANEL_SRC).toMatch(/inputMode="numeric"/);
+  it('uses PlaudClientResolver instead of raw numeric Client ID input', () => {
+    expect(PANEL_SRC).toMatch(/PlaudClientResolver/);
+    expect(PANEL_SRC).not.toMatch(/plaud-client-id-input/);
+    expect(PANEL_SRC).not.toMatch(/type="number"/);
   });
 
   it('aria-live="polite" status message announces selection count', () => {
@@ -142,7 +145,8 @@ describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
     expect(PANEL_SRC).toMatch(/clearSelection\(\)/);
     expect(PANEL_SRC).toMatch(/queue\.refresh\(\)/);
     expect(PANEL_SRC).toMatch(/onMergeReady\(/);
-    expect(PANEL_SRC).toMatch(/onMergeReady\(response,\s*\{\s*clientId:\s*parsedClientId\s*\}\)/);
+    expect(PANEL_SRC).toMatch(/clientId:\s*resolvedClient\.id/);
+    expect(PANEL_SRC).toMatch(/clientName:\s*resolvedClient\.fullName/);
   });
 
   it('Merge button emits cyan glow per Dual-Button-Glow rule', () => {
@@ -184,5 +188,32 @@ describe('Slice 3.11 — PlaudMergeBoundaryBanner', () => {
 
   it('source uses gold accent token for warning theme', () => {
     expect(BANNER_SRC).toMatch(/var\(--accent-gold,\s*#C6A84B\)/);
+  });
+});
+
+describe('PlaudClientResolver source contract', () => {
+  it('loads active clients through the admin client service', () => {
+    expect(RESOLVER_SRC).toMatch(/createAdminClientService/);
+    expect(RESOLVER_SRC).toMatch(/getClients\(\{/);
+    expect(RESOLVER_SRC).toMatch(/status:\s*['"]active['"]/);
+  });
+
+  it('supports preselected client context but still exposes Change client', () => {
+    expect(RESOLVER_SRC).toMatch(/initialClientId/);
+    expect(RESOLVER_SRC).toMatch(/initialClientName/);
+    expect(RESOLVER_SRC).toMatch(/Change client/);
+  });
+
+  it('includes New client handoff via existing CreateClientModal', () => {
+    expect(RESOLVER_SRC).toMatch(/CreateClientModal/);
+    expect(RESOLVER_SRC).toMatch(/New client/);
+    expect(RESOLVER_SRC).toMatch(/createExternalClient/);
+    expect(RESOLVER_SRC).toMatch(/createClient/);
+  });
+
+  it('keeps resolver controls 44px+ and tokenized', () => {
+    expect(RESOLVER_STYLES_SRC).toMatch(/min-height:\s*44px/);
+    expect(RESOLVER_STYLES_SRC).toMatch(/var\(--text-primary,\s*#E0ECF4\)/);
+    expect(RESOLVER_STYLES_SRC).not.toMatch(/from\s+['"]@mui/);
   });
 });

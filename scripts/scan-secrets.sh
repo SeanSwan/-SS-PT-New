@@ -167,11 +167,13 @@ scan_one() {
     if [[ "$mime" == "binary" ]]; then
       return 0
     fi
+    local staged_content
+    staged_content="$(git show ":$file" 2>/dev/null)"
     for entry in "${PATTERNS[@]}"; do
       local name="${entry%%|*}"
       local regex="${entry#*|}"
       set +e
-      scan_stream_for_pattern "$file" "$name" "$regex" < <(git show ":$file" 2>/dev/null)
+      scan_stream_for_pattern "$file" "$name" "$regex" <<< "$staged_content"
       local rc=$?
       set -e
       (( rc != 0 )) && hits=$((hits + 1))

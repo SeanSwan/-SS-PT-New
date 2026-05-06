@@ -172,7 +172,7 @@ const LayoutWrapper = styled.div`
   }
 `;
 
-const Sidebar = styled.nav`
+const Sidebar = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -414,7 +414,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
           <Suspense fallback={<SuspenseFallback />}>
             <PlaudMergeWorkspace
               initialClientId={Number(clientId)}
-              lockClientId={true}
+              initialClientName={clientName}
               embedded={true}
             />
           </Suspense>

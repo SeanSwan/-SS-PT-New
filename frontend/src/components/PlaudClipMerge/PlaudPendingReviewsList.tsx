@@ -17,7 +17,6 @@
  *   - Processing rows show "in flight" pill (server may have stalled,
  *     but the staleMerge cron will sweep at 20min)
  */
-import React from 'react';
 import styled from 'styled-components';
 import { RefreshCw, Trash2, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { usePlaudPendingReviews } from '../../hooks/usePlaudPendingReviews';
@@ -232,7 +231,7 @@ export function PlaudPendingReviewsList({ onOpen }: PlaudPendingReviewsListProps
   const { reviews, isLoading, error, refresh, discard } = usePlaudPendingReviews();
 
   return (
-    <Wrap data-testid="plaud-pending-reviews">
+    <Wrap data-testid="plaud-pending-reviews" tabIndex={-1} aria-label="Pending PLAUD reviews">
       <HeaderRow>
         <Title>Pending PLAUD reviews</Title>
         <RefreshButton type="button" onClick={refresh} aria-label="Refresh pending reviews">
@@ -251,7 +250,7 @@ export function PlaudPendingReviewsList({ onOpen }: PlaudPendingReviewsListProps
       {isLoading && reviews.length === 0 ? (
         <Empty>Loading pending reviews…</Empty>
       ) : reviews.length === 0 ? (
-        <Empty>No pending reviews. Merged workouts you haven't approved yet will appear here.</Empty>
+        <Empty>No pending reviews. Merged workouts you haven&apos;t approved yet will appear here.</Empty>
       ) : (
         reviews.map((r) => (
           <Row key={r.mergeRequestId} $statusColor={statusToColor(r.status)}>

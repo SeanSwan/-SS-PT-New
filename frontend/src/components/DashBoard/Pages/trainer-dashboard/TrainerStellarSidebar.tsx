@@ -453,6 +453,7 @@ const trainerNavConfig = [
     section: 'BUILD',
     items: [
       { label: 'Workout Forge', path: '/dashboard/trainer/workout-forge', icon: Zap },
+      { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
       { label: 'Workout Planner', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },

@@ -141,6 +141,7 @@ const VirtualOlympicsPage = React.lazy(() => import('../VirtualOlympics/VirtualO
 const BadgeCreatorPage = React.lazy(() => import('../BadgeCreator/BadgeCreatorPage'));
 const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'));
 const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
+const PlaudIntelligenceWorkspacePage = React.lazy(() => import('../../pages/dashboard/PlaudIntelligenceWorkspacePage'));
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Universal Theme — CSS Custom Property Bridge
@@ -548,6 +549,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
 
       // 💪 WORKOUT LOGGING (admin can log workouts too)
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
+      { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
 
       // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
@@ -586,6 +588,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },
       { path: '/videos', component: VideoLibraryPage, title: 'Video Library', description: 'Training video content library' },
       { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'Swan Coach workout generation' },
+      { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },

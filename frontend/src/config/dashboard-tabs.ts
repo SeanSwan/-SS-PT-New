@@ -552,6 +552,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
 
   // ── TRAINING — fitness programming and health ──
+  { id: 'plaud', section: 'training', label: 'PLAUD Intake', icon: 'MessageCircle', prefix: '/dashboard/admin/plaud', description: 'PLAUD audio intake, merge review, and Swan Coach handoff' },
   { id: 'workouts', section: 'training', label: 'Workouts', icon: 'Dumbbell', prefix: '/dashboard/admin/workout-planner', description: 'Workout planner, logger & Swan Coach protocols' },
   { id: 'bootcamp', section: 'training', label: 'Bootcamp Creator', icon: 'Flame', prefix: '/dashboard/admin/bootcamp', description: 'Swan Coach group fitness class builder' },
   { id: 'equipment', section: 'training', label: 'Equipment', icon: 'Wrench', prefix: '/dashboard/admin/equipment', description: 'Location equipment profiles & Swan Coach scanner' },

@@ -15,19 +15,17 @@
  * Sticky-footer "Merge selected (N) for {clientName}" on mobile
  * (CLAUDE.md Rule 22 premium UX, Rule 24 responsive).
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { usePlaudClipQueue } from '../../hooks/usePlaudClipQueue';
 import { submitMerge, type MergeResponse } from '../../services/plaudMergeService';
 import { PlaudApiError } from '../../services/plaudClipService';
+import { PlaudClientResolver, type PlaudResolvedClient } from './PlaudClientResolver';
 import { PlaudClipUploader } from './PlaudClipUploader';
 import { PlaudClipQueue } from './PlaudClipQueue';
 import {
   ActionBar,
-  ClientInput,
-  ClientPicker,
   ErrorBanner,
-  Label,
   MergeButton,
   PanelWrap,
   RejectedList,
@@ -40,6 +38,8 @@ import {
 export interface PlaudClipMergePanelProps {
   /** Optional pre-selected client; if omitted, trainer enters it manually. */
   initialClientId?: number;
+  /** Optional display name for the pre-selected client context. */
+  initialClientName?: string;
   /** Prevents changing the client when mounted from a selected-client surface. */
   lockClientId?: boolean;
   /** Called when merge succeeds. Parent renders the review surface. */
@@ -48,49 +48,40 @@ export interface PlaudClipMergePanelProps {
 
 export interface PlaudMergeReadyContext {
   clientId: number;
+  clientName?: string;
 }
 
 export function PlaudClipMergePanel({
   initialClientId,
+  initialClientName,
   lockClientId = false,
   onMergeReady,
 }: PlaudClipMergePanelProps): JSX.Element {
   const queue = usePlaudClipQueue();
-  const [clientIdInput, setClientIdInput] = useState<string>(
-    initialClientId ? String(initialClientId) : '',
-  );
+  const [resolvedClient, setResolvedClient] = useState<PlaudResolvedClient | null>(null);
   const [isMerging, setIsMerging] = useState<boolean>(false);
   const [mergeError, setMergeError] = useState<PlaudApiError | null>(null);
 
-  useEffect(() => {
-    if (initialClientId) setClientIdInput(String(initialClientId));
-  }, [initialClientId]);
-
-  const parsedClientId = (() => {
-    const n = Number.parseInt(clientIdInput.trim(), 10);
-    return Number.isInteger(n) && n > 0 ? n : null;
-  })();
-
   const onMergeClick = useCallback(async () => {
-    if (!queue.canMerge || !parsedClientId) return;
+    if (!queue.canMerge || !resolvedClient) return;
     setIsMerging(true);
     setMergeError(null);
     try {
       const clipIds = Array.from(queue.selectedIds);
       const response = await submitMerge({
         clipIds,
-        clientId: parsedClientId,
+        clientId: resolvedClient.id,
       });
       // Reset selection and refresh queue (consumed clips now status='merged')
       queue.clearSelection();
       await queue.refresh();
-      onMergeReady(response, { clientId: parsedClientId });
+      onMergeReady(response, { clientId: resolvedClient.id, clientName: resolvedClient.fullName });
     } catch (err) {
       setMergeError(err as PlaudApiError);
     } finally {
       setIsMerging(false);
     }
-  }, [queue, parsedClientId, onMergeReady]);
+  }, [queue, resolvedClient, onMergeReady]);
 
   const isDisabled = isMerging || queue.isUploading;
 
@@ -140,19 +131,13 @@ export function PlaudClipMergePanel({
         isLoading={queue.isLoading}
       />
 
-      <ClientPicker>
-        <Label htmlFor="plaud-client-id-input">Client ID</Label>
-        <ClientInput
-          id="plaud-client-id-input"
-          type="number"
-          inputMode="numeric"
-          placeholder={initialClientId ? '' : 'Enter the client ID for this merge'}
-          value={clientIdInput}
-          onChange={(e) => setClientIdInput(e.target.value)}
-          disabled={isDisabled || lockClientId}
-          min={1}
-        />
-      </ClientPicker>
+      <PlaudClientResolver
+        initialClientId={initialClientId}
+        initialClientName={initialClientName}
+        disabled={isDisabled}
+        locked={lockClientId}
+        onClientResolved={setResolvedClient}
+      />
 
       <ActionBar>
         <SelectedCount aria-live="polite">
@@ -165,7 +150,7 @@ export function PlaudClipMergePanel({
         <MergeButton
           type="button"
           onClick={onMergeClick}
-          disabled={isDisabled || !queue.canMerge || !parsedClientId}
+          disabled={isDisabled || !queue.canMerge || !resolvedClient}
           aria-label={`Merge ${queue.selectedCount} selected clips`}
           $cyan
         >

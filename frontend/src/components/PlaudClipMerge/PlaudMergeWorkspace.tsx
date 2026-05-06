@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
@@ -18,6 +18,7 @@ import {
   ReviewHeading,
   ReviewWrap,
   Section,
+  SetList,
   Sub,
   SuccessBanner,
   Title,
@@ -34,6 +35,7 @@ interface ParsedExercise {
 
 export interface PlaudMergeWorkspaceProps {
   initialClientId?: number;
+  initialClientName?: string;
   lockClientId?: boolean;
   embedded?: boolean;
   backLabel?: string;
@@ -78,6 +80,7 @@ async function applyMergeApproval(args: {
 
 export function PlaudMergeWorkspace({
   initialClientId,
+  initialClientName,
   lockClientId = false,
   embedded = false,
   backLabel = 'Dashboard',
@@ -86,6 +89,7 @@ export function PlaudMergeWorkspace({
   const [reviewState, setReviewState] = useState<{
     mergeRequestId: string;
     clientId: number;
+    clientName?: string | null;
     transcript: string;
     parsedWorkout: MergeResponse['parsedWorkout'];
     boundaryWarning: MergeResponse['boundaryWarning'];
@@ -99,12 +103,13 @@ export function PlaudMergeWorkspace({
     setReviewState({
       mergeRequestId: response.mergeRequestId,
       clientId: context.clientId || initialClientId || 0,
+      clientName: context.clientName || initialClientName || null,
       transcript: response.transcript,
       parsedWorkout: response.parsedWorkout,
       boundaryWarning: response.boundaryWarning,
       source: 'fresh',
     });
-  }, [initialClientId]);
+  }, [initialClientId, initialClientName]);
 
   const handleOpenReview = useCallback(async (mergeRequestId: string) => {
     setApplyError(null);
@@ -120,6 +125,7 @@ export function PlaudMergeWorkspace({
     setReviewState({
       mergeRequestId: detail.mergeRequestId,
       clientId: detail.clientId,
+      clientName: detail.clientName,
       transcript: detail.transcript,
       parsedWorkout: detail.parsedWorkout,
       boundaryWarning: detail.boundaryWarning,
@@ -130,7 +136,7 @@ export function PlaudMergeWorkspace({
   const handleApprove = useCallback(async () => {
     if (!reviewState) return;
     if (!reviewState.clientId) {
-      setApplyError('Client ID missing. Open this merge from Pending Reviews or use the client-scoped PLAUD Uploads tab.');
+      setApplyError('Client must be resolved before Swan Coach can apply this workout.');
       return;
     }
     setIsApplying(true);
@@ -193,7 +199,10 @@ export function PlaudMergeWorkspace({
         <Header>
           <div>
             <Title>Review merged workout</Title>
-            <Sub>Confirm the parsed exercises before logging to the client dashboard.</Sub>
+            <Sub>
+              Confirm the parsed exercises before logging
+              {reviewState.clientName ? ` to ${reviewState.clientName}` : ' to the selected client'}.
+            </Sub>
           </div>
           <BackLink type="button" onClick={handleResetReview}>
             <ArrowLeft size={16} aria-hidden="true" /> Back to merge queue
@@ -221,7 +230,7 @@ export function PlaudMergeWorkspace({
                 <ExerciseRow key={`${ex.exerciseName || ex.name || 'ex'}-${idx}`}>
                   <strong>{ex.exerciseName || ex.name || `Exercise ${idx + 1}`}</strong>
                   {Array.isArray(ex.sets) && ex.sets.length > 0 ? (
-                    <ul style={{ margin: '0.4rem 0 0 1.1rem' }}>
+                    <SetList>
                       {ex.sets.map((s, si) => (
                         <li key={si}>
                           {s.reps ?? '?'} reps x {s.weight ?? 0} lb
@@ -229,7 +238,7 @@ export function PlaudMergeWorkspace({
                           {s.tempo ? ` - tempo ${s.tempo}` : ''}
                         </li>
                       ))}
-                    </ul>
+                    </SetList>
                   ) : null}
                 </ExerciseRow>
               ))}
@@ -258,7 +267,7 @@ export function PlaudMergeWorkspace({
         <div>
           <Title>PLAUD merge</Title>
           <Sub>
-            Upload PLAUD wristband recordings, select the clips for one client's session, and merge
+            Upload PLAUD wristband recordings, select the clips for one client session, and merge
             them into a single transcribed workout.
           </Sub>
         </div>
@@ -272,6 +281,7 @@ export function PlaudMergeWorkspace({
         <Section>
           <PlaudClipMergePanel
             initialClientId={initialClientId}
+            initialClientName={initialClientName}
             lockClientId={lockClientId}
             onMergeReady={handleMergeReady}
           />

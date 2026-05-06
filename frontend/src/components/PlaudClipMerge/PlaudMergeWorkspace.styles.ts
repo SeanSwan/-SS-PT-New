@@ -131,6 +131,10 @@ export const ExerciseRow = styled.li`
   border-radius: 10px;
 `;
 
+export const SetList = styled.ul`
+  margin: 0.4rem 0 0 1.1rem;
+`;
+
 export const ActionRow = styled.div`
   display: flex;
   flex-wrap: wrap;
