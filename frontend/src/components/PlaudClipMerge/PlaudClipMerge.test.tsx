@@ -23,6 +23,9 @@ const PANEL_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClipMergePanel.st
 const RESOLVER_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.tsx'), 'utf8');
 const RESOLVER_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudClientResolver.styles.ts'), 'utf8');
 const BANNER_SRC = readFileSync(resolve(__dirname, 'PlaudMergeBoundaryBanner.tsx'), 'utf8');
+const WORKSPACE_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.tsx'), 'utf8');
+const APPROVAL_SRC = readFileSync(resolve(__dirname, 'PlaudMergeWorkspace.apply.ts'), 'utf8');
+const MERGE_SERVICE_SRC = readFileSync(resolve(__dirname, '../../services/plaudMergeService.ts'), 'utf8');
 
 describe('Slice 3.11 — PlaudClipUploader source contract', () => {
   it('uses styled-components (NOT MUI) per CLAUDE.md Rule 1', () => {
@@ -215,5 +218,21 @@ describe('PlaudClientResolver source contract', () => {
     expect(RESOLVER_STYLES_SRC).toMatch(/min-height:\s*44px/);
     expect(RESOLVER_STYLES_SRC).toMatch(/var\(--text-primary,\s*#E0ECF4\)/);
     expect(RESOLVER_STYLES_SRC).not.toMatch(/from\s+['"]@mui/);
+  });
+});
+
+describe('PlaudMergeWorkspace Coach handoff contract', () => {
+  it('delegates approval mapping to the shared Coach transcript mapper', () => {
+    expect(WORKSPACE_SRC).toMatch(/applyMergeApproval/);
+    expect(WORKSPACE_SRC).not.toMatch(/axios\.post/);
+    expect(APPROVAL_SRC).toMatch(/parsedWorkoutToLogPayload/);
+    expect(APPROVAL_SRC).toMatch(/source:\s*'plaud_merge'/);
+    expect(APPROVAL_SRC).toMatch(/mergeRequestId/);
+  });
+
+  it('marks approved merge requests after the workout log write succeeds', () => {
+    expect(MERGE_SERVICE_SRC).toMatch(/approveMergeRequest/);
+    expect(MERGE_SERVICE_SRC).toMatch(/\/approve/);
+    expect(APPROVAL_SRC).toMatch(/approveMergeRequest/);
   });
 });

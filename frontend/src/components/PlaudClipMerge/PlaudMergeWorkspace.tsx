@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
-import axios from 'axios';
 import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
 import { PlaudPendingReviewsList } from './PlaudPendingReviewsList';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
 import { getMergeRequest, type MergeResponse, type MergeRequestDetail } from '../../services/plaudMergeService';
 import { PlaudApiError } from '../../services/plaudClipService';
+import { applyMergeApproval } from './PlaudMergeWorkspace.apply';
 import {
   ActionRow,
   BackLink,
@@ -26,13 +26,6 @@ import {
   TwoColumn,
 } from './PlaudMergeWorkspace.styles';
 
-interface ParsedExercise {
-  name?: string;
-  exerciseName?: string;
-  sets?: Array<{ reps?: number | string; weight?: number; rpe?: number; tempo?: string; rest?: number }>;
-  notes?: string;
-}
-
 export interface PlaudMergeWorkspaceProps {
   initialClientId?: number;
   initialClientName?: string;
@@ -40,42 +33,6 @@ export interface PlaudMergeWorkspaceProps {
   embedded?: boolean;
   backLabel?: string;
   onBack?: () => void;
-}
-
-const API_BASE_URL = (import.meta as ImportMeta & { env: { VITE_API_URL?: string } }).env?.VITE_API_URL || 'http://localhost:10000';
-
-async function applyMergeApproval(args: {
-  clientId: number;
-  mergeRequestId: string;
-  parsedWorkout: { date?: string; exercises?: ParsedExercise[]; intensity?: number };
-}): Promise<{ success: boolean; workoutId?: number | string }> {
-  const exercises = (args.parsedWorkout.exercises || []).map((ex) => ({
-    name: ex.exerciseName || ex.name || 'Exercise',
-    sets: (ex.sets || []).map((s, i) => ({
-      setNumber: i + 1,
-      reps: typeof s.reps === 'string' ? Number.parseInt(s.reps, 10) || 0 : s.reps || 0,
-      weight: s.weight || 0,
-      tempo: s.tempo,
-      rest: s.rest,
-      rpe: s.rpe,
-    })),
-  }));
-  const today = new Date().toISOString().slice(0, 10);
-  const body: Record<string, unknown> = {
-    title: `PLAUD merge ${args.parsedWorkout.date || today}`,
-    date: args.parsedWorkout.date || today,
-    duration: 60,
-    exercises,
-    source: 'plaud_merge',
-    mergeRequestId: args.mergeRequestId,
-  };
-  if (typeof args.parsedWorkout.intensity === 'number') body.intensity = args.parsedWorkout.intensity;
-
-  const token = localStorage.getItem('token');
-  const response = await axios.post(`${API_BASE_URL}/api/admin/clients/${args.clientId}/workouts`, body, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  return { success: !!response.data?.success, workoutId: response.data?.workout?.id };
 }
 
 export function PlaudMergeWorkspace({
@@ -95,7 +52,10 @@ export function PlaudMergeWorkspace({
     boundaryWarning: MergeResponse['boundaryWarning'];
     source: 'fresh' | 'resume';
   } | null>(null);
-  const [confirmState, setConfirmState] = useState<{ workoutId?: number | string } | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    workoutId?: number | string;
+    mergeMarkedApproved?: boolean;
+  } | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
 
@@ -147,7 +107,10 @@ export function PlaudMergeWorkspace({
         mergeRequestId: reviewState.mergeRequestId,
         parsedWorkout: reviewState.parsedWorkout,
       });
-      setConfirmState({ workoutId: result.workoutId });
+      setConfirmState({
+        workoutId: result.workoutId,
+        mergeMarkedApproved: result.mergeMarkedApproved,
+      });
     } catch (err) {
       const e = err as { response?: { data?: { message?: string; errorCode?: string } } };
       const code = e.response?.data?.errorCode || 'INTERNAL_ERROR';
@@ -183,6 +146,9 @@ export function PlaudMergeWorkspace({
           <div>
             <strong>Workout logged successfully.</strong>
             {confirmState.workoutId ? <> Workout ID: <code>{confirmState.workoutId}</code>.</> : null}
+            {confirmState.mergeMarkedApproved === false ? (
+              <p>Merge logged, but the review item could not be marked approved. Refresh the queue before reprocessing.</p>
+            ) : null}
             <ActionRow>
               <Button type="button" $primary onClick={handleResetReview}>Process another merge</Button>
             </ActionRow>

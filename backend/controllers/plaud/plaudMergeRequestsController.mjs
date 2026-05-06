@@ -4,6 +4,7 @@
  * Handlers for:
  *   GET    /api/plaud/merge-requests              - list (METADATA ONLY per Codex R2 MEDIUM #5)
  *   GET    /api/plaud/merge-requests/:id          - detail with decrypted payload
+ *   POST   /api/plaud/merge-requests/:id/approve  - approve + purge cipher
  *   POST   /api/plaud/merge-requests/:id/discard  - reject + purge cipher
  *
  * Phase 3 Slice 3.7 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md §5.5/§5.5b/§5.6.
@@ -14,6 +15,7 @@
  * for audit.
  */
 import sequelize from '../../database.mjs';
+import { QueryTypes } from 'sequelize';
 import logger from '../../utils/logger.mjs';
 import { decryptPayload, CipherDecryptFailedError, CipherKeyVersionUnavailableError } from '../../services/plaudCipherService.mjs';
 import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
@@ -179,6 +181,67 @@ export async function detailHandler(req, res) {
       expiresAt: row.expires_at,
     },
   });
+}
+
+/**
+ * POST /api/plaud/merge-requests/:mergeRequestId/approve
+ * Trainer confirms this merge was logged. Sets status='approved' and purges cipher.
+ */
+export async function approveHandler(req, res) {
+  const userId = Number(req.user?.id);
+  const role = req.user?.role;
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+  }
+  const mergeRequestId = String(req.params.mergeRequestId || '');
+  if (!PLAUD_UUID_REGEX.test(mergeRequestId)) {
+    return jsonError(res, 400, 'INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format');
+  }
+
+  const rows = await sequelize.query(
+    `SELECT merge_request_id, user_id, status
+     FROM plaud_merge_requests
+     WHERE merge_request_id = :mergeRequestId
+     LIMIT 1`,
+    {
+      replacements: { mergeRequestId },
+      type: QueryTypes.SELECT,
+    },
+  );
+  const row = (rows || [])[0];
+  if (!row) {
+    return jsonError(res, 404, 'MERGE_NOT_FOUND', 'Merge request not found');
+  }
+  if (Number(row.user_id) !== userId && role !== 'admin') {
+    return jsonError(res, 403, 'NOT_OWNED', 'Merge does not belong to caller');
+  }
+  if (row.status === 'approved') {
+    return res.status(200).json({ success: true, alreadyApproved: true });
+  }
+  if (row.status !== 'completed') {
+    return jsonError(res, 409, 'MERGE_NOT_APPROVABLE', 'Only completed merges can be approved');
+  }
+
+  const updated = await sequelize.query(
+    `UPDATE plaud_merge_requests
+     SET status           = 'approved',
+         payload_cipher   = NULL,
+         payload_iv       = NULL,
+         payload_tag      = NULL,
+         cipher_purged_at = NOW()
+     WHERE merge_request_id = :mergeRequestId
+       AND status = 'completed'
+     RETURNING merge_request_id`,
+    {
+      replacements: { mergeRequestId },
+      type: QueryTypes.SELECT,
+    },
+  );
+
+  if (!updated || updated.length === 0) {
+    return jsonError(res, 409, 'MERGE_NOT_APPROVABLE', 'Merge moved out of completed state');
+  }
+  return res.status(200).json({ success: true, alreadyApproved: false });
 }
 
 /**

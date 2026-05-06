@@ -9,6 +9,7 @@
  *   submitMerge({ clipIds, clientId, date? }) -> { mergeRequestId, transcript, parsedWorkout, boundaryWarning }
  *   listMergeRequests({ status?, limit? }) -> { mergeRequests }
  *   getMergeRequest(mergeRequestId) -> { mergeRequest }
+ *   approveMergeRequest(mergeRequestId) -> { success }
  *   discardMergeRequest(mergeRequestId) -> { success }
  */
 import axios, { type AxiosInstance } from 'axios';
@@ -155,4 +156,15 @@ export async function discardMergeRequest(mergeRequestId: string): Promise<void>
   }
 }
 
-export default { submitMerge, listMergeRequests, getMergeRequest, discardMergeRequest };
+export async function approveMergeRequest(mergeRequestId: string): Promise<void> {
+  if (!/^[0-9a-fA-F-]{36}$/.test(mergeRequestId)) {
+    throw new PlaudApiError('INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format', 400);
+  }
+  try {
+    await mergeRequestsApi.post(`/${encodeURIComponent(mergeRequestId)}/approve`);
+  } catch (err) {
+    unwrapError(err, 'Failed to approve merge request');
+  }
+}
+
+export default { submitMerge, listMergeRequests, getMergeRequest, discardMergeRequest, approveMergeRequest };

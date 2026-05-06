@@ -5,6 +5,7 @@
  *   POST /api/plaud/merge                          - merge selected clips
  *   GET  /api/plaud/merge-requests                 - metadata-only list
  *   GET  /api/plaud/merge-requests/:id             - detail with cipher decrypt
+ *   POST /api/plaud/merge-requests/:id/approve     - approve + purge cipher
  *   POST /api/plaud/merge-requests/:id/discard     - reject + purge cipher
  *
  * Phase 3 Slice 3.7 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md.
@@ -17,6 +18,7 @@ import { mergeHandler } from '../../controllers/plaud/plaudMergeController.mjs';
 import {
   listHandler as listMergeRequestsHandler,
   detailHandler as detailMergeRequestHandler,
+  approveHandler as approveMergeRequestHandler,
   discardHandler as discardMergeRequestHandler,
 } from '../../controllers/plaud/plaudMergeRequestsController.mjs';
 import logger from '../../utils/logger.mjs';
@@ -58,6 +60,7 @@ export const mergeRequestsRouter = (() => {
   r.use(express.json({ limit: '64kb' }));
   r.get('/', listMergeRequestsHandler);
   r.get('/:mergeRequestId', detailMergeRequestHandler);
+  r.post('/:mergeRequestId/approve', approveMergeRequestHandler);
   r.post('/:mergeRequestId/discard', discardMergeRequestHandler);
   r.use(handlePlaudAuthzError);
   r.use((err, req, res, next) => {

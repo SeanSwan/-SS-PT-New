@@ -56,10 +56,11 @@ describe('plaudClipService — exports', () => {
 });
 
 describe('plaudMergeService — exports', () => {
-  it('exports submitMerge, listMergeRequests, getMergeRequest, discardMergeRequest', () => {
+  it('exports submitMerge, listMergeRequests, getMergeRequest, approveMergeRequest, discardMergeRequest', () => {
     expect(typeof plaudMergeService.submitMerge).toBe('function');
     expect(typeof plaudMergeService.listMergeRequests).toBe('function');
     expect(typeof plaudMergeService.getMergeRequest).toBe('function');
+    expect(typeof plaudMergeService.approveMergeRequest).toBe('function');
     expect(typeof plaudMergeService.discardMergeRequest).toBe('function');
   });
 
@@ -83,6 +84,10 @@ describe('plaudMergeService — exports', () => {
 
   it('discardMergeRequest rejects malformed mergeRequestId client-side', async () => {
     await expect(plaudMergeService.discardMergeRequest('bad-id')).rejects.toMatchObject({ code: 'INVALID_MERGE_REQUEST_ID' });
+  });
+
+  it('approveMergeRequest rejects malformed mergeRequestId client-side', async () => {
+    await expect(plaudMergeService.approveMergeRequest('bad-id')).rejects.toMatchObject({ code: 'INVALID_MERGE_REQUEST_ID' });
   });
 
   it('hits separate base paths for /merge vs /merge-requests', () => {

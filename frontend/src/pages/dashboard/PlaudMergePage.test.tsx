@@ -5,7 +5,6 @@
  * Full interaction testing runs in slice 3.14 Playwright with a real
  * browser at multiple viewports.
  */
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -57,6 +56,7 @@ const __dirname = dirname(__filename);
 
 const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudMergePage.tsx'), 'utf8');
 const WORKSPACE_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.tsx'), 'utf8');
+const APPROVAL_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.apply.ts'), 'utf8');
 const WORKSPACE_STYLES_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.styles.ts'), 'utf8');
 const ROUTES_SRC = readFileSync(resolve(__dirname, '../../routes/main-routes.tsx'), 'utf8');
 
@@ -79,12 +79,12 @@ describe('Slice 3.13 — PlaudMergePage source contract', () => {
   });
 
   it('apply path passes source: plaud_merge + mergeRequestId', () => {
-    expect(WORKSPACE_SRC).toMatch(/source:\s*['"]plaud_merge['"]/);
-    expect(WORKSPACE_SRC).toMatch(/mergeRequestId:\s*args\.mergeRequestId/);
+    expect(APPROVAL_SRC).toMatch(/source:\s*['"]plaud_merge['"]/);
+    expect(APPROVAL_SRC).toMatch(/mergeRequestId:\s*args\.mergeRequestId/);
   });
 
   it('apply path POSTs to /api/admin/clients/:clientId/workouts', () => {
-    expect(WORKSPACE_SRC).toMatch(/\/api\/admin\/clients\/\$\{args\.clientId\}\/workouts/);
+    expect(APPROVAL_SRC).toMatch(/\/api\/admin\/clients\/\$\{args\.clientId\}\/workouts/);
   });
 
   it('boundary banner shown when warning=true with re-select handler', () => {
@@ -107,7 +107,7 @@ describe('Slice 3.13 — PlaudMergePage source contract', () => {
   });
 
   it('bearer token sourced from localStorage for apply request', () => {
-    expect(WORKSPACE_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(APPROVAL_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
   });
 
   it('parsed exercises empty -> shows red error banner', () => {

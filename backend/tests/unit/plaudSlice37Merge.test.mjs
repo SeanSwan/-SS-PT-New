@@ -232,6 +232,13 @@ describe('Slice 3.7 — plaudMergeRequestsController source contract', () => {
     expect(REQUESTS_CTRL_SRC).toMatch(/cipher_purged_at\s*=\s*NOW\(\)/);
   });
 
+  it('approve updates status=approved + purges cipher fields to NULL', () => {
+    expect(REQUESTS_CTRL_SRC).toMatch(/approveHandler/);
+    expect(REQUESTS_CTRL_SRC).toMatch(/status\s*=\s*'approved'/);
+    expect(REQUESTS_CTRL_SRC).toMatch(/payload_cipher\s*=\s*NULL/);
+    expect(REQUESTS_CTRL_SRC).toMatch(/cipher_purged_at\s*=\s*NOW\(\)/);
+  });
+
   it('discard requires user_id match OR admin role', () => {
     expect(REQUESTS_CTRL_SRC).toMatch(/role\s*=\s*'admin'\s+OR\s+user_id\s*=\s*:userId/);
   });
@@ -252,6 +259,7 @@ describe('Slice 3.7 — plaudMergeRoutes mounting', () => {
     expect(ROUTES_SRC).toMatch(/export\s+const\s+mergeRequestsRouter/);
     expect(ROUTES_SRC).toMatch(/r\.get\(\s*['"]\/['"]\s*,\s*listMergeRequestsHandler/);
     expect(ROUTES_SRC).toMatch(/r\.get\(\s*['"]\/:mergeRequestId['"]\s*,\s*detailMergeRequestHandler/);
+    expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/:mergeRequestId\/approve['"]\s*,\s*approveMergeRequestHandler/);
     expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/:mergeRequestId\/discard['"]\s*,\s*discardMergeRequestHandler/);
   });
 
