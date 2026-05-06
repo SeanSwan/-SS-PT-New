@@ -160,8 +160,8 @@ describe('Slice 3.7 — plaudMergeController source contract', () => {
     expect(MERGE_CTRL_SRC).toMatch(/deleted_at\s+IS\s+NULL/);
   });
 
-  it('clip update row count must equal clipIds.length else rollback', () => {
-    expect(MERGE_CTRL_SRC).toMatch(/updatedCount\s*!==\s*clipIds\.length/);
+  it('clip update row count must equal effective merge clip count else rollback', () => {
+    expect(MERGE_CTRL_SRC).toMatch(/updatedCount\s*!==\s*clipIdsForMerge\.length/);
     expect(MERGE_CTRL_SRC).toMatch(/transaction\.rollback/);
   });
 
@@ -195,6 +195,17 @@ describe('Slice 3.7 — plaudMergeController source contract', () => {
 
   it('ARRAY_POSITION preserves trainer-selected clip order (Codex Round 1 HIGH #1)', () => {
     expect(MERGE_CTRL_SRC).toMatch(/array_position/);
+  });
+
+  it('supports uploaded_at_asc order mode for time-aware clip puzzles', () => {
+    expect(MERGE_CTRL_SRC).toMatch(/uploaded_at_asc/);
+    expect(MERGE_CTRL_SRC).toMatch(/uploaded_at ASC/);
+  });
+
+  it('persists encrypted clip timeline metadata with the merge payload', () => {
+    expect(MERGE_CTRL_SRC).toMatch(/buildClipTimeline/);
+    expect(MERGE_CTRL_SRC).toMatch(/encryptPayload\(\{\s*transcript,\s*parsedWorkout,\s*clipTimeline/);
+    expect(MERGE_CTRL_SRC).toMatch(/clipTimeline/);
   });
 
   it('finally block always releases lock + cleans tmp', () => {
@@ -246,6 +257,10 @@ describe('Slice 3.7 — plaudMergeRequestsController source contract', () => {
   it('detail handles CipherKeyVersionUnavailable + CipherDecryptFailed distinctly', () => {
     expect(REQUESTS_CTRL_SRC).toMatch(/CIPHER_KEY_VERSION_UNAVAILABLE/);
     expect(REQUESTS_CTRL_SRC).toMatch(/CIPHER_DECRYPT_FAILED/);
+  });
+
+  it('detail returns decrypted clip timeline metadata for review', () => {
+    expect(REQUESTS_CTRL_SRC).toMatch(/clipTimeline:\s*payload\.clipTimeline\s*\|\|\s*\[\]/);
   });
 });
 

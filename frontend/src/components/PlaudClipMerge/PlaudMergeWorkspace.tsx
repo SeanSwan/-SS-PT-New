@@ -49,6 +49,7 @@ export function PlaudMergeWorkspace({
     clientName?: string | null;
     transcript: string;
     parsedWorkout: MergeResponse['parsedWorkout'];
+    clipTimeline: NonNullable<MergeResponse['clipTimeline']>;
     boundaryWarning: MergeResponse['boundaryWarning'];
     source: 'fresh' | 'resume';
   } | null>(null);
@@ -66,6 +67,7 @@ export function PlaudMergeWorkspace({
       clientName: context.clientName || initialClientName || null,
       transcript: response.transcript,
       parsedWorkout: response.parsedWorkout,
+      clipTimeline: response.clipTimeline || [],
       boundaryWarning: response.boundaryWarning,
       source: 'fresh',
     });
@@ -88,6 +90,7 @@ export function PlaudMergeWorkspace({
       clientName: detail.clientName,
       transcript: detail.transcript,
       parsedWorkout: detail.parsedWorkout,
+      clipTimeline: detail.clipTimeline || [],
       boundaryWarning: detail.boundaryWarning,
       source: 'resume',
     });
@@ -182,6 +185,25 @@ export function PlaudMergeWorkspace({
           />
         ) : null}
         <ReviewWrap>
+          {reviewState.clipTimeline.length > 0 ? (
+            <>
+              <ReviewHeading>Source clip timeline ({reviewState.clipTimeline.length})</ReviewHeading>
+              <ExerciseList>
+                {reviewState.clipTimeline.map((clip) => (
+                  <ExerciseRow key={clip.clipId}>
+                    <strong>Step {clip.mergeStep}: {clip.filename}</strong>
+                    <SetList>
+                      <li>
+                        Uploaded {clip.uploadedAt ? new Date(clip.uploadedAt).toLocaleString() : 'time unavailable'}
+                        {typeof clip.durationSec === 'number' ? ` - ${Math.round(clip.durationSec)} sec` : ''}
+                        {clip.source ? ` - ${clip.source.replace('_', ' ')}` : ''}
+                      </li>
+                    </SetList>
+                  </ExerciseRow>
+                ))}
+              </ExerciseList>
+            </>
+          ) : null}
           <ReviewHeading>Merged transcript</ReviewHeading>
           <TranscriptBlock>{reviewState.transcript}</TranscriptBlock>
           <ReviewHeading>Parsed exercises ({exercises.length})</ReviewHeading>

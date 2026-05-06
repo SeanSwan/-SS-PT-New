@@ -6,7 +6,7 @@
  * Phase 3 Slice 3.10 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md §5.4-5.6.
  *
  * Public API:
- *   submitMerge({ clipIds, clientId, date? }) -> { mergeRequestId, transcript, parsedWorkout, boundaryWarning }
+ *   submitMerge({ clipIds, clientId, date?, orderMode? }) -> { mergeRequestId, transcript, parsedWorkout, boundaryWarning }
  *   listMergeRequests({ status?, limit? }) -> { mergeRequests }
  *   getMergeRequest(mergeRequestId) -> { mergeRequest }
  *   approveMergeRequest(mergeRequestId) -> { success }
@@ -59,10 +59,21 @@ export interface BoundaryWarning {
   detectedNames: Array<{ id: number; firstName: string; lastName: string; mentions: number }>;
 }
 
+export interface MergeClipTimelineItem {
+  mergeStep: number;
+  clipId: string;
+  filename: string;
+  uploadedAt: string;
+  durationSec: number | null;
+  source: string;
+  orderMode: string;
+}
+
 export interface MergeResponse {
   mergeRequestId: string;
   transcript: string;
   parsedWorkout: ParsedWorkout;
+  clipTimeline?: MergeClipTimelineItem[];
   boundaryWarning: BoundaryWarning | null;
 }
 
@@ -87,12 +98,14 @@ export interface MergeRequestDetail extends MergeRequestSummary {
   transcriptHash: string;
   transcript: string;
   parsedWorkout: ParsedWorkout;
+  clipTimeline?: MergeClipTimelineItem[];
 }
 
 export async function submitMerge(args: {
   clipIds: string[];
   clientId: number;
   date?: string;
+  orderMode?: 'provided' | 'uploaded_at_asc';
 }): Promise<MergeResponse> {
   if (!Array.isArray(args.clipIds) || args.clipIds.length < 2) {
     throw new PlaudApiError('TOO_FEW_CLIPS', 'merge requires at least 2 clipIds', 400);
@@ -109,6 +122,7 @@ export async function submitMerge(args: {
       mergeRequestId: data.mergeRequestId,
       transcript: data.transcript,
       parsedWorkout: data.parsedWorkout,
+      clipTimeline: data.clipTimeline || [],
       boundaryWarning: data.boundaryWarning,
     };
   } catch (err) {

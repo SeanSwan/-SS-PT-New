@@ -29,6 +29,8 @@ vi.mock('../../hooks/usePlaudClipQueue', () => ({
     selectedIds: new Set(),
     selectedCount: 0,
     canMerge: false,
+    timeline: { selectedClipsInTimelineOrder: [], selectedClipIdsInTimelineOrder: [], spanMinutes: 0, maxGapMinutes: 0, hasLargeGap: false },
+    selectedClipIdsInTimelineOrder: [],
     refresh: vi.fn(),
     upload: vi.fn(),
     removeClip: vi.fn(),

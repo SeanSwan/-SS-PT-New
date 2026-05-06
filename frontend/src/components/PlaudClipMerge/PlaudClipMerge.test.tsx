@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
 import { PlaudClipQueue } from './PlaudClipQueue';
+import { buildClipTimeline } from './plaudClipTimeline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -121,6 +122,16 @@ describe('Slice 3.11 — PlaudClipQueue render', () => {
     render(<PlaudClipQueue clips={clips} selectedIds={new Set(['11111111-1111-1111-1111-111111111111'])} onToggleSelect={() => {}} onDelete={() => {}} />);
     expect(screen.getByRole('checkbox', { checked: true })).toBeTruthy();
   });
+
+  it('shows the selected chronological merge order', () => {
+    const clips = [
+      { clipId: '22222222-2222-2222-2222-222222222222', filename: 'late.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04T11:30:00.000Z', expiresAt: '2026-05-05' },
+      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'early.mp3', mimetype: 'audio/mpeg', size: 2048, durationSec: 60, status: 'pending_merge', uploadedAt: '2026-05-04T11:00:00.000Z', expiresAt: '2026-05-05' },
+    ];
+    render(<PlaudClipQueue clips={clips} selectedIds={new Set(clips.map((c) => c.clipId))} onToggleSelect={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText('Merge step 1')).toBeTruthy();
+    expect(screen.getByText('Merge step 2')).toBeTruthy();
+  });
 });
 
 describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
@@ -154,6 +165,37 @@ describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
 
   it('Merge button emits cyan glow per Dual-Button-Glow rule', () => {
     expect(PANEL_STYLES_SRC).toMatch(/box-shadow:[\s\S]{0,80}rgba\(96,192,240/);
+  });
+
+  it('submits selected clips in chronological timeline order', () => {
+    expect(PANEL_SRC).toMatch(/selectedClipIdsInTimelineOrder/);
+    expect(PANEL_SRC).toMatch(/orderMode:\s*'uploaded_at_asc'/);
+    expect(PANEL_SRC).not.toMatch(/Array\.from\(queue\.selectedIds\)/);
+  });
+});
+
+describe('PLAUD clip timeline utility', () => {
+  it('sorts selected clips by uploadedAt and flags large gaps', () => {
+    const clips = [
+      { clipId: 'b', filename: 'later.mp3', mimetype: 'audio/mpeg', size: 1, durationSec: 30, status: 'pending_merge', uploadedAt: '2026-05-04T13:20:00.000Z', expiresAt: '2026-05-05' },
+      { clipId: 'a', filename: 'first.mp3', mimetype: 'audio/mpeg', size: 1, durationSec: 30, status: 'pending_merge', uploadedAt: '2026-05-04T10:00:00.000Z', expiresAt: '2026-05-05' },
+      { clipId: 'c', filename: 'middle.mp3', mimetype: 'audio/mpeg', size: 1, durationSec: 30, status: 'pending_merge', uploadedAt: '2026-05-04T10:08:00.000Z', expiresAt: '2026-05-05' },
+    ];
+    const timeline = buildClipTimeline(clips, new Set(['a', 'b', 'c']));
+    expect(timeline.selectedClipIdsInTimelineOrder).toEqual(['a', 'c', 'b']);
+    expect(timeline.maxGapMinutes).toBe(192);
+    expect(timeline.hasLargeGap).toBe(true);
+  });
+
+  it('does not fabricate large gaps from missing uploadedAt values', () => {
+    const clips = [
+      { clipId: 'known', filename: 'known.mp3', mimetype: 'audio/mpeg', size: 1, durationSec: 30, status: 'pending_merge', uploadedAt: '2026-05-04T10:00:00.000Z', expiresAt: '2026-05-05' },
+      { clipId: 'unknown', filename: 'unknown.mp3', mimetype: 'audio/mpeg', size: 1, durationSec: 30, status: 'pending_merge', uploadedAt: '', expiresAt: '2026-05-05' },
+    ];
+    const timeline = buildClipTimeline(clips, new Set(['known', 'unknown']));
+    expect(timeline.selectedClipIdsInTimelineOrder).toEqual(['known', 'unknown']);
+    expect(timeline.maxGapMinutes).toBe(0);
+    expect(timeline.hasLargeGap).toBe(false);
   });
 });
 
@@ -234,5 +276,11 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
     expect(MERGE_SERVICE_SRC).toMatch(/approveMergeRequest/);
     expect(MERGE_SERVICE_SRC).toMatch(/\/approve/);
     expect(APPROVAL_SRC).toMatch(/approveMergeRequest/);
+  });
+
+  it('surfaces encrypted source clip timeline metadata in review', () => {
+    expect(MERGE_SERVICE_SRC).toMatch(/MergeClipTimelineItem/);
+    expect(WORKSPACE_SRC).toMatch(/clipTimeline/);
+    expect(WORKSPACE_SRC).toMatch(/Source clip timeline/);
   });
 });

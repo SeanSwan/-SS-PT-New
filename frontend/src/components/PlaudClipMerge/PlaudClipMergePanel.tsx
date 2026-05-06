@@ -67,10 +67,10 @@ export function PlaudClipMergePanel({
     setIsMerging(true);
     setMergeError(null);
     try {
-      const clipIds = Array.from(queue.selectedIds);
       const response = await submitMerge({
-        clipIds,
+        clipIds: queue.selectedClipIdsInTimelineOrder,
         clientId: resolvedClient.id,
+        orderMode: 'uploaded_at_asc',
       });
       // Reset selection and refresh queue (consumed clips now status='merged')
       queue.clearSelection();
@@ -130,6 +130,16 @@ export function PlaudClipMergePanel({
         onDelete={queue.removeClip}
         isLoading={queue.isLoading}
       />
+
+      {queue.timeline.hasLargeGap ? (
+        <ErrorBanner role="alert">
+          <AlertCircle size={18} aria-hidden="true" />
+          <div>
+            <strong>Chronology check:</strong> selected clips have a {queue.timeline.maxGapMinutes}-minute gap.
+            Merge will run in upload-time order; split this into separate merges if these clips came from different sessions.
+          </div>
+        </ErrorBanner>
+      ) : null}
 
       <PlaudClientResolver
         initialClientId={initialClientId}

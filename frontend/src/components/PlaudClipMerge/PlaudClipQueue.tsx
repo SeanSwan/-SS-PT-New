@@ -7,10 +7,10 @@
  *
  * Phase 3 Slice 3.11 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md.
  */
-import React from 'react';
 import styled from 'styled-components';
 import { Trash2, CheckCircle, Circle, FileAudio } from 'lucide-react';
 import type { PlaudClip } from '../../services/plaudClipService';
+import { buildClipTimeline } from './plaudClipTimeline';
 
 const Container = styled.div`
   display: flex;
@@ -122,6 +122,19 @@ const StatusPill = styled.span<{ $status: string }>`
   letter-spacing: 0.04em;
 `;
 
+const OrderPill = styled.span`
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--text-primary, #E0ECF4);
+  background: rgba(96, 192, 240, 0.18);
+  border: 1px solid rgba(96, 192, 240, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
 const DeleteButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -163,6 +176,17 @@ function formatDuration(sec: number | null): string {
   return `${m}:${r.toString().padStart(2, '0')}`;
 }
 
+function formatUploadedAt(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export interface PlaudClipQueueProps {
   clips: PlaudClip[];
   selectedIds: Set<string>;
@@ -184,12 +208,16 @@ export function PlaudClipQueue({
   if (clips.length === 0) {
     return <Empty><FileAudio size={20} aria-hidden="true" /> No clips uploaded yet. Drop PLAUD recordings above to get started.</Empty>;
   }
+  const timeline = buildClipTimeline(clips, selectedIds);
+  const selectedOrder = new Map(timeline.selectedClipIdsInTimelineOrder.map((clipId, index) => [clipId, index + 1]));
   return (
     <Container role="list" aria-label="Pending PLAUD clips">
       {clips.map((c) => {
         const selected = selectedIds.has(c.clipId);
         const sizeStr = formatSize(c.size);
         const durStr = formatDuration(c.durationSec);
+        const uploadedStr = formatUploadedAt(c.uploadedAt);
+        const order = selectedOrder.get(c.clipId);
         return (
           <Row key={c.clipId} role="listitem" $selected={selected} data-clip-id={c.clipId}>
             <CheckboxButton
@@ -204,8 +232,10 @@ export function PlaudClipQueue({
             <ClipMeta>
               <FileName title={c.filename}>{c.filename}</FileName>
               <SubMeta>
+                {order ? <OrderPill>Merge step {order}</OrderPill> : null}
                 {durStr ? <span>{durStr}</span> : null}
                 {sizeStr ? <span>· {sizeStr}</span> : null}
+                {uploadedStr ? <span>Uploaded {uploadedStr}</span> : null}
                 <StatusPill $status={c.status}>{c.status.replace('_', ' ')}</StatusPill>
               </SubMeta>
             </ClipMeta>

@@ -22,7 +22,7 @@
  *   selectAll() / clearSelection()
  *   selectedCount, canMerge       - 2-5 selected
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   uploadClips,
   listClips,
@@ -31,6 +31,7 @@ import {
   type PlaudUploadRejection,
   PlaudApiError,
 } from '../services/plaudClipService';
+import { buildClipTimeline, type ClipTimeline } from '../components/PlaudClipMerge/plaudClipTimeline';
 
 export interface PlaudClipQueueState {
   clips: PlaudClip[];
@@ -41,6 +42,8 @@ export interface PlaudClipQueueState {
   selectedIds: Set<string>;
   selectedCount: number;
   canMerge: boolean;
+  timeline: ClipTimeline;
+  selectedClipIdsInTimelineOrder: string[];
   refresh: () => Promise<void>;
   upload: (files: File[]) => Promise<void>;
   removeClip: (clipId: string) => Promise<void>;
@@ -157,6 +160,7 @@ export function usePlaudClipQueue(): PlaudClipQueueState {
 
   const selectedCount = selectedIds.size;
   const canMerge = selectedCount >= 2 && selectedCount <= 5;
+  const timeline = useMemo(() => buildClipTimeline(clips, selectedIds), [clips, selectedIds]);
 
   return {
     clips,
@@ -167,6 +171,8 @@ export function usePlaudClipQueue(): PlaudClipQueueState {
     selectedIds,
     selectedCount,
     canMerge,
+    timeline,
+    selectedClipIdsInTimelineOrder: timeline.selectedClipIdsInTimelineOrder,
     refresh,
     upload,
     removeClip,

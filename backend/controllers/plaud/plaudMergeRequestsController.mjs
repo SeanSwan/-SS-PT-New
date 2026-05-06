@@ -176,6 +176,7 @@ export async function detailHandler(req, res) {
       transcriptHash: row.transcript_hash,
       transcript: payload.transcript,
       parsedWorkout: payload.parsedWorkout,
+      clipTimeline: payload.clipTimeline || [],
       createdAt: row.created_at,
       completedAt: row.completed_at,
       expiresAt: row.expires_at,

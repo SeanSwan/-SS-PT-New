@@ -36,6 +36,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { QueryTypes } from 'sequelize';
 import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
 import { mergeAndCleanup, FfmpegError } from '../../services/audioMergeService.mjs';
@@ -54,23 +55,31 @@ const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 
 /**
  * Convert a returned-from-DB row into a clip record useful for the
- * pipeline. Clips are returned in the order requested by the trainer
- * (Codex Round 1 HIGH #1 — orderMode='provided' default).
+ * pipeline. orderMode='provided' preserves trainer selection order;
+ * orderMode='uploaded_at_asc' sorts by DB upload chronology with
+ * trainer selection as a deterministic tie-breaker.
  */
-async function loadClipsInOrder(clipIds, userId) {
+async function loadClipsInOrder(clipIds, userId, orderMode = 'provided') {
   if (clipIds.length === 0) return [];
   // PG array literal — UUIDs are pre-validated by PLAUD_UUID_REGEX in callers,
   // so safe to embed without per-element quoting. Sequelize replacements
   // would expand a JS array as a comma list (e.g. 'a','b','c'), which breaks
   // ANY(...) and array_position(...) — both need a real Postgres array.
   const clipIdsLiteral = `{${clipIds.join(',')}}`;
-  const [rows] = await sequelize.query(
-    `SELECT clip_id, storage_ext, mimetype, status, expires_at, deleted_at
+  const orderClause = orderMode === 'uploaded_at_asc'
+    ? 'uploaded_at ASC, array_position(:clipIdsLiteral::uuid[], clip_id)'
+    : 'array_position(:clipIdsLiteral::uuid[], clip_id)';
+  const rows = await sequelize.query(
+    `SELECT clip_id, filename_original, storage_ext, mimetype, duration_sec,
+            clip_source, status, uploaded_at, expires_at, deleted_at
      FROM plaud_clips
      WHERE clip_id = ANY(:clipIdsLiteral::uuid[])
        AND user_id = :userId
-     ORDER BY array_position(:clipIdsLiteral::uuid[], clip_id)`,
-    { replacements: { clipIdsLiteral, userId } },
+     ORDER BY ${orderClause}`,
+    {
+      replacements: { clipIdsLiteral, userId },
+      type: QueryTypes.SELECT,
+    },
   );
   return rows;
 }
@@ -80,6 +89,18 @@ function jsonError(res, status, code, message) {
     success: false,
     error: { code, message },
   });
+}
+
+function buildClipTimeline(clips, orderMode) {
+  return clips.map((c, index) => ({
+    mergeStep: index + 1,
+    clipId: c.clip_id,
+    filename: c.filename_original,
+    uploadedAt: c.uploaded_at,
+    durationSec: c.duration_sec == null ? null : Number(c.duration_sec),
+    source: c.clip_source,
+    orderMode,
+  }));
 }
 
 /**
@@ -139,11 +160,15 @@ export async function mergeHandler(req, res) {
     throw err;
   }
 
-  // Pre-lock validation: clips must be owned, pending_merge, not expired
-  const clips = await loadClipsInOrder(clipIds, userId);
+  // Pre-lock validation: clips must be owned, pending_merge, not expired.
+  // The frontend now sends uploaded_at_asc for the "audio puzzle" workflow;
+  // default remains provided for API compatibility.
+  const effectiveOrderMode = orderMode === 'uploaded_at_asc' ? 'uploaded_at_asc' : 'provided';
+  const clips = await loadClipsInOrder(clipIds, userId, effectiveOrderMode);
   if (clips.length !== clipIds.length) {
     return jsonError(res, 404, 'CLIP_NOT_FOUND', 'One or more clips not found or not owned by trainer');
   }
+  const clipIdsForMerge = clips.map((c) => c.clip_id);
   for (const c of clips) {
     if (c.deleted_at) {
       return jsonError(res, 404, 'CLIP_NOT_FOUND', `Clip deleted: ${c.clip_id}`);
@@ -179,7 +204,7 @@ export async function mergeHandler(req, res) {
           mergeRequestId,
           userId,
           clientId,
-          clipIds: JSON.stringify(clipIds),
+          clipIds: JSON.stringify(clipIdsForMerge),
           ttl: String(Number(process.env.PLAUD_CIPHER_TTL_HOURS) || 24),
         },
       },
@@ -288,7 +313,8 @@ export async function mergeHandler(req, res) {
 
     // Encrypt the combined payload
     const transcriptHash = createHash('sha256').update(transcript, 'utf8').digest('hex');
-    const enc = encryptPayload({ transcript, parsedWorkout });
+    const clipTimeline = buildClipTimeline(clips, effectiveOrderMode);
+    const enc = encryptPayload({ transcript, parsedWorkout, clipTimeline });
     const exerciseCount = Array.isArray(parsedWorkout?.exercises) ? parsedWorkout.exercises.length : null;
 
     // ATOMIC FINALIZATION (Codex Round 4 HIGH fix)
@@ -352,15 +378,15 @@ export async function mergeHandler(req, res) {
            AND status     = 'pending_merge'
            AND deleted_at IS NULL`,
         {
-          replacements: { userId, clipIds },
+          replacements: { userId, clipIds: clipIdsForMerge },
           transaction,
         },
       );
       const updatedCount = clipUpdateMeta?.rowCount;
-      if (typeof updatedCount === 'number' && updatedCount !== clipIds.length) {
+      if (typeof updatedCount === 'number' && updatedCount !== clipIdsForMerge.length) {
         await transaction.rollback();
         await markMergeFailed(mergeRequestId, 'CLIP_NOT_FOUND',
-          `clip update count ${updatedCount} != expected ${clipIds.length}`);
+          `clip update count ${updatedCount} != expected ${clipIdsForMerge.length}`);
         return jsonError(res, 409, 'CLIP_NOT_FOUND', 'One or more clips changed state during merge');
       }
 
@@ -385,6 +411,7 @@ export async function mergeHandler(req, res) {
       mergeRequestId,
       transcript,
       parsedWorkout,
+      clipTimeline,
       boundaryWarning: boundaryWarning.warning ? boundaryWarning : null,
     });
   } catch (err) {
@@ -403,4 +430,4 @@ export async function mergeHandler(req, res) {
   }
 }
 
-export const _internal = { loadClipsInOrder, markMergeFailed, MAX_MERGED_BYTES };
+export const _internal = { loadClipsInOrder, markMergeFailed, buildClipTimeline, MAX_MERGED_BYTES };
