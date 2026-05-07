@@ -105,6 +105,52 @@ describe('coachActionProposalService', () => {
     ]);
   });
 
+  it('turns schema-bound Coach proposal objects into pending deterministic approval drafts', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Structured proposal prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'workout_log',
+        requires_confirmation: false,
+        evidence_refs: ['seg_04', 'clip_2_meta'],
+        safety_flags: ['duplicate_check_required'],
+        payload: {
+          clientId: 42,
+          date: '2026-05-05',
+          exercises: [{ name: 'Split squat', sets: [{ reps: 8, weight: 40 }] }],
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result.frontendActions).toEqual([]);
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]).toMatchObject({
+      type: COACH_PROPOSAL_TYPE.WORKOUT_LOG,
+      status: COACH_PROPOSAL_STATUS.PENDING,
+      summary: {
+        confirmationMode: 'trainer_approval_required',
+        evidenceCount: 2,
+        safetyFlagCount: 1,
+      },
+    });
+    const serialized = JSON.stringify(db.calls.map((call) => call.options?.replacements), (_key, value) => (
+      Buffer.isBuffer(value) ? '<buffer>' : value
+    ));
+    expect(serialized).not.toContain('Split squat');
+    expect(serialized).toContain('trainer_approval_required');
+  });
+
   it('ignores malformed write action blocks instead of creating unusable proposals', async () => {
     const db = fakeSequelize();
     const content = [

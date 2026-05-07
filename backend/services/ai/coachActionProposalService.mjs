@@ -54,6 +54,15 @@ const FrontendDispatchActionSchema = z.object({
   payload: z.record(z.unknown()).optional().default({}),
 }).passthrough();
 
+const StructuredCoachProposalSchema = z.object({
+  action: z.literal('coach_action_proposal'),
+  schema_version: z.string().trim().min(1).optional(),
+  proposal_type: z.enum(['client_onboarding', 'workout_log', 'client_data_update', 'frontend_dispatch']),
+  payload: z.record(z.unknown()).optional().default({}),
+  evidence_refs: z.array(z.string().trim().min(1)).max(20).optional().default([]),
+  safety_flags: z.array(z.string().trim().min(1)).max(20).optional().default([]),
+}).passthrough();
+
 const WorkoutLogActionSchema = z.object({
   action: z.literal('import_workout_log'),
   date: z.string().trim().min(4),
@@ -104,10 +113,23 @@ function proposalTitle(type) {
   return titles[type] || 'Review Coach proposal';
 }
 
+function proposalMeta(block) {
+  return {
+    schemaVersion: block.schema_version || SCHEMA_VERSION,
+    evidenceRefs: block.evidence_refs || [],
+    safetyFlags: block.safety_flags || [],
+    requiresConfirmation: true,
+  };
+}
+
 function summarizeProposal(type, payload, conversation) {
+  const meta = payload.proposalMeta || {};
   const base = {
     title: proposalTitle(type),
     actionRequired: 'Approve before any record changes are applied.',
+    confirmationMode: 'trainer_approval_required',
+    evidenceCount: Array.isArray(meta.evidenceRefs) ? meta.evidenceRefs.length : 0,
+    safetyFlagCount: Array.isArray(meta.safetyFlags) ? meta.safetyFlags.length : 0,
   };
   if (type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
     const exercises = Array.isArray(payload.exercises) ? payload.exercises : [];
@@ -197,6 +219,30 @@ async function createProposal({ type, payload, summary, user, conversation, sour
 }
 
 function classifyActionBlock(block, conversation) {
+  if (block.action === 'coach_action_proposal') {
+    const parsed = safeParseAction(StructuredCoachProposalSchema, block);
+    if (!parsed) return null;
+    const meta = proposalMeta(parsed);
+    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
+      const payload = safeParseAction(WorkoutLogActionSchema, { action: 'import_workout_log', ...parsed.payload });
+      return payload ? { type: COACH_PROPOSAL_TYPE.WORKOUT_LOG, payload: { ...payload, proposalMeta: meta } } : null;
+    }
+    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING) {
+      const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
+      return payload ? { type: COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING, payload: { ...payload, proposalMeta: meta } } : null;
+    }
+    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
+      const payload = safeParseAction(ClientDataUpdateActionSchema, { action: 'update_client_data', ...parsed.payload });
+      return payload ? {
+        type: COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE,
+        payload: { ...payload, targetUserId: conversation?.targetUserId || null, proposalMeta: meta },
+      } : null;
+    }
+    const payload = safeParseAction(FrontendDispatchActionSchema, { action: 'frontend_dispatch', ...parsed.payload });
+    return payload && WRITE_FRONTEND_EVENTS.has(payload.event)
+      ? { type: COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH, payload: { ...payload, proposalMeta: meta } }
+      : null;
+  }
   if (block.action === 'create_client' || block.action === 'ONBOARD_CLIENT') {
     const payload = safeParseAction(ClientOnboardingActionSchema, block);
     return payload ? { type: COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING, payload } : null;
