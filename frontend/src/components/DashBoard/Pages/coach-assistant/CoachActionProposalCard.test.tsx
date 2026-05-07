@@ -156,7 +156,9 @@ describe('CoachActionProposalCard', () => {
           approvalGate: {
             confirmationMode: 'trainer_approval_required',
             evidenceRefs: ['seg_04', 'clip_2_meta'],
+            redactedEvidenceRefCount: 1,
             safetyFlags: ['duplicate_check_required'],
+            redactedSafetyFlagCount: 1,
             writer: 'deterministic',
           },
         },
@@ -169,8 +171,10 @@ describe('CoachActionProposalCard', () => {
 
     expect(await screen.findByText(/Evidence refs/i)).toBeInTheDocument();
     expect(screen.getByText(/seg_04, clip_2_meta/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 evidence ref withheld/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Safety flags/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/duplicate_check_required/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 safety flag withheld/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Writer/i).length).toBeGreaterThan(0);
   });
 

@@ -11,20 +11,29 @@ import { sanitizeSplitCandidate } from './coachSplitPlanApprovalService.mjs';
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
 const SAFE_FLAG_PATTERN = /^[A-Za-z0-9:_-]{1,80}$/;
 
-function sanitizeTokenList(value, pattern, fallbackPrefix) {
-  if (!Array.isArray(value)) return [];
-  return value.slice(0, 20).map((item, index) => {
+function sanitizeTokenList(value, pattern) {
+  if (!Array.isArray(value)) return { tokens: [], redactedCount: 0 };
+  return value.slice(0, 20).reduce((acc, item) => {
     const text = String(item || '').trim();
-    return pattern.test(text) ? text : `${fallbackPrefix}_${index + 1}`;
-  });
+    if (pattern.test(text)) {
+      acc.tokens.push(text);
+    } else {
+      acc.redactedCount += 1;
+    }
+    return acc;
+  }, { tokens: [], redactedCount: 0 });
 }
 
 function approvalGateFromProposal(proposal) {
   const meta = proposal?.payload?.proposalMeta || {};
+  const evidence = sanitizeTokenList(meta.evidenceRefs, SAFE_REF_PATTERN);
+  const flags = sanitizeTokenList(meta.safetyFlags, SAFE_FLAG_PATTERN);
   return {
     confirmationMode: 'trainer_approval_required',
-    evidenceRefs: sanitizeTokenList(meta.evidenceRefs, SAFE_REF_PATTERN, 'evidence_ref'),
-    safetyFlags: sanitizeTokenList(meta.safetyFlags, SAFE_FLAG_PATTERN, 'safety_flag'),
+    evidenceRefs: evidence.tokens,
+    ...(evidence.redactedCount > 0 ? { redactedEvidenceRefCount: evidence.redactedCount } : {}),
+    safetyFlags: flags.tokens,
+    ...(flags.redactedCount > 0 ? { redactedSafetyFlagCount: flags.redactedCount } : {}),
     writer: 'deterministic',
   };
 }

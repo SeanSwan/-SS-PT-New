@@ -272,10 +272,13 @@ describe('coachActionProposalApprovalService', () => {
     expect(result.status).toBe(200);
     expect(result.body.proposal.detail.approvalGate).toEqual({
       confirmationMode: 'trainer_approval_required',
-      evidenceRefs: ['seg_04', 'evidence_ref_2'],
-      safetyFlags: ['duplicate_check_required', 'safety_flag_2'],
+      evidenceRefs: ['seg_04'],
+      redactedEvidenceRefCount: 1,
+      safetyFlags: ['duplicate_check_required'],
+      redactedSafetyFlagCount: 1,
       writer: 'deterministic',
     });
+    expect(JSON.stringify(result.body.proposal.detail.approvalGate)).not.toContain('555-0101');
   });
 
 });

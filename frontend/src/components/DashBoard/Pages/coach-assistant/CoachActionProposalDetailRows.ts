@@ -42,6 +42,12 @@ function compactList(value: unknown): string | null {
   return items.length > 0 ? items.join(', ') : null;
 }
 
+function withheldCount(value: unknown, singular: string): string | null {
+  const count = Number(value || 0);
+  if (!Number.isFinite(count) || count <= 0) return null;
+  return `${count} ${singular}${count === 1 ? '' : 's'} withheld`;
+}
+
 function readableConfirmationMode(value: unknown): string | null {
   if (value === 'trainer_approval_required') return 'Trainer approval required';
   return displayValue(value);
@@ -53,7 +59,9 @@ function approvalGateRows(detail: Record<string, unknown>): DetailRow[] {
   return compactRows([
     ['Approval', readableConfirmationMode(gate.confirmationMode)],
     ['Evidence refs', compactList(gate.evidenceRefs)],
+    ['Evidence withheld', withheldCount(gate.redactedEvidenceRefCount, 'evidence ref')],
     ['Safety flags', compactList(gate.safetyFlags)],
+    ['Safety withheld', withheldCount(gate.redactedSafetyFlagCount, 'safety flag')],
     ['Writer', gate.writer],
   ]);
 }
