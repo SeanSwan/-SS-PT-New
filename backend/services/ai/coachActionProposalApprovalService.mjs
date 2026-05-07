@@ -5,11 +5,7 @@
  */
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../database.mjs';
-import { decryptPayload } from '../plaudCipherService.mjs';
-import {
-  createClientFromCoachOnboardingProposal,
-  summarizeOnboardingDraftForReview,
-} from '../coachClientOnboardingApprovalService.mjs';
+import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { processAIDataUpdates } from '../aiDataWriteService.mjs';
 import { logWorkoutForClient, WorkoutLogError } from '../workout/workoutLogService.mjs';
@@ -17,6 +13,10 @@ import {
   COACH_PROPOSAL_STATUS,
   COACH_PROPOSAL_TYPE,
 } from './coachActionProposalService.mjs';
+import {
+  decryptProposalPayload,
+  sanitizeProposalDetail,
+} from './coachActionProposalDetailService.mjs';
 
 function mapProposalRow(row) {
   const summary = row.summary_json || {};
@@ -85,58 +85,6 @@ async function updateProposalStatus({ id, status, result = {}, errorCode = null,
     },
   );
   return rows[0] ? mapProposalRow(rows[0]) : null;
-}
-
-function decryptProposalPayload(row) {
-  return decryptPayload({
-    cipher: row.proposal_cipher,
-    iv: row.proposal_iv,
-    tag: row.proposal_tag,
-    keyId: row.cipher_key_id,
-  });
-}
-
-function sanitizeProposalDetail({ row, proposal }) {
-  const payload = proposal.payload || {};
-  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING) {
-    try {
-      return summarizeOnboardingDraftForReview(proposal);
-    } catch (err) {
-      return {
-        client: {},
-        errorCode: err.code || 'ONBOARDING_DETAIL_UNAVAILABLE',
-        error: err.message,
-      };
-    }
-  }
-  if (row.proposal_type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
-    return {
-      workout: {
-        clientId: Number(payload.clientId || proposal.targetUserId || 0) || null,
-        date: payload.date || null,
-        title: payload.title || null,
-        notes: payload.notes || null,
-        duration: payload.duration || null,
-        intensity: payload.intensity || null,
-        exercises: Array.isArray(payload.exercises) ? payload.exercises : [],
-      },
-    };
-  }
-  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
-    return {
-      clientDataUpdate: {
-        clientId: Number(payload.targetUserId || proposal.targetUserId || 0) || null,
-        updateCount: Array.isArray(payload.updates) ? payload.updates.length : 0,
-        updates: Array.isArray(payload.updates) ? payload.updates : [],
-      },
-    };
-  }
-  return {
-    frontendAction: {
-      event: payload.event || null,
-      payload: payload.payload || {},
-    },
-  };
 }
 
 export async function getCoachActionProposal({ id, req, sequelizeOverride = null }) {

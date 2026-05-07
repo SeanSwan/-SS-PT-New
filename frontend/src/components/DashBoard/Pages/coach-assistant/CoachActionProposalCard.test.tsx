@@ -135,4 +135,36 @@ describe('CoachActionProposalCard', () => {
     expect(screen.getByText(/1 safety flag/i)).toBeInTheDocument();
     expect(screen.getByText(/Deterministic writer/i)).toBeInTheDocument();
   });
+
+  it('shows sanitized evidence details after detail review loads', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+          approvalGate: {
+            confirmationMode: 'trainer_approval_required',
+            evidenceRefs: ['seg_04', 'clip_2_meta'],
+            safetyFlags: ['duplicate_check_required'],
+            writer: 'deterministic',
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Evidence refs/i)).toBeInTheDocument();
+    expect(screen.getByText(/seg_04, clip_2_meta/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Safety flags/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/duplicate_check_required/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Writer/i).length).toBeGreaterThan(0);
+  });
 });

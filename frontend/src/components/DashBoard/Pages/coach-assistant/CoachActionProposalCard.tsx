@@ -10,6 +10,12 @@ import { CheckCircle2, ClipboardCheck, Eye, Loader2, ShieldCheck, XCircle } from
 import type { CoachActionProposal } from './SwanCoachTypes';
 import { approveCoachProposal, getCoachProposal, rejectCoachProposal } from '../../../../services/coachProposalService';
 import { CoachProposalGateRail } from './CoachProposalGateRail';
+import {
+  buildDetailRows,
+  displayValue,
+  hasDetailBlockingError,
+  proposalTypeLabel,
+} from './CoachActionProposalDetailRows';
 
 const Card = styled.div`
   margin-top: 12px;
@@ -102,75 +108,6 @@ const StatusText = styled.div<{ $error?: boolean }>`
   font-size: 12px;
   font-weight: 700;
 `;
-
-type DetailRow = [string, string];
-
-function proposalTypeLabel(type: string) {
-  const labels: Record<string, string> = {
-    client_onboarding: 'Client onboarding',
-    workout_log: 'Workout log',
-    client_data_update: 'Client data update',
-    frontend_dispatch: 'Workout form action',
-  };
-  return labels[type] || 'Coach proposal';
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function displayValue(value: unknown) {
-  if (value == null || value === '') return null;
-  if (Array.isArray(value)) return `${value.length} item${value.length === 1 ? '' : 's'}`;
-  if (typeof value === 'object') return 'Review structured fields';
-  return String(value);
-}
-
-function compactRows(rows: Array<[string, unknown]>): DetailRow[] {
-  return rows
-    .map(([label, value]) => [label, displayValue(value)] as [string, string | null])
-    .filter((row): row is DetailRow => Boolean(row[1]));
-}
-
-function hasDetailBlockingError(detail: Record<string, unknown> | null) {
-  return Boolean(detail && (detail.errorCode || detail.error));
-}
-
-function buildDetailRows(detail: Record<string, unknown> | null): DetailRow[] {
-  if (!detail) return [];
-  if (hasDetailBlockingError(detail)) {
-    return compactRows([
-      ['Issue', detail.error],
-      ['Code', detail.errorCode],
-    ]);
-  }
-  const client = asRecord(detail.client);
-  if (client) {
-    return compactRows([
-      ['First', client.firstName],
-      ['Last', client.lastName],
-      ['Email', client.email],
-      ['Source', client.clientSource],
-      ['Goal', client.fitnessGoal],
-      ['Health', client.healthConcerns],
-      ['Experience', client.trainingExperience],
-      ['Notes', client.trainerNotes],
-    ]);
-  }
-  const workout = asRecord(detail.workout);
-  if (workout) {
-    return compactRows([
-      ['Title', workout.title],
-      ['Date', workout.date],
-      ['Client', workout.clientId ? `#${workout.clientId}` : null],
-      ['Exercises', workout.exercises],
-      ['Notes', workout.notes],
-    ]);
-  }
-  return compactRows(Object.entries(detail));
-}
 
 export function CoachActionProposalCard({ proposal }: { proposal: CoachActionProposal }) {
   const [status, setStatus] = useState(proposal.status);

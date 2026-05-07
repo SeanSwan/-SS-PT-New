@@ -78,7 +78,7 @@ function fakeRejectRaceDb({ order = [] } = {}) {
   };
 }
 
-async function loadApprovalService({ order = [] } = {}) {
+async function loadApprovalService({ order = [], decryptedProposal = null } = {}) {
   vi.resetModules();
   const logWorkoutForClient = vi.fn(async () => {
     order.push('workout-write');
@@ -89,7 +89,7 @@ async function loadApprovalService({ order = [] } = {}) {
     ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
   }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
-    decryptPayload: vi.fn(() => ({
+    decryptPayload: vi.fn(() => decryptedProposal || ({
       payload: { clientId: 42, date: '2026-05-05', exercises: [{ name: 'Squat' }] },
       targetUserId: 42,
     })),
@@ -208,5 +208,37 @@ describe('coachActionProposalApprovalService', () => {
     const rejectCall = db.calls.find((call) => call.options.replacements?.status === 'REJECTED');
     expect(rejectCall.sql).toMatch(/created_by_user_id = :userId/);
     expect(rejectCall.sql).toMatch(/status = :fromStatus/);
+  });
+
+  it('returns sanitized approval evidence metadata on proposal detail reads', async () => {
+    const db = fakeApprovalDb();
+    const { getCoachActionProposal } = await loadApprovalService({
+      decryptedProposal: {
+        payload: {
+          clientId: 42,
+          date: '2026-05-05',
+          exercises: [{ name: 'Squat' }],
+          proposalMeta: {
+            evidenceRefs: ['seg_04', 'client sean phone 555-0101'],
+            safetyFlags: ['duplicate_check_required', 'free text with spaces'],
+          },
+        },
+        targetUserId: 42,
+      },
+    });
+
+    const result = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.proposal.detail.approvalGate).toEqual({
+      confirmationMode: 'trainer_approval_required',
+      evidenceRefs: ['seg_04', 'evidence_ref_2'],
+      safetyFlags: ['duplicate_check_required', 'safety_flag_2'],
+      writer: 'deterministic',
+    });
   });
 });
