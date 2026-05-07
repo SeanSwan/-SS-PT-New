@@ -129,6 +129,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(proposal.detail || null);
   const [generatedProposals, setGeneratedProposals] = useState<CoachActionProposal[]>([]);
+  const [reviewToken, setReviewToken] = useState<string | null>(proposal.reviewToken || null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const summary = proposal.summary || {};
@@ -136,11 +137,10 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const approveLabel = proposal.type === 'workout_log'
     ? 'Approve and log'
     : proposal.type === 'split_plan' ? 'Approve split plan' : 'Approve draft';
-  const requiresDetailBeforeApprove = proposal.type === 'client_onboarding' || proposal.type === 'split_plan';
   const clarificationOptions = useMemo(() => clarificationOptionsFromDetail(detail), [detail]);
   const isClarification = proposal.type === 'clarification';
   const detailHasBlockingError = hasDetailBlockingError(detail);
-  const canApprove = pending && !isClarification && (!requiresDetailBeforeApprove || (!!detail && !detailHasBlockingError));
+  const canApprove = pending && !isClarification && !!detail && !!reviewToken && !detailHasBlockingError;
   const detailRows = useMemo(() => buildDetailRows(detail), [detail]);
   const rows = useMemo(() => [
     ['Type', proposalTypeLabel(proposal.type)],
@@ -157,6 +157,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       const result = await getCoachProposal(proposal.id);
       const loadedDetail = result.proposal?.detail || null;
       setDetail(loadedDetail);
+      setReviewToken(result.proposal?.reviewToken || null);
       if (hasDetailBlockingError(loadedDetail)) {
         setError(displayValue(loadedDetail?.error) || 'Draft details need correction before approval.');
       } else {
@@ -173,7 +174,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
     setBusy('approve');
     setError(null);
     try {
-      const result = await approveCoachProposal(proposal.id);
+      const result = await approveCoachProposal(proposal.id, reviewToken);
       setStatus(result.proposal?.status || (result.applied ? 'APPLIED' : 'APPROVED'));
       if (result.client) {
         setMessage('Client created through deterministic onboarding approval.');

@@ -38,6 +38,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
       success: true,
       proposal: {
         ...proposal,
+        reviewToken: 'split-review-token-1',
         detail: {
           splitPlan: {
             splitCount: 2,
@@ -77,6 +78,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
       success: true,
       proposal: {
         ...proposal,
+        reviewToken: 'split-review-token-1',
         detail: {
           splitPlan: {
             splitCount: 2,
@@ -110,6 +112,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
     expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /approve split plan/i }));
 
+    expect(approveCoachProposal).toHaveBeenCalledWith(proposal.id, 'split-review-token-1');
     expect(await screen.findByText(/2 workout log drafts prepared/i)).toBeInTheDocument();
     expect(screen.getByText(/Review workout log draft/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /approve and log/i })).toBeInTheDocument();

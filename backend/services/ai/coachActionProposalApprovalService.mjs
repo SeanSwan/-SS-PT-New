@@ -3,7 +3,6 @@
  * ======================================
  * Deterministic approval executor for Swan Coach action proposals.
  */
-import { QueryTypes } from 'sequelize';
 import sequelize from '../../database.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
@@ -15,50 +14,17 @@ import {
   sanitizeProposalDetail,
 } from './coachActionProposalDetailService.mjs';
 import { approveNonWriteCoachProposal } from './coachSplitPlanApprovalService.mjs';
-
-function mapProposalRow(row) {
-  const summary = row.summary_json || {};
-  return {
-    id: row.id,
-    type: row.proposal_type,
-    status: row.status,
-    title: summary.title || 'Review Coach proposal',
-    summary,
-    createdAt: row.created_at,
-  };
-}
-
-async function loadOwnedProposal({ id, userId, db }) {
-  const rows = await db.query(
-    `SELECT id, created_by_user_id, proposal_type, status, summary_json,
-            conversation_id, source_message_id,
-            proposal_cipher, proposal_iv, proposal_tag, cipher_key_id
-       FROM coach_action_proposals
-      WHERE id = :id AND created_by_user_id = :userId
-      LIMIT 1`,
-    { replacements: { id, userId }, type: QueryTypes.SELECT },
-  );
-  return rows[0] || null;
-}
-
-async function claimPendingProposal({ id, userId, db }) {
-  const rows = await db.query(
-    `UPDATE coach_action_proposals
-        SET status = :claimedStatus,
-            updated_at = NOW()
-      WHERE id = :id
-        AND created_by_user_id = :userId
-        AND status = :pendingStatus
-      RETURNING id`,
-    {
-      replacements: { id, userId, claimedStatus: COACH_PROPOSAL_STATUS.APPLYING, pendingStatus: COACH_PROPOSAL_STATUS.PENDING },
-      type: QueryTypes.SELECT,
-    },
-  );
-  return !!rows[0];
-}
-
-const proposalNotPending = () => ({ status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } });
+import {
+  claimPendingProposal,
+  loadOwnedProposal,
+  mapProposalRow,
+  proposalNotPending,
+  updateProposalStatus,
+} from './coachActionProposalPersistenceService.mjs';
+import {
+  createProposalReviewToken,
+  verifyProposalReviewToken,
+} from './coachProposalReviewTokenService.mjs';
 
 function normalizeClarificationAnswer(answer) {
   return typeof answer === 'string' ? answer.trim() : '';
@@ -69,32 +35,6 @@ function getClarificationOptions(proposal) {
   return Array.isArray(options)
     ? options.map((option) => normalizeClarificationAnswer(option)).filter(Boolean)
     : [];
-}
-
-async function updateProposalStatus({ id, status, result = {}, errorCode = null, userId = null, fromStatus = null, db }) {
-  const rows = await db.query(
-    `UPDATE coach_action_proposals
-        SET status = :status,
-            applied_result_json = CAST(:resultJson AS jsonb),
-            error_code = :errorCode,
-            updated_at = NOW()
-      WHERE id = :id
-        ${userId == null ? '' : 'AND created_by_user_id = :userId'}
-        ${fromStatus == null ? '' : 'AND status = :fromStatus'}
-      RETURNING id, proposal_type, status, summary_json, created_at`,
-    {
-      replacements: {
-        id,
-        status,
-        resultJson: JSON.stringify(result),
-        errorCode,
-        userId,
-        fromStatus,
-      },
-      type: QueryTypes.SELECT,
-    },
-  );
-  return rows[0] ? mapProposalRow(rows[0]) : null;
 }
 
 export async function getCoachActionProposal({ id, req, sequelizeOverride = null }) {
@@ -109,6 +49,7 @@ export async function getCoachActionProposal({ id, req, sequelizeOverride = null
       proposal: {
         ...mapProposalRow(row),
         detail: sanitizeProposalDetail({ row, proposal }),
+        reviewToken: createProposalReviewToken({ row, userId: req.user.id }),
       },
     },
   };
@@ -120,6 +61,21 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
   if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
   if (row.status !== COACH_PROPOSAL_STATUS.PENDING) {
     return { status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } };
+  }
+  const reviewCheck = verifyProposalReviewToken({
+    token: req.body?.reviewToken,
+    row,
+    userId: req.user.id,
+  });
+  if (!reviewCheck.ok) {
+    return {
+      status: reviewCheck.code === 'PROPOSAL_REVIEW_TOKEN_UNAVAILABLE' ? 503 : 428,
+      body: {
+        success: false,
+        code: reviewCheck.code,
+        error: 'Review proposal details before approving this action.',
+      },
+    };
   }
 
   const proposal = decryptProposalPayload(row);

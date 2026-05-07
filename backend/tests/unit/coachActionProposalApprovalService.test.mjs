@@ -1,28 +1,13 @@
 /**
  * coachActionProposalApprovalService.test.mjs
  * ===========================================
- * Source guard for deterministic proposal approval writes.
+ * Behavioral coverage for deterministic proposal approval writes.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const APPROVAL_SERVICE_SRC = readFileSync(
-  resolve(__dirname, '../../services/ai/coachActionProposalApprovalService.mjs'),
-  'utf8',
-);
-const PROPOSAL_SERVICE_SRC = readFileSync(
-  resolve(__dirname, '../../services/ai/coachActionProposalService.mjs'),
-  'utf8',
-);
-const COACH_INTAKE_MIGRATION_SRC = readFileSync(
-  resolve(__dirname, '../../migrations/20260506120000-create-coach-intake-items.cjs'),
-  'utf8',
-);
+import {
+  createProposalReviewToken,
+  verifyProposalReviewToken,
+} from '../../services/ai/coachProposalReviewTokenService.mjs';
 
 const pendingWorkoutRow = {
   id: '11111111-1111-1111-1111-111111111111',
@@ -115,61 +100,19 @@ afterEach(() => {
 });
 
 describe('coachActionProposalApprovalService', () => {
-  it('routes workout approval through RBAC and the canonical workout writer', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/logWorkoutForClient/);
-  });
-
-  it('does not create workout rows directly inside the proposal executor', () => {
-    expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutSession\.create\(/);
-    expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutLog\.bulkCreate\(/);
-  });
-
-  it('routes client onboarding approval through the deterministic onboarding service', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/createClientFromCoachOnboardingProposal/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/COACH_PROPOSAL_TYPE\.CLIENT_ONBOARDING/);
-  });
-
-  it('routes client data updates through RBAC and the existing AI data write service', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/processAIDataUpdates/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/COACH_PROPOSAL_TYPE\.CLIENT_DATA_UPDATE/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
-  });
-
-  it('exposes a read-only proposal detail path before approval', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/getCoachActionProposal/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/sanitizeProposalDetail/);
-  });
-
-  it('rejects empty client data update proposals instead of marking no-op approvals applied', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/CLIENT_DATA_UPDATE_EMPTY/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/updates\.length === 0/);
-  });
-
-  it('defines APPLYING as the transient deterministic-write status', () => {
-    expect(PROPOSAL_SERVICE_SRC).toMatch(/APPLYING:\s*['"]APPLYING['"]/);
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/'APPLYING'/);
-  });
-
-  it('refreshes the database status constraint for existing proposal tables', () => {
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/DROP CONSTRAINT IF EXISTS coach_action_proposals_status_check/);
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/ADD CONSTRAINT coach_action_proposals_status_check/);
-  });
-
-  it('refreshes the database proposal-type constraint for non-write proposal types', () => {
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/DROP CONSTRAINT IF EXISTS coach_action_proposals_proposal_type_check/);
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/'clarification'/);
-    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/'split_plan'/);
-  });
-
   it('claims a pending proposal before running the workout writer', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });
-    const { approveCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
 
     const result = await approveCoachActionProposal({
       id: pendingWorkoutRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
       sequelizeOverride: db,
     });
 
@@ -180,14 +123,73 @@ describe('coachActionProposalApprovalService', () => {
     expect(claimCall.options.replacements.claimedStatus).toBe('APPLYING');
   });
 
+  it('returns a review token from detail reads and requires it before workout approval', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(detailResult.status).toBe(200);
+    expect(detailResult.body.proposal.reviewToken).toMatch(/^review-v1\./);
+
+    const blocked = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: {} },
+      sequelizeOverride: db,
+    });
+
+    expect(blocked.status).toBe(428);
+    expect(blocked.body.code).toBe('PROPOSAL_DETAIL_REVIEW_REQUIRED');
+    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
+
+    const approved = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(approved.status).toBe(200);
+    expect(logWorkoutForClient).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['claim', 'workout-write']);
+  });
+
+  it('rejects future-dated proposal review tokens', () => {
+    const now = Date.now();
+    const token = createProposalReviewToken({
+      row: pendingWorkoutRow,
+      userId: 7,
+      now: now + 60_000,
+    });
+
+    const result = verifyProposalReviewToken({
+      token,
+      row: pendingWorkoutRow,
+      userId: 7,
+      now,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'PROPOSAL_DETAIL_REVIEW_REQUIRED' });
+  });
+
   it('does not write the workout when another approval already claimed the proposal', async () => {
     const order = [];
     const db = fakeApprovalDb({ claimSucceeds: false, order });
-    const { approveCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
 
     const result = await approveCoachActionProposal({
       id: pendingWorkoutRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
       sequelizeOverride: db,
     });
 
@@ -227,16 +229,21 @@ describe('coachActionProposalApprovalService', () => {
         summary_json: { title: 'Review client data update' },
       },
     });
-    const { approveCoachActionProposal } = await loadApprovalService({
+    const { approveCoachActionProposal, getCoachActionProposal } = await loadApprovalService({
       decryptedProposal: {
         payload: { targetUserId: 42, updates: [] },
         targetUserId: 42,
       },
     });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
 
     const result = await approveCoachActionProposal({
       id: pendingWorkoutRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
       sequelizeOverride: db,
     });
 

@@ -118,11 +118,24 @@ describe('split-plan Coach proposal approval', () => {
   it('prepares child workout proposals from valid split candidates without writing workouts', async () => {
     const order = [];
     const db = fakeSplitApprovalDb({ order });
-    const { approveCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const {
+      approveCoachActionProposal,
+      getCoachActionProposal,
+      logWorkoutForClient,
+    } = await loadApprovalService({ order });
+
+    const detailResult = await getCoachActionProposal({
+      id: splitPlanRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
 
     const result = await approveCoachActionProposal({
       id: splitPlanRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
+      req: {
+        user: { id: 7, role: 'trainer' },
+        body: { reviewToken: detailResult.body.proposal.reviewToken },
+      },
       sequelizeOverride: db,
     });
 

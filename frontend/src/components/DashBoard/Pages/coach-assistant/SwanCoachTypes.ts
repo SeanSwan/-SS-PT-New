@@ -215,6 +215,7 @@ export interface CoachActionProposal {
   title: string;
   summary: Record<string, string | number | null | undefined>;
   detail?: Record<string, unknown>;
+  reviewToken?: string | null;
   createdAt?: string;
 }
 

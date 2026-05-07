@@ -29,6 +29,20 @@ describe('CoachActionProposalCard', () => {
   });
 
   it('approves pending workout proposals through the deterministic API', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'review-token-1',
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+        },
+      },
+    });
     vi.mocked(approveCoachProposal).mockResolvedValue({
       success: true,
       applied: true,
@@ -37,10 +51,13 @@ describe('CoachActionProposalCard', () => {
 
     render(<CoachActionProposalCard proposal={proposal} />);
 
+    expect(screen.getByRole('button', { name: /approve and log/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+    expect(await screen.findByText(/Draft details loaded for review/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /approve and log/i }));
 
     await waitFor(() => {
-      expect(approveCoachProposal).toHaveBeenCalledWith(proposal.id);
+      expect(approveCoachProposal).toHaveBeenCalledWith(proposal.id, 'review-token-1');
     });
     expect(await screen.findByText(/deterministic workout logger/i)).toBeInTheDocument();
   });

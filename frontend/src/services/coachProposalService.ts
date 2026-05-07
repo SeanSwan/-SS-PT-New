@@ -58,9 +58,15 @@ export async function getCoachProposal(id: string): Promise<CoachProposalDetailR
   }
 }
 
-export async function approveCoachProposal(id: string): Promise<CoachProposalActionResponse> {
+export async function approveCoachProposal(
+  id: string,
+  reviewToken?: string | null,
+): Promise<CoachProposalActionResponse> {
   try {
-    const { data } = await apiService.post<CoachProposalActionResponse>(`/api/coach/proposals/${encodeURIComponent(id)}/approve`);
+    const { data } = await apiService.post<CoachProposalActionResponse>(
+      `/api/coach/proposals/${encodeURIComponent(id)}/approve`,
+      reviewToken ? { reviewToken } : {},
+    );
     return data;
   } catch (err) {
     unwrapError(err, 'Failed to approve Coach proposal');
