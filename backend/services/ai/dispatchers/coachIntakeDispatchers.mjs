@@ -102,6 +102,56 @@ function scalarSummary(result, nextItem, ctx) {
   };
 }
 
+function isAudioPuzzleItem(item) {
+  if (!item || item.queueStatus === 'archived') return false;
+  if (item.audioPuzzle?.pieceCount > 0) return true;
+  if (Number(item.clipCount || 0) > 0) return true;
+  return item.kind === 'clip' || item.source === 'audio_upload' || item.source === 'voice_note' || item.source === 'plaud_clip';
+}
+
+function audioPuzzleForItem(item) {
+  const puzzle = item?.audioPuzzle || {};
+  const clipCount = Number(item?.clipCount || 0);
+  const pieceCount = Number(puzzle.pieceCount || clipCount || (isAudioPuzzleItem(item) ? 1 : 0));
+  return {
+    pieceCount,
+    bundleCount: Number(puzzle.bundleCount || (pieceCount > 0 ? 1 : 0)),
+    autoBundleCount: Number(puzzle.autoBundleCount || 0),
+    needsOrderingReview: puzzle.needsOrderingReview === true,
+    confidence: ['single', 'high', 'medium', 'low'].includes(puzzle.confidence)
+      ? puzzle.confidence
+      : (pieceCount > 1 ? 'medium' : 'single'),
+  };
+}
+
+function audioInspectionSummary(result, ctx) {
+  const audioItems = (result?.items || []).filter(isAudioPuzzleItem).slice(0, 6);
+  const items = audioItems.map((item) => {
+    const puzzle = audioPuzzleForItem(item);
+    return {
+      id: item.id || null,
+      kind: item.kind || null,
+      queueStatus: item.queueStatus || null,
+      canReview: item.canReview === true,
+      audioPieces: puzzle.pieceCount,
+      audioBundles: puzzle.bundleCount,
+      autoAudioBundles: puzzle.autoBundleCount,
+      audioConfidence: puzzle.confidence,
+      needsOrderingReview: puzzle.needsOrderingReview,
+      reviewRoute: reviewRouteForItem(item, ctx),
+    };
+  });
+
+  return {
+    totalAudioItems: items.length,
+    needsOrderingReview: items.filter((item) => item.needsOrderingReview).length,
+    lowConfidence: items.filter((item) => item.audioConfidence === 'low').length,
+    items,
+    queueRoute: resolveCoachQueueRoute(ctx),
+    commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+  };
+}
+
 async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimit = DEFAULT_QUEUE_LIMIT } = {}) {
   const userId = resolveUserId(ctx);
   resolveRole(ctx);
@@ -129,7 +179,17 @@ export async function dispatchReviewNextCoachIntake(params = {}, ctx = {}) {
   return scalarSummary(result, nextItem, ctx);
 }
 
+export async function dispatchInspectPlaudAudioPieces(params = {}, ctx = {}) {
+  const { result } = await readQueue(params, ctx, {
+    defaultScope: 'actionable',
+    defaultLimit: REVIEW_NEXT_LIMIT,
+  });
+  return audioInspectionSummary(result, ctx);
+}
+
 export const _internal = {
+  audioInspectionSummary,
+  audioPuzzleForItem,
   normalizeLimit,
   pickNextItem,
   queueAgeTime,
