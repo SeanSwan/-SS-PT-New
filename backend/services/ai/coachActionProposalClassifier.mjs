@@ -112,8 +112,11 @@ export function parseJsonActionBlocks(content) {
 }
 
 export function parseSafeFrontendDispatch(block) {
-  if (block.action !== 'frontend_dispatch') return null;
-  const parsed = safeParseAction(FrontendDispatchActionSchema, block);
+  const candidate = block.action === 'coach_action_proposal' && block.proposal_type === 'frontend_dispatch'
+    ? { action: 'frontend_dispatch', ...(block.payload || {}) }
+    : block;
+  if (candidate.action !== 'frontend_dispatch') return null;
+  const parsed = safeParseAction(FrontendDispatchActionSchema, candidate);
   return parsed && SAFE_FRONTEND_EVENTS.has(parsed.event) ? parsed : null;
 }
 

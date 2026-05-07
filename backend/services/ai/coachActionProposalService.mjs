@@ -201,10 +201,12 @@ export async function createCoachActionProposalsFromAiResponse({
   const canPrepareWrites = user?.role === 'admin' || user?.role === 'trainer';
 
   for (const block of parseJsonActionBlocks(content)) {
-    const frontendDispatch = parseSafeFrontendDispatch(block);
-    if (frontendDispatch) {
-      frontendActions.push({ event: frontendDispatch.event, payload: frontendDispatch.payload || {} });
-      continue;
+    if (canPrepareWrites) {
+      const frontendDispatch = parseSafeFrontendDispatch(block);
+      if (frontendDispatch) {
+        frontendActions.push({ event: frontendDispatch.event, payload: frontendDispatch.payload || {} });
+        continue;
+      }
     }
     if (!canPrepareWrites) continue;
     const classified = classifyActionBlock(block, conversation, {
