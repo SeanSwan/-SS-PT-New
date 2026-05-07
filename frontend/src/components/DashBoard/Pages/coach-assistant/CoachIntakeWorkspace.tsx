@@ -19,7 +19,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
-import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
+import {
+  AudioPuzzleLabel,
+  AudioPuzzleRow,
+} from './CoachIntakeWorkspaceAudio.styles';
 import {
   ActionButton,
   ActionRow,
@@ -66,6 +70,19 @@ function itemMeta(item: CoachIntakeItem): string {
     pieces.push(`${item.clipCount} clip${item.clipCount === 1 ? '' : 's'}`);
   }
   return pieces.join(' - ');
+}
+
+function plural(value: number, noun: string): string {
+  return `${value} ${noun}${value === 1 ? '' : 's'}`;
+}
+
+function visibleAudioPuzzle(puzzle?: CoachAudioPuzzleSummary | null): CoachAudioPuzzleSummary | null {
+  if (!puzzle) return null;
+  const pieceCount = Number(puzzle.pieceCount || 0);
+  if (pieceCount > 1 || puzzle.needsOrderingReview || puzzle.confidence !== 'single') {
+    return { ...puzzle, pieceCount };
+  }
+  return null;
 }
 
 function queuePriority(item: CoachIntakeItem): number {
@@ -194,6 +211,7 @@ export function CoachIntakeWorkspace({
             </ItemCard>
           ) : items.map((item) => {
             const active = isActiveItem(item, activeIntakeId);
+            const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
             return (
             <ItemCard key={item.id} $active={active} aria-current={active ? 'true' : undefined}>
               <ItemTitle>
@@ -204,6 +222,16 @@ export function CoachIntakeWorkspace({
                 <SourceChip>{item.sourceLabel}</SourceChip>
                 {active && <SourceChip $tone="gold">Review target</SourceChip>}
               </ChipColumn>
+              {audioPuzzle && (
+                <AudioPuzzleRow aria-label={`Audio puzzle ${plural(audioPuzzle.pieceCount, 'piece')}`}>
+                  <GitBranch size={13} aria-hidden="true" />
+                  <AudioPuzzleLabel>Audio puzzle</AudioPuzzleLabel>
+                  <SourceChip $tone="purple">{plural(audioPuzzle.pieceCount, 'piece')}</SourceChip>
+                  <SourceChip>{plural(audioPuzzle.bundleCount, 'bundle')}</SourceChip>
+                  <span>{audioPuzzle.confidence} confidence</span>
+                  {audioPuzzle.needsOrderingReview && <SourceChip $tone="gold">order review</SourceChip>}
+                </AudioPuzzleRow>
+              )}
             </ItemCard>
             );
           })}

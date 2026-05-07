@@ -233,6 +233,16 @@ describe('Unified Coach intake dispatcher behavior', () => {
       },
       items: [
         {
+          id: 'merge:ready-review',
+          entityId: 'ready-review',
+          kind: 'merge_request',
+          queueStatus: 'ready_review',
+          canReview: true,
+          clipCount: 3,
+          sourceLabel: 'Merged review',
+          createdAt: '2026-05-05T11:00:00.000Z',
+        },
+        {
           id: 'coach:audio-1',
           entityId: 'audio-1',
           kind: 'coach_intake',

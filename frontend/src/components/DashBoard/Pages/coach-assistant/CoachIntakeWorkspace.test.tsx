@@ -18,6 +18,13 @@ function makeQueue() {
         canReview: true,
         needsClient: true,
         timelineAt: '2026-05-06T16:30:00.000Z',
+        audioPuzzle: {
+          pieceCount: 3,
+          bundleCount: 2,
+          autoBundleCount: 1,
+          needsOrderingReview: true,
+          confidence: 'low',
+        },
       },
     ],
     summary: {
@@ -55,6 +62,9 @@ describe('CoachIntakeWorkspace', () => {
     expect(screen.getByText(/Voice intake command center/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText(/Morning lower body notes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Audio puzzle/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();
+    expect(screen.getByText(/order review/i)).toBeInTheDocument();
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');

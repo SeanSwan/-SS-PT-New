@@ -192,7 +192,7 @@ export const ItemList = styled.div`
 export const ItemCard = styled.div<{ $active?: boolean }>`
   min-height: 54px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   padding: 10px;
@@ -204,6 +204,10 @@ export const ItemCard = styled.div<{ $active?: boolean }>`
   box-shadow: ${({ $active }) => $active
     ? '0 0 18px color-mix(in srgb, var(--accent-gold, #C6A84B) 16%, transparent)'
     : 'none'};
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const ItemTitle = styled.div`
@@ -230,24 +234,34 @@ export const ChipColumn = styled.div`
   justify-content: flex-end;
   gap: 6px;
   flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    justify-content: flex-start;
+  }
 `;
 
-export const SourceChip = styled.span<{ $tone?: 'cyan' | 'gold' }>`
+export const SourceChip = styled.span<{ $tone?: 'cyan' | 'gold' | 'purple' }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 28px;
   padding: 0 8px;
   border-radius: 999px;
-  background: ${({ $tone }) => $tone === 'gold'
-    ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent)'
-    : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)'};
-  border: 1px solid ${({ $tone }) => $tone === 'gold'
-    ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 25%, transparent)'
-    : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)'};
-  color: ${({ $tone }) => $tone === 'gold'
-    ? 'var(--accent-gold, #C6A84B)'
-    : 'var(--accent-primary, #60C0F0)'};
+  background: ${({ $tone }) => {
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent)';
+    if ($tone === 'purple') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
+  }};
+  border: 1px solid ${({ $tone }) => {
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 25%, transparent)';
+    if ($tone === 'purple') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)';
+  }};
+  color: ${({ $tone }) => {
+    if ($tone === 'gold') return 'var(--accent-gold, #C6A84B)';
+    if ($tone === 'purple') return 'var(--accent-secondary, #8B5CF6)';
+    return 'var(--accent-primary, #60C0F0)';
+  }};
   font-family: 'Fira Code', monospace;
   font-size: 10px;
   white-space: nowrap;

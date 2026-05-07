@@ -8,7 +8,21 @@ import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
 import type { PlaudIntakeItem, PlaudIntakeSummary } from './plaudIntakeService';
 
-export type CoachIntakeItem = PlaudIntakeItem | (Omit<PlaudIntakeItem, 'kind' | 'source'> & {
+export type CoachAudioPuzzleConfidence = 'single' | 'high' | 'medium' | 'low';
+
+export interface CoachAudioPuzzleSummary {
+  pieceCount: number;
+  bundleCount: number;
+  autoBundleCount: number;
+  needsOrderingReview: boolean;
+  confidence: CoachAudioPuzzleConfidence;
+}
+
+type CoachIntakeAudioFields = {
+  audioPuzzle?: CoachAudioPuzzleSummary | null;
+};
+
+export type CoachIntakeItem = (PlaudIntakeItem & CoachIntakeAudioFields) | (Omit<PlaudIntakeItem, 'kind' | 'source'> & CoachIntakeAudioFields & {
   kind: 'coach_intake';
   source: 'voice_note' | 'plaud_clip' | 'audio_upload' | 'transcript_file' | 'pdf_transcript' | 'typed_note' | 'chat_narrative';
 });

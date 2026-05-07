@@ -104,6 +104,7 @@ function scalarSummary(result, nextItem, ctx) {
 
 function isAudioPuzzleItem(item) {
   if (!item || item.queueStatus === 'archived') return false;
+  if (item.kind === 'merge_request') return false;
   if (item.audioPuzzle?.pieceCount > 0) return true;
   if (Number(item.clipCount || 0) > 0) return true;
   return item.kind === 'clip' || item.source === 'audio_upload' || item.source === 'voice_note' || item.source === 'plaud_clip';
