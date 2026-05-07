@@ -28,6 +28,7 @@ import {
   getAllCommandTypes,
   initializeRegistry,
 } from '../services/ai/commandRegistry/index.mjs';
+import { shouldFallbackNotWiredCommandToChat } from '../services/ai/commandFallbackPolicy.mjs';
 
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
@@ -112,6 +113,16 @@ router.post('/execute', protect, async (req, res) => {
     }
 
     if (ctx.result?.type === 'not_wired') {
+      if (shouldFallbackNotWiredCommandToChat(ctx.command?.type)) {
+        return res.json({
+          success: true,
+          type: 'chat',
+          message: 'Routing this draft request through Swan Coach review.',
+          intent: ctx.intent,
+          fallbackToChat: true,
+          timing: ctx.metadata.timing,
+        });
+      }
       return res.json({
         success: true,
         type: 'not_wired',
