@@ -61,7 +61,7 @@ async function claimPendingProposal({ id, userId, db }) {
 
 const proposalNotPending = () => ({ status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } });
 
-async function updateProposalStatus({ id, status, result = {}, errorCode = null, db }) {
+async function updateProposalStatus({ id, status, result = {}, errorCode = null, userId = null, fromStatus = null, db }) {
   const rows = await db.query(
     `UPDATE coach_action_proposals
         SET status = :status,
@@ -69,6 +69,8 @@ async function updateProposalStatus({ id, status, result = {}, errorCode = null,
             error_code = :errorCode,
             updated_at = NOW()
       WHERE id = :id
+        ${userId == null ? '' : 'AND created_by_user_id = :userId'}
+        ${fromStatus == null ? '' : 'AND status = :fromStatus'}
       RETURNING id, proposal_type, status, summary_json, created_at`,
     {
       replacements: {
@@ -76,6 +78,8 @@ async function updateProposalStatus({ id, status, result = {}, errorCode = null,
         status,
         resultJson: JSON.stringify(result),
         errorCode,
+        userId,
+        fromStatus,
       },
       type: QueryTypes.SELECT,
     },
@@ -293,6 +297,13 @@ export async function rejectCoachActionProposal({ id, req, sequelizeOverride = n
   if (row.status !== COACH_PROPOSAL_STATUS.PENDING) {
     return { status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } };
   }
-  const updated = await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.REJECTED, db });
+  const updated = await updateProposalStatus({
+    id,
+    status: COACH_PROPOSAL_STATUS.REJECTED,
+    userId: req.user.id,
+    fromStatus: COACH_PROPOSAL_STATUS.PENDING,
+    db,
+  });
+  if (!updated) return proposalNotPending();
   return { status: 200, body: { success: true, proposal: updated } };
 }

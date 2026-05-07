@@ -60,6 +60,24 @@ function fakeApprovalDb({ claimSucceeds = true, order = [] } = {}) {
   };
 }
 
+function fakeRejectRaceDb({ order = [] } = {}) {
+  const calls = [];
+  return {
+    calls,
+    async query(sql, options = {}) {
+      calls.push({ sql, options });
+      if (sql.includes('SELECT id, created_by_user_id')) return [pendingWorkoutRow];
+      if (sql.includes('UPDATE coach_action_proposals') && options.replacements?.status === 'REJECTED') {
+        order.push('reject-attempt');
+        return sql.includes('created_by_user_id = :userId') && sql.includes('status = :fromStatus')
+          ? []
+          : [{ ...pendingWorkoutRow, status: 'REJECTED' }];
+      }
+      return [];
+    },
+  };
+}
+
 async function loadApprovalService({ order = [] } = {}) {
   vi.resetModules();
   const logWorkoutForClient = vi.fn(async () => {
@@ -171,5 +189,24 @@ describe('coachActionProposalApprovalService', () => {
     expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
     expect(logWorkoutForClient).not.toHaveBeenCalled();
     expect(order).toEqual(['claim']);
+  });
+
+  it('does not reject when another approval already claimed the proposal after the stale read', async () => {
+    const order = [];
+    const db = fakeRejectRaceDb({ order });
+    const { rejectCoachActionProposal } = await loadApprovalService();
+
+    const result = await rejectCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(409);
+    expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
+    expect(order).toEqual(['reject-attempt']);
+    const rejectCall = db.calls.find((call) => call.options.replacements?.status === 'REJECTED');
+    expect(rejectCall.sql).toMatch(/created_by_user_id = :userId/);
+    expect(rejectCall.sql).toMatch(/status = :fromStatus/);
   });
 });
