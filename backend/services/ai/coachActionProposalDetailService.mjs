@@ -79,6 +79,22 @@ export function sanitizeProposalDetail({ row, proposal }) {
       },
     });
   }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLARIFICATION) {
+    return withApprovalGate(proposal, {
+      clarification: {
+        question: payload.question || null,
+        options: Array.isArray(payload.options) ? payload.options : [],
+      },
+    });
+  }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN) {
+    return withApprovalGate(proposal, {
+      splitPlan: {
+        splitCount: Array.isArray(payload.splits) ? payload.splits.length : 0,
+        splits: Array.isArray(payload.splits) ? payload.splits : [],
+      },
+    });
+  }
   return withApprovalGate(proposal, {
     frontendAction: {
       event: payload.event || null,

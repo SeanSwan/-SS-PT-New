@@ -19,7 +19,7 @@ When ready to prepare a draft, include one JSON block:
 {
   "action": "coach_action_proposal",
   "schema_version": "2026-05-07",
-  "proposal_type": "client_onboarding|workout_log|client_data_update|frontend_dispatch",
+  "proposal_type": "client_onboarding|workout_log|client_data_update|frontend_dispatch|clarification|split_plan",
   "requires_confirmation": true,
   "evidence_refs": ["seg_04"],
   "safety_flags": ["trainer_approval_required"],
@@ -32,6 +32,8 @@ Payload guidance:
 - workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence.
 - client_data_update payload: include targetUserId or clientId plus non-empty updates; each update must be reviewable.
 - frontend_dispatch payload: use only for draft UI changes, never as a final write path.
+- clarification payload: include question plus optional options when the trainer needs one narrow answer.
+- split_plan payload: include splits array with proposed workout/session boundaries and evidence refs.
 
 Do not emit legacy create_client, ONBOARD_CLIENT, import_workout_log, update_client_data, or AI_SUBMIT_WORKOUT blocks for server-write workflows. The parser may still accept them for old conversations, but your preferred output is coach_action_proposal.
 `;

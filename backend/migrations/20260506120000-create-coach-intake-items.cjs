@@ -83,7 +83,8 @@ module.exports = {
            source_message_id     VARCHAR(128),
            proposal_type         VARCHAR(40) NOT NULL
              CHECK (proposal_type IN (
-               'client_onboarding','workout_log','client_data_update','frontend_dispatch'
+               'client_onboarding','workout_log','client_data_update','frontend_dispatch',
+               'clarification','split_plan'
              )),
            status                VARCHAR(24) NOT NULL DEFAULT 'PENDING'
              CHECK (status IN ('PENDING','APPLYING','APPROVED','APPLIED','REJECTED','FAILED')),
@@ -99,6 +100,22 @@ module.exports = {
            created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
            updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
          )`,
+        { transaction },
+      );
+
+      await queryInterface.sequelize.query(
+        `ALTER TABLE coach_action_proposals
+           DROP CONSTRAINT IF EXISTS coach_action_proposals_proposal_type_check`,
+        { transaction },
+      );
+
+      await queryInterface.sequelize.query(
+        `ALTER TABLE coach_action_proposals
+           ADD CONSTRAINT coach_action_proposals_proposal_type_check
+           CHECK (proposal_type IN (
+             'client_onboarding','workout_log','client_data_update','frontend_dispatch',
+             'clarification','split_plan'
+           ))`,
         { transaction },
       );
 

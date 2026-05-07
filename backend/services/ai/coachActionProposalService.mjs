@@ -6,10 +6,14 @@
  */
 import { randomUUID } from 'node:crypto';
 import { QueryTypes } from 'sequelize';
-import { z } from 'zod';
 import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
 import { encryptPayload } from '../plaudCipherService.mjs';
+import {
+  classifyActionBlock,
+  parseJsonActionBlocks,
+  parseSafeFrontendDispatch,
+} from './coachActionProposalClassifier.mjs';
 
 export const COACH_PROPOSAL_STATUS = Object.freeze({
   PENDING: 'PENDING',
@@ -25,6 +29,8 @@ export const COACH_PROPOSAL_TYPE = Object.freeze({
   WORKOUT_LOG: 'workout_log',
   CLIENT_DATA_UPDATE: 'client_data_update',
   FRONTEND_DISPATCH: 'frontend_dispatch',
+  CLARIFICATION: 'clarification',
+  SPLIT_PLAN: 'split_plan',
 });
 
 export class CoachActionProposalSchemaUnavailableError extends Error {
@@ -36,72 +42,6 @@ export class CoachActionProposalSchemaUnavailableError extends Error {
 }
 
 const SCHEMA_VERSION = '2026-05-06';
-const SAFE_FRONTEND_EVENTS = new Set([
-  'AI_ADD_EXERCISE',
-  'AI_LOAD_TEMPLATE',
-  'AI_UPDATE_SET',
-  'AI_TOGGLE_NASM_ITEM',
-]);
-const WRITE_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
-
-const ExerciseDraftSchema = z.object({
-  name: z.string().trim().min(1),
-}).passthrough();
-
-const FrontendDispatchActionSchema = z.object({
-  action: z.literal('frontend_dispatch'),
-  event: z.string().trim().min(1),
-  payload: z.record(z.unknown()).optional().default({}),
-}).passthrough();
-
-const StructuredCoachProposalSchema = z.object({
-  action: z.literal('coach_action_proposal'),
-  schema_version: z.string().trim().min(1).optional(),
-  proposal_type: z.enum(['client_onboarding', 'workout_log', 'client_data_update', 'frontend_dispatch']),
-  payload: z.record(z.unknown()).optional().default({}),
-  evidence_refs: z.array(z.string().trim().min(1)).max(20).optional().default([]),
-  safety_flags: z.array(z.string().trim().min(1)).max(20).optional().default([]),
-}).passthrough();
-
-const WorkoutLogActionSchema = z.object({
-  action: z.literal('import_workout_log'),
-  date: z.string().trim().min(4),
-  exercises: z.array(ExerciseDraftSchema).min(1),
-}).passthrough();
-
-const ClientDataUpdateActionSchema = z.object({
-  action: z.literal('update_client_data'),
-  updates: z.array(z.unknown()).min(1),
-}).passthrough();
-
-const ClientOnboardingActionSchema = z.object({
-  action: z.enum(['create_client', 'ONBOARD_CLIENT']),
-}).passthrough().refine((block) => {
-  const data = block.data && typeof block.data === 'object' && !Array.isArray(block.data)
-    ? block.data
-    : block;
-  return Object.keys(data).filter((key) => key !== 'action').length > 0;
-});
-
-function parseJsonActionBlocks(content) {
-  const blocks = [];
-  const regex = /```json\s*([\s\S]*?)\s*```/g;
-  let match;
-  while ((match = regex.exec(content || '')) !== null) {
-    try {
-      const parsed = JSON.parse(match[1]);
-      if (parsed?.action) blocks.push(parsed);
-    } catch {
-      // Malformed model JSON is ignored; the chat response remains visible.
-    }
-  }
-  return blocks;
-}
-
-function safeParseAction(schema, block) {
-  const parsed = schema.safeParse(block);
-  return parsed.success ? parsed.data : null;
-}
 
 function proposalTitle(type) {
   const titles = {
@@ -109,17 +49,10 @@ function proposalTitle(type) {
     [COACH_PROPOSAL_TYPE.WORKOUT_LOG]: 'Review workout log draft',
     [COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE]: 'Review client data update',
     [COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH]: 'Review workout form submission',
+    [COACH_PROPOSAL_TYPE.CLARIFICATION]: 'Answer Coach clarification',
+    [COACH_PROPOSAL_TYPE.SPLIT_PLAN]: 'Review transcript split plan',
   };
   return titles[type] || 'Review Coach proposal';
-}
-
-function proposalMeta(block) {
-  return {
-    schemaVersion: block.schema_version || SCHEMA_VERSION,
-    evidenceRefs: block.evidence_refs || [],
-    safetyFlags: block.safety_flags || [],
-    requiresConfirmation: true,
-  };
 }
 
 function summarizeProposal(type, payload, conversation) {
@@ -154,6 +87,21 @@ function summarizeProposal(type, payload, conversation) {
       ...base,
       clientId: Number(conversation?.targetUserId || 0) || null,
       updateCount: Array.isArray(payload.updates) ? payload.updates.length : 0,
+    };
+  }
+  if (type === COACH_PROPOSAL_TYPE.CLARIFICATION) {
+    return {
+      ...base,
+      actionRequired: 'Answer clarification before deterministic approval can continue.',
+      question: payload.question || 'Clarification needed',
+      optionCount: Array.isArray(payload.options) ? payload.options.length : 0,
+    };
+  }
+  if (type === COACH_PROPOSAL_TYPE.SPLIT_PLAN) {
+    return {
+      ...base,
+      actionRequired: 'Approve split before workout cards are prepared.',
+      splitCount: Array.isArray(payload.splits) ? payload.splits.length : 0,
     };
   }
   return { ...base, event: payload.event || 'frontend_dispatch' };
@@ -218,54 +166,6 @@ async function createProposal({ type, payload, summary, user, conversation, sour
   return mapProposalRow(rows[0]);
 }
 
-function classifyActionBlock(block, conversation) {
-  if (block.action === 'coach_action_proposal') {
-    const parsed = safeParseAction(StructuredCoachProposalSchema, block);
-    if (!parsed) return null;
-    const meta = proposalMeta(parsed);
-    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
-      const payload = safeParseAction(WorkoutLogActionSchema, { action: 'import_workout_log', ...parsed.payload });
-      return payload ? { type: COACH_PROPOSAL_TYPE.WORKOUT_LOG, payload: { ...payload, proposalMeta: meta } } : null;
-    }
-    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING) {
-      const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
-      return payload ? { type: COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING, payload: { ...payload, proposalMeta: meta } } : null;
-    }
-    if (parsed.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
-      const payload = safeParseAction(ClientDataUpdateActionSchema, { action: 'update_client_data', ...parsed.payload });
-      return payload ? {
-        type: COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE,
-        payload: { ...payload, targetUserId: conversation?.targetUserId || null, proposalMeta: meta },
-      } : null;
-    }
-    const payload = safeParseAction(FrontendDispatchActionSchema, { action: 'frontend_dispatch', ...parsed.payload });
-    return payload && WRITE_FRONTEND_EVENTS.has(payload.event)
-      ? { type: COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH, payload: { ...payload, proposalMeta: meta } }
-      : null;
-  }
-  if (block.action === 'create_client' || block.action === 'ONBOARD_CLIENT') {
-    const payload = safeParseAction(ClientOnboardingActionSchema, block);
-    return payload ? { type: COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING, payload } : null;
-  }
-  if (block.action === 'import_workout_log') {
-    const payload = safeParseAction(WorkoutLogActionSchema, block);
-    return payload ? { type: COACH_PROPOSAL_TYPE.WORKOUT_LOG, payload } : null;
-  }
-  if (block.action === 'update_client_data') {
-    const payload = safeParseAction(ClientDataUpdateActionSchema, block);
-    if (!payload) return null;
-    return {
-      type: COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE,
-      payload: { ...payload, targetUserId: conversation?.targetUserId || null },
-    };
-  }
-  if (block.action === 'frontend_dispatch' && WRITE_FRONTEND_EVENTS.has(block.event)) {
-    const payload = safeParseAction(FrontendDispatchActionSchema, block);
-    return payload ? { type: COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH, payload } : null;
-  }
-  return null;
-}
-
 export async function createCoachActionProposalsFromAiResponse({
   content,
   user,
@@ -279,15 +179,16 @@ export async function createCoachActionProposalsFromAiResponse({
   const canPrepareWrites = user?.role === 'admin' || user?.role === 'trainer';
 
   for (const block of parseJsonActionBlocks(content)) {
-    const frontendDispatch = block.action === 'frontend_dispatch'
-      ? safeParseAction(FrontendDispatchActionSchema, block)
-      : null;
-    if (frontendDispatch && SAFE_FRONTEND_EVENTS.has(frontendDispatch.event)) {
+    const frontendDispatch = parseSafeFrontendDispatch(block);
+    if (frontendDispatch) {
       frontendActions.push({ event: frontendDispatch.event, payload: frontendDispatch.payload || {} });
       continue;
     }
     if (!canPrepareWrites) continue;
-    const classified = classifyActionBlock(block, conversation);
+    const classified = classifyActionBlock(block, conversation, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: SCHEMA_VERSION,
+    });
     if (!classified) continue;
     const summary = summarizeProposal(classified.type, classified.payload, conversation);
     proposals.push({ ...classified, summary });

@@ -11,6 +11,8 @@ export function proposalTypeLabel(type: string) {
     workout_log: 'Workout log',
     client_data_update: 'Client data update',
     frontend_dispatch: 'Workout form action',
+    clarification: 'Clarification',
+    split_plan: 'Split plan',
   };
   return labels[type] || 'Coach proposal';
 }
@@ -92,6 +94,20 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
       ['Client', workout.clientId ? `#${workout.clientId}` : null],
       ['Exercises', workout.exercises],
       ['Notes', workout.notes],
+    ]));
+  }
+  const clarification = asRecord(detail.clarification);
+  if (clarification) {
+    return withApprovalGateRows(detail, compactRows([
+      ['Question', clarification.question],
+      ['Options', clarification.options],
+    ]));
+  }
+  const splitPlan = asRecord(detail.splitPlan);
+  if (splitPlan) {
+    return withApprovalGateRows(detail, compactRows([
+      ['Splits', splitPlan.splitCount],
+      ['Plan', splitPlan.splits],
     ]));
   }
   const fallbackRows = Object.entries(detail).filter(([key]) => key !== 'approvalGate');

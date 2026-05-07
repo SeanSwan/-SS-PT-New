@@ -156,6 +156,12 @@ describe('coachActionProposalApprovalService', () => {
     expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/ADD CONSTRAINT coach_action_proposals_status_check/);
   });
 
+  it('refreshes the database proposal-type constraint for non-write proposal types', () => {
+    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/DROP CONSTRAINT IF EXISTS coach_action_proposals_proposal_type_check/);
+    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/'clarification'/);
+    expect(COACH_INTAKE_MIGRATION_SRC).toMatch(/'split_plan'/);
+  });
+
   it('claims a pending proposal before running the workout writer', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });

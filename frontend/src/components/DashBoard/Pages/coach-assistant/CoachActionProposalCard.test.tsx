@@ -167,4 +167,20 @@ describe('CoachActionProposalCard', () => {
     expect(screen.getByText(/duplicate_check_required/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Writer/i).length).toBeGreaterThan(0);
   });
+
+  it('renders split-plan proposals as review drafts, not workout writes', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          type: 'split_plan',
+          title: 'Review transcript split plan',
+          summary: { splitCount: 2, actionRequired: 'Approve split before workout cards are prepared.' },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText(/Split plan/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /approve draft/i })).toBeInTheDocument();
+  });
 });

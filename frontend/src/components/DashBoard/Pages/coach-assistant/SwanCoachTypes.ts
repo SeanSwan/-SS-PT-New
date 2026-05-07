@@ -204,7 +204,13 @@ export interface FrontendAction {
 
 export interface CoachActionProposal {
   id: string;
-  type: 'client_onboarding' | 'workout_log' | 'client_data_update' | 'frontend_dispatch';
+  type:
+    | 'client_onboarding'
+    | 'workout_log'
+    | 'client_data_update'
+    | 'frontend_dispatch'
+    | 'clarification'
+    | 'split_plan';
   status: 'PENDING' | 'APPLYING' | 'APPROVED' | 'APPLIED' | 'REJECTED' | 'FAILED';
   title: string;
   summary: Record<string, string | number | null | undefined>;
