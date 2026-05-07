@@ -36,22 +36,22 @@ const pendingWorkoutRow = {
   cipher_key_id: 'VTEST',
 };
 
-function fakeApprovalDb({ claimSucceeds = true, order = [] } = {}) {
+function fakeApprovalDb({ claimSucceeds = true, order = [], row = pendingWorkoutRow } = {}) {
   const calls = [];
   return {
     calls,
     async query(sql, options = {}) {
       calls.push({ sql, options });
-      if (sql.includes('SELECT id, created_by_user_id')) return [pendingWorkoutRow];
+      if (sql.includes('SELECT id, created_by_user_id')) return [row];
       if (sql.includes('status = :pendingStatus')) {
         order.push('claim');
-        return claimSucceeds ? [{ ...pendingWorkoutRow, status: options.replacements.claimedStatus }] : [];
+        return claimSucceeds ? [{ ...row, status: options.replacements.claimedStatus }] : [];
       }
       if (sql.includes('UPDATE coach_action_proposals')) {
         return [{
-          ...pendingWorkoutRow,
+          ...row,
           status: options.replacements.status,
-          summary_json: pendingWorkoutRow.summary_json,
+          summary_json: row.summary_json,
           created_at: '2026-05-06T12:00:00.000Z',
         }];
       }
@@ -208,6 +208,36 @@ describe('coachActionProposalApprovalService', () => {
     const rejectCall = db.calls.find((call) => call.options.replacements?.status === 'REJECTED');
     expect(rejectCall.sql).toMatch(/created_by_user_id = :userId/);
     expect(rejectCall.sql).toMatch(/status = :fromStatus/);
+  });
+
+  it('does not mark empty client data updates failed when another action already claimed the proposal', async () => {
+    const order = [];
+    const db = fakeApprovalDb({
+      claimSucceeds: false,
+      order,
+      row: {
+        ...pendingWorkoutRow,
+        proposal_type: 'client_data_update',
+        summary_json: { title: 'Review client data update' },
+      },
+    });
+    const { approveCoachActionProposal } = await loadApprovalService({
+      decryptedProposal: {
+        payload: { targetUserId: 42, updates: [] },
+        targetUserId: 42,
+      },
+    });
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(409);
+    expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
+    expect(order).toEqual(['claim']);
+    expect(db.calls.some((call) => call.options.replacements?.status === 'FAILED')).toBe(false);
   });
 
   it('returns sanitized approval evidence metadata on proposal detail reads', async () => {

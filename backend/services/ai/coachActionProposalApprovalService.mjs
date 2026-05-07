@@ -147,6 +147,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     }
     const updates = Array.isArray(payload.updates) ? payload.updates : [];
     if (updates.length === 0) {
+      if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
       const updated = await updateProposalStatus({
         id,
         status: COACH_PROPOSAL_STATUS.FAILED,
