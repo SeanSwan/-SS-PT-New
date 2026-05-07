@@ -180,13 +180,15 @@ export async function dispatchReviewNextCoachIntake(params = {}, ctx = {}) {
   return scalarSummary(result, nextItem, ctx);
 }
 
-export async function dispatchInspectPlaudAudioPieces(params = {}, ctx = {}) {
+export async function dispatchInspectCoachAudioPieces(params = {}, ctx = {}) {
   const { result } = await readQueue(params, ctx, {
     defaultScope: 'actionable',
     defaultLimit: REVIEW_NEXT_LIMIT,
   });
   return audioInspectionSummary(result, ctx);
 }
+
+export const dispatchInspectPlaudAudioPieces = dispatchInspectCoachAudioPieces;
 
 export const _internal = {
   audioInspectionSummary,

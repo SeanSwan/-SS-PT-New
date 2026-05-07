@@ -39,7 +39,7 @@ const commands = [
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false,
     category: 'N',
-    relatedCommands: ['review_next_coach_intake', 'inspect_plaud_audio_pieces'],
+    relatedCommands: ['review_next_coach_intake', 'inspect_coach_audio_pieces'],
   },
   {
     type: 'review_next_coach_intake',
@@ -61,7 +61,30 @@ const commands = [
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false,
     category: 'N',
-    relatedCommands: ['view_coach_intake_queue', 'inspect_plaud_audio_pieces'],
+    relatedCommands: ['view_coach_intake_queue', 'inspect_coach_audio_pieces'],
+  },
+  {
+    type: 'inspect_coach_audio_pieces',
+    description: 'Summarize pending Coach and PLAUD audio pieces before ordering, merge, or review',
+    naturalLanguagePatterns: [
+      'inspect pending Coach audio pieces',
+      'inspect pending audio pieces',
+      'help me order my voice notes',
+      'which voice notes go together',
+      'summarize Coach audio pieces before merge',
+    ],
+    method: 'GET',
+    endpoint: '/api/coach/intake/queue?scope=actionable',
+    inputSchema: z.object({
+      scope: CoachIntakeScopeSchema.optional().default('actionable'),
+      limit: z.number().int().min(1).max(20).default(20),
+    }),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['view_coach_intake_queue', 'review_next_coach_intake'],
   },
 ];
 

@@ -51,7 +51,7 @@
  *   exec-substrate-v15 (availability slot read):
  *   A03: view_available_slots → availabilityService.getAvailableSlots (date-scoped open-slot summary)
  *   exec-substrate-v16 (PLAUD read commands):
- *   N01-N03: view/review/inspect PLAUD intake commands → plaudDispatchers
+ *   N01-N06: view/review/inspect intake commands → plaud + coach intake dispatchers
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -75,6 +75,7 @@ import {
   dispatchViewPlaudIntakeQueue,
 } from './dispatchers/plaudDispatchers.mjs';
 import {
+  dispatchInspectCoachAudioPieces,
   dispatchInspectPlaudAudioPieces,
   dispatchReviewNextCoachIntake,
   dispatchViewCoachIntakeQueue,
@@ -187,6 +188,7 @@ const DISPATCHERS = new Map([
   ['create_availability_override', dispatchCreateAvailabilityOverride],
   ['view_coach_intake_queue',       dispatchViewCoachIntakeQueue],
   ['review_next_coach_intake',      dispatchReviewNextCoachIntake],
+  ['inspect_coach_audio_pieces',    dispatchInspectCoachAudioPieces],
   ['view_plaud_intake_queue',      dispatchViewPlaudIntakeQueue],
   ['review_next_plaud_intake',     dispatchReviewNextPlaudIntake],
   ['inspect_plaud_audio_pieces',   dispatchInspectPlaudAudioPieces],

@@ -73,7 +73,7 @@ describe('CoachIntakeWorkspace', () => {
     expect(onCommandPrompt).toHaveBeenCalledWith('review next Coach intake');
 
     fireEvent.click(screen.getByRole('button', { name: /inspect audio pieces/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending PLAUD audio pieces');
+    expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
     expect(screen.getByRole('link', { name: /open full plaud workspace/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud');
   });

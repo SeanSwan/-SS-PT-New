@@ -176,7 +176,7 @@ export function CoachIntakeWorkspace({
           </ActionButton>
           <ActionButton
             type="button"
-            onClick={() => onCommandPrompt('inspect pending PLAUD audio pieces')}
+            onClick={() => onCommandPrompt('inspect pending Coach audio pieces')}
           >
             <GitBranch size={16} aria-hidden="true" />
             Inspect audio pieces

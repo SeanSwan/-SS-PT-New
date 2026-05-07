@@ -19,6 +19,9 @@ const REGISTRY_INDEX_SRC = readFileSync(
 const DISPATCHER_INDEX_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/commandDispatcher.mjs'), 'utf8',
 );
+const COACH_INTAKE_COMMANDS_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/commandRegistry/coachIntakeCommands.mjs'), 'utf8',
+);
 const WORKSPACE_SRC = readFileSync(
   resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntakeWorkspace.tsx'), 'utf8',
 );
@@ -29,6 +32,7 @@ vi.mock('../../services/coachIntakeItemService.mjs', () => ({
 
 import { listUnifiedCoachIntakeItems } from '../../services/coachIntakeItemService.mjs';
 import {
+  dispatchInspectCoachAudioPieces,
   dispatchInspectPlaudAudioPieces,
   dispatchReviewNextCoachIntake,
   dispatchViewCoachIntakeQueue,
@@ -39,15 +43,20 @@ describe('Unified Coach intake command registry source contract', () => {
   it('registers unified Coach intake commands and dispatchers', () => {
     expect(REGISTRY_INDEX_SRC).toMatch(/coachIntakeCommands\.mjs/);
     expect(REGISTRY_INDEX_SRC).toMatch(/registerCoachIntake/);
+    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/type:\s*'inspect_coach_audio_pieces'/);
+    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/inspect pending Coach audio pieces/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewCoachIntakeQueue/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_queue',\s*dispatchViewCoachIntakeQueue\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['review_next_coach_intake',\s*dispatchReviewNextCoachIntake\]/);
+    expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_coach_audio_pieces',\s*dispatchInspectCoachAudioPieces\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_plaud_audio_pieces',\s*dispatchInspectPlaudAudioPieces\]/);
   });
 
   it('makes the Coach workspace ask the unified intake command, not the PLAUD-only command', () => {
     expect(WORKSPACE_SRC).toMatch(/onCommandPrompt\('review next Coach intake'\)/);
+    expect(WORKSPACE_SRC).toMatch(/onCommandPrompt\('inspect pending Coach audio pieces'\)/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);
+    expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('inspect pending PLAUD audio pieces'\)/);
   });
 });
 
@@ -264,7 +273,7 @@ describe('Unified Coach intake dispatcher behavior', () => {
       ],
     });
 
-    const result = await dispatchInspectPlaudAudioPieces(
+    const result = await dispatchInspectCoachAudioPieces(
       {},
       { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
     );
