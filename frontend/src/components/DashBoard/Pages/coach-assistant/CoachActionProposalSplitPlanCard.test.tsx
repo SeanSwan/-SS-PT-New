@@ -47,6 +47,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
                 date: '2026-05-05',
                 reason: 'Clip one mentions squats and lunges.',
                 evidenceRefs: ['clip_1_meta'],
+                redactedEvidenceRefCount: 1,
               },
               {
                 title: 'Evening upper body',
@@ -67,6 +68,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
 
     expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
     expect(screen.getByText(/Clip two starts a separate upper-body session/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 evidence ref withheld/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /approve split plan/i })).not.toBeDisabled();
   });
 

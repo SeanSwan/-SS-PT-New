@@ -6,6 +6,7 @@
 import { decryptPayload } from '../plaudCipherService.mjs';
 import { summarizeOnboardingDraftForReview } from '../coachClientOnboardingApprovalService.mjs';
 import { COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
+import { sanitizeSplitCandidate } from './coachSplitPlanApprovalService.mjs';
 
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
 const SAFE_FLAG_PATTERN = /^[A-Za-z0-9:_-]{1,80}$/;
@@ -88,10 +89,11 @@ export function sanitizeProposalDetail({ row, proposal }) {
     });
   }
   if (row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN) {
+    const splits = Array.isArray(payload.splits) ? payload.splits : [];
     return withApprovalGate(proposal, {
       splitPlan: {
-        splitCount: Array.isArray(payload.splits) ? payload.splits.length : 0,
-        splits: Array.isArray(payload.splits) ? payload.splits : [],
+        splitCount: splits.length,
+        splits: splits.map(sanitizeSplitCandidate),
       },
     });
   }

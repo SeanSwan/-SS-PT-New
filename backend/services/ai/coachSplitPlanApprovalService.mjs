@@ -29,7 +29,7 @@ function safeRefs(value) {
     }, { refs: [], redactedCount: 0 });
 }
 
-function sanitizeSplitCandidate(split, index) {
+export function sanitizeSplitCandidate(split, index) {
   const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
   const evidence = safeRefs(source.evidenceRefs);
   return {

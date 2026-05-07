@@ -50,6 +50,12 @@ function evidenceText(value: unknown) {
   return refs.length ? refs.join(', ') : null;
 }
 
+function redactedEvidenceText(value: unknown) {
+  const count = Number(value || 0);
+  if (!Number.isFinite(count) || count <= 0) return null;
+  return `${count} evidence ref${count === 1 ? '' : 's'} withheld`;
+}
+
 function splitItems(detail: Record<string, unknown> | null) {
   const splitPlan = asRecord(detail?.splitPlan);
   const splits = splitPlan?.splits;
@@ -70,6 +76,9 @@ export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<s
             {text(split.recordedAtEnd) && <div>Ends: {text(split.recordedAtEnd)}</div>}
             {text(split.reason) && <div>Reason: {text(split.reason)}</div>}
             {evidenceText(split.evidenceRefs) && <div>Evidence: {evidenceText(split.evidenceRefs)}</div>}
+            {redactedEvidenceText(split.redactedEvidenceRefCount) && (
+              <div>{redactedEvidenceText(split.redactedEvidenceRefCount)}</div>
+            )}
           </SplitMeta>
         </SplitCard>
       ))}
