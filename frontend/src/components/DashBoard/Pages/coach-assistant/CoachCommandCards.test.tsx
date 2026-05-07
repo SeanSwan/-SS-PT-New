@@ -64,6 +64,26 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('targetRoute')).toBeNull();
   });
 
+  it('labels PLAUD audio inspection as Coach intake when the route returns to Coach', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_plaud_audio_pieces"
+          client={null}
+          result={{
+            totalAudioItems: 1,
+            needsOrderingReview: 1,
+            queueRoute: '/dashboard/admin/coach-assistant',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open coach intake/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant');
+    expect(screen.queryByText('queueRoute')).toBeNull();
+  });
+
   it('labels unified Coach intake routes as Coach intake actions', () => {
     render(
       <MemoryRouter>

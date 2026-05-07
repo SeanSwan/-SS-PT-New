@@ -20,8 +20,8 @@ const RouteLink = styled(Link)`
   gap: 8px;
   padding: 0 16px;
   border-radius: 8px;
-  border: 1px solid rgba(96, 192, 240, 0.35);
-  background: rgba(96, 192, 240, 0.14);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   color: var(--accent-primary, #60C0F0);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
@@ -30,8 +30,8 @@ const RouteLink = styled(Link)`
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.22);
-    box-shadow: 0 0 14px rgba(139, 92, 246, 0.28);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
     transform: translateY(-1px);
   }
 
@@ -54,7 +54,9 @@ function safeInternalRoute(value: unknown): string | null {
   return route;
 }
 
-function labelForCommand(command: string): string {
+function labelForCommand(command: string, route: string): string {
+  if (route.includes('/coach-assistant')) return 'Open Coach Intake';
+  if (route.includes('/plaud')) return 'Open PLAUD Workspace';
   if (command.includes('coach_intake')) return 'Open Coach Intake';
   return command.includes('plaud') ? 'Open PLAUD Workspace' : 'Open Workspace';
 }
@@ -73,7 +75,7 @@ export function CommandRouteAction({ command, result }: CommandRouteActionProps)
 
   if (!route) return null;
 
-  const label = labelForCommand(command);
+  const label = labelForCommand(command, route);
   return (
     <ActionWrap>
       <RouteLink to={route} aria-label={label}>
