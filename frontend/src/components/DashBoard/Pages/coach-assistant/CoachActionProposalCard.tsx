@@ -142,7 +142,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const approveLabel = proposal.type === 'workout_log'
     ? 'Approve and log'
     : proposal.type === 'split_plan' ? 'Approve split plan' : 'Approve draft';
-  const requiresDetailBeforeApprove = proposal.type === 'client_onboarding';
+  const requiresDetailBeforeApprove = proposal.type === 'client_onboarding' || proposal.type === 'split_plan';
   const clarificationOptions = useMemo(() => clarificationOptionsFromDetail(detail), [detail]);
   const isClarification = proposal.type === 'clarification';
   const detailHasBlockingError = hasDetailBlockingError(detail);
@@ -188,7 +188,10 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       } else if (proposal.type === 'client_data_update' && result.applied) {
         setMessage('Client updates applied through deterministic approval.');
       } else if (proposal.type === 'split_plan') {
-        setMessage('Split plan approved for deterministic workout-card preparation.');
+        const count = Number(result.splitPlan?.splitCount || 0);
+        setMessage(count > 0
+          ? `${count} workout split candidates approved for deterministic workout-card preparation.`
+          : 'Split plan approved for deterministic workout-card preparation.');
       } else {
         setMessage(result.applied
           ? 'Applied through the deterministic workout logger.'

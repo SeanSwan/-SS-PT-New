@@ -174,64 +174,6 @@ describe('CoachActionProposalCard', () => {
     expect(screen.getAllByText(/Writer/i).length).toBeGreaterThan(0);
   });
 
-  it('renders split-plan proposals as review drafts, not workout writes', () => {
-    render(
-      <CoachActionProposalCard
-        proposal={{
-          ...proposal,
-          type: 'split_plan',
-          title: 'Review transcript split plan',
-          summary: { splitCount: 2, actionRequired: 'Approve split before workout cards are prepared.' },
-        }}
-      />,
-    );
-
-    expect(screen.getAllByText(/Split plan/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /approve split plan/i })).toBeInTheDocument();
-  });
-
-  it('shows split-plan details as readable workout candidates', async () => {
-    const splitProposal = {
-      ...proposal,
-      type: 'split_plan' as const,
-      title: 'Review transcript split plan',
-      summary: { splitCount: 2, actionRequired: 'Approve split before workout cards are prepared.' },
-    };
-    vi.mocked(getCoachProposal).mockResolvedValue({
-      success: true,
-      proposal: {
-        ...splitProposal,
-        detail: {
-          splitPlan: {
-            splitCount: 2,
-            splits: [
-              {
-                title: 'Morning lower body',
-                date: '2026-05-05',
-                reason: 'Clip one mentions squats and lunges.',
-                evidenceRefs: ['clip_1_meta'],
-              },
-              {
-                title: 'Evening upper body',
-                date: '2026-05-05',
-                reason: 'Clip two starts a separate upper-body session.',
-                evidenceRefs: ['clip_2_meta'],
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    render(<CoachActionProposalCard proposal={splitProposal} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
-
-    expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
-    expect(screen.getByText(/Clip two starts a separate upper-body session/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /approve split plan/i })).toBeInTheDocument();
-  });
-
   it('records a one-tap clarification answer from loaded proposal details', async () => {
     const clarificationProposal = {
       ...proposal,

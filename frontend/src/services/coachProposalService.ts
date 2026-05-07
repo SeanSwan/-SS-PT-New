@@ -16,6 +16,11 @@ export interface CoachProposalActionResponse {
   workout?: Record<string, unknown>;
   client?: Record<string, unknown>;
   updates?: Record<string, unknown>;
+  splitPlan?: {
+    nextAction?: string;
+    splitCount?: number;
+    splits?: Array<Record<string, unknown>>;
+  };
   clarificationAnswer?: string;
   code?: string;
   error?: string;

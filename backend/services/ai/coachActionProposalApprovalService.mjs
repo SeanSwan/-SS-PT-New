@@ -9,14 +9,12 @@ import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardin
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { processAIDataUpdates } from '../aiDataWriteService.mjs';
 import { logWorkoutForClient, WorkoutLogError } from '../workout/workoutLogService.mjs';
-import {
-  COACH_PROPOSAL_STATUS,
-  COACH_PROPOSAL_TYPE,
-} from './coachActionProposalService.mjs';
+import { COACH_PROPOSAL_STATUS, COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
 import {
   decryptProposalPayload,
   sanitizeProposalDetail,
 } from './coachActionProposalDetailService.mjs';
+import { approveNonWriteCoachProposal } from './coachSplitPlanApprovalService.mjs';
 
 function mapProposalRow(row) {
   const summary = row.summary_json || {};
@@ -206,14 +204,16 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
   }
 
   if (row.proposal_type !== COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
-    if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
-    const updated = await updateProposalStatus({
+    return approveNonWriteCoachProposal({
+      row,
+      proposal,
       id,
-      status: COACH_PROPOSAL_STATUS.APPROVED,
-      result: { nextAction: 'open_deterministic_review_flow' },
+      userId: req.user.id,
       db,
+      claimPendingProposal,
+      updateProposalStatus,
+      proposalNotPending,
     });
-    return { status: 200, body: { success: true, proposal: updated, applied: false } };
   }
 
   const payload = proposal.payload || {};
