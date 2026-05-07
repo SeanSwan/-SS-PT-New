@@ -21,6 +21,7 @@ import {
   hasDetailBlockingError,
   proposalTypeLabel,
 } from './CoachActionProposalDetailRows';
+import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
 
 const Card = styled.div`
   margin-top: 12px;
@@ -138,7 +139,9 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const [error, setError] = useState<string | null>(null);
   const summary = proposal.summary || {};
   const pending = status === 'PENDING';
-  const approveLabel = proposal.type === 'workout_log' ? 'Approve and log' : 'Approve draft';
+  const approveLabel = proposal.type === 'workout_log'
+    ? 'Approve and log'
+    : proposal.type === 'split_plan' ? 'Approve split plan' : 'Approve draft';
   const requiresDetailBeforeApprove = proposal.type === 'client_onboarding';
   const clarificationOptions = useMemo(() => clarificationOptionsFromDetail(detail), [detail]);
   const isClarification = proposal.type === 'clarification';
@@ -184,6 +187,8 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
         setMessage('Some client updates applied; review the remaining errors.');
       } else if (proposal.type === 'client_data_update' && result.applied) {
         setMessage('Client updates applied through deterministic approval.');
+      } else if (proposal.type === 'split_plan') {
+        setMessage('Split plan approved for deterministic workout-card preparation.');
       } else {
         setMessage(result.applied
           ? 'Applied through the deterministic workout logger.'
@@ -248,6 +253,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
           ))}
         </DetailPanel>
       )}
+      <CoachActionProposalSplitPlanPanel detail={detail} />
       {pending && isClarification && clarificationOptions.length > 0 && (
         <ClarificationOptions aria-label="Clarification answer options">
           {clarificationOptions.map((option) => (

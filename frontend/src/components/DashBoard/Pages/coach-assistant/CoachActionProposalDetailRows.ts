@@ -107,7 +107,6 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
   if (splitPlan) {
     return withApprovalGateRows(detail, compactRows([
       ['Splits', splitPlan.splitCount],
-      ['Plan', splitPlan.splits],
     ]));
   }
   const fallbackRows = Object.entries(detail).filter(([key]) => key !== 'approvalGate');
