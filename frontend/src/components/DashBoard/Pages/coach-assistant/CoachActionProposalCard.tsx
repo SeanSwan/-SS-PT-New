@@ -68,13 +68,6 @@ const Actions = styled.div`
   margin-top: 12px;
 `;
 
-const ClarificationOptions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-`;
-
 const DetailPanel = styled.div`
   margin-top: 12px;
   padding: 10px 12px;
@@ -135,6 +128,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(proposal.detail || null);
+  const [generatedProposals, setGeneratedProposals] = useState<CoachActionProposal[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const summary = proposal.summary || {};
@@ -190,6 +184,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       } else if (proposal.type === 'split_plan') {
         const workoutDraftCount = Number(result.splitPlan?.workoutProposalCount || 0);
         const splitCount = Number(result.splitPlan?.splitCount || 0);
+        setGeneratedProposals(Array.isArray(result.splitPlan?.workoutProposals) ? result.splitPlan.workoutProposals : []);
         setMessage(workoutDraftCount > 0
           ? `${workoutDraftCount} workout log draft${workoutDraftCount === 1 ? '' : 's'} prepared for approval.`
           : `${splitCount || 'Split plan'} workout split candidates approved for deterministic workout-card preparation.`);
@@ -234,6 +229,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   };
 
   return (
+    <>
     <Card>
       <Header><ShieldCheck size={16} /> {proposal.title}</Header>
       {rows.map(([label, value]) => (
@@ -259,7 +255,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       )}
       <CoachActionProposalSplitPlanPanel detail={detail} />
       {pending && isClarification && clarificationOptions.length > 0 && (
-        <ClarificationOptions aria-label="Clarification answer options">
+        <Actions aria-label="Clarification answer options">
           {clarificationOptions.map((option) => (
             <ActionButton
               key={option}
@@ -270,7 +266,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
               {option}
             </ActionButton>
           ))}
-        </ClarificationOptions>
+        </Actions>
       )}
       {pending && (
         <Actions>
@@ -293,6 +289,10 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       {message && <StatusText><CheckCircle2 size={14} /> {message}</StatusText>}
       {error && <StatusText $error>{error}</StatusText>}
     </Card>
+    {generatedProposals.map((generatedProposal) => (
+      <CoachActionProposalCard key={generatedProposal.id} proposal={generatedProposal} />
+    ))}
+    </>
   );
 }
 
