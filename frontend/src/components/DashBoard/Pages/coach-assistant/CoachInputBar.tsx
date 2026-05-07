@@ -20,11 +20,12 @@ import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoa
 import { ORB_SIZE_MAP, ORB_ICON_SIZE_MAP } from './SwanCoachConstants';
 import CoachInputCancelPill from './CoachInputCancelPill';
 import type { OrbSize } from './SwanCoachTypes';
+import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Character Count
 // ─────────────────────────────────────────────────────────────
-const MAX_CHARS = 10000;
+const MAX_CHARS = AI_CHAT_MESSAGE_MAX_CHARS;
 const CANCEL_WINDOW_MS = 2000;
 const MIN_AUTO_SEND_LENGTH = 4; // prevent ambient noise / single phoneme triggering
 

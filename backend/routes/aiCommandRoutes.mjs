@@ -30,6 +30,7 @@ import {
 } from '../services/ai/commandRegistry/index.mjs';
 
 const router = express.Router();
+const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
 
 // Initialize command registry on first import
 initializeRegistry();
@@ -43,14 +44,17 @@ router.post('/execute', protect, async (req, res) => {
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
         success: false,
+        code: 'COMMAND_MESSAGE_REQUIRED',
         error: 'Message is required',
       });
     }
 
-    if (message.length > 2000) {
+    if (message.length > AI_COMMAND_MESSAGE_MAX_CHARS) {
       return res.status(400).json({
         success: false,
-        error: 'Message exceeds 2000 character limit',
+        code: 'COMMAND_MESSAGE_TOO_LONG',
+        error: `Message exceeds ${AI_COMMAND_MESSAGE_MAX_CHARS} character limit`,
+        maxChars: AI_COMMAND_MESSAGE_MAX_CHARS,
       });
     }
 

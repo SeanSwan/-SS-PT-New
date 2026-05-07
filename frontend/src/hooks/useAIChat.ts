@@ -7,9 +7,18 @@
  * Uses localStorage token via api.service.ts interceptors for auth.
  */
 import { useState, useCallback, useRef } from 'react';
+import {
+  buildAiApiError,
+  buildAiSendFailure,
+  buildChatMessageTooLongError,
+  type AiApiError,
+  isChatMessageTooLong,
+  isNonRetryableAiErrorCode,
+} from './aiMessageLimits';
 
 const API_BASE = import.meta.env.VITE_API_BASE
   || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+const CONVERSATION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -62,11 +71,22 @@ export function useAIChat() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
+  const [lastErrorRetryable, setLastErrorRetryable] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const convCacheTimeRef = useRef<number>(0);
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => {
+    setError(null);
+    setLastErrorCode(null);
+    setLastErrorRetryable(true);
+  }, []);
+
+  const setFailureState = useCallback((msg: string, code?: string | null, retryable = true) => {
+    setError(msg);
+    setLastErrorCode(code || null);
+    setLastErrorRetryable(retryable);
+  }, []);
 
   /**
    * Create a new conversation
@@ -107,7 +127,7 @@ export function useAIChat() {
    */
   const listConversations = useCallback(async (status = 'active', force = false) => {
     // Skip fetch if cache is fresh (unless forced)
-    if (!force && conversations.length > 0 && Date.now() - convCacheTimeRef.current < CACHE_TTL) {
+    if (!force && conversations.length > 0 && Date.now() - convCacheTimeRef.current < CONVERSATION_CACHE_TTL_MS) {
       return conversations;
     }
     setLoading(true);
@@ -157,8 +177,14 @@ export function useAIChat() {
    * Send a message to the active conversation and get AI response
    */
   const sendMessage = useCallback(async (message: string) => {
+    if (isChatMessageTooLong(message)) {
+      const msg = buildChatMessageTooLongError(message.length);
+      setFailureState(msg, 'MESSAGE_TOO_LONG', false);
+      return { failed: true, originalMessage: message, errorCode: 'MESSAGE_TOO_LONG', retryable: false };
+    }
+
     if (!activeConversation) {
-      setError('No active conversation');
+      setFailureState('No active conversation');
       return null;
     }
 
@@ -167,7 +193,7 @@ export function useAIChat() {
     abortRef.current = new AbortController();
 
     setSending(true);
-    setError(null);
+    clearError();
 
     // Optimistic: add user message immediately
     const optimisticUserMsg: Message = {
@@ -200,10 +226,10 @@ export function useAIChat() {
           messages: prev.messages.slice(0, -1),
         } : prev);
         setSending(false);
-        return { paywallRequired: true, ...data, originalMessage: message } as any;
+        return { paywallRequired: true, ...data, originalMessage: message };
       }
 
-      if (!data.success) throw new Error(data.error || 'Failed to send message');
+      if (!data.success) throw buildAiApiError(data, 'Failed to send message', res.status);
 
       // Replace optimistic message with real response
       setActiveConversation(prev => {
@@ -229,19 +255,22 @@ export function useAIChat() {
       return data.assistantMessage;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return null;
+      const apiErr = err as AiApiError;
       const msg = err instanceof Error ? err.message : 'Failed to send message';
-      setError(msg);
+      const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
+      const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
+      setFailureState(msg, code, retryable);
       // Remove optimistic message on error
       setActiveConversation(prev => prev ? {
         ...prev,
         messages: prev.messages.slice(0, -1),
       } : prev);
       // Return failure indicator so component can restore input
-      return { failed: true, originalMessage: message } as any;
+      return buildAiSendFailure(message, apiErr);
     } finally {
       setSending(false);
     }
-  }, [activeConversation]);
+  }, [activeConversation, clearError, setFailureState]);
 
   /**
    * Archive or delete a conversation
@@ -272,12 +301,18 @@ export function useAIChat() {
     responseStyle: ResponseStyle = 'both',
     foodContext?: Record<string, unknown> | null,
   ) => {
+    if (isChatMessageTooLong(message)) {
+      const msg = buildChatMessageTooLongError(message.length);
+      setFailureState(msg, 'MESSAGE_TOO_LONG', false);
+      return { failed: true, originalMessage: message, errorCode: 'MESSAGE_TOO_LONG', retryable: false };
+    }
+
     // Cancel any in-flight request
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
     setSending(true);
-    setError(null);
+    clearError();
 
     try {
       // Step 1: Ensure we have a conversation (create if needed)
@@ -292,7 +327,7 @@ export function useAIChat() {
           signal: abortRef.current.signal,
         });
         const createData = await createRes.json();
-        if (!createData.success) throw new Error(createData.error || 'Failed to create conversation');
+        if (!createData.success) throw buildAiApiError(createData, 'Failed to create conversation', createRes.status);
         convId = createData.conversation.id;
         const newConv: Conversation = { ...createData.conversation, messages: [], role: '', metadata: {} };
         setActiveConversation(newConv);
@@ -315,10 +350,10 @@ export function useAIChat() {
       if (res.status === 402) {
         setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
         setSending(false);
-        return { paywallRequired: true, ...data, originalMessage: message } as any;
+        return { paywallRequired: true, ...data, originalMessage: message };
       }
 
-      if (!data.success) throw new Error(data.error || 'Failed to send message');
+      if (!data.success) throw buildAiApiError(data, 'Failed to send message', res.status);
 
       // Attach server-side action results to the assistant message metadata
       const enrichedAssistantMsg = { ...data.assistantMessage };
@@ -352,23 +387,26 @@ export function useAIChat() {
       return enrichedAssistantMsg;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return null;
+      const apiErr = err as AiApiError;
       const msg = err instanceof Error ? err.message : 'Failed to send message';
-      setError(msg);
+      const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
+      const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
+      setFailureState(msg, code, retryable);
       // Remove optimistic message on error
       setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
-      return { failed: true, originalMessage: message } as any;
+      return buildAiSendFailure(message, apiErr);
     } finally {
       setSending(false);
     }
-  }, [activeConversation]);
+  }, [activeConversation, clearError, setFailureState]);
 
   /**
    * Start a fresh conversation (clear active)
    */
   const newChat = useCallback(() => {
     setActiveConversation(null);
-    setError(null);
-  }, []);
+    clearError();
+  }, [clearError]);
 
   /**
    * Rename a conversation title via PATCH
@@ -424,6 +462,8 @@ export function useAIChat() {
     loading,
     sending,
     error,
+    lastErrorCode,
+    lastErrorRetryable,
 
     // Actions
     createConversation,

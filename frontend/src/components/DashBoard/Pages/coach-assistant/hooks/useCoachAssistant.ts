@@ -21,6 +21,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAIChat } from '../../../../../hooks/useAIChat';
+import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
@@ -272,9 +273,15 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   // ── Send message (command lane first, chat lane fallback) ──
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || chat.sending || executingCommand) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || chat.sending || executingCommand) return;
 
-    const cmdResult = await executeCommand(text.trim(), { selectedClientId: targetClientId });
+    let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
+    if (isCommandLaneCandidate(trimmedText)) {
+      cmdResult = await executeCommand(trimmedText, { selectedClientId: targetClientId });
+    } else {
+      cmdResult = { type: 'fallback_to_chat' };
+    }
 
     if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
       // Route to chat lane as normal.
@@ -286,22 +293,22 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       // returns a single unified response, which is what the UI label
       // actually promises.
       const backendStyle = responseStyle;
-      await chat.sendMessageWithConversation(
-        text.trim(),
+      const chatResult = await chat.sendMessageWithConversation(
+        trimmedText,
         context as Parameters<typeof chat.sendMessageWithConversation>[1],
         'Swan Coach Session',
         targetClientId,
         backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
       );
       setLocalMessages([]);
-      return;
+      return chatResult;
     }
 
     // Command lane handled — inject messages into commandMessages
     const userMsg: CoachMessageData = {
       id: `cmd-user-${Date.now()}`,
       role: 'user',
-      content: text.trim(),
+      content: trimmedText,
       timestamp: new Date().toISOString(),
     };
 
@@ -325,7 +332,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'executed') {
@@ -344,7 +351,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'debate_started') {
@@ -356,7 +363,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'not_wired') {
@@ -368,8 +375,9 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
+      return cmdResult;
     }
-  }, [chat, context, responseStyle, targetClientId, executeCommand]);
+  }, [chat, context, responseStyle, targetClientId, executeCommand, executingCommand]);
 
   // ── Confirm a pending destructive/confirmation command ──
   const confirmCommand = useCallback(async (operationId: string): Promise<{ success: boolean; error?: string }> => {
@@ -627,6 +635,8 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     sending: chat.sending || executingCommand,
     loading: chat.loading,
     error: chat.error,
+    lastErrorCode: chat.lastErrorCode,
+    lastErrorRetryable: chat.lastErrorRetryable,
     context,
     responseStyle,
     setResponseStyle,

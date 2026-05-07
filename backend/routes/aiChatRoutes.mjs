@@ -73,6 +73,7 @@ const audioUpload = multer({
 });
 
 const router = express.Router();
+const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
 
 // All routes require authentication
 router.use(protect);
@@ -262,11 +263,20 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     const { message, foodContext } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Message is required' });
+      return res.status(400).json({
+        success: false,
+        code: 'MESSAGE_REQUIRED',
+        error: 'Message is required',
+      });
     }
 
-    if (message.length > 5000) {
-      return res.status(400).json({ success: false, error: 'Message too long (max 5000 characters)' });
+    if (message.length > AI_CHAT_MESSAGE_MAX_CHARS) {
+      return res.status(400).json({
+        success: false,
+        code: 'MESSAGE_TOO_LONG',
+        error: `Message too long (max ${AI_CHAT_MESSAGE_MAX_CHARS} characters)`,
+        maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
+      });
     }
 
     const conversation = await AiConversation.findOne({

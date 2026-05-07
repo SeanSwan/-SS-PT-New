@@ -293,6 +293,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   // SPRINT B: transcript text injected into CoachInputBar when user chooses "Edit".
   // Uses { text, seq } nonce so identical text can inject on repeated edits.
   const [pendingVoiceEdit, setPendingVoiceEdit] = useState<{ text: string; seq: number } | null>(null);
+  const injectInputText = useCallback((text: string) => {
+    setPendingVoiceEdit(prev => ({ text, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
   const attachments = useFileAttachment();
 
   // Load conversation list on mount
@@ -506,16 +509,22 @@ const SwanCoachAssistantPage: React.FC = () => {
   const handleOpenVoiceOverlay = useCallback(() => setVoiceOverlayOpen(true), []);
   const handleCloseVoiceOverlay = useCallback(() => setVoiceOverlayOpen(false), []);
   // SPRINT B: "Send to Swan Coach" from preview state → command/chat routing
-  const handleVoiceTranscribed = useCallback((text: string) => {
-    coach.sendMessage(text);
+  const handleVoiceTranscribed = useCallback(async (text: string) => {
+    const result = await coach.sendMessage(text);
+    if (result && typeof result === 'object' && 'failed' in result && result.failed) {
+      const original = 'originalMessage' in result && typeof result.originalMessage === 'string'
+        ? result.originalMessage
+        : text;
+      injectInputText(original);
+    }
     setVoiceOverlayOpen(false);
-  }, [coach]);
+  }, [coach, injectInputText]);
   // SPRINT B: "Edit" from preview state → drop transcript into input bar.
   // Increments seq so repeated identical transcripts still trigger injection.
   const handleVoiceEditTranscript = useCallback((text: string) => {
-    setPendingVoiceEdit(prev => ({ text, seq: (prev?.seq ?? 0) + 1 }));
+    injectInputText(text);
     setVoiceOverlayOpen(false);
-  }, []);
+  }, [injectInputText]);
 
   // ── Neural Link: set macro_logging context for next conversation ──
   const handleNeuralLink = useCallback(async () => {
@@ -785,10 +794,17 @@ const SwanCoachAssistantPage: React.FC = () => {
 
       // Existing flow — text-only or non-transcript attachments.
       setLastAttempt(text);
-      coach.sendMessage(text);
+      const result = await coach.sendMessage(text);
+      if (result && typeof result === 'object' && 'failed' in result && result.failed) {
+        const original = 'originalMessage' in result && typeof result.originalMessage === 'string'
+          ? result.originalMessage
+          : text;
+        injectInputText(original);
+        return;
+      }
       attachments.clearFiles();
     },
-    [coach, attachments, intake, selectedClient],
+    [coach, attachments, intake, selectedClient, injectInputText],
   );
 
   // ── Cleanup TTS on unmount ──
@@ -903,7 +919,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           {coach.error && !coach.sending && (
             <ErrorBanner>
               <span>{coach.error}</span>
-              {lastAttempt && (
+              {coach.lastErrorRetryable && lastAttempt && (
                 <button onClick={() => handleSend(lastAttempt)}>Retry</button>
               )}
               <button onClick={coach.clearError}>Dismiss</button>
