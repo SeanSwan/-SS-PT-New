@@ -32,26 +32,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Pass through all fetch requests without caching
+// Pass through all fetch requests without caching.
+// Intentionally no event.respondWith here: this service worker is disabled,
+// so the browser/network stack should surface the real navigation/API result.
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests to prevent CORS error storms
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) {
-    // Let browser handle cross-origin requests directly
-    return;
-  }
-
-  // For same-origin requests, pass through with error handling
-  event.respondWith(
-    fetch(event.request).catch((error) => {
-      console.log('SW: Fetch failed for', event.request.url, error.message);
-      // Return a simple error response instead of throwing
-      return new Response('Service Worker: Network error', {
-        status: 503,
-        statusText: 'Service Unavailable'
-      });
-    })
-  );
+  // Touch event.request so lint/build tooling knows this is intentionally a
+  // passive fetch listener while the old registration drains from browsers.
+  void event.request;
 });
 
 // Notify clients that PWA is disabled

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
 import { usePlaudIntakeQueue } from '../../hooks/usePlaudIntakeQueue';
+import type { PlaudIntakeItem } from '../../services/plaudIntakeService';
 import {
   ActionButton,
   ActionItem,
@@ -71,12 +72,29 @@ function formatQueueStatus(status: string): string {
     .join(' ');
 }
 
+function reviewableMergeTime(item: PlaudIntakeItem): number {
+  const value = item.recordedAt || item.timelineAt || item.createdAt;
+  const parsed = Date.parse(value || '');
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
+function pickReviewNextMergeRequestId(items: PlaudIntakeItem[]): string | null {
+  return [...items]
+    .filter((item) => item.kind === 'merge_request' && item.canReview)
+    .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
+}
+
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const role = useDashboardRole();
   const coachPath = `/dashboard/${role}/coach-assistant`;
-  const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue();
+  const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
+  const params = new URLSearchParams(location.search);
+  const reviewNextRequested = params.get('review') === 'next';
+  const reviewNextMergeRequestId = reviewNextRequested
+    ? pickReviewNextMergeRequestId(intakeItems)
+    : null;
 
   const focusQueue = useCallback(() => {
     const queue = document.querySelector('[data-testid="plaud-pending-reviews"]');
@@ -97,9 +115,10 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('review') !== 'next') return undefined;
+    if (isLoading || reviewNextMergeRequestId) return undefined;
     const timer = window.setTimeout(focusQueue, 120);
     return () => window.clearTimeout(timer);
-  }, [focusQueue, location.search]);
+  }, [focusQueue, isLoading, location.search, reviewNextMergeRequestId]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -169,7 +188,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
           ) : intakeItems.length === 0 ? (
             <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
-          ) : intakeItems.map((item) => (
+          ) : intakeItems.slice(0, 6).map((item) => (
             <IntakePreviewItem key={item.id}>
               <span>
                 <strong>{item.clientName || 'Client pending'}</strong>
@@ -217,6 +236,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
         <PrimaryPane aria-label="PLAUD merge and review queue">
           <PlaudMergeWorkspace
             embedded
+            initialReviewMergeRequestId={reviewNextMergeRequestId || undefined}
           />
         </PrimaryPane>
         <CoachPane aria-label="Swan Coach action contract">

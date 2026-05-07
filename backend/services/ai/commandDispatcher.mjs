@@ -75,6 +75,10 @@ import {
   dispatchReviewNextPlaudIntake,
   dispatchViewPlaudIntakeQueue,
 } from './dispatchers/plaudDispatchers.mjs';
+import {
+  dispatchReviewNextCoachIntake,
+  dispatchViewCoachIntakeQueue,
+} from './dispatchers/coachIntakeDispatchers.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -181,6 +185,8 @@ const DISPATCHERS = new Map([
   ['view_trainer_availability',    dispatchViewTrainerAvailability],
   ['view_available_slots',         dispatchViewAvailableSlots],
   ['create_availability_override', dispatchCreateAvailabilityOverride],
+  ['view_coach_intake_queue',       dispatchViewCoachIntakeQueue],
+  ['review_next_coach_intake',      dispatchReviewNextCoachIntake],
   ['view_plaud_intake_queue',      dispatchViewPlaudIntakeQueue],
   ['review_next_plaud_intake',     dispatchReviewNextPlaudIntake],
   ['inspect_plaud_audio_pieces',   dispatchInspectPlaudAudioPieces],

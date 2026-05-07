@@ -41,6 +41,7 @@ import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { useConversationSidebar } from './hooks/useConversationSidebar';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useCoachTeachMode } from './hooks/useCoachTeachMode';
+import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
 import { ContextChipBar } from './ContextChipBar';
 import { CoachMessage } from './CoachMessage';
 import { ResponseStyleSelector } from './ResponseStyleSelector';
@@ -54,13 +55,17 @@ import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 import FileAttachmentButton from './FileAttachmentButton';
 import AttachmentPreview from './AttachmentPreview';
 import VoiceSettingsBar from './VoiceSettingsBar';
+import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import {
   useFileAttachment,
   hasTranscriptClassFile,
   countTranscriptClassFiles,
+  hasOnlyAudioTranscriptFiles,
   isTranscriptClassMime,
 } from './hooks/useFileAttachment';
 import { useTranscriptIntake } from './hooks/useTranscriptIntake';
+import { createCoachTextIntake } from '../../../../services/coachIntakeService';
+import { uploadClips } from '../../../../services/plaudClipService';
 import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   CoachHeader,
@@ -284,8 +289,18 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
   const { showPaywall } = usePaywall();
+  const { user: authUser } = useAuth();
+  const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
-  const coach = useCoachAssistant({ chat, targetClientId: selectedClient?.id ?? null });
+  const coachIntakeQueue = useCoachIntakeQueue({
+    scope: 'actionable',
+    limit: 3,
+    enabled: userRole === 'admin' || userRole === 'trainer',
+  });
+  const coach = useCoachAssistant({
+    chat,
+    targetClientId: selectedClient?.id ?? null,
+  });
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -348,9 +363,6 @@ const SwanCoachAssistantPage: React.FC = () => {
   useScrollLock(sidebar.isOpen);
 
   // ── Get user role from Redux auth store (replaces stale localStorage read) ──
-  const { user: authUser } = useAuth();
-  const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
-
   // ── Cross-dashboard client handoff (Sprint D) ──
   const { clientList, activeClient, setActiveClient, loadingClients } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -683,6 +695,52 @@ const SwanCoachAssistantPage: React.FC = () => {
       // Only intercept if at least one attached file is transcript-class.
       // Other attachments + plain text continue to use the existing flow.
       if (files.length > 0 && hasTranscriptClassFile(files)) {
+        if (hasOnlyAudioTranscriptFiles(files)) {
+          const audioLabel = files.length === 1
+            ? files[0].name
+            : `${files.length} audio pieces`;
+          setTranscriptProcessing({ stage: 'uploading', fileName: audioLabel });
+          try {
+            const upload = await uploadClips(files.map((f) => f.file));
+            setTranscriptProcessing(null);
+            if (upload.clips.length > 0) {
+              attachments.clearFiles();
+              void coachIntakeQueue.refresh();
+              void coach.sendMessage('inspect pending PLAUD audio pieces');
+              return;
+            }
+
+            const reason = upload.rejected.length > 0
+              ? upload.rejected.map((r) => `${r.filename}: ${r.message}`).join('; ')
+              : 'No audio clips were accepted into PLAUD intake.';
+            const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+              kind: 'upload_failed',
+              fileName: audioLabel,
+              fileSize: files.reduce((sum, f) => sum + f.size, 0),
+              reason,
+            });
+            if (errorMsgId) {
+              transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+            }
+            return;
+          } catch (err) {
+            setTranscriptProcessing(null);
+            const reason = err instanceof Error
+              ? err.message
+              : 'Audio upload failed before it reached PLAUD intake.';
+            const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+              kind: 'upload_failed',
+              fileName: audioLabel,
+              fileSize: files.reduce((sum, f) => sum + f.size, 0),
+              reason,
+            });
+            if (errorMsgId) {
+              transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+            }
+            return;
+          }
+        }
+
         // Defense-in-depth: useFileAttachment already enforces single-
         // transcript-per-send, but re-check at send time so a future
         // change to the picker can't slip through.
@@ -804,8 +862,32 @@ const SwanCoachAssistantPage: React.FC = () => {
       }
       attachments.clearFiles();
     },
-    [coach, attachments, intake, selectedClient, injectInputText],
+    [coach, attachments, coachIntakeQueue, intake, selectedClient, injectInputText],
   );
+
+  const handleIntakeCommand = useCallback((message: string) => {
+    void coach.sendMessage(message);
+  }, [coach]);
+
+  const handleCreateIntakeDraft = useCallback(async (text: string) => {
+    try {
+      await createCoachTextIntake({
+        text,
+        clientId: selectedClient?.id ?? null,
+        trigger: 'oversized_chat',
+      });
+      await coachIntakeQueue.refresh();
+      return {
+        ok: true,
+        message: 'Saved as an encrypted Coach intake draft. Use Review next intake to continue.',
+      };
+    } catch (err) {
+      const message = err instanceof Error
+        ? err.message
+        : 'Could not create Coach intake draft.';
+      return { ok: false, message };
+    }
+  }, [coachIntakeQueue, selectedClient?.id]);
 
   // ── Cleanup TTS on unmount ──
   React.useEffect(() => () => tts.stop(), [tts]);
@@ -861,6 +943,18 @@ const SwanCoachAssistantPage: React.FC = () => {
 
         {/* Capability Taxonomy (informational) */}
         <ContextChipBar userRole={userRole} />
+
+        <CoachIntakeWorkspace
+          userRole={userRole}
+          activeIntakeId={searchParams.get('intake')}
+          selectedClientName={
+            selectedClient
+              ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
+              : null
+          }
+          onCommandPrompt={handleIntakeCommand}
+          queue={coachIntakeQueue}
+        />
 
         {/* Messages */}
         <MessagesArea role="log" aria-live="polite" aria-label="Conversation">
@@ -970,6 +1064,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           ttsSupported={tts.supported}
           onTtsToggle={tts.toggleEnabled}
           onVoiceOverlay={handleOpenVoiceOverlay}
+          onCreateIntakeDraft={handleCreateIntakeDraft}
           externalText={pendingVoiceEdit}
           hasAttachment={
             attachments.files.length > 0 && hasTranscriptClassFile(attachments.files)

@@ -55,6 +55,7 @@ function safeInternalRoute(value: unknown): string | null {
 }
 
 function labelForCommand(command: string): string {
+  if (command.includes('coach_intake')) return 'Open Coach Intake';
   return command.includes('plaud') ? 'Open PLAUD Workspace' : 'Open Workspace';
 }
 

@@ -294,6 +294,12 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
     expect(DATE_SPLIT_SRC).toMatch(/needsDateConfirmation/);
   });
 
+  it('can auto-open a pending review by merge request id for review-next deep links', () => {
+    expect(WORKSPACE_SRC).toMatch(/initialReviewMergeRequestId/);
+    expect(WORKSPACE_SRC).toMatch(/autoOpenedReviewRef/);
+    expect(WORKSPACE_SRC).toMatch(/handleOpenReview\(id\)/);
+  });
+
   it('supports per-segment parsing and log writes for split workouts', () => {
     expect(REVIEW_SRC).toMatch(/parseMergeRequestSegment/);
     expect(REVIEW_SRC).toMatch(/applyMergeSegmentApproval/);

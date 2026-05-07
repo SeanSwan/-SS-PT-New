@@ -18,17 +18,7 @@
  */
 
 import { useState, useCallback } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function getHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
+import apiService from '../services/api.service';
 
 // ── Response discriminated union ────────────────────────────────────────────
 
@@ -73,16 +63,12 @@ export function useCoachCommand() {
   ): Promise<CommandResponse> => {
     setExecutingCommand(true);
     try {
-      const res = await fetch(`${API_BASE}/api/ai-command/execute`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
-          message,
-          selectedClientId: opts?.selectedClientId ?? undefined,
-          previousContext: opts?.previousContext ?? undefined,
-        }),
+      const res = await apiService.post('/api/ai-command/execute', {
+        message,
+        selectedClientId: opts?.selectedClientId ?? undefined,
+        previousContext: opts?.previousContext ?? undefined,
       });
-      const data = await res.json();
+      const data = res.data;
 
       if (!data.success) return { type: 'error', error: data.error || 'Command failed' };
 
@@ -124,12 +110,8 @@ export function useCoachCommand() {
 
   const confirmCommand = useCallback(async (operationId: string): Promise<ConfirmResult> => {
     try {
-      const res = await fetch(`${API_BASE}/api/ai-command/confirm`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ operationId }),
-      });
-      const data = await res.json();
+      const res = await apiService.post('/api/ai-command/confirm', { operationId });
+      const data = res.data;
       return {
         success: !!data.success,
         message: data.message || '',
@@ -143,11 +125,7 @@ export function useCoachCommand() {
 
   const cancelCommand = useCallback(async (operationId: string): Promise<void> => {
     try {
-      await fetch(`${API_BASE}/api/ai-command/cancel`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ operationId }),
-      });
+      await apiService.post('/api/ai-command/cancel', { operationId });
     } catch {
       // best-effort — operation will expire server-side in 120 s anyway
     }

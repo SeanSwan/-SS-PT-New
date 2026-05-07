@@ -19,9 +19,9 @@ export function isCommandLaneCandidate(message: string): boolean {
   if ((trimmed.match(/\n/g) || []).length > 1) return false;
 
   const normalized = trimmed.toLowerCase();
-  const commandStart = /^(add|approve|assign|book|cancel|create|delete|discard|find|generate|hold|list|log|mark|open|record|remove|reschedule|retry|run|scan|schedule|search|send|set|show|start|update|view)\b/;
-  const politeCommandStart = /^(can you|could you|please|swan coach,?)\s+(add|approve|assign|book|cancel|create|delete|discard|find|generate|hold|list|log|mark|open|record|remove|reschedule|retry|run|scan|schedule|search|send|set|show|start|update|view)\b/;
-  const knownCommandPhrase = /\b(view available slots|show available slots|review next|open plaud|show plaud|scan command center|start onboarding|create client|add a new client|log workout)\b/;
+  const commandStart = /^(add|approve|assign|book|cancel|create|delete|discard|find|generate|hold|inspect|list|log|mark|open|record|remove|reschedule|retry|run|scan|schedule|search|send|set|show|start|update|view)\b/;
+  const politeCommandStart = /^(can you|could you|please|swan coach,?)\s+(add|approve|assign|book|cancel|create|delete|discard|find|generate|hold|inspect|list|log|mark|open|record|remove|reschedule|retry|run|scan|schedule|search|send|set|show|start|update|view)\b/;
+  const knownCommandPhrase = /^(view available slots|show available slots|review next|open plaud|show plaud|inspect pending plaud audio pieces|scan command center|start onboarding|create client|add a new client|log workout)\b/;
 
   return commandStart.test(normalized)
     || politeCommandStart.test(normalized)

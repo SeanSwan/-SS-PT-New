@@ -33,9 +33,11 @@ export interface PlaudIntakeQueueState {
 export function usePlaudIntakeQueue({
   scope = 'actionable',
   limit = 6,
+  enabled = true,
 }: {
   scope?: string;
   limit?: number;
+  enabled?: boolean;
 } = {}): PlaudIntakeQueueState {
   const [items, setItems] = useState<PlaudIntakeItem[]>([]);
   const [summary, setSummary] = useState<PlaudIntakeSummary>(EMPTY_SUMMARY);
@@ -49,6 +51,13 @@ export function usePlaudIntakeQueue({
   }, []);
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setItems([]);
+      setSummary(EMPTY_SUMMARY);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -67,7 +76,7 @@ export function usePlaudIntakeQueue({
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [scope, limit]);
+  }, [scope, limit, enabled]);
 
   useEffect(() => {
     refresh();

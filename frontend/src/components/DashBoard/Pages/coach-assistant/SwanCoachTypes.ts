@@ -87,6 +87,11 @@ export interface CoachMessageData {
       totalWeight?: number;
       reason?: string;
     }>;
+    coachActionProposals?: CoachActionProposal[];
+    coachActionProposalError?: {
+      code: string;
+      message: string;
+    };
     /** Injected by command lane — renders ConfirmationCard in CoachMessage */
     commandConfirmation?: {
       message: string;
@@ -195,6 +200,16 @@ export interface CoachMessageData {
 export interface FrontendAction {
   type: string;
   payload?: Record<string, unknown>;
+}
+
+export interface CoachActionProposal {
+  id: string;
+  type: 'client_onboarding' | 'workout_log' | 'client_data_update' | 'frontend_dispatch';
+  status: 'PENDING' | 'APPLYING' | 'APPROVED' | 'APPLIED' | 'REJECTED' | 'FAILED';
+  title: string;
+  summary: Record<string, string | number | null | undefined>;
+  detail?: Record<string, unknown>;
+  createdAt?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

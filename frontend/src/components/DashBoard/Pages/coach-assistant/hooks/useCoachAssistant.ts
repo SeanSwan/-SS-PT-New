@@ -298,7 +298,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
         context as Parameters<typeof chat.sendMessageWithConversation>[1],
         'Swan Coach Session',
         targetClientId,
-        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
+        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
       );
       setLocalMessages([]);
       return chatResult;

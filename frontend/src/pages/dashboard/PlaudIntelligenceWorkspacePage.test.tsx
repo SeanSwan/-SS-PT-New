@@ -69,6 +69,22 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/setTimeout\(focusQueue/);
   });
 
+  it('uses ?review=next to hand the next reviewable merge to the embedded review workspace', () => {
+    expect(PAGE_SRC).toMatch(/reviewNextRequested/);
+    expect(PAGE_SRC).toMatch(/reviewNextMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
+    expect(PAGE_SRC).toMatch(/item\.canReview/);
+    expect(PAGE_SRC).toMatch(/initialReviewMergeRequestId=\{reviewNextMergeRequestId \|\| undefined\}/);
+  });
+
+  it('chooses review-next from a wider actionable window and orders ready merges oldest first', () => {
+    expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue\(\{ limit: 20 \}\)/);
+    expect(PAGE_SRC).toMatch(/function reviewableMergeTime/);
+    expect(PAGE_SRC).toMatch(/function pickReviewNextMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/sort\(\(a, b\) => reviewableMergeTime\(a\) - reviewableMergeTime\(b\)\)/);
+    expect(PAGE_SRC).toMatch(/intakeItems\.slice\(0, 6\)\.map/);
+  });
+
   it('honors Swan Coach audio-piece links by focusing the merge panel from ?pieces=pending', () => {
     expect(PAGE_SRC).toMatch(/querySelector\('\[data-testid="plaud-merge-panel"\]'\)/);
     expect(PAGE_SRC).toMatch(/params\.get\('pieces'\)\s*===\s*'pending'/);

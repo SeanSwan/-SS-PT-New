@@ -58,13 +58,19 @@ function queuePriority(item) {
   return STATUS_PRIORITY.get(item?.queueStatus) ?? 99;
 }
 
+function queueAgeTime(item) {
+  const value = item?.recordedAt || item?.timelineAt || item?.createdAt || item?.uploadedAt || null;
+  const parsed = Date.parse(value || '');
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
 function pickNextItem(items = []) {
   return [...items]
     .filter((item) => item?.queueStatus && item.queueStatus !== 'archived')
     .sort((a, b) => {
       const priority = queuePriority(a) - queuePriority(b);
       if (priority !== 0) return priority;
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      return queueAgeTime(a) - queueAgeTime(b);
     })[0] || null;
 }
 
@@ -212,6 +218,7 @@ export const _internal = {
   normalizeGapThreshold,
   normalizeLimit,
   pickNextItem,
+  queueAgeTime,
   resolvePlaudQueueRoute,
   scalarSummary,
   summarizeAudioPieces,

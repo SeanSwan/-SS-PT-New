@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
 import { PlaudPendingReviewsList } from './PlaudPendingReviewsList';
@@ -26,6 +26,7 @@ export interface PlaudMergeWorkspaceProps {
   lockClientId?: boolean;
   embedded?: boolean;
   backLabel?: string;
+  initialReviewMergeRequestId?: string | null;
   onBack?: () => void;
 }
 
@@ -35,11 +36,13 @@ export function PlaudMergeWorkspace({
   lockClientId = false,
   embedded = false,
   backLabel = 'Dashboard',
+  initialReviewMergeRequestId = null,
   onBack,
 }: PlaudMergeWorkspaceProps): JSX.Element {
   const [reviewState, setReviewState] = useState<PlaudMergeReviewState | null>(null);
   const [confirmState, setConfirmState] = useState<PlaudMergeConfirmState | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const autoOpenedReviewRef = useRef<string | null>(null);
 
   const openDetailReview = useCallback((detail: MergeRequestDetail) => {
     setReviewState({
@@ -82,6 +85,13 @@ export function PlaudMergeWorkspace({
     if (!detail) return;
     openDetailReview(detail);
   }, [openDetailReview]);
+
+  useEffect(() => {
+    const id = initialReviewMergeRequestId?.trim();
+    if (!id || autoOpenedReviewRef.current === id) return;
+    autoOpenedReviewRef.current = id;
+    void handleOpenReview(id);
+  }, [handleOpenReview, initialReviewMergeRequestId]);
 
   const handleResetReview = useCallback(() => {
     setReviewState(null);

@@ -4,9 +4,11 @@
  * Manages AI assistant conversations for clients, trainers, and admins.
  * Handles conversation CRUD, message sending, and conversation listing.
  *
- * Uses localStorage token via api.service.ts interceptors for auth.
+ * Uses the production apiService so auth refresh / login redirect behavior is
+ * shared with the rest of the dashboard.
  */
 import { useState, useCallback, useRef } from 'react';
+import apiService from '../services/api.service';
 import {
   buildAiApiError,
   buildAiSendFailure,
@@ -16,8 +18,6 @@ import {
   isNonRetryableAiErrorCode,
 } from './aiMessageLimits';
 
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 const CONVERSATION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface Message {
@@ -28,6 +28,8 @@ interface Message {
     provider?: string;
     model?: string;
     tokenUsage?: { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null };
+    coachActionProposals?: unknown[];
+    coachActionProposalError?: { code: string; message: string };
   };
 }
 
@@ -54,15 +56,76 @@ interface ConversationSummary {
   createdAt: string;
 }
 
-type AIContext = 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
-type ResponseStyle = 'phd_only' | 'simple_only' | 'both';
+type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
+type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
 
-function getHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+type FrontendAction = { event?: string; payload?: unknown };
+const BLOCKED_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
+
+type AxiosLikeError = Error & {
+  code?: string;
+  response?: {
+    status?: number;
+    data?: Record<string, unknown>;
   };
+};
+
+function isCanceledAiRequest(err: unknown): boolean {
+  const maybeErr = err as AxiosLikeError;
+  return (err instanceof DOMException && err.name === 'AbortError')
+    || maybeErr.name === 'CanceledError'
+    || maybeErr.code === 'ERR_CANCELED'
+    || maybeErr.message === 'canceled';
+}
+
+function toAiApiError(err: unknown, fallback: string): AiApiError {
+  const maybeErr = err as AxiosLikeError;
+  const status = maybeErr.response?.status;
+  if (status) {
+    return buildAiApiError(maybeErr.response?.data || {}, fallback, status);
+  }
+
+  if (err instanceof Error) {
+    return err as AiApiError;
+  }
+
+  return new Error(fallback) as AiApiError;
+}
+
+function isPaywallError(err: unknown): boolean {
+  return (err as AxiosLikeError).response?.status === 402;
+}
+
+function getPaywallPayload(err: unknown): Record<string, unknown> {
+  return (err as AxiosLikeError).response?.data || {};
+}
+
+function dispatchSafeFrontendActions(actions?: FrontendAction[]) {
+  if (!Array.isArray(actions)) return;
+  for (const action of actions) {
+    const eventName = typeof action?.event === 'string' ? action.event : '';
+    if (!eventName || BLOCKED_FRONTEND_EVENTS.has(eventName)) continue;
+    window.dispatchEvent(new CustomEvent(eventName, { detail: action.payload ?? {} }));
+  }
+}
+
+function enrichAssistantMessageWithActionMetadata(data: any): Message {
+  const enrichedAssistantMsg = { ...data.assistantMessage };
+  if (
+    data.coachActionProposals ||
+    data.coachActionProposalError ||
+    data.clientCreateResult ||
+    data.workoutImportResults
+  ) {
+    enrichedAssistantMsg.metadata = {
+      ...enrichedAssistantMsg.metadata,
+      coachActionProposals: data.coachActionProposals || undefined,
+      coachActionProposalError: data.coachActionProposalError || undefined,
+      clientCreateResult: data.clientCreateResult || undefined,
+      workoutImportResults: data.workoutImportResults || undefined,
+    };
+  }
+  return enrichedAssistantMsg;
 }
 
 export function useAIChat() {
@@ -97,13 +160,9 @@ export function useAIChat() {
     try {
       const payload: Record<string, unknown> = { context, title, responseStyle };
       if (targetUserId) payload.targetUserId = targetUserId;
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to create conversation');
+      const res = await apiService.post('/api/ai-chat/conversations', payload);
+      const data = res.data;
+      if (!data.success) throw buildAiApiError(data, 'Failed to create conversation', res.status);
 
       const newConv: Conversation = {
         ...data.conversation,
@@ -114,7 +173,7 @@ export function useAIChat() {
       setActiveConversation(newConv);
       return newConv;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create conversation';
+      const msg = toAiApiError(err, 'Failed to create conversation').message;
       setError(msg);
       return null;
     } finally {
@@ -133,16 +192,14 @@ export function useAIChat() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations?status=${status}&limit=20`, {
-        headers: getHeaders(),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to list conversations');
+      const res = await apiService.get(`/api/ai-chat/conversations?status=${status}&limit=20`);
+      const data = res.data;
+      if (!data.success) throw buildAiApiError(data, 'Failed to list conversations', res.status);
       setConversations(data.conversations);
       convCacheTimeRef.current = Date.now();
       return data.conversations;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to list conversations';
+      const msg = toAiApiError(err, 'Failed to list conversations').message;
       setError(msg);
       return [];
     } finally {
@@ -157,15 +214,13 @@ export function useAIChat() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
-        headers: getHeaders(),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to load conversation');
+      const res = await apiService.get(`/api/ai-chat/conversations/${id}`);
+      const data = res.data;
+      if (!data.success) throw buildAiApiError(data, 'Failed to load conversation', res.status);
       setActiveConversation(data.conversation);
       return data.conversation;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load conversation';
+      const msg = toAiApiError(err, 'Failed to load conversation').message;
       setError(msg);
       return null;
     } finally {
@@ -207,29 +262,16 @@ export function useAIChat() {
     } : prev);
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/ai-chat/conversations/${activeConversation.id}/messages`,
-        {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify({ message }),
-          signal: abortRef.current.signal,
-        }
+      const res = await apiService.post(
+        `/api/ai-chat/conversations/${activeConversation.id}/messages`,
+        { message },
+        { signal: abortRef.current.signal },
       );
-      const data = await res.json();
-
-      // Handle 402 — subscription paywall
-      if (res.status === 402) {
-        // Remove optimistic message
-        setActiveConversation(prev => prev ? {
-          ...prev,
-          messages: prev.messages.slice(0, -1),
-        } : prev);
-        setSending(false);
-        return { paywallRequired: true, ...data, originalMessage: message };
-      }
+      const data = res.data;
 
       if (!data.success) throw buildAiApiError(data, 'Failed to send message', res.status);
+
+      const enrichedAssistantMsg = enrichAssistantMessageWithActionMetadata(data);
 
       // Replace optimistic message with real response
       setActiveConversation(prev => {
@@ -238,25 +280,27 @@ export function useAIChat() {
         const messagesWithoutOptimistic = prev.messages.slice(0, -1);
         return {
           ...prev,
-          messages: [...messagesWithoutOptimistic, data.userMessage, data.assistantMessage],
+          messages: [...messagesWithoutOptimistic, data.userMessage, enrichedAssistantMsg],
           messageCount: data.messageCount,
           title: prev.title || data.userMessage.content.slice(0, 47),
-          lastMessageAt: data.assistantMessage.timestamp,
+          lastMessageAt: enrichedAssistantMsg.timestamp,
         };
       });
 
-      // Dispatch FRONTEND_DISPATCH actions as CustomEvents for WorkoutLogger
-      if (data.frontendActions?.length) {
-        for (const action of data.frontendActions) {
-          window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
-        }
-      }
+      dispatchSafeFrontendActions(data.frontendActions);
 
-      return data.assistantMessage;
+      return enrichedAssistantMsg;
     } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return null;
-      const apiErr = err as AiApiError;
-      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      if (isCanceledAiRequest(err)) return null;
+      if (isPaywallError(err)) {
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: prev.messages.slice(0, -1),
+        } : prev);
+        return { paywallRequired: true, ...getPaywallPayload(err), originalMessage: message };
+      }
+      const apiErr = toAiApiError(err, 'Failed to send message');
+      const msg = apiErr.message || 'Failed to send message';
       const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
       const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
       setFailureState(msg, code, retryable);
@@ -277,10 +321,7 @@ export function useAIChat() {
    */
   const deleteConversation = useCallback(async (id: number) => {
     try {
-      await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
+      await apiService.delete(`/api/ai-chat/conversations/${id}`);
       setConversations(prev => prev.filter(c => c.id !== id));
       if (activeConversation?.id === id) setActiveConversation(null);
     } catch {
@@ -320,13 +361,10 @@ export function useAIChat() {
       if (!convId) {
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (targetUserId) payload.targetUserId = targetUserId;
-        const createRes = await fetch(`${API_BASE}/api/ai-chat/conversations`, {
-          method: 'POST',
-          headers: getHeaders(),
-          body: JSON.stringify(payload),
+        const createRes = await apiService.post('/api/ai-chat/conversations', payload, {
           signal: abortRef.current.signal,
         });
-        const createData = await createRes.json();
+        const createData = createRes.data;
         if (!createData.success) throw buildAiApiError(createData, 'Failed to create conversation', createRes.status);
         convId = createData.conversation.id;
         const newConv: Conversation = { ...createData.conversation, messages: [], role: '', metadata: {} };
@@ -338,32 +376,19 @@ export function useAIChat() {
       setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, optimisticUserMsg] } : prev);
 
       // Step 3: Send message using the conversation ID we have (not from state)
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${convId}/messages`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ message, ...(foodContext ? { foodContext } : {}) }),
-        signal: abortRef.current.signal,
-      });
-      const data = await res.json();
-
-      // Handle 402 — subscription paywall (mirrors sendMessage paywall path)
-      if (res.status === 402) {
-        setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
-        setSending(false);
-        return { paywallRequired: true, ...data, originalMessage: message };
-      }
+      const res = await apiService.post(
+        `/api/ai-chat/conversations/${convId}/messages`,
+        {
+          message,
+          ...(foodContext ? { foodContext } : {}),
+        },
+        { signal: abortRef.current.signal },
+      );
+      const data = res.data;
 
       if (!data.success) throw buildAiApiError(data, 'Failed to send message', res.status);
 
-      // Attach server-side action results to the assistant message metadata
-      const enrichedAssistantMsg = { ...data.assistantMessage };
-      if (data.clientCreateResult || data.workoutImportResults) {
-        enrichedAssistantMsg.metadata = {
-          ...enrichedAssistantMsg.metadata,
-          clientCreateResult: data.clientCreateResult || undefined,
-          workoutImportResults: data.workoutImportResults || undefined,
-        };
-      }
+      const enrichedAssistantMsg = enrichAssistantMessageWithActionMetadata(data);
 
       setActiveConversation(prev => {
         if (!prev) return prev;
@@ -377,18 +402,17 @@ export function useAIChat() {
         };
       });
 
-      // Dispatch FRONTEND_DISPATCH actions as CustomEvents for WorkoutLogger
-      if (data.frontendActions?.length) {
-        for (const action of data.frontendActions) {
-          window.dispatchEvent(new CustomEvent(action.event, { detail: action.payload }));
-        }
-      }
+      dispatchSafeFrontendActions(data.frontendActions);
 
       return enrichedAssistantMsg;
     } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return null;
-      const apiErr = err as AiApiError;
-      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      if (isCanceledAiRequest(err)) return null;
+      if (isPaywallError(err)) {
+        setActiveConversation(prev => prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev);
+        return { paywallRequired: true, ...getPaywallPayload(err), originalMessage: message };
+      }
+      const apiErr = toAiApiError(err, 'Failed to send message');
+      const msg = apiErr.message || 'Failed to send message';
       const code = apiErr.status === 429 ? 'RATE_LIMITED' : apiErr.code;
       const retryable = apiErr.retryable !== false && !isNonRetryableAiErrorCode(code);
       setFailureState(msg, code, retryable);
@@ -413,19 +437,15 @@ export function useAIChat() {
    */
   const renameConversation = useCallback(async (id: number, title: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify({ title }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to rename');
+      const res = await apiService.patch(`/api/ai-chat/conversations/${id}`, { title });
+      const data = res.data;
+      if (!data.success) throw buildAiApiError(data, 'Failed to rename', res.status);
       // Update in conversations list
       setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
       // Update active if same conversation
       setActiveConversation(prev => prev?.id === id ? { ...prev, title } : prev);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to rename conversation';
+      const msg = toAiApiError(err, 'Failed to rename conversation').message;
       setError(msg);
     }
   }, []);
@@ -435,13 +455,9 @@ export function useAIChat() {
    */
   const archiveConversation = useCallback(async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/ai-chat/conversations/${id}`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify({ status: 'archived' }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Failed to archive');
+      const res = await apiService.patch(`/api/ai-chat/conversations/${id}`, { status: 'archived' });
+      const data = res.data;
+      if (!data.success) throw buildAiApiError(data, 'Failed to archive', res.status);
       // Remove from active conversations list
       setConversations(prev => prev.filter(c => c.id !== id));
       // Clear active if same conversation
@@ -449,7 +465,7 @@ export function useAIChat() {
         setActiveConversation(null);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to archive conversation';
+      const msg = toAiApiError(err, 'Failed to archive conversation').message;
       setError(msg);
     }
   }, [activeConversation]);

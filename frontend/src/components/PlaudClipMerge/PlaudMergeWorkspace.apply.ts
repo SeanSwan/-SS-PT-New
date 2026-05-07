@@ -5,7 +5,7 @@
  * PLAUD review data into the existing Swan Coach transcript mapper and the
  * canonical admin workout-log write endpoint.
  */
-import axios from 'axios';
+import apiService from '../../services/api.service';
 import {
   approveMergeRequest,
   type MergeResponse,
@@ -15,10 +15,6 @@ import {
   parsedWorkoutToLogPayload,
   type ParsedWorkout,
 } from '../DashBoard/Pages/coach-assistant/utils/parsedWorkoutToLogPayload';
-
-const API_BASE_URL =
-  (import.meta as ImportMeta & { env: { VITE_API_URL?: string } }).env?.VITE_API_URL ||
-  'http://localhost:10000';
 
 function parseReps(raw: number | string | undefined): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -65,10 +61,7 @@ export async function applyMergeApproval(args: {
     mergeRequestId: args.mergeRequestId,
   };
 
-  const token = localStorage.getItem('token');
-  const response = await axios.post(`${API_BASE_URL}/api/admin/clients/${args.clientId}/workouts`, body, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+  const response = await apiService.post(`/api/admin/clients/${args.clientId}/workouts`, body);
 
   const mergeMarkedApproved = await approveMergeRequest(args.mergeRequestId)
     .then(() => true)
@@ -101,10 +94,7 @@ export async function applyMergeSegmentApproval(args: {
     plaudSegmentIndex: args.segment.segmentIndex,
   };
 
-  const token = localStorage.getItem('token');
-  const response = await axios.post(`${API_BASE_URL}/api/admin/clients/${args.clientId}/workouts`, body, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+  const response = await apiService.post(`/api/admin/clients/${args.clientId}/workouts`, body);
 
   return {
     success: !!response.data?.success,

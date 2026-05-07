@@ -14,19 +14,8 @@
  * from the backend response (PLAUD_DISABLED, RATE_LIMITED,
  * UPLOAD_TOO_LARGE, etc.).
  */
-import axios, { type AxiosInstance } from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-const api: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/plaud/clips`,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+import { isAxiosError } from 'axios';
+import apiService from './api.service';
 
 export class PlaudApiError extends Error {
   code: string;
@@ -71,7 +60,7 @@ export interface PlaudListResponse {
 }
 
 function unwrapError(err: unknown, fallbackMessage: string): never {
-  if (axios.isAxiosError(err)) {
+  if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
     const code = data?.error?.code || 'UNKNOWN';
     const message = data?.error?.message || err.message || fallbackMessage;
@@ -90,7 +79,7 @@ export async function uploadClips(files: File[]): Promise<PlaudUploadResponse> {
   const form = new FormData();
   for (const f of files) form.append('files', f);
   try {
-    const { data } = await api.post<{ success: boolean } & PlaudUploadResponse>('/upload', form, {
+    const { data } = await apiService.post<{ success: boolean } & PlaudUploadResponse>('/api/plaud/clips/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return { clips: data.clips || [], rejected: data.rejected || [] };
@@ -101,7 +90,7 @@ export async function uploadClips(files: File[]): Promise<PlaudUploadResponse> {
 
 export async function listClips({ limit, cursor }: { limit?: number; cursor?: string } = {}): Promise<PlaudListResponse> {
   try {
-    const { data } = await api.get<{ success: boolean } & PlaudListResponse>('/', {
+    const { data } = await apiService.get<{ success: boolean } & PlaudListResponse>('/api/plaud/clips', {
       params: { limit, cursor },
     });
     return {
@@ -119,7 +108,7 @@ export async function deleteClip(clipId: string): Promise<void> {
     throw new PlaudApiError('INVALID_CLIP_ID', 'Invalid clipId format', 400);
   }
   try {
-    await api.delete(`/${encodeURIComponent(clipId)}`);
+    await apiService.delete(`/api/plaud/clips/${encodeURIComponent(clipId)}`);
   } catch (err) {
     unwrapError(err, 'Failed to delete clip');
   }

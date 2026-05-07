@@ -272,17 +272,19 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
 56. **Tier-A Baseline Disclosure (MANDATORY)** — Established 2026-04-28 after Codex flagged that "tsc --noEmit clean for slice files" understated the broader baseline non-cleanliness. The rule scopes to **broad/global quality claims** — phrases like "Tier-A green," "tsc --noEmit clean," "lint clean," "all tests pass," "build is clean." It does NOT apply to narrowly reported exact commands and their outputs (e.g. "ran `npx vitest run path/to/file.test.tsx` → 7/7 pass" is fine on its own). When a slice makes a broad/global claim, the artifact MUST distinguish slice-clean from baseline-clean. If the full repo baseline is not clean, the artifact must say so explicitly and either (a) confirm the slice introduces zero new errors, with the comparison-against-baseline disclosed as `[VERIFIED]` or `[UNVERIFIED]`, or (b) avoid the global claim entirely and report only the targeted command results. **Why:** future readers conflate slice-clean with baseline-clean and assume the repo is in good shape when it isn't. **How to apply:** "Tier-A green" alone is not enough; require "Tier-A green for slice files; full baseline status: [clean | N pre-existing errors of class X | UNVERIFIED]." Targeted command outputs do not need this framing.
 
-57. **Dual-Tier Session Summary at Substantial Inflection Points (MANDATORY)** — Established 2026-04-30. At natural session inflection points, Claude MUST provide a two-part inline summary in chat: a **plain-English summary** (outcome-framed, no jargon) and a **technical summary** (files, commits, tests, deferred items). Both in the same response, plain-English first.
+57. **Dual-Tier Summary for Substantial Work (MANDATORY)** — Established 2026-04-30; tightened 2026-05-07 for Codex-led work. At substantial user-facing handoffs, explanations, review results, or workstream summaries, the active builder/reviewer MUST provide a two-part inline summary in chat: a **plain-English summary** (outcome-framed, no jargon) and a **technical summary** (files, commits, tests, deferred items). Both must appear in the same response, plain-English first.
 
     **When this triggers:**
     - After a phase ships to production (regardless of whether the rule-48 audit record has landed yet — that's a separate file artifact).
     - After a deploy goes live and is health-verified.
     - When Sean explicitly asks for a summary, recap, "what did we do," or similar.
+    - When Sean asks how an architecture, workflow, UX, or feature changed.
+    - After any substantial implementation slice, hostile review/fix pass, or review-chain result is reported.
     - At session close on a substantial workstream when the conversation is winding down.
     - After a multi-round review chain (rule 46) reaches APPROVE, even if no deploy has occurred yet.
 
     **When this does NOT trigger:**
-    - Routine task completion (single-file edit, doc fix, trivial bugfix, typo).
+    - Routine task completion (single-file edit, doc fix, trivial bugfix, typo) unless Sean asks for a recap.
     - Mid-task progress updates (those stay one sentence per the tone rules).
     - Conversation about plans that have not yet been executed.
     - Receipt-only or audit-record-only writes (those land in their own files).

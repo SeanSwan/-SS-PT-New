@@ -19,10 +19,11 @@ describe('plaudIntakeService', () => {
     expect(typeof plaudIntakeService.listPlaudIntakeItems).toBe('function');
   });
 
-  it('uses the unified /api/plaud/intake endpoint with auth headers', () => {
+  it('uses the unified /api/plaud/intake endpoint through apiService', () => {
+    expect(SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
     expect(SRC).toMatch(/\/api\/plaud\/intake/);
-    expect(SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
-    expect(SRC).toMatch(/Bearer \$\{token\}/);
+    expect(SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(SRC).not.toMatch(/Bearer \$\{token\}/);
   });
 
   it('models only list-safe queue metadata', () => {

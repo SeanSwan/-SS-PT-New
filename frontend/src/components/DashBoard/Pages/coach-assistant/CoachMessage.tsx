@@ -15,7 +15,7 @@
 import React, { memo, useCallback, useState } from 'react';
 import styled from 'styled-components';
 import {
-  Volume2, Copy, Check, UserPlus, Key, Link2, Shield, Dumbbell,
+  Volume2, Copy, Check, UserPlus, Dumbbell,
   FileAudio, AlertTriangle, X, Loader2, CheckCircle2,
 } from 'lucide-react';
 import {
@@ -28,6 +28,7 @@ import {
 import MarkdownRenderer from './MarkdownRenderer';
 import ProviderBadge from './ProviderBadge';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
+import CoachActionProposalCard from './CoachActionProposalCard';
 import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
 
@@ -72,23 +73,6 @@ const CardValue = styled.span`
   color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   word-break: break-all;
-`;
-
-const CopyableValue = styled.button`
-  background: rgba(96, 192, 240, 0.08);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 6px;
-  padding: 4px 10px;
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s;
-  &:hover { background: rgba(96, 192, 240, 0.15); }
 `;
 
 const ProgressBar = styled.div<{ $pct: number }>`
@@ -366,24 +350,33 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
   const clientCreate = message.metadata?.clientCreateResult;
   const workoutImports = message.metadata?.workoutImportResults;
+  const coachActionProposals = message.metadata?.coachActionProposals;
+  const coachActionProposalError = message.metadata?.coachActionProposalError;
   const commandConfirmation = message.metadata?.commandConfirmation;
   const commandResult = message.metadata?.commandResult;
   const transcriptReview = message.metadata?.transcriptReview;
   const transcriptResult = message.metadata?.transcriptResult;
   const transcriptError = message.metadata?.transcriptError;
 
-  const copyToClipboard = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-  };
-
   return (
     <MessageBubbleAI>
       <MarkdownRenderer content={message.content} />
 
-      {/* Client Creation Result Card */}
+      {coachActionProposals?.map((proposal) => (
+        <CoachActionProposalCard key={proposal.id} proposal={proposal} />
+      ))}
+
+      {coachActionProposalError && (
+        <ActionCard style={{ borderColor: 'var(--error, #C92A54)' }}>
+          <CardTitle style={{ color: 'var(--error, #C92A54)' }}>Proposal Preparation Failed</CardTitle>
+          <CardRow><CardValue>{coachActionProposalError.message}</CardValue></CardRow>
+        </ActionCard>
+      )}
+
+      {/* Legacy client creation result. New replies use proposal cards above. */}
       {clientCreate?.success && (
         <ActionCard>
-          <CardTitle><UserPlus size={16} /> New Client Created</CardTitle>
+          <CardTitle><UserPlus size={16} /> Legacy Client Create Result</CardTitle>
           <CardRow>
             <CardLabel>Name</CardLabel>
             <CardValue>{clientCreate.firstName} {clientCreate.lastName}</CardValue>
@@ -397,22 +390,8 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
             <CardValue>{clientCreate.isMoveFitness ? 'Move Fitness (free)' : 'SwanStudios (paid)'}</CardValue>
           </CardRow>
           <CardRow>
-            <CardLabel>Claim Code</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.claimCode)}>
-              <Key size={12} /> {clientCreate.claimCode} <Copy size={10} />
-            </CopyableValue>
-          </CardRow>
-          <CardRow>
-            <CardLabel>Claim URL</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.claimUrl)}>
-              <Link2 size={12} /> {clientCreate.claimUrl} <Copy size={10} />
-            </CopyableValue>
-          </CardRow>
-          <CardRow>
-            <CardLabel>Temp Password</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.temporaryPassword)}>
-              <Shield size={12} /> {clientCreate.temporaryPassword} <Copy size={10} />
-            </CopyableValue>
+            <CardLabel>Access</CardLabel>
+            <CardValue>Credentials are no longer shown in Coach chat.</CardValue>
           </CardRow>
           <CardRow>
             <CardLabel>Onboarding</CardLabel>

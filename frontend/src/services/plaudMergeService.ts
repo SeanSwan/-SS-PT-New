@@ -12,26 +12,12 @@
  *   approveMergeRequest(mergeRequestId) -> { success }
  *   discardMergeRequest(mergeRequestId) -> { success }
  */
-import axios, { type AxiosInstance } from 'axios';
+import { isAxiosError } from 'axios';
+import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-function makeClient(path: string): AxiosInstance {
-  const client = axios.create({ baseURL: `${API_BASE_URL}/api/plaud/${path}` });
-  client.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
-  return client;
-}
-
-const mergeApi = makeClient('merge');
-const mergeRequestsApi = makeClient('merge-requests');
-
 function unwrapError(err: unknown, fallbackMessage: string): never {
-  if (axios.isAxiosError(err)) {
+  if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string }; transcriptHash?: string } | undefined;
     const code = data?.error?.code || 'UNKNOWN';
     const message = data?.error?.message || err.message || fallbackMessage;
@@ -152,7 +138,7 @@ export async function submitMerge(args: {
     throw new PlaudApiError('INVALID_CLIENT_ID', 'clientId required', 400);
   }
   try {
-    const { data } = await mergeApi.post<{ success: boolean } & MergeResponse>('/', args);
+    const { data } = await apiService.post<{ success: boolean } & MergeResponse>('/api/plaud/merge', args);
     return {
       mergeRequestId: data.mergeRequestId,
       transcript: data.transcript,
@@ -173,7 +159,7 @@ export async function listMergeRequests({
   limit?: number;
 } = {}): Promise<{ mergeRequests: MergeRequestSummary[] }> {
   try {
-    const { data } = await mergeRequestsApi.get<{ success: boolean; mergeRequests: MergeRequestSummary[] }>('/', {
+    const { data } = await apiService.get<{ success: boolean; mergeRequests: MergeRequestSummary[] }>('/api/plaud/merge-requests', {
       params: { status, limit },
     });
     return { mergeRequests: data.mergeRequests || [] };
@@ -187,7 +173,9 @@ export async function getMergeRequest(mergeRequestId: string): Promise<{ mergeRe
     throw new PlaudApiError('INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format', 400);
   }
   try {
-    const { data } = await mergeRequestsApi.get<{ success: boolean; mergeRequest: MergeRequestDetail }>(`/${encodeURIComponent(mergeRequestId)}`);
+    const { data } = await apiService.get<{ success: boolean; mergeRequest: MergeRequestDetail }>(
+      `/api/plaud/merge-requests/${encodeURIComponent(mergeRequestId)}`,
+    );
     return { mergeRequest: data.mergeRequest };
   } catch (err) {
     unwrapError(err, 'Failed to load merge request');
@@ -199,7 +187,7 @@ export async function discardMergeRequest(mergeRequestId: string): Promise<void>
     throw new PlaudApiError('INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format', 400);
   }
   try {
-    await mergeRequestsApi.post(`/${encodeURIComponent(mergeRequestId)}/discard`);
+    await apiService.post(`/api/plaud/merge-requests/${encodeURIComponent(mergeRequestId)}/discard`);
   } catch (err) {
     unwrapError(err, 'Failed to discard merge request');
   }
@@ -210,7 +198,7 @@ export async function approveMergeRequest(mergeRequestId: string): Promise<void>
     throw new PlaudApiError('INVALID_MERGE_REQUEST_ID', 'Invalid mergeRequestId format', 400);
   }
   try {
-    await mergeRequestsApi.post(`/${encodeURIComponent(mergeRequestId)}/approve`);
+    await apiService.post(`/api/plaud/merge-requests/${encodeURIComponent(mergeRequestId)}/approve`);
   } catch (err) {
     unwrapError(err, 'Failed to approve merge request');
   }
@@ -232,8 +220,8 @@ export async function parseMergeRequestSegment(args: {
     throw new PlaudApiError('INVALID_DATE_OVERRIDE', 'Invalid date override format', 400);
   }
   try {
-    const { data } = await mergeRequestsApi.post<{ success: boolean } & PlaudParsedSegmentResponse>(
-      `/${encodeURIComponent(args.mergeRequestId)}/segments/${encodeURIComponent(args.segmentId)}/parse`,
+    const { data } = await apiService.post<{ success: boolean } & PlaudParsedSegmentResponse>(
+      `/api/plaud/merge-requests/${encodeURIComponent(args.mergeRequestId)}/segments/${encodeURIComponent(args.segmentId)}/parse`,
       { timeZone: args.timeZone, dateOverride: args.dateOverride },
     );
     return {

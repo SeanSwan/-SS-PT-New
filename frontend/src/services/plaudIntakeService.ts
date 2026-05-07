@@ -3,20 +3,9 @@
  * ======================
  * Frontend wrapper for the unified /api/plaud/intake read model.
  */
-import axios, { type AxiosInstance } from 'axios';
+import { isAxiosError } from 'axios';
+import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-const api: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/plaud/intake`,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 export interface PlaudIntakeItem {
   id: string;
@@ -65,7 +54,7 @@ export interface PlaudIntakeResponse {
 }
 
 function unwrapError(err: unknown, fallbackMessage: string): never {
-  if (axios.isAxiosError(err)) {
+  if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
     const code = data?.error?.code || 'UNKNOWN';
     const message = data?.error?.message || err.message || fallbackMessage;
@@ -82,7 +71,7 @@ export async function listPlaudIntakeItems({
   limit?: number;
 } = {}): Promise<PlaudIntakeResponse> {
   try {
-    const { data } = await api.get<{ success: boolean } & PlaudIntakeResponse>('/', {
+    const { data } = await apiService.get<{ success: boolean } & PlaudIntakeResponse>('/api/plaud/intake', {
       params: { scope, limit },
     });
     return {

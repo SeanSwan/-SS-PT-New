@@ -1,57 +1,29 @@
 /**
- * ┌─── SUB-COMPONENT: CoachInputBar ───────────────────────────┐
- * │ PARENT: SwanCoachAssistantPage                              │
- * │ PURPOSE: Text input + 64px voice orb + send button          │
- * │ WIREFRAME:                                                  │
- * │ ┌───────────────────┐  🎤  📤                              │
- * │ │ Type or tap mic... │  ○   →                              │
- * │ └───────────────────┘                                      │
- * │ Props: { onSend, sending, onVoiceOverlay, externalText, …} │
- * │                                                             │
- * │ SPRINT B: externalText prop injects transcript from overlay │
- * │           Web Speech has a 2-second cancel window           │
- * └─────────────────────────────────────────────────────────────┘
+ * SUB-COMPONENT: CoachInputBar
+ * PARENT: SwanCoachAssistantPage
+ * PURPOSE: Composer for text, voice, attachments, TTS toggle, and oversized
+ *          draft recovery into the canonical Coach intake queue.
  */
-
-import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
-import styled from 'styled-components';
-import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
 import { InputBar, ChatInput, SendBtn, VoiceOrbWrap, TtsToggle } from './SwanCoachStyles';
-import { ORB_SIZE_MAP, ORB_ICON_SIZE_MAP } from './SwanCoachConstants';
+import { ORB_ICON_SIZE_MAP, ORB_SIZE_MAP } from './SwanCoachConstants';
 import CoachInputCancelPill from './CoachInputCancelPill';
 import type { OrbSize } from './SwanCoachTypes';
-import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
+import { useCoachBrowserSpeechInput, CANCEL_WINDOW_MS } from './hooks/useCoachBrowserSpeechInput';
+import {
+  CharCount,
+  InputBarWrap,
+  InputError,
+  InputErrorAction,
+  InputWrap,
+} from './CoachInputBar.styles';
+import {
+  AI_CHAT_MESSAGE_MAX_CHARS,
+  buildChatMessageTooLongError,
+} from '../../../../hooks/aiMessageLimits';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Character Count
-// ─────────────────────────────────────────────────────────────
 const MAX_CHARS = AI_CHAT_MESSAGE_MAX_CHARS;
-const CANCEL_WINDOW_MS = 2000;
-const MIN_AUTO_SEND_LENGTH = 4; // prevent ambient noise / single phoneme triggering
-
-const InputWrap = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 0;
-`;
-
-const CharCount = styled.span<{ $near: boolean }>`
-  position: absolute;
-  right: 8px;
-  bottom: 4px;
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  color: ${({ $near }) => $near
-    ? 'var(--accent-gold, #C6A84B)'
-    : 'var(--text-muted, rgba(224, 236, 244, 0.25))'};
-  pointer-events: none;
-  transition: color 0.2s ease;
-`;
-
-const InputBarWrap = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
 
 interface CoachInputBarProps {
   onSend: (text: string) => void;
@@ -60,30 +32,11 @@ interface CoachInputBarProps {
   ttsSupported?: boolean;
   onTtsToggle?: () => void;
   onVoiceOverlay?: () => void;
+  onCreateIntakeDraft?: (text: string) => Promise<{ ok: boolean; message: string }>;
   attachButton?: React.ReactNode;
-  /**
-   * SPRINT B: When set, injects transcript text into the input for editing
-   * (used when user chooses "Edit" from VoiceRecordingOverlay preview state).
-   * Uses { text, seq } so repeated identical transcripts inject correctly —
-   * injection is gated on seq change, not text equality.
-   */
   externalText?: { text: string; seq: number } | null;
-  /**
-   * Phase 13.2 (2026-04-15): enables file-only send when a transcript-class
-   * attachment is currently staged. With this flag true, pressing Enter or
-   * clicking Send will fire `onSend('')` so `SwanCoachAssistantPage.handleSend`
-   * can route the attachment through the upload path without requiring the
-   * user to type an accompanying message. Typed text still wins when present.
-   * When false (or unset), legacy behavior: no text → no send.
-   */
   hasAttachment?: boolean;
 }
-
-// Web Speech API type
-const SpeechRecognition = typeof window !== 'undefined'
-  ? (window as unknown as { SpeechRecognition?: typeof globalThis.SpeechRecognition; webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).SpeechRecognition
-    || (window as unknown as { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).webkitSpeechRecognition
-  : null;
 
 const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   onSend,
@@ -92,196 +45,124 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
   ttsSupported = false,
   onTtsToggle,
   onVoiceOverlay,
+  onCreateIntakeDraft,
   attachButton,
   externalText,
   hasAttachment = false,
 }) => {
   const [text, setText] = useState('');
-  const [listening, setListening] = useState(false);
-  const [interim, setInterim] = useState('');
-  const [cancelPillVisible, setCancelPillVisible] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [intakeDraftSaving, setIntakeDraftSaving] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSendTextRef = useRef('');
-  const accumulatedRef = useRef('');
   const lastInjectedSeqRef = useRef(-1);
 
-  // Determine orb size: primary (64px) on mobile, standard (56px) on desktop
-  const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 'primary' : 'standard';
+  const {
+    listening,
+    interim,
+    cancelPillVisible,
+    clearInterim,
+    handleCancelSend,
+    speechSupported,
+    toggleListening,
+  } = useCoachBrowserSpeechInput({
+    maxChars: MAX_CHARS,
+    onSend,
+    setText,
+    setInputError,
+  });
 
-  // ── SPRINT B: Inject external transcript text for editing ──
-  // Gated on seq change so identical text can inject on repeated edits.
+  const orbSize: OrbSize = typeof window !== 'undefined' && window.innerWidth < 768
+    ? 'primary'
+    : 'standard';
+
+  const resizeInput = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (!inputRef.current) return;
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`;
+      inputRef.current.focus();
+    });
+  }, []);
+
   useEffect(() => {
-    if (externalText && externalText.seq !== lastInjectedSeqRef.current) {
-      lastInjectedSeqRef.current = externalText.seq;
-      setText(externalText.text);
-      // Auto-resize textarea on inject
-      requestAnimationFrame(() => {
-        if (inputRef.current) {
-          inputRef.current.style.height = 'auto';
-          inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 200) + 'px';
-          inputRef.current.focus();
-        }
-      });
-    }
-  }, [externalText]);
+    if (!externalText || externalText.seq === lastInjectedSeqRef.current) return;
+    lastInjectedSeqRef.current = externalText.seq;
+    setText(externalText.text);
+    setInputError(
+      externalText.text.length > MAX_CHARS
+        ? buildChatMessageTooLongError(externalText.text.length)
+        : null,
+    );
+    resizeInput();
+  }, [externalText, resizeInput]);
 
-  // ── Handle send ──
-  // Phase 13.2: when a transcript-class attachment is staged, file-only
-  // send is allowed — `onSend('')` fires so the page handler can route
-  // the upload without requiring typed text. Double-fire is still
-  // prevented by the `sending` guard.
+  const clearComposer = useCallback(() => {
+    setText('');
+    clearInterim();
+    setInputError(null);
+    inputRef.current?.focus();
+  }, [clearInterim]);
+
   const handleSend = useCallback(() => {
     const msg = text.trim();
     if (sending) return;
     if (!msg && !hasAttachment) return;
-    onSend(msg);
-    setText('');
-    setInterim('');
-    inputRef.current?.focus();
-  }, [text, sending, hasAttachment, onSend]);
-
-  // ── Keyboard: Enter to send, Shift+Enter for newline, Cmd/Ctrl+Enter always sends ──
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handleSend();
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }, [handleSend]);
-
-  // ── Auto-resize textarea ──
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
-  }, []);
-
-  // ── SPRINT B: Cancel the pending auto-send ──
-  const handleCancelSend = useCallback(() => {
-    if (cancelSendTimerRef.current) clearTimeout(cancelSendTimerRef.current);
-    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    setCancelPillVisible(false);
-    // Text remains in input for correction
-  }, []);
-
-  // ── Voice recognition ──
-  const toggleListening = useCallback(() => {
-    if (!SpeechRecognition) return;
-
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      setInterim('');
+    if (text.length > MAX_CHARS) {
+      setInputError(buildChatMessageTooLongError(text.length));
+      inputRef.current?.focus();
       return;
     }
+    onSend(msg);
+    clearComposer();
+  }, [clearComposer, hasAttachment, onSend, sending, text]);
 
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== 'Enter') return;
+    if (event.shiftKey && !event.metaKey && !event.ctrlKey) return;
+    event.preventDefault();
+    handleSend();
+  }, [handleSend]);
 
-      accumulatedRef.current = '';
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalText = '';
-        let interimText = '';
-        for (let i = 0; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalText += result[0].transcript;
-          } else {
-            interimText += result[0].transcript;
-          }
-        }
-        if (finalText) {
-          accumulatedRef.current += finalText;
-          setText(prev => prev + finalText);
-        }
-        setInterim(interimText);
-
-        // Debounce: wait 750ms of silence before triggering cancel window
-        if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-        const accumulated = accumulatedRef.current.trim();
-        if (accumulated || (finalText + interimText).trim()) {
-          autoSendTimerRef.current = setTimeout(() => {
-            const msg = accumulatedRef.current.trim();
-            // SPRINT B: minimum length guard — prevents noise/ambient sound
-            if (msg.length < MIN_AUTO_SEND_LENGTH) {
-              recognitionRef.current?.stop();
-              setListening(false);
-              setInterim('');
-              return;
-            }
-            // Show cancel window before dispatching
-            pendingSendTextRef.current = msg;
-            setCancelPillVisible(true);
-            recognitionRef.current?.stop();
-            setListening(false);
-            setInterim('');
-            // After cancel window: actually send
-            cancelSendTimerRef.current = setTimeout(() => {
-              setCancelPillVisible(false);
-              const finalMsg = pendingSendTextRef.current;
-              if (finalMsg) {
-                onSend(finalMsg);
-                setText('');
-                accumulatedRef.current = '';
-                pendingSendTextRef.current = '';
-              }
-            }, CANCEL_WINDOW_MS);
-          }, 750);
-        }
-      };
-
-      recognition.onerror = () => {
-        setListening(false);
-        setInterim('');
-      };
-
-      recognition.onend = () => {
-        setListening(false);
-        setInterim('');
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
-  }, [listening, onSend]);
-
-  // ── Cleanup on unmount ──
-  useEffect(() => {
-    return () => {
-      recognitionRef.current?.stop();
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-      if (cancelSendTimerRef.current) clearTimeout(cancelSendTimerRef.current);
-    };
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextValue = event.target.value;
+    setText(nextValue);
+    setInputError(
+      nextValue.length > MAX_CHARS
+        ? buildChatMessageTooLongError(nextValue.length)
+        : null,
+    );
+    event.target.style.height = 'auto';
+    event.target.style.height = `${Math.min(event.target.scrollHeight, 200)}px`;
   }, []);
 
-  const hasVoice = !!SpeechRecognition || !!onVoiceOverlay;
-  const displayText = text || interim;
-
-  // Prefer server transcription overlay over browser Web Speech API
-  const handleVoiceClick = useCallback(() => {
-    if (onVoiceOverlay) {
-      onVoiceOverlay();
-    } else {
-      toggleListening();
+  const handleCreateIntakeDraft = useCallback(async () => {
+    if (!onCreateIntakeDraft || intakeDraftSaving || text.trim().length < 5) return;
+    setIntakeDraftSaving(true);
+    try {
+      const result = await onCreateIntakeDraft(text.trim());
+      setInputError(result.message);
+      if (result.ok) {
+        setText('');
+        clearInterim();
+      }
+    } catch {
+      setInputError('Coach intake draft could not be saved. Your note is still here.');
+    } finally {
+      setIntakeDraftSaving(false);
     }
+  }, [clearInterim, intakeDraftSaving, onCreateIntakeDraft, text]);
+
+  const handleVoiceClick = useCallback(() => {
+    if (onVoiceOverlay) onVoiceOverlay();
+    else toggleListening();
   }, [onVoiceOverlay, toggleListening]);
+
+  const displayText = text || interim;
+  const hasVoice = speechSupported || !!onVoiceOverlay;
+  const overLimit = text.length > MAX_CHARS;
 
   return (
     <InputBarWrap>
-      {/* SPRINT B: Cancel window pill */}
       {cancelPillVisible && (
         <CoachInputCancelPill
           duration={CANCEL_WINDOW_MS}
@@ -290,7 +171,6 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
       )}
 
       <InputBar>
-        {/* TTS Toggle */}
         {ttsSupported && onTtsToggle && (
           <TtsToggle
             $active={ttsEnabled}
@@ -302,10 +182,8 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
           </TtsToggle>
         )}
 
-        {/* File Attachment */}
         {attachButton}
 
-        {/* Text Input */}
         <InputWrap>
           <ChatInput
             ref={inputRef}
@@ -316,7 +194,8 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
             disabled={sending}
             aria-label="Message input"
             rows={1}
-            maxLength={MAX_CHARS}
+            aria-invalid={overLimit}
+            aria-describedby={inputError ? 'coach-input-error' : undefined}
           />
           {text.length > 100 && (
             <CharCount $near={text.length > MAX_CHARS * 0.9}>
@@ -325,7 +204,6 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
           )}
         </InputWrap>
 
-        {/* Voice Orb */}
         {hasVoice && (
           <VoiceOrbWrap
             $listening={listening}
@@ -340,17 +218,29 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
           </VoiceOrbWrap>
         )}
 
-        {/* Send Button */}
-        {/* Phase 13.2: disabled only when there's nothing to send — text OR a
-            staged transcript-class attachment unlocks send. */}
         <SendBtn
           onClick={handleSend}
-          disabled={(!text.trim() && !hasAttachment) || sending}
+          disabled={(!text.trim() && !hasAttachment) || sending || overLimit}
           aria-label="Send message"
         >
           <Send size={20} />
         </SendBtn>
       </InputBar>
+
+      {inputError && (
+        <InputError id="coach-input-error" role="alert">
+          {inputError}
+          {overLimit && onCreateIntakeDraft && (
+            <InputErrorAction
+              type="button"
+              onClick={handleCreateIntakeDraft}
+              disabled={intakeDraftSaving}
+            >
+              {intakeDraftSaving ? 'Saving intake draft...' : 'Save as Coach intake draft'}
+            </InputErrorAction>
+          )}
+        </InputError>
+      )}
     </InputBarWrap>
   );
 };

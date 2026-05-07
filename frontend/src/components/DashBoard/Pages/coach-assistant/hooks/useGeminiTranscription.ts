@@ -15,6 +15,8 @@
  */
 
 import { useState, useCallback } from 'react';
+import { isAxiosError } from 'axios';
+import apiService from '../../../../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -27,18 +29,6 @@ export interface UseGeminiTranscriptionReturn {
   error: string | null;
   transcribe: (blob: Blob) => Promise<string>;
   reset: () => void;
-}
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: API Config
-// ─────────────────────────────────────────────────────────────
-// SPRINT B fix: align with VITE_API_BASE (matches useCoachCommand and repo standard)
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -62,24 +52,17 @@ export function useGeminiTranscription(): UseGeminiTranscriptionReturn {
         : 'webm';
       formData.append('audio', blob, `recording.${ext}`);
 
-      const res = await fetch(`${API_BASE}/api/ai-chat/transcribe`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Transcription failed (${res.status})`);
-      }
-
-      const data = await res.json();
+      const { data } = await apiService.post<{ text?: string; transcript?: string }>(
+        '/api/ai-chat/transcribe',
+        formData,
+      );
       const transcript = data.text || data.transcript || '';
       setText(transcript);
       setState('done');
       return transcript;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Transcription failed';
+      const responseData = isAxiosError(err) ? err.response?.data as { error?: string; message?: string } | undefined : undefined;
+      const msg = responseData?.error || responseData?.message || (err instanceof Error ? err.message : 'Transcription failed');
       setError(msg);
       setState('error');
       return '';

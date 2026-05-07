@@ -24,6 +24,19 @@ describe('AI message limit policy', () => {
     expect(isCommandLaneCandidate(prompt)).toBe(false);
   });
 
+  it('does not route narrative text to command lane just because it contains a command phrase', () => {
+    const prompt = 'Today I met Marcus and he asked me to start onboarding after we finish the knee history and goals.';
+
+    expect(isCommandLaneCandidate(prompt)).toBe(false);
+    expect(isCommandLaneCandidate('start onboarding Marcus')).toBe(true);
+    expect(isCommandLaneCandidate('please start onboarding Marcus')).toBe(true);
+  });
+
+  it('routes explicit PLAUD audio-inspection commands through the command lane', () => {
+    expect(isCommandLaneCandidate('inspect pending PLAUD audio pieces')).toBe(true);
+    expect(isCommandLaneCandidate('please inspect pending PLAUD audio pieces')).toBe(true);
+  });
+
   it('allows long onboarding prompts through the chat lane before the chat cap', () => {
     expect(AI_CHAT_MESSAGE_MAX_CHARS).toBeGreaterThan(AI_COMMAND_MESSAGE_MAX_CHARS);
     expect(isChatMessageTooLong('x'.repeat(AI_CHAT_MESSAGE_MAX_CHARS))).toBe(false);

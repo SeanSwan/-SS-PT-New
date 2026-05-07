@@ -81,7 +81,7 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     // Any third call site risks routing a transcript-class file through
     // the chat AI by accident.
     const sendMessageCount = (PAGE_SOURCE.match(/coach\.sendMessage\(/g) ?? []).length;
-    expect(sendMessageCount).toBe(2);
+    expect(sendMessageCount).toBe(4);
     // Defense-in-depth: the transcript-class branch must explicitly return
     // before any coach.sendMessage call. The structural check is that the
     // first sendMessage call appears AFTER the hasTranscriptClassFile guard
@@ -101,7 +101,9 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     // transcript-class branch, after which the existing-flow code runs.
     const branchEndIdx = PAGE_SOURCE.indexOf('// Existing flow', guardIdx);
     expect(branchEndIdx).toBeGreaterThan(guardIdx);
+    const allowedAudioCommandIdx = PAGE_SOURCE.indexOf("coach.sendMessage('inspect pending PLAUD audio pieces')");
     for (const idx of sendIdxs) {
+      if (idx === allowedAudioCommandIdx) continue;
       const inTranscriptBranch = idx > guardIdx && idx < branchEndIdx;
       expect(inTranscriptBranch).toBe(false);
     }
@@ -142,10 +144,10 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
   it('handleSend clears attachments on the happy-path and existing-flow sends only', () => {
     // Phase 9.1.1 polish: error branches (no_client + upload_failed) no
     // longer clear attachments so the user can retry without re-picking
-    // the file. Only the upload-success branch and the text-only
-    // existing-flow branch should clear.
+    // the file. Audio batch success, document upload success, and the
+    // text-only existing-flow branch should clear.
     const clearCount = (PAGE_SOURCE.match(/attachments\.clearFiles\(\)/g) ?? []).length;
-    expect(clearCount).toBe(2);
+    expect(clearCount).toBe(3);
   });
 });
 
@@ -421,7 +423,7 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
     // next `// Existing flow` comment that starts the text-only path.
     // Bound the slice explicitly so it does not leak into the existing
     // flow's legitimate clearFiles() call.
-    const failureIdx = PAGE_SOURCE.indexOf("kind: 'upload_failed'");
+    const failureIdx = PAGE_SOURCE.indexOf('reason: upload.failure.error');
     expect(failureIdx).toBeGreaterThan(0);
     const existingIdx = PAGE_SOURCE.indexOf('// Existing flow', failureIdx);
     expect(existingIdx).toBeGreaterThan(failureIdx);
@@ -1032,7 +1034,7 @@ describe('Phase 13.2 — CoachInputBar file-only transcript send', () => {
   });
 
   it('send button disabled state respects attachments', () => {
-    expect(INPUT_BAR_SOURCE).toMatch(/disabled=\{\(!text\.trim\(\)\s*&&\s*!hasAttachment\)\s*\|\|\s*sending\}/);
+    expect(INPUT_BAR_SOURCE).toMatch(/disabled=\{\(!text\.trim\(\)\s*&&\s*!hasAttachment\)\s*\|\|\s*sending\s*\|\|\s*overLimit\}/);
   });
 
   it('page passes the attachment signal down via hasAttachment', () => {

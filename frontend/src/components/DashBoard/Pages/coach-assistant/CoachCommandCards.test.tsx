@@ -63,4 +63,24 @@ describe('ExecutionResultCard route actions', () => {
     expect(link).toHaveAttribute('href', '/dashboard/trainer/plaud?pieces=pending');
     expect(screen.queryByText('targetRoute')).toBeNull();
   });
+
+  it('labels unified Coach intake routes as Coach intake actions', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            nextKind: 'coach_intake',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open coach intake/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc');
+    expect(screen.queryByText('reviewRoute')).toBeNull();
+  });
 });
