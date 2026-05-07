@@ -277,4 +277,5 @@ describe('coachActionProposalApprovalService', () => {
       writer: 'deterministic',
     });
   });
+
 });

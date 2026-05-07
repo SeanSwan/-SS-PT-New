@@ -8,7 +8,12 @@ import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { CheckCircle2, ClipboardCheck, Eye, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
-import { approveCoachProposal, getCoachProposal, rejectCoachProposal } from '../../../../services/coachProposalService';
+import {
+  answerCoachProposalClarification,
+  approveCoachProposal,
+  getCoachProposal,
+  rejectCoachProposal,
+} from '../../../../services/coachProposalService';
 import { CoachProposalGateRail } from './CoachProposalGateRail';
 import {
   buildDetailRows,
@@ -62,6 +67,13 @@ const Actions = styled.div`
   margin-top: 12px;
 `;
 
+const ClarificationOptions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+`;
+
 const DetailPanel = styled.div`
   margin-top: 12px;
   padding: 10px 12px;
@@ -109,9 +121,18 @@ const StatusText = styled.div<{ $error?: boolean }>`
   font-weight: 700;
 `;
 
+function clarificationOptionsFromDetail(detail: Record<string, unknown> | null) {
+  const clarification = detail?.clarification;
+  if (!clarification || typeof clarification !== 'object' || Array.isArray(clarification)) return [];
+  const options = (clarification as Record<string, unknown>).options;
+  return Array.isArray(options)
+    ? options.map((option) => String(option || '').trim()).filter(Boolean)
+    : [];
+}
+
 export function CoachActionProposalCard({ proposal }: { proposal: CoachActionProposal }) {
   const [status, setStatus] = useState(proposal.status);
-  const [busy, setBusy] = useState<'approve' | 'detail' | 'reject' | null>(null);
+  const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(proposal.detail || null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,8 +140,10 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
   const pending = status === 'PENDING';
   const approveLabel = proposal.type === 'workout_log' ? 'Approve and log' : 'Approve draft';
   const requiresDetailBeforeApprove = proposal.type === 'client_onboarding';
+  const clarificationOptions = useMemo(() => clarificationOptionsFromDetail(detail), [detail]);
+  const isClarification = proposal.type === 'clarification';
   const detailHasBlockingError = hasDetailBlockingError(detail);
-  const canApprove = pending && (!requiresDetailBeforeApprove || (!!detail && !detailHasBlockingError));
+  const canApprove = pending && !isClarification && (!requiresDetailBeforeApprove || (!!detail && !detailHasBlockingError));
   const detailRows = useMemo(() => buildDetailRows(detail), [detail]);
   const rows = useMemo(() => [
     ['Type', proposalTypeLabel(proposal.type)],
@@ -173,6 +196,20 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
     }
   };
 
+  const runClarificationAnswer = async (answer: string) => {
+    setBusy('clarification');
+    setError(null);
+    try {
+      const result = await answerCoachProposalClarification(proposal.id, answer);
+      setStatus(result.proposal?.status || 'APPROVED');
+      setMessage('Clarification answer recorded for deterministic review.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Clarification answer failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const runReject = async () => {
     setBusy('reject');
     setError(null);
@@ -211,16 +248,32 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
           ))}
         </DetailPanel>
       )}
+      {pending && isClarification && clarificationOptions.length > 0 && (
+        <ClarificationOptions aria-label="Clarification answer options">
+          {clarificationOptions.map((option) => (
+            <ActionButton
+              key={option}
+              onClick={() => runClarificationAnswer(option)}
+              disabled={!!busy}
+            >
+              {busy === 'clarification' ? <Loader2 size={16} /> : <CheckCircle2 size={16} />}
+              {option}
+            </ActionButton>
+          ))}
+        </ClarificationOptions>
+      )}
       {pending && (
         <Actions>
           <ActionButton onClick={runLoadDetails} disabled={!!busy}>
             {busy === 'detail' ? <Loader2 size={16} /> : <Eye size={16} />}
             Review details
           </ActionButton>
-          <ActionButton onClick={runApprove} disabled={!!busy || !canApprove}>
-            {busy === 'approve' ? <Loader2 size={16} /> : <ClipboardCheck size={16} />}
-            {approveLabel}
-          </ActionButton>
+          {!isClarification && (
+            <ActionButton onClick={runApprove} disabled={!!busy || !canApprove}>
+              {busy === 'approve' ? <Loader2 size={16} /> : <ClipboardCheck size={16} />}
+              {approveLabel}
+            </ActionButton>
+          )}
           <ActionButton $danger onClick={runReject} disabled={!!busy}>
             {busy === 'reject' ? <Loader2 size={16} /> : <XCircle size={16} />}
             Reject

@@ -61,6 +61,17 @@ async function claimPendingProposal({ id, userId, db }) {
 
 const proposalNotPending = () => ({ status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } });
 
+function normalizeClarificationAnswer(answer) {
+  return typeof answer === 'string' ? answer.trim() : '';
+}
+
+function getClarificationOptions(proposal) {
+  const options = proposal?.payload?.options;
+  return Array.isArray(options)
+    ? options.map((option) => normalizeClarificationAnswer(option)).filter(Boolean)
+    : [];
+}
+
 async function updateProposalStatus({ id, status, result = {}, errorCode = null, userId = null, fromStatus = null, db }) {
   const rows = await db.query(
     `UPDATE coach_action_proposals
@@ -237,6 +248,36 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
     return { status: 400, body: { success: false, code, error: err.message } };
   }
+}
+
+export async function answerCoachActionProposalClarification({ id, answer, req, sequelizeOverride = null }) {
+  const db = sequelizeOverride || sequelize;
+  const row = await loadOwnedProposal({ id, userId: req.user.id, db });
+  if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
+  if (row.status !== COACH_PROPOSAL_STATUS.PENDING) return proposalNotPending();
+  if (row.proposal_type !== COACH_PROPOSAL_TYPE.CLARIFICATION) {
+    return { status: 400, body: { success: false, code: 'PROPOSAL_NOT_CLARIFICATION' } };
+  }
+
+  const normalizedAnswer = normalizeClarificationAnswer(answer);
+  if (!normalizedAnswer || normalizedAnswer.length > 500) {
+    return { status: 400, body: { success: false, code: 'CLARIFICATION_ANSWER_INVALID' } };
+  }
+
+  const proposal = decryptProposalPayload(row);
+  const options = getClarificationOptions(proposal);
+  if (options.length > 0 && !options.includes(normalizedAnswer)) {
+    return { status: 400, body: { success: false, code: 'CLARIFICATION_ANSWER_OPTION_MISMATCH' } };
+  }
+
+  if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
+  const updated = await updateProposalStatus({
+    id, status: COACH_PROPOSAL_STATUS.APPROVED, result: { clarificationAnswer: normalizedAnswer }, db,
+  });
+  return {
+    status: 200,
+    body: { success: true, proposal: updated, applied: false, clarificationAnswer: normalizedAnswer },
+  };
 }
 
 export async function rejectCoachActionProposal({ id, req, sequelizeOverride = null }) {

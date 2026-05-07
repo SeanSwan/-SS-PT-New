@@ -6,6 +6,7 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import {
+  answerCoachActionProposalClarification,
   approveCoachActionProposal,
   getCoachActionProposal,
   rejectCoachActionProposal,
@@ -38,6 +39,23 @@ router.post('/:id/approve', async (req, res) => {
       success: false,
       code: 'PROPOSAL_APPROVAL_FAILED',
       error: err.message || 'Proposal approval failed',
+    });
+  }
+});
+
+router.post('/:id/clarification-answer', async (req, res) => {
+  try {
+    const result = await answerCoachActionProposalClarification({
+      id: req.params.id,
+      answer: req.body?.answer,
+      req,
+    });
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      code: 'PROPOSAL_CLARIFICATION_ANSWER_FAILED',
+      error: err.message || 'Proposal clarification answer failed',
     });
   }
 });

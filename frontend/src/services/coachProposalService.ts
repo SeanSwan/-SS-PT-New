@@ -16,6 +16,7 @@ export interface CoachProposalActionResponse {
   workout?: Record<string, unknown>;
   client?: Record<string, unknown>;
   updates?: Record<string, unknown>;
+  clarificationAnswer?: string;
   code?: string;
   error?: string;
 }
@@ -58,6 +59,21 @@ export async function approveCoachProposal(id: string): Promise<CoachProposalAct
   }
 }
 
+export async function answerCoachProposalClarification(
+  id: string,
+  answer: string,
+): Promise<CoachProposalActionResponse> {
+  try {
+    const { data } = await apiService.post<CoachProposalActionResponse>(
+      `/api/coach/proposals/${encodeURIComponent(id)}/clarification-answer`,
+      { answer },
+    );
+    return data;
+  } catch (err) {
+    unwrapError(err, 'Failed to answer Coach clarification');
+  }
+}
+
 export async function rejectCoachProposal(id: string): Promise<CoachProposalActionResponse> {
   try {
     const { data } = await apiService.post<CoachProposalActionResponse>(`/api/coach/proposals/${encodeURIComponent(id)}/reject`);
@@ -67,4 +83,9 @@ export async function rejectCoachProposal(id: string): Promise<CoachProposalActi
   }
 }
 
-export default { approveCoachProposal, getCoachProposal, rejectCoachProposal };
+export default {
+  answerCoachProposalClarification,
+  approveCoachProposal,
+  getCoachProposal,
+  rejectCoachProposal,
+};

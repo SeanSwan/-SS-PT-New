@@ -1,9 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CoachActionProposalCard } from './CoachActionProposalCard';
-import { approveCoachProposal, getCoachProposal, rejectCoachProposal } from '../../../../services/coachProposalService';
+import {
+  answerCoachProposalClarification,
+  approveCoachProposal,
+  getCoachProposal,
+  rejectCoachProposal,
+} from '../../../../services/coachProposalService';
 
 vi.mock('../../../../services/coachProposalService', () => ({
+  answerCoachProposalClarification: vi.fn(),
   approveCoachProposal: vi.fn(),
   getCoachProposal: vi.fn(),
   rejectCoachProposal: vi.fn(),
@@ -182,5 +188,42 @@ describe('CoachActionProposalCard', () => {
 
     expect(screen.getAllByText(/Split plan/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /approve draft/i })).toBeInTheDocument();
+  });
+
+  it('records a one-tap clarification answer from loaded proposal details', async () => {
+    const clarificationProposal = {
+      ...proposal,
+      type: 'clarification' as const,
+      title: 'Answer Coach clarification',
+      summary: { actionRequired: 'Answer clarification before deterministic approval can continue.' },
+    };
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...clarificationProposal,
+        detail: {
+          clarification: {
+            question: 'Which client should this workout be logged under?',
+            options: ['client_candidate:C1', 'client_candidate:C2'],
+          },
+        },
+      },
+    });
+    vi.mocked(answerCoachProposalClarification).mockResolvedValue({
+      success: true,
+      applied: false,
+      clarificationAnswer: 'client_candidate:C1',
+      proposal: { ...clarificationProposal, status: 'APPROVED' },
+    });
+
+    render(<CoachActionProposalCard proposal={clarificationProposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /client_candidate:C1/i }));
+
+    await waitFor(() => {
+      expect(answerCoachProposalClarification).toHaveBeenCalledWith(clarificationProposal.id, 'client_candidate:C1');
+    });
+    expect(await screen.findByText(/clarification answer recorded/i)).toBeInTheDocument();
   });
 });
