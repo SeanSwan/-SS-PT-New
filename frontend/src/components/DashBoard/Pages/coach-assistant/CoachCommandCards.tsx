@@ -37,6 +37,10 @@ import { useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { CheckCircle, XCircle, AlertTriangle, Terminal } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import {
+  CoachAudioInspectionResultCard,
+  isAudioInspectionCommand,
+} from './CoachAudioInspectionResultCard';
 import { isCommandRouteKey } from './commandRouteKeys';
 
 // ─────────────────────────────────────────────────────────────
@@ -321,6 +325,10 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   client,
   message,
 }: ExecutionResultCardProps) {
+  if (result && isAudioInspectionCommand(command)) {
+    return <CoachAudioInspectionResultCard command={command} result={result} message={message} />;
+  }
+
   const clientLabel = client?.firstName ?? null;
   const resultEntries = result
     ? Object.entries(result).filter(([key]) => !isCommandRouteKey(key)).slice(0, 6)

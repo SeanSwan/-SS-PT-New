@@ -103,4 +103,48 @@ describe('ExecutionResultCard route actions', () => {
     expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc');
     expect(screen.queryByText('reviewRoute')).toBeNull();
   });
+
+  it('renders Coach audio inspection as a readable summary instead of raw command keys', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_coach_audio_pieces"
+          client={null}
+          result={{
+            totalAudioItems: 2,
+            needsOrderingReview: 1,
+            lowConfidence: 1,
+            queueRoute: '/dashboard/admin/coach-assistant',
+            commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+            items: [
+              {
+                id: 'coach:audio-1',
+                kind: 'coach_intake',
+                queueStatus: 'unprocessed',
+                audioPieces: 3,
+                audioBundles: 2,
+                audioConfidence: 'low',
+                needsOrderingReview: true,
+                reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-1',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Audio pieces inspected/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 audio items/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 needs order review/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 low confidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 bundles/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/low confidence/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/order review/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /open coach intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant');
+    expect(screen.queryByText('totalAudioItems')).toBeNull();
+    expect(screen.queryByText('needsOrderingReview')).toBeNull();
+    expect(screen.queryByText('items')).toBeNull();
+  });
 });
