@@ -9,6 +9,7 @@ import styled from 'styled-components';
 import { CheckCircle2, ClipboardCheck, Eye, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import { approveCoachProposal, getCoachProposal, rejectCoachProposal } from '../../../../services/coachProposalService';
+import { CoachProposalGateRail } from './CoachProposalGateRail';
 
 const Card = styled.div`
   margin-top: 12px;
@@ -174,9 +175,7 @@ function buildDetailRows(detail: Record<string, unknown> | null): DetailRow[] {
 export function CoachActionProposalCard({ proposal }: { proposal: CoachActionProposal }) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'detail' | 'reject' | null>(null);
-  const [detail, setDetail] = useState<Record<string, unknown> | null>(
-    proposal.detail || null,
-  );
+  const [detail, setDetail] = useState<Record<string, unknown> | null>(proposal.detail || null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const summary = proposal.summary || {};
@@ -264,6 +263,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
         <Label>Status</Label>
         <Value>{status}</Value>
       </Row>
+      <CoachProposalGateRail summary={summary} />
       {detailRows.length > 0 && (
         <DetailPanel>
           {detailRows.map(([label, value]) => (

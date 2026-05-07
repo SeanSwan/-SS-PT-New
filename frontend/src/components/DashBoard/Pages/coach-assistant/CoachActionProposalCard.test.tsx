@@ -113,4 +113,26 @@ describe('CoachActionProposalCard', () => {
     expect(await screen.findAllByText(/first and last name are required/i)).toHaveLength(2);
     expect(screen.getByRole('button', { name: /approve draft/i })).toBeDisabled();
   });
+
+  it('renders proposal approval gates and evidence metadata', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          summary: {
+            ...proposal.summary,
+            confirmationMode: 'trainer_approval_required',
+            evidenceCount: 2,
+            safetyFlagCount: 1,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Approval gates/i)).toBeInTheDocument();
+    expect(screen.getByText(/Trainer approval required/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 evidence refs/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 safety flag/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deterministic writer/i)).toBeInTheDocument();
+  });
 });
