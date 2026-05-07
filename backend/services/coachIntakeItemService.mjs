@@ -9,6 +9,7 @@ import { QueryTypes } from 'sequelize';
 import sequelize from '../database.mjs';
 import { encryptPayload } from './plaudCipherService.mjs';
 import { listPlaudIntakeItems } from './plaudIntakeQueueService.mjs';
+import { audioPuzzleSummaryForQueue } from './coachAudioPuzzleService.mjs';
 import {
   COACH_ARCHIVED_STATUSES,
   COACH_INTAKE_SCOPES,
@@ -88,6 +89,7 @@ export function mapCoachRowToIntakeItem(row) {
   const queueStatus = queueStatusForCoach(status);
   const clientId = row.resolved_client_id == null ? null : Number(row.resolved_client_id);
   const metadata = row.metadata_json || {};
+  const audioPuzzle = audioPuzzleSummaryForQueue({ sourceType: row.source_type, metadata });
 
   return {
     id: `coach:${row.id}`,
@@ -117,6 +119,7 @@ export function mapCoachRowToIntakeItem(row) {
       charCount: Number(metadata.charCount || 0),
       wordCount: Number(metadata.wordCount || 0),
     },
+    audioPuzzle,
   };
 }
 

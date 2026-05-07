@@ -97,4 +97,42 @@ describe('coach intake context prompt bridge', () => {
     });
     expect(JSON.stringify(context)).not.toMatch(/Do Not Return|clientName|title/i);
   });
+
+  it('includes compact audio puzzle facts without source labels or transcript text', () => {
+    const context = buildCoachIntakeContextFromResult({
+      summary: { actionable: 1, readyReview: 0, needsClient: 1 },
+      items: [
+        {
+          id: 'coach:audio-1',
+          kind: 'coach_intake',
+          sourceLabel: 'Audio upload',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          needsClient: true,
+          audioPuzzle: {
+            pieceCount: 3,
+            bundleCount: 2,
+            autoBundleCount: 1,
+            needsOrderingReview: true,
+            confidence: 'low',
+            rawFileNames: ['Marcus private clip one.m4a'],
+            transcript: 'Do Not Return',
+          },
+        },
+      ],
+    });
+    const block = buildCoachIntakeContextPromptBlock(context);
+    const serialized = JSON.stringify(context);
+
+    expect(context.items[0]).toMatchObject({
+      audioPieceCount: 3,
+      audioBundleCount: 2,
+      audioAutoBundleCount: 1,
+      audioNeedsOrderingReview: true,
+      audioPuzzleConfidence: 'low',
+    });
+    expect(block).toContain('audioPieces=3');
+    expect(block).toContain('audioOrderReview=true');
+    expect(serialized).not.toMatch(/Marcus|private clip|Do Not Return|rawFileNames|transcript/i);
+  });
 });

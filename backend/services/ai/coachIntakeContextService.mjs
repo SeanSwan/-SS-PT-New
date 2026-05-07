@@ -1,7 +1,21 @@
 const SUMMARY_KEYS = ['actionable', 'readyReview', 'needsClient', 'failed', 'processing', 'unprocessed'];
-const ITEM_STRING_KEYS = ['id', 'kind', 'sourceLabel', 'queueStatus', 'timelineAtSource', 'errorCode'];
-const ITEM_BOOL_KEYS = ['hasClient', 'needsClient', 'canReview'];
-const ITEM_NUMBER_KEYS = ['clipCount', 'parsedExerciseCount'];
+const ITEM_STRING_KEYS = [
+  'id',
+  'kind',
+  'sourceLabel',
+  'queueStatus',
+  'timelineAtSource',
+  'errorCode',
+  'audioPuzzleConfidence',
+];
+const ITEM_BOOL_KEYS = ['hasClient', 'needsClient', 'canReview', 'audioNeedsOrderingReview'];
+const ITEM_NUMBER_KEYS = [
+  'clipCount',
+  'parsedExerciseCount',
+  'audioPieceCount',
+  'audioBundleCount',
+  'audioAutoBundleCount',
+];
 const SAFE_TEXT_RE = /[^\w\s:.\-]/g;
 
 function cleanString(value, max = 80) {
@@ -78,6 +92,11 @@ export function buildCoachIntakeContextFromResult(result) {
       parsedExerciseCount: item?.parsedExerciseCount,
       timelineAtSource: item?.timelineAtSource,
       errorCode: item?.errorCode,
+      audioPieceCount: item?.audioPuzzle?.pieceCount,
+      audioBundleCount: item?.audioPuzzle?.bundleCount,
+      audioAutoBundleCount: item?.audioPuzzle?.autoBundleCount,
+      audioNeedsOrderingReview: item?.audioPuzzle?.needsOrderingReview,
+      audioPuzzleConfidence: item?.audioPuzzle?.confidence,
     })),
   });
 }
@@ -112,6 +131,11 @@ export function buildCoachIntakeContextPromptBlock(context) {
         `canReview=${item.canReview === true}`,
         `clips=${item.clipCount ?? '?'}`,
         `parsedExercises=${item.parsedExerciseCount ?? '?'}`,
+        item.audioPieceCount != null ? `audioPieces=${item.audioPieceCount}` : null,
+        item.audioBundleCount != null ? `audioBundles=${item.audioBundleCount}` : null,
+        item.audioAutoBundleCount != null ? `autoAudioBundles=${item.audioAutoBundleCount}` : null,
+        item.audioPuzzleConfidence ? `audioConfidence=${item.audioPuzzleConfidence}` : null,
+        item.audioNeedsOrderingReview ? 'audioOrderReview=true' : null,
         item.errorCode ? `error=${item.errorCode}` : null,
       ].filter(Boolean).join(' | '));
     });

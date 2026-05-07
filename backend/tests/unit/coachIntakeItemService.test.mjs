@@ -107,4 +107,54 @@ describe('coachIntakeItemService', () => {
     expect(summarizeUnifiedItems(items, { now: new Date('2026-05-06T14:00:00.000Z') }))
       .toMatchObject({ total: 2, actionable: 2, readyReview: 1, failed: 1, needsClient: 1, today: 1 });
   });
+
+  it('maps audio puzzle metadata into compact queue facts', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '33333333-3333-3333-3333-333333333333',
+      source_type: 'audio_upload',
+      status: 'RECEIVED',
+      resolved_client_id: null,
+      uploaded_at: '2026-05-06T12:00:00.000Z',
+      created_at: '2026-05-06T12:00:00.000Z',
+      metadata_json: {
+        audioPuzzle: {
+          pieceCount: 3,
+          bundleCount: 2,
+          autoBundleCount: 1,
+          needsOrderingReview: true,
+          confidence: 'low',
+          rawFileNames: ['Marcus private clip.m4a'],
+        },
+      },
+    });
+
+    expect(item.audioPuzzle).toMatchObject({
+      pieceCount: 3,
+      bundleCount: 2,
+      autoBundleCount: 1,
+      needsOrderingReview: true,
+      confidence: 'low',
+    });
+    expect(JSON.stringify(item.audioPuzzle)).not.toMatch(/Marcus|private clip/i);
+  });
+
+  it('gives audio-like intake items a single-piece puzzle fallback', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '44444444-4444-4444-4444-444444444444',
+      source_type: 'voice_note',
+      status: 'RECEIVED',
+      resolved_client_id: null,
+      uploaded_at: '2026-05-06T12:00:00.000Z',
+      created_at: '2026-05-06T12:00:00.000Z',
+      metadata_json: {},
+    });
+
+    expect(item.audioPuzzle).toMatchObject({
+      pieceCount: 1,
+      bundleCount: 1,
+      autoBundleCount: 0,
+      needsOrderingReview: false,
+      confidence: 'single',
+    });
+  });
 });
