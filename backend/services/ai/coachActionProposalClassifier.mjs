@@ -51,6 +51,11 @@ const SplitCandidateSchema = z.object({
   recordedAtEnd: z.string().trim().min(4).max(64).optional(),
   reason: z.string().trim().min(1).max(500).optional(),
   evidenceRefs: z.array(z.string().trim().min(1).max(120)).max(12).optional().default([]),
+  clientId: z.union([z.number(), z.string()]).optional(),
+  exercises: z.array(ExerciseDraftSchema).max(80).optional().default([]),
+  notes: z.string().trim().min(1).max(1200).optional(),
+  duration: z.union([z.number(), z.string()]).optional(),
+  intensity: z.union([z.number(), z.string()]).optional(),
 });
 
 const SplitPlanPayloadSchema = z.object({

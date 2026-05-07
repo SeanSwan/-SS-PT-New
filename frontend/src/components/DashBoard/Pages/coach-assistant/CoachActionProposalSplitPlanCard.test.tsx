@@ -88,7 +88,12 @@ describe('CoachActionProposalCard split-plan flow', () => {
     vi.mocked(approveCoachProposal).mockResolvedValue({
       success: true,
       applied: false,
-      splitPlan: { nextAction: 'prepare_workout_log_proposals', splitCount: 2, splits: [] },
+      splitPlan: {
+        nextAction: 'prepare_workout_log_proposals',
+        splitCount: 2,
+        workoutProposalCount: 2,
+        splits: [],
+      },
       proposal: { ...proposal, status: 'APPROVED' },
     });
 
@@ -98,6 +103,6 @@ describe('CoachActionProposalCard split-plan flow', () => {
     expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /approve split plan/i }));
 
-    expect(await screen.findByText(/2 workout split candidates approved/i)).toBeInTheDocument();
+    expect(await screen.findByText(/2 workout log drafts prepared/i)).toBeInTheDocument();
   });
 });

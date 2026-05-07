@@ -31,6 +31,7 @@ function mapProposalRow(row) {
 async function loadOwnedProposal({ id, userId, db }) {
   const rows = await db.query(
     `SELECT id, created_by_user_id, proposal_type, status, summary_json,
+            conversation_id, source_message_id,
             proposal_cipher, proposal_iv, proposal_tag, cipher_key_id
        FROM coach_action_proposals
       WHERE id = :id AND created_by_user_id = :userId
@@ -210,6 +211,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       id,
       userId: req.user.id,
       db,
+      req,
       claimPendingProposal,
       updateProposalStatus,
       proposalNotPending,

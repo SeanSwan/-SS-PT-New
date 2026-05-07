@@ -166,6 +166,28 @@ async function createProposal({ type, payload, summary, user, conversation, sour
   return mapProposalRow(rows[0]);
 }
 
+export async function createCoachActionProposalDraft({
+  type,
+  payload,
+  user,
+  conversation,
+  sourceMessageId = null,
+  db = null,
+  sequelizeOverride = null,
+}) {
+  const targetDb = db || sequelizeOverride || sequelize;
+  const summary = summarizeProposal(type, payload, conversation);
+  return createProposal({
+    type,
+    payload,
+    summary,
+    user,
+    conversation,
+    sourceMessageId,
+    db: targetDb,
+  });
+}
+
 export async function createCoachActionProposalsFromAiResponse({
   content,
   user,

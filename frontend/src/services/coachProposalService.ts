@@ -19,6 +19,9 @@ export interface CoachProposalActionResponse {
   splitPlan?: {
     nextAction?: string;
     splitCount?: number;
+    workoutProposalCount?: number;
+    workoutProposals?: CoachActionProposal[];
+    skippedWorkoutProposalCount?: number;
     splits?: Array<Record<string, unknown>>;
   };
   clarificationAnswer?: string;

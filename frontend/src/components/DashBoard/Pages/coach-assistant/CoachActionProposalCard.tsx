@@ -188,10 +188,11 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       } else if (proposal.type === 'client_data_update' && result.applied) {
         setMessage('Client updates applied through deterministic approval.');
       } else if (proposal.type === 'split_plan') {
-        const count = Number(result.splitPlan?.splitCount || 0);
-        setMessage(count > 0
-          ? `${count} workout split candidates approved for deterministic workout-card preparation.`
-          : 'Split plan approved for deterministic workout-card preparation.');
+        const workoutDraftCount = Number(result.splitPlan?.workoutProposalCount || 0);
+        const splitCount = Number(result.splitPlan?.splitCount || 0);
+        setMessage(workoutDraftCount > 0
+          ? `${workoutDraftCount} workout log draft${workoutDraftCount === 1 ? '' : 's'} prepared for approval.`
+          : `${splitCount || 'Split plan'} workout split candidates approved for deterministic workout-card preparation.`);
       } else {
         setMessage(result.applied
           ? 'Applied through the deterministic workout logger.'

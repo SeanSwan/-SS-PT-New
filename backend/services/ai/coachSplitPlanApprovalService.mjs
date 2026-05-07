@@ -6,7 +6,9 @@
 import {
   COACH_PROPOSAL_STATUS,
   COACH_PROPOSAL_TYPE,
+  createCoachActionProposalDraft,
 } from './coachActionProposalService.mjs';
+import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
 
@@ -29,6 +31,14 @@ function safeRefs(value) {
     }, { refs: [], redactedCount: 0 });
 }
 
+function validExercises(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((exercise) => exercise && typeof exercise === 'object' && !Array.isArray(exercise))
+    .filter((exercise) => optionalText(exercise.name, 120))
+    .slice(0, 80);
+}
+
 export function sanitizeSplitCandidate(split, index) {
   const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
   const evidence = safeRefs(source.evidenceRefs);
@@ -43,12 +53,77 @@ export function sanitizeSplitCandidate(split, index) {
   };
 }
 
-export function buildSplitPlanApprovalResult(proposal) {
+function workoutPayloadFromSplit(split, proposal) {
+  const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
+  const clientId = Number(source.clientId || proposal?.payload?.clientId || proposal?.targetUserId || 0) || null;
+  const date = optionalText(source.date, 32);
+  const exercises = validExercises(source.exercises);
+  if (!clientId || !date || exercises.length === 0) return null;
+  const evidence = safeRefs(source.evidenceRefs);
+  return {
+    action: 'import_workout_log',
+    clientId,
+    date,
+    exercises,
+    title: optionalText(source.title, 160),
+    notes: optionalText(source.notes, 1200) || optionalText(source.reason, 500),
+    duration: source.duration ?? null,
+    intensity: source.intensity ?? null,
+    proposalMeta: {
+      schemaVersion: '2026-05-06',
+      evidenceRefs: evidence.refs,
+      safetyFlags: ['split_plan_child'],
+      requiresConfirmation: true,
+      parentProposalType: COACH_PROPOSAL_TYPE.SPLIT_PLAN,
+    },
+  };
+}
+
+async function prepareWorkoutProposalsFromSplits({ splits, proposal, row, req, db }) {
+  const workoutProposals = [];
+  let skippedWorkoutProposalCount = 0;
+  for (const split of splits) {
+    const payload = workoutPayloadFromSplit(split, proposal);
+    if (!payload) {
+      skippedWorkoutProposalCount += 1;
+      continue;
+    }
+    const access = await ensureClientAccess(req, payload.clientId);
+    if (!access.allowed) {
+      skippedWorkoutProposalCount += 1;
+      continue;
+    }
+    workoutProposals.push(await createCoachActionProposalDraft({
+      type: COACH_PROPOSAL_TYPE.WORKOUT_LOG,
+      payload: { ...payload, clientId: access.clientId },
+      user: req.user,
+      conversation: {
+        id: proposal?.conversationId || row.conversation_id || null,
+        targetUserId: access.clientId,
+      },
+      sourceMessageId: row.source_message_id || null,
+      db,
+    }));
+  }
+  return { workoutProposals, skippedWorkoutProposalCount };
+}
+
+export async function buildSplitPlanApprovalResult({ proposal, row, req, db }) {
   const splits = Array.isArray(proposal?.payload?.splits) ? proposal.payload.splits : [];
+  const { workoutProposals, skippedWorkoutProposalCount } = await prepareWorkoutProposalsFromSplits({
+    splits,
+    proposal,
+    row,
+    req,
+    db,
+  });
   return {
     nextAction: 'prepare_workout_log_proposals',
     splitCount: splits.length,
     splits: splits.map(sanitizeSplitCandidate),
+    workoutProposalCount: workoutProposals.length,
+    workoutProposals,
+    ...(skippedWorkoutProposalCount > 0 ? { skippedWorkoutProposalCount } : {}),
   };
 }
 
@@ -58,13 +133,14 @@ export async function approveNonWriteCoachProposal({
   id,
   userId,
   db,
+  req,
   claimPendingProposal,
   updateProposalStatus,
   proposalNotPending,
 }) {
   if (!await claimPendingProposal({ id, userId, db })) return proposalNotPending();
   const result = row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN
-    ? buildSplitPlanApprovalResult(proposal)
+    ? await buildSplitPlanApprovalResult({ proposal, row, req, db })
     : { nextAction: 'open_deterministic_review_flow' };
   const updated = await updateProposalStatus({
     id,

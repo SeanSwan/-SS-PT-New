@@ -29,6 +29,16 @@ function fakeSplitApprovalDb({ order = [] } = {}) {
         order.push('claim');
         return [{ ...splitPlanRow, status: options.replacements.claimedStatus }];
       }
+      if (sql.includes('INSERT INTO coach_action_proposals')) {
+        order.push(`insert:${options.replacements.proposalType}`);
+        return [{
+          id: options.replacements.id,
+          proposal_type: options.replacements.proposalType,
+          status: 'PENDING',
+          summary_json: JSON.parse(options.replacements.summaryJson),
+          created_at: '2026-05-06T12:01:00.000Z',
+        }];
+      }
       if (sql.includes('UPDATE coach_action_proposals')) {
         return [{
           ...splitPlanRow,
@@ -53,6 +63,12 @@ async function loadApprovalService({ order = [] } = {}) {
     ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
   }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
+    encryptPayload: vi.fn(() => ({
+      cipher: 'child-cipher',
+      iv: 'child-iv',
+      tag: 'child-tag',
+      keyId: 'VTEST',
+    })),
     decryptPayload: vi.fn(() => ({
       payload: {
         splits: [
@@ -62,6 +78,8 @@ async function loadApprovalService({ order = [] } = {}) {
             recordedAtStart: '2026-05-05T09:00:00.000Z',
             reason: 'Clip one mentions squats and lunges.',
             evidenceRefs: ['clip_1_meta', 'client sean phone 555-0101'],
+            exercises: [{ name: 'Squat', sets: [{ reps: 10, weight: 135 }] }],
+            notes: 'Lower-body session from clip one.',
             rawTranscript: 'do not echo raw transcript into approval result',
           },
           {
@@ -69,6 +87,7 @@ async function loadApprovalService({ order = [] } = {}) {
             date: '2026-05-05',
             reason: 'Clip two starts a separate upper-body session.',
             evidenceRefs: ['clip_2_meta'],
+            exercises: [{ name: 'Bench press', sets: [{ reps: 8, weight: 185 }] }],
           },
         ],
       },
@@ -96,7 +115,7 @@ afterEach(() => {
 });
 
 describe('split-plan Coach proposal approval', () => {
-  it('returns deterministic workout-card preparation metadata without writing workouts', async () => {
+  it('prepares child workout proposals from valid split candidates without writing workouts', async () => {
     const order = [];
     const db = fakeSplitApprovalDb({ order });
     const { approveCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
@@ -114,6 +133,7 @@ describe('split-plan Coach proposal approval', () => {
       splitPlan: {
         nextAction: 'prepare_workout_log_proposals',
         splitCount: 2,
+        workoutProposalCount: 2,
         splits: [
           {
             title: 'Morning lower body',
@@ -125,9 +145,15 @@ describe('split-plan Coach proposal approval', () => {
         ],
       },
     });
+    expect(result.body.splitPlan.workoutProposals).toHaveLength(2);
+    expect(result.body.splitPlan.workoutProposals[0]).toMatchObject({
+      type: 'workout_log',
+      status: 'PENDING',
+      summary: { clientId: 42, date: '2026-05-05', exerciseCount: 1 },
+    });
     expect(JSON.stringify(result.body.splitPlan)).not.toContain('raw transcript');
     expect(JSON.stringify(result.body.splitPlan)).not.toContain('555-0101');
     expect(logWorkoutForClient).not.toHaveBeenCalled();
-    expect(order).toEqual(['claim']);
+    expect(order).toEqual(['claim', 'insert:workout_log', 'insert:workout_log']);
   });
 });
