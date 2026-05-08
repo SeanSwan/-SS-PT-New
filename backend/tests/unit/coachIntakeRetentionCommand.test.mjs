@@ -9,15 +9,23 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 vi.mock('../../services/coachIntakeRetentionPolicyService.mjs', () => ({
   getCoachIntakeRetentionReport: vi.fn(),
 }));
+vi.mock('../../services/coachIntakeRetentionPurgeService.mjs', () => ({
+  purgeCoachIntakeRawArtifacts: vi.fn(),
+}));
 
 import { getCoachIntakeRetentionReport } from '../../services/coachIntakeRetentionPolicyService.mjs';
-import { dispatchViewCoachIntakeRetention } from '../../services/ai/dispatchers/coachIntakeRetentionDispatcher.mjs';
+import { purgeCoachIntakeRawArtifacts } from '../../services/coachIntakeRetentionPurgeService.mjs';
+import {
+  dispatchViewCoachIntakeRetention,
+  dispatchViewCoachIntakeRetentionPurgePlan,
+} from '../../services/ai/dispatchers/coachIntakeRetentionDispatcher.mjs';
 
 describe('Coach intake retention command dispatcher', () => {
   const sequelizeOverride = { query: vi.fn() };
 
   beforeEach(() => {
     vi.mocked(getCoachIntakeRetentionReport).mockReset();
+    vi.mocked(purgeCoachIntakeRawArtifacts).mockReset();
   });
 
   it('returns a flat PII-safe retention summary for admin and trainer command cards', async () => {
@@ -77,5 +85,60 @@ describe('Coach intake retention command dispatcher', () => {
     )).rejects.toThrow(/requires an admin or trainer role/i);
 
     expect(getCoachIntakeRetentionReport).not.toHaveBeenCalled();
+  });
+
+  it('returns a dry-run-only purge plan without candidate ids or artifact details', async () => {
+    vi.mocked(purgeCoachIntakeRawArtifacts).mockResolvedValue({
+      enabled: true,
+      dryRun: true,
+      schemaReady: true,
+      generatedAt: '2026-05-07T10:00:00.000Z',
+      purgeReady: 3,
+      purged: 0,
+      skippedReason: null,
+      candidateIds: ['a1', 'b2', 'c3'],
+      items: [{ transcript: 'Do Not Return', clientName: 'Do Not Return' }],
+      summary: {
+        totalWithRawArtifacts: 9,
+        purgeReady: 3,
+        reviewRequired: 2,
+        retained: 4,
+      },
+    });
+
+    const result = await dispatchViewCoachIntakeRetentionPurgePlan(
+      {},
+      { user: { id: 42, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(purgeCoachIntakeRawArtifacts).toHaveBeenCalledWith({
+      userId: 42,
+      dryRun: true,
+      sequelizeOverride,
+    });
+    expect(result).toEqual({
+      cleanupEnabled: true,
+      cleanupDryRun: true,
+      schemaReady: true,
+      totalWithRawArtifacts: 9,
+      purgeReady: 3,
+      reviewRequired: 2,
+      retained: 4,
+      purged: 0,
+      skippedReason: 'none',
+      cleanupRoute: '/dashboard/trainer/coach-assistant',
+      queueRoute: '/dashboard/trainer/coach-assistant',
+      commandHint: 'This is a dry-run cleanup plan. No raw artifacts are purged from a Swan Coach command.',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/candidateIds|items|clientName|transcript|Do Not Return|a1|b2|c3/i);
+  });
+
+  it('rejects client-role purge-plan commands before reading the purge service', async () => {
+    await expect(dispatchViewCoachIntakeRetentionPurgePlan(
+      {},
+      { user: { id: 12, role: 'client' }, options: { sequelize: sequelizeOverride } },
+    )).rejects.toThrow(/requires an admin or trainer role/i);
+
+    expect(purgeCoachIntakeRawArtifacts).not.toHaveBeenCalled();
   });
 });

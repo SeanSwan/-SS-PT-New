@@ -36,6 +36,8 @@ describe('Unified Coach intake command registry source contract', () => {
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/show Coach intake health/);
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/type:\s*'view_coach_intake_retention'/);
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/show Coach intake retention/);
+    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/type:\s*'view_coach_intake_retention_purge_plan'/);
+    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/show Coach intake cleanup plan/);
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/type:\s*'inspect_coach_audio_pieces'/);
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/inspect pending Coach audio pieces/);
     expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/inspect Coach intake \{intakeId\} audio pieces/);
@@ -43,6 +45,8 @@ describe('Unified Coach intake command registry source contract', () => {
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_health',\s*dispatchViewCoachIntakeHealth\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewCoachIntakeRetention/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_retention',\s*dispatchViewCoachIntakeRetention\]/);
+    expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewCoachIntakeRetentionPurgePlan/);
+    expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_retention_purge_plan',\s*dispatchViewCoachIntakeRetentionPurgePlan\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewCoachIntakeQueue/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_queue',\s*dispatchViewCoachIntakeQueue\]/);
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['review_next_coach_intake',\s*dispatchReviewNextCoachIntake\]/);

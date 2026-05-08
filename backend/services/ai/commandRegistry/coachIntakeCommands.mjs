@@ -58,6 +58,25 @@ const commands = [
     relatedCommands: ['view_coach_intake_health', 'view_coach_intake_queue'],
   },
   {
+    type: 'view_coach_intake_retention_purge_plan',
+    description: 'Show the dry-run Coach intake cleanup plan without purging raw artifacts',
+    naturalLanguagePatterns: [
+      'show Coach intake cleanup plan',
+      'show Coach retention cleanup plan',
+      'what would Coach intake cleanup purge',
+      'show hive mind cleanup plan',
+    ],
+    method: 'GET',
+    endpoint: '/api/coach/intake/retention/purge-plan',
+    inputSchema: z.object({}),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['view_coach_intake_retention', 'view_coach_intake_health'],
+  },
+  {
     type: 'view_coach_intake_queue',
     description: 'Show the unified Swan Coach intake queue counts and next work item',
     naturalLanguagePatterns: [

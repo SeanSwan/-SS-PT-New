@@ -5,6 +5,7 @@
  * It returns flat scalar fields only so command cards cannot expose payloads.
  */
 import { getCoachIntakeRetentionReport } from '../../coachIntakeRetentionPolicyService.mjs';
+import { purgeCoachIntakeRawArtifacts } from '../../coachIntakeRetentionPurgeService.mjs';
 
 function resolveUserId(ctx) {
   const userId = Number(ctx?.user?.id);
@@ -47,6 +48,25 @@ function retentionCommandSummary(retention, ctx) {
   };
 }
 
+function purgePlanCommandSummary(plan, ctx) {
+  const summary = plan?.summary || {};
+  const route = coachWorkspaceRoute(ctx);
+  return {
+    cleanupEnabled: plan?.enabled === true,
+    cleanupDryRun: true,
+    schemaReady: plan?.schemaReady === true,
+    totalWithRawArtifacts: Number(summary.totalWithRawArtifacts || 0),
+    purgeReady: Number(plan?.purgeReady ?? summary.purgeReady ?? 0),
+    reviewRequired: Number(summary.reviewRequired || 0),
+    retained: Number(summary.retained || 0),
+    purged: 0,
+    skippedReason: plan?.skippedReason || 'none',
+    cleanupRoute: route,
+    queueRoute: route,
+    commandHint: 'This is a dry-run cleanup plan. No raw artifacts are purged from a Swan Coach command.',
+  };
+}
+
 export async function dispatchViewCoachIntakeRetention(_params = {}, ctx = {}) {
   const userId = resolveUserId(ctx);
   resolveRole(ctx);
@@ -57,6 +77,17 @@ export async function dispatchViewCoachIntakeRetention(_params = {}, ctx = {}) {
   return retentionCommandSummary(retention, ctx);
 }
 
-export const _internal = { retentionCommandSummary };
+export async function dispatchViewCoachIntakeRetentionPurgePlan(_params = {}, ctx = {}) {
+  const userId = resolveUserId(ctx);
+  resolveRole(ctx);
+  const plan = await purgeCoachIntakeRawArtifacts({
+    userId,
+    dryRun: true,
+    sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
+  });
+  return purgePlanCommandSummary(plan, ctx);
+}
 
-export default { dispatchViewCoachIntakeRetention };
+export const _internal = { purgePlanCommandSummary, retentionCommandSummary };
+
+export default { dispatchViewCoachIntakeRetention, dispatchViewCoachIntakeRetentionPurgePlan };
