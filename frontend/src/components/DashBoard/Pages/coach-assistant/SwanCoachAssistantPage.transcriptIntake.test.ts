@@ -412,6 +412,19 @@ describe('CoachMessage — audio intake receipt branch', () => {
     expect(COACH_MESSAGE_SOURCE).toMatch(/Review next intake/i);
     expect(COACH_MESSAGE_SOURCE).toMatch(/\$kind=['"]warning['"]/);
   });
+
+  it('renders a guarded Review next action with a 44px touch target', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/onAudioIntakeReviewNext\?:\s*\(\)\s*=>\s*void/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/audioIntakeReceipt\s*&&\s*onAudioIntakeReviewNext/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/onClick=\{onAudioIntakeReviewNext\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/min-height:\s*44px/);
+  });
+
+  it('page wires the audio receipt action to the existing review-next intake command', () => {
+    expect(PAGE_SOURCE).toMatch(/const\s+handleAudioIntakeReviewNext\s*=\s*useCallback/);
+    expect(PAGE_SOURCE).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
+    expect(PAGE_SOURCE).toMatch(/onAudioIntakeReviewNext=\{handleAudioIntakeReviewNext\}/);
+  });
 });
 
 describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {

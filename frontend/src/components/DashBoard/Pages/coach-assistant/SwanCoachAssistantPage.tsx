@@ -888,6 +888,10 @@ const SwanCoachAssistantPage: React.FC = () => {
     void coach.sendMessage(message);
   }, [coach]);
 
+  const handleAudioIntakeReviewNext = useCallback(() => {
+    handleIntakeCommand('review next coach intake');
+  }, [handleIntakeCommand]);
+
   const handleCreateIntakeDraft = useCallback(async (text: string) => {
     try {
       await createCoachTextIntake({
@@ -993,6 +997,7 @@ const SwanCoachAssistantPage: React.FC = () => {
               onCancelCommand={coach.cancelCommand}
               onConfirmTranscript={handleConfirmTranscript}
               onCancelTranscript={handleCancelTranscript}
+              onAudioIntakeReviewNext={handleAudioIntakeReviewNext}
               onTranscriptDateChange={handleTranscriptDateChange}
             />
           ))}

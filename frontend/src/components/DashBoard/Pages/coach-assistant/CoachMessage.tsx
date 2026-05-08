@@ -17,6 +17,7 @@ import styled from 'styled-components';
 import {
   Volume2, Copy, Check, UserPlus, Dumbbell,
   FileAudio, AlertTriangle, X, Loader2, CheckCircle2,
+  ListChecks,
 } from 'lucide-react';
 import {
   MessageBubbleAI,
@@ -200,6 +201,32 @@ const TranscriptBtn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
   }
 `;
 
+const ReceiptActionButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary, #002060) 82%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, var(--bg-surface, #1A1A24))
+    );
+  color: var(--text-primary, #E0ECF4);
+  padding: 0 14px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'warning' | 'other' }>`
   display: flex;
   align-items: flex-start;
@@ -277,6 +304,7 @@ interface CoachMessageProps {
   onConfirmTranscript?: (messageId: string) => Promise<void>;
   /** Swan-first transcript intake — discard the review */
   onCancelTranscript?: (messageId: string) => void;
+  onAudioIntakeReviewNext?: () => void;
   /**
    * Phase 13 (2026-04-15): propagate a user-edited workout date back to the
    * page so the next `applyParsedWorkout` call uses it. Fire on every change
@@ -292,6 +320,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onCancelCommand,
   onConfirmTranscript,
   onCancelTranscript,
+  onAudioIntakeReviewNext,
   onTranscriptDateChange,
 }) => {
   const [copied, setCopied] = React.useState(false);
@@ -648,6 +677,13 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
             <CardLabel>Next</CardLabel>
             <CardValue>{audioIntakeReceipt.nextActionLabel || 'Review next intake'}</CardValue>
           </CardRow>
+          {audioIntakeReceipt && onAudioIntakeReviewNext && (
+            <TranscriptActions>
+              <ReceiptActionButton type="button" onClick={onAudioIntakeReviewNext}>
+                <ListChecks size={15} /> Review next intake
+              </ReceiptActionButton>
+            </TranscriptActions>
+          )}
         </TranscriptCard>
       )}
 
