@@ -64,6 +64,7 @@ describe('Coach review-next result card', () => {
             nextCanReview: true,
             nextLatestProposalStatus: 'PENDING',
             nextLatestProposalType: 'workout_log',
+            pendingDrafts: 1,
             queueRoute: '/dashboard/admin/coach-assistant',
             reviewRoute: '/dashboard/admin/coach-assistant?intake=abc&proposal=proposal-1',
           }}
@@ -77,6 +78,7 @@ describe('Coach review-next result card', () => {
     expect(within(draftStatus).getByText(/Prepared draft/i)).toBeInTheDocument();
     expect(within(draftStatus).getByText(/workout log/i)).toBeInTheDocument();
     expect(within(draftStatus).getByText(/pending/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 draft pending/i)).toBeInTheDocument();
     expect(screen.queryByText('nextLatestProposalId')).toBeNull();
   });
 
@@ -90,6 +92,7 @@ describe('Coach review-next result card', () => {
             actionable: 3,
             readyReview: 1,
             needsClient: 2,
+            pendingDrafts: 2,
             queueRoute: '/dashboard/admin/coach-assistant',
           }}
         />
@@ -99,6 +102,8 @@ describe('Coach review-next result card', () => {
     expect(screen.getByText(/Coach intake queue ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Open the Coach intake workspace to continue the next actionable item/i))
       .toBeInTheDocument();
+    expect(screen.getByText(/2 drafts pending/i)).toBeInTheDocument();
+    expect(screen.queryByText('pendingDrafts')).toBeNull();
     expect(screen.queryByText(/Your Coach intake queue is clear/i)).toBeNull();
     expect(screen.getByRole('link', { name: /open coach intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant');

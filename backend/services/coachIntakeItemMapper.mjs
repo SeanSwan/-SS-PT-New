@@ -54,6 +54,24 @@ function mapLatestProposal(row, metadata) {
   };
 }
 
+function latestProposalStatusFor(item) {
+  if (!item?.latestProposalId && !item?.latestProposal?.id) return null;
+  const status = String(item.latestProposal?.status || '').trim().toUpperCase();
+  return status || 'UNKNOWN';
+}
+
+function countLatestProposal(summary, item) {
+  const status = latestProposalStatusFor(item);
+  if (!status) return;
+  summary.preparedDrafts += 1;
+  if (status === 'PENDING') summary.pendingDrafts += 1;
+  if (status === 'APPLYING') summary.applyingDrafts += 1;
+  if (status === 'APPROVED') summary.approvedDrafts += 1;
+  if (status === 'APPLIED') summary.appliedDrafts += 1;
+  if (status === 'REJECTED') summary.rejectedDrafts += 1;
+  if (status === 'FAILED') summary.failedDrafts += 1;
+}
+
 export function mapCoachRowToIntakeItem(row) {
   const status = row.status || 'RECEIVED';
   const queueStatus = queueStatusForCoach(status);
@@ -105,6 +123,7 @@ export function summarizeUnifiedItems(items, { now = new Date() } = {}) {
     if (item.queueStatus === 'failed') summary.failed += 1;
     if (item.needsClient) summary.needsClient += 1;
     if (isCoachIntakeSameLocalDay(item.createdAt, now)) summary.today += 1;
+    countLatestProposal(summary, item);
     return summary;
   }, {
     total: 0,
@@ -115,5 +134,12 @@ export function summarizeUnifiedItems(items, { now = new Date() } = {}) {
     readyReview: 0,
     failed: 0,
     needsClient: 0,
+    preparedDrafts: 0,
+    pendingDrafts: 0,
+    applyingDrafts: 0,
+    approvedDrafts: 0,
+    appliedDrafts: 0,
+    rejectedDrafts: 0,
+    failedDrafts: 0,
   });
 }

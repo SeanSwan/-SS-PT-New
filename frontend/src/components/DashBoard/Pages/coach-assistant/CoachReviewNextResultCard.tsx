@@ -157,6 +157,10 @@ function compactText(value: unknown): string | null {
   return text ? text.slice(0, 96) : null;
 }
 
+function pendingDraftLabel(count: number): string {
+  return `${count} ${count === 1 ? 'draft' : 'drafts'} pending`;
+}
+
 export function isCoachReviewNextCommand(command: string): boolean {
   return command === 'review_next_coach_intake'
     || command === 'view_coach_intake_queue'
@@ -172,6 +176,7 @@ export function CoachReviewNextResultCard({
   const actionable = numberValue(result.actionable);
   const readyReview = numberValue(result.readyReview);
   const needsClient = numberValue(result.needsClient);
+  const pendingDrafts = numberValue(result.pendingDrafts);
   const nextStatus = statusLabel(result.nextQueueStatus);
   const blockingGate = compactText(result.nextBlockingGate);
   const nextAction = compactText(result.nextActionLabel);
@@ -207,6 +212,7 @@ export function CoachReviewNextResultCard({
         <StatusPill>{actionable} actionable</StatusPill>
         <StatusPill $tone="purple">{readyReview} ready</StatusPill>
         <StatusPill $tone="gold">{needsClient} needs client</StatusPill>
+        {pendingDrafts > 0 && <StatusPill $tone="purple">{pendingDraftLabel(pendingDrafts)}</StatusPill>}
       </StatusRow>
       <NextPanel>
         <ListChecks size={15} aria-hidden="true" />

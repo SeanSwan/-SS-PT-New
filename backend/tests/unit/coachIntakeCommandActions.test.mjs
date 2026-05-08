@@ -94,6 +94,7 @@ describe('Unified Coach intake dispatcher behavior', () => {
         readyReview: 1,
         failed: 0,
         needsClient: 1,
+        pendingDrafts: 1,
       },
       items: [
         {
@@ -127,6 +128,7 @@ describe('Unified Coach intake dispatcher behavior', () => {
       unprocessed: 1,
       readyReview: 1,
       needsClient: 1,
+      pendingDrafts: 1,
       nextKind: 'coach_intake',
       nextCanReview: true,
       queueRoute: '/dashboard/admin/coach-assistant',

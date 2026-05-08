@@ -27,6 +27,13 @@ const EMPTY_SUMMARY: PlaudIntakeSummary = {
   readyReview: 0,
   failed: 0,
   needsClient: 0,
+  preparedDrafts: 0,
+  pendingDrafts: 0,
+  applyingDrafts: 0,
+  approvedDrafts: 0,
+  appliedDrafts: 0,
+  rejectedDrafts: 0,
+  failedDrafts: 0,
 };
 
 export interface CoachIntakeQueueState {

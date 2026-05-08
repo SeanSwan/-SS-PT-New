@@ -24,9 +24,9 @@ function resolveRole(ctx) {
   if (role === 'admin' || role === 'trainer') return role;
   throw new Error('Access requires an admin or trainer role for Coach intake commands.');
 }
-function resolveCoachQueueRoute(ctx) {
-  return `/dashboard/${resolveRole(ctx)}/coach-assistant`;
-}
+function resolveCoachQueueRoute(ctx) { return `/dashboard/${resolveRole(ctx)}/coach-assistant`; }
+
+function count(summary, key) { return Number(summary?.[key] || 0); }
 
 function resolvePlaudReviewRoute(ctx, item = null) {
   const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
@@ -54,9 +54,7 @@ function reviewRouteForItem(item, ctx) {
 
 function summaryEntityIdForItem(item) {
   if (!item) return null;
-  if (item.kind === 'merge_request') {
-    return isPlaudUuid(item.entityId) ? item.entityId : null;
-  }
+  if (item.kind === 'merge_request') return isPlaudUuid(item.entityId) ? item.entityId : null;
   return item.entityId || null;
 }
 
@@ -64,14 +62,21 @@ function scalarSummary(result, nextItem, ctx) {
   const summary = result?.summary || {};
   const queueRoute = resolveCoachQueueRoute(ctx);
   return {
-    total: Number(summary.total || 0),
-    actionable: Number(summary.actionable || 0),
-    today: Number(summary.today || 0),
-    unprocessed: Number(summary.unprocessed || 0),
-    processing: Number(summary.processing || 0),
-    readyReview: Number(summary.readyReview || 0),
-    failed: Number(summary.failed || 0),
-    needsClient: Number(summary.needsClient || 0),
+    total: count(summary, 'total'),
+    actionable: count(summary, 'actionable'),
+    today: count(summary, 'today'),
+    unprocessed: count(summary, 'unprocessed'),
+    processing: count(summary, 'processing'),
+    readyReview: count(summary, 'readyReview'),
+    failed: count(summary, 'failed'),
+    needsClient: count(summary, 'needsClient'),
+    preparedDrafts: count(summary, 'preparedDrafts'),
+    pendingDrafts: count(summary, 'pendingDrafts'),
+    applyingDrafts: count(summary, 'applyingDrafts'),
+    approvedDrafts: count(summary, 'approvedDrafts'),
+    appliedDrafts: count(summary, 'appliedDrafts'),
+    rejectedDrafts: count(summary, 'rejectedDrafts'),
+    failedDrafts: count(summary, 'failedDrafts'),
     schemaReady: result?.schemaReady !== false,
     nextIntakeId: nextItem?.id || null,
     nextEntityId: summaryEntityIdForItem(nextItem),
@@ -269,18 +274,12 @@ export async function dispatchViewCoachIntakeQueue(params = {}, ctx = {}) {
 }
 
 export async function dispatchReviewNextCoachIntake(params = {}, ctx = {}) {
-  const { result, nextItem } = await readQueue(params, ctx, {
-    defaultScope: 'actionable',
-    defaultLimit: REVIEW_NEXT_LIMIT,
-  });
+  const { result, nextItem } = await readQueue(params, ctx, { defaultScope: 'actionable', defaultLimit: REVIEW_NEXT_LIMIT });
   return scalarSummary(result, nextItem, ctx);
 }
 
 export async function dispatchInspectCoachAudioPieces(params = {}, ctx = {}) {
-  const { result } = await readQueue(params, ctx, {
-    defaultScope: 'actionable',
-    defaultLimit: REVIEW_NEXT_LIMIT,
-  });
+  const { result } = await readQueue(params, ctx, { defaultScope: 'actionable', defaultLimit: REVIEW_NEXT_LIMIT });
   return audioInspectionSummary(result, ctx, params);
 }
 

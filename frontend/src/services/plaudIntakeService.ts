@@ -44,6 +44,13 @@ export interface PlaudIntakeSummary {
   readyReview: number;
   failed: number;
   needsClient: number;
+  preparedDrafts?: number;
+  pendingDrafts?: number;
+  applyingDrafts?: number;
+  approvedDrafts?: number;
+  appliedDrafts?: number;
+  rejectedDrafts?: number;
+  failedDrafts?: number;
 }
 
 export interface PlaudIntakeResponse {

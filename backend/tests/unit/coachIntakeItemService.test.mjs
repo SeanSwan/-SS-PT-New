@@ -166,6 +166,54 @@ describe('coachIntakeItemService', () => {
     expect(JSON.stringify(item.latestProposal)).not.toMatch(/private raw transcript/i);
   });
 
+  it('summarizes prepared draft status counts without exposing proposal contents', () => {
+    const pendingItem = mapCoachRowToIntakeItem({
+      id: '99999999-9999-4999-9999-999999999999',
+      source_type: 'chat_narrative',
+      status: 'READY_FOR_REVIEW',
+      resolved_client_id: 12,
+      latest_proposal_id: 'aaaaaaaa-aaaa-4aaa-9aaa-aaaaaaaaaaaa',
+      uploaded_at: '2026-05-06T12:00:00.000Z',
+      created_at: '2026-05-06T12:00:00.000Z',
+      metadata_json: {
+        latestProposal: {
+          id: 'aaaaaaaa-aaaa-4aaa-9aaa-aaaaaaaaaaaa',
+          type: 'workout_log',
+          status: 'PENDING',
+          title: 'Review private transcript details',
+          rawTranscript: 'private transcript body',
+        },
+      },
+    });
+    const appliedItem = mapCoachRowToIntakeItem({
+      id: 'bbbbbbbb-bbbb-4bbb-9bbb-bbbbbbbbbbbb',
+      source_type: 'typed_note',
+      status: 'APPLIED',
+      resolved_client_id: 12,
+      latest_proposal_id: 'cccccccc-cccc-4ccc-9ccc-cccccccccccc',
+      uploaded_at: '2026-05-06T12:05:00.000Z',
+      created_at: '2026-05-06T12:05:00.000Z',
+      metadata_json: {
+        latestProposal: {
+          id: 'cccccccc-cccc-4ccc-9ccc-cccccccccccc',
+          type: 'workout_log',
+          status: 'APPLIED',
+        },
+      },
+    });
+
+    const summary = summarizeUnifiedItems([pendingItem, appliedItem]);
+
+    expect(summary).toMatchObject({
+      preparedDrafts: 2,
+      pendingDrafts: 1,
+      appliedDrafts: 1,
+      rejectedDrafts: 0,
+      failedDrafts: 0,
+    });
+    expect(JSON.stringify(summary)).not.toMatch(/private transcript|Review private/i);
+  });
+
   it('gives audio-like intake items a single-piece puzzle fallback', () => {
     const item = mapCoachRowToIntakeItem({
       id: '44444444-4444-4444-4444-444444444444',
