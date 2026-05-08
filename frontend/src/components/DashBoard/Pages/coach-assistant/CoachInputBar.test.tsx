@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { CoachInputBar } from './CoachInputBar';
@@ -45,5 +46,33 @@ describe('CoachInputBar long draft handling', () => {
     });
     expect(input).toHaveValue('');
     expect(screen.getByRole('alert')).toHaveTextContent(/saved as an encrypted coach intake draft/i);
+  });
+
+  it('does not submit a parent form from composer action buttons', () => {
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
+    const onSend = vi.fn();
+    const onTtsToggle = vi.fn();
+    const onVoiceOverlay = vi.fn();
+
+    render(
+      <form onSubmit={onSubmit}>
+        <CoachInputBar
+          onSend={onSend}
+          ttsSupported
+          onTtsToggle={onTtsToggle}
+          onVoiceOverlay={onVoiceOverlay}
+        />
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /enable voice readback/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start voice input/i }));
+    fireEvent.change(screen.getByLabelText(/message input/i), { target: { value: 'log this workout' } });
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+    expect(onTtsToggle).toHaveBeenCalledTimes(1);
+    expect(onVoiceOverlay).toHaveBeenCalledTimes(1);
+    expect(onSend).toHaveBeenCalledWith('log this workout');
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

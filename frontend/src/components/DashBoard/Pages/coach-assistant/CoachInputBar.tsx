@@ -173,6 +173,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
       <InputBar>
         {ttsSupported && onTtsToggle && (
           <TtsToggle
+            type="button"
             $active={ttsEnabled}
             onClick={onTtsToggle}
             aria-label={ttsEnabled ? 'Disable voice readback' : 'Enable voice readback'}
@@ -206,6 +207,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
 
         {hasVoice && (
           <VoiceOrbWrap
+            type="button"
             $listening={listening}
             $size={ORB_SIZE_MAP[orbSize]}
             onClick={handleVoiceClick}
@@ -219,6 +221,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
         )}
 
         <SendBtn
+          type="button"
           onClick={handleSend}
           disabled={(!text.trim() && !hasAttachment) || sending || overLimit}
           aria-label="Send message"
