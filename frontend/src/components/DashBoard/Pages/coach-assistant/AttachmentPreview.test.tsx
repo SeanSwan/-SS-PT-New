@@ -65,11 +65,23 @@ describe('AttachmentPreview — CLS stability', () => {
     expect(removeBtns.length).toBe(3);
   });
 
+  it('uses neutral attachment labels instead of raw local filenames', () => {
+    const privateFile = makeFile('Marcus-private@example.com.mp3', 'audio/mpeg');
+    const { container } = render(
+      <AttachmentPreview files={[privateFile]} onRemove={vi.fn()} />,
+    );
+
+    expect(screen.getByText('Audio item 1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Remove audio item 1/i })).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('private@example.com');
+  });
+
   it('calls onRemove when a chip Remove button is clicked', () => {
     const onRemove = vi.fn();
     const file = makeFile('voice.mp3', 'audio/mpeg');
     render(<AttachmentPreview files={[file]} onRemove={onRemove} />);
-    const removeBtn = screen.getByRole('button', { name: /Remove voice.mp3/i });
+    const removeBtn = screen.getByRole('button', { name: /Remove audio item 1/i });
     removeBtn.click();
     expect(onRemove).toHaveBeenCalledTimes(1);
     expect(onRemove).toHaveBeenCalledWith(file.id);
