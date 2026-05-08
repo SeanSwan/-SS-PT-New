@@ -24,6 +24,8 @@ const SAFE_FRONTEND_REQUIRED_FIELDS = Object.freeze({
   AI_UPDATE_SET: ['exerciseName'],
   AI_TOGGLE_NASM_ITEM: ['section'],
 });
+const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+const REQUIRED_ONBOARDING_FIELDS = ['firstName', 'lastName', 'clientSource'];
 const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ExerciseDraftSchema = z.object({
@@ -120,6 +122,44 @@ function hasRequiredSafeFrontendPayloadFields(event, payload) {
   return requiredFields.every((field) => Object.prototype.hasOwnProperty.call(payload, field));
 }
 
+function onboardingData(payload) {
+  return payload?.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+    ? payload.data
+    : payload;
+}
+
+function missingOnboardingFields(payload) {
+  const data = onboardingData(payload) || {};
+  return REQUIRED_ONBOARDING_FIELDS.filter((field) => {
+    const value = typeof data[field] === 'string' ? data[field].trim() : data[field];
+    if (!value) return true;
+    return field === 'clientSource' ? !CLIENT_SOURCES.has(value) : false;
+  });
+}
+
+function onboardingClarificationPayload(missingFields, meta = null) {
+  const needsSource = missingFields.includes('clientSource');
+  const payload = {
+    question: `I need ${missingFields.join(', ')} before preparing this client onboarding draft.`,
+    options: needsSource ? ['move_fitness', 'swanstudios', 'external'] : [],
+  };
+  return meta ? { ...payload, proposalMeta: meta } : payload;
+}
+
+function classifyClientOnboardingPayload(payload, proposalTypes, meta = null) {
+  const missingFields = missingOnboardingFields(payload);
+  if (missingFields.length > 0) {
+    return {
+      type: proposalTypes.CLARIFICATION,
+      payload: onboardingClarificationPayload(missingFields, meta),
+    };
+  }
+  return {
+    type: proposalTypes.CLIENT_ONBOARDING,
+    payload: meta ? { ...payload, proposalMeta: meta } : payload,
+  };
+}
+
 function cleanCoachIntakeId(value) {
   const clean = String(value || '').trim().replace(/^coach:/, '');
   return SAFE_COACH_INTAKE_ID_RE.test(clean) ? clean : null;
@@ -181,7 +221,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_ONBOARDING) {
       const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
-      return payload ? { type: proposalTypes.CLIENT_ONBOARDING, payload: { ...payload, proposalMeta: meta } } : null;
+      return payload ? classifyClientOnboardingPayload(payload, proposalTypes, meta) : null;
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_DATA_UPDATE) {
       const payload = safeParseAction(ClientDataUpdateActionSchema, { action: 'update_client_data', ...parsed.payload });
@@ -205,7 +245,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
   }
   if (block.action === 'create_client' || block.action === 'ONBOARD_CLIENT') {
     const payload = safeParseAction(ClientOnboardingActionSchema, block);
-    return payload ? { type: proposalTypes.CLIENT_ONBOARDING, payload } : null;
+    return payload ? classifyClientOnboardingPayload(payload, proposalTypes) : null;
   }
   if (block.action === 'import_workout_log') {
     const payload = safeParseAction(WorkoutLogActionSchema, block);

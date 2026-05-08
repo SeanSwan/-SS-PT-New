@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeCoachOnboardingDraft } from '../../services/coachClientOnboardingApprovalService.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,6 +36,12 @@ describe('coachClientOnboardingApprovalService', () => {
     expect(SERVICE_SRC).toMatch(/firstName/);
     expect(SERVICE_SRC).toMatch(/lastName/);
     expect(SERVICE_SRC).toMatch(/ONBOARDING_REQUIRED_FIELDS_MISSING/);
+  });
+
+  it('requires client source before deterministic client creation', () => {
+    expect(() => normalizeCoachOnboardingDraft({
+      payload: { firstName: 'Marcus', lastName: 'Lee' },
+    })).toThrow(/client source/i);
   });
 
   it('does not depend on stale ClientProgress fields during client creation', () => {

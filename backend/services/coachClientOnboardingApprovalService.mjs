@@ -91,9 +91,12 @@ export function normalizeCoachOnboardingDraft(proposal) {
     throw err;
   }
 
-  const clientSource = CLIENT_SOURCES.has(raw.clientSource)
-    ? raw.clientSource
-    : 'swanstudios';
+  const clientSource = cleanText(raw.clientSource, 40);
+  if (!CLIENT_SOURCES.has(clientSource)) {
+    const err = new Error('Client source is required before approval.');
+    err.code = 'ONBOARDING_REQUIRED_FIELDS_MISSING';
+    throw err;
+  }
   const draft = {
     firstName,
     lastName,

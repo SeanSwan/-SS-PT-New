@@ -56,7 +56,7 @@ describe('coachActionProposalService', () => {
     const content = [
       'Prepared the onboarding draft.',
       '```json',
-      '{"action":"create_client","data":{"firstName":"Marcus","lastName":"Lee","fitnessGoal":"strength"}}',
+      '{"action":"create_client","data":{"firstName":"Marcus","lastName":"Lee","clientSource":"move_fitness","fitnessGoal":"strength"}}',
       '```',
     ].join('\n');
 
