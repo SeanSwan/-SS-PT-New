@@ -103,6 +103,11 @@ export function CoachIntakeWorkspace({
     setReviewingProposalId(null);
   }, [activeItemKey]);
 
+  React.useEffect(() => {
+    if (!isTrainerSurface || !activeIntakeId || activeItem || isLoading || error) return;
+    navigate(itemReviewHref(nextItem, coachWorkspaceHref), { replace: true });
+  }, [activeIntakeId, activeItem, coachWorkspaceHref, error, isLoading, isTrainerSurface, navigate, nextItem]);
+
   const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
     if (!shouldAdvanceAfterProposalAction(proposal)) {
       void refresh();

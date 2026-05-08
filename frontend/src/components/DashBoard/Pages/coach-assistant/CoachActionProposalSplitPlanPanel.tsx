@@ -40,6 +40,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function isRecord(value: Record<string, unknown> | null): value is Record<string, unknown> {
+  return value !== null;
+}
+
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
@@ -59,7 +63,7 @@ function redactedEvidenceText(value: unknown) {
 function splitItems(detail: Record<string, unknown> | null) {
   const splitPlan = asRecord(detail?.splitPlan);
   const splits = splitPlan?.splits;
-  return Array.isArray(splits) ? splits.map(asRecord).filter(Boolean) : [];
+  return Array.isArray(splits) ? splits.map(asRecord).filter(isRecord) : [];
 }
 
 export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<string, unknown> | null }) {
