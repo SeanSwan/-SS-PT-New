@@ -149,10 +149,10 @@ describe('CoachIntakeWorkspace', () => {
     expect(within(target).getByText(/Draft prepared for approval/i)).toBeInTheDocument();
     expect(within(target).getByText(/3 audio pieces/i)).toBeInTheDocument();
 
-    fireEvent.click(within(target).getByRole('button', { name: /ask coach about this intake/i }));
+    fireEvent.click(within(target).getByRole('button', { name: /^ask coach about this intake$/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-2');
 
-    fireEvent.click(within(target).getByRole('button', { name: /inspect intake audio/i }));
+    fireEvent.click(within(target).getByRole('button', { name: /^inspect intake audio$/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect Coach intake item-2 audio pieces');
   });
 
@@ -182,7 +182,7 @@ describe('CoachIntakeWorkspace', () => {
     );
 
     const target = screen.getByLabelText(/Active review target/i);
-    fireEvent.click(within(target).getByRole('button', { name: /confirm audio order/i }));
+    fireEvent.click(within(target).getByRole('button', { name: /^confirm audio order$/i }));
 
     await waitFor(() => {
       expect(confirmCoachIntakeAudioOrder).toHaveBeenCalledWith({ intakeId: 'item-1' });

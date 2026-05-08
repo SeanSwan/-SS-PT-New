@@ -360,8 +360,8 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     );
 
     const ribbon = await screen.findByLabelText('Active item status');
-    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action/i }));
+    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action: confirm audio order/i }));
 
-    expect(screen.getByRole('button', { name: /confirm audio order/i })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /^confirm audio order$/i })).toHaveFocus();
   });
 });

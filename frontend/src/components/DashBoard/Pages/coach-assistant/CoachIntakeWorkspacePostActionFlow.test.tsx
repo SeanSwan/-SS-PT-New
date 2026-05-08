@@ -108,7 +108,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
 
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
@@ -166,7 +166,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
 
     await waitFor(() => {
@@ -219,7 +219,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /reject/i }));
 
     await waitFor(() => {
@@ -276,7 +276,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /Client #42/i }));
 
     await waitFor(() => {
@@ -326,7 +326,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /approve split plan/i }));
 
     expect(await screen.findByText(/Review generated workout draft/i)).toBeInTheDocument();
@@ -363,7 +363,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
 
     await waitFor(() => {
@@ -440,7 +440,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
 
     await waitFor(() => {

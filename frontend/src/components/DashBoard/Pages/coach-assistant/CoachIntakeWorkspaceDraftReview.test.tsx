@@ -64,7 +64,7 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
     );
 
     const target = screen.getByLabelText(/Active review target/i);
-    fireEvent.click(within(target).getByRole('button', { name: /prepare draft review/i }));
+    fireEvent.click(within(target).getByRole('button', { name: /^prepare draft review$/i }));
 
     expect(onCommandPrompt).toHaveBeenCalledTimes(1);
     const prompt = onCommandPrompt.mock.calls[0][0];
@@ -91,6 +91,6 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
 
     const target = screen.getByLabelText(/Active review target/i);
     expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
-    expect(within(target).getByRole('button', { name: /confirm audio order/i })).toBeInTheDocument();
+    expect(within(target).getByRole('button', { name: /^confirm audio order$/i })).toBeInTheDocument();
   });
 });

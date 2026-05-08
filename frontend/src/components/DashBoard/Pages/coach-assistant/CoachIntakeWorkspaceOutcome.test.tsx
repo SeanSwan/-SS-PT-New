@@ -70,7 +70,7 @@ describe('CoachIntakeWorkspace outcome receipt', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(screen.getByRole('button', { name: /mock apply proposal/i }));
 
     await waitFor(() => {

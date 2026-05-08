@@ -235,7 +235,11 @@ export function CoachIntakeActiveDossier({
           <StatusRibbonItem>
             <StatusRibbonLabel>Next action</StatusRibbonLabel>
             <StatusRibbonValue>{next.label}</StatusRibbonValue>
-            <StatusRibbonAction type="button" onClick={() => focusDossierAction(next.actionId)}>
+            <StatusRibbonAction
+              type="button"
+              aria-label={`Focus next action: ${next.label}`}
+              onClick={() => focusDossierAction(next.actionId)}
+            >
               Focus next action
             </StatusRibbonAction>
           </StatusRibbonItem>

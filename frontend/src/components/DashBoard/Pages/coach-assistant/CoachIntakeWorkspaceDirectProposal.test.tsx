@@ -147,7 +147,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
 
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();

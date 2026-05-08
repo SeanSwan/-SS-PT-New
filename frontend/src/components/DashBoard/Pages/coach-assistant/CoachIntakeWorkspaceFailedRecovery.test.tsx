@@ -50,9 +50,9 @@ describe('CoachIntakeWorkspace failed intake recovery', () => {
     );
 
     const target = await screen.findByLabelText(/Active review target/i);
-    expect(within(target).getByRole('button', { name: /review failed intake/i })).toBeInTheDocument();
+    expect(within(target).getByRole('button', { name: /^review failed intake$/i })).toBeInTheDocument();
 
-    fireEvent.click(within(target).getByRole('button', { name: /review failed intake/i }));
+    fireEvent.click(within(target).getByRole('button', { name: /^review failed intake$/i }));
 
     expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringContaining('Review failed Coach intake failed-1'));
     expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
