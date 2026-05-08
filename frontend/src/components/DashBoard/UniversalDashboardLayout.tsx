@@ -561,7 +561,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' },
 
       // 📣 MARKETING DASHBOARD — SEO, content creation, social media, competitor analysis
-      { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'SEO, content marketing, and competitor analysis' },
+      { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'Campaign approvals, publishing cadence, lead follow-up, and performance signals' },
 
       // 🔒 SECURITY INTELLIGENCE — CVE scanning, dependency health, alerts, score card
       { path: '/security', component: SecurityWorkspace, title: 'Security Intelligence', description: 'Vulnerability scanning, dependency health, and security posture' },
@@ -862,7 +862,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
                       {roleConfig.routes.map(({ path, component: Component }) => (
                         <Route
                           key={path}
-                          path={path}
+                          path={path.replace(/^\//, '')}
                           element={
                             <UniversalPageContainer
                               initial={{ opacity: 0, y: 20 }}

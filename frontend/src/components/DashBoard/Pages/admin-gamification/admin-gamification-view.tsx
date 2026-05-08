@@ -71,6 +71,7 @@ import {
 
 // Import styled components
 import { PageContainer } from './styled-gamification-system';
+import GamificationEconomyGuardrail from './components/GamificationEconomyGuardrail';
 
 // Lazy load components for better initial load time
 const AchievementManager = lazy(() => import('./components/AchievementManager'));
@@ -712,6 +713,8 @@ const AdminGamificationView: React.FC = () => {
           Manage achievements, rewards, and system settings for your gamification platform. Use this dashboard to create engaging experiences that motivate your clients.
         </BodyText>
       </HeaderDescription>
+
+      <GamificationEconomyGuardrail />
       
       {/* Custom Tabs */}
       <TabsContainer role="tablist" aria-label="Gamification management tabs">
