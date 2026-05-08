@@ -8,7 +8,7 @@
  * without duplicating backend write logic or implying auto-apply.
  */
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Brain,
@@ -28,10 +28,7 @@ import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
-import {
-  AudioPuzzleLabel,
-  AudioPuzzleRow,
-} from './CoachIntakeWorkspaceAudio.styles';
+import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import {
   ActionButton,
   ActionRow,
@@ -87,6 +84,7 @@ export function CoachIntakeWorkspace({
   const isTrainerSurface = userRole === 'admin' || userRole === 'trainer';
   const { items, summary, isLoading, error, refresh } = queue;
   const navigate = useNavigate();
+  const location = useLocation();
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
   const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
   const [reviewOutcome, setReviewOutcome] = React.useState<CoachIntakeOutcome | null>(null);
@@ -100,6 +98,7 @@ export function CoachIntakeWorkspace({
   const activeItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
   const activeItemKey = activeItem?.id || null;
   const activeReviewTargetId = activeItem ? itemEntityId(activeItem) || activeItem.id : null;
+  const activeProposalId = React.useMemo(() => new URLSearchParams(location.search).get('proposal'), [location.search]);
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
@@ -108,6 +107,11 @@ export function CoachIntakeWorkspace({
   React.useEffect(() => {
     setReviewingProposalId(null);
   }, [activeItemKey]);
+
+  React.useEffect(() => {
+    if (!activeProposalId || activeProposalId !== activeItem?.latestProposalId) return;
+    setReviewingProposalId(activeProposalId);
+  }, [activeProposalId, activeItem?.latestProposalId]);
 
   React.useEffect(() => {
     if (!activeIntakeId || !activeReviewTargetId || focusedActiveDossierRef.current === activeReviewTargetId) return undefined;

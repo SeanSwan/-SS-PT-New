@@ -16,7 +16,7 @@ describe('Coach prepared draft result card', () => {
             proposalType: 'workout_log',
             proposalStatus: 'PENDING',
             proposalTitle: 'Review workout draft',
-            reviewRoute: '/dashboard/admin/coach-assistant?intake=item-1',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1',
             nextActionLabel: 'Review prepared draft',
             commandHint: 'Open the active Coach intake dossier and choose Review prepared draft.',
           }}
@@ -29,7 +29,7 @@ describe('Coach prepared draft result card', () => {
     expect(screen.getByText(/workout log/i)).toBeInTheDocument();
     expect(screen.getByText(/Pending/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open coach intake/i }))
-      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1');
     expect(screen.queryByText('proposalId')).toBeNull();
     expect(screen.queryByText('reviewRoute')).toBeNull();
   });

@@ -62,7 +62,7 @@ describe('Coach intake prepared draft command', () => {
       proposalType: 'workout_log',
       proposalStatus: 'PENDING',
       proposalTitle: 'Review workout draft',
-      reviewRoute: '/dashboard/admin/coach-assistant?intake=11111111-1111-4111-9111-111111111111',
+      reviewRoute: '/dashboard/admin/coach-assistant?intake=11111111-1111-4111-9111-111111111111&proposal=proposal-1',
       nextActionKey: 'review_prepared_draft',
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript|payload/i);

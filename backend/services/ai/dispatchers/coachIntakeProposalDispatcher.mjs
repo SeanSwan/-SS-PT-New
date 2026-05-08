@@ -46,10 +46,14 @@ function matchesIntakeId(item, targetIntakeId) {
   return itemIdCandidates(item).has(targetIntakeId);
 }
 
-function coachReviewRoute(item, role) {
+function coachReviewRoute(item, role, proposalId = null) {
   const entityId = normalizeIntakeId(item?.entityId || item?.id);
   const baseRoute = `/dashboard/${role}/coach-assistant`;
-  return entityId ? `${baseRoute}?intake=${encodeURIComponent(entityId)}` : baseRoute;
+  const proposalParam = normalizeIntakeId(proposalId);
+  if (!entityId) return baseRoute;
+  return `${baseRoute}?intake=${encodeURIComponent(entityId)}${
+    proposalParam ? `&proposal=${encodeURIComponent(proposalParam)}` : ''
+  }`;
 }
 
 function latestProposalFor(item) {
@@ -88,7 +92,7 @@ function commandSummary({ item, targetIntakeId, targetMatched, role }) {
     proposalCreatedAt: proposal?.createdAt || null,
     nextActionKey: hasPreparedDraft ? 'review_prepared_draft' : 'prepare_draft_review',
     nextActionLabel: hasPreparedDraft ? 'Review prepared draft' : 'Prepare draft review',
-    reviewRoute: item ? coachReviewRoute(item, role) : `/dashboard/${role}/coach-assistant`,
+    reviewRoute: item ? coachReviewRoute(item, role, proposal?.id) : `/dashboard/${role}/coach-assistant`,
     commandHint: hasPreparedDraft
       ? 'Open the active Coach intake dossier and choose Review prepared draft. Final writes still require approval.'
       : 'Ask Swan Coach to prepare a structured draft review for this intake before any final write.',
