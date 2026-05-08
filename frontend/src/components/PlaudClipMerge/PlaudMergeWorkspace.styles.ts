@@ -279,6 +279,11 @@ export const SuccessBanner = styled.div`
   & svg {
     color: var(--accent-primary, #60C0F0);
   }
+
+  &:focus {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
 `;
 
 export const ErrorBanner = styled.div`

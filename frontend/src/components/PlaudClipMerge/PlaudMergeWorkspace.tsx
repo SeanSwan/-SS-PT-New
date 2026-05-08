@@ -43,6 +43,7 @@ export function PlaudMergeWorkspace({
   const [confirmState, setConfirmState] = useState<PlaudMergeConfirmState | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const autoOpenedReviewRef = useRef<string | null>(null);
+  const successReceiptRef = useRef<HTMLDivElement | null>(null);
 
   const openDetailReview = useCallback((detail: MergeRequestDetail) => {
     setReviewState({
@@ -93,6 +94,18 @@ export function PlaudMergeWorkspace({
     void handleOpenReview(id);
   }, [handleOpenReview, initialReviewMergeRequestId]);
 
+  useEffect(() => {
+    const receipt = successReceiptRef.current;
+    if (!confirmState || !receipt) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof receipt.scrollIntoView === 'function') {
+        receipt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      receipt.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [confirmState]);
+
   const handleResetReview = useCallback(() => {
     setReviewState(null);
     setApplyError(null);
@@ -113,7 +126,7 @@ export function PlaudMergeWorkspace({
             </BackLink>
           ) : null}
         </Header>
-        <SuccessBanner role="status">
+        <SuccessBanner ref={successReceiptRef} role="status" tabIndex={-1}>
           <CheckCircle2 size={22} aria-hidden="true" />
           <div>
             <strong>Workout logged successfully.</strong>
