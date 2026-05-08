@@ -31,7 +31,7 @@
 import React, { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useAuth } from '../../../../hooks/useAuth';
 import { usePaywall } from '../../../../context/PaywallContext';
@@ -56,6 +56,11 @@ import FileAttachmentButton from './FileAttachmentButton';
 import AttachmentPreview from './AttachmentPreview';
 import VoiceSettingsBar from './VoiceSettingsBar';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
+import {
+  itemReviewHref,
+  pickNextItem,
+  queueScopedHref,
+} from './CoachIntakeWorkspace.utils';
 import {
   useFileAttachment,
   hasTranscriptClassFile,
@@ -297,6 +302,11 @@ const SwanCoachAssistantPage: React.FC = () => {
     limit: 3,
     enabled: userRole === 'admin' || userRole === 'trainer',
   });
+  const {
+    items: coachIntakeItems,
+    refresh: refreshCoachIntakeQueue,
+    scope: coachIntakeScope,
+  } = coachIntakeQueue;
   const coach = useCoachAssistant({
     chat,
     targetClientId: selectedClient?.id ?? null,
@@ -366,6 +376,7 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── Cross-dashboard client handoff (Sprint D) ──
   const { clientList, activeClient, setActiveClient, loadingClients } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const clientIdNumber = (() => {
     const raw = searchParams.get('clientId');
     const n = raw ? parseInt(raw, 10) : NaN;
@@ -889,8 +900,30 @@ const SwanCoachAssistantPage: React.FC = () => {
   }, [coach]);
 
   const handleAudioIntakeReviewNext = useCallback(() => {
-    handleIntakeCommand('review next coach intake');
-  }, [handleIntakeCommand]);
+    const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
+    void (async () => {
+      let sourceItems = coachIntakeItems;
+      try {
+        const refreshedItems = await refreshCoachIntakeQueue();
+        if (Array.isArray(refreshedItems)) sourceItems = refreshedItems;
+      } catch {
+        sourceItems = coachIntakeItems;
+      }
+      const nextItem = pickNextItem(sourceItems);
+      if (nextItem) {
+        navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
+        return;
+      }
+      handleIntakeCommand('review next coach intake');
+    })();
+  }, [
+    coachIntakeItems,
+    coachIntakeScope,
+    handleIntakeCommand,
+    navigate,
+    refreshCoachIntakeQueue,
+    userRole,
+  ]);
 
   const handleCreateIntakeDraft = useCallback(async (text: string) => {
     try {

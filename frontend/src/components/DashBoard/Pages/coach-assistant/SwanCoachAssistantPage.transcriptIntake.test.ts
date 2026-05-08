@@ -420,8 +420,11 @@ describe('CoachMessage — audio intake receipt branch', () => {
     expect(COACH_MESSAGE_SOURCE).toMatch(/min-height:\s*44px/);
   });
 
-  it('page wires the audio receipt action to the existing review-next intake command', () => {
+  it('page opens the next actionable intake directly before falling back to the command lane', () => {
     expect(PAGE_SOURCE).toMatch(/const\s+handleAudioIntakeReviewNext\s*=\s*useCallback/);
+    expect(PAGE_SOURCE).toMatch(/const\s+navigate\s*=\s*useNavigate\(\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+nextItem\s*=\s*pickNextItem\(sourceItems\)/);
+    expect(PAGE_SOURCE).toMatch(/navigate\(\s*queueScopedHref\(\s*itemReviewHref\(nextItem,\s*coachWorkspaceHref\)/);
     expect(PAGE_SOURCE).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
     expect(PAGE_SOURCE).toMatch(/onAudioIntakeReviewNext=\{handleAudioIntakeReviewNext\}/);
   });
