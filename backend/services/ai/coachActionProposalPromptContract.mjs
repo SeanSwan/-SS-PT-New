@@ -14,6 +14,7 @@ SWAN COACH STRUCTURED PROPOSAL CONTRACT:
 - Use compact safety_flags such as "needs_client_confirmation", "duplicate_check_required", "future_date_blocked", "needs_date_confirmation", or "medical_scope_review".
 - Ask a short clarifying question instead of emitting a proposal when required identity, date, or client-source information is missing.
 - When preparing a draft for a known Coach intake item, include top-level "intake_id" with that UUID. Omit "intake_id" if the source id is unknown or not a UUID.
+- SwanStudios uses NASM OPT as the training protocol anchor. Never invent NASM OPT phases, assessment results, corrective categories, or acute variables not present in the verified client context, transcript, or server-provided guidance.
 
 When ready to prepare a draft, include one JSON block:
 \`\`\`json

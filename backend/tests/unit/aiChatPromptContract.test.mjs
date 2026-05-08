@@ -28,6 +28,16 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).toContain('Final writes belong to deterministic backend services');
   });
 
+  it('anchors proposal drafting to NASM OPT instead of ACSM assumptions', () => {
+    const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
+
+    expect(prompt).toContain('NASM');
+    expect(prompt).toContain('OPT');
+    expect(prompt).toContain('Never invent NASM OPT phases');
+    expect(prompt).not.toContain('ACSM');
+    expect(prompt).not.toContain('American College of Sports Medicine');
+  });
+
   it('does not inject proposal instructions into normal client chat', () => {
     const prompt = getSystemPrompt('client', 'general', 'concise');
 
