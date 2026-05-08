@@ -124,8 +124,33 @@ function compactTime(value: string | null): string {
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+function isSensitiveSummaryEntry(key: string, value: unknown): boolean {
+  const normalizedKey = key.toLowerCase().replace(/[^a-z]/g, '');
+  const hasSensitiveKey = [
+    'rawtranscript',
+    'transcript',
+    'clientname',
+    'clientemail',
+    'clientphone',
+    'email',
+    'phone',
+    'token',
+    'secret',
+    'password',
+    'signedurl',
+    'audiourl',
+    'mediaurl',
+  ].some((needle) => normalizedKey.includes(needle));
+  if (hasSensitiveKey) return true;
+
+  const textValue = String(value);
+  return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(textValue)
+    || /\b(?:sk-|whsec_|eyJ)[A-Za-z0-9._-]+/.test(textValue);
+}
+
 function summaryPairs(event: CoachIntakeEvent): string[] {
   return Object.entries(event.summary || {})
+    .filter(([key, value]) => !isSensitiveSummaryEntry(key, value))
     .slice(0, 4)
     .map(([key, value]) => `${key}: ${String(value)}`);
 }
@@ -139,6 +164,7 @@ export function CoachIntakeEventTrail({ intakeId }: { intakeId: string | null })
   React.useEffect(() => {
     if (!safeIntakeId) return undefined;
     let active = true;
+    setEvents([]);
     setIsLoading(true);
     setError(null);
     listCoachIntakeEvents({ intakeId: safeIntakeId, limit: 8 })
