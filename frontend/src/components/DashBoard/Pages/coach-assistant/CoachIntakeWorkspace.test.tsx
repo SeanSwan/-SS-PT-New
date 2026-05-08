@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
@@ -61,15 +61,15 @@ describe('CoachIntakeWorkspace', () => {
 
     expect(screen.getByText(/Voice intake command center/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText(/Morning lower body notes/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Morning lower body notes/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Audio puzzle/i)).toBeInTheDocument();
     expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();
     expect(screen.getByText(/order review/i)).toBeInTheDocument();
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
-    expect(screen.getByText(/review target/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /ask coach/i }));
+    expect(screen.getAllByText(/review target/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /^ask coach$/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('review next Coach intake');
 
     fireEvent.click(screen.getByRole('button', { name: /inspect audio pieces/i }));
@@ -101,6 +101,41 @@ describe('CoachIntakeWorkspace', () => {
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+  });
+
+  it('shows a dedicated active review target when an intake id is selected', () => {
+    const onCommandPrompt = vi.fn();
+    const queue = makeQueue();
+    queue.items.push({
+      ...queue.items[0],
+      id: 'item-2',
+      entityId: 'item-2',
+      title: 'Later upper body note',
+      queueStatus: 'needs_client',
+      canReview: false,
+      sourceLabel: 'Coach voice note',
+      timelineAt: '2026-05-07T18:30:00.000Z',
+    });
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={onCommandPrompt}
+          queue={queue}
+          activeIntakeId="item-2"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = screen.getByLabelText(/Active review target/i);
+    expect(within(target).getByText(/Active review target/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Later upper body note/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Needs Client/i)).toBeInTheDocument();
+
+    fireEvent.click(within(target).getByRole('button', { name: /ask coach about this intake/i }));
+    expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-2');
   });
 
   it('renders the highest-priority review-next item first even when API order is newer-first', () => {

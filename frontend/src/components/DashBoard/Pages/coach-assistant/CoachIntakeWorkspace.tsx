@@ -25,6 +25,12 @@ import {
   AudioPuzzleRow,
 } from './CoachIntakeWorkspaceAudio.styles';
 import {
+  TargetActions,
+  TargetBody,
+  TargetEyebrow,
+  TargetPanel,
+} from './CoachIntakeWorkspaceTarget.styles';
+import {
   ActionButton,
   ActionRow,
   ChipColumn,
@@ -133,6 +139,10 @@ function isActiveItem(item: CoachIntakeItem, activeIntakeId?: string | null): bo
   return itemEntityId(item) === clean || item.id === activeIntakeId;
 }
 
+function activeItemPrompt(item: CoachIntakeItem): string {
+  return `review Coach intake ${itemEntityId(item) || item.id}`;
+}
+
 export function CoachIntakeWorkspace({
   userRole,
   selectedClientName,
@@ -149,6 +159,7 @@ export function CoachIntakeWorkspace({
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
   const orderedItems = React.useMemo(() => orderedQueueItems(items), [items]);
   const nextItem = pickNextItem(orderedItems);
+  const activeItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
@@ -191,6 +202,29 @@ export function CoachIntakeWorkspace({
           </WorkspaceLink>
         </ActionRow>
       </Header>
+
+      {activeItem && (
+        <TargetPanel aria-label="Active review target">
+          <TargetBody>
+            <TargetEyebrow><ListChecks size={13} aria-hidden="true" /> Active review target</TargetEyebrow>
+            <h3>{activeItem.title}</h3>
+            <p>{activeItem.sourceLabel} - {statusLabel(activeItem.queueStatus)}</p>
+          </TargetBody>
+          <TargetActions>
+            <ActionButton
+              type="button"
+              onClick={() => onCommandPrompt(activeItemPrompt(activeItem))}
+            >
+              <Brain size={16} aria-hidden="true" />
+              Ask Coach about this intake
+            </ActionButton>
+            <WorkspaceLink to={itemReviewHref(activeItem, coachWorkspaceHref)}>
+              <ListChecks size={16} aria-hidden="true" />
+              Open target
+            </WorkspaceLink>
+          </TargetActions>
+        </TargetPanel>
+      )}
 
       <Grid>
         <StatGrid aria-label="Coach intake summary">
