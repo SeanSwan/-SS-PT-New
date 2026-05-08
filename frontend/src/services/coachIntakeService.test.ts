@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import apiService from './api.service';
-import { getCoachIntakeHealth, getCoachIntakeRetention } from './coachIntakeService';
+import {
+  getCoachIntakeHealth,
+  getCoachIntakeRetention,
+  getCoachIntakeRetentionPurgePlan,
+} from './coachIntakeService';
 
 vi.mock('./api.service', () => ({
   default: {
@@ -72,5 +76,34 @@ describe('coachIntakeService', () => {
       summary: { purgeReady: 2, reviewRequired: 1 },
       nextOperatorAction: { key: 'review_purge_candidates' },
     });
+  });
+
+  it('fetches the dry-run Coach intake retention purge plan endpoint', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      data: {
+        success: true,
+        purgePlan: {
+          enabled: false,
+          dryRun: true,
+          schemaReady: true,
+          purgeReady: 2,
+          purged: 0,
+          skippedReason: 'disabled',
+          candidateIds: ['11111111-1111-4111-8111-111111111111'],
+          transcript: 'Do Not Return',
+        },
+      },
+    });
+
+    const purgePlan = await getCoachIntakeRetentionPurgePlan();
+
+    expect(apiService.get).toHaveBeenCalledWith('/api/coach/intake/retention/purge-plan');
+    expect(purgePlan).toMatchObject({
+      enabled: false,
+      dryRun: true,
+      purgeReady: 2,
+      skippedReason: 'disabled',
+    });
+    expect(JSON.stringify(purgePlan)).not.toMatch(/candidateIds|11111111|payload_cipher|transcript|Do Not Return/i);
   });
 });

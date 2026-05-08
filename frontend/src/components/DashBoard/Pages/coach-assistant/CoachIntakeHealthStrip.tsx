@@ -4,8 +4,9 @@
  * PII-safe operator health snapshot for Swan Coach intake.
  */
 import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
-import type { CoachIntakeHealth, CoachIntakeRetention } from '../../../../services/coachIntakeService';
+import type { CoachIntakeHealth, CoachIntakeRetention, CoachIntakeRetentionPurgePlan as RetentionPurgePlan } from '../../../../services/coachIntakeService';
 import { CoachIntakeRetentionCandidates } from './CoachIntakeRetentionCandidates';
+import { CoachIntakeRetentionPurgePlan } from './CoachIntakeRetentionPurgePlan';
 import {
   HealthActionButton,
   HealthBlock,
@@ -19,6 +20,7 @@ import {
 interface CoachIntakeHealthStripProps {
   health?: CoachIntakeHealth | null;
   retention?: CoachIntakeRetention | null;
+  retentionPurgePlan?: RetentionPurgePlan | null;
   onCommandPrompt?: (message: string) => void;
 }
 
@@ -32,7 +34,7 @@ function promptForActionKey(key: string): string {
   return 'show Coach intake health';
 }
 
-export function CoachIntakeHealthStrip({ health, retention, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
+export function CoachIntakeHealthStrip({ health, retention, retentionPurgePlan, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
   if (!health) return null;
 
   const counts = health.counts;
@@ -59,6 +61,7 @@ export function CoachIntakeHealthStrip({ health, retention, onCommandPrompt }: C
             </HealthPill>
           </HealthStatRow>
           <CoachIntakeRetentionCandidates retention={retention} />
+          <CoachIntakeRetentionPurgePlan plan={retentionPurgePlan} />
           {onCommandPrompt && (
             <HealthActionButton
               type="button"

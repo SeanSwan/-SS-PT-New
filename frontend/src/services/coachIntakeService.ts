@@ -92,6 +92,18 @@ export interface CoachIntakeRetentionItem {
   archivedAt?: string | null;
 }
 
+export interface CoachIntakeRetentionPurgePlan {
+  enabled: boolean;
+  dryRun: boolean;
+  schemaReady: boolean;
+  generatedAt?: string | null;
+  policy?: CoachIntakeRetention['policy'];
+  summary?: CoachIntakeRetention['summary'];
+  purgeReady: number;
+  purged: number;
+  skippedReason?: string | null;
+}
+
 export interface CreateCoachTextIntakeResponse {
   item: CoachIntakeItem;
 }
@@ -122,6 +134,33 @@ function unwrapError(err: unknown, fallbackMessage: string): never {
     throw new PlaudApiError(code, message, err.response?.status || 0, data);
   }
   throw new PlaudApiError('UNKNOWN', fallbackMessage, 0);
+}
+
+function numberOrZero(value: unknown): number {
+  return Number.isFinite(Number(value)) ? Number(value) : 0;
+}
+
+function sanitizeRetentionSummary(summary: Partial<CoachIntakeRetention['summary']> = {}): CoachIntakeRetention['summary'] {
+  return {
+    totalWithRawArtifacts: numberOrZero(summary.totalWithRawArtifacts),
+    purgeReady: numberOrZero(summary.purgeReady),
+    reviewRequired: numberOrZero(summary.reviewRequired),
+    retained: numberOrZero(summary.retained),
+  };
+}
+
+function sanitizeRetentionPurgePlan(plan: Partial<CoachIntakeRetentionPurgePlan> = {}): CoachIntakeRetentionPurgePlan {
+  return {
+    enabled: plan.enabled === true,
+    dryRun: plan.dryRun !== false,
+    schemaReady: plan.schemaReady === true,
+    generatedAt: typeof plan.generatedAt === 'string' ? plan.generatedAt : null,
+    policy: plan.policy || {},
+    summary: sanitizeRetentionSummary(plan.summary),
+    purgeReady: numberOrZero(plan.purgeReady),
+    purged: numberOrZero(plan.purged),
+    skippedReason: typeof plan.skippedReason === 'string' ? plan.skippedReason : null,
+  };
 }
 
 export async function listCoachIntakeItems({
@@ -171,6 +210,17 @@ export async function getCoachIntakeRetention(): Promise<CoachIntakeRetention> {
     return data.retention;
   } catch (err) {
     unwrapError(err, 'Failed to read Coach intake retention');
+  }
+}
+
+export async function getCoachIntakeRetentionPurgePlan(): Promise<CoachIntakeRetentionPurgePlan> {
+  try {
+    const { data } = await apiService.get<{ success: boolean; purgePlan: CoachIntakeRetentionPurgePlan }>(
+      '/api/coach/intake/retention/purge-plan',
+    );
+    return sanitizeRetentionPurgePlan(data.purgePlan);
+  } catch (err) {
+    unwrapError(err, 'Failed to read Coach intake retention purge plan');
   }
 }
 
@@ -234,6 +284,7 @@ export default {
   createCoachTextIntake,
   getCoachIntakeHealth,
   getCoachIntakeRetention,
+  getCoachIntakeRetentionPurgePlan,
   listCoachIntakeEvents,
   listCoachIntakeItems,
 };

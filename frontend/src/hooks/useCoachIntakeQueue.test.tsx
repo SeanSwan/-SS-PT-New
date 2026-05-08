@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getCoachIntakeHealth,
   getCoachIntakeRetention,
+  getCoachIntakeRetentionPurgePlan,
   listCoachIntakeItems,
   type CoachIntakeItem,
 } from '../services/coachIntakeService';
@@ -12,6 +13,7 @@ import { useCoachIntakeQueue } from './useCoachIntakeQueue';
 vi.mock('../services/coachIntakeService', () => ({
   getCoachIntakeHealth: vi.fn(),
   getCoachIntakeRetention: vi.fn(),
+  getCoachIntakeRetentionPurgePlan: vi.fn(),
   listCoachIntakeItems: vi.fn(),
 }));
 
@@ -75,6 +77,14 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
         label: 'Review raw artifact purge candidates',
       },
     });
+    vi.mocked(getCoachIntakeRetentionPurgePlan).mockResolvedValue({
+      enabled: false,
+      dryRun: true,
+      schemaReady: true,
+      purgeReady: 1,
+      purged: 0,
+      skippedReason: 'disabled',
+    });
     vi.mocked(listCoachIntakeItems)
       .mockResolvedValueOnce({
         items: [makeItem('intake-before-action')],
@@ -96,6 +106,7 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
     });
     expect(result.current.health?.status).toBe('healthy');
     expect(result.current.retention?.summary.purgeReady).toBe(1);
+    expect(result.current.retentionPurgePlan?.skippedReason).toBe('disabled');
 
     act(() => {
       dispatchCoachProposalAction({
@@ -112,5 +123,6 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
     expect(listCoachIntakeItems).toHaveBeenCalledTimes(2);
     expect(getCoachIntakeHealth).toHaveBeenCalledTimes(2);
     expect(getCoachIntakeRetention).toHaveBeenCalledTimes(2);
+    expect(getCoachIntakeRetentionPurgePlan).toHaveBeenCalledTimes(2);
   });
 });

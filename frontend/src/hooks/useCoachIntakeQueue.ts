@@ -9,6 +9,8 @@ import {
   type CoachIntakeHealth,
   getCoachIntakeRetention,
   type CoachIntakeRetention,
+  getCoachIntakeRetentionPurgePlan,
+  type CoachIntakeRetentionPurgePlan,
   listCoachIntakeItems,
   type CoachIntakeItem,
 } from '../services/coachIntakeService';
@@ -34,6 +36,7 @@ export interface CoachIntakeQueueState {
   error: PlaudApiError | null;
   health: CoachIntakeHealth | null;
   retention: CoachIntakeRetention | null;
+  retentionPurgePlan: CoachIntakeRetentionPurgePlan | null;
   refresh: () => Promise<CoachIntakeItem[]>;
 }
 
@@ -52,6 +55,7 @@ export function useCoachIntakeQueue({
   const [error, setError] = useState<PlaudApiError | null>(null);
   const [health, setHealth] = useState<CoachIntakeHealth | null>(null);
   const [retention, setRetention] = useState<CoachIntakeRetention | null>(null);
+  const [retentionPurgePlan, setRetentionPurgePlan] = useState<CoachIntakeRetentionPurgePlan | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -66,16 +70,18 @@ export function useCoachIntakeQueue({
       setError(null);
       setHealth(null);
       setRetention(null);
+      setRetentionPurgePlan(null);
       setIsLoading(false);
       return [];
     }
     setIsLoading(true);
     setError(null);
     try {
-      const [response, healthResult, retentionResult] = await Promise.all([
+      const [response, healthResult, retentionResult, purgePlanResult] = await Promise.all([
         listCoachIntakeItems({ scope, limit }),
         getCoachIntakeHealth().catch(() => null),
         getCoachIntakeRetention().catch(() => null),
+        getCoachIntakeRetentionPurgePlan().catch(() => null),
       ]);
       const nextItems = response.items || [];
       if (!isMountedRef.current) return nextItems;
@@ -83,6 +89,7 @@ export function useCoachIntakeQueue({
       setSummary(response.summary);
       setHealth(healthResult);
       setRetention(retentionResult);
+      setRetentionPurgePlan(purgePlanResult);
       return nextItems;
     } catch (err) {
       if (!isMountedRef.current) return [];
@@ -91,6 +98,7 @@ export function useCoachIntakeQueue({
       setSummary(EMPTY_SUMMARY);
       setHealth(null);
       setRetention(null);
+      setRetentionPurgePlan(null);
       return [];
     } finally {
       if (isMountedRef.current) setIsLoading(false);
@@ -108,7 +116,7 @@ export function useCoachIntakeQueue({
     });
   }, [enabled, refresh]);
 
-  return { items, summary, isLoading, error, health, retention, refresh };
+  return { items, summary, isLoading, error, health, retention, retentionPurgePlan, refresh };
 }
 
 export default useCoachIntakeQueue;
