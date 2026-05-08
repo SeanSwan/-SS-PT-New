@@ -153,6 +153,33 @@ function activeReason(item: CoachIntakeItem, statusText: string): string {
   return `${item.sourceLabel} is selected from the intake queue in ${statusText.toLowerCase()} state.`;
 }
 
+function timeAnchor(item: CoachIntakeItem): string {
+  const rawValue = item.timelineAt || item.recordedAt || item.createdAt || null;
+  if (!rawValue) return 'Time pending';
+
+  const parsed = new Date(rawValue);
+  if (Number.isNaN(parsed.getTime())) return 'Time pending';
+
+  const source = item.timelineAtSource
+    || (rawValue === item.recordedAt ? 'recorded_at' : null)
+    || (rawValue === item.createdAt ? 'created_at' : null);
+  const prefix = source === 'recorded_at'
+    ? 'Recorded'
+    : source === 'uploaded_at'
+      ? 'Uploaded'
+      : source === 'created_at'
+        ? 'Created'
+        : 'Anchored';
+  const formatted = new Intl.DateTimeFormat([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
+  return `${prefix} ${formatted}`;
+}
+
 function focusDossierAction(actionId: string): void {
   const target = document.querySelector<HTMLElement>(`[data-coach-active-action="${actionId}"]`);
   if (!target) return;
@@ -200,6 +227,10 @@ export function CoachIntakeActiveDossier({
           <StatusRibbonItem>
             <StatusRibbonLabel>Blocking gate</StatusRibbonLabel>
             <StatusRibbonValue>{blockingGate(item)}</StatusRibbonValue>
+          </StatusRibbonItem>
+          <StatusRibbonItem>
+            <StatusRibbonLabel>Time anchor</StatusRibbonLabel>
+            <StatusRibbonValue>{timeAnchor(item)}</StatusRibbonValue>
           </StatusRibbonItem>
           <StatusRibbonItem>
             <StatusRibbonLabel>Next action</StatusRibbonLabel>

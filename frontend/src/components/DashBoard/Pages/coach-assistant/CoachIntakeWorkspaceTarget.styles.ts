@@ -118,7 +118,7 @@ export const TargetEyebrow = styled.span`
 
 export const StatusRibbon = styled.div`
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(130px, 0.8fr) minmax(0, 1fr);
   gap: 8px;
   margin: 9px 0 8px;
   padding: 8px;
@@ -132,7 +132,11 @@ export const StatusRibbon = styled.div`
     ),
     color-mix(in srgb, var(--bg-surface, #1A1A24) 84%, transparent);
 
-  @media (max-width: 860px) {
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
 `;

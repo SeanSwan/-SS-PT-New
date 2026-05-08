@@ -128,6 +128,86 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(ribbon).getByText('Confirm audio order')).toBeInTheDocument();
   });
 
+  it('shows the active intake time anchor in the focused dossier', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      recordedAt: '2026-05-06T16:30:00.000Z',
+      timelineAt: '2026-05-06T16:30:00.000Z',
+      timelineAtSource: 'recorded_at',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const ribbon = await screen.findByLabelText('Active item status');
+    expect(within(ribbon).getByText('Time anchor')).toBeInTheDocument();
+    expect(within(ribbon).getByText(/^Recorded /)).toBeInTheDocument();
+    expect(within(ribbon).queryByText('Time pending')).toBeNull();
+  });
+
+  it('shows a pending time anchor when the active intake lacks usable timing', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      createdAt: null,
+      recordedAt: null,
+      timelineAt: null,
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const ribbon = await screen.findByLabelText('Active item status');
+    expect(within(ribbon).getByText('Time anchor')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Time pending')).toBeInTheDocument();
+  });
+
+  it('uses a neutral time-anchor label when the timeline source is not supplied', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      createdAt: null,
+      recordedAt: null,
+      timelineAt: '2026-05-06T16:30:00.000Z',
+      timelineAtSource: undefined,
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const ribbon = await screen.findByLabelText('Active item status');
+    expect(within(ribbon).getByText(/^Anchored /)).toBeInTheDocument();
+    expect(within(ribbon).queryByText(/^Created /)).toBeNull();
+  });
+
   it('does not route failed intake with stale proposal metadata to draft review', async () => {
     const queue = makeQueue();
     queue.items[0] = {
