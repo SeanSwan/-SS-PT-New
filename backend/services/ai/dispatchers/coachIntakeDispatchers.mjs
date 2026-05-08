@@ -33,7 +33,7 @@ function resolveCoachQueueRoute(ctx) {
 }
 
 function resolvePlaudReviewRoute(ctx, item = null) {
-  const entityId = item?.entityId || item?.id || '';
+  const entityId = item?.entityId || '';
   const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
   return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
 }
