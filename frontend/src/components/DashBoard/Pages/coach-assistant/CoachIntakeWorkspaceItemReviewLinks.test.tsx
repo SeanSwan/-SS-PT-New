@@ -75,6 +75,25 @@ describe('CoachIntakeWorkspace item review links', () => {
       .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
+  it('does not build PLAUD merge review links from display ids when entityId is missing', () => {
+    const queue = makeQueue();
+    queue.items = [{
+      ...queue.items[1],
+      id: 'merge:missing-entity',
+      entityId: undefined,
+      title: 'PLAUD merge missing entity id',
+    }];
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: /review intake plaud merge missing entity id/i }))
+      .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+  });
+
   it('marks the selected Coach intake row after a direct item link opens', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=coach-1']}>
