@@ -120,6 +120,48 @@ describe('Unified Coach intake dispatcher behavior', () => {
     });
   });
 
+  it('returns the next blocking gate and action for Coach intake review-next results', async () => {
+    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 20,
+      schemaReady: true,
+      summary: { total: 1, actionable: 1, today: 1, unprocessed: 1, processing: 0, readyReview: 0, failed: 0, needsClient: 1 },
+      items: [
+        {
+          id: 'coach:11111111-1111-4111-9111-111111111111',
+          entityId: '11111111-1111-4111-9111-111111111111',
+          kind: 'coach_intake',
+          sourceLabel: 'Audio upload',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          needsClient: true,
+          audioPuzzle: {
+            pieceCount: 3,
+            bundleCount: 2,
+            needsOrderingReview: true,
+            confidence: 'medium',
+          },
+          transcript: 'Do Not Return',
+          clientName: 'Do Not Return',
+          createdAt: '2026-05-05T12:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await dispatchReviewNextCoachIntake(
+      {},
+      { user: { id: 7, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      nextBlockingGate: 'Audio order must be confirmed',
+      nextActionKey: 'confirm_audio_order',
+      nextActionLabel: 'Confirm audio order',
+      reviewRoute: '/dashboard/trainer/coach-assistant?intake=11111111-1111-4111-9111-111111111111',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
+  });
+
   it('does not build direct PLAUD review links from display ids when entityId is missing', async () => {
     vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
       scope: 'actionable',

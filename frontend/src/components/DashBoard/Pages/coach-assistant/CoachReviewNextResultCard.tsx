@@ -91,6 +91,44 @@ const NextPanel = styled.div`
   line-height: 1.5;
 `;
 
+const GateStrip = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GateTile = styled.div`
+  min-height: 54px;
+  border-radius: 8px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent);
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent);
+`;
+
+const GateLabel = styled.span`
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted, rgba(224, 236, 244, 0.7));
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+`;
+
+const GateValue = styled.strong`
+  display: block;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+`;
+
 const Hint = styled.p`
   margin: 10px 0 0;
   color: var(--text-muted, rgba(224, 236, 244, 0.72));
@@ -113,6 +151,12 @@ function statusLabel(value: unknown): string | null {
     .toLowerCase();
 }
 
+function compactText(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const text = value.replace(/[\r\n\t`\\]/g, ' ').trim();
+  return text ? text.slice(0, 96) : null;
+}
+
 export function isCoachReviewNextCommand(command: string): boolean {
   return command === 'review_next_coach_intake'
     || command === 'view_coach_intake_queue'
@@ -129,6 +173,8 @@ export function CoachReviewNextResultCard({
   const readyReview = numberValue(result.readyReview);
   const needsClient = numberValue(result.needsClient);
   const nextStatus = statusLabel(result.nextQueueStatus);
+  const blockingGate = compactText(result.nextBlockingGate);
+  const nextAction = compactText(result.nextActionLabel);
   const surfaceLabel = command.includes('_plaud_') ? 'PLAUD' : 'Coach';
   const workspaceLabel = surfaceLabel === 'PLAUD' ? 'PLAUD workspace' : 'Coach intake workspace';
   const hasDirectNext = Boolean(result.nextKind || result.nextEntityId || result.reviewRoute);
@@ -161,6 +207,22 @@ export function CoachReviewNextResultCard({
         <ListChecks size={15} aria-hidden="true" />
         <span>{nextSummary}</span>
       </NextPanel>
+      {(blockingGate || nextAction) && (
+        <GateStrip aria-label="Next intake gate and action">
+          {blockingGate && (
+            <GateTile>
+              <GateLabel>Blocking gate</GateLabel>
+              <GateValue>{blockingGate}</GateValue>
+            </GateTile>
+          )}
+          {nextAction && (
+            <GateTile>
+              <GateLabel>Next action</GateLabel>
+              <GateValue>{nextAction}</GateValue>
+            </GateTile>
+          )}
+        </GateStrip>
+      )}
       <Hint><ShieldCheck size={13} aria-hidden="true" /> Client, date, duplicate, and final write gates still require approval.</Hint>
       {hint && <Hint>{hint}</Hint>}
       <CommandRouteAction command={command} result={result} />

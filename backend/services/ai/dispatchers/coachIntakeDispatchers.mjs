@@ -10,6 +10,7 @@ import {
   pickNextCoachIntakeItem,
 } from '../../coachIntakeQueueOrdering.mjs';
 import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
+import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
 
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
@@ -81,6 +82,7 @@ function scalarSummary(result, nextItem, ctx) {
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
+    ...coachIntakeGateSummary(nextItem),
     reviewRoute: reviewRouteForItem(nextItem, ctx),
     queueRoute,
     commandHint: nextItem

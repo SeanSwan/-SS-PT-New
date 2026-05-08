@@ -24,6 +24,9 @@ const COACH_INTAKE_COMMANDS_SRC = readFileSync(
 const WORKSPACE_SRC = readFileSync(
   resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntakeWorkspace.tsx'), 'utf8',
 );
+const WORKSPACE_UTILS_SRC = readFileSync(
+  resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntakeWorkspace.utils.ts'), 'utf8',
+);
 
 describe('Unified Coach intake command registry source contract', () => {
   it('registers unified Coach intake commands and dispatchers', () => {
@@ -42,7 +45,7 @@ describe('Unified Coach intake command registry source contract', () => {
   it('makes the Coach workspace ask the unified intake command, not the PLAUD-only command', () => {
     expect(WORKSPACE_SRC).toMatch(/onCommandPrompt\('review next Coach intake'\)/);
     expect(WORKSPACE_SRC).toMatch(/activeAudioPrompt\(activeItem\)/);
-    expect(WORKSPACE_SRC).toMatch(/inspect Coach intake/);
+    expect(WORKSPACE_UTILS_SRC).toMatch(/inspect Coach intake/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('inspect pending PLAUD audio pieces'\)/);
   });
