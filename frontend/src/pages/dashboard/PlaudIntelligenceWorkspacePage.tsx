@@ -110,6 +110,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     ? pickReviewNextMergeRequestId(intakeItems)
     : null;
   const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId;
+  const selectedMergeRequestId = directMergeRequestId || reviewNextMergeRequestId;
 
   const focusQueue = useCallback(() => {
     const queue = document.querySelector('[data-testid="plaud-pending-reviews"]');
@@ -203,9 +204,9 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
           ) : intakeItems.length === 0 ? (
             <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
-          ) : visibleIntakePreviewItems(intakeItems, directMergeRequestId).map((item) => {
+          ) : visibleIntakePreviewItems(intakeItems, selectedMergeRequestId).map((item) => {
             const isDirectMergeTarget = Boolean(
-              directMergeRequestId && item.kind === 'merge_request' && item.entityId === directMergeRequestId,
+              selectedMergeRequestId && item.kind === 'merge_request' && item.entityId === selectedMergeRequestId,
             );
             return (
               <IntakePreviewItem
