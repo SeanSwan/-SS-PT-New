@@ -204,6 +204,44 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-1');
   });
 
+  it('lands on the Coach workspace when the refreshed queue is empty after a final action', async () => {
+    const queue = makeQueue();
+    queue.items = [{ ...queue.items[0], latestProposalId: 'proposal-1' }];
+    queue.refresh = vi.fn().mockResolvedValue([]);
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+        detail: { workout: { clientId: 42, date: '2026-05-06', exercises: [{ name: 'Squat' }] } },
+        reviewToken: 'review-v1.test',
+      },
+    });
+    vi.mocked(approveCoachProposal).mockResolvedValue({
+      success: true,
+      applied: true,
+      proposal: { id: 'proposal-1', type: 'workout_log', status: 'APPLIED', title: 'Review lower body workout draft', summary: {} },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <LocationProbe />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant');
+    });
+    expect(screen.getByTestId('current-route')).not.toHaveTextContent('intake=');
+  });
+
   it('shows applied proposal state in the active write gate when queue metadata is synced', () => {
     const queue = makeQueue();
     queue.items[0] = {

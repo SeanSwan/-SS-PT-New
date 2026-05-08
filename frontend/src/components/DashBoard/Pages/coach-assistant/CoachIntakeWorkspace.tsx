@@ -111,14 +111,13 @@ export function CoachIntakeWorkspace({
     setReviewingProposalId(null);
     const currentId = activeItem ? itemEntityId(activeItem) || activeItem.id : activeIntakeId;
     void (async () => {
-      let refreshedItems: CoachIntakeItem[] = [];
+      let sourceItems = orderedItems;
       try {
         const refreshResult = await refresh();
-        refreshedItems = Array.isArray(refreshResult) ? refreshResult : [];
+        if (Array.isArray(refreshResult)) sourceItems = refreshResult;
       } catch {
-        refreshedItems = [];
+        sourceItems = orderedItems;
       }
-      const sourceItems = refreshedItems.length > 0 ? refreshedItems : orderedItems;
       const nextItemAfterAction = actionableItemsAfter(sourceItems, currentId)[0] || null;
       navigate(itemReviewHref(nextItemAfterAction, coachWorkspaceHref));
     })();
