@@ -94,4 +94,28 @@ describe('Coach prepared draft result card', () => {
     expect(screen.queryByText(/Marcus/i)).toBeNull();
     expect(screen.queryByText(/private@example\.com/i)).toBeNull();
   });
+
+  it('does not render arbitrary prepared-draft title, type, or status text', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="view_coach_intake_prepared_draft"
+          client={null}
+          result={{
+            hasPreparedDraft: true,
+            proposalTitle: 'Call Marcus private@example.com before approving.',
+            proposalType: 'private@example.com',
+            proposalStatus: 'Email Marcus private@example.com',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=item-5&proposal=proposal-5',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Review Coach proposal/i)).toBeInTheDocument();
+    expect(screen.getByText(/Coach Draft/i)).toBeInTheDocument();
+    expect(screen.getByText(/Needs Review/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
 });

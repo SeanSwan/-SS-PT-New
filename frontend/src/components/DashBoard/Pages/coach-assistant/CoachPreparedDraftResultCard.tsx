@@ -124,10 +124,43 @@ function compactText(value: unknown, fallback: string): string {
   return text ? text.slice(0, 96) : fallback;
 }
 
-function labelText(value: unknown, fallback: string): string {
-  return compactText(value, fallback)
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const SAFE_PROPOSAL_TITLES = new Set([
+  'Review workout draft',
+  'Review Coach proposal',
+  'Draft review not prepared',
+]);
+
+const PROPOSAL_TYPE_LABELS: Record<string, string> = {
+  clarification: 'Clarification',
+  client_data_update: 'Client Data Update',
+  onboarding_draft: 'Onboarding Draft',
+  split_plan: 'Split Plan',
+  workout_log: 'Workout Log',
+};
+
+const PROPOSAL_STATUS_LABELS: Record<string, string> = {
+  APPLIED: 'Applied',
+  APPLYING: 'Applying',
+  APPROVED: 'Approved',
+  FAILED: 'Failed',
+  NOT_PREPARED: 'Not Prepared',
+  PENDING: 'Pending',
+  REJECTED: 'Rejected',
+};
+
+function safeProposalTitle(value: unknown, fallback: string): string {
+  const text = compactText(value, fallback);
+  return SAFE_PROPOSAL_TITLES.has(text) ? text : fallback;
+}
+
+function safeProposalType(value: unknown): string {
+  const key = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return PROPOSAL_TYPE_LABELS[key] || 'Coach Draft';
+}
+
+function safeProposalStatus(value: unknown, fallback: string): string {
+  const key = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  return PROPOSAL_STATUS_LABELS[key] || fallback;
 }
 
 export function isPreparedDraftCommand(command: string): boolean {
@@ -141,9 +174,15 @@ export function CoachPreparedDraftResultCard({
 }: CoachPreparedDraftResultCardProps) {
   const hasPreparedDraft = boolValue(result.hasPreparedDraft);
   const title = hasPreparedDraft ? 'Prepared draft waiting' : 'No prepared draft yet';
-  const proposalTitle = compactText(result.proposalTitle, hasPreparedDraft ? 'Review Coach proposal' : 'Draft review not prepared');
-  const proposalType = labelText(result.proposalType, 'Coach Draft');
-  const proposalStatus = labelText(result.proposalStatus, hasPreparedDraft ? 'Pending' : 'Not Prepared');
+  const proposalTitle = safeProposalTitle(
+    result.proposalTitle,
+    hasPreparedDraft ? 'Review Coach proposal' : 'Draft review not prepared',
+  );
+  const proposalType = safeProposalType(result.proposalType);
+  const proposalStatus = safeProposalStatus(
+    result.proposalStatus,
+    hasPreparedDraft ? 'Needs Review' : 'Not Prepared',
+  );
   const nextAction = safeCommandActionLabel(result.nextActionLabel)
     || (hasPreparedDraft ? 'Review prepared draft' : 'Prepare draft review');
   const hint = safeCommandHint(result.commandHint);
