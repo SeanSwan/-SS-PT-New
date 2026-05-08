@@ -61,6 +61,7 @@ import {
   itemReviewHref,
   orderedQueueItems,
   pickNextItem,
+  queueScopedHref,
   shouldAdvanceAfterProposalAction,
   statusLabel,
 } from './CoachIntakeWorkspace.utils';
@@ -105,7 +106,7 @@ export function CoachIntakeWorkspace({
   const activeReviewTargetId = activeItem ? itemEntityId(activeItem) || activeItem.id : null;
   const activeProposalId = React.useMemo(() => new URLSearchParams(location.search).get('proposal'), [location.search]);
   const hasStaleProposalLink = Boolean(activeProposalId && activeItem && activeProposalId !== activeItem.latestProposalId);
-  const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
+  const reviewNextHref = queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), queue.scope);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
     : 'No client has to be selected first; unknown-client intake stays in review.';
@@ -137,7 +138,7 @@ export function CoachIntakeWorkspace({
 
   React.useEffect(() => {
     if (!isTrainerSurface || !activeIntakeId || activeItem || isLoading || error) return;
-    navigate(itemReviewHref(nextItem, coachWorkspaceHref), { replace: true });
+    navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), queue.scope), { replace: true });
   }, [activeIntakeId, activeItem, coachWorkspaceHref, error, isLoading, isTrainerSurface, navigate, nextItem]);
 
   const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
@@ -159,7 +160,7 @@ export function CoachIntakeWorkspace({
       }
       const nextItemAfterAction = actionableItemsAfter(sourceItems, currentId)[0] || null;
       setReviewOutcome(outcomeFromProposal(proposal, !!nextItemAfterAction));
-      navigate(itemReviewHref(nextItemAfterAction, coachWorkspaceHref));
+      navigate(queueScopedHref(itemReviewHref(nextItemAfterAction, coachWorkspaceHref), queue.scope));
     })();
   }, [activeIntakeId, activeItem, coachWorkspaceHref, navigate, orderedItems, refresh]);
 
@@ -217,7 +218,7 @@ export function CoachIntakeWorkspace({
           focusRef={activeDossierRef}
           item={activeItem}
           statusText={statusLabel(activeItem.queueStatus)}
-          reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
+          reviewHref={queueScopedHref(itemReviewHref(activeItem, coachWorkspaceHref), queue.scope)}
           onAskCoach={() => onCommandPrompt(activeCoachActionPrompt(activeItem))}
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
@@ -225,7 +226,7 @@ export function CoachIntakeWorkspace({
           onReviewPreparedDraft={() => {
             const proposalId = activeItem.latestProposalId || null;
             setReviewingProposalId(proposalId);
-            if (proposalId) navigate(itemProposalReviewHref(activeItem, coachWorkspaceHref, proposalId), { replace: true });
+            if (proposalId) navigate(queueScopedHref(itemProposalReviewHref(activeItem, coachWorkspaceHref, proposalId), queue.scope), { replace: true });
           }}
           confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
@@ -280,6 +281,7 @@ export function CoachIntakeWorkspace({
                 item={item}
                 active={active}
                 coachWorkspaceHref={coachWorkspaceHref}
+                queueScope={queue.scope}
               />
             );
           })}

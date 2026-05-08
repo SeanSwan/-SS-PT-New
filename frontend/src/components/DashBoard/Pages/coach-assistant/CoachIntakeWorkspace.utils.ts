@@ -3,10 +3,22 @@
  * =============================
  * Small pure helpers for the Coach intake workspace queue and prompt wiring.
  */
-import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
+import type {
+  CoachAudioPuzzleSummary,
+  CoachIntakeItem,
+  CoachIntakeQueueScope,
+} from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
 
 const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const COACH_QUEUE_SCOPES = new Set<CoachIntakeQueueScope>([
+  'actionable',
+  'ready_review',
+  'needs_client',
+  'unprocessed',
+  'processing',
+  'failed',
+]);
 
 export function statusLabel(status: string): string {
   return status
@@ -110,6 +122,15 @@ export function itemProposalReviewHref(item: CoachIntakeItem, workspaceHref: str
   const cleanProposalId = String(proposalId || '').trim();
   if (!cleanProposalId || !reviewHref.includes('?intake=')) return reviewHref;
   return `${reviewHref}&proposal=${encodeURIComponent(cleanProposalId)}`;
+}
+
+export function queueScopedHref(href: string, scope?: string | null): string {
+  if (!scope || !COACH_QUEUE_SCOPES.has(scope as CoachIntakeQueueScope) || !href.includes('/coach-assistant')) return href;
+  const [pathWithSearch, hash] = href.split('#');
+  const [path, search = ''] = pathWithSearch.split('?');
+  const params = new URLSearchParams(search);
+  params.set('scope', scope);
+  return `${path}?${params.toString()}${hash ? `#${hash}` : ''}`;
 }
 
 export function isActiveItem(item: CoachIntakeItem, activeIntakeId?: string | null): boolean {

@@ -103,4 +103,36 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
     expect(screen.getByLabelText(/active intake queue scope/i)).toHaveTextContent(/Viewing failed queue/i);
     expect(screen.getByLabelText(/active intake queue scope/i)).toHaveTextContent(/Recovery items only/i);
   });
+
+  it('preserves the active scope when opening the next intake', () => {
+    const queue = makeQueue('failed');
+    queue.items = [{
+      id: 'failed-intake-1',
+      entityId: 'failed-intake-1',
+      kind: 'coach_intake',
+      source: 'voice_note',
+      title: 'Failed upload note',
+      sourceLabel: 'Coach voice note',
+      queueStatus: 'failed',
+      clientName: null,
+      clipCount: 1,
+      canReview: false,
+      needsClient: false,
+      timelineAt: '2026-05-06T16:30:00.000Z',
+    }];
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?scope=failed']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: /review next intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=failed-intake-1&scope=failed');
+  });
 });

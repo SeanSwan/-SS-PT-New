@@ -8,12 +8,13 @@ import { GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
-import { itemMeta, itemReviewHref, plural, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
+import { itemMeta, itemReviewHref, plural, queueScopedHref, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
 
 interface CoachIntakeQueueItemCardProps {
   item: CoachIntakeItem;
   active: boolean;
   coachWorkspaceHref: string;
+  queueScope?: string;
 }
 
 function actionableGate(item: CoachIntakeItem): string | null {
@@ -25,6 +26,7 @@ export function CoachIntakeQueueItemCard({
   item,
   active,
   coachWorkspaceHref,
+  queueScope,
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
   const gate = actionableGate(item);
@@ -44,7 +46,7 @@ export function CoachIntakeQueueItemCard({
         {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
         {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
         {item.nextActionLabel && <SourceChip $tone="purple">{item.nextActionLabel}</SourceChip>}
-        <WorkspaceLink to={itemReviewHref(item, coachWorkspaceHref)} aria-label={`Review intake ${item.title}`}>
+        <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${item.title}`}>
           Review
         </WorkspaceLink>
       </ChipColumn>

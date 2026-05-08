@@ -15,6 +15,7 @@ describe('CoachIntakeQueueItemCard', () => {
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          queueScope="failed"
           item={{
             id: 'item-1',
             entityId: 'item-1',
@@ -39,6 +40,6 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).getByText(/Client confirmation required/i)).toBeInTheDocument();
     expect(within(card).getByText(/Ask Coach to resolve client/i)).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: /review intake morning lower body notes/i }))
-      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&scope=failed');
   });
 });
