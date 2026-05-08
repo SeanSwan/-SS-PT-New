@@ -50,10 +50,11 @@ function compactRows(rows: Array<[string, unknown]>): DetailRow[] {
     .filter((row): row is DetailRow => Boolean(row[1]));
 }
 
-function compactList(value: unknown): string | null {
+function compactCount(value: unknown, singular: string): string | null {
   if (!Array.isArray(value)) return null;
-  const items = value.map((item) => String(item || '').trim()).filter(Boolean);
-  return items.length > 0 ? items.join(', ') : null;
+  const count = value.map((item) => String(item || '').trim()).filter(Boolean).length;
+  if (count <= 0) return null;
+  return `${count} ${singular}${count === 1 ? '' : 's'} available`;
 }
 
 function withheldCount(value: unknown, singular: string): string | null {
@@ -62,9 +63,34 @@ function withheldCount(value: unknown, singular: string): string | null {
   return `${count} ${singular}${count === 1 ? '' : 's'} withheld`;
 }
 
+const SAFE_SAFETY_FLAGS: Record<string, string> = {
+  duplicate_check_required: 'Duplicate risk check required',
+  future_date_blocked: 'Future date check required',
+  client_confirmation_required: 'Client confirmation required',
+  scope_of_practice_review: 'Scope-of-practice review required',
+};
+
+function safeSafetyFlags(value: unknown): string | null {
+  if (!Array.isArray(value)) return null;
+  const labels = value
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .map((item) => SAFE_SAFETY_FLAGS[item])
+    .filter(Boolean);
+  if (labels.length) return labels.join(', ');
+  return compactCount(value, 'safety flag')?.replace('available', 'needs review') || null;
+}
+
 function readableConfirmationMode(value: unknown): string | null {
   if (value === 'trainer_approval_required') return 'Trainer approval required';
-  return displayValue(value);
+  return value ? 'Approval review required' : null;
+}
+
+function safeWriter(value: unknown): string | null {
+  const writer = String(value || '').trim();
+  if (!writer) return null;
+  if (writer === 'deterministic') return 'Deterministic writer';
+  return 'Review-gated writer';
 }
 
 function approvalGateRows(detail: Record<string, unknown>): DetailRow[] {
@@ -72,11 +98,11 @@ function approvalGateRows(detail: Record<string, unknown>): DetailRow[] {
   if (!gate) return [];
   return compactRows([
     ['Approval', readableConfirmationMode(gate.confirmationMode)],
-    ['Evidence refs', compactList(gate.evidenceRefs)],
+    ['Evidence refs', compactCount(gate.evidenceRefs, 'evidence ref')],
     ['Evidence withheld', withheldCount(gate.redactedEvidenceRefCount, 'evidence ref')],
-    ['Safety flags', compactList(gate.safetyFlags)],
+    ['Safety flags', safeSafetyFlags(gate.safetyFlags)],
     ['Safety withheld', withheldCount(gate.redactedSafetyFlagCount, 'safety flag')],
-    ['Writer', gate.writer],
+    ['Writer', safeWriter(gate.writer)],
   ]);
 }
 

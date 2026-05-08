@@ -76,12 +76,47 @@ describe('CoachActionProposalCard approval gates', () => {
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
 
     expect(await screen.findByText(/Evidence refs/i)).toBeInTheDocument();
-    expect(screen.getByText(/seg_04, clip_2_meta/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 evidence refs available/i)).toBeInTheDocument();
+    expect(screen.queryByText(/seg_04, clip_2_meta/i)).toBeNull();
     expect(screen.getByText(/1 evidence ref withheld/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Safety flags/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/duplicate_check_required/i)).toBeInTheDocument();
+    expect(screen.getByText(/Duplicate risk check required/i)).toBeInTheDocument();
+    expect(screen.queryByText(/duplicate_check_required/i)).toBeNull();
     expect(screen.getByText(/1 safety flag withheld/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Writer/i).length).toBeGreaterThan(0);
+  });
+
+  it('does not expose arbitrary approval-gate evidence or safety flag strings', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+          approvalGate: {
+            confirmationMode: 'private@example.com',
+            evidenceRefs: ['private@example.com'],
+            safetyFlags: ['private@example.com'],
+            writer: 'private@example.com',
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Evidence refs/i)).toBeInTheDocument();
+    expect(screen.getByText(/Approval review required/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 evidence ref available/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 safety flag needs review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review-gated writer/i)).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
   });
 
   it('records a one-tap clarification answer from loaded proposal details', async () => {
