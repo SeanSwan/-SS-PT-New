@@ -62,6 +62,11 @@ import {
   queueScopedHref,
 } from './CoachIntakeWorkspace.utils';
 import {
+  safeAudioRejectedSummary,
+  safeCoachIntakeDraftFailure,
+  safeTranscriptFailureReason,
+} from './CoachIntakeOperationalText.logic';
+import {
   useFileAttachment,
   hasTranscriptClassFile,
   countTranscriptClassFiles,
@@ -721,18 +726,19 @@ const SwanCoachAssistantPage: React.FC = () => {
                 rejectedCount: upload.rejected.length,
                 fileSize: upload.clips.reduce((sum, clip) => sum + clip.size, 0),
                 nextActionLabel: 'Review next intake',
-                rejectedSummary: upload.rejected.length > 0
-                  ? upload.rejected.map((r) => `${r.filename}: ${r.message}`).join('; ')
-                  : undefined,
+                rejectedSummary: safeAudioRejectedSummary(upload.rejected.length),
               });
               attachments.clearFiles();
               void coachIntakeQueue.refresh();
               return;
             }
 
-            const reason = upload.rejected.length > 0
-              ? upload.rejected.map((r) => `${r.filename}: ${r.message}`).join('; ')
-              : 'No audio clips were accepted into PLAUD intake.';
+            const reason = safeTranscriptFailureReason(
+              'upload_failed',
+              upload.rejected.length > 0
+                ? 'The transcript could not be accepted. Check the file format and try again.'
+                : 'No audio clips were accepted into PLAUD intake.',
+            );
             const { userMsgId, errorMsgId } = coach.appendTranscriptError({
               kind: 'upload_failed',
               fileName: audioLabel,
@@ -744,9 +750,10 @@ const SwanCoachAssistantPage: React.FC = () => {
             }
           } catch (err) {
             setTranscriptProcessing(null);
-            const reason = err instanceof Error
-              ? err.message
-              : 'Audio upload failed before it reached PLAUD intake.';
+            const reason = safeTranscriptFailureReason(
+              'upload_failed',
+              'Audio upload failed before it reached PLAUD intake.',
+            );
             const { userMsgId, errorMsgId } = coach.appendTranscriptError({
               kind: 'upload_failed',
               fileName: audioLabel,
@@ -874,7 +881,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           kind: 'upload_failed',
           fileName: transcriptFile.name,
           fileSize: transcriptFile.size,
-          reason: upload.failure.error,
+          reason: safeTranscriptFailureReason(upload.failure.kind, upload.failure.error),
         });
         if (errorMsgId) {
           transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
@@ -950,11 +957,8 @@ const SwanCoachAssistantPage: React.FC = () => {
         ok: true,
         message: 'Saved as an encrypted Coach intake draft. Use Review next intake to continue.',
       };
-    } catch (err) {
-      const message = err instanceof Error
-        ? err.message
-        : 'Could not create Coach intake draft.';
-      return { ok: false, message };
+    } catch {
+      return { ok: false, message: safeCoachIntakeDraftFailure() };
     }
   }, [coachIntakeQueue, selectedClient?.id]);
 

@@ -186,6 +186,45 @@ export function safeHoldReasonLabel(value: unknown): string | null {
   return label && SAFE_HOLD_REASON_LABELS.has(label) ? label : null;
 }
 
+export function safeTranscriptFailureReason(kind: unknown, value: unknown): string {
+  const safeNoClient = 'Select a client at the top of the page before uploading a transcript.';
+  const safeUpload = 'The transcript could not be accepted. Check the file format and try again.';
+  const text = compactText(value);
+
+  if (kind === 'no_client') return safeNoClient;
+  if (text === 'Upload timed out. The file may be too large or the server is busy.') return text;
+  if (text === 'Network error. Please check your connection and try again.') return text;
+  if (text === 'No audio clips were accepted into PLAUD intake.') return text;
+  if (text === 'Audio upload failed before it reached PLAUD intake.') return text;
+  if (text === 'Upload completed but the response was malformed') return text;
+  return safeUpload;
+}
+
+export function safeTranscriptUploadFailure(kind: unknown): string {
+  if (kind === 'rate_limit') return 'Too many transcript uploads. Wait briefly and try again.';
+  if (kind === 'network') return 'Network error. Please check your connection and try again.';
+  if (kind === 'server') return 'Coach transcript intake could not finish processing. Try again from the same file.';
+  return 'The transcript file could not be accepted. Check the format and try again.';
+}
+
+export function safeAudioRejectedSummary(rejectedCount: unknown): string | undefined {
+  const count = numberValue(rejectedCount);
+  if (count <= 0) return undefined;
+  return `${count} audio ${count === 1 ? 'file was' : 'files were'} not accepted. Check the format or size and retry.`;
+}
+
+export function safeCoachIntakeDraftFailure(): string {
+  return 'Could not create Coach intake draft.';
+}
+
+export function safeTranscriptionFailure(): string {
+  return 'Transcription failed. Try again or upload the audio through Coach intake.';
+}
+
+export function safeMicrophoneFailure(): string {
+  return 'Microphone access was blocked. Check browser permission and try again.';
+}
+
 export function holdReasonFacts(result: Record<string, unknown>): string[] {
   const facts: string[] = [];
   const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);

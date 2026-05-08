@@ -127,7 +127,7 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     expect(audioSuccessIdx).toBeGreaterThan(0);
     const successSlice = PAGE_SOURCE.slice(
       audioSuccessIdx,
-      PAGE_SOURCE.indexOf('const reason = upload.rejected', audioSuccessIdx),
+      PAGE_SOURCE.indexOf('const reason = safeTranscriptFailureReason', audioSuccessIdx),
     );
     expect(successSlice).toMatch(/coach\.appendAudioIntakeReceipt\(/);
     expect(successSlice).toMatch(/acceptedCount:\s*upload\.clips\.length/);
@@ -500,7 +500,7 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
     // next `// Existing flow` comment that starts the text-only path.
     // Bound the slice explicitly so it does not leak into the existing
     // flow's legitimate clearFiles() call.
-    const failureIdx = PAGE_SOURCE.indexOf('reason: upload.failure.error');
+    const failureIdx = PAGE_SOURCE.indexOf('reason: safeTranscriptFailureReason(upload.failure.kind, upload.failure.error)');
     expect(failureIdx).toBeGreaterThan(0);
     const existingIdx = PAGE_SOURCE.indexOf('// Existing flow', failureIdx);
     expect(existingIdx).toBeGreaterThan(failureIdx);

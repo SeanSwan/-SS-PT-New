@@ -16,6 +16,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
+import { safeMicrophoneFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -122,9 +123,8 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       timerRef.current = setInterval(() => {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Microphone access denied';
-      setError(msg);
+    } catch {
+      setError(safeMicrophoneFailure());
       setState('error');
       cleanup();
     }

@@ -38,12 +38,10 @@ export function useCoachIntakeAudioOrderConfirmation(refresh: () => Promise<unkn
           isConfirming: false,
         });
       }
-    } catch (err) {
+    } catch {
       setState({
         intakeId,
-        message: err instanceof Error
-          ? err.message
-          : 'Audio order confirmation failed. Try again from the active intake.',
+        message: 'Audio order confirmation failed. Try again from the active intake.',
         isConfirming: false,
       });
     }

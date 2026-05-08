@@ -32,7 +32,11 @@ import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import CoachActionProposalCard from './CoachActionProposalCard';
 import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
-import { safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
+import {
+  safeAudioRejectedSummary,
+  safeCommandActionLabel,
+  safeTranscriptFailureReason,
+} from './CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Action Result Cards (client creation, workout import)
@@ -398,6 +402,12 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const audioIntakeNextAction = audioIntakeReceipt
     ? safeCommandActionLabel(audioIntakeReceipt.nextActionLabel) || 'Review next intake'
     : null;
+  const transcriptErrorReason = transcriptError
+    ? safeTranscriptFailureReason(transcriptError.kind, transcriptError.reason)
+    : null;
+  const audioRejectedSummary = audioIntakeReceipt
+    ? safeAudioRejectedSummary(audioIntakeReceipt.rejectedCount)
+    : undefined;
 
   return (
     <MessageBubbleAI>
@@ -641,7 +651,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardRow>
           <TranscriptError>
             <AlertTriangle size={14} />
-            {transcriptError.reason}
+            {transcriptErrorReason}
           </TranscriptError>
           <TranscriptActions>
             <TranscriptBtn
@@ -681,10 +691,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <CardValue>{audioIntakeReceipt.rejectedCount} file{audioIntakeReceipt.rejectedCount !== 1 ? 's' : ''}</CardValue>
             </CardRow>
           )}
-          {audioIntakeReceipt.rejectedSummary && (
+          {audioRejectedSummary && (
             <TranscriptError $kind="warning">
               <AlertTriangle size={14} />
-              {audioIntakeReceipt.rejectedSummary}
+              {audioRejectedSummary}
             </TranscriptError>
           )}
           <CardRow>

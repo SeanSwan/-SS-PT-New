@@ -51,6 +51,7 @@ import {
   type ParsedWorkout,
   type LogWorkoutPayload,
 } from '../utils/parsedWorkoutToLogPayload';
+import { safeTranscriptUploadFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -188,7 +189,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         return {
           ok: false,
           failure: {
-            error: data?.error || 'Upload completed but the response was malformed',
+            error: 'Upload completed but the response was malformed',
             kind: 'server',
           },
         };
@@ -220,15 +221,14 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         }
 
         const status = e.response.status ?? 0;
-        const message = e.response.data?.error || e.message || 'Upload failed';
 
         if (status === 429) {
-          return { ok: false, failure: { error: message, kind: 'rate_limit' } };
+          return { ok: false, failure: { error: safeTranscriptUploadFailure('rate_limit'), kind: 'rate_limit' } };
         }
         if (status >= 400 && status < 500) {
-          return { ok: false, failure: { error: message, kind: 'validation' } };
+          return { ok: false, failure: { error: safeTranscriptUploadFailure('validation'), kind: 'validation' } };
         }
-        return { ok: false, failure: { error: message, kind: 'server' } };
+        return { ok: false, failure: { error: safeTranscriptUploadFailure('server'), kind: 'server' } };
       }
     },
     [authAxios],
@@ -351,7 +351,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         return {
           ok: false,
           failure: {
-            error: backendMsg || 'Failed to apply workout to the log',
+            error: 'Failed to apply workout to the log',
             kind: 'server',
           },
         };

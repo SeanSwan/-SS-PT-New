@@ -15,8 +15,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { isAxiosError } from 'axios';
 import apiService from '../../../../../services/api.service';
+import { safeTranscriptionFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -60,10 +60,8 @@ export function useGeminiTranscription(): UseGeminiTranscriptionReturn {
       setText(transcript);
       setState('done');
       return transcript;
-    } catch (err) {
-      const responseData = isAxiosError(err) ? err.response?.data as { error?: string; message?: string } | undefined : undefined;
-      const msg = responseData?.error || responseData?.message || (err instanceof Error ? err.message : 'Transcription failed');
-      setError(msg);
+    } catch {
+      setError(safeTranscriptionFailure());
       setState('error');
       return '';
     }
