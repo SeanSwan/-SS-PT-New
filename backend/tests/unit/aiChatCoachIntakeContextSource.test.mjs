@@ -21,6 +21,7 @@ describe('AI chat Coach intake context source', () => {
   it('builds Coach intake prompt context from server queue reads', () => {
     expect(AI_CHAT_ROUTES_SRC).toMatch(/listUnifiedCoachIntakeItems/);
     expect(AI_CHAT_ROUTES_SRC).toMatch(/getCoachIntakeHealth/);
+    expect(AI_CHAT_ROUTES_SRC).toMatch(/getCoachIntakeRetentionReport/);
     expect(AI_CHAT_ROUTES_SRC).toMatch(/buildCoachIntakeContextFromResult/);
     expect(AI_CHAT_ROUTES_SRC).toMatch(/scope:\s*['"]actionable['"]/);
   });

@@ -31,6 +31,23 @@ const ITEM_NUMBER_KEYS = [
 const SAFE_TEXT_RE = /[^\w\s:.\-]/g;
 const SAFE_CODE_RE = /[^A-Z0-9_:\-]/g;
 const SAFE_QUEUE_ID_RE = /^(coach|clip|merge):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const HEALTH_ACTION_LABELS = new Map([
+  ['auth_required', 'Sign in again'],
+  ['schema_unavailable', 'Run Coach intake migration'],
+  ['inspect_stuck_processing', 'Inspect stuck processing intake'],
+  ['inspect_failed_intake', 'Inspect failed intake'],
+  ['review_ready_drafts', 'Review ready drafts'],
+  ['resolve_clients', 'Resolve client confirmations'],
+  ['review_next', 'Review next intake'],
+  ['none', 'No active intake work'],
+]);
+const RETENTION_ACTION_LABELS = new Map([
+  ['auth_required', 'Sign in again'],
+  ['schema_unavailable', 'Run Coach intake migration'],
+  ['review_purge_candidates', 'Review raw artifact purge candidates'],
+  ['review_stale_intake', 'Review stale intake artifacts'],
+  ['none', 'No retention work'],
+]);
 
 function cleanString(value, max = 80) {
   if (value === null || value === undefined) return null;
@@ -71,6 +88,10 @@ function cleanActionKey(value) {
   return text || null;
 }
 
+function actionLabelFor(key, labels) {
+  return key && labels.has(key) ? labels.get(key) : null;
+}
+
 function cleanEnum(value, allowed) {
   const text = typeof value === 'string' ? value.trim() : '';
   return allowed.has(text) ? text : null;
@@ -86,6 +107,7 @@ function sanitizeHealth(rawHealth) {
   const rawCounts = rawHealth.counts && typeof rawHealth.counts === 'object' && !Array.isArray(rawHealth.counts)
     ? rawHealth.counts
     : {};
+  const nextActionKey = cleanActionKey(rawHealth.nextActionKey ?? rawHealth.nextOperatorAction?.key);
   return {
     status: cleanEnum(rawHealth.status, HEALTH_STATUSES) || 'unavailable',
     schemaReady: rawHealth.schemaReady !== false,
@@ -93,8 +115,26 @@ function sanitizeHealth(rawHealth) {
     readyReview: cleanCount(rawHealth.readyReview ?? rawCounts.readyReview),
     stuckProcessing: cleanCount(rawHealth.stuckProcessing ?? rawCounts.stuckProcessing),
     processingStuckMinutes: cleanOptionalCount(rawHealth.processingStuckMinutes ?? rawHealth.thresholds?.processingStuckMinutes),
-    nextActionKey: cleanActionKey(rawHealth.nextActionKey ?? rawHealth.nextOperatorAction?.key),
-    nextActionLabel: cleanString(rawHealth.nextActionLabel ?? rawHealth.nextOperatorAction?.label, 80),
+    nextActionKey,
+    nextActionLabel: actionLabelFor(nextActionKey, HEALTH_ACTION_LABELS),
+  };
+}
+
+function sanitizeRetention(rawRetention) {
+  if (!rawRetention || typeof rawRetention !== 'object' || Array.isArray(rawRetention)) return null;
+  const rawSummary = rawRetention.summary && typeof rawRetention.summary === 'object' && !Array.isArray(rawRetention.summary)
+    ? rawRetention.summary
+    : {};
+  const nextActionKey = cleanActionKey(rawRetention.nextActionKey ?? rawRetention.nextOperatorAction?.key);
+  return {
+    status: cleanEnum(rawRetention.status, HEALTH_STATUSES) || 'unavailable',
+    schemaReady: rawRetention.schemaReady !== false,
+    totalWithRawArtifacts: cleanCount(rawRetention.totalWithRawArtifacts ?? rawSummary.totalWithRawArtifacts),
+    purgeReady: cleanCount(rawRetention.purgeReady ?? rawSummary.purgeReady),
+    reviewRequired: cleanCount(rawRetention.reviewRequired ?? rawSummary.reviewRequired),
+    retained: cleanCount(rawRetention.retained ?? rawSummary.retained),
+    nextActionKey,
+    nextActionLabel: actionLabelFor(nextActionKey, RETENTION_ACTION_LABELS),
   };
 }
 
@@ -116,6 +156,8 @@ export function sanitizeCoachIntakeContext(raw) {
   }
   const health = sanitizeHealth(raw.health);
   if (health) clean.health = health;
+  const retention = sanitizeRetention(raw.retention);
+  if (retention) clean.retention = retention;
 
   const rawItems = Array.isArray(raw.items) ? raw.items.slice(0, 6) : [];
   clean.items = rawItems
@@ -138,7 +180,7 @@ export function sanitizeCoachIntakeContext(raw) {
   return clean;
 }
 
-export function buildCoachIntakeContextFromResult(result, health = null) {
+export function buildCoachIntakeContextFromResult(result, health = null, retention = null) {
   const summary = result?.summary && typeof result.summary === 'object'
     ? result.summary
     : {};
@@ -148,6 +190,7 @@ export function buildCoachIntakeContextFromResult(result, health = null) {
     source: 'coach_intake_context_v1',
     summary,
     health,
+    retention,
     items: items.slice(0, 6).map((item) => ({
       id: item?.id,
       kind: item?.kind,
@@ -181,7 +224,7 @@ export function buildCoachIntakeContextPromptBlock(context) {
     `Failed: ${s.failed ?? 0}`,
     `Processing: ${s.processing ?? 0}`,
     `Unprocessed: ${s.unprocessed ?? 0}`,
-    'Safe read commands available: review next Coach intake; show Coach intake health; show my Coach intake queue; inspect pending Coach audio pieces.',
+    'Safe read commands available: review next Coach intake; show Coach intake health; show Coach intake retention; show my Coach intake queue; inspect pending Coach audio pieces.',
     'If the trainer asks to prepare a draft review for an intake, return a schema-bound coach_action_proposal.',
     'If required client/date/workout detail is missing, use proposal_type=clarification instead of guessing.',
     'Do not claim a workout log or client record was written unless an explicit approved write result is present.',
@@ -193,6 +236,16 @@ export function buildCoachIntakeContextPromptBlock(context) {
       `Health status: ${h.status}`,
       `Stuck processing: ${h.stuckProcessing ?? 0}`,
       `Next health action: ${h.nextActionKey ?? 'unknown'} - ${h.nextActionLabel ?? 'Review Coach intake health'}`,
+    );
+  }
+
+  const r = context.retention || null;
+  if (r) {
+    lines.push(
+      `Retention status: ${r.status}`,
+      `Retention purge ready: ${r.purgeReady ?? 0}`,
+      `Retention review required: ${r.reviewRequired ?? 0}`,
+      `Next retention action: ${r.nextActionKey ?? 'unknown'} - ${r.nextActionLabel ?? 'Review Coach intake retention'}`,
     );
   }
 
