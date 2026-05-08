@@ -26,6 +26,7 @@ import CoachIntakeEventTrail from './CoachIntakeEventTrail';
 import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
+import CoachIntakeQueueEmptyState from './CoachIntakeQueueEmptyState';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
@@ -257,10 +258,7 @@ export function CoachIntakeWorkspace({
               <SourceChip><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
             </ItemCard>
           ) : orderedItems.length === 0 ? (
-            <ItemCard>
-              <ItemTitle><strong>No active intake items</strong><span>Attach audio, transcript, or PLAUD clips to start a review.</span></ItemTitle>
-              <SourceChip>Clear</SourceChip>
-            </ItemCard>
+            <CoachIntakeQueueEmptyState scope={queue.scope} />
           ) : orderedItems.map((item) => {
             const active = isActiveItem(item, activeIntakeId);
             return (
