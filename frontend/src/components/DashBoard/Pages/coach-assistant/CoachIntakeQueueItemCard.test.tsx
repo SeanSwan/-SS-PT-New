@@ -106,4 +106,43 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Review duplicate risk for intake item-2.'));
     expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
   });
+
+  it('previews safe hold-reason facts without exposing detail text in the queue card', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          item={{
+            id: 'item-3',
+            entityId: 'item-3',
+            kind: 'coach_intake',
+            source: 'chat_narrative',
+            title: 'Client puzzle note',
+            sourceLabel: 'Long Coach note',
+            queueStatus: 'needs_clarification',
+            clientName: null,
+            clipCount: 0,
+            canReview: false,
+            needsClient: false,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+            nextBlockingGate: 'Clarification required',
+            holdReason: {
+              label: 'Client confirmation needed',
+              detail: 'Raw transcript mentioned private@example.com',
+              candidateCount: 2,
+              confidenceBand: 'medium',
+            },
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Client puzzle note/i);
+    expect(within(card).getByLabelText(/Hold reason preview/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Client confirmation needed/i)).toBeInTheDocument();
+    expect(within(card).getByText(/2 candidates/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Medium confidence/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/private@example\.com/i)).not.toBeInTheDocument();
+  });
 });

@@ -50,13 +50,13 @@ import {
   canPrepareDraftReview,
   clientGate,
   hasReviewablePreparedDraft,
-  holdReasonFacts,
   needsAudioOrderConfirmation,
   nextAction,
   plural,
   timeAnchor,
   writeGate,
 } from './CoachIntakeActiveDossier.logic';
+import { holdReasonFacts } from './CoachIntakeHoldReason.logic';
 
 interface CoachIntakeActiveDossierProps {
   item: CoachIntakeItem;

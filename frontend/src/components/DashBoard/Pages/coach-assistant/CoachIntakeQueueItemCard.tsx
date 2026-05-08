@@ -6,8 +6,10 @@
 import React from 'react';
 import { Brain, GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import { holdReasonFacts } from './CoachIntakeHoldReason.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
+import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
 import { activeCoachActionPrompt, itemMeta, itemReviewHref, plural, queueScopedHref, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
 
 interface CoachIntakeQueueItemCardProps {
@@ -32,6 +34,7 @@ export function CoachIntakeQueueItemCard({
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
   const gate = actionableGate(item);
+  const reasonFacts = holdReasonFacts(item);
 
   return (
     <ItemCard
@@ -59,6 +62,19 @@ export function CoachIntakeQueueItemCard({
           Review
         </WorkspaceLink>
       </ChipColumn>
+      {item.holdReason ? (
+        <QueueHoldReasonPreview aria-label="Hold reason preview">
+          <div>
+            <HoldReasonLabel>Gate reason</HoldReasonLabel>
+            <HoldReasonTitle>{item.holdReason.label}</HoldReasonTitle>
+          </div>
+          {reasonFacts.length > 0 ? (
+            <HoldReasonFacts>
+              {reasonFacts.map((fact) => <HoldReasonFact key={fact}>{fact}</HoldReasonFact>)}
+            </HoldReasonFacts>
+          ) : null}
+        </QueueHoldReasonPreview>
+      ) : null}
       {audioPuzzle && (
         <AudioPuzzleRow aria-label={`Audio puzzle ${plural(audioPuzzle.pieceCount, 'piece')}`}>
           <GitBranch size={13} aria-hidden="true" />

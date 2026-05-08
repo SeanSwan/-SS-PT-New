@@ -78,3 +78,25 @@ export const HoldReasonFact = styled.span`
   font-size: 10px;
   line-height: 1;
 `;
+
+export const QueueHoldReasonPreview = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent),
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-base, #030712) 34%, transparent);
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
