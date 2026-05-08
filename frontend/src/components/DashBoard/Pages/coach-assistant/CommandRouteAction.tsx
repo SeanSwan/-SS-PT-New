@@ -68,14 +68,18 @@ function safeInternalRoute(value: unknown): string | null {
   const hasTraversalSegment = (path: string) => /(^|\/)\.\.(?=\/|$)/.test(path);
   if (hasTraversalSegment(rawPath) || hasTraversalSegment(decodedPath)) return null;
 
+  const isAllowedCoachPlaudSurface = (path: string) => /^\/dashboard\/(admin|trainer)\/(coach-assistant|plaud)\/?$/.test(path);
+  if (!isAllowedCoachPlaudSurface(rawPath) || !isAllowedCoachPlaudSurface(decodedPath)) return null;
+
   return route;
 }
 
 function labelForCommand(command: string, route: string): string {
-  if (route.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
-  if (route.includes('/coach-assistant') && /[?&]proposal=/.test(route)) return 'Open Prepared Draft';
-  if (route.includes('/coach-assistant')) return 'Open Coach Intake';
-  if (route.includes('/plaud')) return 'Open PLAUD Workspace';
+  const path = route.split(/[?#]/, 1)[0];
+  if (path.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
+  if (path.includes('/coach-assistant') && /[?&]proposal=/.test(route)) return 'Open Prepared Draft';
+  if (path.includes('/coach-assistant')) return 'Open Coach Intake';
+  if (path.includes('/plaud')) return 'Open PLAUD Workspace';
   if (command.includes('coach_intake')) return 'Open Coach Intake';
   return command.includes('plaud') ? 'Open PLAUD Workspace' : 'Open Workspace';
 }

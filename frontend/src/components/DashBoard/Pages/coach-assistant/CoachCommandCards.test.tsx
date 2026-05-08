@@ -101,6 +101,22 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 
+  it('does not render route actions for non-Coach PLAUD dashboard destinations', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            reviewRoute: '/dashboard/admin/clients',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   it('prefers targetRoute over queueRoute for workspace-focused commands', () => {
     render(
       <MemoryRouter>
@@ -119,6 +135,24 @@ describe('ExecutionResultCard route actions', () => {
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
     expect(link).toHaveAttribute('href', '/dashboard/trainer/plaud?pieces=pending');
     expect(screen.queryByText('targetRoute')).toBeNull();
+  });
+
+  it('labels route actions from the destination path instead of query text', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_plaud_audio_pieces"
+          client={null}
+          result={{
+            targetRoute: '/dashboard/admin/plaud?note=/dashboard/admin/coach-assistant&proposal=stale',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: /open plaud workspace/i }))
+      .toHaveAttribute('href', '/dashboard/admin/plaud?note=/dashboard/admin/coach-assistant&proposal=stale');
+    expect(screen.queryByRole('link', { name: /open prepared draft/i })).toBeNull();
   });
 
   it('renders PLAUD timeline inspection counts instead of zero audio items', () => {
