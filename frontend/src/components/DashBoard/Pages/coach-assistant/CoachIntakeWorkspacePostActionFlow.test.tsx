@@ -370,6 +370,8 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant');
     });
     expect(screen.getByTestId('current-route')).not.toHaveTextContent('intake=');
+    expect(await screen.findByText(/Workout log applied/i)).toBeInTheDocument();
+    expect(screen.getByText(/Queue refreshed; no next actionable intake was found/i)).toBeInTheDocument();
   });
 
   it('shows applied proposal state in the active write gate when queue metadata is synced', () => {
