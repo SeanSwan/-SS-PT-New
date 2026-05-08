@@ -41,7 +41,11 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/Order clips/);
     expect(PAGE_SRC).toMatch(/Split workouts/);
     expect(PAGE_SRC).toMatch(/shared workout-log mapper/);
-    expect(PAGE_SRC).toMatch(/Next slice/);
+    expect(PAGE_SRC).toMatch(/Review-gated/);
+    expect(PAGE_SRC).toMatch(/Live split review/);
+    expect(PAGE_SRC).toMatch(/Structured proposal/);
+    expect(PAGE_SRC).toMatch(/Approval gate/);
+    expect(PAGE_SRC).not.toMatch(/Next slice/);
     expect(PAGE_SRC).not.toMatch(/Swan Coach intake command/);
   });
 

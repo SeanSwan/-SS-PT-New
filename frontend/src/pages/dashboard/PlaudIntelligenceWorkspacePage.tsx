@@ -12,10 +12,9 @@
  * /dashboard/{role}/plaud. The current live engine remains PlaudMergeWorkspace.
  *
  * KEY DECISION:
- * Swan Coach/Hive Mind actions are named here as the next backend contract,
- * not represented as already-automated behavior. The UI must not imply that
- * clip ordering, splitting, or auto-log actions are live before those actions
- * exist in commandDispatcher and the PLAUD backend.
+ * Swan Coach/Hive Mind status labels mirror review-gated capabilities. The UI
+ * must not imply autonomous writes: clip ordering, splitting, and log creation
+ * still require the prepared-draft and human approval gates.
  */
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -275,19 +274,19 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
           <ActionList>
             <ActionItem>
               <GitBranch size={16} aria-hidden="true" />
-              <span><strong>Order clips</strong><ActionStatus>Next slice</ActionStatus>Group nearby recordings and flag gaps before merge.</span>
+              <span><strong>Order clips</strong><ActionStatus>Review-gated</ActionStatus>Group nearby recordings and flag gaps before merge.</span>
             </ActionItem>
             <ActionItem>
               <ListChecks size={16} aria-hidden="true" />
-              <span><strong>Split workouts</strong><ActionStatus>Next slice</ActionStatus>Create review cards by date, time, and transcript boundary.</span>
+              <span><strong>Split workouts</strong><ActionStatus>Live split review</ActionStatus>Create review cards by date, time, and transcript boundary.</span>
             </ActionItem>
             <ActionItem>
               <Brain size={16} aria-hidden="true" />
-              <span><strong>Resolve meaning</strong><ActionStatus>Next slice</ActionStatus>Extract exercises, sets, reps, pain notes, and form cues.</span>
+              <span><strong>Resolve meaning</strong><ActionStatus>Structured proposal</ActionStatus>Turn parsed transcript evidence into a reviewable Coach draft.</span>
             </ActionItem>
             <ActionItem>
               <CheckCircle2 size={16} aria-hidden="true" />
-              <span><strong>Prepare logs</strong><ActionStatus>Next slice</ActionStatus>Hand approved cards to the shared workout-log mapper.</span>
+              <span><strong>Prepare logs</strong><ActionStatus>Approval gate</ActionStatus>Hand approved cards to the shared workout-log mapper.</span>
             </ActionItem>
           </ActionList>
         </CoachPane>
