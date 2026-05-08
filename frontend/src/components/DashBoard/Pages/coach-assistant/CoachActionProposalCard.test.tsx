@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { FormEvent } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CoachActionProposalCard } from './CoachActionProposalCard';
 import {
@@ -103,6 +104,35 @@ describe('CoachActionProposalCard', () => {
     });
     expect(onProposalAction).toHaveBeenCalledWith(expect.objectContaining({ id: proposal.id, status: 'REJECTED' }));
     expect(await screen.findByText(/proposal rejected/i)).toBeInTheDocument();
+  });
+
+  it('does not submit a parent form when proposal action buttons are clicked', async () => {
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'review-token-1',
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+        },
+      },
+    });
+
+    render(
+      <form onSubmit={onSubmit}>
+        <CoachActionProposalCard proposal={proposal} />
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Draft details loaded for review/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('renders applied proposals as completed receipts without stale actions', () => {

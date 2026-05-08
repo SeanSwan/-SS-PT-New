@@ -212,6 +212,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
         <Actions aria-label="Clarification answer options">
           {clarificationOptions.map((option) => (
             <ActionButton
+              type="button"
               key={option}
               onClick={() => runClarificationAnswer(option)}
               disabled={!!busy}
@@ -224,17 +225,17 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       )}
       {pending && (
         <Actions>
-          <ActionButton onClick={runLoadDetails} disabled={!!busy}>
+          <ActionButton type="button" onClick={runLoadDetails} disabled={!!busy}>
             {busy === 'detail' ? <Loader2 size={16} /> : <Eye size={16} />}
             Review details
           </ActionButton>
           {!isClarification && (
-            <ActionButton onClick={runApprove} disabled={!!busy || !canApprove}>
+            <ActionButton type="button" onClick={runApprove} disabled={!!busy || !canApprove}>
               {busy === 'approve' ? <Loader2 size={16} /> : <ClipboardCheck size={16} />}
               {approveLabel}
             </ActionButton>
           )}
-          <ActionButton $danger onClick={runReject} disabled={!!busy}>
+          <ActionButton type="button" $danger onClick={runReject} disabled={!!busy}>
             {busy === 'reject' ? <Loader2 size={16} /> : <XCircle size={16} />}
             Reject
           </ActionButton>
