@@ -152,6 +152,44 @@ describe('coachActionProposalService', () => {
     expect(serialized).toContain('trainer_approval_required');
   });
 
+  it('links schema-bound proposal drafts back to the matching Coach intake item', async () => {
+    const db = fakeSequelize();
+    const intakeId = '77777777-7777-4777-9777-777777777777';
+    const content = [
+      'Structured proposal prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        intake_id: intakeId,
+        proposal_type: 'workout_log',
+        evidence_refs: ['seg_04'],
+        safety_flags: ['trainer_approval_required'],
+        payload: {
+          clientId: 42,
+          date: '2026-05-05',
+          exercises: [{ name: 'Step up' }],
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    const updateCall = db.calls.find((call) => call.sql.includes('UPDATE coach_intake_items'));
+    expect(updateCall?.options.replacements).toMatchObject({
+      intakeId,
+      userId: 7,
+    });
+    expect(updateCall?.options.replacements.latestProposalJson).toContain('workout_log');
+    expect(updateCall?.options.replacements.latestProposalJson).not.toContain('Step up');
+  });
+
   it('turns clarification and split-plan objects into pending non-write proposals', async () => {
     const db = fakeSequelize();
     const content = [

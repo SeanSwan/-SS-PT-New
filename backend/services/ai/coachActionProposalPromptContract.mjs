@@ -13,12 +13,14 @@ SWAN COACH STRUCTURED PROPOSAL CONTRACT:
 - Use compact evidence_refs such as "seg_04", "clip_2_meta", or "schedule_match_1". Do not put names, phone numbers, emails, free-text transcript lines, secrets, or URLs in evidence_refs.
 - Use compact safety_flags such as "needs_client_confirmation", "duplicate_check_required", "future_date_blocked", "needs_date_confirmation", or "medical_scope_review".
 - Ask a short clarifying question instead of emitting a proposal when required identity, date, or client-source information is missing.
+- When preparing a draft for a known Coach intake item, include top-level "intake_id" with that UUID. Omit "intake_id" if the source id is unknown or not a UUID.
 
 When ready to prepare a draft, include one JSON block:
 \`\`\`json
 {
   "action": "coach_action_proposal",
   "schema_version": "2026-05-07",
+  "intake_id": "11111111-1111-4111-8111-111111111111",
   "proposal_type": "client_onboarding|workout_log|client_data_update|frontend_dispatch|clarification|split_plan",
   "requires_confirmation": true,
   "evidence_refs": ["seg_04"],

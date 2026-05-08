@@ -47,6 +47,7 @@ import {
 } from './CoachIntakeWorkspace.styles';
 
 type CoachRole = 'admin' | 'trainer' | 'client';
+const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface CoachIntakeWorkspaceProps {
   userRole: CoachRole;
@@ -145,8 +146,12 @@ function activeAudioPrompt(item: CoachIntakeItem): string {
 
 function activeDraftReviewPrompt(item: CoachIntakeItem): string {
   const intakeId = itemEntityId(item) || item.id;
+  const intakeLinkInstruction = COACH_INTAKE_UUID_RE.test(intakeId)
+    ? `Include top-level "intake_id": "${intakeId}" in the JSON block.`
+    : 'Omit intake_id unless the active intake id is a UUID.';
   return [
     `Prepare structured Coach draft review for intake ${intakeId}.`,
+    intakeLinkInstruction,
     'Use only the active Coach intake context and compact evidence_refs.',
     'If client, date, or workout details are missing, return a coach_action_proposal clarification.',
     'If enough evidence exists, return a coach_action_proposal split_plan or workout_log draft.',

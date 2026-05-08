@@ -138,6 +138,32 @@ describe('coachIntakeItemService', () => {
     expect(JSON.stringify(item.audioPuzzle)).not.toMatch(/Marcus|private clip/i);
   });
 
+  it('maps latest proposal metadata without exposing encrypted proposal contents', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '55555555-5555-4555-9555-555555555555',
+      source_type: 'chat_narrative',
+      status: 'READY_FOR_REVIEW',
+      resolved_client_id: null,
+      latest_proposal_id: '66666666-6666-4666-9666-666666666666',
+      uploaded_at: '2026-05-06T12:00:00.000Z',
+      created_at: '2026-05-06T12:00:00.000Z',
+      metadata_json: {
+        latestProposal: {
+          id: '66666666-6666-4666-9666-666666666666',
+          type: 'workout_log',
+          status: 'PENDING',
+          title: 'Review workout log draft',
+          createdAt: '2026-05-06T12:05:00.000Z',
+          rawTranscript: 'private raw transcript must not surface',
+        },
+      },
+    });
+
+    expect(item.latestProposalId).toBe('66666666-6666-4666-9666-666666666666');
+    expect(item.latestProposal).toMatchObject({ type: 'workout_log', status: 'PENDING' });
+    expect(JSON.stringify(item.latestProposal)).not.toMatch(/private raw transcript/i);
+  });
+
   it('gives audio-like intake items a single-piece puzzle fallback', () => {
     const item = mapCoachRowToIntakeItem({
       id: '44444444-4444-4444-4444-444444444444',

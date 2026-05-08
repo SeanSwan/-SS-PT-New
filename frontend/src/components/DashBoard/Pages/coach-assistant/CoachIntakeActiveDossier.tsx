@@ -66,6 +66,10 @@ function audioGate(item: CoachIntakeItem): string {
   return 'Single audio piece';
 }
 
+function writeGate(item: CoachIntakeItem): string {
+  return item.latestProposalId ? 'Draft prepared for approval' : 'Final write locked';
+}
+
 function needsAudioOrderConfirmation(item: CoachIntakeItem): boolean {
   return item.kind === 'coach_intake' && item.audioPuzzle?.needsOrderingReview === true;
 }
@@ -123,7 +127,7 @@ export function CoachIntakeActiveDossier({
             <ShieldCheck size={15} aria-hidden="true" />
             <span>
               <GateLabel>Write gate</GateLabel>
-              <GateValue>Final write locked</GateValue>
+              <GateValue>{writeGate(item)}</GateValue>
             </span>
           </GateCard>
         </DossierGrid>
@@ -145,7 +149,7 @@ export function CoachIntakeActiveDossier({
         {showPrepareDraftReview ? (
           <ActionButton type="button" onClick={onPrepareDraftReview}>
             <ListChecks size={16} aria-hidden="true" />
-            Prepare draft review
+            {item.latestProposalId ? 'Prepare updated draft review' : 'Prepare draft review'}
           </ActionButton>
         ) : null}
         {showInspectAudio ? (

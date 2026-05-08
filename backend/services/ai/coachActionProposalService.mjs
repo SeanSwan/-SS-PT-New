@@ -14,6 +14,7 @@ import {
   parseJsonActionBlocks,
   parseSafeFrontendDispatch,
 } from './coachActionProposalClassifier.mjs';
+import { linkCoachActionProposalToIntake } from './coachActionProposalIntakeLinkService.mjs';
 
 export const COACH_PROPOSAL_STATUS = Object.freeze({
   PENDING: 'PENDING',
@@ -177,7 +178,8 @@ export async function createCoachActionProposalDraft({
 }) {
   const targetDb = db || sequelizeOverride || sequelize;
   const summary = summarizeProposal(type, payload, conversation);
-  return createProposal({
+  const proposal = { type, payload, summary };
+  const persisted = await createProposal({
     type,
     payload,
     summary,
@@ -186,6 +188,8 @@ export async function createCoachActionProposalDraft({
     sourceMessageId,
     db: targetDb,
   });
+  await linkCoachActionProposalToIntake({ proposal, persisted, user, db: targetDb });
+  return persisted;
 }
 
 export async function createCoachActionProposalsFromAiResponse({
@@ -223,13 +227,15 @@ export async function createCoachActionProposalsFromAiResponse({
 
   const persisted = [];
   for (const proposal of proposals) {
-    persisted.push(await createProposal({
+    const saved = await createProposal({
       ...proposal,
       user,
       conversation,
       sourceMessageId,
       db,
-    }));
+    });
+    await linkCoachActionProposalToIntake({ proposal, persisted: saved, user, db });
+    persisted.push(saved);
   }
   logger.info('[CoachActionProposal] Prepared %d pending proposal(s)', persisted.length);
   return { proposals: persisted, frontendActions };

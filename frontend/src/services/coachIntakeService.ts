@@ -20,6 +20,14 @@ export interface CoachAudioPuzzleSummary {
 
 type CoachIntakeAudioFields = {
   audioPuzzle?: CoachAudioPuzzleSummary | null;
+  latestProposalId?: string | null;
+  latestProposal?: {
+    id: string;
+    type: string | null;
+    status: string | null;
+    title: string | null;
+    createdAt: string | null;
+  } | null;
 };
 
 export type CoachIntakeItem = (PlaudIntakeItem & CoachIntakeAudioFields) | (Omit<PlaudIntakeItem, 'kind' | 'source'> & CoachIntakeAudioFields & {

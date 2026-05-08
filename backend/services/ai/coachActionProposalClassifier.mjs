@@ -12,6 +12,7 @@ const SAFE_FRONTEND_EVENTS = new Set([
   'AI_TOGGLE_NASM_ITEM',
 ]);
 const WRITE_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
+const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ExerciseDraftSchema = z.object({
   name: z.string().trim().min(1),
@@ -87,13 +88,26 @@ function safeParseAction(schema, block) {
   return parsed.success ? parsed.data : null;
 }
 
+function cleanCoachIntakeId(value) {
+  const clean = String(value || '').trim().replace(/^coach:/, '');
+  return SAFE_COACH_INTAKE_ID_RE.test(clean) ? clean : null;
+}
+
 function proposalMeta(block, schemaVersion) {
-  return {
+  const intakeId = cleanCoachIntakeId(
+    block.intake_id ||
+    block.intakeId ||
+    block.payload?.intake_id ||
+    block.payload?.intakeId ||
+    block.payload?.proposalMeta?.intakeId,
+  );
+  const meta = {
     schemaVersion: block.schema_version || schemaVersion,
     evidenceRefs: block.evidence_refs || [],
     safetyFlags: block.safety_flags || [],
     requiresConfirmation: true,
   };
+  return intakeId ? { ...meta, intakeId } : meta;
 }
 
 export function parseJsonActionBlocks(content) {

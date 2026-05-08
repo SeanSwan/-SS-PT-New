@@ -124,6 +124,7 @@ describe('CoachIntakeWorkspace', () => {
       canReview: false,
       sourceLabel: 'Coach voice note',
       timelineAt: '2026-05-07T18:30:00.000Z',
+      latestProposalId: 'proposal-1',
     });
 
     render(
@@ -145,7 +146,7 @@ describe('CoachIntakeWorkspace', () => {
     expect(within(target).getByText(/Review dossier/i)).toBeInTheDocument();
     expect(within(target).getByText(/Client confirmation required/i)).toBeInTheDocument();
     expect(within(target).getByText(/Ordering review required/i)).toBeInTheDocument();
-    expect(within(target).getByText(/Final write locked/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Draft prepared for approval/i)).toBeInTheDocument();
     expect(within(target).getByText(/3 audio pieces/i)).toBeInTheDocument();
 
     fireEvent.click(within(target).getByRole('button', { name: /ask coach about this intake/i }));

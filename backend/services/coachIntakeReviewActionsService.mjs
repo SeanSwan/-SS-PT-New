@@ -69,7 +69,7 @@ export async function confirmCoachIntakeAudioOrder({
   return db.transaction(async (transaction) => {
     const rows = await db.query(
       `SELECT id, user_id, source_type, source_ref, status, resolved_client_id,
-              recorded_at_start, uploaded_at, metadata_json, error_code, created_at
+              recorded_at_start, uploaded_at, metadata_json, latest_proposal_id, error_code, created_at
          FROM coach_intake_items
         WHERE id = :intakeId AND user_id = :userId
         FOR UPDATE`,
@@ -108,7 +108,7 @@ export async function confirmCoachIntakeAudioOrder({
               updated_at = NOW()
         WHERE id = :intakeId AND user_id = :userId
         RETURNING id, user_id, source_type, source_ref, status, resolved_client_id,
-          recorded_at_start, uploaded_at, metadata_json, error_code, created_at`,
+          recorded_at_start, uploaded_at, metadata_json, latest_proposal_id, error_code, created_at`,
       {
         replacements: { intakeId: cleanId, userId: numericUserId, patchJson, confirmedAt },
         type: QueryTypes.SELECT,

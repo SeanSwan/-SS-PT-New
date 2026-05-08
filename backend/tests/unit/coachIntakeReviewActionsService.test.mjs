@@ -19,7 +19,14 @@ const BASE_ROW = {
   recorded_at_start: '2026-05-06T12:00:00.000Z',
   uploaded_at: '2026-05-06T12:01:00.000Z',
   created_at: '2026-05-06T12:01:00.000Z',
+  latest_proposal_id: '22222222-2222-4222-8222-222222222222',
   metadata_json: {
+    latestProposal: {
+      id: '22222222-2222-4222-8222-222222222222',
+      type: 'workout_log',
+      status: 'PENDING',
+      title: 'Review workout log draft',
+    },
     audioPuzzle: {
       pieceCount: 3,
       bundleCount: 2,
@@ -91,6 +98,7 @@ describe('coach intake review actions', () => {
         needsOrderingReview: false,
         confidence: 'low',
       },
+      latestProposalId: '22222222-2222-4222-8222-222222222222',
     });
 
     const serializedReplacements = JSON.stringify(db.calls.map((call) => call.options?.replacements));

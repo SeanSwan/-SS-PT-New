@@ -5,10 +5,11 @@ import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 
 function makeQueue({ needsOrderingReview = false } = {}) {
+  const intakeId = '77777777-7777-4777-9777-777777777777';
   return {
     items: [{
-      id: 'item-1',
-      entityId: 'item-1',
+      id: `coach:${intakeId}`,
+      entityId: intakeId,
       kind: 'coach_intake',
       title: 'Confirmed audio workout note',
       sourceLabel: 'Coach voice note',
@@ -53,7 +54,7 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
           selectedClientName={null}
           onCommandPrompt={onCommandPrompt}
           queue={makeQueue()}
-          activeIntakeId="item-1"
+          activeIntakeId="77777777-7777-4777-9777-777777777777"
         />
       </MemoryRouter>,
     );
@@ -63,7 +64,8 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
 
     expect(onCommandPrompt).toHaveBeenCalledTimes(1);
     const prompt = onCommandPrompt.mock.calls[0][0];
-    expect(prompt).toContain('Prepare structured Coach draft review for intake item-1');
+    expect(prompt).toContain('Prepare structured Coach draft review for intake 77777777-7777-4777-9777-777777777777');
+    expect(prompt).toContain('"intake_id": "77777777-7777-4777-9777-777777777777"');
     expect(prompt).toContain('coach_action_proposal clarification');
     expect(prompt).toContain('split_plan or workout_log draft');
     expect(prompt).toContain('Do not write');
@@ -78,7 +80,7 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
           selectedClientName={null}
           onCommandPrompt={vi.fn()}
           queue={makeQueue({ needsOrderingReview: true })}
-          activeIntakeId="item-1"
+          activeIntakeId="77777777-7777-4777-9777-777777777777"
         />
       </MemoryRouter>,
     );
