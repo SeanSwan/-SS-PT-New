@@ -3,6 +3,8 @@ import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
 const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage.tsx'), 'utf8');
+const LOGIC_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage.logic.ts'), 'utf8');
+const PANELS_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePanels.tsx'), 'utf8');
 const LAYOUT_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
 const DASHBOARD_TABS_SRC = readFileSync(resolve(__dirname, '../../config/dashboard-tabs.ts'), 'utf8');
 const PENDING_REVIEWS_SRC = readFileSync(
@@ -37,14 +39,14 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   });
 
   it('keeps Swan Coach action language scoped to review-gated proposal handoff', () => {
-    expect(PAGE_SRC).toMatch(/Swan Coach handoff/);
-    expect(PAGE_SRC).toMatch(/Order clips/);
-    expect(PAGE_SRC).toMatch(/Split workouts/);
-    expect(PAGE_SRC).toMatch(/shared workout-log mapper/);
-    expect(PAGE_SRC).toMatch(/Review-gated/);
-    expect(PAGE_SRC).toMatch(/Live split review/);
-    expect(PAGE_SRC).toMatch(/Structured proposal/);
-    expect(PAGE_SRC).toMatch(/Approval gate/);
+    expect(PANELS_SRC).toMatch(/Swan Coach handoff/);
+    expect(PANELS_SRC).toMatch(/Order clips/);
+    expect(PANELS_SRC).toMatch(/Split workouts/);
+    expect(PANELS_SRC).toMatch(/shared workout-log mapper/);
+    expect(PANELS_SRC).toMatch(/Review-gated/);
+    expect(PANELS_SRC).toMatch(/Live split review/);
+    expect(PANELS_SRC).toMatch(/Structured proposal/);
+    expect(PANELS_SRC).toMatch(/Approval gate/);
     expect(PAGE_SRC).not.toMatch(/Next slice/);
     expect(PAGE_SRC).not.toMatch(/Swan Coach intake command/);
   });
@@ -76,8 +78,8 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   it('uses ?review=next to hand the next reviewable merge to the embedded review workspace', () => {
     expect(PAGE_SRC).toMatch(/reviewNextRequested/);
     expect(PAGE_SRC).toMatch(/reviewNextMergeRequestId/);
-    expect(PAGE_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
-    expect(PAGE_SRC).toMatch(/item\.canReview/);
+    expect(LOGIC_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
+    expect(LOGIC_SRC).toMatch(/item\.canReview/);
     expect(PAGE_SRC).toMatch(/initialReviewMergeRequestId=\{initialReviewMergeRequestId \|\| undefined\}/);
   });
 
@@ -109,28 +111,28 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   });
 
   it('turns intake preview rows into direct review links', () => {
-    expect(PAGE_SRC).toMatch(/function intakePreviewHref/);
-    expect(PAGE_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
-    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?mergeRequestId=/);
-    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
-    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant\?intake=/);
-    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant`/);
+    expect(LOGIC_SRC).toMatch(/function intakePreviewHref/);
+    expect(LOGIC_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?mergeRequestId=/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant\?intake=/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant`/);
     expect(PAGE_SRC).toMatch(/IntakePreviewLink/);
     expect(PAGE_SRC).toMatch(/to=\{intakePreviewHref\(item, role\)\}/);
   });
 
   it('keeps a direct merge request target visible when it is outside the default preview window', () => {
-    expect(PAGE_SRC).toMatch(/function visibleIntakePreviewItems/);
+    expect(LOGIC_SRC).toMatch(/function visibleIntakePreviewItems/);
     expect(PAGE_SRC).toMatch(/selectedMergeRequestId/);
-    expect(PAGE_SRC).toMatch(/firstItems\.some\(isSelectedMergeRequest\)/);
-    expect(PAGE_SRC).toMatch(/\[selectedItem, \.\.\.firstItems\.slice\(0, 5\)\]/);
+    expect(LOGIC_SRC).toMatch(/firstItems\.some\(isSelectedMergeRequest\)/);
+    expect(LOGIC_SRC).toMatch(/\[selectedItem, \.\.\.firstItems\.slice\(0, 5\)\]/);
   });
 
   it('chooses review-next from a wider actionable window and orders ready merges oldest first', () => {
     expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue\(\{ limit: 20 \}\)/);
-    expect(PAGE_SRC).toMatch(/function reviewableMergeTime/);
-    expect(PAGE_SRC).toMatch(/function pickReviewNextMergeRequestId/);
-    expect(PAGE_SRC).toMatch(/sort\(\(a, b\) => reviewableMergeTime\(a\) - reviewableMergeTime\(b\)\)/);
+    expect(LOGIC_SRC).toMatch(/function reviewableMergeTime/);
+    expect(LOGIC_SRC).toMatch(/function pickReviewNextMergeRequestId/);
+    expect(LOGIC_SRC).toMatch(/sort\(\(a, b\) => reviewableMergeTime\(a\) - reviewableMergeTime\(b\)\)/);
     expect(PAGE_SRC).toMatch(/visibleIntakePreviewItems\(intakeItems, selectedMergeRequestId\)\.map/);
   });
 
@@ -144,7 +146,7 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   it('consumes the unified PLAUD intake endpoint instead of static-only queue copy', () => {
     expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue/);
     expect(PAGE_SRC).toMatch(/Unified intake queue/);
-    expect(PAGE_SRC).toMatch(/Applaud/);
+    expect(`${PANELS_SRC}\n${LOGIC_SRC}`).toMatch(/Applaud/);
     expect(PAGE_SRC).toMatch(/Ready review/);
     expect(INTAKE_SERVICE_SRC).toMatch(/\/api\/plaud\/intake/);
   });

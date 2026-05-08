@@ -21,31 +21,29 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Brain,
-  CheckCircle2,
   Clock3,
   FileAudio,
-  GitBranch,
   ListChecks,
-  Mic2,
-  ShieldCheck,
-  Workflow,
 } from 'lucide-react';
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
 import { usePlaudIntakeQueue } from '../../hooks/usePlaudIntakeQueue';
-import type { PlaudIntakeItem } from '../../services/plaudIntakeService';
 import { parsePlaudMergeRequestId } from '../../utils/plaudRouteGuards';
+import { PlaudCoachHandoffPane, PlaudIntakeLanes } from './PlaudIntelligenceWorkspacePanels';
+import {
+  formatPlaudQueueStatus,
+  formatPlaudSourceLabel,
+  intakePreviewHref,
+  intakePreviewLabel,
+  pickReviewNextMergeRequestId,
+  queueLoadErrorMessage,
+  visibleIntakePreviewItems,
+  type PlaudDashboardRole,
+} from './PlaudIntelligenceWorkspacePage.logic';
 import {
   ActionButton,
-  ActionItem,
-  ActionList,
-  ActionStatus,
-  CoachPane,
-  CommandRail,
-  CommandTile,
   Eyebrow,
   HeaderActions,
   HeaderCopy,
-  PaneTitle,
   PrimaryPane,
   WorkspaceBody,
   WorkspaceHeader,
@@ -65,48 +63,9 @@ import {
   SourceBadge,
 } from './PlaudIntakeSnapshot.styles';
 
-function useDashboardRole(): 'admin' | 'trainer' {
+function useDashboardRole(): PlaudDashboardRole {
   const location = useLocation();
   return location.pathname.includes('/dashboard/trainer/') ? 'trainer' : 'admin';
-}
-
-function formatQueueStatus(status: string): string {
-  return status
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function reviewableMergeTime(item: PlaudIntakeItem): number {
-  const value = item.recordedAt || item.timelineAt || item.createdAt;
-  const parsed = Date.parse(value || '');
-  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
-}
-
-function pickReviewNextMergeRequestId(items: PlaudIntakeItem[]): string | null {
-  return [...items]
-    .filter((item) => item.kind === 'merge_request' && item.canReview)
-    .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
-}
-
-function visibleIntakePreviewItems(items: PlaudIntakeItem[], selectedMergeRequestId: string | null): PlaudIntakeItem[] {
-  const firstItems = items.slice(0, 6);
-  const isSelectedMergeRequest = (item: PlaudIntakeItem) => item.kind === 'merge_request' && item.entityId === selectedMergeRequestId;
-  if (!selectedMergeRequestId || firstItems.some(isSelectedMergeRequest)) return firstItems;
-  const selectedItem = items.find(isSelectedMergeRequest);
-  return selectedItem ? [selectedItem, ...firstItems.slice(0, 5)] : firstItems;
-}
-
-function intakePreviewHref(item: PlaudIntakeItem, role: 'admin' | 'trainer'): string {
-  if (item.kind === 'merge_request') {
-    return item.entityId
-      ? `/dashboard/${role}/plaud?mergeRequestId=${encodeURIComponent(item.entityId)}`
-      : `/dashboard/${role}/plaud?review=next`;
-  }
-  const intakeId = String(item.entityId || item.id || '').replace(/^coach:/, '');
-  return intakeId
-    ? `/dashboard/${role}/coach-assistant?intake=${encodeURIComponent(intakeId)}`
-    : `/dashboard/${role}/coach-assistant`;
 }
 
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
@@ -241,7 +200,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
           {isLoading ? (
             <IntakePreviewItem><span>Loading intake queue</span><span /></IntakePreviewItem>
           ) : error ? (
-            <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
+            <IntakePreviewItem role="alert"><span>{queueLoadErrorMessage()}</span><span /></IntakePreviewItem>
           ) : intakeItems.length === 0 ? (
             <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
           ) : visibleIntakePreviewItems(intakeItems, selectedMergeRequestId).map((item) => {
@@ -256,15 +215,15 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
               >
                 <IntakePreviewLink
                   to={intakePreviewHref(item, role)}
-                  aria-label={`Review intake ${item.title || item.clientName || item.sourceLabel}`}
+                  aria-label={intakePreviewLabel(item)}
                 >
                   <strong>{item.clientName || 'Client pending'}</strong>
                   {' - '}
-                  {formatQueueStatus(item.queueStatus)}
+                  {formatPlaudQueueStatus(item.queueStatus)}
                 </IntakePreviewLink>
                 <BadgeCluster>
                   {isDirectMergeTarget && <SourceBadge $tone="gold">Selected review</SourceBadge>}
-                  <SourceBadge>{item.sourceLabel}</SourceBadge>
+                  <SourceBadge>{formatPlaudSourceLabel(item.source)}</SourceBadge>
                 </BadgeCluster>
               </IntakePreviewItem>
             );
@@ -272,36 +231,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
         </IntakePreviewList>
       </IntakeSnapshot>
 
-      <CommandRail aria-label="PLAUD intake lanes">
-        <CommandTile>
-          <FileAudio size={22} aria-hidden="true" />
-          <div>
-            <strong>Audio pieces</strong>
-            <span>Manual clips and Applaud recordings enter one queue.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <Clock3 size={22} aria-hidden="true" />
-          <div>
-            <strong>Time grouping</strong>
-            <span>Recording timestamps stay visible as the first session-order signal.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <Mic2 size={22} aria-hidden="true" />
-          <div>
-            <strong>Dictation first</strong>
-            <span>Voice intake remains routed through reviewed workout-log handoff.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <ShieldCheck size={22} aria-hidden="true" />
-          <div>
-            <strong>Human gate</strong>
-            <span>Client, date, duplicate, and final log decisions stay human-confirmed.</span>
-          </div>
-        </CommandTile>
-      </CommandRail>
+      <PlaudIntakeLanes />
 
       <WorkspaceBody>
         <PrimaryPane aria-label="PLAUD merge and review queue">
@@ -310,30 +240,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             initialReviewMergeRequestId={initialReviewMergeRequestId || undefined}
           />
         </PrimaryPane>
-        <CoachPane aria-label="Swan Coach action contract">
-          <PaneTitle>
-            <Workflow size={18} aria-hidden="true" />
-            Swan Coach handoff
-          </PaneTitle>
-          <ActionList>
-            <ActionItem>
-              <GitBranch size={16} aria-hidden="true" />
-              <span><strong>Order clips</strong><ActionStatus>Review-gated</ActionStatus>Group nearby recordings and flag gaps before merge.</span>
-            </ActionItem>
-            <ActionItem>
-              <ListChecks size={16} aria-hidden="true" />
-              <span><strong>Split workouts</strong><ActionStatus>Live split review</ActionStatus>Create review cards by date, time, and transcript boundary.</span>
-            </ActionItem>
-            <ActionItem>
-              <Brain size={16} aria-hidden="true" />
-              <span><strong>Resolve meaning</strong><ActionStatus>Structured proposal</ActionStatus>Turn parsed transcript evidence into a reviewable Coach draft.</span>
-            </ActionItem>
-            <ActionItem>
-              <CheckCircle2 size={16} aria-hidden="true" />
-              <span><strong>Prepare logs</strong><ActionStatus>Approval gate</ActionStatus>Hand approved cards to the shared workout-log mapper.</span>
-            </ActionItem>
-          </ActionList>
-        </CoachPane>
+        <PlaudCoachHandoffPane />
       </WorkspaceBody>
     </WorkspaceShell>
   );
