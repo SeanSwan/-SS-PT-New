@@ -19,6 +19,7 @@ const ITEM_ENUMS = {
   timelineAtSource: new Set(['created_at', 'recorded_at', 'uploaded_at']),
   audioPuzzleConfidence: new Set(['single', 'high', 'medium', 'low']),
 };
+const HEALTH_STATUSES = new Set(['healthy', 'attention', 'degraded', 'unavailable']);
 const ITEM_BOOL_KEYS = ['hasClient', 'needsClient', 'canReview', 'audioNeedsOrderingReview'];
 const ITEM_NUMBER_KEYS = [
   'clipCount',
@@ -64,6 +65,12 @@ function cleanCode(value) {
   return text || null;
 }
 
+function cleanActionKey(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim().toLowerCase().replace(/[^a-z0-9_:\-]/g, '').slice(0, 64);
+  return text || null;
+}
+
 function cleanEnum(value, allowed) {
   const text = typeof value === 'string' ? value.trim() : '';
   return allowed.has(text) ? text : null;
@@ -72,6 +79,23 @@ function cleanEnum(value, allowed) {
 function cleanSourceLabel(value) {
   const text = typeof value === 'string' ? value.trim() : '';
   return SOURCE_LABELS.has(text) ? text : null;
+}
+
+function sanitizeHealth(rawHealth) {
+  if (!rawHealth || typeof rawHealth !== 'object' || Array.isArray(rawHealth)) return null;
+  const rawCounts = rawHealth.counts && typeof rawHealth.counts === 'object' && !Array.isArray(rawHealth.counts)
+    ? rawHealth.counts
+    : {};
+  return {
+    status: cleanEnum(rawHealth.status, HEALTH_STATUSES) || 'unavailable',
+    schemaReady: rawHealth.schemaReady !== false,
+    failed: cleanCount(rawHealth.failed ?? rawCounts.failed),
+    readyReview: cleanCount(rawHealth.readyReview ?? rawCounts.readyReview),
+    stuckProcessing: cleanCount(rawHealth.stuckProcessing ?? rawCounts.stuckProcessing),
+    processingStuckMinutes: cleanOptionalCount(rawHealth.processingStuckMinutes ?? rawHealth.thresholds?.processingStuckMinutes),
+    nextActionKey: cleanActionKey(rawHealth.nextActionKey ?? rawHealth.nextOperatorAction?.key),
+    nextActionLabel: cleanString(rawHealth.nextActionLabel ?? rawHealth.nextOperatorAction?.label, 80),
+  };
 }
 
 export function sanitizeCoachIntakeContext(raw) {
@@ -90,6 +114,8 @@ export function sanitizeCoachIntakeContext(raw) {
   for (const key of SUMMARY_KEYS) {
     clean.summary[key] = cleanCount(rawSummary[key]);
   }
+  const health = sanitizeHealth(raw.health);
+  if (health) clean.health = health;
 
   const rawItems = Array.isArray(raw.items) ? raw.items.slice(0, 6) : [];
   clean.items = rawItems
@@ -112,7 +138,7 @@ export function sanitizeCoachIntakeContext(raw) {
   return clean;
 }
 
-export function buildCoachIntakeContextFromResult(result) {
+export function buildCoachIntakeContextFromResult(result, health = null) {
   const summary = result?.summary && typeof result.summary === 'object'
     ? result.summary
     : {};
@@ -121,6 +147,7 @@ export function buildCoachIntakeContextFromResult(result) {
   return sanitizeCoachIntakeContext({
     source: 'coach_intake_context_v1',
     summary,
+    health,
     items: items.slice(0, 6).map((item) => ({
       id: item?.id,
       kind: item?.kind,
@@ -154,11 +181,20 @@ export function buildCoachIntakeContextPromptBlock(context) {
     `Failed: ${s.failed ?? 0}`,
     `Processing: ${s.processing ?? 0}`,
     `Unprocessed: ${s.unprocessed ?? 0}`,
-    'Safe read commands available: review next Coach intake; view Coach intake queue; inspect pending Coach audio pieces.',
+    'Safe read commands available: review next Coach intake; show Coach intake health; show my Coach intake queue; inspect pending Coach audio pieces.',
     'If the trainer asks to prepare a draft review for an intake, return a schema-bound coach_action_proposal.',
     'If required client/date/workout detail is missing, use proposal_type=clarification instead of guessing.',
     'Do not claim a workout log or client record was written unless an explicit approved write result is present.',
   ];
+
+  const h = context.health || null;
+  if (h) {
+    lines.push(
+      `Health status: ${h.status}`,
+      `Stuck processing: ${h.stuckProcessing ?? 0}`,
+      `Next health action: ${h.nextActionKey ?? 'unknown'} - ${h.nextActionLabel ?? 'Review Coach intake health'}`,
+    );
+  }
 
   if (Array.isArray(context.items) && context.items.length > 0) {
     lines.push('Items:');

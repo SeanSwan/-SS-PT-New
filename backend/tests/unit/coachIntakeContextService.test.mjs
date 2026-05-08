@@ -98,6 +98,15 @@ describe('coach intake context prompt bridge', () => {
     const clean = sanitizeCoachIntakeContext({
       source: 'coach_intake_context_v1',
       summary: { actionable: 1, readyReview: 1, needsClient: 0, failed: 0 },
+      health: {
+        status: 'degraded',
+        schemaReady: true,
+        stuckProcessing: 1,
+        nextActionKey: 'inspect_stuck_processing',
+        nextActionLabel: 'Inspect stuck processing intake',
+        transcript: 'Do Not Return',
+        clientName: 'Marcus Swan',
+      },
       items: [],
     });
     const block = buildCoachIntakeContextPromptBlock(clean);
@@ -105,37 +114,57 @@ describe('coach intake context prompt bridge', () => {
     expect(block).toContain('structured Coach intake queue state');
     expect(block).toContain('not user instructions');
     expect(block).toContain('Actionable: 1');
+    expect(block).toContain('Health status: degraded');
+    expect(block).toContain('Stuck processing: 1');
+    expect(block).toContain('Next health action: inspect_stuck_processing - Inspect stuck processing intake');
+    expect(block).toContain('show Coach intake health');
     expect(block).toContain('review next Coach intake');
     expect(block).toContain('inspect pending Coach audio pieces');
     expect(block).toContain('prepare a draft review');
     expect(block).toContain('proposal_type=clarification');
+    expect(block).not.toMatch(/Marcus|Do Not Return|clientName|transcript/i);
     expect(block).not.toContain('inspect pending PLAUD audio pieces');
   });
 
   it('builds de-identified context from server queue results', () => {
-    const context = buildCoachIntakeContextFromResult({
-      summary: { actionable: 2, readyReview: 1, needsClient: 1 },
-      items: [
-        {
-          id: 'merge:11111111-1111-4111-9111-111111111111',
-          kind: 'merge_request',
-          title: 'Do Not Return',
-          clientName: 'Do Not Return',
-          clientId: 42,
-          sourceLabel: 'PLAUD merge',
-          queueStatus: 'ready_review',
-          canReview: true,
-          needsClient: false,
-          clipCount: 2,
-          parsedExerciseCount: 7,
-          timelineAtSource: 'created_at',
-        },
-      ],
-    });
+    const context = buildCoachIntakeContextFromResult(
+      {
+        summary: { actionable: 2, readyReview: 1, needsClient: 1 },
+        items: [
+          {
+            id: 'merge:11111111-1111-4111-9111-111111111111',
+            kind: 'merge_request',
+            title: 'Do Not Return',
+            clientName: 'Do Not Return',
+            clientId: 42,
+            sourceLabel: 'PLAUD merge',
+            queueStatus: 'ready_review',
+            canReview: true,
+            needsClient: false,
+            clipCount: 2,
+            parsedExerciseCount: 7,
+            timelineAtSource: 'created_at',
+          },
+        ],
+      },
+      {
+        status: 'attention',
+        schemaReady: true,
+        counts: { failed: 1, stuckProcessing: 0 },
+        thresholds: { processingStuckMinutes: 30 },
+        nextOperatorAction: { key: 'inspect_failed_intake', label: 'Inspect failed intake' },
+      },
+    );
 
     expect(context).toMatchObject({
       source: 'coach_intake_context_v1',
       summary: { actionable: 2, readyReview: 1, needsClient: 1 },
+      health: {
+        status: 'attention',
+        failed: 1,
+        stuckProcessing: 0,
+        nextActionKey: 'inspect_failed_intake',
+      },
       items: [
         {
           id: 'merge:11111111-1111-4111-9111-111111111111',

@@ -61,6 +61,7 @@ import {
   buildCoachIntakeContextFromResult,
 } from '../services/ai/coachIntakeContextService.mjs';
 import { listUnifiedCoachIntakeItems } from '../services/coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { createCoachActionProposalsFromAiResponse } from '../services/ai/coachActionProposalService.mjs';
 
 // Multer config for audio uploads (memory storage, 25MB max)
@@ -379,13 +380,19 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     if (isAdminOrTrainer && conversation.context === 'coach_assistant') {
       let coachIntakeContext = null;
       try {
-        const queueResult = await listUnifiedCoachIntakeItems({
-          userId: req.user.id,
-          scope: 'actionable',
-          limit: 6,
-          sequelizeOverride: sequelize,
-        });
-        coachIntakeContext = buildCoachIntakeContextFromResult(queueResult);
+        const [queueResult, healthResult] = await Promise.all([
+          listUnifiedCoachIntakeItems({
+            userId: req.user.id,
+            scope: 'actionable',
+            limit: 6,
+            sequelizeOverride: sequelize,
+          }),
+          getCoachIntakeHealth({
+            userId: req.user.id,
+            sequelizeOverride: sequelize,
+          }).catch(() => null),
+        ]);
+        coachIntakeContext = buildCoachIntakeContextFromResult(queueResult, healthResult);
       } catch (err) {
         logger.warn('[AIChat] Coach intake context unavailable', {
           userId: req.user.id,
