@@ -36,7 +36,19 @@ export interface CoachProposalDetailResponse {
   error?: string;
 }
 
-function coachProposalErrorMessage(code: string | undefined, fallback: string): string {
+const SAFE_PROPOSAL_ERROR_CODES = new Set([
+  'PROPOSAL_NOT_FOUND',
+  'PROPOSAL_DETAIL_REVIEW_REQUIRED',
+  'PROPOSAL_REVIEW_TOKEN_UNAVAILABLE',
+]);
+
+function safeCoachProposalErrorCode(code: unknown): string {
+  return typeof code === 'string' && SAFE_PROPOSAL_ERROR_CODES.has(code)
+    ? code
+    : 'COACH_PROPOSAL_ERROR';
+}
+
+function coachProposalErrorMessage(code: string, fallback: string): string {
   if (code === 'PROPOSAL_NOT_FOUND') {
     return 'Prepared draft was not found or is no longer available. Prepare an updated draft review.';
   }
@@ -52,10 +64,10 @@ function coachProposalErrorMessage(code: string | undefined, fallback: string): 
 function unwrapError(err: unknown, fallbackMessage: string): never {
   if (isAxiosError(err)) {
     const data = err.response?.data as CoachProposalActionResponse | undefined;
-    const code = data?.code || 'UNKNOWN';
+    const code = safeCoachProposalErrorCode(data?.code);
     throw new PlaudApiError(
       code,
-      coachProposalErrorMessage(code, data?.error || err.message || fallbackMessage),
+      coachProposalErrorMessage(code, fallbackMessage),
       err.response?.status || 0,
       data,
     );

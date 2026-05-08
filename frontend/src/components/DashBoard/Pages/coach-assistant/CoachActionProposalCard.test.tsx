@@ -260,4 +260,26 @@ describe('CoachActionProposalCard', () => {
     expect(screen.getByRole('button', { name: /approve draft/i })).toBeDisabled();
   });
 
+  it('does not expose arbitrary backend detail errors in proposal review', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        detail: {
+          errorCode: 'UNSAFE_BACKEND_DETAIL',
+          error: 'do-not-render-private-detail',
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findAllByText(/Draft details need correction before approval/i)).toHaveLength(2);
+    expect(screen.queryByText(/UNSAFE_BACKEND_DETAIL/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-detail/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve and log/i })).toBeDisabled();
+  });
+
 });

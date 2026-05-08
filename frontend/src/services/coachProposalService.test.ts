@@ -50,4 +50,25 @@ describe('coachProposalService', () => {
       message: 'Prepared draft was not found or is no longer available. Prepare an updated draft review.',
     });
   });
+
+  it('does not expose arbitrary backend proposal error detail', async () => {
+    vi.mocked(apiService.get).mockRejectedValue({
+      isAxiosError: true,
+      message: 'Request failed with status code 500',
+      response: {
+        status: 500,
+        data: {
+          success: false,
+          code: 'UNSAFE_BACKEND_DETAIL',
+          error: 'do-not-render-private-detail',
+        },
+      },
+    });
+
+    await expect(getCoachProposal('proposal-1')).rejects.toMatchObject({
+      code: 'COACH_PROPOSAL_ERROR',
+      status: 500,
+      message: 'Failed to load Coach proposal',
+    });
+  });
 });

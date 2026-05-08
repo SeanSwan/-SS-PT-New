@@ -17,9 +17,9 @@ import { CoachProposalGateRail } from './CoachProposalGateRail';
 import {
   buildDetailRows,
   clarificationOptionsFromDetail,
-  displayValue,
   hasDetailBlockingError,
   proposalTypeLabel,
+  safeProposalBlockingErrorMessage,
 } from './CoachActionProposalDetailRows';
 import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
 import { dispatchCoachProposalAction } from '../../../../services/coachProposalActionEvents';
@@ -104,14 +104,14 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       setDetail(loadedDetail);
       setReviewToken(loadedReviewToken);
       if (hasDetailBlockingError(loadedDetail)) {
-        setError(displayValue(loadedDetail?.error) || 'Draft details need correction before approval.');
+        setError(safeProposalBlockingErrorMessage(loadedDetail));
       } else if (!isClarification && !loadedReviewToken) {
         setError('Review token is missing. Review details again or prepare an updated draft before approval.');
       } else {
         setMessage('Draft details loaded for review.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Detail load failed');
+      setError('Detail load failed');
     } finally {
       setBusy(null);
     }
@@ -144,7 +144,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
           : 'Draft approved for deterministic review.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Approval failed');
+      setError('Approval failed');
     } finally {
       setBusy(null);
     }
@@ -160,7 +160,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       publishProposalAction(nextProposal, onProposalAction);
       setMessage('Clarification answer recorded for deterministic review.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Clarification answer failed');
+      setError('Clarification answer failed');
     } finally {
       setBusy(null);
     }
@@ -176,7 +176,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       publishProposalAction(nextProposal, onProposalAction);
       setMessage('Proposal rejected.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reject failed');
+      setError('Reject failed');
     } finally {
       setBusy(null);
     }

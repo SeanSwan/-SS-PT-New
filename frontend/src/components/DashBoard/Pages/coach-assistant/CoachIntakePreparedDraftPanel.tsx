@@ -28,7 +28,7 @@ function errorMessageFor(err: unknown): string {
   if (code === 'PROPOSAL_NOT_FOUND') {
     return 'Prepared draft is unavailable or no longer belongs to this session. Prepare an updated draft review.';
   }
-  return err instanceof Error ? err.message : 'Prepared draft could not be loaded.';
+  return 'Prepared draft could not be loaded.';
 }
 
 export function CoachIntakePreparedDraftPanel({

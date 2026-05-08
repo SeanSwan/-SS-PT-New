@@ -30,6 +30,20 @@ export function displayValue(value: unknown) {
   return String(value);
 }
 
+const SAFE_BLOCKING_ERRORS: Record<string, string> = {
+  ONBOARDING_REQUIRED_FIELDS_MISSING: 'Client first and last name are required before approval.',
+};
+
+export function safeProposalBlockingErrorMessage(detail: Record<string, unknown> | null): string {
+  const code = typeof detail?.errorCode === 'string' ? detail.errorCode : '';
+  return SAFE_BLOCKING_ERRORS[code] || 'Draft details need correction before approval.';
+}
+
+function safeProposalBlockingErrorCode(detail: Record<string, unknown>): string {
+  const code = typeof detail.errorCode === 'string' ? detail.errorCode : '';
+  return SAFE_BLOCKING_ERRORS[code] ? code : 'COACH_PROPOSAL_ERROR';
+}
+
 function compactRows(rows: Array<[string, unknown]>): DetailRow[] {
   return rows
     .map(([label, value]) => [label, displayValue(value)] as [string, string | null])
@@ -85,8 +99,8 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
   if (!detail) return [];
   if (hasDetailBlockingError(detail)) {
     return withApprovalGateRows(detail, compactRows([
-      ['Issue', detail.error],
-      ['Code', detail.errorCode],
+      ['Issue', safeProposalBlockingErrorMessage(detail)],
+      ['Code', safeProposalBlockingErrorCode(detail)],
     ]));
   }
   const client = asRecord(detail.client);
