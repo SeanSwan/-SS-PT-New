@@ -702,9 +702,18 @@ const SwanCoachAssistantPage: React.FC = () => {
             const upload = await uploadClips(audioFiles.map((f) => f.file));
             setTranscriptProcessing(null);
             if (upload.clips.length > 0) {
+              coach.appendAudioIntakeReceipt({
+                fileName: audioLabel,
+                acceptedCount: upload.clips.length,
+                rejectedCount: upload.rejected.length,
+                fileSize: upload.clips.reduce((sum, clip) => sum + clip.size, 0),
+                nextActionLabel: 'Review next intake',
+                rejectedSummary: upload.rejected.length > 0
+                  ? upload.rejected.map((r) => `${r.filename}: ${r.message}`).join('; ')
+                  : undefined,
+              });
               attachments.clearFiles();
               void coachIntakeQueue.refresh();
-              void coach.sendMessage('inspect pending Coach audio pieces');
               return;
             }
 

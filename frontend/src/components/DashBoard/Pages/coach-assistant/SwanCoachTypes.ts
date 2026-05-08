@@ -193,6 +193,19 @@ export interface CoachMessageData {
       fileSize?: number;
       reason: string;
     };
+    /**
+     * Injected when Coach audio attachments are accepted into the PLAUD
+     * intake queue. This is a receipt only; review/log writes still happen
+     * through the deterministic intake workspace and proposal pipeline.
+     */
+    audioIntakeReceipt?: {
+      fileName: string;
+      acceptedCount: number;
+      rejectedCount: number;
+      fileSize?: number;
+      nextActionLabel: string;
+      rejectedSummary?: string;
+    };
   };
   frontendActions?: FrontendAction[];
 }

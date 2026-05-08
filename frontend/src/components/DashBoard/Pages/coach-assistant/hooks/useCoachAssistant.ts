@@ -591,6 +591,39 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     [],
   );
 
+  const appendAudioIntakeReceipt = useCallback(
+    (
+      receipt: NonNullable<CoachMessageData['metadata']>['audioIntakeReceipt'],
+    ): { userMsgId: string; receiptMsgId: string } => {
+      if (!receipt) {
+        return { userMsgId: '', receiptMsgId: '' };
+      }
+      const ts = new Date().toISOString();
+      const userMsgId = `audio-intake-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const receiptMsgId = `audio-intake-receipt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const pieceCopy = `${receipt.acceptedCount} audio piece${receipt.acceptedCount !== 1 ? 's' : ''}`;
+
+      const userMsg: CoachMessageData = {
+        id: userMsgId,
+        role: 'user',
+        content: `Uploaded ${pieceCopy} to PLAUD intake`,
+        timestamp: ts,
+      };
+
+      const receiptMsg: CoachMessageData = {
+        id: receiptMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: ts,
+        metadata: { audioIntakeReceipt: receipt },
+      };
+
+      setCommandMessages(prev => [...prev, userMsg, receiptMsg]);
+      return { userMsgId, receiptMsgId };
+    },
+    [],
+  );
+
   // ── Send message with structured food context ──
   const sendMessageWithFood = useCallback(async (
     text: string,
@@ -655,5 +688,6 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     transcriptReviewToResult,
     removeTranscriptMessages,
     appendTranscriptError,
+    appendAudioIntakeReceipt,
   };
 }

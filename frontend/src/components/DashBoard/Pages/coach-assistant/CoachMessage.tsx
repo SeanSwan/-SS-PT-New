@@ -200,7 +200,7 @@ const TranscriptBtn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
   }
 `;
 
-const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'other' }>`
+const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'warning' | 'other' }>`
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -208,16 +208,16 @@ const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 
   padding: 8px 12px;
   border-radius: 8px;
   background: ${({ $kind }) =>
-    $kind === 'duplicate_date' || $kind === 'future_date'
+    $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning'
       ? 'rgba(198, 168, 75, 0.12)'
       : 'rgba(201, 42, 84, 0.12)'};
   border: 1px solid
     ${({ $kind }) =>
-      $kind === 'duplicate_date' || $kind === 'future_date'
+      $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning'
         ? 'rgba(198, 168, 75, 0.4)'
         : 'rgba(201, 42, 84, 0.3)'};
   color: ${({ $kind }) =>
-    $kind === 'duplicate_date' || $kind === 'future_date' ? '#F5D678' : '#ff8fa3'};
+    $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning' ? '#F5D678' : '#ff8fa3'};
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   line-height: 1.45;
@@ -357,6 +357,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const transcriptReview = message.metadata?.transcriptReview;
   const transcriptResult = message.metadata?.transcriptResult;
   const transcriptError = message.metadata?.transcriptError;
+  const audioIntakeReceipt = message.metadata?.audioIntakeReceipt;
 
   return (
     <MessageBubbleAI>
@@ -609,6 +610,44 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <X size={14} /> Dismiss
             </TranscriptBtn>
           </TranscriptActions>
+        </TranscriptCard>
+      )}
+
+      {audioIntakeReceipt && (
+        <TranscriptCard data-testid="audio-intake-receipt-card">
+          <CardTitle>
+            <CheckCircle2 size={16} />
+            Audio pieces queued
+          </CardTitle>
+          <CardRow>
+            <CardLabel>Source</CardLabel>
+            <CardValue>{audioIntakeReceipt.fileName}</CardValue>
+          </CardRow>
+          <CardRow>
+            <CardLabel>Accepted</CardLabel>
+            <CardValue>
+              {audioIntakeReceipt.acceptedCount} piece{audioIntakeReceipt.acceptedCount !== 1 ? 's' : ''}
+              {typeof audioIntakeReceipt.fileSize === 'number'
+                ? ` (${formatBytes(audioIntakeReceipt.fileSize)})`
+                : ''}
+            </CardValue>
+          </CardRow>
+          {audioIntakeReceipt.rejectedCount > 0 && (
+            <CardRow>
+              <CardLabel>Rejected</CardLabel>
+              <CardValue>{audioIntakeReceipt.rejectedCount} file{audioIntakeReceipt.rejectedCount !== 1 ? 's' : ''}</CardValue>
+            </CardRow>
+          )}
+          {audioIntakeReceipt.rejectedSummary && (
+            <TranscriptError $kind="warning">
+              <AlertTriangle size={14} />
+              {audioIntakeReceipt.rejectedSummary}
+            </TranscriptError>
+          )}
+          <CardRow>
+            <CardLabel>Next</CardLabel>
+            <CardValue>{audioIntakeReceipt.nextActionLabel || 'Review next intake'}</CardValue>
+          </CardRow>
         </TranscriptCard>
       )}
 
