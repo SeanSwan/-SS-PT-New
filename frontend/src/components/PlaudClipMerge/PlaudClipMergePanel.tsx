@@ -121,8 +121,8 @@ export function PlaudClipMergePanel({
             <strong>{queue.rejectedClips.length} file(s) rejected</strong>
             <RejectedList>
               {queue.rejectedClips.map((r, idx) => (
-                <li key={`${r.filename}-${idx}`}>
-                  <strong>{r.filename}:</strong> {safePlaudIssueCode(r.code)} -{' '}
+                <li key={`${safePlaudIssueCode(r.code)}-${idx}`}>
+                  <strong>Rejected file {idx + 1}:</strong> {safePlaudIssueCode(r.code)} -{' '}
                   {safePlaudRejectedFileMessage(r.code)}
                 </li>
               ))}

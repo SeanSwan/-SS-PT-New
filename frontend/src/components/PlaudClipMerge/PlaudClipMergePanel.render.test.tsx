@@ -84,7 +84,7 @@ describe('PlaudClipMergePanel render safety', () => {
     usePlaudClipQueueMock.mockReturnValue(queueState({
       rejectedClips: [
         {
-          filename: 'clip-one.mp3',
+          filename: 'Marcus-private@example.com.mp3',
           code: 'UNSUPPORTED_MIMETYPE',
           message: 'do-not-render-private-detail',
         },
@@ -93,9 +93,11 @@ describe('PlaudClipMergePanel render safety', () => {
 
     const { container } = render(<PlaudClipMergePanel onMergeReady={() => {}} />);
 
-    expect(screen.getByText(/clip-one\.mp3/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rejected file 1/i)).toBeInTheDocument();
     expect(screen.getByText(/UNSUPPORTED_MIMETYPE/i)).toBeInTheDocument();
     expect(screen.getByText(/File type is not supported/i)).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('private@example.com');
+    expect(container.innerHTML).not.toContain('Marcus');
     expect(container.innerHTML).not.toContain('do-not-render-private-detail');
   });
 
