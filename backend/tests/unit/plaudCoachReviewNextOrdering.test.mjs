@@ -68,4 +68,17 @@ describe('PLAUD Coach review-next ordering', () => {
 
     expect(next?.id).toBe('merge:ready');
   });
+
+  it('does not emit direct merge review routes for malformed entity ids', () => {
+    const item = {
+      id: 'merge:malformed',
+      kind: 'merge_request',
+      queueStatus: 'ready_review',
+      canReview: true,
+      entityId: '------------------------------------',
+    };
+
+    expect(_internal.reviewRouteForItem(item, '/dashboard/admin/plaud')).toBe('/dashboard/admin/plaud?review=next');
+    expect(_internal.summaryEntityIdForItem(item)).toBeNull();
+  });
 });
