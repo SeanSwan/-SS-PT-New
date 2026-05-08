@@ -118,6 +118,25 @@ const StatusText = styled.div<{ $error?: boolean }>`
   font-weight: 700;
 `;
 
+function terminalStatusMessage(status: CoachActionProposal['status'], type: CoachActionProposal['type']): string | null {
+  if (status === 'APPLIED') {
+    return 'This draft has already been applied through deterministic approval.';
+  }
+  if (status === 'REJECTED') {
+    return 'This proposal has already been rejected. Prepare a new draft if this intake still needs work.';
+  }
+  if (status === 'APPROVED' && type === 'split_plan') {
+    return 'Split plan approved. Review the generated workout drafts before any workout is logged.';
+  }
+  if (status === 'APPROVED' && type === 'clarification') {
+    return 'Clarification recorded. Coach can prepare the next deterministic draft.';
+  }
+  if (status === 'APPROVED') {
+    return 'Draft approved. Deterministic follow-up may still be pending.';
+  }
+  return null;
+}
+
 export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
@@ -136,6 +155,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const detailHasBlockingError = hasDetailBlockingError(detail);
   const canApprove = pending && !isClarification && !!detail && !!reviewToken && !detailHasBlockingError;
   const detailRows = useMemo(() => buildDetailRows(detail), [detail]);
+  const terminalMessage = terminalStatusMessage(status, proposal.type);
   const rows = useMemo(() => [
     ['Type', proposalTypeLabel(proposal.type)],
     ['Client', summary.clientId ? `#${summary.clientId}` : String(summary.displayName || 'Needs review')],
@@ -289,6 +309,9 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
             Reject
           </ActionButton>
         </Actions>
+      )}
+      {!pending && !message && !error && terminalMessage && (
+        <StatusText><CheckCircle2 size={14} /> {terminalMessage}</StatusText>
       )}
       {message && <StatusText><CheckCircle2 size={14} /> {message}</StatusText>}
       {error && <StatusText $error>{error}</StatusText>}

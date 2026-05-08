@@ -106,6 +106,72 @@ describe('CoachActionProposalCard', () => {
     expect(await screen.findByText(/proposal rejected/i)).toBeInTheDocument();
   });
 
+  it('renders applied proposals as completed receipts without stale actions', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          status: 'APPLIED',
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/already been applied through deterministic approval/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /review details/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve and log/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
+  });
+
+  it('renders rejected proposals as completed receipts without stale actions', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          status: 'REJECTED',
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/already been rejected/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /review details/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve and log/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
+  });
+
+  it('renders approved clarification proposals with next-step receipt copy', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          type: 'clarification',
+          status: 'APPROVED',
+          title: 'Answer Coach clarification',
+          summary: { actionRequired: 'Client confirmed.' },
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/clarification recorded/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /review details/i })).not.toBeInTheDocument();
+  });
+
+  it('renders approved split-plan proposals with child-draft guidance', () => {
+    render(
+      <CoachActionProposalCard
+        proposal={{
+          ...proposal,
+          type: 'split_plan',
+          status: 'APPROVED',
+          title: 'Review split plan',
+          summary: { splitCount: 2 },
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/review the generated workout drafts/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve split plan/i })).not.toBeInTheDocument();
+  });
+
   it('loads proposal details before approving onboarding drafts', async () => {
     const onboardingProposal = {
       ...proposal,
