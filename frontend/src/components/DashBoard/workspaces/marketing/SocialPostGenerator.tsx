@@ -1,263 +1,64 @@
 /**
- * ┌─── PANEL: Social Post Generator ────────────────────────────┐
- * │ PARENT: MarketingWorkspace                                   │
- * │ PURPOSE: Compose social media posts for Instagram, Facebook, │
- * │          YouTube, BlueSky, TikTok. Publishes via Postiz API. │
- * │ CEO RULING: 2026-04-07 — No Twitter/X, FTC/FDA compliance. │
- * └──────────────────────────────────────────────────────────────┘
+ * PANEL: Social Post Generator
+ * PARENT: MarketingWorkspace
+ * PURPOSE: Compose and approve social posts before publishing through Postiz.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
-import styled from 'styled-components';
-import { Send, Clock, Hash, AlertTriangle, CheckCircle, Shield, Link2, Calendar } from 'lucide-react';
-import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Calendar, Clock, Send, Shield } from 'lucide-react';
+import { hexAlpha } from '../../../../components/Charts/chartTheme';
 import {
-  MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  ActionButton, StatusChip, CadenceWarning,
+  MarketingCard,
+  CardHeader,
+  HeaderLeft,
+  IconWrap,
+  CardTitle,
+  CardSubtitle,
 } from './marketing.styles';
-import type { SocialPlatform, PlatformConfig } from './marketing.types';
-// ─── Platform Config ───────────────────────────────────────────
-const PLATFORMS: Record<SocialPlatform, PlatformConfig> = {
-  instagram: { name: 'Instagram', maxChars: 2200, color: '#E4405F', bestTimes: 'Tue/Thu 11am-1pm, Sat 9-11am' },
-  facebook: { name: 'Facebook', maxChars: 63206, color: '#1877F2', bestTimes: 'Wed 11am-1pm, Fri 10-11am' },
-  youtube: { name: 'YouTube', maxChars: 5000, color: '#FF0000', bestTimes: 'Thu/Fri 12-3pm, Sat 9-11am' },
-  bluesky: { name: 'BlueSky', maxChars: 300, color: '#0085FF', bestTimes: 'Mon-Fri 8-10am, 6-9pm' },
-  tiktok: { name: 'TikTok', maxChars: 2200, color: '#00F2EA', bestTimes: 'Tue/Thu 7-9pm, Sun 12-3pm' },
+import type { PlatformConfig, SocialPlatform } from './marketing.types';
+import { HASHTAG_SUGGESTIONS, PLATFORMS } from './SocialPostGenerator.config';
+import {
+  ActionRow,
+  BestTimeCard,
+  CatLabel,
+  CharCount,
+  Composer,
+  ComposerActionButton,
+  Grid,
+  HashtagCategory,
+  HashtagChip,
+  HashtagSection,
+  NativeCheckbox,
+  PlatformBtn,
+  PlatformTabs,
+  ScheduleInput,
+  ScheduleLabel,
+  ScheduleRow,
+  StatusBanner,
+  TextArea,
+} from './SocialPostGenerator.styles';
+import type { ComplianceResult, ConnectedAccount } from './SocialPostGenerator.types';
+import SocialPostAccounts from './SocialPostAccounts';
+import SocialPostComplianceResult from './SocialPostComplianceResult';
+import SocialPostPreview from './SocialPostPreview';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
 };
 
-const HASHTAG_SUGGESTIONS: Record<string, string[]> = {
-  brand: ['#SwanStudios', '#SwanCoach', '#TrainWithSwan', '#SwanFitness'],
-  niche: ['#PersonalTraining', '#GolfFitness', '#YouthAthlete', '#FitnessCoach', '#StrengthTraining'],
-  trending: ['#FitnessMotivation', '#TransformationTuesday', '#FitLife', '#GolfLife', '#WorkoutOfTheDay'],
+const getMinimumScheduleDateTime = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-// ─── Styled Components ─────────────────────────────────────────
-const PlatformTabs = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-`;
-
-const PlatformBtn = styled.button<{ $active: boolean; $color: string }>`
-  min-height: 44px;
-  padding: 8px 20px;
-  border-radius: 10px;
-  border: 2px solid ${({ $active, $color }) => $active ? $color : 'transparent'};
-  background: ${({ $active, $color }) => $active ? hexAlpha($color, 0.1) : 'var(--bg-elevated, #141419)'};
-  color: ${({ $active, $color }) => $active ? $color : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  &:hover { border-color: ${({ $color }) => $color}; }
-`;
-
-const Composer = styled.div`
-  margin-bottom: 20px;
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 120px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.15s;
-
-  &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-  &::placeholder { color: var(--text-placeholder, rgba(224, 236, 244, 0.5)); }
-`;
-
-const CharCount = styled.div<{ $over: boolean }>`
-  text-align: right;
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  margin-top: 4px;
-  color: ${({ $over }) => $over ? '#EF4444' : 'var(--text-secondary, rgba(224, 236, 244, 0.75))'};
-`;
-
-const HashtagSection = styled.div`
-  margin-bottom: 20px;
-`;
-
-const HashtagCategory = styled.div`
-  margin-bottom: 8px;
-`;
-
-const CatLabel = styled.span`
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
-  margin-right: 8px;
-`;
-
-const HashtagChip = styled.button<{ $selected: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  margin: 2px 4px 2px 0;
-  border-radius: 6px;
-  border: 1px solid ${({ $selected }) =>
-    $selected ? 'var(--accent-primary, #60C0F0)' : 'var(--border-subtle, rgba(96, 192, 240, 0.08))'};
-  background: ${({ $selected }) =>
-    $selected ? 'rgba(96, 192, 240, 0.12)' : 'transparent'};
-  color: ${({ $selected }) =>
-    $selected ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
-  font-family: 'Fira Code', monospace;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 36px;
-
-  &:hover { border-color: var(--accent-primary, #60C0F0); }
-`;
-
-const BestTimeCard = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  background: rgba(198, 168, 75, 0.08);
-  border: 1px solid rgba(198, 168, 75, 0.2);
-  margin-bottom: 20px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: #C6A84B;
-`;
-
-const PreviewCard = styled.div<{ $color: string }>`
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid ${({ $color }) => hexAlpha($color, 0.2)};
-  background: var(--bg-elevated, #141419);
-`;
-
-const PreviewHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-`;
-
-const PreviewAvatar = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #002060, #60C0F0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-`;
-
-const PreviewName = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const PreviewBody = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-primary, #E0ECF4);
-  white-space: pre-wrap;
-  margin-bottom: 8px;
-`;
-
-const PreviewTags = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 12px;
-  color: var(--accent-primary, #60C0F0);
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 20px;
-
-  @media (max-width: 1000px) { grid-template-columns: 1fr; }
-`;
-
-const ComplianceBox = styled.div<{ $type: 'warning' | 'pass' }>`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  background: ${({ $type }) => $type === 'warning' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(16, 185, 129, 0.08)'};
-  border: 1px solid ${({ $type }) => $type === 'warning' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.25)'};
-  color: ${({ $type }) => $type === 'warning' ? '#F59E0B' : '#10B981'};
-`;
-
-const StatusBanner = styled.div`
-  padding: 12px 16px;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  background: rgba(96, 192, 240, 0.08);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  color: var(--text-primary, #E0ECF4);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const PlatformCheckboxes = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-`;
-
-const PlatformCheck = styled.label<{ $color: string; $checked: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid ${({ $checked, $color }) => $checked ? $color : 'rgba(96, 192, 240, 0.08)'};
-  background: ${({ $checked, $color }) => $checked ? hexAlpha($color, 0.1) : 'transparent'};
-  color: ${({ $checked, $color }) => $checked ? $color : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  input { display: none; }
-`;
-
-// ─── Types ─────────────────────────────────────────────────────
-interface ConnectedAccount {
-  id: string;
-  platform: string;
-  name: string;
-}
-
-// ─── Component ─────────────────────────────────────────────────
 const SocialPostGenerator: React.FC = () => {
   const [platform, setPlatform] = useState<SocialPlatform>('instagram');
   const [caption, setCaption] = useState('');
@@ -265,85 +66,73 @@ const SocialPostGenerator: React.FC = () => {
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [postizConfigured, setPostizConfigured] = useState<boolean | null>(null);
-  const [complianceResult, setComplianceResult] = useState<{
-    compliant: boolean;
-    warnings: string[];
-    autoTags: string[];
-  } | null>(null);
+  const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
-  const [scheduleDate, setScheduleDate] = useState<string>('');
+  const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleMode, setScheduleMode] = useState(false);
 
   const config = PLATFORMS[platform];
   const charCount = caption.length;
   const isOver = charCount > config.maxChars;
 
-  // Fetch connected accounts and Postiz health on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const headers = getAuthHeaders();
 
     fetch('/api/admin/social-publishing/health', { headers })
-      .then(r => r.json())
-      .then(d => setPostizConfigured(d.data?.configured ?? false))
+      .then(response => response.json())
+      .then(data => setPostizConfigured(data.data?.configured ?? false))
       .catch(() => setPostizConfigured(false));
 
     fetch('/api/admin/social-publishing/accounts', { headers })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && Array.isArray(d.data)) {
-          setConnectedAccounts(d.data);
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setConnectedAccounts(data.data);
         }
       })
-      .catch(() => {/* Postiz not available yet */});
+      .catch(() => undefined);
   }, []);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]));
   };
 
   const toggleAccount = (accountId: string) => {
     setSelectedAccountIds(prev =>
-      prev.includes(accountId) ? prev.filter(x => x !== accountId) : [...prev, accountId]
+      prev.includes(accountId) ? prev.filter(item => item !== accountId) : [...prev, accountId],
     );
   };
 
   const runComplianceCheck = useCallback(async () => {
     if (!caption.trim()) return;
-    const token = localStorage.getItem('token');
+
     try {
-      const res = await fetch('/api/admin/social-publishing/compliance-check', {
+      const response = await fetch('/api/admin/social-publishing/compliance-check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({ content: caption + '\n\n' + selectedTags.join(' '), isAIGenerated: false }),
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          content: `${caption}\n\n${selectedTags.join(' ')}`,
+          isAIGenerated: false,
+        }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setComplianceResult(data.data);
-      }
+      const data = await response.json();
+      if (data.success) setComplianceResult(data.data);
     } catch {
-      // Compliance check is optional — don't block the UI
+      // Compliance check is optional and must not block manual review.
     }
   }, [caption, selectedTags]);
 
   const handlePublish = useCallback(async () => {
     if (!caption.trim() || selectedAccountIds.length === 0) return;
+
     setPublishing(true);
     setPublishStatus(null);
-    const token = localStorage.getItem('token');
     try {
-      const fullContent = caption + (selectedTags.length ? '\n\n' + selectedTags.join(' ') : '');
-      const res = await fetch('/api/admin/social-publishing/publish', {
+      const fullContent = caption + (selectedTags.length ? `\n\n${selectedTags.join(' ')}` : '');
+      const response = await fetch('/api/admin/social-publishing/publish', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           content: fullContent,
           platformIds: selectedAccountIds,
@@ -351,9 +140,13 @@ const SocialPostGenerator: React.FC = () => {
           ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
         }),
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.success) {
-        setPublishStatus(scheduleMode && scheduleDate ? `Post scheduled for ${new Date(scheduleDate).toLocaleString()}!` : 'Post published successfully!');
+        setPublishStatus(
+          scheduleMode && scheduleDate
+            ? `Post scheduled for ${new Date(scheduleDate).toLocaleString()}!`
+            : 'Post published successfully!',
+        );
         setCaption('');
         setComplianceResult(null);
       } else {
@@ -381,11 +174,10 @@ const SocialPostGenerator: React.FC = () => {
           </HeaderLeft>
         </CardHeader>
 
-        {/* Platform preview tabs */}
         <PlatformTabs>
-          {(Object.entries(PLATFORMS) as [SocialPlatform, PlatformConfig][]).map(([id, p]) => (
-            <PlatformBtn key={id} $active={platform === id} $color={p.color} onClick={() => setPlatform(id)}>
-              {p.name}
+          {(Object.entries(PLATFORMS) as [SocialPlatform, PlatformConfig][]).map(([id, item]) => (
+            <PlatformBtn key={id} $active={platform === id} $color={item.color} onClick={() => setPlatform(id)}>
+              {item.name}
             </PlatformBtn>
           ))}
         </PlatformTabs>
@@ -398,16 +190,21 @@ const SocialPostGenerator: React.FC = () => {
         <Composer>
           <TextArea
             value={caption}
-            onChange={e => { setCaption(e.target.value); setComplianceResult(null); }}
+            onChange={event => {
+              setCaption(event.target.value);
+              setComplianceResult(null);
+            }}
             placeholder={`Write your ${config.name} post...`}
           />
-          <CharCount $over={isOver}>{charCount} / {config.maxChars.toLocaleString()}</CharCount>
+          <CharCount $over={isOver}>
+            {charCount} / {config.maxChars.toLocaleString()}
+          </CharCount>
         </Composer>
 
         <HashtagSection>
-          {Object.entries(HASHTAG_SUGGESTIONS).map(([cat, tags]) => (
-            <HashtagCategory key={cat}>
-              <CatLabel>{cat}:</CatLabel>
+          {Object.entries(HASHTAG_SUGGESTIONS).map(([category, tags]) => (
+            <HashtagCategory key={category}>
+              <CatLabel>{category}:</CatLabel>
               {tags.map(tag => (
                 <HashtagChip key={tag} $selected={selectedTags.includes(tag)} onClick={() => toggleTag(tag)}>
                   {tag}
@@ -417,62 +214,15 @@ const SocialPostGenerator: React.FC = () => {
           ))}
         </HashtagSection>
 
-        {/* Publish to connected accounts */}
-        <CatLabel>Publish to:</CatLabel>
-        {postizConfigured === false && (
-          <StatusBanner style={{ background: 'rgba(245, 158, 11, 0.08)', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
-            <Link2 size={14} />
-            <span style={{ color: '#F59E0B' }}>Postiz not configured. Set POSTIZ_API_URL and POSTIZ_API_KEY in .env to enable publishing.</span>
-          </StatusBanner>
-        )}
-        {connectedAccounts.length > 0 ? (
-          <PlatformCheckboxes>
-            {connectedAccounts.map(acct => {
-              const platformKey = acct.platform as SocialPlatform;
-              const pConfig = PLATFORMS[platformKey];
-              const color = pConfig?.color || '#60C0F0';
-              return (
-                <PlatformCheck key={acct.id} $color={color} $checked={selectedAccountIds.includes(acct.id)}>
-                  <input
-                    type="checkbox"
-                    checked={selectedAccountIds.includes(acct.id)}
-                    onChange={() => toggleAccount(acct.id)}
-                  />
-                  {selectedAccountIds.includes(acct.id) ? '✓' : '○'} {acct.name || pConfig?.name || acct.platform}
-                </PlatformCheck>
-              );
-            })}
-          </PlatformCheckboxes>
-        ) : (
-          <StatusBanner>
-            <Link2 size={14} />
-            No social accounts connected yet. Connect accounts via Postiz to start publishing.
-          </StatusBanner>
-        )}
+        <SocialPostAccounts
+          postizConfigured={postizConfigured}
+          connectedAccounts={connectedAccounts}
+          selectedAccountIds={selectedAccountIds}
+          onToggleAccount={toggleAccount}
+        />
 
-        {/* Compliance check result */}
-        {complianceResult && (
-          complianceResult.compliant ? (
-            <ComplianceBox $type="pass">
-              <CheckCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-              Content passes FTC/FDA compliance checks.
-            </ComplianceBox>
-          ) : (
-            <ComplianceBox $type="warning">
-              <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>
-                {complianceResult.warnings.map((w, i) => (
-                  <div key={i} style={{ marginBottom: i < complianceResult.warnings.length - 1 ? 6 : 0 }}>{w}</div>
-                ))}
-                {complianceResult.autoTags.length > 0 && (
-                  <div style={{ marginTop: 6, fontWeight: 600 }}>Auto-tags: {complianceResult.autoTags.join(' ')}</div>
-                )}
-              </div>
-            </ComplianceBox>
-          )
-        )}
+        <SocialPostComplianceResult result={complianceResult} />
 
-        {/* Publish status */}
         {publishStatus && (
           <StatusBanner>
             <Shield size={16} />
@@ -480,77 +230,45 @@ const SocialPostGenerator: React.FC = () => {
           </StatusBanner>
         )}
 
-        {/* Schedule toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <label style={{
-            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-            fontFamily: 'Sora, sans-serif', fontSize: 13, fontWeight: 600,
-            color: scheduleMode ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))',
-          }}>
-            <input
+        <ScheduleRow>
+          <ScheduleLabel $active={scheduleMode}>
+            <NativeCheckbox
               type="checkbox"
               checked={scheduleMode}
-              onChange={e => setScheduleMode(e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: '#60C0F0' }}
+              onChange={event => setScheduleMode(event.target.checked)}
             />
             <Calendar size={14} /> Schedule for later
-          </label>
+          </ScheduleLabel>
           {scheduleMode && (
-            <input
+            <ScheduleInput
               type="datetime-local"
               value={scheduleDate}
-              onChange={e => setScheduleDate(e.target.value)}
-              min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; })()}
-              style={{
-                minHeight: 44, padding: '8px 12px', borderRadius: 8,
-                border: '1px solid rgba(96, 192, 240, 0.2)',
-                background: 'var(--bg-base, #0A0A0F)',
-                color: 'var(--text-primary, #E0ECF4)',
-                fontFamily: 'Fira Code, monospace', fontSize: 13,
-              }}
+              onChange={event => setScheduleDate(event.target.value)}
+              min={getMinimumScheduleDateTime()}
             />
           )}
-        </div>
+        </ScheduleRow>
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          <ActionButton
-            $variant="secondary"
-            onClick={runComplianceCheck}
-            disabled={!caption.trim()}
-            style={{ flex: 1 }}
-          >
-            <Shield size={14} style={{ marginRight: 6 }} />
+        <ActionRow>
+          <ComposerActionButton $variant="secondary" onClick={runComplianceCheck} disabled={!caption.trim()}>
+            <Shield size={14} />
             Check Compliance
-          </ActionButton>
-          <ActionButton
+          </ComposerActionButton>
+          <ComposerActionButton
             disabled={!caption.trim() || isOver || selectedAccountIds.length === 0 || publishing || (scheduleMode && !scheduleDate)}
             onClick={handlePublish}
-            style={{ flex: 1 }}
           >
-            {scheduleMode ? <Calendar size={14} style={{ marginRight: 6 }} /> : <Send size={14} style={{ marginRight: 6 }} />}
-            {publishing ? 'Publishing...' : scheduleMode ? 'Schedule Post' : `Publish to ${selectedAccountIds.length} Account${selectedAccountIds.length !== 1 ? 's' : ''}`}
-          </ActionButton>
-        </div>
+            {scheduleMode ? <Calendar size={14} /> : <Send size={14} />}
+            {publishing
+              ? 'Publishing...'
+              : scheduleMode
+                ? 'Schedule Post'
+                : `Publish to ${selectedAccountIds.length} Account${selectedAccountIds.length !== 1 ? 's' : ''}`}
+          </ComposerActionButton>
+        </ActionRow>
       </MarketingCard>
 
-      <div>
-        <PreviewCard $color={config.color}>
-          <PreviewHeader>
-            <PreviewAvatar>SS</PreviewAvatar>
-            <PreviewName>SwanStudios</PreviewName>
-          </PreviewHeader>
-          <PreviewBody>{caption || 'Your post preview will appear here...'}</PreviewBody>
-          {selectedTags.length > 0 && <PreviewTags>{selectedTags.join(' ')}</PreviewTags>}
-        </PreviewCard>
-
-        <StatusBanner style={{ marginTop: 16, background: 'rgba(139, 92, 246, 0.08)', borderColor: 'rgba(139, 92, 246, 0.2)' }}>
-          <Shield size={14} />
-          <div style={{ fontSize: 12, color: 'var(--text-secondary, rgba(224, 236, 244, 0.85))' }}>
-            All posts checked for FTC/FDA compliance before publishing.
-            Powered by Postiz scheduling engine.
-          </div>
-        </StatusBanner>
-      </div>
+      <SocialPostPreview config={config} caption={caption} selectedTags={selectedTags} />
     </Grid>
   );
 };
