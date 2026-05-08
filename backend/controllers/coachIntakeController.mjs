@@ -10,6 +10,7 @@ import {
   createCoachTextIntakeItem,
   listUnifiedCoachIntakeItems,
 } from '../services/coachIntakeItemService.mjs';
+import { listCoachIntakeEvents } from '../services/coachIntakeEventTrailService.mjs';
 import { confirmCoachIntakeAudioOrder } from '../services/coachIntakeReviewActionsService.mjs';
 
 function jsonError(res, status, code, message, details = {}) {
@@ -98,8 +99,34 @@ export async function confirmCoachIntakeAudioOrderHandler(req, res) {
   }
 }
 
+export async function listCoachIntakeEventsHandler(req, res) {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+
+    const result = await listCoachIntakeEvents({
+      userId,
+      intakeId: req.params.id,
+      limit: req.query.limit,
+    });
+
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    if (err instanceof CoachIntakeValidationError) {
+      const status = err.code === 'INTAKE_NOT_FOUND' ? 404 : 400;
+      return jsonError(res, status, err.code, err.message, err.details);
+    }
+    if (err instanceof CoachIntakeSchemaUnavailableError) {
+      return jsonError(res, 503, err.code, err.message);
+    }
+    logger.error('[coachIntake.events] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to list Coach intake events');
+  }
+}
+
 export default {
   createCoachTextIntakeHandler,
+  listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
   confirmCoachIntakeAudioOrderHandler,
 };

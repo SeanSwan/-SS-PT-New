@@ -23,6 +23,7 @@ import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueu
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
+import CoachIntakeEventTrail from './CoachIntakeEventTrail';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
@@ -207,6 +208,9 @@ export function CoachIntakeWorkspace({
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />
       )}
+      {activeItem?.kind === 'coach_intake' ? (
+        <CoachIntakeEventTrail intakeId={activeReviewTargetId} />
+      ) : null}
       {reviewingProposalId ? (
         <CoachIntakePreparedDraftPanel
           proposalId={reviewingProposalId}

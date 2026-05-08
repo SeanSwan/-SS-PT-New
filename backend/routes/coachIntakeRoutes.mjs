@@ -10,6 +10,7 @@ import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import {
   confirmCoachIntakeAudioOrderHandler,
   createCoachTextIntakeHandler,
+  listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
 } from '../controllers/coachIntakeController.mjs';
 import logger from '../utils/logger.mjs';
@@ -22,6 +23,7 @@ router.use(express.json({ limit: '256kb' }));
 
 router.post('/', createCoachTextIntakeHandler);
 router.get('/queue', listCoachIntakeHandler);
+router.get('/:id/events', listCoachIntakeEventsHandler);
 router.post('/:id/audio-order/confirm', confirmCoachIntakeAudioOrderHandler);
 
 router.use((err, _req, res, _next) => {

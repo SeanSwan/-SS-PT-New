@@ -51,6 +51,20 @@ export interface ConfirmCoachIntakeAudioOrderResponse {
   item: CoachIntakeItem;
 }
 
+export interface CoachIntakeEvent {
+  id: string;
+  actorType: string;
+  eventType: string;
+  summary: Record<string, string | number | boolean>;
+  createdAt: string | null;
+}
+
+export interface CoachIntakeEventsResponse {
+  intakeId: string;
+  events: CoachIntakeEvent[];
+  limit: number;
+}
+
 function unwrapError(err: unknown, fallbackMessage: string): never {
   if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
@@ -130,4 +144,27 @@ export async function confirmCoachIntakeAudioOrder({
   }
 }
 
-export default { confirmCoachIntakeAudioOrder, createCoachTextIntake, listCoachIntakeItems };
+export async function listCoachIntakeEvents({
+  intakeId,
+  limit = 8,
+}: {
+  intakeId: string;
+  limit?: number;
+}): Promise<CoachIntakeEventsResponse> {
+  try {
+    const { data } = await apiService.get<{ success: boolean } & CoachIntakeEventsResponse>(
+      `/api/coach/intake/${encodeURIComponent(intakeId)}/events`,
+      { params: { limit } },
+    );
+    return { intakeId: data.intakeId, events: data.events || [], limit: data.limit || limit };
+  } catch (err) {
+    unwrapError(err, 'Failed to list Coach intake events');
+  }
+}
+
+export default {
+  confirmCoachIntakeAudioOrder,
+  createCoachTextIntake,
+  listCoachIntakeEvents,
+  listCoachIntakeItems,
+};
