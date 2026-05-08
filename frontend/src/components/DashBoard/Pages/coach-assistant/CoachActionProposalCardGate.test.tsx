@@ -149,12 +149,42 @@ describe('CoachActionProposalCard approval gates', () => {
     render(<CoachActionProposalCard proposal={clarificationProposal} onProposalAction={onProposalAction} />);
 
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /client_candidate:C1/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Client candidate C1/i }));
 
     await waitFor(() => {
       expect(answerCoachProposalClarification).toHaveBeenCalledWith(clarificationProposal.id, 'client_candidate:C1');
     });
     expect(onProposalAction).toHaveBeenCalledWith(expect.objectContaining({ id: clarificationProposal.id, status: 'APPROVED' }));
     expect(await screen.findByText(/clarification answer recorded/i)).toBeInTheDocument();
+  });
+
+  it('does not expose arbitrary clarification question or unsafe options', async () => {
+    const clarificationProposal = {
+      ...proposal,
+      type: 'clarification' as const,
+      title: 'Answer Coach clarification',
+      summary: { actionRequired: 'Answer clarification before deterministic approval can continue.' },
+    };
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...clarificationProposal,
+        detail: {
+          clarification: {
+            question: 'private@example.com should never render as a clarification prompt.',
+            options: ['client_candidate:C1', 'private@example.com'],
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={clarificationProposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Coach needs one clarification before deterministic approval can continue/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Client candidate C1/i })).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /private@example\.com/i })).toBeNull();
   });
 });

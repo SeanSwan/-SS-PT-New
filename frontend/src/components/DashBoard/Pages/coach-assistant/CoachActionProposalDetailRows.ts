@@ -4,6 +4,7 @@
  * Detail-row formatting for structured Swan Coach proposal review cards.
  */
 export type DetailRow = [string, string];
+export type ClarificationOption = { value: string; label: string };
 
 export function proposalTypeLabel(type: string) {
   const labels: Record<string, string> = {
@@ -113,11 +114,39 @@ export function hasDetailBlockingError(detail: Record<string, unknown> | null) {
   return Boolean(detail && (detail.errorCode || detail.error));
 }
 
-export function clarificationOptionsFromDetail(detail: Record<string, unknown> | null) {
+const SAFE_CLARIFICATION_OPTION_LABELS: Record<string, string> = {
+  move_fitness: 'Move Fitness',
+  swanstudios: 'SwanStudios',
+  external: 'External source',
+  new_client: 'New client',
+};
+
+function safeClarificationOption(value: unknown): ClarificationOption | null {
+  const token = String(value || '').trim();
+  if (!token) return null;
+  const candidateMatch = token.match(/^client_candidate:C(\d{1,3})$/i);
+  if (candidateMatch) {
+    return { value: token, label: `Client candidate C${candidateMatch[1]}` };
+  }
+  const clientIdMatch = token.match(/^Client #(\d{1,6})$/);
+  if (clientIdMatch) {
+    return { value: token, label: `Client #${clientIdMatch[1]}` };
+  }
+  const label = SAFE_CLARIFICATION_OPTION_LABELS[token];
+  return label ? { value: token, label } : null;
+}
+
+function safeClarificationOptionCount(value: unknown): string | null {
+  if (!Array.isArray(value)) return null;
+  const count = value.map(safeClarificationOption).filter(Boolean).length;
+  return count > 0 ? `${count} answer option${count === 1 ? '' : 's'} available` : null;
+}
+
+export function clarificationOptionsFromDetail(detail: Record<string, unknown> | null): ClarificationOption[] {
   const clarification = detail && asRecord(detail.clarification);
   const options = clarification?.options;
   return Array.isArray(options)
-    ? options.map((option) => String(option || '').trim()).filter(Boolean)
+    ? options.map(safeClarificationOption).filter((option): option is ClarificationOption => Boolean(option))
     : [];
 }
 
@@ -155,8 +184,8 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
   const clarification = asRecord(detail.clarification);
   if (clarification) {
     return withApprovalGateRows(detail, compactRows([
-      ['Question', clarification.question],
-      ['Options', clarification.options],
+      ['Question', 'Coach needs one clarification before deterministic approval can continue.'],
+      ['Options', safeClarificationOptionCount(clarification.options)],
     ]));
   }
   const splitPlan = asRecord(detail.splitPlan);

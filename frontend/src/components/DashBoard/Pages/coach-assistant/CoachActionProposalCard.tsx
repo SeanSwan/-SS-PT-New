@@ -213,12 +213,12 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
           {clarificationOptions.map((option) => (
             <ActionButton
               type="button"
-              key={option}
-              onClick={() => runClarificationAnswer(option)}
+              key={option.value}
+              onClick={() => runClarificationAnswer(option.value)}
               disabled={!!busy}
             >
               {busy === 'clarification' ? <Loader2 size={16} /> : <CheckCircle2 size={16} />}
-              {option}
+              {option.label}
             </ActionButton>
           ))}
         </Actions>
