@@ -37,6 +37,9 @@ export interface CoachProposalDetailResponse {
 }
 
 function coachProposalErrorMessage(code: string | undefined, fallback: string): string {
+  if (code === 'PROPOSAL_NOT_FOUND') {
+    return 'Prepared draft was not found or is no longer available. Prepare an updated draft review.';
+  }
   if (code === 'PROPOSAL_DETAIL_REVIEW_REQUIRED') {
     return 'Review details again before approving. The previous review window expired or changed.';
   }

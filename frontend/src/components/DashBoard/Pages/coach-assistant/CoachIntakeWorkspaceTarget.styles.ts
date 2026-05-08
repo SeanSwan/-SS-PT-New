@@ -136,3 +136,57 @@ export const TargetNotice = styled.span`
   font-size: 11px;
   font-weight: 700;
 `;
+
+export const PreparedDraftPanel = styled.section`
+  margin: -2px 0 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 34%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 11%, transparent),
+      color-mix(in srgb, var(--bg-base, #030712) 74%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-surface, #1A1A24) 88%, transparent);
+`;
+
+export const PreparedDraftHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+
+  h4 {
+    margin: 3px 0 2px;
+    color: var(--text-primary, #E0ECF4);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    color: color-mix(in srgb, var(--text-primary, #E0ECF4) 64%, transparent);
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+  }
+`;
+
+export const PreparedDraftActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 720px) {
+    justify-content: flex-start;
+  }
+`;

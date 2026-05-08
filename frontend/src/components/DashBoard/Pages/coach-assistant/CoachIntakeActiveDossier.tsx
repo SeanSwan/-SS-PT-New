@@ -7,6 +7,7 @@ import React from 'react';
 import {
   Brain,
   CheckCircle2,
+  Eye,
   GitBranch,
   ListChecks,
   ShieldCheck,
@@ -36,6 +37,7 @@ interface CoachIntakeActiveDossierProps {
   onInspectAudio: () => void;
   onConfirmAudioOrder: () => void;
   onPrepareDraftReview: () => void;
+  onReviewPreparedDraft: () => void;
   confirmAudioOrderStatus?: string | null;
   isConfirmingAudioOrder?: boolean;
 }
@@ -88,6 +90,7 @@ export function CoachIntakeActiveDossier({
   onInspectAudio,
   onConfirmAudioOrder,
   onPrepareDraftReview,
+  onReviewPreparedDraft,
   confirmAudioOrderStatus = null,
   isConfirmingAudioOrder = false,
 }: CoachIntakeActiveDossierProps): JSX.Element {
@@ -95,6 +98,7 @@ export function CoachIntakeActiveDossier({
   const showInspectAudio = pieces > 0;
   const showConfirmAudioOrder = needsAudioOrderConfirmation(item);
   const showPrepareDraftReview = canPrepareDraftReview(item);
+  const showReviewPreparedDraft = !!item.latestProposalId;
 
   return (
     <TargetPanel aria-label="Active review target">
@@ -144,6 +148,12 @@ export function CoachIntakeActiveDossier({
           <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder}>
             <CheckCircle2 size={16} aria-hidden="true" />
             {isConfirmingAudioOrder ? 'Confirming order...' : 'Confirm audio order'}
+          </ActionButton>
+        ) : null}
+        {showReviewPreparedDraft ? (
+          <ActionButton type="button" onClick={onReviewPreparedDraft} $primary>
+            <Eye size={16} aria-hidden="true" />
+            Review prepared draft
           </ActionButton>
         ) : null}
         {showPrepareDraftReview ? (

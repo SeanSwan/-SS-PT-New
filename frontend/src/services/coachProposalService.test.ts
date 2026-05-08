@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import apiService from './api.service';
-import { approveCoachProposal } from './coachProposalService';
+import { approveCoachProposal, getCoachProposal } from './coachProposalService';
 
 vi.mock('./api.service', () => ({
   default: {
@@ -28,6 +28,26 @@ describe('coachProposalService', () => {
       code: 'PROPOSAL_DETAIL_REVIEW_REQUIRED',
       status: 428,
       message: 'Review details again before approving. The previous review window expired or changed.',
+    });
+  });
+
+  it('maps missing prepared drafts to actionable updated-draft copy', async () => {
+    vi.mocked(apiService.get).mockRejectedValue({
+      isAxiosError: true,
+      message: 'Request failed with status code 404',
+      response: {
+        status: 404,
+        data: {
+          success: false,
+          code: 'PROPOSAL_NOT_FOUND',
+        },
+      },
+    });
+
+    await expect(getCoachProposal('proposal-1')).rejects.toMatchObject({
+      code: 'PROPOSAL_NOT_FOUND',
+      status: 404,
+      message: 'Prepared draft was not found or is no longer available. Prepare an updated draft review.',
     });
   });
 });

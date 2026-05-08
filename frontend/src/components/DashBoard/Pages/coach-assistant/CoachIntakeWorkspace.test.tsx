@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { confirmCoachIntakeAudioOrder } from '../../../../services/coachIntakeService';
+import { getCoachProposal } from '../../../../services/coachProposalService';
 
 vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../services/coachIntakeService')>();
@@ -11,6 +12,13 @@ vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
     confirmCoachIntakeAudioOrder: vi.fn(),
   };
 });
+
+vi.mock('../../../../services/coachProposalService', () => ({
+  answerCoachProposalClarification: vi.fn(),
+  approveCoachProposal: vi.fn(),
+  getCoachProposal: vi.fn(),
+  rejectCoachProposal: vi.fn(),
+}));
 
 function makeQueue() {
   return {
@@ -154,6 +162,56 @@ describe('CoachIntakeWorkspace', () => {
 
     fireEvent.click(within(target).getByRole('button', { name: /inspect intake audio/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect Coach intake item-2 audio pieces');
+  });
+
+  it('opens and renders the linked prepared proposal from the active dossier', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      latestProposalId: 'proposal-1',
+      audioPuzzle: {
+        ...queue.items[0].audioPuzzle,
+        needsOrderingReview: false,
+      },
+    };
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-06',
+            exercises: [{ name: 'Squat' }],
+          },
+        },
+        reviewToken: 'review-v1.test',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = screen.getByLabelText(/Active review target/i);
+    fireEvent.click(within(target).getByRole('button', { name: /review prepared draft/i }));
+
+    expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
+    expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
+    expect(await screen.findByText(/Review lower body workout draft/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve and log/i })).toBeEnabled();
   });
 
   it('confirms active intake audio order and refreshes the queue without final writes', async () => {

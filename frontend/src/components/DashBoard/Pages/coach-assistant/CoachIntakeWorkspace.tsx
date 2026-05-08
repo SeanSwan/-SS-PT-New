@@ -19,8 +19,9 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
-import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
+import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
+import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import {
   AudioPuzzleLabel,
@@ -45,9 +46,22 @@ import {
   TitleBlock,
   WorkspaceLink,
 } from './CoachIntakeWorkspace.styles';
+import {
+  activeAudioPrompt,
+  activeDraftReviewPrompt,
+  activeItemPrompt,
+  isActiveItem,
+  itemEntityId,
+  itemMeta,
+  itemReviewHref,
+  orderedQueueItems,
+  pickNextItem,
+  plural,
+  statusLabel,
+  visibleAudioPuzzle,
+} from './CoachIntakeWorkspace.utils';
 
 type CoachRole = 'admin' | 'trainer' | 'client';
-const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 interface CoachIntakeWorkspaceProps {
   userRole: CoachRole;
@@ -55,108 +69,6 @@ interface CoachIntakeWorkspaceProps {
   onCommandPrompt: (message: string) => void;
   queue: CoachIntakeQueueState;
   activeIntakeId?: string | null;
-}
-
-function statusLabel(status: string): string {
-  return status
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function itemMeta(item: CoachIntakeItem): string {
-  const pieces = [
-    item.clientName || (item.needsClient ? 'Client needs confirmation' : 'Client pending'),
-    statusLabel(item.queueStatus),
-  ];
-  if (typeof item.clipCount === 'number' && item.clipCount > 0) {
-    pieces.push(`${item.clipCount} clip${item.clipCount === 1 ? '' : 's'}`);
-  }
-  return pieces.join(' - ');
-}
-
-function plural(value: number, noun: string): string {
-  return `${value} ${noun}${value === 1 ? '' : 's'}`;
-}
-
-function visibleAudioPuzzle(puzzle?: CoachAudioPuzzleSummary | null): CoachAudioPuzzleSummary | null {
-  if (!puzzle) return null;
-  const pieceCount = Number(puzzle.pieceCount || 0);
-  if (pieceCount > 1 || puzzle.needsOrderingReview || puzzle.confidence !== 'single') {
-    return { ...puzzle, pieceCount };
-  }
-  return null;
-}
-
-function queuePriority(item: CoachIntakeItem): number {
-  if (item.canReview) return -1;
-  const priorities: Record<string, number> = {
-    ready_review: 0,
-    needs_client: 1,
-    unprocessed: 2,
-    processing: 3,
-    failed: 4,
-  };
-  return priorities[item.queueStatus] ?? 99;
-}
-
-function queueAgeTime(item: CoachIntakeItem): number {
-  const value = item.recordedAt || item.timelineAt || item.createdAt || null;
-  const parsed = Date.parse(value || '');
-  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
-}
-
-function orderedQueueItems(items: CoachIntakeItem[]): CoachIntakeItem[] {
-  return [...items]
-    .sort((a, b) => {
-      const priority = queuePriority(a) - queuePriority(b);
-      if (priority !== 0) return priority;
-      return queueAgeTime(a) - queueAgeTime(b);
-    });
-}
-
-function pickNextItem(items: CoachIntakeItem[]): CoachIntakeItem | null {
-  return orderedQueueItems(items).filter((item) => item.queueStatus !== 'archived')[0] || null;
-}
-
-function itemEntityId(item: CoachIntakeItem): string {
-  return String(item.entityId || item.id || '').replace(/^coach:/, '');
-}
-
-function itemReviewHref(item: CoachIntakeItem | null, workspaceHref: string): string {
-  if (!item) return workspaceHref;
-  if (item.kind === 'merge_request' && item.canReview) return `${workspaceHref.replace('/coach-assistant', '/plaud')}?review=next`;
-  const entityId = itemEntityId(item);
-  return entityId ? `${workspaceHref}?intake=${encodeURIComponent(entityId)}` : workspaceHref;
-}
-
-function isActiveItem(item: CoachIntakeItem, activeIntakeId?: string | null): boolean {
-  if (!activeIntakeId) return false;
-  const clean = activeIntakeId.replace(/^coach:/, '');
-  return itemEntityId(item) === clean || item.id === activeIntakeId;
-}
-
-function activeItemPrompt(item: CoachIntakeItem): string {
-  return `review Coach intake ${itemEntityId(item) || item.id}`;
-}
-
-function activeAudioPrompt(item: CoachIntakeItem): string {
-  return `inspect Coach intake ${itemEntityId(item) || item.id} audio pieces`;
-}
-
-function activeDraftReviewPrompt(item: CoachIntakeItem): string {
-  const intakeId = itemEntityId(item) || item.id;
-  const intakeLinkInstruction = COACH_INTAKE_UUID_RE.test(intakeId)
-    ? `Include top-level "intake_id": "${intakeId}" in the JSON block.`
-    : 'Omit intake_id unless the active intake id is a UUID.';
-  return [
-    `Prepare structured Coach draft review for intake ${intakeId}.`,
-    intakeLinkInstruction,
-    'Use only the active Coach intake context and compact evidence_refs.',
-    'If client, date, or workout details are missing, return a coach_action_proposal clarification.',
-    'If enough evidence exists, return a coach_action_proposal split_plan or workout_log draft.',
-    'Do not write, create, update, log, or submit any client or workout record.',
-  ].join(' ');
 }
 
 export function CoachIntakeWorkspace({
@@ -169,18 +81,24 @@ export function CoachIntakeWorkspace({
   const isTrainerSurface = userRole === 'admin' || userRole === 'trainer';
   const { items, summary, isLoading, error, refresh } = queue;
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
-
-  if (!isTrainerSurface) return null;
+  const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
 
   const workspaceHref = `/dashboard/${userRole}/plaud`;
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
   const orderedItems = React.useMemo(() => orderedQueueItems(items), [items]);
   const nextItem = pickNextItem(orderedItems);
   const activeItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
+  const activeItemKey = activeItem?.id || null;
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
     : 'No client has to be selected first; unknown-client intake stays in review.';
+
+  React.useEffect(() => {
+    setReviewingProposalId(null);
+  }, [activeItemKey]);
+
+  if (!isTrainerSurface) return null;
 
   return (
     <Panel aria-label="Swan Coach voice intake workspace">
@@ -229,10 +147,17 @@ export function CoachIntakeWorkspace({
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
           onPrepareDraftReview={() => onCommandPrompt(activeDraftReviewPrompt(activeItem))}
+          onReviewPreparedDraft={() => setReviewingProposalId(activeItem.latestProposalId || null)}
           confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />
       )}
+      {reviewingProposalId ? (
+        <CoachIntakePreparedDraftPanel
+          proposalId={reviewingProposalId}
+          onClose={() => setReviewingProposalId(null)}
+        />
+      ) : null}
 
       <Grid>
         <StatGrid aria-label="Coach intake summary">

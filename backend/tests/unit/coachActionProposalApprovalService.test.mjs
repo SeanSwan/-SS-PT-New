@@ -159,6 +159,29 @@ describe('coachActionProposalApprovalService', () => {
     expect(order).toEqual(['claim', 'workout-write']);
   });
 
+  it('scopes prepared proposal detail reads to the authenticated user', async () => {
+    const calls = [];
+    const db = {
+      calls,
+      async query(sql, options = {}) {
+        calls.push({ sql, options });
+        return [];
+      },
+    };
+    const { getCoachActionProposal } = await loadApprovalService();
+
+    const result = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 99, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(404);
+    expect(result.body.code).toBe('PROPOSAL_NOT_FOUND');
+    expect(calls[0].sql).toMatch(/created_by_user_id = :userId/);
+    expect(calls[0].options.replacements).toEqual({ id: pendingWorkoutRow.id, userId: 99 });
+  });
+
   it('rejects future-dated proposal review tokens', () => {
     const now = Date.now();
     const token = createProposalReviewToken({
