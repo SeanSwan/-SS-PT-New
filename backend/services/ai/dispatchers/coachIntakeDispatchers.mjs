@@ -5,17 +5,16 @@
  * cards stay PII-safe: no transcript bodies, parsed payloads, or client names.
  */
 import { listUnifiedCoachIntakeItems } from '../../coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../../coachIntakeHealthService.mjs';
 import {
   coachIntakeQueueAgeTime,
   pickNextCoachIntakeItem,
 } from '../../coachIntakeQueueOrdering.mjs';
 import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
 import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
-
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
 const MAX_QUEUE_LIMIT = 20;
-
 function resolveUserId(ctx) {
   const userId = Number(ctx?.user?.id);
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -23,7 +22,6 @@ function resolveUserId(ctx) {
   }
   return userId;
 }
-
 function resolveRole(ctx) {
   const role = String(ctx?.user?.role || '').toLowerCase();
   if (role === 'admin' || role === 'trainer') return role;
@@ -88,6 +86,31 @@ function scalarSummary(result, nextItem, ctx) {
     commandHint: nextItem
       ? 'Continue from the Swan Coach intake workspace; PLAUD reviewable merges open in the PLAUD review workspace.'
       : 'No Coach or PLAUD intake items need action.',
+  };
+}
+
+function healthCommandSummary(health, ctx) {
+  const counts = health?.counts || {};
+  const action = health?.nextOperatorAction || {};
+  return {
+    healthStatus: health?.status || 'unavailable',
+    schemaReady: health?.schemaReady !== false,
+    total: Number(counts.total || 0),
+    actionable: Number(counts.actionable || 0),
+    today: Number(counts.today || 0),
+    unprocessed: Number(counts.unprocessed || 0),
+    processing: Number(counts.processing || 0),
+    readyReview: Number(counts.readyReview || 0),
+    failed: Number(counts.failed || 0),
+    needsClient: Number(counts.needsClient || 0),
+    stuckProcessing: Number(counts.stuckProcessing || 0),
+    processingStuckMinutes: Number(health?.thresholds?.processingStuckMinutes || 0),
+    oldestActionableAt: health?.oldestActionableAt || null,
+    oldestProcessingAt: health?.oldestProcessingAt || null,
+    nextActionKey: action.key || 'unknown',
+    nextActionLabel: action.label || 'Review Coach intake health',
+    queueRoute: resolveCoachQueueRoute(ctx),
+    commandHint: 'Open the Swan Coach intake workspace to act on these health findings.',
   };
 }
 
@@ -229,6 +252,16 @@ async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimi
   return { result, nextItem: pickNextCoachIntakeItem(result?.items || []) };
 }
 
+export async function dispatchViewCoachIntakeHealth(_params = {}, ctx = {}) {
+  const userId = resolveUserId(ctx);
+  resolveRole(ctx);
+  const health = await getCoachIntakeHealth({
+    userId,
+    sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
+  });
+  return healthCommandSummary(health, ctx);
+}
+
 export async function dispatchViewCoachIntakeQueue(params = {}, ctx = {}) {
   const { result, nextItem } = await readQueue(params, ctx);
   return scalarSummary(result, nextItem, ctx);
@@ -255,6 +288,7 @@ export const dispatchInspectPlaudAudioPieces = dispatchInspectCoachAudioPieces;
 export const _internal = {
   audioInspectionSummary,
   audioPuzzleForItem,
+  healthCommandSummary,
   matchesIntakeId,
   normalizeLimit,
   pickNextItem: pickNextCoachIntakeItem,

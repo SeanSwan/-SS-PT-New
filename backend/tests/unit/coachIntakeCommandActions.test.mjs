@@ -11,8 +11,14 @@ vi.mock('../../services/coachIntakeItemService.mjs', () => ({
   listUnifiedCoachIntakeItems: vi.fn(),
 }));
 
+vi.mock('../../services/coachIntakeHealthService.mjs', () => ({
+  getCoachIntakeHealth: vi.fn(),
+}));
+
 import { listUnifiedCoachIntakeItems } from '../../services/coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../../services/coachIntakeHealthService.mjs';
 import {
+  dispatchViewCoachIntakeHealth,
   dispatchReviewNextCoachIntake,
   dispatchViewCoachIntakeQueue,
   _internal,
@@ -23,6 +29,55 @@ describe('Unified Coach intake dispatcher behavior', () => {
 
   beforeEach(() => {
     vi.mocked(listUnifiedCoachIntakeItems).mockReset();
+    vi.mocked(getCoachIntakeHealth).mockReset();
+  });
+
+  it('returns flat PII-safe intake health for the command lane', async () => {
+    vi.mocked(getCoachIntakeHealth).mockResolvedValue({
+      schemaReady: true,
+      status: 'degraded',
+      generatedAt: '2026-05-07T12:00:00.000Z',
+      counts: {
+        total: 6,
+        actionable: 4,
+        today: 2,
+        unprocessed: 1,
+        processing: 2,
+        readyReview: 1,
+        failed: 1,
+        needsClient: 2,
+        stuckProcessing: 1,
+      },
+      thresholds: { processingStuckMinutes: 30 },
+      nextOperatorAction: {
+        key: 'inspect_stuck_processing',
+        label: 'Inspect stuck processing intake',
+      },
+      transcript: 'Do Not Return',
+      clientName: 'Do Not Return',
+    });
+
+    const result = await dispatchViewCoachIntakeHealth(
+      {},
+      { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(getCoachIntakeHealth).toHaveBeenCalledWith({
+      userId: 42,
+      sequelizeOverride,
+    });
+    expect(result).toMatchObject({
+      healthStatus: 'degraded',
+      schemaReady: true,
+      actionable: 4,
+      readyReview: 1,
+      failed: 1,
+      stuckProcessing: 1,
+      nextActionKey: 'inspect_stuck_processing',
+      nextActionLabel: 'Inspect stuck processing intake',
+      queueRoute: '/dashboard/admin/coach-assistant',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
   });
 
   it('returns a flat unified queue summary without transcripts or client names', async () => {

@@ -20,6 +20,25 @@ const CoachIntakeScopeSchema = z.enum([
 
 const commands = [
   {
+    type: 'view_coach_intake_health',
+    description: 'Show Coach intake health, stuck processing counts, and next operator action',
+    naturalLanguagePatterns: [
+      'show Coach intake health',
+      'is the Coach intake queue healthy',
+      'what is stuck in the intake queue',
+      'show hive mind queue health',
+    ],
+    method: 'GET',
+    endpoint: '/api/coach/intake/health',
+    inputSchema: z.object({}),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['view_coach_intake_queue', 'review_next_coach_intake'],
+  },
+  {
     type: 'view_coach_intake_queue',
     description: 'Show the unified Swan Coach intake queue counts and next work item',
     naturalLanguagePatterns: [
