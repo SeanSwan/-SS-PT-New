@@ -44,6 +44,12 @@ describe('Review Next prepared-draft routes', () => {
         queueStatus: 'ready_review',
         canReview: true,
         latestProposalId: 'proposal:ready draft',
+        latestProposal: {
+          id: 'proposal:ready draft',
+          type: 'workout_log',
+          status: 'PENDING',
+          title: 'Review workout draft',
+        },
         transcript: 'Do Not Return',
         clientName: 'Do Not Return',
         createdAt: '2026-05-05T12:00:00.000Z',
@@ -58,6 +64,9 @@ describe('Review Next prepared-draft routes', () => {
     expect(result).toMatchObject({
       nextKind: 'coach_intake',
       nextEntityId: '11111111-1111-4111-9111-111111111111',
+      nextLatestProposalId: 'proposal:ready draft',
+      nextLatestProposalStatus: 'PENDING',
+      nextLatestProposalType: 'workout_log',
       reviewRoute: '/dashboard/trainer/coach-assistant?intake=11111111-1111-4111-9111-111111111111&proposal=proposal%3Aready%20draft',
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);

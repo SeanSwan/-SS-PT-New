@@ -6,10 +6,7 @@
  */
 import { listUnifiedCoachIntakeItems } from '../../coachIntakeItemService.mjs';
 import { getCoachIntakeHealth } from '../../coachIntakeHealthService.mjs';
-import {
-  coachIntakeQueueAgeTime,
-  pickNextCoachIntakeItem,
-} from '../../coachIntakeQueueOrdering.mjs';
+import { coachIntakeQueueAgeTime, pickNextCoachIntakeItem } from '../../coachIntakeQueueOrdering.mjs';
 import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
 import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
 const DEFAULT_QUEUE_LIMIT = 10;
@@ -81,6 +78,9 @@ function scalarSummary(result, nextItem, ctx) {
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
+    nextLatestProposalId: nextItem?.latestProposalId || nextItem?.latestProposal?.id || null,
+    nextLatestProposalStatus: nextItem?.latestProposal?.status || null,
+    nextLatestProposalType: nextItem?.latestProposal?.type || null,
     ...coachIntakeGateSummary(nextItem),
     reviewRoute: reviewRouteForItem(nextItem, ctx),
     queueRoute,

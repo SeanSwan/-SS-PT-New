@@ -3,7 +3,7 @@
  * ==================================
  * Focused review-next result-card coverage for the Swan Coach intake lane.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { ExecutionResultCard } from './CoachCommandCards';
@@ -62,6 +62,8 @@ describe('Coach review-next result card', () => {
             nextKind: 'coach_intake',
             nextQueueStatus: 'ready_review',
             nextCanReview: true,
+            nextLatestProposalStatus: 'PENDING',
+            nextLatestProposalType: 'workout_log',
             queueRoute: '/dashboard/admin/coach-assistant',
             reviewRoute: '/dashboard/admin/coach-assistant?intake=abc&proposal=proposal-1',
           }}
@@ -71,6 +73,11 @@ describe('Coach review-next result card', () => {
 
     expect(screen.getByRole('link', { name: /open prepared draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc&proposal=proposal-1');
+    const draftStatus = screen.getByLabelText(/draft status/i);
+    expect(within(draftStatus).getByText(/Prepared draft/i)).toBeInTheDocument();
+    expect(within(draftStatus).getByText(/workout log/i)).toBeInTheDocument();
+    expect(within(draftStatus).getByText(/pending/i)).toBeInTheDocument();
+    expect(screen.queryByText('nextLatestProposalId')).toBeNull();
   });
 
   it('does not claim the Coach intake queue is clear when only actionable counts are returned', () => {

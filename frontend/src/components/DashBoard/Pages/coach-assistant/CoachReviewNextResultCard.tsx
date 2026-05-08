@@ -175,6 +175,11 @@ export function CoachReviewNextResultCard({
   const nextStatus = statusLabel(result.nextQueueStatus);
   const blockingGate = compactText(result.nextBlockingGate);
   const nextAction = compactText(result.nextActionLabel);
+  const proposalType = statusLabel(result.nextLatestProposalType);
+  const proposalStatus = statusLabel(result.nextLatestProposalStatus);
+  const preparedDraftStatus = proposalType || proposalStatus
+    ? `${proposalType || 'draft'}${proposalStatus ? ` - ${proposalStatus}` : ''}`
+    : null;
   const surfaceLabel = command.includes('_plaud_') ? 'PLAUD' : 'Coach';
   const workspaceLabel = surfaceLabel === 'PLAUD' ? 'PLAUD workspace' : 'Coach intake workspace';
   const hasDirectNext = Boolean(result.nextKind || result.nextEntityId || result.reviewRoute);
@@ -207,8 +212,8 @@ export function CoachReviewNextResultCard({
         <ListChecks size={15} aria-hidden="true" />
         <span>{nextSummary}</span>
       </NextPanel>
-      {(blockingGate || nextAction) && (
-        <GateStrip aria-label="Next intake gate and action">
+      {(blockingGate || nextAction || preparedDraftStatus) && (
+        <GateStrip aria-label="Next intake gate, action, and draft status">
           {blockingGate && (
             <GateTile>
               <GateLabel>Blocking gate</GateLabel>
@@ -221,6 +226,12 @@ export function CoachReviewNextResultCard({
               <GateValue>{nextAction}</GateValue>
             </GateTile>
           )}
+          {preparedDraftStatus ? (
+            <GateTile>
+              <GateLabel>Prepared draft</GateLabel>
+              <GateValue>{preparedDraftStatus}</GateValue>
+            </GateTile>
+          ) : null}
         </GateStrip>
       )}
       <Hint><ShieldCheck size={13} aria-hidden="true" /> Client, date, duplicate, and final write gates still require approval.</Hint>
