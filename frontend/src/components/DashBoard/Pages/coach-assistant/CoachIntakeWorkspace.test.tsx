@@ -133,9 +133,17 @@ describe('CoachIntakeWorkspace', () => {
     expect(within(target).getByText(/Active review target/i)).toBeInTheDocument();
     expect(within(target).getByText(/Later upper body note/i)).toBeInTheDocument();
     expect(within(target).getByText(/Needs Client/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Review dossier/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Client confirmation required/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Ordering review required/i)).toBeInTheDocument();
+    expect(within(target).getByText(/Final write locked/i)).toBeInTheDocument();
+    expect(within(target).getByText(/3 audio pieces/i)).toBeInTheDocument();
 
     fireEvent.click(within(target).getByRole('button', { name: /ask coach about this intake/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-2');
+
+    fireEvent.click(within(target).getByRole('button', { name: /inspect audio queue/i }));
+    expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
   });
 
   it('renders the highest-priority review-next item first even when API order is newer-first', () => {

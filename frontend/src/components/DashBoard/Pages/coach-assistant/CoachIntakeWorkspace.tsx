@@ -20,16 +20,11 @@ import {
 } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
+import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
 import {
   AudioPuzzleLabel,
   AudioPuzzleRow,
 } from './CoachIntakeWorkspaceAudio.styles';
-import {
-  TargetActions,
-  TargetBody,
-  TargetEyebrow,
-  TargetPanel,
-} from './CoachIntakeWorkspaceTarget.styles';
 import {
   ActionButton,
   ActionRow,
@@ -204,26 +199,13 @@ export function CoachIntakeWorkspace({
       </Header>
 
       {activeItem && (
-        <TargetPanel aria-label="Active review target">
-          <TargetBody>
-            <TargetEyebrow><ListChecks size={13} aria-hidden="true" /> Active review target</TargetEyebrow>
-            <h3>{activeItem.title}</h3>
-            <p>{activeItem.sourceLabel} - {statusLabel(activeItem.queueStatus)}</p>
-          </TargetBody>
-          <TargetActions>
-            <ActionButton
-              type="button"
-              onClick={() => onCommandPrompt(activeItemPrompt(activeItem))}
-            >
-              <Brain size={16} aria-hidden="true" />
-              Ask Coach about this intake
-            </ActionButton>
-            <WorkspaceLink to={itemReviewHref(activeItem, coachWorkspaceHref)}>
-              <ListChecks size={16} aria-hidden="true" />
-              Open target
-            </WorkspaceLink>
-          </TargetActions>
-        </TargetPanel>
+        <CoachIntakeActiveDossier
+          item={activeItem}
+          statusText={statusLabel(activeItem.queueStatus)}
+          reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
+          onAskCoach={() => onCommandPrompt(activeItemPrompt(activeItem))}
+          onInspectAudio={() => onCommandPrompt('inspect pending Coach audio pieces')}
+        />
       )}
 
       <Grid>

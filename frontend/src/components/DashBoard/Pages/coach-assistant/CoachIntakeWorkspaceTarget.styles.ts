@@ -9,7 +9,7 @@ export const TargetPanel = styled.section`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: center;
+  align-items: stretch;
   margin: 0 0 12px;
   padding: 12px;
   border-radius: 8px;
@@ -41,6 +41,64 @@ export const TargetBody = styled.div`
     font-size: 12px;
     line-height: 1.45;
   }
+`;
+
+export const DossierHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+`;
+
+export const DossierMeta = styled.span`
+  display: block;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 58%, transparent);
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+`;
+
+export const DossierGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+
+  @media (max-width: 820px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const GateCard = styled.div`
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #030712) 36%, transparent);
+  color: var(--text-primary, #E0ECF4);
+`;
+
+export const GateLabel = styled.span`
+  display: block;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 54%, transparent);
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  line-height: 1.3;
+  text-transform: uppercase;
+`;
+
+export const GateValue = styled.strong`
+  display: block;
+  margin-top: 2px;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0;
 `;
 
 export const TargetEyebrow = styled.span`
