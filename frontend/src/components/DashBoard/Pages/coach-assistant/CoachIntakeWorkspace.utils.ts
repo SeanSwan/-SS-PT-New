@@ -4,6 +4,7 @@
  * Small pure helpers for the Coach intake workspace queue and prompt wiring.
  */
 import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
+import type { CoachActionProposal } from './SwanCoachTypes';
 
 const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -66,6 +67,27 @@ export function orderedQueueItems(items: CoachIntakeItem[]): CoachIntakeItem[] {
 
 export function pickNextItem(items: CoachIntakeItem[]): CoachIntakeItem | null {
   return orderedQueueItems(items).filter((item) => item.queueStatus !== 'archived')[0] || null;
+}
+
+export function actionableItemsAfter(
+  items: CoachIntakeItem[],
+  currentId?: string | null,
+): CoachIntakeItem[] {
+  const cleanCurrent = String(currentId || '').replace(/^coach:/, '');
+  return orderedQueueItems(items).filter((item) => {
+    if (item.queueStatus === 'archived') return false;
+    if (!cleanCurrent) return true;
+    return itemEntityId(item) !== cleanCurrent && item.id !== currentId;
+  });
+}
+
+export function shouldAdvanceAfterProposalAction(
+  proposal: Pick<CoachActionProposal, 'status' | 'type'>,
+): boolean {
+  const status = String(proposal.status || '').toUpperCase();
+  return status === 'APPLIED'
+    || status === 'REJECTED'
+    || (proposal.type === 'clarification' && status === 'APPROVED');
 }
 
 export function itemEntityId(item: CoachIntakeItem): string {

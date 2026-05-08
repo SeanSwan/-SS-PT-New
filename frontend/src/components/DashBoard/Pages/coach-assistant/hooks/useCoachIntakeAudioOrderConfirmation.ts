@@ -13,7 +13,7 @@ interface ConfirmationState {
   isConfirming: boolean;
 }
 
-export function useCoachIntakeAudioOrderConfirmation(refresh: () => Promise<void>) {
+export function useCoachIntakeAudioOrderConfirmation(refresh: () => Promise<unknown>) {
   const [state, setState] = useState<ConfirmationState>({
     intakeId: null,
     message: null,

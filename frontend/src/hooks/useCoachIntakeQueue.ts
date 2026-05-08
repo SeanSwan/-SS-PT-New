@@ -27,7 +27,7 @@ export interface CoachIntakeQueueState {
   summary: PlaudIntakeSummary;
   isLoading: boolean;
   error: PlaudApiError | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<CoachIntakeItem[]>;
 }
 
 export function useCoachIntakeQueue({
@@ -50,26 +50,29 @@ export function useCoachIntakeQueue({
     return () => { isMountedRef.current = false; };
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<CoachIntakeItem[]> => {
     if (!enabled) {
       setItems([]);
       setSummary(EMPTY_SUMMARY);
       setError(null);
       setIsLoading(false);
-      return;
+      return [];
     }
     setIsLoading(true);
     setError(null);
     try {
       const response = await listCoachIntakeItems({ scope, limit });
-      if (!isMountedRef.current) return;
-      setItems(response.items);
+      const nextItems = response.items || [];
+      if (!isMountedRef.current) return nextItems;
+      setItems(nextItems);
       setSummary(response.summary);
+      return nextItems;
     } catch (err) {
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) return [];
       setError(err as PlaudApiError);
       setItems([]);
       setSummary(EMPTY_SUMMARY);
+      return [];
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }

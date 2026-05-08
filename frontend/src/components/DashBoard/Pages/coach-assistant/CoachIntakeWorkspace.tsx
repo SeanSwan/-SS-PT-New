@@ -8,6 +8,7 @@
  * without duplicating backend write logic or implying auto-apply.
  */
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Brain,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import type { CoachActionProposal } from './SwanCoachTypes';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
@@ -50,6 +52,7 @@ import {
   activeAudioPrompt,
   activeDraftReviewPrompt,
   activeItemPrompt,
+  actionableItemsAfter,
   isActiveItem,
   itemEntityId,
   itemMeta,
@@ -57,6 +60,7 @@ import {
   orderedQueueItems,
   pickNextItem,
   plural,
+  shouldAdvanceAfterProposalAction,
   statusLabel,
   visibleAudioPuzzle,
 } from './CoachIntakeWorkspace.utils';
@@ -80,6 +84,7 @@ export function CoachIntakeWorkspace({
 }: CoachIntakeWorkspaceProps): JSX.Element | null {
   const isTrainerSurface = userRole === 'admin' || userRole === 'trainer';
   const { items, summary, isLoading, error, refresh } = queue;
+  const navigate = useNavigate();
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
   const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
 
@@ -97,6 +102,27 @@ export function CoachIntakeWorkspace({
   React.useEffect(() => {
     setReviewingProposalId(null);
   }, [activeItemKey]);
+
+  const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
+    if (!shouldAdvanceAfterProposalAction(proposal)) {
+      void refresh();
+      return;
+    }
+    setReviewingProposalId(null);
+    const currentId = activeItem ? itemEntityId(activeItem) || activeItem.id : activeIntakeId;
+    void (async () => {
+      let refreshedItems: CoachIntakeItem[] = [];
+      try {
+        const refreshResult = await refresh();
+        refreshedItems = Array.isArray(refreshResult) ? refreshResult : [];
+      } catch {
+        refreshedItems = [];
+      }
+      const sourceItems = refreshedItems.length > 0 ? refreshedItems : orderedItems;
+      const nextItemAfterAction = actionableItemsAfter(sourceItems, currentId)[0] || null;
+      navigate(itemReviewHref(nextItemAfterAction, coachWorkspaceHref));
+    })();
+  }, [activeIntakeId, activeItem, coachWorkspaceHref, navigate, orderedItems, refresh]);
 
   if (!isTrainerSurface) return null;
 
@@ -156,7 +182,7 @@ export function CoachIntakeWorkspace({
         <CoachIntakePreparedDraftPanel
           proposalId={reviewingProposalId}
           onClose={() => setReviewingProposalId(null)}
-          onProposalAction={() => { void refresh(); }}
+          onProposalAction={handleProposalAction}
         />
       ) : null}
 
