@@ -19,6 +19,7 @@
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  AlertTriangle,
   Brain,
   CheckCircle2,
   Clock3,
@@ -54,6 +55,8 @@ import {
   IntakePreviewItem,
   IntakePreviewLink,
   IntakePreviewList,
+  IntakeRecoveryAlert,
+  IntakeRecoveryLink,
   IntakeSnapshot,
   IntakeSnapshotHeader,
   IntakeStat,
@@ -119,7 +122,9 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const coachPath = `/dashboard/${role}/coach-assistant`;
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
   const params = new URLSearchParams(location.search);
-  const directMergeRequestId = parseMergeRequestId(params.get('mergeRequestId'));
+  const rawMergeRequestId = params.get('mergeRequestId');
+  const directMergeRequestId = parseMergeRequestId(rawMergeRequestId);
+  const hasInvalidDirectMergeRequestId = Boolean(rawMergeRequestId && !directMergeRequestId);
   const reviewNextRequested = params.get('review') === 'next';
   const reviewNextMergeRequestId = reviewNextRequested
     ? pickReviewNextMergeRequestId(intakeItems)
@@ -212,6 +217,15 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             <dd>{summary.needsClient}</dd>
           </IntakeStat>
         </IntakeStats>
+        {hasInvalidDirectMergeRequestId && (
+          <IntakeRecoveryAlert role="alert" data-testid="plaud-invalid-review-link">
+            <AlertTriangle size={18} aria-hidden="true" />
+            <span>That PLAUD review link has an invalid merge request ID.</span>
+            <IntakeRecoveryLink to={`/dashboard/${role}/plaud?review=next`}>
+              Review next item
+            </IntakeRecoveryLink>
+          </IntakeRecoveryAlert>
+        )}
         <IntakePreviewList>
           {isLoading ? (
             <IntakePreviewItem><span>Loading intake queue</span><span /></IntakePreviewItem>

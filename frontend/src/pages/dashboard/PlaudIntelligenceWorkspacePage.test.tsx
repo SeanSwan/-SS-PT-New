@@ -89,6 +89,14 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/\[0-9a-fA-F\]\{8\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{12\}/);
   });
 
+  it('surfaces malformed direct merge request links with a review-next recovery path', () => {
+    expect(PAGE_SRC).toMatch(/rawMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/hasInvalidDirectMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/IntakeRecoveryAlert/);
+    expect(PAGE_SRC).toMatch(/data-testid="plaud-invalid-review-link"/);
+    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
+  });
+
   it('marks the selected merge request target in the intake preview list', () => {
     expect(PAGE_SRC).toMatch(/selectedMergeRequestId/);
     expect(PAGE_SRC).toMatch(/isDirectMergeTarget/);
