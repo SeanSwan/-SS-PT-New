@@ -51,13 +51,18 @@ function text(value: unknown) {
 function evidenceText(value: unknown) {
   if (!Array.isArray(value)) return null;
   const refs = value.map((item) => text(item)).filter(Boolean);
-  return refs.length ? refs.join(', ') : null;
+  if (!refs.length) return null;
+  return `${refs.length} evidence ref${refs.length === 1 ? '' : 's'} available`;
 }
 
 function redactedEvidenceText(value: unknown) {
   const count = Number(value || 0);
   if (!Number.isFinite(count) || count <= 0) return null;
   return `${count} evidence ref${count === 1 ? '' : 's'} withheld`;
+}
+
+function splitReasonText(value: unknown) {
+  return text(value) ? 'Split boundary proposed for trainer review' : null;
 }
 
 function splitItems(detail: Record<string, unknown> | null) {
@@ -78,7 +83,7 @@ export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<s
             {text(split.date) && <div>Date: {text(split.date)}</div>}
             {text(split.recordedAtStart) && <div>Starts: {text(split.recordedAtStart)}</div>}
             {text(split.recordedAtEnd) && <div>Ends: {text(split.recordedAtEnd)}</div>}
-            {text(split.reason) && <div>Reason: {text(split.reason)}</div>}
+            {splitReasonText(split.reason) && <div>Reason: {splitReasonText(split.reason)}</div>}
             {evidenceText(split.evidenceRefs) && <div>Evidence: {evidenceText(split.evidenceRefs)}</div>}
             {redactedEvidenceText(split.redactedEvidenceRefCount) && (
               <div>{redactedEvidenceText(split.redactedEvidenceRefCount)}</div>

@@ -68,9 +68,69 @@ describe('CoachActionProposalCard split-plan flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
 
     expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
-    expect(screen.getByText(/Clip two starts a separate upper-body session/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Reason: Split boundary proposed for trainer review/i)).toHaveLength(2);
+    expect(screen.queryByText(/Clip two starts a separate upper-body session/i)).not.toBeInTheDocument();
     expect(screen.getByText(/1 evidence ref withheld/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /approve split plan/i })).not.toBeDisabled();
+  });
+
+  it('does not render arbitrary split-plan reason text from proposal details', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'split-review-token-1',
+        detail: {
+          splitPlan: {
+            splitCount: 1,
+            splits: [
+              {
+                title: 'Session boundary',
+                date: '2026-05-05',
+                reason: 'do-not-render-private-split-reason-detail',
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Session boundary/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reason: Split boundary proposed for trainer review/i)).toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-split-reason-detail/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary split-plan evidence reference text from proposal details', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'split-review-token-1',
+        detail: {
+          splitPlan: {
+            splitCount: 1,
+            splits: [
+              {
+                title: 'Session boundary',
+                evidenceRefs: ['do-not-render-private-evidence-ref'],
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Session boundary/i)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence: 1 evidence ref available/i)).toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-evidence-ref/i)).not.toBeInTheDocument();
   });
 
   it('shows split-plan preparation count after approval', async () => {
