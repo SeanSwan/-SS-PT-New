@@ -9,6 +9,7 @@ import {
   coachIntakeQueueAgeTime,
   pickNextCoachIntakeItem,
 } from '../../coachIntakeQueueOrdering.mjs';
+import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
@@ -33,8 +34,8 @@ function resolveCoachQueueRoute(ctx) {
 }
 
 function resolvePlaudReviewRoute(ctx, item = null) {
-  const entityId = item?.entityId || '';
   const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
+  const entityId = isPlaudUuid(item?.entityId) ? item.entityId : '';
   return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
 }
 
@@ -54,6 +55,14 @@ function reviewRouteForItem(item, ctx) {
   return entityId ? `${queueRoute}?intake=${encodeURIComponent(entityId)}` : queueRoute;
 }
 
+function summaryEntityIdForItem(item) {
+  if (!item) return null;
+  if (item.kind === 'merge_request') {
+    return isPlaudUuid(item.entityId) ? item.entityId : null;
+  }
+  return item.entityId || null;
+}
+
 function scalarSummary(result, nextItem, ctx) {
   const summary = result?.summary || {};
   const queueRoute = resolveCoachQueueRoute(ctx);
@@ -68,7 +77,7 @@ function scalarSummary(result, nextItem, ctx) {
     needsClient: Number(summary.needsClient || 0),
     schemaReady: result?.schemaReady !== false,
     nextIntakeId: nextItem?.id || null,
-    nextEntityId: nextItem?.entityId || null,
+    nextEntityId: summaryEntityIdForItem(nextItem),
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
@@ -250,4 +259,5 @@ export const _internal = {
   queueAgeTime: coachIntakeQueueAgeTime,
   reviewRouteForItem,
   scalarSummary,
+  summaryEntityIdForItem,
 };

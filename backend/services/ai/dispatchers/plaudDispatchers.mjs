@@ -6,6 +6,7 @@
  * workout payloads, and no client names.
  */
 import { listPlaudIntakeItems } from '../../plaudIntakeQueueService.mjs';
+import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
@@ -76,10 +77,14 @@ function pickNextItem(items = []) {
 
 function reviewRouteForItem(item, queueRoute) {
   if (!item) return null;
-  if (item.kind === 'merge_request' && item.canReview && item.entityId) {
+  if (item.kind === 'merge_request' && item.canReview && isPlaudUuid(item.entityId)) {
     return `${queueRoute}?mergeRequestId=${encodeURIComponent(item.entityId)}`;
   }
   return `${queueRoute}?review=next`;
+}
+
+function summaryEntityIdForItem(item) {
+  return isPlaudUuid(item?.entityId) ? item.entityId : null;
 }
 
 function scalarSummary(result, nextItem, queueRoute) {
@@ -94,7 +99,7 @@ function scalarSummary(result, nextItem, queueRoute) {
     failed: Number(summary.failed || 0),
     needsClient: Number(summary.needsClient || 0),
     nextIntakeId: nextItem?.id || null,
-    nextEntityId: nextItem?.entityId || null,
+    nextEntityId: summaryEntityIdForItem(nextItem),
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
@@ -250,6 +255,7 @@ export const _internal = {
   reviewRouteForItem,
   resolvePlaudQueueRoute,
   scalarSummary,
+  summaryEntityIdForItem,
   summarizeAudioPieces,
   timelineInfo,
 };

@@ -144,6 +144,31 @@ describe('Unified Coach intake dispatcher behavior', () => {
     });
   });
 
+  it('does not build direct PLAUD review links from malformed merge entity ids', async () => {
+    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 20,
+      schemaReady: true,
+      summary: { total: 1, actionable: 1, today: 1, unprocessed: 0, processing: 0, readyReview: 1, failed: 0, needsClient: 0 },
+      items: [{
+        id: 'merge:malformed-entity',
+        entityId: '../trainer/coach-assistant',
+        kind: 'merge_request',
+        queueStatus: 'ready_review',
+        canReview: true,
+        createdAt: '2026-05-05T12:00:00.000Z',
+      }],
+    });
+
+    await expect(dispatchReviewNextCoachIntake(
+      {},
+      { user: { id: 7, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    )).resolves.toMatchObject({
+      nextEntityId: null,
+      reviewRoute: '/dashboard/trainer/plaud?review=next',
+    });
+  });
+
   it('does not require PLAUD env flags when the unified queue contains Coach intake items', async () => {
     vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
       scope: 'actionable',

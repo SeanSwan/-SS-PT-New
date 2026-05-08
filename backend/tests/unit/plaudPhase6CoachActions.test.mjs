@@ -190,6 +190,43 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
     });
   });
 
+  it('does not build direct merge review links from malformed entity ids', async () => {
+    vi.mocked(listPlaudIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 20,
+      summary: {
+        total: 1,
+        actionable: 1,
+        today: 1,
+        unprocessed: 0,
+        processing: 0,
+        readyReview: 1,
+        failed: 0,
+        needsClient: 0,
+      },
+      items: [
+        {
+          id: 'merge:malformed-entity',
+          entityId: '../trainer/coach-assistant',
+          kind: 'merge_request',
+          queueStatus: 'ready_review',
+          canReview: true,
+        },
+      ],
+    });
+
+    const result = await dispatchReviewNextPlaudIntake(
+      {},
+      { user: { id: 42, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      nextEntityId: null,
+      queueRoute: '/dashboard/trainer/plaud',
+      reviewRoute: '/dashboard/trainer/plaud?review=next',
+    });
+  });
+
   it('rejects client-role PLAUD queue commands', async () => {
     await expect(dispatchViewPlaudIntakeQueue(
       {},
