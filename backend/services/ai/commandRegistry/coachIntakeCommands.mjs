@@ -13,6 +13,8 @@ const CoachIntakeScopeSchema = z.enum([
   'unprocessed',
   'processing',
   'ready_review',
+  'needs_clarification',
+  'duplicate_hold',
   'failed',
   'needs_client',
   'all',
@@ -103,6 +105,8 @@ const commands = [
     naturalLanguagePatterns: [
       'show my Coach intake queue',
       'show my intake queue',
+      'show Coach intake clarification holds',
+      'show Coach intake duplicate holds',
       'what voice notes need review',
       'show hive mind intake',
     ],

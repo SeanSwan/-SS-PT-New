@@ -186,6 +186,24 @@ function classifyDeterministicCoachIntakeIntent(message) {
     };
   }
 
+  if (/^show\s+(?:my\s+)?coach\s+intake\s+clarification\s+holds$/i.test(trimmed)) {
+    return {
+      intent: 'view_coach_intake_queue',
+      clientRef: null,
+      params: { scope: 'needs_clarification' },
+      confidence: 1,
+    };
+  }
+
+  if (/^show\s+(?:my\s+)?coach\s+intake\s+duplicate(?:-risk)?\s+holds$/i.test(trimmed)) {
+    return {
+      intent: 'view_coach_intake_queue',
+      clientRef: null,
+      params: { scope: 'duplicate_hold' },
+      confidence: 1,
+    };
+  }
+
   return null;
 }
 
