@@ -5,6 +5,7 @@
  *   POST /api/coach/intake        - create encrypted typed/narrative intake
  *   GET  /api/coach/intake/queue  - list unified Coach + PLAUD queue metadata
  *   GET  /api/coach/intake/health - read PII-safe queue health metrics
+ *   GET  /api/coach/intake/retention - read raw-artifact retention candidates
  */
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
@@ -12,6 +13,7 @@ import {
   confirmCoachIntakeAudioOrderHandler,
   createCoachTextIntakeHandler,
   getCoachIntakeHealthHandler,
+  getCoachIntakeRetentionHandler,
   listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
 } from '../controllers/coachIntakeController.mjs';
@@ -26,6 +28,7 @@ router.use(express.json({ limit: '256kb' }));
 router.post('/', createCoachTextIntakeHandler);
 router.get('/queue', listCoachIntakeHandler);
 router.get('/health', getCoachIntakeHealthHandler);
+router.get('/retention', getCoachIntakeRetentionHandler);
 router.get('/:id/events', listCoachIntakeEventsHandler);
 router.post('/:id/audio-order/confirm', confirmCoachIntakeAudioOrderHandler);
 

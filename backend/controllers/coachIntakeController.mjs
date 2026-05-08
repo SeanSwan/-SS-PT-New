@@ -11,6 +11,7 @@ import {
   listUnifiedCoachIntakeItems,
 } from '../services/coachIntakeItemService.mjs';
 import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
+import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
 import { listCoachIntakeEvents } from '../services/coachIntakeEventTrailService.mjs';
 import { confirmCoachIntakeAudioOrder } from '../services/coachIntakeReviewActionsService.mjs';
 
@@ -89,6 +90,19 @@ export async function getCoachIntakeHealthHandler(req, res) {
   }
 }
 
+export async function getCoachIntakeRetentionHandler(req, res) {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+
+    const retention = await getCoachIntakeRetentionReport({ userId });
+    return res.status(200).json({ success: true, retention });
+  } catch (err) {
+    logger.error('[coachIntake.retention] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to read Coach intake retention');
+  }
+}
+
 export async function confirmCoachIntakeAudioOrderHandler(req, res) {
   try {
     const userId = currentUserId(req);
@@ -141,6 +155,7 @@ export async function listCoachIntakeEventsHandler(req, res) {
 export default {
   createCoachTextIntakeHandler,
   getCoachIntakeHealthHandler,
+  getCoachIntakeRetentionHandler,
   listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
   confirmCoachIntakeAudioOrderHandler,
