@@ -29,6 +29,7 @@ import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import CoachIntakeQueueEmptyState from './CoachIntakeQueueEmptyState';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
+import CoachIntakeScopeStatus from './CoachIntakeScopeStatus';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import { useCoachIntakeScopeUrlSync } from './hooks/useCoachIntakeScopeUrlSync';
@@ -171,6 +172,7 @@ export function CoachIntakeWorkspace({
           <Eyebrow><Brain size={14} aria-hidden="true" /> Hive mind intake</Eyebrow>
           <h2>Voice intake command center</h2>
           <p>{clientCopy}</p>
+          <CoachIntakeScopeStatus scope={queue.scope} summary={summary} />
         </TitleBlock>
         <ActionRow>
           <WorkspaceLink $primary to={reviewNextHref}>
