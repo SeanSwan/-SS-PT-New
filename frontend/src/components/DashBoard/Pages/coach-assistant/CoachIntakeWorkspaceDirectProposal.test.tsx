@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { getCoachProposal } from '../../../../services/coachProposalService';
 
@@ -42,6 +42,10 @@ function makeQueue() {
 }
 
 describe('CoachIntakeWorkspace direct proposal links', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('opens the linked prepared draft panel from the URL proposal parameter', async () => {
     vi.mocked(getCoachProposal).mockResolvedValue({
       success: true,
@@ -65,5 +69,16 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
     expect(await screen.findByText(/Review lower body workout draft/i)).toBeInTheDocument();
+  });
+
+  it('shows a stale-link warning instead of fetching a mismatched proposal id', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/prepared draft link is stale/i);
+    expect(getCoachProposal).not.toHaveBeenCalled();
   });
 });

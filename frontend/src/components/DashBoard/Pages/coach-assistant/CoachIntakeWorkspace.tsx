@@ -99,6 +99,7 @@ export function CoachIntakeWorkspace({
   const activeItemKey = activeItem?.id || null;
   const activeReviewTargetId = activeItem ? itemEntityId(activeItem) || activeItem.id : null;
   const activeProposalId = React.useMemo(() => new URLSearchParams(location.search).get('proposal'), [location.search]);
+  const hasStaleProposalLink = Boolean(activeProposalId && activeItem && activeProposalId !== activeItem.latestProposalId);
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
@@ -214,6 +215,15 @@ export function CoachIntakeWorkspace({
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />
       )}
+      {hasStaleProposalLink ? (
+        <ItemCard role="alert">
+          <ItemTitle>
+            <strong>Prepared draft link is stale</strong>
+            <span>This intake has a different latest draft. Use Review prepared draft from the active target.</span>
+          </ItemTitle>
+          <SourceChip $tone="gold"><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
+        </ItemCard>
+      ) : null}
       {activeItem?.kind === 'coach_intake' ? (
         <CoachIntakeEventTrail intakeId={activeReviewTargetId} />
       ) : null}
