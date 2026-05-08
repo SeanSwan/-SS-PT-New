@@ -102,6 +102,14 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function getAttachmentLabel(file: AttachedFile, index: number): string {
+  const position = index + 1;
+  if (file.type.startsWith('audio/')) return `Audio item ${position}`;
+  if (file.type.startsWith('image/')) return `Image item ${position}`;
+  if (file.type === 'application/pdf' || file.type.startsWith('text/')) return `Transcript item ${position}`;
+  return `Attachment ${position}`;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Main Component
 // ─────────────────────────────────────────────────────────────
@@ -122,21 +130,24 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = memo(({ files, onRem
       aria-hidden={!hasFiles}
       data-testid="attachment-preview-bar"
     >
-      {files.map((f) => (
-        <FileChip key={f.id}>
-          {f.previewUrl ? (
-            <Thumbnail src={f.previewUrl} alt={f.name} />
-          ) : f.type.startsWith('image/') ? (
-            <ImageIcon size={16} />
-          ) : (
-            <FileText size={16} />
-          )}
-          <FileName title={`${f.name} (${formatSize(f.size)})`}>{f.name}</FileName>
-          <RemoveBtn onClick={() => onRemove(f.id)} aria-label={`Remove ${f.name}`}>
-            <X size={10} />
-          </RemoveBtn>
-        </FileChip>
-      ))}
+      {files.map((f, index) => {
+        const label = getAttachmentLabel(f, index);
+        return (
+          <FileChip key={f.id}>
+            {f.previewUrl ? (
+              <Thumbnail src={f.previewUrl} alt={`${label} preview`} />
+            ) : f.type.startsWith('image/') ? (
+              <ImageIcon size={16} />
+            ) : (
+              <FileText size={16} />
+            )}
+            <FileName title={`${label} (${formatSize(f.size)})`}>{label}</FileName>
+            <RemoveBtn type="button" onClick={() => onRemove(f.id)} aria-label={`Remove ${label}`}>
+              <X size={10} />
+            </RemoveBtn>
+          </FileChip>
+        );
+      })}
     </PreviewBar>
   );
 });

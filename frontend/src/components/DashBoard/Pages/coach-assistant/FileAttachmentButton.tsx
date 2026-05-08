@@ -70,6 +70,7 @@ const FileAttachmentButton: React.FC<FileAttachmentButtonProps> = memo(({
   return (
     <>
       <AttachBtn
+        type="button"
         onClick={handleClick}
         disabled={disabled}
         aria-label="Attach file"

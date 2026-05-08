@@ -1,28 +1,24 @@
 /**
  * PRODUCTION API SERVICE
  * ======================
- * Production-ready API service for SwanStudios frontend
- * Handles authentication, token management, and error handling for Render deployment
+ * Production-ready API service for SwanStudios frontend.
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { logger } from '@/utils/logger';
+import {
+  createProductionApiClient,
+  registerPaywallTrigger,
+  unregisterPaywallTrigger,
+} from './apiClientFactory';
+import { ProductionTokenManager } from './productionTokenManager';
 
-// ─────────────────────────────────────────────────────────────
-// Paywall bridge — connects Axios interceptor to React PaywallContext
-// without creating circular imports. Set by PaywallProvider on mount.
-// ─────────────────────────────────────────────────────────────
-type PaywallTriggerFn = (featureName: string, data?: Record<string, unknown>) => void;
-let _paywallTrigger: PaywallTriggerFn | null = null;
+export { registerPaywallTrigger, unregisterPaywallTrigger };
 
-export function registerPaywallTrigger(fn: PaywallTriggerFn) { _paywallTrigger = fn; }
-export function unregisterPaywallTrigger() { _paywallTrigger = null; }
-
-// Production configuration
-const IS_PRODUCTION = import.meta.env.PROD || 
-                     window.location.hostname.includes('render.com') || 
-                     window.location.hostname.includes('sswanstudios.com') ||
-                     window.location.hostname.includes('swanstudios.com');
+const IS_PRODUCTION = import.meta.env.PROD
+  || window.location.hostname.includes('render.com')
+  || window.location.hostname.includes('sswanstudios.com')
+  || window.location.hostname.includes('swanstudios.com');
 
 const API_BASE_URL = IS_PRODUCTION
   ? 'https://sswanstudios.com'
@@ -31,320 +27,25 @@ const API_BASE_URL = IS_PRODUCTION
 logger.log(`[API] Production mode: ${IS_PRODUCTION}`);
 logger.log(`[API] Base URL: ${API_BASE_URL}`);
 
-/**
- * Production Token Manager
- * Handles all token operations with proper error handling
- */
-class ProductionTokenManager {
-  private static readonly TOKEN_KEY = 'token';
-  private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
-  private static readonly USER_KEY = 'user';
-  private static readonly TOKEN_TIMESTAMP_KEY = 'tokenTimestamp';
-  
-  private static authFailureCount = 0;
-  private static readonly MAX_AUTH_FAILURES = 3;
-  private static isRefreshing = false;
-  private static refreshSubscribers: Array<(token: string) => void> = [];
-
-  static getToken(): string | null {
-    try {
-      return localStorage.getItem(this.TOKEN_KEY);
-    } catch (error) {
-      logger.warn('[TokenManager] Error getting token:', error);
-      return null;
-    }
-  }
-
-  static setToken(token: string): void {
-    try {
-      localStorage.setItem(this.TOKEN_KEY, token);
-      localStorage.setItem(this.TOKEN_TIMESTAMP_KEY, Date.now().toString());
-      this.authFailureCount = 0;
-    } catch (error) {
-      console.error('[TokenManager] Error setting token:', error);
-    }
-  }
-
-  static getRefreshToken(): string | null {
-    try {
-      return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-    } catch (error) {
-      logger.warn('[TokenManager] Error getting refresh token:', error);
-      return null;
-    }
-  }
-
-  static setRefreshToken(refreshToken: string): void {
-    try {
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-    } catch (error) {
-      console.error('[TokenManager] Error setting refresh token:', error);
-    }
-  }
-
-  static getUser(): any {
-    try {
-      const userStr = localStorage.getItem(this.USER_KEY);
-      return userStr ? JSON.parse(userStr) : null;
-    } catch (error) {
-      logger.warn('[TokenManager] Error getting user:', error);
-      return null;
-    }
-  }
-
-  static setUser(user: any): void {
-    try {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    } catch (error) {
-      console.error('[TokenManager] Error setting user:', error);
-    }
-  }
-
-  static clearAuthData(): void {
-    try {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
-      localStorage.removeItem(this.TOKEN_TIMESTAMP_KEY);
-      this.authFailureCount = 0;
-      logger.log('[TokenManager] Auth data cleared');
-    } catch (error) {
-      console.error('[TokenManager] Error clearing auth data:', error);
-    }
-  }
-
-  static isTokenExpired(token: string): boolean {
-    try {
-      if (!token) return true;
-
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const exp = payload.exp;
-      
-      if (!exp) return false;
-      
-      // Check if token expires within the next 30 seconds
-      const currentTime = Math.floor(Date.now() / 1000);
-      return exp <= (currentTime + 30);
-    } catch (error) {
-      logger.warn('[TokenManager] Error checking token expiry:', error);
-      return true;
-    }
-  }
-
-  static async refreshAccessToken(): Promise<string | null> {
-    if (this.isRefreshing) {
-      return new Promise((resolve) => {
-        this.refreshSubscribers.push(resolve);
-      });
-    }
-
-    this.isRefreshing = true;
-    const refreshToken = this.getRefreshToken();
-
-    if (!refreshToken) {
-      this.isRefreshing = false;
-      return null;
-    }
-
-    try {
-      logger.log('[TokenManager] Attempting token refresh...');
-      
-      const response = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
-        refreshToken: refreshToken
-      });
-
-      if (response.data.success && response.data.token) {
-        const newToken = response.data.token;
-        const newRefreshToken = response.data.refreshToken || refreshToken;
-
-        this.setToken(newToken);
-        this.setRefreshToken(newRefreshToken);
-
-        logger.log('[TokenManager] Token refreshed successfully');
-
-        this.refreshSubscribers.forEach(callback => callback(newToken));
-        this.refreshSubscribers = [];
-        this.isRefreshing = false;
-
-        return newToken;
-      } else {
-        throw new Error('Invalid refresh response');
-      }
-    } catch (error) {
-      console.error('[TokenManager] Token refresh failed:', error);
-      this.clearAuthData();
-      this.refreshSubscribers.forEach(callback => callback(''));
-      this.refreshSubscribers = [];
-      this.isRefreshing = false;
-      return null;
-    }
-  }
-
-  static incrementAuthFailure(): boolean {
-    this.authFailureCount++;
-    logger.warn(`[TokenManager] Auth failure ${this.authFailureCount}/${this.MAX_AUTH_FAILURES}`);
-    
-    if (this.authFailureCount >= this.MAX_AUTH_FAILURES) {
-      console.error('[TokenManager] Max auth failures reached, clearing auth data');
-      this.clearAuthData();
-      return true;
-    }
-    
-    return false;
-  }
-}
-
-/**
- * Create production-ready axios instance
- */
-const createProductionApiClient = (): AxiosInstance => {
-  const client = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: IS_PRODUCTION ? 30000 : 15000,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    withCredentials: true,
-  });
-
-  // Request interceptor
-  client.interceptors.request.use(
-    async (config) => {
-      const token = ProductionTokenManager.getToken();
-      
-      if (token) {
-        if (ProductionTokenManager.isTokenExpired(token)) {
-          logger.log('[API] Token is expired, attempting refresh...');
-          const newToken = await ProductionTokenManager.refreshAccessToken();
-          
-          if (newToken) {
-            config.headers.Authorization = `Bearer ${newToken}`;
-          }
-        } else {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      }
-
-      if (IS_PRODUCTION) {
-        config.headers['X-Requested-With'] = 'XMLHttpRequest';
-      }
-
-      return config;
-    },
-    (error) => {
-      console.error('[API] Request interceptor error:', error);
-      return Promise.reject(error);
-    }
-  );
-
-  // Response interceptor
-  client.interceptors.response.use(
-    (response: AxiosResponse) => {
-      ProductionTokenManager['authFailureCount'] = 0;
-      return response;
-    },
-    async (error: AxiosError) => {
-      const originalRequest = error.config as any;
-      const isCanceledRequest =
-        error.code === 'ERR_CANCELED'
-        || error.name === 'CanceledError'
-        || error.message === 'canceled'
-        || axios.isCancel(error);
-
-      if (isCanceledRequest) {
-        return Promise.reject(error);
-      }
-
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        originalRequest._retry = true;
-
-        const errorData = error.response.data as any;
-
-        if (errorData?.errorCode === 'TOKEN_EXPIRED' || errorData?.message?.includes('expired')) {
-          logger.log('[API] Token expired, attempting refresh...');
-
-          const newToken = await ProductionTokenManager.refreshAccessToken();
-
-          if (newToken) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return client(originalRequest);
-          } else {
-            ProductionTokenManager.clearAuthData();
-
-            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-              window.location.href = '/login';
-            }
-          }
-        } else {
-          const shouldRedirect = ProductionTokenManager.incrementAuthFailure();
-          if (shouldRedirect && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
-        }
-      }
-
-      // Degraded-mode flag: backend returns { degraded: true } when a service is temporarily unavailable
-      const errorData = error.response?.data as any;
-      if (errorData?.degraded === true) {
-        (error as any).isDegraded = true;
-      }
-
-      // Silently handle 503 errors for notifications endpoint (has graceful fallback)
-      const isNotificationsEndpoint = originalRequest?.url?.includes('/notifications');
-      const is503Error = error.response?.status === 503;
-
-      if (!(isNotificationsEndpoint && is503Error)) {
-        console.error('[API] Response error:', {
-          status: error.response?.status,
-          message: error.message,
-          url: originalRequest?.url
-        });
-      }
-
-      // 402 Payment Required — trigger FrostedPaywall for feature gating
-      if (error.response?.status === 402) {
-        const data = error.response.data as any;
-        const isBackground = originalRequest?._isBackgroundRequest === true;
-
-        if (!isBackground && _paywallTrigger) {
-          const featureName = data?.featureName || 'Premium Feature';
-          _paywallTrigger(featureName, data);
-        }
-      }
-
-      return Promise.reject(error);
-    }
-  );
-
-  return client;
-};
-
-/**
- * Production API Service
- */
 class ProductionApiService {
   private client: AxiosInstance;
 
   constructor() {
-    this.client = createProductionApiClient();
+    this.client = createProductionApiClient(API_BASE_URL, IS_PRODUCTION);
   }
 
-  // Connection checking method
   async checkConnection(): Promise<boolean> {
     try {
       logger.log('[API] Checking server connection...');
-      const response = await this.client.get('/api/health', {
-        timeout: 5000 // 5 second timeout for connection check
-      });
-      
+      const response = await this.client.get('/api/health', { timeout: 5000 });
+
       if (response.data && response.status === 200) {
         logger.log('[API] Server connection successful');
         return true;
-      } else {
-        logger.warn('[API] Server responded but not with expected format');
-        return false;
       }
+
+      logger.warn('[API] Server responded but not with expected format');
+      return false;
     } catch (error: any) {
       logger.warn('[API] Server connection failed:', {
         message: error.message,
@@ -355,14 +56,12 @@ class ProductionApiService {
     }
   }
 
-  // Authentication methods
   async login(credentials: { username: string; password: string }) {
     try {
       logger.log('[API] Attempting login...');
       const response = await this.client.post('/api/auth/login', credentials);
 
       if (response.data.success) {
-        // Handle force-password-change flow — clear any stale auth, no tokens to store yet
         if (response.data.forcePasswordChange) {
           ProductionTokenManager.clearAuthData();
           delete this.client.defaults.headers.common['Authorization'];
@@ -371,16 +70,15 @@ class ProductionApiService {
         }
 
         const { token, refreshToken, user } = response.data;
-
         ProductionTokenManager.setToken(token);
         ProductionTokenManager.setRefreshToken(refreshToken);
         ProductionTokenManager.setUser(user);
 
         logger.log('[API] Login successful');
         return response.data;
-      } else {
-        throw new Error(response.data.message || 'Login failed');
       }
+
+      throw new Error(response.data.message || 'Login failed');
     } catch (error) {
       console.error('[API] Login error:', error);
       throw error;
@@ -400,9 +98,9 @@ class ProductionApiService {
         ProductionTokenManager.setRefreshToken(refreshToken);
         ProductionTokenManager.setUser(user);
         return response.data;
-      } else {
-        throw new Error(response.data.message || 'Password change failed');
       }
+
+      throw new Error(response.data.message || 'Password change failed');
     } catch (error) {
       console.error('[API] Force password change error:', error);
       throw error;
@@ -412,18 +110,16 @@ class ProductionApiService {
   async register(userData: any) {
     try {
       const response = await this.client.post('/api/auth/register', userData);
-      
+
       if (response.data.success) {
         const { token, refreshToken, user } = response.data;
-        
         ProductionTokenManager.setToken(token);
         ProductionTokenManager.setRefreshToken(refreshToken);
         ProductionTokenManager.setUser(user);
-        
         return response.data;
-      } else {
-        throw new Error(response.data.message || 'Registration failed');
       }
+
+      throw new Error(response.data.message || 'Registration failed');
     } catch (error) {
       console.error('[API] Registration error:', error);
       throw error;
@@ -433,13 +129,13 @@ class ProductionApiService {
   async getCurrentUser() {
     try {
       const response = await this.client.get('/api/auth/me');
-      
+
       if (response.data.success && response.data.user) {
         ProductionTokenManager.setUser(response.data.user);
         return response.data;
-      } else {
-        throw new Error('Failed to fetch user data');
       }
+
+      throw new Error('Failed to fetch user data');
     } catch (error) {
       console.error('[API] Get current user error:', error);
       throw error;
@@ -464,20 +160,19 @@ class ProductionApiService {
       }
 
       const response = await this.client.get('/api/auth/validate-token');
-      
+
       if (response.data.success && response.data.valid) {
         ProductionTokenManager.setUser(response.data.user);
         return response.data;
-      } else {
-        return { success: false, valid: false, message: 'Token invalid' };
       }
+
+      return { success: false, valid: false, message: 'Token invalid' };
     } catch (error) {
       console.error('[API] Token validation error:', error);
       return { success: false, valid: false, message: 'Validation error' };
     }
   }
 
-  // HTTP methods
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
     return this.client.get<T>(url, config);
   }
@@ -498,7 +193,6 @@ class ProductionApiService {
     return this.client.delete<T>(url, config);
   }
 
-  // Utility methods
   getStoredUser() {
     return ProductionTokenManager.getUser();
   }
@@ -523,15 +217,12 @@ class ProductionApiService {
   }
 }
 
-// Create and export default instance
 const productionApiService = new ProductionApiService();
 
-// Export for compatibility
 export default productionApiService;
 export { ProductionApiService, ProductionTokenManager };
-export { ProductionApiService as ApiService }; // Backward compatibility alias
+export { ProductionApiService as ApiService };
 
-// Global debug functions for production troubleshooting
 if (typeof window !== 'undefined') {
   (window as any).debugAuth = () => {
     logger.log('[DEBUG] Auth Status:', {

@@ -113,7 +113,7 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextKind: 'merge_request',
       nextQueueStatus: 'ready_review',
       queueRoute: '/dashboard/trainer/plaud',
-      reviewRoute: '/dashboard/trainer/plaud?review=next',
+      reviewRoute: '/dashboard/trainer/plaud?mergeRequestId=11111111-1111-1111-1111-111111111111',
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|transcript/i);
   });
@@ -185,6 +185,43 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       nextKind: 'merge_request',
       nextQueueStatus: 'ready_review',
       nextCanReview: true,
+      queueRoute: '/dashboard/trainer/plaud',
+      reviewRoute: '/dashboard/trainer/plaud?mergeRequestId=bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    });
+  });
+
+  it('does not build direct merge review links from malformed entity ids', async () => {
+    vi.mocked(listPlaudIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 20,
+      summary: {
+        total: 1,
+        actionable: 1,
+        today: 1,
+        unprocessed: 0,
+        processing: 0,
+        readyReview: 1,
+        failed: 0,
+        needsClient: 0,
+      },
+      items: [
+        {
+          id: 'merge:malformed-entity',
+          entityId: '../trainer/coach-assistant',
+          kind: 'merge_request',
+          queueStatus: 'ready_review',
+          canReview: true,
+        },
+      ],
+    });
+
+    const result = await dispatchReviewNextPlaudIntake(
+      {},
+      { user: { id: 42, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      nextEntityId: null,
       queueRoute: '/dashboard/trainer/plaud',
       reviewRoute: '/dashboard/trainer/plaud?review=next',
     });
@@ -278,6 +315,9 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
     });
     expect(result).toMatchObject({
       pieceCount: 3,
+      totalAudioItems: 3,
+      needsOrderingReview: 1,
+      lowConfidence: 1,
       suggestedGroupCount: 2,
       largeGapCount: 1,
       largestGapMinutes: 49,
@@ -291,6 +331,18 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
         'clip:cccccccc-cccc-cccc-cccc-cccccccccccc',
       ].join(' > '),
       targetRoute: '/dashboard/trainer/plaud?pieces=pending',
+      items: [
+        {
+          id: 'plaud:pending-pieces',
+          kind: 'clip_bundle',
+          queueStatus: 'unprocessed',
+          audioPieces: 3,
+          audioBundles: 2,
+          audioConfidence: 'medium',
+          needsOrderingReview: true,
+          reviewRoute: '/dashboard/trainer/plaud?pieces=pending',
+        },
+      ],
     });
     expect(result.commandHint).toMatch(/upload\/ingest timestamps/i);
     expect(result.pieceTimeline).toMatch(/1\. applaud_webhook uploaded_at=.*45s/);

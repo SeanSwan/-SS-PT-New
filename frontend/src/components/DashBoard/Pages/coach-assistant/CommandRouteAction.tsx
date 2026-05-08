@@ -7,6 +7,7 @@
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ArrowRight } from 'lucide-react';
+import { isPlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 
 const ActionWrap = styled.div`
   margin-top: 12px;
@@ -20,8 +21,8 @@ const RouteLink = styled(Link)`
   gap: 8px;
   padding: 0 16px;
   border-radius: 8px;
-  border: 1px solid rgba(96, 192, 240, 0.35);
-  background: rgba(96, 192, 240, 0.14);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   color: var(--accent-primary, #60C0F0);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
@@ -30,8 +31,8 @@ const RouteLink = styled(Link)`
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.22);
-    box-shadow: 0 0 14px rgba(139, 92, 246, 0.28);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
     transform: translateY(-1px);
   }
 
@@ -51,10 +52,48 @@ function safeInternalRoute(value: unknown): string | null {
   const route = value.trim();
   if (!route.startsWith('/dashboard/')) return null;
   if (/[\r\n\t]/.test(route)) return null;
+  if (route.includes('\\')) return null;
+
+  let decodedRoute = route;
+  try {
+    decodedRoute = decodeURIComponent(route);
+  } catch {
+    return null;
+  }
+
+  if (/[\r\n\t]/.test(decodedRoute)) return null;
+  if (decodedRoute.includes('\\')) return null;
+
+  const rawPath = route.split(/[?#]/, 1)[0];
+  const decodedPath = decodedRoute.split(/[?#]/, 1)[0];
+  const hasTraversalSegment = (path: string) => /(^|\/)\.\.(?=\/|$)/.test(path);
+  if (hasTraversalSegment(rawPath) || hasTraversalSegment(decodedPath)) return null;
+
+  const isAllowedCoachPlaudSurface = (path: string) => /^\/dashboard\/(admin|trainer)\/(coach-assistant|plaud)\/?$/.test(path);
+  if (!isAllowedCoachPlaudSurface(rawPath) || !isAllowedCoachPlaudSurface(decodedPath)) return null;
+
+  if (decodedPath.includes('/plaud')) {
+    const [, rawSearch = ''] = route.split('?', 2);
+    const search = rawSearch.split('#', 1)[0];
+    const searchParams = new URLSearchParams(search);
+    if (
+      searchParams.has('mergeRequestId') &&
+      !isPlaudMergeRequestId(searchParams.get('mergeRequestId'))
+    ) {
+      return null;
+    }
+  }
+
   return route;
 }
 
-function labelForCommand(command: string): string {
+function labelForCommand(command: string, route: string): string {
+  const path = route.split(/[?#]/, 1)[0];
+  if (path.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
+  if (path.includes('/coach-assistant') && /[?&]proposal=/.test(route)) return 'Open Prepared Draft';
+  if (path.includes('/coach-assistant')) return 'Open Coach Intake';
+  if (path.includes('/plaud')) return 'Open PLAUD Workspace';
+  if (command.includes('coach_intake')) return 'Open Coach Intake';
   return command.includes('plaud') ? 'Open PLAUD Workspace' : 'Open Workspace';
 }
 
@@ -72,7 +111,7 @@ export function CommandRouteAction({ command, result }: CommandRouteActionProps)
 
   if (!route) return null;
 
-  const label = labelForCommand(command);
+  const label = labelForCommand(command, route);
   return (
     <ActionWrap>
       <RouteLink to={route} aria-label={label}>

@@ -151,7 +151,7 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
               inside a role="dialog" aria-modal overlay — WCAG SC 2.4.3 requires
               focus to move into the dialog on open. autoFocus on first button is
               the minimal safe fix since the component always mounts fresh. */}
-          <Btn $variant="primary" onClick={onRetry} aria-label="Try recording again" autoFocus>
+          <Btn type="button" $variant="primary" onClick={onRetry} aria-label="Try recording again" autoFocus>
             <RefreshCw size={16} /> Try Again
           </Btn>
         </BtnRow>
@@ -168,6 +168,7 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
       <BtnRow>
         {/* autoFocus on first button — same WCAG SC 2.4.3 fix as inaudible branch above */}
         <Btn
+          type="button"
           $variant="ghost"
           onClick={onEdit}
           aria-label="Edit transcript in text field"
@@ -177,6 +178,7 @@ const VoiceTranscriptPreview: React.FC<VoiceTranscriptPreviewProps> = memo(({
           <Edit3 size={16} /> Edit
         </Btn>
         <Btn
+          type="button"
           $variant="primary"
           onClick={onSend}
           aria-label="Send transcript to Swan Coach"

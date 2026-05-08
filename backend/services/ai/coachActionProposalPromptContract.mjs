@@ -1,0 +1,84 @@
+/**
+ * coachActionProposalPromptContract.mjs
+ * =====================================
+ * Prompt contract for Swan Coach's structured approval proposal output.
+ * Coach prepares drafts; deterministic backend services own final writes.
+ */
+
+export const COACH_ACTION_PROPOSAL_PROMPT_CONTRACT = `
+SWAN COACH STRUCTURED PROPOSAL CONTRACT:
+- For client onboarding, workout logging, client data updates, or workout-form changes, prepare a proposal. Do not claim that records were created, updated, logged, sent, deleted, or submitted.
+- Final writes belong to deterministic backend services after trainer approval required in the UI.
+- deterministic approval owns identity resolution, RBAC, date guardrails, duplicate checks, validation, audit events, and final database writes.
+- Use compact evidence_refs such as "seg_04", "clip_2_meta", or "schedule_match_1". Do not put names, phone numbers, emails, free-text transcript lines, secrets, or URLs in evidence_refs.
+- Use compact safety_flags such as "needs_client_confirmation", "duplicate_check_required", "future_date_blocked", "needs_date_confirmation", or "medical_scope_review".
+- Ask a short clarifying question instead of emitting a proposal when required identity, date, or client-source information is missing.
+- When preparing a draft for a known Coach intake item, include top-level "intake_id" with that UUID. Omit "intake_id" if the source id is unknown or not a UUID.
+- SwanStudios uses NASM OPT as the training protocol anchor. Never invent NASM OPT phases, assessment results, corrective categories, or acute variables not present in the verified client context, transcript, or server-provided guidance.
+
+When ready to prepare a draft, use a coach_action_proposal block as one JSON block:
+\`\`\`json
+{
+  "action": "coach_action_proposal",
+  "schema_version": "2026-05-07",
+  "intake_id": "11111111-1111-4111-8111-111111111111",
+  "proposal_type": "client_onboarding|workout_log|client_data_update|frontend_dispatch|clarification|split_plan",
+  "requires_confirmation": true,
+  "evidence_refs": ["seg_04"],
+  "safety_flags": ["trainer_approval_required"],
+  "payload": {}
+}
+\`\`\`
+
+Payload guidance:
+- client_onboarding payload: include gathered onboarding fields only; never invent names, claim codes, passwords, URLs, or consent.
+- workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence.
+- client_data_update payload: include targetUserId or clientId plus non-empty updates; each update must be reviewable.
+- frontend_dispatch payload: use only for draft UI changes, never as a final write path.
+- clarification payload: include question plus optional options when the trainer needs one narrow answer.
+- split_plan payload: include splits array with proposed workout/session boundaries and evidence refs.
+
+Do not emit legacy create_client, ONBOARD_CLIENT, import_workout_log, update_client_data, or AI_SUBMIT_WORKOUT blocks for server-write workflows. The parser may still accept them for old conversations, but your preferred output is coach_action_proposal.
+`;
+
+export function shouldAppendCoachActionProposalContract({ role, context } = {}) {
+  return context === 'coach_assistant' && ['admin', 'trainer'].includes(role);
+}
+
+const STRUCTURED_CLIENT_ONBOARDING_GUIDANCE = `CLIENT CREATION (NEW CLIENT ONBOARDING):
+When the admin/trainer asks to onboard or create a new client, gather the available onboarding fields and use a coach_action_proposal block with proposal_type "client_onboarding". Ask one short clarification when firstName, lastName, or clientSource is missing. Do not claim the account was created, do not invent claim codes/passwords/URLs, and do not emit old client-creation write blocks.`;
+
+const STRUCTURED_WORKOUT_IMPORT_GUIDANCE = `HISTORICAL WORKOUT LOG IMPORT:
+When a trainer/admin pastes workout history or dictates a completed session, parse it into one or more proposed workout-log drafts and use a coach_action_proposal block with proposal_type "workout_log" or "split_plan". Dates must stay evidence-backed, final writes require trainer approval, and old workout-import write blocks are not allowed for new Coach output.`;
+
+function replacePromptSection(prompt, startMarker, endMarker, replacement) {
+  const startIndex = prompt.indexOf(startMarker);
+  if (startIndex === -1) return prompt;
+
+  const endIndex = prompt.indexOf(endMarker, startIndex + startMarker.length);
+  if (endIndex === -1) return prompt;
+
+  return `${prompt.slice(0, startIndex)}${replacement}\n\n${prompt.slice(endIndex)}`;
+}
+
+function replaceLegacyServerWriteInstructions(basePrompt) {
+  const withoutClientCreation = replacePromptSection(
+    basePrompt.replaceAll('FULL read-write access', 'proposal-preparation access'),
+    'CLIENT CREATION (NEW CLIENT ONBOARDING):',
+    'HISTORICAL WORKOUT LOG IMPORT:',
+    STRUCTURED_CLIENT_ONBOARDING_GUIDANCE
+  );
+
+  return replacePromptSection(
+    withoutClientCreation,
+    'HISTORICAL WORKOUT LOG IMPORT:',
+    'BEHAVIOR:',
+    STRUCTURED_WORKOUT_IMPORT_GUIDANCE
+  );
+}
+
+export function appendCoachActionProposalContract(basePrompt, { role, context } = {}) {
+  if (!shouldAppendCoachActionProposalContract({ role, context })) return basePrompt;
+  const proposalReadyPrompt = replaceLegacyServerWriteInstructions(basePrompt);
+  return `${proposalReadyPrompt}\n\n${COACH_ACTION_PROPOSAL_PROMPT_CONTRACT}`;
+}

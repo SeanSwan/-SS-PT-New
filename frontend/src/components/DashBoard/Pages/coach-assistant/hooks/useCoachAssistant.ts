@@ -21,9 +21,14 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAIChat } from '../../../../../hooks/useAIChat';
+import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
+import {
+  safeAttachmentSourceLabel,
+  safeCommandConfirmationFailure,
+} from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Human-readable result summaries
@@ -145,8 +150,7 @@ function commandResultSummary(
       const time = (typeof r.startTime === 'string' && typeof r.endTime === 'string')
         ? ` ${r.startTime}–${r.endTime}` : '';
       const type = typeof r.type === 'string' ? r.type : 'blocked';
-      const reason = typeof r.reason === 'string' ? ` (${r.reason})` : '';
-      return `Availability ${type}${dateStr}${time}.${reason}`;
+      return `Availability ${type}${dateStr}${time}.`;
     }
     case 'view_trainer_availability': {
       const count = typeof r.recurringSlotCount === 'number' ? r.recurringSlotCount : 0;
@@ -272,9 +276,15 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   // ── Send message (command lane first, chat lane fallback) ──
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || chat.sending || executingCommand) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || chat.sending || executingCommand) return;
 
-    const cmdResult = await executeCommand(text.trim(), { selectedClientId: targetClientId });
+    let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
+    if (isCommandLaneCandidate(trimmedText)) {
+      cmdResult = await executeCommand(trimmedText, { selectedClientId: targetClientId });
+    } else {
+      cmdResult = { type: 'fallback_to_chat' };
+    }
 
     if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
       // Route to chat lane as normal.
@@ -286,22 +296,22 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       // returns a single unified response, which is what the UI label
       // actually promises.
       const backendStyle = responseStyle;
-      await chat.sendMessageWithConversation(
-        text.trim(),
+      const chatResult = await chat.sendMessageWithConversation(
+        trimmedText,
         context as Parameters<typeof chat.sendMessageWithConversation>[1],
         'Swan Coach Session',
         targetClientId,
-        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4]
+        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
       );
       setLocalMessages([]);
-      return;
+      return chatResult;
     }
 
     // Command lane handled — inject messages into commandMessages
     const userMsg: CoachMessageData = {
       id: `cmd-user-${Date.now()}`,
       role: 'user',
-      content: text.trim(),
+      content: trimmedText,
       timestamp: new Date().toISOString(),
     };
 
@@ -325,7 +335,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'executed') {
@@ -344,7 +354,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'debate_started') {
@@ -356,7 +366,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
-      return;
+      return cmdResult;
     }
 
     if (cmdResult.type === 'not_wired') {
@@ -368,8 +378,9 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       };
       setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
       setLocalMessages([]);
+      return cmdResult;
     }
-  }, [chat, context, responseStyle, targetClientId, executeCommand]);
+  }, [chat, context, responseStyle, targetClientId, executeCommand, executingCommand]);
 
   // ── Confirm a pending destructive/confirmation command ──
   const confirmCommand = useCallback(async (operationId: string): Promise<{ success: boolean; error?: string }> => {
@@ -377,22 +388,24 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
     if (!result.success) {
       // Leave the confirmation card in place — don't upgrade to result card
-      return { success: false, error: result.message };
+      return { success: false, error: safeCommandConfirmationFailure() };
     }
 
     setCommandMessages(prev => prev.map(msg => {
       if (msg.metadata?.commandConfirmation?.operationId !== operationId) return msg;
+      const confirmation = msg.metadata.commandConfirmation!;
+      const summary = commandResultSummary(confirmation.command, result.result, confirmation.client);
       return {
         ...msg,
-        content: result.message,
+        content: summary,
         metadata: {
           ...msg.metadata,
           commandConfirmation: undefined,
           commandResult: {
-            command: msg.metadata.commandConfirmation!.command,
+            command: confirmation.command,
             result: result.result,
-            client: msg.metadata.commandConfirmation!.client,
-            message: result.message,
+            client: confirmation.client,
+            message: summary,
           },
         },
       };
@@ -431,11 +444,12 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       const ts = new Date().toISOString();
       const userMsgId = `transcript-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const reviewMsgId = `transcript-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const sourceLabel = safeAttachmentSourceLabel(review.fileName, 'Transcript file');
 
       const userMsg: CoachMessageData = {
         id: userMsgId,
         role: 'user',
-        content: `Uploaded ${review.fileName} for review`,
+        content: `Uploaded ${sourceLabel} for review`,
         timestamp: ts,
       };
 
@@ -495,9 +509,10 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       setCommandMessages(prev =>
         prev.map(msg => {
           if (msg.id !== reviewMsgId) return msg;
+          const clientCopy = result.clientId ? ' for selected client' : '';
           return {
             ...msg,
-            content: `Workout logged${result.clientName ? ` for ${result.clientName}` : ''}.`,
+            content: `Workout logged${clientCopy}.`,
             metadata: {
               ...msg.metadata,
               transcriptReview: undefined,
@@ -557,10 +572,11 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       // The success path (appendTranscriptReview) still uses
       // "Uploaded X for review" because there the file actually reached
       // review state.
+      const sourceLabel = safeAttachmentSourceLabel(error.fileName, 'Transcript file');
       const userBubbleContent =
         error.kind === 'upload_failed'
-          ? `Tried to upload ${error.fileName}`
-          : `Attached ${error.fileName}`;
+          ? `Tried to upload ${sourceLabel}`
+          : `Attached ${sourceLabel}`;
 
       const userMsg: CoachMessageData = {
         id: userMsgId,
@@ -579,6 +595,39 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
       setCommandMessages(prev => [...prev, userMsg, errorMsg]);
       return { userMsgId, errorMsgId };
+    },
+    [],
+  );
+
+  const appendAudioIntakeReceipt = useCallback(
+    (
+      receipt: NonNullable<CoachMessageData['metadata']>['audioIntakeReceipt'],
+    ): { userMsgId: string; receiptMsgId: string } => {
+      if (!receipt) {
+        return { userMsgId: '', receiptMsgId: '' };
+      }
+      const ts = new Date().toISOString();
+      const userMsgId = `audio-intake-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const receiptMsgId = `audio-intake-receipt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const pieceCopy = `${receipt.acceptedCount} audio piece${receipt.acceptedCount !== 1 ? 's' : ''}`;
+
+      const userMsg: CoachMessageData = {
+        id: userMsgId,
+        role: 'user',
+        content: `Uploaded ${pieceCopy} to PLAUD intake`,
+        timestamp: ts,
+      };
+
+      const receiptMsg: CoachMessageData = {
+        id: receiptMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: ts,
+        metadata: { audioIntakeReceipt: receipt },
+      };
+
+      setCommandMessages(prev => [...prev, userMsg, receiptMsg]);
+      return { userMsgId, receiptMsgId };
     },
     [],
   );
@@ -627,6 +676,8 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     sending: chat.sending || executingCommand,
     loading: chat.loading,
     error: chat.error,
+    lastErrorCode: chat.lastErrorCode,
+    lastErrorRetryable: chat.lastErrorRetryable,
     context,
     responseStyle,
     setResponseStyle,
@@ -645,5 +696,6 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     transcriptReviewToResult,
     removeTranscriptMessages,
     appendTranscriptError,
+    appendAudioIntakeReceipt,
   };
 }

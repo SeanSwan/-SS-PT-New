@@ -144,20 +144,20 @@ export function PlaudClipUploader({
       return;
     }
     const filtered: File[] = [];
-    const rejectedNames: string[] = [];
+    const rejectedFileLabels: string[] = [];
     for (const f of incoming) {
       if (f.type && ACCEPTED_MIMES.includes(f.type)) {
         filtered.push(f);
       } else {
-        rejectedNames.push(`${f.name} (${f.type || 'unknown'})`);
+        rejectedFileLabels.push(`Unsupported item ${rejectedFileLabels.length + 1}`);
       }
     }
     if (filtered.length === 0) {
-      setLocalError(`Unsupported file types: ${rejectedNames.join(', ')}`);
+      setLocalError(`Unsupported file types: ${rejectedFileLabels.join(', ')}`);
       return;
     }
-    if (rejectedNames.length > 0) {
-      setLocalError(`Skipping unsupported: ${rejectedNames.join(', ')}`);
+    if (rejectedFileLabels.length > 0) {
+      setLocalError(`Skipping unsupported: ${rejectedFileLabels.join(', ')}`);
     }
     onFiles(filtered);
   }, [onFiles]);

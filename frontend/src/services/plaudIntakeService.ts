@@ -3,20 +3,9 @@
  * ======================
  * Frontend wrapper for the unified /api/plaud/intake read model.
  */
-import axios, { type AxiosInstance } from 'axios';
+import { isAxiosError } from 'axios';
+import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-const api: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/plaud/intake`,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 export interface PlaudIntakeItem {
   id: string;
@@ -24,7 +13,14 @@ export interface PlaudIntakeItem {
   kind: 'clip' | 'merge_request';
   source: 'manual_upload' | 'applaud_webhook' | 'plaud_merge';
   sourceLabel: string;
-  queueStatus: 'unprocessed' | 'processing' | 'ready_review' | 'failed' | 'archived';
+  queueStatus:
+    | 'unprocessed'
+    | 'processing'
+    | 'ready_review'
+    | 'needs_clarification'
+    | 'duplicate_hold'
+    | 'failed'
+    | 'archived';
   title: string;
   clientId: number | null;
   clientName: string | null;
@@ -53,8 +49,17 @@ export interface PlaudIntakeSummary {
   unprocessed: number;
   processing: number;
   readyReview: number;
+  needsClarification?: number;
+  duplicateHold?: number;
   failed: number;
   needsClient: number;
+  preparedDrafts?: number;
+  pendingDrafts?: number;
+  applyingDrafts?: number;
+  approvedDrafts?: number;
+  appliedDrafts?: number;
+  rejectedDrafts?: number;
+  failedDrafts?: number;
 }
 
 export interface PlaudIntakeResponse {
@@ -65,7 +70,7 @@ export interface PlaudIntakeResponse {
 }
 
 function unwrapError(err: unknown, fallbackMessage: string): never {
-  if (axios.isAxiosError(err)) {
+  if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
     const code = data?.error?.code || 'UNKNOWN';
     const message = data?.error?.message || err.message || fallbackMessage;
@@ -82,7 +87,7 @@ export async function listPlaudIntakeItems({
   limit?: number;
 } = {}): Promise<PlaudIntakeResponse> {
   try {
-    const { data } = await api.get<{ success: boolean } & PlaudIntakeResponse>('/', {
+    const { data } = await apiService.get<{ success: boolean } & PlaudIntakeResponse>('/api/plaud/intake', {
       params: { scope, limit },
     });
     return {
@@ -94,6 +99,8 @@ export async function listPlaudIntakeItems({
         unprocessed: 0,
         processing: 0,
         readyReview: 0,
+        needsClarification: 0,
+        duplicateHold: 0,
         failed: 0,
         needsClient: 0,
       },

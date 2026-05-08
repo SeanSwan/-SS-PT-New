@@ -19,15 +19,17 @@ describe('plaudIntakeService', () => {
     expect(typeof plaudIntakeService.listPlaudIntakeItems).toBe('function');
   });
 
-  it('uses the unified /api/plaud/intake endpoint with auth headers', () => {
+  it('uses the unified /api/plaud/intake endpoint through apiService', () => {
+    expect(SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
     expect(SRC).toMatch(/\/api\/plaud\/intake/);
-    expect(SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
-    expect(SRC).toMatch(/Bearer \$\{token\}/);
+    expect(SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(SRC).not.toMatch(/Bearer \$\{token\}/);
   });
 
   it('models only list-safe queue metadata', () => {
     expect(SRC).toMatch(/source:\s*'manual_upload'\s*\|\s*'applaud_webhook'\s*\|\s*'plaud_merge'/);
-    expect(SRC).toMatch(/queueStatus:\s*'unprocessed'\s*\|\s*'processing'\s*\|\s*'ready_review'\s*\|\s*'failed'\s*\|\s*'archived'/);
+    expect(SRC).toMatch(/needs_clarification/);
+    expect(SRC).toMatch(/duplicate_hold/);
     expect(SRC).not.toMatch(/transcript:/);
     expect(SRC).not.toMatch(/parsedWorkout:/);
   });

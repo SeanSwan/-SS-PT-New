@@ -15,8 +15,9 @@
 import React, { memo, useCallback, useState } from 'react';
 import styled from 'styled-components';
 import {
-  Volume2, Copy, Check, UserPlus, Key, Link2, Shield, Dumbbell,
+  Volume2, Copy, Check, UserPlus, Dumbbell,
   FileAudio, AlertTriangle, X, Loader2, CheckCircle2,
+  ListChecks,
 } from 'lucide-react';
 import {
   MessageBubbleAI,
@@ -28,8 +29,18 @@ import {
 import MarkdownRenderer from './MarkdownRenderer';
 import ProviderBadge from './ProviderBadge';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
+import CoachActionProposalCard from './CoachActionProposalCard';
 import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
+import {
+  safeAudioRejectedSummary,
+  safeAttachmentSourceLabel,
+  safeClientCreateFailure,
+  safeCommandActionLabel,
+  safeProposalPreparationFailure,
+  safeTranscriptFailureReason,
+  safeWorkoutImportFailure,
+} from './CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Action Result Cards (client creation, workout import)
@@ -72,23 +83,6 @@ const CardValue = styled.span`
   color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   word-break: break-all;
-`;
-
-const CopyableValue = styled.button`
-  background: rgba(96, 192, 240, 0.08);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 6px;
-  padding: 4px 10px;
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background 0.15s;
-  &:hover { background: rgba(96, 192, 240, 0.15); }
 `;
 
 const ProgressBar = styled.div<{ $pct: number }>`
@@ -216,7 +210,38 @@ const TranscriptBtn = styled.button<{ $primary?: boolean; $danger?: boolean }>`
   }
 `;
 
-const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'other' }>`
+const ReceiptActionButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary, #002060) 82%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, var(--bg-surface, #1A1A24))
+    );
+  color: var(--text-primary, #E0ECF4);
+  padding: 0 14px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+`;
+
+const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'warning' | 'other' }>`
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -224,16 +249,16 @@ const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 
   padding: 8px 12px;
   border-radius: 8px;
   background: ${({ $kind }) =>
-    $kind === 'duplicate_date' || $kind === 'future_date'
+    $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning'
       ? 'rgba(198, 168, 75, 0.12)'
       : 'rgba(201, 42, 84, 0.12)'};
   border: 1px solid
     ${({ $kind }) =>
-      $kind === 'duplicate_date' || $kind === 'future_date'
+      $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning'
         ? 'rgba(198, 168, 75, 0.4)'
         : 'rgba(201, 42, 84, 0.3)'};
   color: ${({ $kind }) =>
-    $kind === 'duplicate_date' || $kind === 'future_date' ? '#F5D678' : '#ff8fa3'};
+    $kind === 'duplicate_date' || $kind === 'future_date' || $kind === 'warning' ? '#F5D678' : '#ff8fa3'};
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   line-height: 1.45;
@@ -293,6 +318,8 @@ interface CoachMessageProps {
   onConfirmTranscript?: (messageId: string) => Promise<void>;
   /** Swan-first transcript intake — discard the review */
   onCancelTranscript?: (messageId: string) => void;
+  onAudioIntakeReviewNext?: () => void;
+  audioIntakeReviewNextPending?: boolean;
   /**
    * Phase 13 (2026-04-15): propagate a user-edited workout date back to the
    * page so the next `applyParsedWorkout` call uses it. Fire on every change
@@ -308,6 +335,8 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onCancelCommand,
   onConfirmTranscript,
   onCancelTranscript,
+  onAudioIntakeReviewNext,
+  audioIntakeReviewNextPending,
   onTranscriptDateChange,
 }) => {
   const [copied, setCopied] = React.useState(false);
@@ -366,24 +395,43 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
   const clientCreate = message.metadata?.clientCreateResult;
   const workoutImports = message.metadata?.workoutImportResults;
+  const coachActionProposals = message.metadata?.coachActionProposals;
+  const coachActionProposalError = message.metadata?.coachActionProposalError;
   const commandConfirmation = message.metadata?.commandConfirmation;
   const commandResult = message.metadata?.commandResult;
   const transcriptReview = message.metadata?.transcriptReview;
   const transcriptResult = message.metadata?.transcriptResult;
   const transcriptError = message.metadata?.transcriptError;
-
-  const copyToClipboard = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-  };
+  const audioIntakeReceipt = message.metadata?.audioIntakeReceipt;
+  const audioIntakeNextAction = audioIntakeReceipt
+    ? safeCommandActionLabel(audioIntakeReceipt.nextActionLabel) || 'Review next intake'
+    : null;
+  const transcriptErrorReason = transcriptError
+    ? safeTranscriptFailureReason(transcriptError.kind, transcriptError.reason)
+    : null;
+  const audioRejectedSummary = audioIntakeReceipt
+    ? safeAudioRejectedSummary(audioIntakeReceipt.rejectedCount)
+    : undefined;
 
   return (
     <MessageBubbleAI>
       <MarkdownRenderer content={message.content} />
 
-      {/* Client Creation Result Card */}
+      {coachActionProposals?.map((proposal) => (
+        <CoachActionProposalCard key={proposal.id} proposal={proposal} />
+      ))}
+
+      {coachActionProposalError && (
+        <ActionCard style={{ borderColor: 'var(--error, #C92A54)' }}>
+          <CardTitle style={{ color: 'var(--error, #C92A54)' }}>Proposal Preparation Failed</CardTitle>
+          <CardRow><CardValue>{safeProposalPreparationFailure()}</CardValue></CardRow>
+        </ActionCard>
+      )}
+
+      {/* Legacy client creation result. New replies use proposal cards above. */}
       {clientCreate?.success && (
         <ActionCard>
-          <CardTitle><UserPlus size={16} /> New Client Created</CardTitle>
+          <CardTitle><UserPlus size={16} /> Legacy Client Create Result</CardTitle>
           <CardRow>
             <CardLabel>Name</CardLabel>
             <CardValue>{clientCreate.firstName} {clientCreate.lastName}</CardValue>
@@ -397,22 +445,8 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
             <CardValue>{clientCreate.isMoveFitness ? 'Move Fitness (free)' : 'SwanStudios (paid)'}</CardValue>
           </CardRow>
           <CardRow>
-            <CardLabel>Claim Code</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.claimCode)}>
-              <Key size={12} /> {clientCreate.claimCode} <Copy size={10} />
-            </CopyableValue>
-          </CardRow>
-          <CardRow>
-            <CardLabel>Claim URL</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.claimUrl)}>
-              <Link2 size={12} /> {clientCreate.claimUrl} <Copy size={10} />
-            </CopyableValue>
-          </CardRow>
-          <CardRow>
-            <CardLabel>Temp Password</CardLabel>
-            <CopyableValue onClick={() => copyToClipboard(clientCreate.temporaryPassword)}>
-              <Shield size={12} /> {clientCreate.temporaryPassword} <Copy size={10} />
-            </CopyableValue>
+            <CardLabel>Access</CardLabel>
+            <CardValue>Credentials are no longer shown in Coach chat.</CardValue>
           </CardRow>
           <CardRow>
             <CardLabel>Onboarding</CardLabel>
@@ -425,7 +459,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       {clientCreate && !clientCreate.success && (
         <ActionCard style={{ borderColor: 'rgba(201, 42, 84, 0.3)' }}>
           <CardTitle style={{ color: '#C92A54' }}>Client Creation Failed</CardTitle>
-          <CardRow><CardValue>{clientCreate.reason}</CardValue></CardRow>
+          <CardRow><CardValue>{safeClientCreateFailure()}</CardValue></CardRow>
         </ActionCard>
       )}
 
@@ -441,7 +475,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
                   {w.exerciseCount} exercises · {w.totalSets} sets · {w.totalWeight > 0 ? `${w.totalWeight.toLocaleString()} lbs` : 'bodyweight'}
                 </CardValue>
               ) : (
-                <CardValue style={{ color: '#C92A54' }}>Failed: {w.reason}</CardValue>
+                <CardValue style={{ color: '#C92A54' }}>Failed: {safeWorkoutImportFailure()}</CardValue>
               )}
             </CardRow>
           ))}
@@ -487,12 +521,15 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
           <CardRow>
             <CardLabel>File</CardLabel>
-            <CardValue>{transcriptReview.fileName} ({formatBytes(transcriptReview.fileSize)})</CardValue>
+            <CardValue>
+              {safeAttachmentSourceLabel(transcriptReview.fileName, 'Transcript file')} (
+              {formatBytes(transcriptReview.fileSize)})
+            </CardValue>
           </CardRow>
-          {transcriptReview.clientName && (
+          {transcriptReview.clientId && (
             <CardRow>
               <CardLabel>Client</CardLabel>
-              <CardValue>{transcriptReview.clientName}</CardValue>
+              <CardValue>Selected client</CardValue>
             </CardRow>
           )}
           <CardRow>
@@ -564,6 +601,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
           <TranscriptActions>
             <TranscriptBtn
+              type="button"
               $danger
               onClick={handleTranscriptCancel}
               disabled={transcriptReview.applying || localApplying}
@@ -572,6 +610,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <X size={14} /> Discard
             </TranscriptBtn>
             <TranscriptBtn
+              type="button"
               $primary
               onClick={handleTranscriptConfirm}
               disabled={transcriptReview.applying || localApplying}
@@ -611,7 +650,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           <CardRow>
             <CardLabel>File</CardLabel>
             <CardValue>
-              {transcriptError.fileName}
+              {safeAttachmentSourceLabel(transcriptError.fileName, 'Transcript file')}
               {typeof transcriptError.fileSize === 'number'
                 ? ` (${formatBytes(transcriptError.fileSize)})`
                 : ''}
@@ -619,10 +658,11 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardRow>
           <TranscriptError>
             <AlertTriangle size={14} />
-            {transcriptError.reason}
+            {transcriptErrorReason}
           </TranscriptError>
           <TranscriptActions>
             <TranscriptBtn
+              type="button"
               $danger
               onClick={handleTranscriptCancel}
               data-testid="transcript-error-dismiss-btn"
@@ -630,6 +670,59 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <X size={14} /> Dismiss
             </TranscriptBtn>
           </TranscriptActions>
+        </TranscriptCard>
+      )}
+
+      {audioIntakeReceipt && (
+        <TranscriptCard data-testid="audio-intake-receipt-card">
+          <CardTitle>
+            <CheckCircle2 size={16} />
+            Audio pieces queued
+          </CardTitle>
+          <CardRow>
+            <CardLabel>Source</CardLabel>
+            <CardValue>
+              {safeAttachmentSourceLabel(audioIntakeReceipt.fileName, 'Audio intake')}
+            </CardValue>
+          </CardRow>
+          <CardRow>
+            <CardLabel>Accepted</CardLabel>
+            <CardValue>
+              {audioIntakeReceipt.acceptedCount} piece{audioIntakeReceipt.acceptedCount !== 1 ? 's' : ''}
+              {typeof audioIntakeReceipt.fileSize === 'number'
+                ? ` (${formatBytes(audioIntakeReceipt.fileSize)})`
+                : ''}
+            </CardValue>
+          </CardRow>
+          {audioIntakeReceipt.rejectedCount > 0 && (
+            <CardRow>
+              <CardLabel>Rejected</CardLabel>
+              <CardValue>{audioIntakeReceipt.rejectedCount} file{audioIntakeReceipt.rejectedCount !== 1 ? 's' : ''}</CardValue>
+            </CardRow>
+          )}
+          {audioRejectedSummary && (
+            <TranscriptError $kind="warning">
+              <AlertTriangle size={14} />
+              {audioRejectedSummary}
+            </TranscriptError>
+          )}
+          <CardRow>
+            <CardLabel>Next</CardLabel>
+            <CardValue>{audioIntakeNextAction}</CardValue>
+          </CardRow>
+          {audioIntakeReceipt && onAudioIntakeReviewNext && (
+            <TranscriptActions>
+              <ReceiptActionButton
+                type="button"
+                onClick={onAudioIntakeReviewNext}
+                disabled={audioIntakeReviewNextPending}
+                aria-busy={audioIntakeReviewNextPending ? 'true' : undefined}
+              >
+                {audioIntakeReviewNextPending ? <Loader2 size={15} /> : <ListChecks size={15} />}
+                {audioIntakeReviewNextPending ? 'Opening intake...' : 'Review next intake'}
+              </ReceiptActionButton>
+            </TranscriptActions>
+          )}
         </TranscriptCard>
       )}
 
@@ -642,12 +735,14 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardTitle>
           <CardRow>
             <CardLabel>Source</CardLabel>
-            <CardValue>{transcriptResult.fileName}</CardValue>
+            <CardValue>
+              {safeAttachmentSourceLabel(transcriptResult.fileName, 'Transcript file')}
+            </CardValue>
           </CardRow>
-          {transcriptResult.clientName && (
+          {transcriptResult.clientId && (
             <CardRow>
               <CardLabel>Client</CardLabel>
-              <CardValue>{transcriptResult.clientName}</CardValue>
+              <CardValue>Selected client</CardValue>
             </CardRow>
           )}
           <CardRow>
@@ -674,11 +769,11 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
       <MessageActions>
         {onReadAloud && (
-          <MessageActionBtn onClick={handleReadAloud} aria-label="Read aloud">
+          <MessageActionBtn type="button" onClick={handleReadAloud} aria-label="Read aloud">
             <Volume2 size={14} /> Read
           </MessageActionBtn>
         )}
-        <MessageActionBtn onClick={handleCopy} aria-label="Copy message">
+        <MessageActionBtn type="button" onClick={handleCopy} aria-label="Copy message">
           {copied ? <Check size={14} /> : <Copy size={14} />}
           {copied ? 'Copied' : 'Copy'}
         </MessageActionBtn>

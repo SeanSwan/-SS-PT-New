@@ -30,6 +30,7 @@ interface PlaudDateSplitCandidatePanelProps {
   dateOverrides?: Record<string, string>;
   onDateOverrideChange?: (segmentId: string, value: string) => void;
   onApproveSegment?: (segment: PlaudDateSplitSegment) => void;
+  actionFocusAttribute?: string;
 }
 
 function toneForSegment(segment: PlaudDateSplitSegment): 'ready' | 'review' | 'blocked' {
@@ -64,6 +65,7 @@ export function PlaudDateSplitCandidatePanel({
   dateOverrides = {},
   onDateOverrideChange,
   onApproveSegment,
+  actionFocusAttribute,
 }: PlaudDateSplitCandidatePanelProps): JSX.Element | null {
   const segments = candidates?.segments || [];
   if (segments.length === 0) return null;
@@ -107,6 +109,7 @@ export function PlaudDateSplitCandidatePanel({
                         value={dateOverrides[segment.segmentId] || ''}
                         onChange={(event) => onDateOverrideChange(segment.segmentId, event.target.value)}
                         aria-label={`Trainer-confirmed date for segment ${segment.segmentIndex}`}
+                        data-plaud-next-action={actionFocusAttribute}
                       />
                     </DateOverrideRow>
                   ) : null}
@@ -119,6 +122,7 @@ export function PlaudDateSplitCandidatePanel({
                       || approval?.status === 'logged'
                     }
                     onClick={() => onApproveSegment(segment)}
+                    data-plaud-next-action={actionFocusAttribute}
                   >
                     {approval?.status === 'parsing'
                       ? 'Parsing...'

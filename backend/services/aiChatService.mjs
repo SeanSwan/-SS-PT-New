@@ -13,6 +13,7 @@
  */
 import logger from '../utils/logger.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
+import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 
 // ─── NASM OPT Model Reference (embedded in prompts) ───
 const NASM_OPT_REFERENCE = `
@@ -1032,7 +1033,8 @@ function buildStyledPrompt(basePrompt, responseStyle = 'both') {
 export function getSystemPrompt(role, context, responseStyle = 'both') {
   const rolePrompts = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.client;
   const basePrompt = rolePrompts[context] || rolePrompts.general;
-  return buildStyledPrompt(basePrompt, responseStyle);
+  const proposalAwarePrompt = appendCoachActionProposalContract(basePrompt, { role, context });
+  return buildStyledPrompt(proposalAwarePrompt, responseStyle);
 }
 
 /**

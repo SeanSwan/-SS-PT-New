@@ -1,0 +1,353 @@
+/**
+ * coachIntakeDispatchers.mjs
+ * ==========================
+ * Read-only command handlers for the unified Swan Coach intake queue. Result
+ * cards stay PII-safe: no transcript bodies, parsed payloads, or client names.
+ */
+import { listUnifiedCoachIntakeItems } from '../../coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../../coachIntakeHealthService.mjs';
+import { coachIntakeQueueAgeTime, pickNextCoachIntakeItem } from '../../coachIntakeQueueOrdering.mjs';
+import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
+import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
+const DEFAULT_QUEUE_LIMIT = 10;
+const REVIEW_NEXT_LIMIT = 20;
+const MAX_QUEUE_LIMIT = 20;
+const REVIEW_ROUTE_SCOPES = new Set([
+  'ready_review',
+  'needs_client',
+  'needs_clarification',
+  'duplicate_hold',
+  'unprocessed',
+  'processing',
+  'failed',
+]);
+function resolveUserId(ctx) {
+  const userId = Number(ctx?.user?.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error('Authenticated user is required for Coach intake commands.');
+  }
+  return userId;
+}
+function resolveRole(ctx) {
+  const role = String(ctx?.user?.role || '').toLowerCase();
+  if (role === 'admin' || role === 'trainer') return role;
+  throw new Error('Access requires an admin or trainer role for Coach intake commands.');
+}
+function resolveCoachQueueRoute(ctx) { return `/dashboard/${resolveRole(ctx)}/coach-assistant`; }
+
+function count(summary, key) { return Number(summary?.[key] || 0); }
+
+function resolvePlaudReviewRoute(ctx, item = null) {
+  const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
+  const entityId = isPlaudUuid(item?.entityId) ? item.entityId : '';
+  return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
+}
+
+function appendCoachScope(route, scope) {
+  const cleanScope = String(scope || '').trim();
+  if (!REVIEW_ROUTE_SCOPES.has(cleanScope) || !route.includes('/coach-assistant')) return route;
+  return `${route}${route.includes('?') ? '&' : '?'}scope=${encodeURIComponent(cleanScope)}`;
+}
+
+function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(MAX_QUEUE_LIMIT, Math.max(1, parsed));
+}
+
+function reviewRouteForItem(item, ctx, scope = null) {
+  if (!item) return null;
+  if (item.kind === 'merge_request' && item.canReview) {
+    return resolvePlaudReviewRoute(ctx, item);
+  }
+  const queueRoute = resolveCoachQueueRoute(ctx);
+  const entityId = item.entityId || item.id || '';
+  const proposalId = String(item.latestProposalId || item.latestProposal?.id || '').trim();
+  const route = entityId ? `${queueRoute}?intake=${encodeURIComponent(entityId)}` : queueRoute;
+  const proposalRoute = entityId && proposalId ? `${route}&proposal=${encodeURIComponent(proposalId)}` : route;
+  return appendCoachScope(proposalRoute, scope);
+}
+
+function summaryEntityIdForItem(item) {
+  if (!item) return null;
+  if (item.kind === 'merge_request') return isPlaudUuid(item.entityId) ? item.entityId : null;
+  return item.entityId || null;
+}
+
+const SAFE_HOLD_REASON_LABELS = new Set([
+  'Client confirmation needed',
+  'Clarification required',
+  'Possible duplicate workout',
+]);
+
+function safePositiveCount(value) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function safeConfidenceBand(value) {
+  return ['high', 'medium', 'low', 'unknown'].includes(value) ? value : null;
+}
+
+function holdReasonSummary(item) {
+  const reason = item?.holdReason || null;
+  if (!reason || !SAFE_HOLD_REASON_LABELS.has(reason.label)) {
+    return {
+      nextHoldReasonLabel: null,
+      nextHoldReasonCandidateCount: null,
+      nextHoldReasonDuplicateCount: null,
+      nextHoldReasonConfidenceBand: null,
+    };
+  }
+  return {
+    nextHoldReasonLabel: reason.label,
+    nextHoldReasonCandidateCount: safePositiveCount(reason.candidateCount),
+    nextHoldReasonDuplicateCount: safePositiveCount(reason.duplicateCount),
+    nextHoldReasonConfidenceBand: safeConfidenceBand(reason.confidenceBand),
+  };
+}
+
+function scalarSummary(result, nextItem, ctx) {
+  const summary = result?.summary || {};
+  const queueRoute = resolveCoachQueueRoute(ctx);
+  return {
+    total: count(summary, 'total'),
+    actionable: count(summary, 'actionable'),
+    today: count(summary, 'today'),
+    unprocessed: count(summary, 'unprocessed'),
+    processing: count(summary, 'processing'),
+    readyReview: count(summary, 'readyReview'),
+    needsClarification: count(summary, 'needsClarification'),
+    duplicateHold: count(summary, 'duplicateHold'),
+    failed: count(summary, 'failed'),
+    needsClient: count(summary, 'needsClient'),
+    preparedDrafts: count(summary, 'preparedDrafts'),
+    pendingDrafts: count(summary, 'pendingDrafts'),
+    applyingDrafts: count(summary, 'applyingDrafts'),
+    approvedDrafts: count(summary, 'approvedDrafts'),
+    appliedDrafts: count(summary, 'appliedDrafts'),
+    rejectedDrafts: count(summary, 'rejectedDrafts'),
+    failedDrafts: count(summary, 'failedDrafts'),
+    schemaReady: result?.schemaReady !== false,
+    nextIntakeId: nextItem?.id || null,
+    nextEntityId: summaryEntityIdForItem(nextItem),
+    nextKind: nextItem?.kind || null,
+    nextQueueStatus: nextItem?.queueStatus || null,
+    nextCanReview: Boolean(nextItem?.canReview),
+    nextLatestProposalId: nextItem?.latestProposalId || nextItem?.latestProposal?.id || null,
+    nextLatestProposalStatus: nextItem?.latestProposal?.status || null,
+    nextLatestProposalType: nextItem?.latestProposal?.type || null,
+    ...holdReasonSummary(nextItem),
+    ...coachIntakeGateSummary(nextItem),
+    reviewRoute: reviewRouteForItem(nextItem, ctx, result?.scope),
+    queueRoute,
+    commandHint: nextItem
+      ? 'Continue from the Swan Coach intake workspace; PLAUD reviewable merges open in the PLAUD review workspace.'
+      : 'No Coach or PLAUD intake items need action.',
+  };
+}
+
+function healthCommandSummary(health, ctx) {
+  const counts = health?.counts || {};
+  const action = health?.nextOperatorAction || {};
+  return {
+    healthStatus: health?.status || 'unavailable',
+    schemaReady: health?.schemaReady !== false,
+    total: Number(counts.total || 0),
+    actionable: Number(counts.actionable || 0),
+    today: Number(counts.today || 0),
+    unprocessed: Number(counts.unprocessed || 0),
+    processing: Number(counts.processing || 0),
+    readyReview: Number(counts.readyReview || 0),
+    needsClarification: Number(counts.needsClarification || 0),
+    duplicateHold: Number(counts.duplicateHold || 0),
+    failed: Number(counts.failed || 0),
+    needsClient: Number(counts.needsClient || 0),
+    stuckProcessing: Number(counts.stuckProcessing || 0),
+    processingStuckMinutes: Number(health?.thresholds?.processingStuckMinutes || 0),
+    oldestActionableAt: health?.oldestActionableAt || null,
+    oldestProcessingAt: health?.oldestProcessingAt || null,
+    nextActionKey: action.key || 'unknown',
+    nextActionLabel: action.label || 'Review Coach intake health',
+    queueRoute: resolveCoachQueueRoute(ctx),
+    commandHint: 'Open the Swan Coach intake workspace to act on these health findings.',
+  };
+}
+
+function isAudioPuzzleItem(item) {
+  if (!item || item.queueStatus === 'archived') return false;
+  if (item.kind === 'merge_request') return false;
+  if (item.audioPuzzle?.pieceCount > 0) return true;
+  if (Number(item.clipCount || 0) > 0) return true;
+  return item.kind === 'clip' || item.source === 'audio_upload' || item.source === 'voice_note' || item.source === 'plaud_clip';
+}
+
+function normalizeIntakeId(raw) {
+  const value = String(raw || '').trim();
+  return value || null;
+}
+
+function itemIdCandidates(item) {
+  const candidates = new Set();
+  for (const raw of [item?.id, item?.entityId]) {
+    const value = normalizeIntakeId(raw);
+    if (!value) continue;
+    candidates.add(value);
+    const colonIndex = value.indexOf(':');
+    if (colonIndex >= 0 && colonIndex + 1 < value.length) {
+      candidates.add(value.slice(colonIndex + 1));
+    }
+  }
+  return candidates;
+}
+
+function matchesIntakeId(item, targetIntakeId) {
+  if (!targetIntakeId) return true;
+  return itemIdCandidates(item).has(targetIntakeId);
+}
+
+function audioPuzzleForItem(item) {
+  const puzzle = item?.audioPuzzle || {};
+  const clipCount = Number(item?.clipCount || 0);
+  const pieceCount = Number(puzzle.pieceCount || clipCount || (isAudioPuzzleItem(item) ? 1 : 0));
+  return {
+    pieceCount,
+    bundleCount: Number(puzzle.bundleCount || (pieceCount > 0 ? 1 : 0)),
+    autoBundleCount: Number(puzzle.autoBundleCount || 0),
+    needsOrderingReview: puzzle.needsOrderingReview === true,
+    confidence: ['single', 'high', 'medium', 'low'].includes(puzzle.confidence)
+      ? puzzle.confidence
+      : (pieceCount > 1 ? 'medium' : 'single'),
+  };
+}
+
+function reviewPlanForAudioInspection({ targetIntakeId, items }) {
+  if (!targetIntakeId) {
+    return {
+      mode: 'queue',
+      primaryAction: items.length > 0 ? 'choose_audio_intake' : 'wait_for_audio',
+      primaryLabel: items.length > 0 ? 'Choose an intake to review' : 'No audio intake to review',
+      rationale: items.length > 0
+        ? 'Open the Coach intake workspace, choose one audio item, then confirm order before draft generation.'
+        : 'No actionable audio pieces are currently available in this queue.',
+      route: items[0]?.reviewRoute || null,
+    };
+  }
+
+  if (items.length === 0) {
+    return {
+      mode: 'active_intake',
+      primaryAction: 'refresh_or_reselect_intake',
+      primaryLabel: 'Refresh intake list',
+      rationale: 'The selected intake was not found in the current actionable audio queue.',
+      route: null,
+    };
+  }
+
+  const item = items[0];
+  const needsOrder = item.needsOrderingReview === true;
+  const readyPieceLabel = item.audioPieces === 1
+    ? '1 audio piece is'
+    : `${item.audioPieces} audio pieces are`;
+  return {
+    mode: 'active_intake',
+    primaryAction: needsOrder ? 'confirm_audio_order' : 'prepare_draft_review',
+    primaryLabel: needsOrder ? 'Confirm this intake order' : 'Prepare Coach draft review',
+    rationale: needsOrder
+      ? `${item.audioPieces} pieces across ${item.audioBundles} bundles need order review before Swan Coach drafts a workout log.`
+      : `${readyPieceLabel} ready for Swan Coach draft preparation after client and date checks.`,
+    route: item.reviewRoute || null,
+  };
+}
+
+function audioInspectionSummary(result, ctx, params = {}) {
+  const targetIntakeId = normalizeIntakeId(params?.intakeId);
+  const allAudioItems = (result?.items || []).filter(isAudioPuzzleItem);
+  const audioItems = allAudioItems
+    .filter((item) => matchesIntakeId(item, targetIntakeId))
+    .slice(0, 6);
+  const items = audioItems.map((item) => {
+    const puzzle = audioPuzzleForItem(item);
+    return {
+      id: item.id || null,
+      kind: item.kind || null,
+      queueStatus: item.queueStatus || null,
+      canReview: item.canReview === true,
+      audioPieces: puzzle.pieceCount,
+      audioBundles: puzzle.bundleCount,
+      autoAudioBundles: puzzle.autoBundleCount,
+      audioConfidence: puzzle.confidence,
+      needsOrderingReview: puzzle.needsOrderingReview,
+      reviewRoute: reviewRouteForItem(item, ctx, result?.scope),
+    };
+  });
+
+  return {
+    totalAudioItems: items.length,
+    needsOrderingReview: items.filter((item) => item.needsOrderingReview).length,
+    lowConfidence: items.filter((item) => item.audioConfidence === 'low').length,
+    items,
+    queueRoute: resolveCoachQueueRoute(ctx),
+    reviewRoute: targetIntakeId && items[0]?.reviewRoute ? items[0].reviewRoute : null,
+    targetIntakeId,
+    targetMatched: targetIntakeId ? audioItems.length > 0 : null,
+    reviewPlan: reviewPlanForAudioInspection({ targetIntakeId, items }),
+    commandHint: targetIntakeId && audioItems.length === 0
+      ? 'That intake is not in the current actionable audio queue. Open the Coach workspace and refresh the intake list.'
+      : 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+  };
+}
+
+async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimit = DEFAULT_QUEUE_LIMIT } = {}) {
+  const userId = resolveUserId(ctx);
+  resolveRole(ctx);
+  const scope = params?.scope || defaultScope;
+  const limit = normalizeLimit(params?.limit, defaultLimit);
+  const result = await listUnifiedCoachIntakeItems({
+    userId,
+    scope,
+    limit,
+    sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
+  });
+  return { result, nextItem: pickNextCoachIntakeItem(result?.items || []) };
+}
+
+export async function dispatchViewCoachIntakeHealth(_params = {}, ctx = {}) {
+  const userId = resolveUserId(ctx);
+  resolveRole(ctx);
+  const health = await getCoachIntakeHealth({
+    userId,
+    sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
+  });
+  return healthCommandSummary(health, ctx);
+}
+
+export async function dispatchViewCoachIntakeQueue(params = {}, ctx = {}) {
+  const { result, nextItem } = await readQueue(params, ctx);
+  return scalarSummary(result, nextItem, ctx);
+}
+
+export async function dispatchReviewNextCoachIntake(params = {}, ctx = {}) {
+  const { result, nextItem } = await readQueue(params, ctx, { defaultScope: 'actionable', defaultLimit: REVIEW_NEXT_LIMIT });
+  return scalarSummary(result, nextItem, ctx);
+}
+
+export async function dispatchInspectCoachAudioPieces(params = {}, ctx = {}) {
+  const { result } = await readQueue(params, ctx, { defaultScope: 'actionable', defaultLimit: REVIEW_NEXT_LIMIT });
+  return audioInspectionSummary(result, ctx, params);
+}
+
+export const dispatchInspectPlaudAudioPieces = dispatchInspectCoachAudioPieces;
+
+export const _internal = {
+  audioInspectionSummary,
+  audioPuzzleForItem,
+  healthCommandSummary,
+  matchesIntakeId,
+  normalizeLimit,
+  pickNextItem: pickNextCoachIntakeItem,
+  queueAgeTime: coachIntakeQueueAgeTime,
+  reviewRouteForItem,
+  scalarSummary,
+  summaryEntityIdForItem,
+};

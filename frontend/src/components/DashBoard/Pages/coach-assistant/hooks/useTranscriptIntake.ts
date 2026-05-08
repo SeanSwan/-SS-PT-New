@@ -51,6 +51,7 @@ import {
   type ParsedWorkout,
   type LogWorkoutPayload,
 } from '../utils/parsedWorkoutToLogPayload';
+import { safeTranscriptUploadFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -66,7 +67,6 @@ export interface TranscriptReviewData {
   fileMimeType: string;
   /** The client this transcript was uploaded for. */
   clientId: number;
-  clientName?: string;
   /**
    * Phase 13 (2026-04-15): user-editable target date for the apply step.
    * Initialized from `parsedWorkout.date` if the parser extracted one,
@@ -127,7 +127,7 @@ export interface UseTranscriptIntakeReturn {
    * write to the workout log — returns parsed review data for the user
    * to confirm.
    */
-  uploadTranscript: (file: File, clientId: number, clientName?: string) => Promise<UploadOutcome>;
+  uploadTranscript: (file: File, clientId: number) => Promise<UploadOutcome>;
 
   /**
    * Apply a previously-reviewed parsed workout to the canonical workout
@@ -142,7 +142,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
   const adminClient = useMemo(() => createAdminClientService(authAxios), [authAxios]);
 
   const uploadTranscript = useCallback(
-    async (file: File, clientId: number, clientName?: string): Promise<UploadOutcome> => {
+    async (file: File, clientId: number): Promise<UploadOutcome> => {
       // Defensive client-side validation — the route enforces these too,
       // but failing fast saves a network round-trip and gives clearer UX.
       if (!file) {
@@ -180,7 +180,6 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
               fileSize: file.size,
               fileMimeType: file.type,
               clientId,
-              clientName,
             },
           };
         }
@@ -188,7 +187,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         return {
           ok: false,
           failure: {
-            error: data?.error || 'Upload completed but the response was malformed',
+            error: 'Upload completed but the response was malformed',
             kind: 'server',
           },
         };
@@ -220,15 +219,14 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         }
 
         const status = e.response.status ?? 0;
-        const message = e.response.data?.error || e.message || 'Upload failed';
 
         if (status === 429) {
-          return { ok: false, failure: { error: message, kind: 'rate_limit' } };
+          return { ok: false, failure: { error: safeTranscriptUploadFailure('rate_limit'), kind: 'rate_limit' } };
         }
         if (status >= 400 && status < 500) {
-          return { ok: false, failure: { error: message, kind: 'validation' } };
+          return { ok: false, failure: { error: safeTranscriptUploadFailure('validation'), kind: 'validation' } };
         }
-        return { ok: false, failure: { error: message, kind: 'server' } };
+        return { ok: false, failure: { error: safeTranscriptUploadFailure('server'), kind: 'server' } };
       }
     },
     [authAxios],
@@ -351,7 +349,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
         return {
           ok: false,
           failure: {
-            error: backendMsg || 'Failed to apply workout to the log',
+            error: 'Failed to apply workout to the log',
             kind: 'server',
           },
         };

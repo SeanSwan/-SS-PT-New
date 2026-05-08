@@ -51,7 +51,7 @@
  *   exec-substrate-v15 (availability slot read):
  *   A03: view_available_slots → availabilityService.getAvailableSlots (date-scoped open-slot summary)
  *   exec-substrate-v16 (PLAUD read commands):
- *   N01-N03: view/review/inspect PLAUD intake commands → plaudDispatchers
+ *   N01-N07: view/review/inspect/health intake commands → plaud + coach intake dispatchers
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -71,10 +71,29 @@ import {
   dispatchViewAvailableSlots,
 } from './dispatchers/availabilityDispatchers.mjs';
 import {
-  dispatchInspectPlaudAudioPieces,
   dispatchReviewNextPlaudIntake,
   dispatchViewPlaudIntakeQueue,
 } from './dispatchers/plaudDispatchers.mjs';
+import {
+  dispatchPlaudAnalyzeClipSet,
+  dispatchPlaudGroupSessionCandidates,
+  dispatchPlaudListIntakeItems,
+  dispatchPlaudMergeCandidateGroup,
+  dispatchPlaudProposeClipOrder,
+  dispatchPlaudRequestConfirmation,
+} from './dispatchers/plaudStructuredActionDispatchers.mjs';
+import {
+  dispatchInspectCoachAudioPieces,
+  dispatchInspectPlaudAudioPieces,
+  dispatchReviewNextCoachIntake,
+  dispatchViewCoachIntakeHealth,
+  dispatchViewCoachIntakeQueue,
+} from './dispatchers/coachIntakeDispatchers.mjs';
+import {
+  dispatchViewCoachIntakeRetention,
+  dispatchViewCoachIntakeRetentionPurgePlan,
+} from './dispatchers/coachIntakeRetentionDispatcher.mjs';
+import { dispatchViewCoachIntakePreparedDraft } from './dispatchers/coachIntakeProposalDispatcher.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -181,9 +200,22 @@ const DISPATCHERS = new Map([
   ['view_trainer_availability',    dispatchViewTrainerAvailability],
   ['view_available_slots',         dispatchViewAvailableSlots],
   ['create_availability_override', dispatchCreateAvailabilityOverride],
+  ['view_coach_intake_health',      dispatchViewCoachIntakeHealth],
+  ['view_coach_intake_retention',   dispatchViewCoachIntakeRetention],
+  ['view_coach_intake_retention_purge_plan', dispatchViewCoachIntakeRetentionPurgePlan],
+  ['view_coach_intake_prepared_draft', dispatchViewCoachIntakePreparedDraft],
+  ['view_coach_intake_queue',       dispatchViewCoachIntakeQueue],
+  ['review_next_coach_intake',      dispatchReviewNextCoachIntake],
+  ['inspect_coach_audio_pieces',    dispatchInspectCoachAudioPieces],
   ['view_plaud_intake_queue',      dispatchViewPlaudIntakeQueue],
   ['review_next_plaud_intake',     dispatchReviewNextPlaudIntake],
   ['inspect_plaud_audio_pieces',   dispatchInspectPlaudAudioPieces],
+  ['plaud_list_intake_items',       dispatchPlaudListIntakeItems],
+  ['plaud_analyze_clip_set',        dispatchPlaudAnalyzeClipSet],
+  ['plaud_propose_clip_order',      dispatchPlaudProposeClipOrder],
+  ['plaud_group_session_candidates', dispatchPlaudGroupSessionCandidates],
+  ['plaud_merge_candidate_group',   dispatchPlaudMergeCandidateGroup],
+  ['plaud_request_confirmation',    dispatchPlaudRequestConfirmation],
 ]);
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────

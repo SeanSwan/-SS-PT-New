@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
 import { PlaudPendingReviewsList } from './PlaudPendingReviewsList';
 import { getMergeRequest, type MergeResponse, type MergeRequestDetail } from '../../services/plaudMergeService';
-import { PlaudApiError } from '../../services/plaudClipService';
 import { PlaudMergeReview } from './PlaudMergeReview';
 import type { PlaudMergeConfirmState, PlaudMergeReviewState } from './PlaudMergeWorkspace.types';
+import { safePlaudActionErrorMessage } from './plaudSafeErrorText';
 import {
   ActionRow,
   BackLink,
@@ -26,6 +26,7 @@ export interface PlaudMergeWorkspaceProps {
   lockClientId?: boolean;
   embedded?: boolean;
   backLabel?: string;
+  initialReviewMergeRequestId?: string | null;
   onBack?: () => void;
 }
 
@@ -35,11 +36,15 @@ export function PlaudMergeWorkspace({
   lockClientId = false,
   embedded = false,
   backLabel = 'Dashboard',
+  initialReviewMergeRequestId = null,
   onBack,
 }: PlaudMergeWorkspaceProps): JSX.Element {
   const [reviewState, setReviewState] = useState<PlaudMergeReviewState | null>(null);
   const [confirmState, setConfirmState] = useState<PlaudMergeConfirmState | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const autoOpenedReviewRef = useRef<string | null>(null);
+  const successReceiptRef = useRef<HTMLDivElement | null>(null);
+  const applyErrorRef = useRef<HTMLDivElement | null>(null);
 
   const openDetailReview = useCallback((detail: MergeRequestDetail) => {
     setReviewState({
@@ -62,9 +67,10 @@ export function PlaudMergeWorkspace({
       openDetailReview(mergeRequest);
     } catch (err) {
       setApplyError(
-        err instanceof PlaudApiError
-          ? `${err.code}: ${err.message}`
-          : 'Merge completed, but split review could not be loaded. Open it from pending reviews before logging.',
+        safePlaudActionErrorMessage(
+          err,
+          'Merge completed, but split review could not be loaded. Open it from pending reviews before logging.',
+        ),
       );
     }
   }, [openDetailReview]);
@@ -76,12 +82,43 @@ export function PlaudMergeWorkspace({
       const { mergeRequest } = await getMergeRequest(mergeRequestId);
       detail = mergeRequest;
     } catch (err) {
-      setApplyError(err instanceof PlaudApiError ? `${err.code}: ${err.message}` : 'Failed to load merge details');
+      setApplyError(safePlaudActionErrorMessage(err, 'Failed to load merge details'));
       return;
     }
     if (!detail) return;
     openDetailReview(detail);
   }, [openDetailReview]);
+
+  useEffect(() => {
+    const id = initialReviewMergeRequestId?.trim();
+    if (!id || autoOpenedReviewRef.current === id) return;
+    autoOpenedReviewRef.current = id;
+    void handleOpenReview(id);
+  }, [handleOpenReview, initialReviewMergeRequestId]);
+
+  useEffect(() => {
+    const receipt = successReceiptRef.current;
+    if (!confirmState || !receipt) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof receipt.scrollIntoView === 'function') {
+        receipt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      receipt.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [confirmState]);
+
+  useEffect(() => {
+    const alert = applyErrorRef.current;
+    if (!applyError || !alert) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof alert.scrollIntoView === 'function') {
+        alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      alert.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [applyError]);
 
   const handleResetReview = useCallback(() => {
     setReviewState(null);
@@ -103,7 +140,7 @@ export function PlaudMergeWorkspace({
             </BackLink>
           ) : null}
         </Header>
-        <SuccessBanner role="status">
+        <SuccessBanner ref={successReceiptRef} role="status" tabIndex={-1}>
           <CheckCircle2 size={22} aria-hidden="true" />
           <div>
             <strong>Workout logged successfully.</strong>
@@ -154,7 +191,7 @@ export function PlaudMergeWorkspace({
       <TwoColumn>
         <Section>
           {applyError ? (
-            <ErrorBanner role="alert">
+            <ErrorBanner ref={applyErrorRef} role="alert" tabIndex={-1}>
               <AlertTriangle size={16} aria-hidden="true" />
               {applyError}
             </ErrorBanner>

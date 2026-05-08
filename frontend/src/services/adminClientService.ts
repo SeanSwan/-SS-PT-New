@@ -14,45 +14,48 @@
  * - Integration with payment/session systems
  */
 
-import axios from 'axios';
+import apiService from './api.service';
 
-// Base API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+type AdminApiClient = {
+  get<T = any>(url: string, config?: any): Promise<{ data: T }>;
+  post<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }>;
+  put<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }>;
+  delete<T = any>(url: string, config?: any): Promise<{ data: T }>;
+};
+
+const needsApiPrefix = (apiInstance: any): boolean => {
+  const baseUrl = apiInstance?.defaults?.baseURL;
+  return typeof baseUrl !== 'string' || !/\/api\/?$/.test(baseUrl);
+};
+
+const withApiPrefix = (path: string, apiInstance: any): string => {
+  if (path.startsWith('/api/')) return path;
+  return needsApiPrefix(apiInstance) ? `/api${path}` : path;
+};
+
+const createAdminApiClient = (apiInstance: any = apiService): AdminApiClient => ({
+  get: (url, config) => apiInstance.get(withApiPrefix(url, apiInstance), config),
+  post: (url, data, config) => apiInstance.post(withApiPrefix(url, apiInstance), data, config),
+  put: (url, data, config) => apiInstance.put(withApiPrefix(url, apiInstance), data, config),
+  delete: (url, config) => apiInstance.delete(withApiPrefix(url, apiInstance), config),
 });
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    throw error;
-  }
-);
 
 /**
  * Admin Client Service Class
  */
 class AdminClientService {
+  private readonly api: AdminApiClient;
+
+  constructor(apiInstance?: any) {
+    this.api = createAdminApiClient(apiInstance);
+  }
+
   /**
    * Get all clients with filtering and pagination
    */
   async getClients(params = {}) {
     try {
-      const response = await api.get('/admin/clients', { params });
+      const response = await this.api.get('/admin/clients', { params });
       // API returns { success, data: { clients, count, ... } }
       // Axios unwraps once, so response.data = { success, data: { clients } }
       const payload = response.data?.data || response.data || {};
@@ -79,7 +82,7 @@ class AdminClientService {
    */
   async getClientDetails(clientId) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}`);
+      const response = await this.api.get(`/admin/clients/${clientId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching client details:', error);
@@ -92,7 +95,7 @@ class AdminClientService {
    */
   async createClient(clientData) {
     try {
-      const response = await api.post('/admin/clients', {
+      const response = await this.api.post('/admin/clients', {
         ...clientData,
         // Set initial password (client will be prompted to change)
         password: this.generateTempPassword(),
@@ -118,7 +121,7 @@ class AdminClientService {
    */
   async createExternalClient(clientData: CreateExternalClientRequest) {
     try {
-      const response = await api.post('/admin/clients/create-external', clientData);
+      const response = await this.api.post('/admin/clients/create-external', clientData);
       return response.data;
     } catch (error: any) {
       console.error('Error creating external client:', error);
@@ -134,7 +137,7 @@ class AdminClientService {
    */
   async updateClient(clientId, updateData) {
     try {
-      const response = await api.put(`/admin/clients/${clientId}`, updateData);
+      const response = await this.api.put(`/admin/clients/${clientId}`, updateData);
       return response.data;
     } catch (error) {
       console.error('Error updating client:', error);
@@ -150,7 +153,7 @@ class AdminClientService {
    */
   async deleteClient(clientId) {
     try {
-      await api.delete(`/admin/clients/${clientId}`);
+      await this.api.delete(`/admin/clients/${clientId}`);
       return true;
     } catch (error) {
       console.error('Error deleting client:', error);
@@ -163,7 +166,7 @@ class AdminClientService {
    */
   async assignTrainer(clientId, trainerId) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/assign-trainer`, {
+      const response = await this.api.post(`/admin/clients/${clientId}/assign-trainer`, {
         trainerId
       });
       return response.data;
@@ -178,7 +181,7 @@ class AdminClientService {
    */
   async resetClientPassword(clientId) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/reset-password`);
+      const response = await this.api.post(`/admin/clients/${clientId}/reset-password`);
       return response.data;
     } catch (error) {
       console.error('Error resetting password:', error);
@@ -191,7 +194,7 @@ class AdminClientService {
    */
   async getClientWorkoutStats(clientId) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/workout-stats`);
+      const response = await this.api.get(`/admin/clients/${clientId}/workout-stats`);
       return response.data;
     } catch (error) {
       console.error('Error fetching workout stats:', error);
@@ -204,7 +207,7 @@ class AdminClientService {
    */
   async generateWorkoutPlan(clientId, planData) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/generate-workout-plan`, planData);
+      const response = await this.api.post(`/admin/clients/${clientId}/generate-workout-plan`, planData);
       return response.data;
     } catch (error) {
       console.error('Error generating workout plan:', error);
@@ -217,7 +220,7 @@ class AdminClientService {
    */
   async bulkUpdate(clientIds, updateData) {
     try {
-      const response = await api.post('/admin/clients/bulk-update', {
+      const response = await this.api.post('/admin/clients/bulk-update', {
         clientIds,
         updateData
       });
@@ -233,7 +236,7 @@ class AdminClientService {
    */
   async exportClients(format = 'csv', filters = {}) {
     try {
-      const response = await api.get('/admin/clients/export', {
+      const response = await this.api.get('/admin/clients/export', {
         params: { format, ...filters },
         responseType: 'blob'
       });
@@ -260,7 +263,7 @@ class AdminClientService {
    */
   async getClientAnalytics(timeRange = '30d') {
     try {
-      const response = await api.get('/admin/clients/analytics', {
+      const response = await this.api.get('/admin/clients/analytics', {
         params: { timeRange }
       });
       return response.data;
@@ -275,7 +278,7 @@ class AdminClientService {
    */
   async searchClients(searchQuery, filters = {}) {
     try {
-      const response = await api.get('/admin/clients/search', {
+      const response = await this.api.get('/admin/clients/search', {
         params: {
           q: searchQuery,
           ...filters
@@ -293,7 +296,7 @@ class AdminClientService {
    */
   async getClientSessions(clientId, params = {}) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/sessions`, { params });
+      const response = await this.api.get(`/admin/clients/${clientId}/sessions`, { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching client sessions:', error);
@@ -306,7 +309,7 @@ class AdminClientService {
    */
   async getClientPayments(clientId, params = {}) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/payments`, { params });
+      const response = await this.api.get(`/admin/clients/${clientId}/payments`, { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching client payments:', error);
@@ -319,7 +322,7 @@ class AdminClientService {
    */
   async addSessions(clientId, sessionCount, packageId = null) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/add-sessions`, {
+      const response = await this.api.post(`/admin/clients/${clientId}/add-sessions`, {
         sessionCount,
         packageId
       });
@@ -335,7 +338,7 @@ class AdminClientService {
    */
   async getMCPStatus() {
     try {
-      const response = await api.get('/admin/mcp-status');
+      const response = await this.api.get('/admin/mcp-status');
       return response.data;
     } catch (error) {
       console.error('Error fetching MCP status:', error);
@@ -351,7 +354,7 @@ class AdminClientService {
    */
   async getBillingOverview(clientId: string) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/billing-overview`);
+      const response = await this.api.get(`/admin/clients/${clientId}/billing-overview`);
       return response.data;
     } catch (error) {
       console.error('Error fetching billing overview:', error);
@@ -366,7 +369,7 @@ class AdminClientService {
    */
   async applyPayment(orderId: string | number, paymentData: { method: string; reference?: string }) {
     try {
-      const response = await api.post(`/orders/${orderId}/apply-payment`, paymentData);
+      const response = await this.api.post(`/orders/${orderId}/apply-payment`, paymentData);
       return response.data;
     } catch (error) {
       console.error('Error applying payment:', error);
@@ -389,7 +392,7 @@ class AdminClientService {
     notes?: string;
   }) {
     try {
-      const response = await api.post('/sessions/admin/book', data);
+      const response = await this.api.post('/sessions/admin/book', data);
       return response.data;
     } catch (error) {
       console.error('Error booking session for client:', error);
@@ -413,7 +416,7 @@ class AdminClientService {
     try {
       // Map frontend fields to backend expected format
       const notes = [data.reason, data.adminNote].filter(Boolean).join(' - ');
-      const response = await api.post('/session-packages/add-sessions', {
+      const response = await this.api.post('/session-packages/add-sessions', {
         clientId: clientId,  // Backend expects clientId, not userId
         sessions: data.sessions,
         notes: notes || undefined
@@ -436,7 +439,7 @@ class AdminClientService {
    */
   async getOnboardingStatus(clientId: number | string) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/onboarding`);
+      const response = await this.api.get(`/admin/clients/${clientId}/onboarding`);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -452,7 +455,7 @@ class AdminClientService {
    */
   async saveOnboardingDraft(clientId: number | string, responsesJson: Record<string, any>) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/onboarding`, {
+      const response = await this.api.post(`/admin/clients/${clientId}/onboarding`, {
         mode: 'draft',
         responsesJson,
       });
@@ -468,7 +471,7 @@ class AdminClientService {
    */
   async submitOnboarding(clientId: number | string, responsesJson: Record<string, any>) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/onboarding`, {
+      const response = await this.api.post(`/admin/clients/${clientId}/onboarding`, {
         mode: 'submit',
         responsesJson,
       });
@@ -483,7 +486,7 @@ class AdminClientService {
    */
   async resetOnboarding(clientId: number | string) {
     try {
-      const response = await api.delete(`/admin/clients/${clientId}/onboarding`);
+      const response = await this.api.delete(`/admin/clients/${clientId}/onboarding`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to reset onboarding');
@@ -517,7 +520,7 @@ class AdminClientService {
     }>;
   }) {
     try {
-      const response = await api.post(`/admin/clients/${clientId}/workouts`, workoutData);
+      const response = await this.api.post(`/admin/clients/${clientId}/workouts`, workoutData);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to log workout');
@@ -534,7 +537,7 @@ class AdminClientService {
     offset?: number;
   }) {
     try {
-      const response = await api.get(`/admin/clients/${clientId}/workouts`, { params });
+      const response = await this.api.get(`/admin/clients/${clientId}/workouts`, { params });
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch workout history');
@@ -830,9 +833,9 @@ export interface AdminClientServiceInterface {
 
 // Factory function for creating the service with custom API instance
 export const createAdminClientService = (apiInstance?: any): AdminClientServiceInterface => {
-  return new AdminClientService();
+  return new AdminClientService(apiInstance);
 };
 
 // Export singleton instance
-export const adminClientService = new AdminClientService();
+export const adminClientService = new AdminClientService(apiService);
 export default adminClientService;

@@ -1,0 +1,46 @@
+/**
+ * coachIntakeRoutes.mjs
+ * =====================
+ * Canonical Swan Coach intake queue API:
+ *   POST /api/coach/intake        - create encrypted typed/narrative intake
+ *   GET  /api/coach/intake/queue  - list unified Coach + PLAUD queue metadata
+ *   GET  /api/coach/intake/health - read PII-safe queue health metrics
+ *   GET  /api/coach/intake/retention - read raw-artifact retention candidates
+ *   GET  /api/coach/intake/retention/purge-plan - dry-run raw artifact purge
+ */
+import express from 'express';
+import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import {
+  confirmCoachIntakeAudioOrderHandler,
+  createCoachTextIntakeHandler,
+  getCoachIntakeHealthHandler,
+  getCoachIntakeRetentionPurgePlanHandler,
+  getCoachIntakeRetentionHandler,
+  listCoachIntakeEventsHandler,
+  listCoachIntakeHandler,
+} from '../controllers/coachIntakeController.mjs';
+import logger from '../utils/logger.mjs';
+
+const router = express.Router();
+
+router.use(protect);
+router.use(authorize(['admin', 'trainer']));
+router.use(express.json({ limit: '256kb' }));
+
+router.post('/', createCoachTextIntakeHandler);
+router.get('/queue', listCoachIntakeHandler);
+router.get('/health', getCoachIntakeHealthHandler);
+router.get('/retention', getCoachIntakeRetentionHandler);
+router.get('/retention/purge-plan', getCoachIntakeRetentionPurgePlanHandler);
+router.get('/:id/events', listCoachIntakeEventsHandler);
+router.post('/:id/audio-order/confirm', confirmCoachIntakeAudioOrderHandler);
+
+router.use((err, _req, res, _next) => {
+  logger.error('[coachIntakeRoutes] unhandled error: %s', err.message);
+  return res.status(500).json({
+    success: false,
+    error: { code: 'INTERNAL_ERROR', message: 'Internal server error' },
+  });
+});
+
+export default router;

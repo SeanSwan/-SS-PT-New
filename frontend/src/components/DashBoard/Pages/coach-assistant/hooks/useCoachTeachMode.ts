@@ -15,6 +15,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import apiService from '../../../../../services/api.service';
 import type { ExerciseSlim } from '../../../../WorkoutLogger/exerciseSearchWorker';
 
 // ─────────────────────────────────────────────────────────────
@@ -71,17 +72,13 @@ export function useCoachTeachMode(): UseCoachTeachModeReturn {
       abortRef.current = new AbortController();
 
       try {
-        // Get auth token for protected exercise route
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
-        const res = await fetch(
-          `/api/exercises?search=${encodeURIComponent(searchQuery.trim())}&limit=12`,
+        const { data: body } = await apiService.get<{ exercises?: Record<string, unknown>[] }>(
+          '/api/exercises',
           {
+            params: { search: searchQuery.trim(), limit: 12 },
             signal: abortRef.current.signal,
-            headers: { 'Authorization': `Bearer ${token}` },
-          }
+          },
         );
-        if (!res.ok) throw new Error('Search failed');
-        const body = await res.json();
         const exercises: ExerciseSlim[] = (body.exercises || []).map((ex: Record<string, unknown>) => ({
           id: String(ex.id ?? ''),
           name: String(ex.name ?? ''),

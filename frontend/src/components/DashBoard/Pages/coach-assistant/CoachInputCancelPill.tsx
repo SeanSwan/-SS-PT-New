@@ -84,7 +84,7 @@ const CoachInputCancelPill: React.FC<CoachInputCancelPillProps> = memo(({
 }) => (
   <Pill role="status" aria-live="polite" aria-label="Voice message sending — tap to cancel">
     <span>Sending voice message…</span>
-    <CancelBtn onClick={onCancel} aria-label="Cancel voice send">
+    <CancelBtn type="button" onClick={onCancel} aria-label="Cancel voice send">
       <X size={12} /> Cancel
     </CancelBtn>
     <ProgressBar $duration={duration} aria-hidden="true" />

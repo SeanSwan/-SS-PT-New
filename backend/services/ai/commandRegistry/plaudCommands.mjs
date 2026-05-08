@@ -44,6 +44,7 @@ const commands = [
     type: 'review_next_plaud_intake',
     description: 'Find the next PLAUD intake item to review',
     naturalLanguagePatterns: [
+      'review next PLAUD intake',
       'review next PLAUD item',
       'open the next PLAUD recording',
       'what PLAUD file should I handle next',

@@ -185,7 +185,7 @@ const ProfileSection: React.FC = () => {
     phone: '(555) 123-4567',
     location: 'Los Angeles, CA',
     bio: 'Fitness enthusiast and wellness advocate. I love combining traditional workouts with dance and creative movement.',
-    interests: ['HIIT', 'Yoga', 'Dance', 'Nutrition']
+    interests: ['HIIT', 'Flexibility', 'Dance', 'Nutrition']
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

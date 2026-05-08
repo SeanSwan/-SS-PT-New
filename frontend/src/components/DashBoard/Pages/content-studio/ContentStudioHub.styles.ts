@@ -48,6 +48,16 @@ export const Title = styled.h1`
   color: var(--text-heading, #E0ECF4);
 `;
 
+export const StudioBrief = styled.p`
+  flex: 1 1 360px;
+  max-width: 720px;
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+`;
+
 export const TierBadge = styled.span<{ $tier: 'bootstrap' | 'full' }>`
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;

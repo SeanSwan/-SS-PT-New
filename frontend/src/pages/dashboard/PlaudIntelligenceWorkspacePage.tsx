@@ -12,46 +12,51 @@
  * /dashboard/{role}/plaud. The current live engine remains PlaudMergeWorkspace.
  *
  * KEY DECISION:
- * Swan Coach/Hive Mind actions are named here as the next backend contract,
- * not represented as already-automated behavior. The UI must not imply that
- * clip ordering, splitting, or auto-log actions are live before those actions
- * exist in commandDispatcher and the PLAUD backend.
+ * Swan Coach/Hive Mind status labels mirror review-gated capabilities. The UI
+ * must not imply autonomous writes: clip ordering, splitting, and log creation
+ * still require the prepared-draft and human approval gates.
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  AlertTriangle,
   Brain,
-  CheckCircle2,
   Clock3,
   FileAudio,
-  GitBranch,
   ListChecks,
-  Mic2,
-  ShieldCheck,
-  Workflow,
 } from 'lucide-react';
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
 import { usePlaudIntakeQueue } from '../../hooks/usePlaudIntakeQueue';
+import { parsePlaudMergeRequestId } from '../../utils/plaudRouteGuards';
+import { PlaudCoachHandoffPane, PlaudIntakeLanes } from './PlaudIntelligenceWorkspacePanels';
+import {
+  formatPlaudQueueStatus,
+  formatPlaudSourceLabel,
+  intakePreviewClientLabel,
+  intakePreviewHref,
+  intakePreviewLabel,
+  pickReviewNextMergeRequestId,
+  queueLoadErrorMessage,
+  visibleIntakePreviewItems,
+  type PlaudDashboardRole,
+} from './PlaudIntelligenceWorkspacePage.logic';
 import {
   ActionButton,
-  ActionItem,
-  ActionList,
-  ActionStatus,
-  CoachPane,
-  CommandRail,
-  CommandTile,
   Eyebrow,
   HeaderActions,
   HeaderCopy,
-  PaneTitle,
   PrimaryPane,
   WorkspaceBody,
   WorkspaceHeader,
   WorkspaceShell,
 } from './PlaudIntelligenceWorkspacePage.styles';
 import {
+  BadgeCluster,
   IntakePreviewItem,
+  IntakePreviewLink,
   IntakePreviewList,
+  IntakeRecoveryAlert,
+  IntakeRecoveryLink,
   IntakeSnapshot,
   IntakeSnapshotHeader,
   IntakeStat,
@@ -59,24 +64,28 @@ import {
   SourceBadge,
 } from './PlaudIntakeSnapshot.styles';
 
-function useDashboardRole(): 'admin' | 'trainer' {
+function useDashboardRole(): PlaudDashboardRole {
   const location = useLocation();
   return location.pathname.includes('/dashboard/trainer/') ? 'trainer' : 'admin';
-}
-
-function formatQueueStatus(status: string): string {
-  return status
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const role = useDashboardRole();
+  const invalidReviewLinkRef = useRef<HTMLDivElement | null>(null);
   const coachPath = `/dashboard/${role}/coach-assistant`;
-  const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue();
+  const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
+  const params = new URLSearchParams(location.search);
+  const rawMergeRequestId = params.get('mergeRequestId');
+  const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
+  const hasInvalidDirectMergeRequestId = Boolean(rawMergeRequestId && !directMergeRequestId);
+  const reviewNextRequested = params.get('review') === 'next';
+  const reviewNextMergeRequestId = reviewNextRequested
+    ? pickReviewNextMergeRequestId(intakeItems)
+    : null;
+  const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId;
+  const selectedMergeRequestId = directMergeRequestId || reviewNextMergeRequestId;
 
   const focusQueue = useCallback(() => {
     const queue = document.querySelector('[data-testid="plaud-pending-reviews"]');
@@ -94,12 +103,18 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     }
   }, []);
 
+  const focusInvalidReviewLink = useCallback(() => {
+    invalidReviewLinkRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    invalidReviewLinkRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('review') !== 'next') return undefined;
+    if (isLoading || reviewNextMergeRequestId) return undefined;
     const timer = window.setTimeout(focusQueue, 120);
     return () => window.clearTimeout(timer);
-  }, [focusQueue, location.search]);
+  }, [focusQueue, isLoading, location.search, reviewNextMergeRequestId]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -109,6 +124,12 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     }
     return undefined;
   }, [focusMergePanel, location.search]);
+
+  useEffect(() => {
+    if (!hasInvalidDirectMergeRequestId) return undefined;
+    const timer = window.setTimeout(focusInvalidReviewLink, 120);
+    return () => window.clearTimeout(timer);
+  }, [focusInvalidReviewLink, hasInvalidDirectMergeRequestId]);
 
   return (
     <WorkspaceShell data-testid="plaud-intelligence-workspace">
@@ -162,87 +183,65 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             <dd>{summary.needsClient}</dd>
           </IntakeStat>
         </IntakeStats>
+        {hasInvalidDirectMergeRequestId && (
+          <IntakeRecoveryAlert
+            ref={invalidReviewLinkRef}
+            role="alert"
+            tabIndex={-1}
+            data-testid="plaud-invalid-review-link"
+          >
+            <AlertTriangle size={18} aria-hidden="true" />
+            <span>That PLAUD review link has an invalid merge request ID.</span>
+            <IntakeRecoveryLink to={`/dashboard/${role}/plaud?review=next`}>
+              Review next item
+            </IntakeRecoveryLink>
+          </IntakeRecoveryAlert>
+        )}
         <IntakePreviewList>
           {isLoading ? (
             <IntakePreviewItem><span>Loading intake queue</span><span /></IntakePreviewItem>
           ) : error ? (
-            <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
+            <IntakePreviewItem role="alert"><span>{queueLoadErrorMessage()}</span><span /></IntakePreviewItem>
           ) : intakeItems.length === 0 ? (
             <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
-          ) : intakeItems.map((item) => (
-            <IntakePreviewItem key={item.id}>
-              <span>
-                <strong>{item.clientName || 'Client pending'}</strong>
-                {' - '}
-                {formatQueueStatus(item.queueStatus)}
-              </span>
-              <SourceBadge>{item.sourceLabel}</SourceBadge>
-            </IntakePreviewItem>
-          ))}
+          ) : visibleIntakePreviewItems(intakeItems, selectedMergeRequestId).map((item) => {
+            const isDirectMergeTarget = Boolean(
+              selectedMergeRequestId && item.kind === 'merge_request' && item.entityId === selectedMergeRequestId,
+            );
+            return (
+              <IntakePreviewItem
+                key={item.id}
+                $selected={isDirectMergeTarget}
+                aria-current={isDirectMergeTarget ? 'true' : undefined}
+              >
+                <IntakePreviewLink
+                  to={intakePreviewHref(item, role)}
+                  aria-label={intakePreviewLabel(item)}
+                >
+                  <strong>{intakePreviewClientLabel(item)}</strong>
+                  {' - '}
+                  {formatPlaudQueueStatus(item.queueStatus)}
+                </IntakePreviewLink>
+                <BadgeCluster>
+                  {isDirectMergeTarget && <SourceBadge $tone="gold">Selected review</SourceBadge>}
+                  <SourceBadge>{formatPlaudSourceLabel(item.source)}</SourceBadge>
+                </BadgeCluster>
+              </IntakePreviewItem>
+            );
+          })}
         </IntakePreviewList>
       </IntakeSnapshot>
 
-      <CommandRail aria-label="PLAUD intake lanes">
-        <CommandTile>
-          <FileAudio size={22} aria-hidden="true" />
-          <div>
-            <strong>Audio pieces</strong>
-            <span>Manual clips and Applaud recordings enter one queue.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <Clock3 size={22} aria-hidden="true" />
-          <div>
-            <strong>Time grouping</strong>
-            <span>Recording timestamps stay visible as the first session-order signal.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <Mic2 size={22} aria-hidden="true" />
-          <div>
-            <strong>Dictation first</strong>
-            <span>Voice intake remains routed through reviewed workout-log handoff.</span>
-          </div>
-        </CommandTile>
-        <CommandTile>
-          <ShieldCheck size={22} aria-hidden="true" />
-          <div>
-            <strong>Human gate</strong>
-            <span>Client, date, duplicate, and final log decisions stay human-confirmed.</span>
-          </div>
-        </CommandTile>
-      </CommandRail>
+      <PlaudIntakeLanes />
 
       <WorkspaceBody>
         <PrimaryPane aria-label="PLAUD merge and review queue">
           <PlaudMergeWorkspace
             embedded
+            initialReviewMergeRequestId={initialReviewMergeRequestId || undefined}
           />
         </PrimaryPane>
-        <CoachPane aria-label="Swan Coach action contract">
-          <PaneTitle>
-            <Workflow size={18} aria-hidden="true" />
-            Swan Coach handoff
-          </PaneTitle>
-          <ActionList>
-            <ActionItem>
-              <GitBranch size={16} aria-hidden="true" />
-              <span><strong>Order clips</strong><ActionStatus>Next slice</ActionStatus>Group nearby recordings and flag gaps before merge.</span>
-            </ActionItem>
-            <ActionItem>
-              <ListChecks size={16} aria-hidden="true" />
-              <span><strong>Split workouts</strong><ActionStatus>Next slice</ActionStatus>Create review cards by date, time, and transcript boundary.</span>
-            </ActionItem>
-            <ActionItem>
-              <Brain size={16} aria-hidden="true" />
-              <span><strong>Resolve meaning</strong><ActionStatus>Next slice</ActionStatus>Extract exercises, sets, reps, pain notes, and form cues.</span>
-            </ActionItem>
-            <ActionItem>
-              <CheckCircle2 size={16} aria-hidden="true" />
-              <span><strong>Prepare logs</strong><ActionStatus>Next slice</ActionStatus>Hand approved cards to the shared workout-log mapper.</span>
-            </ActionItem>
-          </ActionList>
-        </CoachPane>
+        <PlaudCoachHandoffPane />
       </WorkspaceBody>
     </WorkspaceShell>
   );

@@ -12,7 +12,7 @@
  *   review      — TranscriptReviewCard rendered with parsed workout
  *   error       — banner + retry
  *
- * Sticky-footer "Merge selected (N) for {clientName}" on mobile
+ * Sticky-footer "Process selected (N) for {clientName}" on mobile
  * (CLAUDE.md Rule 22 premium UX, Rule 24 responsive).
  */
 import { useCallback, useState } from 'react';
@@ -23,6 +23,12 @@ import { PlaudApiError } from '../../services/plaudClipService';
 import { PlaudClientResolver, type PlaudResolvedClient } from './PlaudClientResolver';
 import { PlaudClipUploader } from './PlaudClipUploader';
 import { PlaudClipQueue } from './PlaudClipQueue';
+import {
+  safePlaudIssueCode,
+  safePlaudMergeErrorMessage,
+  safePlaudRejectedFileMessage,
+  safePlaudUploadErrorMessage,
+} from './plaudSafeErrorText';
 import {
   ActionBar,
   ErrorBanner,
@@ -88,8 +94,8 @@ export function PlaudClipMergePanel({
   return (
     <PanelWrap data-testid="plaud-merge-panel" tabIndex={-1} aria-label="PLAUD audio merge panel">
       <SectionHeader>
-        <Title>PLAUD merge</Title>
-        <Sub>Upload session clips, pick the ones for this client, click merge.</Sub>
+        <Title>PLAUD review intake</Title>
+        <Sub>Upload one complete workout or multiple session clips, pick the client, then process.</Sub>
       </SectionHeader>
 
       <PlaudClipUploader
@@ -102,7 +108,8 @@ export function PlaudClipMergePanel({
         <ErrorBanner role="alert">
           <AlertCircle size={18} aria-hidden="true" />
           <div>
-            <strong>{queue.uploadError.code}:</strong> {queue.uploadError.message}
+            <strong>{safePlaudIssueCode(queue.uploadError.code)}:</strong>{' '}
+            {safePlaudUploadErrorMessage(queue.uploadError.code)}
           </div>
         </ErrorBanner>
       ) : null}
@@ -114,8 +121,9 @@ export function PlaudClipMergePanel({
             <strong>{queue.rejectedClips.length} file(s) rejected</strong>
             <RejectedList>
               {queue.rejectedClips.map((r, idx) => (
-                <li key={`${r.filename}-${idx}`}>
-                  <strong>{r.filename}:</strong> {r.code} — {r.message}
+                <li key={`${safePlaudIssueCode(r.code)}-${idx}`}>
+                  <strong>Rejected file {idx + 1}:</strong> {safePlaudIssueCode(r.code)} -{' '}
+                  {safePlaudRejectedFileMessage(r.code)}
                 </li>
               ))}
             </RejectedList>
@@ -152,19 +160,19 @@ export function PlaudClipMergePanel({
       <ActionBar>
         <SelectedCount aria-live="polite">
           {queue.selectedCount === 0
-            ? 'Select 2-5 clips to merge.'
+            ? 'Select 1-5 clips to process.'
             : queue.canMerge
-              ? `${queue.selectedCount} selected — ready to merge.`
-              : `${queue.selectedCount} selected (need 2-5).`}
+              ? `${queue.selectedCount} selected — ready to process.`
+              : `${queue.selectedCount} selected (need 1-5).`}
         </SelectedCount>
         <MergeButton
           type="button"
           onClick={onMergeClick}
           disabled={isDisabled || !queue.canMerge || !resolvedClient}
-          aria-label={`Merge ${queue.selectedCount} selected clips`}
+          aria-label={`Process ${queue.selectedCount} selected clips`}
           $cyan
         >
-          {isMerging ? 'Merging…' : `Merge selected (${queue.selectedCount})`}
+          {isMerging ? 'Processing…' : `Process selected (${queue.selectedCount})`}
           {!isMerging ? <ArrowRight size={18} aria-hidden="true" /> : null}
         </MergeButton>
       </ActionBar>
@@ -173,7 +181,8 @@ export function PlaudClipMergePanel({
         <ErrorBanner role="alert">
           <AlertCircle size={18} aria-hidden="true" />
           <div>
-            <strong>{mergeError.code}:</strong> {mergeError.message}
+            <strong>{safePlaudIssueCode(mergeError.code)}:</strong>{' '}
+            {safePlaudMergeErrorMessage(mergeError.code)}
           </div>
         </ErrorBanner>
       ) : null}

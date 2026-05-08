@@ -36,7 +36,7 @@ const getDate = (offset: number) => {
 const DEMO_EVENTS: CalendarEvent[] = [
   { id: '1', date: getDate(-1), channel: 'blog', title: '5 Mobility Drills for Golfers', status: 'published' },
   { id: '2', date: getDate(0), channel: 'social', title: 'Instagram: Client transformation post', status: 'approved' },
-  { id: '3', date: getDate(0), channel: 'social', title: 'X: Youth athlete training tip', status: 'draft' },
+  { id: '3', date: getDate(0), channel: 'social', title: 'Bluesky: Youth athlete training tip', status: 'draft' },
   { id: '4', date: getDate(1), channel: 'email', title: 'Monthly Recap Newsletter', status: 'pending_review' },
   { id: '5', date: getDate(2), channel: 'video', title: 'Golf flexibility routine (YouTube)', status: 'draft' },
   { id: '6', date: getDate(3), channel: 'social', title: 'Facebook: New class announcement', status: 'draft' },

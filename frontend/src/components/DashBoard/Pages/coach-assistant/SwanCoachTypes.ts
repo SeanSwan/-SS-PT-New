@@ -87,6 +87,11 @@ export interface CoachMessageData {
       totalWeight?: number;
       reason?: string;
     }>;
+    coachActionProposals?: CoachActionProposal[];
+    coachActionProposalError?: {
+      code: string;
+      message: string;
+    };
     /** Injected by command lane — renders ConfirmationCard in CoachMessage */
     commandConfirmation?: {
       message: string;
@@ -137,7 +142,6 @@ export interface CoachMessageData {
       fileSize: number;
       fileMimeType: string;
       clientId: number;
-      clientName?: string;
       /**
        * Phase 13 (2026-04-15): user-editable workout date for the apply step.
        * Initialized from `parsedWorkout.date` if present, else today. This is
@@ -161,7 +165,6 @@ export interface CoachMessageData {
      */
     transcriptResult?: {
       clientId: number;
-      clientName?: string;
       exerciseCount: number;
       totalSets: number;
       workoutId?: string | number;
@@ -188,6 +191,19 @@ export interface CoachMessageData {
       fileSize?: number;
       reason: string;
     };
+    /**
+     * Injected when Coach audio attachments are accepted into the PLAUD
+     * intake queue. This is a receipt only; review/log writes still happen
+     * through the deterministic intake workspace and proposal pipeline.
+     */
+    audioIntakeReceipt?: {
+      fileName: string;
+      acceptedCount: number;
+      rejectedCount: number;
+      fileSize?: number;
+      nextActionLabel: string;
+      rejectedSummary?: string;
+    };
   };
   frontendActions?: FrontendAction[];
 }
@@ -195,6 +211,23 @@ export interface CoachMessageData {
 export interface FrontendAction {
   type: string;
   payload?: Record<string, unknown>;
+}
+
+export interface CoachActionProposal {
+  id: string;
+  type:
+    | 'client_onboarding'
+    | 'workout_log'
+    | 'client_data_update'
+    | 'frontend_dispatch'
+    | 'clarification'
+    | 'split_plan';
+  status: 'PENDING' | 'APPLYING' | 'APPROVED' | 'APPLIED' | 'REJECTED' | 'FAILED';
+  title: string;
+  summary: Record<string, string | number | null | undefined>;
+  detail?: Record<string, unknown>;
+  reviewToken?: string | null;
+  createdAt?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

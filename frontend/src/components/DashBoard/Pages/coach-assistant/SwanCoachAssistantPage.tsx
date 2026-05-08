@@ -31,7 +31,7 @@
 import React, { useCallback, useEffect, useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useAuth } from '../../../../hooks/useAuth';
 import { usePaywall } from '../../../../context/PaywallContext';
@@ -41,6 +41,7 @@ import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { useConversationSidebar } from './hooks/useConversationSidebar';
 import { useScrollLock } from './hooks/useScrollLock';
 import { useCoachTeachMode } from './hooks/useCoachTeachMode';
+import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
 import { ContextChipBar } from './ContextChipBar';
 import { CoachMessage } from './CoachMessage';
 import { ResponseStyleSelector } from './ResponseStyleSelector';
@@ -54,13 +55,28 @@ import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 import FileAttachmentButton from './FileAttachmentButton';
 import AttachmentPreview from './AttachmentPreview';
 import VoiceSettingsBar from './VoiceSettingsBar';
+import CoachIntakeWorkspace from './CoachIntakeWorkspace';
+import {
+  itemReviewHref,
+  pickNextItem,
+  queueScopedHref,
+} from './CoachIntakeWorkspace.utils';
+import {
+  safeAttachmentSourceLabel,
+  safeAudioRejectedSummary,
+  safeCoachIntakeDraftFailure,
+  safeTranscriptFailureReason,
+} from './CoachIntakeOperationalText.logic';
 import {
   useFileAttachment,
   hasTranscriptClassFile,
   countTranscriptClassFiles,
+  hasOnlyAudioTranscriptFiles,
   isTranscriptClassMime,
 } from './hooks/useFileAttachment';
 import { useTranscriptIntake } from './hooks/useTranscriptIntake';
+import { createCoachTextIntake } from '../../../../services/coachIntakeService';
+import { uploadClips } from '../../../../services/plaudClipService';
 import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   CoachHeader,
@@ -284,8 +300,23 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
   const { showPaywall } = usePaywall();
+  const { user: authUser } = useAuth();
+  const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
-  const coach = useCoachAssistant({ chat, targetClientId: selectedClient?.id ?? null });
+  const coachIntakeQueue = useCoachIntakeQueue({
+    scope: 'actionable',
+    limit: 3,
+    enabled: userRole === 'admin' || userRole === 'trainer',
+  });
+  const {
+    items: coachIntakeItems,
+    refresh: refreshCoachIntakeQueue,
+    scope: coachIntakeScope,
+  } = coachIntakeQueue;
+  const coach = useCoachAssistant({
+    chat,
+    targetClientId: selectedClient?.id ?? null,
+  });
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -293,6 +324,9 @@ const SwanCoachAssistantPage: React.FC = () => {
   // SPRINT B: transcript text injected into CoachInputBar when user chooses "Edit".
   // Uses { text, seq } nonce so identical text can inject on repeated edits.
   const [pendingVoiceEdit, setPendingVoiceEdit] = useState<{ text: string; seq: number } | null>(null);
+  const injectInputText = useCallback((text: string) => {
+    setPendingVoiceEdit(prev => ({ text, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
   const attachments = useFileAttachment();
 
   // Load conversation list on mount
@@ -345,12 +379,10 @@ const SwanCoachAssistantPage: React.FC = () => {
   useScrollLock(sidebar.isOpen);
 
   // ── Get user role from Redux auth store (replaces stale localStorage read) ──
-  const { user: authUser } = useAuth();
-  const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
-
   // ── Cross-dashboard client handoff (Sprint D) ──
   const { clientList, activeClient, setActiveClient, loadingClients } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const clientIdNumber = (() => {
     const raw = searchParams.get('clientId');
     const n = raw ? parseInt(raw, 10) : NaN;
@@ -506,16 +538,22 @@ const SwanCoachAssistantPage: React.FC = () => {
   const handleOpenVoiceOverlay = useCallback(() => setVoiceOverlayOpen(true), []);
   const handleCloseVoiceOverlay = useCallback(() => setVoiceOverlayOpen(false), []);
   // SPRINT B: "Send to Swan Coach" from preview state → command/chat routing
-  const handleVoiceTranscribed = useCallback((text: string) => {
-    coach.sendMessage(text);
+  const handleVoiceTranscribed = useCallback(async (text: string) => {
+    const result = await coach.sendMessage(text);
+    if (result && typeof result === 'object' && 'failed' in result && result.failed) {
+      const original = 'originalMessage' in result && typeof result.originalMessage === 'string'
+        ? result.originalMessage
+        : text;
+      injectInputText(original);
+    }
     setVoiceOverlayOpen(false);
-  }, [coach]);
+  }, [coach, injectInputText]);
   // SPRINT B: "Edit" from preview state → drop transcript into input bar.
   // Increments seq so repeated identical transcripts still trigger injection.
   const handleVoiceEditTranscript = useCallback((text: string) => {
-    setPendingVoiceEdit(prev => ({ text, seq: (prev?.seq ?? 0) + 1 }));
+    injectInputText(text);
     setVoiceOverlayOpen(false);
-  }, []);
+  }, [injectInputText]);
 
   // ── Neural Link: set macro_logging context for next conversation ──
   const handleNeuralLink = useCallback(async () => {
@@ -550,6 +588,8 @@ const SwanCoachAssistantPage: React.FC = () => {
     | { stage: 'uploading' | 'parsing'; fileName: string }
     | null
   >(null);
+  const audioReviewNextPendingRef = React.useRef(false);
+  const [audioReviewNextPending, setAudioReviewNextPending] = useState(false);
 
   // ── Swan-first transcript intake ──
   // canonical-surface-audit 2026-04-14:
@@ -592,7 +632,6 @@ const SwanCoachAssistantPage: React.FC = () => {
       if (apply.ok) {
         coach.transcriptReviewToResult(reviewMsgId, {
           clientId: entry.review.clientId,
-          clientName: entry.review.clientName,
           exerciseCount: apply.result.exerciseCount,
           totalSets: apply.result.totalSets,
           workoutId: apply.result.workoutId,
@@ -658,9 +697,10 @@ const SwanCoachAssistantPage: React.FC = () => {
 
   // ── Wrap send to route by attachment type ──
   // Transcript-class attachments take a different path than chat:
-  //   1. Require a selected client (block with clear error if missing)
-  //   2. Allow exactly one transcript-class file (multi-file already
-  //      blocked by useFileAttachment, but defense-in-depth here)
+  //   1. Send audio without a selected client to PLAUD intake first.
+  //   2. Send one audio/text/PDF transcript directly to review when a
+  //      client is selected; send multi-audio batches to PLAUD intake for
+  //      merge/order review.
   //   3. Upload via /api/workout-logs/upload
   //   4. Inject a review card into the conversation
   //   5. Clear attachments
@@ -674,6 +714,63 @@ const SwanCoachAssistantPage: React.FC = () => {
       // Only intercept if at least one attached file is transcript-class.
       // Other attachments + plain text continue to use the existing flow.
       if (files.length > 0 && hasTranscriptClassFile(files)) {
+        const routeAudioFilesToPlaudIntake = async (audioFiles: typeof files, audioLabel: string) => {
+          setTranscriptProcessing({ stage: 'uploading', fileName: audioLabel });
+          try {
+            const upload = await uploadClips(audioFiles.map((f) => f.file));
+            setTranscriptProcessing(null);
+            if (upload.clips.length > 0) {
+              coach.appendAudioIntakeReceipt({
+                fileName: audioLabel,
+                acceptedCount: upload.clips.length,
+                rejectedCount: upload.rejected.length,
+                fileSize: upload.clips.reduce((sum, clip) => sum + clip.size, 0),
+                nextActionLabel: 'Review next intake',
+                rejectedSummary: safeAudioRejectedSummary(upload.rejected.length),
+              });
+              attachments.clearFiles();
+              void coachIntakeQueue.refresh();
+              return;
+            }
+
+            const reason = safeTranscriptFailureReason(
+              'upload_failed',
+              upload.rejected.length > 0
+                ? 'The transcript could not be accepted. Check the file format and try again.'
+                : 'No audio clips were accepted into PLAUD intake.',
+            );
+            const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+              kind: 'upload_failed',
+              fileName: audioLabel,
+              fileSize: audioFiles.reduce((sum, f) => sum + f.size, 0),
+              reason,
+            });
+            if (errorMsgId) {
+              transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+            }
+          } catch (err) {
+            setTranscriptProcessing(null);
+            const reason = safeTranscriptFailureReason(
+              'upload_failed',
+              'Audio upload failed before it reached PLAUD intake.',
+            );
+            const { userMsgId, errorMsgId } = coach.appendTranscriptError({
+              kind: 'upload_failed',
+              fileName: audioLabel,
+              fileSize: audioFiles.reduce((sum, f) => sum + f.size, 0),
+              reason,
+            });
+            if (errorMsgId) {
+              transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
+            }
+          }
+        };
+
+        if (hasOnlyAudioTranscriptFiles(files) && files.length > 1) {
+          await routeAudioFilesToPlaudIntake(files, `${files.length} audio pieces`);
+          return;
+        }
+
         // Defense-in-depth: useFileAttachment already enforces single-
         // transcript-per-send, but re-check at send time so a future
         // change to the picker can't slip through.
@@ -685,6 +782,15 @@ const SwanCoachAssistantPage: React.FC = () => {
         }
 
         const transcriptFile = files.find((f) => isTranscriptClassMime(f.type))!;
+        const hasSelectedClient = Boolean(selectedClient?.id);
+        const isSingleUnresolvedAudio = hasOnlyAudioTranscriptFiles(files)
+          && files.length === 1
+          && !hasSelectedClient;
+
+        if (isSingleUnresolvedAudio) {
+          await routeAudioFilesToPlaudIntake(files, transcriptFile.name);
+          return;
+        }
 
         // Selected client is mandatory for transcript intake.
         // Phase 9.1 hotfix: use the dedicated transcriptError card instead
@@ -717,11 +823,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         // screen.
         setTranscriptProcessing({ stage: 'uploading', fileName: transcriptFile.name });
 
-        const upload = await intake.uploadTranscript(
-          transcriptFile.file,
-          selectedClient.id,
-          `${selectedClient.firstName} ${selectedClient.lastName}`.trim(),
-        );
+        const upload = await intake.uploadTranscript(transcriptFile.file, selectedClient.id);
 
         if (upload.ok) {
           // Advance the stage briefly so the user sees the transition from
@@ -775,7 +877,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           kind: 'upload_failed',
           fileName: transcriptFile.name,
           fileSize: transcriptFile.size,
-          reason: upload.failure.error,
+          reason: safeTranscriptFailureReason(upload.failure.kind, upload.failure.error),
         });
         if (errorMsgId) {
           transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
@@ -785,11 +887,76 @@ const SwanCoachAssistantPage: React.FC = () => {
 
       // Existing flow — text-only or non-transcript attachments.
       setLastAttempt(text);
-      coach.sendMessage(text);
+      const result = await coach.sendMessage(text);
+      if (result && typeof result === 'object' && 'failed' in result && result.failed) {
+        const original = 'originalMessage' in result && typeof result.originalMessage === 'string'
+          ? result.originalMessage
+          : text;
+        injectInputText(original);
+        return;
+      }
       attachments.clearFiles();
     },
-    [coach, attachments, intake, selectedClient],
+    [coach, attachments, coachIntakeQueue, intake, selectedClient, injectInputText],
   );
+
+  const handleIntakeCommand = useCallback((message: string) => {
+    void coach.sendMessage(message);
+  }, [coach]);
+
+  const handleAudioIntakeReviewNext = useCallback(() => {
+    if (audioReviewNextPendingRef.current) return;
+    audioReviewNextPendingRef.current = true;
+    setAudioReviewNextPending(true);
+    const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
+    void (async () => {
+      try {
+        let sourceItems = coachIntakeItems;
+        const refreshedItems = await refreshCoachIntakeQueue();
+        if (Array.isArray(refreshedItems)) sourceItems = refreshedItems;
+        const nextItem = pickNextItem(sourceItems);
+        if (nextItem) {
+          navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
+          return;
+        }
+        handleIntakeCommand('review next coach intake');
+      } catch {
+        const nextItem = pickNextItem(coachIntakeItems);
+        if (nextItem) {
+          navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
+          return;
+        }
+        handleIntakeCommand('review next coach intake');
+      } finally {
+        audioReviewNextPendingRef.current = false;
+        setAudioReviewNextPending(false);
+      }
+    })();
+  }, [
+    coachIntakeItems,
+    coachIntakeScope,
+    handleIntakeCommand,
+    navigate,
+    refreshCoachIntakeQueue,
+    userRole,
+  ]);
+
+  const handleCreateIntakeDraft = useCallback(async (text: string) => {
+    try {
+      await createCoachTextIntake({
+        text,
+        clientId: selectedClient?.id ?? null,
+        trigger: 'oversized_chat',
+      });
+      await coachIntakeQueue.refresh();
+      return {
+        ok: true,
+        message: 'Saved as an encrypted Coach intake draft. Use Review next intake to continue.',
+      };
+    } catch {
+      return { ok: false, message: safeCoachIntakeDraftFailure() };
+    }
+  }, [coachIntakeQueue, selectedClient?.id]);
 
   // ── Cleanup TTS on unmount ──
   React.useEffect(() => () => tts.stop(), [tts]);
@@ -815,7 +982,7 @@ const SwanCoachAssistantPage: React.FC = () => {
       <MainPanel>
         {/* Header */}
         <CoachHeader>
-          <SidebarToggle onClick={sidebar.toggle} aria-label="Toggle conversation history">
+          <SidebarToggle type="button" onClick={sidebar.toggle} aria-label="Toggle conversation history">
             <PanelLeftOpen size={20} />
           </SidebarToggle>
           <CoachHeaderIcon>
@@ -823,6 +990,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           </CoachHeaderIcon>
           <CoachTitle>Swan Coach Assistant</CoachTitle>
           <TeachModeToggle
+            type="button"
             onClick={teachMode.toggle}
             $active={teachMode.isOpen}
             aria-label="Toggle Teach Mode panel"
@@ -846,6 +1014,18 @@ const SwanCoachAssistantPage: React.FC = () => {
         {/* Capability Taxonomy (informational) */}
         <ContextChipBar userRole={userRole} />
 
+        <CoachIntakeWorkspace
+          userRole={userRole}
+          activeIntakeId={searchParams.get('intake')}
+          selectedClientName={
+            selectedClient
+              ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
+              : null
+          }
+          onCommandPrompt={handleIntakeCommand}
+          queue={coachIntakeQueue}
+        />
+
         {/* Messages */}
         <MessagesArea role="log" aria-live="polite" aria-label="Conversation">
           {/* Suggested prompts when chat is empty */}
@@ -864,6 +1044,8 @@ const SwanCoachAssistantPage: React.FC = () => {
               onCancelCommand={coach.cancelCommand}
               onConfirmTranscript={handleConfirmTranscript}
               onCancelTranscript={handleCancelTranscript}
+              onAudioIntakeReviewNext={handleAudioIntakeReviewNext}
+              audioIntakeReviewNextPending={audioReviewNextPending}
               onTranscriptDateChange={handleTranscriptDateChange}
             />
           ))}
@@ -894,7 +1076,9 @@ const SwanCoachAssistantPage: React.FC = () => {
                     ? 'Uploading and transcribing…'
                     : 'Parsing workout and building review…'}
                 </ProcessingStage>
-                <ProcessingFileName>{transcriptProcessing.fileName}</ProcessingFileName>
+                <ProcessingFileName>
+                  {safeAttachmentSourceLabel(transcriptProcessing.fileName, 'Transcript file')}
+                </ProcessingFileName>
               </ProcessingBody>
             </TranscriptProcessingCard>
           )}
@@ -903,10 +1087,10 @@ const SwanCoachAssistantPage: React.FC = () => {
           {coach.error && !coach.sending && (
             <ErrorBanner>
               <span>{coach.error}</span>
-              {lastAttempt && (
-                <button onClick={() => handleSend(lastAttempt)}>Retry</button>
+              {coach.lastErrorRetryable && lastAttempt && (
+                <button type="button" onClick={() => handleSend(lastAttempt)}>Retry</button>
               )}
-              <button onClick={coach.clearError}>Dismiss</button>
+              <button type="button" onClick={coach.clearError}>Dismiss</button>
             </ErrorBanner>
           )}
 
@@ -954,6 +1138,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           ttsSupported={tts.supported}
           onTtsToggle={tts.toggleEnabled}
           onVoiceOverlay={handleOpenVoiceOverlay}
+          onCreateIntakeDraft={handleCreateIntakeDraft}
           externalText={pendingVoiceEdit}
           hasAttachment={
             attachments.files.length > 0 && hasTranscriptClassFile(attachments.files)

@@ -25,7 +25,16 @@ import {
   ObservatoryPanelHeader,
   ObservatoryPanelTitle,
 } from '../styles/ObservatoryShellLayoutStyles';
-import { RightRailEmptyState } from '../styles/ObservatoryRightRailStyles';
+import {
+  RightRailTierRow,
+  RightRailTierIcon,
+  RightRailTierName,
+  RightRailBadgeGrid,
+  RightRailBadgeCell,
+  RightRailEmptyState,
+  RightRailActionList,
+  RightRailActionItem,
+} from '../styles/ObservatoryRightRailStyles';
 
 /* Phase 20 Surface A: mount existing self-fetching TrendingHashtags
    component inside the dashboard right rail. No new fetch on the
@@ -64,16 +73,6 @@ class TrendingHashtagsBoundary extends React.Component<
     return this.props.children;
   }
 }
-import {
-  RightRailTierRow,
-  RightRailTierIcon,
-  RightRailTierName,
-  RightRailBadgeGrid,
-  RightRailBadgeCell,
-  RightRailEmptyState,
-  RightRailActionList,
-  RightRailActionItem,
-} from '../styles/ObservatoryRightRailStyles';
 import type {
   ObservatoryBadge,
   ObservatoryNextBestAction,

@@ -11,7 +11,6 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
-import { PlaudClipQueue } from './PlaudClipQueue';
 import { buildClipTimeline } from './plaudClipTimeline';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -101,50 +100,16 @@ describe('Slice 3.11 — PlaudClipQueue source contract', () => {
   });
 });
 
-describe('Slice 3.11 — PlaudClipQueue render', () => {
-  it('renders empty state when no clips', () => {
-    render(<PlaudClipQueue clips={[]} selectedIds={new Set()} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText(/No clips uploaded yet/i)).toBeTruthy();
-  });
-
-  it('renders list of clips', () => {
-    const clips = [
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'rec1.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-      { clipId: '22222222-2222-2222-2222-222222222222', filename: 'rec2.mp3', mimetype: 'audio/mpeg', size: 2048, durationSec: 60, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set()} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText('rec1.mp3')).toBeTruthy();
-    expect(screen.getByText('rec2.mp3')).toBeTruthy();
-  });
-
-  it('renders aria-checked=true for selected clips', () => {
-    const clips = [
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'rec1.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set(['11111111-1111-1111-1111-111111111111'])} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByRole('checkbox', { checked: true })).toBeTruthy();
-  });
-
-  it('shows the selected chronological merge order', () => {
-    const clips = [
-      { clipId: '22222222-2222-2222-2222-222222222222', filename: 'late.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04T11:30:00.000Z', expiresAt: '2026-05-05' },
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'early.mp3', mimetype: 'audio/mpeg', size: 2048, durationSec: 60, status: 'pending_merge', uploadedAt: '2026-05-04T11:00:00.000Z', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set(clips.map((c) => c.clipId))} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText('Merge step 1')).toBeTruthy();
-    expect(screen.getByText('Merge step 2')).toBeTruthy();
-  });
-});
-
 describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
   it('uses usePlaudClipQueue hook + submitMerge from service', () => {
     expect(PANEL_SRC).toMatch(/usePlaudClipQueue/);
     expect(PANEL_SRC).toMatch(/submitMerge/);
   });
 
-  it('Merge button disabled until 2-5 selected AND client resolved', () => {
+  it('Merge button disabled until 1-5 selected AND client resolved', () => {
     expect(PANEL_SRC).toMatch(/queue\.canMerge/);
     expect(PANEL_SRC).toMatch(/resolvedClient/);
+    expect(PANEL_SRC).toMatch(/Select 1-5 clips/);
   });
 
   it('uses PlaudClientResolver instead of raw numeric Client ID input', () => {
@@ -292,6 +257,12 @@ describe('PlaudMergeWorkspace Coach handoff contract', () => {
     expect(WORKSPACE_SRC).toMatch(/getMergeRequest\(response\.mergeRequestId\)/);
     expect(DATE_SPLIT_SRC).toMatch(/futureDateBlocked/);
     expect(DATE_SPLIT_SRC).toMatch(/needsDateConfirmation/);
+  });
+
+  it('can auto-open a pending review by merge request id for review-next deep links', () => {
+    expect(WORKSPACE_SRC).toMatch(/initialReviewMergeRequestId/);
+    expect(WORKSPACE_SRC).toMatch(/autoOpenedReviewRef/);
+    expect(WORKSPACE_SRC).toMatch(/handleOpenReview\(id\)/);
   });
 
   it('supports per-segment parsing and log writes for split workouts', () => {

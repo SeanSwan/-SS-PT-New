@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 export const IntakeSnapshot = styled.section`
@@ -66,7 +67,68 @@ export const IntakePreviewList = styled.ul`
   list-style: none;
 `;
 
-export const IntakePreviewItem = styled.li`
+export const IntakeRecoveryAlert = styled.div`
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+  min-height: 54px;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 44%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent),
+      color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent)
+    ),
+    var(--surface-base, rgba(20, 20, 25, 0.72));
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.84rem;
+
+  svg {
+    color: var(--accent-gold, #C6A84B);
+  }
+
+  span {
+    color: var(--text-secondary, rgba(224, 236, 244, 0.76));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+`;
+
+export const IntakeRecoveryLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-cyan-soft, rgba(96, 192, 240, 0.3));
+  color: var(--accent-primary, #60C0F0);
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    grid-column: 2;
+    justify-self: start;
+  }
+`;
+
+export const IntakePreviewItem = styled.li<{ $selected?: boolean }>`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
@@ -74,19 +136,63 @@ export const IntakePreviewItem = styled.li`
   min-height: 48px;
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
-  background: var(--surface-base, rgba(20, 20, 25, 0.7));
+  border: 1px solid ${({ $selected }) => ($selected
+    ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 58%, transparent)'
+    : 'transparent')};
+  background: ${({ $selected }) => ($selected
+    ? `linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--accent-gold, #C6A84B) 9%, transparent),
+        color-mix(in srgb, var(--accent-gold, #C6A84B) 9%, transparent)
+      ),
+      var(--surface-base, rgba(20, 20, 25, 0.7))`
+    : 'var(--surface-base, rgba(20, 20, 25, 0.7))')};
+  box-shadow: ${({ $selected }) => ($selected
+    ? '0 0 18px color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent)'
+    : 'none')};
   color: var(--text-secondary, rgba(224, 236, 244, 0.76));
   font-size: 0.84rem;
 `;
 
-export const SourceBadge = styled.span`
+export const BadgeCluster = styled.span`
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+
+  @media (max-width: 640px) {
+    justify-content: flex-start;
+  }
+`;
+
+export const IntakePreviewLink = styled(Link)`
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+`;
+
+export const SourceBadge = styled.span<{ $tone?: 'cyan' | 'gold' }>`
   display: inline-flex;
   align-items: center;
   min-height: 26px;
   padding: 0 0.5rem;
   border-radius: 999px;
-  border: 1px solid var(--border-cyan-soft, rgba(96, 192, 240, 0.3));
-  color: var(--accent-primary, #60C0F0);
+  border: 1px solid ${({ $tone }) => ($tone === 'gold'
+    ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 34%, transparent)'
+    : 'var(--border-cyan-soft, rgba(96, 192, 240, 0.3))')};
+  color: ${({ $tone }) => ($tone === 'gold'
+    ? 'var(--accent-gold, #C6A84B)'
+    : 'var(--accent-primary, #60C0F0)')};
   font-size: 0.72rem;
   font-weight: 800;
   white-space: nowrap;

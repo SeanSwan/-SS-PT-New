@@ -1,16 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
 import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
+import { PlaudMergeReviewStatusRibbon } from './PlaudMergeReviewStatusRibbon';
 import {
   approveMergeRequest,
   parseMergeRequestSegment,
   type PlaudDateSplitSegment,
 } from '../../services/plaudMergeService';
-import {
-  applyMergeApproval,
-  applyMergeSegmentApproval,
-} from './PlaudMergeWorkspace.apply';
+import { applyMergeApproval, applyMergeSegmentApproval } from './PlaudMergeWorkspace.apply';
 import { getPlaudDateSplitApprovalBlock } from './plaudDateSplitApprovalGuard';
 import type { PlaudMergeConfirmState, PlaudMergeReviewState } from './PlaudMergeWorkspace.types';
 import {
@@ -63,6 +61,7 @@ export function PlaudMergeReview({
   const [segmentApprovals, setSegmentApprovals] = useState<Record<string, SegmentApprovalState>>({});
   const [segmentDateOverrides, setSegmentDateOverrides] = useState<Record<string, string>>({});
   const segmentApprovalsRef = useRef<Record<string, SegmentApprovalState>>({});
+  const reviewPanelRef = useRef<HTMLDivElement | null>(null);
   const exercises = reviewState.parsedWorkout?.exercises || [];
   const segments = useMemo(
     () => reviewState.dateSplitCandidates?.segments || [],
@@ -71,6 +70,20 @@ export function PlaudMergeReview({
   const dateSplitApprovalBlock = getPlaudDateSplitApprovalBlock(reviewState.dateSplitCandidates);
   const shouldRenderSegmentApproval = segments.length > 1 || Boolean(dateSplitApprovalBlock);
   const approveDisabled = isApplying || exercises.length === 0 || !reviewState.clientId || Boolean(dateSplitApprovalBlock);
+
+  useEffect(() => {
+    const panel = reviewPanelRef.current;
+    if (!panel) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (typeof panel.focus === 'function') {
+        panel.focus({ preventScroll: true });
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [reviewState.mergeRequestId]);
 
   const loggedWorkoutIds = useMemo(() => (
     segments
@@ -184,7 +197,7 @@ export function PlaudMergeReview({
             {reviewState.clientName ? ` to ${reviewState.clientName}` : ' to the selected client'}.
           </Sub>
         </div>
-        <BackLink type="button" onClick={onBack}>
+        <BackLink type="button" onClick={onBack} data-plaud-next-action="back">
           <ArrowLeft size={16} aria-hidden="true" /> Back to merge queue
         </BackLink>
       </Header>
@@ -195,14 +208,20 @@ export function PlaudMergeReview({
           onReSelect={onBack}
         />
       ) : null}
-      <ReviewWrap>
+      <ReviewWrap
+        ref={reviewPanelRef}
+        data-testid="plaud-merge-review-panel"
+        aria-label="PLAUD merge review panel"
+        tabIndex={-1}
+      >
+        <PlaudMergeReviewStatusRibbon reviewState={reviewState} exerciseCount={exercises.length} dateSplitApprovalBlock={dateSplitApprovalBlock} />
         {reviewState.clipTimeline.length > 0 ? (
           <>
             <ReviewHeading>Source clip timeline ({reviewState.clipTimeline.length})</ReviewHeading>
             <ExerciseList>
               {reviewState.clipTimeline.map((clip) => (
                 <ExerciseRow key={clip.clipId}>
-                  <strong>Step {clip.mergeStep}: {clip.filename}</strong>
+                  <strong>Source clip {clip.mergeStep}</strong>
                   <SetList>
                     <li>
                       Uploaded {clip.uploadedAt ? new Date(clip.uploadedAt).toLocaleString() : 'time unavailable'}
@@ -222,6 +241,7 @@ export function PlaudMergeReview({
           dateOverrides={segmentDateOverrides}
           onDateOverrideChange={handleDateOverrideChange}
           onApproveSegment={shouldRenderSegmentApproval ? handleApproveSegment : undefined}
+          actionFocusAttribute="date-split"
         />
         {loggedWorkoutIds.length > 0 ? (
           <Sub>{loggedWorkoutIds.length} split workout log {loggedWorkoutIds.length === 1 ? 'is' : 'are'} complete.</Sub>
@@ -267,10 +287,10 @@ export function PlaudMergeReview({
           </ErrorBanner>
         ) : null}
         <ActionRow>
-          <Button type="button" $primary onClick={handleApprove} disabled={approveDisabled}>
+          <Button type="button" $primary onClick={handleApprove} disabled={approveDisabled} data-plaud-next-action="approve">
             {isApplying ? 'Logging...' : 'Confirm and log'}
           </Button>
-          <Button type="button" onClick={onBack}>Discard</Button>
+          <Button type="button" onClick={onBack} data-plaud-next-action="discard">Discard</Button>
         </ActionRow>
       </ReviewWrap>
     </PageWrap>

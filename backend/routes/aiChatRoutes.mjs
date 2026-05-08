@@ -56,7 +56,15 @@ import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services
 import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
-import { processAIDataUpdates } from '../services/aiDataWriteService.mjs';
+import {
+  buildCoachIntakeContextPromptBlock,
+  buildCoachIntakeContextFromResult,
+} from '../services/ai/coachIntakeContextService.mjs';
+import { listUnifiedCoachIntakeItems } from '../services/coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
+import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
+import { purgeCoachIntakeRawArtifacts } from '../services/coachIntakeRetentionPurgeService.mjs';
+import { createCoachActionProposalsFromAiResponse } from '../services/ai/coachActionProposalService.mjs';
 
 // Multer config for audio uploads (memory storage, 25MB max)
 const audioUpload = multer({
@@ -73,6 +81,7 @@ const audioUpload = multer({
 });
 
 const router = express.Router();
+const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
 
 // All routes require authentication
 router.use(protect);
@@ -262,11 +271,20 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     const { message, foodContext } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Message is required' });
+      return res.status(400).json({
+        success: false,
+        code: 'MESSAGE_REQUIRED',
+        error: 'Message is required',
+      });
     }
 
-    if (message.length > 5000) {
-      return res.status(400).json({ success: false, error: 'Message too long (max 5000 characters)' });
+    if (message.length > AI_CHAT_MESSAGE_MAX_CHARS) {
+      return res.status(400).json({
+        success: false,
+        code: 'MESSAGE_TOO_LONG',
+        error: `Message too long (max ${AI_CHAT_MESSAGE_MAX_CHARS} characters)`,
+        maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
+      });
     }
 
     const conversation = await AiConversation.findOne({
@@ -361,6 +379,44 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // For trainer/admin conversations with a target client, enrich with the CLIENT's data
     const responseStyle = conversation.metadata?.responseStyle || 'both';
     let systemPrompt = getSystemPrompt(conversation.role, conversation.context, responseStyle);
+    if (isAdminOrTrainer && conversation.context === 'coach_assistant') {
+      let coachIntakeContext = null;
+      try {
+        const [queueResult, healthResult, retentionResult, retentionPurgePlanResult] = await Promise.all([
+          listUnifiedCoachIntakeItems({
+            userId: req.user.id,
+            scope: 'actionable',
+            limit: 6,
+            sequelizeOverride: sequelize,
+          }),
+          getCoachIntakeHealth({
+            userId: req.user.id,
+            sequelizeOverride: sequelize,
+          }).catch(() => null),
+          getCoachIntakeRetentionReport({
+            userId: req.user.id,
+            sequelizeOverride: sequelize,
+          }).catch(() => null),
+          purgeCoachIntakeRawArtifacts({
+            userId: req.user.id,
+            dryRun: true,
+            sequelizeOverride: sequelize,
+          }).catch(() => null),
+        ]);
+        coachIntakeContext = buildCoachIntakeContextFromResult(
+          queueResult,
+          healthResult,
+          retentionResult,
+          retentionPurgePlanResult,
+        );
+      } catch (err) {
+        logger.warn('[AIChat] Coach intake context unavailable', {
+          userId: req.user.id,
+          error: err.message,
+        });
+      }
+      systemPrompt += buildCoachIntakeContextPromptBlock(coachIntakeContext);
+    }
     // Only enrich with client data if a client is actually selected
     if (enrichUserId) {
       const userDataContext = await enrichWithUserData(
@@ -422,417 +478,23 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       title: conversation.title || generateTitle(message.trim()),
     });
 
-    // Check if the AI response contains a data update action block
-    let dataUpdateResult = null;
-    if (aiResult.content && (conversation.role === 'admin' || conversation.role === 'trainer')) {
-      try {
-        const actionMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"update_client_data"[\s\S]*?\})\s*```/);
-        if (actionMatch) {
-          const actionPayload = JSON.parse(actionMatch[1]);
-          // Security: Only allow data writes to the conversation's designated target user
-          // Never trust targetUserId from the AI response (prompt injection risk)
-          const targetId = conversation.targetUserId;
-          if (targetId && actionPayload.updates) {
-            dataUpdateResult = await processAIDataUpdates(
-              targetId,
-              actionPayload.updates,
-              req.user.id,
-              sequelize
-            );
-            logger.info('[AIChatRoutes] AI data update processed for user %d: %d updates, %d errors',
-              targetId, dataUpdateResult.successful, dataUpdateResult.errors.length);
-          }
-        }
-      } catch (parseErr) {
-        logger.warn('[AIChatRoutes] Failed to parse AI data update action:', parseErr.message);
-      }
-    }
-
-    // Check if the AI response contains a create_client / ONBOARD_CLIENT action block
-    let clientCreateResult = null;
-    if (aiResult.content && (req.user.role === 'admin' || req.user.role === 'trainer')) {
-      try {
-        const createMatch = aiResult.content.match(/```json\s*(\{[\s\S]*?"action"\s*:\s*"(?:create_client|ONBOARD_CLIENT)"[\s\S]*?\})\s*```/);
-        if (createMatch) {
-          const rawPayload = JSON.parse(createMatch[1]);
-          const payload = rawPayload.data || rawPayload;
-          const {
-            firstName, lastName, email, phone, clientSource,
-            fitnessGoal, healthConcerns, dateOfBirth, gender,
-            weight, height, trainingExperience, trainerNotes,
-            // Questionnaire fields the AI may extract
-            preferredName, emergencyContactName, emergencyContactPhone,
-            occupation, sleepHours, stressLevel, activityLevel,
-            mealsPerDay, waterIntake, dietaryPreferences, foodAllergies,
-            workoutsPerWeek, workoutTypes, favoriteExercises, dislikedExercises,
-            movementLimitations, medications, doctorClearance,
-          } = payload;
-
-          if (!firstName || !lastName) {
-            logger.warn('[AIChatRoutes] AI create_client missing required fields (firstName/lastName)');
-          } else {
-            // Email may be '[EMAIL-REDACTED]' due to PII middleware stripping it from the AI response.
-            // Generate a clean email from the name if the provided email is invalid/redacted.
-            const isValidEmail = email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !email.includes('REDACTED');
-            const cryptoForEmail = await import('crypto');
-            const emailSuffix = cryptoForEmail.default.randomBytes(3).toString('hex');
-            // Sanitize name parts for email: strip non-alpha, collapse dots, trim dots
-            const emailFirst = firstName.toLowerCase().replace(/[^a-z]/g, '') || 'client';
-            const emailLast = lastName.toLowerCase().replace(/[^a-z]/g, '') || 'user';
-            const clientEmail = isValidEmail
-              ? email
-              : `${emailFirst}.${emailLast}.${emailSuffix}@clients.swanstudios.com`;
-            const { getAllModels } = await import('../models/index.mjs');
-            const models = getAllModels();
-            const User = models.User;
-
-            // Check if email already exists
-            const existing = await User.findOne({ where: { email: clientEmail.toLowerCase() } });
-            if (existing) {
-              logger.info('[AIChatRoutes] Client with email %s already exists (id=%d)', clientEmail, existing.id);
-              clientCreateResult = { success: false, reason: 'email_exists', existingId: existing.id };
-            } else {
-              // Generate unique username (handle collisions)
-              let username = `${firstName.toLowerCase().replace(/[^a-z]/g, '')}.${lastName.toLowerCase().replace(/[^a-z]/g, '')}`.replace(/\.{2,}/g, '.').replace(/^\.|\.$/, '');
-              const existingUsername = await User.findOne({ where: { username } });
-              if (existingUsername) {
-                const crypto = await import('crypto');
-                username += '.' + crypto.default.randomBytes(3).toString('hex');
-              }
-
-              // Generate temp password
-              const cryptoMod = await import('crypto');
-              const tempPassword = cryptoMod.default.randomBytes(12).toString('base64url');
-              const bcrypt = await import('bcryptjs');
-              const hashedPassword = await bcrypt.default.hash(tempPassword, 12);
-
-              // Generate claim code (Crystalline Link Protocol)
-              const { generateClaimToken } = await import('../services/claimTokenService.mjs');
-              const claimToken = generateClaimToken();
-
-              const newClient = await User.create({
-                firstName,
-                lastName,
-                email: clientEmail.toLowerCase(),
-                username,
-                password: hashedPassword,
-                phone: phone || null,
-                role: 'client',
-                isActive: true,
-                accountStatus: 'invited',
-                clientSource: clientSource || 'swanstudios',
-                fitnessGoal: fitnessGoal || null,
-                healthConcerns: healthConcerns || null,
-                dateOfBirth: dateOfBirth || null,
-                gender: gender || null,
-                weight: weight ? parseFloat(weight) : null,
-                height: height ? parseFloat(height) : null,
-                trainingExperience: trainingExperience || null,
-                forcePasswordChange: true,
-                claimTokenHash: claimToken.hash,
-                claimTokenExpires: claimToken.expires,
-                availableSessions: (clientSource === 'move_fitness') ? 0 : (payload.availableSessions || 0),
-              });
-
-              // ── Pre-fill onboarding questionnaire with AI-extracted data ──
-              let sectionsPreFilled = 0;
-              const totalSections = 8;
-              const responsesJson = {};
-
-              // Stage 1: Basic Info
-              if (firstName) responsesJson.firstName = firstName;
-              if (lastName) responsesJson.lastName = lastName;
-              if (preferredName) responsesJson.preferredName = preferredName;
-              if (email) responsesJson.email = clientEmail;
-              if (phone) responsesJson.phone = phone;
-              if (dateOfBirth) responsesJson.dateOfBirth = dateOfBirth;
-              if (gender) responsesJson.gender = gender;
-              if (emergencyContactName) responsesJson.emergencyContactName = emergencyContactName;
-              if (emergencyContactPhone) responsesJson.emergencyContactPhone = emergencyContactPhone;
-              // Stage 1 counts as filled if we have name + at least one more field
-              if (firstName && lastName && (dateOfBirth || gender || phone || email)) sectionsPreFilled++;
-
-              // Stage 2: Goals
-              if (fitnessGoal) {
-                responsesJson.primaryGoal = fitnessGoal;
-                sectionsPreFilled++;
-              }
-
-              // Stage 3: Health
-              if (healthConcerns || medications || doctorClearance) {
-                if (healthConcerns) responsesJson.injuries = healthConcerns;
-                if (medications) responsesJson.medications = medications;
-                if (doctorClearance) responsesJson.doctorClearance = doctorClearance;
-                sectionsPreFilled++;
-              }
-
-              // Stage 4: Nutrition
-              if (mealsPerDay || waterIntake || dietaryPreferences || foodAllergies) {
-                if (mealsPerDay) responsesJson.mealsPerDay = mealsPerDay;
-                if (waterIntake) responsesJson.waterIntake = waterIntake;
-                if (dietaryPreferences) responsesJson.dietaryPreferences = dietaryPreferences;
-                if (foodAllergies) responsesJson.foodAllergies = foodAllergies;
-                sectionsPreFilled++;
-              }
-
-              // Stage 5: Lifestyle
-              if (occupation || sleepHours || stressLevel || activityLevel) {
-                if (occupation) responsesJson.occupation = occupation;
-                if (sleepHours) responsesJson.sleepHours = sleepHours;
-                if (stressLevel) responsesJson.stressLevel = stressLevel;
-                if (activityLevel) responsesJson.activityLevel = activityLevel;
-                sectionsPreFilled++;
-              }
-
-              // Stage 6: Training
-              if (trainingExperience || workoutsPerWeek || workoutTypes || favoriteExercises || movementLimitations) {
-                if (trainingExperience) responsesJson.trainingExperience = trainingExperience;
-                if (workoutsPerWeek) responsesJson.workoutsPerWeek = workoutsPerWeek;
-                if (workoutTypes) responsesJson.workoutTypes = workoutTypes;
-                if (favoriteExercises) responsesJson.favoriteExercises = favoriteExercises;
-                if (dislikedExercises) responsesJson.dislikedExercises = dislikedExercises;
-                if (movementLimitations) responsesJson.movementLimitations = movementLimitations;
-                sectionsPreFilled++;
-              }
-
-              // Stage 7: AI Consent — not pre-filled (client must consent personally)
-              // Stage 8: Summary — not pre-filled (client provides their own notes)
-
-              const completionPercentage = Math.round((sectionsPreFilled / totalSections) * 100);
-
-              // Create the questionnaire record
-              if (models.ClientOnboardingQuestionnaire) {
-                try {
-                  await models.ClientOnboardingQuestionnaire.create({
-                    userId: newClient.id,
-                    createdBy: req.user.id,
-                    status: 'in_progress',
-                    responsesJson,
-                    primaryGoal: fitnessGoal || null,
-                    trainingTier: trainingExperience || null,
-                    healthRisk: healthConcerns ? 'medium' : 'low',
-                  });
-                  logger.info('[AIChatRoutes] Pre-filled questionnaire for client %d (%d/%d sections)',
-                    newClient.id, sectionsPreFilled, totalSections);
-                } catch (qErr) {
-                  logger.warn('[AIChatRoutes] Questionnaire creation failed (non-fatal):', qErr.message);
-                }
-              }
-
-              // Create ClientProgress record
-              if (models.ClientProgress) {
-                try {
-                  await models.ClientProgress.create({ userId: newClient.id });
-                } catch { /* non-fatal */ }
-              }
-
-              // Assign trainer (admin assigns to self by default)
-              if (models.ClientTrainerAssignment) {
-                try {
-                  await models.ClientTrainerAssignment.create({
-                    clientId: newClient.id,
-                    trainerId: req.user.id,
-                    status: 'active',
-                    assignedBy: req.user.id,
-                    assignedAt: new Date(),
-                  });
-                } catch { /* non-fatal — may fail if table missing or constraint */ }
-              }
-
-              // Store trainer NASM notes
-              if (trainerNotes) {
-                try {
-                  await sequelize.query(
-                    `INSERT INTO client_notes ("userId", "trainerId", "noteType", "content", "createdAt", "updatedAt")
-                     VALUES (:userId, :trainerId, 'nasm_assessment', :content, NOW(), NOW())`,
-                    { replacements: { userId: newClient.id, trainerId: req.user.id, content: trainerNotes } }
-                  );
-                } catch { /* non-fatal — table may not exist */ }
-              }
-
-              const claimUrl = `https://sswanstudios.com/claim/${claimToken.plainToken}`;
-              const isMoveFitness = (clientSource === 'move_fitness');
-
-              logger.info('[AIChatRoutes] AI-created client: %s %s (id=%d, source=%s, pre-filled=%d/%d) via %s %d',
-                firstName, lastName, newClient.id, clientSource || 'swanstudios',
-                sectionsPreFilled, totalSections, req.user.role, req.user.id);
-
-              clientCreateResult = {
-                success: true,
-                clientId: newClient.id,
-                firstName,
-                lastName,
-                username,
-                temporaryPassword: tempPassword,
-                claimCode: claimToken.plainToken,
-                claimUrl,
-                claimExpires: claimToken.expires,
-                isMoveFitness,
-                sectionsPreFilled,
-                totalSections,
-                completionPercentage,
-              };
-            }
-          }
-        }
-      } catch (createErr) {
-        logger.warn('[AIChatRoutes] Failed to process AI create_client action:', createErr.message);
-        clientCreateResult = { success: false, reason: createErr.message };
-      }
-    }
-
-    // Check if AI response contains import_workout_log action blocks (historical workout import)
-    const workoutImportResults = [];
-    if (aiResult.content && (req.user.role === 'admin' || req.user.role === 'trainer')) {
-      try {
-        const importRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"import_workout_log"[\s\S]*?\})\s*```/g;
-        let importMatch;
-        while ((importMatch = importRegex.exec(aiResult.content)) !== null) {
-          try {
-            const payload = JSON.parse(importMatch[1]);
-            const { clientId, title, date, duration, intensity, notes, exercises } = payload;
-
-            if (!clientId || !date || !exercises?.length) {
-              workoutImportResults.push({ success: false, date, reason: 'Missing clientId, date, or exercises' });
-              continue;
-            }
-
-            // Validate date is not in the future
-            const workoutDate = new Date(date);
-            if (workoutDate > new Date()) {
-              workoutImportResults.push({ success: false, date, reason: 'Date cannot be in the future' });
-              continue;
-            }
-
-            const { getAllModels } = await import('../models/index.mjs');
-            const models = getAllModels();
-            const WorkoutSession = models.WorkoutSession;
-            const WorkoutLog = models.WorkoutLog;
-
-            if (!WorkoutSession || !WorkoutLog) {
-              workoutImportResults.push({ success: false, date, reason: 'Workout models not available' });
-              continue;
-            }
-
-            // Check for duplicate (same client + same date)
-            const { Op } = await import('sequelize');
-            const dayStart = new Date(workoutDate); dayStart.setHours(0, 0, 0, 0);
-            const dayEnd = new Date(workoutDate); dayEnd.setHours(23, 59, 59, 999);
-            const existing = await WorkoutSession.findOne({
-              where: { userId: clientId, date: { [Op.between]: [dayStart, dayEnd] } }
-            });
-            if (existing) {
-              workoutImportResults.push({ success: false, date, reason: `Workout already exists for this date (session #${existing.id})` });
-              continue;
-            }
-
-            // Calculate aggregates
-            let totalSets = 0, totalReps = 0, totalWeight = 0;
-            const logRows = [];
-            for (const ex of exercises) {
-              const sets = ex.sets || [{ setNumber: 1, reps: ex.reps || 0, weight: ex.weight || 0 }];
-              for (const s of sets) {
-                totalSets++;
-                totalReps += (s.reps || 0);
-                totalWeight += (s.reps || 0) * (s.weight || 0);
-                logRows.push({
-                  exerciseName: ex.name || ex.exerciseName,
-                  setNumber: s.setNumber || totalSets,
-                  reps: s.reps || 0,
-                  weight: s.weight || 0,
-                  tempo: s.tempo || null,
-                  rest: s.rest || null,
-                  rpe: s.rpe || null,
-                  notes: s.notes || null,
-                });
-              }
-            }
-
-            // Create session
-            //
-            // Phase 2 Slice 2.1 (2026-05-03): null-honest intensity.
-            // Was `intensity || 5` — when an AI-extracted import payload
-            // omitted intensity, this writer seeded a phantom 5/10 onto
-            // WorkoutSession.intensity, polluting
-            // chartDataController.getIntensityRPETrendChart's AVG().
-            // Matches the Phase 16 null-honest contract on
-            // dailyWorkoutFormRoutes:636-638 and the model declaration
-            // on WorkoutSession.mjs:59-71 (allowNull: true, null = "not
-            // rated"). Accepts both `undefined` and explicit `null`.
-            const importedIntensity = (intensity === undefined || intensity === null)
-              ? null
-              : intensity;
-            const session = await WorkoutSession.create({
-              userId: clientId,
-              trainerId: req.user.id,
-              title: title || `Imported Workout — ${date}`,
-              date: workoutDate,
-              duration: duration || 60,
-              intensity: importedIntensity,
-              notes: notes || 'Imported from previous training platform',
-              status: 'completed',
-              completedAt: workoutDate,
-              sessionType: 'trainer-led',
-              totalSets,
-              totalReps,
-              totalWeight: Math.round(totalWeight),
-            });
-
-            // Bulk create log rows
-            const logsWithSession = logRows.map(r => ({ ...r, sessionId: session.id }));
-            await WorkoutLog.bulkCreate(logsWithSession);
-
-            logger.info('[AIChatRoutes] Imported workout for client %d on %s: %d exercises, %d sets',
-              clientId, date, exercises.length, totalSets);
-
-            workoutImportResults.push({
-              success: true,
-              date,
-              sessionId: session.id,
-              exerciseCount: exercises.length,
-              totalSets,
-              totalReps,
-              totalWeight: Math.round(totalWeight),
-            });
-          } catch (importErr) {
-            workoutImportResults.push({ success: false, reason: importErr.message });
-          }
-        }
-        if (workoutImportResults.length > 0) {
-          logger.info('[AIChatRoutes] Processed %d workout imports', workoutImportResults.length);
-        }
-      } catch (bulkErr) {
-        logger.warn('[AIChatRoutes] Workout import processing failed:', bulkErr.message);
-      }
-    }
-
-    // Extract FRONTEND_DISPATCH action blocks (AI_ADD_EXERCISE, AI_LOAD_TEMPLATE, etc.)
-    // These are passed back to the frontend which dispatches them as CustomEvents
-    const frontendActions = [];
+    let proposalResult = { proposals: [], frontendActions: [] };
+    let proposalError = null;
     if (aiResult.content) {
       try {
-        const dispatchRegex = /```json\s*(\{[\s\S]*?"action"\s*:\s*"frontend_dispatch"[\s\S]*?\})\s*```/g;
-        let match;
-        while ((match = dispatchRegex.exec(aiResult.content)) !== null) {
-          try {
-            const parsed = JSON.parse(match[1]);
-            if (parsed.event && parsed.payload) {
-              // Whitelist allowed events for security
-              const ALLOWED_EVENTS = [
-                'AI_ADD_EXERCISE', 'AI_LOAD_TEMPLATE', 'AI_UPDATE_SET',
-                'AI_TOGGLE_NASM_ITEM', 'AI_SUBMIT_WORKOUT',
-              ];
-              if (ALLOWED_EVENTS.includes(parsed.event)) {
-                frontendActions.push({ event: parsed.event, payload: parsed.payload });
-              }
-            }
-          } catch { /* skip malformed individual blocks */ }
-        }
-        if (frontendActions.length > 0) {
-          logger.info('[AIChatRoutes] Extracted %d frontend dispatch actions', frontendActions.length);
-        }
-      } catch (parseErr) {
-        logger.warn('[AIChatRoutes] Failed to parse frontend dispatch actions:', parseErr.message);
+        proposalResult = await createCoachActionProposalsFromAiResponse({
+          content: aiResult.content,
+          user: req.user,
+          conversation,
+          sourceMessageId: assistantMsg.timestamp,
+          sequelizeOverride: sequelize,
+        });
+      } catch (proposalErr) {
+        proposalError = {
+          code: proposalErr.code || 'COACH_PROPOSAL_CREATE_FAILED',
+          message: proposalErr.message || 'Coach proposal creation failed',
+        };
+        logger.warn('[AIChatRoutes] Coach action proposal creation failed:', proposalError);
       }
     }
 
@@ -842,10 +504,9 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       assistantMessage: assistantMsg,
       conversationId: conversation.id,
       messageCount: updatedMessages.length,
-      dataUpdateResult,
-      clientCreateResult: clientCreateResult || undefined,
-      workoutImportResults: workoutImportResults.length > 0 ? workoutImportResults : undefined,
-      frontendActions: frontendActions.length > 0 ? frontendActions : undefined,
+      coachActionProposals: proposalResult.proposals.length > 0 ? proposalResult.proposals : undefined,
+      coachActionProposalError: proposalError || undefined,
+      frontendActions: proposalResult.frontendActions.length > 0 ? proposalResult.frontendActions : undefined,
     });
   } catch (err) {
     logger.error('[AIChatRoutes] Send message error:', err.message);

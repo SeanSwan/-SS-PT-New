@@ -42,6 +42,7 @@ const COACH_HOOK_SOURCE = readFileSync(
   'utf8',
 );
 const COACH_MESSAGE_SOURCE = readFileSync(resolve(__dirname, './CoachMessage.tsx'), 'utf8');
+const COACH_TYPES_SOURCE = readFileSync(resolve(__dirname, './SwanCoachTypes.ts'), 'utf8');
 
 describe('SwanCoachAssistantPage transcript intake — page wiring locks', () => {
   it('imports useTranscriptIntake', () => {
@@ -54,19 +55,32 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     expect(PAGE_SOURCE).toMatch(/isTranscriptClassMime/);
   });
 
-  it('handleSend gates transcript-class uploads on a selected client', () => {
-    // The guard must check selectedClient.id inside the transcript-class
-    // branch. We verify the presence of both anchors; strict proximity is
-    // not tested because Phase 9.1 reordered the branch body.
+  it('handleSend keeps selected-client guard for direct transcript review', () => {
+    // Direct /workout-logs/upload still needs a selected client. Single
+    // unresolved audio now routes to PLAUD intake first, so this lock only
+    // applies to the direct review branch.
     expect(PAGE_SOURCE).toMatch(/hasTranscriptClassFile\(files\)/);
     expect(PAGE_SOURCE).toMatch(/!selectedClient\?\.id/);
-    // And they must appear in source order (guard before the selected-
-    // client check), so a future refactor that moves the check above the
-    // branch still fails loudly.
     const guardIdx = PAGE_SOURCE.indexOf('hasTranscriptClassFile(files)');
     const checkIdx = PAGE_SOURCE.indexOf('!selectedClient?.id');
+    const uploadCallIdx = PAGE_SOURCE.indexOf(
+      'const upload = await intake.uploadTranscript(',
+      checkIdx,
+    );
     expect(guardIdx).toBeGreaterThan(0);
     expect(checkIdx).toBeGreaterThan(guardIdx);
+    expect(uploadCallIdx).toBeGreaterThan(checkIdx);
+  });
+
+  it('routes single unresolved audio into PLAUD intake instead of requiring client first', () => {
+    const singleAudioIdx = PAGE_SOURCE.indexOf('const isSingleUnresolvedAudio');
+    expect(singleAudioIdx).toBeGreaterThan(0);
+    const noClientGuardIdx = PAGE_SOURCE.indexOf('!selectedClient?.id', singleAudioIdx);
+    expect(noClientGuardIdx).toBeGreaterThan(singleAudioIdx);
+    const slice = PAGE_SOURCE.slice(singleAudioIdx, noClientGuardIdx);
+    expect(slice).toMatch(/hasOnlyAudioTranscriptFiles\(files\)/);
+    expect(slice).toMatch(/routeAudioFilesToPlaudIntake\(files,\s*transcriptFile\.name\)/);
+    expect(slice).not.toMatch(/appendTranscriptError\(\{\s*kind:\s*['"]no_client['"]/);
   });
 
   it('handleSend calls intake.uploadTranscript for transcript-class files', () => {
@@ -74,14 +88,15 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
   });
 
   it('handleSend does NOT route transcript-class files through coach.sendMessage', () => {
-    // Two valid call sites must exist (and exactly two):
+    // Three valid call sites must exist:
     //   1. handleSend's text-only existing-flow branch
     //   2. handleVoiceTranscribed (Gemini voice overlay → text)
+    //   3. queue action prompt click → text command/chat lane
     // The transcript-class branch must early-return before reaching either.
-    // Any third call site risks routing a transcript-class file through
+    // Any extra call site risks routing a transcript-class file through
     // the chat AI by accident.
     const sendMessageCount = (PAGE_SOURCE.match(/coach\.sendMessage\(/g) ?? []).length;
-    expect(sendMessageCount).toBe(2);
+    expect(sendMessageCount).toBe(3);
     // Defense-in-depth: the transcript-class branch must explicitly return
     // before any coach.sendMessage call. The structural check is that the
     // first sendMessage call appears AFTER the hasTranscriptClassFile guard
@@ -105,6 +120,21 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
       const inTranscriptBranch = idx > guardIdx && idx < branchEndIdx;
       expect(inTranscriptBranch).toBe(false);
     }
+  });
+
+  it('successful audio uploads append a deterministic intake receipt instead of a Coach command', () => {
+    const audioSuccessIdx = PAGE_SOURCE.indexOf('if (upload.clips.length > 0)');
+    expect(audioSuccessIdx).toBeGreaterThan(0);
+    const successSlice = PAGE_SOURCE.slice(
+      audioSuccessIdx,
+      PAGE_SOURCE.indexOf('const reason = safeTranscriptFailureReason', audioSuccessIdx),
+    );
+    expect(successSlice).toMatch(/coach\.appendAudioIntakeReceipt\(/);
+    expect(successSlice).toMatch(/acceptedCount:\s*upload\.clips\.length/);
+    expect(successSlice).toMatch(/rejectedCount:\s*upload\.rejected\.length/);
+    expect(successSlice).toMatch(/fileSize:\s*upload\.clips\.reduce/);
+    expect(successSlice).not.toMatch(/coach\.sendMessage\(/);
+    expect(PAGE_SOURCE).not.toContain("coach.sendMessage('inspect pending Coach audio pieces')");
   });
 
   it('handleSend calls coach.appendTranscriptReview on successful upload', () => {
@@ -142,10 +172,10 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
   it('handleSend clears attachments on the happy-path and existing-flow sends only', () => {
     // Phase 9.1.1 polish: error branches (no_client + upload_failed) no
     // longer clear attachments so the user can retry without re-picking
-    // the file. Only the upload-success branch and the text-only
-    // existing-flow branch should clear.
+    // the file. Audio batch success, document upload success, and the
+    // text-only existing-flow branch should clear.
     const clearCount = (PAGE_SOURCE.match(/attachments\.clearFiles\(\)/g) ?? []).length;
-    expect(clearCount).toBe(2);
+    expect(clearCount).toBe(3);
   });
 });
 
@@ -314,6 +344,12 @@ describe('Phase 9.1 — useCoachAssistant appendTranscriptError helper', () => {
     );
   });
 
+  it('useCoachAssistant exposes appendAudioIntakeReceipt for PLAUD audio success receipts', () => {
+    expect(COACH_HOOK_SOURCE).toMatch(/const\s+appendAudioIntakeReceipt\s*=\s*useCallback\(/);
+    expect(COACH_HOOK_SOURCE).toMatch(/metadata:\s*\{\s*audioIntakeReceipt:\s*receipt\s*\}/);
+    expect(COACH_HOOK_SOURCE).toMatch(/return\s*\{[\s\S]*appendAudioIntakeReceipt[\s\S]*\}/);
+  });
+
   it('does not mutate existing transcriptReview helpers', () => {
     // Anti-regression: all four Phase 9 helpers must still exist alongside
     // the new error helper.
@@ -365,6 +401,49 @@ describe('Phase 9.1 — CoachMessage transcriptError render branch', () => {
   });
 });
 
+describe('CoachMessage — audio intake receipt branch', () => {
+  it('types and renders the PLAUD audio intake receipt card', () => {
+    expect(COACH_TYPES_SOURCE).toMatch(/audioIntakeReceipt\?:\s*\{/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/safeCommandActionLabel/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /const\s+audioIntakeReceipt\s*=\s*message\.metadata\?\.audioIntakeReceipt/,
+    );
+    expect(COACH_MESSAGE_SOURCE).toMatch(/data-testid=['"]audio-intake-receipt-card['"]/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/Audio pieces queued/i);
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /safeCommandActionLabel\(audioIntakeReceipt\.nextActionLabel\)\s*\|\|\s*['"]Review next intake['"]/,
+    );
+    expect(COACH_MESSAGE_SOURCE).toMatch(/\$kind=['"]warning['"]/);
+  });
+
+  it('renders a guarded Review next action with a 44px touch target', () => {
+    expect(COACH_MESSAGE_SOURCE).toMatch(/onAudioIntakeReviewNext\?:\s*\(\)\s*=>\s*void/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/audioIntakeReviewNextPending\?:\s*boolean/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/audioIntakeReceipt\s*&&\s*onAudioIntakeReviewNext/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/onClick=\{onAudioIntakeReviewNext\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/disabled=\{audioIntakeReviewNextPending\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/aria-busy=\{audioIntakeReviewNextPending\s*\?\s*['"]true['"]\s*:\s*undefined\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/min-height:\s*44px/);
+  });
+
+  it('page opens the next actionable intake directly before falling back to the command lane', () => {
+    expect(PAGE_SOURCE).toMatch(/const\s+\[audioReviewNextPending,\s*setAudioReviewNextPending\]\s*=\s*useState\(false\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+audioReviewNextPendingRef\s*=\s*React\.useRef\(false\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+handleAudioIntakeReviewNext\s*=\s*useCallback/);
+    expect(PAGE_SOURCE).toMatch(/if\s*\(audioReviewNextPendingRef\.current\)\s*return/);
+    expect(PAGE_SOURCE).toMatch(/audioReviewNextPendingRef\.current\s*=\s*true/);
+    expect(PAGE_SOURCE).toMatch(/audioReviewNextPendingRef\.current\s*=\s*false/);
+    expect(PAGE_SOURCE).toMatch(/setAudioReviewNextPending\(true\)/);
+    expect(PAGE_SOURCE).toMatch(/setAudioReviewNextPending\(false\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+navigate\s*=\s*useNavigate\(\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+nextItem\s*=\s*pickNextItem\(sourceItems\)/);
+    expect(PAGE_SOURCE).toMatch(/navigate\(\s*queueScopedHref\(\s*itemReviewHref\(nextItem,\s*coachWorkspaceHref\)/);
+    expect(PAGE_SOURCE).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
+    expect(PAGE_SOURCE).toMatch(/onAudioIntakeReviewNext=\{handleAudioIntakeReviewNext\}/);
+    expect(PAGE_SOURCE).toMatch(/audioIntakeReviewNextPending=\{audioReviewNextPending\}/);
+  });
+});
+
 describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
   it('appendTranscriptError uses state-specific user bubble copy, not "Uploaded ... for review"', () => {
     // The Phase 9.1 bug was that errorful paths reused "Uploaded X for
@@ -375,8 +454,11 @@ describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
     );
     // Both truthful phrasings must be present in the appendTranscriptError
     // function body.
-    expect(COACH_HOOK_SOURCE).toMatch(/`Tried to upload \$\{error\.fileName\}`/);
-    expect(COACH_HOOK_SOURCE).toMatch(/`Attached \$\{error\.fileName\}`/);
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /const sourceLabel = safeAttachmentSourceLabel\(error\.fileName/,
+    );
+    expect(COACH_HOOK_SOURCE).toMatch(/`Tried to upload \$\{sourceLabel\}`/);
+    expect(COACH_HOOK_SOURCE).toMatch(/`Attached \$\{sourceLabel\}`/);
     // And the stale "Uploaded X for review" must NOT appear inside the
     // appendTranscriptError function body. (The success-path
     // appendTranscriptReview helper still uses that phrasing for real
@@ -392,11 +474,15 @@ describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
     expect(errorFnSlice).not.toMatch(/Uploaded \$\{error\.fileName\} for review/);
   });
 
-  it('appendTranscriptReview success-path wording is unchanged', () => {
+  it('appendTranscriptReview success-path uses sanitized source labels', () => {
     // Anti-regression: the real-review user bubble still says
-    // "Uploaded X for review" because there the file actually reached
-    // review state.
-    expect(COACH_HOOK_SOURCE).toMatch(/`Uploaded \$\{review\.fileName\} for review`/);
+    // "Uploaded ... for review", but it must not echo the raw local
+    // filename because those often contain client names.
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /const sourceLabel = safeAttachmentSourceLabel\(review\.fileName/,
+    );
+    expect(COACH_HOOK_SOURCE).toMatch(/`Uploaded \$\{sourceLabel\} for review`/);
+    expect(COACH_HOOK_SOURCE).not.toMatch(/`Uploaded \$\{review\.fileName\} for review`/);
   });
 });
 
@@ -421,7 +507,7 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
     // next `// Existing flow` comment that starts the text-only path.
     // Bound the slice explicitly so it does not leak into the existing
     // flow's legitimate clearFiles() call.
-    const failureIdx = PAGE_SOURCE.indexOf("kind: 'upload_failed'");
+    const failureIdx = PAGE_SOURCE.indexOf('reason: safeTranscriptFailureReason(upload.failure.kind, upload.failure.error)');
     expect(failureIdx).toBeGreaterThan(0);
     const existingIdx = PAGE_SOURCE.indexOf('// Existing flow', failureIdx);
     expect(existingIdx).toBeGreaterThan(failureIdx);
@@ -447,6 +533,36 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
     expect(existingIdx).toBeGreaterThan(0);
     const slice = PAGE_SOURCE.slice(existingIdx, existingIdx + 500);
     expect(slice).toMatch(/attachments\.clearFiles\(\)/);
+  });
+});
+
+describe('Coach audio intake — single clip pass-through', () => {
+  it('routes exactly one audio attachment through direct transcript review', () => {
+    const helperIdx = PAGE_SOURCE.indexOf('const routeAudioFilesToPlaudIntake');
+    expect(helperIdx).toBeGreaterThan(0);
+    expect(PAGE_SOURCE).toMatch(/hasOnlyAudioTranscriptFiles\(files\)\s*&&\s*files\.length\s*>\s*1/);
+    const multiBranchIdx = PAGE_SOURCE.indexOf('files.length > 1', helperIdx);
+    expect(multiBranchIdx).toBeGreaterThan(helperIdx);
+    const directUploadIdx = PAGE_SOURCE.indexOf('const upload = await intake.uploadTranscript(', multiBranchIdx);
+    expect(directUploadIdx).toBeGreaterThan(multiBranchIdx);
+    const directUploadSlice = PAGE_SOURCE.slice(directUploadIdx, directUploadIdx + 1800);
+    expect(directUploadSlice).toMatch(/transcriptFile\.file/);
+    expect(directUploadSlice).toMatch(/coach\.appendTranscriptReview\(upload\.review\)/);
+    expect(directUploadSlice).toMatch(/attachments\.clearFiles\(\)/);
+  });
+
+  it('keeps two or more audio attachments on the PLAUD clip upload path', () => {
+    const helperIdx = PAGE_SOURCE.indexOf('const routeAudioFilesToPlaudIntake');
+    expect(helperIdx).toBeGreaterThan(0);
+    const helperSlice = PAGE_SOURCE.slice(helperIdx, helperIdx + 1800);
+    expect(helperSlice).toMatch(/uploadClips\(audioFiles\.map\(\(f\)\s*=>\s*f\.file\)\)/);
+    expect(helperSlice).toMatch(/coach\.appendAudioIntakeReceipt\(/);
+    expect(helperSlice).not.toMatch(/coach\.sendMessage\(/);
+    const multiBranchIdx = PAGE_SOURCE.indexOf('files.length > 1', helperIdx);
+    const countGuardIdx = PAGE_SOURCE.indexOf('countTranscriptClassFiles(files)', multiBranchIdx);
+    expect(countGuardIdx).toBeGreaterThan(multiBranchIdx);
+    const branchSlice = PAGE_SOURCE.slice(multiBranchIdx, countGuardIdx);
+    expect(branchSlice).toMatch(/routeAudioFilesToPlaudIntake\(files,\s*`\$\{files\.length\} audio pieces`\)/);
   });
 });
 
@@ -1032,7 +1148,7 @@ describe('Phase 13.2 — CoachInputBar file-only transcript send', () => {
   });
 
   it('send button disabled state respects attachments', () => {
-    expect(INPUT_BAR_SOURCE).toMatch(/disabled=\{\(!text\.trim\(\)\s*&&\s*!hasAttachment\)\s*\|\|\s*sending\}/);
+    expect(INPUT_BAR_SOURCE).toMatch(/disabled=\{\(!text\.trim\(\)\s*&&\s*!hasAttachment\)\s*\|\|\s*sending\s*\|\|\s*overLimit\}/);
   });
 
   it('page passes the attachment signal down via hasAttachment', () => {

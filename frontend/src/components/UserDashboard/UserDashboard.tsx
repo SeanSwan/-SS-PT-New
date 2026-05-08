@@ -1014,7 +1014,7 @@ const StatCardLabel = styled.span`
    ═══════════════════════════════════════════════════════════════════ */
 const placeholderEvents = [
   { id: 1, title: 'Group HIIT Session', date: 'Mar 15, 2026', time: '10:00 AM', location: 'Central Park', attendees: 12 },
-  { id: 2, title: 'Yoga & Meditation', date: 'Mar 18, 2026', time: '9:00 AM', location: 'Beach Front', attendees: 8 },
+  { id: 2, title: 'Mobility & Stretching', date: 'Mar 18, 2026', time: '9:00 AM', location: 'Beach Front', attendees: 8 },
 ];
 
 const placeholderGroups = [

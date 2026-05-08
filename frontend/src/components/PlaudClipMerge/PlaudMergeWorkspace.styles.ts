@@ -93,6 +93,11 @@ export const ReviewWrap = styled.div`
   background: var(--surface-base, rgba(20,20,36,0.6));
   border: 1px solid var(--border-subtle, rgba(96,192,240,0.2));
   border-radius: 16px;
+
+  &:focus {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
 `;
 
 export const ReviewHeading = styled.h3`
@@ -274,6 +279,11 @@ export const SuccessBanner = styled.div`
   & svg {
     color: var(--accent-primary, #60C0F0);
   }
+
+  &:focus {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
 `;
 
 export const ErrorBanner = styled.div`
@@ -285,4 +295,5 @@ export const ErrorBanner = styled.div`
   border-radius: 10px;
   color: rgba(252, 165, 165, 1);
   font-size: 0.875rem;
+  &:focus { outline: 2px solid var(--glow-accent, #8B5CF6); outline-offset: 3px; }
 `;

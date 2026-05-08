@@ -2,7 +2,7 @@ import type { MergeRequestDetail, MergeResponse } from '../../services/plaudMerg
 
 export interface PlaudMergeReviewState {
   mergeRequestId: string;
-  clientId: number;
+  clientId: number | null;
   clientName?: string | null;
   transcript: string;
   parsedWorkout: MergeResponse['parsedWorkout'];

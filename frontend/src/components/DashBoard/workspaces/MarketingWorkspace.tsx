@@ -1,33 +1,37 @@
 /**
- * ┌─── WORKSPACE: Marketing Dashboard ──────────────────────────┐
- * │ PURPOSE: Tab container for SEO, keywords, blog, social,     │
- * │          email, calendar, and competitor analysis panels.    │
- * │ PATTERN: Internal tab state + lazy loading (like             │
- * │          ContentStudioHub) — works with roleConfigurations   │
- * │          flat routing in UniversalDashboardLayout.           │
- * └──────────────────────────────────────────────────────────────┘
+ * ============================================================================
+ * WORKSPACE: MarketingWorkspace.tsx
+ * PURPOSE: Operator command center for campaigns, approvals, leads, and signals.
+ * AUTHOR: Codex GPT-5 | UPDATED: 2026-05-08
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES: Keeps the admin marketing surface compressed to five
+ * revenue-facing workflows: Overview, Approval Queue, Calendar, Leads, and
+ * Analytics.
+ *
+ * HOW IT FITS IN THE APP: Mounted by UniversalDashboardLayout at the admin
+ * marketing route and lazy-loads the existing marketing panels.
+ *
+ * KEY DECISIONS:
+ * - Secondary SEO, keyword, blog, email, and competitor tools are not top-level.
+ * - The workspace is for operations, not content creation settings.
+ * - Styled-components only with Crystalline Swan token fallbacks.
  */
 
 import React, { useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Hash, FileText, Share2, Mail, CalendarDays, Users, Megaphone, BarChart3,
+  Share2, CalendarDays, Users, Megaphone, BarChart3,
 } from 'lucide-react';
 
-// Lazy-load panels for code-splitting
-const SEOAuditPanel = lazy(() => import('./marketing/SEOAuditPanel'));
-const KeywordResearchWidget = lazy(() => import('./marketing/KeywordResearchWidget'));
-const BlogWriterPanel = lazy(() => import('./marketing/BlogWriterPanel'));
+const MarketingCommandOverview = lazy(() => import('./marketing/MarketingCommandOverview'));
 const SocialPostGenerator = lazy(() => import('./marketing/SocialPostGenerator'));
-const EmailDigestBuilder = lazy(() => import('./marketing/EmailDigestBuilder'));
 const MarketingCalendar = lazy(() => import('./marketing/MarketingCalendar'));
-const CompetitorAnalysisWidget = lazy(() => import('./marketing/CompetitorAnalysisWidget'));
+const LeadPipelinePanel = lazy(() => import('./marketing/LeadPipelinePanel'));
 const SocialAnalyticsDashboard = lazy(() => import('./marketing/SocialAnalyticsDashboard'));
-const ContentCalendarPanel = lazy(() => import('./marketing/ContentCalendarPanel'));
 
-// ─── Types ─────────────────────────────────────────────────────
-type TabId = 'seo' | 'keywords' | 'blog' | 'social' | 'social-hub' | 'email' | 'calendar' | 'ai-calendar' | 'competitors';
+type TabId = 'overview' | 'queue' | 'calendar' | 'leads' | 'analytics';
 
 interface TabDef {
   id: TabId;
@@ -36,30 +40,13 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: 'seo', label: 'SEO Audit', icon: <Search size={16} /> },
-  { id: 'keywords', label: 'Keywords', icon: <Hash size={16} /> },
-  { id: 'blog', label: 'Blog Writer', icon: <FileText size={16} /> },
-  { id: 'social', label: 'Social Posts', icon: <Share2 size={16} /> },
-  { id: 'social-hub', label: 'Social Hub', icon: <BarChart3 size={16} /> },
-  { id: 'email', label: 'Email Digest', icon: <Mail size={16} /> },
+  { id: 'overview', label: 'Overview', icon: <Megaphone size={16} /> },
+  { id: 'queue', label: 'Approval Queue', icon: <Share2 size={16} /> },
   { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
-  { id: 'ai-calendar', label: 'AI Calendar', icon: <Megaphone size={16} /> },
-  { id: 'competitors', label: 'Competitors', icon: <Users size={16} /> },
+  { id: 'leads', label: 'Leads', icon: <Users size={16} /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} /> },
 ];
 
-const TAB_COMPONENTS: Record<TabId, React.LazyExoticComponent<React.FC>> = {
-  seo: SEOAuditPanel,
-  keywords: KeywordResearchWidget,
-  blog: BlogWriterPanel,
-  social: SocialPostGenerator,
-  'social-hub': SocialAnalyticsDashboard,
-  email: EmailDigestBuilder,
-  calendar: MarketingCalendar,
-  'ai-calendar': ContentCalendarPanel,
-  competitors: CompetitorAnalysisWidget,
-};
-
-// ─── Styled Components ─────────────────────────────────────────
 const Wrapper = styled.div`
   min-height: 100dvh;
   background: var(--bg-base, #0A0A0F);
@@ -67,7 +54,9 @@ const Wrapper = styled.div`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
 
-  @media (max-width: 768px) { padding: 12px; }
+  @media (max-width: 768px) {
+    padding: 12px;
+  }
 `;
 
 const Header = styled.div`
@@ -90,7 +79,9 @@ const Title = styled.h1`
   align-items: center;
   gap: 10px;
 
-  @media (max-width: 768px) { font-size: 22px; }
+  @media (max-width: 768px) {
+    font-size: 22px;
+  }
 `;
 
 const Subtitle = styled.p`
@@ -106,7 +97,10 @@ const TabBar = styled.div`
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @media (max-width: 768px) {
     gap: 4px;
@@ -132,7 +126,7 @@ const TabBtn = styled.button<{ $active: boolean }>`
     : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
-  font-weight: ${({ $active }) => $active ? 600 : 500};
+  font-weight: ${({ $active }) => ($active ? 600 : 500)};
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -154,19 +148,34 @@ const LoadingFallback = styled.div`
   font-size: 14px;
 `;
 
-// ─── Component ─────────────────────────────────────────────────
 const MarketingWorkspace: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('seo');
-  const ActivePanel = TAB_COMPONENTS[activeTab];
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+
+  const renderActivePanel = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <MarketingCommandOverview onSelectTab={(tab) => setActiveTab(tab)} />;
+      case 'queue':
+        return <SocialPostGenerator />;
+      case 'calendar':
+        return <MarketingCalendar />;
+      case 'leads':
+        return <LeadPipelinePanel />;
+      case 'analytics':
+        return <SocialAnalyticsDashboard />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Wrapper>
       <Header>
         <Title>
           <Megaphone size={28} style={{ opacity: 0.7 }} />
-          Marketing
+          Marketing Command Center
         </Title>
-        <Subtitle>SEO, content creation, social media, and competitive intelligence</Subtitle>
+        <Subtitle>Human-approved campaigns, publishing cadence, lead follow-up, and performance signals</Subtitle>
       </Header>
 
       <TabBar role="tablist">
@@ -193,7 +202,7 @@ const MarketingWorkspace: React.FC = () => {
           transition={{ duration: 0.25 }}
         >
           <Suspense fallback={<LoadingFallback>Loading panel...</LoadingFallback>}>
-            <ActivePanel />
+            {renderActivePanel()}
           </Suspense>
         </motion.div>
       </AnimatePresence>

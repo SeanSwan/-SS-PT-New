@@ -1,36 +1,17 @@
 /**
- * ============================================================================
- * FILE: useFileAttachment.ts
- * PURPOSE: Manages file attachment state for the Coach Assistant input bar
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-14
- * ============================================================================
+ * useFileAttachment.ts
+ * ====================
+ * Manages selected files for Swan Coach Assistant.
  *
- * WHAT THIS FILE DOES:
- * Handles file selection, validation, preview generation, and cleanup.
- * Files are held in state until the message is sent. The Coach Assistant
- * page then routes them based on type:
- *   - transcript-class files (audio/text/pdf): wired end-to-end. Route to
- *     POST /api/workout-logs/upload via useTranscriptIntake → review card
- *     → POST /api/admin/clients/:clientId/workouts on confirm.
- *   - other files (images / json): SELECTION still works (preview, remove,
- *     validation), but DELIVERY is NOT wired. The chat lane via
- *     useAIChat.sendMessageWithConversation accepts only
- *     (text, context, title, target, style) — no attachment payload — so
- *     non-transcript attachments are currently dropped on send. This is a
- *     known gap, scoped out of the Phase 9 transcript-intake slice.
- *
- * HOW IT FITS IN THE APP:
- * FileAttachmentButton → triggers file input → useFileAttachment (this)
- *   → AttachmentPreview shows selected files
- *   → CoachInputBar calls page handleSend
- *   → SwanCoachAssistantPage routes by type
+ * Routing contract:
+ * - Audio transcript files can be sent as a 1-5 file PLAUD batch.
+ * - Text/PDF transcript files remain single-file review uploads.
+ * - Images/JSON can still be selected and previewed, but non-transcript
+ *   delivery remains outside this hook.
  */
-
 import { useState, useCallback, useRef } from 'react';
+import { safeAttachmentSourceLabel } from '../CoachIntakeOperationalText.logic';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
 export interface AttachedFile {
   id: string;
   file: File;
@@ -50,38 +31,12 @@ export interface UseFileAttachmentReturn {
   openFilePicker: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Constants
-// ─────────────────────────────────────────────────────────────
 const MAX_FILES = 5;
-
-/** Default size cap for non-transcript attachments (images / json). */
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-/**
- * Transcript-class file size limit. Aligned with the REAL upstream
- * constraint: the Gemini inline-data cap enforced at
- * backend/services/voiceTranscriptionService.mjs:16 (20MB). The multer
- * config at backend/routes/workoutLogUploadRoutes.mjs:55 is also 20MB.
- *
- * Phase 10 alignment 2026-04-14: the previous 50MB limit here let real
- * Plaud exports >20MB pass the picker and silently fail at Gemini
- * upload. Honest limit is 20MB until the Gemini File Upload API is
- * wired for larger audio (separate refactor).
- */
-const TRANSCRIPT_MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const TRANSCRIPT_MAX_FILE_SIZE = 20 * 1024 * 1024;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-/**
- * Transcript-class mime types — files that the page routes through
- * POST /api/workout-logs/upload → transcript → parser pipeline.
- *
- * Must stay in sync with backend/routes/workoutLogUploadRoutes.mjs:58-66.
- * If you add a mime type here, also add it there (and vice versa).
- */
 export const TRANSCRIPT_CLASS_MIME_TYPES = [
-  // Audio (voice memos)
   'audio/mp4',
   'audio/mpeg',
   'audio/wav',
@@ -92,52 +47,44 @@ export const TRANSCRIPT_CLASS_MIME_TYPES = [
   'audio/aac',
   'audio/flac',
   'audio/x-wav',
-  // Text / docs that the parser also handles
   'text/plain',
   'text/csv',
   'application/pdf',
 ] as const;
 
 const ALLOWED_TYPES: readonly string[] = [
-  // Generic chat attachments
   'image/jpeg',
   'image/png',
   'image/gif',
   'image/webp',
   'application/json',
-  // Transcript-class types — accepted into the same input field, but
-  // routed differently by the page (to /api/workout-logs/upload, not chat).
   ...TRANSCRIPT_CLASS_MIME_TYPES,
 ];
 
-/**
- * Returns true if this mime type should be routed to the workout-log
- * upload pipeline instead of the chat AI endpoint.
- */
 export function isTranscriptClassMime(mimeType: string): boolean {
   return (TRANSCRIPT_CLASS_MIME_TYPES as readonly string[]).includes(mimeType);
 }
 
-/**
- * Returns true if any of the attached files is transcript-class.
- * Used by the page to decide whether handleSend should route to the
- * transcript intake flow.
- */
+export function isAudioTranscriptMime(mimeType: string): boolean {
+  return isTranscriptClassMime(mimeType) && mimeType.startsWith('audio/');
+}
+
 export function hasTranscriptClassFile(files: AttachedFile[]): boolean {
   return files.some((f) => isTranscriptClassMime(f.type));
 }
 
-/**
- * Returns the count of transcript-class files in the list. Used to enforce
- * the "exactly one transcript-class file per send" rule.
- */
 export function countTranscriptClassFiles(files: AttachedFile[]): number {
   return files.filter((f) => isTranscriptClassMime(f.type)).length;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
+export function countAudioTranscriptFiles(files: AttachedFile[]): number {
+  return files.filter((f) => isAudioTranscriptMime(f.type)).length;
+}
+
+export function hasOnlyAudioTranscriptFiles(files: AttachedFile[]): boolean {
+  return files.length > 0 && files.every((f) => isAudioTranscriptMime(f.type));
+}
+
 export function useFileAttachment(): UseFileAttachmentReturn {
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -148,46 +95,50 @@ export function useFileAttachment(): UseFileAttachmentReturn {
       setError(null);
       const newFiles = Array.from(fileList);
 
-      // Validate count
       if (files.length + newFiles.length > MAX_FILES) {
         setError(`Maximum ${MAX_FILES} files allowed`);
         return;
       }
 
-      // Enforce the single-transcript-class-per-send rule across both the
-      // existing attachments and the new ones being added. The page also
-      // re-checks this at send time as a defense in depth.
       const existingTranscriptCount = countTranscriptClassFiles(files);
-      let incomingTranscriptCount = 0;
+      const existingAudioCount = countAudioTranscriptFiles(files);
+      const existingDocCount = existingTranscriptCount - existingAudioCount;
+      let incomingAudioCount = 0;
+      let incomingDocCount = 0;
 
       const validated: AttachedFile[] = [];
       for (const file of newFiles) {
-        // Validate type
+        const sourceLabel = safeAttachmentSourceLabel(file.name, 'Attachment');
         if (!ALLOWED_TYPES.includes(file.type)) {
-          setError(`${file.name}: unsupported file type`);
+          setError(`${sourceLabel}: unsupported file type`);
           continue;
         }
 
         const isTranscript = isTranscriptClassMime(file.type);
+        const isAudioTranscript = isAudioTranscriptMime(file.type);
 
-        // Enforce one-transcript-per-send. We do not silently drop the
-        // second one — surface a clear error so the user sees it.
         if (isTranscript) {
-          incomingTranscriptCount++;
-          if (existingTranscriptCount + incomingTranscriptCount > 1) {
-            setError(
-              `${file.name}: only one transcript-class file is allowed per send. Remove the existing one first.`,
-            );
+          if (isAudioTranscript) incomingAudioCount += 1;
+          else incomingDocCount += 1;
+
+          const totalAudio = existingAudioCount + incomingAudioCount;
+          const totalDoc = existingDocCount + incomingDocCount;
+
+          if (totalDoc > 1) {
+            setError(`${sourceLabel}: only one text/PDF transcript is allowed per send. Remove the existing one first.`);
+            continue;
+          }
+
+          if (totalAudio > 0 && totalDoc > 0) {
+            setError(`${sourceLabel}: upload audio clips separately from text/PDF transcripts.`);
             continue;
           }
         }
 
-        // Validate size — transcript-class files get the 50MB cap to match
-        // the upload route's multer config.
         const sizeLimit = isTranscript ? TRANSCRIPT_MAX_FILE_SIZE : MAX_FILE_SIZE;
         if (file.size > sizeLimit) {
           const limitMb = Math.round(sizeLimit / 1024 / 1024);
-          setError(`${file.name}: exceeds ${limitMb}MB limit`);
+          setError(`${sourceLabel}: exceeds ${limitMb}MB limit`);
           continue;
         }
 

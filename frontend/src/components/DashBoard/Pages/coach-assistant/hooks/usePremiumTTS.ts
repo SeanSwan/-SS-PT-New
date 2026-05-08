@@ -18,6 +18,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import apiService from '../../../../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -55,16 +56,6 @@ export const VOICE_OPTIONS: VoiceOption[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Config
-// ─────────────────────────────────────────────────────────────
-const API_BASE = (import.meta as Record<string, Record<string, string>>).env?.VITE_API_URL || '';
-
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// ─────────────────────────────────────────────────────────────
 // SECTION: Markdown Stripping (clean text for speech)
 // ─────────────────────────────────────────────────────────────
 function stripMarkdown(text: string): string {
@@ -97,18 +88,12 @@ export function usePremiumTTS(): UsePremiumTTSReturn {
   const speakWithGemini = useCallback(async (text: string) => {
     try {
       setSpeaking(true);
-      const res = await fetch(`${API_BASE}/api/ai-chat/tts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ text, voice }),
-      });
-
-      if (!res.ok) throw new Error(`TTS failed: ${res.status}`);
-
-      const blob = await res.blob();
+      const res = await apiService.post<Blob>(
+        '/api/ai-chat/tts',
+        { text, voice },
+        { responseType: 'blob' },
+      );
+      const blob = res.data;
       const url = URL.createObjectURL(blob);
 
       // Stop any current playback

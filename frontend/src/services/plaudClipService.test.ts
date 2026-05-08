@@ -44,9 +44,12 @@ describe('plaudClipService — exports', () => {
     await expect(plaudClipService.deleteClip('not-a-uuid')).rejects.toMatchObject({ code: 'INVALID_CLIP_ID' });
   });
 
-  it('attaches Authorization header from localStorage token', () => {
-    expect(CLIP_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
-    expect(CLIP_SRC).toMatch(/Bearer \$\{token\}/);
+  it('routes protected clip requests through apiService', () => {
+    expect(CLIP_SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
+    expect(CLIP_SRC).toMatch(/apiService\.post[\s\S]{0,160}\(['"]\/api\/plaud\/clips\/upload/);
+    expect(CLIP_SRC).toMatch(/apiService\.get[\s\S]{0,160}\(['"]\/api\/plaud\/clips/);
+    expect(CLIP_SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(CLIP_SRC).not.toMatch(/Bearer \$\{token\}/);
   });
 
   it('uploadClips uses multipart/form-data with files field', () => {
@@ -64,11 +67,11 @@ describe('plaudMergeService — exports', () => {
     expect(typeof plaudMergeService.discardMergeRequest).toBe('function');
   });
 
-  it('submitMerge enforces 2-5 clip cardinality client-side', async () => {
+  it('submitMerge enforces 1-5 clip cardinality client-side', async () => {
     await expect(plaudMergeService.submitMerge({ clipIds: [], clientId: 1 })).rejects.toMatchObject({ code: 'TOO_FEW_CLIPS' });
-    await expect(plaudMergeService.submitMerge({ clipIds: ['a'], clientId: 1 })).rejects.toMatchObject({ code: 'TOO_FEW_CLIPS' });
     const six = Array.from({ length: 6 }, () => '00000000-0000-0000-0000-000000000000');
     await expect(plaudMergeService.submitMerge({ clipIds: six, clientId: 1 })).rejects.toMatchObject({ code: 'TOO_MANY_FILES' });
+    expect(MERGE_SRC).toMatch(/args\.clipIds\.length\s*<\s*1/);
   });
 
   it('submitMerge enforces clientId integer >0 client-side', async () => {
@@ -90,12 +93,14 @@ describe('plaudMergeService — exports', () => {
     await expect(plaudMergeService.approveMergeRequest('bad-id')).rejects.toMatchObject({ code: 'INVALID_MERGE_REQUEST_ID' });
   });
 
-  it('hits separate base paths for /merge vs /merge-requests', () => {
-    expect(MERGE_SRC).toMatch(/['"]merge['"]/);
-    expect(MERGE_SRC).toMatch(/['"]merge-requests['"]/);
+  it('hits separate apiService paths for /merge vs /merge-requests', () => {
+    expect(MERGE_SRC).toMatch(/apiService\.post[\s\S]{0,160}\(['"]\/api\/plaud\/merge/);
+    expect(MERGE_SRC).toMatch(/apiService\.get[\s\S]{0,160}\(['"]\/api\/plaud\/merge-requests/);
   });
 
-  it('attaches Authorization header from localStorage token', () => {
-    expect(MERGE_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+  it('does not create a private merge auth lane', () => {
+    expect(MERGE_SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
+    expect(MERGE_SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+    expect(MERGE_SRC).not.toMatch(/Bearer \$\{token\}/);
   });
 });

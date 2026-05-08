@@ -6,6 +6,7 @@
  * workout payloads, and no client names.
  */
 import { listPlaudIntakeItems } from '../../plaudIntakeQueueService.mjs';
+import { isPlaudUuid } from '../../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
@@ -58,14 +59,32 @@ function queuePriority(item) {
   return STATUS_PRIORITY.get(item?.queueStatus) ?? 99;
 }
 
+function queueAgeTime(item) {
+  const value = item?.recordedAt || item?.timelineAt || item?.createdAt || item?.uploadedAt || null;
+  const parsed = Date.parse(value || '');
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
 function pickNextItem(items = []) {
   return [...items]
     .filter((item) => item?.queueStatus && item.queueStatus !== 'archived')
     .sort((a, b) => {
       const priority = queuePriority(a) - queuePriority(b);
       if (priority !== 0) return priority;
-      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      return queueAgeTime(a) - queueAgeTime(b);
     })[0] || null;
+}
+
+function reviewRouteForItem(item, queueRoute) {
+  if (!item) return null;
+  if (item.kind === 'merge_request' && item.canReview && isPlaudUuid(item.entityId)) {
+    return `${queueRoute}?mergeRequestId=${encodeURIComponent(item.entityId)}`;
+  }
+  return `${queueRoute}?review=next`;
+}
+
+function summaryEntityIdForItem(item) {
+  return isPlaudUuid(item?.entityId) ? item.entityId : null;
 }
 
 function scalarSummary(result, nextItem, queueRoute) {
@@ -80,11 +99,11 @@ function scalarSummary(result, nextItem, queueRoute) {
     failed: Number(summary.failed || 0),
     needsClient: Number(summary.needsClient || 0),
     nextIntakeId: nextItem?.id || null,
-    nextEntityId: nextItem?.entityId || null,
+    nextEntityId: summaryEntityIdForItem(nextItem),
     nextKind: nextItem?.kind || null,
     nextQueueStatus: nextItem?.queueStatus || null,
     nextCanReview: Boolean(nextItem?.canReview),
-    reviewRoute: nextItem ? `${queueRoute}?review=next` : null,
+    reviewRoute: reviewRouteForItem(nextItem, queueRoute),
     queueRoute,
     commandHint: nextItem
       ? 'Open the PLAUD workspace and continue with the next intake item.'
@@ -149,21 +168,41 @@ function summarizeAudioPieces(items, { queueRoute, gapThresholdMinutes }) {
     const gap = typeof piece.gapAfterMinutes === 'number' ? `, gap ${piece.gapAfterMinutes}m` : '';
     return `${index + 1}. ${piece.source} ${piece.timelineSource || 'time'}=${piece.timelineAt || 'unknown'} ${duration}${gap}`;
   }).join(' | ');
+  const suggestedGroupCount = withGaps.length === 0 ? 0 : largeGaps.length + 1;
+  const targetRoute = `${queueRoute}?pieces=pending`;
+  const needsOrderingReview = withGaps.length > 1;
+  const audioConfidence = withGaps.length <= 1
+    ? 'single'
+    : (confidences.has('best_available') ? 'medium' : 'high');
 
   return {
     pieceCount: withGaps.length,
+    totalAudioItems: withGaps.length,
+    needsOrderingReview: needsOrderingReview ? 1 : 0,
+    lowConfidence: confidences.has('best_available') && withGaps.length > 0 ? 1 : 0,
     manualUploadCount: withGaps.filter((piece) => piece.source === 'manual_upload').length,
     applaudCount: withGaps.filter((piece) => piece.source === 'applaud_webhook').length,
     recordedAtAvailableCount: withGaps.filter((piece) => piece.timelineSource === 'recorded_at').length,
     timelineTimeSource: sources.size === 1 ? [...sources][0] : (sources.size > 1 ? 'mixed' : null),
     timelineConfidence: confidences.has('best_available') ? 'best_available' : (confidences.has('exact') ? 'exact' : null),
-    suggestedGroupCount: withGaps.length === 0 ? 0 : largeGaps.length + 1,
+    suggestedGroupCount,
     largeGapCount: largeGaps.length,
     largestGapMinutes: gaps.length ? Math.max(...gaps) : null,
     gapThresholdMinutes,
     orderedPieceIds: withGaps.map((piece) => piece.id).join(' > '),
     pieceTimeline: timeline.length > MAX_TIMELINE_CHARS ? `${timeline.slice(0, MAX_TIMELINE_CHARS - 3)}...` : timeline,
-    targetRoute: `${queueRoute}?pieces=pending`,
+    targetRoute,
+    items: withGaps.length > 0 ? [{
+      id: 'plaud:pending-pieces',
+      kind: 'clip_bundle',
+      queueStatus: 'unprocessed',
+      canReview: false,
+      audioPieces: withGaps.length,
+      audioBundles: suggestedGroupCount,
+      audioConfidence,
+      needsOrderingReview,
+      reviewRoute: targetRoute,
+    }] : [],
     queueRoute,
     commandHint: withGaps.length >= 2
       ? 'Open the PLAUD workspace and select the audio pieces in chronological order; this uses upload/ingest timestamps until recorded_at metadata is available.'
@@ -212,8 +251,11 @@ export const _internal = {
   normalizeGapThreshold,
   normalizeLimit,
   pickNextItem,
+  queueAgeTime,
+  reviewRouteForItem,
   resolvePlaudQueueRoute,
   scalarSummary,
+  summaryEntityIdForItem,
   summarizeAudioPieces,
   timelineInfo,
 };

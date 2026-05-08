@@ -17,6 +17,7 @@ import { sendChatMessage } from '../aiChatService.mjs';
 import { scanForPHI } from './phiScanner.mjs';
 import { buildCommandSummaryForClassifier } from './commandRegistry/index.mjs';
 import { ClassifiedIntentSchema } from './commandRegistry/baseSchemas.mjs';
+import { classifyDeterministicCoachIntakeIntent } from './deterministicCoachIntakeIntent.mjs';
 
 // ── Confidence Threshold ────────────────────────────────────────────────────
 
@@ -74,6 +75,9 @@ User: "Show me something about clients maybe"
  * @returns {Promise<{ intent: string, clientRef: string|null, params: Object, confidence: number }>}
  */
 export async function classifyIntent(message, userRole, options = {}) {
+  const deterministicIntent = classifyDeterministicCoachIntakeIntent(message);
+  if (deterministicIntent) return deterministicIntent;
+
   const { previousContext, selectedClientName } = options;
 
   // Build contextual message

@@ -41,7 +41,7 @@ const CodeBlock: React.FC<{
     <div>
       <CodeBlockHeader>
         <span>{language || 'text'}</span>
-        <CopyBtn onClick={handleCopy} aria-label="Copy code">
+        <CopyBtn type="button" onClick={handleCopy} aria-label="Copy code">
           {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
         </CopyBtn>
       </CodeBlockHeader>
