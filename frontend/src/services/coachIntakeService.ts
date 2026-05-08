@@ -43,6 +43,20 @@ export interface CoachIntakeResponse {
   schemaReady?: boolean;
 }
 
+export interface CoachIntakeHealth {
+  schemaReady: boolean;
+  status: 'healthy' | 'attention' | 'degraded' | 'unavailable';
+  generatedAt?: string;
+  counts: PlaudIntakeSummary & { stuckProcessing: number };
+  oldestActionableAt?: string | null;
+  oldestProcessingAt?: string | null;
+  thresholds?: { processingStuckMinutes: number };
+  nextOperatorAction: {
+    key: string;
+    label: string;
+  };
+}
+
 export interface CreateCoachTextIntakeResponse {
   item: CoachIntakeItem;
 }
@@ -107,6 +121,15 @@ export async function listCoachIntakeItems({
   }
 }
 
+export async function getCoachIntakeHealth(): Promise<CoachIntakeHealth> {
+  try {
+    const { data } = await apiService.get<{ success: boolean; health: CoachIntakeHealth }>('/api/coach/intake/health');
+    return data.health;
+  } catch (err) {
+    unwrapError(err, 'Failed to read Coach intake health');
+  }
+}
+
 export async function createCoachTextIntake({
   text,
   clientId,
@@ -165,6 +188,7 @@ export async function listCoachIntakeEvents({
 export default {
   confirmCoachIntakeAudioOrder,
   createCoachTextIntake,
+  getCoachIntakeHealth,
   listCoachIntakeEvents,
   listCoachIntakeItems,
 };

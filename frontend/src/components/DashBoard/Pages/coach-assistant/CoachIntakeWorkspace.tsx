@@ -24,6 +24,7 @@ import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
 import CoachIntakeEventTrail from './CoachIntakeEventTrail';
+import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
@@ -191,6 +192,8 @@ export function CoachIntakeWorkspace({
           </WorkspaceLink>
         </ActionRow>
       </Header>
+
+      <CoachIntakeHealthStrip health={queue.health} />
 
       {activeItem && (
         <CoachIntakeActiveDossier

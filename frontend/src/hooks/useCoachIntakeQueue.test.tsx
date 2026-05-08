@@ -1,10 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { listCoachIntakeItems, type CoachIntakeItem } from '../services/coachIntakeService';
+import { getCoachIntakeHealth, listCoachIntakeItems, type CoachIntakeItem } from '../services/coachIntakeService';
 import { dispatchCoachProposalAction } from '../services/coachProposalActionEvents';
 import { useCoachIntakeQueue } from './useCoachIntakeQueue';
 
 vi.mock('../services/coachIntakeService', () => ({
+  getCoachIntakeHealth: vi.fn(),
   listCoachIntakeItems: vi.fn(),
 }));
 
@@ -48,6 +49,12 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
   });
 
   it('refreshes the queue when a proposal action event is published', async () => {
+    vi.mocked(getCoachIntakeHealth).mockResolvedValue({
+      schemaReady: true,
+      status: 'healthy',
+      counts: { ...summary, stuckProcessing: 0 },
+      nextOperatorAction: { key: 'review_ready_drafts', label: 'Review ready drafts' },
+    });
     vi.mocked(listCoachIntakeItems)
       .mockResolvedValueOnce({
         items: [makeItem('intake-before-action')],
@@ -67,6 +74,7 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
     await waitFor(() => {
       expect(result.current.items[0]?.id).toBe('intake-before-action');
     });
+    expect(result.current.health?.status).toBe('healthy');
 
     act(() => {
       dispatchCoachProposalAction({
@@ -81,5 +89,6 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
       expect(result.current.items[0]?.id).toBe('intake-after-action');
     });
     expect(listCoachIntakeItems).toHaveBeenCalledTimes(2);
+    expect(getCoachIntakeHealth).toHaveBeenCalledTimes(2);
   });
 });

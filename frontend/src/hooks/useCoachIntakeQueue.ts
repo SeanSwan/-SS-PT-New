@@ -5,6 +5,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  getCoachIntakeHealth,
+  type CoachIntakeHealth,
   listCoachIntakeItems,
   type CoachIntakeItem,
 } from '../services/coachIntakeService';
@@ -28,6 +30,7 @@ export interface CoachIntakeQueueState {
   summary: PlaudIntakeSummary;
   isLoading: boolean;
   error: PlaudApiError | null;
+  health: CoachIntakeHealth | null;
   refresh: () => Promise<CoachIntakeItem[]>;
 }
 
@@ -44,6 +47,7 @@ export function useCoachIntakeQueue({
   const [summary, setSummary] = useState<PlaudIntakeSummary>(EMPTY_SUMMARY);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<PlaudApiError | null>(null);
+  const [health, setHealth] = useState<CoachIntakeHealth | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -56,23 +60,29 @@ export function useCoachIntakeQueue({
       setItems([]);
       setSummary(EMPTY_SUMMARY);
       setError(null);
+      setHealth(null);
       setIsLoading(false);
       return [];
     }
     setIsLoading(true);
     setError(null);
     try {
-      const response = await listCoachIntakeItems({ scope, limit });
+      const [response, healthResult] = await Promise.all([
+        listCoachIntakeItems({ scope, limit }),
+        getCoachIntakeHealth().catch(() => null),
+      ]);
       const nextItems = response.items || [];
       if (!isMountedRef.current) return nextItems;
       setItems(nextItems);
       setSummary(response.summary);
+      setHealth(healthResult);
       return nextItems;
     } catch (err) {
       if (!isMountedRef.current) return [];
       setError(err as PlaudApiError);
       setItems([]);
       setSummary(EMPTY_SUMMARY);
+      setHealth(null);
       return [];
     } finally {
       if (isMountedRef.current) setIsLoading(false);
@@ -90,7 +100,7 @@ export function useCoachIntakeQueue({
     });
   }, [enabled, refresh]);
 
-  return { items, summary, isLoading, error, refresh };
+  return { items, summary, isLoading, error, health, refresh };
 }
 
 export default useCoachIntakeQueue;

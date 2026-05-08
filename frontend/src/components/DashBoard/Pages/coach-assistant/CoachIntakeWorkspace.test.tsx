@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { confirmCoachIntakeAudioOrder } from '../../../../services/coachIntakeService';
+import type { CoachIntakeHealth } from '../../../../services/coachIntakeService';
 
 vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../services/coachIntakeService')>();
@@ -85,6 +86,47 @@ describe('CoachIntakeWorkspace', () => {
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
     expect(screen.getByRole('link', { name: /open full plaud workspace/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud');
+  });
+
+  it('shows PII-safe queue health and next operator action when available', () => {
+    const queue: ReturnType<typeof makeQueue> & { health?: CoachIntakeHealth } = makeQueue();
+    queue.health = {
+      schemaReady: true,
+      status: 'degraded',
+      counts: {
+        total: 4,
+        actionable: 3,
+        today: 1,
+        unprocessed: 1,
+        processing: 1,
+        readyReview: 1,
+        failed: 1,
+        needsClient: 2,
+        stuckProcessing: 1,
+      },
+      nextOperatorAction: {
+        key: 'inspect_stuck_processing',
+        label: 'Inspect stuck processing intake',
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const health = screen.getByLabelText(/Coach intake health/i);
+    expect(within(health).getByText(/Queue health/i)).toBeInTheDocument();
+    expect(within(health).getByText(/Degraded/i)).toBeInTheDocument();
+    expect(within(health).getByText(/1 stuck/i)).toBeInTheDocument();
+    expect(within(health).getByText(/Inspect stuck processing intake/i)).toBeInTheDocument();
   });
 
   it('keeps direct review-next routing into PLAUD when the next item is a reviewable merge', () => {
