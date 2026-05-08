@@ -187,6 +187,10 @@ function formatUploadedAt(value: string): string {
   });
 }
 
+function clipDisplayLabel(index: number): string {
+  return `Audio clip ${index + 1}`;
+}
+
 export interface PlaudClipQueueProps {
   clips: PlaudClip[];
   selectedIds: Set<string>;
@@ -212,17 +216,18 @@ export function PlaudClipQueue({
   const selectedOrder = new Map(timeline.selectedClipIdsInTimelineOrder.map((clipId, index) => [clipId, index + 1]));
   return (
     <Container role="list" aria-label="Pending PLAUD clips">
-      {clips.map((c) => {
+      {clips.map((c, index) => {
         const selected = selectedIds.has(c.clipId);
         const sizeStr = formatSize(c.size);
         const durStr = formatDuration(c.durationSec);
         const uploadedStr = formatUploadedAt(c.uploadedAt);
         const order = selectedOrder.get(c.clipId);
+        const label = clipDisplayLabel(index);
         return (
           <Row key={c.clipId} role="listitem" $selected={selected} data-clip-id={c.clipId}>
             <CheckboxButton
               type="button"
-              aria-label={selected ? `Deselect ${c.filename}` : `Select ${c.filename}`}
+              aria-label={selected ? `Deselect ${label}` : `Select ${label}`}
               role="checkbox"
               aria-checked={selected}
               onClick={() => onToggleSelect(c.clipId)}
@@ -230,7 +235,7 @@ export function PlaudClipQueue({
               {selected ? <CheckCircle size={22} /> : <Circle size={22} />}
             </CheckboxButton>
             <ClipMeta>
-              <FileName title={c.filename}>{c.filename}</FileName>
+              <FileName title={label}>{label}</FileName>
               <SubMeta>
                 {order ? <OrderPill>Merge step {order}</OrderPill> : null}
                 {durStr ? <span>{durStr}</span> : null}
@@ -241,7 +246,7 @@ export function PlaudClipQueue({
             </ClipMeta>
             <DeleteButton
               type="button"
-              aria-label={`Delete ${c.filename}`}
+              aria-label={`Delete ${label}`}
               onClick={() => onDelete(c.clipId)}
             >
               <Trash2 size={18} aria-hidden="true" />

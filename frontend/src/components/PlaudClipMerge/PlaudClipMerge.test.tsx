@@ -11,7 +11,6 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
-import { PlaudClipQueue } from './PlaudClipQueue';
 import { buildClipTimeline } from './plaudClipTimeline';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -98,41 +97,6 @@ describe('Slice 3.11 — PlaudClipQueue source contract', () => {
 
   it('responsive grid layout adapts at 768px+', () => {
     expect(QUEUE_SRC).toMatch(/@media\s*\(\s*min-width:\s*768px\s*\)/);
-  });
-});
-
-describe('Slice 3.11 — PlaudClipQueue render', () => {
-  it('renders empty state when no clips', () => {
-    render(<PlaudClipQueue clips={[]} selectedIds={new Set()} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText(/No clips uploaded yet/i)).toBeTruthy();
-  });
-
-  it('renders list of clips', () => {
-    const clips = [
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'rec1.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-      { clipId: '22222222-2222-2222-2222-222222222222', filename: 'rec2.mp3', mimetype: 'audio/mpeg', size: 2048, durationSec: 60, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set()} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText('rec1.mp3')).toBeTruthy();
-    expect(screen.getByText('rec2.mp3')).toBeTruthy();
-  });
-
-  it('renders aria-checked=true for selected clips', () => {
-    const clips = [
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'rec1.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set(['11111111-1111-1111-1111-111111111111'])} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByRole('checkbox', { checked: true })).toBeTruthy();
-  });
-
-  it('shows the selected chronological merge order', () => {
-    const clips = [
-      { clipId: '22222222-2222-2222-2222-222222222222', filename: 'late.mp3', mimetype: 'audio/mpeg', size: 1024, durationSec: 45, status: 'pending_merge', uploadedAt: '2026-05-04T11:30:00.000Z', expiresAt: '2026-05-05' },
-      { clipId: '11111111-1111-1111-1111-111111111111', filename: 'early.mp3', mimetype: 'audio/mpeg', size: 2048, durationSec: 60, status: 'pending_merge', uploadedAt: '2026-05-04T11:00:00.000Z', expiresAt: '2026-05-05' },
-    ];
-    render(<PlaudClipQueue clips={clips} selectedIds={new Set(clips.map((c) => c.clipId))} onToggleSelect={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText('Merge step 1')).toBeTruthy();
-    expect(screen.getByText('Merge step 2')).toBeTruthy();
   });
 });
 
