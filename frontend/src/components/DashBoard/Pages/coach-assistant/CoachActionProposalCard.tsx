@@ -22,6 +22,7 @@ import {
   proposalTypeLabel,
 } from './CoachActionProposalDetailRows';
 import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
+import { dispatchCoachProposalAction } from '../../../../services/coachProposalActionEvents';
 import {
   ActionButton,
   Actions,
@@ -35,6 +36,17 @@ import {
 } from './CoachActionProposalCard.styles';
 
 interface CoachActionProposalCardProps { proposal: CoachActionProposal; onProposalAction?: (proposal: CoachActionProposal) => void; }
+
+function publishProposalAction(
+  nextProposal: CoachActionProposal,
+  onProposalAction?: (proposal: CoachActionProposal) => void,
+) {
+  if (onProposalAction) {
+    onProposalAction(nextProposal);
+    return;
+  }
+  dispatchCoachProposalAction(nextProposal);
+}
 
 function terminalStatusMessage(status: CoachActionProposal['status'], type: CoachActionProposal['type']): string | null {
   if (status === 'APPLIED') {
@@ -112,7 +124,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       const result = await approveCoachProposal(proposal.id, reviewToken);
       const nextProposal = result.proposal || { ...proposal, status: result.applied ? 'APPLIED' : 'APPROVED' };
       setStatus(nextProposal.status);
-      onProposalAction?.(nextProposal);
+      publishProposalAction(nextProposal, onProposalAction);
       if (result.client) {
         setMessage('Client created through deterministic onboarding approval.');
       } else if (proposal.type === 'client_data_update' && result.partial) {
@@ -145,7 +157,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       const result = await answerCoachProposalClarification(proposal.id, answer);
       const nextProposal = result.proposal || { ...proposal, status: 'APPROVED' as const };
       setStatus(nextProposal.status);
-      onProposalAction?.(nextProposal);
+      publishProposalAction(nextProposal, onProposalAction);
       setMessage('Clarification answer recorded for deterministic review.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Clarification answer failed');
@@ -161,7 +173,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       const result = await rejectCoachProposal(proposal.id);
       const nextProposal = result.proposal || { ...proposal, status: 'REJECTED' as const };
       setStatus(nextProposal.status);
-      onProposalAction?.(nextProposal);
+      publishProposalAction(nextProposal, onProposalAction);
       setMessage('Proposal rejected.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reject failed');

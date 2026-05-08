@@ -8,6 +8,7 @@ import {
   listCoachIntakeItems,
   type CoachIntakeItem,
 } from '../services/coachIntakeService';
+import { subscribeCoachProposalActions } from '../services/coachProposalActionEvents';
 import type { PlaudIntakeSummary } from '../services/plaudIntakeService';
 import { PlaudApiError } from '../services/plaudClipService';
 
@@ -81,6 +82,13 @@ export function useCoachIntakeQueue({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    return subscribeCoachProposalActions(() => {
+      void refresh();
+    });
+  }, [enabled, refresh]);
 
   return { items, summary, isLoading, error, refresh };
 }
