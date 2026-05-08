@@ -142,8 +142,8 @@ describe('CoachIntakeWorkspace', () => {
     fireEvent.click(within(target).getByRole('button', { name: /ask coach about this intake/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-2');
 
-    fireEvent.click(within(target).getByRole('button', { name: /inspect audio queue/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
+    fireEvent.click(within(target).getByRole('button', { name: /inspect intake audio/i }));
+    expect(onCommandPrompt).toHaveBeenCalledWith('inspect Coach intake item-2 audio pieces');
   });
 
   it('renders the highest-priority review-next item first even when API order is newer-first', () => {

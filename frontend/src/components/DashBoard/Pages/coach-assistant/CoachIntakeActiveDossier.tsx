@@ -113,7 +113,7 @@ export function CoachIntakeActiveDossier({
         {showInspectAudio ? (
           <ActionButton type="button" onClick={onInspectAudio}>
             <GitBranch size={16} aria-hidden="true" />
-            Inspect audio queue
+            Inspect intake audio
           </ActionButton>
         ) : null}
         <WorkspaceLink to={reviewHref}>

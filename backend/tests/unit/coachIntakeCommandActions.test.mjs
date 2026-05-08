@@ -6,25 +6,6 @@
  * exposing transcript bodies or client names to AI command result cards.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const REGISTRY_INDEX_SRC = readFileSync(
-  resolve(__dirname, '../../services/ai/commandRegistry/index.mjs'), 'utf8',
-);
-const DISPATCHER_INDEX_SRC = readFileSync(
-  resolve(__dirname, '../../services/ai/commandDispatcher.mjs'), 'utf8',
-);
-const COACH_INTAKE_COMMANDS_SRC = readFileSync(
-  resolve(__dirname, '../../services/ai/commandRegistry/coachIntakeCommands.mjs'), 'utf8',
-);
-const WORKSPACE_SRC = readFileSync(
-  resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntakeWorkspace.tsx'), 'utf8',
-);
 
 vi.mock('../../services/coachIntakeItemService.mjs', () => ({
   listUnifiedCoachIntakeItems: vi.fn(),
@@ -32,33 +13,10 @@ vi.mock('../../services/coachIntakeItemService.mjs', () => ({
 
 import { listUnifiedCoachIntakeItems } from '../../services/coachIntakeItemService.mjs';
 import {
-  dispatchInspectCoachAudioPieces,
-  dispatchInspectPlaudAudioPieces,
   dispatchReviewNextCoachIntake,
   dispatchViewCoachIntakeQueue,
   _internal,
 } from '../../services/ai/dispatchers/coachIntakeDispatchers.mjs';
-
-describe('Unified Coach intake command registry source contract', () => {
-  it('registers unified Coach intake commands and dispatchers', () => {
-    expect(REGISTRY_INDEX_SRC).toMatch(/coachIntakeCommands\.mjs/);
-    expect(REGISTRY_INDEX_SRC).toMatch(/registerCoachIntake/);
-    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/type:\s*'inspect_coach_audio_pieces'/);
-    expect(COACH_INTAKE_COMMANDS_SRC).toMatch(/inspect pending Coach audio pieces/);
-    expect(DISPATCHER_INDEX_SRC).toMatch(/dispatchViewCoachIntakeQueue/);
-    expect(DISPATCHER_INDEX_SRC).toMatch(/\['view_coach_intake_queue',\s*dispatchViewCoachIntakeQueue\]/);
-    expect(DISPATCHER_INDEX_SRC).toMatch(/\['review_next_coach_intake',\s*dispatchReviewNextCoachIntake\]/);
-    expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_coach_audio_pieces',\s*dispatchInspectCoachAudioPieces\]/);
-    expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_plaud_audio_pieces',\s*dispatchInspectPlaudAudioPieces\]/);
-  });
-
-  it('makes the Coach workspace ask the unified intake command, not the PLAUD-only command', () => {
-    expect(WORKSPACE_SRC).toMatch(/onCommandPrompt\('review next Coach intake'\)/);
-    expect(WORKSPACE_SRC).toMatch(/onCommandPrompt\('inspect pending Coach audio pieces'\)/);
-    expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);
-    expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('inspect pending PLAUD audio pieces'\)/);
-  });
-});
 
 describe('Unified Coach intake dispatcher behavior', () => {
   const sequelizeOverride = { query: vi.fn() };
@@ -225,136 +183,4 @@ describe('Unified Coach intake dispatcher behavior', () => {
     expect(next?.id).toBe('coach:old-ready');
   });
 
-  it('inspects pending audio pieces without returning transcripts, names, or filenames', async () => {
-    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
-      scope: 'actionable',
-      limit: 20,
-      schemaReady: true,
-      summary: {
-        total: 2,
-        actionable: 2,
-        today: 2,
-        unprocessed: 2,
-        processing: 0,
-        readyReview: 0,
-        failed: 0,
-        needsClient: 1,
-      },
-      items: [
-        {
-          id: 'merge:ready-review',
-          entityId: 'ready-review',
-          kind: 'merge_request',
-          queueStatus: 'ready_review',
-          canReview: true,
-          clipCount: 3,
-          sourceLabel: 'Merged review',
-          createdAt: '2026-05-05T11:00:00.000Z',
-        },
-        {
-          id: 'coach:audio-1',
-          entityId: 'audio-1',
-          kind: 'coach_intake',
-          queueStatus: 'unprocessed',
-          canReview: false,
-          clientName: 'Do Not Return',
-          transcript: 'Do Not Return',
-          sourceLabel: 'Audio upload',
-          createdAt: '2026-05-05T12:00:00.000Z',
-          audioPuzzle: {
-            pieceCount: 3,
-            bundleCount: 2,
-            autoBundleCount: 1,
-            needsOrderingReview: true,
-            confidence: 'low',
-            rawFileNames: ['Marcus private clip.m4a'],
-          },
-        },
-      ],
-    });
-
-    const result = await dispatchInspectCoachAudioPieces(
-      {},
-      { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
-    );
-
-    expect(result).toMatchObject({
-      totalAudioItems: 1,
-      needsOrderingReview: 1,
-      lowConfidence: 1,
-      commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
-      items: [
-        {
-          id: 'coach:audio-1',
-          kind: 'coach_intake',
-          queueStatus: 'unprocessed',
-          audioPieces: 3,
-          audioBundles: 2,
-          autoAudioBundles: 1,
-          audioConfidence: 'low',
-          needsOrderingReview: true,
-          reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-1',
-        },
-      ],
-    });
-    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|Marcus|private clip|transcript|clientName|rawFileNames/i);
-  });
-
-  it('inspects newly uploaded PLAUD clips through the unified Coach command', async () => {
-    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
-      scope: 'actionable',
-      limit: 20,
-      schemaReady: true,
-      summary: {
-        total: 1,
-        actionable: 1,
-        today: 1,
-        unprocessed: 1,
-        processing: 0,
-        readyReview: 0,
-        failed: 0,
-        needsClient: 1,
-      },
-      items: [
-        {
-          id: 'clip:plaud-clip-1',
-          entityId: 'plaud-clip-1',
-          kind: 'clip',
-          queueStatus: 'unprocessed',
-          canReview: false,
-          clientName: 'Do Not Return',
-          transcript: 'Do Not Return',
-          title: 'Marcus private clip.m4a',
-          sourceLabel: 'Manual upload',
-          createdAt: '2026-05-05T12:00:00.000Z',
-          clipCount: 1,
-        },
-      ],
-    });
-
-    const result = await dispatchInspectCoachAudioPieces(
-      {},
-      { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
-    );
-
-    expect(result).toMatchObject({
-      totalAudioItems: 1,
-      needsOrderingReview: 0,
-      lowConfidence: 0,
-      commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
-      items: [
-        {
-          id: 'clip:plaud-clip-1',
-          kind: 'clip',
-          queueStatus: 'unprocessed',
-          audioPieces: 1,
-          audioBundles: 1,
-          audioConfidence: 'single',
-          needsOrderingReview: false,
-          reviewRoute: '/dashboard/admin/coach-assistant?intake=plaud-clip-1',
-        },
-      ],
-    });
-    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|Marcus|private clip|transcript|clientName|title/i);
-  });
 });

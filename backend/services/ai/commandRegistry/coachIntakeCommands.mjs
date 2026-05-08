@@ -68,6 +68,7 @@ const commands = [
     description: 'Summarize pending Coach and PLAUD audio pieces before ordering, merge, or review',
     naturalLanguagePatterns: [
       'inspect pending Coach audio pieces',
+      'inspect Coach intake {intakeId} audio pieces',
       'inspect pending audio pieces',
       'help me order my voice notes',
       'which voice notes go together',
@@ -78,6 +79,7 @@ const commands = [
     inputSchema: z.object({
       scope: CoachIntakeScopeSchema.optional().default('actionable'),
       limit: z.number().int().min(1).max(20).default(20),
+      intakeId: z.string().trim().min(1).max(128).optional(),
     }),
     destructive: false,
     requiresConfirmation: false,

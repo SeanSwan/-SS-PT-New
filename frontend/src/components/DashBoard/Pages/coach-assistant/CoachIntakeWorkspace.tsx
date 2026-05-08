@@ -138,6 +138,10 @@ function activeItemPrompt(item: CoachIntakeItem): string {
   return `review Coach intake ${itemEntityId(item) || item.id}`;
 }
 
+function activeAudioPrompt(item: CoachIntakeItem): string {
+  return `inspect Coach intake ${itemEntityId(item) || item.id} audio pieces`;
+}
+
 export function CoachIntakeWorkspace({
   userRole,
   selectedClientName,
@@ -204,7 +208,7 @@ export function CoachIntakeWorkspace({
           statusText={statusLabel(activeItem.queueStatus)}
           reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
           onAskCoach={() => onCommandPrompt(activeItemPrompt(activeItem))}
-          onInspectAudio={() => onCommandPrompt('inspect pending Coach audio pieces')}
+          onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
         />
       )}
 

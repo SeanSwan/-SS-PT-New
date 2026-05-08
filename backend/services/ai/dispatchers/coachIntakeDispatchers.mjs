@@ -86,6 +86,30 @@ function isAudioPuzzleItem(item) {
   return item.kind === 'clip' || item.source === 'audio_upload' || item.source === 'voice_note' || item.source === 'plaud_clip';
 }
 
+function normalizeIntakeId(raw) {
+  const value = String(raw || '').trim();
+  return value || null;
+}
+
+function itemIdCandidates(item) {
+  const candidates = new Set();
+  for (const raw of [item?.id, item?.entityId]) {
+    const value = normalizeIntakeId(raw);
+    if (!value) continue;
+    candidates.add(value);
+    const colonIndex = value.indexOf(':');
+    if (colonIndex >= 0 && colonIndex + 1 < value.length) {
+      candidates.add(value.slice(colonIndex + 1));
+    }
+  }
+  return candidates;
+}
+
+function matchesIntakeId(item, targetIntakeId) {
+  if (!targetIntakeId) return true;
+  return itemIdCandidates(item).has(targetIntakeId);
+}
+
 function audioPuzzleForItem(item) {
   const puzzle = item?.audioPuzzle || {};
   const clipCount = Number(item?.clipCount || 0);
@@ -101,8 +125,12 @@ function audioPuzzleForItem(item) {
   };
 }
 
-function audioInspectionSummary(result, ctx) {
-  const audioItems = (result?.items || []).filter(isAudioPuzzleItem).slice(0, 6);
+function audioInspectionSummary(result, ctx, params = {}) {
+  const targetIntakeId = normalizeIntakeId(params?.intakeId);
+  const allAudioItems = (result?.items || []).filter(isAudioPuzzleItem);
+  const audioItems = allAudioItems
+    .filter((item) => matchesIntakeId(item, targetIntakeId))
+    .slice(0, 6);
   const items = audioItems.map((item) => {
     const puzzle = audioPuzzleForItem(item);
     return {
@@ -125,7 +153,11 @@ function audioInspectionSummary(result, ctx) {
     lowConfidence: items.filter((item) => item.audioConfidence === 'low').length,
     items,
     queueRoute: resolveCoachQueueRoute(ctx),
-    commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+    targetIntakeId,
+    targetMatched: targetIntakeId ? audioItems.length > 0 : null,
+    commandHint: targetIntakeId && audioItems.length === 0
+      ? 'That intake is not in the current actionable audio queue. Open the Coach workspace and refresh the intake list.'
+      : 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
   };
 }
 
@@ -161,7 +193,7 @@ export async function dispatchInspectCoachAudioPieces(params = {}, ctx = {}) {
     defaultScope: 'actionable',
     defaultLimit: REVIEW_NEXT_LIMIT,
   });
-  return audioInspectionSummary(result, ctx);
+  return audioInspectionSummary(result, ctx, params);
 }
 
 export const dispatchInspectPlaudAudioPieces = dispatchInspectCoachAudioPieces;
@@ -169,6 +201,7 @@ export const dispatchInspectPlaudAudioPieces = dispatchInspectCoachAudioPieces;
 export const _internal = {
   audioInspectionSummary,
   audioPuzzleForItem,
+  matchesIntakeId,
   normalizeLimit,
   pickNextItem: pickNextCoachIntakeItem,
   queueAgeTime: coachIntakeQueueAgeTime,
