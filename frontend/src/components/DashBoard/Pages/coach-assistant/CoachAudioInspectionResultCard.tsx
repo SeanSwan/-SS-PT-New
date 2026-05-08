@@ -140,6 +140,28 @@ function audioItems(value: unknown): AudioInspectionItem[] {
   return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') as AudioInspectionItem[] : [];
 }
 
+function timelineFallbackItems(result: Record<string, unknown>): AudioInspectionItem[] {
+  const pieceCount = numberValue(result.pieceCount);
+  if (pieceCount <= 0) return [];
+  const bundleCount = numberValue(result.suggestedGroupCount) || 1;
+  const timelineConfidence = typeof result.timelineConfidence === 'string'
+    ? result.timelineConfidence
+    : '';
+  const audioConfidence = pieceCount === 1
+    ? 'single'
+    : (timelineConfidence === 'exact' ? 'high' : 'medium');
+  return [{
+    id: 'plaud:pending-pieces',
+    kind: 'clip_bundle',
+    queueStatus: 'unprocessed',
+    audioPieces: pieceCount,
+    audioBundles: bundleCount,
+    audioConfidence,
+    needsOrderingReview: numberValue(result.needsOrderingReview) > 0 || pieceCount > 1,
+    reviewRoute: typeof result.targetRoute === 'string' ? result.targetRoute : null,
+  }];
+}
+
 export function isAudioInspectionCommand(command: string): boolean {
   return command === 'inspect_coach_audio_pieces' || command === 'inspect_plaud_audio_pieces';
 }
@@ -149,10 +171,13 @@ export function CoachAudioInspectionResultCard({
   result,
   message,
 }: CoachAudioInspectionResultCardProps) {
-  const totalAudioItems = numberValue(result.totalAudioItems);
-  const needsOrderingReview = numberValue(result.needsOrderingReview);
-  const lowConfidence = numberValue(result.lowConfidence);
-  const items = audioItems(result.items).slice(0, 3);
+  const pieceCount = numberValue(result.pieceCount);
+  const totalAudioItems = numberValue(result.totalAudioItems) || pieceCount;
+  const needsOrderingReview = numberValue(result.needsOrderingReview) || (pieceCount > 1 ? 1 : 0);
+  const lowConfidence = numberValue(result.lowConfidence)
+    || (result.timelineConfidence === 'best_available' && pieceCount > 0 ? 1 : 0);
+  const explicitItems = audioItems(result.items);
+  const items = (explicitItems.length > 0 ? explicitItems : timelineFallbackItems(result)).slice(0, 3);
   const hint = typeof result.commandHint === 'string' ? result.commandHint : null;
 
   return (

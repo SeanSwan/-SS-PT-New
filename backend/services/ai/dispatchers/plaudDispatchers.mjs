@@ -155,21 +155,41 @@ function summarizeAudioPieces(items, { queueRoute, gapThresholdMinutes }) {
     const gap = typeof piece.gapAfterMinutes === 'number' ? `, gap ${piece.gapAfterMinutes}m` : '';
     return `${index + 1}. ${piece.source} ${piece.timelineSource || 'time'}=${piece.timelineAt || 'unknown'} ${duration}${gap}`;
   }).join(' | ');
+  const suggestedGroupCount = withGaps.length === 0 ? 0 : largeGaps.length + 1;
+  const targetRoute = `${queueRoute}?pieces=pending`;
+  const needsOrderingReview = withGaps.length > 1;
+  const audioConfidence = withGaps.length <= 1
+    ? 'single'
+    : (confidences.has('best_available') ? 'medium' : 'high');
 
   return {
     pieceCount: withGaps.length,
+    totalAudioItems: withGaps.length,
+    needsOrderingReview: needsOrderingReview ? 1 : 0,
+    lowConfidence: confidences.has('best_available') && withGaps.length > 0 ? 1 : 0,
     manualUploadCount: withGaps.filter((piece) => piece.source === 'manual_upload').length,
     applaudCount: withGaps.filter((piece) => piece.source === 'applaud_webhook').length,
     recordedAtAvailableCount: withGaps.filter((piece) => piece.timelineSource === 'recorded_at').length,
     timelineTimeSource: sources.size === 1 ? [...sources][0] : (sources.size > 1 ? 'mixed' : null),
     timelineConfidence: confidences.has('best_available') ? 'best_available' : (confidences.has('exact') ? 'exact' : null),
-    suggestedGroupCount: withGaps.length === 0 ? 0 : largeGaps.length + 1,
+    suggestedGroupCount,
     largeGapCount: largeGaps.length,
     largestGapMinutes: gaps.length ? Math.max(...gaps) : null,
     gapThresholdMinutes,
     orderedPieceIds: withGaps.map((piece) => piece.id).join(' > '),
     pieceTimeline: timeline.length > MAX_TIMELINE_CHARS ? `${timeline.slice(0, MAX_TIMELINE_CHARS - 3)}...` : timeline,
-    targetRoute: `${queueRoute}?pieces=pending`,
+    targetRoute,
+    items: withGaps.length > 0 ? [{
+      id: 'plaud:pending-pieces',
+      kind: 'clip_bundle',
+      queueStatus: 'unprocessed',
+      canReview: false,
+      audioPieces: withGaps.length,
+      audioBundles: suggestedGroupCount,
+      audioConfidence,
+      needsOrderingReview,
+      reviewRoute: targetRoute,
+    }] : [],
     queueRoute,
     commandHint: withGaps.length >= 2
       ? 'Open the PLAUD workspace and select the audio pieces in chronological order; this uses upload/ingest timestamps until recorded_at metadata is available.'

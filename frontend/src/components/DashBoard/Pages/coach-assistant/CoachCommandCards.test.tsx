@@ -64,6 +64,33 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('targetRoute')).toBeNull();
   });
 
+  it('renders PLAUD timeline inspection counts instead of zero audio items', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_plaud_audio_pieces"
+          client={null}
+          result={{
+            pieceCount: 3,
+            suggestedGroupCount: 2,
+            largeGapCount: 1,
+            timelineConfidence: 'best_available',
+            queueRoute: '/dashboard/trainer/plaud',
+            targetRoute: '/dashboard/trainer/plaud?pieces=pending',
+            commandHint: 'Open the PLAUD workspace and select the audio pieces in chronological order.',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/3 audio items/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 needs order review/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 low confidence/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 audio items/i)).toBeNull();
+    expect(screen.getByRole('link', { name: /open plaud workspace/i }))
+      .toHaveAttribute('href', '/dashboard/trainer/plaud?pieces=pending');
+  });
+
   it('labels PLAUD audio inspection as Coach intake when the route returns to Coach', () => {
     render(
       <MemoryRouter>
