@@ -32,8 +32,10 @@ function resolveCoachQueueRoute(ctx) {
   return `/dashboard/${resolveRole(ctx)}/coach-assistant`;
 }
 
-function resolvePlaudReviewRoute(ctx) {
-  return `/dashboard/${resolveRole(ctx)}/plaud?review=next`;
+function resolvePlaudReviewRoute(ctx, item = null) {
+  const entityId = item?.entityId || item?.id || '';
+  const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
+  return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
 }
 
 function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
@@ -45,7 +47,7 @@ function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
 function reviewRouteForItem(item, ctx) {
   if (!item) return null;
   if (item.kind === 'merge_request' && item.canReview) {
-    return resolvePlaudReviewRoute(ctx);
+    return resolvePlaudReviewRoute(ctx, item);
   }
   const queueRoute = resolveCoachQueueRoute(ctx);
   const entityId = item.entityId || item.id || '';

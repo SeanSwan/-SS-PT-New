@@ -116,7 +116,7 @@ describe('Unified Coach intake dispatcher behavior', () => {
       nextKind: 'merge_request',
       nextEntityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
       queueRoute: '/dashboard/trainer/coach-assistant',
-      reviewRoute: '/dashboard/trainer/plaud?review=next',
+      reviewRoute: '/dashboard/trainer/plaud?mergeRequestId=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     });
   });
 
