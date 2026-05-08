@@ -103,6 +103,48 @@ describe('CoachIntakeWorkspace', () => {
       .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
   });
 
+  it('renders the highest-priority review-next item first even when API order is newer-first', () => {
+    const queue = makeQueue();
+    queue.items = [
+      {
+        ...queue.items[0],
+        id: 'new-unprocessed',
+        entityId: 'new-unprocessed',
+        title: 'Newer unprocessed note',
+        queueStatus: 'unprocessed',
+        canReview: false,
+        timelineAt: '2026-05-07T18:30:00.000Z',
+      },
+      {
+        ...queue.items[0],
+        id: 'old-ready',
+        entityId: 'old-ready',
+        title: 'Older ready workout draft',
+        queueStatus: 'ready_review',
+        canReview: true,
+        timelineAt: '2026-05-06T16:30:00.000Z',
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+        />
+      </MemoryRouter>,
+    );
+
+    const readyTitle = screen.getByText(/Older ready workout draft/i);
+    const newerTitle = screen.getByText(/Newer unprocessed note/i);
+
+    expect(screen.getByRole('link', { name: /review next intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=old-ready');
+    expect(readyTitle.compareDocumentPosition(newerTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('does not expose trainer intake controls to client role', () => {
     const { container } = render(
       <MemoryRouter>

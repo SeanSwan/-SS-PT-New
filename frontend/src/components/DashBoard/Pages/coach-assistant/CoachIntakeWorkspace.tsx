@@ -103,14 +103,17 @@ function queueAgeTime(item: CoachIntakeItem): number {
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
-function pickNextItem(items: CoachIntakeItem[]): CoachIntakeItem | null {
+function orderedQueueItems(items: CoachIntakeItem[]): CoachIntakeItem[] {
   return [...items]
-    .filter((item) => item.queueStatus !== 'archived')
     .sort((a, b) => {
       const priority = queuePriority(a) - queuePriority(b);
       if (priority !== 0) return priority;
       return queueAgeTime(a) - queueAgeTime(b);
-    })[0] || null;
+    });
+}
+
+function pickNextItem(items: CoachIntakeItem[]): CoachIntakeItem | null {
+  return orderedQueueItems(items).filter((item) => item.queueStatus !== 'archived')[0] || null;
 }
 
 function itemEntityId(item: CoachIntakeItem): string {
@@ -144,7 +147,8 @@ export function CoachIntakeWorkspace({
 
   const workspaceHref = `/dashboard/${userRole}/plaud`;
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
-  const nextItem = pickNextItem(items);
+  const orderedItems = React.useMemo(() => orderedQueueItems(items), [items]);
+  const nextItem = pickNextItem(orderedItems);
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
@@ -204,12 +208,12 @@ export function CoachIntakeWorkspace({
               <ItemTitle><strong>Queue unavailable</strong><span>{error.message}</span></ItemTitle>
               <SourceChip><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
             </ItemCard>
-          ) : items.length === 0 ? (
+          ) : orderedItems.length === 0 ? (
             <ItemCard>
               <ItemTitle><strong>No active intake items</strong><span>Attach audio, transcript, or PLAUD clips to start a review.</span></ItemTitle>
               <SourceChip>Clear</SourceChip>
             </ItemCard>
-          ) : items.map((item) => {
+          ) : orderedItems.map((item) => {
             const active = isActiveItem(item, activeIntakeId);
             const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
             return (

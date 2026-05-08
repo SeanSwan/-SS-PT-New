@@ -36,12 +36,23 @@ export interface CoachProposalDetailResponse {
   error?: string;
 }
 
+function coachProposalErrorMessage(code: string | undefined, fallback: string): string {
+  if (code === 'PROPOSAL_DETAIL_REVIEW_REQUIRED') {
+    return 'Review details again before approving. The previous review window expired or changed.';
+  }
+  if (code === 'PROPOSAL_REVIEW_TOKEN_UNAVAILABLE') {
+    return 'Proposal review is temporarily unavailable. Try again after the Coach security key is restored.';
+  }
+  return fallback;
+}
+
 function unwrapError(err: unknown, fallbackMessage: string): never {
   if (isAxiosError(err)) {
     const data = err.response?.data as CoachProposalActionResponse | undefined;
+    const code = data?.code || 'UNKNOWN';
     throw new PlaudApiError(
-      data?.code || 'UNKNOWN',
-      data?.error || err.message || fallbackMessage,
+      code,
+      coachProposalErrorMessage(code, data?.error || err.message || fallbackMessage),
       err.response?.status || 0,
       data,
     );
