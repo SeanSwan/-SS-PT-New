@@ -422,6 +422,32 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Cross-references:** Rule 44 (write-time secret scanning â€” companion rule); Rule 47 (Supervised Read-Only Launcher Pattern â€” its redaction-at-source rule applies the same principle to remote shells); Rule 48 (Phase Completion Audit Record â€” closeout records secret-handling posture).
 
+60. **Next-Slice Closeout Disclosure (MANDATORY)** - Established 2026-05-08 by Sean, CEO Orchestrator. Every completed slice, fix, review cycle, phase, or substantial task closeout MUST explicitly tell Sean what the recommended next slice is. If there is no active next slice, the closeout MUST say that the current workstream is complete and Codex/Claude is ready for Sean's next direction.
+
+    **Required closeout language:**
+    - If more work remains: `Next slice: [specific next slice name] - [one-sentence reason it is the next highest-value or highest-risk move].`
+    - If no work remains: `No active next slice remains for this workstream; I am ready for any new information or direction you want to give next.`
+
+    **What counts as a next slice:** the next narrow, reviewable unit of work that follows from the evidence just gathered. It may be a bug fix, hostile review, schema reconciliation, UI polish, test hardening, cleanup proposal, or explicit "pause and ask Sean" decision when the next move is ambiguous.
+
+    **How to choose it:** base the recommendation on verified residual risk, failed or skipped verification, business priority, security/privacy exposure, or Sean's stated sequence. Do not invent speculative work just to fill the field. If multiple candidates are tied, name the top two and ask Sean to choose.
+
+    **Where it belongs:** final user-facing closeouts, substantial review responses, phase summaries, and any handoff/continuity note. This rule extends Rule 41 closeout-evidence-lock and Rule 57 plain-English memory trace: Rule 41 proves the work, Rule 57 explains what happened, Rule 60 tells Sean where to move next.
+
+61. **Slice-Internal Hostile Review Before Reporting (MANDATORY)** - Established 2026-05-08 by Sean, CEO Orchestrator. After every implementation slice, bug fix, UI change, backend/API change, test-hardening pass, or docs rule change, the builder MUST run a hostile review pass and apply concrete fixes before giving Sean the substantive slice report.
+
+    **Required sequence:**
+    1. Implement the slice.
+    2. Run the relevant verification for that slice.
+    3. Switch into hostile reviewer mode and actively try to break the implementation using Rule 17, Rule 41, and the task-type Definition of Done.
+    4. Fix every concrete issue found by that hostile review, with tests where feasible.
+    5. Re-run the relevant verification.
+    6. Only then provide the user-facing answer.
+
+    **Reporting shape:** The final answer for a slice MUST be one consolidated report that includes: what was created or changed, what the hostile review found, what was fixed because of it, verification evidence, residual risk, and the Rule 60 next-slice recommendation. Do not present a slice as complete before this internal hostile-review/fix loop has happened.
+
+    **Allowed progress updates:** Short working updates are allowed while implementation and review are in progress, but they must not claim the slice is complete or summarize the slice outcome before the hostile review and fixes are done.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
