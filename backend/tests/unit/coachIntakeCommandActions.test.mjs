@@ -219,6 +219,37 @@ describe('Unified Coach intake dispatcher behavior', () => {
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
   });
 
+  it('preserves non-default queue scope in Coach intake review routes', async () => {
+    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
+      scope: 'failed',
+      limit: 10,
+      schemaReady: true,
+      summary: { total: 1, actionable: 1, today: 0, unprocessed: 0, processing: 0, readyReview: 0, failed: 1, needsClient: 0 },
+      items: [
+        {
+          id: 'coach:11111111-1111-4111-9111-111111111111',
+          entityId: '11111111-1111-4111-9111-111111111111',
+          kind: 'coach_intake',
+          queueStatus: 'failed',
+          canReview: false,
+          errorCode: 'TRANSCRIPTION_FAILED',
+          createdAt: '2026-05-05T12:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await dispatchViewCoachIntakeQueue(
+      { scope: 'failed', limit: 10 },
+      { user: { id: 7, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      nextKind: 'coach_intake',
+      nextQueueStatus: 'failed',
+      reviewRoute: '/dashboard/trainer/coach-assistant?intake=11111111-1111-4111-9111-111111111111&scope=failed',
+    });
+  });
+
   it('does not build direct PLAUD review links from display ids when entityId is missing', async () => {
     vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
       scope: 'actionable',

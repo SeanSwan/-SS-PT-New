@@ -12,6 +12,7 @@ import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
 const MAX_QUEUE_LIMIT = 20;
+const REVIEW_ROUTE_SCOPES = new Set(['ready_review', 'needs_client', 'unprocessed', 'processing', 'failed']);
 function resolveUserId(ctx) {
   const userId = Number(ctx?.user?.id);
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -34,13 +35,19 @@ function resolvePlaudReviewRoute(ctx, item = null) {
   return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
 }
 
+function appendCoachScope(route, scope) {
+  const cleanScope = String(scope || '').trim();
+  if (!REVIEW_ROUTE_SCOPES.has(cleanScope) || !route.includes('/coach-assistant')) return route;
+  return `${route}${route.includes('?') ? '&' : '?'}scope=${encodeURIComponent(cleanScope)}`;
+}
+
 function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(MAX_QUEUE_LIMIT, Math.max(1, parsed));
 }
 
-function reviewRouteForItem(item, ctx) {
+function reviewRouteForItem(item, ctx, scope = null) {
   if (!item) return null;
   if (item.kind === 'merge_request' && item.canReview) {
     return resolvePlaudReviewRoute(ctx, item);
@@ -49,7 +56,8 @@ function reviewRouteForItem(item, ctx) {
   const entityId = item.entityId || item.id || '';
   const proposalId = String(item.latestProposalId || item.latestProposal?.id || '').trim();
   const route = entityId ? `${queueRoute}?intake=${encodeURIComponent(entityId)}` : queueRoute;
-  return entityId && proposalId ? `${route}&proposal=${encodeURIComponent(proposalId)}` : route;
+  const proposalRoute = entityId && proposalId ? `${route}&proposal=${encodeURIComponent(proposalId)}` : route;
+  return appendCoachScope(proposalRoute, scope);
 }
 
 function summaryEntityIdForItem(item) {
@@ -87,7 +95,7 @@ function scalarSummary(result, nextItem, ctx) {
     nextLatestProposalStatus: nextItem?.latestProposal?.status || null,
     nextLatestProposalType: nextItem?.latestProposal?.type || null,
     ...coachIntakeGateSummary(nextItem),
-    reviewRoute: reviewRouteForItem(nextItem, ctx),
+    reviewRoute: reviewRouteForItem(nextItem, ctx, result?.scope),
     queueRoute,
     commandHint: nextItem
       ? 'Continue from the Swan Coach intake workspace; PLAUD reviewable merges open in the PLAUD review workspace.'
@@ -224,7 +232,7 @@ function audioInspectionSummary(result, ctx, params = {}) {
       autoAudioBundles: puzzle.autoBundleCount,
       audioConfidence: puzzle.confidence,
       needsOrderingReview: puzzle.needsOrderingReview,
-      reviewRoute: reviewRouteForItem(item, ctx),
+      reviewRoute: reviewRouteForItem(item, ctx, result?.scope),
     };
   });
 
