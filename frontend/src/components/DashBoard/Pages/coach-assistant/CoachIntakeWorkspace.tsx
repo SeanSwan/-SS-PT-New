@@ -22,11 +22,11 @@ import {
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
-import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
 import CoachIntakeEventTrail from './CoachIntakeEventTrail';
 import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
+import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import {
@@ -202,7 +202,7 @@ export function CoachIntakeWorkspace({
       <CoachIntakeHealthStrip health={queue.health} retention={queue.retention} retentionPurgePlan={queue.retentionPurgePlan} onCommandPrompt={onCommandPrompt} />
 
       {activeItem && (
-        <CoachIntakeActiveDossier
+        <CoachIntakeWorkspaceActiveTarget
           focusRef={activeDossierRef}
           item={activeItem}
           statusText={statusLabel(activeItem.queueStatus)}
@@ -218,17 +218,9 @@ export function CoachIntakeWorkspace({
           }}
           confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
+          showStaleProposalLink={hasStaleProposalLink}
         />
       )}
-      {hasStaleProposalLink ? (
-        <ItemCard role="alert">
-          <ItemTitle>
-            <strong>Prepared draft link is stale</strong>
-            <span>This intake has a different latest draft. Use Review prepared draft from the active target.</span>
-          </ItemTitle>
-          <SourceChip $tone="gold"><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
-        </ItemCard>
-      ) : null}
       {activeItem?.kind === 'coach_intake' ? (
         <CoachIntakeEventTrail intakeId={activeReviewTargetId} />
       ) : null}
