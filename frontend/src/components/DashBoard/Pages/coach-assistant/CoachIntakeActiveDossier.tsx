@@ -35,6 +35,7 @@ interface CoachIntakeActiveDossierProps {
   onAskCoach: () => void;
   onInspectAudio: () => void;
   onConfirmAudioOrder: () => void;
+  onPrepareDraftReview: () => void;
   confirmAudioOrderStatus?: string | null;
   isConfirmingAudioOrder?: boolean;
 }
@@ -69,6 +70,12 @@ function needsAudioOrderConfirmation(item: CoachIntakeItem): boolean {
   return item.kind === 'coach_intake' && item.audioPuzzle?.needsOrderingReview === true;
 }
 
+function canPrepareDraftReview(item: CoachIntakeItem): boolean {
+  if (item.kind !== 'coach_intake') return false;
+  if (needsAudioOrderConfirmation(item)) return false;
+  return !['archived', 'failed', 'processing'].includes(item.queueStatus);
+}
+
 export function CoachIntakeActiveDossier({
   item,
   statusText,
@@ -76,12 +83,14 @@ export function CoachIntakeActiveDossier({
   onAskCoach,
   onInspectAudio,
   onConfirmAudioOrder,
+  onPrepareDraftReview,
   confirmAudioOrderStatus = null,
   isConfirmingAudioOrder = false,
 }: CoachIntakeActiveDossierProps): JSX.Element {
   const pieces = audioPieceCount(item);
   const showInspectAudio = pieces > 0;
   const showConfirmAudioOrder = needsAudioOrderConfirmation(item);
+  const showPrepareDraftReview = canPrepareDraftReview(item);
 
   return (
     <TargetPanel aria-label="Active review target">
@@ -131,6 +140,12 @@ export function CoachIntakeActiveDossier({
           <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder}>
             <CheckCircle2 size={16} aria-hidden="true" />
             {isConfirmingAudioOrder ? 'Confirming order...' : 'Confirm audio order'}
+          </ActionButton>
+        ) : null}
+        {showPrepareDraftReview ? (
+          <ActionButton type="button" onClick={onPrepareDraftReview}>
+            <ListChecks size={16} aria-hidden="true" />
+            Prepare draft review
           </ActionButton>
         ) : null}
         {showInspectAudio ? (

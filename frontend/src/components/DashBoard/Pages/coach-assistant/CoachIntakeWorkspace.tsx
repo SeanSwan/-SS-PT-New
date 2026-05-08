@@ -143,6 +143,17 @@ function activeAudioPrompt(item: CoachIntakeItem): string {
   return `inspect Coach intake ${itemEntityId(item) || item.id} audio pieces`;
 }
 
+function activeDraftReviewPrompt(item: CoachIntakeItem): string {
+  const intakeId = itemEntityId(item) || item.id;
+  return [
+    `Prepare structured Coach draft review for intake ${intakeId}.`,
+    'Use only the active Coach intake context and compact evidence_refs.',
+    'If client, date, or workout details are missing, return a coach_action_proposal clarification.',
+    'If enough evidence exists, return a coach_action_proposal split_plan or workout_log draft.',
+    'Do not write, create, update, log, or submit any client or workout record.',
+  ].join(' ');
+}
+
 export function CoachIntakeWorkspace({
   userRole,
   selectedClientName,
@@ -212,6 +223,7 @@ export function CoachIntakeWorkspace({
           onAskCoach={() => onCommandPrompt(activeItemPrompt(activeItem))}
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
+          onPrepareDraftReview={() => onCommandPrompt(activeDraftReviewPrompt(activeItem))}
           confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />

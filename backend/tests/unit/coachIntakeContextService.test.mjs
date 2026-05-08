@@ -59,6 +59,8 @@ describe('coach intake context prompt bridge', () => {
     expect(block).toContain('Actionable: 1');
     expect(block).toContain('review next Coach intake');
     expect(block).toContain('inspect pending Coach audio pieces');
+    expect(block).toContain('prepare a draft review');
+    expect(block).toContain('proposal_type=clarification');
     expect(block).not.toContain('inspect pending PLAUD audio pieces');
   });
 

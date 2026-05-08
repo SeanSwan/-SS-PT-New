@@ -114,6 +114,8 @@ export function buildCoachIntakeContextPromptBlock(context) {
     `Processing: ${s.processing ?? 0}`,
     `Unprocessed: ${s.unprocessed ?? 0}`,
     'Safe read commands available: review next Coach intake; view Coach intake queue; inspect pending Coach audio pieces.',
+    'If the trainer asks to prepare a draft review for an intake, return a schema-bound coach_action_proposal.',
+    'If required client/date/workout detail is missing, use proposal_type=clarification instead of guessing.',
     'Do not claim a workout log or client record was written unless an explicit approved write result is present.',
   ];
 
