@@ -161,6 +161,39 @@ function pendingDraftLabel(count: number): string {
   return `${count} ${count === 1 ? 'draft' : 'drafts'} pending`;
 }
 
+const SAFE_HOLD_REASON_LABELS = new Set([
+  'Client confirmation needed',
+  'Clarification required',
+  'Possible duplicate workout',
+]);
+
+function safeHoldReasonLabel(value: unknown): string | null {
+  const label = compactText(value);
+  return label && SAFE_HOLD_REASON_LABELS.has(label) ? label : null;
+}
+
+function positiveCount(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function confidenceLabel(value: unknown): string | null {
+  if (typeof value !== 'string' || value === 'unknown') return null;
+  if (!['high', 'medium', 'low'].includes(value)) return null;
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)} confidence`;
+}
+
+function holdReasonFacts(result: Record<string, unknown>): string[] {
+  const facts: string[] = [];
+  const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);
+  const duplicateCount = positiveCount(result.nextHoldReasonDuplicateCount);
+  const confidence = confidenceLabel(result.nextHoldReasonConfidenceBand);
+  if (candidateCount) facts.push(`${candidateCount} ${candidateCount === 1 ? 'candidate' : 'candidates'}`);
+  if (duplicateCount) facts.push(`${duplicateCount} possible ${duplicateCount === 1 ? 'match' : 'matches'}`);
+  if (confidence) facts.push(confidence);
+  return facts;
+}
+
 export function isCoachReviewNextCommand(command: string): boolean {
   return command === 'review_next_coach_intake'
     || command === 'view_coach_intake_queue'
@@ -180,6 +213,8 @@ export function CoachReviewNextResultCard({
   const nextStatus = statusLabel(result.nextQueueStatus);
   const blockingGate = compactText(result.nextBlockingGate);
   const nextAction = compactText(result.nextActionLabel);
+  const holdReasonLabel = safeHoldReasonLabel(result.nextHoldReasonLabel);
+  const holdFacts = holdReasonFacts(result);
   const proposalType = statusLabel(result.nextLatestProposalType);
   const proposalStatus = statusLabel(result.nextLatestProposalStatus);
   const preparedDraftStatus = proposalType || proposalStatus
@@ -236,6 +271,20 @@ export function CoachReviewNextResultCard({
             <GateTile>
               <GateLabel>Prepared draft</GateLabel>
               <GateValue>{preparedDraftStatus}</GateValue>
+            </GateTile>
+          ) : null}
+        </GateStrip>
+      )}
+      {holdReasonLabel && (
+        <GateStrip aria-label="Next intake hold reason">
+          <GateTile>
+            <GateLabel>Hold reason</GateLabel>
+            <GateValue>{holdReasonLabel}</GateValue>
+          </GateTile>
+          {holdFacts.length > 0 ? (
+            <GateTile>
+              <GateLabel>Hold facts</GateLabel>
+              <GateValue>{holdFacts.join(' - ')}</GateValue>
             </GateTile>
           ) : null}
         </GateStrip>

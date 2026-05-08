@@ -219,6 +219,48 @@ describe('Unified Coach intake dispatcher behavior', () => {
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|clientName|transcript/i);
   });
 
+  it('returns PII-safe hold reason metadata for held Coach review-next results', async () => {
+    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
+      scope: 'needs_clarification',
+      limit: 20,
+      schemaReady: true,
+      summary: { total: 1, actionable: 1, today: 1, unprocessed: 0, processing: 0, readyReview: 0, failed: 0, needsClient: 1, needsClarification: 1 },
+      items: [
+        {
+          id: 'coach:11111111-1111-4111-9111-111111111111',
+          entityId: '11111111-1111-4111-9111-111111111111',
+          kind: 'coach_intake',
+          sourceLabel: 'Long Coach note',
+          queueStatus: 'needs_clarification',
+          canReview: false,
+          holdReason: {
+            label: 'Client confirmation needed',
+            detail: 'Raw transcript mentioned private@example.com',
+            candidateCount: 2,
+            duplicateCount: null,
+            confidenceBand: 'medium',
+          },
+          transcript: 'Do Not Return',
+          clientName: 'Do Not Return',
+          createdAt: '2026-05-05T12:00:00.000Z',
+        },
+      ],
+    });
+
+    const result = await dispatchReviewNextCoachIntake(
+      { scope: 'needs_clarification' },
+      { user: { id: 7, role: 'trainer' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      nextHoldReasonLabel: 'Client confirmation needed',
+      nextHoldReasonCandidateCount: 2,
+      nextHoldReasonConfidenceBand: 'medium',
+      reviewRoute: '/dashboard/trainer/coach-assistant?intake=11111111-1111-4111-9111-111111111111&scope=needs_clarification',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/private@example\.com|Do Not Return|clientName|transcript|detail/i);
+  });
+
   it('preserves non-default queue scope in Coach intake review routes', async () => {
     vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
       scope: 'failed',

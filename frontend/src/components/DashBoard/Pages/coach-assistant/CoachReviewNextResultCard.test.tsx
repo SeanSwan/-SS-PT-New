@@ -82,6 +82,60 @@ describe('Coach review-next result card', () => {
     expect(screen.queryByText('nextLatestProposalId')).toBeNull();
   });
 
+  it('renders safe hold-reason metadata for clarification review-next results', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            actionable: 1,
+            readyReview: 0,
+            needsClient: 1,
+            nextKind: 'coach_intake',
+            nextQueueStatus: 'needs_clarification',
+            nextHoldReasonLabel: 'Client confirmation needed',
+            nextHoldReasonCandidateCount: 2,
+            nextHoldReasonConfidenceBand: 'medium',
+            nextHoldReasonDetail: 'Raw transcript mentioned private@example.com',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc&scope=needs_clarification',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const holdReason = screen.getByLabelText(/Next intake hold reason/i);
+    expect(within(holdReason).getByText(/Client confirmation needed/i)).toBeInTheDocument();
+    expect(within(holdReason).getByText(/2 candidates/i)).toBeInTheDocument();
+    expect(within(holdReason).getByText(/Medium confidence/i)).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
+
+  it('does not render arbitrary hold-reason labels from command results', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            actionable: 1,
+            nextKind: 'coach_intake',
+            nextQueueStatus: 'needs_clarification',
+            nextHoldReasonLabel: 'private@example.com',
+            nextHoldReasonCandidateCount: 2,
+            nextHoldReasonConfidenceBand: 'medium',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByLabelText(/Next intake hold reason/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
+
   it('does not claim the Coach intake queue is clear when only actionable counts are returned', () => {
     render(
       <MemoryRouter>

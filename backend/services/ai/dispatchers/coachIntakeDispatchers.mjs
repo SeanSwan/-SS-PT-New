@@ -74,6 +74,39 @@ function summaryEntityIdForItem(item) {
   return item.entityId || null;
 }
 
+const SAFE_HOLD_REASON_LABELS = new Set([
+  'Client confirmation needed',
+  'Clarification required',
+  'Possible duplicate workout',
+]);
+
+function safePositiveCount(value) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function safeConfidenceBand(value) {
+  return ['high', 'medium', 'low', 'unknown'].includes(value) ? value : null;
+}
+
+function holdReasonSummary(item) {
+  const reason = item?.holdReason || null;
+  if (!reason || !SAFE_HOLD_REASON_LABELS.has(reason.label)) {
+    return {
+      nextHoldReasonLabel: null,
+      nextHoldReasonCandidateCount: null,
+      nextHoldReasonDuplicateCount: null,
+      nextHoldReasonConfidenceBand: null,
+    };
+  }
+  return {
+    nextHoldReasonLabel: reason.label,
+    nextHoldReasonCandidateCount: safePositiveCount(reason.candidateCount),
+    nextHoldReasonDuplicateCount: safePositiveCount(reason.duplicateCount),
+    nextHoldReasonConfidenceBand: safeConfidenceBand(reason.confidenceBand),
+  };
+}
+
 function scalarSummary(result, nextItem, ctx) {
   const summary = result?.summary || {};
   const queueRoute = resolveCoachQueueRoute(ctx);
@@ -104,6 +137,7 @@ function scalarSummary(result, nextItem, ctx) {
     nextLatestProposalId: nextItem?.latestProposalId || nextItem?.latestProposal?.id || null,
     nextLatestProposalStatus: nextItem?.latestProposal?.status || null,
     nextLatestProposalType: nextItem?.latestProposal?.type || null,
+    ...holdReasonSummary(nextItem),
     ...coachIntakeGateSummary(nextItem),
     reviewRoute: reviewRouteForItem(nextItem, ctx, result?.scope),
     queueRoute,
