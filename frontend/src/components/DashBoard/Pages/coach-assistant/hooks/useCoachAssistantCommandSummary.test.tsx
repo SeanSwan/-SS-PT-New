@@ -115,4 +115,41 @@ describe('useCoachAssistant command summaries', () => {
     expect(userMessages).not.toContain('Marcus-private@example.com');
     expect(userMessages).not.toContain('private@example.com');
   });
+
+  it('does not put arbitrary transcript-result client names into assistant content', () => {
+    const { result } = renderHook(() => useCoachAssistant());
+
+    let reviewMsgId = '';
+    act(() => {
+      const ids = result.current.appendTranscriptReview({
+        fileName: 'session.txt',
+        fileSize: 1024,
+        fileMimeType: 'text/plain',
+        clientId: 42,
+        clientName: 'Marcus private@example.com',
+        parsedWorkout: { exercises: [] },
+        transcript: 'safe fixture transcript',
+      });
+      reviewMsgId = ids.reviewMsgId;
+    });
+
+    act(() => {
+      result.current.transcriptReviewToResult(reviewMsgId, {
+        clientId: 42,
+        clientName: 'Marcus private@example.com',
+        exerciseCount: 1,
+        totalSets: 3,
+        fileName: 'session.txt',
+      } as Parameters<typeof result.current.transcriptReviewToResult>[1]);
+    });
+
+    const assistantMessages = result.current.messages
+      .filter((message) => message.role === 'assistant')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(assistantMessages).toContain('Workout logged for selected client.');
+    expect(assistantMessages).not.toContain('Marcus');
+    expect(assistantMessages).not.toContain('private@example.com');
+  });
 });

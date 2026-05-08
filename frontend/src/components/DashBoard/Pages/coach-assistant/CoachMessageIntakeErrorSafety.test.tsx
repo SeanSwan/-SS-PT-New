@@ -68,15 +68,18 @@ describe('CoachMessage intake error safety', () => {
             fileSize: 1024,
             fileMimeType: 'text/plain',
             clientId: 1,
+            clientName: 'Marcus private@example.com',
             parsedWorkout: { exercises: [] },
             transcript: 'safe fixture transcript',
-          },
+          } as NonNullable<CoachMessageData['metadata']>['transcriptReview'],
         })}
       />,
     );
 
     expect(screen.getByText(/Transcript file/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selected client/i)).toBeInTheDocument();
     expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('Marcus private@example.com');
     expect(container.innerHTML).not.toContain('private@example.com');
   });
 
@@ -96,6 +99,26 @@ describe('CoachMessage intake error safety', () => {
 
     expect(screen.getByText(/Transcript file/i)).toBeInTheDocument();
     expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('private@example.com');
+  });
+
+  it('does not render arbitrary logged-workout client names', () => {
+    const { container } = render(
+      <CoachMessage
+        message={assistantMessage({
+          transcriptResult: {
+            clientId: 1,
+            clientName: 'Marcus private@example.com',
+            exerciseCount: 2,
+            totalSets: 6,
+            fileName: 'session.txt',
+          } as NonNullable<CoachMessageData['metadata']>['transcriptResult'],
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Selected client/i)).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('Marcus');
     expect(container.innerHTML).not.toContain('private@example.com');
   });
 

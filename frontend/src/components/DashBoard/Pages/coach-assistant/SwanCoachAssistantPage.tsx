@@ -632,7 +632,6 @@ const SwanCoachAssistantPage: React.FC = () => {
       if (apply.ok) {
         coach.transcriptReviewToResult(reviewMsgId, {
           clientId: entry.review.clientId,
-          clientName: entry.review.clientName,
           exerciseCount: apply.result.exerciseCount,
           totalSets: apply.result.totalSets,
           workoutId: apply.result.workoutId,
@@ -824,11 +823,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         // screen.
         setTranscriptProcessing({ stage: 'uploading', fileName: transcriptFile.name });
 
-        const upload = await intake.uploadTranscript(
-          transcriptFile.file,
-          selectedClient.id,
-          `${selectedClient.firstName} ${selectedClient.lastName}`.trim(),
-        );
+        const upload = await intake.uploadTranscript(transcriptFile.file, selectedClient.id);
 
         if (upload.ok) {
           // Advance the stage briefly so the user sees the transition from

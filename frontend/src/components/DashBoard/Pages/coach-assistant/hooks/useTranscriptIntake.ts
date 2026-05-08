@@ -67,7 +67,6 @@ export interface TranscriptReviewData {
   fileMimeType: string;
   /** The client this transcript was uploaded for. */
   clientId: number;
-  clientName?: string;
   /**
    * Phase 13 (2026-04-15): user-editable target date for the apply step.
    * Initialized from `parsedWorkout.date` if the parser extracted one,
@@ -128,7 +127,7 @@ export interface UseTranscriptIntakeReturn {
    * write to the workout log — returns parsed review data for the user
    * to confirm.
    */
-  uploadTranscript: (file: File, clientId: number, clientName?: string) => Promise<UploadOutcome>;
+  uploadTranscript: (file: File, clientId: number) => Promise<UploadOutcome>;
 
   /**
    * Apply a previously-reviewed parsed workout to the canonical workout
@@ -143,7 +142,7 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
   const adminClient = useMemo(() => createAdminClientService(authAxios), [authAxios]);
 
   const uploadTranscript = useCallback(
-    async (file: File, clientId: number, clientName?: string): Promise<UploadOutcome> => {
+    async (file: File, clientId: number): Promise<UploadOutcome> => {
       // Defensive client-side validation — the route enforces these too,
       // but failing fast saves a network round-trip and gives clearer UX.
       if (!file) {
@@ -181,7 +180,6 @@ export function useTranscriptIntake(): UseTranscriptIntakeReturn {
               fileSize: file.size,
               fileMimeType: file.type,
               clientId,
-              clientName,
             },
           };
         }

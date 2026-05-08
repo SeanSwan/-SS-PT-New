@@ -142,7 +142,6 @@ export interface CoachMessageData {
       fileSize: number;
       fileMimeType: string;
       clientId: number;
-      clientName?: string;
       /**
        * Phase 13 (2026-04-15): user-editable workout date for the apply step.
        * Initialized from `parsedWorkout.date` if present, else today. This is
@@ -166,7 +165,6 @@ export interface CoachMessageData {
      */
     transcriptResult?: {
       clientId: number;
-      clientName?: string;
       exerciseCount: number;
       totalSets: number;
       workoutId?: string | number;

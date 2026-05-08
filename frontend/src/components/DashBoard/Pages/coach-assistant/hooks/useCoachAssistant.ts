@@ -509,9 +509,10 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       setCommandMessages(prev =>
         prev.map(msg => {
           if (msg.id !== reviewMsgId) return msg;
+          const clientCopy = result.clientId ? ' for selected client' : '';
           return {
             ...msg,
-            content: `Workout logged${result.clientName ? ` for ${result.clientName}` : ''}.`,
+            content: `Workout logged${clientCopy}.`,
             metadata: {
               ...msg.metadata,
               transcriptReview: undefined,

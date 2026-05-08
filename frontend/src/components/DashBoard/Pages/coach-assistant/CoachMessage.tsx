@@ -526,10 +526,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               {formatBytes(transcriptReview.fileSize)})
             </CardValue>
           </CardRow>
-          {transcriptReview.clientName && (
+          {transcriptReview.clientId && (
             <CardRow>
               <CardLabel>Client</CardLabel>
-              <CardValue>{transcriptReview.clientName}</CardValue>
+              <CardValue>Selected client</CardValue>
             </CardRow>
           )}
           <CardRow>
@@ -739,10 +739,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               {safeAttachmentSourceLabel(transcriptResult.fileName, 'Transcript file')}
             </CardValue>
           </CardRow>
-          {transcriptResult.clientName && (
+          {transcriptResult.clientId && (
             <CardRow>
               <CardLabel>Client</CardLabel>
-              <CardValue>{transcriptResult.clientName}</CardValue>
+              <CardValue>Selected client</CardValue>
             </CardRow>
           )}
           <CardRow>
