@@ -1,4 +1,5 @@
 import type { PlaudDateSplitSegment } from '../../services/plaudMergeService';
+import { safePlaudActionErrorMessage } from './plaudSafeErrorText';
 
 const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,10 +12,7 @@ export function browserTimeZone(): string {
 }
 
 export function errorMessage(err: unknown, fallback: string): string {
-  const e = err as { response?: { data?: { message?: string; errorCode?: string; error?: { code?: string; message?: string } } } };
-  const code = e.response?.data?.errorCode || e.response?.data?.error?.code;
-  const message = e.response?.data?.message || e.response?.data?.error?.message;
-  return code || message ? `${code || 'ERROR'}: ${message || fallback}` : fallback;
+  return safePlaudActionErrorMessage(err, fallback);
 }
 
 export function isRealIsoDate(value?: string): boolean {

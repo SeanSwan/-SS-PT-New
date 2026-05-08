@@ -14,10 +14,14 @@ const SAFE_CODES = new Set([
   'AUDIO_URL_REDIRECT_REJECTED',
   'INVALID_CLIP_ID',
   'INVALID_CLIENT_ID',
+  'INVALID_DATE_OVERRIDE',
   'INVALID_MERGE_REQUEST_ID',
+  'INVALID_SEGMENT_ID',
+  'MERGE_NOT_APPROVABLE',
   'NO_FILES',
   'PLAUD_DISABLED',
   'RATE_LIMITED',
+  'TOO_FEW_CLIPS',
   'TOO_MANY_FILES',
   'UNSUPPORTED_MIMETYPE',
   'UPLOAD_TOO_LARGE',
@@ -35,9 +39,21 @@ const UPLOAD_MESSAGES: Record<string, string> = {
 const MERGE_MESSAGES: Record<string, string> = {
   INVALID_CLIENT_ID: 'Choose a valid client before processing.',
   INVALID_CLIP_ID: 'One selected clip is no longer available. Refresh the queue and retry.',
+  INVALID_DATE_OVERRIDE: 'Confirm a valid workout date before approving.',
   PLAUD_DISABLED: 'PLAUD intake is disabled right now.',
   RATE_LIMITED: 'Too many processing attempts. Wait briefly and retry.',
+  TOO_FEW_CLIPS: 'Select at least one clip before processing.',
   TOO_MANY_FILES: 'At most 5 clips can be processed at once.',
+};
+
+const ACTION_MESSAGES: Record<string, string> = {
+  INVALID_CLIENT_ID: 'Choose a valid client before logging.',
+  INVALID_DATE_OVERRIDE: 'Confirm a valid workout date before approving.',
+  INVALID_MERGE_REQUEST_ID: 'This merge review link is no longer valid. Return to the queue.',
+  INVALID_SEGMENT_ID: 'This split workout could not be found. Refresh the review.',
+  MERGE_NOT_APPROVABLE: 'This merge is not ready to approve. Refresh the queue and review it again.',
+  PLAUD_DISABLED: 'PLAUD intake is disabled right now.',
+  RATE_LIMITED: 'Too many PLAUD actions. Wait briefly and retry.',
 };
 
 export function safePlaudIssueCode(value: unknown): string {
@@ -58,4 +74,22 @@ export function safePlaudRejectedFileMessage(code: unknown): string {
 export function safePlaudMergeErrorMessage(code: unknown): string {
   const safeCode = safePlaudIssueCode(code);
   return MERGE_MESSAGES[safeCode] || 'Processing failed. Refresh the queue and retry.';
+}
+
+function extractPlaudErrorCode(err: unknown): unknown {
+  const e = err as {
+    code?: unknown;
+    response?: {
+      data?: {
+        errorCode?: unknown;
+        error?: { code?: unknown };
+      };
+    };
+  };
+  return e?.response?.data?.errorCode || e?.response?.data?.error?.code || e?.code;
+}
+
+export function safePlaudActionErrorMessage(err: unknown, fallback: string): string {
+  const safeCode = safePlaudIssueCode(extractPlaudErrorCode(err));
+  return `${safeCode}: ${ACTION_MESSAGES[safeCode] || fallback}`;
 }

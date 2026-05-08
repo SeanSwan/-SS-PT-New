@@ -3,9 +3,9 @@ import { ArrowLeft, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { PlaudClipMergePanel, type PlaudMergeReadyContext } from './PlaudClipMergePanel';
 import { PlaudPendingReviewsList } from './PlaudPendingReviewsList';
 import { getMergeRequest, type MergeResponse, type MergeRequestDetail } from '../../services/plaudMergeService';
-import { PlaudApiError } from '../../services/plaudClipService';
 import { PlaudMergeReview } from './PlaudMergeReview';
 import type { PlaudMergeConfirmState, PlaudMergeReviewState } from './PlaudMergeWorkspace.types';
+import { safePlaudActionErrorMessage } from './plaudSafeErrorText';
 import {
   ActionRow,
   BackLink,
@@ -67,9 +67,10 @@ export function PlaudMergeWorkspace({
       openDetailReview(mergeRequest);
     } catch (err) {
       setApplyError(
-        err instanceof PlaudApiError
-          ? `${err.code}: ${err.message}`
-          : 'Merge completed, but split review could not be loaded. Open it from pending reviews before logging.',
+        safePlaudActionErrorMessage(
+          err,
+          'Merge completed, but split review could not be loaded. Open it from pending reviews before logging.',
+        ),
       );
     }
   }, [openDetailReview]);
@@ -81,7 +82,7 @@ export function PlaudMergeWorkspace({
       const { mergeRequest } = await getMergeRequest(mergeRequestId);
       detail = mergeRequest;
     } catch (err) {
-      setApplyError(err instanceof PlaudApiError ? `${err.code}: ${err.message}` : 'Failed to load merge details');
+      setApplyError(safePlaudActionErrorMessage(err, 'Failed to load merge details'));
       return;
     }
     if (!detail) return;

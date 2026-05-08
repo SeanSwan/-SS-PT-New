@@ -7,6 +7,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlaudMergeWorkspace } from './PlaudMergeWorkspace';
 import { getMergeRequest } from '../../services/plaudMergeService';
+import { PlaudApiError } from '../../services/plaudClipService';
 
 vi.mock('./PlaudClipMergePanel', () => ({ PlaudClipMergePanel: () => null }));
 vi.mock('./PlaudPendingReviewsList', () => ({ PlaudPendingReviewsList: () => null }));
@@ -54,6 +55,22 @@ describe('PlaudMergeWorkspace outcome receipt', () => {
       const alert = screen.getByRole('alert');
       expect(alert).toHaveTextContent('Failed to load merge details');
       expect(alert).toHaveFocus();
+    });
+  });
+
+  it('does not expose arbitrary direct-review load error detail', async () => {
+    vi.mocked(getMergeRequest).mockRejectedValueOnce(
+      new PlaudApiError('UNSAFE_BACKEND_DETAIL', 'do-not-render-private-detail', 500),
+    );
+
+    render(<PlaudMergeWorkspace embedded initialReviewMergeRequestId="33333333-3333-4333-8333-333333333333" />);
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('PLAUD_ERROR');
+      expect(alert).toHaveTextContent('Failed to load merge details');
+      expect(alert).not.toHaveTextContent('UNSAFE_BACKEND_DETAIL');
+      expect(alert).not.toHaveTextContent('do-not-render-private-detail');
     });
   });
 });
