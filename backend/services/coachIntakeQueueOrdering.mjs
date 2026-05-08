@@ -11,7 +11,17 @@ const STATUS_PRIORITY = new Map([
   ['failed', 4],
 ]);
 
+const TERMINAL_PROPOSAL_STATUSES = new Set(['APPLIED', 'REJECTED', 'FAILED']);
+
+function hasReviewablePreparedDraft(item) {
+  if (!item?.latestProposalId && !item?.latestProposal?.id) return false;
+  if (['archived', 'failed', 'processing'].includes(item.queueStatus)) return false;
+  const status = String(item.latestProposal?.status || '').trim().toUpperCase();
+  return !TERMINAL_PROPOSAL_STATUSES.has(status);
+}
+
 export function coachIntakeQueuePriority(item) {
+  if (hasReviewablePreparedDraft(item)) return -2;
   if (item?.canReview) return -1;
   return STATUS_PRIORITY.get(item?.queueStatus) ?? 99;
 }

@@ -58,6 +58,34 @@ describe('coachIntakeQueueOrdering', () => {
     expect(pickNextCoachIntakeItem(items)?.id).toBe('merge:newer-created-old-recording');
   });
 
+  it('puts prepared pending drafts ahead of ready items that still need draft preparation', () => {
+    const items = [
+      {
+        id: 'coach:old-ready-without-draft',
+        kind: 'coach_intake',
+        queueStatus: 'ready_review',
+        canReview: true,
+        recordedAt: '2026-05-05T12:00:00.000Z',
+        createdAt: '2026-05-05T12:00:00.000Z',
+      },
+      {
+        id: 'coach:newer-prepared-draft',
+        kind: 'coach_intake',
+        queueStatus: 'ready_review',
+        canReview: true,
+        latestProposalId: 'proposal-1',
+        latestProposal: { status: 'PENDING' },
+        recordedAt: '2026-05-06T12:00:00.000Z',
+        createdAt: '2026-05-06T12:00:00.000Z',
+      },
+    ];
+
+    expect(sortCoachIntakeReviewOrder(items).map((item) => item.id)).toEqual([
+      'coach:newer-prepared-draft',
+      'coach:old-ready-without-draft',
+    ]);
+  });
+
   it('does not pick archived items as review-next targets', () => {
     const items = [
       {
@@ -76,5 +104,48 @@ describe('coachIntakeQueueOrdering', () => {
     ];
 
     expect(pickNextCoachIntakeItem(items)?.id).toBe('coach:needs-client');
+  });
+
+  it('does not elevate terminal proposal statuses above reviewable items', () => {
+    const items = [
+      {
+        id: 'coach:applied-proposal',
+        kind: 'coach_intake',
+        queueStatus: 'unprocessed',
+        latestProposalId: 'proposal-applied',
+        latestProposal: { status: 'APPLIED' },
+        createdAt: '2026-05-04T12:00:00.000Z',
+      },
+      {
+        id: 'coach:ready-review',
+        kind: 'coach_intake',
+        queueStatus: 'ready_review',
+        canReview: true,
+        createdAt: '2026-05-06T12:00:00.000Z',
+      },
+    ];
+
+    expect(pickNextCoachIntakeItem(items)?.id).toBe('coach:ready-review');
+  });
+
+  it('does not elevate failed items with stale proposal metadata', () => {
+    const items = [
+      {
+        id: 'coach:failed-with-proposal',
+        kind: 'coach_intake',
+        queueStatus: 'failed',
+        latestProposalId: 'proposal-stale',
+        latestProposal: { status: 'PENDING' },
+        createdAt: '2026-05-04T12:00:00.000Z',
+      },
+      {
+        id: 'coach:unprocessed',
+        kind: 'coach_intake',
+        queueStatus: 'unprocessed',
+        createdAt: '2026-05-06T12:00:00.000Z',
+      },
+    ];
+
+    expect(pickNextCoachIntakeItem(items)?.id).toBe('coach:unprocessed');
   });
 });
