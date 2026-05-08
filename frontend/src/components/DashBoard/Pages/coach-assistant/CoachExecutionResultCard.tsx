@@ -26,6 +26,10 @@ import {
   CoachPreparedDraftResultCard,
   isPreparedDraftCommand,
 } from './CoachPreparedDraftResultCard';
+import {
+  CoachPlaudStructuredActionResultCard,
+  isPlaudStructuredActionCommand,
+} from './CoachPlaudStructuredActionResultCard';
 import { safeCommandResultMessage } from './CoachIntakeOperationalText.logic';
 import { isCommandRouteKey } from './commandRouteKeys';
 import { renderCommandParamValue } from './coachCommandFormatters';
@@ -122,6 +126,15 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   }
   if (result && isPreparedDraftCommand(command)) {
     return <CoachPreparedDraftResultCard command={command} result={result} message={safeMessage ?? undefined} />;
+  }
+  if (result && isPlaudStructuredActionCommand(command)) {
+    return (
+      <CoachPlaudStructuredActionResultCard
+        command={command}
+        result={result}
+        message={safeMessage ?? undefined}
+      />
+    );
   }
 
   const clientLabel = client?.firstName ?? null;

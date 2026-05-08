@@ -17,6 +17,7 @@ import { sendChatMessage } from '../aiChatService.mjs';
 import { scanForPHI } from './phiScanner.mjs';
 import { buildCommandSummaryForClassifier } from './commandRegistry/index.mjs';
 import { ClassifiedIntentSchema } from './commandRegistry/baseSchemas.mjs';
+import { classifyDeterministicCoachIntakeIntent } from './deterministicCoachIntakeIntent.mjs';
 
 // ── Confidence Threshold ────────────────────────────────────────────────────
 
@@ -154,57 +155,6 @@ export async function classifyIntent(message, userRole, options = {}) {
   } finally {
     clearTimeout(classificationTimer);
   }
-}
-
-function classifyDeterministicCoachIntakeIntent(message) {
-  const trimmed = String(message || '').trim();
-  const itemAudioMatch = /^inspect\s+coach\s+intake\s+([a-z0-9:_-]{1,128})\s+audio\s+pieces$/i.exec(trimmed);
-  if (itemAudioMatch) {
-    return {
-      intent: 'inspect_coach_audio_pieces',
-      clientRef: null,
-      params: { intakeId: itemAudioMatch[1] },
-      confidence: 1,
-    };
-  }
-
-  if (/^inspect\s+pending\s+(?:coach\s+)?audio\s+pieces$/i.test(trimmed)) {
-    return {
-      intent: 'inspect_coach_audio_pieces',
-      clientRef: null,
-      params: {},
-      confidence: 1,
-    };
-  }
-
-  if (/^review\s+next\s+coach\s+intake$/i.test(trimmed)) {
-    return {
-      intent: 'review_next_coach_intake',
-      clientRef: null,
-      params: {},
-      confidence: 1,
-    };
-  }
-
-  if (/^show\s+(?:my\s+)?coach\s+intake\s+clarification\s+holds$/i.test(trimmed)) {
-    return {
-      intent: 'view_coach_intake_queue',
-      clientRef: null,
-      params: { scope: 'needs_clarification' },
-      confidence: 1,
-    };
-  }
-
-  if (/^show\s+(?:my\s+)?coach\s+intake\s+duplicate(?:-risk)?\s+holds$/i.test(trimmed)) {
-    return {
-      intent: 'view_coach_intake_queue',
-      clientRef: null,
-      params: { scope: 'duplicate_hold' },
-      confidence: 1,
-    };
-  }
-
-  return null;
 }
 
 /**

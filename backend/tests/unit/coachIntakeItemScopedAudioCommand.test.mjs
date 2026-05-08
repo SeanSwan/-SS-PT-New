@@ -242,4 +242,36 @@ describe('Coach intake item-scoped audio inspection', () => {
       },
     });
   });
+
+  it('executes structured PLAUD clip-order prompts through the command pipeline without writing logs', async () => {
+    mockQueue([
+      {
+        ...audioItem('audio-1', { rawFileNames: ['Marcus private clip.m4a'] }),
+        clientName: 'Do Not Return',
+        transcript: 'Do Not Return',
+      },
+    ]);
+
+    const ctx = await executeCommandPipeline(
+      'propose PLAUD clip order for audio-1',
+      { id: 42, role: 'admin', firstName: 'Sean', lastName: 'Swan' },
+      { sequelize: sequelizeOverride },
+    );
+
+    expect(ctx.error).toBeNull();
+    expect(ctx.command?.type).toBe('plaud_propose_clip_order');
+    expect(ctx.intent?.params).toMatchObject({ intakeId: 'audio-1' });
+    expect(ctx.result).toMatchObject({
+      actionType: 'plaud_propose_clip_order',
+      proposalType: 'clip_order',
+      requiresManualConfirmation: true,
+      confirmationKind: 'audio_order',
+      writeStatus: 'not_written',
+      nextWritePath: 'existing_review_flow_only',
+      targetIntakeId: 'audio-1',
+      targetMatched: true,
+      reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-1',
+    });
+    expect(JSON.stringify(ctx.result)).not.toMatch(/Do Not Return|Marcus|private clip|transcript|clientName|rawFileNames/i);
+  });
 });

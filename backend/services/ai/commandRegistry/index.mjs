@@ -1,15 +1,15 @@
 /**
  * Command Registry — Index
  * =========================
- * Merges all 15 domain-split command registries into a unified registry.
+ * Merges all 16 domain-split command registries into a unified registry.
  * Call initializeRegistry() once at server startup.
  *
- * 110 commands across categories A-N:
+ * 119 commands across categories A-N:
  * A: Client Management (14)   B: Workouts (12)      C: Scheduling (9)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)
  * G: Dashboard (8)            H: Trainer Mgmt (6)    I: Goals (6)
  * J: Onboarding (6)           K: System (4)          L: Client Self-Service (10)
- * M: Hermes Agent (2)       N: Intake Workspace (8)
+ * M: Hermes Agent (2)       N: Intake Workspace (16)
  */
 import { register as registerClient } from './clientCommands.mjs';
 import { register as registerWorkout } from './workoutCommands.mjs';
@@ -25,6 +25,7 @@ import { register as registerSystem } from './systemCommands.mjs';
 import { register as registerClientSelfService } from './clientSelfService.mjs';
 import { register as registerHermes } from './hermesCommands.mjs';
 import { register as registerCoachIntake } from './coachIntakeCommands.mjs';
+import { register as registerPlaudStructuredActions } from './plaudStructuredActionCommands.mjs';
 import { register as registerPlaud } from './plaudCommands.mjs';
 import logger from '../../../utils/logger.mjs';
 
@@ -59,9 +60,10 @@ export function initializeRegistry() {
   registerClientSelfService();
   registerHermes();
   registerCoachIntake();
+  registerPlaudStructuredActions();
   registerPlaud();
 
   initialized = true;
 
-  logger.info(`[CommandRegistry] Initialized with 110 commands across 14 categories`);
+  logger.info(`[CommandRegistry] Initialized with 119 commands across 14 categories`);
 }

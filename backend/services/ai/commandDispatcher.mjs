@@ -75,6 +75,14 @@ import {
   dispatchViewPlaudIntakeQueue,
 } from './dispatchers/plaudDispatchers.mjs';
 import {
+  dispatchPlaudAnalyzeClipSet,
+  dispatchPlaudGroupSessionCandidates,
+  dispatchPlaudListIntakeItems,
+  dispatchPlaudMergeCandidateGroup,
+  dispatchPlaudProposeClipOrder,
+  dispatchPlaudRequestConfirmation,
+} from './dispatchers/plaudStructuredActionDispatchers.mjs';
+import {
   dispatchInspectCoachAudioPieces,
   dispatchInspectPlaudAudioPieces,
   dispatchReviewNextCoachIntake,
@@ -202,6 +210,12 @@ const DISPATCHERS = new Map([
   ['view_plaud_intake_queue',      dispatchViewPlaudIntakeQueue],
   ['review_next_plaud_intake',     dispatchReviewNextPlaudIntake],
   ['inspect_plaud_audio_pieces',   dispatchInspectPlaudAudioPieces],
+  ['plaud_list_intake_items',       dispatchPlaudListIntakeItems],
+  ['plaud_analyze_clip_set',        dispatchPlaudAnalyzeClipSet],
+  ['plaud_propose_clip_order',      dispatchPlaudProposeClipOrder],
+  ['plaud_group_session_candidates', dispatchPlaudGroupSessionCandidates],
+  ['plaud_merge_candidate_group',   dispatchPlaudMergeCandidateGroup],
+  ['plaud_request_confirmation',    dispatchPlaudRequestConfirmation],
 ]);
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────

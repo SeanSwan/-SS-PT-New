@@ -104,4 +104,27 @@ describe('Unified Coach intake command registry source contract', () => {
       confidence: 1,
     });
   });
+
+  it('classifies explicit structured PLAUD action prompts without the cloud classifier', async () => {
+    await expect(classifyIntent('list PLAUD intake items', 'admin')).resolves.toMatchObject({
+      intent: 'plaud_list_intake_items',
+      params: {},
+      confidence: 1,
+    });
+    await expect(classifyIntent('propose PLAUD clip order for coach-intake-1', 'trainer')).resolves.toMatchObject({
+      intent: 'plaud_propose_clip_order',
+      params: { intakeId: 'coach-intake-1' },
+      confidence: 1,
+    });
+    await expect(classifyIntent('group PLAUD session candidates for coach:intake_2', 'admin')).resolves.toMatchObject({
+      intent: 'plaud_group_session_candidates',
+      params: { intakeId: 'coach:intake_2' },
+      confidence: 1,
+    });
+    await expect(classifyIntent('request confirmation for PLAUD audio-1 audio order', 'trainer')).resolves.toMatchObject({
+      intent: 'plaud_request_confirmation',
+      params: { intakeId: 'audio-1', confirmationType: 'audio_order' },
+      confidence: 1,
+    });
+  });
 });
