@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
@@ -85,6 +85,45 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/prepared draft link is stale/i);
     expect(getCoachProposal).not.toHaveBeenCalled();
+  });
+
+  it('focuses the stale prepared-draft warning after direct navigation', async () => {
+    const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+    const originalFocus = window.HTMLElement.prototype.focus;
+    const scrollIntoView = vi.fn();
+    const focus = vi.fn();
+
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    Object.defineProperty(window.HTMLElement.prototype, 'focus', {
+      configurable: true,
+      value: focus,
+    });
+
+    try {
+      render(
+        <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
+          <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByRole('alert')).toHaveAttribute('tabindex', '-1');
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' });
+        expect(focus).toHaveBeenLastCalledWith({ preventScroll: true });
+      });
+    } finally {
+      Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+        configurable: true,
+        value: originalScrollIntoView,
+      });
+      Object.defineProperty(window.HTMLElement.prototype, 'focus', {
+        configurable: true,
+        value: originalFocus,
+      });
+    }
   });
 
   it('replaces a stale proposal URL when the active latest draft is opened', async () => {

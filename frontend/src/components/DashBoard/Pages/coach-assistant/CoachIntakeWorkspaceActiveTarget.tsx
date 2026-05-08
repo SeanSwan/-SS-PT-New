@@ -38,6 +38,21 @@ export function CoachIntakeWorkspaceActiveTarget({
   isConfirmingAudioOrder = false,
   showStaleProposalLink = false,
 }: CoachIntakeWorkspaceActiveTargetProps): JSX.Element {
+  const staleWarningRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (!showStaleProposalLink) return undefined;
+    const warning = staleWarningRef.current;
+    if (!warning) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof warning.scrollIntoView === 'function') {
+        warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      warning.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [item.id, showStaleProposalLink]);
+
   return (
     <>
       <CoachIntakeActiveDossier
@@ -54,7 +69,7 @@ export function CoachIntakeWorkspaceActiveTarget({
         isConfirmingAudioOrder={isConfirmingAudioOrder}
       />
       {showStaleProposalLink ? (
-        <ItemCard role="alert">
+        <ItemCard ref={staleWarningRef} role="alert" tabIndex={-1}>
           <ItemTitle>
             <strong>Prepared draft link is stale</strong>
             <span>This intake has a different latest draft. Use Review prepared draft from the active target.</span>

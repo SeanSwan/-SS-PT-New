@@ -215,6 +215,11 @@ export const ItemCard = styled.div<{ $active?: boolean }>`
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 2px;
+  }
 `;
 
 export const ItemTitle = styled.div`
