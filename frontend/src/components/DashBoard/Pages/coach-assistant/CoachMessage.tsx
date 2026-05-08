@@ -34,9 +34,11 @@ import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   safeAudioRejectedSummary,
+  safeClientCreateFailure,
   safeCommandActionLabel,
   safeProposalPreparationFailure,
   safeTranscriptFailureReason,
+  safeWorkoutImportFailure,
 } from './CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -456,7 +458,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       {clientCreate && !clientCreate.success && (
         <ActionCard style={{ borderColor: 'rgba(201, 42, 84, 0.3)' }}>
           <CardTitle style={{ color: '#C92A54' }}>Client Creation Failed</CardTitle>
-          <CardRow><CardValue>{clientCreate.reason}</CardValue></CardRow>
+          <CardRow><CardValue>{safeClientCreateFailure()}</CardValue></CardRow>
         </ActionCard>
       )}
 
@@ -472,7 +474,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
                   {w.exerciseCount} exercises · {w.totalSets} sets · {w.totalWeight > 0 ? `${w.totalWeight.toLocaleString()} lbs` : 'bodyweight'}
                 </CardValue>
               ) : (
-                <CardValue style={{ color: '#C92A54' }}>Failed: {w.reason}</CardValue>
+                <CardValue style={{ color: '#C92A54' }}>Failed: {safeWorkoutImportFailure()}</CardValue>
               )}
             </CardRow>
           ))}

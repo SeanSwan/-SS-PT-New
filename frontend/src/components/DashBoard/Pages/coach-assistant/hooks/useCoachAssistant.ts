@@ -147,8 +147,7 @@ function commandResultSummary(
       const time = (typeof r.startTime === 'string' && typeof r.endTime === 'string')
         ? ` ${r.startTime}–${r.endTime}` : '';
       const type = typeof r.type === 'string' ? r.type : 'blocked';
-      const reason = typeof r.reason === 'string' ? ` (${r.reason})` : '';
-      return `Availability ${type}${dateStr}${time}.${reason}`;
+      return `Availability ${type}${dateStr}${time}.`;
     }
     case 'view_trainer_availability': {
       const count = typeof r.recurringSlotCount === 'number' ? r.recurringSlotCount : 0;

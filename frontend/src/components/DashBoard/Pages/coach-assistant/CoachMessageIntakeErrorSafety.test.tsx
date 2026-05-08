@@ -71,4 +71,41 @@ describe('CoachMessage intake error safety', () => {
     expect(screen.getByText(/Coach could not prepare that draft safely/i)).toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-proposal-detail/i)).not.toBeInTheDocument();
   });
+
+  it('does not render arbitrary legacy client-create failure reasons', () => {
+    render(
+      <CoachMessage
+        message={assistantMessage({
+          clientCreateResult: {
+            success: false,
+            reason: 'do-not-render-private-client-create-detail',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Client Creation Failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Client draft could not be created safely/i)).toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-client-create-detail/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary legacy workout-import failure reasons', () => {
+    render(
+      <CoachMessage
+        message={assistantMessage({
+          workoutImportResults: [
+            {
+              success: false,
+              date: '2026-05-05',
+              reason: 'do-not-render-private-workout-import-detail',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Workout Import Results/i)).toBeInTheDocument();
+    expect(screen.getByText(/Failed: Workout import could not be completed safely/i)).toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-workout-import-detail/i)).not.toBeInTheDocument();
+  });
 });

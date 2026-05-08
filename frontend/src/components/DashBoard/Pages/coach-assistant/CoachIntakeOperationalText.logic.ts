@@ -253,6 +253,14 @@ export function safeProposalPreparationFailure(): string {
   return 'Coach could not prepare that draft safely. Try again from the active intake.';
 }
 
+export function safeClientCreateFailure(): string {
+  return 'Client draft could not be created safely.';
+}
+
+export function safeWorkoutImportFailure(): string {
+  return 'Workout import could not be completed safely.';
+}
+
 export function holdReasonFacts(result: Record<string, unknown>): string[] {
   const facts: string[] = [];
   const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);
