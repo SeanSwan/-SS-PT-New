@@ -51,6 +51,23 @@ function safeInternalRoute(value: unknown): string | null {
   const route = value.trim();
   if (!route.startsWith('/dashboard/')) return null;
   if (/[\r\n\t]/.test(route)) return null;
+  if (route.includes('\\')) return null;
+
+  let decodedRoute = route;
+  try {
+    decodedRoute = decodeURIComponent(route);
+  } catch {
+    return null;
+  }
+
+  if (/[\r\n\t]/.test(decodedRoute)) return null;
+  if (decodedRoute.includes('\\')) return null;
+
+  const rawPath = route.split(/[?#]/, 1)[0];
+  const decodedPath = decodedRoute.split(/[?#]/, 1)[0];
+  const hasTraversalSegment = (path: string) => /(^|\/)\.\.(?=\/|$)/.test(path);
+  if (hasTraversalSegment(rawPath) || hasTraversalSegment(decodedPath)) return null;
+
   return route;
 }
 

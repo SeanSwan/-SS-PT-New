@@ -50,6 +50,57 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('reviewRoute')).toBeNull();
   });
 
+  it('skips unsafe encoded review routes and uses the safe queue route fallback', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_plaud_intake"
+          client={null}
+          result={{
+            readyReview: 2,
+            queueRoute: '/dashboard/admin/plaud',
+            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=abc%0Aonclick',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open plaud workspace/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+  });
+
+  it('does not render route actions for traversal-shaped dashboard links', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            reviewRoute: '/dashboard/admin/../trainer/coach-assistant',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('does not render route actions for encoded traversal dashboard links', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            reviewRoute: '/dashboard/admin/%2e%2e/trainer/coach-assistant',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
   it('prefers targetRoute over queueRoute for workspace-focused commands', () => {
     render(
       <MemoryRouter>
