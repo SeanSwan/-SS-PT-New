@@ -68,11 +68,16 @@ function boundedString(value, maxLength = 160) {
   return clean.slice(0, maxLength);
 }
 
+const SAFE_HOLD_REASON_DETAILS = new Set([
+  'Coach needs one answer before this intake can move to draft review.',
+  'Choose from the shortlisted client candidates before preparing a draft.',
+  'Compare this intake with existing logs before approving.',
+  'Same client/date fingerprint matched existing workout logs.',
+]);
+
 function safeDetailString(value) {
   const clean = boundedString(value);
-  if (!clean) return null;
-  if (/@/.test(clean)) return null;
-  if (/\b\d{7,}\b/.test(clean)) return null;
+  if (!clean || !SAFE_HOLD_REASON_DETAILS.has(clean)) return null;
   return clean;
 }
 

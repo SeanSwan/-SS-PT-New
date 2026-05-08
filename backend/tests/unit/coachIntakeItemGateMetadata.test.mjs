@@ -140,6 +140,34 @@ describe('coachIntakeItem gate metadata', () => {
     expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus|private|example\.com|transcript/i);
   });
 
+  it('rejects name-like clarification safeDetail values and falls back to operational copy', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '96969696-9696-4969-9969-969696969696',
+      source_type: 'chat_narrative',
+      status: 'NEEDS_CLARIFICATION',
+      resolved_client_id: null,
+      uploaded_at: '2026-05-06T12:23:00.000Z',
+      created_at: '2026-05-06T12:23:00.000Z',
+      metadata_json: {
+        holdReason: {
+          safeDetail: 'Marcus needs confirmation before draft approval.',
+        },
+      },
+      resolver_json: {
+        candidateCount: 2,
+        topConfidence: 0.74,
+      },
+    });
+
+    expect(item.holdReason).toMatchObject({
+      label: 'Client confirmation needed',
+      detail: 'Coach needs one answer before this intake can move to draft review.',
+      candidateCount: 2,
+      confidenceBand: 'medium',
+    });
+    expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus/i);
+  });
+
   it('maps duplicate hold reasons without exposing raw duplicate rows', () => {
     const item = mapCoachRowToIntakeItem({
       id: '95959595-9595-4959-9959-959595959595',
@@ -167,5 +195,30 @@ describe('coachIntakeItem gate metadata', () => {
       confidenceBand: 'high',
     });
     expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus|private|deadlift/i);
+  });
+
+  it('rejects name-like duplicate safeReason values and falls back to operational copy', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '97979797-9797-4979-9979-979797979797',
+      source_type: 'typed_note',
+      status: 'DUPLICATE_HOLD',
+      resolved_client_id: 42,
+      uploaded_at: '2026-05-06T12:28:00.000Z',
+      created_at: '2026-05-06T12:28:00.000Z',
+      metadata_json: {},
+      duplicate_scan_json: {
+        duplicateCount: 2,
+        topScore: 0.88,
+        safeReason: 'Marcus appears to match an existing workout.',
+      },
+    });
+
+    expect(item.holdReason).toMatchObject({
+      label: 'Possible duplicate workout',
+      detail: 'Compare this intake with existing logs before approving.',
+      duplicateCount: 2,
+      confidenceBand: 'high',
+    });
+    expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus/i);
   });
 });
