@@ -39,6 +39,10 @@ export interface CreateCoachTextIntakeResponse {
   item: CoachIntakeItem;
 }
 
+export interface ConfirmCoachIntakeAudioOrderResponse {
+  item: CoachIntakeItem;
+}
+
 function unwrapError(err: unknown, fallbackMessage: string): never {
   if (isAxiosError(err)) {
     const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
@@ -103,4 +107,19 @@ export async function createCoachTextIntake({
   }
 }
 
-export default { createCoachTextIntake, listCoachIntakeItems };
+export async function confirmCoachIntakeAudioOrder({
+  intakeId,
+}: {
+  intakeId: string;
+}): Promise<ConfirmCoachIntakeAudioOrderResponse> {
+  try {
+    const { data } = await apiService.post<{ success: boolean } & ConfirmCoachIntakeAudioOrderResponse>(
+      `/api/coach/intake/${encodeURIComponent(intakeId)}/audio-order/confirm`,
+    );
+    return { item: data.item };
+  } catch (err) {
+    unwrapError(err, 'Failed to confirm Coach intake audio order');
+  }
+}
+
+export default { confirmCoachIntakeAudioOrder, createCoachTextIntake, listCoachIntakeItems };

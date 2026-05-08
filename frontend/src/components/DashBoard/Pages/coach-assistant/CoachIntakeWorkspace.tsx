@@ -21,6 +21,7 @@ import {
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import type { CoachAudioPuzzleSummary, CoachIntakeItem } from '../../../../services/coachIntakeService';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
+import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import {
   AudioPuzzleLabel,
   AudioPuzzleRow,
@@ -151,6 +152,7 @@ export function CoachIntakeWorkspace({
 }: CoachIntakeWorkspaceProps): JSX.Element | null {
   const isTrainerSurface = userRole === 'admin' || userRole === 'trainer';
   const { items, summary, isLoading, error, refresh } = queue;
+  const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
 
   if (!isTrainerSurface) return null;
 
@@ -209,6 +211,9 @@ export function CoachIntakeWorkspace({
           reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
           onAskCoach={() => onCommandPrompt(activeItemPrompt(activeItem))}
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
+          onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
+          confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
+          isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />
       )}
 

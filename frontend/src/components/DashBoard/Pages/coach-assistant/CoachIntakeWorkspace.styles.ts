@@ -104,6 +104,13 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
     outline: 2px solid var(--accent-secondary, #8B5CF6);
     outline-offset: 2px;
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.68;
+    transform: none;
+    box-shadow: none;
+  }
 `;
 
 export const WorkspaceLink = styled(Link)<{ $primary?: boolean }>`

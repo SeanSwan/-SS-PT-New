@@ -1,7 +1,16 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
+import { confirmCoachIntakeAudioOrder } from '../../../../services/coachIntakeService';
+
+vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../services/coachIntakeService')>();
+  return {
+    ...actual,
+    confirmCoachIntakeAudioOrder: vi.fn(),
+  };
+});
 
 function makeQueue() {
   return {
@@ -144,6 +153,69 @@ describe('CoachIntakeWorkspace', () => {
 
     fireEvent.click(within(target).getByRole('button', { name: /inspect intake audio/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect Coach intake item-2 audio pieces');
+  });
+
+  it('confirms active intake audio order and refreshes the queue without final writes', async () => {
+    const queue = makeQueue();
+    queue.refresh = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(confirmCoachIntakeAudioOrder).mockResolvedValue({
+      item: {
+        ...queue.items[0],
+        audioPuzzle: {
+          ...queue.items[0].audioPuzzle,
+          needsOrderingReview: false,
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = screen.getByLabelText(/Active review target/i);
+    fireEvent.click(within(target).getByRole('button', { name: /confirm audio order/i }));
+
+    await waitFor(() => {
+      expect(confirmCoachIntakeAudioOrder).toHaveBeenCalledWith({ intakeId: 'item-1' });
+      expect(queue.refresh).toHaveBeenCalled();
+    });
+    expect(within(target).getByRole('status')).toHaveTextContent(/audio order confirmed/i);
+    expect(within(target).getByText(/Final write locked/i)).toBeInTheDocument();
+  });
+
+  it('does not keep calling multi-piece audio order required after the gate is clear', () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      audioPuzzle: {
+        ...queue.items[0].audioPuzzle,
+        needsOrderingReview: false,
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = screen.getByLabelText(/Active review target/i);
+    expect(within(target).getByText(/Audio order ready/i)).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /confirm audio order/i })).toBeNull();
   });
 
   it('renders the highest-priority review-next item first even when API order is newer-first', () => {

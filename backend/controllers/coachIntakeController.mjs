@@ -10,6 +10,7 @@ import {
   createCoachTextIntakeItem,
   listUnifiedCoachIntakeItems,
 } from '../services/coachIntakeItemService.mjs';
+import { confirmCoachIntakeAudioOrder } from '../services/coachIntakeReviewActionsService.mjs';
 
 function jsonError(res, status, code, message, details = {}) {
   return res.status(status).json({
@@ -73,4 +74,32 @@ export async function listCoachIntakeHandler(req, res) {
   }
 }
 
-export default { createCoachTextIntakeHandler, listCoachIntakeHandler };
+export async function confirmCoachIntakeAudioOrderHandler(req, res) {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+
+    const item = await confirmCoachIntakeAudioOrder({
+      userId,
+      intakeId: req.params.id,
+    });
+
+    return res.status(200).json({ success: true, item });
+  } catch (err) {
+    if (err instanceof CoachIntakeValidationError) {
+      const status = err.code === 'INTAKE_NOT_FOUND' ? 404 : 400;
+      return jsonError(res, status, err.code, err.message, err.details);
+    }
+    if (err instanceof CoachIntakeSchemaUnavailableError) {
+      return jsonError(res, 503, err.code, err.message);
+    }
+    logger.error('[coachIntake.confirmAudioOrder] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to confirm Coach intake audio order');
+  }
+}
+
+export default {
+  createCoachTextIntakeHandler,
+  listCoachIntakeHandler,
+  confirmCoachIntakeAudioOrderHandler,
+};

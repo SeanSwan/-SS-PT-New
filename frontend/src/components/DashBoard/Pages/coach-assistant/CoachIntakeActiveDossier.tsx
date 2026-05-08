@@ -6,6 +6,7 @@
 import React from 'react';
 import {
   Brain,
+  CheckCircle2,
   GitBranch,
   ListChecks,
   ShieldCheck,
@@ -23,6 +24,7 @@ import {
   TargetActions,
   TargetBody,
   TargetEyebrow,
+  TargetNotice,
   TargetPanel,
 } from './CoachIntakeWorkspaceTarget.styles';
 
@@ -32,6 +34,9 @@ interface CoachIntakeActiveDossierProps {
   reviewHref: string;
   onAskCoach: () => void;
   onInspectAudio: () => void;
+  onConfirmAudioOrder: () => void;
+  confirmAudioOrderStatus?: string | null;
+  isConfirmingAudioOrder?: boolean;
 }
 
 function plural(value: number, noun: string): string {
@@ -55,8 +60,13 @@ function clientGate(item: CoachIntakeItem): string {
 function audioGate(item: CoachIntakeItem): string {
   const pieces = audioPieceCount(item);
   if (pieces === 0) return 'No audio pieces';
-  if (item.audioPuzzle?.needsOrderingReview || pieces > 1) return 'Ordering review required';
+  if (item.audioPuzzle?.needsOrderingReview) return 'Ordering review required';
+  if (pieces > 1) return 'Audio order ready';
   return 'Single audio piece';
+}
+
+function needsAudioOrderConfirmation(item: CoachIntakeItem): boolean {
+  return item.kind === 'coach_intake' && item.audioPuzzle?.needsOrderingReview === true;
 }
 
 export function CoachIntakeActiveDossier({
@@ -65,9 +75,13 @@ export function CoachIntakeActiveDossier({
   reviewHref,
   onAskCoach,
   onInspectAudio,
+  onConfirmAudioOrder,
+  confirmAudioOrderStatus = null,
+  isConfirmingAudioOrder = false,
 }: CoachIntakeActiveDossierProps): JSX.Element {
   const pieces = audioPieceCount(item);
   const showInspectAudio = pieces > 0;
+  const showConfirmAudioOrder = needsAudioOrderConfirmation(item);
 
   return (
     <TargetPanel aria-label="Active review target">
@@ -106,10 +120,19 @@ export function CoachIntakeActiveDossier({
         </DossierGrid>
       </TargetBody>
       <TargetActions>
+        {confirmAudioOrderStatus ? (
+          <TargetNotice role="status">{confirmAudioOrderStatus}</TargetNotice>
+        ) : null}
         <ActionButton type="button" onClick={onAskCoach}>
           <Brain size={16} aria-hidden="true" />
           Ask Coach about this intake
         </ActionButton>
+        {showConfirmAudioOrder ? (
+          <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder}>
+            <CheckCircle2 size={16} aria-hidden="true" />
+            {isConfirmingAudioOrder ? 'Confirming order...' : 'Confirm audio order'}
+          </ActionButton>
+        ) : null}
         {showInspectAudio ? (
           <ActionButton type="button" onClick={onInspectAudio}>
             <GitBranch size={16} aria-hidden="true" />

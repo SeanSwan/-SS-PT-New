@@ -149,14 +149,17 @@ function reviewPlanForAudioInspection({ targetIntakeId, items }) {
   }
 
   const item = items[0];
-  const needsOrder = item.needsOrderingReview || item.audioPieces > 1 || item.audioConfidence === 'low';
+  const needsOrder = item.needsOrderingReview === true;
+  const readyPieceLabel = item.audioPieces === 1
+    ? '1 audio piece is'
+    : `${item.audioPieces} audio pieces are`;
   return {
     mode: 'active_intake',
     primaryAction: needsOrder ? 'confirm_audio_order' : 'prepare_draft_review',
     primaryLabel: needsOrder ? 'Confirm this intake order' : 'Prepare Coach draft review',
     rationale: needsOrder
       ? `${item.audioPieces} pieces across ${item.audioBundles} bundles need order review before Swan Coach drafts a workout log.`
-      : `${item.audioPieces} audio piece is ready for Swan Coach draft preparation after client and date checks.`,
+      : `${readyPieceLabel} ready for Swan Coach draft preparation after client and date checks.`,
     route: item.reviewRoute || null,
   };
 }

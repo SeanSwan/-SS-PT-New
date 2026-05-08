@@ -194,6 +194,32 @@ describe('Coach intake item-scoped audio inspection', () => {
     expect(JSON.stringify(result)).not.toMatch(/audio-2/);
   });
 
+  it('does not ask for audio confirmation after the deterministic order gate is cleared', async () => {
+    mockQueue([
+      audioItem('audio-1', {
+        needsOrderingReview: false,
+        confidence: 'low',
+      }),
+    ]);
+
+    const result = await dispatchInspectCoachAudioPieces(
+      { intakeId: 'audio-1' },
+      { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      totalAudioItems: 1,
+      needsOrderingReview: 0,
+      lowConfidence: 1,
+      reviewPlan: {
+        mode: 'active_intake',
+        primaryAction: 'prepare_draft_review',
+        primaryLabel: 'Prepare Coach draft review',
+        route: '/dashboard/admin/coach-assistant?intake=audio-1',
+      },
+    });
+  });
+
   it('executes workspace-generated item-scoped inspection without AI classification', async () => {
     mockQueue([audioItem('audio-1')]);
 

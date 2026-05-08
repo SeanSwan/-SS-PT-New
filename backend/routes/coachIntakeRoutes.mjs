@@ -8,6 +8,7 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import {
+  confirmCoachIntakeAudioOrderHandler,
   createCoachTextIntakeHandler,
   listCoachIntakeHandler,
 } from '../controllers/coachIntakeController.mjs';
@@ -21,6 +22,7 @@ router.use(express.json({ limit: '256kb' }));
 
 router.post('/', createCoachTextIntakeHandler);
 router.get('/queue', listCoachIntakeHandler);
+router.post('/:id/audio-order/confirm', confirmCoachIntakeAudioOrderHandler);
 
 router.use((err, _req, res, _next) => {
   logger.error('[coachIntakeRoutes] unhandled error: %s', err.message);

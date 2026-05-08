@@ -122,3 +122,17 @@ export const TargetActions = styled.div`
     justify-content: flex-start;
   }
 `;
+
+export const TargetNotice = styled.span`
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 24%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #030712) 38%, transparent);
+  color: var(--accent-gold, #C6A84B);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+`;
