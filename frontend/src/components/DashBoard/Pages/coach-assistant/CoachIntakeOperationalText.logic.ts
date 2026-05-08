@@ -62,6 +62,13 @@ const SAFE_AUDIO_REVIEW_LABELS = new Set([
   'Prepare Coach draft review',
 ]);
 
+const SAFE_AUDIO_CONFIDENCE_LABELS: Record<string, string> = {
+  high: 'high confidence',
+  low: 'low confidence',
+  medium: 'medium confidence',
+  single: 'single confidence',
+};
+
 const SAFE_AUDIO_REVIEW_RATIONALES = new Set([
   'Open the Coach intake workspace, choose one audio item, then confirm order before draft generation.',
   'No actionable audio pieces are currently available in this queue.',
@@ -159,6 +166,11 @@ export function safeAudioReviewPlanRationale(value: unknown): string | null {
     AUDIO_ORDER_RATIONALE_PATTERN,
     AUDIO_READY_RATIONALE_PATTERN,
   ]);
+}
+
+export function safeAudioConfidenceLabel(value: unknown): string {
+  if (typeof value !== 'string') return SAFE_AUDIO_CONFIDENCE_LABELS.medium;
+  return SAFE_AUDIO_CONFIDENCE_LABELS[value] || SAFE_AUDIO_CONFIDENCE_LABELS.medium;
 }
 
 export function safeOperatorActionLabel(key: unknown, label: unknown): string {

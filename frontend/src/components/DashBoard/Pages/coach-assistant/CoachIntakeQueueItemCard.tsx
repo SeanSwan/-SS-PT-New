@@ -7,7 +7,7 @@ import React from 'react';
 import { Brain, GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
-import { safeActionableGate, safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
+import { safeActionableGate, safeAudioConfidenceLabel, safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
@@ -83,7 +83,7 @@ export function CoachIntakeQueueItemCard({
           <AudioPuzzleLabel>Audio puzzle</AudioPuzzleLabel>
           <SourceChip $tone="purple">{plural(audioPuzzle.pieceCount, 'piece')}</SourceChip>
           <SourceChip>{plural(audioPuzzle.bundleCount, 'bundle')}</SourceChip>
-          <span>{audioPuzzle.confidence} confidence</span>
+          <span>{safeAudioConfidenceLabel(audioPuzzle.confidence)}</span>
           {audioPuzzle.needsOrderingReview && <SourceChip $tone="gold">order review</SourceChip>}
         </AudioPuzzleRow>
       )}

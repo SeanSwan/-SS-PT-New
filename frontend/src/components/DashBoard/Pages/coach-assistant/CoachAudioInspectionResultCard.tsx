@@ -10,6 +10,7 @@ import styled from 'styled-components';
 import { AlertTriangle, CheckCircle, GitBranch, ListChecks } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
 import {
+  safeAudioConfidenceLabel,
   safeAudioReviewPlanLabel,
   safeAudioReviewPlanRationale,
   safeCommandHint,
@@ -250,7 +251,7 @@ export function CoachAudioInspectionResultCard({
                 <GitBranch size={14} aria-hidden="true" />
                 <strong>{plural(numberValue(item.audioPieces), 'piece')}</strong>
                 <Tag>{plural(numberValue(item.audioBundles), 'bundle')}</Tag>
-                <span>{String(item.audioConfidence || 'medium')} confidence</span>
+                <span>{safeAudioConfidenceLabel(item.audioConfidence)}</span>
                 {item.needsOrderingReview && <Tag $tone="gold">order review</Tag>}
               </ItemMain>
               {item.queueStatus === 'failed' && <AlertTriangle size={15} aria-label="Failed item" />}

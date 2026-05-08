@@ -225,4 +225,39 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).queryByRole('button')).toBeNull();
     expect(onCommandPrompt).not.toHaveBeenCalled();
   });
+
+  it('does not render arbitrary audio confidence labels from queue metadata', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          item={{
+            id: 'item-6',
+            entityId: 'item-6',
+            kind: 'coach_intake',
+            source: 'voice_note',
+            title: 'Audio intake',
+            sourceLabel: 'Voice note',
+            queueStatus: 'unprocessed',
+            clientName: null,
+            clipCount: 2,
+            canReview: false,
+            needsClient: false,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+            audioPuzzle: {
+              pieceCount: 2,
+              bundleCount: 1,
+              confidence: 'private@example.com',
+              needsOrderingReview: false,
+            },
+          } as any}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Audio intake/i);
+    expect(within(card).getByText(/medium confidence/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
+  });
 });

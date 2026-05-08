@@ -393,4 +393,34 @@ describe('ExecutionResultCard route actions', () => {
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=audio-1');
   });
 
+  it('does not render arbitrary audio confidence text from inspection items', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_coach_audio_pieces"
+          client={null}
+          result={{
+            totalAudioItems: 1,
+            queueRoute: '/dashboard/admin/coach-assistant',
+            items: [
+              {
+                id: 'coach:audio-2',
+                kind: 'coach_intake',
+                queueStatus: 'unprocessed',
+                audioPieces: 1,
+                audioBundles: 1,
+                audioConfidence: 'private@example.com',
+                needsOrderingReview: false,
+                reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-2',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/medium confidence/i)).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
+
 });
