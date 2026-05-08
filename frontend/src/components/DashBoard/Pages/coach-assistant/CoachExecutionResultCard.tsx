@@ -26,6 +26,7 @@ import {
   CoachPreparedDraftResultCard,
   isPreparedDraftCommand,
 } from './CoachPreparedDraftResultCard';
+import { safeCommandResultMessage } from './CoachIntakeOperationalText.logic';
 import { isCommandRouteKey } from './commandRouteKeys';
 import { renderCommandParamValue } from './coachCommandFormatters';
 
@@ -108,17 +109,19 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   client,
   message,
 }: ExecutionResultCardProps) {
+  const safeMessage = safeCommandResultMessage(message);
+
   if (result && isAudioInspectionCommand(command)) {
-    return <CoachAudioInspectionResultCard command={command} result={result} message={message} />;
+    return <CoachAudioInspectionResultCard command={command} result={result} message={safeMessage ?? undefined} />;
   }
   if (result && isCoachReviewNextCommand(command)) {
-    return <CoachReviewNextResultCard command={command} result={result} message={message} />;
+    return <CoachReviewNextResultCard command={command} result={result} message={safeMessage ?? undefined} />;
   }
   if (result && isCoachRetentionCommand(command)) {
-    return <CoachRetentionResultCard command={command} result={result} message={message} />;
+    return <CoachRetentionResultCard command={command} result={result} message={safeMessage ?? undefined} />;
   }
   if (result && isPreparedDraftCommand(command)) {
-    return <CoachPreparedDraftResultCard command={command} result={result} message={message} />;
+    return <CoachPreparedDraftResultCard command={command} result={result} message={safeMessage ?? undefined} />;
   }
 
   const clientLabel = client?.firstName ?? null;
@@ -129,7 +132,7 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   return (
     <CardShell>
       <CardTitle><CheckCircle size={16} aria-hidden="true" /> Command Executed</CardTitle>
-      {message && <CardBody>{message}</CardBody>}
+      {safeMessage && <CardBody>{safeMessage}</CardBody>}
       <DataRow><DataLabel>Command</DataLabel><DataValue>{command}</DataValue></DataRow>
       {clientLabel && <DataRow><DataLabel>Client</DataLabel><DataValue>{clientLabel}</DataValue></DataRow>}
       {resultEntries.map(([key, value]) => (

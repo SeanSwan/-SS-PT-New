@@ -10,6 +10,7 @@ import { useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { CheckCircle, XCircle, AlertTriangle, Terminal } from 'lucide-react';
 import { renderCommandParamValue } from './coachCommandFormatters';
+import { safeCommandConfirmationFailure } from './CoachIntakeOperationalText.logic';
 export { ExecutionResultCard } from './CoachExecutionResultCard';
 
 const CardShell = styled.div<{ $destructive?: boolean }>`
@@ -171,7 +172,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
     if (result.success) {
       setDone(true);
     } else {
-      setConfirmError(result.error ?? 'Confirmation failed. Please try again.');
+      setConfirmError(safeCommandConfirmationFailure());
     }
     setBusy(false);
   }, [operationId, busy, done, onConfirm]);

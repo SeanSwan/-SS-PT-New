@@ -48,6 +48,30 @@ describe('CoachInputBar long draft handling', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/saved as an encrypted coach intake draft/i);
   });
 
+  it('does not render arbitrary intake-draft callback messages', async () => {
+    const onCreateIntakeDraft = vi.fn().mockResolvedValue({
+      ok: false,
+      message: 'do-not-render-private-draft-detail',
+    });
+    const oversizedDraft = 'voice note '.repeat(1400);
+
+    render(
+      <CoachInputBar
+        onSend={vi.fn()}
+        onCreateIntakeDraft={onCreateIntakeDraft}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/message input/i), { target: { value: oversizedDraft } });
+    fireEvent.click(screen.getByRole('button', { name: /save as coach intake draft/i }));
+
+    await waitFor(() => {
+      expect(onCreateIntakeDraft).toHaveBeenCalledWith(oversizedDraft.trim());
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(/Could not create Coach intake draft/i);
+    expect(screen.queryByText(/do-not-render-private-draft-detail/i)).not.toBeInTheDocument();
+  });
+
   it('does not submit a parent form from composer action buttons', () => {
     const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
     const onSend = vi.fn();

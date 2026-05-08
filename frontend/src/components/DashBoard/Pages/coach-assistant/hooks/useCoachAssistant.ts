@@ -25,6 +25,7 @@ import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
+import { safeCommandConfirmationFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Human-readable result summaries
@@ -385,22 +386,24 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
     if (!result.success) {
       // Leave the confirmation card in place — don't upgrade to result card
-      return { success: false, error: result.message };
+      return { success: false, error: safeCommandConfirmationFailure() };
     }
 
     setCommandMessages(prev => prev.map(msg => {
       if (msg.metadata?.commandConfirmation?.operationId !== operationId) return msg;
+      const confirmation = msg.metadata.commandConfirmation!;
+      const summary = commandResultSummary(confirmation.command, result.result, confirmation.client);
       return {
         ...msg,
-        content: result.message,
+        content: summary,
         metadata: {
           ...msg.metadata,
           commandConfirmation: undefined,
           commandResult: {
-            command: msg.metadata.commandConfirmation!.command,
+            command: confirmation.command,
             result: result.result,
-            client: msg.metadata.commandConfirmation!.client,
-            message: result.message,
+            client: confirmation.client,
+            message: summary,
           },
         },
       };

@@ -54,6 +54,12 @@ const SAFE_COMMAND_HINTS = new Set([
   'Open the PLAUD workspace to upload or wait for more audio pieces before merging; timeline uses upload/ingest timestamps until recorded_at metadata is available.',
 ]);
 
+const SAFE_COMMAND_RESULT_MESSAGES = new Set([
+  'Command completed.',
+  'Action confirmed.',
+  'No command action was needed.',
+]);
+
 const SAFE_AUDIO_REVIEW_LABELS = new Set([
   'Choose an intake to review',
   'No audio intake to review',
@@ -157,6 +163,14 @@ export function safeCommandHint(value: unknown): string | null {
   return safePatternText(value, SAFE_COMMAND_HINTS);
 }
 
+export function safeCommandResultMessage(value: unknown): string | null {
+  return safePatternText(value, SAFE_COMMAND_RESULT_MESSAGES);
+}
+
+export function safeCommandConfirmationFailure(): string {
+  return 'Confirmation failed. Please try again.';
+}
+
 export function safeAudioReviewPlanLabel(value: unknown): string | null {
   return safePatternText(value, SAFE_AUDIO_REVIEW_LABELS);
 }
@@ -215,6 +229,12 @@ export function safeAudioRejectedSummary(rejectedCount: unknown): string | undef
 
 export function safeCoachIntakeDraftFailure(): string {
   return 'Could not create Coach intake draft.';
+}
+
+export function safeCoachIntakeDraftSaveResult(ok: unknown): string {
+  return ok === true
+    ? 'Saved as an encrypted Coach intake draft.'
+    : safeCoachIntakeDraftFailure();
 }
 
 export function safeTranscriptionFailure(): string {

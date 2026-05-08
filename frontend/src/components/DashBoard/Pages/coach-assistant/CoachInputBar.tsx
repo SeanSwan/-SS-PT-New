@@ -22,6 +22,7 @@ import {
   AI_CHAT_MESSAGE_MAX_CHARS,
   buildChatMessageTooLongError,
 } from '../../../../hooks/aiMessageLimits';
+import { safeCoachIntakeDraftSaveResult } from './CoachIntakeOperationalText.logic';
 
 const MAX_CHARS = AI_CHAT_MESSAGE_MAX_CHARS;
 
@@ -140,7 +141,7 @@ const CoachInputBarComponent: React.FC<CoachInputBarProps> = ({
     setIntakeDraftSaving(true);
     try {
       const result = await onCreateIntakeDraft(text.trim());
-      setInputError(result.message);
+      setInputError(safeCoachIntakeDraftSaveResult(result.ok));
       if (result.ok) {
         setText('');
         clearInterim();
