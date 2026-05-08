@@ -33,6 +33,7 @@ import {
 import { PlaudMergeWorkspace } from '../../components/PlaudClipMerge/PlaudMergeWorkspace';
 import { usePlaudIntakeQueue } from '../../hooks/usePlaudIntakeQueue';
 import type { PlaudIntakeItem } from '../../services/plaudIntakeService';
+import { parsePlaudMergeRequestId } from '../../utils/plaudRouteGuards';
 import {
   ActionButton,
   ActionItem,
@@ -63,8 +64,6 @@ import {
   IntakeStats,
   SourceBadge,
 } from './PlaudIntakeSnapshot.styles';
-
-const PLAUD_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 function useDashboardRole(): 'admin' | 'trainer' {
   const location = useLocation();
@@ -98,11 +97,6 @@ function visibleIntakePreviewItems(items: PlaudIntakeItem[], selectedMergeReques
   return selectedItem ? [selectedItem, ...firstItems.slice(0, 5)] : firstItems;
 }
 
-function parseMergeRequestId(value: string | null): string | null {
-  if (!value || !PLAUD_UUID_RE.test(value)) return null;
-  return value;
-}
-
 function intakePreviewHref(item: PlaudIntakeItem, role: 'admin' | 'trainer'): string {
   if (item.kind === 'merge_request') {
     return item.entityId
@@ -124,7 +118,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
   const params = new URLSearchParams(location.search);
   const rawMergeRequestId = params.get('mergeRequestId');
-  const directMergeRequestId = parseMergeRequestId(rawMergeRequestId);
+  const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
   const hasInvalidDirectMergeRequestId = Boolean(rawMergeRequestId && !directMergeRequestId);
   const reviewNextRequested = params.get('review') === 'next';
   const reviewNextMergeRequestId = reviewNextRequested

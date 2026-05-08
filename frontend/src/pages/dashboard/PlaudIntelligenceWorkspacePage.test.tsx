@@ -82,11 +82,11 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   });
 
   it('accepts direct merge request review links from Swan Coach queue cards', () => {
-    expect(PAGE_SRC).toMatch(/function parseMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/parsePlaudMergeRequestId/);
     expect(PAGE_SRC).toMatch(/params\.get\('mergeRequestId'\)/);
     expect(PAGE_SRC).toMatch(/directMergeRequestId \|\| reviewNextMergeRequestId/);
     expect(PAGE_SRC).not.toMatch(/\^\[0-9a-fA-F-\]\{36\}\$/);
-    expect(PAGE_SRC).toMatch(/\[0-9a-fA-F\]\{8\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{12\}/);
+    expect(PAGE_SRC).not.toMatch(/const PLAUD_UUID_RE/);
   });
 
   it('surfaces malformed direct merge request links with a review-next recovery path', () => {
