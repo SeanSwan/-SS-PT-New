@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 
-function makeQueue({ needsOrderingReview = false } = {}) {
+function makeQueue({ needsOrderingReview = false, needsClient = false } = {}) {
   const intakeId = '77777777-7777-4777-9777-777777777777';
   return {
     items: [{
@@ -14,10 +14,10 @@ function makeQueue({ needsOrderingReview = false } = {}) {
       title: 'Confirmed audio workout note',
       sourceLabel: 'Coach voice note',
       queueStatus: 'ready_review',
-      clientName: null,
+      clientName: needsClient ? null : 'Client 12',
       clipCount: 2,
       canReview: true,
-      needsClient: true,
+      needsClient,
       timelineAt: '2026-05-06T16:30:00.000Z',
       audioPuzzle: {
         pieceCount: 2,
@@ -35,7 +35,7 @@ function makeQueue({ needsOrderingReview = false } = {}) {
       processing: 0,
       readyReview: 1,
       failed: 0,
-      needsClient: 1,
+      needsClient: needsClient ? 1 : 0,
     },
     isLoading: false,
     error: null,
