@@ -32,6 +32,7 @@ import { PlaudCoachHandoffPane, PlaudIntakeLanes } from './PlaudIntelligenceWork
 import {
   formatPlaudQueueStatus,
   formatPlaudSourceLabel,
+  intakePreviewClientLabel,
   intakePreviewHref,
   intakePreviewLabel,
   pickReviewNextMergeRequestId,
@@ -217,7 +218,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
                   to={intakePreviewHref(item, role)}
                   aria-label={intakePreviewLabel(item)}
                 >
-                  <strong>{item.clientName || 'Client pending'}</strong>
+                  <strong>{intakePreviewClientLabel(item)}</strong>
                   {' - '}
                   {formatPlaudQueueStatus(item.queueStatus)}
                 </IntakePreviewLink>

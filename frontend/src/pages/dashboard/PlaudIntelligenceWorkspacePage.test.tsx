@@ -121,6 +121,12 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/to=\{intakePreviewHref\(item, role\)\}/);
   });
 
+  it('keeps intake preview client labels deterministic instead of rendering backend names', () => {
+    expect(LOGIC_SRC).toMatch(/function intakePreviewClientLabel/);
+    expect(PAGE_SRC).toMatch(/intakePreviewClientLabel\(item\)/);
+    expect(`${PAGE_SRC}\n${LOGIC_SRC}`).not.toMatch(/item\.clientName/);
+  });
+
   it('keeps a direct merge request target visible when it is outside the default preview window', () => {
     expect(LOGIC_SRC).toMatch(/function visibleIntakePreviewItems/);
     expect(PAGE_SRC).toMatch(/selectedMergeRequestId/);

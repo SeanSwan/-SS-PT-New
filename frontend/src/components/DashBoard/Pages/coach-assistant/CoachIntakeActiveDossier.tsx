@@ -50,6 +50,8 @@ import {
   canPrepareDraftReview,
   clientGate,
   hasReviewablePreparedDraft,
+  intakeSourceLabel,
+  intakeTitleLabel,
   needsAudioOrderConfirmation,
   nextAction,
   plural,
@@ -157,8 +159,8 @@ export function CoachIntakeActiveDossier({
         <DossierHeader>
           <div>
             <DossierMeta>Review dossier</DossierMeta>
-            <h3>{item.title}</h3>
-            <p>{item.sourceLabel} - {statusText}</p>
+            <h3>{intakeTitleLabel(item)}</h3>
+            <p>{intakeSourceLabel(item)} - {statusText}</p>
           </div>
         </DossierHeader>
         <DossierGrid aria-label="Active intake gates">

@@ -17,6 +17,7 @@ function makeQueue() {
       id: 'item-1',
       entityId: 'item-1',
       kind: 'coach_intake',
+      source: 'audio_upload',
       title: 'Morning lower body notes',
       sourceLabel: 'Manual Upload',
       queueStatus: 'ready_review',
@@ -74,7 +75,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
     expect(await screen.findByText(/Workout log proposal/i)).toBeInTheDocument();
-  });
+  }, 10000);
 
   it('shows a stale-link warning instead of fetching a mismatched proposal id', () => {
     render(

@@ -32,7 +32,7 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
     vi.clearAllMocks();
   });
 
-  it('does not render arbitrary preview labels from intake metadata', () => {
+  it('does not render arbitrary preview labels or raw client names from intake metadata', () => {
     usePlaudIntakeQueueMock.mockReturnValue({
       items: [
         {
@@ -43,9 +43,9 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
           sourceLabel: 'private@example.com',
           queueStatus: 'private@example.com' as any,
           title: 'private@example.com',
-          clientId: null,
-          clientName: null,
-          needsClient: true,
+          clientId: 42,
+          clientName: 'Marcus private@example.com',
+          needsClient: false,
           clipCount: 1,
           parsedExerciseCount: null,
           canReview: true,
@@ -68,7 +68,7 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/client pending/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected client/i)).toBeInTheDocument();
     expect(screen.getByText(/status pending/i)).toBeInTheDocument();
     expect(screen.getByText(/manual upload/i)).toBeInTheDocument();
     expect(container.innerHTML).not.toContain('private@example.com');

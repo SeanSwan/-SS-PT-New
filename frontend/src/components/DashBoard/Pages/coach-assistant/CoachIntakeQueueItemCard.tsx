@@ -11,7 +11,16 @@ import { safeActionableGate, safeAudioConfidenceLabel, safeCommandActionLabel } 
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
-import { activeCoachActionPrompt, itemMeta, itemReviewHref, plural, queueScopedHref, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
+import {
+  activeCoachActionPrompt,
+  itemDisplayTitle,
+  itemMeta,
+  itemReviewHref,
+  itemSourceLabel,
+  plural,
+  queueScopedHref,
+  visibleAudioPuzzle,
+} from './CoachIntakeWorkspace.utils';
 
 interface CoachIntakeQueueItemCardProps {
   item: CoachIntakeItem;
@@ -37,19 +46,20 @@ export function CoachIntakeQueueItemCard({
   const nextActionLabel = safeCommandActionLabel(item.nextActionLabel);
   const holdReasonLabel = safeHoldReasonLabel(item);
   const reasonFacts = holdReasonFacts(item);
+  const displayTitle = itemDisplayTitle(item);
 
   return (
     <ItemCard
       $active={active}
       aria-current={active ? 'true' : undefined}
-      aria-label={`Queue item ${item.title}`}
+      aria-label={`Queue item ${displayTitle}`}
     >
       <ItemTitle>
-        <strong>{item.title}</strong>
+        <strong>{displayTitle}</strong>
         <span>{itemMeta(item)}</span>
       </ItemTitle>
       <ChipColumn>
-        <SourceChip>{item.sourceLabel}</SourceChip>
+        <SourceChip>{itemSourceLabel(item)}</SourceChip>
         {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
         {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
         {nextActionLabel && onCommandPrompt ? (
@@ -60,7 +70,7 @@ export function CoachIntakeQueueItemCard({
         ) : nextActionLabel ? (
           <SourceChip $tone="purple">{nextActionLabel}</SourceChip>
         ) : null}
-        <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${item.title}`}>
+        <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${displayTitle}`}>
           Review
         </WorkspaceLink>
       </ChipColumn>

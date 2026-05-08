@@ -4,7 +4,11 @@
  * Pure gate, action, and display helpers for the active Coach intake dossier.
  */
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
-import { safeCommandActionLabel, safeCommandGateValue } from './CoachIntakeOperationalText.logic';
+import {
+  safeCoachIntakeSourceLabel,
+  safeCommandActionLabel,
+  safeCommandGateValue,
+} from './CoachIntakeOperationalText.logic';
 
 export interface DossierAction {
   label: string;
@@ -34,7 +38,7 @@ export function audioPieceCount(item: CoachIntakeItem): number {
 
 export function clientGate(item: CoachIntakeItem): string {
   if (item.needsClient) return 'Client confirmation required';
-  if (item.clientName || item.clientId) return 'Client confirmed';
+  if (item.clientId != null) return 'Client confirmed';
   return 'Client pending';
 }
 
@@ -90,6 +94,15 @@ export function blockingGate(item: CoachIntakeItem): string {
   return 'No blocking gate';
 }
 
+export function intakeSourceLabel(item: CoachIntakeItem): string {
+  return safeCoachIntakeSourceLabel(item.source);
+}
+
+export function intakeTitleLabel(item: CoachIntakeItem): string {
+  const sourceLabel = intakeSourceLabel(item);
+  return sourceLabel === 'Coach intake' ? 'Coach intake item' : sourceLabel;
+}
+
 function actionIdForActionKey(actionKey?: string | null): string | null {
   if (actionKey === 'confirm_audio_order') return 'confirm-audio';
   if (actionKey === 'resolve_client') return 'ask-coach';
@@ -122,7 +135,7 @@ export function nextAction(item: CoachIntakeItem): DossierAction {
 }
 
 export function activeReason(item: CoachIntakeItem, statusText: string): string {
-  return `${item.sourceLabel} is selected from the intake queue in ${statusText.toLowerCase()} state.`;
+  return `${intakeSourceLabel(item)} is selected from the intake queue in ${statusText.toLowerCase()} state.`;
 }
 
 export function timeAnchor(item: CoachIntakeItem): string {

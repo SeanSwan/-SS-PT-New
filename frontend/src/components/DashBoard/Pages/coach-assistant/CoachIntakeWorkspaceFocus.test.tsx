@@ -94,7 +94,9 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     const queue = makeQueue();
     queue.items[0] = {
       ...queue.items[0],
-      sourceLabel: 'Typed note',
+      title: 'Marcus private@example.com lower body note',
+      source: 'typed_note',
+      sourceLabel: 'private@example.com',
       needsClient: true,
       audioPuzzle: {
         groupingConfidence: 'medium',
@@ -120,14 +122,46 @@ describe('CoachIntakeWorkspace focus handoff', () => {
       expect(screen.getByTestId('coach-active-intake-dossier')).toBeInTheDocument();
     });
 
+    const target = screen.getByTestId('coach-active-intake-dossier');
     const ribbon = screen.getByLabelText('Active item status');
     expect(ribbon).toBeInTheDocument();
     expect(within(ribbon).getByText('Why this is active')).toBeInTheDocument();
     expect(within(ribbon).getByText('Typed note is selected from the intake queue in ready review state.')).toBeInTheDocument();
+    expect(within(target).getByRole('heading', { name: /Typed note/i })).toBeInTheDocument();
+    expect(within(target).queryByText(/Marcus/i)).toBeNull();
+    expect(within(target).queryByText(/private@example\.com/i)).toBeNull();
     expect(within(ribbon).getByText('Blocking gate')).toBeInTheDocument();
     expect(within(ribbon).getByText('Audio order must be confirmed')).toBeInTheDocument();
     expect(within(ribbon).getByText('Next action')).toBeInTheDocument();
     expect(within(ribbon).getByText('Confirm audio order')).toBeInTheDocument();
+  });
+
+  it('does not treat raw clientName metadata as a confirmed client gate', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      clientName: 'Marcus private@example.com',
+      clientId: null,
+      needsClient: false,
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByTestId('coach-active-intake-dossier');
+    expect(within(target).getByText('Client gate')).toBeInTheDocument();
+    expect(within(target).getByText('Client pending')).toBeInTheDocument();
+    expect(within(target).queryByText('Client confirmed')).toBeNull();
+    expect(within(target).queryByText(/private@example\.com/i)).toBeNull();
   });
 
   it('shows the active intake time anchor in the focused dossier', async () => {

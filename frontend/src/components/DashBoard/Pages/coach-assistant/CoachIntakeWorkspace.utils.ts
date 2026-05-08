@@ -10,6 +10,7 @@ import type {
 } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
+import { safeCoachIntakeSourceLabel } from './CoachIntakeOperationalText.logic';
 
 const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COACH_QUEUE_SCOPES = new Set<CoachIntakeQueueScope>([
@@ -30,9 +31,27 @@ export function statusLabel(status: string): string {
     .join(' ');
 }
 
+export function itemClientStatusLabel(item: CoachIntakeItem): string {
+  if (item.needsClient) return 'Client needs confirmation';
+  return item.clientId == null ? 'Client pending' : 'Selected client';
+}
+
+export function itemSourceLabel(item: CoachIntakeItem): string {
+  const sourceLabel = safeCoachIntakeSourceLabel(item.source);
+  if (sourceLabel !== 'Coach intake') return sourceLabel;
+  if (item.kind === 'merge_request') return 'PLAUD merge';
+  if (item.kind === 'clip') return 'Manual upload';
+  return sourceLabel;
+}
+
+export function itemDisplayTitle(item: CoachIntakeItem): string {
+  const sourceLabel = itemSourceLabel(item);
+  return sourceLabel === 'Coach intake' ? 'Coach intake item' : sourceLabel;
+}
+
 export function itemMeta(item: CoachIntakeItem): string {
   const pieces = [
-    item.clientName || (item.needsClient ? 'Client needs confirmation' : 'Client pending'),
+    itemClientStatusLabel(item),
     statusLabel(item.queueStatus),
   ];
   if (typeof item.clipCount === 'number' && item.clipCount > 0) {

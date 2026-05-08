@@ -19,6 +19,7 @@ function makeQueue() {
         id: 'item-1',
         entityId: 'item-1',
         kind: 'coach_intake',
+        source: 'audio_upload',
         title: 'Morning lower body notes',
         sourceLabel: 'Manual Upload',
         queueStatus: 'ready_review',
@@ -70,7 +71,7 @@ describe('CoachIntakeWorkspace', () => {
 
     expect(screen.getByText(/Voice intake command center/i)).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getAllByText(/Morning lower body notes/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Audio upload/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Audio puzzle/i)).toBeInTheDocument();
     expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();
     expect(screen.getByText(/order review/i)).toBeInTheDocument();
@@ -94,6 +95,7 @@ describe('CoachIntakeWorkspace', () => {
       id: 'merge-1',
       entityId: '11111111-1111-4111-8111-111111111111',
       kind: 'merge_request',
+      source: 'plaud_merge',
       sourceLabel: 'PLAUD merge',
     };
 
@@ -119,6 +121,7 @@ describe('CoachIntakeWorkspace', () => {
       ...queue.items[0],
       id: 'item-2',
       entityId: 'item-2',
+      source: 'voice_note',
       title: 'Later upper body note',
       queueStatus: 'needs_client',
       canReview: false,
@@ -141,7 +144,8 @@ describe('CoachIntakeWorkspace', () => {
 
     const target = screen.getByLabelText(/Active review target/i);
     expect(within(target).getByText(/Active review target/i)).toBeInTheDocument();
-    expect(within(target).getByText(/Later upper body note/i)).toBeInTheDocument();
+    expect(within(target).getByRole('heading', { name: /Coach voice note/i })).toBeInTheDocument();
+    expect(within(target).queryByText(/Later upper body note/i)).toBeNull();
     expect(within(target).getAllByText(/Needs Client/i).length).toBeGreaterThan(0);
     expect(within(target).getByText(/Review dossier/i)).toBeInTheDocument();
     expect(within(target).getByText(/Client confirmation required/i)).toBeInTheDocument();
@@ -226,6 +230,7 @@ describe('CoachIntakeWorkspace', () => {
         ...queue.items[0],
         id: 'new-unprocessed',
         entityId: 'new-unprocessed',
+        source: 'typed_note',
         title: 'Newer unprocessed note',
         queueStatus: 'unprocessed',
         canReview: false,
@@ -235,6 +240,7 @@ describe('CoachIntakeWorkspace', () => {
         ...queue.items[0],
         id: 'old-ready',
         entityId: 'old-ready',
+        source: 'voice_note',
         title: 'Older ready workout draft',
         queueStatus: 'ready_review',
         canReview: true,
@@ -253,11 +259,13 @@ describe('CoachIntakeWorkspace', () => {
       </MemoryRouter>,
     );
 
-    const readyTitle = screen.getByText(/Older ready workout draft/i);
-    const newerTitle = screen.getByText(/Newer unprocessed note/i);
+    const readyTitle = screen.getByLabelText(/Queue item Coach voice note/i);
+    const newerTitle = screen.getByLabelText(/Queue item Typed note/i);
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=old-ready');
+    expect(screen.queryByText(/Older ready workout draft/i)).toBeNull();
+    expect(screen.queryByText(/Newer unprocessed note/i)).toBeNull();
     expect(readyTitle.compareDocumentPosition(newerTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

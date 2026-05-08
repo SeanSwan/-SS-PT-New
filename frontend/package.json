@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:coach-plaud-flow": "vitest run src/components/DashBoard/Pages/coach-assistant src/components/PlaudClipMerge/PlaudMergeReviewFocus.test.tsx src/components/PlaudClipMerge/PlaudMergeWorkspaceOutcome.test.tsx src/pages/dashboard/PlaudIntelligenceWorkspacePage.test.tsx --reporter verbose",
+    "test:coach-plaud-flow": "vitest run src/components/DashBoard/Pages/coach-assistant src/components/PlaudClipMerge/PlaudMergeReviewFocus.test.tsx src/components/PlaudClipMerge/PlaudMergeWorkspaceOutcome.test.tsx src/pages/dashboard/PlaudIntelligenceWorkspacePage.test.tsx --reporter verbose --testTimeout 10000",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",

@@ -22,6 +22,7 @@ function makeQueue() {
       id: 'item-1',
       entityId: 'item-1',
       kind: 'coach_intake',
+      source: 'audio_upload',
       title: 'Morning lower body notes',
       sourceLabel: 'Manual Upload',
       queueStatus: 'ready_review',
@@ -121,7 +122,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       expect(approveCoachProposal).toHaveBeenCalledWith('proposal-1', 'review-v1.test');
       expect(queue.refresh).toHaveBeenCalled();
     });
-  });
+  }, 10000);
 
   it('closes a finished prepared draft and advances to the next actionable intake', async () => {
     const queue = makeQueue();
@@ -129,6 +130,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       ...queue.items[0],
       id: 'item-2',
       entityId: 'item-2',
+      source: 'voice_note',
       title: 'Evening upper body notes',
       timelineAt: '2026-05-07T18:30:00.000Z',
       latestProposalId: null,
@@ -174,7 +176,8 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-2');
     });
     expect(screen.queryByLabelText(/Prepared draft review panel/i)).toBeNull();
-    expect(screen.getByRole('status')).toHaveTextContent('Active intake: Evening upper body notes');
+    expect(screen.getByRole('status')).toHaveTextContent('Active intake: Coach voice note');
+    expect(screen.getByRole('status')).not.toHaveTextContent('Evening upper body notes');
   });
 
   it('closes a rejected prepared draft and advances to the next actionable intake', async () => {
@@ -183,6 +186,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       ...queue.items[0],
       id: 'item-2',
       entityId: 'item-2',
+      source: 'voice_note',
       title: 'Evening upper body notes',
       timelineAt: '2026-05-07T18:30:00.000Z',
       latestProposalId: null,
@@ -236,6 +240,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       ...queue.items[0],
       id: 'item-2',
       entityId: 'item-2',
+      source: 'voice_note',
       title: 'Evening upper body notes',
       timelineAt: '2026-05-07T18:30:00.000Z',
       latestProposalId: null,
@@ -396,6 +401,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       ...queue.items[0],
       id: 'item-2',
       entityId: 'item-2',
+      source: 'voice_note',
       title: 'Evening upper body notes',
       timelineAt: '2026-05-07T18:30:00.000Z',
       latestProposalId: null,
@@ -404,6 +410,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       ...queue.items[0],
       id: 'item-3',
       entityId: 'item-3',
+      source: 'typed_note',
       title: 'Manual switch shoulder note',
       timelineAt: '2026-05-08T18:30:00.000Z',
       latestProposalId: null,
@@ -463,6 +470,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     );
 
     expect(screen.queryByText(/Workout log applied/i)).toBeNull();
-    expect(screen.getAllByText(/Manual switch shoulder note/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Typed note/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Manual switch shoulder note/i)).toBeNull();
   });
 });

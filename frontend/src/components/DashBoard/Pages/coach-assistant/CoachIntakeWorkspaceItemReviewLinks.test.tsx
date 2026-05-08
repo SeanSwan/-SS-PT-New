@@ -17,6 +17,7 @@ function makeQueue() {
         id: 'coach-1',
         entityId: 'coach-1',
         kind: 'coach_intake',
+        source: 'voice_note',
         title: 'Morning lower body notes',
         sourceLabel: 'Coach voice note',
         queueStatus: 'ready_review',
@@ -30,6 +31,7 @@ function makeQueue() {
         id: 'merge-1',
         entityId: '11111111-1111-4111-8111-111111111111',
         kind: 'merge_request',
+        source: 'plaud_merge',
         title: 'PLAUD merge awaiting review',
         sourceLabel: 'PLAUD merge',
         queueStatus: 'ready_review',
@@ -69,9 +71,9 @@ describe('CoachIntakeWorkspace item review links', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: /review intake morning lower body notes/i }))
+    expect(screen.getByRole('link', { name: /review intake coach voice note/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=coach-1');
-    expect(screen.getByRole('link', { name: /review intake plaud merge awaiting review/i }))
+    expect(screen.getByRole('link', { name: /review intake plaud merge/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
@@ -90,7 +92,7 @@ describe('CoachIntakeWorkspace item review links', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: /review intake plaud merge missing entity id/i }))
+    expect(screen.getByRole('link', { name: /review intake plaud merge/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
   });
 
@@ -109,6 +111,7 @@ describe('CoachIntakeWorkspace item review links', () => {
 
     const selectedRow = screen.getByText(/selected intake/i).closest('[aria-current="true"]');
     expect(selectedRow).toBeTruthy();
-    expect(selectedRow).toHaveTextContent(/Morning lower body notes/i);
+    expect(selectedRow).toHaveTextContent(/Coach voice note/i);
+    expect(selectedRow).not.toHaveTextContent(/Morning lower body notes/i);
   });
 });

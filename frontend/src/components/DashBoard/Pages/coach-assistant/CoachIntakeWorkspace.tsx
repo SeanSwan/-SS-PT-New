@@ -47,6 +47,7 @@ import {
   actionableItemsAfter,
   isActiveItem,
   itemEntityId,
+  itemDisplayTitle,
   itemProposalReviewHref,
   itemReviewHref,
   orderedQueueItems,
@@ -150,7 +151,7 @@ export function CoachIntakeWorkspace({
     if (!shouldAdvance) {
       setReviewOutcome({
         activeTargetId: activeReviewTargetId,
-        activeTargetLabel: activeItem?.title || null,
+        activeTargetLabel: activeItem ? itemDisplayTitle(activeItem) : null,
         outcome: outcomeFromProposal(proposal, false),
       });
       void refresh();
@@ -171,7 +172,11 @@ export function CoachIntakeWorkspace({
         activeTargetId: nextItemAfterAction
           ? itemEntityId(nextItemAfterAction) || nextItemAfterAction.id
           : activeReviewTargetId,
-        activeTargetLabel: nextItemAfterAction?.title || activeItem?.title || null,
+        activeTargetLabel: nextItemAfterAction
+          ? itemDisplayTitle(nextItemAfterAction)
+          : activeItem
+            ? itemDisplayTitle(activeItem)
+            : null,
         outcome: outcomeFromProposal(proposal, !!nextItemAfterAction),
       });
       navigate(queueScopedHref(itemReviewHref(nextItemAfterAction, coachWorkspaceHref), queue.scope));

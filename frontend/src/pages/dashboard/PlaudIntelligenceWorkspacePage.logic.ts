@@ -39,8 +39,12 @@ export function queueLoadErrorMessage(): string {
   return 'Unable to load PLAUD intake queue.';
 }
 
+export function intakePreviewClientLabel(item: PlaudIntakeItem): string {
+  return item.needsClient || item.clientId == null ? 'Client pending' : 'Selected client';
+}
+
 export function intakePreviewLabel(item: PlaudIntakeItem): string {
-  const clientLabel = item.clientName || 'client pending';
+  const clientLabel = intakePreviewClientLabel(item).toLowerCase();
   return `Review ${formatPlaudSourceLabel(item.source)} intake, ${clientLabel}, ${formatPlaudQueueStatus(item.queueStatus)}`;
 }
 

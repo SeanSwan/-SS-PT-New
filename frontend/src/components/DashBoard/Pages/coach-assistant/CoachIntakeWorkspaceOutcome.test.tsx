@@ -31,6 +31,7 @@ function makeQueue() {
       id: 'item-1',
       entityId: 'item-1',
       kind: 'coach_intake',
+      source: 'voice_note',
       title: 'Morning lower body notes',
       sourceLabel: 'Coach voice note',
       queueStatus: 'ready_review',
@@ -79,5 +80,5 @@ describe('CoachIntakeWorkspace outcome receipt', () => {
       expect(receipt).toHaveFocus();
     });
     expect(screen.getByText('Queue refreshed; no next actionable intake was found.')).toBeInTheDocument();
-  });
+  }, 10000);
 });

@@ -9,6 +9,40 @@ import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 
 describe('CoachIntakeQueueItemCard', () => {
+  it('does not render raw client names from queue metadata', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          item={{
+            id: 'item-client-safe',
+            entityId: 'item-client-safe',
+            kind: 'coach_intake',
+            source: 'chat_narrative',
+            title: 'Marcus private@example.com lower body note',
+            sourceLabel: 'private@example.com',
+            queueStatus: 'ready_review',
+            clientId: 42,
+            clientName: 'Marcus private@example.com',
+            clipCount: 1,
+            canReview: true,
+            needsClient: false,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Long Coach note/i);
+    expect(within(card).getByText((content, element) => (
+      element?.tagName.toLowerCase() === 'strong' && /Long Coach note/i.test(content)
+    ))).toBeInTheDocument();
+    expect(within(card).getByText(/Selected client/i)).toBeInTheDocument();
+    expect(within(card).queryByText(/Marcus/i)).toBeNull();
+    expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
+  });
+
   it('renders gate and next-action chips from backend queue metadata', () => {
     const onCommandPrompt = vi.fn();
 
@@ -39,12 +73,12 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    const card = screen.getByLabelText(/Queue item Morning lower body notes/i);
+    const card = screen.getByLabelText(/Queue item Coach voice note/i);
     expect(within(card).getByText(/Client confirmation required/i)).toBeInTheDocument();
     expect(within(card).getByText(/Ask Coach to resolve client/i)).toBeInTheDocument();
     fireEvent.click(within(card).getByRole('button', { name: /ask coach to resolve client/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-1');
-    expect(within(card).getByRole('link', { name: /review intake morning lower body notes/i }))
+    expect(within(card).getByRole('link', { name: /review intake Coach voice note/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&scope=failed');
   });
 
@@ -147,7 +181,7 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    const card = screen.getByLabelText(/Queue item Client puzzle note/i);
+    const card = screen.getByLabelText(/Queue item Long Coach note/i);
     expect(within(card).getByLabelText(/Hold reason preview/i)).toBeInTheDocument();
     expect(within(card).getByText(/Client confirmation needed/i)).toBeInTheDocument();
     expect(within(card).getByText(/2 candidates/i)).toBeInTheDocument();
@@ -184,7 +218,7 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    const card = screen.getByLabelText(/Queue item Unsafe hold reason/i);
+    const card = screen.getByLabelText(/Queue item Long Coach note/i);
     expect(within(card).queryByLabelText(/Hold reason preview/i)).toBeNull();
     expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
   });
@@ -218,7 +252,7 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    const card = screen.getByLabelText(/Queue item Unsafe gate action/i);
+    const card = screen.getByLabelText(/Queue item Long Coach note/i);
     expect(within(card).queryByText(/Marcus/i)).toBeNull();
     expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
     expect(within(card).queryByText(/Email Marcus/i)).toBeNull();
@@ -256,7 +290,7 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    const card = screen.getByLabelText(/Queue item Audio intake/i);
+    const card = screen.getByLabelText(/Queue item Coach voice note/i);
     expect(within(card).getByText(/medium confidence/i)).toBeInTheDocument();
     expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
   });

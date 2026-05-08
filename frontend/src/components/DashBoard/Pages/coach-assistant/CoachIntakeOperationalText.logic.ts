@@ -95,6 +95,19 @@ const SAFE_OPERATOR_ACTION_LABELS_BY_KEY: Record<string, string> = {
   schema_unavailable: 'Run Coach intake migration',
 };
 
+const SAFE_INTAKE_SOURCE_LABELS: Record<string, string> = {
+  applaud_webhook: 'Applaud',
+  audio_upload: 'Audio upload',
+  chat_narrative: 'Long Coach note',
+  manual_upload: 'Manual upload',
+  pdf_transcript: 'PDF transcript',
+  plaud_clip: 'PLAUD clip',
+  plaud_merge: 'PLAUD merge',
+  transcript_file: 'Transcript file',
+  typed_note: 'Typed note',
+  voice_note: 'Coach voice note',
+};
+
 const AUDIO_ORDER_RATIONALE_PATTERN = /^\d+ pieces across \d+ bundles need order review before Swan Coach drafts a workout log\.$/;
 const AUDIO_READY_RATIONALE_PATTERN = /^(1 audio piece is|\d+ audio pieces are) ready for Swan Coach draft preparation after client and date checks\.$/;
 
@@ -193,6 +206,12 @@ export function safeOperatorActionLabel(key: unknown, label: unknown): string {
   const text = compactText(label);
   if (text && Object.values(SAFE_OPERATOR_ACTION_LABELS_BY_KEY).includes(text)) return text;
   return 'Review Coach intake health';
+}
+
+export function safeCoachIntakeSourceLabel(source: unknown): string {
+  return typeof source === 'string' && SAFE_INTAKE_SOURCE_LABELS[source]
+    ? SAFE_INTAKE_SOURCE_LABELS[source]
+    : 'Coach intake';
 }
 
 export function safeHoldReasonLabel(value: unknown): string | null {
