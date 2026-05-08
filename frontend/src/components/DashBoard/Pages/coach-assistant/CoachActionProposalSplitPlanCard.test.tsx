@@ -67,7 +67,8 @@ describe('CoachActionProposalCard split-plan flow', () => {
     expect(screen.getByRole('button', { name: /approve split plan/i })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
 
-    expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout candidate 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Workout candidate 2/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Reason: Split boundary proposed for trainer review/i)).toHaveLength(2);
     expect(screen.queryByText(/Clip two starts a separate upper-body session/i)).not.toBeInTheDocument();
     expect(screen.getByText(/1 evidence ref withheld/i)).toBeInTheDocument();
@@ -99,7 +100,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
 
-    expect(await screen.findByText(/Session boundary/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout candidate 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Reason: Split boundary proposed for trainer review/i)).toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-split-reason-detail/i)).not.toBeInTheDocument();
   });
@@ -128,9 +129,41 @@ describe('CoachActionProposalCard split-plan flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
 
-    expect(await screen.findByText(/Session boundary/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout candidate 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Evidence: 1 evidence ref available/i)).toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-evidence-ref/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary split-plan title or timing text from proposal details', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'split-review-token-1',
+        detail: {
+          splitPlan: {
+            splitCount: 1,
+            splits: [
+              {
+                title: 'private@example.com',
+                date: 'private@example.com',
+                recordedAtStart: 'Norma Private',
+                recordedAtEnd: '2026-05-05T10:30:00.000Z',
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Workout candidate 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ends: 2026-05-05T10:30:00.000Z/i)).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.queryByText(/Norma Private/i)).toBeNull();
   });
 
   it('shows split-plan preparation count after approval', async () => {
@@ -169,7 +202,7 @@ describe('CoachActionProposalCard split-plan flow', () => {
     render(<CoachActionProposalCard proposal={proposal} />);
 
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
-    expect(await screen.findByText(/Morning lower body/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout candidate 1/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /approve split plan/i }));
 
     expect(approveCoachProposal).toHaveBeenCalledWith(proposal.id, 'split-review-token-1');

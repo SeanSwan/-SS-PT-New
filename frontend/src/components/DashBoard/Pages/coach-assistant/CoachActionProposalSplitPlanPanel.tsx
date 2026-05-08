@@ -65,10 +65,55 @@ function splitReasonText(value: unknown) {
   return text(value) ? 'Split boundary proposed for trainer review' : null;
 }
 
+function safeDateText(value: unknown) {
+  const date = text(value);
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return null;
+  }
+
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date ? null : date;
+}
+
+function safeTimestampText(value: unknown) {
+  const timestamp = text(value);
+  if (
+    !timestamp
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/.test(timestamp)
+  ) {
+    return null;
+  }
+
+  return Number.isNaN(Date.parse(timestamp)) ? null : timestamp;
+}
+
 function splitItems(detail: Record<string, unknown> | null) {
   const splitPlan = asRecord(detail?.splitPlan);
   const splits = splitPlan?.splits;
   return Array.isArray(splits) ? splits.map(asRecord).filter(isRecord) : [];
+}
+
+function renderSplitCandidate(split: Record<string, unknown>, index: number) {
+  const date = safeDateText(split.date);
+  const start = safeTimestampText(split.recordedAtStart);
+  const end = safeTimestampText(split.recordedAtEnd);
+  const reason = splitReasonText(split.reason);
+  const evidence = evidenceText(split.evidenceRefs);
+  const redactedEvidence = redactedEvidenceText(split.redactedEvidenceRefCount);
+
+  return (
+    <SplitCard key={`split-${index + 1}`}>
+      <SplitTitle>{`Workout candidate ${index + 1}`}</SplitTitle>
+      <SplitMeta>
+        {date && <div>Date: {date}</div>}
+        {start && <div>Starts: {start}</div>}
+        {end && <div>Ends: {end}</div>}
+        {reason && <div>Reason: {reason}</div>}
+        {evidence && <div>Evidence: {evidence}</div>}
+        {redactedEvidence && <div>{redactedEvidence}</div>}
+      </SplitMeta>
+    </SplitCard>
+  );
 }
 
 export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<string, unknown> | null }) {
@@ -76,21 +121,7 @@ export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<s
   if (!splits.length) return null;
   return (
     <Panel role="group" aria-label="Split plan workout candidates">
-      {splits.map((split, index) => (
-        <SplitCard key={`${text(split.title) || 'split'}-${index + 1}`}>
-          <SplitTitle>{text(split.title) || `Workout candidate ${index + 1}`}</SplitTitle>
-          <SplitMeta>
-            {text(split.date) && <div>Date: {text(split.date)}</div>}
-            {text(split.recordedAtStart) && <div>Starts: {text(split.recordedAtStart)}</div>}
-            {text(split.recordedAtEnd) && <div>Ends: {text(split.recordedAtEnd)}</div>}
-            {splitReasonText(split.reason) && <div>Reason: {splitReasonText(split.reason)}</div>}
-            {evidenceText(split.evidenceRefs) && <div>Evidence: {evidenceText(split.evidenceRefs)}</div>}
-            {redactedEvidenceText(split.redactedEvidenceRefCount) && (
-              <div>{redactedEvidenceText(split.redactedEvidenceRefCount)}</div>
-            )}
-          </SplitMeta>
-        </SplitCard>
-      ))}
+      {splits.map(renderSplitCandidate)}
     </Panel>
   );
 }
