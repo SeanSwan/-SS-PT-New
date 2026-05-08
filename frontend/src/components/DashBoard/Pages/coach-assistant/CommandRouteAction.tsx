@@ -75,8 +75,13 @@ function safeInternalRoute(value: unknown): string | null {
   if (decodedPath.includes('/plaud')) {
     const [, rawSearch = ''] = route.split('?', 2);
     const search = rawSearch.split('#', 1)[0];
-    const mergeRequestId = new URLSearchParams(search).get('mergeRequestId');
-    if (mergeRequestId && !isPlaudMergeRequestId(mergeRequestId)) return null;
+    const searchParams = new URLSearchParams(search);
+    if (
+      searchParams.has('mergeRequestId') &&
+      !isPlaudMergeRequestId(searchParams.get('mergeRequestId'))
+    ) {
+      return null;
+    }
   }
 
   return route;

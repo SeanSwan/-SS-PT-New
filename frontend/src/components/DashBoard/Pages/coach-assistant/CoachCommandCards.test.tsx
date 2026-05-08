@@ -88,6 +88,25 @@ describe('ExecutionResultCard route actions', () => {
     expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
   });
 
+  it('skips empty merge request review params and uses the queue fallback', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_plaud_intake"
+          client={null}
+          result={{
+            readyReview: 2,
+            queueRoute: '/dashboard/admin/plaud',
+            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open plaud workspace/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+  });
+
   it('does not render route actions for traversal-shaped dashboard links', () => {
     render(
       <MemoryRouter>
