@@ -54,4 +54,21 @@ describe('CoachMessage intake error safety', () => {
     );
     expect(screen.queryByText(/do-not-render-private-audio-detail/i)).not.toBeInTheDocument();
   });
+
+  it('does not render arbitrary proposal preparation error messages', () => {
+    render(
+      <CoachMessage
+        message={assistantMessage({
+          coachActionProposalError: {
+            code: 'UNSAFE_BACKEND_CODE',
+            message: 'do-not-render-private-proposal-detail',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Proposal Preparation Failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Coach could not prepare that draft safely/i)).toBeInTheDocument();
+    expect(screen.queryByText(/do-not-render-private-proposal-detail/i)).not.toBeInTheDocument();
+  });
 });

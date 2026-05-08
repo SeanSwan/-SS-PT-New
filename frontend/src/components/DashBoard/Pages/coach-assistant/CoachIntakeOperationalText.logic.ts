@@ -229,6 +229,10 @@ export function safeQueueLoadFailure(): string {
   return 'Queue could not be loaded. Refresh or sign in again.';
 }
 
+export function safeProposalPreparationFailure(): string {
+  return 'Coach could not prepare that draft safely. Try again from the active intake.';
+}
+
 export function holdReasonFacts(result: Record<string, unknown>): string[] {
   const facts: string[] = [];
   const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);

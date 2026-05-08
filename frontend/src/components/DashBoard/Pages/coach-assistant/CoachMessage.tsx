@@ -35,6 +35,7 @@ import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   safeAudioRejectedSummary,
   safeCommandActionLabel,
+  safeProposalPreparationFailure,
   safeTranscriptFailureReason,
 } from './CoachIntakeOperationalText.logic';
 
@@ -420,7 +421,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       {coachActionProposalError && (
         <ActionCard style={{ borderColor: 'var(--error, #C92A54)' }}>
           <CardTitle style={{ color: 'var(--error, #C92A54)' }}>Proposal Preparation Failed</CardTitle>
-          <CardRow><CardValue>{coachActionProposalError.message}</CardValue></CardRow>
+          <CardRow><CardValue>{safeProposalPreparationFailure()}</CardValue></CardRow>
         </ActionCard>
       )}
 
