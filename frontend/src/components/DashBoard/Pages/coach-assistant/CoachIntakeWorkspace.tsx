@@ -31,6 +31,7 @@ import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
+import { useCoachIntakeScopeUrlSync } from './hooks/useCoachIntakeScopeUrlSync';
 import {
   ActionButton,
   ActionRow,
@@ -89,6 +90,10 @@ export function CoachIntakeWorkspace({
   const [reviewOutcome, setReviewOutcome] = React.useState<CoachIntakeOutcome | null>(null);
   const activeDossierRef = React.useRef<HTMLElement | null>(null);
   const focusedActiveDossierRef = React.useRef<string | null>(null);
+  const handleScopeChange = useCoachIntakeScopeUrlSync({
+    activeScope: queue.scope,
+    setScope: queue.setScope,
+  });
 
   const workspaceHref = `/dashboard/${userRole}/plaud`;
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
@@ -202,7 +207,7 @@ export function CoachIntakeWorkspace({
         retention={queue.retention}
         retentionPurgePlan={queue.retentionPurgePlan}
         onCommandPrompt={onCommandPrompt}
-        onScopeChange={queue.setScope}
+        onScopeChange={handleScopeChange}
       />
 
       {activeItem && (
@@ -254,7 +259,7 @@ export function CoachIntakeWorkspace({
           <CoachIntakeQueueScopeTabs
             activeScope={queue.scope}
             summary={summary}
-            onScopeChange={queue.setScope}
+            onScopeChange={handleScopeChange}
           />
           {isLoading ? (
             <ItemCard><ItemTitle><strong>Loading intake queue</strong><span>Checking Coach, PLAUD, and voice work items.</span></ItemTitle></ItemCard>
