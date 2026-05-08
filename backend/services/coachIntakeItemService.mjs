@@ -74,6 +74,15 @@ function filterByScope(items, scope) {
   return items.filter((item) => item.queueStatus === scope);
 }
 
+function mergeIntakeSummaries(...summaries) {
+  return summaries.reduce((merged, summary = {}) => {
+    for (const key of Object.keys(merged)) {
+      merged[key] += Number(summary[key] || 0);
+    }
+    return merged;
+  }, summarizeUnifiedItems([]));
+}
+
 export async function createCoachTextIntakeItem({
   userId,
   text,
@@ -209,5 +218,5 @@ export async function listUnifiedCoachIntakeItems(options = {}) {
   const limit = normalizeLimit(options.limit);
   const scope = normalizeScope(options.scope);
   const items = sortCoachIntakeReviewOrder([...coach.items, ...plaud.items]).slice(0, limit);
-  return { items, summary: summarizeUnifiedItems([...coach.items, ...plaud.items]), scope, limit, schemaReady: coach.schemaReady };
+  return { items, summary: mergeIntakeSummaries(coach.summary, plaud.summary), scope, limit, schemaReady: coach.schemaReady };
 }

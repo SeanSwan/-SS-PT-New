@@ -3,13 +3,14 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   CoachIntakeSchemaUnavailableError,
   createCoachTextIntakeItem,
+  listUnifiedCoachIntakeItems,
   mapCoachRowToIntakeItem,
   summarizeUnifiedItems,
 } from '../../services/coachIntakeItemService.mjs';
 
 const ORIGINAL_ENV = { ...process.env };
 
-function fakeSequelize({ tableReady = true } = {}) {
+function fakeSequelize({ tableReady = true, listRows = [] } = {}) {
   const calls = [];
   return {
     calls,
@@ -36,6 +37,7 @@ function fakeSequelize({ tableReady = true } = {}) {
           created_at: '2026-05-06T12:00:00.000Z',
         }];
       }
+      if (sql.includes('FROM coach_intake_items')) return listRows;
       return [];
     },
   };
@@ -182,5 +184,42 @@ describe('coachIntakeItemService', () => {
       needsOrderingReview: false,
       confidence: 'single',
     });
+  });
+
+  it('keeps unified summary totals independent from the active queue scope', async () => {
+    process.env.PLAUD_MERGE_ENABLED = 'false';
+    const db = fakeSequelize({
+      listRows: [
+        {
+          id: '77777777-7777-4777-9777-777777777777',
+          source_type: 'chat_narrative',
+          status: 'RECEIVED',
+          resolved_client_id: null,
+          uploaded_at: '2026-05-06T12:00:00.000Z',
+          created_at: '2026-05-06T12:00:00.000Z',
+          metadata_json: {},
+        },
+        {
+          id: '88888888-8888-4888-9888-888888888888',
+          source_type: 'typed_note',
+          status: 'READY_FOR_REVIEW',
+          resolved_client_id: 42,
+          uploaded_at: '2026-05-06T12:05:00.000Z',
+          created_at: '2026-05-06T12:05:00.000Z',
+          metadata_json: {},
+        },
+      ],
+    });
+
+    const result = await listUnifiedCoachIntakeItems({
+      userId: 7,
+      scope: 'needs_client',
+      limit: 10,
+      sequelizeOverride: db,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].needsClient).toBe(true);
+    expect(result.summary).toMatchObject({ total: 2, actionable: 2, needsClient: 1, readyReview: 1 });
   });
 });
