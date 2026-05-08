@@ -74,7 +74,9 @@ describe('CoachIntakeWorkspace outcome receipt', () => {
     fireEvent.click(screen.getByRole('button', { name: /mock apply proposal/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('status')).toHaveTextContent('Workout log applied');
+      const receipt = screen.getByRole('status');
+      expect(receipt).toHaveTextContent('Workout log applied');
+      expect(receipt).toHaveFocus();
     });
     expect(screen.getByText('Queue refreshed; no next actionable intake was found.')).toBeInTheDocument();
   });

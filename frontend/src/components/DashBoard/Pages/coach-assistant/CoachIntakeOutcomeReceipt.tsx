@@ -3,6 +3,7 @@
  * =============================
  * Read-only receipt shown after deterministic Coach proposal actions.
  */
+import React from 'react';
 import { CheckCircle2, X } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import {
@@ -45,8 +46,22 @@ export function CoachIntakeOutcomeReceipt({
   outcome,
   onDismiss,
 }: CoachIntakeOutcomeReceiptProps): JSX.Element {
+  const receiptRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    const receipt = receiptRef.current;
+    if (!receipt) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof receipt.scrollIntoView === 'function') {
+        receipt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      receipt.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [outcome]);
+
   return (
-    <OutcomeReceiptWrap role="status" aria-live="polite">
+    <OutcomeReceiptWrap ref={receiptRef} role="status" aria-live="polite" tabIndex={-1}>
       <OutcomeText>
         <strong><CheckCircle2 size={14} aria-hidden="true" /> {outcome.title}</strong>
         <span>{outcome.detail}</span>
