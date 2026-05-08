@@ -23,6 +23,7 @@ import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueu
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
+import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import {
@@ -87,6 +88,7 @@ export function CoachIntakeWorkspace({
   const navigate = useNavigate();
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
   const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
+  const [reviewOutcome, setReviewOutcome] = React.useState<CoachIntakeOutcome | null>(null);
   const activeDossierRef = React.useRef<HTMLElement | null>(null);
   const focusedActiveDossierRef = React.useRef<string | null>(null);
 
@@ -128,7 +130,9 @@ export function CoachIntakeWorkspace({
   }, [activeIntakeId, activeItem, coachWorkspaceHref, error, isLoading, isTrainerSurface, navigate, nextItem]);
 
   const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
-    if (!shouldAdvanceAfterProposalAction(proposal)) {
+    const shouldAdvance = shouldAdvanceAfterProposalAction(proposal);
+    if (!shouldAdvance) {
+      setReviewOutcome(outcomeFromProposal(proposal, false));
       void refresh();
       return;
     }
@@ -143,6 +147,7 @@ export function CoachIntakeWorkspace({
         sourceItems = orderedItems;
       }
       const nextItemAfterAction = actionableItemsAfter(sourceItems, currentId)[0] || null;
+      setReviewOutcome(outcomeFromProposal(proposal, !!nextItemAfterAction));
       navigate(itemReviewHref(nextItemAfterAction, coachWorkspaceHref));
     })();
   }, [activeIntakeId, activeItem, coachWorkspaceHref, navigate, orderedItems, refresh]);
@@ -207,6 +212,12 @@ export function CoachIntakeWorkspace({
           proposalId={reviewingProposalId}
           onClose={() => setReviewingProposalId(null)}
           onProposalAction={handleProposalAction}
+        />
+      ) : null}
+      {reviewOutcome ? (
+        <CoachIntakeOutcomeReceipt
+          outcome={reviewOutcome}
+          onDismiss={() => setReviewOutcome(null)}
         />
       ) : null}
 
