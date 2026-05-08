@@ -76,6 +76,12 @@ describe('CoachIntakeQueueItemCard', () => {
             nextBlockingGate: 'Clarification required',
             nextActionKey: 'answer_clarification',
             nextActionLabel: 'Answer Coach clarification',
+            holdReason: {
+              label: 'Client confirmation needed',
+              detail: 'Raw transcript mentioned private@example.com',
+              candidateCount: 2,
+              confidenceBand: 'medium',
+            },
           }}
         />
       </MemoryRouter>,
@@ -83,6 +89,9 @@ describe('CoachIntakeQueueItemCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /answer coach clarification/i }));
     expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Answer Coach clarification for intake item-2.'));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Gate reason: Client confirmation needed.'));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Safe gate facts: 2 candidates, Medium confidence.'));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.not.stringContaining('private@example.com'));
     expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
 
     rerender(
@@ -144,5 +153,39 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).getByText(/2 candidates/i)).toBeInTheDocument();
     expect(within(card).getByText(/Medium confidence/i)).toBeInTheDocument();
     expect(within(card).queryByText(/private@example\.com/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary hold-reason labels from queue metadata', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          item={{
+            id: 'item-4',
+            entityId: 'item-4',
+            kind: 'coach_intake',
+            source: 'chat_narrative',
+            title: 'Unsafe hold reason',
+            sourceLabel: 'Long Coach note',
+            queueStatus: 'needs_clarification',
+            clientName: null,
+            clipCount: 0,
+            canReview: false,
+            needsClient: false,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+            holdReason: {
+              label: 'private@example.com',
+              candidateCount: 2,
+              confidenceBand: 'medium',
+            },
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Unsafe hold reason/i);
+    expect(within(card).queryByLabelText(/Hold reason preview/i)).toBeNull();
+    expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
   });
 });

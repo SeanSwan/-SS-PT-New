@@ -466,6 +466,96 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(target).queryByText(/Marcus|private|example\.com/i)).toBeNull();
   });
 
+  it('fails closed when active intake hold reason metadata carries an unsafe label', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      queueStatus: 'needs_clarification',
+      holdReason: {
+        label: 'private@example.com',
+        detail: 'Raw transcript text should not render.',
+        candidateCount: 2,
+        confidenceBand: 'medium',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    expect(within(target).queryByLabelText('Hold reason')).toBeNull();
+    expect(within(target).queryByText(/private@example\.com|Raw transcript/i)).toBeNull();
+  });
+
+  it('does not render unsafe hold-reason detail even when the label is safe', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      queueStatus: 'needs_clarification',
+      holdReason: {
+        label: 'Client confirmation needed',
+        detail: 'Raw transcript mentioned private@example.com',
+        candidateCount: 2,
+        confidenceBand: 'medium',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    expect(within(target).getByLabelText('Hold reason')).toHaveTextContent('Client confirmation needed');
+    expect(within(target).queryByText(/private@example\.com|Raw transcript/i)).toBeNull();
+  });
+
+  it('does not render name-like hold-reason detail unless it matches approved operational copy', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      queueStatus: 'needs_clarification',
+      holdReason: {
+        label: 'Client confirmation needed',
+        detail: 'Marcus needs confirmation before draft approval.',
+        candidateCount: 2,
+        confidenceBand: 'medium',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    expect(within(target).getByLabelText('Hold reason')).toHaveTextContent('Client confirmation needed');
+    expect(within(target).queryByText(/Marcus/i)).toBeNull();
+  });
+
   it('focuses the matching Coach action from the active status ribbon', async () => {
     const queue = makeQueue();
     queue.items[0] = {

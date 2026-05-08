@@ -56,7 +56,7 @@ import {
   timeAnchor,
   writeGate,
 } from './CoachIntakeActiveDossier.logic';
-import { holdReasonFacts } from './CoachIntakeHoldReason.logic';
+import { holdReasonFacts, safeHoldReasonDetail, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
 
 interface CoachIntakeActiveDossierProps {
   item: CoachIntakeItem;
@@ -102,6 +102,8 @@ export function CoachIntakeActiveDossier({
   const next = nextAction(item);
   const askCoachLabel = next.actionId === 'ask-coach' ? next.label : 'Ask Coach about this intake';
   const holdReason = item.holdReason || null;
+  const holdReasonLabel = safeHoldReasonLabel(item);
+  const holdReasonDetail = safeHoldReasonDetail(item);
   const facts = holdReasonFacts(item);
 
   return (
@@ -138,12 +140,12 @@ export function CoachIntakeActiveDossier({
             </StatusRibbonAction>
           </StatusRibbonItem>
         </StatusRibbon>
-        {holdReason ? (
+        {holdReason && holdReasonLabel ? (
           <HoldReasonPanel aria-label="Hold reason">
             <HoldReasonCopy>
               <HoldReasonLabel>Hold reason</HoldReasonLabel>
-              <HoldReasonTitle>{holdReason.label}</HoldReasonTitle>
-              {holdReason.detail ? <HoldReasonDetail>{holdReason.detail}</HoldReasonDetail> : null}
+              <HoldReasonTitle>{holdReasonLabel}</HoldReasonTitle>
+              {holdReasonDetail ? <HoldReasonDetail>{holdReasonDetail}</HoldReasonDetail> : null}
             </HoldReasonCopy>
             {facts.length > 0 ? (
               <HoldReasonFacts aria-label="Hold reason facts">

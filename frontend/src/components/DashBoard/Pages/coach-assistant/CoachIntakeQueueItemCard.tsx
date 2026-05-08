@@ -6,7 +6,7 @@
 import React from 'react';
 import { Brain, GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
-import { holdReasonFacts } from './CoachIntakeHoldReason.logic';
+import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
@@ -34,6 +34,7 @@ export function CoachIntakeQueueItemCard({
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
   const gate = actionableGate(item);
+  const holdReasonLabel = safeHoldReasonLabel(item);
   const reasonFacts = holdReasonFacts(item);
 
   return (
@@ -62,11 +63,11 @@ export function CoachIntakeQueueItemCard({
           Review
         </WorkspaceLink>
       </ChipColumn>
-      {item.holdReason ? (
+      {item.holdReason && holdReasonLabel ? (
         <QueueHoldReasonPreview aria-label="Hold reason preview">
           <div>
             <HoldReasonLabel>Gate reason</HoldReasonLabel>
-            <HoldReasonTitle>{item.holdReason.label}</HoldReasonTitle>
+            <HoldReasonTitle>{holdReasonLabel}</HoldReasonTitle>
           </div>
           {reasonFacts.length > 0 ? (
             <HoldReasonFacts>
