@@ -85,6 +85,8 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/function parseMergeRequestId/);
     expect(PAGE_SRC).toMatch(/params\.get\('mergeRequestId'\)/);
     expect(PAGE_SRC).toMatch(/directMergeRequestId \|\| reviewNextMergeRequestId/);
+    expect(PAGE_SRC).not.toMatch(/\^\[0-9a-fA-F-\]\{36\}\$/);
+    expect(PAGE_SRC).toMatch(/\[0-9a-fA-F\]\{8\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{4\}-\[0-9a-fA-F\]\{12\}/);
   });
 
   it('marks the selected merge request target in the intake preview list', () => {

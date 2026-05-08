@@ -61,6 +61,8 @@ import {
   SourceBadge,
 } from './PlaudIntakeSnapshot.styles';
 
+const PLAUD_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 function useDashboardRole(): 'admin' | 'trainer' {
   const location = useLocation();
   return location.pathname.includes('/dashboard/trainer/') ? 'trainer' : 'admin';
@@ -94,7 +96,7 @@ function visibleIntakePreviewItems(items: PlaudIntakeItem[], selectedMergeReques
 }
 
 function parseMergeRequestId(value: string | null): string | null {
-  if (!value || !/^[0-9a-fA-F-]{36}$/.test(value)) return null;
+  if (!value || !PLAUD_UUID_RE.test(value)) return null;
   return value;
 }
 
