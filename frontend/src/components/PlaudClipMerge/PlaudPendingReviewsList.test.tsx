@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
+import { PlaudApiError } from '../../services/plaudClipService';
 
 vi.mock('../../hooks/usePlaudPendingReviews', () => ({
   usePlaudPendingReviews: vi.fn(),
@@ -209,5 +210,54 @@ describe('Slice 3.12 — PlaudPendingReviewsList render', () => {
     });
     render(<PlaudPendingReviewsList onOpen={() => {}} />);
     expect(screen.getByText(/multi-client/i)).toBeTruthy();
+  });
+
+  it('does not expose arbitrary pending-list error detail', () => {
+    vi.mocked(usePlaudPendingReviews).mockReturnValue({
+      reviews: [],
+      isLoading: false,
+      error: new PlaudApiError('UNSAFE_BACKEND_DETAIL', 'do-not-render-private-detail', 500),
+      refresh: vi.fn(),
+      loadDetail: vi.fn(),
+      discard: vi.fn(),
+    });
+
+    render(<PlaudPendingReviewsList onOpen={() => {}} />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('PLAUD_ERROR');
+    expect(alert).toHaveTextContent('Failed to load pending reviews.');
+    expect(alert).not.toHaveTextContent('UNSAFE_BACKEND_DETAIL');
+    expect(alert).not.toHaveTextContent('do-not-render-private-detail');
+  });
+
+  it('does not expose arbitrary row error codes from failed merge summaries', () => {
+    vi.mocked(usePlaudPendingReviews).mockReturnValue({
+      reviews: [{
+        mergeRequestId: '55555555-5555-4555-8555-555555555555',
+        status: 'failed',
+        clientId: 8,
+        clientName: 'Test Client',
+        clipCount: 1,
+        parsedExerciseCount: null,
+        boundaryWarning: null,
+        hasCipher: false,
+        cipherPurged: false,
+        errorCode: 'UNSAFE_BACKEND_DETAIL',
+        createdAt: '2026-05-04T08:00:00Z',
+        completedAt: null,
+        expiresAt: '2026-05-05T08:00:00Z',
+      }],
+      isLoading: false,
+      error: null,
+      refresh: vi.fn(),
+      loadDetail: vi.fn(),
+      discard: vi.fn(),
+    });
+
+    render(<PlaudPendingReviewsList onOpen={() => {}} />);
+
+    expect(screen.getByText(/PLAUD_ERROR/i)).toBeTruthy();
+    expect(screen.queryByText(/UNSAFE_BACKEND_DETAIL/i)).toBeNull();
   });
 });

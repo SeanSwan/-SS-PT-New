@@ -18,6 +18,7 @@ const SAFE_CODES = new Set([
   'INVALID_MERGE_REQUEST_ID',
   'INVALID_SEGMENT_ID',
   'MERGE_NOT_APPROVABLE',
+  'MERGE_PROCESSING_STALE',
   'NO_FILES',
   'PLAUD_DISABLED',
   'RATE_LIMITED',
@@ -52,6 +53,7 @@ const ACTION_MESSAGES: Record<string, string> = {
   INVALID_MERGE_REQUEST_ID: 'This merge review link is no longer valid. Return to the queue.',
   INVALID_SEGMENT_ID: 'This split workout could not be found. Refresh the review.',
   MERGE_NOT_APPROVABLE: 'This merge is not ready to approve. Refresh the queue and review it again.',
+  MERGE_PROCESSING_STALE: 'This merge was interrupted. Re-upload the clips and try again.',
   PLAUD_DISABLED: 'PLAUD intake is disabled right now.',
   RATE_LIMITED: 'Too many PLAUD actions. Wait briefly and retry.',
 };

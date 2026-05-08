@@ -13,13 +13,13 @@
  *   - Click "Open" on a 'completed' row → invokes onOpen(mergeRequestId)
  *     so parent loads detail + renders TranscriptReviewCard
  *   - Click "Discard" → optimistic remove + cipher purge
- *   - Failed merges show error_code + retry instruction
- *   - Processing rows show "in flight" pill (server may have stalled,
- *     but the staleMerge cron will sweep at 20min)
+ *   - Failed merges show safe error code + retry instruction
+ *   - Processing rows show "in flight" pill; staleMerge sweeps at 20min
  */
 import styled from 'styled-components';
 import { RefreshCw, Trash2, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { usePlaudPendingReviews } from '../../hooks/usePlaudPendingReviews';
+import { safePlaudActionErrorMessage, safePlaudIssueCode } from './plaudSafeErrorText';
 
 const Wrap = styled.div`
   display: flex;
@@ -243,7 +243,7 @@ export function PlaudPendingReviewsList({ onOpen }: PlaudPendingReviewsListProps
       {error ? (
         <ErrorBanner role="alert">
           <AlertTriangle size={16} aria-hidden="true" />
-          {error.code}: {error.message}
+          {safePlaudActionErrorMessage(error, 'Failed to load pending reviews.')}
         </ErrorBanner>
       ) : null}
 
@@ -262,7 +262,7 @@ export function PlaudPendingReviewsList({ onOpen }: PlaudPendingReviewsListProps
               </TopLine>
               <Meta>
                 <Pill $tone={statusToTone(r.status)}>{r.status}</Pill>
-                {r.errorCode ? <Pill $tone="red">{r.errorCode}</Pill> : null}
+                {r.errorCode ? <Pill $tone="red">{safePlaudIssueCode(r.errorCode)}</Pill> : null}
                 {r.cipherPurged ? <Pill $tone="red">CIPHER PURGED</Pill> : null}
                 {r.boundaryWarning?.warning ? <Pill $tone="gold">multi-client</Pill> : null}
                 <span>{r.clipCount ?? '?'} clips</span>
