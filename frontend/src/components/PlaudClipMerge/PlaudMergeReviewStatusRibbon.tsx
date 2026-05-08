@@ -45,6 +45,32 @@ function nextAction({
   return { label: 'Confirm and log', actionId: 'approve' };
 }
 
+function formatTimeAnchor(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function uploadTimelineAnchor(reviewState: PlaudMergeReviewState): string {
+  const uploadedTimes = (reviewState.clipTimeline || [])
+    .map((clip) => new Date(clip.uploadedAt))
+    .filter((uploadedAt) => !Number.isNaN(uploadedAt.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  if (uploadedTimes.length === 0) return 'Timeline pending';
+  const countLabel = uploadedTimes.length === 1 ? '1 clip' : `${uploadedTimes.length} clips`;
+  const first = formatTimeAnchor(uploadedTimes[0].toISOString());
+  const last = formatTimeAnchor(uploadedTimes[uploadedTimes.length - 1].toISOString());
+
+  if (first === last) return `Upload timeline: ${countLabel} at ${first}`;
+  return `Upload timeline: ${countLabel} from ${first} to ${last}`;
+}
+
 function focusMergeAction(actionId: string): void {
   const target = document.querySelector<HTMLElement>(`[data-plaud-next-action="${actionId}"]`);
   if (!target) return;
@@ -62,6 +88,10 @@ export function PlaudMergeReviewStatusRibbon(props: PlaudMergeReviewStatusRibbon
       <MergeStatusCell>
         <MergeStatusLabel>Why this is active</MergeStatusLabel>
         <MergeStatusValue>Direct review link opened this merge.</MergeStatusValue>
+      </MergeStatusCell>
+      <MergeStatusCell>
+        <MergeStatusLabel>Time anchor</MergeStatusLabel>
+        <MergeStatusValue>{uploadTimelineAnchor(props.reviewState)}</MergeStatusValue>
       </MergeStatusCell>
       <MergeStatusCell>
         <MergeStatusLabel>Blocking gate</MergeStatusLabel>

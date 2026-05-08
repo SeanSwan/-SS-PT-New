@@ -7,7 +7,7 @@ import styled from 'styled-components';
 
 export const MergeStatusRibbon = styled.div`
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: 1.2fr 1.1fr 1fr 1fr;
   gap: 8px;
   margin: 0 0 12px;
   padding: 8px;

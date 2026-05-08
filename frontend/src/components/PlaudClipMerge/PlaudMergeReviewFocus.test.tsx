@@ -92,10 +92,50 @@ describe('PlaudMergeReview focus handoff', () => {
     expect(screen.getByLabelText('Active merge status')).toBeInTheDocument();
     expect(screen.getByText('Why this is active')).toBeInTheDocument();
     expect(screen.getByText('Direct review link opened this merge.')).toBeInTheDocument();
+    expect(screen.getByText('Time anchor')).toBeInTheDocument();
+    expect(screen.getByText('Timeline pending')).toBeInTheDocument();
     expect(screen.getByText('Blocking gate')).toBeInTheDocument();
     expect(screen.getByText('Client must be resolved')).toBeInTheDocument();
     expect(screen.getByText('Next action')).toBeInTheDocument();
     expect(screen.getByText('Return to merge queue')).toBeInTheDocument();
+  });
+
+  it('shows upload timeline context in the active status ribbon', () => {
+    const reviewState: PlaudMergeReviewState = {
+      ...makeReviewState(),
+      clipTimeline: [
+        {
+          mergeStep: 1,
+          clipId: 'clip-1',
+          filename: 'first.mp3',
+          uploadedAt: '2026-05-04T11:00:00.000Z',
+          durationSec: 60,
+          source: 'manual_upload',
+          orderMode: 'uploaded_at_asc',
+        },
+        {
+          mergeStep: 2,
+          clipId: 'clip-2',
+          filename: 'second.mp3',
+          uploadedAt: '2026-05-04T11:30:00.000Z',
+          durationSec: 90,
+          source: 'manual_upload',
+          orderMode: 'uploaded_at_asc',
+        },
+      ],
+    };
+
+    render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={vi.fn()}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Time anchor')).toBeInTheDocument();
+    expect(screen.getByText(/Upload timeline: 2 clips/i)).toBeInTheDocument();
   });
 
   it('focuses the matching PLAUD action from the active status ribbon', () => {
