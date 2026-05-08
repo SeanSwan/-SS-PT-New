@@ -35,14 +35,14 @@ describe('ExecutionResultCard route actions', () => {
           result={{
             readyReview: 2,
             queueRoute: '/dashboard/admin/plaud',
-            reviewRoute: '/dashboard/admin/plaud?review=next',
+            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=merge-123',
           }}
         />
       </MemoryRouter>,
     );
 
-    const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+    const link = screen.getByRole('link', { name: /open plaud review/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=merge-123');
     expect(screen.getByText(/Next intake ready/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/PLAUD intake queue summary/i)).toBeInTheDocument();
     expect(screen.queryByText(/Command Executed/i)).toBeNull();

@@ -55,6 +55,7 @@ function safeInternalRoute(value: unknown): string | null {
 }
 
 function labelForCommand(command: string, route: string): string {
+  if (route.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
   if (route.includes('/coach-assistant')) return 'Open Coach Intake';
   if (route.includes('/plaud')) return 'Open PLAUD Workspace';
   if (command.includes('coach_intake')) return 'Open Coach Intake';
