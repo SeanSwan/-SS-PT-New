@@ -6,6 +6,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlaudMergeWorkspace } from './PlaudMergeWorkspace';
+import { getMergeRequest } from '../../services/plaudMergeService';
 
 vi.mock('./PlaudClipMergePanel', () => ({ PlaudClipMergePanel: () => null }));
 vi.mock('./PlaudPendingReviewsList', () => ({ PlaudPendingReviewsList: () => null }));
@@ -41,6 +42,18 @@ describe('PlaudMergeWorkspace outcome receipt', () => {
       const receipt = screen.getByRole('status');
       expect(receipt).toHaveTextContent('Workout logged successfully.');
       expect(receipt).toHaveFocus();
+    });
+  });
+
+  it('focuses a recovery alert when a direct merge review link fails to load', async () => {
+    vi.mocked(getMergeRequest).mockRejectedValueOnce(new Error('missing merge request'));
+
+    render(<PlaudMergeWorkspace embedded initialReviewMergeRequestId="22222222-2222-4222-8222-222222222222" />);
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Failed to load merge details');
+      expect(alert).toHaveFocus();
     });
   });
 });

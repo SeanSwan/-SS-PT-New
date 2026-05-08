@@ -44,6 +44,7 @@ export function PlaudMergeWorkspace({
   const [applyError, setApplyError] = useState<string | null>(null);
   const autoOpenedReviewRef = useRef<string | null>(null);
   const successReceiptRef = useRef<HTMLDivElement | null>(null);
+  const applyErrorRef = useRef<HTMLDivElement | null>(null);
 
   const openDetailReview = useCallback((detail: MergeRequestDetail) => {
     setReviewState({
@@ -105,6 +106,18 @@ export function PlaudMergeWorkspace({
     }, 120);
     return () => window.clearTimeout(timer);
   }, [confirmState]);
+
+  useEffect(() => {
+    const alert = applyErrorRef.current;
+    if (!applyError || !alert) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof alert.scrollIntoView === 'function') {
+        alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      alert.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [applyError]);
 
   const handleResetReview = useCallback(() => {
     setReviewState(null);
@@ -177,7 +190,7 @@ export function PlaudMergeWorkspace({
       <TwoColumn>
         <Section>
           {applyError ? (
-            <ErrorBanner role="alert">
+            <ErrorBanner ref={applyErrorRef} role="alert" tabIndex={-1}>
               <AlertTriangle size={16} aria-hidden="true" />
               {applyError}
             </ErrorBanner>

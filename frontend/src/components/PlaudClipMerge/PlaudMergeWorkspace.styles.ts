@@ -295,4 +295,5 @@ export const ErrorBanner = styled.div`
   border-radius: 10px;
   color: rgba(252, 165, 165, 1);
   font-size: 0.875rem;
+  &:focus { outline: 2px solid var(--glow-accent, #8B5CF6); outline-offset: 3px; }
 `;
