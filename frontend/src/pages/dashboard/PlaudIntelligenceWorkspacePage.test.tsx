@@ -36,7 +36,7 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/data-testid="plaud-intelligence-workspace"/);
   });
 
-  it('keeps Swan Coach action language scoped to the next backend slice', () => {
+  it('keeps Swan Coach action language scoped to review-gated proposal handoff', () => {
     expect(PAGE_SRC).toMatch(/Swan Coach handoff/);
     expect(PAGE_SRC).toMatch(/Order clips/);
     expect(PAGE_SRC).toMatch(/Split workouts/);
