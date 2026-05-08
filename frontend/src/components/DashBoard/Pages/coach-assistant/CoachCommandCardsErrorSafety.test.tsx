@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { CoachAudioInspectionResultCard } from './CoachAudioInspectionResultCard';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 
 describe('Coach command card error safety', () => {
@@ -43,5 +44,20 @@ describe('Coach command card error safety', () => {
 
     expect(screen.getByText(/Command Executed/i)).toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-command-detail/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary direct audio-inspection messages', () => {
+    render(
+      <MemoryRouter>
+        <CoachAudioInspectionResultCard
+          command="inspect_coach_audio_pieces"
+          result={{ totalAudioItems: 1 }}
+          message="Email private@example.com before approving this audio item."
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Audio pieces inspected/i)).toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).not.toBeInTheDocument();
   });
 });

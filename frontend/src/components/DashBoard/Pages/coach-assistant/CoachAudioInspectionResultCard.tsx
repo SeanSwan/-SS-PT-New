@@ -14,6 +14,7 @@ import {
   safeAudioReviewPlanLabel,
   safeAudioReviewPlanRationale,
   safeCommandHint,
+  safeCommandResultMessage,
 } from './CoachIntakeOperationalText.logic';
 
 interface AudioInspectionItem {
@@ -230,6 +231,7 @@ export function CoachAudioInspectionResultCard({
   const plan = reviewPlan(result.reviewPlan);
   const planPrimaryLabel = safeAudioReviewPlanLabel(plan?.primaryLabel);
   const planRationale = safeAudioReviewPlanRationale(plan?.rationale);
+  const safeMessage = safeCommandResultMessage(message);
   const routedResult = plan?.route && typeof plan.route === 'string'
     ? { ...result, reviewRoute: plan.route }
     : result;
@@ -237,7 +239,7 @@ export function CoachAudioInspectionResultCard({
   return (
     <CardShell>
       <CardTitle><CheckCircle size={16} aria-hidden="true" /> Audio pieces inspected</CardTitle>
-      {message && <Hint>{message}</Hint>}
+      {safeMessage && <Hint>{safeMessage}</Hint>}
       <SummaryGrid aria-label="Audio inspection summary">
         <SummaryPill>{plural(totalAudioItems, 'audio item')}</SummaryPill>
         <SummaryPill>{needsOrderingReview} needs order review</SummaryPill>
