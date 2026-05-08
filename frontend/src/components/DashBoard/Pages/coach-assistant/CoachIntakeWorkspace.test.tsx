@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { confirmCoachIntakeAudioOrder } from '../../../../services/coachIntakeService';
-import { getCoachProposal } from '../../../../services/coachProposalService';
+import { approveCoachProposal, getCoachProposal } from '../../../../services/coachProposalService';
 
 vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../services/coachIntakeService')>();
@@ -166,6 +166,7 @@ describe('CoachIntakeWorkspace', () => {
 
   it('opens and renders the linked prepared proposal from the active dossier', async () => {
     const queue = makeQueue();
+    queue.refresh = vi.fn().mockResolvedValue(undefined);
     queue.items[0] = {
       ...queue.items[0],
       latestProposalId: 'proposal-1',
@@ -192,6 +193,17 @@ describe('CoachIntakeWorkspace', () => {
         reviewToken: 'review-v1.test',
       },
     });
+    vi.mocked(approveCoachProposal).mockResolvedValue({
+      success: true,
+      applied: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'APPLIED',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+      },
+    });
 
     render(
       <MemoryRouter>
@@ -211,7 +223,44 @@ describe('CoachIntakeWorkspace', () => {
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
     expect(await screen.findByText(/Review lower body workout draft/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /approve and log/i })).toBeEnabled();
+    const approveButton = screen.getByRole('button', { name: /approve and log/i });
+    expect(approveButton).toBeEnabled();
+    fireEvent.click(approveButton);
+
+    await waitFor(() => {
+      expect(approveCoachProposal).toHaveBeenCalledWith('proposal-1', 'review-v1.test');
+      expect(queue.refresh).toHaveBeenCalled();
+    });
+  });
+
+  it('shows applied proposal state in the active write gate when queue metadata is synced', () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      latestProposalId: 'proposal-1',
+      latestProposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'APPLIED',
+        title: 'Review lower body workout draft',
+        createdAt: '2026-05-07T10:00:00.000Z',
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = screen.getByLabelText(/Active review target/i);
+    expect(within(target).getByText(/Draft applied/i)).toBeInTheDocument();
   });
 
   it('confirms active intake audio order and refreshes the queue without final writes', async () => {

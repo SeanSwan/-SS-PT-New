@@ -20,6 +20,7 @@ import {
 interface CoachIntakePreparedDraftPanelProps {
   proposalId: string;
   onClose: () => void;
+  onProposalAction?: (proposal: CoachActionProposal) => void;
 }
 
 function errorMessageFor(err: unknown): string {
@@ -33,6 +34,7 @@ function errorMessageFor(err: unknown): string {
 export function CoachIntakePreparedDraftPanel({
   proposalId,
   onClose,
+  onProposalAction,
 }: CoachIntakePreparedDraftPanelProps): JSX.Element {
   const [proposal, setProposal] = React.useState<CoachActionProposal | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -90,7 +92,7 @@ export function CoachIntakePreparedDraftPanel({
       </PreparedDraftHeader>
       {isLoading ? <TargetNotice role="status">Loading prepared draft...</TargetNotice> : null}
       {error ? <TargetNotice role="alert"><AlertTriangle size={13} aria-hidden="true" /> {error}</TargetNotice> : null}
-      {proposal ? <CoachActionProposalCard proposal={proposal} /> : null}
+      {proposal ? <CoachActionProposalCard proposal={proposal} onProposalAction={onProposalAction} /> : null}
     </PreparedDraftPanel>
   );
 }

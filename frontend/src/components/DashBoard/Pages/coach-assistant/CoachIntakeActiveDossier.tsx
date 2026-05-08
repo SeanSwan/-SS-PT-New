@@ -69,7 +69,14 @@ function audioGate(item: CoachIntakeItem): string {
 }
 
 function writeGate(item: CoachIntakeItem): string {
-  return item.latestProposalId ? 'Draft prepared for approval' : 'Final write locked';
+  if (!item.latestProposalId) return 'Final write locked';
+  const status = String(item.latestProposal?.status || '').toUpperCase();
+  if (status === 'APPLIED') return 'Draft applied';
+  if (status === 'REJECTED') return 'Draft rejected';
+  if (status === 'APPROVED') return 'Draft approved';
+  if (status === 'FAILED') return 'Draft failed';
+  if (status === 'APPLYING') return 'Draft applying';
+  return 'Draft prepared for approval';
 }
 
 function needsAudioOrderConfirmation(item: CoachIntakeItem): boolean {

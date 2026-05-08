@@ -17,11 +17,14 @@ import {
 import { CoachProposalGateRail } from './CoachProposalGateRail';
 import {
   buildDetailRows,
+  clarificationOptionsFromDetail,
   displayValue,
   hasDetailBlockingError,
   proposalTypeLabel,
 } from './CoachActionProposalDetailRows';
 import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
+
+interface CoachActionProposalCardProps { proposal: CoachActionProposal; onProposalAction?: (proposal: CoachActionProposal) => void; }
 
 const Card = styled.div`
   margin-top: 12px;
@@ -115,16 +118,7 @@ const StatusText = styled.div<{ $error?: boolean }>`
   font-weight: 700;
 `;
 
-function clarificationOptionsFromDetail(detail: Record<string, unknown> | null) {
-  const clarification = detail?.clarification;
-  if (!clarification || typeof clarification !== 'object' || Array.isArray(clarification)) return [];
-  const options = (clarification as Record<string, unknown>).options;
-  return Array.isArray(options)
-    ? options.map((option) => String(option || '').trim()).filter(Boolean)
-    : [];
-}
-
-export function CoachActionProposalCard({ proposal }: { proposal: CoachActionProposal }) {
+export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(proposal.detail || null);
@@ -175,7 +169,9 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
     setError(null);
     try {
       const result = await approveCoachProposal(proposal.id, reviewToken);
-      setStatus(result.proposal?.status || (result.applied ? 'APPLIED' : 'APPROVED'));
+      const nextProposal = result.proposal || { ...proposal, status: result.applied ? 'APPLIED' : 'APPROVED' };
+      setStatus(nextProposal.status);
+      onProposalAction?.(nextProposal);
       if (result.client) {
         setMessage('Client created through deterministic onboarding approval.');
       } else if (proposal.type === 'client_data_update' && result.partial) {
@@ -206,7 +202,9 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
     setError(null);
     try {
       const result = await answerCoachProposalClarification(proposal.id, answer);
-      setStatus(result.proposal?.status || 'APPROVED');
+      const nextProposal = result.proposal || { ...proposal, status: 'APPROVED' as const };
+      setStatus(nextProposal.status);
+      onProposalAction?.(nextProposal);
       setMessage('Clarification answer recorded for deterministic review.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Clarification answer failed');
@@ -220,7 +218,9 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
     setError(null);
     try {
       const result = await rejectCoachProposal(proposal.id);
-      setStatus(result.proposal?.status || 'REJECTED');
+      const nextProposal = result.proposal || { ...proposal, status: 'REJECTED' as const };
+      setStatus(nextProposal.status);
+      onProposalAction?.(nextProposal);
       setMessage('Proposal rejected.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reject failed');
@@ -291,7 +291,7 @@ export function CoachActionProposalCard({ proposal }: { proposal: CoachActionPro
       {error && <StatusText $error>{error}</StatusText>}
     </Card>
     {generatedProposals.map((generatedProposal) => (
-      <CoachActionProposalCard key={generatedProposal.id} proposal={generatedProposal} />
+      <CoachActionProposalCard key={generatedProposal.id} proposal={generatedProposal} onProposalAction={onProposalAction} />
     ))}
     </>
   );

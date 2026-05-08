@@ -73,6 +73,14 @@ export function hasDetailBlockingError(detail: Record<string, unknown> | null) {
   return Boolean(detail && (detail.errorCode || detail.error));
 }
 
+export function clarificationOptionsFromDetail(detail: Record<string, unknown> | null) {
+  const clarification = detail && asRecord(detail.clarification);
+  const options = clarification?.options;
+  return Array.isArray(options)
+    ? options.map((option) => String(option || '').trim()).filter(Boolean)
+    : [];
+}
+
 export function buildDetailRows(detail: Record<string, unknown> | null): DetailRow[] {
   if (!detail) return [];
   if (hasDetailBlockingError(detail)) {

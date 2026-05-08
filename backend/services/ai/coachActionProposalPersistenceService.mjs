@@ -5,6 +5,7 @@
  */
 import { QueryTypes } from 'sequelize';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
+import logger from '../../utils/logger.mjs';
 
 export function mapProposalRow(row) {
   const summary = row.summary_json || {};
@@ -58,6 +59,45 @@ export const proposalNotPending = () => ({
   body: { success: false, code: 'PROPOSAL_NOT_PENDING' },
 });
 
+function latestProposalStatusJson(row) {
+  return JSON.stringify({
+    id: row.id,
+    type: row.proposal_type,
+    status: row.status,
+    title: row.summary_json?.title || 'Review Coach proposal',
+    createdAt: row.created_at || null,
+  });
+}
+
+export async function syncLatestProposalStatusToIntake({ row, db }) {
+  const userId = Number(row?.created_by_user_id || 0);
+  if (!row?.id || !Number.isInteger(userId) || userId <= 0) {
+    return { synced: false, reason: 'missing_inputs' };
+  }
+  const rows = await db.query(
+    `UPDATE coach_intake_items
+        SET metadata_json = jsonb_set(
+              COALESCE(metadata_json, '{}'::jsonb),
+              '{latestProposal}',
+              CAST(:latestProposalJson AS jsonb),
+              true
+            ),
+            updated_at = NOW()
+      WHERE latest_proposal_id = :proposalId
+        AND user_id = :userId
+      RETURNING id`,
+    {
+      replacements: {
+        latestProposalJson: latestProposalStatusJson(row),
+        proposalId: row.id,
+        userId,
+      },
+      type: QueryTypes.SELECT,
+    },
+  );
+  return rows[0] ? { synced: true, reason: 'synced' } : { synced: false, reason: 'not_latest_or_forbidden' };
+}
+
 export async function updateProposalStatus({
   id,
   status,
@@ -76,13 +116,22 @@ export async function updateProposalStatus({
       WHERE id = :id
         ${userId == null ? '' : 'AND created_by_user_id = :userId'}
         ${fromStatus == null ? '' : 'AND status = :fromStatus'}
-      RETURNING id, proposal_type, status, summary_json, created_at`,
+      RETURNING id, created_by_user_id, proposal_type, status, summary_json, created_at`,
     {
       replacements: { id, status, resultJson: JSON.stringify(result), errorCode, userId, fromStatus },
       type: QueryTypes.SELECT,
     },
   );
-  return rows[0] ? mapProposalRow(rows[0]) : null;
+  if (!rows[0]) return null;
+  try {
+    await syncLatestProposalStatusToIntake({ row: rows[0], db });
+  } catch (err) {
+    logger.warn('[CoachActionProposal] Intake latest-proposal status sync failed', {
+      proposalId: rows[0].id,
+      error: err.message,
+    });
+  }
+  return mapProposalRow(rows[0]);
 }
 
 export default {
@@ -90,5 +139,6 @@ export default {
   loadOwnedProposal,
   mapProposalRow,
   proposalNotPending,
+  syncLatestProposalStatusToIntake,
   updateProposalStatus,
 };

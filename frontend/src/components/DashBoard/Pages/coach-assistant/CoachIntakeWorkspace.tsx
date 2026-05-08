@@ -156,6 +156,7 @@ export function CoachIntakeWorkspace({
         <CoachIntakePreparedDraftPanel
           proposalId={reviewingProposalId}
           onClose={() => setReviewingProposalId(null)}
+          onProposalAction={() => { void refresh(); }}
         />
       ) : null}
 

@@ -5,6 +5,10 @@ import {
   linkCoachActionProposalToIntake,
   normalizeCoachIntakeId,
 } from '../../services/ai/coachActionProposalIntakeLinkService.mjs';
+import {
+  syncLatestProposalStatusToIntake,
+  updateProposalStatus,
+} from '../../services/ai/coachActionProposalPersistenceService.mjs';
 
 function fakeDb() {
   const calls = [];
@@ -65,5 +69,84 @@ describe('coachActionProposalIntakeLinkService', () => {
 
     expect(result.linked).toBe(false);
     expect(db.calls).toEqual([]);
+  });
+
+  it('syncs latest proposal status only on the owning intake link', async () => {
+    const db = fakeDb();
+    const result = await syncLatestProposalStatusToIntake({
+      row: {
+        id: '88888888-8888-4888-9888-888888888888',
+        created_by_user_id: 7,
+        proposal_type: 'workout_log',
+        status: 'APPLIED',
+        summary_json: { title: 'Review workout log draft' },
+        created_at: '2026-05-07T10:00:00.000Z',
+      },
+      db,
+    });
+
+    expect(result).toEqual({ synced: true, reason: 'synced' });
+    expect(db.calls[0].sql).toContain('WHERE latest_proposal_id = :proposalId');
+    expect(db.calls[0].sql).toContain('AND user_id = :userId');
+    expect(db.calls[0].options.replacements).toMatchObject({
+      proposalId: '88888888-8888-4888-9888-888888888888',
+      userId: 7,
+    });
+    const latestProposal = JSON.parse(db.calls[0].options.replacements.latestProposalJson);
+    expect(latestProposal).toMatchObject({
+      id: '88888888-8888-4888-9888-888888888888',
+      status: 'APPLIED',
+      title: 'Review workout log draft',
+    });
+    expect(db.calls[0].options.replacements.latestProposalJson).not.toMatch(/rawTranscript|Marcus/i);
+  });
+
+  it('skips latest-proposal status sync without a valid owner id', async () => {
+    const db = fakeDb();
+    const result = await syncLatestProposalStatusToIntake({
+      row: {
+        id: '88888888-8888-4888-9888-888888888888',
+        created_by_user_id: null,
+        proposal_type: 'workout_log',
+        status: 'APPLIED',
+      },
+      db,
+    });
+
+    expect(result).toEqual({ synced: false, reason: 'missing_inputs' });
+    expect(db.calls).toEqual([]);
+  });
+
+  it('keeps proposal status authoritative if latest-intake metadata sync fails', async () => {
+    const db = {
+      calls: [],
+      async query(sql, options = {}) {
+        this.calls.push({ sql, options });
+        if (sql.includes('UPDATE coach_action_proposals')) {
+          return [{
+            id: '88888888-8888-4888-9888-888888888888',
+            created_by_user_id: 7,
+            proposal_type: 'workout_log',
+            status: options.replacements.status,
+            summary_json: { title: 'Review workout log draft' },
+            created_at: '2026-05-07T10:00:00.000Z',
+          }];
+        }
+        throw new Error('metadata sync unavailable');
+      },
+    };
+
+    const result = await updateProposalStatus({
+      id: '88888888-8888-4888-9888-888888888888',
+      status: 'APPLIED',
+      db,
+    });
+
+    expect(result).toMatchObject({
+      id: '88888888-8888-4888-9888-888888888888',
+      status: 'APPLIED',
+      title: 'Review workout log draft',
+    });
+    expect(db.calls[1].sql).toContain('UPDATE coach_intake_items');
   });
 });

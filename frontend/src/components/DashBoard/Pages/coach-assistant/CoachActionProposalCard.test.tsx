@@ -29,6 +29,7 @@ describe('CoachActionProposalCard', () => {
   });
 
   it('approves pending workout proposals through the deterministic API', async () => {
+    const onProposalAction = vi.fn();
     vi.mocked(getCoachProposal).mockResolvedValue({
       success: true,
       proposal: {
@@ -49,7 +50,7 @@ describe('CoachActionProposalCard', () => {
       proposal: { ...proposal, status: 'APPLIED' },
     });
 
-    render(<CoachActionProposalCard proposal={proposal} />);
+    render(<CoachActionProposalCard proposal={proposal} onProposalAction={onProposalAction} />);
 
     expect(screen.getByRole('button', { name: /approve and log/i })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
@@ -59,22 +60,25 @@ describe('CoachActionProposalCard', () => {
     await waitFor(() => {
       expect(approveCoachProposal).toHaveBeenCalledWith(proposal.id, 'review-token-1');
     });
+    expect(onProposalAction).toHaveBeenCalledWith(expect.objectContaining({ id: proposal.id, status: 'APPLIED' }));
     expect(await screen.findByText(/deterministic workout logger/i)).toBeInTheDocument();
   });
 
   it('rejects pending proposals without applying writes', async () => {
+    const onProposalAction = vi.fn();
     vi.mocked(rejectCoachProposal).mockResolvedValue({
       success: true,
       proposal: { ...proposal, status: 'REJECTED' },
     });
 
-    render(<CoachActionProposalCard proposal={proposal} />);
+    render(<CoachActionProposalCard proposal={proposal} onProposalAction={onProposalAction} />);
 
     fireEvent.click(screen.getByRole('button', { name: /reject/i }));
 
     await waitFor(() => {
       expect(rejectCoachProposal).toHaveBeenCalledWith(proposal.id);
     });
+    expect(onProposalAction).toHaveBeenCalledWith(expect.objectContaining({ id: proposal.id, status: 'REJECTED' }));
     expect(await screen.findByText(/proposal rejected/i)).toBeInTheDocument();
   });
 
@@ -196,6 +200,7 @@ describe('CoachActionProposalCard', () => {
   });
 
   it('records a one-tap clarification answer from loaded proposal details', async () => {
+    const onProposalAction = vi.fn();
     const clarificationProposal = {
       ...proposal,
       type: 'clarification' as const,
@@ -221,7 +226,7 @@ describe('CoachActionProposalCard', () => {
       proposal: { ...clarificationProposal, status: 'APPROVED' },
     });
 
-    render(<CoachActionProposalCard proposal={clarificationProposal} />);
+    render(<CoachActionProposalCard proposal={clarificationProposal} onProposalAction={onProposalAction} />);
 
     fireEvent.click(screen.getByRole('button', { name: /review details/i }));
     fireEvent.click(await screen.findByRole('button', { name: /client_candidate:C1/i }));
@@ -229,6 +234,7 @@ describe('CoachActionProposalCard', () => {
     await waitFor(() => {
       expect(answerCoachProposalClarification).toHaveBeenCalledWith(clarificationProposal.id, 'client_candidate:C1');
     });
+    expect(onProposalAction).toHaveBeenCalledWith(expect.objectContaining({ id: clarificationProposal.id, status: 'APPROVED' }));
     expect(await screen.findByText(/clarification answer recorded/i)).toBeInTheDocument();
   });
 });
