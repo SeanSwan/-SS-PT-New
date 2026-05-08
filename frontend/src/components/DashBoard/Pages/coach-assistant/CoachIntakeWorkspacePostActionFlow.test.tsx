@@ -60,6 +60,20 @@ function LocationProbe() {
   return <span data-testid="current-route">{location.pathname}{location.search}</span>;
 }
 
+function RoutedCoachIntakeWorkspace({ queue }: { queue: ReturnType<typeof makeQueue> }) {
+  const location = useLocation();
+  const activeIntakeId = new URLSearchParams(location.search).get('intake');
+  return (
+    <CoachIntakeWorkspace
+      userRole="admin"
+      selectedClientName={null}
+      onCommandPrompt={vi.fn()}
+      queue={queue}
+      activeIntakeId={activeIntakeId}
+    />
+  );
+}
+
 describe('CoachIntakeWorkspace post-action flow', () => {
   it('opens and renders the linked prepared proposal from the active dossier', async () => {
     const queue = makeQueue();
@@ -148,7 +162,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <RoutedCoachIntakeWorkspace queue={queue} />
       </MemoryRouter>,
     );
 
@@ -160,6 +174,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
       expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-2');
     });
     expect(screen.queryByLabelText(/Prepared draft review panel/i)).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('Active intake: Evening upper body notes');
   });
 
   it('closes a rejected prepared draft and advances to the next actionable intake', async () => {

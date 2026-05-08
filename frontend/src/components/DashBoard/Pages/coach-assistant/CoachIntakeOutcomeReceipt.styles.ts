@@ -49,6 +49,20 @@ export const OutcomeText = styled.div`
   }
 `;
 
+export const OutcomeContext = styled.div`
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-base, #030712) 54%, transparent);
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 78%, transparent);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+`;
+
 export const OutcomeDismiss = styled.button`
   min-height: 44px;
   padding: 0 12px;

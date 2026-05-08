@@ -68,6 +68,7 @@ interface CoachIntakeWorkspaceProps {
 
 interface ReviewOutcomeState {
   activeTargetId: string | null;
+  activeTargetLabel: string | null;
   outcome: CoachIntakeOutcome;
 }
 
@@ -148,6 +149,7 @@ export function CoachIntakeWorkspace({
     if (!shouldAdvance) {
       setReviewOutcome({
         activeTargetId: activeReviewTargetId,
+        activeTargetLabel: activeItem?.title || null,
         outcome: outcomeFromProposal(proposal, false),
       });
       void refresh();
@@ -168,6 +170,7 @@ export function CoachIntakeWorkspace({
         activeTargetId: nextItemAfterAction
           ? itemEntityId(nextItemAfterAction) || nextItemAfterAction.id
           : activeReviewTargetId,
+        activeTargetLabel: nextItemAfterAction?.title || activeItem?.title || null,
         outcome: outcomeFromProposal(proposal, !!nextItemAfterAction),
       });
       navigate(queueScopedHref(itemReviewHref(nextItemAfterAction, coachWorkspaceHref), queue.scope));
@@ -229,6 +232,7 @@ export function CoachIntakeWorkspace({
       {visibleReviewOutcome ? (
         <CoachIntakeOutcomeReceipt
           outcome={visibleReviewOutcome}
+          activeTargetLabel={reviewOutcome?.activeTargetLabel}
           onDismiss={() => setReviewOutcome(null)}
         />
       ) : null}

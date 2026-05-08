@@ -7,6 +7,7 @@ import React from 'react';
 import { CheckCircle2, X } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import {
+  OutcomeContext,
   OutcomeDismiss,
   OutcomeReceiptWrap,
   OutcomeText,
@@ -39,11 +40,13 @@ export function outcomeFromProposal(
 
 interface CoachIntakeOutcomeReceiptProps {
   outcome: CoachIntakeOutcome;
+  activeTargetLabel?: string | null;
   onDismiss: () => void;
 }
 
 export function CoachIntakeOutcomeReceipt({
   outcome,
+  activeTargetLabel = null,
   onDismiss,
 }: CoachIntakeOutcomeReceiptProps): JSX.Element {
   const receiptRef = React.useRef<HTMLElement | null>(null);
@@ -65,6 +68,7 @@ export function CoachIntakeOutcomeReceipt({
       <OutcomeText>
         <strong><CheckCircle2 size={14} aria-hidden="true" /> {outcome.title}</strong>
         <span>{outcome.detail}</span>
+        {activeTargetLabel ? <OutcomeContext>Active intake: {activeTargetLabel}</OutcomeContext> : null}
       </OutcomeText>
       <OutcomeDismiss type="button" onClick={onDismiss}>
         <X size={14} aria-hidden="true" />
