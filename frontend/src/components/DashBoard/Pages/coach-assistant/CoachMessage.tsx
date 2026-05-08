@@ -34,6 +34,7 @@ import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
 import {
   safeAudioRejectedSummary,
+  safeAttachmentSourceLabel,
   safeClientCreateFailure,
   safeCommandActionLabel,
   safeProposalPreparationFailure,
@@ -520,7 +521,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
           <CardRow>
             <CardLabel>File</CardLabel>
-            <CardValue>{transcriptReview.fileName} ({formatBytes(transcriptReview.fileSize)})</CardValue>
+            <CardValue>
+              {safeAttachmentSourceLabel(transcriptReview.fileName, 'Transcript file')} (
+              {formatBytes(transcriptReview.fileSize)})
+            </CardValue>
           </CardRow>
           {transcriptReview.clientName && (
             <CardRow>
@@ -646,7 +650,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           <CardRow>
             <CardLabel>File</CardLabel>
             <CardValue>
-              {transcriptError.fileName}
+              {safeAttachmentSourceLabel(transcriptError.fileName, 'Transcript file')}
               {typeof transcriptError.fileSize === 'number'
                 ? ` (${formatBytes(transcriptError.fileSize)})`
                 : ''}
@@ -677,7 +681,9 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardTitle>
           <CardRow>
             <CardLabel>Source</CardLabel>
-            <CardValue>{audioIntakeReceipt.fileName}</CardValue>
+            <CardValue>
+              {safeAttachmentSourceLabel(audioIntakeReceipt.fileName, 'Audio intake')}
+            </CardValue>
           </CardRow>
           <CardRow>
             <CardLabel>Accepted</CardLabel>
@@ -729,7 +735,9 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardTitle>
           <CardRow>
             <CardLabel>Source</CardLabel>
-            <CardValue>{transcriptResult.fileName}</CardValue>
+            <CardValue>
+              {safeAttachmentSourceLabel(transcriptResult.fileName, 'Transcript file')}
+            </CardValue>
           </CardRow>
           {transcriptResult.clientName && (
             <CardRow>

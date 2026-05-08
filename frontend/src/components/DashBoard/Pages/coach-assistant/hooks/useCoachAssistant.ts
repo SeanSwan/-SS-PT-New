@@ -25,7 +25,10 @@ import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
-import { safeCommandConfirmationFailure } from '../CoachIntakeOperationalText.logic';
+import {
+  safeAttachmentSourceLabel,
+  safeCommandConfirmationFailure,
+} from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Human-readable result summaries
@@ -441,11 +444,12 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       const ts = new Date().toISOString();
       const userMsgId = `transcript-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const reviewMsgId = `transcript-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const sourceLabel = safeAttachmentSourceLabel(review.fileName, 'Transcript file');
 
       const userMsg: CoachMessageData = {
         id: userMsgId,
         role: 'user',
-        content: `Uploaded ${review.fileName} for review`,
+        content: `Uploaded ${sourceLabel} for review`,
         timestamp: ts,
       };
 
@@ -567,10 +571,11 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       // The success path (appendTranscriptReview) still uses
       // "Uploaded X for review" because there the file actually reached
       // review state.
+      const sourceLabel = safeAttachmentSourceLabel(error.fileName, 'Transcript file');
       const userBubbleContent =
         error.kind === 'upload_failed'
-          ? `Tried to upload ${error.fileName}`
-          : `Attached ${error.fileName}`;
+          ? `Tried to upload ${sourceLabel}`
+          : `Attached ${sourceLabel}`;
 
       const userMsg: CoachMessageData = {
         id: userMsgId,

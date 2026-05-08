@@ -69,4 +69,50 @@ describe('useCoachAssistant command summaries', () => {
     expect(assistantMessages.join(' ')).toContain('Availability blocked on 2026-05-08');
     expect(assistantMessages.join(' ')).not.toContain('do-not-render-private-availability-detail');
   });
+
+  it('does not put raw transcript filenames into upload user bubbles', () => {
+    const { result } = renderHook(() => useCoachAssistant());
+
+    act(() => {
+      result.current.appendTranscriptReview({
+        fileName: 'Marcus-private@example.com.txt',
+        fileSize: 1024,
+        fileMimeType: 'text/plain',
+        clientId: 1,
+        parsedWorkout: { exercises: [] },
+        transcript: 'safe fixture transcript',
+      });
+    });
+
+    const userMessages = result.current.messages
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(userMessages).toContain('Uploaded Transcript file for review');
+    expect(userMessages).not.toContain('Marcus-private@example.com');
+    expect(userMessages).not.toContain('private@example.com');
+  });
+
+  it('does not put raw failed-upload filenames into user bubbles', () => {
+    const { result } = renderHook(() => useCoachAssistant());
+
+    act(() => {
+      result.current.appendTranscriptError({
+        kind: 'upload_failed',
+        fileName: 'Marcus-private@example.com.pdf',
+        fileSize: 1024,
+        reason: 'The transcript could not be accepted. Check the file format and try again.',
+      });
+    });
+
+    const userMessages = result.current.messages
+      .filter((message) => message.role === 'user')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(userMessages).toContain('Tried to upload Transcript file');
+    expect(userMessages).not.toContain('Marcus-private@example.com');
+    expect(userMessages).not.toContain('private@example.com');
+  });
 });

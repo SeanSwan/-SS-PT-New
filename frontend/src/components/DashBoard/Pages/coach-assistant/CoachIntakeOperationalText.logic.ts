@@ -227,6 +227,15 @@ export function safeAudioRejectedSummary(rejectedCount: unknown): string | undef
   return `${count} audio ${count === 1 ? 'file was' : 'files were'} not accepted. Check the format or size and retry.`;
 }
 
+export function safeAttachmentSourceLabel(value: unknown, fallback = 'Source file'): string {
+  const text = compactText(value);
+  if (!text) return fallback;
+  if (/^\d+ audio pieces?$/i.test(text)) return text;
+  if (/\.(mp3|m4a|wav|aac|ogg|opus|flac|webm)$/i.test(text)) return 'Audio item';
+  if (/\.(txt|md|pdf|doc|docx)$/i.test(text)) return 'Transcript file';
+  return fallback;
+}
+
 export function safeCoachIntakeDraftFailure(): string {
   return 'Could not create Coach intake draft.';
 }

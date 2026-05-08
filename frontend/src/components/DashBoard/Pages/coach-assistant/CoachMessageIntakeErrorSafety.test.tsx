@@ -31,6 +31,8 @@ describe('CoachMessage intake error safety', () => {
     expect(screen.getByTestId('transcript-error-card')).toHaveTextContent(
       'The transcript could not be accepted. Check the file format and try again.',
     );
+    expect(screen.getByText(/Transcript file/i)).toBeInTheDocument();
+    expect(screen.queryByText(/session-note\.txt/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-transcript-detail/i)).not.toBeInTheDocument();
   });
 
@@ -52,7 +54,49 @@ describe('CoachMessage intake error safety', () => {
     expect(screen.getByTestId('audio-intake-receipt-card')).toHaveTextContent(
       '2 audio files were not accepted. Check the format or size and retry.',
     );
+    expect(screen.getByText(/Audio intake/i)).toBeInTheDocument();
+    expect(screen.queryByText(/workout-audio\.zip/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/do-not-render-private-audio-detail/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render raw transcript review source filenames', () => {
+    const { container } = render(
+      <CoachMessage
+        message={assistantMessage({
+          transcriptReview: {
+            fileName: 'Marcus-private@example.com.txt',
+            fileSize: 1024,
+            fileMimeType: 'text/plain',
+            clientId: 1,
+            parsedWorkout: { exercises: [] },
+            transcript: 'safe fixture transcript',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Transcript file/i)).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('private@example.com');
+  });
+
+  it('does not render raw logged-workout source filenames', () => {
+    const { container } = render(
+      <CoachMessage
+        message={assistantMessage({
+          transcriptResult: {
+            clientId: 1,
+            exerciseCount: 2,
+            totalSets: 6,
+            fileName: 'Marcus-private@example.com.pdf',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Transcript file/i)).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('private@example.com');
   });
 
   it('does not render arbitrary proposal preparation error messages', () => {

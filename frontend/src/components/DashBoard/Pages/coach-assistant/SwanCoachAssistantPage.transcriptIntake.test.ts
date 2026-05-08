@@ -454,8 +454,11 @@ describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
     );
     // Both truthful phrasings must be present in the appendTranscriptError
     // function body.
-    expect(COACH_HOOK_SOURCE).toMatch(/`Tried to upload \$\{error\.fileName\}`/);
-    expect(COACH_HOOK_SOURCE).toMatch(/`Attached \$\{error\.fileName\}`/);
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /const sourceLabel = safeAttachmentSourceLabel\(error\.fileName/,
+    );
+    expect(COACH_HOOK_SOURCE).toMatch(/`Tried to upload \$\{sourceLabel\}`/);
+    expect(COACH_HOOK_SOURCE).toMatch(/`Attached \$\{sourceLabel\}`/);
     // And the stale "Uploaded X for review" must NOT appear inside the
     // appendTranscriptError function body. (The success-path
     // appendTranscriptReview helper still uses that phrasing for real
@@ -471,11 +474,15 @@ describe('Phase 9.1.1 — truthful error-state user bubble copy', () => {
     expect(errorFnSlice).not.toMatch(/Uploaded \$\{error\.fileName\} for review/);
   });
 
-  it('appendTranscriptReview success-path wording is unchanged', () => {
+  it('appendTranscriptReview success-path uses sanitized source labels', () => {
     // Anti-regression: the real-review user bubble still says
-    // "Uploaded X for review" because there the file actually reached
-    // review state.
-    expect(COACH_HOOK_SOURCE).toMatch(/`Uploaded \$\{review\.fileName\} for review`/);
+    // "Uploaded ... for review", but it must not echo the raw local
+    // filename because those often contain client names.
+    expect(COACH_HOOK_SOURCE).toMatch(
+      /const sourceLabel = safeAttachmentSourceLabel\(review\.fileName/,
+    );
+    expect(COACH_HOOK_SOURCE).toMatch(/`Uploaded \$\{sourceLabel\} for review`/);
+    expect(COACH_HOOK_SOURCE).not.toMatch(/`Uploaded \$\{review\.fileName\} for review`/);
   });
 });
 

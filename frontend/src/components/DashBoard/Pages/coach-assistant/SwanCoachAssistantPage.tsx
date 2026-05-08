@@ -62,6 +62,7 @@ import {
   queueScopedHref,
 } from './CoachIntakeWorkspace.utils';
 import {
+  safeAttachmentSourceLabel,
   safeAudioRejectedSummary,
   safeCoachIntakeDraftFailure,
   safeTranscriptFailureReason,
@@ -1080,7 +1081,9 @@ const SwanCoachAssistantPage: React.FC = () => {
                     ? 'Uploading and transcribing…'
                     : 'Parsing workout and building review…'}
                 </ProcessingStage>
-                <ProcessingFileName>{transcriptProcessing.fileName}</ProcessingFileName>
+                <ProcessingFileName>
+                  {safeAttachmentSourceLabel(transcriptProcessing.fileName, 'Transcript file')}
+                </ProcessingFileName>
               </ProcessingBody>
             </TranscriptProcessingCard>
           )}
