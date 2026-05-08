@@ -177,6 +177,12 @@ describe('Coach intake item-scoped audio inspection', () => {
       lowConfidence: 1,
       targetIntakeId: 'audio-1',
       targetMatched: true,
+      reviewPlan: {
+        mode: 'active_intake',
+        primaryAction: 'confirm_audio_order',
+        primaryLabel: 'Confirm this intake order',
+        route: '/dashboard/admin/coach-assistant?intake=audio-1',
+      },
       items: [
         {
           id: 'coach:audio-1',
@@ -204,6 +210,10 @@ describe('Coach intake item-scoped audio inspection', () => {
       totalAudioItems: 1,
       targetIntakeId: 'audio-1',
       targetMatched: true,
+      reviewPlan: {
+        mode: 'active_intake',
+        primaryAction: 'confirm_audio_order',
+      },
     });
   });
 });

@@ -2,7 +2,7 @@
  * coachIntakeDispatchers.mjs
  * ==========================
  * Read-only command handlers for the unified Swan Coach intake queue. Result
- * cards stay scalar-only: no transcript bodies, parsed payloads, or client names.
+ * cards stay PII-safe: no transcript bodies, parsed payloads, or client names.
  */
 import { listUnifiedCoachIntakeItems } from '../../coachIntakeItemService.mjs';
 import {
@@ -125,6 +125,42 @@ function audioPuzzleForItem(item) {
   };
 }
 
+function reviewPlanForAudioInspection({ targetIntakeId, items }) {
+  if (!targetIntakeId) {
+    return {
+      mode: 'queue',
+      primaryAction: items.length > 0 ? 'choose_audio_intake' : 'wait_for_audio',
+      primaryLabel: items.length > 0 ? 'Choose an intake to review' : 'No audio intake to review',
+      rationale: items.length > 0
+        ? 'Open the Coach intake workspace, choose one audio item, then confirm order before draft generation.'
+        : 'No actionable audio pieces are currently available in this queue.',
+      route: items[0]?.reviewRoute || null,
+    };
+  }
+
+  if (items.length === 0) {
+    return {
+      mode: 'active_intake',
+      primaryAction: 'refresh_or_reselect_intake',
+      primaryLabel: 'Refresh intake list',
+      rationale: 'The selected intake was not found in the current actionable audio queue.',
+      route: null,
+    };
+  }
+
+  const item = items[0];
+  const needsOrder = item.needsOrderingReview || item.audioPieces > 1 || item.audioConfidence === 'low';
+  return {
+    mode: 'active_intake',
+    primaryAction: needsOrder ? 'confirm_audio_order' : 'prepare_draft_review',
+    primaryLabel: needsOrder ? 'Confirm this intake order' : 'Prepare Coach draft review',
+    rationale: needsOrder
+      ? `${item.audioPieces} pieces across ${item.audioBundles} bundles need order review before Swan Coach drafts a workout log.`
+      : `${item.audioPieces} audio piece is ready for Swan Coach draft preparation after client and date checks.`,
+    route: item.reviewRoute || null,
+  };
+}
+
 function audioInspectionSummary(result, ctx, params = {}) {
   const targetIntakeId = normalizeIntakeId(params?.intakeId);
   const allAudioItems = (result?.items || []).filter(isAudioPuzzleItem);
@@ -153,8 +189,10 @@ function audioInspectionSummary(result, ctx, params = {}) {
     lowConfidence: items.filter((item) => item.audioConfidence === 'low').length,
     items,
     queueRoute: resolveCoachQueueRoute(ctx),
+    reviewRoute: targetIntakeId && items[0]?.reviewRoute ? items[0].reviewRoute : null,
     targetIntakeId,
     targetMatched: targetIntakeId ? audioItems.length > 0 : null,
+    reviewPlan: reviewPlanForAudioInspection({ targetIntakeId, items }),
     commandHint: targetIntakeId && audioItems.length === 0
       ? 'That intake is not in the current actionable audio queue. Open the Coach workspace and refresh the intake list.'
       : 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',

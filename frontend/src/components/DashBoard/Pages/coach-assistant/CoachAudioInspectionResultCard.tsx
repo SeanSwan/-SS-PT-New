@@ -7,7 +7,7 @@
  * raw command transport keys when Sean asks Coach to inspect voice-note pieces.
  */
 import styled from 'styled-components';
-import { AlertTriangle, CheckCircle, GitBranch } from 'lucide-react';
+import { AlertTriangle, CheckCircle, GitBranch, ListChecks } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
 
 interface AudioInspectionItem {
@@ -25,6 +25,14 @@ interface CoachAudioInspectionResultCardProps {
   command: string;
   result: Record<string, unknown>;
   message?: string;
+}
+
+interface ReviewPlan {
+  mode?: string;
+  primaryAction?: string;
+  primaryLabel?: string;
+  rationale?: string;
+  route?: string | null;
 }
 
 const CardShell = styled.div`
@@ -77,6 +85,36 @@ const Hint = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   line-height: 1.5;
+`;
+
+const NextActionPanel = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #030712) 42%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+
+  svg {
+    flex: 0 0 auto;
+    color: var(--accent-primary, #60C0F0);
+  }
+`;
+
+const NextActionText = styled.div`
+  display: grid;
+  gap: 4px;
+
+  strong {
+    color: var(--accent-primary, #60C0F0);
+    font-size: 12px;
+  }
 `;
 
 const ItemList = styled.div`
@@ -162,6 +200,10 @@ function timelineFallbackItems(result: Record<string, unknown>): AudioInspection
   }];
 }
 
+function reviewPlan(value: unknown): ReviewPlan | null {
+  return value && typeof value === 'object' ? value as ReviewPlan : null;
+}
+
 export function isAudioInspectionCommand(command: string): boolean {
   return command === 'inspect_coach_audio_pieces' || command === 'inspect_plaud_audio_pieces';
 }
@@ -179,6 +221,10 @@ export function CoachAudioInspectionResultCard({
   const explicitItems = audioItems(result.items);
   const items = (explicitItems.length > 0 ? explicitItems : timelineFallbackItems(result)).slice(0, 3);
   const hint = typeof result.commandHint === 'string' ? result.commandHint : null;
+  const plan = reviewPlan(result.reviewPlan);
+  const routedResult = plan?.route && typeof plan.route === 'string'
+    ? { ...result, reviewRoute: plan.route }
+    : result;
 
   return (
     <CardShell>
@@ -205,8 +251,18 @@ export function CoachAudioInspectionResultCard({
           ))}
         </ItemList>
       )}
+      {plan?.primaryLabel && (
+        <NextActionPanel aria-label="Audio inspection next action">
+          <ListChecks size={15} aria-hidden="true" />
+          <NextActionText>
+            <strong>Next action</strong>
+            <span>{plan.primaryLabel}</span>
+            {plan.rationale && <span>{plan.rationale}</span>}
+          </NextActionText>
+        </NextActionPanel>
+      )}
       {hint && <Hint>{hint}</Hint>}
-      <CommandRouteAction command={command} result={result} />
+      <CommandRouteAction command={command} result={routedResult} />
     </CardShell>
   );
 }

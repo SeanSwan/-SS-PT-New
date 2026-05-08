@@ -175,6 +175,52 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('items')).toBeNull();
   });
 
+  it('renders item-scoped Coach audio inspection with deterministic next action guidance', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_coach_audio_pieces"
+          client={null}
+          result={{
+            totalAudioItems: 1,
+            needsOrderingReview: 1,
+            lowConfidence: 1,
+            targetIntakeId: 'audio-1',
+            targetMatched: true,
+            queueRoute: '/dashboard/admin/coach-assistant',
+            commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+            reviewPlan: {
+              mode: 'active_intake',
+              primaryAction: 'confirm_audio_order',
+              primaryLabel: 'Confirm this intake order',
+              rationale: '3 pieces across 2 bundles need order review before Swan Coach drafts a workout log.',
+              route: '/dashboard/admin/coach-assistant?intake=audio-1',
+            },
+            items: [
+              {
+                id: 'coach:audio-1',
+                kind: 'coach_intake',
+                queueStatus: 'unprocessed',
+                audioPieces: 3,
+                audioBundles: 2,
+                audioConfidence: 'low',
+                needsOrderingReview: true,
+                reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-1',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Next action/i)).toBeInTheDocument();
+    expect(screen.getByText(/Confirm this intake order/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 pieces across 2 bundles/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open coach intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=audio-1');
+    expect(screen.queryByText('reviewPlan')).toBeNull();
+  });
+
   it('renders review-next Coach intake as a workflow card instead of raw queue keys', () => {
     render(
       <MemoryRouter>
