@@ -41,6 +41,9 @@ describe('ExecutionResultCard route actions', () => {
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
     expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+    expect(screen.getByText(/Next intake ready/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/PLAUD intake queue summary/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Command Executed/i)).toBeNull();
     expect(screen.queryByText('reviewRoute')).toBeNull();
   });
 

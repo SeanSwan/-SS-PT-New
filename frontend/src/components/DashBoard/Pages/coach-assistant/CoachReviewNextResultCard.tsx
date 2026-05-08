@@ -114,7 +114,10 @@ function statusLabel(value: unknown): string | null {
 }
 
 export function isCoachReviewNextCommand(command: string): boolean {
-  return command === 'review_next_coach_intake' || command === 'view_coach_intake_queue';
+  return command === 'review_next_coach_intake'
+    || command === 'view_coach_intake_queue'
+    || command === 'review_next_plaud_intake'
+    || command === 'view_plaud_intake_queue';
 }
 
 export function CoachReviewNextResultCard({
@@ -126,6 +129,7 @@ export function CoachReviewNextResultCard({
   const readyReview = numberValue(result.readyReview);
   const needsClient = numberValue(result.needsClient);
   const nextStatus = statusLabel(result.nextQueueStatus);
+  const surfaceLabel = command.includes('_plaud_') ? 'PLAUD' : 'Coach';
   const hasDirectNext = Boolean(result.nextKind || result.nextEntityId || result.reviewRoute);
   const hasActionableQueue = actionable > 0 || readyReview > 0 || needsClient > 0;
   const title = hasDirectNext
@@ -144,7 +148,7 @@ export function CoachReviewNextResultCard({
     <CardShell>
       <CardTitle><CheckCircle size={16} aria-hidden="true" /> {title}</CardTitle>
       {message && <Hint>{message}</Hint>}
-      <StatusRow aria-label="Coach intake queue summary">
+      <StatusRow aria-label={`${surfaceLabel} intake queue summary`}>
         <StatusPill>{actionable} actionable</StatusPill>
         <StatusPill $tone="purple">{readyReview} ready</StatusPill>
         <StatusPill $tone="gold">{needsClient} needs client</StatusPill>
