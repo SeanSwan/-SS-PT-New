@@ -12,6 +12,18 @@ const SAFE_FRONTEND_EVENTS = new Set([
   'AI_TOGGLE_NASM_ITEM',
 ]);
 const WRITE_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
+const SAFE_FRONTEND_PAYLOAD_FIELDS = Object.freeze({
+  AI_ADD_EXERCISE: ['exerciseName', 'sets', 'reps', 'weight', 'tempo', 'restSeconds', 'notes'],
+  AI_LOAD_TEMPLATE: ['phase'],
+  AI_UPDATE_SET: ['exerciseName', 'setNumber', 'weight', 'reps', 'rpe', 'tempo'],
+  AI_TOGGLE_NASM_ITEM: ['section', 'itemName', 'markAll', 'completed'],
+});
+const SAFE_FRONTEND_REQUIRED_FIELDS = Object.freeze({
+  AI_ADD_EXERCISE: ['exerciseName'],
+  AI_LOAD_TEMPLATE: ['phase'],
+  AI_UPDATE_SET: ['exerciseName'],
+  AI_TOGGLE_NASM_ITEM: ['section'],
+});
 const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ExerciseDraftSchema = z.object({
@@ -88,6 +100,26 @@ function safeParseAction(schema, block) {
   return parsed.success ? parsed.data : null;
 }
 
+function isSafeFrontendPayloadValue(value) {
+  return value == null || ['string', 'number', 'boolean'].includes(typeof value);
+}
+
+function sanitizeSafeFrontendPayload(event, payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
+  const allowedFields = SAFE_FRONTEND_PAYLOAD_FIELDS[event] || [];
+  return allowedFields.reduce((clean, field) => {
+    if (Object.prototype.hasOwnProperty.call(payload, field) && isSafeFrontendPayloadValue(payload[field])) {
+      clean[field] = payload[field];
+    }
+    return clean;
+  }, {});
+}
+
+function hasRequiredSafeFrontendPayloadFields(event, payload) {
+  const requiredFields = SAFE_FRONTEND_REQUIRED_FIELDS[event] || [];
+  return requiredFields.every((field) => Object.prototype.hasOwnProperty.call(payload, field));
+}
+
 function cleanCoachIntakeId(value) {
   const clean = String(value || '').trim().replace(/^coach:/, '');
   return SAFE_COACH_INTAKE_ID_RE.test(clean) ? clean : null;
@@ -131,7 +163,11 @@ export function parseSafeFrontendDispatch(block) {
     : block;
   if (candidate.action !== 'frontend_dispatch') return null;
   const parsed = safeParseAction(FrontendDispatchActionSchema, candidate);
-  return parsed && SAFE_FRONTEND_EVENTS.has(parsed.event) ? parsed : null;
+  if (!parsed || !SAFE_FRONTEND_EVENTS.has(parsed.event)) return null;
+  const payload = sanitizeSafeFrontendPayload(parsed.event, parsed.payload);
+  return hasRequiredSafeFrontendPayloadFields(parsed.event, payload)
+    ? { ...parsed, payload }
+    : null;
 }
 
 export function classifyActionBlock(block, conversation, { proposalTypes, schemaVersion }) {

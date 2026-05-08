@@ -63,6 +63,74 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
   });
 
+  it('strips non-draft fields from safe frontend dispatch payloads', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Draft form action prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'frontend_dispatch',
+        payload: {
+          event: 'AI_ADD_EXERCISE',
+          payload: {
+            exerciseName: 'Goblet squat',
+            sets: 3,
+            reps: 10,
+            event: 'AI_SUBMIT_WORKOUT',
+            action: 'frontend_dispatch',
+            frontendEvent: 'AI_SUBMIT_WORKOUT',
+            nested: { event: 'AI_SUBMIT_WORKOUT' },
+          },
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result.proposals).toEqual([]);
+    expect(result.frontendActions).toEqual([{
+      event: 'AI_ADD_EXERCISE',
+      payload: { exerciseName: 'Goblet squat', sets: 3, reps: 10 },
+    }]);
+    expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
+  });
+
+  it('drops safe frontend dispatches when required draft fields are missing', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Draft form action prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'frontend_dispatch',
+        payload: {
+          event: 'AI_ADD_EXERCISE',
+          payload: { reps: 10 },
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(db.calls).toEqual([]);
+  });
+
   it('does not emit frontend draft actions for client-role conversations', async () => {
     const db = fakeSequelize();
     const content = [
