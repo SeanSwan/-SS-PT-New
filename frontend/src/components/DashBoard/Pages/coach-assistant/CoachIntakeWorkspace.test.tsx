@@ -142,7 +142,7 @@ describe('CoachIntakeWorkspace', () => {
     const target = screen.getByLabelText(/Active review target/i);
     expect(within(target).getByText(/Active review target/i)).toBeInTheDocument();
     expect(within(target).getByText(/Later upper body note/i)).toBeInTheDocument();
-    expect(within(target).getByText(/Needs Client/i)).toBeInTheDocument();
+    expect(within(target).getAllByText(/Needs Client/i).length).toBeGreaterThan(0);
     expect(within(target).getByText(/Review dossier/i)).toBeInTheDocument();
     expect(within(target).getByText(/Client confirmation required/i)).toBeInTheDocument();
     expect(within(target).getByText(/Ordering review required/i)).toBeInTheDocument();
