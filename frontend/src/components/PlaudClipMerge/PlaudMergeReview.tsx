@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
 import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
@@ -63,6 +63,7 @@ export function PlaudMergeReview({
   const [segmentApprovals, setSegmentApprovals] = useState<Record<string, SegmentApprovalState>>({});
   const [segmentDateOverrides, setSegmentDateOverrides] = useState<Record<string, string>>({});
   const segmentApprovalsRef = useRef<Record<string, SegmentApprovalState>>({});
+  const reviewPanelRef = useRef<HTMLDivElement | null>(null);
   const exercises = reviewState.parsedWorkout?.exercises || [];
   const segments = useMemo(
     () => reviewState.dateSplitCandidates?.segments || [],
@@ -71,6 +72,20 @@ export function PlaudMergeReview({
   const dateSplitApprovalBlock = getPlaudDateSplitApprovalBlock(reviewState.dateSplitCandidates);
   const shouldRenderSegmentApproval = segments.length > 1 || Boolean(dateSplitApprovalBlock);
   const approveDisabled = isApplying || exercises.length === 0 || !reviewState.clientId || Boolean(dateSplitApprovalBlock);
+
+  useEffect(() => {
+    const panel = reviewPanelRef.current;
+    if (!panel) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (typeof panel.focus === 'function') {
+        panel.focus({ preventScroll: true });
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [reviewState.mergeRequestId]);
 
   const loggedWorkoutIds = useMemo(() => (
     segments
@@ -195,7 +210,12 @@ export function PlaudMergeReview({
           onReSelect={onBack}
         />
       ) : null}
-      <ReviewWrap>
+      <ReviewWrap
+        ref={reviewPanelRef}
+        data-testid="plaud-merge-review-panel"
+        aria-label="PLAUD merge review panel"
+        tabIndex={-1}
+      >
         {reviewState.clipTimeline.length > 0 ? (
           <>
             <ReviewHeading>Source clip timeline ({reviewState.clipTimeline.length})</ReviewHeading>

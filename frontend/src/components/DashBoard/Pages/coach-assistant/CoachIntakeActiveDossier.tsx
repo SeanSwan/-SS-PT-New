@@ -33,6 +33,7 @@ interface CoachIntakeActiveDossierProps {
   item: CoachIntakeItem;
   statusText: string;
   reviewHref: string;
+  focusRef?: React.Ref<HTMLElement>;
   onAskCoach: () => void;
   onInspectAudio: () => void;
   onConfirmAudioOrder: () => void;
@@ -93,6 +94,7 @@ export function CoachIntakeActiveDossier({
   item,
   statusText,
   reviewHref,
+  focusRef,
   onAskCoach,
   onInspectAudio,
   onConfirmAudioOrder,
@@ -108,7 +110,12 @@ export function CoachIntakeActiveDossier({
   const showReviewPreparedDraft = !!item.latestProposalId;
 
   return (
-    <TargetPanel aria-label="Active review target">
+    <TargetPanel
+      ref={focusRef}
+      aria-label="Active review target"
+      data-testid="coach-active-intake-dossier"
+      tabIndex={-1}
+    >
       <TargetBody>
         <TargetEyebrow><ListChecks size={13} aria-hidden="true" /> Active review target</TargetEyebrow>
         <DossierHeader>

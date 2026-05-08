@@ -87,6 +87,8 @@ export function CoachIntakeWorkspace({
   const navigate = useNavigate();
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
   const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
+  const activeDossierRef = React.useRef<HTMLElement | null>(null);
+  const focusedActiveDossierRef = React.useRef<string | null>(null);
 
   const workspaceHref = `/dashboard/${userRole}/plaud`;
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
@@ -94,6 +96,7 @@ export function CoachIntakeWorkspace({
   const nextItem = pickNextItem(orderedItems);
   const activeItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
   const activeItemKey = activeItem?.id || null;
+  const activeReviewTargetId = activeItem ? itemEntityId(activeItem) || activeItem.id : null;
   const reviewNextHref = itemReviewHref(nextItem, coachWorkspaceHref);
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
@@ -102,6 +105,22 @@ export function CoachIntakeWorkspace({
   React.useEffect(() => {
     setReviewingProposalId(null);
   }, [activeItemKey]);
+
+  React.useEffect(() => {
+    if (!activeIntakeId || !activeReviewTargetId || focusedActiveDossierRef.current === activeReviewTargetId) return undefined;
+    focusedActiveDossierRef.current = activeReviewTargetId;
+    const panel = activeDossierRef.current;
+    if (!panel) return undefined;
+    const timer = window.setTimeout(() => {
+      if (typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (typeof panel.focus === 'function') {
+        panel.focus({ preventScroll: true });
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [activeIntakeId, activeReviewTargetId]);
 
   React.useEffect(() => {
     if (!isTrainerSurface || !activeIntakeId || activeItem || isLoading || error) return;
@@ -170,6 +189,7 @@ export function CoachIntakeWorkspace({
 
       {activeItem && (
         <CoachIntakeActiveDossier
+          focusRef={activeDossierRef}
           item={activeItem}
           statusText={statusLabel(activeItem.queueStatus)}
           reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
