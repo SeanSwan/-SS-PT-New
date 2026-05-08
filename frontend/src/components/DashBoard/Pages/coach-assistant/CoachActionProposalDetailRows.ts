@@ -165,6 +165,7 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
       ['Splits', splitPlan.splitCount],
     ]));
   }
-  const fallbackRows = Object.entries(detail).filter(([key]) => key !== 'approvalGate');
-  return withApprovalGateRows(detail, compactRows(fallbackRows));
+  return withApprovalGateRows(detail, [
+    ['Details', 'Structured proposal detail available for review.'],
+  ]);
 }
