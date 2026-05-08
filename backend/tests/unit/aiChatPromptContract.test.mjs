@@ -38,6 +38,22 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).not.toContain('American College of Sports Medicine');
   });
 
+  it('removes legacy positive write-action instructions from privileged Coach prompts', () => {
+    for (const role of ['admin', 'trainer']) {
+      const prompt = getSystemPrompt(role, 'coach_assistant', 'concise');
+
+      expect(prompt).not.toContain('generate a create_client action block');
+      expect(prompt).not.toContain('"action": "create_client"');
+      expect(prompt).not.toContain('generate import_workout_log action blocks');
+      expect(prompt).not.toContain('"action": "import_workout_log"');
+      expect(prompt).toContain('use a coach_action_proposal block');
+      expect(prompt).not.toContain('FULL read-write access');
+      if (role === 'admin') {
+        expect(prompt).toContain('proposal-preparation access');
+      }
+    }
+  });
+
   it('does not inject proposal instructions into normal client chat', () => {
     const prompt = getSystemPrompt('client', 'general', 'concise');
 

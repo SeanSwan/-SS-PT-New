@@ -16,7 +16,7 @@ SWAN COACH STRUCTURED PROPOSAL CONTRACT:
 - When preparing a draft for a known Coach intake item, include top-level "intake_id" with that UUID. Omit "intake_id" if the source id is unknown or not a UUID.
 - SwanStudios uses NASM OPT as the training protocol anchor. Never invent NASM OPT phases, assessment results, corrective categories, or acute variables not present in the verified client context, transcript, or server-provided guidance.
 
-When ready to prepare a draft, include one JSON block:
+When ready to prepare a draft, use a coach_action_proposal block as one JSON block:
 \`\`\`json
 {
   "action": "coach_action_proposal",
@@ -45,7 +45,40 @@ export function shouldAppendCoachActionProposalContract({ role, context } = {}) 
   return context === 'coach_assistant' && ['admin', 'trainer'].includes(role);
 }
 
+const STRUCTURED_CLIENT_ONBOARDING_GUIDANCE = `CLIENT CREATION (NEW CLIENT ONBOARDING):
+When the admin/trainer asks to onboard or create a new client, gather the available onboarding fields and use a coach_action_proposal block with proposal_type "client_onboarding". Ask one short clarification when firstName, lastName, or clientSource is missing. Do not claim the account was created, do not invent claim codes/passwords/URLs, and do not emit old client-creation write blocks.`;
+
+const STRUCTURED_WORKOUT_IMPORT_GUIDANCE = `HISTORICAL WORKOUT LOG IMPORT:
+When a trainer/admin pastes workout history or dictates a completed session, parse it into one or more proposed workout-log drafts and use a coach_action_proposal block with proposal_type "workout_log" or "split_plan". Dates must stay evidence-backed, final writes require trainer approval, and old workout-import write blocks are not allowed for new Coach output.`;
+
+function replacePromptSection(prompt, startMarker, endMarker, replacement) {
+  const startIndex = prompt.indexOf(startMarker);
+  if (startIndex === -1) return prompt;
+
+  const endIndex = prompt.indexOf(endMarker, startIndex + startMarker.length);
+  if (endIndex === -1) return prompt;
+
+  return `${prompt.slice(0, startIndex)}${replacement}\n\n${prompt.slice(endIndex)}`;
+}
+
+function replaceLegacyServerWriteInstructions(basePrompt) {
+  const withoutClientCreation = replacePromptSection(
+    basePrompt.replaceAll('FULL read-write access', 'proposal-preparation access'),
+    'CLIENT CREATION (NEW CLIENT ONBOARDING):',
+    'HISTORICAL WORKOUT LOG IMPORT:',
+    STRUCTURED_CLIENT_ONBOARDING_GUIDANCE
+  );
+
+  return replacePromptSection(
+    withoutClientCreation,
+    'HISTORICAL WORKOUT LOG IMPORT:',
+    'BEHAVIOR:',
+    STRUCTURED_WORKOUT_IMPORT_GUIDANCE
+  );
+}
+
 export function appendCoachActionProposalContract(basePrompt, { role, context } = {}) {
   if (!shouldAppendCoachActionProposalContract({ role, context })) return basePrompt;
-  return `${basePrompt}\n\n${COACH_ACTION_PROPOSAL_PROMPT_CONTRACT}`;
+  const proposalReadyPrompt = replaceLegacyServerWriteInstructions(basePrompt);
+  return `${proposalReadyPrompt}\n\n${COACH_ACTION_PROPOSAL_PROMPT_CONTRACT}`;
 }
