@@ -96,8 +96,11 @@ export function itemEntityId(item: CoachIntakeItem): string {
 
 export function itemReviewHref(item: CoachIntakeItem | null, workspaceHref: string): string {
   if (!item) return workspaceHref;
-  if (item.kind === 'merge_request' && item.canReview) return `${workspaceHref.replace('/coach-assistant', '/plaud')}?review=next`;
   const entityId = itemEntityId(item);
+  if (item.kind === 'merge_request' && item.canReview) {
+    const plaudHref = workspaceHref.replace('/coach-assistant', '/plaud');
+    return entityId ? `${plaudHref}?mergeRequestId=${encodeURIComponent(entityId)}` : `${plaudHref}?review=next`;
+  }
   return entityId ? `${workspaceHref}?intake=${encodeURIComponent(entityId)}` : workspaceHref;
 }
 

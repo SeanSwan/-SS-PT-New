@@ -74,7 +74,13 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/reviewNextMergeRequestId/);
     expect(PAGE_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
     expect(PAGE_SRC).toMatch(/item\.canReview/);
-    expect(PAGE_SRC).toMatch(/initialReviewMergeRequestId=\{reviewNextMergeRequestId \|\| undefined\}/);
+    expect(PAGE_SRC).toMatch(/initialReviewMergeRequestId=\{initialReviewMergeRequestId \|\| undefined\}/);
+  });
+
+  it('accepts direct merge request review links from Swan Coach queue cards', () => {
+    expect(PAGE_SRC).toMatch(/function parseMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/params\.get\('mergeRequestId'\)/);
+    expect(PAGE_SRC).toMatch(/directMergeRequestId \|\| reviewNextMergeRequestId/);
   });
 
   it('chooses review-next from a wider actionable window and orders ready merges oldest first', () => {

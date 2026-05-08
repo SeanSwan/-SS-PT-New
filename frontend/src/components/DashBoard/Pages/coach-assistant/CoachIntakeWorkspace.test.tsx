@@ -92,7 +92,7 @@ describe('CoachIntakeWorkspace', () => {
     queue.items[0] = {
       ...queue.items[0],
       id: 'merge-1',
-      entityId: 'merge-1',
+      entityId: '11111111-1111-4111-8111-111111111111',
       kind: 'merge_request',
       sourceLabel: 'PLAUD merge',
     };
@@ -109,7 +109,7 @@ describe('CoachIntakeWorkspace', () => {
     );
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+      .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
   it('shows a dedicated active review target when an intake id is selected', () => {

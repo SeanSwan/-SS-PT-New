@@ -223,6 +223,9 @@ export function CoachIntakeWorkspace({
               <ChipColumn>
                 <SourceChip>{item.sourceLabel}</SourceChip>
                 {active && <SourceChip $tone="gold">Review target</SourceChip>}
+                <WorkspaceLink to={itemReviewHref(item, coachWorkspaceHref)} aria-label={`Review intake ${item.title}`}>
+                  Review
+                </WorkspaceLink>
               </ChipColumn>
               {audioPuzzle && (
                 <AudioPuzzleRow aria-label={`Audio puzzle ${plural(audioPuzzle.pieceCount, 'piece')}`}>

@@ -84,6 +84,11 @@ function pickReviewNextMergeRequestId(items: PlaudIntakeItem[]): string | null {
     .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
 }
 
+function parseMergeRequestId(value: string | null): string | null {
+  if (!value || !/^[0-9a-fA-F-]{36}$/.test(value)) return null;
+  return value;
+}
+
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,10 +96,12 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const coachPath = `/dashboard/${role}/coach-assistant`;
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
   const params = new URLSearchParams(location.search);
+  const directMergeRequestId = parseMergeRequestId(params.get('mergeRequestId'));
   const reviewNextRequested = params.get('review') === 'next';
   const reviewNextMergeRequestId = reviewNextRequested
     ? pickReviewNextMergeRequestId(intakeItems)
     : null;
+  const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId;
 
   const focusQueue = useCallback(() => {
     const queue = document.querySelector('[data-testid="plaud-pending-reviews"]');
@@ -236,7 +243,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
         <PrimaryPane aria-label="PLAUD merge and review queue">
           <PlaudMergeWorkspace
             embedded
-            initialReviewMergeRequestId={reviewNextMergeRequestId || undefined}
+            initialReviewMergeRequestId={initialReviewMergeRequestId || undefined}
           />
         </PrimaryPane>
         <CoachPane aria-label="Swan Coach action contract">
