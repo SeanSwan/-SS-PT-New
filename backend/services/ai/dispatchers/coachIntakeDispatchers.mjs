@@ -5,17 +5,14 @@
  * cards stay scalar-only: no transcript bodies, parsed payloads, or client names.
  */
 import { listUnifiedCoachIntakeItems } from '../../coachIntakeItemService.mjs';
+import {
+  coachIntakeQueueAgeTime,
+  pickNextCoachIntakeItem,
+} from '../../coachIntakeQueueOrdering.mjs';
 
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
 const MAX_QUEUE_LIMIT = 20;
-const STATUS_PRIORITY = new Map([
-  ['ready_review', 0],
-  ['needs_client', 1],
-  ['unprocessed', 2],
-  ['processing', 3],
-  ['failed', 4],
-]);
 
 function resolveUserId(ctx) {
   const userId = Number(ctx?.user?.id);
@@ -43,27 +40,6 @@ function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(MAX_QUEUE_LIMIT, Math.max(1, parsed));
-}
-
-function queuePriority(item) {
-  if (item?.canReview) return -1;
-  return STATUS_PRIORITY.get(item?.queueStatus) ?? 99;
-}
-
-function queueAgeTime(item) {
-  const value = item?.recordedAt || item?.timelineAt || item?.createdAt || item?.uploadedAt || null;
-  const parsed = Date.parse(value || '');
-  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
-}
-
-function pickNextItem(items = []) {
-  return [...items]
-    .filter((item) => item?.queueStatus && item.queueStatus !== 'archived')
-    .sort((a, b) => {
-      const priority = queuePriority(a) - queuePriority(b);
-      if (priority !== 0) return priority;
-      return queueAgeTime(a) - queueAgeTime(b);
-    })[0] || null;
 }
 
 function reviewRouteForItem(item, ctx) {
@@ -164,7 +140,7 @@ async function readQueue(params, ctx, { defaultScope = 'actionable', defaultLimi
     limit,
     sequelizeOverride: ctx?.options?.sequelize || ctx?.sequelize || null,
   });
-  return { result, nextItem: pickNextItem(result?.items || []) };
+  return { result, nextItem: pickNextCoachIntakeItem(result?.items || []) };
 }
 
 export async function dispatchViewCoachIntakeQueue(params = {}, ctx = {}) {
@@ -194,8 +170,8 @@ export const _internal = {
   audioInspectionSummary,
   audioPuzzleForItem,
   normalizeLimit,
-  pickNextItem,
-  queueAgeTime,
+  pickNextItem: pickNextCoachIntakeItem,
+  queueAgeTime: coachIntakeQueueAgeTime,
   reviewRouteForItem,
   scalarSummary,
 };

@@ -10,6 +10,7 @@ import sequelize from '../database.mjs';
 import { encryptPayload } from './plaudCipherService.mjs';
 import { listPlaudIntakeItems } from './plaudIntakeQueueService.mjs';
 import { audioPuzzleSummaryForQueue } from './coachAudioPuzzleService.mjs';
+import { sortCoachIntakeReviewOrder } from './coachIntakeQueueOrdering.mjs';
 import {
   COACH_ARCHIVED_STATUSES,
   COACH_INTAKE_SCOPES,
@@ -288,8 +289,6 @@ export async function listUnifiedCoachIntakeItems(options = {}) {
   }
   const limit = normalizeLimit(options.limit);
   const scope = normalizeScope(options.scope);
-  const items = [...coach.items, ...plaud.items]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, limit);
+  const items = sortCoachIntakeReviewOrder([...coach.items, ...plaud.items]).slice(0, limit);
   return { items, summary: summarizeUnifiedItems([...coach.items, ...plaud.items]), scope, limit, schemaReady: coach.schemaReady };
 }
