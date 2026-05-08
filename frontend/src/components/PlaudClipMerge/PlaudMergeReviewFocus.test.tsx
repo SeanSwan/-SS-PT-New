@@ -72,4 +72,29 @@ describe('PlaudMergeReview focus handoff', () => {
       });
     }
   });
+
+  it('shows active merge status, blocking gate, and next action in the review panel', () => {
+    const reviewState = {
+      ...makeReviewState(),
+      clientId: null,
+      clientName: null,
+    };
+
+    render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={vi.fn()}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Active merge status')).toBeInTheDocument();
+    expect(screen.getByText('Why this is active')).toBeInTheDocument();
+    expect(screen.getByText('Direct review link opened this merge.')).toBeInTheDocument();
+    expect(screen.getByText('Blocking gate')).toBeInTheDocument();
+    expect(screen.getByText('Client must be resolved')).toBeInTheDocument();
+    expect(screen.getByText('Next action')).toBeInTheDocument();
+    expect(screen.getByText('Return to merge queue')).toBeInTheDocument();
+  });
 });

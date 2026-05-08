@@ -116,6 +116,53 @@ export const TargetEyebrow = styled.span`
   text-transform: uppercase;
 `;
 
+export const StatusRibbon = styled.div`
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 8px;
+  margin: 9px 0 8px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 9%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 7%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-surface, #1A1A24) 84%, transparent);
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const StatusRibbonItem = styled.div`
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-base, #030712) 46%, transparent);
+`;
+
+export const StatusRibbonLabel = styled.span`
+  display: block;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 52%, transparent);
+  font-family: 'Fira Code', monospace;
+  font-size: 9px;
+  line-height: 1.25;
+  text-transform: uppercase;
+`;
+
+export const StatusRibbonValue = styled.strong`
+  display: block;
+  margin-top: 2px;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0;
+`;
+
 export const TargetActions = styled.div`
   display: inline-flex;
   align-items: center;

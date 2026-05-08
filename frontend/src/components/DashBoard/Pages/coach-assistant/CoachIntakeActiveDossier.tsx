@@ -22,6 +22,10 @@ import {
   GateCard,
   GateLabel,
   GateValue,
+  StatusRibbon,
+  StatusRibbonItem,
+  StatusRibbonLabel,
+  StatusRibbonValue,
   TargetActions,
   TargetBody,
   TargetEyebrow,
@@ -90,6 +94,28 @@ function canPrepareDraftReview(item: CoachIntakeItem): boolean {
   return !['archived', 'failed', 'processing'].includes(item.queueStatus);
 }
 
+function blockingGate(item: CoachIntakeItem): string {
+  if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
+  if (item.needsClient) return 'Client confirmation required';
+  if (item.latestProposalId) return 'Draft waiting for review';
+  if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
+  if (item.queueStatus === 'failed') return 'Intake failed';
+  return 'No blocking gate';
+}
+
+function nextAction(item: CoachIntakeItem): string {
+  if (needsAudioOrderConfirmation(item)) return 'Confirm audio order';
+  if (item.needsClient) return 'Ask Coach to resolve client';
+  if (item.latestProposalId) return 'Review prepared draft';
+  if (canPrepareDraftReview(item)) return 'Prepare draft review';
+  if (audioPieceCount(item) > 0) return 'Inspect intake audio';
+  return 'Ask Coach about this intake';
+}
+
+function activeReason(item: CoachIntakeItem, statusText: string): string {
+  return `${item.sourceLabel} is selected from the intake queue in ${statusText.toLowerCase()} state.`;
+}
+
 export function CoachIntakeActiveDossier({
   item,
   statusText,
@@ -118,6 +144,20 @@ export function CoachIntakeActiveDossier({
     >
       <TargetBody>
         <TargetEyebrow><ListChecks size={13} aria-hidden="true" /> Active review target</TargetEyebrow>
+        <StatusRibbon aria-label="Active item status">
+          <StatusRibbonItem>
+            <StatusRibbonLabel>Why this is active</StatusRibbonLabel>
+            <StatusRibbonValue>{activeReason(item, statusText)}</StatusRibbonValue>
+          </StatusRibbonItem>
+          <StatusRibbonItem>
+            <StatusRibbonLabel>Blocking gate</StatusRibbonLabel>
+            <StatusRibbonValue>{blockingGate(item)}</StatusRibbonValue>
+          </StatusRibbonItem>
+          <StatusRibbonItem>
+            <StatusRibbonLabel>Next action</StatusRibbonLabel>
+            <StatusRibbonValue>{nextAction(item)}</StatusRibbonValue>
+          </StatusRibbonItem>
+        </StatusRibbon>
         <DossierHeader>
           <div>
             <DossierMeta>Review dossier</DossierMeta>

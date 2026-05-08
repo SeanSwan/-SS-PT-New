@@ -2,15 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
 import { PlaudDateSplitCandidatePanel } from './PlaudDateSplitCandidatePanel';
+import { PlaudMergeReviewStatusRibbon } from './PlaudMergeReviewStatusRibbon';
 import {
   approveMergeRequest,
   parseMergeRequestSegment,
   type PlaudDateSplitSegment,
 } from '../../services/plaudMergeService';
-import {
-  applyMergeApproval,
-  applyMergeSegmentApproval,
-} from './PlaudMergeWorkspace.apply';
+import { applyMergeApproval, applyMergeSegmentApproval } from './PlaudMergeWorkspace.apply';
 import { getPlaudDateSplitApprovalBlock } from './plaudDateSplitApprovalGuard';
 import type { PlaudMergeConfirmState, PlaudMergeReviewState } from './PlaudMergeWorkspace.types';
 import {
@@ -216,6 +214,7 @@ export function PlaudMergeReview({
         aria-label="PLAUD merge review panel"
         tabIndex={-1}
       >
+        <PlaudMergeReviewStatusRibbon reviewState={reviewState} exerciseCount={exercises.length} dateSplitApprovalBlock={dateSplitApprovalBlock} />
         {reviewState.clipTimeline.length > 0 ? (
           <>
             <ReviewHeading>Source clip timeline ({reviewState.clipTimeline.length})</ReviewHeading>
