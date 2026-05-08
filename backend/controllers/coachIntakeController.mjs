@@ -10,6 +10,7 @@ import {
   createCoachTextIntakeItem,
   listUnifiedCoachIntakeItems,
 } from '../services/coachIntakeItemService.mjs';
+import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { listCoachIntakeEvents } from '../services/coachIntakeEventTrailService.mjs';
 import { confirmCoachIntakeAudioOrder } from '../services/coachIntakeReviewActionsService.mjs';
 
@@ -75,6 +76,19 @@ export async function listCoachIntakeHandler(req, res) {
   }
 }
 
+export async function getCoachIntakeHealthHandler(req, res) {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+
+    const health = await getCoachIntakeHealth({ userId });
+    return res.status(200).json({ success: true, health });
+  } catch (err) {
+    logger.error('[coachIntake.health] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to read Coach intake health');
+  }
+}
+
 export async function confirmCoachIntakeAudioOrderHandler(req, res) {
   try {
     const userId = currentUserId(req);
@@ -126,6 +140,7 @@ export async function listCoachIntakeEventsHandler(req, res) {
 
 export default {
   createCoachTextIntakeHandler,
+  getCoachIntakeHealthHandler,
   listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
   confirmCoachIntakeAudioOrderHandler,
