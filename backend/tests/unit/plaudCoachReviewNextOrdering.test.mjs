@@ -81,4 +81,21 @@ describe('PLAUD Coach review-next ordering', () => {
     expect(_internal.reviewRouteForItem(item, '/dashboard/admin/plaud')).toBe('/dashboard/admin/plaud?review=next');
     expect(_internal.summaryEntityIdForItem(item)).toBeNull();
   });
+
+  it('does not emit direct merge review routes for empty entity ids', () => {
+    const queueRoute = '/dashboard/admin/plaud';
+
+    for (const entityId of ['', '   ', null, undefined]) {
+      const item = {
+        id: 'merge:empty',
+        kind: 'merge_request',
+        queueStatus: 'ready_review',
+        canReview: true,
+        entityId,
+      };
+
+      expect(_internal.reviewRouteForItem(item, queueRoute)).toBe(`${queueRoute}?review=next`);
+      expect(_internal.summaryEntityIdForItem(item)).toBeNull();
+    }
+  });
 });
