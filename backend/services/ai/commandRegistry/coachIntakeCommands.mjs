@@ -39,6 +39,25 @@ const commands = [
     relatedCommands: ['view_coach_intake_queue', 'review_next_coach_intake'],
   },
   {
+    type: 'view_coach_intake_retention',
+    description: 'Show Coach intake raw artifact retention candidates and next privacy action',
+    naturalLanguagePatterns: [
+      'show Coach intake retention',
+      'show raw artifact retention',
+      'what Coach intake artifacts can be purged',
+      'show hive mind retention',
+    ],
+    method: 'GET',
+    endpoint: '/api/coach/intake/retention',
+    inputSchema: z.object({}),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['view_coach_intake_health', 'view_coach_intake_queue'],
+  },
+  {
     type: 'view_coach_intake_queue',
     description: 'Show the unified Swan Coach intake queue counts and next work item',
     naturalLanguagePatterns: [

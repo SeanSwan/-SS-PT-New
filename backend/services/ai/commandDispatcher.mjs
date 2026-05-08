@@ -81,6 +81,7 @@ import {
   dispatchViewCoachIntakeHealth,
   dispatchViewCoachIntakeQueue,
 } from './dispatchers/coachIntakeDispatchers.mjs';
+import { dispatchViewCoachIntakeRetention } from './dispatchers/coachIntakeRetentionDispatcher.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -188,6 +189,7 @@ const DISPATCHERS = new Map([
   ['view_available_slots',         dispatchViewAvailableSlots],
   ['create_availability_override', dispatchCreateAvailabilityOverride],
   ['view_coach_intake_health',      dispatchViewCoachIntakeHealth],
+  ['view_coach_intake_retention',   dispatchViewCoachIntakeRetention],
   ['view_coach_intake_queue',       dispatchViewCoachIntakeQueue],
   ['review_next_coach_intake',      dispatchReviewNextCoachIntake],
   ['inspect_coach_audio_pieces',    dispatchInspectCoachAudioPieces],
