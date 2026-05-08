@@ -67,6 +67,34 @@ function terminalStatusMessage(status: CoachActionProposal['status'], type: Coac
   return null;
 }
 
+const VALID_PROPOSAL_STATUSES = new Set(['PENDING', 'APPLYING', 'APPROVED', 'APPLIED', 'REJECTED', 'FAILED']);
+
+function safeProposalTitle(type: CoachActionProposal['type']): string {
+  return `${proposalTypeLabel(type)} proposal`;
+}
+
+function safeSummaryClient(summary: CoachActionProposal['summary']): string {
+  const clientId = Number(summary.clientId);
+  return Number.isInteger(clientId) && clientId > 0 ? `#${clientId}` : 'Needs review';
+}
+
+function safeSummaryDate(date: CoachActionProposal['summary'][string]): string {
+  const value = String(date || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : 'Needs review';
+}
+
+function safeSummaryExerciseCount(count: CoachActionProposal['summary'][string]): string | null {
+  if (count == null || String(count).trim() === '') {
+    return null;
+  }
+  const value = Number(count);
+  return Number.isInteger(value) && value >= 0 ? String(value) : null;
+}
+
+function safeProposalStatus(value: CoachActionProposal['status']): string {
+  return VALID_PROPOSAL_STATUSES.has(value) ? value : 'Needs review';
+}
+
 export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
@@ -86,11 +114,13 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const canApprove = pending && !isClarification && !!detail && !!reviewToken && !detailHasBlockingError;
   const detailRows = useMemo(() => buildDetailRows(detail), [detail]);
   const terminalMessage = terminalStatusMessage(status, proposal.type);
+  const headerTitle = safeProposalTitle(proposal.type);
+  const visibleStatus = safeProposalStatus(status);
   const rows = useMemo(() => [
     ['Type', proposalTypeLabel(proposal.type)],
-    ['Client', summary.clientId ? `#${summary.clientId}` : String(summary.displayName || 'Needs review')],
-    ['Date', String(summary.date || 'Needs review')],
-    ['Exercises', summary.exerciseCount != null ? String(summary.exerciseCount) : null],
+    ['Client', safeSummaryClient(summary)],
+    ['Date', safeSummaryDate(summary.date)],
+    ['Exercises', safeSummaryExerciseCount(summary.exerciseCount)],
   ].filter((row) => row[1] != null), [proposal.type, summary]);
 
   const runLoadDetails = async () => {
@@ -185,7 +215,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   return (
     <>
     <Card>
-      <Header><ShieldCheck size={16} /> {proposal.title}</Header>
+      <Header><ShieldCheck size={16} /> {headerTitle}</Header>
       {rows.map(([label, value]) => (
         <Row key={label}>
           <Label>{label}</Label>
@@ -194,7 +224,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       ))}
       <Row>
         <Label>Status</Label>
-        <Value>{status}</Value>
+        <Value>{visibleStatus}</Value>
       </Row>
       <CoachProposalGateRail summary={summary} />
       {detailRows.length > 0 && (

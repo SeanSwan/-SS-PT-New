@@ -73,7 +73,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
 
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
-    expect(await screen.findByText(/Review lower body workout draft/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout log proposal/i)).toBeInTheDocument();
   });
 
   it('shows a stale-link warning instead of fetching a mismatched proposal id', () => {

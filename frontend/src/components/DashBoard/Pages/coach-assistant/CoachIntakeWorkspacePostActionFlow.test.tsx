@@ -112,7 +112,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(getCoachProposal).toHaveBeenCalledWith('proposal-1');
-    expect(await screen.findByText(/Review lower body workout draft/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout log proposal/i)).toBeInTheDocument();
     const approveButton = screen.getByRole('button', { name: /approve and log/i });
     expect(approveButton).toBeEnabled();
     fireEvent.click(approveButton);
@@ -329,7 +329,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /^review prepared draft$/i }));
     fireEvent.click(await screen.findByRole('button', { name: /approve split plan/i }));
 
-    expect(await screen.findByText(/Review generated workout draft/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Workout log proposal/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
     expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-1');
   });
