@@ -1,0 +1,44 @@
+/**
+ * CoachIntakeQueueItemCard.test.tsx
+ * =================================
+ * Locks per-item gate/action visibility in the Coach intake queue.
+ */
+import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, expect, it } from 'vitest';
+import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
+
+describe('CoachIntakeQueueItemCard', () => {
+  it('renders gate and next-action chips from backend queue metadata', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          item={{
+            id: 'item-1',
+            entityId: 'item-1',
+            kind: 'coach_intake',
+            source: 'voice_note',
+            title: 'Morning lower body notes',
+            sourceLabel: 'Coach voice note',
+            queueStatus: 'ready_review',
+            clientName: null,
+            clipCount: 1,
+            canReview: true,
+            needsClient: true,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+            nextBlockingGate: 'Client confirmation required',
+            nextActionLabel: 'Ask Coach to resolve client',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Morning lower body notes/i);
+    expect(within(card).getByText(/Client confirmation required/i)).toBeInTheDocument();
+    expect(within(card).getByText(/Ask Coach to resolve client/i)).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: /review intake morning lower body notes/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
+  });
+});

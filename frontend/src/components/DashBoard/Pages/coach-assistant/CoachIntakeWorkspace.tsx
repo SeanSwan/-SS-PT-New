@@ -26,13 +26,12 @@ import CoachIntakeEventTrail from './CoachIntakeEventTrail';
 import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
+import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
-import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import {
   ActionButton,
   ActionRow,
-  ChipColumn,
   Eyebrow,
   Grid,
   Header,
@@ -54,15 +53,12 @@ import {
   actionableItemsAfter,
   isActiveItem,
   itemEntityId,
-  itemMeta,
   itemProposalReviewHref,
   itemReviewHref,
   orderedQueueItems,
   pickNextItem,
-  plural,
   shouldAdvanceAfterProposalAction,
   statusLabel,
-  visibleAudioPuzzle,
 } from './CoachIntakeWorkspace.utils';
 
 type CoachRole = 'admin' | 'trainer' | 'client';
@@ -261,31 +257,13 @@ export function CoachIntakeWorkspace({
             </ItemCard>
           ) : orderedItems.map((item) => {
             const active = isActiveItem(item, activeIntakeId);
-            const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
             return (
-            <ItemCard key={item.id} $active={active} aria-current={active ? 'true' : undefined}>
-              <ItemTitle>
-                <strong>{item.title}</strong>
-                <span>{itemMeta(item)}</span>
-              </ItemTitle>
-              <ChipColumn>
-                <SourceChip>{item.sourceLabel}</SourceChip>
-                {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
-                <WorkspaceLink to={itemReviewHref(item, coachWorkspaceHref)} aria-label={`Review intake ${item.title}`}>
-                  Review
-                </WorkspaceLink>
-              </ChipColumn>
-              {audioPuzzle && (
-                <AudioPuzzleRow aria-label={`Audio puzzle ${plural(audioPuzzle.pieceCount, 'piece')}`}>
-                  <GitBranch size={13} aria-hidden="true" />
-                  <AudioPuzzleLabel>Audio puzzle</AudioPuzzleLabel>
-                  <SourceChip $tone="purple">{plural(audioPuzzle.pieceCount, 'piece')}</SourceChip>
-                  <SourceChip>{plural(audioPuzzle.bundleCount, 'bundle')}</SourceChip>
-                  <span>{audioPuzzle.confidence} confidence</span>
-                  {audioPuzzle.needsOrderingReview && <SourceChip $tone="gold">order review</SourceChip>}
-                </AudioPuzzleRow>
-              )}
-            </ItemCard>
+              <CoachIntakeQueueItemCard
+                key={item.id}
+                item={item}
+                active={active}
+                coachWorkspaceHref={coachWorkspaceHref}
+              />
             );
           })}
         </ItemList>

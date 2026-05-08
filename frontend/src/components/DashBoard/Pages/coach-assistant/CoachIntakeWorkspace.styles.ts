@@ -271,5 +271,7 @@ export const SourceChip = styled.span<{ $tone?: 'cyan' | 'gold' | 'purple' }>`
   }};
   font-family: 'Fira Code', monospace;
   font-size: 10px;
-  white-space: nowrap;
+  line-height: 1.25;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 `;
