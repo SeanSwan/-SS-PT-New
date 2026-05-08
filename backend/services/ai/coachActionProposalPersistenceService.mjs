@@ -3,6 +3,7 @@
  * =========================================
  * Narrow persistence helpers for Coach proposal approval flows.
  */
+import { randomUUID } from 'node:crypto';
 import { QueryTypes } from 'sequelize';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
 import logger from '../../utils/logger.mjs';
@@ -98,6 +99,56 @@ export async function syncLatestProposalStatusToIntake({ row, db }) {
   return rows[0] ? { synced: true, reason: 'synced' } : { synced: false, reason: 'not_latest_or_forbidden' };
 }
 
+function proposalEventType(status) {
+  if (status === COACH_PROPOSAL_STATUS.APPLIED) return 'proposal_applied';
+  if (status === COACH_PROPOSAL_STATUS.APPROVED) return 'proposal_approved';
+  if (status === COACH_PROPOSAL_STATUS.REJECTED) return 'proposal_rejected';
+  if (status === COACH_PROPOSAL_STATUS.FAILED) return 'proposal_failed';
+  return 'proposal_status_changed';
+}
+
+function proposalEventJson(row, errorCode = null) {
+  return JSON.stringify({
+    action: 'proposal_status_changed',
+    proposalId: row.id,
+    proposalType: row.proposal_type,
+    status: row.status,
+    errorCode: errorCode || null,
+  });
+}
+
+export async function appendLatestProposalEventToIntake({ row, errorCode = null, db }) {
+  const userId = Number(row?.created_by_user_id || 0);
+  if (!row?.id || !Number.isInteger(userId) || userId <= 0) {
+    return { appended: false, reason: 'missing_inputs' };
+  }
+
+  const eventId = randomUUID();
+  const rows = await db.query(
+    `INSERT INTO coach_intake_events (
+       id, intake_item_id, actor_type, actor_id, event_type, event_json
+     )
+     SELECT :eventId, id, 'user', :actorId, :eventType, CAST(:eventJson AS jsonb)
+       FROM coach_intake_items
+      WHERE latest_proposal_id = :proposalId
+        AND user_id = :userId
+      RETURNING id`,
+    {
+      replacements: {
+        actorId: String(userId),
+        eventId,
+        eventJson: proposalEventJson(row, errorCode),
+        eventType: proposalEventType(row.status),
+        proposalId: row.id,
+        userId,
+      },
+      type: QueryTypes.SELECT,
+    },
+  );
+
+  return rows[0] ? { appended: true, reason: 'appended' } : { appended: false, reason: 'not_latest_or_forbidden' };
+}
+
 export async function updateProposalStatus({
   id,
   status,
@@ -131,11 +182,20 @@ export async function updateProposalStatus({
       error: err.message,
     });
   }
+  try {
+    await appendLatestProposalEventToIntake({ row: rows[0], errorCode, db });
+  } catch (err) {
+    logger.warn('[CoachActionProposal] Intake proposal event append failed', {
+      proposalId: rows[0].id,
+      error: err.message,
+    });
+  }
   return mapProposalRow(rows[0]);
 }
 
 export default {
   claimPendingProposal,
+  appendLatestProposalEventToIntake,
   loadOwnedProposal,
   mapProposalRow,
   proposalNotPending,
