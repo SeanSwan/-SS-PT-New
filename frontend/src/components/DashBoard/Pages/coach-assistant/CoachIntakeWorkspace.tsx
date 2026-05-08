@@ -38,8 +38,6 @@ import {
   Eyebrow,
   Grid,
   Header,
-  Helper,
-  HelperRail,
   ItemCard,
   ItemList,
   ItemTitle,
@@ -50,6 +48,7 @@ import {
   TitleBlock,
   WorkspaceLink,
 } from './CoachIntakeWorkspace.styles';
+import { Helper, HelperRail } from './CoachIntakeWorkspaceHelper.styles';
 import {
   activeAudioPrompt,
   activeDraftReviewPrompt,
