@@ -1,13 +1,24 @@
 const SUMMARY_KEYS = ['actionable', 'readyReview', 'needsClient', 'failed', 'processing', 'unprocessed'];
-const ITEM_STRING_KEYS = [
-  'id',
-  'kind',
-  'sourceLabel',
-  'queueStatus',
-  'timelineAtSource',
-  'errorCode',
-  'audioPuzzleConfidence',
-];
+const SOURCE_LABELS = new Set([
+  'Applaud',
+  'Audio upload',
+  'Coach intake',
+  'Coach voice note',
+  'Long Coach note',
+  'Manual upload',
+  'Merged review',
+  'PDF transcript',
+  'PLAUD clip',
+  'PLAUD merge',
+  'Transcript file',
+  'Typed note',
+]);
+const ITEM_ENUMS = {
+  kind: new Set(['clip', 'coach_intake', 'merge_request']),
+  queueStatus: new Set(['archived', 'failed', 'needs_client', 'processing', 'ready_review', 'unprocessed']),
+  timelineAtSource: new Set(['created_at', 'recorded_at', 'uploaded_at']),
+  audioPuzzleConfidence: new Set(['single', 'high', 'medium', 'low']),
+};
 const ITEM_BOOL_KEYS = ['hasClient', 'needsClient', 'canReview', 'audioNeedsOrderingReview'];
 const ITEM_NUMBER_KEYS = [
   'clipCount',
@@ -17,6 +28,8 @@ const ITEM_NUMBER_KEYS = [
   'audioAutoBundleCount',
 ];
 const SAFE_TEXT_RE = /[^\w\s:.\-]/g;
+const SAFE_CODE_RE = /[^A-Z0-9_:\-]/g;
+const SAFE_QUEUE_ID_RE = /^(coach|clip|merge):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function cleanString(value, max = 80) {
   if (value === null || value === undefined) return null;
@@ -40,6 +53,27 @@ function cleanOptionalCount(value) {
   return Math.min(Math.floor(n), 999);
 }
 
+function cleanId(value) {
+  const text = cleanString(value, 128);
+  return text && SAFE_QUEUE_ID_RE.test(text) ? text : null;
+}
+
+function cleanCode(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim().toUpperCase().replace(SAFE_CODE_RE, '').slice(0, 64);
+  return text || null;
+}
+
+function cleanEnum(value, allowed) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return allowed.has(text) ? text : null;
+}
+
+function cleanSourceLabel(value) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return SOURCE_LABELS.has(text) ? text : null;
+}
+
 export function sanitizeCoachIntakeContext(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   if (raw.source !== 'coach_intake_context_v1') return null;
@@ -61,8 +95,15 @@ export function sanitizeCoachIntakeContext(raw) {
   clean.items = rawItems
     .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
     .map((item) => {
-      const next = {};
-      for (const key of ITEM_STRING_KEYS) next[key] = cleanString(item[key], 80);
+      const next = {
+        id: cleanId(item.id),
+        kind: cleanEnum(item.kind, ITEM_ENUMS.kind),
+        sourceLabel: cleanSourceLabel(item.sourceLabel),
+        queueStatus: cleanEnum(item.queueStatus, ITEM_ENUMS.queueStatus),
+        timelineAtSource: cleanEnum(item.timelineAtSource, ITEM_ENUMS.timelineAtSource),
+        errorCode: cleanCode(item.errorCode),
+        audioPuzzleConfidence: cleanEnum(item.audioPuzzleConfidence, ITEM_ENUMS.audioPuzzleConfidence),
+      };
       for (const key of ITEM_BOOL_KEYS) next[key] = item[key] === true;
       for (const key of ITEM_NUMBER_KEYS) next[key] = cleanOptionalCount(item[key]);
       return next;
