@@ -415,18 +415,29 @@ describe('CoachMessage — audio intake receipt branch', () => {
 
   it('renders a guarded Review next action with a 44px touch target', () => {
     expect(COACH_MESSAGE_SOURCE).toMatch(/onAudioIntakeReviewNext\?:\s*\(\)\s*=>\s*void/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/audioIntakeReviewNextPending\?:\s*boolean/);
     expect(COACH_MESSAGE_SOURCE).toMatch(/audioIntakeReceipt\s*&&\s*onAudioIntakeReviewNext/);
     expect(COACH_MESSAGE_SOURCE).toMatch(/onClick=\{onAudioIntakeReviewNext\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/disabled=\{audioIntakeReviewNextPending\}/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/aria-busy=\{audioIntakeReviewNextPending\s*\?\s*['"]true['"]\s*:\s*undefined\}/);
     expect(COACH_MESSAGE_SOURCE).toMatch(/min-height:\s*44px/);
   });
 
   it('page opens the next actionable intake directly before falling back to the command lane', () => {
+    expect(PAGE_SOURCE).toMatch(/const\s+\[audioReviewNextPending,\s*setAudioReviewNextPending\]\s*=\s*useState\(false\)/);
+    expect(PAGE_SOURCE).toMatch(/const\s+audioReviewNextPendingRef\s*=\s*React\.useRef\(false\)/);
     expect(PAGE_SOURCE).toMatch(/const\s+handleAudioIntakeReviewNext\s*=\s*useCallback/);
+    expect(PAGE_SOURCE).toMatch(/if\s*\(audioReviewNextPendingRef\.current\)\s*return/);
+    expect(PAGE_SOURCE).toMatch(/audioReviewNextPendingRef\.current\s*=\s*true/);
+    expect(PAGE_SOURCE).toMatch(/audioReviewNextPendingRef\.current\s*=\s*false/);
+    expect(PAGE_SOURCE).toMatch(/setAudioReviewNextPending\(true\)/);
+    expect(PAGE_SOURCE).toMatch(/setAudioReviewNextPending\(false\)/);
     expect(PAGE_SOURCE).toMatch(/const\s+navigate\s*=\s*useNavigate\(\)/);
     expect(PAGE_SOURCE).toMatch(/const\s+nextItem\s*=\s*pickNextItem\(sourceItems\)/);
     expect(PAGE_SOURCE).toMatch(/navigate\(\s*queueScopedHref\(\s*itemReviewHref\(nextItem,\s*coachWorkspaceHref\)/);
     expect(PAGE_SOURCE).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
     expect(PAGE_SOURCE).toMatch(/onAudioIntakeReviewNext=\{handleAudioIntakeReviewNext\}/);
+    expect(PAGE_SOURCE).toMatch(/audioIntakeReviewNextPending=\{audioReviewNextPending\}/);
   });
 });
 

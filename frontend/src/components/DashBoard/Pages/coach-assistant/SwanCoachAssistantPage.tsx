@@ -582,6 +582,8 @@ const SwanCoachAssistantPage: React.FC = () => {
     | { stage: 'uploading' | 'parsing'; fileName: string }
     | null
   >(null);
+  const audioReviewNextPendingRef = React.useRef(false);
+  const [audioReviewNextPending, setAudioReviewNextPending] = useState(false);
 
   // ── Swan-first transcript intake ──
   // canonical-surface-audit 2026-04-14:
@@ -900,21 +902,32 @@ const SwanCoachAssistantPage: React.FC = () => {
   }, [coach]);
 
   const handleAudioIntakeReviewNext = useCallback(() => {
+    if (audioReviewNextPendingRef.current) return;
+    audioReviewNextPendingRef.current = true;
+    setAudioReviewNextPending(true);
     const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
     void (async () => {
-      let sourceItems = coachIntakeItems;
       try {
+        let sourceItems = coachIntakeItems;
         const refreshedItems = await refreshCoachIntakeQueue();
         if (Array.isArray(refreshedItems)) sourceItems = refreshedItems;
+        const nextItem = pickNextItem(sourceItems);
+        if (nextItem) {
+          navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
+          return;
+        }
+        handleIntakeCommand('review next coach intake');
       } catch {
-        sourceItems = coachIntakeItems;
+        const nextItem = pickNextItem(coachIntakeItems);
+        if (nextItem) {
+          navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
+          return;
+        }
+        handleIntakeCommand('review next coach intake');
+      } finally {
+        audioReviewNextPendingRef.current = false;
+        setAudioReviewNextPending(false);
       }
-      const nextItem = pickNextItem(sourceItems);
-      if (nextItem) {
-        navigate(queueScopedHref(itemReviewHref(nextItem, coachWorkspaceHref), coachIntakeScope));
-        return;
-      }
-      handleIntakeCommand('review next coach intake');
     })();
   }, [
     coachIntakeItems,
@@ -1031,6 +1044,7 @@ const SwanCoachAssistantPage: React.FC = () => {
               onConfirmTranscript={handleConfirmTranscript}
               onCancelTranscript={handleCancelTranscript}
               onAudioIntakeReviewNext={handleAudioIntakeReviewNext}
+              audioIntakeReviewNextPending={audioReviewNextPending}
               onTranscriptDateChange={handleTranscriptDateChange}
             />
           ))}

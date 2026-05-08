@@ -225,6 +225,11 @@ const ReceiptActionButton = styled.button`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
 `;
 
 const TranscriptError = styled.div<{ $kind?: 'duplicate_date' | 'future_date' | 'warning' | 'other' }>`
@@ -305,6 +310,7 @@ interface CoachMessageProps {
   /** Swan-first transcript intake — discard the review */
   onCancelTranscript?: (messageId: string) => void;
   onAudioIntakeReviewNext?: () => void;
+  audioIntakeReviewNextPending?: boolean;
   /**
    * Phase 13 (2026-04-15): propagate a user-edited workout date back to the
    * page so the next `applyParsedWorkout` call uses it. Fire on every change
@@ -321,6 +327,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onConfirmTranscript,
   onCancelTranscript,
   onAudioIntakeReviewNext,
+  audioIntakeReviewNextPending,
   onTranscriptDateChange,
 }) => {
   const [copied, setCopied] = React.useState(false);
@@ -679,8 +686,14 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </CardRow>
           {audioIntakeReceipt && onAudioIntakeReviewNext && (
             <TranscriptActions>
-              <ReceiptActionButton type="button" onClick={onAudioIntakeReviewNext}>
-                <ListChecks size={15} /> Review next intake
+              <ReceiptActionButton
+                type="button"
+                onClick={onAudioIntakeReviewNext}
+                disabled={audioIntakeReviewNextPending}
+                aria-busy={audioIntakeReviewNextPending ? 'true' : undefined}
+              >
+                {audioIntakeReviewNextPending ? <Loader2 size={15} /> : <ListChecks size={15} />}
+                {audioIntakeReviewNextPending ? 'Opening intake...' : 'Review next intake'}
               </ReceiptActionButton>
             </TranscriptActions>
           )}
