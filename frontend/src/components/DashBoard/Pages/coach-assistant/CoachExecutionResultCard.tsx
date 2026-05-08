@@ -18,6 +18,10 @@ import {
   CoachReviewNextResultCard,
   isCoachReviewNextCommand,
 } from './CoachReviewNextResultCard';
+import {
+  CoachRetentionResultCard,
+  isCoachRetentionCommand,
+} from './CoachRetentionResultCard';
 import { isCommandRouteKey } from './commandRouteKeys';
 import { renderCommandParamValue } from './coachCommandFormatters';
 
@@ -105,6 +109,9 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   }
   if (result && isCoachReviewNextCommand(command)) {
     return <CoachReviewNextResultCard command={command} result={result} message={message} />;
+  }
+  if (result && isCoachRetentionCommand(command)) {
+    return <CoachRetentionResultCard command={command} result={result} message={message} />;
   }
 
   const clientLabel = client?.firstName ?? null;
