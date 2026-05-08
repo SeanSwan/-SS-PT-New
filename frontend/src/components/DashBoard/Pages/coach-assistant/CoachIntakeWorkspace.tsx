@@ -55,6 +55,7 @@ import {
   shouldAdvanceAfterProposalAction,
   statusLabel,
 } from './CoachIntakeWorkspace.utils';
+import { safeQueueLoadFailure } from './CoachIntakeOperationalText.logic';
 
 type CoachRole = 'admin' | 'trainer' | 'client';
 
@@ -255,7 +256,7 @@ export function CoachIntakeWorkspace({
             <ItemCard><ItemTitle><strong>Loading intake queue</strong><span>Checking Coach, PLAUD, and voice work items.</span></ItemTitle></ItemCard>
           ) : error ? (
             <ItemCard role="alert">
-              <ItemTitle><strong>Queue unavailable</strong><span>{error.message}</span></ItemTitle>
+              <ItemTitle><strong>Queue unavailable</strong><span>{safeQueueLoadFailure()}</span></ItemTitle>
               <SourceChip><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
             </ItemCard>
           ) : orderedItems.length === 0 ? (

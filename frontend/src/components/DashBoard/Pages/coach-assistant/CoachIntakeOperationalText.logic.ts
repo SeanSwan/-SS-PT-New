@@ -225,6 +225,10 @@ export function safeMicrophoneFailure(): string {
   return 'Microphone access was blocked. Check browser permission and try again.';
 }
 
+export function safeQueueLoadFailure(): string {
+  return 'Queue could not be loaded. Refresh or sign in again.';
+}
+
 export function holdReasonFacts(result: Record<string, unknown>): string[] {
   const facts: string[] = [];
   const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);

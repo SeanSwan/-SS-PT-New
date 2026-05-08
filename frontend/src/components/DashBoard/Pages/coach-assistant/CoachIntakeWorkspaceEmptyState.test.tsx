@@ -43,6 +43,25 @@ function makeEmptyQueue(scope: string) {
 }
 
 describe('CoachIntakeWorkspace empty states', () => {
+  it('does not expose arbitrary queue load error details', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={{
+            ...makeEmptyQueue('actionable'),
+            error: new Error('Token expired: do-not-render-private-queue-detail'),
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Queue could not be loaded. Refresh or sign in again.');
+    expect(screen.queryByText(/do-not-render-private-queue-detail/i)).not.toBeInTheDocument();
+  });
+
   it('uses selected scope copy when a filtered queue is empty', () => {
     render(
       <MemoryRouter>
