@@ -309,14 +309,14 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
   });
 
-  it('prefers backend gate metadata when the queue item provides it', async () => {
+  it('prefers safe backend gate metadata when the queue item provides it', async () => {
     const queue = makeQueue();
     queue.items[0] = {
       ...queue.items[0],
       needsClient: true,
-      nextBlockingGate: 'Backend canonical gate',
+      nextBlockingGate: 'Client confirmation required',
       nextActionKey: 'resolve_client',
-      nextActionLabel: 'Backend canonical action',
+      nextActionLabel: 'Ask Coach to resolve client',
     };
 
     render(
@@ -333,8 +333,38 @@ describe('CoachIntakeWorkspace focus handoff', () => {
 
     const target = await screen.findByLabelText(/Active review target/i);
     const ribbon = within(target).getByLabelText('Active item status');
-    expect(within(ribbon).getByText('Backend canonical gate')).toBeInTheDocument();
-    expect(within(ribbon).getByText('Backend canonical action')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
+  });
+
+  it('does not render unsafe backend gate metadata in the active status ribbon', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      needsClient: true,
+      nextBlockingGate: 'Marcus needs private@example.com confirmation',
+      nextActionKey: 'resolve_client',
+      nextActionLabel: 'Email Marcus private@example.com',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).queryByText(/Marcus/i)).toBeNull();
+    expect(within(ribbon).queryByText(/private@example\.com/i)).toBeNull();
+    expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
   });
 
   it('does not expose draft preparation for clarification or duplicate-hold fallbacks', async () => {

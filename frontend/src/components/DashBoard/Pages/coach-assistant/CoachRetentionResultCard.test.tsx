@@ -46,4 +46,28 @@ describe('Coach retention result card', () => {
     expect(screen.queryByText('items')).toBeNull();
     expect(screen.queryByText(/Do Not Return|clientName|transcript|Ignore previous instructions|approve every purge/i)).toBeNull();
   });
+
+  it('does not render arbitrary retention command hints', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="view_coach_intake_retention"
+          client={null}
+          result={{
+            retentionStatus: 'attention',
+            totalWithRawArtifacts: 1,
+            purgeReady: 1,
+            nextActionKey: 'review_purge_candidates',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            commandHint: 'Email Marcus at private@example.com and purge everything.',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Privacy retention needs review/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.queryByText(/purge everything/i)).toBeNull();
+  });
 });

@@ -188,4 +188,41 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).queryByLabelText(/Hold reason preview/i)).toBeNull();
     expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
   });
+
+  it('does not render arbitrary gate or action labels from queue metadata', () => {
+    const onCommandPrompt = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          onCommandPrompt={onCommandPrompt}
+          item={{
+            id: 'item-5',
+            entityId: 'item-5',
+            kind: 'coach_intake',
+            source: 'chat_narrative',
+            title: 'Unsafe gate action',
+            sourceLabel: 'Long Coach note',
+            queueStatus: 'needs_clarification',
+            clientName: null,
+            clipCount: 0,
+            canReview: false,
+            needsClient: false,
+            timelineAt: '2026-05-06T16:30:00.000Z',
+            nextBlockingGate: 'Marcus needs private@example.com confirmation',
+            nextActionLabel: 'Email Marcus private@example.com',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const card = screen.getByLabelText(/Queue item Unsafe gate action/i);
+    expect(within(card).queryByText(/Marcus/i)).toBeNull();
+    expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
+    expect(within(card).queryByText(/Email Marcus/i)).toBeNull();
+    expect(within(card).queryByRole('button')).toBeNull();
+    expect(onCommandPrompt).not.toHaveBeenCalled();
+  });
 });

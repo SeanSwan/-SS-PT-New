@@ -9,6 +9,16 @@
 import styled from 'styled-components';
 import { CheckCircle, ListChecks, ShieldCheck } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import {
+  holdReasonFacts,
+  numberValue,
+  pendingDraftLabel,
+  safeCommandActionLabel,
+  safeCommandGateValue,
+  safeCommandHint,
+  safeHoldReasonLabel,
+  statusLabel,
+} from './CoachIntakeOperationalText.logic';
 
 interface CoachReviewNextResultCardProps {
   command: string;
@@ -137,63 +147,6 @@ const Hint = styled.p`
   line-height: 1.5;
 `;
 
-function numberValue(value: unknown): number {
-  const parsed = Number(value || 0);
-  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
-}
-
-function statusLabel(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  return value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-    .toLowerCase();
-}
-
-function compactText(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const text = value.replace(/[\r\n\t`\\]/g, ' ').trim();
-  return text ? text.slice(0, 96) : null;
-}
-
-function pendingDraftLabel(count: number): string {
-  return `${count} ${count === 1 ? 'draft' : 'drafts'} pending`;
-}
-
-const SAFE_HOLD_REASON_LABELS = new Set([
-  'Client confirmation needed',
-  'Clarification required',
-  'Possible duplicate workout',
-]);
-
-function safeHoldReasonLabel(value: unknown): string | null {
-  const label = compactText(value);
-  return label && SAFE_HOLD_REASON_LABELS.has(label) ? label : null;
-}
-
-function positiveCount(value: unknown): number | null {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-function confidenceLabel(value: unknown): string | null {
-  if (typeof value !== 'string' || value === 'unknown') return null;
-  if (!['high', 'medium', 'low'].includes(value)) return null;
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)} confidence`;
-}
-
-function holdReasonFacts(result: Record<string, unknown>): string[] {
-  const facts: string[] = [];
-  const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);
-  const duplicateCount = positiveCount(result.nextHoldReasonDuplicateCount);
-  const confidence = confidenceLabel(result.nextHoldReasonConfidenceBand);
-  if (candidateCount) facts.push(`${candidateCount} ${candidateCount === 1 ? 'candidate' : 'candidates'}`);
-  if (duplicateCount) facts.push(`${duplicateCount} possible ${duplicateCount === 1 ? 'match' : 'matches'}`);
-  if (confidence) facts.push(confidence);
-  return facts;
-}
-
 export function isCoachReviewNextCommand(command: string): boolean {
   return command === 'review_next_coach_intake'
     || command === 'view_coach_intake_queue'
@@ -211,8 +164,8 @@ export function CoachReviewNextResultCard({
   const needsClient = numberValue(result.needsClient);
   const pendingDrafts = numberValue(result.pendingDrafts);
   const nextStatus = statusLabel(result.nextQueueStatus);
-  const blockingGate = compactText(result.nextBlockingGate);
-  const nextAction = compactText(result.nextActionLabel);
+  const blockingGate = safeCommandGateValue(result.nextBlockingGate);
+  const nextAction = safeCommandActionLabel(result.nextActionLabel);
   const holdReasonLabel = safeHoldReasonLabel(result.nextHoldReasonLabel);
   const holdFacts = holdReasonFacts(result);
   const proposalType = statusLabel(result.nextLatestProposalType);
@@ -237,7 +190,7 @@ export function CoachReviewNextResultCard({
     : hasActionableQueue
       ? `Open the ${workspaceLabel} to continue the next actionable item.`
       : `Your ${surfaceLabel} intake queue is clear.`;
-  const hint = typeof result.commandHint === 'string' ? result.commandHint : null;
+  const hint = safeCommandHint(result.commandHint);
 
   return (
     <CardShell>

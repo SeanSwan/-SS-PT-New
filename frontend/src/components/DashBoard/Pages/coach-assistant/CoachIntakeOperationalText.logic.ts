@@ -1,0 +1,164 @@
+/**
+ * CoachIntakeOperationalText.logic.ts
+ * ===================================
+ * PII-safe operational text helpers for Coach/PLAUD intake UI surfaces.
+ */
+
+const SAFE_HOLD_REASON_LABELS = new Set([
+  'Client confirmation needed',
+  'Clarification required',
+  'Possible duplicate workout',
+]);
+
+const SAFE_BLOCKING_GATES = new Set([
+  'Intake failed',
+  'Processing is still running',
+  'Audio order must be confirmed',
+  'Client confirmation required',
+  'Clarification required',
+  'Duplicate risk requires review',
+  'Draft waiting for review',
+  'Final write requires a prepared draft',
+  'No blocking gate',
+]);
+
+const SAFE_NEXT_ACTIONS = new Set([
+  'Review failed intake',
+  'Wait for processing',
+  'Confirm audio order',
+  'Ask Coach to resolve client',
+  'Answer Coach clarification',
+  'Review duplicate risk',
+  'Review prepared draft',
+  'Prepare draft review',
+  'Inspect intake audio',
+  'Ask Coach about this intake',
+  'Review next intake',
+]);
+
+const SAFE_COMMAND_HINTS = new Set([
+  'Continue from the Swan Coach intake workspace.',
+  'Continue from the Swan Coach intake workspace; PLAUD reviewable merges open in the PLAUD review workspace.',
+  'No Coach or PLAUD intake items need action.',
+  'Open the Swan Coach intake workspace to act on these health findings.',
+  'Open the Swan Coach workspace to review retention candidates before any purge job is enabled.',
+  'This is a dry-run cleanup plan. No raw artifacts are purged from a Swan Coach command.',
+  'Open the active Coach intake dossier and choose Review prepared draft. Final writes still require approval.',
+  'Ask Swan Coach to prepare a structured draft review for this intake before any final write.',
+  'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+  'That intake is not in the current actionable audio queue. Open the Coach workspace and refresh the intake list.',
+  'Open the PLAUD workspace and continue with the next intake item.',
+  'No PLAUD intake items need action.',
+  'Open the PLAUD workspace and select the audio pieces in chronological order.',
+  'Open the PLAUD workspace and select the audio pieces in chronological order; this uses upload/ingest timestamps until recorded_at metadata is available.',
+  'Open the PLAUD workspace to upload or wait for more audio pieces before merging; timeline uses upload/ingest timestamps until recorded_at metadata is available.',
+]);
+
+const SAFE_AUDIO_REVIEW_LABELS = new Set([
+  'Choose an intake to review',
+  'No audio intake to review',
+  'Refresh intake list',
+  'Confirm this intake order',
+  'Prepare Coach draft review',
+]);
+
+const SAFE_AUDIO_REVIEW_RATIONALES = new Set([
+  'Open the Coach intake workspace, choose one audio item, then confirm order before draft generation.',
+  'No actionable audio pieces are currently available in this queue.',
+  'The selected intake was not found in the current actionable audio queue.',
+]);
+
+const AUDIO_ORDER_RATIONALE_PATTERN = /^\d+ pieces across \d+ bundles need order review before Swan Coach drafts a workout log\.$/;
+const AUDIO_READY_RATIONALE_PATTERN = /^(1 audio piece is|\d+ audio pieces are) ready for Swan Coach draft preparation after client and date checks\.$/;
+
+function compactText(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const text = value.replace(/[\r\n\t`\\]/g, ' ').trim();
+  return text ? text.slice(0, 96) : null;
+}
+
+function safePatternText(
+  value: unknown,
+  allowed: Set<string>,
+  patterns: RegExp[] = [],
+): string | null {
+  const text = compactText(value);
+  if (!text) return null;
+  if (allowed.has(text)) return text;
+  return patterns.some((pattern) => pattern.test(text)) ? text : null;
+}
+
+function positiveCount(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function confidenceLabel(value: unknown): string | null {
+  if (typeof value !== 'string' || value === 'unknown') return null;
+  if (!['high', 'medium', 'low'].includes(value)) return null;
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)} confidence`;
+}
+
+export function numberValue(value: unknown): number {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+}
+
+export function statusLabel(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+    .toLowerCase();
+}
+
+export function pendingDraftLabel(count: number): string {
+  return `${count} ${count === 1 ? 'draft' : 'drafts'} pending`;
+}
+
+export function safeCommandGateValue(value: unknown): string | null {
+  const text = compactText(value);
+  return text && SAFE_BLOCKING_GATES.has(text) ? text : null;
+}
+
+export function safeActionableGate(value: unknown): string | null {
+  const text = safeCommandGateValue(value);
+  return text && text !== 'No blocking gate' ? text : null;
+}
+
+export function safeCommandActionLabel(value: unknown): string | null {
+  const text = compactText(value);
+  return text && SAFE_NEXT_ACTIONS.has(text) ? text : null;
+}
+
+export function safeCommandHint(value: unknown): string | null {
+  return safePatternText(value, SAFE_COMMAND_HINTS);
+}
+
+export function safeAudioReviewPlanLabel(value: unknown): string | null {
+  return safePatternText(value, SAFE_AUDIO_REVIEW_LABELS);
+}
+
+export function safeAudioReviewPlanRationale(value: unknown): string | null {
+  return safePatternText(value, SAFE_AUDIO_REVIEW_RATIONALES, [
+    AUDIO_ORDER_RATIONALE_PATTERN,
+    AUDIO_READY_RATIONALE_PATTERN,
+  ]);
+}
+
+export function safeHoldReasonLabel(value: unknown): string | null {
+  const label = compactText(value);
+  return label && SAFE_HOLD_REASON_LABELS.has(label) ? label : null;
+}
+
+export function holdReasonFacts(result: Record<string, unknown>): string[] {
+  const facts: string[] = [];
+  const candidateCount = positiveCount(result.nextHoldReasonCandidateCount);
+  const duplicateCount = positiveCount(result.nextHoldReasonDuplicateCount);
+  const confidence = confidenceLabel(result.nextHoldReasonConfidenceBand);
+  if (candidateCount) facts.push(`${candidateCount} ${candidateCount === 1 ? 'candidate' : 'candidates'}`);
+  if (duplicateCount) facts.push(`${duplicateCount} possible ${duplicateCount === 1 ? 'match' : 'matches'}`);
+  if (confidence) facts.push(confidence);
+  return facts;
+}

@@ -9,6 +9,11 @@
 import styled from 'styled-components';
 import { AlertTriangle, CheckCircle, GitBranch, ListChecks } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import {
+  safeAudioReviewPlanLabel,
+  safeAudioReviewPlanRationale,
+  safeCommandHint,
+} from './CoachIntakeOperationalText.logic';
 
 interface AudioInspectionItem {
   id?: string | null;
@@ -220,8 +225,10 @@ export function CoachAudioInspectionResultCard({
     || (result.timelineConfidence === 'best_available' && pieceCount > 0 ? 1 : 0);
   const explicitItems = audioItems(result.items);
   const items = (explicitItems.length > 0 ? explicitItems : timelineFallbackItems(result)).slice(0, 3);
-  const hint = typeof result.commandHint === 'string' ? result.commandHint : null;
+  const hint = safeCommandHint(result.commandHint);
   const plan = reviewPlan(result.reviewPlan);
+  const planPrimaryLabel = safeAudioReviewPlanLabel(plan?.primaryLabel);
+  const planRationale = safeAudioReviewPlanRationale(plan?.rationale);
   const routedResult = plan?.route && typeof plan.route === 'string'
     ? { ...result, reviewRoute: plan.route }
     : result;
@@ -251,13 +258,13 @@ export function CoachAudioInspectionResultCard({
           ))}
         </ItemList>
       )}
-      {plan?.primaryLabel && (
+      {planPrimaryLabel && (
         <NextActionPanel aria-label="Audio inspection next action">
           <ListChecks size={15} aria-hidden="true" />
           <NextActionText>
             <strong>Next action</strong>
-            <span>{plan.primaryLabel}</span>
-            {plan.rationale && <span>{plan.rationale}</span>}
+            <span>{planPrimaryLabel}</span>
+            {planRationale && <span>{planRationale}</span>}
           </NextActionText>
         </NextActionPanel>
       )}

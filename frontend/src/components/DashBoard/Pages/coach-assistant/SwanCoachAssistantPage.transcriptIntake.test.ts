@@ -404,12 +404,15 @@ describe('Phase 9.1 — CoachMessage transcriptError render branch', () => {
 describe('CoachMessage — audio intake receipt branch', () => {
   it('types and renders the PLAUD audio intake receipt card', () => {
     expect(COACH_TYPES_SOURCE).toMatch(/audioIntakeReceipt\?:\s*\{/);
+    expect(COACH_MESSAGE_SOURCE).toMatch(/safeCommandActionLabel/);
     expect(COACH_MESSAGE_SOURCE).toMatch(
       /const\s+audioIntakeReceipt\s*=\s*message\.metadata\?\.audioIntakeReceipt/,
     );
     expect(COACH_MESSAGE_SOURCE).toMatch(/data-testid=['"]audio-intake-receipt-card['"]/);
     expect(COACH_MESSAGE_SOURCE).toMatch(/Audio pieces queued/i);
-    expect(COACH_MESSAGE_SOURCE).toMatch(/Review next intake/i);
+    expect(COACH_MESSAGE_SOURCE).toMatch(
+      /safeCommandActionLabel\(audioIntakeReceipt\.nextActionLabel\)\s*\|\|\s*['"]Review next intake['"]/,
+    );
     expect(COACH_MESSAGE_SOURCE).toMatch(/\$kind=['"]warning['"]/);
   });
 

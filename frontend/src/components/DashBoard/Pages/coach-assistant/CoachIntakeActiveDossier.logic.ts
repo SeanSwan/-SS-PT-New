@@ -4,6 +4,7 @@
  * Pure gate, action, and display helpers for the active Coach intake dossier.
  */
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import { safeCommandActionLabel, safeCommandGateValue } from './CoachIntakeOperationalText.logic';
 
 export interface DossierAction {
   label: string;
@@ -76,7 +77,8 @@ export function canPrepareDraftReview(item: CoachIntakeItem): boolean {
 }
 
 export function blockingGate(item: CoachIntakeItem): string {
-  if (item.nextBlockingGate) return item.nextBlockingGate;
+  const safeBackendGate = safeCommandGateValue(item.nextBlockingGate);
+  if (safeBackendGate) return safeBackendGate;
   if (item.queueStatus === 'failed') return 'Intake failed';
   if (item.queueStatus === 'processing') return 'Processing is still running';
   if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
@@ -102,9 +104,10 @@ function actionIdForActionKey(actionKey?: string | null): string | null {
 }
 
 export function nextAction(item: CoachIntakeItem): DossierAction {
-  if (item.nextActionLabel) {
+  const safeBackendAction = safeCommandActionLabel(item.nextActionLabel);
+  if (safeBackendAction) {
     const actionId = actionIdForActionKey(item.nextActionKey) || 'ask-coach';
-    return { label: item.nextActionLabel, actionId };
+    return { label: safeBackendAction, actionId };
   }
   if (item.queueStatus === 'failed') return { label: 'Review failed intake', actionId: 'ask-coach' };
   if (item.queueStatus === 'processing') return { label: 'Wait for processing', actionId: 'open-target' };

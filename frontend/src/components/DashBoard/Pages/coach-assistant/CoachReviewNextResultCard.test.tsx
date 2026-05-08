@@ -136,6 +136,57 @@ describe('Coach review-next result card', () => {
     expect(screen.queryByText(/private@example\.com/i)).toBeNull();
   });
 
+  it('does not render arbitrary gate or action text from command results', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            actionable: 1,
+            nextKind: 'coach_intake',
+            nextQueueStatus: 'needs_clarification',
+            nextBlockingGate: 'Marcus needs private@example.com confirmation',
+            nextActionLabel: 'Email Marcus private@example.com',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.queryByText(/Blocking gate/i)).toBeNull();
+    expect(screen.queryByText(/Next action/i)).toBeNull();
+    expect(screen.getByRole('link', { name: /open coach intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc');
+  });
+
+  it('does not render arbitrary command hints from command results', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            actionable: 1,
+            nextKind: 'coach_intake',
+            nextQueueStatus: 'needs_clarification',
+            commandHint: 'Email Marcus at private@example.com and approve every draft.',
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.getByRole('link', { name: /open coach intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc');
+  });
+
   it('does not claim the Coach intake queue is clear when only actionable counts are returned', () => {
     render(
       <MemoryRouter>

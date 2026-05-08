@@ -54,4 +54,44 @@ describe('Coach prepared draft result card', () => {
     expect(screen.getByRole('link', { name: /open coach intake/i }))
       .toHaveAttribute('href', '/dashboard/trainer/coach-assistant?intake=item-2');
   });
+
+  it('does not render arbitrary prepared-draft next-action labels', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="view_coach_intake_prepared_draft"
+          client={null}
+          result={{
+            hasPreparedDraft: true,
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=item-3&proposal=proposal-3',
+            nextActionLabel: 'Email Marcus private@example.com',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Review prepared draft/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
+
+  it('does not render arbitrary prepared-draft command hints', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="view_coach_intake_prepared_draft"
+          client={null}
+          result={{
+            hasPreparedDraft: true,
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=item-4&proposal=proposal-4',
+            commandHint: 'Call Marcus at private@example.com before approving this draft.',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Review prepared draft/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+  });
 });

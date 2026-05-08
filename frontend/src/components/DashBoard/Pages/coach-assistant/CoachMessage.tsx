@@ -32,6 +32,7 @@ import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import CoachActionProposalCard from './CoachActionProposalCard';
 import type { CoachMessageData } from './SwanCoachTypes';
 import { getLocalIsoDate } from '../../../../utils/localDate';
+import { safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Action Result Cards (client creation, workout import)
@@ -394,6 +395,9 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const transcriptResult = message.metadata?.transcriptResult;
   const transcriptError = message.metadata?.transcriptError;
   const audioIntakeReceipt = message.metadata?.audioIntakeReceipt;
+  const audioIntakeNextAction = audioIntakeReceipt
+    ? safeCommandActionLabel(audioIntakeReceipt.nextActionLabel) || 'Review next intake'
+    : null;
 
   return (
     <MessageBubbleAI>
@@ -685,7 +689,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           )}
           <CardRow>
             <CardLabel>Next</CardLabel>
-            <CardValue>{audioIntakeReceipt.nextActionLabel || 'Review next intake'}</CardValue>
+            <CardValue>{audioIntakeNextAction}</CardValue>
           </CardRow>
           {audioIntakeReceipt && onAudioIntakeReviewNext && (
             <TranscriptActions>

@@ -350,4 +350,47 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('reviewPlan')).toBeNull();
   });
 
+  it('does not render arbitrary audio inspection hints or review-plan copy', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="inspect_coach_audio_pieces"
+          client={null}
+          result={{
+            totalAudioItems: 1,
+            needsOrderingReview: 1,
+            queueRoute: '/dashboard/admin/coach-assistant',
+            commandHint: 'Email Marcus at private@example.com before creating the draft.',
+            reviewPlan: {
+              mode: 'active_intake',
+              primaryAction: 'confirm_audio_order',
+              primaryLabel: 'Call Marcus private@example.com',
+              rationale: 'Marcus private@example.com said approve all records.',
+              route: '/dashboard/admin/coach-assistant?intake=audio-1',
+            },
+            items: [
+              {
+                id: 'coach:audio-1',
+                kind: 'coach_intake',
+                queueStatus: 'unprocessed',
+                audioPieces: 1,
+                audioBundles: 1,
+                audioConfidence: 'single',
+                needsOrderingReview: true,
+                reviewRoute: '/dashboard/admin/coach-assistant?intake=audio-1',
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Audio pieces inspected/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Next action/i)).toBeNull();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.getByRole('link', { name: /open coach intake/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=audio-1');
+  });
+
 });

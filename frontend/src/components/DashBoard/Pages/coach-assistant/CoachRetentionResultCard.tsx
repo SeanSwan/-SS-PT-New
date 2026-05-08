@@ -9,6 +9,7 @@
 import styled from 'styled-components';
 import { Archive, AlertTriangle, CheckCircle, ShieldCheck, TimerReset } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import { safeCommandHint } from './CoachIntakeOperationalText.logic';
 
 interface CoachRetentionResultCardProps {
   command: string;
@@ -173,7 +174,7 @@ export function CoachRetentionResultCard({
   const failedDays = numberValue(result.failedRawArtifactGraceDays);
   const staleDays = numberValue(result.staleReviewQueueDays);
   const nextAction = actionLabel(result.nextActionKey);
-  const hint = compactText(result.commandHint);
+  const hint = safeCommandHint(result.commandHint);
   const tone = statusTone(compactText(result.retentionStatus) || 'unavailable', purgeReady, reviewRequired);
   const TitleIcon = tone === 'ok' ? CheckCircle : tone === 'offline' ? AlertTriangle : ShieldCheck;
 

@@ -6,6 +6,7 @@
 import styled from 'styled-components';
 import { CheckCircle, FileCheck2, ShieldCheck } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import { safeCommandActionLabel, safeCommandHint } from './CoachIntakeOperationalText.logic';
 
 interface CoachPreparedDraftResultCardProps {
   command: string;
@@ -143,8 +144,9 @@ export function CoachPreparedDraftResultCard({
   const proposalTitle = compactText(result.proposalTitle, hasPreparedDraft ? 'Review Coach proposal' : 'Draft review not prepared');
   const proposalType = labelText(result.proposalType, 'Coach Draft');
   const proposalStatus = labelText(result.proposalStatus, hasPreparedDraft ? 'Pending' : 'Not Prepared');
-  const nextAction = compactText(result.nextActionLabel, hasPreparedDraft ? 'Review prepared draft' : 'Prepare draft review');
-  const hint = typeof result.commandHint === 'string' ? compactText(result.commandHint, '') : null;
+  const nextAction = safeCommandActionLabel(result.nextActionLabel)
+    || (hasPreparedDraft ? 'Review prepared draft' : 'Prepare draft review');
+  const hint = safeCommandHint(result.commandHint);
 
   return (
     <CardShell>

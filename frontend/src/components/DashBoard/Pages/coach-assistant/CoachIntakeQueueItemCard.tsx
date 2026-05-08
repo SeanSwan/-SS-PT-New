@@ -7,6 +7,7 @@ import React from 'react';
 import { Brain, GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
+import { safeActionableGate, safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
 import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
@@ -21,8 +22,7 @@ interface CoachIntakeQueueItemCardProps {
 }
 
 function actionableGate(item: CoachIntakeItem): string | null {
-  if (!item.nextBlockingGate || item.nextBlockingGate === 'No blocking gate') return null;
-  return item.nextBlockingGate;
+  return safeActionableGate(item.nextBlockingGate);
 }
 
 export function CoachIntakeQueueItemCard({
@@ -34,6 +34,7 @@ export function CoachIntakeQueueItemCard({
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
   const gate = actionableGate(item);
+  const nextActionLabel = safeCommandActionLabel(item.nextActionLabel);
   const holdReasonLabel = safeHoldReasonLabel(item);
   const reasonFacts = holdReasonFacts(item);
 
@@ -51,13 +52,13 @@ export function CoachIntakeQueueItemCard({
         <SourceChip>{item.sourceLabel}</SourceChip>
         {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
         {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
-        {item.nextActionLabel && onCommandPrompt ? (
+        {nextActionLabel && onCommandPrompt ? (
           <ActionButton type="button" onClick={() => onCommandPrompt(activeCoachActionPrompt(item))}>
             <Brain size={14} aria-hidden="true" />
-            {item.nextActionLabel}
+            {nextActionLabel}
           </ActionButton>
-        ) : item.nextActionLabel ? (
-          <SourceChip $tone="purple">{item.nextActionLabel}</SourceChip>
+        ) : nextActionLabel ? (
+          <SourceChip $tone="purple">{nextActionLabel}</SourceChip>
         ) : null}
         <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${item.title}`}>
           Review
