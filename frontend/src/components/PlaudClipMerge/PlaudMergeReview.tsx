@@ -197,7 +197,7 @@ export function PlaudMergeReview({
             {reviewState.clientName ? ` to ${reviewState.clientName}` : ' to the selected client'}.
           </Sub>
         </div>
-        <BackLink type="button" onClick={onBack}>
+        <BackLink type="button" onClick={onBack} data-plaud-next-action="back">
           <ArrowLeft size={16} aria-hidden="true" /> Back to merge queue
         </BackLink>
       </Header>
@@ -241,6 +241,7 @@ export function PlaudMergeReview({
           dateOverrides={segmentDateOverrides}
           onDateOverrideChange={handleDateOverrideChange}
           onApproveSegment={shouldRenderSegmentApproval ? handleApproveSegment : undefined}
+          actionFocusAttribute="date-split"
         />
         {loggedWorkoutIds.length > 0 ? (
           <Sub>{loggedWorkoutIds.length} split workout log {loggedWorkoutIds.length === 1 ? 'is' : 'are'} complete.</Sub>
@@ -286,10 +287,10 @@ export function PlaudMergeReview({
           </ErrorBanner>
         ) : null}
         <ActionRow>
-          <Button type="button" $primary onClick={handleApprove} disabled={approveDisabled}>
+          <Button type="button" $primary onClick={handleApprove} disabled={approveDisabled} data-plaud-next-action="approve">
             {isApplying ? 'Logging...' : 'Confirm and log'}
           </Button>
-          <Button type="button" onClick={onBack}>Discard</Button>
+          <Button type="button" onClick={onBack} data-plaud-next-action="discard">Discard</Button>
         </ActionRow>
       </ReviewWrap>
     </PageWrap>

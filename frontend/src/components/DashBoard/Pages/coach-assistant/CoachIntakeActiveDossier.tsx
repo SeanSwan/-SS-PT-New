@@ -22,6 +22,7 @@ import {
   GateCard,
   GateLabel,
   GateValue,
+  StatusRibbonAction,
   StatusRibbon,
   StatusRibbonItem,
   StatusRibbonLabel,
@@ -45,6 +46,11 @@ interface CoachIntakeActiveDossierProps {
   onReviewPreparedDraft: () => void;
   confirmAudioOrderStatus?: string | null;
   isConfirmingAudioOrder?: boolean;
+}
+
+interface DossierAction {
+  label: string;
+  actionId: string;
 }
 
 function plural(value: number, noun: string): string {
@@ -103,17 +109,26 @@ function blockingGate(item: CoachIntakeItem): string {
   return 'No blocking gate';
 }
 
-function nextAction(item: CoachIntakeItem): string {
-  if (needsAudioOrderConfirmation(item)) return 'Confirm audio order';
-  if (item.needsClient) return 'Ask Coach to resolve client';
-  if (item.latestProposalId) return 'Review prepared draft';
-  if (canPrepareDraftReview(item)) return 'Prepare draft review';
-  if (audioPieceCount(item) > 0) return 'Inspect intake audio';
-  return 'Ask Coach about this intake';
+function nextAction(item: CoachIntakeItem): DossierAction {
+  if (needsAudioOrderConfirmation(item)) return { label: 'Confirm audio order', actionId: 'confirm-audio' };
+  if (item.needsClient) return { label: 'Ask Coach to resolve client', actionId: 'ask-coach' };
+  if (item.latestProposalId) return { label: 'Review prepared draft', actionId: 'review-draft' };
+  if (canPrepareDraftReview(item)) return { label: 'Prepare draft review', actionId: 'prepare-draft' };
+  if (audioPieceCount(item) > 0) return { label: 'Inspect intake audio', actionId: 'inspect-audio' };
+  return { label: 'Ask Coach about this intake', actionId: 'ask-coach' };
 }
 
 function activeReason(item: CoachIntakeItem, statusText: string): string {
   return `${item.sourceLabel} is selected from the intake queue in ${statusText.toLowerCase()} state.`;
+}
+
+function focusDossierAction(actionId: string): void {
+  const target = document.querySelector<HTMLElement>(`[data-coach-active-action="${actionId}"]`);
+  if (!target) return;
+  if (typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  target.focus({ preventScroll: true });
 }
 
 export function CoachIntakeActiveDossier({
@@ -134,6 +149,7 @@ export function CoachIntakeActiveDossier({
   const showConfirmAudioOrder = needsAudioOrderConfirmation(item);
   const showPrepareDraftReview = canPrepareDraftReview(item);
   const showReviewPreparedDraft = !!item.latestProposalId;
+  const next = nextAction(item);
 
   return (
     <TargetPanel
@@ -155,7 +171,10 @@ export function CoachIntakeActiveDossier({
           </StatusRibbonItem>
           <StatusRibbonItem>
             <StatusRibbonLabel>Next action</StatusRibbonLabel>
-            <StatusRibbonValue>{nextAction(item)}</StatusRibbonValue>
+            <StatusRibbonValue>{next.label}</StatusRibbonValue>
+            <StatusRibbonAction type="button" onClick={() => focusDossierAction(next.actionId)}>
+              Focus next action
+            </StatusRibbonAction>
           </StatusRibbonItem>
         </StatusRibbon>
         <DossierHeader>
@@ -194,30 +213,30 @@ export function CoachIntakeActiveDossier({
         {confirmAudioOrderStatus ? (
           <TargetNotice role="status">{confirmAudioOrderStatus}</TargetNotice>
         ) : null}
-        <ActionButton type="button" onClick={onAskCoach}>
+        <ActionButton type="button" onClick={onAskCoach} data-coach-active-action="ask-coach">
           <Brain size={16} aria-hidden="true" />
           Ask Coach about this intake
         </ActionButton>
         {showConfirmAudioOrder ? (
-          <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder}>
+          <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder} data-coach-active-action="confirm-audio">
             <CheckCircle2 size={16} aria-hidden="true" />
             {isConfirmingAudioOrder ? 'Confirming order...' : 'Confirm audio order'}
           </ActionButton>
         ) : null}
         {showReviewPreparedDraft ? (
-          <ActionButton type="button" onClick={onReviewPreparedDraft} $primary>
+          <ActionButton type="button" onClick={onReviewPreparedDraft} $primary data-coach-active-action="review-draft">
             <Eye size={16} aria-hidden="true" />
             Review prepared draft
           </ActionButton>
         ) : null}
         {showPrepareDraftReview ? (
-          <ActionButton type="button" onClick={onPrepareDraftReview}>
+          <ActionButton type="button" onClick={onPrepareDraftReview} data-coach-active-action="prepare-draft">
             <ListChecks size={16} aria-hidden="true" />
             {item.latestProposalId ? 'Prepare updated draft review' : 'Prepare draft review'}
           </ActionButton>
         ) : null}
         {showInspectAudio ? (
-          <ActionButton type="button" onClick={onInspectAudio}>
+          <ActionButton type="button" onClick={onInspectAudio} data-coach-active-action="inspect-audio">
             <GitBranch size={16} aria-hidden="true" />
             Inspect intake audio
           </ActionButton>

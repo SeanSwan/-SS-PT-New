@@ -3,7 +3,7 @@
  * ==============================
  * Locks keyboard and screen-reader orientation for direct PLAUD review links.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PlaudMergeReview } from './PlaudMergeReview';
 import type { PlaudMergeReviewState } from './PlaudMergeWorkspace.types';
@@ -96,5 +96,72 @@ describe('PlaudMergeReview focus handoff', () => {
     expect(screen.getByText('Client must be resolved')).toBeInTheDocument();
     expect(screen.getByText('Next action')).toBeInTheDocument();
     expect(screen.getByText('Return to merge queue')).toBeInTheDocument();
+  });
+
+  it('focuses the matching PLAUD action from the active status ribbon', () => {
+    const onBack = vi.fn();
+    const reviewState = {
+      ...makeReviewState(),
+      clientId: null,
+      clientName: null,
+    };
+
+    render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={onBack}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    const ribbon = screen.getByLabelText('Active merge status');
+    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action/i }));
+
+    expect(screen.getByRole('button', { name: /back to merge queue/i })).toHaveFocus();
+  });
+
+  it('focuses a date confirmation input when date split review is the blocking gate', () => {
+    const reviewState: PlaudMergeReviewState = {
+      ...makeReviewState(),
+      dateSplitCandidates: {
+        referenceDate: '2026-05-07',
+        referenceSource: 'recording',
+        timeZone: 'America/Los_Angeles',
+        segmentCount: 1,
+        needsDateReviewCount: 1,
+        futureDateBlockedCount: 0,
+        segments: [{
+          segmentId: 'segment-1',
+          segmentIndex: 1,
+          date: '2026-05-06',
+          dateSource: 'phrase:last_weekday',
+          dateConfidence: 'low',
+          needsDateConfirmation: true,
+          futureDateBlocked: false,
+          evidence: 'last Tuesday',
+          referenceDate: '2026-05-07',
+          referenceSource: 'recording',
+          timeZone: 'America/Los_Angeles',
+          startLine: 1,
+          endLine: 2,
+          text: 'Last Tuesday we squatted three sets of ten.',
+        }],
+      },
+    };
+
+    render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={vi.fn()}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    const ribbon = screen.getByLabelText('Active merge status');
+    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action/i }));
+
+    expect(screen.getByLabelText('Trainer-confirmed date for segment 1')).toHaveFocus();
   });
 });

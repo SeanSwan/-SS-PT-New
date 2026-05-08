@@ -3,7 +3,7 @@
  * ==================================
  * Locks direct-link orientation for the active Swan Coach intake dossier.
  */
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
@@ -126,5 +126,35 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(ribbon).getByText('Audio order must be confirmed')).toBeInTheDocument();
     expect(within(ribbon).getByText('Next action')).toBeInTheDocument();
     expect(within(ribbon).getByText('Confirm audio order')).toBeInTheDocument();
+  });
+
+  it('focuses the matching Coach action from the active status ribbon', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      audioPuzzle: {
+        groupingConfidence: 'medium',
+        needsOrderingReview: true,
+        reason: 'Recording timestamps overlap.',
+        suggestedAction: 'Confirm clip order before draft prep.',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const ribbon = await screen.findByLabelText('Active item status');
+    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action/i }));
+
+    expect(screen.getByRole('button', { name: /confirm audio order/i })).toHaveFocus();
   });
 });

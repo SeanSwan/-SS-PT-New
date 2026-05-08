@@ -51,3 +51,23 @@ export const MergeStatusValue = styled.strong`
   line-height: 1.35;
   letter-spacing: 0;
 `;
+
+export const MergeStatusAction = styled.button`
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
