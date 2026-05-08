@@ -11,12 +11,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  Brain,
   Clock3,
-  FileAudio,
   GitBranch,
-  ListChecks,
-  RefreshCcw,
   ShieldCheck,
 } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
@@ -29,16 +25,12 @@ import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import CoachIntakeQueueEmptyState from './CoachIntakeQueueEmptyState';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
-import CoachIntakeScopeStatus from './CoachIntakeScopeStatus';
+import CoachIntakeWorkspaceHeader from './CoachIntakeWorkspaceHeader';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import { useCoachIntakeScopeUrlSync } from './hooks/useCoachIntakeScopeUrlSync';
 import {
-  ActionButton,
-  ActionRow,
-  Eyebrow,
   Grid,
-  Header,
   ItemCard,
   ItemList,
   ItemTitle,
@@ -46,8 +38,6 @@ import {
   SourceChip,
   Stat,
   StatGrid,
-  TitleBlock,
-  WorkspaceLink,
 } from './CoachIntakeWorkspace.styles';
 import { Helper, HelperRail } from './CoachIntakeWorkspaceHelper.styles';
 import {
@@ -168,42 +158,15 @@ export function CoachIntakeWorkspace({
 
   return (
     <Panel aria-label="Swan Coach voice intake workspace">
-      <Header>
-        <TitleBlock>
-          <Eyebrow><Brain size={14} aria-hidden="true" /> Hive mind intake</Eyebrow>
-          <h2>Voice intake command center</h2>
-          <p>{clientCopy}</p>
-          <CoachIntakeScopeStatus scope={queue.scope} summary={summary} />
-        </TitleBlock>
-        <ActionRow>
-          <WorkspaceLink $primary to={reviewNextHref}>
-            <ListChecks size={16} aria-hidden="true" />
-            Review next intake
-          </WorkspaceLink>
-          <ActionButton
-            type="button"
-            onClick={() => onCommandPrompt('review next Coach intake')}
-          >
-            <Brain size={16} aria-hidden="true" />
-            Ask Coach
-          </ActionButton>
-          <ActionButton type="button" onClick={refresh}>
-            <RefreshCcw size={16} aria-hidden="true" />
-            Refresh
-          </ActionButton>
-          <ActionButton
-            type="button"
-            onClick={() => onCommandPrompt('inspect pending Coach audio pieces')}
-          >
-            <GitBranch size={16} aria-hidden="true" />
-            Inspect audio pieces
-          </ActionButton>
-          <WorkspaceLink to={workspaceHref}>
-            <FileAudio size={16} aria-hidden="true" />
-            Open full PLAUD workspace
-          </WorkspaceLink>
-        </ActionRow>
-      </Header>
+      <CoachIntakeWorkspaceHeader
+        clientCopy={clientCopy}
+        reviewNextHref={reviewNextHref}
+        workspaceHref={workspaceHref}
+        scope={queue.scope}
+        summary={summary}
+        onCommandPrompt={onCommandPrompt}
+        onRefresh={refresh}
+      />
 
       <CoachIntakeHealthStrip
         health={queue.health}
