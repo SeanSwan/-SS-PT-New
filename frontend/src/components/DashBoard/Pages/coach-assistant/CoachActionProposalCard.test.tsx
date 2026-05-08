@@ -230,7 +230,7 @@ describe('CoachActionProposalCard', () => {
     await waitFor(() => {
       expect(getCoachProposal).toHaveBeenCalledWith(onboardingProposal.id);
     });
-    expect(await screen.findByText(/Strength and balance/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Fitness goal ready for review/i)).toBeInTheDocument();
   });
 
   it('keeps onboarding approval blocked when loaded details contain a validation error', async () => {

@@ -58,6 +58,13 @@ function compactCount(value: unknown, singular: string): string | null {
   return `${count} ${singular}${count === 1 ? '' : 's'} available`;
 }
 
+function hasProvidedValue(value: unknown): boolean {
+  if (value == null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+  return String(value).trim().length > 0;
+}
+
 function withheldCount(value: unknown, singular: string): string | null {
   const count = Number(value || 0);
   if (!Number.isFinite(count) || count <= 0) return null;
@@ -92,6 +99,38 @@ function safeWriter(value: unknown): string | null {
   if (!writer) return null;
   if (writer === 'deterministic') return 'Deterministic writer';
   return 'Review-gated writer';
+}
+
+const SAFE_CLIENT_SOURCE_LABELS: Record<string, string> = {
+  swanstudios: 'SwanStudios source',
+  move_fitness: 'Move Fitness source',
+  external: 'External source',
+};
+
+function safeClientSource(value: unknown): string | null {
+  const source = String(value || '').trim();
+  if (!source) return null;
+  return SAFE_CLIENT_SOURCE_LABELS[source] || 'Source ready for review';
+}
+
+function safeDate(value: unknown): string | null {
+  const date = String(value || '').trim();
+  if (!date) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : 'Date needs review';
+}
+
+function safeClientId(value: unknown): string | null {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? `#${id}` : null;
+}
+
+function exerciseCount(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length <= 0) return null;
+  return `${value.length} exercise${value.length === 1 ? '' : 's'} available`;
+}
+
+function readyIfPresent(value: unknown, label: string): string | null {
+  return hasProvidedValue(value) ? label : null;
 }
 
 function approvalGateRows(detail: Record<string, unknown>): DetailRow[] {
@@ -161,24 +200,25 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
   const client = asRecord(detail.client);
   if (client) {
     return withApprovalGateRows(detail, compactRows([
-      ['First', client.firstName],
-      ['Last', client.lastName],
-      ['Email', client.email],
-      ['Source', client.clientSource],
-      ['Goal', client.fitnessGoal],
-      ['Health', client.healthConcerns],
-      ['Experience', client.trainingExperience],
-      ['Notes', client.trainerNotes],
+      ['Client draft', 'Client draft ready for trainer review'],
+      ['First name', readyIfPresent(client.firstName, 'First name provided')],
+      ['Last name', readyIfPresent(client.lastName, 'Last name provided')],
+      ['Contact', readyIfPresent(client.email, 'Contact detail provided')],
+      ['Source', safeClientSource(client.clientSource)],
+      ['Goal', readyIfPresent(client.fitnessGoal, 'Fitness goal ready for review')],
+      ['Health', readyIfPresent(client.healthConcerns, 'Health context requires trainer review')],
+      ['Experience', readyIfPresent(client.trainingExperience, 'Training experience ready for review')],
+      ['Notes', readyIfPresent(client.trainerNotes, 'Trainer notes ready for review')],
     ]));
   }
   const workout = asRecord(detail.workout);
   if (workout) {
     return withApprovalGateRows(detail, compactRows([
-      ['Title', workout.title],
-      ['Date', workout.date],
-      ['Client', workout.clientId ? `#${workout.clientId}` : null],
-      ['Exercises', workout.exercises],
-      ['Notes', workout.notes],
+      ['Workout draft', 'Workout draft ready for trainer review'],
+      ['Date', safeDate(workout.date)],
+      ['Client', safeClientId(workout.clientId)],
+      ['Exercises', exerciseCount(workout.exercises)],
+      ['Notes', readyIfPresent(workout.notes, 'Workout notes ready for review')],
     ]));
   }
   const clarification = asRecord(detail.clarification);
