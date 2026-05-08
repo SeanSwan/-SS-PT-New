@@ -130,18 +130,19 @@ export function CoachReviewNextResultCard({
   const needsClient = numberValue(result.needsClient);
   const nextStatus = statusLabel(result.nextQueueStatus);
   const surfaceLabel = command.includes('_plaud_') ? 'PLAUD' : 'Coach';
+  const workspaceLabel = surfaceLabel === 'PLAUD' ? 'PLAUD workspace' : 'Coach intake workspace';
   const hasDirectNext = Boolean(result.nextKind || result.nextEntityId || result.reviewRoute);
   const hasActionableQueue = actionable > 0 || readyReview > 0 || needsClient > 0;
   const title = hasDirectNext
     ? 'Next intake ready'
     : hasActionableQueue
-      ? 'Coach intake queue ready'
+      ? `${surfaceLabel} intake queue ready`
       : 'No intake needs action';
   const nextSummary = hasDirectNext && nextStatus
     ? `Next review target is ${nextStatus}.`
     : hasActionableQueue
-      ? 'Open the Coach intake workspace to continue the next actionable item.'
-      : 'Your Coach intake queue is clear.';
+      ? `Open the ${workspaceLabel} to continue the next actionable item.`
+      : `Your ${surfaceLabel} intake queue is clear.`;
   const hint = typeof result.commandHint === 'string' ? result.commandHint : null;
 
   return (
