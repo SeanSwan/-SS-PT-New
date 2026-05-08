@@ -64,6 +64,30 @@ describe('CoachActionProposalCard', () => {
     expect(await screen.findByText(/deterministic workout logger/i)).toBeInTheDocument();
   });
 
+  it('fails closed when loaded draft details do not include a review token', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+        },
+      },
+    });
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/review token is missing/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Draft details loaded for review/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve and log/i })).toBeDisabled();
+  });
+
   it('rejects pending proposals without applying writes', async () => {
     const onProposalAction = vi.fn();
     vi.mocked(rejectCoachProposal).mockResolvedValue({

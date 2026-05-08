@@ -150,10 +150,13 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
     try {
       const result = await getCoachProposal(proposal.id);
       const loadedDetail = result.proposal?.detail || null;
+      const loadedReviewToken = result.proposal?.reviewToken || null;
       setDetail(loadedDetail);
-      setReviewToken(result.proposal?.reviewToken || null);
+      setReviewToken(loadedReviewToken);
       if (hasDetailBlockingError(loadedDetail)) {
         setError(displayValue(loadedDetail?.error) || 'Draft details need correction before approval.');
+      } else if (!isClarification && !loadedReviewToken) {
+        setError('Review token is missing. Review details again or prepare an updated draft before approval.');
       } else {
         setMessage('Draft details loaded for review.');
       }
