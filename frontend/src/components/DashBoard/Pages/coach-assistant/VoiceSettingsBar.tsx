@@ -215,6 +215,7 @@ const VoiceSettingsBar: React.FC<VoiceSettingsBarProps> = memo(({
     <Bar>
       {/* Voice Toggle */}
       <ToggleBtn
+        type="button"
         $active={enabled}
         onClick={onToggle}
         aria-label={enabled ? 'Disable Swan Coach voice' : 'Enable Swan Coach voice'}
@@ -228,6 +229,7 @@ const VoiceSettingsBar: React.FC<VoiceSettingsBarProps> = memo(({
       {enabled && (
         <VoiceSelectWrap ref={dropdownRef}>
           <VoiceSelectBtn
+            type="button"
             onClick={() => setDropdownOpen(prev => !prev)}
             aria-label="Select Swan Coach voice"
             aria-expanded={dropdownOpen}
@@ -239,6 +241,7 @@ const VoiceSettingsBar: React.FC<VoiceSettingsBarProps> = memo(({
           <Dropdown $open={dropdownOpen} role="listbox" aria-label="Voice options">
             {voiceOptions.map(opt => (
               <VoiceOption_
+                type="button"
                 key={opt.id}
                 $active={opt.id === voice}
                 onClick={() => handleVoiceSelect(opt.id)}

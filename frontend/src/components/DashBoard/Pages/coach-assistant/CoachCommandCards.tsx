@@ -215,6 +215,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
       ))}
       <ButtonRow>
         <ActionBtn
+          type="button"
           $variant={isDestructive ? 'destructive' : 'confirm'}
           onClick={handleConfirm}
           disabled={busy}
@@ -223,6 +224,7 @@ export const ConfirmationCard = memo(function ConfirmationCard({
           <CheckCircle size={14} aria-hidden="true" /> {busy ? 'Confirming...' : 'Confirm'}
         </ActionBtn>
         <ActionBtn
+          type="button"
           $variant="cancel"
           onClick={handleCancel}
           disabled={busy}

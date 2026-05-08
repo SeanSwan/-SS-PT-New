@@ -132,7 +132,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = memo(({ files, onRem
             <FileText size={16} />
           )}
           <FileName title={`${f.name} (${formatSize(f.size)})`}>{f.name}</FileName>
-          <RemoveBtn onClick={() => onRemove(f.id)} aria-label={`Remove ${f.name}`}>
+          <RemoveBtn type="button" onClick={() => onRemove(f.id)} aria-label={`Remove ${f.name}`}>
             <X size={10} />
           </RemoveBtn>
         </FileChip>

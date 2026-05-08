@@ -128,19 +128,19 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
       <ConvItemActions>
         {isEditing ? (
           <>
-            <ConvActionBtn onClick={handleConfirmEdit} aria-label="Confirm rename">
+            <ConvActionBtn type="button" onClick={handleConfirmEdit} aria-label="Confirm rename">
               <Check size={14} />
             </ConvActionBtn>
-            <ConvActionBtn onClick={handleCancelEdit} aria-label="Cancel rename">
+            <ConvActionBtn type="button" onClick={handleCancelEdit} aria-label="Cancel rename">
               <X size={14} />
             </ConvActionBtn>
           </>
         ) : (
           <>
-            <ConvActionBtn onClick={handleStartEdit} aria-label="Rename conversation">
+            <ConvActionBtn type="button" onClick={handleStartEdit} aria-label="Rename conversation">
               <Pencil size={14} />
             </ConvActionBtn>
-            <ConvActionBtn onClick={handleDelete} aria-label="Delete conversation">
+            <ConvActionBtn type="button" onClick={handleDelete} aria-label="Delete conversation">
               <Trash2 size={14} />
             </ConvActionBtn>
           </>

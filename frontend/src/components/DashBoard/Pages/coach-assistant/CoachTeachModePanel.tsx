@@ -271,7 +271,7 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
             <BookOpen size={18} />
             Teach Mode
           </PanelTitle>
-          <CloseBtn onClick={teachMode.close} aria-label="Close Teach Mode">
+          <CloseBtn type="button" onClick={teachMode.close} aria-label="Close Teach Mode">
             <X size={18} />
           </CloseBtn>
         </PanelHeader>
@@ -333,6 +333,7 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
               <TabBar role="tablist" aria-label="Teach Mode tabs">
                 {TAB_CONFIG.map(tab => (
                   <TabButton
+                    type="button"
                     key={tab.id}
                     $active={activeTab === tab.id}
                     onClick={() => setActiveTab(tab.id)}

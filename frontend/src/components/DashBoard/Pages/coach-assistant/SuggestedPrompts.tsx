@@ -208,6 +208,7 @@ const SuggestedPrompts: React.FC<SuggestedPromptsProps> = memo(({ context, onSel
       <ChipsGrid>
         {prompts.map(prompt => (
           <PromptChip
+            type="button"
             key={prompt}
             onClick={() => onSelect(prompt)}
             tabIndex={visible ? 0 : -1}

@@ -290,6 +290,7 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
           <OrbContainer>
             {isRecording && <PulseRing />}
             <RecordingOrb
+              type="button"
               $recording={isRecording}
               onClick={isRecording
                 ? handleStopAndSend
@@ -313,18 +314,18 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
           </StatusText>
 
           <ButtonRow>
-            <ActionBtn $variant="ghost" onClick={handleClose} aria-label="Cancel recording">
+            <ActionBtn type="button" $variant="ghost" onClick={handleClose} aria-label="Cancel recording">
               <X size={18} /> Cancel
             </ActionBtn>
             {isRecording && (
-              <ActionBtn onClick={handleStopAndSend} aria-label="Stop and transcribe">
+              <ActionBtn type="button" onClick={handleStopAndSend} aria-label="Stop and transcribe">
                 <Send size={18} /> Stop & Send
               </ActionBtn>
             )}
             {/* SPRINT B: surface retry from error state — user must not need to
                 close and reopen the overlay just to try again after a failure */}
             {(transcription.state === 'error' || recorder.state === 'error') && (
-              <ActionBtn onClick={handleRetry} aria-label="Try recording again">
+              <ActionBtn type="button" onClick={handleRetry} aria-label="Try recording again">
                 <RefreshCw size={18} /> Try Again
               </ActionBtn>
             )}

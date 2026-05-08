@@ -99,11 +99,11 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         aria-label="Conversation history"
       >
         <SidebarHeader>
-          <NewChatBtn onClick={handleNewChat} aria-label="Start new conversation">
+          <NewChatBtn type="button" onClick={handleNewChat} aria-label="Start new conversation">
             <Plus size={16} />
             New Chat
           </NewChatBtn>
-          <CloseSidebarBtn onClick={onClose} aria-label="Close sidebar">
+          <CloseSidebarBtn type="button" onClick={onClose} aria-label="Close sidebar">
             <X size={20} />
           </CloseSidebarBtn>
         </SidebarHeader>

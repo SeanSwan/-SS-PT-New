@@ -982,7 +982,7 @@ const SwanCoachAssistantPage: React.FC = () => {
       <MainPanel>
         {/* Header */}
         <CoachHeader>
-          <SidebarToggle onClick={sidebar.toggle} aria-label="Toggle conversation history">
+          <SidebarToggle type="button" onClick={sidebar.toggle} aria-label="Toggle conversation history">
             <PanelLeftOpen size={20} />
           </SidebarToggle>
           <CoachHeaderIcon>
@@ -990,6 +990,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           </CoachHeaderIcon>
           <CoachTitle>Swan Coach Assistant</CoachTitle>
           <TeachModeToggle
+            type="button"
             onClick={teachMode.toggle}
             $active={teachMode.isOpen}
             aria-label="Toggle Teach Mode panel"
@@ -1085,9 +1086,9 @@ const SwanCoachAssistantPage: React.FC = () => {
             <ErrorBanner>
               <span>{coach.error}</span>
               {coach.lastErrorRetryable && lastAttempt && (
-                <button onClick={() => handleSend(lastAttempt)}>Retry</button>
+                <button type="button" onClick={() => handleSend(lastAttempt)}>Retry</button>
               )}
-              <button onClick={coach.clearError}>Dismiss</button>
+              <button type="button" onClick={coach.clearError}>Dismiss</button>
             </ErrorBanner>
           )}
 

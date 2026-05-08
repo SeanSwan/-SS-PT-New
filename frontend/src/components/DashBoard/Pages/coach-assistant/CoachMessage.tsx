@@ -580,6 +580,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
           <TranscriptActions>
             <TranscriptBtn
+              type="button"
               $danger
               onClick={handleTranscriptCancel}
               disabled={transcriptReview.applying || localApplying}
@@ -588,6 +589,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <X size={14} /> Discard
             </TranscriptBtn>
             <TranscriptBtn
+              type="button"
               $primary
               onClick={handleTranscriptConfirm}
               disabled={transcriptReview.applying || localApplying}
@@ -639,6 +641,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           </TranscriptError>
           <TranscriptActions>
             <TranscriptBtn
+              type="button"
               $danger
               onClick={handleTranscriptCancel}
               data-testid="transcript-error-dismiss-btn"
@@ -741,11 +744,11 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
       <MessageActions>
         {onReadAloud && (
-          <MessageActionBtn onClick={handleReadAloud} aria-label="Read aloud">
+          <MessageActionBtn type="button" onClick={handleReadAloud} aria-label="Read aloud">
             <Volume2 size={14} /> Read
           </MessageActionBtn>
         )}
-        <MessageActionBtn onClick={handleCopy} aria-label="Copy message">
+        <MessageActionBtn type="button" onClick={handleCopy} aria-label="Copy message">
           {copied ? <Check size={14} /> : <Copy size={14} />}
           {copied ? 'Copied' : 'Copy'}
         </MessageActionBtn>
