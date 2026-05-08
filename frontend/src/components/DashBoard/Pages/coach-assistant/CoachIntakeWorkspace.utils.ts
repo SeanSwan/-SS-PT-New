@@ -122,6 +122,21 @@ export function activeItemPrompt(item: CoachIntakeItem): string {
   return `review Coach intake ${itemEntityId(item) || item.id}`;
 }
 
+export function activeCoachActionPrompt(item: CoachIntakeItem): string {
+  const intakeId = itemEntityId(item) || item.id;
+  if (item.nextActionKey === 'review_failed_intake' || item.queueStatus === 'failed') {
+    const parts = [
+      `Review failed Coach intake ${intakeId}.`,
+      'Inspect only PII-safe intake metadata, event history, and artifact status.',
+      'Recommend the next recovery step: retry processing, upload transcript manually, hold, or discard.',
+      'Do not write, create, update, log, or submit any client or workout record.',
+    ];
+    if (item.errorCode) parts.splice(1, 0, `Error code: ${item.errorCode}.`);
+    return parts.join(' ');
+  }
+  return activeItemPrompt(item);
+}
+
 export function activeAudioPrompt(item: CoachIntakeItem): string {
   return `inspect Coach intake ${itemEntityId(item) || item.id} audio pieces`;
 }

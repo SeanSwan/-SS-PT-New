@@ -181,6 +181,7 @@ export function CoachIntakeActiveDossier({
   const showPrepareDraftReview = canPrepareDraftReview(item);
   const showReviewPreparedDraft = hasReviewablePreparedDraft(item);
   const next = nextAction(item);
+  const askCoachLabel = next.actionId === 'ask-coach' ? next.label : 'Ask Coach about this intake';
 
   return (
     <TargetPanel
@@ -246,7 +247,7 @@ export function CoachIntakeActiveDossier({
         ) : null}
         <ActionButton type="button" onClick={onAskCoach} data-coach-active-action="ask-coach">
           <Brain size={16} aria-hidden="true" />
-          Ask Coach about this intake
+          {askCoachLabel}
         </ActionButton>
         {showConfirmAudioOrder ? (
           <ActionButton type="button" onClick={onConfirmAudioOrder} disabled={isConfirmingAudioOrder} data-coach-active-action="confirm-audio">

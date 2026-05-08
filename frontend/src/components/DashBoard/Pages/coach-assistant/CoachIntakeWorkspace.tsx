@@ -49,8 +49,8 @@ import {
 import { Helper, HelperRail } from './CoachIntakeWorkspaceHelper.styles';
 import {
   activeAudioPrompt,
+  activeCoachActionPrompt,
   activeDraftReviewPrompt,
-  activeItemPrompt,
   actionableItemsAfter,
   isActiveItem,
   itemEntityId,
@@ -204,7 +204,7 @@ export function CoachIntakeWorkspace({
           item={activeItem}
           statusText={statusLabel(activeItem.queueStatus)}
           reviewHref={itemReviewHref(activeItem, coachWorkspaceHref)}
-          onAskCoach={() => onCommandPrompt(activeItemPrompt(activeItem))}
+          onAskCoach={() => onCommandPrompt(activeCoachActionPrompt(activeItem))}
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
           onPrepareDraftReview={() => onCommandPrompt(activeDraftReviewPrompt(activeItem))}
