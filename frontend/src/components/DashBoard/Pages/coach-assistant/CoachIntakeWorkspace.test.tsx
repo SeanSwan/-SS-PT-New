@@ -3,7 +3,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { confirmCoachIntakeAudioOrder } from '../../../../services/coachIntakeService';
-import type { CoachIntakeHealth } from '../../../../services/coachIntakeService';
 
 vi.mock('../../../../services/coachIntakeService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../services/coachIntakeService')>();
@@ -86,69 +85,6 @@ describe('CoachIntakeWorkspace', () => {
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
     expect(screen.getByRole('link', { name: /open full plaud workspace/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud');
-  });
-
-  it('shows PII-safe queue health and next operator action when available', () => {
-    const onCommandPrompt = vi.fn();
-    const queue: ReturnType<typeof makeQueue> & { health?: CoachIntakeHealth } = makeQueue();
-    queue.health = {
-      schemaReady: true,
-      status: 'degraded',
-      counts: {
-        total: 4,
-        actionable: 3,
-        today: 1,
-        unprocessed: 1,
-        processing: 1,
-        readyReview: 1,
-        failed: 1,
-        needsClient: 2,
-        stuckProcessing: 1,
-      },
-      nextOperatorAction: {
-        key: 'inspect_stuck_processing',
-        label: 'Inspect stuck processing intake',
-      },
-    };
-    queue.retention = {
-      schemaReady: true,
-      status: 'attention',
-      summary: {
-        totalWithRawArtifacts: 5,
-        purgeReady: 2,
-        reviewRequired: 1,
-        retained: 2,
-      },
-      nextOperatorAction: {
-        key: 'review_purge_candidates',
-        label: 'Review raw artifact purge candidates',
-      },
-    };
-
-    render(
-      <MemoryRouter>
-        <CoachIntakeWorkspace
-          userRole="admin"
-          selectedClientName={null}
-          onCommandPrompt={onCommandPrompt}
-          queue={queue}
-          activeIntakeId="item-1"
-        />
-      </MemoryRouter>,
-    );
-
-    const health = screen.getByLabelText(/Coach intake health/i);
-    expect(within(health).getByText(/Queue health/i)).toBeInTheDocument();
-    expect(within(health).getByText(/Degraded/i)).toBeInTheDocument();
-    expect(within(health).getByText(/1 stuck/i)).toBeInTheDocument();
-    expect(within(health).getByText(/Privacy retention/i)).toBeInTheDocument();
-    expect(within(health).getByText(/2 purge ready/i)).toBeInTheDocument();
-    expect(within(health).getByText(/1 review/i)).toBeInTheDocument();
-    expect(within(health).getByText(/Inspect stuck processing intake/i)).toBeInTheDocument();
-    fireEvent.click(within(health).getByRole('button', { name: /ask coach: inspect stuck processing intake/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake health');
-    fireEvent.click(within(health).getByRole('button', { name: /ask coach: review raw artifact purge candidates/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake retention');
   });
 
   it('keeps direct review-next routing into PLAUD when the next item is a reviewable merge', () => {

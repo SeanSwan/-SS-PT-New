@@ -61,7 +61,7 @@ export function CoachIntakeHealthStrip({ health, retention, retentionPurgePlan, 
             </HealthPill>
           </HealthStatRow>
           <CoachIntakeRetentionCandidates retention={retention} />
-          <CoachIntakeRetentionPurgePlan plan={retentionPurgePlan} />
+          <CoachIntakeRetentionPurgePlan plan={retentionPurgePlan} onCommandPrompt={onCommandPrompt} />
           {onCommandPrompt && (
             <HealthActionButton
               type="button"

@@ -4,9 +4,9 @@
  * PII-safe dry-run status for Coach intake raw artifact cleanup.
  */
 import styled from 'styled-components';
-import { ShieldCheck } from 'lucide-react';
+import { Brain, ShieldCheck } from 'lucide-react';
 import type { CoachIntakeRetentionPurgePlan as PurgePlan } from '../../../../services/coachIntakeService';
-import { HealthPill, HealthStatRow } from './CoachIntakeHealthStrip.styles';
+import { HealthActionButton, HealthPill, HealthStatRow } from './CoachIntakeHealthStrip.styles';
 
 const PurgePlanWrap = styled.div`
   display: grid;
@@ -41,7 +41,12 @@ function skippedReasonLabel(reason?: string | null): string | null {
   return null;
 }
 
-export function CoachIntakeRetentionPurgePlan({ plan }: { plan?: PurgePlan | null }): JSX.Element | null {
+interface CoachIntakeRetentionPurgePlanProps {
+  plan?: PurgePlan | null;
+  onCommandPrompt?: (message: string) => void;
+}
+
+export function CoachIntakeRetentionPurgePlan({ plan, onCommandPrompt }: CoachIntakeRetentionPurgePlanProps): JSX.Element | null {
   if (!plan) return null;
   const reason = skippedReasonLabel(plan.skippedReason);
 
@@ -53,6 +58,16 @@ export function CoachIntakeRetentionPurgePlan({ plan }: { plan?: PurgePlan | nul
         <HealthPill $tone={plan.purgeReady > 0 ? 'gold' : 'cyan'}>{plan.purgeReady} would purge</HealthPill>
         {reason && <HealthPill>{reason}</HealthPill>}
       </HealthStatRow>
+      {onCommandPrompt && (
+        <HealthActionButton
+          type="button"
+          aria-label="Ask Coach: show retention cleanup plan"
+          onClick={() => onCommandPrompt('show Coach intake cleanup plan')}
+        >
+          <Brain size={14} aria-hidden="true" />
+          Ask cleanup plan
+        </HealthActionButton>
+      )}
     </PurgePlanWrap>
   );
 }
