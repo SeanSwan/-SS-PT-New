@@ -105,4 +105,67 @@ describe('coachIntakeItem gate metadata', () => {
       nextActionLabel: 'Review duplicate risk',
     });
   });
+
+  it('maps clarification hold reasons without exposing raw resolver names or transcript text', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '94949494-9494-4949-9949-949494949494',
+      source_type: 'chat_narrative',
+      status: 'NEEDS_CLARIFICATION',
+      resolved_client_id: null,
+      uploaded_at: '2026-05-06T12:20:00.000Z',
+      created_at: '2026-05-06T12:20:00.000Z',
+      metadata_json: {
+        holdReason: {
+          safeDetail: 'Choose from the shortlisted client candidates before preparing a draft.',
+          detail: 'Marcus private detail must not surface',
+          rawTranscript: 'Marcus private transcript text',
+        },
+      },
+      resolver_json: {
+        candidateCount: 2,
+        topConfidence: 0.74,
+        candidates: [
+          { name: 'Marcus Swan', email: 'marcus@example.com' },
+          { name: 'Marcus private alias' },
+        ],
+      },
+    });
+
+    expect(item.holdReason).toMatchObject({
+      label: 'Client confirmation needed',
+      detail: 'Choose from the shortlisted client candidates before preparing a draft.',
+      candidateCount: 2,
+      confidenceBand: 'medium',
+    });
+    expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus|private|example\.com|transcript/i);
+  });
+
+  it('maps duplicate hold reasons without exposing raw duplicate rows', () => {
+    const item = mapCoachRowToIntakeItem({
+      id: '95959595-9595-4959-9959-959595959595',
+      source_type: 'typed_note',
+      status: 'DUPLICATE_HOLD',
+      resolved_client_id: 42,
+      uploaded_at: '2026-05-06T12:25:00.000Z',
+      created_at: '2026-05-06T12:25:00.000Z',
+      metadata_json: {},
+      duplicate_scan_json: {
+        duplicateCount: 3,
+        topScore: 0.91,
+        safeReason: 'Same client/date fingerprint matched existing workout logs.',
+        reason: 'Marcus private duplicate note',
+        matches: [
+          { clientName: 'Marcus Swan', notes: 'private deadlift note' },
+        ],
+      },
+    });
+
+    expect(item.holdReason).toMatchObject({
+      label: 'Possible duplicate workout',
+      detail: 'Same client/date fingerprint matched existing workout logs.',
+      duplicateCount: 3,
+      confidenceBand: 'high',
+    });
+    expect(JSON.stringify(item.holdReason)).not.toMatch(/Marcus|private|deadlift/i);
+  });
 });

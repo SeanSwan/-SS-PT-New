@@ -134,7 +134,8 @@ export async function createCoachTextIntakeItem({
          :clientId, :cipher, :iv, :tag, :keyId, CAST(:metadataJson AS jsonb)
        )
        RETURNING id, user_id, source_type, source_ref, status, resolved_client_id,
-         recorded_at_start, uploaded_at, metadata_json, error_code, created_at`,
+         recorded_at_start, uploaded_at, metadata_json, resolver_json,
+         duplicate_scan_json, error_code, created_at`,
       {
         replacements: {
           id,
@@ -190,7 +191,8 @@ export async function listCoachIntakeItems({
   }
   const rows = await db.query(
     `SELECT id, user_id, source_type, source_ref, status, resolved_client_id,
-            recorded_at_start, uploaded_at, metadata_json, latest_proposal_id, error_code, created_at
+            recorded_at_start, uploaded_at, metadata_json, resolver_json,
+            duplicate_scan_json, latest_proposal_id, error_code, created_at
        FROM coach_intake_items
       WHERE user_id = :userId
       ORDER BY uploaded_at DESC, created_at DESC

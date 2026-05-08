@@ -13,6 +13,14 @@ export type { CoachAudioPuzzleConfidence, CoachAudioPuzzleSummary, CoachIntakeQu
 
 type CoachIntakeAudioFields = {
   audioPuzzle?: CoachAudioPuzzleSummary | null;
+  holdReason?: {
+    label: string;
+    detail?: string | null;
+    candidateCount?: number | null;
+    duplicateCount?: number | null;
+    confidenceBand?: 'high' | 'medium' | 'low' | 'unknown' | string;
+    nextAction?: string | null;
+  } | null;
   latestProposalId?: string | null;
   latestProposal?: {
     id: string;

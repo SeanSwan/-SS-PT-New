@@ -405,6 +405,67 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(target).queryByRole('button', { name: /review prepared draft/i })).toBeNull();
   });
 
+  it('shows a PII-safe hold reason for clarification and duplicate hold items', async () => {
+    const clarificationQueue = makeQueue();
+    clarificationQueue.items[0] = {
+      ...clarificationQueue.items[0],
+      queueStatus: 'needs_clarification',
+      holdReason: {
+        label: 'Client confirmation needed',
+        detail: 'Choose from the shortlisted client candidates before preparing a draft.',
+        candidateCount: 2,
+        confidenceBand: 'medium',
+      },
+    };
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={clarificationQueue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    let target = await screen.findByLabelText(/Active review target/i);
+    expect(within(target).getByLabelText('Hold reason')).toHaveTextContent('Client confirmation needed');
+    expect(within(target).getByText('2 candidates')).toBeInTheDocument();
+    expect(within(target).getByText('Medium confidence')).toBeInTheDocument();
+
+    const duplicateQueue = makeQueue();
+    duplicateQueue.items[0] = {
+      ...duplicateQueue.items[0],
+      queueStatus: 'duplicate_hold',
+      holdReason: {
+        label: 'Possible duplicate workout',
+        detail: 'Same client/date fingerprint matched existing workout logs.',
+        duplicateCount: 3,
+        confidenceBand: 'high',
+      },
+    };
+
+    rerender(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={duplicateQueue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    target = await screen.findByLabelText(/Active review target/i);
+    expect(within(target).getByLabelText('Hold reason')).toHaveTextContent('Possible duplicate workout');
+    expect(within(target).getByText('3 possible matches')).toBeInTheDocument();
+    expect(within(target).getByText('High confidence')).toBeInTheDocument();
+    expect(within(target).queryByText(/Marcus|private|example\.com/i)).toBeNull();
+  });
+
   it('focuses the matching Coach action from the active status ribbon', async () => {
     const queue = makeQueue();
     queue.items[0] = {

@@ -245,6 +245,43 @@ describe('coachIntakeItemService', () => {
     expect(JSON.stringify(summary)).not.toMatch(/private transcript|Review private/i);
   });
 
+  it('selects resolver and duplicate scan JSON for PII-safe hold summaries', async () => {
+    const db = fakeSequelize({
+      listRows: [{
+        id: 'dddddddd-dddd-4ddd-9ddd-dddddddddddd',
+        user_id: 7,
+        source_type: 'chat_narrative',
+        source_ref: 'coach:chat_narrative:dddd',
+        status: 'DUPLICATE_HOLD',
+        resolved_client_id: 42,
+        recorded_at_start: null,
+        uploaded_at: '2026-05-06T12:00:00.000Z',
+        metadata_json: {},
+        resolver_json: {},
+        duplicate_scan_json: { duplicateCount: 2, topScore: 0.88 },
+        latest_proposal_id: null,
+        error_code: null,
+        created_at: '2026-05-06T12:00:00.000Z',
+      }],
+    });
+
+    const result = await listUnifiedCoachIntakeItems({
+      userId: 7,
+      scope: 'duplicate_hold',
+      limit: 5,
+      sequelizeOverride: db,
+    });
+
+    const selectSql = db.calls.find((call) => call.sql.includes('FROM coach_intake_items'))?.sql || '';
+    expect(selectSql).toMatch(/resolver_json/);
+    expect(selectSql).toMatch(/duplicate_scan_json/);
+    expect(result.items[0].holdReason).toMatchObject({
+      label: 'Possible duplicate workout',
+      duplicateCount: 2,
+      confidenceBand: 'high',
+    });
+  });
+
   it('gives audio-like intake items a single-piece puzzle fallback', () => {
     const item = mapCoachRowToIntakeItem({
       id: '44444444-4444-4444-4444-444444444444',

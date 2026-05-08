@@ -57,6 +57,68 @@ function mapLatestProposal(row, metadata) {
   };
 }
 
+function plainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function boundedString(value, maxLength = 160) {
+  if (typeof value !== 'string') return null;
+  const clean = value.replace(/\s+/g, ' ').trim();
+  if (!clean) return null;
+  return clean.slice(0, maxLength);
+}
+
+function safeDetailString(value) {
+  const clean = boundedString(value);
+  if (!clean) return null;
+  if (/@/.test(clean)) return null;
+  if (/\b\d{7,}\b/.test(clean)) return null;
+  return clean;
+}
+
+function confidenceBand(rawValue) {
+  const numeric = Number(rawValue);
+  if (!Number.isFinite(numeric)) return 'unknown';
+  if (numeric >= 0.85) return 'high';
+  if (numeric >= 0.55) return 'medium';
+  return 'low';
+}
+
+function positiveCount(...values) {
+  for (const value of values) {
+    const numeric = Number(value);
+    if (Number.isInteger(numeric) && numeric > 0) return numeric;
+  }
+  return null;
+}
+
+function mapHoldReason({ status, metadata, resolver, duplicateScan }) {
+  const stored = plainObject(metadata.holdReason);
+  if (status === 'NEEDS_CLARIFICATION') {
+    const candidateCount = positiveCount(resolver.candidateCount, resolver.candidates?.length);
+    return {
+      label: candidateCount ? 'Client confirmation needed' : 'Clarification required',
+      detail: safeDetailString(stored.safeDetail) || 'Coach needs one answer before this intake can move to draft review.',
+      candidateCount,
+      duplicateCount: null,
+      confidenceBand: confidenceBand(resolver.topConfidence ?? resolver.confidence),
+      nextAction: 'Answer Coach clarification',
+    };
+  }
+  if (status === 'DUPLICATE_HOLD') {
+    const duplicateCount = positiveCount(duplicateScan.duplicateCount, duplicateScan.matches?.length);
+    return {
+      label: 'Possible duplicate workout',
+      detail: safeDetailString(stored.safeDetail) || safeDetailString(duplicateScan.safeReason) || 'Compare this intake with existing logs before approving.',
+      candidateCount: null,
+      duplicateCount,
+      confidenceBand: confidenceBand(duplicateScan.topScore ?? duplicateScan.score),
+      nextAction: 'Review duplicate risk',
+    };
+  }
+  return null;
+}
+
 function latestProposalStatusFor(item) {
   if (!item?.latestProposalId && !item?.latestProposal?.id) return null;
   const status = String(item.latestProposal?.status || '').trim().toUpperCase();
@@ -80,8 +142,11 @@ export function mapCoachRowToIntakeItem(row) {
   const queueStatus = queueStatusForCoach(status);
   const clientId = row.resolved_client_id == null ? null : Number(row.resolved_client_id);
   const metadata = row.metadata_json || {};
+  const resolver = plainObject(row.resolver_json);
+  const duplicateScan = plainObject(row.duplicate_scan_json);
   const audioPuzzle = audioPuzzleSummaryForQueue({ sourceType: row.source_type, metadata });
   const latestProposal = mapLatestProposal(row, metadata);
+  const holdReason = mapHoldReason({ status, metadata, resolver, duplicateScan });
 
   const item = {
     id: `coach:${row.id}`,
@@ -111,6 +176,7 @@ export function mapCoachRowToIntakeItem(row) {
       charCount: Number(metadata.charCount || 0),
       wordCount: Number(metadata.wordCount || 0),
     },
+    holdReason,
     audioPuzzle,
     ...latestProposal,
   };
