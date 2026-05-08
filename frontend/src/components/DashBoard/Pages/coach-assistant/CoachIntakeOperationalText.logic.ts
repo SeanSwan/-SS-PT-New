@@ -68,6 +68,20 @@ const SAFE_AUDIO_REVIEW_RATIONALES = new Set([
   'The selected intake was not found in the current actionable audio queue.',
 ]);
 
+const SAFE_OPERATOR_ACTION_LABELS_BY_KEY: Record<string, string> = {
+  answer_clarifications: 'Answer Coach clarifications',
+  inspect_failed_intake: 'Inspect failed intake',
+  inspect_stuck_processing: 'Inspect stuck processing intake',
+  none: 'No active intake work',
+  resolve_clients: 'Resolve client confirmations',
+  review_duplicate_holds: 'Review duplicate-risk holds',
+  review_next: 'Review next intake',
+  review_purge_candidates: 'Review raw artifact purge candidates',
+  review_ready_drafts: 'Review ready drafts',
+  review_stale_intake: 'Review stale intake artifacts',
+  schema_unavailable: 'Run Coach intake migration',
+};
+
 const AUDIO_ORDER_RATIONALE_PATTERN = /^\d+ pieces across \d+ bundles need order review before Swan Coach drafts a workout log\.$/;
 const AUDIO_READY_RATIONALE_PATTERN = /^(1 audio piece is|\d+ audio pieces are) ready for Swan Coach draft preparation after client and date checks\.$/;
 
@@ -145,6 +159,14 @@ export function safeAudioReviewPlanRationale(value: unknown): string | null {
     AUDIO_ORDER_RATIONALE_PATTERN,
     AUDIO_READY_RATIONALE_PATTERN,
   ]);
+}
+
+export function safeOperatorActionLabel(key: unknown, label: unknown): string {
+  const safeByKey = typeof key === 'string' ? SAFE_OPERATOR_ACTION_LABELS_BY_KEY[key] : null;
+  if (safeByKey) return safeByKey;
+  const text = compactText(label);
+  if (text && Object.values(SAFE_OPERATOR_ACTION_LABELS_BY_KEY).includes(text)) return text;
+  return 'Review Coach intake health';
 }
 
 export function safeHoldReasonLabel(value: unknown): string | null {

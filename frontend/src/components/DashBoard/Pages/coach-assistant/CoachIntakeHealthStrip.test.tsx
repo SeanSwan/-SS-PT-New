@@ -107,4 +107,45 @@ describe('CoachIntakeHealthStrip', () => {
     fireEvent.click(within(health).getByRole('button', { name: /show processing intake items/i }));
     expect(onScopeChange).toHaveBeenCalledWith('processing');
   });
+
+  it('does not render arbitrary next-operator labels in visible text or button names', () => {
+    const onCommandPrompt = vi.fn();
+
+    render(
+      <CoachIntakeHealthStrip
+        health={{
+          ...baseHealth,
+          nextOperatorAction: {
+            key: 'inspect_stuck_processing',
+            label: 'Email Marcus at private@example.com before reviewing',
+          },
+        }}
+        retention={{
+          schemaReady: true,
+          status: 'attention',
+          summary: {
+            totalWithRawArtifacts: 1,
+            purgeReady: 1,
+            reviewRequired: 0,
+            retained: 0,
+          },
+          nextOperatorAction: {
+            key: 'review_purge_candidates',
+            label: 'Send raw audio to private@example.com',
+          },
+        }}
+        onCommandPrompt={onCommandPrompt}
+      />,
+    );
+
+    const health = screen.getByLabelText(/Coach intake health/i);
+    expect(within(health).getByText(/Inspect stuck processing intake/i)).toBeInTheDocument();
+    expect(within(health).getByRole('button', { name: /ask coach: inspect stuck processing intake/i }))
+      .toBeInTheDocument();
+    expect(within(health).getByRole('button', { name: /ask coach: review raw artifact purge candidates/i }))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).toBeNull();
+    expect(screen.queryByText(/private@example\.com/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /private@example\.com/i })).toBeNull();
+  });
 });

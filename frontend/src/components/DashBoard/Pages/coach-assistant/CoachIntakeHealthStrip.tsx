@@ -12,6 +12,7 @@ import type {
 } from '../../../../services/coachIntakeService';
 import { CoachIntakeRetentionCandidates } from './CoachIntakeRetentionCandidates';
 import { CoachIntakeRetentionPurgePlan } from './CoachIntakeRetentionPurgePlan';
+import { safeOperatorActionLabel } from './CoachIntakeOperationalText.logic';
 import {
   HealthActionButton,
   HealthBlock,
@@ -80,6 +81,13 @@ export function CoachIntakeHealthStrip({
 
   const counts = health.counts;
   const actionPrompt = promptForActionKey(health.nextOperatorAction.key);
+  const healthActionLabel = safeOperatorActionLabel(
+    health.nextOperatorAction.key,
+    health.nextOperatorAction.label,
+  );
+  const retentionActionLabel = retention
+    ? safeOperatorActionLabel(retention.nextOperatorAction.key, retention.nextOperatorAction.label)
+    : null;
   const attentionIcon = health.status === 'healthy'
     ? <ShieldCheck size={14} aria-hidden="true" />
     : <AlertTriangle size={14} aria-hidden="true" />;
@@ -106,7 +114,7 @@ export function CoachIntakeHealthStrip({
           {onCommandPrompt && (
             <HealthActionButton
               type="button"
-              aria-label={`Ask Coach: ${retention.nextOperatorAction.label}`}
+              aria-label={`Ask Coach: ${retentionActionLabel}`}
               onClick={() => onCommandPrompt('show Coach intake retention')}
             >
               <Brain size={14} aria-hidden="true" />
@@ -129,11 +137,11 @@ export function CoachIntakeHealthStrip({
       </HealthBlock>
       <HealthBlock>
         <HealthLabel>Next operator action</HealthLabel>
-        <HealthValue>{health.nextOperatorAction.label}</HealthValue>
+        <HealthValue>{healthActionLabel}</HealthValue>
         {onCommandPrompt && (
           <HealthActionButton
             type="button"
-            aria-label={`Ask Coach: ${health.nextOperatorAction.label}`}
+            aria-label={`Ask Coach: ${healthActionLabel}`}
             onClick={() => onCommandPrompt(actionPrompt)}
           >
             <Brain size={14} aria-hidden="true" />
