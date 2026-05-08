@@ -18,6 +18,29 @@ export interface CoachIntakeOutcome {
   detail: string;
 }
 
+const SAFE_OUTCOME_TITLES = new Set([
+  'Workout log applied',
+  'Draft applied',
+  'Proposal rejected',
+  'Clarification recorded',
+  'Draft action recorded',
+]);
+
+const SAFE_OUTCOME_DETAILS = new Set([
+  'Advanced to the next actionable intake.',
+  'Queue refreshed; no next actionable intake was found.',
+]);
+
+function safeOutcomeTitle(value: string): string {
+  return SAFE_OUTCOME_TITLES.has(value) ? value : 'Draft action recorded';
+}
+
+function safeOutcomeDetail(value: string): string {
+  return SAFE_OUTCOME_DETAILS.has(value)
+    ? value
+    : 'Queue refreshed; no next actionable intake was found.';
+}
+
 export function outcomeFromProposal(
   proposal: Pick<CoachActionProposal, 'status' | 'type'>,
   advanced: boolean,
@@ -50,6 +73,8 @@ export function CoachIntakeOutcomeReceipt({
   onDismiss,
 }: CoachIntakeOutcomeReceiptProps): JSX.Element {
   const receiptRef = React.useRef<HTMLElement | null>(null);
+  const title = safeOutcomeTitle(outcome.title);
+  const detail = safeOutcomeDetail(outcome.detail);
 
   React.useEffect(() => {
     const receipt = receiptRef.current;
@@ -66,8 +91,8 @@ export function CoachIntakeOutcomeReceipt({
   return (
     <OutcomeReceiptWrap ref={receiptRef} role="status" aria-live="polite" tabIndex={-1}>
       <OutcomeText>
-        <strong><CheckCircle2 size={14} aria-hidden="true" /> {outcome.title}</strong>
-        <span>{outcome.detail}</span>
+        <strong><CheckCircle2 size={14} aria-hidden="true" /> {title}</strong>
+        <span>{detail}</span>
         {activeTargetLabel ? <OutcomeContext>Active intake: {activeTargetLabel}</OutcomeContext> : null}
       </OutcomeText>
       <OutcomeDismiss type="button" onClick={onDismiss}>
