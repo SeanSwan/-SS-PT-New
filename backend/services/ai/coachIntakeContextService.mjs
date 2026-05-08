@@ -138,6 +138,18 @@ function sanitizeRetention(rawRetention) {
   };
 }
 
+function sanitizeRetentionPurgePlan(rawPlan) {
+  if (!rawPlan || typeof rawPlan !== 'object' || Array.isArray(rawPlan)) return null;
+  return {
+    enabled: rawPlan.enabled === true,
+    dryRun: rawPlan.dryRun !== false,
+    schemaReady: rawPlan.schemaReady === true,
+    purgeReady: cleanCount(rawPlan.purgeReady),
+    purged: cleanCount(rawPlan.purged),
+    skippedReason: cleanActionKey(rawPlan.skippedReason),
+  };
+}
+
 export function sanitizeCoachIntakeContext(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   if (raw.source !== 'coach_intake_context_v1') return null;
@@ -158,6 +170,8 @@ export function sanitizeCoachIntakeContext(raw) {
   if (health) clean.health = health;
   const retention = sanitizeRetention(raw.retention);
   if (retention) clean.retention = retention;
+  const retentionPurgePlan = sanitizeRetentionPurgePlan(raw.retentionPurgePlan);
+  if (retentionPurgePlan) clean.retentionPurgePlan = retentionPurgePlan;
 
   const rawItems = Array.isArray(raw.items) ? raw.items.slice(0, 6) : [];
   clean.items = rawItems
@@ -180,7 +194,7 @@ export function sanitizeCoachIntakeContext(raw) {
   return clean;
 }
 
-export function buildCoachIntakeContextFromResult(result, health = null, retention = null) {
+export function buildCoachIntakeContextFromResult(result, health = null, retention = null, retentionPurgePlan = null) {
   const summary = result?.summary && typeof result.summary === 'object'
     ? result.summary
     : {};
@@ -191,6 +205,7 @@ export function buildCoachIntakeContextFromResult(result, health = null, retenti
     summary,
     health,
     retention,
+    retentionPurgePlan,
     items: items.slice(0, 6).map((item) => ({
       id: item?.id,
       kind: item?.kind,
@@ -247,6 +262,11 @@ export function buildCoachIntakeContextPromptBlock(context) {
       `Retention review required: ${r.reviewRequired ?? 0}`,
       `Next retention action: ${r.nextActionKey ?? 'unknown'} - ${r.nextActionLabel ?? 'Review Coach intake retention'}`,
     );
+  }
+
+  const p = context.retentionPurgePlan || null;
+  if (p) {
+    lines.push(`Retention cleanup enabled: ${p.enabled === true}`, `Retention cleanup dry run: ${p.dryRun !== false}`, `Retention cleanup would purge: ${p.purgeReady ?? 0}`);
   }
 
   if (Array.isArray(context.items) && context.items.length > 0) {

@@ -117,6 +117,16 @@ describe('coach intake context prompt bridge', () => {
         nextActionLabel: 'Write the workout now',
         items: [{ transcript: 'Do Not Return' }],
       },
+      retentionPurgePlan: {
+        enabled: false,
+        dryRun: true,
+        schemaReady: true,
+        purgeReady: 2,
+        purged: 0,
+        skippedReason: 'disabled',
+        candidateIds: ['22222222-2222-4222-8222-222222222222'],
+        transcript: 'Do Not Return',
+      },
       items: [],
     });
     const block = buildCoachIntakeContextPromptBlock(clean);
@@ -131,13 +141,16 @@ describe('coach intake context prompt bridge', () => {
     expect(block).toContain('Retention purge ready: 2');
     expect(block).toContain('Retention review required: 1');
     expect(block).toContain('Next retention action: review_purge_candidates - Review raw artifact purge candidates');
+    expect(block).toContain('Retention cleanup enabled: false');
+    expect(block).toContain('Retention cleanup dry run: true');
+    expect(block).toContain('Retention cleanup would purge: 2');
     expect(block).toContain('show Coach intake health');
     expect(block).toContain('show Coach intake retention');
     expect(block).toContain('review next Coach intake');
     expect(block).toContain('inspect pending Coach audio pieces');
     expect(block).toContain('prepare a draft review');
     expect(block).toContain('proposal_type=clarification');
-    expect(block).not.toMatch(/Marcus|Do Not Return|clientName|transcript|Ignore previous instructions|Write the workout now/i);
+    expect(block).not.toMatch(/Marcus|Do Not Return|clientName|transcript|candidateIds|22222222|Ignore previous instructions|Write the workout now/i);
     expect(block).not.toContain('inspect pending PLAUD audio pieces');
   });
 
@@ -181,6 +194,15 @@ describe('coach intake context prompt bridge', () => {
         nextOperatorAction: { key: 'review_purge_candidates', label: 'Review raw artifact purge candidates' },
         items: [{ clientName: 'Do Not Return' }],
       },
+      {
+        enabled: false,
+        dryRun: true,
+        schemaReady: true,
+        purgeReady: 2,
+        purged: 0,
+        candidateIds: ['22222222-2222-4222-8222-222222222222'],
+        transcript: 'Do Not Return',
+      },
     );
 
     expect(context).toMatchObject({
@@ -199,6 +221,12 @@ describe('coach intake context prompt bridge', () => {
         retained: 2,
         nextActionKey: 'review_purge_candidates',
       },
+      retentionPurgePlan: {
+        enabled: false,
+        dryRun: true,
+        purgeReady: 2,
+        purged: 0,
+      },
       items: [
         {
           id: 'merge:11111111-1111-4111-9111-111111111111',
@@ -210,7 +238,7 @@ describe('coach intake context prompt bridge', () => {
         },
       ],
     });
-    expect(JSON.stringify(context)).not.toMatch(/Do Not Return|clientName|title/i);
+    expect(JSON.stringify(context)).not.toMatch(/Do Not Return|clientName|title|candidateIds|22222222/i);
   });
 
   it('includes compact audio puzzle facts without source labels or transcript text', () => {
