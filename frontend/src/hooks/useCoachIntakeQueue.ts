@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getCoachIntakeHealth,
   type CoachIntakeHealth,
+  getCoachIntakeRetention,
+  type CoachIntakeRetention,
   listCoachIntakeItems,
   type CoachIntakeItem,
 } from '../services/coachIntakeService';
@@ -31,6 +33,7 @@ export interface CoachIntakeQueueState {
   isLoading: boolean;
   error: PlaudApiError | null;
   health: CoachIntakeHealth | null;
+  retention: CoachIntakeRetention | null;
   refresh: () => Promise<CoachIntakeItem[]>;
 }
 
@@ -48,6 +51,7 @@ export function useCoachIntakeQueue({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<PlaudApiError | null>(null);
   const [health, setHealth] = useState<CoachIntakeHealth | null>(null);
+  const [retention, setRetention] = useState<CoachIntakeRetention | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -61,21 +65,24 @@ export function useCoachIntakeQueue({
       setSummary(EMPTY_SUMMARY);
       setError(null);
       setHealth(null);
+      setRetention(null);
       setIsLoading(false);
       return [];
     }
     setIsLoading(true);
     setError(null);
     try {
-      const [response, healthResult] = await Promise.all([
+      const [response, healthResult, retentionResult] = await Promise.all([
         listCoachIntakeItems({ scope, limit }),
         getCoachIntakeHealth().catch(() => null),
+        getCoachIntakeRetention().catch(() => null),
       ]);
       const nextItems = response.items || [];
       if (!isMountedRef.current) return nextItems;
       setItems(nextItems);
       setSummary(response.summary);
       setHealth(healthResult);
+      setRetention(retentionResult);
       return nextItems;
     } catch (err) {
       if (!isMountedRef.current) return [];
@@ -83,6 +90,7 @@ export function useCoachIntakeQueue({
       setItems([]);
       setSummary(EMPTY_SUMMARY);
       setHealth(null);
+      setRetention(null);
       return [];
     } finally {
       if (isMountedRef.current) setIsLoading(false);
@@ -100,7 +108,7 @@ export function useCoachIntakeQueue({
     });
   }, [enabled, refresh]);
 
-  return { items, summary, isLoading, error, health, refresh };
+  return { items, summary, isLoading, error, health, retention, refresh };
 }
 
 export default useCoachIntakeQueue;

@@ -4,7 +4,7 @@
  * PII-safe operator health snapshot for Swan Coach intake.
  */
 import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
-import type { CoachIntakeHealth } from '../../../../services/coachIntakeService';
+import type { CoachIntakeHealth, CoachIntakeRetention } from '../../../../services/coachIntakeService';
 import {
   HealthActionButton,
   HealthBlock,
@@ -17,6 +17,7 @@ import {
 
 interface CoachIntakeHealthStripProps {
   health?: CoachIntakeHealth | null;
+  retention?: CoachIntakeRetention | null;
   onCommandPrompt?: (message: string) => void;
 }
 
@@ -30,7 +31,7 @@ function promptForActionKey(key: string): string {
   return 'show Coach intake health';
 }
 
-export function CoachIntakeHealthStrip({ health, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
+export function CoachIntakeHealthStrip({ health, retention, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
   if (!health) return null;
 
   const counts = health.counts;
@@ -45,6 +46,29 @@ export function CoachIntakeHealthStrip({ health, onCommandPrompt }: CoachIntakeH
         <HealthLabel>{attentionIcon} Queue health</HealthLabel>
         <HealthValue>{statusLabel(health.status)}</HealthValue>
       </HealthBlock>
+      {retention && (
+        <HealthBlock>
+          <HealthLabel><ShieldCheck size={14} aria-hidden="true" /> Privacy retention</HealthLabel>
+          <HealthStatRow>
+            <HealthPill $tone={retention.summary.purgeReady > 0 ? 'gold' : 'cyan'}>
+              {retention.summary.purgeReady} purge ready
+            </HealthPill>
+            <HealthPill $tone={retention.summary.reviewRequired > 0 ? 'gold' : 'cyan'}>
+              {retention.summary.reviewRequired} review
+            </HealthPill>
+          </HealthStatRow>
+          {onCommandPrompt && (
+            <HealthActionButton
+              type="button"
+              aria-label={`Ask Coach: ${retention.nextOperatorAction.label}`}
+              onClick={() => onCommandPrompt('show Coach intake retention')}
+            >
+              <Brain size={14} aria-hidden="true" />
+              Ask Coach
+            </HealthActionButton>
+          )}
+        </HealthBlock>
+      )}
       <HealthBlock>
         <HealthLabel><Activity size={14} aria-hidden="true" /> Workload</HealthLabel>
         <HealthStatRow>

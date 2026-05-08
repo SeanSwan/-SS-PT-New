@@ -57,6 +57,27 @@ export interface CoachIntakeHealth {
   };
 }
 
+export interface CoachIntakeRetention {
+  schemaReady: boolean;
+  status: 'healthy' | 'attention' | 'unavailable';
+  generatedAt?: string;
+  policy?: {
+    appliedRawArtifactGraceHours?: number;
+    failedRawArtifactGraceDays?: number;
+    staleReviewQueueDays?: number;
+  };
+  summary: {
+    totalWithRawArtifacts: number;
+    purgeReady: number;
+    reviewRequired: number;
+    retained: number;
+  };
+  nextOperatorAction: {
+    key: string;
+    label: string;
+  };
+}
+
 export interface CreateCoachTextIntakeResponse {
   item: CoachIntakeItem;
 }
@@ -130,6 +151,15 @@ export async function getCoachIntakeHealth(): Promise<CoachIntakeHealth> {
   }
 }
 
+export async function getCoachIntakeRetention(): Promise<CoachIntakeRetention> {
+  try {
+    const { data } = await apiService.get<{ success: boolean; retention: CoachIntakeRetention }>('/api/coach/intake/retention');
+    return data.retention;
+  } catch (err) {
+    unwrapError(err, 'Failed to read Coach intake retention');
+  }
+}
+
 export async function createCoachTextIntake({
   text,
   clientId,
@@ -189,6 +219,7 @@ export default {
   confirmCoachIntakeAudioOrder,
   createCoachTextIntake,
   getCoachIntakeHealth,
+  getCoachIntakeRetention,
   listCoachIntakeEvents,
   listCoachIntakeItems,
 };

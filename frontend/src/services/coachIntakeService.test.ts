@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import apiService from './api.service';
-import { getCoachIntakeHealth } from './coachIntakeService';
+import { getCoachIntakeHealth, getCoachIntakeRetention } from './coachIntakeService';
 
 vi.mock('./api.service', () => ({
   default: {
@@ -40,6 +40,37 @@ describe('coachIntakeService', () => {
       status: 'degraded',
       counts: { stuckProcessing: 1 },
       nextOperatorAction: { key: 'inspect_stuck_processing' },
+    });
+  });
+
+  it('fetches the PII-safe Coach intake retention endpoint', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      data: {
+        success: true,
+        retention: {
+          status: 'attention',
+          schemaReady: true,
+          summary: {
+            totalWithRawArtifacts: 5,
+            purgeReady: 2,
+            reviewRequired: 1,
+            retained: 2,
+          },
+          nextOperatorAction: {
+            key: 'review_purge_candidates',
+            label: 'Review raw artifact purge candidates',
+          },
+        },
+      },
+    });
+
+    const retention = await getCoachIntakeRetention();
+
+    expect(apiService.get).toHaveBeenCalledWith('/api/coach/intake/retention');
+    expect(retention).toMatchObject({
+      status: 'attention',
+      summary: { purgeReady: 2, reviewRequired: 1 },
+      nextOperatorAction: { key: 'review_purge_candidates' },
     });
   });
 });

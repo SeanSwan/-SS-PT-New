@@ -193,7 +193,7 @@ export function CoachIntakeWorkspace({
         </ActionRow>
       </Header>
 
-      <CoachIntakeHealthStrip health={queue.health} onCommandPrompt={onCommandPrompt} />
+      <CoachIntakeHealthStrip health={queue.health} retention={queue.retention} onCommandPrompt={onCommandPrompt} />
 
       {activeItem && (
         <CoachIntakeActiveDossier

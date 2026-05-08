@@ -7,7 +7,7 @@ import styled from 'styled-components';
 
 export const HealthStrip = styled.section<{ $tone: 'healthy' | 'attention' | 'degraded' | 'unavailable' }>`
   display: grid;
-  grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.2fr) minmax(190px, 0.9fr);
+  grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.2fr) minmax(180px, 0.9fr) minmax(190px, 0.9fr);
   gap: 8px;
   align-items: stretch;
   margin: 0 0 12px;
