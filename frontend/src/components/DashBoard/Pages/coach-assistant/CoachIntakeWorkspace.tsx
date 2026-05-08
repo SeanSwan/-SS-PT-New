@@ -222,7 +222,7 @@ export function CoachIntakeWorkspace({
               </ItemTitle>
               <ChipColumn>
                 <SourceChip>{item.sourceLabel}</SourceChip>
-                {active && <SourceChip $tone="gold">Review target</SourceChip>}
+                {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
                 <WorkspaceLink to={itemReviewHref(item, coachWorkspaceHref)} aria-label={`Review intake ${item.title}`}>
                   Review
                 </WorkspaceLink>

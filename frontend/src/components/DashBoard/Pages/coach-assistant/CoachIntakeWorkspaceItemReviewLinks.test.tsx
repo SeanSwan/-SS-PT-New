@@ -74,4 +74,22 @@ describe('CoachIntakeWorkspace item review links', () => {
     expect(screen.getByRole('link', { name: /review intake plaud merge awaiting review/i }))
       .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
+
+  it('marks the selected Coach intake row after a direct item link opens', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=coach-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={makeQueue()}
+          activeIntakeId="coach-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const selectedRow = screen.getByText(/selected intake/i).closest('[aria-current="true"]');
+    expect(selectedRow).toBeTruthy();
+    expect(selectedRow).toHaveTextContent(/Morning lower body notes/i);
+  });
 });

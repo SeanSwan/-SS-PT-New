@@ -51,6 +51,7 @@ import {
   WorkspaceShell,
 } from './PlaudIntelligenceWorkspacePage.styles';
 import {
+  BadgeCluster,
   IntakePreviewItem,
   IntakePreviewList,
   IntakeSnapshot,
@@ -82,6 +83,14 @@ function pickReviewNextMergeRequestId(items: PlaudIntakeItem[]): string | null {
   return [...items]
     .filter((item) => item.kind === 'merge_request' && item.canReview)
     .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
+}
+
+function visibleIntakePreviewItems(items: PlaudIntakeItem[], selectedMergeRequestId: string | null): PlaudIntakeItem[] {
+  const firstItems = items.slice(0, 6);
+  const isSelectedMergeRequest = (item: PlaudIntakeItem) => item.kind === 'merge_request' && item.entityId === selectedMergeRequestId;
+  if (!selectedMergeRequestId || firstItems.some(isSelectedMergeRequest)) return firstItems;
+  const selectedItem = items.find(isSelectedMergeRequest);
+  return selectedItem ? [selectedItem, ...firstItems.slice(0, 5)] : firstItems;
 }
 
 function parseMergeRequestId(value: string | null): string | null {
@@ -195,16 +204,28 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             <IntakePreviewItem role="alert"><span>{error.message}</span><span /></IntakePreviewItem>
           ) : intakeItems.length === 0 ? (
             <IntakePreviewItem><span>No current intake items</span><span /></IntakePreviewItem>
-          ) : intakeItems.slice(0, 6).map((item) => (
-            <IntakePreviewItem key={item.id}>
-              <span>
-                <strong>{item.clientName || 'Client pending'}</strong>
-                {' - '}
-                {formatQueueStatus(item.queueStatus)}
-              </span>
-              <SourceBadge>{item.sourceLabel}</SourceBadge>
-            </IntakePreviewItem>
-          ))}
+          ) : visibleIntakePreviewItems(intakeItems, directMergeRequestId).map((item) => {
+            const isDirectMergeTarget = Boolean(
+              directMergeRequestId && item.kind === 'merge_request' && item.entityId === directMergeRequestId,
+            );
+            return (
+              <IntakePreviewItem
+                key={item.id}
+                $selected={isDirectMergeTarget}
+                aria-current={isDirectMergeTarget ? 'true' : undefined}
+              >
+                <span>
+                  <strong>{item.clientName || 'Client pending'}</strong>
+                  {' - '}
+                  {formatQueueStatus(item.queueStatus)}
+                </span>
+                <BadgeCluster>
+                  {isDirectMergeTarget && <SourceBadge $tone="gold">Selected review</SourceBadge>}
+                  <SourceBadge>{item.sourceLabel}</SourceBadge>
+                </BadgeCluster>
+              </IntakePreviewItem>
+            );
+          })}
         </IntakePreviewList>
       </IntakeSnapshot>
 

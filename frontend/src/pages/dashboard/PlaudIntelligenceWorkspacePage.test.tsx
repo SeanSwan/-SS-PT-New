@@ -83,12 +83,26 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/directMergeRequestId \|\| reviewNextMergeRequestId/);
   });
 
+  it('marks the direct merge request target in the intake preview list', () => {
+    expect(PAGE_SRC).toMatch(/isDirectMergeTarget/);
+    expect(PAGE_SRC).toMatch(/\$selected=\{isDirectMergeTarget\}/);
+    expect(PAGE_SRC).toMatch(/aria-current=\{isDirectMergeTarget \? 'true' : undefined\}/);
+    expect(PAGE_SRC).toMatch(/Selected review/);
+  });
+
+  it('keeps a direct merge request target visible when it is outside the default preview window', () => {
+    expect(PAGE_SRC).toMatch(/function visibleIntakePreviewItems/);
+    expect(PAGE_SRC).toMatch(/selectedMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/firstItems\.some\(isSelectedMergeRequest\)/);
+    expect(PAGE_SRC).toMatch(/\[selectedItem, \.\.\.firstItems\.slice\(0, 5\)\]/);
+  });
+
   it('chooses review-next from a wider actionable window and orders ready merges oldest first', () => {
     expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue\(\{ limit: 20 \}\)/);
     expect(PAGE_SRC).toMatch(/function reviewableMergeTime/);
     expect(PAGE_SRC).toMatch(/function pickReviewNextMergeRequestId/);
     expect(PAGE_SRC).toMatch(/sort\(\(a, b\) => reviewableMergeTime\(a\) - reviewableMergeTime\(b\)\)/);
-    expect(PAGE_SRC).toMatch(/intakeItems\.slice\(0, 6\)\.map/);
+    expect(PAGE_SRC).toMatch(/visibleIntakePreviewItems\(intakeItems, directMergeRequestId\)\.map/);
   });
 
   it('honors Swan Coach audio-piece links by focusing the merge panel from ?pieces=pending', () => {
