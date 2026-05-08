@@ -9,30 +9,32 @@ import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 
 describe('CoachIntakeHealthStrip', () => {
+  const baseHealth = {
+    schemaReady: true,
+    status: 'degraded' as const,
+    counts: {
+      total: 4,
+      actionable: 3,
+      today: 1,
+      unprocessed: 1,
+      processing: 1,
+      readyReview: 1,
+      failed: 1,
+      needsClient: 2,
+      stuckProcessing: 1,
+    },
+    nextOperatorAction: {
+      key: 'inspect_stuck_processing',
+      label: 'Inspect stuck processing intake',
+    },
+  };
+
   it('shows queue, retention, and cleanup-plan command prompts without artifact details', () => {
     const onCommandPrompt = vi.fn();
 
     render(
       <CoachIntakeHealthStrip
-        health={{
-          schemaReady: true,
-          status: 'degraded',
-          counts: {
-            total: 4,
-            actionable: 3,
-            today: 1,
-            unprocessed: 1,
-            processing: 1,
-            readyReview: 1,
-            failed: 1,
-            needsClient: 2,
-            stuckProcessing: 1,
-          },
-          nextOperatorAction: {
-            key: 'inspect_stuck_processing',
-            label: 'Inspect stuck processing intake',
-          },
-        }}
+        health={baseHealth}
         retention={{
           schemaReady: true,
           status: 'attention',
@@ -77,5 +79,24 @@ describe('CoachIntakeHealthStrip', () => {
     expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake retention');
     fireEvent.click(within(health).getByRole('button', { name: /ask coach: show retention cleanup plan/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake cleanup plan');
+  });
+
+  it('lets operator drill into worklist scopes from health counts', () => {
+    const onScopeChange = vi.fn();
+
+    render(
+      <CoachIntakeHealthStrip
+        health={baseHealth}
+        onScopeChange={onScopeChange}
+      />,
+    );
+
+    const health = screen.getByLabelText(/Coach intake health/i);
+    fireEvent.click(within(health).getByRole('button', { name: /show failed intake items/i }));
+    expect(onScopeChange).toHaveBeenCalledWith('failed');
+    fireEvent.click(within(health).getByRole('button', { name: /show client-resolution holds/i }));
+    expect(onScopeChange).toHaveBeenCalledWith('needs_client');
+    fireEvent.click(within(health).getByRole('button', { name: /show processing intake items/i }));
+    expect(onScopeChange).toHaveBeenCalledWith('processing');
   });
 });

@@ -4,7 +4,12 @@
  * PII-safe operator health snapshot for Swan Coach intake.
  */
 import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
-import type { CoachIntakeHealth, CoachIntakeRetention, CoachIntakeRetentionPurgePlan as RetentionPurgePlan } from '../../../../services/coachIntakeService';
+import type {
+  CoachIntakeHealth,
+  CoachIntakeQueueScope,
+  CoachIntakeRetention,
+  CoachIntakeRetentionPurgePlan as RetentionPurgePlan,
+} from '../../../../services/coachIntakeService';
 import { CoachIntakeRetentionCandidates } from './CoachIntakeRetentionCandidates';
 import { CoachIntakeRetentionPurgePlan } from './CoachIntakeRetentionPurgePlan';
 import {
@@ -12,6 +17,7 @@ import {
   HealthBlock,
   HealthLabel,
   HealthPill,
+  HealthScopeButton,
   HealthStatRow,
   HealthStrip,
   HealthValue,
@@ -22,6 +28,7 @@ interface CoachIntakeHealthStripProps {
   retention?: CoachIntakeRetention | null;
   retentionPurgePlan?: RetentionPurgePlan | null;
   onCommandPrompt?: (message: string) => void;
+  onScopeChange?: (scope: CoachIntakeQueueScope) => void;
 }
 
 function statusLabel(status: CoachIntakeHealth['status']): string {
@@ -34,7 +41,39 @@ function promptForActionKey(key: string): string {
   return 'show Coach intake health';
 }
 
-export function CoachIntakeHealthStrip({ health, retention, retentionPurgePlan, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
+function scopeControl({
+  label,
+  ariaLabel,
+  scope,
+  tone,
+  onScopeChange,
+}: {
+  label: string;
+  ariaLabel: string;
+  scope: CoachIntakeQueueScope;
+  tone?: 'cyan' | 'gold' | 'red';
+  onScopeChange?: (scope: CoachIntakeQueueScope) => void;
+}): JSX.Element {
+  if (!onScopeChange) return <HealthPill $tone={tone}>{label}</HealthPill>;
+  return (
+    <HealthScopeButton
+      type="button"
+      $tone={tone}
+      aria-label={ariaLabel}
+      onClick={() => onScopeChange(scope)}
+    >
+      {label}
+    </HealthScopeButton>
+  );
+}
+
+export function CoachIntakeHealthStrip({
+  health,
+  retention,
+  retentionPurgePlan,
+  onCommandPrompt,
+  onScopeChange,
+}: CoachIntakeHealthStripProps): JSX.Element | null {
   if (!health) return null;
 
   const counts = health.counts;
@@ -77,11 +116,11 @@ export function CoachIntakeHealthStrip({ health, retention, retentionPurgePlan, 
       <HealthBlock>
         <HealthLabel><Activity size={14} aria-hidden="true" /> Workload</HealthLabel>
         <HealthStatRow>
-          <HealthPill>{counts.actionable} active</HealthPill>
-          <HealthPill>{counts.readyReview} ready</HealthPill>
-          <HealthPill $tone="gold">{counts.needsClient} need client</HealthPill>
-          <HealthPill $tone={counts.failed > 0 ? 'red' : 'cyan'}>{counts.failed} failed</HealthPill>
-          <HealthPill $tone={counts.stuckProcessing > 0 ? 'red' : 'cyan'}>{counts.stuckProcessing} stuck</HealthPill>
+          {scopeControl({ label: `${counts.actionable} active`, ariaLabel: 'Show actionable intake items', scope: 'actionable', onScopeChange })}
+          {scopeControl({ label: `${counts.readyReview} ready`, ariaLabel: 'Show ready intake drafts', scope: 'ready_review', onScopeChange })}
+          {scopeControl({ label: `${counts.needsClient} need client`, ariaLabel: 'Show client-resolution holds', scope: 'needs_client', tone: 'gold', onScopeChange })}
+          {scopeControl({ label: `${counts.failed} failed`, ariaLabel: 'Show failed intake items', scope: 'failed', tone: counts.failed > 0 ? 'red' : 'cyan', onScopeChange })}
+          {scopeControl({ label: `${counts.stuckProcessing} stuck`, ariaLabel: 'Show processing intake items', scope: 'processing', tone: counts.stuckProcessing > 0 ? 'red' : 'cyan', onScopeChange })}
         </HealthStatRow>
       </HealthBlock>
       <HealthBlock>

@@ -88,6 +88,36 @@ export const HealthPill = styled.span<{ $tone?: 'cyan' | 'gold' | 'red' }>`
   white-space: nowrap;
 `;
 
+export const HealthScopeButton = styled.button<{ $tone?: 'cyan' | 'gold' | 'red' }>`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid ${({ $tone }) => {
+    if ($tone === 'red') return 'color-mix(in srgb, var(--danger, #f87171) 32%, transparent)';
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent)';
+  }};
+  background: color-mix(in srgb, var(--bg-base, #030712) 32%, transparent);
+  color: ${({ $tone }) => {
+    if ($tone === 'red') return 'var(--danger-soft, #fca5a5)';
+    if ($tone === 'gold') return 'var(--accent-gold, #C6A84B)';
+    return 'var(--accent-primary, #60C0F0)';
+  }};
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    border-color: currentColor;
+    box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 16%, transparent);
+  }
+`;
+
 export const HealthActionButton = styled.button`
   min-height: 44px;
   display: inline-flex;
