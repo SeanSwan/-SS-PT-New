@@ -55,4 +55,18 @@ describe('coachIntakeGateSummary', () => {
       label: 'Prepare draft review',
     });
   });
+
+  it('keeps draft preparation behind unresolved client confirmation', () => {
+    const item = {
+      kind: 'coach_intake',
+      queueStatus: 'ready_review',
+      needsClient: true,
+    };
+
+    expect(coachIntakeBlockingGate(item)).toBe('Client confirmation required');
+    expect(coachIntakeNextAction(item)).toMatchObject({
+      key: 'resolve_client',
+      label: 'Ask Coach to resolve client',
+    });
+  });
 });

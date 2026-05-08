@@ -28,6 +28,9 @@ type CoachIntakeAudioFields = {
     title: string | null;
     createdAt: string | null;
   } | null;
+  nextBlockingGate?: string | null;
+  nextActionKey?: string | null;
+  nextActionLabel?: string | null;
 };
 
 export type CoachIntakeItem = (PlaudIntakeItem & CoachIntakeAudioFields) | (Omit<PlaudIntakeItem, 'kind' | 'source'> & CoachIntakeAudioFields & {

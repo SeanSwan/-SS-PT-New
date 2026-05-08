@@ -113,6 +113,7 @@ function hasReviewablePreparedDraft(item: CoachIntakeItem): boolean {
 }
 
 function blockingGate(item: CoachIntakeItem): string {
+  if (item.nextBlockingGate) return item.nextBlockingGate;
   if (item.queueStatus === 'failed') return 'Intake failed';
   if (item.queueStatus === 'processing') return 'Processing is still running';
   if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
@@ -122,7 +123,22 @@ function blockingGate(item: CoachIntakeItem): string {
   return 'No blocking gate';
 }
 
+function actionIdForActionKey(actionKey?: string | null): string | null {
+  if (actionKey === 'confirm_audio_order') return 'confirm-audio';
+  if (actionKey === 'resolve_client') return 'ask-coach';
+  if (actionKey === 'review_prepared_draft') return 'review-draft';
+  if (actionKey === 'prepare_draft_review') return 'prepare-draft';
+  if (actionKey === 'review_failed_intake') return 'ask-coach';
+  if (actionKey === 'wait_for_processing') return 'open-target';
+  if (actionKey === 'inspect_audio') return 'inspect-audio';
+  return null;
+}
+
 function nextAction(item: CoachIntakeItem): DossierAction {
+  if (item.nextActionLabel) {
+    const actionId = actionIdForActionKey(item.nextActionKey) || 'ask-coach';
+    return { label: item.nextActionLabel, actionId };
+  }
   if (item.queueStatus === 'failed') return { label: 'Review failed intake', actionId: 'ask-coach' };
   if (item.queueStatus === 'processing') return { label: 'Wait for processing', actionId: 'open-target' };
   if (needsAudioOrderConfirmation(item)) return { label: 'Confirm audio order', actionId: 'confirm-audio' };

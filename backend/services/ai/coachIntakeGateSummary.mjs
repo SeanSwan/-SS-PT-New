@@ -23,6 +23,7 @@ function needsAudioOrderConfirmation(item) {
 function canPrepareDraftReview(item) {
   if (item?.kind !== 'coach_intake') return false;
   if (needsAudioOrderConfirmation(item)) return false;
+  if (item?.needsClient) return false;
   return !['archived', 'failed', 'processing'].includes(item?.queueStatus);
 }
 

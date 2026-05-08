@@ -227,6 +227,34 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
   });
 
+  it('prefers backend gate metadata when the queue item provides it', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      needsClient: true,
+      nextBlockingGate: 'Backend canonical gate',
+      nextActionKey: 'resolve_client',
+      nextActionLabel: 'Backend canonical action',
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Backend canonical gate')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Backend canonical action')).toBeInTheDocument();
+  });
+
   it('focuses the matching Coach action from the active status ribbon', async () => {
     const queue = makeQueue();
     queue.items[0] = {

@@ -5,6 +5,7 @@
  */
 import { audioPuzzleSummaryForQueue } from './coachAudioPuzzleService.mjs';
 import { COACH_ARCHIVED_STATUSES } from './coachIntakeConstants.mjs';
+import { coachIntakeGateSummary } from './ai/coachIntakeGateSummary.mjs';
 
 export function isCoachIntakeSameLocalDay(value, now = new Date()) {
   if (!value) return false;
@@ -80,7 +81,7 @@ export function mapCoachRowToIntakeItem(row) {
   const audioPuzzle = audioPuzzleSummaryForQueue({ sourceType: row.source_type, metadata });
   const latestProposal = mapLatestProposal(row, metadata);
 
-  return {
+  const item = {
     id: `coach:${row.id}`,
     entityId: row.id,
     kind: 'coach_intake',
@@ -110,6 +111,10 @@ export function mapCoachRowToIntakeItem(row) {
     },
     audioPuzzle,
     ...latestProposal,
+  };
+  return {
+    ...item,
+    ...coachIntakeGateSummary(item),
   };
 }
 
