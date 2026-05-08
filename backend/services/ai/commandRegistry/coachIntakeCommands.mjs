@@ -77,6 +77,27 @@ const commands = [
     relatedCommands: ['view_coach_intake_retention', 'view_coach_intake_health'],
   },
   {
+    type: 'view_coach_intake_prepared_draft',
+    description: 'Show the active Coach intake prepared draft summary and review path',
+    naturalLanguagePatterns: [
+      'show Coach prepared draft',
+      'show prepared draft for Coach intake {intakeId}',
+      'what prepared draft is waiting',
+      'show hive mind prepared draft',
+    ],
+    method: 'GET',
+    endpoint: '/api/coach/intake/queue?scope=all',
+    inputSchema: z.object({
+      intakeId: z.string().trim().min(1).max(128).optional(),
+    }),
+    destructive: false,
+    requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false,
+    category: 'N',
+    relatedCommands: ['review_next_coach_intake', 'view_coach_intake_queue'],
+  },
+  {
     type: 'view_coach_intake_queue',
     description: 'Show the unified Swan Coach intake queue counts and next work item',
     naturalLanguagePatterns: [

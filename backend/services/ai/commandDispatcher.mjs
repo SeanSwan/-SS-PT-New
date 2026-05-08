@@ -85,6 +85,7 @@ import {
   dispatchViewCoachIntakeRetention,
   dispatchViewCoachIntakeRetentionPurgePlan,
 } from './dispatchers/coachIntakeRetentionDispatcher.mjs';
+import { dispatchViewCoachIntakePreparedDraft } from './dispatchers/coachIntakeProposalDispatcher.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -194,6 +195,7 @@ const DISPATCHERS = new Map([
   ['view_coach_intake_health',      dispatchViewCoachIntakeHealth],
   ['view_coach_intake_retention',   dispatchViewCoachIntakeRetention],
   ['view_coach_intake_retention_purge_plan', dispatchViewCoachIntakeRetentionPurgePlan],
+  ['view_coach_intake_prepared_draft', dispatchViewCoachIntakePreparedDraft],
   ['view_coach_intake_queue',       dispatchViewCoachIntakeQueue],
   ['review_next_coach_intake',      dispatchReviewNextCoachIntake],
   ['inspect_coach_audio_pieces',    dispatchInspectCoachAudioPieces],
