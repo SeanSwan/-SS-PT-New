@@ -142,9 +142,10 @@ describe('Slice 3.11 — PlaudClipMergePanel source contract', () => {
     expect(PANEL_SRC).toMatch(/submitMerge/);
   });
 
-  it('Merge button disabled until 2-5 selected AND client resolved', () => {
+  it('Merge button disabled until 1-5 selected AND client resolved', () => {
     expect(PANEL_SRC).toMatch(/queue\.canMerge/);
     expect(PANEL_SRC).toMatch(/resolvedClient/);
+    expect(PANEL_SRC).toMatch(/Select 1-5 clips/);
   });
 
   it('uses PlaudClientResolver instead of raw numeric Client ID input', () => {

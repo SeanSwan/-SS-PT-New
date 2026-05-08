@@ -67,11 +67,11 @@ describe('plaudMergeService — exports', () => {
     expect(typeof plaudMergeService.discardMergeRequest).toBe('function');
   });
 
-  it('submitMerge enforces 2-5 clip cardinality client-side', async () => {
+  it('submitMerge enforces 1-5 clip cardinality client-side', async () => {
     await expect(plaudMergeService.submitMerge({ clipIds: [], clientId: 1 })).rejects.toMatchObject({ code: 'TOO_FEW_CLIPS' });
-    await expect(plaudMergeService.submitMerge({ clipIds: ['a'], clientId: 1 })).rejects.toMatchObject({ code: 'TOO_FEW_CLIPS' });
     const six = Array.from({ length: 6 }, () => '00000000-0000-0000-0000-000000000000');
     await expect(plaudMergeService.submitMerge({ clipIds: six, clientId: 1 })).rejects.toMatchObject({ code: 'TOO_MANY_FILES' });
+    expect(MERGE_SRC).toMatch(/args\.clipIds\.length\s*<\s*1/);
   });
 
   it('submitMerge enforces clientId integer >0 client-side', async () => {

@@ -54,19 +54,32 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     expect(PAGE_SOURCE).toMatch(/isTranscriptClassMime/);
   });
 
-  it('handleSend gates transcript-class uploads on a selected client', () => {
-    // The guard must check selectedClient.id inside the transcript-class
-    // branch. We verify the presence of both anchors; strict proximity is
-    // not tested because Phase 9.1 reordered the branch body.
+  it('handleSend keeps selected-client guard for direct transcript review', () => {
+    // Direct /workout-logs/upload still needs a selected client. Single
+    // unresolved audio now routes to PLAUD intake first, so this lock only
+    // applies to the direct review branch.
     expect(PAGE_SOURCE).toMatch(/hasTranscriptClassFile\(files\)/);
     expect(PAGE_SOURCE).toMatch(/!selectedClient\?\.id/);
-    // And they must appear in source order (guard before the selected-
-    // client check), so a future refactor that moves the check above the
-    // branch still fails loudly.
     const guardIdx = PAGE_SOURCE.indexOf('hasTranscriptClassFile(files)');
     const checkIdx = PAGE_SOURCE.indexOf('!selectedClient?.id');
+    const uploadCallIdx = PAGE_SOURCE.indexOf(
+      'const upload = await intake.uploadTranscript(',
+      checkIdx,
+    );
     expect(guardIdx).toBeGreaterThan(0);
     expect(checkIdx).toBeGreaterThan(guardIdx);
+    expect(uploadCallIdx).toBeGreaterThan(checkIdx);
+  });
+
+  it('routes single unresolved audio into PLAUD intake instead of requiring client first', () => {
+    const singleAudioIdx = PAGE_SOURCE.indexOf('const isSingleUnresolvedAudio');
+    expect(singleAudioIdx).toBeGreaterThan(0);
+    const noClientGuardIdx = PAGE_SOURCE.indexOf('!selectedClient?.id', singleAudioIdx);
+    expect(noClientGuardIdx).toBeGreaterThan(singleAudioIdx);
+    const slice = PAGE_SOURCE.slice(singleAudioIdx, noClientGuardIdx);
+    expect(slice).toMatch(/hasOnlyAudioTranscriptFiles\(files\)/);
+    expect(slice).toMatch(/routeAudioFilesToPlaudIntake\(files,\s*transcriptFile\.name\)/);
+    expect(slice).not.toMatch(/appendTranscriptError\(\{\s*kind:\s*['"]no_client['"]/);
   });
 
   it('handleSend calls intake.uploadTranscript for transcript-class files', () => {
@@ -454,13 +467,13 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
 
 describe('Coach audio intake — single clip pass-through', () => {
   it('routes exactly one audio attachment through direct transcript review', () => {
-    const audioBranchIdx = PAGE_SOURCE.indexOf('hasOnlyAudioTranscriptFiles(files)');
-    expect(audioBranchIdx).toBeGreaterThan(0);
+    const helperIdx = PAGE_SOURCE.indexOf('const routeAudioFilesToPlaudIntake');
+    expect(helperIdx).toBeGreaterThan(0);
     expect(PAGE_SOURCE).toMatch(/hasOnlyAudioTranscriptFiles\(files\)\s*&&\s*files\.length\s*>\s*1/);
-    const multiUploadIdx = PAGE_SOURCE.indexOf('const upload = await uploadClips(', audioBranchIdx);
-    expect(multiUploadIdx).toBeGreaterThan(audioBranchIdx);
-    const directUploadIdx = PAGE_SOURCE.indexOf('const upload = await intake.uploadTranscript(', multiUploadIdx);
-    expect(directUploadIdx).toBeGreaterThan(multiUploadIdx);
+    const multiBranchIdx = PAGE_SOURCE.indexOf('files.length > 1', helperIdx);
+    expect(multiBranchIdx).toBeGreaterThan(helperIdx);
+    const directUploadIdx = PAGE_SOURCE.indexOf('const upload = await intake.uploadTranscript(', multiBranchIdx);
+    expect(directUploadIdx).toBeGreaterThan(multiBranchIdx);
     const directUploadSlice = PAGE_SOURCE.slice(directUploadIdx, directUploadIdx + 1800);
     expect(directUploadSlice).toMatch(/transcriptFile\.file/);
     expect(directUploadSlice).toMatch(/coach\.appendTranscriptReview\(upload\.review\)/);
@@ -468,13 +481,16 @@ describe('Coach audio intake — single clip pass-through', () => {
   });
 
   it('keeps two or more audio attachments on the PLAUD clip upload path', () => {
-    const audioBranchIdx = PAGE_SOURCE.indexOf('hasOnlyAudioTranscriptFiles(files)');
-    expect(audioBranchIdx).toBeGreaterThan(0);
-    const multiUploadIdx = PAGE_SOURCE.indexOf('const upload = await uploadClips(', audioBranchIdx);
-    expect(multiUploadIdx).toBeGreaterThan(audioBranchIdx);
-    const slice = PAGE_SOURCE.slice(multiUploadIdx, multiUploadIdx + 700);
-    expect(slice).toMatch(/uploadClips\(files\.map\(\(f\)\s*=>\s*f\.file\)\)/);
-    expect(slice).toMatch(/inspect pending PLAUD audio pieces/);
+    const helperIdx = PAGE_SOURCE.indexOf('const routeAudioFilesToPlaudIntake');
+    expect(helperIdx).toBeGreaterThan(0);
+    const helperSlice = PAGE_SOURCE.slice(helperIdx, helperIdx + 1800);
+    expect(helperSlice).toMatch(/uploadClips\(audioFiles\.map\(\(f\)\s*=>\s*f\.file\)\)/);
+    expect(helperSlice).toMatch(/inspect pending PLAUD audio pieces/);
+    const multiBranchIdx = PAGE_SOURCE.indexOf('files.length > 1', helperIdx);
+    const countGuardIdx = PAGE_SOURCE.indexOf('countTranscriptClassFiles(files)', multiBranchIdx);
+    expect(countGuardIdx).toBeGreaterThan(multiBranchIdx);
+    const branchSlice = PAGE_SOURCE.slice(multiBranchIdx, countGuardIdx);
+    expect(branchSlice).toMatch(/routeAudioFilesToPlaudIntake\(files,\s*`\$\{files\.length\} audio pieces`\)/);
   });
 });
 

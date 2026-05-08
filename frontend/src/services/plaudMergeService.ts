@@ -128,8 +128,8 @@ export async function submitMerge(args: {
   date?: string;
   orderMode?: 'provided' | 'uploaded_at_asc';
 }): Promise<MergeResponse> {
-  if (!Array.isArray(args.clipIds) || args.clipIds.length < 2) {
-    throw new PlaudApiError('TOO_FEW_CLIPS', 'merge requires at least 2 clipIds', 400);
+  if (!Array.isArray(args.clipIds) || args.clipIds.length < 1) {
+    throw new PlaudApiError('TOO_FEW_CLIPS', 'merge requires at least 1 clipId', 400);
   }
   if (args.clipIds.length > 5) {
     throw new PlaudApiError('TOO_MANY_FILES', 'merge accepts at most 5 clipIds', 400);

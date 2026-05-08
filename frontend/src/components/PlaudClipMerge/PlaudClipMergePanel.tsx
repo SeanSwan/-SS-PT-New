@@ -12,7 +12,7 @@
  *   review      — TranscriptReviewCard rendered with parsed workout
  *   error       — banner + retry
  *
- * Sticky-footer "Merge selected (N) for {clientName}" on mobile
+ * Sticky-footer "Process selected (N) for {clientName}" on mobile
  * (CLAUDE.md Rule 22 premium UX, Rule 24 responsive).
  */
 import { useCallback, useState } from 'react';
@@ -88,8 +88,8 @@ export function PlaudClipMergePanel({
   return (
     <PanelWrap data-testid="plaud-merge-panel" tabIndex={-1} aria-label="PLAUD audio merge panel">
       <SectionHeader>
-        <Title>PLAUD merge</Title>
-        <Sub>Upload session clips, pick the ones for this client, click merge.</Sub>
+        <Title>PLAUD review intake</Title>
+        <Sub>Upload one complete workout or multiple session clips, pick the client, then process.</Sub>
       </SectionHeader>
 
       <PlaudClipUploader
@@ -152,19 +152,19 @@ export function PlaudClipMergePanel({
       <ActionBar>
         <SelectedCount aria-live="polite">
           {queue.selectedCount === 0
-            ? 'Select 2-5 clips to merge.'
+            ? 'Select 1-5 clips to process.'
             : queue.canMerge
-              ? `${queue.selectedCount} selected — ready to merge.`
-              : `${queue.selectedCount} selected (need 2-5).`}
+              ? `${queue.selectedCount} selected — ready to process.`
+              : `${queue.selectedCount} selected (need 1-5).`}
         </SelectedCount>
         <MergeButton
           type="button"
           onClick={onMergeClick}
           disabled={isDisabled || !queue.canMerge || !resolvedClient}
-          aria-label={`Merge ${queue.selectedCount} selected clips`}
+          aria-label={`Process ${queue.selectedCount} selected clips`}
           $cyan
         >
-          {isMerging ? 'Merging…' : `Merge selected (${queue.selectedCount})`}
+          {isMerging ? 'Processing…' : `Process selected (${queue.selectedCount})`}
           {!isMerging ? <ArrowRight size={18} aria-hidden="true" /> : null}
         </MergeButton>
       </ActionBar>

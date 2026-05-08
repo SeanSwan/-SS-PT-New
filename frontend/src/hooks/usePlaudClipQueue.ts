@@ -20,7 +20,7 @@
  *   removeClip(clipId)            - soft-delete + refresh
  *   toggleSelect(clipId)
  *   selectAll() / clearSelection()
- *   selectedCount, canMerge       - 2-5 selected
+ *   selectedCount, canMerge       - 1-5 selected
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -159,7 +159,7 @@ export function usePlaudClipQueue(): PlaudClipQueueState {
   }, []);
 
   const selectedCount = selectedIds.size;
-  const canMerge = selectedCount >= 2 && selectedCount <= 5;
+  const canMerge = selectedCount >= 1 && selectedCount <= 5;
   const timeline = useMemo(() => buildClipTimeline(clips, selectedIds), [clips, selectedIds]);
 
   return {

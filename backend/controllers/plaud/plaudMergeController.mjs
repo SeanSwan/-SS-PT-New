@@ -6,7 +6,7 @@
  * Phase 3 Slice 3.7 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md §5.4.
  *
  * Pipeline (with Codex Round 2-4 fixes integrated):
- *   1. Validate body (clipIds 2-5, clientId required)
+ *   1. Validate body (clipIds 1-5, clientId required)
  *   2. Trainer-client assignment authz check (Round 1 gap #10)
  *   3. Validate clipIds (owned, status='pending_merge', not expired) BEFORE lock acquire
  *   4. Atomic lock acquire with expired-takeover (Round 2 HIGH #2)
@@ -134,9 +134,11 @@ export async function mergeHandler(req, res) {
 
   const { clipIds, clientId, date, orderMode } = req.body || {};
 
-  // Validate clipIds 2-5 (Codex Round 2 MEDIUM #2)
-  if (!Array.isArray(clipIds) || clipIds.length < 2) {
-    return jsonError(res, 400, 'TOO_FEW_CLIPS', 'merge requires at least 2 clipIds (single clips use /workout-logs/upload)');
+  // Validate clipIds 1-5. A one-clip request is the single-workout
+  // passthrough path for clips that entered PLAUD intake before client
+  // resolution.
+  if (!Array.isArray(clipIds) || clipIds.length < 1) {
+    return jsonError(res, 400, 'TOO_FEW_CLIPS', 'merge requires at least 1 clipId');
   }
   if (clipIds.length > 5) {
     return jsonError(res, 400, 'TOO_MANY_FILES', 'merge accepts at most 5 clipIds');

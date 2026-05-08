@@ -679,9 +679,10 @@ const SwanCoachAssistantPage: React.FC = () => {
 
   // ── Wrap send to route by attachment type ──
   // Transcript-class attachments take a different path than chat:
-  //   1. Require a selected client (block with clear error if missing)
-  //   2. Send one audio/text/PDF transcript directly to review; send multi-
-  //      audio batches to PLAUD intake for merge/order review.
+  //   1. Send audio without a selected client to PLAUD intake first.
+  //   2. Send one audio/text/PDF transcript directly to review when a
+  //      client is selected; send multi-audio batches to PLAUD intake for
+  //      merge/order review.
   //   3. Upload via /api/workout-logs/upload
   //   4. Inject a review card into the conversation
   //   5. Clear attachments
@@ -695,11 +696,10 @@ const SwanCoachAssistantPage: React.FC = () => {
       // Only intercept if at least one attached file is transcript-class.
       // Other attachments + plain text continue to use the existing flow.
       if (files.length > 0 && hasTranscriptClassFile(files)) {
-        if (hasOnlyAudioTranscriptFiles(files) && files.length > 1) {
-          const audioLabel = `${files.length} audio pieces`;
+        const routeAudioFilesToPlaudIntake = async (audioFiles: typeof files, audioLabel: string) => {
           setTranscriptProcessing({ stage: 'uploading', fileName: audioLabel });
           try {
-            const upload = await uploadClips(files.map((f) => f.file));
+            const upload = await uploadClips(audioFiles.map((f) => f.file));
             setTranscriptProcessing(null);
             if (upload.clips.length > 0) {
               attachments.clearFiles();
@@ -714,13 +714,12 @@ const SwanCoachAssistantPage: React.FC = () => {
             const { userMsgId, errorMsgId } = coach.appendTranscriptError({
               kind: 'upload_failed',
               fileName: audioLabel,
-              fileSize: files.reduce((sum, f) => sum + f.size, 0),
+              fileSize: audioFiles.reduce((sum, f) => sum + f.size, 0),
               reason,
             });
             if (errorMsgId) {
               transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
             }
-            return;
           } catch (err) {
             setTranscriptProcessing(null);
             const reason = err instanceof Error
@@ -729,14 +728,18 @@ const SwanCoachAssistantPage: React.FC = () => {
             const { userMsgId, errorMsgId } = coach.appendTranscriptError({
               kind: 'upload_failed',
               fileName: audioLabel,
-              fileSize: files.reduce((sum, f) => sum + f.size, 0),
+              fileSize: audioFiles.reduce((sum, f) => sum + f.size, 0),
               reason,
             });
             if (errorMsgId) {
               transcriptReviewsRef.current.set(errorMsgId, { userMsgId, review: null });
             }
-            return;
           }
+        };
+
+        if (hasOnlyAudioTranscriptFiles(files) && files.length > 1) {
+          await routeAudioFilesToPlaudIntake(files, `${files.length} audio pieces`);
+          return;
         }
 
         // Defense-in-depth: useFileAttachment already enforces single-
@@ -750,6 +753,15 @@ const SwanCoachAssistantPage: React.FC = () => {
         }
 
         const transcriptFile = files.find((f) => isTranscriptClassMime(f.type))!;
+        const hasSelectedClient = Boolean(selectedClient?.id);
+        const isSingleUnresolvedAudio = hasOnlyAudioTranscriptFiles(files)
+          && files.length === 1
+          && !hasSelectedClient;
+
+        if (isSingleUnresolvedAudio) {
+          await routeAudioFilesToPlaudIntake(files, transcriptFile.name);
+          return;
+        }
 
         // Selected client is mandatory for transcript intake.
         // Phase 9.1 hotfix: use the dedicated transcriptError card instead

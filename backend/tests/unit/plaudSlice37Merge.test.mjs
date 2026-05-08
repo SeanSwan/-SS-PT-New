@@ -133,8 +133,8 @@ describe('Slice 3.7 — fitnessTranscriptionVocabService', () => {
 });
 
 describe('Slice 3.7 — plaudMergeController source contract', () => {
-  it('clipIds cardinality 2-5 enforced (Codex Round 2 MEDIUM #2)', () => {
-    expect(MERGE_CTRL_SRC).toMatch(/clipIds\.length\s*<\s*2/);
+  it('clipIds cardinality 1-5 enforced for single-workout passthrough', () => {
+    expect(MERGE_CTRL_SRC).toMatch(/clipIds\.length\s*<\s*1/);
     expect(MERGE_CTRL_SRC).toMatch(/TOO_FEW_CLIPS/);
     expect(MERGE_CTRL_SRC).toMatch(/clipIds\.length\s*>\s*5/);
   });
