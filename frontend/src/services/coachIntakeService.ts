@@ -72,10 +72,24 @@ export interface CoachIntakeRetention {
     reviewRequired: number;
     retained: number;
   };
+  items?: CoachIntakeRetentionItem[];
   nextOperatorAction: {
     key: string;
     label: string;
   };
+}
+
+export interface CoachIntakeRetentionItem {
+  id?: string;
+  status?: string;
+  sourceType?: string;
+  hasRawArtifact?: boolean;
+  classification?: 'purge_ready' | 'review_required' | 'retained' | string;
+  reason?: string;
+  recordedAt?: string | null;
+  uploadedAt?: string | null;
+  updatedAt?: string | null;
+  archivedAt?: string | null;
 }
 
 export interface CreateCoachTextIntakeResponse {

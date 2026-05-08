@@ -5,6 +5,7 @@
  */
 import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
 import type { CoachIntakeHealth, CoachIntakeRetention } from '../../../../services/coachIntakeService';
+import { CoachIntakeRetentionCandidates } from './CoachIntakeRetentionCandidates';
 import {
   HealthActionButton,
   HealthBlock,
@@ -57,6 +58,7 @@ export function CoachIntakeHealthStrip({ health, retention, onCommandPrompt }: C
               {retention.summary.reviewRequired} review
             </HealthPill>
           </HealthStatRow>
+          <CoachIntakeRetentionCandidates retention={retention} />
           {onCommandPrompt && (
             <HealthActionButton
               type="button"
