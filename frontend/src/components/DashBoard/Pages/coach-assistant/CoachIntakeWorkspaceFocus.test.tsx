@@ -128,6 +128,105 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(ribbon).getByText('Confirm audio order')).toBeInTheDocument();
   });
 
+  it('does not route failed intake with stale proposal metadata to draft review', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      queueStatus: 'failed',
+      canReview: false,
+      latestProposalId: 'proposal-stale',
+      latestProposal: {
+        id: 'proposal-stale',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Stale draft metadata',
+        createdAt: '2026-05-07T12:00:00.000Z',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Intake failed')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Review failed intake')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /review prepared draft/i })).toBeNull();
+  });
+
+  it('shows terminal proposals as write history instead of active draft review actions', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      latestProposalId: 'proposal-applied',
+      latestProposal: {
+        id: 'proposal-applied',
+        type: 'workout_log',
+        status: 'APPLIED',
+        title: 'Applied draft metadata',
+        createdAt: '2026-05-07T12:00:00.000Z',
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Final write requires a prepared draft')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Prepare draft review')).toBeInTheDocument();
+    expect(within(target).getByText('Draft applied')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /review prepared draft/i })).toBeNull();
+  });
+
+  it('does not expose draft preparation before client confirmation clears', async () => {
+    const queue = makeQueue();
+    queue.items[0] = {
+      ...queue.items[0],
+      needsClient: true,
+      audioPuzzle: {
+        groupingConfidence: 'single',
+        needsOrderingReview: false,
+      },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = await screen.findByLabelText(/Active review target/i);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
+  });
+
   it('focuses the matching Coach action from the active status ribbon', async () => {
     const queue = makeQueue();
     queue.items[0] = {

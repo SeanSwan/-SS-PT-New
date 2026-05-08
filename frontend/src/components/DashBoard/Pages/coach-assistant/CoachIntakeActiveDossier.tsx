@@ -53,6 +53,9 @@ interface DossierAction {
   actionId: string;
 }
 
+const TERMINAL_PROPOSAL_STATUSES = new Set(['APPLIED', 'REJECTED', 'FAILED']);
+const BLOCKED_QUEUE_STATUSES = new Set(['archived', 'failed', 'processing']);
+
 function plural(value: number, noun: string): string {
   return `${value} ${noun}${value === 1 ? '' : 's'}`;
 }
@@ -97,22 +100,34 @@ function needsAudioOrderConfirmation(item: CoachIntakeItem): boolean {
 function canPrepareDraftReview(item: CoachIntakeItem): boolean {
   if (item.kind !== 'coach_intake') return false;
   if (needsAudioOrderConfirmation(item)) return false;
-  return !['archived', 'failed', 'processing'].includes(item.queueStatus);
+  if (item.needsClient) return false;
+  if (hasReviewablePreparedDraft(item)) return false;
+  return !BLOCKED_QUEUE_STATUSES.has(item.queueStatus);
+}
+
+function hasReviewablePreparedDraft(item: CoachIntakeItem): boolean {
+  if (!item.latestProposalId && !item.latestProposal?.id) return false;
+  if (BLOCKED_QUEUE_STATUSES.has(item.queueStatus)) return false;
+  const status = String(item.latestProposal?.status || '').trim().toUpperCase();
+  return !TERMINAL_PROPOSAL_STATUSES.has(status);
 }
 
 function blockingGate(item: CoachIntakeItem): string {
+  if (item.queueStatus === 'failed') return 'Intake failed';
+  if (item.queueStatus === 'processing') return 'Processing is still running';
   if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
   if (item.needsClient) return 'Client confirmation required';
-  if (item.latestProposalId) return 'Draft waiting for review';
+  if (hasReviewablePreparedDraft(item)) return 'Draft waiting for review';
   if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
-  if (item.queueStatus === 'failed') return 'Intake failed';
   return 'No blocking gate';
 }
 
 function nextAction(item: CoachIntakeItem): DossierAction {
+  if (item.queueStatus === 'failed') return { label: 'Review failed intake', actionId: 'ask-coach' };
+  if (item.queueStatus === 'processing') return { label: 'Wait for processing', actionId: 'open-target' };
   if (needsAudioOrderConfirmation(item)) return { label: 'Confirm audio order', actionId: 'confirm-audio' };
   if (item.needsClient) return { label: 'Ask Coach to resolve client', actionId: 'ask-coach' };
-  if (item.latestProposalId) return { label: 'Review prepared draft', actionId: 'review-draft' };
+  if (hasReviewablePreparedDraft(item)) return { label: 'Review prepared draft', actionId: 'review-draft' };
   if (canPrepareDraftReview(item)) return { label: 'Prepare draft review', actionId: 'prepare-draft' };
   if (audioPieceCount(item) > 0) return { label: 'Inspect intake audio', actionId: 'inspect-audio' };
   return { label: 'Ask Coach about this intake', actionId: 'ask-coach' };
@@ -148,7 +163,7 @@ export function CoachIntakeActiveDossier({
   const showInspectAudio = pieces > 0;
   const showConfirmAudioOrder = needsAudioOrderConfirmation(item);
   const showPrepareDraftReview = canPrepareDraftReview(item);
-  const showReviewPreparedDraft = !!item.latestProposalId;
+  const showReviewPreparedDraft = hasReviewablePreparedDraft(item);
   const next = nextAction(item);
 
   return (
@@ -241,7 +256,7 @@ export function CoachIntakeActiveDossier({
             Inspect intake audio
           </ActionButton>
         ) : null}
-        <WorkspaceLink to={reviewHref}>
+        <WorkspaceLink to={reviewHref} data-coach-active-action="open-target">
           <ListChecks size={16} aria-hidden="true" />
           Open target
         </WorkspaceLink>
