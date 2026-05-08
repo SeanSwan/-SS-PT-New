@@ -680,8 +680,8 @@ const SwanCoachAssistantPage: React.FC = () => {
   // ── Wrap send to route by attachment type ──
   // Transcript-class attachments take a different path than chat:
   //   1. Require a selected client (block with clear error if missing)
-  //   2. Allow exactly one transcript-class file (multi-file already
-  //      blocked by useFileAttachment, but defense-in-depth here)
+  //   2. Send one audio/text/PDF transcript directly to review; send multi-
+  //      audio batches to PLAUD intake for merge/order review.
   //   3. Upload via /api/workout-logs/upload
   //   4. Inject a review card into the conversation
   //   5. Clear attachments
@@ -695,10 +695,8 @@ const SwanCoachAssistantPage: React.FC = () => {
       // Only intercept if at least one attached file is transcript-class.
       // Other attachments + plain text continue to use the existing flow.
       if (files.length > 0 && hasTranscriptClassFile(files)) {
-        if (hasOnlyAudioTranscriptFiles(files)) {
-          const audioLabel = files.length === 1
-            ? files[0].name
-            : `${files.length} audio pieces`;
+        if (hasOnlyAudioTranscriptFiles(files) && files.length > 1) {
+          const audioLabel = `${files.length} audio pieces`;
           setTranscriptProcessing({ stage: 'uploading', fileName: audioLabel });
           try {
             const upload = await uploadClips(files.map((f) => f.file));

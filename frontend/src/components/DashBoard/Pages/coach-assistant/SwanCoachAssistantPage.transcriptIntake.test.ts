@@ -452,6 +452,32 @@ describe('Phase 9.1.1 — no-client and upload-failure preserve attachments', ()
   });
 });
 
+describe('Coach audio intake — single clip pass-through', () => {
+  it('routes exactly one audio attachment through direct transcript review', () => {
+    const audioBranchIdx = PAGE_SOURCE.indexOf('hasOnlyAudioTranscriptFiles(files)');
+    expect(audioBranchIdx).toBeGreaterThan(0);
+    expect(PAGE_SOURCE).toMatch(/hasOnlyAudioTranscriptFiles\(files\)\s*&&\s*files\.length\s*>\s*1/);
+    const multiUploadIdx = PAGE_SOURCE.indexOf('const upload = await uploadClips(', audioBranchIdx);
+    expect(multiUploadIdx).toBeGreaterThan(audioBranchIdx);
+    const directUploadIdx = PAGE_SOURCE.indexOf('const upload = await intake.uploadTranscript(', multiUploadIdx);
+    expect(directUploadIdx).toBeGreaterThan(multiUploadIdx);
+    const directUploadSlice = PAGE_SOURCE.slice(directUploadIdx, directUploadIdx + 1800);
+    expect(directUploadSlice).toMatch(/transcriptFile\.file/);
+    expect(directUploadSlice).toMatch(/coach\.appendTranscriptReview\(upload\.review\)/);
+    expect(directUploadSlice).toMatch(/attachments\.clearFiles\(\)/);
+  });
+
+  it('keeps two or more audio attachments on the PLAUD clip upload path', () => {
+    const audioBranchIdx = PAGE_SOURCE.indexOf('hasOnlyAudioTranscriptFiles(files)');
+    expect(audioBranchIdx).toBeGreaterThan(0);
+    const multiUploadIdx = PAGE_SOURCE.indexOf('const upload = await uploadClips(', audioBranchIdx);
+    expect(multiUploadIdx).toBeGreaterThan(audioBranchIdx);
+    const slice = PAGE_SOURCE.slice(multiUploadIdx, multiUploadIdx + 700);
+    expect(slice).toMatch(/uploadClips\(files\.map\(\(f\)\s*=>\s*f\.file\)\)/);
+    expect(slice).toMatch(/inspect pending PLAUD audio pieces/);
+  });
+});
+
 describe('Phase 9.1 — ContextChipBar redesigned as informational', () => {
   const CONTEXT_BAR_SOURCE = readFileSync(
     resolve(__dirname, './ContextChipBar.tsx'),
