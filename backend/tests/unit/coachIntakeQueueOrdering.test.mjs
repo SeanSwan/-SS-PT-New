@@ -177,4 +177,39 @@ describe('coachIntakeQueueOrdering', () => {
       'coach:generic-unprocessed',
     ]);
   });
+
+  it('does not promote duplicate holds ahead of gate buckets just because a draft exists', () => {
+    const items = [
+      {
+        id: 'coach:ready-review',
+        kind: 'coach_intake',
+        queueStatus: 'ready_review',
+        createdAt: '2026-05-03T12:00:00.000Z',
+        latestProposalId: 'proposal-ready',
+        latestProposal: { status: 'PENDING' },
+      },
+      {
+        id: 'coach:duplicate-hold',
+        kind: 'coach_intake',
+        queueStatus: 'duplicate_hold',
+        createdAt: '2026-05-01T12:00:00.000Z',
+        latestProposalId: 'proposal-held',
+        latestProposal: { status: 'PENDING' },
+      },
+      {
+        id: 'coach:needs-clarification',
+        kind: 'coach_intake',
+        queueStatus: 'needs_clarification',
+        createdAt: '2026-05-02T12:00:00.000Z',
+        latestProposalId: 'proposal-clarify',
+        latestProposal: { status: 'PENDING' },
+      },
+    ];
+
+    expect(sortCoachIntakeReviewOrder(items).map((item) => item.id)).toEqual([
+      'coach:ready-review',
+      'coach:needs-clarification',
+      'coach:duplicate-hold',
+    ]);
+  });
 });

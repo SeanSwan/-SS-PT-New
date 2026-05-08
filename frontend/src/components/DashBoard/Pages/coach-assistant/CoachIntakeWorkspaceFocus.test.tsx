@@ -32,6 +32,8 @@ function makeQueue() {
       unprocessed: 0,
       processing: 0,
       readyReview: 1,
+      needsClarification: 0,
+      duplicateHold: 0,
       failed: 0,
       needsClient: 0,
     },
@@ -333,6 +335,74 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     const ribbon = within(target).getByLabelText('Active item status');
     expect(within(ribbon).getByText('Backend canonical gate')).toBeInTheDocument();
     expect(within(ribbon).getByText('Backend canonical action')).toBeInTheDocument();
+  });
+
+  it('does not expose draft preparation for clarification or duplicate-hold fallbacks', async () => {
+    const clarificationQueue = makeQueue();
+    clarificationQueue.items[0] = {
+      ...clarificationQueue.items[0],
+      queueStatus: 'needs_clarification',
+      latestProposalId: 'proposal-pending',
+      latestProposal: {
+        id: 'proposal-pending',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Pending draft metadata',
+        createdAt: '2026-05-07T12:00:00.000Z',
+      },
+    };
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={clarificationQueue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    let target = await screen.findByLabelText(/Active review target/i);
+    let ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Clarification required')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Answer Coach clarification')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
+    expect(within(target).queryByRole('button', { name: /review prepared draft/i })).toBeNull();
+
+    const duplicateQueue = makeQueue();
+    duplicateQueue.items[0] = {
+      ...duplicateQueue.items[0],
+      queueStatus: 'duplicate_hold',
+      latestProposalId: 'proposal-pending',
+      latestProposal: {
+        id: 'proposal-pending',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Pending draft metadata',
+        createdAt: '2026-05-07T12:00:00.000Z',
+      },
+    };
+
+    rerender(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={duplicateQueue}
+          activeIntakeId="item-1"
+        />
+      </MemoryRouter>,
+    );
+
+    target = await screen.findByLabelText(/Active review target/i);
+    ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Duplicate risk requires review')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Review duplicate risk')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
+    expect(within(target).queryByRole('button', { name: /review prepared draft/i })).toBeNull();
   });
 
   it('focuses the matching Coach action from the active status ribbon', async () => {

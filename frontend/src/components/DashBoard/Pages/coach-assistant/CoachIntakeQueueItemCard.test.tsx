@@ -47,4 +47,63 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).getByRole('link', { name: /review intake morning lower body notes/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&scope=failed');
   });
+
+  it('sends specific safe prompts for clarification and duplicate-hold actions', () => {
+    const onCommandPrompt = vi.fn();
+    const baseItem = {
+      id: 'item-2',
+      entityId: 'item-2',
+      kind: 'coach_intake' as const,
+      source: 'chat_narrative',
+      title: 'Evening intake note',
+      sourceLabel: 'Long Coach note',
+      clientName: null,
+      clipCount: 0,
+      canReview: false,
+      needsClient: false,
+      timelineAt: '2026-05-06T16:30:00.000Z',
+    };
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          onCommandPrompt={onCommandPrompt}
+          item={{
+            ...baseItem,
+            queueStatus: 'needs_clarification',
+            nextBlockingGate: 'Clarification required',
+            nextActionKey: 'answer_clarification',
+            nextActionLabel: 'Answer Coach clarification',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /answer coach clarification/i }));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Answer Coach clarification for intake item-2.'));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
+
+    rerender(
+      <MemoryRouter>
+        <CoachIntakeQueueItemCard
+          active={false}
+          coachWorkspaceHref="/dashboard/admin/coach-assistant"
+          onCommandPrompt={onCommandPrompt}
+          item={{
+            ...baseItem,
+            queueStatus: 'duplicate_hold',
+            nextBlockingGate: 'Duplicate risk requires review',
+            nextActionKey: 'review_duplicate_hold',
+            nextActionLabel: 'Review duplicate risk',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /review duplicate risk/i }));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Review duplicate risk for intake item-2.'));
+    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
+  });
 });

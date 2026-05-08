@@ -69,4 +69,34 @@ describe('coachIntakeGateSummary', () => {
       label: 'Ask Coach to resolve client',
     });
   });
+
+  it('keeps clarification holds out of draft preparation', () => {
+    const item = {
+      kind: 'coach_intake',
+      queueStatus: 'needs_clarification',
+      latestProposalId: 'proposal-pending',
+      latestProposal: { status: 'PENDING' },
+    };
+
+    expect(coachIntakeBlockingGate(item)).toBe('Clarification required');
+    expect(coachIntakeNextAction(item)).toMatchObject({
+      key: 'answer_clarification',
+      label: 'Answer Coach clarification',
+    });
+  });
+
+  it('keeps duplicate holds out of prepared-draft review until compared', () => {
+    const item = {
+      kind: 'coach_intake',
+      queueStatus: 'duplicate_hold',
+      latestProposalId: 'proposal-pending',
+      latestProposal: { status: 'PENDING' },
+    };
+
+    expect(coachIntakeBlockingGate(item)).toBe('Duplicate risk requires review');
+    expect(coachIntakeNextAction(item)).toMatchObject({
+      key: 'review_duplicate_hold',
+      label: 'Review duplicate risk',
+    });
+  });
 });

@@ -54,7 +54,13 @@ interface DossierAction {
 }
 
 const TERMINAL_PROPOSAL_STATUSES = new Set(['APPLIED', 'REJECTED', 'FAILED']);
-const BLOCKED_QUEUE_STATUSES = new Set(['archived', 'failed', 'processing']);
+const BLOCKED_QUEUE_STATUSES = new Set([
+  'archived',
+  'duplicate_hold',
+  'failed',
+  'needs_clarification',
+  'processing',
+]);
 
 function plural(value: number, noun: string): string {
   return `${value} ${noun}${value === 1 ? '' : 's'}`;
@@ -118,6 +124,8 @@ function blockingGate(item: CoachIntakeItem): string {
   if (item.queueStatus === 'processing') return 'Processing is still running';
   if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
   if (item.needsClient) return 'Client confirmation required';
+  if (item.queueStatus === 'needs_clarification') return 'Clarification required';
+  if (item.queueStatus === 'duplicate_hold') return 'Duplicate risk requires review';
   if (hasReviewablePreparedDraft(item)) return 'Draft waiting for review';
   if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
   return 'No blocking gate';
@@ -131,6 +139,8 @@ function actionIdForActionKey(actionKey?: string | null): string | null {
   if (actionKey === 'review_failed_intake') return 'ask-coach';
   if (actionKey === 'wait_for_processing') return 'open-target';
   if (actionKey === 'inspect_audio') return 'inspect-audio';
+  if (actionKey === 'answer_clarification') return 'ask-coach';
+  if (actionKey === 'review_duplicate_hold') return 'ask-coach';
   return null;
 }
 
@@ -143,6 +153,8 @@ function nextAction(item: CoachIntakeItem): DossierAction {
   if (item.queueStatus === 'processing') return { label: 'Wait for processing', actionId: 'open-target' };
   if (needsAudioOrderConfirmation(item)) return { label: 'Confirm audio order', actionId: 'confirm-audio' };
   if (item.needsClient) return { label: 'Ask Coach to resolve client', actionId: 'ask-coach' };
+  if (item.queueStatus === 'needs_clarification') return { label: 'Answer Coach clarification', actionId: 'ask-coach' };
+  if (item.queueStatus === 'duplicate_hold') return { label: 'Review duplicate risk', actionId: 'ask-coach' };
   if (hasReviewablePreparedDraft(item)) return { label: 'Review prepared draft', actionId: 'review-draft' };
   if (canPrepareDraftReview(item)) return { label: 'Prepare draft review', actionId: 'prepare-draft' };
   if (audioPieceCount(item) > 0) return { label: 'Inspect intake audio', actionId: 'inspect-audio' };

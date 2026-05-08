@@ -33,6 +33,8 @@ export function coachIntakeBlockingGate(item) {
   if (item.queueStatus === 'processing') return 'Processing is still running';
   if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
   if (item.needsClient) return 'Client confirmation required';
+  if (item.queueStatus === 'needs_clarification') return 'Clarification required';
+  if (item.queueStatus === 'duplicate_hold') return 'Duplicate risk requires review';
   if (hasReviewablePreparedDraft(item)) return 'Draft waiting for review';
   if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
   return 'No blocking gate';
@@ -51,6 +53,12 @@ export function coachIntakeNextAction(item) {
   }
   if (item.needsClient) {
     return { key: 'resolve_client', label: 'Ask Coach to resolve client' };
+  }
+  if (item.queueStatus === 'needs_clarification') {
+    return { key: 'answer_clarification', label: 'Answer Coach clarification' };
+  }
+  if (item.queueStatus === 'duplicate_hold') {
+    return { key: 'review_duplicate_hold', label: 'Review duplicate risk' };
   }
   if (hasReviewablePreparedDraft(item)) {
     return { key: 'review_prepared_draft', label: 'Review prepared draft' };

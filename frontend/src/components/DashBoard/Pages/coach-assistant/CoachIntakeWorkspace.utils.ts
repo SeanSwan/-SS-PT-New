@@ -159,6 +159,22 @@ export function activeCoachActionPrompt(item: CoachIntakeItem): string {
     if (item.errorCode) parts.splice(1, 0, `Error code: ${item.errorCode}.`);
     return parts.join(' ');
   }
+  if (item.nextActionKey === 'answer_clarification' || item.queueStatus === 'needs_clarification') {
+    return [
+      `Answer Coach clarification for intake ${intakeId}.`,
+      'Inspect only PII-safe intake metadata, pending proposal metadata, and evidence references.',
+      'Ask one narrow question or summarize the exact clarification needed before draft approval.',
+      'Do not write, create, update, log, or submit any client or workout record.',
+    ].join(' ');
+  }
+  if (item.nextActionKey === 'review_duplicate_hold' || item.queueStatus === 'duplicate_hold') {
+    return [
+      `Review duplicate risk for intake ${intakeId}.`,
+      'Inspect only PII-safe intake metadata, duplicate-risk metadata, and existing workout summary references.',
+      'Recommend whether to keep holding, compare manually, discard, or proceed to explicit operator approval.',
+      'Do not write, create, update, log, or submit any client or workout record.',
+    ].join(' ');
+  }
   return activeItemPrompt(item);
 }
 

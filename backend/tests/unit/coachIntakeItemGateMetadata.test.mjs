@@ -59,4 +59,50 @@ describe('coachIntakeItem gate metadata', () => {
     });
     expect(JSON.stringify(item)).not.toMatch(/private transcript/i);
   });
+
+  it('maps explicit clarification and duplicate holds to their blocked gate labels', () => {
+    const clarificationItem = mapCoachRowToIntakeItem({
+      id: '90909090-9090-4909-9909-909090909090',
+      source_type: 'chat_narrative',
+      status: 'NEEDS_CLARIFICATION',
+      resolved_client_id: 42,
+      latest_proposal_id: '91919191-9191-4919-9919-919191919191',
+      uploaded_at: '2026-05-06T12:10:00.000Z',
+      created_at: '2026-05-06T12:10:00.000Z',
+      metadata_json: {
+        latestProposal: {
+          id: '91919191-9191-4919-9919-919191919191',
+          type: 'workout_log',
+          status: 'PENDING',
+        },
+      },
+    });
+    const duplicateItem = mapCoachRowToIntakeItem({
+      id: '92929292-9292-4929-9929-929292929292',
+      source_type: 'typed_note',
+      status: 'DUPLICATE_HOLD',
+      resolved_client_id: 42,
+      latest_proposal_id: '93939393-9393-4939-9939-939393939393',
+      uploaded_at: '2026-05-06T12:15:00.000Z',
+      created_at: '2026-05-06T12:15:00.000Z',
+      metadata_json: {
+        latestProposal: {
+          id: '93939393-9393-4939-9939-939393939393',
+          type: 'workout_log',
+          status: 'PENDING',
+        },
+      },
+    });
+
+    expect(clarificationItem).toMatchObject({
+      nextBlockingGate: 'Clarification required',
+      nextActionKey: 'answer_clarification',
+      nextActionLabel: 'Answer Coach clarification',
+    });
+    expect(duplicateItem).toMatchObject({
+      nextBlockingGate: 'Duplicate risk requires review',
+      nextActionKey: 'review_duplicate_hold',
+      nextActionLabel: 'Review duplicate risk',
+    });
+  });
 });
