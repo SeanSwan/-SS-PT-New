@@ -66,6 +66,11 @@ interface CoachIntakeWorkspaceProps {
   activeIntakeId?: string | null;
 }
 
+interface ReviewOutcomeState {
+  activeTargetId: string | null;
+  outcome: CoachIntakeOutcome;
+}
+
 export function CoachIntakeWorkspace({
   userRole,
   selectedClientName,
@@ -79,7 +84,7 @@ export function CoachIntakeWorkspace({
   const location = useLocation();
   const audioOrderConfirmation = useCoachIntakeAudioOrderConfirmation(refresh);
   const [reviewingProposalId, setReviewingProposalId] = React.useState<string | null>(null);
-  const [reviewOutcome, setReviewOutcome] = React.useState<CoachIntakeOutcome | null>(null);
+  const [reviewOutcome, setReviewOutcome] = React.useState<ReviewOutcomeState | null>(null);
   const activeDossierRef = React.useRef<HTMLElement | null>(null);
   const focusedActiveDossierRef = React.useRef<string | null>(null);
   const handleScopeChange = useCoachIntakeScopeUrlSync({
@@ -100,10 +105,17 @@ export function CoachIntakeWorkspace({
   const clientCopy = selectedClientName
     ? `Drafts can still target ${selectedClientName}, but queue review can resolve unknown clients.`
     : 'No client has to be selected first; unknown-client intake stays in review.';
+  const visibleReviewOutcome = reviewOutcome?.activeTargetId === activeReviewTargetId
+    ? reviewOutcome.outcome
+    : null;
 
   React.useEffect(() => {
     setReviewingProposalId(null);
-  }, [activeItemKey]);
+    setReviewOutcome((current) => {
+      if (!current) return current;
+      return current.activeTargetId === activeReviewTargetId ? current : null;
+    });
+  }, [activeItemKey, activeReviewTargetId]);
 
   React.useEffect(() => {
     if (!activeProposalId || activeProposalId !== activeItem?.latestProposalId) return;
@@ -134,7 +146,10 @@ export function CoachIntakeWorkspace({
   const handleProposalAction = React.useCallback((proposal: CoachActionProposal) => {
     const shouldAdvance = shouldAdvanceAfterProposalAction(proposal);
     if (!shouldAdvance) {
-      setReviewOutcome(outcomeFromProposal(proposal, false));
+      setReviewOutcome({
+        activeTargetId: activeReviewTargetId,
+        outcome: outcomeFromProposal(proposal, false),
+      });
       void refresh();
       return;
     }
@@ -149,10 +164,15 @@ export function CoachIntakeWorkspace({
         sourceItems = orderedItems;
       }
       const nextItemAfterAction = actionableItemsAfter(sourceItems, currentId)[0] || null;
-      setReviewOutcome(outcomeFromProposal(proposal, !!nextItemAfterAction));
+      setReviewOutcome({
+        activeTargetId: nextItemAfterAction
+          ? itemEntityId(nextItemAfterAction) || nextItemAfterAction.id
+          : activeReviewTargetId,
+        outcome: outcomeFromProposal(proposal, !!nextItemAfterAction),
+      });
       navigate(queueScopedHref(itemReviewHref(nextItemAfterAction, coachWorkspaceHref), queue.scope));
     })();
-  }, [activeIntakeId, activeItem, coachWorkspaceHref, navigate, orderedItems, refresh]);
+  }, [activeIntakeId, activeItem, activeReviewTargetId, coachWorkspaceHref, navigate, orderedItems, refresh]);
 
   if (!isTrainerSurface) return null;
 
@@ -206,9 +226,9 @@ export function CoachIntakeWorkspace({
           onProposalAction={handleProposalAction}
         />
       ) : null}
-      {reviewOutcome ? (
+      {visibleReviewOutcome ? (
         <CoachIntakeOutcomeReceipt
-          outcome={reviewOutcome}
+          outcome={visibleReviewOutcome}
           onDismiss={() => setReviewOutcome(null)}
         />
       ) : null}

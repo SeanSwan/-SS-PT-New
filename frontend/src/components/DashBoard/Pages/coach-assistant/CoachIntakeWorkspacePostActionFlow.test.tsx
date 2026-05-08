@@ -372,4 +372,80 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     expect(within(screen.getByLabelText(/Active review target/i)).getByText(/Draft applied/i)).toBeInTheDocument();
   });
+
+  it('clears a previous action receipt when a different intake becomes active', async () => {
+    const queue = makeQueue();
+    const nextItem = {
+      ...queue.items[0],
+      id: 'item-2',
+      entityId: 'item-2',
+      title: 'Evening upper body notes',
+      timelineAt: '2026-05-07T18:30:00.000Z',
+      latestProposalId: null,
+    };
+    const manuallySelectedItem = {
+      ...queue.items[0],
+      id: 'item-3',
+      entityId: 'item-3',
+      title: 'Manual switch shoulder note',
+      timelineAt: '2026-05-08T18:30:00.000Z',
+      latestProposalId: null,
+    };
+    queue.items = [{ ...queue.items[0], latestProposalId: 'proposal-1' }, nextItem, manuallySelectedItem];
+    queue.refresh = vi.fn().mockResolvedValue([nextItem, manuallySelectedItem]);
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+        detail: { workout: { clientId: 42, date: '2026-05-06', exercises: [{ name: 'Squat' }] } },
+        reviewToken: 'review-v1.test',
+      },
+    });
+    vi.mocked(approveCoachProposal).mockResolvedValue({
+      success: true,
+      applied: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'APPLIED',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+      },
+    });
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
+
+    await waitFor(() => {
+      expect(queue.refresh).toHaveBeenCalled();
+    });
+
+    const refreshedQueue = { ...queue, items: [nextItem, manuallySelectedItem] };
+
+    rerender(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-2']}>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={refreshedQueue} activeIntakeId="item-2" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/Workout log applied/i)).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-3']}>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={refreshedQueue} activeIntakeId="item-3" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText(/Workout log applied/i)).toBeNull();
+    expect(screen.getAllByText(/Manual switch shoulder note/i).length).toBeGreaterThan(0);
+  });
 });
