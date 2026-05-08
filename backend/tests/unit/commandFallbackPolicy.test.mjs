@@ -9,6 +9,9 @@ import { shouldFallbackNotWiredCommandToChat } from '../../services/ai/commandFa
 describe('commandFallbackPolicy', () => {
   it('falls back for unwired client/workout draft commands', () => {
     expect(shouldFallbackNotWiredCommandToChat('create_client')).toBe(true);
+    expect(shouldFallbackNotWiredCommandToChat('start_onboarding')).toBe(true);
+    expect(shouldFallbackNotWiredCommandToChat('fill_baseline_measurements')).toBe(true);
+    expect(shouldFallbackNotWiredCommandToChat('submit_onboarding')).toBe(true);
     expect(shouldFallbackNotWiredCommandToChat('add_exercise_to_form')).toBe(true);
     expect(shouldFallbackNotWiredCommandToChat('submit_workout_form')).toBe(true);
   });
