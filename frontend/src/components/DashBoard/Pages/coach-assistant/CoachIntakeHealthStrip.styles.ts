@@ -87,3 +87,27 @@ export const HealthPill = styled.span<{ $tone?: 'cyan' | 'gold' | 'red' }>`
   font-size: 10px;
   white-space: nowrap;
 `;
+
+export const HealthActionButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
+  background: color-mix(in srgb, var(--color-midnight-sapphire, #002060) 58%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+    outline: none;
+  }
+`;

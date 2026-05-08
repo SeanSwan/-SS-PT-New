@@ -89,6 +89,7 @@ describe('CoachIntakeWorkspace', () => {
   });
 
   it('shows PII-safe queue health and next operator action when available', () => {
+    const onCommandPrompt = vi.fn();
     const queue: ReturnType<typeof makeQueue> & { health?: CoachIntakeHealth } = makeQueue();
     queue.health = {
       schemaReady: true,
@@ -115,7 +116,7 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
+          onCommandPrompt={onCommandPrompt}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -127,6 +128,8 @@ describe('CoachIntakeWorkspace', () => {
     expect(within(health).getByText(/Degraded/i)).toBeInTheDocument();
     expect(within(health).getByText(/1 stuck/i)).toBeInTheDocument();
     expect(within(health).getByText(/Inspect stuck processing intake/i)).toBeInTheDocument();
+    fireEvent.click(within(health).getByRole('button', { name: /ask coach: inspect stuck processing intake/i }));
+    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake health');
   });
 
   it('keeps direct review-next routing into PLAUD when the next item is a reviewable merge', () => {

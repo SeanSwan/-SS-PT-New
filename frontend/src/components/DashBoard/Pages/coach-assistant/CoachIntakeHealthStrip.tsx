@@ -3,9 +3,10 @@
  * ==========================
  * PII-safe operator health snapshot for Swan Coach intake.
  */
-import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
 import type { CoachIntakeHealth } from '../../../../services/coachIntakeService';
 import {
+  HealthActionButton,
   HealthBlock,
   HealthLabel,
   HealthPill,
@@ -16,16 +17,24 @@ import {
 
 interface CoachIntakeHealthStripProps {
   health?: CoachIntakeHealth | null;
+  onCommandPrompt?: (message: string) => void;
 }
 
 function statusLabel(status: CoachIntakeHealth['status']): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-export function CoachIntakeHealthStrip({ health }: CoachIntakeHealthStripProps): JSX.Element | null {
+function promptForActionKey(key: string): string {
+  if (key === 'review_ready_drafts' || key === 'review_next') return 'review next Coach intake';
+  if (key === 'resolve_clients') return 'show my Coach intake queue';
+  return 'show Coach intake health';
+}
+
+export function CoachIntakeHealthStrip({ health, onCommandPrompt }: CoachIntakeHealthStripProps): JSX.Element | null {
   if (!health) return null;
 
   const counts = health.counts;
+  const actionPrompt = promptForActionKey(health.nextOperatorAction.key);
   const attentionIcon = health.status === 'healthy'
     ? <ShieldCheck size={14} aria-hidden="true" />
     : <AlertTriangle size={14} aria-hidden="true" />;
@@ -49,6 +58,16 @@ export function CoachIntakeHealthStrip({ health }: CoachIntakeHealthStripProps):
       <HealthBlock>
         <HealthLabel>Next operator action</HealthLabel>
         <HealthValue>{health.nextOperatorAction.label}</HealthValue>
+        {onCommandPrompt && (
+          <HealthActionButton
+            type="button"
+            aria-label={`Ask Coach: ${health.nextOperatorAction.label}`}
+            onClick={() => onCommandPrompt(actionPrompt)}
+          >
+            <Brain size={14} aria-hidden="true" />
+            Ask Coach
+          </HealthActionButton>
+        )}
       </HealthBlock>
     </HealthStrip>
   );
