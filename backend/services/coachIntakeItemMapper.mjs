@@ -16,6 +16,8 @@ export function isCoachIntakeSameLocalDay(value, now = new Date()) {
 
 function queueStatusForCoach(status) {
   if (status === 'READY_FOR_REVIEW') return 'ready_review';
+  if (status === 'NEEDS_CLARIFICATION') return 'needs_clarification';
+  if (status === 'DUPLICATE_HOLD') return 'duplicate_hold';
   if (status === 'TRANSCRIBING') return 'processing';
   if (status === 'FAILED') return 'failed';
   if (COACH_ARCHIVED_STATUSES.has(status)) return 'archived';
@@ -125,6 +127,8 @@ export function summarizeUnifiedItems(items, { now = new Date() } = {}) {
     if (item.queueStatus === 'unprocessed') summary.unprocessed += 1;
     if (item.queueStatus === 'processing') summary.processing += 1;
     if (item.queueStatus === 'ready_review') summary.readyReview += 1;
+    if (item.queueStatus === 'needs_clarification') summary.needsClarification += 1;
+    if (item.queueStatus === 'duplicate_hold') summary.duplicateHold += 1;
     if (item.queueStatus === 'failed') summary.failed += 1;
     if (item.needsClient) summary.needsClient += 1;
     if (isCoachIntakeSameLocalDay(item.createdAt, now)) summary.today += 1;
@@ -137,6 +141,8 @@ export function summarizeUnifiedItems(items, { now = new Date() } = {}) {
     unprocessed: 0,
     processing: 0,
     readyReview: 0,
+    needsClarification: 0,
+    duplicateHold: 0,
     failed: 0,
     needsClient: 0,
     preparedDrafts: 0,

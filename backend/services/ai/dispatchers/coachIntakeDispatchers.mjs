@@ -12,7 +12,15 @@ import { coachIntakeGateSummary } from '../coachIntakeGateSummary.mjs';
 const DEFAULT_QUEUE_LIMIT = 10;
 const REVIEW_NEXT_LIMIT = 20;
 const MAX_QUEUE_LIMIT = 20;
-const REVIEW_ROUTE_SCOPES = new Set(['ready_review', 'needs_client', 'unprocessed', 'processing', 'failed']);
+const REVIEW_ROUTE_SCOPES = new Set([
+  'ready_review',
+  'needs_client',
+  'needs_clarification',
+  'duplicate_hold',
+  'unprocessed',
+  'processing',
+  'failed',
+]);
 function resolveUserId(ctx) {
   const userId = Number(ctx?.user?.id);
   if (!Number.isInteger(userId) || userId <= 0) {
@@ -76,6 +84,8 @@ function scalarSummary(result, nextItem, ctx) {
     unprocessed: count(summary, 'unprocessed'),
     processing: count(summary, 'processing'),
     readyReview: count(summary, 'readyReview'),
+    needsClarification: count(summary, 'needsClarification'),
+    duplicateHold: count(summary, 'duplicateHold'),
     failed: count(summary, 'failed'),
     needsClient: count(summary, 'needsClient'),
     preparedDrafts: count(summary, 'preparedDrafts'),
@@ -115,6 +125,8 @@ function healthCommandSummary(health, ctx) {
     unprocessed: Number(counts.unprocessed || 0),
     processing: Number(counts.processing || 0),
     readyReview: Number(counts.readyReview || 0),
+    needsClarification: Number(counts.needsClarification || 0),
+    duplicateHold: Number(counts.duplicateHold || 0),
     failed: Number(counts.failed || 0),
     needsClient: Number(counts.needsClient || 0),
     stuckProcessing: Number(counts.stuckProcessing || 0),

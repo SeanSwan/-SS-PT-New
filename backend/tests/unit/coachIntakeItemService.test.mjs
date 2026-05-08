@@ -110,6 +110,37 @@ describe('coachIntakeItemService', () => {
       .toMatchObject({ total: 2, actionable: 2, readyReview: 1, failed: 1, needsClient: 1, today: 1 });
   });
 
+  it('keeps clarification and duplicate holds out of the generic unprocessed bucket', () => {
+    const items = [
+      mapCoachRowToIntakeItem({
+        id: '12121212-1212-4121-9121-121212121212',
+        source_type: 'chat_narrative',
+        status: 'NEEDS_CLARIFICATION',
+        resolved_client_id: 7,
+        uploaded_at: '2026-05-06T12:00:00.000Z',
+        created_at: '2026-05-06T12:00:00.000Z',
+        metadata_json: {},
+      }),
+      mapCoachRowToIntakeItem({
+        id: '34343434-3434-4343-9434-343434343434',
+        source_type: 'typed_note',
+        status: 'DUPLICATE_HOLD',
+        resolved_client_id: 8,
+        uploaded_at: '2026-05-06T12:05:00.000Z',
+        created_at: '2026-05-06T12:05:00.000Z',
+        metadata_json: {},
+      }),
+    ];
+
+    expect(items.map((item) => item.queueStatus)).toEqual(['needs_clarification', 'duplicate_hold']);
+    expect(summarizeUnifiedItems(items)).toMatchObject({
+      actionable: 2,
+      unprocessed: 0,
+      needsClarification: 1,
+      duplicateHold: 1,
+    });
+  });
+
   it('maps audio puzzle metadata into compact queue facts', () => {
     const item = mapCoachRowToIntakeItem({
       id: '33333333-3333-3333-3333-333333333333',

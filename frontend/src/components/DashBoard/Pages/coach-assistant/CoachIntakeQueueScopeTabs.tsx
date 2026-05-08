@@ -18,6 +18,8 @@ const SCOPE_TABS: Array<{ key: CoachIntakeQueueScope; label: string; count: keyo
   { key: 'actionable', label: 'Actionable', count: 'actionable' },
   { key: 'ready_review', label: 'Ready', count: 'readyReview' },
   { key: 'needs_client', label: 'Needs client', count: 'needsClient' },
+  { key: 'needs_clarification', label: 'Needs clarity', count: 'needsClarification' },
+  { key: 'duplicate_hold', label: 'Duplicate hold', count: 'duplicateHold' },
   { key: 'unprocessed', label: 'Needs action', count: 'unprocessed' },
   { key: 'processing', label: 'Processing', count: 'processing' },
   { key: 'failed', label: 'Failed', count: 'failed' },

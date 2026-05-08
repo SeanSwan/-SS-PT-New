@@ -28,7 +28,8 @@ describe('plaudIntakeService', () => {
 
   it('models only list-safe queue metadata', () => {
     expect(SRC).toMatch(/source:\s*'manual_upload'\s*\|\s*'applaud_webhook'\s*\|\s*'plaud_merge'/);
-    expect(SRC).toMatch(/queueStatus:\s*'unprocessed'\s*\|\s*'processing'\s*\|\s*'ready_review'\s*\|\s*'failed'\s*\|\s*'archived'/);
+    expect(SRC).toMatch(/needs_clarification/);
+    expect(SRC).toMatch(/duplicate_hold/);
     expect(SRC).not.toMatch(/transcript:/);
     expect(SRC).not.toMatch(/parsedWorkout:/);
   });

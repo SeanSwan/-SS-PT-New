@@ -8,9 +8,11 @@ import { hasReviewablePreparedDraft } from './coachIntakeProposalReadiness.mjs';
 const STATUS_PRIORITY = new Map([
   ['ready_review', 0],
   ['needs_client', 1],
-  ['unprocessed', 2],
-  ['processing', 3],
-  ['failed', 4],
+  ['needs_clarification', 2],
+  ['duplicate_hold', 3],
+  ['unprocessed', 4],
+  ['processing', 5],
+  ['failed', 6],
 ]);
 
 export function coachIntakeQueuePriority(item) {

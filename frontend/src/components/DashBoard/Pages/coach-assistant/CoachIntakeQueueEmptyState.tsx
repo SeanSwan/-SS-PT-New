@@ -29,6 +29,16 @@ const EMPTY_STATE_BY_SCOPE: Record<CoachIntakeQueueScope, EmptyStateCopy> = {
     detail: 'Intake items needing client confirmation will appear here before any write is allowed.',
     chip: 'Clients clear',
   },
+  needs_clarification: {
+    title: 'No clarification holds',
+    detail: 'Items waiting for a narrow Coach question will appear here before draft approval.',
+    chip: 'Clarity clear',
+  },
+  duplicate_hold: {
+    title: 'No duplicate-risk holds',
+    detail: 'Potential duplicate logs will wait here until the operator compares and decides.',
+    chip: 'Duplicates clear',
+  },
   unprocessed: {
     title: 'No intake needing action',
     detail: 'New voice, transcript, and PLAUD intake appears here before it is ready for review.',

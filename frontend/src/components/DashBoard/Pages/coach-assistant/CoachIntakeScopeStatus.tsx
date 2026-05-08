@@ -33,6 +33,18 @@ const SCOPE_COPY: Record<CoachIntakeQueueScope, ScopeCopy> = {
     count: 'needsClient',
     tone: 'gold',
   },
+  needs_clarification: {
+    title: 'Viewing clarification holds',
+    detail: 'Items blocked until Coach asks and receives a narrow answer.',
+    count: 'needsClarification',
+    tone: 'gold',
+  },
+  duplicate_hold: {
+    title: 'Viewing duplicate-risk holds',
+    detail: 'Items blocked until a possible duplicate is compared and approved or held.',
+    count: 'duplicateHold',
+    tone: 'red',
+  },
   unprocessed: {
     title: 'Viewing needs-action queue',
     detail: 'New intake waiting for transcript, grouping, or proposal work.',

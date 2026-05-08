@@ -148,4 +148,33 @@ describe('coachIntakeQueueOrdering', () => {
 
     expect(pickNextCoachIntakeItem(items)?.id).toBe('coach:unprocessed');
   });
+
+  it('prioritizes explicit clarification and duplicate-hold gates before generic unprocessed intake', () => {
+    const items = [
+      {
+        id: 'coach:generic-unprocessed',
+        kind: 'coach_intake',
+        queueStatus: 'unprocessed',
+        createdAt: '2026-05-01T12:00:00.000Z',
+      },
+      {
+        id: 'coach:duplicate-hold',
+        kind: 'coach_intake',
+        queueStatus: 'duplicate_hold',
+        createdAt: '2026-05-02T12:00:00.000Z',
+      },
+      {
+        id: 'coach:needs-clarification',
+        kind: 'coach_intake',
+        queueStatus: 'needs_clarification',
+        createdAt: '2026-05-03T12:00:00.000Z',
+      },
+    ];
+
+    expect(sortCoachIntakeReviewOrder(items).map((item) => item.id)).toEqual([
+      'coach:needs-clarification',
+      'coach:duplicate-hold',
+      'coach:generic-unprocessed',
+    ]);
+  });
 });

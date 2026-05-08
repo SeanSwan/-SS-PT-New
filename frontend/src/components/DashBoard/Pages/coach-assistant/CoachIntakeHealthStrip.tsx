@@ -38,6 +38,8 @@ function statusLabel(status: CoachIntakeHealth['status']): string {
 function promptForActionKey(key: string): string {
   if (key === 'review_ready_drafts' || key === 'review_next') return 'review next Coach intake';
   if (key === 'resolve_clients') return 'show my Coach intake queue';
+  if (key === 'answer_clarifications') return 'show Coach intake clarification holds';
+  if (key === 'review_duplicate_holds') return 'show Coach intake duplicate holds';
   return 'show Coach intake health';
 }
 
@@ -119,6 +121,8 @@ export function CoachIntakeHealthStrip({
           {scopeControl({ label: `${counts.actionable} active`, ariaLabel: 'Show actionable intake items', scope: 'actionable', onScopeChange })}
           {scopeControl({ label: `${counts.readyReview} ready`, ariaLabel: 'Show ready intake drafts', scope: 'ready_review', onScopeChange })}
           {scopeControl({ label: `${counts.needsClient} need client`, ariaLabel: 'Show client-resolution holds', scope: 'needs_client', tone: 'gold', onScopeChange })}
+          {scopeControl({ label: `${Number(counts.needsClarification || 0)} clarify`, ariaLabel: 'Show clarification holds', scope: 'needs_clarification', tone: 'gold', onScopeChange })}
+          {scopeControl({ label: `${Number(counts.duplicateHold || 0)} duplicate`, ariaLabel: 'Show duplicate-risk holds', scope: 'duplicate_hold', tone: counts.duplicateHold ? 'red' : 'cyan', onScopeChange })}
           {scopeControl({ label: `${counts.failed} failed`, ariaLabel: 'Show failed intake items', scope: 'failed', tone: counts.failed > 0 ? 'red' : 'cyan', onScopeChange })}
           {scopeControl({ label: `${counts.stuckProcessing} stuck`, ariaLabel: 'Show processing intake items', scope: 'processing', tone: counts.stuckProcessing > 0 ? 'red' : 'cyan', onScopeChange })}
         </HealthStatRow>

@@ -13,7 +13,14 @@ export interface PlaudIntakeItem {
   kind: 'clip' | 'merge_request';
   source: 'manual_upload' | 'applaud_webhook' | 'plaud_merge';
   sourceLabel: string;
-  queueStatus: 'unprocessed' | 'processing' | 'ready_review' | 'failed' | 'archived';
+  queueStatus:
+    | 'unprocessed'
+    | 'processing'
+    | 'ready_review'
+    | 'needs_clarification'
+    | 'duplicate_hold'
+    | 'failed'
+    | 'archived';
   title: string;
   clientId: number | null;
   clientName: string | null;
@@ -42,6 +49,8 @@ export interface PlaudIntakeSummary {
   unprocessed: number;
   processing: number;
   readyReview: number;
+  needsClarification?: number;
+  duplicateHold?: number;
   failed: number;
   needsClient: number;
   preparedDrafts?: number;
@@ -90,6 +99,8 @@ export async function listPlaudIntakeItems({
         unprocessed: 0,
         processing: 0,
         readyReview: 0,
+        needsClarification: 0,
+        duplicateHold: 0,
         failed: 0,
         needsClient: 0,
       },

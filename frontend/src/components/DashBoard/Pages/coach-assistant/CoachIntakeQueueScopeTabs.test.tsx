@@ -20,6 +20,8 @@ describe('CoachIntakeQueueScopeTabs', () => {
           actionable: 7,
           today: 2,
           unprocessed: 3,
+          needsClarification: 2,
+          duplicateHold: 1,
           processing: 1,
           readyReview: 2,
           failed: 1,
@@ -31,10 +33,12 @@ describe('CoachIntakeQueueScopeTabs', () => {
     expect(screen.getByRole('button', { name: /actionable 7/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /ready 2/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /needs client 4/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /needs clarity 2/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /duplicate hold 1/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /failed 1/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /failed 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /needs clarity 2/i }));
 
-    expect(onScopeChange).toHaveBeenCalledWith('failed');
+    expect(onScopeChange).toHaveBeenCalledWith('needs_clarification');
   });
 });

@@ -1,4 +1,13 @@
-const SUMMARY_KEYS = ['actionable', 'readyReview', 'needsClient', 'failed', 'processing', 'unprocessed'];
+const SUMMARY_KEYS = [
+  'actionable',
+  'readyReview',
+  'needsClient',
+  'needsClarification',
+  'duplicateHold',
+  'failed',
+  'processing',
+  'unprocessed',
+];
 const SOURCE_LABELS = new Set([
   'Applaud',
   'Audio upload',
@@ -15,7 +24,16 @@ const SOURCE_LABELS = new Set([
 ]);
 const ITEM_ENUMS = {
   kind: new Set(['clip', 'coach_intake', 'merge_request']),
-  queueStatus: new Set(['archived', 'failed', 'needs_client', 'processing', 'ready_review', 'unprocessed']),
+  queueStatus: new Set([
+    'archived',
+    'duplicate_hold',
+    'failed',
+    'needs_clarification',
+    'needs_client',
+    'processing',
+    'ready_review',
+    'unprocessed',
+  ]),
   timelineAtSource: new Set(['created_at', 'recorded_at', 'uploaded_at']),
   audioPuzzleConfidence: new Set(['single', 'high', 'medium', 'low']),
 };
@@ -38,6 +56,8 @@ const HEALTH_ACTION_LABELS = new Map([
   ['inspect_failed_intake', 'Inspect failed intake'],
   ['review_ready_drafts', 'Review ready drafts'],
   ['resolve_clients', 'Resolve client confirmations'],
+  ['answer_clarifications', 'Answer Coach clarifications'],
+  ['review_duplicate_holds', 'Review duplicate-risk holds'],
   ['review_next', 'Review next intake'],
   ['none', 'No active intake work'],
 ]);
@@ -113,6 +133,8 @@ function sanitizeHealth(rawHealth) {
     schemaReady: rawHealth.schemaReady !== false,
     failed: cleanCount(rawHealth.failed ?? rawCounts.failed),
     readyReview: cleanCount(rawHealth.readyReview ?? rawCounts.readyReview),
+    needsClarification: cleanCount(rawHealth.needsClarification ?? rawCounts.needsClarification),
+    duplicateHold: cleanCount(rawHealth.duplicateHold ?? rawCounts.duplicateHold),
     stuckProcessing: cleanCount(rawHealth.stuckProcessing ?? rawCounts.stuckProcessing),
     processingStuckMinutes: cleanOptionalCount(rawHealth.processingStuckMinutes ?? rawHealth.thresholds?.processingStuckMinutes),
     nextActionKey,
@@ -236,6 +258,8 @@ export function buildCoachIntakeContextPromptBlock(context) {
     `Actionable: ${s.actionable ?? 0}`,
     `Ready review: ${s.readyReview ?? 0}`,
     `Needs client: ${s.needsClient ?? 0}`,
+    `Needs clarification: ${s.needsClarification ?? 0}`,
+    `Duplicate hold: ${s.duplicateHold ?? 0}`,
     `Failed: ${s.failed ?? 0}`,
     `Processing: ${s.processing ?? 0}`,
     `Unprocessed: ${s.unprocessed ?? 0}`,

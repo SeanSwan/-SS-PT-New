@@ -10,6 +10,8 @@ export type CoachIntakeQueueScope =
   | 'actionable'
   | 'ready_review'
   | 'needs_client'
+  | 'needs_clarification'
+  | 'duplicate_hold'
   | 'unprocessed'
   | 'processing'
   | 'failed';

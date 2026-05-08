@@ -17,6 +17,8 @@ function makeEmptyQueue(scope: string) {
       actionable: 0,
       today: 0,
       unprocessed: 0,
+      needsClarification: 0,
+      duplicateHold: 0,
       processing: 0,
       readyReview: 0,
       failed: 0,
@@ -71,5 +73,35 @@ describe('CoachIntakeWorkspace empty states', () => {
 
     expect(screen.getByText(/No active intake items/i)).toBeInTheDocument();
     expect(screen.getByText(/Attach audio, transcript, or PLAUD clips to start a review/i)).toBeInTheDocument();
+  });
+
+  it('uses explicit blocked-gate copy for clarification and duplicate-hold scopes', () => {
+    const { rerender } = render(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={makeEmptyQueue('needs_clarification')}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/No clarification holds/i)).toBeInTheDocument();
+    expect(screen.getByText(/Items waiting for a narrow Coach question/i)).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={makeEmptyQueue('duplicate_hold')}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/No duplicate-risk holds/i)).toBeInTheDocument();
+    expect(screen.getByText(/Potential duplicate logs will wait here/i)).toBeInTheDocument();
   });
 });

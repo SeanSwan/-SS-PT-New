@@ -17,6 +17,8 @@ describe('CoachIntakeHealthStrip', () => {
       actionable: 3,
       today: 1,
       unprocessed: 1,
+      needsClarification: 2,
+      duplicateHold: 1,
       processing: 1,
       readyReview: 1,
       failed: 1,
@@ -65,6 +67,8 @@ describe('CoachIntakeHealthStrip', () => {
     expect(within(health).getByText(/Queue health/i)).toBeInTheDocument();
     expect(within(health).getByText(/Degraded/i)).toBeInTheDocument();
     expect(within(health).getByText(/1 stuck/i)).toBeInTheDocument();
+    expect(within(health).getByText(/2 clarify/i)).toBeInTheDocument();
+    expect(within(health).getByText(/1 duplicate/i)).toBeInTheDocument();
     expect(within(health).getByText(/Privacy retention/i)).toBeInTheDocument();
     expect(within(health).getByText(/2 purge ready/i)).toBeInTheDocument();
     expect(within(health).getByText(/1 review/i)).toBeInTheDocument();
@@ -96,6 +100,10 @@ describe('CoachIntakeHealthStrip', () => {
     expect(onScopeChange).toHaveBeenCalledWith('failed');
     fireEvent.click(within(health).getByRole('button', { name: /show client-resolution holds/i }));
     expect(onScopeChange).toHaveBeenCalledWith('needs_client');
+    fireEvent.click(within(health).getByRole('button', { name: /show clarification holds/i }));
+    expect(onScopeChange).toHaveBeenCalledWith('needs_clarification');
+    fireEvent.click(within(health).getByRole('button', { name: /show duplicate-risk holds/i }));
+    expect(onScopeChange).toHaveBeenCalledWith('duplicate_hold');
     fireEvent.click(within(health).getByRole('button', { name: /show processing intake items/i }));
     expect(onScopeChange).toHaveBeenCalledWith('processing');
   });

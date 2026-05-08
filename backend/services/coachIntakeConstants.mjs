@@ -25,6 +25,8 @@ export const COACH_INTAKE_SCOPES = new Set([
   'unprocessed',
   'processing',
   'ready_review',
+  'needs_clarification',
+  'duplicate_hold',
   'failed',
   'needs_client',
 ]);

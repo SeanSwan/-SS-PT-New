@@ -17,6 +17,8 @@ const EMPTY_COUNTS = Object.freeze({
   unprocessed: 0,
   processing: 0,
   readyReview: 0,
+  needsClarification: 0,
+  duplicateHold: 0,
   failed: 0,
   needsClient: 0,
   stuckProcessing: 0,
@@ -61,6 +63,12 @@ function nextOperatorAction(counts, schemaReady) {
   if (counts.needsClient > 0) {
     return { key: 'resolve_clients', label: 'Resolve client confirmations' };
   }
+  if (counts.needsClarification > 0) {
+    return { key: 'answer_clarifications', label: 'Answer Coach clarifications' };
+  }
+  if (counts.duplicateHold > 0) {
+    return { key: 'review_duplicate_holds', label: 'Review duplicate-risk holds' };
+  }
   if (counts.actionable > 0) {
     return { key: 'review_next', label: 'Review next intake' };
   }
@@ -75,6 +83,8 @@ function mapHealthRow(row = {}) {
     unprocessed: asCount(row.unprocessed),
     processing: asCount(row.processing),
     readyReview: asCount(row.ready_review),
+    needsClarification: asCount(row.needs_clarification),
+    duplicateHold: asCount(row.duplicate_hold),
     failed: asCount(row.failed),
     needsClient: asCount(row.needs_client),
     stuckProcessing: asCount(row.stuck_processing),
@@ -120,11 +130,14 @@ export async function getCoachIntakeHealth({
        COUNT(*) FILTER (WHERE created_at >= :dayStart AND created_at < :dayEnd)::int AS today,
        COUNT(*) FILTER (
          WHERE status NOT IN (
-           'READY_FOR_REVIEW','TRANSCRIBING','FAILED','APPROVED','APPLIED','ARCHIVED'
+           'READY_FOR_REVIEW','NEEDS_CLARIFICATION','DUPLICATE_HOLD',
+           'TRANSCRIBING','FAILED','APPROVED','APPLIED','ARCHIVED'
          )
        )::int AS unprocessed,
        COUNT(*) FILTER (WHERE status = 'TRANSCRIBING')::int AS processing,
        COUNT(*) FILTER (WHERE status = 'READY_FOR_REVIEW')::int AS ready_review,
+       COUNT(*) FILTER (WHERE status = 'NEEDS_CLARIFICATION')::int AS needs_clarification,
+       COUNT(*) FILTER (WHERE status = 'DUPLICATE_HOLD')::int AS duplicate_hold,
        COUNT(*) FILTER (WHERE status = 'FAILED')::int AS failed,
        COUNT(*) FILTER (
          WHERE resolved_client_id IS NULL AND status NOT IN (:archivedStatuses)

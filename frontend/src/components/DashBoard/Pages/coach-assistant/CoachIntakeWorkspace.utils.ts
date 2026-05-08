@@ -15,6 +15,8 @@ const COACH_QUEUE_SCOPES = new Set<CoachIntakeQueueScope>([
   'actionable',
   'ready_review',
   'needs_client',
+  'needs_clarification',
+  'duplicate_hold',
   'unprocessed',
   'processing',
   'failed',
@@ -56,9 +58,11 @@ function queuePriority(item: CoachIntakeItem): number {
   const priorities: Record<string, number> = {
     ready_review: 0,
     needs_client: 1,
-    unprocessed: 2,
-    processing: 3,
-    failed: 4,
+    needs_clarification: 2,
+    duplicate_hold: 3,
+    unprocessed: 4,
+    processing: 5,
+    failed: 6,
   };
   return priorities[item.queueStatus] ?? 99;
 }

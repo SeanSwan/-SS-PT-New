@@ -18,6 +18,8 @@ const EMPTY_SUMMARY: PlaudIntakeSummary = {
   unprocessed: 0,
   processing: 0,
   readyReview: 0,
+  needsClarification: 0,
+  duplicateHold: 0,
   failed: 0,
   needsClient: 0,
 };

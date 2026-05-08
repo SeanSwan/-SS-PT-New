@@ -21,6 +21,8 @@ function makeQueue(scope = 'actionable') {
       actionable: 0,
       today: 0,
       unprocessed: 0,
+      needsClarification: 0,
+      duplicateHold: 0,
       processing: 0,
       readyReview: 0,
       failed: 0,
@@ -61,6 +63,41 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
 
     await waitFor(() => {
       expect(queue.setScope).toHaveBeenCalledWith('failed');
+    });
+  });
+
+  it('adopts explicit clarification and duplicate-hold scopes from direct links', async () => {
+    const clarificationQueue = makeQueue('actionable');
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?scope=needs_clarification']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={clarificationQueue}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(clarificationQueue.setScope).toHaveBeenCalledWith('needs_clarification');
+    });
+    unmount();
+
+    const duplicateQueue = makeQueue('actionable');
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?scope=duplicate_hold']}>
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={duplicateQueue}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(duplicateQueue.setScope).toHaveBeenCalledWith('duplicate_hold');
     });
   });
 
