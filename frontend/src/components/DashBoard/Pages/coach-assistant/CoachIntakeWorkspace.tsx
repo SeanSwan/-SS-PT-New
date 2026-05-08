@@ -244,6 +244,7 @@ export function CoachIntakeWorkspace({
                 item={item}
                 active={active}
                 coachWorkspaceHref={coachWorkspaceHref}
+                onCommandPrompt={onCommandPrompt}
                 queueScope={queue.scope}
               />
             );

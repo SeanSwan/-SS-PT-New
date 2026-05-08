@@ -4,16 +4,17 @@
  * Compact queue row for Coach intake work items.
  */
 import React from 'react';
-import { GitBranch } from 'lucide-react';
+import { Brain, GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
-import { ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
-import { itemMeta, itemReviewHref, plural, queueScopedHref, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
+import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
+import { activeCoachActionPrompt, itemMeta, itemReviewHref, plural, queueScopedHref, visibleAudioPuzzle } from './CoachIntakeWorkspace.utils';
 
 interface CoachIntakeQueueItemCardProps {
   item: CoachIntakeItem;
   active: boolean;
   coachWorkspaceHref: string;
+  onCommandPrompt?: (message: string) => void;
   queueScope?: string;
 }
 
@@ -26,6 +27,7 @@ export function CoachIntakeQueueItemCard({
   item,
   active,
   coachWorkspaceHref,
+  onCommandPrompt,
   queueScope,
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
@@ -45,7 +47,14 @@ export function CoachIntakeQueueItemCard({
         <SourceChip>{item.sourceLabel}</SourceChip>
         {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
         {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
-        {item.nextActionLabel && <SourceChip $tone="purple">{item.nextActionLabel}</SourceChip>}
+        {item.nextActionLabel && onCommandPrompt ? (
+          <ActionButton type="button" onClick={() => onCommandPrompt(activeCoachActionPrompt(item))}>
+            <Brain size={14} aria-hidden="true" />
+            {item.nextActionLabel}
+          </ActionButton>
+        ) : item.nextActionLabel ? (
+          <SourceChip $tone="purple">{item.nextActionLabel}</SourceChip>
+        ) : null}
         <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${item.title}`}>
           Review
         </WorkspaceLink>
