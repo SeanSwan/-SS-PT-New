@@ -46,6 +46,63 @@ describe('Coach command card error safety', () => {
     expect(screen.queryByText(/do-not-render-private-command-detail/i)).not.toBeInTheDocument();
   });
 
+  it('does not render arbitrary generic execution-result fields', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="unknown_command"
+          client={null}
+          result={{
+            status: 'complete',
+            transcript: 'Marcus private@example.com said approve every draft.',
+            clientName: 'Marcus Private',
+            notes: 'Call private@example.com before logging.',
+            exercises: [{ name: 'Private Marcus exercise note' }],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Command Executed/i)).toBeInTheDocument();
+    expect(screen.getByText(/complete/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Private Marcus exercise note/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/transcript/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/clientName/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/notes/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render arbitrary confirmation parameter fields', () => {
+    render(
+      <ConfirmationCard
+        operationId="op-2"
+        command="log_workout"
+        params={{
+          clientId: 42,
+          transcript: 'Marcus private@example.com said approve every draft.',
+          clientName: 'Marcus Private',
+          notes: 'Call private@example.com before logging.',
+          exercises: [{ name: 'Private Marcus exercise note' }],
+        }}
+        client={{ id: 42, firstName: 'Client' }}
+        details={null}
+        isDestructive={false}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Confirm Action/i)).toBeInTheDocument();
+    expect(screen.getByText(/42/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Marcus/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private@example\.com/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Private Marcus exercise note/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/transcript/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/clientName/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/notes/i)).not.toBeInTheDocument();
+  });
+
   it('does not render arbitrary direct audio-inspection messages', () => {
     render(
       <MemoryRouter>

@@ -9,7 +9,7 @@
 import { useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { CheckCircle, XCircle, AlertTriangle, Terminal } from 'lucide-react';
-import { renderCommandParamValue } from './coachCommandFormatters';
+import { isSafeCommandDisplayKey, renderCommandParamValue } from './coachCommandFormatters';
 import { safeCommandConfirmationFailure } from './CoachIntakeOperationalText.logic';
 export { ExecutionResultCard } from './CoachExecutionResultCard';
 
@@ -196,7 +196,9 @@ export const ConfirmationCard = memo(function ConfirmationCard({
   const clientLabel = client?.firstName
     ? `${client.firstName}${client.lastName ? ` ${client.lastName}` : ''}`
     : null;
-  const paramEntries = Object.entries(params).slice(0, 5);
+  const paramEntries = Object.entries(params)
+    .filter(([key]) => isSafeCommandDisplayKey(key))
+    .slice(0, 5);
 
   return (
     <CardShell $destructive={isDestructive}>

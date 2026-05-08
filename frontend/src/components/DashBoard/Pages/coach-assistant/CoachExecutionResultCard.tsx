@@ -32,7 +32,7 @@ import {
 } from './CoachPlaudStructuredActionResultCard';
 import { safeCommandResultMessage } from './CoachIntakeOperationalText.logic';
 import { isCommandRouteKey } from './commandRouteKeys';
-import { renderCommandParamValue } from './coachCommandFormatters';
+import { isSafeCommandDisplayKey, renderCommandParamValue } from './coachCommandFormatters';
 
 const CardShell = styled.div`
   margin-top: 12px;
@@ -139,7 +139,9 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
 
   const clientLabel = client?.firstName ?? null;
   const resultEntries = result
-    ? Object.entries(result).filter(([key]) => !isCommandRouteKey(key)).slice(0, 6)
+    ? Object.entries(result)
+      .filter(([key]) => !isCommandRouteKey(key) && isSafeCommandDisplayKey(key))
+      .slice(0, 6)
     : [];
 
   return (
