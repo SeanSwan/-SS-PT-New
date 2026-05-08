@@ -498,7 +498,12 @@ interface GamificationSettingsProps {
   onUpdateTierThresholds: (tierThresholds: TierThreshold[]) => void;
   onUpdateLevelSettings: (levelSettings: LevelSettings) => void;
   onUpdateSystemSettings: (systemSettings: SystemSettings) => void;
-  onSaveSettings: () => void;
+  onSaveSettings: (settings: {
+    pointValues: PointValue[];
+    tierThresholds: TierThreshold[];
+    levelSettings: LevelSettings;
+    systemSettings: SystemSettings;
+  }) => void;
   onRestoreDefaults: () => void;
 }
 
@@ -592,7 +597,12 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
     onUpdateTierThresholds(editedTierThresholds);
     onUpdateLevelSettings(editedLevelSettings);
     onUpdateSystemSettings(editedSystemSettings);
-    onSaveSettings();
+    onSaveSettings({
+      pointValues: editedPointValues,
+      tierThresholds: editedTierThresholds,
+      levelSettings: editedLevelSettings,
+      systemSettings: editedSystemSettings,
+    });
     setIsEdited(false);
   };
 

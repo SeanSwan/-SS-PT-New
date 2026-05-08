@@ -3,6 +3,14 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const FRONTEND_ROOT = join(__dirname, '..', '..', '..', '..', '..');
+const ADMIN_GAMIFICATION_SHELL_FILES = [
+  'src/components/DashBoard/Pages/admin-gamification/AdminGamificationTabs.tsx',
+  'src/components/DashBoard/Pages/admin-gamification/admin-gamification-view.tsx',
+  'src/components/DashBoard/Pages/admin-gamification/admin-gamification.mappers.ts',
+  'src/components/DashBoard/Pages/admin-gamification/admin-gamification.styles.ts',
+  'src/components/DashBoard/Pages/admin-gamification/admin-gamification.types.ts',
+  'src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts',
+];
 
 function readSource(path: string) {
   return readFileSync(join(FRONTEND_ROOT, path), 'utf8');
@@ -34,5 +42,14 @@ describe('admin gamification economy guardrail contract', () => {
     }
 
     expect(guardrailSource).toContain('Rewards only count when they map to real health behavior.');
+  });
+
+  it('keeps the canonical admin gamification shell under the file-size rule', () => {
+    ADMIN_GAMIFICATION_SHELL_FILES.forEach(file => {
+      const source = readSource(file);
+      const lineCount = source.split(/\r?\n/).length;
+
+      expect(lineCount, `${file} has ${lineCount} lines`).toBeLessThanOrEqual(300);
+    });
   });
 });
