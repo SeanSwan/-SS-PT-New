@@ -86,6 +86,28 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
     expect(screen.getByLabelText(/current search/i)).toHaveTextContent('scope=failed');
   });
 
+  it('removes invalid scope values from direct links without losing the active intake', async () => {
+    const queue = makeQueue('actionable');
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=intake-1&scope=bogus']}>
+        <LocationProbe />
+        <CoachIntakeWorkspace
+          userRole="admin"
+          selectedClientName={null}
+          onCommandPrompt={vi.fn()}
+          queue={queue}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/current search/i)).toHaveTextContent('intake=intake-1');
+      expect(screen.getByLabelText(/current search/i)).not.toHaveTextContent('scope=bogus');
+    });
+    expect(queue.setScope).not.toHaveBeenCalledWith('bogus');
+  });
+
   it('shows the active queue scope in the workspace header', () => {
     const queue = makeQueue('failed');
 

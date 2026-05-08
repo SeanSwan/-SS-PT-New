@@ -33,9 +33,20 @@ export function useCoachIntakeScopeUrlSync({
 
   useEffect(() => {
     const urlScope = new URLSearchParams(location.search).get('scope');
+    if (urlScope && !isQueueScope(urlScope)) {
+      const params = new URLSearchParams(location.search);
+      params.delete('scope');
+      const search = params.toString();
+      navigate({
+        pathname: location.pathname,
+        search: search ? `?${search}` : '',
+        hash: location.hash,
+      }, { replace: true });
+      return;
+    }
     if (!isQueueScope(urlScope) || urlScope === activeScope) return;
     setScope?.(urlScope);
-  }, [activeScope, location.search, setScope]);
+  }, [activeScope, location.hash, location.pathname, location.search, navigate, setScope]);
 
   return useCallback((scope: CoachIntakeQueueScope) => {
     setScope?.(scope);
