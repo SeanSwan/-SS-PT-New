@@ -55,6 +55,7 @@ import {
   isActiveItem,
   itemEntityId,
   itemMeta,
+  itemProposalReviewHref,
   itemReviewHref,
   orderedQueueItems,
   pickNextItem,
@@ -210,7 +211,11 @@ export function CoachIntakeWorkspace({
           onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
           onPrepareDraftReview={() => onCommandPrompt(activeDraftReviewPrompt(activeItem))}
-          onReviewPreparedDraft={() => setReviewingProposalId(activeItem.latestProposalId || null)}
+          onReviewPreparedDraft={() => {
+            const proposalId = activeItem.latestProposalId || null;
+            setReviewingProposalId(proposalId);
+            if (proposalId) navigate(itemProposalReviewHref(activeItem, coachWorkspaceHref, proposalId), { replace: true });
+          }}
           confirmAudioOrderStatus={audioOrderConfirmation.statusFor(itemEntityId(activeItem))}
           isConfirmingAudioOrder={audioOrderConfirmation.confirmingId === itemEntityId(activeItem)}
         />

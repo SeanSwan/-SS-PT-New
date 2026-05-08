@@ -105,6 +105,13 @@ export function itemReviewHref(item: CoachIntakeItem | null, workspaceHref: stri
   return entityId ? `${workspaceHref}?intake=${encodeURIComponent(entityId)}` : workspaceHref;
 }
 
+export function itemProposalReviewHref(item: CoachIntakeItem, workspaceHref: string, proposalId?: string | null): string {
+  const reviewHref = itemReviewHref(item, workspaceHref);
+  const cleanProposalId = String(proposalId || '').trim();
+  if (!cleanProposalId || !reviewHref.includes('?intake=')) return reviewHref;
+  return `${reviewHref}&proposal=${encodeURIComponent(cleanProposalId)}`;
+}
+
 export function isActiveItem(item: CoachIntakeItem, activeIntakeId?: string | null): boolean {
   if (!activeIntakeId) return false;
   const clean = activeIntakeId.replace(/^coach:/, '');

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { getCoachProposal } from '../../../../services/coachProposalService';
@@ -41,6 +41,11 @@ function makeQueue() {
   };
 }
 
+function LocationProbe() {
+  const location = useLocation();
+  return <span data-testid="current-route">{location.pathname}{location.search}</span>;
+}
+
 describe('CoachIntakeWorkspace direct proposal links', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,5 +85,33 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/prepared draft link is stale/i);
     expect(getCoachProposal).not.toHaveBeenCalled();
+  });
+
+  it('replaces a stale proposal URL when the active latest draft is opened', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+        detail: { workout: { clientId: 42, date: '2026-05-06', exercises: [{ name: 'Squat' }] } },
+        reviewToken: 'review-v1.test',
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
+        <LocationProbe />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+
+    expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1');
   });
 });
