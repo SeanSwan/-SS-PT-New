@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 
+vi.mock('./CoachIntakeEventTrail', () => ({
+  default: () => null,
+}));
+
 function makeQueue({ needsOrderingReview = false, needsClient = false } = {}) {
   const intakeId = '77777777-7777-4777-9777-777777777777';
   return {
