@@ -125,4 +125,46 @@ describe('useCoachIntakeQueue proposal action bridge', () => {
     expect(getCoachIntakeRetention).toHaveBeenCalledTimes(2);
     expect(getCoachIntakeRetentionPurgePlan).toHaveBeenCalledTimes(2);
   });
+
+  it('requests the selected backend scope after a queue scope change', async () => {
+    vi.mocked(getCoachIntakeHealth).mockResolvedValue({
+      schemaReady: true,
+      status: 'healthy',
+      counts: { ...summary, stuckProcessing: 0 },
+      nextOperatorAction: { key: 'review_ready_drafts', label: 'Review ready drafts' },
+    });
+    vi.mocked(getCoachIntakeRetention).mockResolvedValue({
+      schemaReady: true,
+      status: 'healthy',
+      summary: { totalWithRawArtifacts: 0, purgeReady: 0, reviewRequired: 0, retained: 0 },
+      nextOperatorAction: { key: 'review_retention', label: 'Review retention' },
+    });
+    vi.mocked(getCoachIntakeRetentionPurgePlan).mockResolvedValue({
+      enabled: false,
+      dryRun: true,
+      schemaReady: true,
+      purgeReady: 0,
+      purged: 0,
+      skippedReason: 'disabled',
+    });
+    vi.mocked(listCoachIntakeItems)
+      .mockResolvedValueOnce({ items: [makeItem('actionable')], summary, scope: 'actionable', limit: 6 })
+      .mockResolvedValueOnce({ items: [makeItem('failed')], summary, scope: 'failed', limit: 6 });
+
+    const { result } = renderHook(() => useCoachIntakeQueue({ limit: 6 }));
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.id).toBe('actionable');
+    });
+
+    act(() => {
+      result.current.setScope?.('failed');
+    });
+
+    await waitFor(() => {
+      expect(result.current.scope).toBe('failed');
+      expect(result.current.items[0]?.id).toBe('failed');
+    });
+    expect(listCoachIntakeItems).toHaveBeenLastCalledWith({ scope: 'failed', limit: 6 });
+  });
 });

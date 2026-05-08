@@ -27,6 +27,7 @@ import CoachIntakeHealthStrip from './CoachIntakeHealthStrip';
 import CoachIntakeOutcomeReceipt, { outcomeFromProposal, type CoachIntakeOutcome } from './CoachIntakeOutcomeReceipt';
 import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
+import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import {
@@ -243,6 +244,11 @@ export function CoachIntakeWorkspace({
         </StatGrid>
 
         <ItemList aria-live="polite">
+          <CoachIntakeQueueScopeTabs
+            activeScope={queue.scope}
+            summary={summary}
+            onScopeChange={queue.setScope}
+          />
           {isLoading ? (
             <ItemCard><ItemTitle><strong>Loading intake queue</strong><span>Checking Coach, PLAUD, and voice work items.</span></ItemTitle></ItemCard>
           ) : error ? (

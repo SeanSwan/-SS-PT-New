@@ -7,16 +7,9 @@ import { isAxiosError } from 'axios';
 import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
 import type { PlaudIntakeItem, PlaudIntakeSummary } from './plaudIntakeService';
+import type { CoachAudioPuzzleSummary } from './coachIntakeTypes';
 
-export type CoachAudioPuzzleConfidence = 'single' | 'high' | 'medium' | 'low';
-
-export interface CoachAudioPuzzleSummary {
-  pieceCount: number;
-  bundleCount: number;
-  autoBundleCount: number;
-  needsOrderingReview: boolean;
-  confidence: CoachAudioPuzzleConfidence;
-}
+export type { CoachAudioPuzzleConfidence, CoachAudioPuzzleSummary, CoachIntakeQueueScope } from './coachIntakeTypes';
 
 type CoachIntakeAudioFields = {
   audioPuzzle?: CoachAudioPuzzleSummary | null;

@@ -13,6 +13,7 @@ import {
   type CoachIntakeRetentionPurgePlan,
   listCoachIntakeItems,
   type CoachIntakeItem,
+  type CoachIntakeQueueScope,
 } from '../services/coachIntakeService';
 import { subscribeCoachProposalActions } from '../services/coachProposalActionEvents';
 import type { PlaudIntakeSummary } from '../services/plaudIntakeService';
@@ -44,6 +45,8 @@ export interface CoachIntakeQueueState {
   health: CoachIntakeHealth | null;
   retention: CoachIntakeRetention | null;
   retentionPurgePlan: CoachIntakeRetentionPurgePlan | null;
+  scope?: string;
+  setScope?: (scope: CoachIntakeQueueScope) => void;
   refresh: () => Promise<CoachIntakeItem[]>;
 }
 
@@ -56,6 +59,7 @@ export function useCoachIntakeQueue({
   limit?: number;
   enabled?: boolean;
 } = {}): CoachIntakeQueueState {
+  const [activeScope, setActiveScope] = useState(scope);
   const [items, setItems] = useState<CoachIntakeItem[]>([]);
   const [summary, setSummary] = useState<PlaudIntakeSummary>(EMPTY_SUMMARY);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +73,10 @@ export function useCoachIntakeQueue({
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
   }, []);
+
+  useEffect(() => {
+    setActiveScope(scope);
+  }, [scope]);
 
   const refresh = useCallback(async (): Promise<CoachIntakeItem[]> => {
     if (!enabled) {
@@ -85,7 +93,7 @@ export function useCoachIntakeQueue({
     setError(null);
     try {
       const [response, healthResult, retentionResult, purgePlanResult] = await Promise.all([
-        listCoachIntakeItems({ scope, limit }),
+        listCoachIntakeItems({ scope: activeScope, limit }),
         getCoachIntakeHealth().catch(() => null),
         getCoachIntakeRetention().catch(() => null),
         getCoachIntakeRetentionPurgePlan().catch(() => null),
@@ -110,7 +118,7 @@ export function useCoachIntakeQueue({
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
-  }, [scope, limit, enabled]);
+  }, [activeScope, limit, enabled]);
 
   useEffect(() => {
     refresh();
@@ -123,7 +131,18 @@ export function useCoachIntakeQueue({
     });
   }, [enabled, refresh]);
 
-  return { items, summary, isLoading, error, health, retention, retentionPurgePlan, refresh };
+  return {
+    items,
+    summary,
+    isLoading,
+    error,
+    health,
+    retention,
+    retentionPurgePlan,
+    scope: activeScope,
+    setScope: setActiveScope,
+    refresh,
+  };
 }
 
 export default useCoachIntakeQueue;
