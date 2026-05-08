@@ -692,7 +692,7 @@ const placeholderEvents = [
   },
   {
     id: 2,
-    title: 'Yoga & Meditation',
+    title: 'Flexibility & Recovery',
     date: 'Mar 18, 2026',
     time: '9:00 AM',
     location: 'Beach Front',

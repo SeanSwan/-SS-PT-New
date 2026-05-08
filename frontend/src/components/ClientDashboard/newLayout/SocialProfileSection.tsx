@@ -555,7 +555,7 @@ const SocialProfileSection: React.FC = () => {
     bio: 'Fitness enthusiast, amateur painter, and always looking for the next adventure! I love combining exercise with creative expression.',
     location: 'Los Angeles, CA',
     memberSince: 'January 2023',
-    interests: ['HIIT Training', 'Dance', 'Painting', 'Hiking', 'Yoga'],
+    interests: ['HIIT Training', 'Dance', 'Painting', 'Hiking', 'Flexibility'],
     level: 15,
     verified: true
   });
