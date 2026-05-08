@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 export const IntakeSnapshot = styled.section`
@@ -100,6 +101,22 @@ export const BadgeCluster = styled.span`
 
   @media (max-width: 640px) {
     justify-content: flex-start;
+  }
+`;
+
+export const IntakePreviewLink = styled(Link)`
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+    border-radius: 6px;
   }
 `;
 

@@ -52,6 +52,7 @@ import {
 import {
   BadgeCluster,
   IntakePreviewItem,
+  IntakePreviewLink,
   IntakePreviewList,
   IntakeSnapshot,
   IntakeSnapshotHeader,
@@ -95,6 +96,18 @@ function visibleIntakePreviewItems(items: PlaudIntakeItem[], selectedMergeReques
 function parseMergeRequestId(value: string | null): string | null {
   if (!value || !/^[0-9a-fA-F-]{36}$/.test(value)) return null;
   return value;
+}
+
+function intakePreviewHref(item: PlaudIntakeItem, role: 'admin' | 'trainer'): string {
+  if (item.kind === 'merge_request') {
+    return item.entityId
+      ? `/dashboard/${role}/plaud?mergeRequestId=${encodeURIComponent(item.entityId)}`
+      : `/dashboard/${role}/plaud?review=next`;
+  }
+  const intakeId = String(item.entityId || item.id || '').replace(/^coach:/, '');
+  return intakeId
+    ? `/dashboard/${role}/coach-assistant?intake=${encodeURIComponent(intakeId)}`
+    : `/dashboard/${role}/coach-assistant`;
 }
 
 export function PlaudIntelligenceWorkspacePage(): JSX.Element {
@@ -214,11 +227,14 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
                 $selected={isDirectMergeTarget}
                 aria-current={isDirectMergeTarget ? 'true' : undefined}
               >
-                <span>
+                <IntakePreviewLink
+                  to={intakePreviewHref(item, role)}
+                  aria-label={`Review intake ${item.title || item.clientName || item.sourceLabel}`}
+                >
                   <strong>{item.clientName || 'Client pending'}</strong>
                   {' - '}
                   {formatQueueStatus(item.queueStatus)}
-                </span>
+                </IntakePreviewLink>
                 <BadgeCluster>
                   {isDirectMergeTarget && <SourceBadge $tone="gold">Selected review</SourceBadge>}
                   <SourceBadge>{item.sourceLabel}</SourceBadge>

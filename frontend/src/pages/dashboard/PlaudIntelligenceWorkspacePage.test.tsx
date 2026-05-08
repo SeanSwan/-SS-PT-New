@@ -95,6 +95,17 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/Selected review/);
   });
 
+  it('turns intake preview rows into direct review links', () => {
+    expect(PAGE_SRC).toMatch(/function intakePreviewHref/);
+    expect(PAGE_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
+    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?mergeRequestId=/);
+    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
+    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant\?intake=/);
+    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant`/);
+    expect(PAGE_SRC).toMatch(/IntakePreviewLink/);
+    expect(PAGE_SRC).toMatch(/to=\{intakePreviewHref\(item, role\)\}/);
+  });
+
   it('keeps a direct merge request target visible when it is outside the default preview window', () => {
     expect(PAGE_SRC).toMatch(/function visibleIntakePreviewItems/);
     expect(PAGE_SRC).toMatch(/selectedMergeRequestId/);
