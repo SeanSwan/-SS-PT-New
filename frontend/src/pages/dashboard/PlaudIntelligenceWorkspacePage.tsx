@@ -16,7 +16,7 @@
  * must not imply autonomous writes: clip ordering, splitting, and log creation
  * still require the prepared-draft and human approval gates.
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -119,6 +119,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const role = useDashboardRole();
+  const invalidReviewLinkRef = useRef<HTMLDivElement | null>(null);
   const coachPath = `/dashboard/${role}/coach-assistant`;
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
   const params = new URLSearchParams(location.search);
@@ -148,6 +149,11 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     }
   }, []);
 
+  const focusInvalidReviewLink = useCallback(() => {
+    invalidReviewLinkRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    invalidReviewLinkRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('review') !== 'next') return undefined;
@@ -164,6 +170,12 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
     }
     return undefined;
   }, [focusMergePanel, location.search]);
+
+  useEffect(() => {
+    if (!hasInvalidDirectMergeRequestId) return undefined;
+    const timer = window.setTimeout(focusInvalidReviewLink, 120);
+    return () => window.clearTimeout(timer);
+  }, [focusInvalidReviewLink, hasInvalidDirectMergeRequestId]);
 
   return (
     <WorkspaceShell data-testid="plaud-intelligence-workspace">
@@ -218,7 +230,12 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
           </IntakeStat>
         </IntakeStats>
         {hasInvalidDirectMergeRequestId && (
-          <IntakeRecoveryAlert role="alert" data-testid="plaud-invalid-review-link">
+          <IntakeRecoveryAlert
+            ref={invalidReviewLinkRef}
+            role="alert"
+            tabIndex={-1}
+            data-testid="plaud-invalid-review-link"
+          >
             <AlertTriangle size={18} aria-hidden="true" />
             <span>That PLAUD review link has an invalid merge request ID.</span>
             <IntakeRecoveryLink to={`/dashboard/${role}/plaud?review=next`}>

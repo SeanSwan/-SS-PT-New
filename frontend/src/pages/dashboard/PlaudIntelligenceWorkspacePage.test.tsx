@@ -92,7 +92,10 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   it('surfaces malformed direct merge request links with a review-next recovery path', () => {
     expect(PAGE_SRC).toMatch(/rawMergeRequestId/);
     expect(PAGE_SRC).toMatch(/hasInvalidDirectMergeRequestId/);
+    expect(PAGE_SRC).toMatch(/invalidReviewLinkRef/);
+    expect(PAGE_SRC).toMatch(/setTimeout\(focusInvalidReviewLink/);
     expect(PAGE_SRC).toMatch(/IntakeRecoveryAlert/);
+    expect(PAGE_SRC).toMatch(/tabIndex=\{-1\}/);
     expect(PAGE_SRC).toMatch(/data-testid="plaud-invalid-review-link"/);
     expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
   });

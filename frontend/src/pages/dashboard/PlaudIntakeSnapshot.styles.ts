@@ -94,6 +94,11 @@ export const IntakeRecoveryAlert = styled.div`
     color: var(--text-secondary, rgba(224, 236, 244, 0.76));
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
+
   @media (max-width: 640px) {
     grid-template-columns: 20px minmax(0, 1fr);
   }
