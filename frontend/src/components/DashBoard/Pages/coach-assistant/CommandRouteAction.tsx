@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { ArrowRight } from 'lucide-react';
 
+const PLAUD_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 const ActionWrap = styled.div`
   margin-top: 12px;
 `;
@@ -70,6 +72,13 @@ function safeInternalRoute(value: unknown): string | null {
 
   const isAllowedCoachPlaudSurface = (path: string) => /^\/dashboard\/(admin|trainer)\/(coach-assistant|plaud)\/?$/.test(path);
   if (!isAllowedCoachPlaudSurface(rawPath) || !isAllowedCoachPlaudSurface(decodedPath)) return null;
+
+  if (decodedPath.includes('/plaud')) {
+    const [, rawSearch = ''] = route.split('?', 2);
+    const search = rawSearch.split('#', 1)[0];
+    const mergeRequestId = new URLSearchParams(search).get('mergeRequestId');
+    if (mergeRequestId && !PLAUD_UUID_RE.test(mergeRequestId)) return null;
+  }
 
   return route;
 }

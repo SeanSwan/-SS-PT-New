@@ -35,14 +35,14 @@ describe('ExecutionResultCard route actions', () => {
           result={{
             readyReview: 2,
             queueRoute: '/dashboard/admin/plaud',
-            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=merge-123',
+            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111',
           }}
         />
       </MemoryRouter>,
     );
 
     const link = screen.getByRole('link', { name: /open plaud review/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=merge-123');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
     expect(screen.getByText(/Next intake ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Open the selected PLAUD review item/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/PLAUD intake queue summary/i)).toBeInTheDocument();
@@ -60,6 +60,25 @@ describe('ExecutionResultCard route actions', () => {
             readyReview: 2,
             queueRoute: '/dashboard/admin/plaud',
             reviewRoute: '/dashboard/admin/plaud?mergeRequestId=abc%0Aonclick',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open plaud workspace/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+  });
+
+  it('skips malformed merge request review routes and uses the queue fallback', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_plaud_intake"
+          client={null}
+          result={{
+            readyReview: 2,
+            queueRoute: '/dashboard/admin/plaud',
+            reviewRoute: '/dashboard/admin/plaud?mergeRequestId=merge-123',
           }}
         />
       </MemoryRouter>,
