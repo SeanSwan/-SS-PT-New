@@ -100,7 +100,11 @@ export function PlaudMergeReviewStatusRibbon(props: PlaudMergeReviewStatusRibbon
       <MergeStatusCell>
         <MergeStatusLabel>Next action</MergeStatusLabel>
         <MergeStatusValue>{next.label}</MergeStatusValue>
-        <MergeStatusAction type="button" onClick={() => focusMergeAction(next.actionId)}>
+        <MergeStatusAction
+          type="button"
+          aria-label={`Focus next action: ${next.label}`}
+          onClick={() => focusMergeAction(next.actionId)}
+        >
           Focus next action
         </MergeStatusAction>
       </MergeStatusCell>

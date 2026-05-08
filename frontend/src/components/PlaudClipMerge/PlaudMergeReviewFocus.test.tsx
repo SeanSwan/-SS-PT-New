@@ -138,6 +138,35 @@ describe('PlaudMergeReview focus handoff', () => {
     expect(screen.getByText(/Upload timeline: 2 clips/i)).toBeInTheDocument();
   });
 
+  it('labels a single uploaded clip as a single time anchor', () => {
+    const reviewState: PlaudMergeReviewState = {
+      ...makeReviewState(),
+      clipTimeline: [
+        {
+          mergeStep: 1,
+          clipId: 'clip-1',
+          filename: 'full-workout.mp3',
+          uploadedAt: '2026-05-04T11:00:00.000Z',
+          durationSec: 600,
+          source: 'manual_upload',
+          orderMode: 'uploaded_at_asc',
+        },
+      ],
+    };
+
+    render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={vi.fn()}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Upload timeline: 1 clip at/i)).toBeInTheDocument();
+    expect(screen.queryByText(/from .* to/i)).toBeNull();
+  });
+
   it('focuses the matching PLAUD action from the active status ribbon', () => {
     const onBack = vi.fn();
     const reviewState = {
@@ -156,7 +185,7 @@ describe('PlaudMergeReview focus handoff', () => {
     );
 
     const ribbon = screen.getByLabelText('Active merge status');
-    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action/i }));
+    fireEvent.click(within(ribbon).getByRole('button', { name: /focus next action: return to merge queue/i }));
 
     expect(screen.getByRole('button', { name: /back to merge queue/i })).toHaveFocus();
   });
