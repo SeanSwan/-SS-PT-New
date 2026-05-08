@@ -6,6 +6,7 @@
  * These helpers mirror the operator-facing Coach intake dossier state without
  * exposing transcript text, client names, or write-capable instructions.
  */
+import { hasReviewablePreparedDraft } from '../coachIntakeProposalReadiness.mjs';
 
 function audioPieceCount(item) {
   const puzzlePieces = Number(item?.audioPuzzle?.pieceCount || 0);
@@ -27,24 +28,30 @@ function canPrepareDraftReview(item) {
 
 export function coachIntakeBlockingGate(item) {
   if (!item) return null;
-  if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
-  if (item.needsClient) return 'Client confirmation required';
-  if (item.latestProposalId) return 'Draft waiting for review';
-  if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
   if (item.queueStatus === 'failed') return 'Intake failed';
   if (item.queueStatus === 'processing') return 'Processing is still running';
+  if (needsAudioOrderConfirmation(item)) return 'Audio order must be confirmed';
+  if (item.needsClient) return 'Client confirmation required';
+  if (hasReviewablePreparedDraft(item)) return 'Draft waiting for review';
+  if (canPrepareDraftReview(item)) return 'Final write requires a prepared draft';
   return 'No blocking gate';
 }
 
 export function coachIntakeNextAction(item) {
   if (!item) return { key: null, label: null };
+  if (item.queueStatus === 'failed') {
+    return { key: 'review_failed_intake', label: 'Review failed intake' };
+  }
+  if (item.queueStatus === 'processing') {
+    return { key: 'wait_for_processing', label: 'Wait for processing' };
+  }
   if (needsAudioOrderConfirmation(item)) {
     return { key: 'confirm_audio_order', label: 'Confirm audio order' };
   }
   if (item.needsClient) {
     return { key: 'resolve_client', label: 'Ask Coach to resolve client' };
   }
-  if (item.latestProposalId) {
+  if (hasReviewablePreparedDraft(item)) {
     return { key: 'review_prepared_draft', label: 'Review prepared draft' };
   }
   if (canPrepareDraftReview(item)) {

@@ -3,6 +3,8 @@
  * ============================
  * Shared metadata-only ordering for unified Coach/PLAUD review worklists.
  */
+import { hasReviewablePreparedDraft } from './coachIntakeProposalReadiness.mjs';
+
 const STATUS_PRIORITY = new Map([
   ['ready_review', 0],
   ['needs_client', 1],
@@ -10,15 +12,6 @@ const STATUS_PRIORITY = new Map([
   ['processing', 3],
   ['failed', 4],
 ]);
-
-const TERMINAL_PROPOSAL_STATUSES = new Set(['APPLIED', 'REJECTED', 'FAILED']);
-
-function hasReviewablePreparedDraft(item) {
-  if (!item?.latestProposalId && !item?.latestProposal?.id) return false;
-  if (['archived', 'failed', 'processing'].includes(item.queueStatus)) return false;
-  const status = String(item.latestProposal?.status || '').trim().toUpperCase();
-  return !TERMINAL_PROPOSAL_STATUSES.has(status);
-}
 
 export function coachIntakeQueuePriority(item) {
   if (hasReviewablePreparedDraft(item)) return -2;
