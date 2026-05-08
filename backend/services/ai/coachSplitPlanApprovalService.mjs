@@ -9,6 +9,7 @@ import {
   createCoachActionProposalDraft,
 } from './coachActionProposalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
+import { normalizeCoachIntakeId } from './coachActionProposalIntakeLinkService.mjs';
 
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
 
@@ -53,13 +54,16 @@ export function sanitizeSplitCandidate(split, index) {
   };
 }
 
-function workoutPayloadFromSplit(split, proposal) {
+function workoutPayloadFromSplit(split, proposal, row) {
   const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
   const clientId = Number(source.clientId || proposal?.payload?.clientId || proposal?.targetUserId || 0) || null;
   const date = optionalText(source.date, 32);
   const exercises = validExercises(source.exercises);
   if (!clientId || !date || exercises.length === 0) return null;
   const evidence = safeRefs(source.evidenceRefs);
+  const parentMeta = proposal?.payload?.proposalMeta || {};
+  const intakeId = normalizeCoachIntakeId(parentMeta.intakeId || parentMeta.intake_id || null);
+  const parentProposalId = optionalText(row?.id, 64);
   return {
     action: 'import_workout_log',
     clientId,
@@ -75,6 +79,8 @@ function workoutPayloadFromSplit(split, proposal) {
       safetyFlags: ['split_plan_child'],
       requiresConfirmation: true,
       parentProposalType: COACH_PROPOSAL_TYPE.SPLIT_PLAN,
+      ...(intakeId ? { intakeId } : {}),
+      ...(parentProposalId ? { parentProposalId } : {}),
     },
   };
 }
@@ -83,7 +89,7 @@ async function prepareWorkoutProposalsFromSplits({ splits, proposal, row, req, d
   const workoutProposals = [];
   let skippedWorkoutProposalCount = 0;
   for (const split of splits) {
-    const payload = workoutPayloadFromSplit(split, proposal);
+    const payload = workoutPayloadFromSplit(split, proposal, row);
     if (!payload) {
       skippedWorkoutProposalCount += 1;
       continue;

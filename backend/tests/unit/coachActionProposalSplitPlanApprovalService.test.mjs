@@ -54,6 +54,7 @@ function fakeSplitApprovalDb({ order = [] } = {}) {
 
 async function loadApprovalService({ order = [] } = {}) {
   vi.resetModules();
+  const encryptedPayloads = [];
   const logWorkoutForClient = vi.fn(async () => {
     order.push('workout-write');
     return { id: 'workout-1' };
@@ -63,14 +64,22 @@ async function loadApprovalService({ order = [] } = {}) {
     ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
   }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
-    encryptPayload: vi.fn(() => ({
+    encryptPayload: vi.fn((payload) => {
+      encryptedPayloads.push(payload);
+      return ({
       cipher: 'child-cipher',
       iv: 'child-iv',
       tag: 'child-tag',
       keyId: 'VTEST',
-    })),
+      });
+    }),
     decryptPayload: vi.fn(() => ({
       payload: {
+        proposalMeta: {
+          intakeId: '77777777-7777-4777-9777-777777777777',
+          evidenceRefs: ['parent_clip_meta'],
+          safetyFlags: ['multi_session_split'],
+        },
         splits: [
           {
             title: 'Morning lower body',
@@ -106,7 +115,7 @@ async function loadApprovalService({ order = [] } = {}) {
     processAIDataUpdates: vi.fn(),
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, logWorkoutForClient };
+  return { ...service, encryptedPayloads, logWorkoutForClient };
 }
 
 afterEach(() => {
@@ -120,6 +129,7 @@ describe('split-plan Coach proposal approval', () => {
     const db = fakeSplitApprovalDb({ order });
     const {
       approveCoachActionProposal,
+      encryptedPayloads,
       getCoachActionProposal,
       logWorkoutForClient,
     } = await loadApprovalService({ order });
@@ -166,6 +176,17 @@ describe('split-plan Coach proposal approval', () => {
     });
     expect(JSON.stringify(result.body.splitPlan)).not.toContain('raw transcript');
     expect(JSON.stringify(result.body.splitPlan)).not.toContain('555-0101');
+    expect(encryptedPayloads).toHaveLength(2);
+    expect(encryptedPayloads[0].payload.proposalMeta).toMatchObject({
+      intakeId: '77777777-7777-4777-9777-777777777777',
+      parentProposalId: splitPlanRow.id,
+      parentProposalType: 'split_plan',
+    });
+    expect(encryptedPayloads[1].payload.proposalMeta).toMatchObject({
+      intakeId: '77777777-7777-4777-9777-777777777777',
+      parentProposalId: splitPlanRow.id,
+      parentProposalType: 'split_plan',
+    });
     expect(logWorkoutForClient).not.toHaveBeenCalled();
     expect(order).toEqual(['claim', 'insert:workout_log', 'insert:workout_log']);
   });
