@@ -24,6 +24,12 @@ import { PlaudClientResolver, type PlaudResolvedClient } from './PlaudClientReso
 import { PlaudClipUploader } from './PlaudClipUploader';
 import { PlaudClipQueue } from './PlaudClipQueue';
 import {
+  safePlaudIssueCode,
+  safePlaudMergeErrorMessage,
+  safePlaudRejectedFileMessage,
+  safePlaudUploadErrorMessage,
+} from './plaudSafeErrorText';
+import {
   ActionBar,
   ErrorBanner,
   MergeButton,
@@ -102,7 +108,8 @@ export function PlaudClipMergePanel({
         <ErrorBanner role="alert">
           <AlertCircle size={18} aria-hidden="true" />
           <div>
-            <strong>{queue.uploadError.code}:</strong> {queue.uploadError.message}
+            <strong>{safePlaudIssueCode(queue.uploadError.code)}:</strong>{' '}
+            {safePlaudUploadErrorMessage(queue.uploadError.code)}
           </div>
         </ErrorBanner>
       ) : null}
@@ -115,7 +122,8 @@ export function PlaudClipMergePanel({
             <RejectedList>
               {queue.rejectedClips.map((r, idx) => (
                 <li key={`${r.filename}-${idx}`}>
-                  <strong>{r.filename}:</strong> {r.code} — {r.message}
+                  <strong>{r.filename}:</strong> {safePlaudIssueCode(r.code)} -{' '}
+                  {safePlaudRejectedFileMessage(r.code)}
                 </li>
               ))}
             </RejectedList>
@@ -173,7 +181,8 @@ export function PlaudClipMergePanel({
         <ErrorBanner role="alert">
           <AlertCircle size={18} aria-hidden="true" />
           <div>
-            <strong>{mergeError.code}:</strong> {mergeError.message}
+            <strong>{safePlaudIssueCode(mergeError.code)}:</strong>{' '}
+            {safePlaudMergeErrorMessage(mergeError.code)}
           </div>
         </ErrorBanner>
       ) : null}
