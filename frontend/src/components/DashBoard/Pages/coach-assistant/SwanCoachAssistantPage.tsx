@@ -704,7 +704,7 @@ const SwanCoachAssistantPage: React.FC = () => {
             if (upload.clips.length > 0) {
               attachments.clearFiles();
               void coachIntakeQueue.refresh();
-              void coach.sendMessage('inspect pending PLAUD audio pieces');
+              void coach.sendMessage('inspect pending Coach audio pieces');
               return;
             }
 

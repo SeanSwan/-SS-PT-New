@@ -114,7 +114,7 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
     // transcript-class branch, after which the existing-flow code runs.
     const branchEndIdx = PAGE_SOURCE.indexOf('// Existing flow', guardIdx);
     expect(branchEndIdx).toBeGreaterThan(guardIdx);
-    const allowedAudioCommandIdx = PAGE_SOURCE.indexOf("coach.sendMessage('inspect pending PLAUD audio pieces')");
+    const allowedAudioCommandIdx = PAGE_SOURCE.indexOf("coach.sendMessage('inspect pending Coach audio pieces')");
     for (const idx of sendIdxs) {
       if (idx === allowedAudioCommandIdx) continue;
       const inTranscriptBranch = idx > guardIdx && idx < branchEndIdx;
@@ -485,7 +485,8 @@ describe('Coach audio intake — single clip pass-through', () => {
     expect(helperIdx).toBeGreaterThan(0);
     const helperSlice = PAGE_SOURCE.slice(helperIdx, helperIdx + 1800);
     expect(helperSlice).toMatch(/uploadClips\(audioFiles\.map\(\(f\)\s*=>\s*f\.file\)\)/);
-    expect(helperSlice).toMatch(/inspect pending PLAUD audio pieces/);
+    expect(helperSlice).toMatch(/inspect pending Coach audio pieces/);
+    expect(helperSlice).not.toMatch(/inspect pending PLAUD audio pieces/);
     const multiBranchIdx = PAGE_SOURCE.indexOf('files.length > 1', helperIdx);
     const countGuardIdx = PAGE_SOURCE.indexOf('countTranscriptClassFiles(files)', multiBranchIdx);
     expect(countGuardIdx).toBeGreaterThan(multiBranchIdx);

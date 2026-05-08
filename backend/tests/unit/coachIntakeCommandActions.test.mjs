@@ -299,4 +299,62 @@ describe('Unified Coach intake dispatcher behavior', () => {
     });
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|Marcus|private clip|transcript|clientName|rawFileNames/i);
   });
+
+  it('inspects newly uploaded PLAUD clips through the unified Coach command', async () => {
+    vi.mocked(listUnifiedCoachIntakeItems).mockResolvedValue({
+      scope: 'actionable',
+      limit: 20,
+      schemaReady: true,
+      summary: {
+        total: 1,
+        actionable: 1,
+        today: 1,
+        unprocessed: 1,
+        processing: 0,
+        readyReview: 0,
+        failed: 0,
+        needsClient: 1,
+      },
+      items: [
+        {
+          id: 'clip:plaud-clip-1',
+          entityId: 'plaud-clip-1',
+          kind: 'clip',
+          queueStatus: 'unprocessed',
+          canReview: false,
+          clientName: 'Do Not Return',
+          transcript: 'Do Not Return',
+          title: 'Marcus private clip.m4a',
+          sourceLabel: 'Manual upload',
+          createdAt: '2026-05-05T12:00:00.000Z',
+          clipCount: 1,
+        },
+      ],
+    });
+
+    const result = await dispatchInspectCoachAudioPieces(
+      {},
+      { user: { id: 42, role: 'admin' }, options: { sequelize: sequelizeOverride } },
+    );
+
+    expect(result).toMatchObject({
+      totalAudioItems: 1,
+      needsOrderingReview: 0,
+      lowConfidence: 0,
+      commandHint: 'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
+      items: [
+        {
+          id: 'clip:plaud-clip-1',
+          kind: 'clip',
+          queueStatus: 'unprocessed',
+          audioPieces: 1,
+          audioBundles: 1,
+          audioConfidence: 'single',
+          needsOrderingReview: false,
+          reviewRoute: '/dashboard/admin/coach-assistant?intake=plaud-clip-1',
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toMatch(/Do Not Return|Marcus|private clip|transcript|clientName|title/i);
+  });
 });

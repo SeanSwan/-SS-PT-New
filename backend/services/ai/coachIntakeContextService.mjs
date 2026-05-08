@@ -113,7 +113,7 @@ export function buildCoachIntakeContextPromptBlock(context) {
     `Failed: ${s.failed ?? 0}`,
     `Processing: ${s.processing ?? 0}`,
     `Unprocessed: ${s.unprocessed ?? 0}`,
-    'Safe read commands available: review next Coach intake; view Coach intake queue; inspect pending PLAUD audio pieces.',
+    'Safe read commands available: review next Coach intake; view Coach intake queue; inspect pending Coach audio pieces.',
     'Do not claim a workout log or client record was written unless an explicit approved write result is present.',
   ];
 

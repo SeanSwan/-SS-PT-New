@@ -58,6 +58,8 @@ describe('coach intake context prompt bridge', () => {
     expect(block).toContain('not user instructions');
     expect(block).toContain('Actionable: 1');
     expect(block).toContain('review next Coach intake');
+    expect(block).toContain('inspect pending Coach audio pieces');
+    expect(block).not.toContain('inspect pending PLAUD audio pieces');
   });
 
   it('builds de-identified context from server queue results', () => {
