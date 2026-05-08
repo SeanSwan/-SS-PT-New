@@ -232,7 +232,7 @@ export function safeAttachmentSourceLabel(value: unknown, fallback = 'Source fil
   if (!text) return fallback;
   if (/^\d+ audio pieces?$/i.test(text)) return text;
   if (/\.(mp3|m4a|wav|aac|ogg|opus|flac|webm)$/i.test(text)) return 'Audio item';
-  if (/\.(txt|md|pdf|doc|docx)$/i.test(text)) return 'Transcript file';
+  if (/\.(txt|csv|md|pdf|doc|docx)$/i.test(text)) return 'Transcript file';
   return fallback;
 }
 

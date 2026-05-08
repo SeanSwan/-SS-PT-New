@@ -10,6 +10,7 @@
  *   delivery remains outside this hook.
  */
 import { useState, useCallback, useRef } from 'react';
+import { safeAttachmentSourceLabel } from '../CoachIntakeOperationalText.logic';
 
 export interface AttachedFile {
   id: string;
@@ -107,8 +108,9 @@ export function useFileAttachment(): UseFileAttachmentReturn {
 
       const validated: AttachedFile[] = [];
       for (const file of newFiles) {
+        const sourceLabel = safeAttachmentSourceLabel(file.name, 'Attachment');
         if (!ALLOWED_TYPES.includes(file.type)) {
-          setError(`${file.name}: unsupported file type`);
+          setError(`${sourceLabel}: unsupported file type`);
           continue;
         }
 
@@ -123,12 +125,12 @@ export function useFileAttachment(): UseFileAttachmentReturn {
           const totalDoc = existingDocCount + incomingDocCount;
 
           if (totalDoc > 1) {
-            setError(`${file.name}: only one text/PDF transcript is allowed per send. Remove the existing one first.`);
+            setError(`${sourceLabel}: only one text/PDF transcript is allowed per send. Remove the existing one first.`);
             continue;
           }
 
           if (totalAudio > 0 && totalDoc > 0) {
-            setError(`${file.name}: upload audio clips separately from text/PDF transcripts.`);
+            setError(`${sourceLabel}: upload audio clips separately from text/PDF transcripts.`);
             continue;
           }
         }
@@ -136,7 +138,7 @@ export function useFileAttachment(): UseFileAttachmentReturn {
         const sizeLimit = isTranscript ? TRANSCRIPT_MAX_FILE_SIZE : MAX_FILE_SIZE;
         if (file.size > sizeLimit) {
           const limitMb = Math.round(sizeLimit / 1024 / 1024);
-          setError(`${file.name}: exceeds ${limitMb}MB limit`);
+          setError(`${sourceLabel}: exceeds ${limitMb}MB limit`);
           continue;
         }
 

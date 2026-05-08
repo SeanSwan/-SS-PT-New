@@ -162,6 +162,30 @@ describe('useFileAttachment non-transcript attachments still work', () => {
     expect(result.current.error).toMatch(/unsupported file type/i);
     expect(result.current.files).toHaveLength(0);
   });
+
+  it('does not expose raw local filenames in unsupported-type errors', () => {
+    const { result } = renderHook(() => useFileAttachment());
+    act(() => {
+      result.current.addFiles([
+        makeFile('Marcus-private@example.com.exe', 'application/octet-stream', 1024),
+      ]);
+    });
+    expect(result.current.error).toMatch(/unsupported file type/i);
+    expect(result.current.error).not.toContain('Marcus-private@example.com');
+    expect(result.current.error).not.toContain('private@example.com');
+  });
+
+  it('does not expose raw local filenames in size-limit errors', () => {
+    const { result } = renderHook(() => useFileAttachment());
+    act(() => {
+      result.current.addFiles([
+        makeFile('Marcus-private@example.com.mp3', 'audio/mpeg', 25 * 1024 * 1024),
+      ]);
+    });
+    expect(result.current.error).toMatch(/20MB limit/i);
+    expect(result.current.error).not.toContain('Marcus-private@example.com');
+    expect(result.current.error).not.toContain('private@example.com');
+  });
 });
 
 describe('useFileAttachment transcript batching rules', () => {
@@ -189,6 +213,21 @@ describe('useFileAttachment transcript batching rules', () => {
     expect(result.current.error).toMatch(/only one text\/PDF transcript/i);
     expect(result.current.files).toHaveLength(1);
     expect(result.current.files[0].name).toBe('one.txt');
+  });
+
+  it('does not expose raw local filenames in transcript-batching errors', () => {
+    const { result } = renderHook(() => useFileAttachment());
+    act(() => {
+      result.current.addFiles([makeFile('first.txt', 'text/plain', 1024)]);
+    });
+    act(() => {
+      result.current.addFiles([
+        makeFile('Marcus-private@example.com.pdf', 'application/pdf', 1024),
+      ]);
+    });
+    expect(result.current.error).toMatch(/only one text\/PDF transcript/i);
+    expect(result.current.error).not.toContain('Marcus-private@example.com');
+    expect(result.current.error).not.toContain('private@example.com');
   });
 
   it('blocks mixing audio clips with text/PDF transcripts', () => {
