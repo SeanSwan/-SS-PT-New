@@ -2,7 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
-import { approveCoachProposal, getCoachProposal } from '../../../../services/coachProposalService';
+import {
+  answerCoachProposalClarification,
+  approveCoachProposal,
+  getCoachProposal,
+  rejectCoachProposal,
+} from '../../../../services/coachProposalService';
 
 vi.mock('../../../../services/coachProposalService', () => ({
   answerCoachProposalClarification: vi.fn(),
@@ -151,6 +156,116 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     fireEvent.click(await screen.findByRole('button', { name: /approve and log/i }));
 
     await waitFor(() => {
+      expect(queue.refresh).toHaveBeenCalled();
+      expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-2');
+    });
+    expect(screen.queryByLabelText(/Prepared draft review panel/i)).toBeNull();
+  });
+
+  it('closes a rejected prepared draft and advances to the next actionable intake', async () => {
+    const queue = makeQueue();
+    const nextItem = {
+      ...queue.items[0],
+      id: 'item-2',
+      entityId: 'item-2',
+      title: 'Evening upper body notes',
+      timelineAt: '2026-05-07T18:30:00.000Z',
+      latestProposalId: null,
+    };
+    queue.items = [{ ...queue.items[0], latestProposalId: 'proposal-1' }, nextItem];
+    queue.refresh = vi.fn().mockResolvedValue([nextItem]);
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'PENDING',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+        detail: { workout: { clientId: 42, date: '2026-05-06', exercises: [{ name: 'Squat' }] } },
+        reviewToken: 'review-v1.test',
+      },
+    });
+    vi.mocked(rejectCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-1',
+        type: 'workout_log',
+        status: 'REJECTED',
+        title: 'Review lower body workout draft',
+        summary: { clientId: 42, date: '2026-05-06', exerciseCount: 2 },
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <LocationProbe />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /reject/i }));
+
+    await waitFor(() => {
+      expect(rejectCoachProposal).toHaveBeenCalledWith('proposal-1');
+      expect(queue.refresh).toHaveBeenCalled();
+      expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-2');
+    });
+    expect(screen.queryByLabelText(/Prepared draft review panel/i)).toBeNull();
+  });
+
+  it('closes an answered clarification and advances to the next actionable intake', async () => {
+    const queue = makeQueue();
+    const nextItem = {
+      ...queue.items[0],
+      id: 'item-2',
+      entityId: 'item-2',
+      title: 'Evening upper body notes',
+      timelineAt: '2026-05-07T18:30:00.000Z',
+      latestProposalId: null,
+    };
+    queue.items = [{ ...queue.items[0], latestProposalId: 'clarification-1' }, nextItem];
+    queue.refresh = vi.fn().mockResolvedValue([nextItem]);
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'clarification-1',
+        type: 'clarification',
+        status: 'PENDING',
+        title: 'Confirm client match',
+        summary: { actionRequired: 'Client confirmation' },
+        detail: {
+          clarification: {
+            question: 'Which client does this workout belong to?',
+            options: ['Client #42', 'New client'],
+          },
+        },
+      },
+    });
+    vi.mocked(answerCoachProposalClarification).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'clarification-1',
+        type: 'clarification',
+        status: 'APPROVED',
+        title: 'Confirm client match',
+        summary: { actionRequired: 'Client confirmation' },
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
+        <LocationProbe />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(within(screen.getByLabelText(/Active review target/i)).getByRole('button', { name: /review prepared draft/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /Client #42/i }));
+
+    await waitFor(() => {
+      expect(answerCoachProposalClarification).toHaveBeenCalledWith('clarification-1', 'Client #42');
       expect(queue.refresh).toHaveBeenCalled();
       expect(screen.getByTestId('current-route')).toHaveTextContent('/dashboard/admin/coach-assistant?intake=item-2');
     });
