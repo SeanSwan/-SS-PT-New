@@ -282,4 +282,15 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.getByRole('link', { name: /open coach intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant');
   });
+
+  it('labels a clear PLAUD queue with PLAUD-specific status copy', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard command="view_plaud_intake_queue" client={null} result={{ queueRoute: '/dashboard/admin/plaud' }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/No PLAUD intake needs action/i)).toBeInTheDocument();
+    expect(screen.getByText(/Your PLAUD intake queue is clear/i)).toBeInTheDocument();
+  });
 });

@@ -137,7 +137,7 @@ export function CoachReviewNextResultCard({
     ? 'Next intake ready'
     : hasActionableQueue
       ? `${surfaceLabel} intake queue ready`
-      : 'No intake needs action';
+      : `No ${surfaceLabel} intake needs action`;
   const nextSummary = hasDirectNext && nextStatus
     ? `Next review target is ${nextStatus}.`
     : hasActionableQueue
