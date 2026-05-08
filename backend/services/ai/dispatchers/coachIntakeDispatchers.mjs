@@ -27,7 +27,6 @@ function resolveRole(ctx) {
   if (role === 'admin' || role === 'trainer') return role;
   throw new Error('Access requires an admin or trainer role for Coach intake commands.');
 }
-
 function resolveCoachQueueRoute(ctx) {
   return `/dashboard/${resolveRole(ctx)}/coach-assistant`;
 }
@@ -51,7 +50,9 @@ function reviewRouteForItem(item, ctx) {
   }
   const queueRoute = resolveCoachQueueRoute(ctx);
   const entityId = item.entityId || item.id || '';
-  return entityId ? `${queueRoute}?intake=${encodeURIComponent(entityId)}` : queueRoute;
+  const proposalId = String(item.latestProposalId || item.latestProposal?.id || '').trim();
+  const route = entityId ? `${queueRoute}?intake=${encodeURIComponent(entityId)}` : queueRoute;
+  return entityId && proposalId ? `${route}&proposal=${encodeURIComponent(proposalId)}` : route;
 }
 
 function summaryEntityIdForItem(item) {

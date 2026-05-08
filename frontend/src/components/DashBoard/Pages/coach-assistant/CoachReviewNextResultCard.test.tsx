@@ -48,6 +48,31 @@ describe('Coach review-next result card', () => {
     expect(screen.queryByText('nextQueueStatus')).toBeNull();
   });
 
+  it('labels prepared-draft review-next links as prepared draft actions', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="review_next_coach_intake"
+          client={null}
+          result={{
+            actionable: 1,
+            readyReview: 1,
+            needsClient: 0,
+            failed: 0,
+            nextKind: 'coach_intake',
+            nextQueueStatus: 'ready_review',
+            nextCanReview: true,
+            queueRoute: '/dashboard/admin/coach-assistant',
+            reviewRoute: '/dashboard/admin/coach-assistant?intake=abc&proposal=proposal-1',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: /open prepared draft/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=abc&proposal=proposal-1');
+  });
+
   it('does not claim the Coach intake queue is clear when only actionable counts are returned', () => {
     render(
       <MemoryRouter>

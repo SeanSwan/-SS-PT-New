@@ -28,7 +28,7 @@ describe('Coach prepared draft result card', () => {
     expect(screen.getByText(/Review workout draft/i)).toBeInTheDocument();
     expect(screen.getByText(/workout log/i)).toBeInTheDocument();
     expect(screen.getByText(/Pending/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open coach intake/i }))
+    expect(screen.getByRole('link', { name: /open prepared draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1');
     expect(screen.queryByText('proposalId')).toBeNull();
     expect(screen.queryByText('reviewRoute')).toBeNull();
