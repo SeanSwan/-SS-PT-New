@@ -16,6 +16,7 @@ import {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const AUDIO_SOURCES = new Set(['voice_note', 'audio_upload', 'plaud_clip']);
+const LOCKED_AUDIO_ORDER_STATUSES = new Set(['APPROVED', 'APPLIED', 'FAILED', 'ARCHIVED']);
 
 function cleanUserId(userId) {
   const parsed = Number(userId);
@@ -82,6 +83,9 @@ export async function confirmCoachIntakeAudioOrder({
     const row = rows?.[0];
     if (!row) {
       throw new CoachIntakeValidationError('INTAKE_NOT_FOUND', 'Coach intake item was not found');
+    }
+    if (LOCKED_AUDIO_ORDER_STATUSES.has(String(row.status || '').toUpperCase())) {
+      throw new CoachIntakeValidationError('INTAKE_NOT_ACTIONABLE', 'This intake cannot confirm audio order in its current state');
     }
 
     const facts = audioFacts(row);

@@ -128,4 +128,22 @@ describe('coach intake review actions', () => {
 
     expect(db.calls).toHaveLength(0);
   });
+
+  it('rejects audio-order confirmation for terminal intake states', async () => {
+    for (const status of ['APPROVED', 'APPLIED', 'FAILED', 'ARCHIVED']) {
+      await expect(confirmCoachIntakeAudioOrder({
+        userId: 7,
+        intakeId: BASE_ROW.id,
+        sequelizeOverride: fakeSequelize({
+          row: {
+            ...BASE_ROW,
+            status,
+          },
+        }),
+      })).rejects.toMatchObject({
+        name: 'CoachIntakeValidationError',
+        code: 'INTAKE_NOT_ACTIONABLE',
+      });
+    }
+  });
 });
