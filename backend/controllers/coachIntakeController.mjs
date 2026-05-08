@@ -12,6 +12,7 @@ import {
 } from '../services/coachIntakeItemService.mjs';
 import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
+import { purgeCoachIntakeRawArtifacts } from '../services/coachIntakeRetentionPurgeService.mjs';
 import { listCoachIntakeEvents } from '../services/coachIntakeEventTrailService.mjs';
 import { confirmCoachIntakeAudioOrder } from '../services/coachIntakeReviewActionsService.mjs';
 
@@ -103,6 +104,36 @@ export async function getCoachIntakeRetentionHandler(req, res) {
   }
 }
 
+function sanitizeRetentionPurgePlan(plan = {}) {
+  return {
+    enabled: plan.enabled === true,
+    dryRun: true,
+    schemaReady: plan.schemaReady === true,
+    generatedAt: plan.generatedAt || null,
+    policy: plan.policy || {},
+    summary: plan.summary || {},
+    purgeReady: Number(plan.purgeReady || 0),
+    purged: 0,
+    skippedReason: plan.skippedReason || null,
+  };
+}
+
+export async function getCoachIntakeRetentionPurgePlanHandler(req, res) {
+  try {
+    const userId = currentUserId(req);
+    if (!userId) return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+
+    const purgePlan = await purgeCoachIntakeRawArtifacts({ userId, dryRun: true });
+    return res.status(200).json({
+      success: true,
+      purgePlan: sanitizeRetentionPurgePlan(purgePlan),
+    });
+  } catch (err) {
+    logger.error('[coachIntake.retentionPurgePlan] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to read Coach intake retention purge plan');
+  }
+}
+
 export async function confirmCoachIntakeAudioOrderHandler(req, res) {
   try {
     const userId = currentUserId(req);
@@ -155,6 +186,7 @@ export async function listCoachIntakeEventsHandler(req, res) {
 export default {
   createCoachTextIntakeHandler,
   getCoachIntakeHealthHandler,
+  getCoachIntakeRetentionPurgePlanHandler,
   getCoachIntakeRetentionHandler,
   listCoachIntakeEventsHandler,
   listCoachIntakeHandler,

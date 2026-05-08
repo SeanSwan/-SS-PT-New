@@ -6,6 +6,7 @@
  *   GET  /api/coach/intake/queue  - list unified Coach + PLAUD queue metadata
  *   GET  /api/coach/intake/health - read PII-safe queue health metrics
  *   GET  /api/coach/intake/retention - read raw-artifact retention candidates
+ *   GET  /api/coach/intake/retention/purge-plan - dry-run raw artifact purge
  */
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
@@ -13,6 +14,7 @@ import {
   confirmCoachIntakeAudioOrderHandler,
   createCoachTextIntakeHandler,
   getCoachIntakeHealthHandler,
+  getCoachIntakeRetentionPurgePlanHandler,
   getCoachIntakeRetentionHandler,
   listCoachIntakeEventsHandler,
   listCoachIntakeHandler,
@@ -29,6 +31,7 @@ router.post('/', createCoachTextIntakeHandler);
 router.get('/queue', listCoachIntakeHandler);
 router.get('/health', getCoachIntakeHealthHandler);
 router.get('/retention', getCoachIntakeRetentionHandler);
+router.get('/retention/purge-plan', getCoachIntakeRetentionPurgePlanHandler);
 router.get('/:id/events', listCoachIntakeEventsHandler);
 router.post('/:id/audio-order/confirm', confirmCoachIntakeAudioOrderHandler);
 

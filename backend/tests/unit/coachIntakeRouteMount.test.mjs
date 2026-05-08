@@ -38,6 +38,15 @@ describe('Coach intake route mount', () => {
     expect(retentionIndex).toBeLessThan(eventsIndex);
   });
 
+  it('exposes Coach intake retention purge plan before parameterized item routes', () => {
+    const intakeRoutesSrc = readFileSync(resolve(__dirname, '../../routes/coachIntakeRoutes.mjs'), 'utf8');
+    const purgePlanIndex = intakeRoutesSrc.indexOf("router.get('/retention/purge-plan'");
+    const eventsIndex = intakeRoutesSrc.indexOf("router.get('/:id/events'");
+    expect(purgePlanIndex).toBeGreaterThan(-1);
+    expect(eventsIndex).toBeGreaterThan(-1);
+    expect(purgePlanIndex).toBeLessThan(eventsIndex);
+  });
+
   it('mounts the deterministic Coach proposal approval API', () => {
     expect(ROUTES_SRC).toMatch(/import coachProposalRoutes from ['"]\.\.\/routes\/coachProposalRoutes\.mjs['"]/);
     expect(ROUTES_SRC).toMatch(/app\.use\(['"]\/api\/coach\/proposals['"], coachProposalRoutes\)/);
