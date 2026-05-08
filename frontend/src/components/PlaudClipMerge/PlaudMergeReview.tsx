@@ -221,7 +221,7 @@ export function PlaudMergeReview({
             <ExerciseList>
               {reviewState.clipTimeline.map((clip) => (
                 <ExerciseRow key={clip.clipId}>
-                  <strong>Step {clip.mergeStep}: {clip.filename}</strong>
+                  <strong>Source clip {clip.mergeStep}</strong>
                   <SetList>
                     <li>
                       Uploaded {clip.uploadedAt ? new Date(clip.uploadedAt).toLocaleString() : 'time unavailable'}

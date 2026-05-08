@@ -138,6 +138,36 @@ describe('PlaudMergeReview focus handoff', () => {
     expect(screen.getByText(/Upload timeline: 2 clips/i)).toBeInTheDocument();
   });
 
+  it('uses deterministic source clip labels instead of raw local filenames', () => {
+    const reviewState: PlaudMergeReviewState = {
+      ...makeReviewState(),
+      clipTimeline: [
+        {
+          mergeStep: 1,
+          clipId: 'clip-private',
+          filename: 'Marcus-private@example.com.mp3',
+          uploadedAt: '2026-05-04T11:00:00.000Z',
+          durationSec: 60,
+          source: 'manual_upload',
+          orderMode: 'uploaded_at_asc',
+        },
+      ],
+    };
+
+    const { container } = render(
+      <PlaudMergeReview
+        reviewState={reviewState}
+        embedded
+        onBack={vi.fn()}
+        onApproved={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Source clip 1')).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain('Marcus-private@example.com');
+    expect(container.innerHTML).not.toContain('private@example.com');
+  });
+
   it('labels a single uploaded clip as a single time anchor', () => {
     const reviewState: PlaudMergeReviewState = {
       ...makeReviewState(),
