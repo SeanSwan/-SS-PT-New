@@ -459,6 +459,19 @@ interface CreateClientModalProps {
   trainers?: Array<{ id: string; firstName: string; lastName: string }>;
 }
 
+const parseOptionalPositiveNumber = (value: number | string | undefined): number | undefined => {
+  if (value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const heightPartsToInches = (feetValue: string, inchesValue: string): number | undefined => {
+  const feet = parseOptionalPositiveNumber(feetValue) || 0;
+  const inches = parseOptionalPositiveNumber(inchesValue) || 0;
+  const total = (feet * 12) + inches;
+  return total > 0 ? total : undefined;
+};
+
 const CreateClientModal: React.FC<CreateClientModalProps> = ({
   open,
   onClose,
@@ -467,6 +480,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 }) => {
   const [clientSource, setClientSource] = useState<ClientSource>('swanstudios');
   const isExternal = clientSource !== 'swanstudios';
+  const [heightFeet, setHeightFeet] = useState('');
+  const [heightInches, setHeightInches] = useState('');
 
   const [formData, setFormData] = useState<CreateClientRequest>({
     firstName: '',
@@ -533,8 +548,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
         ...formData,
         clientSource,
         availableSessions: isExternal ? 0 : formData.availableSessions,
-        weight: formData.weight || undefined,
-        height: formData.height || undefined,
+        weight: parseOptionalPositiveNumber(formData.weight),
+        height: heightPartsToInches(heightFeet, heightInches),
         phone: formData.phone || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
         gender: formData.gender || undefined,
@@ -550,6 +565,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
       // Close modal + reset form on success
       onClose();
       setClientSource('swanstudios');
+      setHeightFeet('');
+      setHeightInches('');
       setFormData({
         firstName: '',
         lastName: '',
@@ -621,7 +638,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   if (!open) return null;
 
   return (
-    <ModalOverlay onClick={handleClose}>
+    <ModalOverlay data-testid="create-client-modal-overlay">
       <ModalPanel ref={modalRef} role="dialog" aria-modal="true" aria-label={isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'} onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>{isExternal ? `Add ${CLIENT_SOURCE_LABELS[clientSource]} Client` : 'Add New Client'}</ModalTitle>
@@ -799,23 +816,45 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
               </FieldGroup>
 
               <FieldGroup>
-                <FieldLabel htmlFor="ccm-weight">Weight (kg)</FieldLabel>
+                <FieldLabel htmlFor="ccm-weight">Weight (lbs)</FieldLabel>
                 <StyledInput
                   id="ccm-weight"
                   type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.1"
                   value={formData.weight ?? ''}
-                  onChange={(e) => handleInputChange('weight', e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={(e) => handleInputChange('weight', parseOptionalPositiveNumber(e.target.value))}
                   disabled={loading}
                 />
               </FieldGroup>
 
               <FieldGroup>
-                <FieldLabel htmlFor="ccm-height">Height (cm)</FieldLabel>
+                <FieldLabel htmlFor="ccm-height-feet">Height (ft)</FieldLabel>
                 <StyledInput
-                  id="ccm-height"
+                  id="ccm-height-feet"
                   type="number"
-                  value={formData.height ?? ''}
-                  onChange={(e) => handleInputChange('height', e.target.value ? Number(e.target.value) : undefined)}
+                  inputMode="numeric"
+                  min="0"
+                  max="8"
+                  step="1"
+                  value={heightFeet}
+                  onChange={(e) => setHeightFeet(e.target.value)}
+                  disabled={loading}
+                />
+              </FieldGroup>
+
+              <FieldGroup>
+                <FieldLabel htmlFor="ccm-height-inches">Height (in)</FieldLabel>
+                <StyledInput
+                  id="ccm-height-inches"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="11"
+                  step="1"
+                  value={heightInches}
+                  onChange={(e) => setHeightInches(e.target.value)}
                   disabled={loading}
                 />
               </FieldGroup>

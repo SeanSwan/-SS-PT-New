@@ -98,7 +98,7 @@ class AdminClientService {
       const response = await this.api.post('/admin/clients', {
         ...clientData,
         // Set initial password (client will be prompted to change)
-        password: this.generateTempPassword(),
+        password: clientData.password || this.generateTempPassword(),
         // Ensure client role
         role: 'client',
         isActive: true,

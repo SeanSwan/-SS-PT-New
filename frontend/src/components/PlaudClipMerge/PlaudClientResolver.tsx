@@ -164,6 +164,12 @@ export function PlaudClientResolver({
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to create client');
     }
+    const createdFromResponse = normalizeClient(response.data?.client || response.client || {});
+    if (createdFromResponse) {
+      selectClient(createdFromResponse);
+      setIsCreateOpen(false);
+      return;
+    }
     const refreshed = await adminClient.getClients({
       page: 1,
       limit: 10,
