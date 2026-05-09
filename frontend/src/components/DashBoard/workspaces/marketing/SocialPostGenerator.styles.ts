@@ -129,7 +129,7 @@ export const CatLabel = styled.span`
 export const HashtagChip = styled.button<{ $selected: boolean }>`
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 8px 10px;
   margin: 2px 4px 2px 0;
   border-radius: 6px;
   border: 1px solid ${({ $selected }) =>
@@ -142,7 +142,7 @@ export const HashtagChip = styled.button<{ $selected: boolean }>`
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
-  min-height: 36px;
+  min-height: 44px;
 
   &:hover {
     border-color: var(--accent-primary, #60C0F0);

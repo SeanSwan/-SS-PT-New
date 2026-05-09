@@ -77,21 +77,34 @@ const SocialPostGenerator: React.FC = () => {
   const isOver = charCount > config.maxChars;
 
   useEffect(() => {
-    const headers = getAuthHeaders();
+    let active = true;
 
-    fetch('/api/admin/social-publishing/health', { headers })
-      .then(response => response.json())
-      .then(data => setPostizConfigured(data.data?.configured ?? false))
-      .catch(() => setPostizConfigured(false));
+    const loadSocialPublishingStatus = async () => {
+      const headers = getAuthHeaders();
 
-    fetch('/api/admin/social-publishing/accounts', { headers })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) {
-          setConnectedAccounts(data.data);
+      try {
+        const healthResponse = await fetch('/api/admin/social-publishing/health', { headers });
+        const healthData = await healthResponse.json();
+        const configured = healthData.data?.configured === true;
+        if (!active) return;
+        setPostizConfigured(configured);
+        if (!configured) return;
+
+        const accountsResponse = await fetch('/api/admin/social-publishing/accounts', { headers });
+        const accountsData = await accountsResponse.json();
+        if (active && accountsData.success && Array.isArray(accountsData.data)) {
+          setConnectedAccounts(accountsData.data);
         }
-      })
-      .catch(() => undefined);
+      } catch {
+        if (active) setPostizConfigured(false);
+      }
+    };
+
+    loadSocialPublishingStatus();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const toggleTag = (tag: string) => {

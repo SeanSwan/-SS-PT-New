@@ -1,24 +1,19 @@
 /**
- * ┌─── PANEL: Social Analytics Dashboard ──────────────────────┐
- * │ PARENT: MarketingWorkspace                                   │
- * │ PURPOSE: Post history, per-platform analytics (reach,       │
- * │          engagement), and connected account management.     │
- * │ CEO RULING: Phase 2 — analytics + platform connections.    │
- * └──────────────────────────────────────────────────────────────┘
+ * PANEL: Social Analytics Dashboard
+ * PARENT: MarketingWorkspace
+ * PURPOSE: Connected social accounts and post history.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import {
-  BarChart3, Link2, Unlink, RefreshCw, CheckCircle, Clock,
-  Send, Eye, Heart, Share2, ExternalLink,
+  BarChart3, Link2, Unlink, Clock, Send, Eye, Heart, Share2,
 } from 'lucide-react';
 import { hexAlpha } from '../../../../components/Charts/chartTheme';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  ActionButton, PillTabs, PillTab, EmptyState,
+  PillTabs, PillTab, EmptyState,
 } from './marketing.styles';
-import type { SocialPlatform, PlatformConfig } from './marketing.types';
 
 const PLATFORMS: Record<string, { name: string; color: string }> = {
   instagram: { name: 'Instagram', color: '#E4405F' },
@@ -50,17 +45,10 @@ const AccountCard = styled.div<{ $color: string; $connected: boolean }>`
   min-height: 44px;
 `;
 
-const AccountInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
+const AccountInfo = styled.div`display: flex; align-items: center; gap: 10px;`;
 
 const PlatformDot = styled.div<{ $color: string }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
+  width: 10px; height: 10px; border-radius: 50%; background: ${({ $color }) => $color};
 `;
 
 const AccountName = styled.span`
@@ -77,8 +65,8 @@ const AccountStatus = styled.span<{ $connected: boolean }>`
 `;
 
 const ConnectBtn = styled.button<{ $color: string }>`
-  min-height: 36px;
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid ${({ $color }) => hexAlpha($color, 0.3)};
   background: ${({ $color }) => hexAlpha($color, 0.08)};
@@ -95,11 +83,7 @@ const ConnectBtn = styled.button<{ $color: string }>`
   &:hover { background: ${({ $color }) => hexAlpha($color, 0.15)}; }
 `;
 
-const PostList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
+const PostList = styled.div`display: flex; flex-direction: column; gap: 8px;`;
 
 const PostItem = styled.div`
   padding: 14px 16px;
@@ -128,11 +112,7 @@ const PostMeta = styled.div`
   flex-wrap: wrap;
 `;
 
-const MetricChip = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
+const MetricChip = styled.span`display: flex; align-items: center; gap: 4px;`;
 
 const StatusBadge = styled.span<{ $status: string }>`
   padding: 2px 8px;
@@ -156,7 +136,6 @@ const StatusBadge = styled.span<{ $status: string }>`
 const SocialAnalyticsDashboard: React.FC = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [postHistory, setPostHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'accounts' | 'history'>('accounts');
 
   const token = localStorage.getItem('token');
@@ -164,16 +143,31 @@ const SocialAnalyticsDashboard: React.FC = () => {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/admin/social-publishing/accounts', { headers }).then(r => r.json()),
-      fetch('/api/admin/social-publishing/history', { headers }).then(r => r.json()),
-    ])
-      .then(([acctData, histData]) => {
+    let active = true;
+
+    const loadSocialPublishingData = async () => {
+      try {
+        const healthResponse = await fetch('/api/admin/social-publishing/health', { headers });
+        const healthData = await healthResponse.json();
+        const configured = healthData.data?.configured === true;
+        if (!active) return;
+        if (!configured) return;
+
+        const [acctData, histData] = await Promise.all([
+          fetch('/api/admin/social-publishing/accounts', { headers }).then(r => r.json()),
+          fetch('/api/admin/social-publishing/history', { headers }).then(r => r.json()),
+        ]);
+        if (!active) return;
         if (acctData.success && Array.isArray(acctData.data)) setAccounts(acctData.data);
         if (histData.success && Array.isArray(histData.data)) setPostHistory(histData.data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch { /* best-effort */ }
+    };
+
+    loadSocialPublishingData();
+
+    return () => {
+      active = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
