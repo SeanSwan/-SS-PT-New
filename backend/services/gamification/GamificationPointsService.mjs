@@ -26,7 +26,7 @@
 import PointTransaction from '../../models/PointTransaction.mjs';
 import User from '../../models/User.mjs';
 import GamificationSettings from '../../models/GamificationSettings.mjs';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 import db from '../../database.mjs';
 import { calculateLevel, getTier } from '../../utils/levelingAlgorithm.mjs';
 
@@ -42,6 +42,14 @@ function normalizeInteger(value) {
 function normalizeIdempotencyKey(value) {
   if (!value) return null;
   return String(value).slice(0, MAX_IDEMPOTENCY_KEY_LENGTH);
+}
+
+function withIdempotencyMetadata(metadata, idempotencyKey) {
+  if (!idempotencyKey) return metadata;
+  const base = metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+    ? metadata
+    : {};
+  return { ...base, idempotencyKey };
 }
 
 export class GamificationPointsService {
@@ -130,7 +138,11 @@ export class GamificationPointsService {
 
       if (normalizedKey) {
         const existing = await PointTransaction.findOne({
-          where: { userId, source, idempotencyKey: normalizedKey },
+          where: {
+            userId,
+            source,
+            [Op.and]: Sequelize.where(Sequelize.json('metadata.idempotencyKey'), normalizedKey)
+          },
           transaction,
           lock: transaction.LOCK.UPDATE
         });
@@ -182,6 +194,7 @@ export class GamificationPointsService {
       const newBalance = this.calculateBalance(currentBalance, pointsToRecord, transactionType);
       const newLevel = calculateLevel(Math.max(newBalance, 0));
       const newTier = getTier(newLevel);
+      const ledgerMetadata = withIdempotencyMetadata(metadata, normalizedKey);
 
       const pointTransaction = await PointTransaction.create({
         userId,
@@ -190,9 +203,8 @@ export class GamificationPointsService {
         transactionType,
         source,
         sourceId: normalizedSourceId,
-        idempotencyKey: normalizedKey,
         description,
-        metadata,
+        metadata: ledgerMetadata,
         awardedBy
       }, { transaction });
 

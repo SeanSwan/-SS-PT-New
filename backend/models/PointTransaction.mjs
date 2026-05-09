@@ -51,10 +51,6 @@ const PointTransaction = db.define('PointTransaction', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
-  idempotencyKey: {
-    type: DataTypes.STRING(128),
-    allowNull: true
-  },
   description: {
     type: DataTypes.STRING,
     allowNull: false
@@ -82,11 +78,6 @@ const PointTransaction = db.define('PointTransaction', {
     },
     {
       fields: ['source']
-    },
-    {
-      unique: true,
-      fields: ['userId', 'source', 'idempotencyKey'],
-      name: 'point_transactions_user_source_idempotency_key'
     },
     {
       fields: ['createdAt']

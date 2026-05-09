@@ -23,7 +23,13 @@ vi.mock('../../database.mjs', () => ({ default: mockDb }));
 vi.mock('../../models/PointTransaction.mjs', () => ({ default: mockPointTransaction }));
 vi.mock('../../models/User.mjs', () => ({ default: mockUser }));
 vi.mock('../../models/GamificationSettings.mjs', () => ({ default: mockGamificationSettings }));
-vi.mock('sequelize', () => ({ Op: { gte: 'gte' } }));
+vi.mock('sequelize', () => ({
+  Op: { and: 'and', gte: 'gte' },
+  Sequelize: {
+    json: vi.fn((path) => ({ jsonPath: path })),
+    where: vi.fn((left, right) => ({ left, right }))
+  }
+}));
 vi.mock('../../utils/levelingAlgorithm.mjs', () => ({
   calculateLevel: vi.fn(() => 2),
   getTier: vi.fn(() => 'silver_glade')
@@ -74,7 +80,10 @@ describe('GamificationPointsService central ledger', () => {
         balance: 17,
         source: 'social_engagement',
         sourceId: 42,
-        idempotencyKey: 'social:post_create_general:42'
+        metadata: {
+          socialAction: 'post_create_general',
+          idempotencyKey: 'social:post_create_general:42'
+        }
       }),
       { transaction: mockTransaction }
     );

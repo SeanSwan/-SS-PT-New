@@ -13,6 +13,7 @@ const readBackendFile = (relativePath) =>
 describe('social point award regression', () => {
   it('keeps social engagement as a valid point transaction source', () => {
     const modelSource = readBackendFile('models/PointTransaction.mjs');
+    const serviceSource = readBackendFile('services/gamification/GamificationPointsService.mjs');
     const createMigration = readBackendFile('migrations/20250505001600-create-point-transactions.mjs');
     const bootstrapMigration = readBackendFile('migrations/20260302050000-gamification-bootstrap.cjs');
     const deployMigration = readBackendFile('migrations/20260509000001-add-social-engagement-point-source.mjs');
@@ -20,7 +21,9 @@ describe('social point award regression', () => {
     expect(modelSource).toContain("'social_engagement'");
     expect(modelSource).toContain("'goal_milestone'");
     expect(modelSource).toContain("'goal_completed'");
-    expect(modelSource).toContain('idempotencyKey');
+    expect(modelSource).not.toMatch(/idempotencyKey:\s*\{/);
+    expect(serviceSource).toContain("metadata.idempotencyKey");
+    expect(serviceSource).not.toMatch(/idempotencyKey:\s*normalizedKey/);
     expect(createMigration).toContain("'social_engagement'");
     expect(createMigration).toContain("'goal_milestone'");
     expect(createMigration).toContain("'goal_completed'");
