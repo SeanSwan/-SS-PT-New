@@ -22,10 +22,17 @@ function listDashboardV3StyleFiles() {
 }
 
 const USER_DASHBOARD_V3_STYLE_FILES = listDashboardV3StyleFiles();
+const USER_DASHBOARD_V3_COMMUNITY_FILES = readdirSync(resolve(process.cwd(), 'src/components/UserDashboard/components'))
+  .filter((file) => /^CommunityTab.*\.(ts|tsx)$/.test(file))
+  .map((file) => `src/components/UserDashboard/components/${file}`);
 
 describe('UserDashboard V3 daily loop contract', () => {
   it('keeps the canonical V3 dashboard shell and style ownership files under the file-size rule', () => {
-    [...USER_DASHBOARD_V3_SHELL_FILES, ...USER_DASHBOARD_V3_STYLE_FILES].forEach((file) => {
+    [
+      ...USER_DASHBOARD_V3_SHELL_FILES,
+      ...USER_DASHBOARD_V3_STYLE_FILES,
+      ...USER_DASHBOARD_V3_COMMUNITY_FILES,
+    ].forEach((file) => {
       const source = readSource(file);
       const lineCount = source.split(/\r?\n/).length;
 
