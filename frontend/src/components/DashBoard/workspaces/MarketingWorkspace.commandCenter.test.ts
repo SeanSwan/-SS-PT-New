@@ -140,6 +140,12 @@ describe('MarketingWorkspace command-center contract', () => {
     expect(hashtagChipBlock).toContain('min-height: 44px');
   });
 
+  it('keeps calendar channel filters at the touch-target minimum', () => {
+    const filterChipBlock = calendarSource.match(/const FilterChip[\s\S]*?`;/)?.[0];
+
+    expect(filterChipBlock).toContain('min-height: 44px');
+  });
+
   it('checks social-publishing health before reading integration data', () => {
     const analyticsHealthIndex = socialAnalyticsSource.indexOf(
       "fetch('/api/admin/social-publishing/health'",

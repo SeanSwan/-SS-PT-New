@@ -155,8 +155,8 @@ const FilterRow = styled.div`
 `;
 
 const FilterChip = styled.button<{ $active: boolean; $color: string }>`
-  min-height: 36px;
-  padding: 4px 12px;
+  min-height: 44px;
+  padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid ${({ $active, $color }) => $active ? $color : 'rgba(96,192,240,0.08)'};
   background: ${({ $active, $color }) => $active ? hexAlpha($color, 0.12) : 'transparent'};
