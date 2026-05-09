@@ -34,6 +34,9 @@ const USER_DASHBOARD_V3_WORKOUT_FILES = readdirSync(resolve(process.cwd(), 'src/
 const USER_DASHBOARD_V3_ABOUT_FILES = readdirSync(resolve(process.cwd(), 'src/components/UserDashboard/components'))
   .filter((file) => /^AboutSection.*\.(ts|tsx)$/.test(file))
   .map((file) => `src/components/UserDashboard/components/${file}`);
+const USER_DASHBOARD_V3_CREATIVE_FILES = readdirSync(resolve(process.cwd(), 'src/components/UserDashboard/components'))
+  .filter((file) => /^CreativeGallery.*\.(ts|tsx)$/.test(file))
+  .map((file) => `src/components/UserDashboard/components/${file}`);
 
 describe('UserDashboard V3 daily loop contract', () => {
   it('keeps the canonical V3 dashboard shell and style ownership files under the file-size rule', () => {
@@ -44,6 +47,7 @@ describe('UserDashboard V3 daily loop contract', () => {
       ...USER_DASHBOARD_V3_ACTIVITY_FILES,
       ...USER_DASHBOARD_V3_WORKOUT_FILES,
       ...USER_DASHBOARD_V3_ABOUT_FILES,
+      ...USER_DASHBOARD_V3_CREATIVE_FILES,
     ].forEach((file) => {
       const source = readSource(file);
       const lineCount = source.split(/\r?\n/).length;

@@ -1,398 +1,94 @@
 /**
- * SwanStudios Creative Gallery Component
- * =====================================
- * 
- * Professional creative content showcase for dance, music, and fitness videos
+ * COMPONENT: CreativeGallery
+ * PURPOSE: Active UserDashboard V3 profile media showcase.
+ * OWNER: Codex
+ * LAST VALIDATED: 2026-05-09
+ *
+ * WIREFRAME:
+ * [Creative Gallery] [Upload Video]
+ * [tag filters]
+ * [empty state or upload card + media cards]
+ *
+ * DATA FLOW:
+ * Props In: none.
+ * State: activeTag.
+ * API Calls: useProfile posts; useSocialFeed createPost on upload.
+ * Children: CreativeGalleryUploadCard, CreativeGalleryCard, CreativeGalleryEmptyState.
  */
 
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Plus,
-  Video,
-  Music,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Heart,
-  Eye,
-  Share2,
-  Upload
-} from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { Upload, Video } from 'lucide-react';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { logger } from '@/utils/logger';
-
-// Professional styled components
-const GalleryContainer = styled(motion.div)`
-  background: var(--bg-elevated);
-  backdrop-filter: blur(24px);
-  border: 1px solid var(--border-soft);
-  border-radius: 20px;
-  padding: 2rem;
-  color: var(--text-primary);
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.15),
-    0 8px 16px rgba(0, 0, 0, 0.1);
-
-  @media (max-width: 768px) {
-    padding: 1.5rem;
-    border-radius: 16px;
-  }
-`;
-
-const GalleryHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-`;
-
-const GalleryTitle = styled.h2`
-  color: var(--text-primary);
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
-    justify-content: center;
-  }
-`;
-
-const UploadButton = styled(motion.button)`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-  }
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: center;
-  }
-`;
-
-const TagsContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-`;
-
-const Tag = styled(motion.div)<{ $active?: boolean }>`
-  padding: 0.5rem 1rem;
-  background: ${({ $active }) =>
-    $active
-      ? 'var(--accent-primary)'
-      : 'var(--bg-elevated)'
-  };
-  color: ${({ $active }) =>
-    $active
-      ? 'white'
-      : 'var(--text-secondary)'
-  };
-  border: 1px solid ${({ $active }) =>
-    $active
-      ? 'var(--accent-primary)'
-      : 'var(--border-soft)'
-  };
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: var(--accent-primary);
-    color: white;
-    transform: translateY(-1px);
-  }
-`;
-
-const GalleryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-  
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const VideoCard = styled(motion.div)`
-  background: var(--bg-surface, var(--bg-elevated));
-  border: 1px solid var(--border-soft);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  position: relative;
-
-  &:hover {
-    transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  }
-`;
-
-const VideoThumbnail = styled.div<{ $image: string }>`
-  height: 200px;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.3),
-    rgba(0, 0, 0, 0.1)
-  ), url(${props => props.$image});
-  background-size: cover;
-  background-position: center;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const PlayButton = styled(motion.div)`
-  width: 60px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1a1a1a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  
-  &:hover {
-    background: white;
-    transform: scale(1.1);
-  }
-`;
-
-const VideoTypeTag = styled.div<{ $type: string }>`
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 0.25rem 0.75rem;
-  background: ${({ $type }) => {
-    switch ($type) {
-      case 'dance': return 'linear-gradient(135deg, #FF6B9D, #C44569)';
-      case 'music': return 'linear-gradient(135deg, #4ECDC4, #44A08D)';
-      case 'workout': return 'linear-gradient(135deg, #FFD93D, #FF6B35)';
-      default: return 'linear-gradient(135deg, #667eea, #764ba2)';
-    }
-  }};
-  color: white;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-`;
-
-const VideoInfo = styled.div`
-  padding: 1.25rem;
-`;
-
-const VideoTitle = styled.h3`
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-  line-height: 1.3;
-`;
-
-const VideoDescription = styled.p`
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin: 0 0 1rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-const VideoStats = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
-const UploadCard = styled(motion.div)`
-  border: 2px dashed var(--border-soft);
-  border-radius: 16px;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 280px;
-  background: var(--bg-surface, var(--bg-elevated));
-
-  &:hover {
-    background: var(--bg-elevated);
-    border-color: var(--accent-primary);
-    transform: translateY(-2px);
-  }
-`;
-
-const UploadIcon = styled.div`
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  color: white;
-`;
-
-const UploadText = styled.h3`
-  color: var(--text-primary);
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-`;
-
-const UploadSubtext = styled.p`
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin: 0;
-  line-height: 1.4;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 2rem;
-  color: var(--text-muted);
-
-  h3 {
-    margin: 1rem 0 0.5rem;
-    color: var(--text-primary);
-    font-weight: 600;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-`;
-
-// Media items are now loaded from useProfile hook
-
-const tags = ['All', 'Dance', 'Music', 'Workout', 'Motivation', 'Wellness'];
+import { CREATIVE_GALLERY_TAGS, mapPostsToCreativeMedia } from './CreativeGallery.data';
+import CreativeGalleryCard from './CreativeGalleryCard';
+import CreativeGalleryEmptyState from './CreativeGalleryEmptyState';
+import CreativeGalleryUploadCard from './CreativeGalleryUploadCard';
+import {
+  GalleryContainer,
+  GalleryGrid,
+  GalleryHeader,
+  GalleryTitle,
+  HiddenFileInput,
+  Tag,
+  TagsContainer,
+  UploadButton,
+} from './CreativeGallery.styles';
+import type { ProfileMediaPost } from './CreativeGallery.types';
 
 const CreativeGallery: React.FC = () => {
   const [activeTag, setActiveTag] = useState('All');
   const { posts } = useProfile();
   const { createPost } = useSocialFeed();
-  const videoInputRef = React.useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const mediaItems = React.useMemo(() => {
-    if (!posts || posts.length === 0) return [];
-    return posts
-      .filter(post => post.mediaUrl)
-      .map(post => ({
-        id: post.id,
-        title: post.content?.substring(0, 40) || 'Media',
-        thumbnail: post.mediaUrl!,
-        duration: '',
-        views: post.likesCount || 0,
-        createdAt: post.createdAt,
-      }));
-  }, [posts]);
+  const mediaItems = useMemo(
+    () => mapPostsToCreativeMedia(posts as ProfileMediaPost[] | null),
+    [posts],
+  );
 
   const handleUpload = () => {
     videoInputRef.current?.click();
   };
 
-  const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleVideoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+
     try {
       await createPost({ content: 'Shared media', type: 'general' });
-      // Note: actual media upload may need the social posts endpoint with FormData
-    } catch (err) {
-      console.error('Error uploading media:', err);
+      event.target.value = '';
+    } catch {
+      logger.error('Unable to upload creative media');
     }
   };
 
   const handleVideoPlay = (videoId: string) => {
     logger.log('Play video:', videoId);
-    // TODO: Implement video player
   };
 
   return (
-    <GalleryContainer
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
+    <GalleryContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
       <GalleryHeader>
         <GalleryTitle>
           <Video size={24} />
           Creative Gallery
         </GalleryTitle>
-        <UploadButton
-          onClick={handleUpload}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+        <UploadButton type="button" onClick={handleUpload} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Upload size={18} />
           Upload Video
         </UploadButton>
       </GalleryHeader>
 
       <TagsContainer>
-        {tags.map((tag) => (
+        {CREATIVE_GALLERY_TAGS.map((tag) => (
           <Tag
             key={tag}
+            type="button"
             $active={activeTag === tag}
+            aria-pressed={activeTag === tag}
             onClick={() => setActiveTag(tag)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -402,71 +98,22 @@ const CreativeGallery: React.FC = () => {
         ))}
       </TagsContainer>
 
-      <input
+      <HiddenFileInput
         ref={videoInputRef}
         type="file"
         accept="image/*,video/*"
-        style={{ display: 'none' }}
+        aria-label="Creative media upload"
         onChange={handleVideoFile}
       />
 
       {mediaItems.length === 0 ? (
-        <EmptyState>
-          <Upload size={48} />
-          <h3>No media yet</h3>
-          <p>Share photos and videos to build your creative gallery</p>
-        </EmptyState>
+        <CreativeGalleryEmptyState />
       ) : (
         <GalleryGrid>
-          <UploadCard
-            onClick={handleUpload}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <UploadIcon>
-              <Plus size={32} />
-            </UploadIcon>
-            <UploadText>Share Your Creativity</UploadText>
-            <UploadSubtext>
-              Upload your dance moves, workout videos, or musical performances to inspire the community
-            </UploadSubtext>
-          </UploadCard>
-
+          <CreativeGalleryUploadCard onUpload={handleUpload} />
           <AnimatePresence>
             {mediaItems.map((item, index) => (
-              <VideoCard
-                key={item.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                onClick={() => handleVideoPlay(item.id)}
-              >
-                <VideoThumbnail $image={item.thumbnail}>
-                  <PlayButton
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Play size={24} />
-                  </PlayButton>
-                </VideoThumbnail>
-
-                <VideoInfo>
-                  <VideoTitle>{item.title}</VideoTitle>
-
-                  <VideoStats>
-                    <StatItem>
-                      <Eye size={16} />
-                      {item.views.toLocaleString()}
-                    </StatItem>
-                    {item.duration && (
-                      <StatItem>
-                        {item.duration}
-                      </StatItem>
-                    )}
-                  </VideoStats>
-                </VideoInfo>
-              </VideoCard>
+              <CreativeGalleryCard key={item.id} item={item} index={index} onPlay={handleVideoPlay} />
             ))}
           </AnimatePresence>
         </GalleryGrid>
