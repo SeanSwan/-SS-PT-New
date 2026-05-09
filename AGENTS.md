@@ -105,7 +105,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 21. **Task-type Definition of Done required** - bug, UI, API/auth, state, and production tasks must satisfy the matching checklist below before claiming success.
 22. **Premium design standard** - every visible UI must feel enterprise-grade, distinctive, and brand-specific, not generic, tacky, or template-like.
 23. **Design dual-pass required** - after building a UI, Claude must critique and improve its own design for hierarchy, polish, responsiveness, motion, and originality before calling it done.
-24. **Responsive audit matrix required** - verify layouts against the viewport matrix below, including `414px` for iPhone XR. Use CSS viewport widths, not marketing resolution labels alone.
+24. **Responsive audit matrix required** - verify layouts against the viewport matrix below, including `414px` for iPhone XR, `2560x1440` for Sean's 1440p/QHD monitor class, and `3840x2160` for 4K. Use CSS viewport widths plus explicit monitor-class dimensions; do not stop at `1920px`.
 25. **Motion must stay premium and accessible** - motion should feel modern and intentional, but must stay GPU-safe and respect `prefers-reduced-motion`.
 
 26. **Canonical Surface Receipt (MANDATORY)** â€” Before any UI or data-truth bug fix, produce a written receipt with file:line evidence for: (a) route file that actually mounts the target URL, (b) mounted JSX page/component â€” a lazy `import()` declaration is NOT proof of mount, JSX usage is, (c) consumer hook/service, (d) exact frontend API path string literal, (e) backend route match, (f) authoritative model fields from the model file (not from nearby mapper code). No code may be written until the receipt exists in the task thread.
@@ -522,10 +522,12 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
    - `768px` tablet portrait
    - `1024px` tablet landscape / small laptop
    - `1280px` laptop
-   - `1440px` desktop
+   - `1440px` desktop browser width
    - `1920px` 1080p desktop
-   - `2560px` QHD / scaled 4K desktop
+   - `2560x1440` 1440p / QHD monitor class
+   - `3840x2160` 4K monitor class
    - `3440px` ultrawide
+   - If a QA tool accepts only width, use `2560px` and `3840px` widths and state the tested height separately. `1440px` width is not the same as 1440p; 1440p means a `2560x1440` viewport class.
 6. **Gemini design handoff rule**
    If Gemini provides the concept, Claude must preserve the direction but still critique implementation fidelity, hierarchy, spacing, responsiveness, and polish. Gemini direction is not a substitute for production QA.
 7. **Reporting style**

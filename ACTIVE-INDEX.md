@@ -32,6 +32,8 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `CURRENT-TASK.md` — active task tracker
 - `HANDOFF-PROTOCOL.md` — how cross-AI handoff works
 
+- `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
+
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
 
 ---

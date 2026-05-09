@@ -19,6 +19,14 @@ This file is the canonical "what matters now" tracker.
 
 ## Current Production State
 
+- Four production UI surfaces are stable after the 2026-05-09 responsive QA pass:
+  - User Dashboard V3
+  - Marketing
+  - Content Studio
+  - Gamification
+- Final verified production bundle for that pass: `index.BB5GZsNE.js`.
+- Production responsive QA passed for `390`, `414`, `768`, `1440`, and `1920` widths.
+- New standing QA rule is now explicit in `AGENTS.md` and `CLAUDE.md`: future responsive QA must also include true `2560x1440` 1440p/QHD and `3840x2160` 4K monitor-class checks.
 - Workout Logger, Workout Planner, and Clients & Team all have recent production hotfixes for live issues.
 - Canonical `/dashboard/client/progress` and `/dashboard/client/progress/detailed` truth-restoration work is landed and regression-locked.
 - BodyMeasurement read/write backing for Body Composition is verified and regression-locked.
@@ -30,6 +38,22 @@ This file is the canonical "what matters now" tracker.
 - Phase 19.A and 19.B `/dashboard/people/*` dead-route cleanup slices are shipped.
 - Phase B continuity bridge is live across VS Code Claude, VS Code Codex, Hermes-Telegram Claude, and Hermes-Telegram Codex.
 - AI Village orchestrator drift fix is shipped: non-design Chinese-provider model usage is removed from policy-constrained tracks and guarded fail-fast.
+
+---
+
+## What's Next
+
+Primary next-session planning source:
+
+- `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md`
+
+Next product-depth priorities:
+
+1. Client onboarding/account readiness: clients must log in, have the right role/data, see current next workout, and see past workouts.
+2. Stripe store/cart/session purchase readiness: audit and repair the path for buying sessions and updating session/account state.
+3. PLAUD Intake audio playback: uploaded audio must be playable in-app so Sean can hear and validate files before processing.
+4. Teach-first guided product system: every client/trainer/admin/user role needs step-by-step teaching for important tabs, buttons, and workflows.
+5. Admin workflow depth after the foundation: Bootcamp Creator, PLAUD Intake, Workouts, Coach Assistant dashboards, Pain Charts, and Equipment.
 
 ---
 
