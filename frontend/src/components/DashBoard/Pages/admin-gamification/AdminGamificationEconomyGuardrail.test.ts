@@ -11,6 +11,11 @@ const ADMIN_GAMIFICATION_SHELL_FILES = [
   'src/components/DashBoard/Pages/admin-gamification/admin-gamification.types.ts',
   'src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts',
 ];
+const ADMIN_GAMIFICATION_RPG_PANEL_FILES = [
+  'src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.tsx',
+  'src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.data.ts',
+  'src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.styles.ts',
+];
 
 function readSource(path: string) {
   return readFileSync(join(FRONTEND_ROOT, path), 'utf8');
@@ -44,8 +49,8 @@ describe('admin gamification economy guardrail contract', () => {
     expect(guardrailSource).toContain('Rewards only count when they map to real health behavior.');
   });
 
-  it('keeps the canonical admin gamification shell under the file-size rule', () => {
-    ADMIN_GAMIFICATION_SHELL_FILES.forEach(file => {
+  it('keeps the canonical admin gamification shell and cleaned RPG panel under the file-size rule', () => {
+    [...ADMIN_GAMIFICATION_SHELL_FILES, ...ADMIN_GAMIFICATION_RPG_PANEL_FILES].forEach(file => {
       const source = readSource(file);
       const lineCount = source.split(/\r?\n/).length;
 
