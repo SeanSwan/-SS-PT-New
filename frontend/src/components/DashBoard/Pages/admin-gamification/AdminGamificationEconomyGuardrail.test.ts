@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 const FRONTEND_ROOT = join(__dirname, '..', '..', '..', '..', '..');
@@ -16,6 +16,11 @@ const ADMIN_GAMIFICATION_RPG_PANEL_FILES = [
   'src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.data.ts',
   'src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.styles.ts',
 ];
+const ADMIN_GAMIFICATION_SHARED_STYLE_FILES = readdirSync(
+  join(FRONTEND_ROOT, 'src/components/DashBoard/Pages/admin-gamification')
+)
+  .filter(file => /^styled-gamification.*\.ts$/.test(file))
+  .map(file => `src/components/DashBoard/Pages/admin-gamification/${file}`);
 
 function readSource(path: string) {
   return readFileSync(join(FRONTEND_ROOT, path), 'utf8');
@@ -49,8 +54,12 @@ describe('admin gamification economy guardrail contract', () => {
     expect(guardrailSource).toContain('Rewards only count when they map to real health behavior.');
   });
 
-  it('keeps the canonical admin gamification shell and cleaned RPG panel under the file-size rule', () => {
-    [...ADMIN_GAMIFICATION_SHELL_FILES, ...ADMIN_GAMIFICATION_RPG_PANEL_FILES].forEach(file => {
+  it('keeps the canonical admin gamification shell, RPG panel, and shared styles under the file-size rule', () => {
+    [
+      ...ADMIN_GAMIFICATION_SHELL_FILES,
+      ...ADMIN_GAMIFICATION_RPG_PANEL_FILES,
+      ...ADMIN_GAMIFICATION_SHARED_STYLE_FILES,
+    ].forEach(file => {
       const source = readSource(file);
       const lineCount = source.split(/\r?\n/).length;
 
