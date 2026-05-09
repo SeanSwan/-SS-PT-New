@@ -23,7 +23,7 @@ interface ObservatoryRailProps {
 const profileHeaderRailOffset = css<ObservatoryRailProps>`
   margin-top: ${({ $profileHeaderVisible }) =>
     $profileHeaderVisible
-      ? 'calc(var(--observatory-profile-banner-clearance, 340px) + 1rem)'
+      ? 'calc(var(--observatory-profile-banner-clearance, 340px) + 2.5rem)'
       : '0'};
 `;
 
