@@ -46,6 +46,14 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeSource).toContain('<SwanCoachActionLauncher');
   });
 
+  it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {
+    const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3Styles.ts');
+
+    expect(stylesSource).toContain('@media (max-width: 430px)');
+    expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(stylesSource).toContain('grid-column: 1 / -1');
+  });
+
   it('keeps touched dashboard home files free of corrupted mojibake text', () => {
     const touchedHomeFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',

@@ -1537,6 +1537,15 @@ export const TabNavigation = styled.div`
   /* V3: Enhanced glassmorphism */
   backdrop-filter: blur(24px);
 
+  @media (max-width: 430px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    overflow-x: visible;
+    scrollbar-width: none;
+    scroll-snap-type: none;
+  }
+
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
     border-radius: 12px;
@@ -1585,6 +1594,19 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
     color: ${({ $active }) =>
       $active ? 'var(--color-white, #E0ECF4)' : 'var(--text-primary)'
     };
+  }
+
+  @media (max-width: 430px) {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    flex: 1 1 auto;
+    white-space: normal;
+    text-align: center;
+
+    &:last-child {
+      grid-column: 1 / -1;
+    }
   }
 
   /* Phase 20.2: tighten padding/gap below 414px so all 5 tabs are

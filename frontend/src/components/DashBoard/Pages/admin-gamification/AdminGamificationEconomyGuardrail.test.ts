@@ -52,4 +52,12 @@ describe('admin gamification economy guardrail contract', () => {
       expect(lineCount, `${file} has ${lineCount} lines`).toBeLessThanOrEqual(300);
     });
   });
+
+  it('wraps gamification tabs on phone widths instead of letting labels collide', () => {
+    const stylesSource = readSource('src/components/DashBoard/Pages/admin-gamification/admin-gamification.styles.ts');
+
+    expect(stylesSource).toContain('@media (max-width: 430px)');
+    expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(stylesSource).toContain('flex-shrink: 0');
+  });
 });
