@@ -43,6 +43,7 @@ const UserDashboardV3: React.FC = () => {
           <ContentWrapper>
             <ObservatoryShell
               activeTab={dashboard.activeTab}
+              profileHeaderVisible={dashboard.activeTab !== 'home'}
               onTabChange={dashboard.setActiveTab}
               onNavigate={dashboard.navigate}
               observatoryLevel={dashboard.observatoryLevel}

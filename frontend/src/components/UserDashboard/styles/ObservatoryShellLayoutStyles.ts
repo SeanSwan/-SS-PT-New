@@ -14,9 +14,22 @@
  * ============================================================================
  */
 
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+
+interface ObservatoryRailProps {
+  $profileHeaderVisible?: boolean;
+}
+
+const profileHeaderRailOffset = css<ObservatoryRailProps>`
+  margin-top: ${({ $profileHeaderVisible }) =>
+    $profileHeaderVisible
+      ? 'calc(var(--observatory-profile-banner-clearance, 340px) + 1rem)'
+      : '0'};
+`;
 
 export const ObservatoryGrid = styled.div`
+  --observatory-profile-banner-clearance: 340px;
+
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
@@ -39,15 +52,24 @@ export const ObservatoryGrid = styled.div`
     grid-template-columns: minmax(220px, 240px) minmax(560px, 1fr) minmax(260px, 280px);
     gap: 1.25rem;
   }
+
+  @media (min-width: 2560px) {
+    --observatory-profile-banner-clearance: 440px;
+  }
+
+  @media (min-width: 3840px) {
+    --observatory-profile-banner-clearance: 540px;
+  }
 `;
 
-export const ObservatoryLeftRail = styled.aside`
+export const ObservatoryLeftRail = styled.aside<ObservatoryRailProps>`
   display: none;
 
   @media (min-width: 1024px) {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    ${profileHeaderRailOffset}
     position: sticky;
     top: 1rem;
     align-self: start;
@@ -71,7 +93,7 @@ export const ObservatoryMain = styled.div`
   min-width: 0;
 `;
 
-export const ObservatoryRightRail = styled.aside`
+export const ObservatoryRightRail = styled.aside<ObservatoryRailProps>`
   display: none;
 
   /* 1280px in lockstep with the ObservatoryGrid 3-column breakpoint above.
@@ -80,6 +102,7 @@ export const ObservatoryRightRail = styled.aside`
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    ${profileHeaderRailOffset}
     position: sticky;
     top: 1rem;
     align-self: start;

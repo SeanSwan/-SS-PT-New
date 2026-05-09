@@ -46,6 +46,7 @@ export type {
 
 interface ObservatoryShellProps {
   activeTab: TabId;
+  profileHeaderVisible?: boolean;
   onTabChange: (tab: TabId) => void;
   onNavigate: (path: string) => void;
   observatoryLevel: number;
@@ -61,6 +62,7 @@ interface ObservatoryShellProps {
 
 const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   activeTab,
+  profileHeaderVisible = false,
   onTabChange,
   onNavigate,
   observatoryLevel,
@@ -78,6 +80,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
       <ObservatoryGrid>
         <ObservatoryLeftRail
           activeTab={activeTab}
+          profileHeaderVisible={profileHeaderVisible}
           onTabChange={onTabChange}
           navItems={navItems}
           observatoryLevel={observatoryLevel}
@@ -90,6 +93,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
         <ObservatoryMain>{children}</ObservatoryMain>
 
         <ObservatoryRightRail
+          profileHeaderVisible={profileHeaderVisible}
           observatoryTierName={observatoryTierName}
           topBadges={topBadges}
           nextBestActions={nextBestActions}

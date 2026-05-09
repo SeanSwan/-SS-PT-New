@@ -89,6 +89,25 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(stylesSource).toContain('grid-column: 1 / -1');
   });
 
+  it('keeps desktop observatory rails below the profile banner on non-home tabs', () => {
+    const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
+    const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
+    const leftRailSource = readSource('src/components/UserDashboard/components/ObservatoryLeftRail.tsx');
+    const rightRailSource = readSource('src/components/UserDashboard/components/ObservatoryRightRail.tsx');
+    const layoutSource = readSource('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
+
+    expect(dashboardSource).toContain("profileHeaderVisible={dashboard.activeTab !== 'home'}");
+    expect(shellSource).toContain('profileHeaderVisible?: boolean;');
+    expect(leftRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
+    expect(rightRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
+    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 340px;');
+    expect(layoutSource).toContain('margin-top: ${({ $profileHeaderVisible }) =>');
+    expect(layoutSource).toContain('@media (min-width: 2560px)');
+    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 440px;');
+    expect(layoutSource).toContain('@media (min-width: 3840px)');
+    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 540px;');
+  });
+
   it('keeps touched dashboard home files free of corrupted mojibake text', () => {
     const touchedHomeFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',

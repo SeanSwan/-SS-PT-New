@@ -79,18 +79,20 @@ import type {
 } from './ObservatoryShellTypes';
 
 interface ObservatoryRightRailProps {
+  profileHeaderVisible?: boolean;
   observatoryTierName: string;
   topBadges: ObservatoryBadge[];
   nextBestActions: ReadonlyArray<ObservatoryNextBestAction>;
 }
 
 const ObservatoryRightRail: React.FC<ObservatoryRightRailProps> = ({
+  profileHeaderVisible = false,
   observatoryTierName,
   topBadges,
   nextBestActions,
 }) => {
   return (
-    <RightRailContainer aria-label="Profile observatory">
+    <RightRailContainer aria-label="Profile observatory" $profileHeaderVisible={profileHeaderVisible}>
       <ObservatoryGlassPanel>
         <ObservatoryPanelHeader>
           <ObservatoryPanelTitle>Tier</ObservatoryPanelTitle>
