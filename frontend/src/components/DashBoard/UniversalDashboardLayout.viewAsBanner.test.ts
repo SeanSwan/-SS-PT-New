@@ -65,4 +65,16 @@ describe('UniversalDashboardLayout — Phase 18.A view-as banner gate', () => {
     expect(bannerIdx).toBeGreaterThan(mainContentIdx);
     expect(bannerIdx).toBeLessThan(animatePresenceIdx);
   });
+
+  it('does not block dashboard route rendering on schedule prefetch', () => {
+    const initStart = SOURCE.indexOf('const initializeUserContext = async () => {');
+    const initEnd = SOURCE.indexOf('const handleToggleCollapse');
+    const initSource = SOURCE.slice(initStart, initEnd);
+
+    expect(initStart).toBeGreaterThan(-1);
+    expect(initEnd).toBeGreaterThan(initStart);
+    expect(initSource).not.toMatch(/await\s+dispatch\s*\(\s*fetchEvents/);
+    expect(initSource).toMatch(/void\s+dispatch\s*\(\s*fetchEvents/);
+    expect(initSource).toMatch(/\.catch\(\(err\)/);
+  });
 });

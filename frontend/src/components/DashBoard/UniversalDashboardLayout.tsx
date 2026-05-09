@@ -684,11 +684,15 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           userId: user.id 
         }));
 
-        // Fetch role-based schedule data
-        await dispatch(fetchEvents({ 
+        // Warm schedule data in the background; route rendering must not wait
+        // on the scheduler because non-schedule admin surfaces need to load
+        // even if that request is slow.
+        void dispatch(fetchEvents({ 
           role: userRole as 'admin' | 'trainer' | 'client', 
           userId: user.id 
-        })).unwrap();
+        })).unwrap().catch((err) => {
+          console.warn('Universal Dashboard schedule prefetch failed:', err);
+        });
 
         setError(null);
       } catch (err) {
@@ -700,7 +704,8 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
     };
 
     // Delay to ensure auth state is loaded
-    setTimeout(initializeUserContext, 300);
+    const initTimer = window.setTimeout(initializeUserContext, 300);
+    return () => window.clearTimeout(initTimer);
   }, [user, userRole, dispatch, isValidRole]);
 
   // Handle sidebar toggle
