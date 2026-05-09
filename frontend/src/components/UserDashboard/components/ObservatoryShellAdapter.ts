@@ -17,6 +17,7 @@ import type {
   ObservatoryNextBestAction,
 } from './ObservatoryShellTypes';
 import type { TabId } from '../types/UserDashboardTypes';
+import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',      label: 'Home',      Icon: Home },
@@ -29,12 +30,13 @@ export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
 export function buildObservatoryNextBestActions(
   navigate: (path: string) => void,
   setActiveTab: (tab: TabId) => void,
+  role?: string | null,
 ): ReadonlyArray<ObservatoryNextBestAction> {
   return [
-    { label: 'Log Workout',    Icon: Dumbbell, run: () => navigate('/workout') },
+    { label: 'Log Workout',    Icon: Dumbbell, run: () => navigate(getLogWorkoutDashboardPath(role)) },
     { label: 'View Progress',  Icon: Trophy,   run: () => setActiveTab('progress') },
     { label: 'Explore Feed',   Icon: Sparkles, run: () => setActiveTab('feed') },
-    { label: 'Find Community', Icon: Users,    run: () => navigate('/social/friends') },
+    { label: 'Find Community', Icon: Users,    run: () => setActiveTab('community') },
   ];
 }
 

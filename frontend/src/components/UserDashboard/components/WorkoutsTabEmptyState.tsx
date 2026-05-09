@@ -23,8 +23,8 @@ const WorkoutsTabEmptyState: React.FC<WorkoutsTabEmptyStateProps> = ({ onLogWork
     </EmptyIconShell>
     <EmptyTitle>No workouts logged yet</EmptyTitle>
     <EmptyText>
-      Start logging workouts to see your exercise breakdown by body part.
-      Your most-used exercises will appear here as charts.
+      Example charts will stay hidden until real workout logs exist. Log your
+      first session to start filling exercise usage, streaks, and progress data.
     </EmptyText>
     <LogButton type="button" onClick={onLogWorkout}>
       <Dumbbell size={16} />

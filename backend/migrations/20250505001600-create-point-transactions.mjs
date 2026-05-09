@@ -138,12 +138,12 @@
 export async function up(queryInterface, Sequelize) {
   await queryInterface.createTable('PointTransactions', {
     id: {
-      type: Sequelize.UUID,
-      defaultValue: Sequelize.UUIDV4,
+      type: Sequelize.INTEGER,
+      autoIncrement: true,
       primaryKey: true
     },
     userId: {
-      type: Sequelize.UUID,
+      type: Sequelize.INTEGER,
       allowNull: false,
       references: {
         model: 'Users',
@@ -175,6 +175,9 @@ export async function up(queryInterface, Sequelize) {
         'reward_redemption',
         'package_purchase',
         'friend_referral',
+        'social_engagement',
+        'goal_milestone',
+        'goal_completed',
         'admin_adjustment',
         'trainer_award',
         'challenge_completion'
@@ -182,7 +185,11 @@ export async function up(queryInterface, Sequelize) {
       allowNull: false
     },
     sourceId: {
-      type: Sequelize.UUID,
+      type: Sequelize.INTEGER,
+      allowNull: true
+    },
+    idempotencyKey: {
+      type: Sequelize.STRING(128),
       allowNull: true
     },
     description: {
@@ -194,7 +201,7 @@ export async function up(queryInterface, Sequelize) {
       allowNull: true
     },
     awardedBy: {
-      type: Sequelize.UUID,
+      type: Sequelize.INTEGER,
       allowNull: true,
       references: {
         model: 'Users',
@@ -217,6 +224,10 @@ export async function up(queryInterface, Sequelize) {
   await queryInterface.addIndex('PointTransactions', ['userId']);
   await queryInterface.addIndex('PointTransactions', ['transactionType']);
   await queryInterface.addIndex('PointTransactions', ['source']);
+  await queryInterface.addIndex('PointTransactions', ['userId', 'source', 'idempotencyKey'], {
+    unique: true,
+    name: 'point_transactions_user_source_idempotency_key'
+  });
   await queryInterface.addIndex('PointTransactions', ['createdAt']);
 }
 

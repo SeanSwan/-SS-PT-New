@@ -25,12 +25,24 @@
 
 import PointTransaction from '../../models/PointTransaction.mjs';
 import User from '../../models/User.mjs';
-import Gamification from '../../models/Gamification.mjs';
 import GamificationSettings from '../../models/GamificationSettings.mjs';
 import { Op } from 'sequelize';
 import db from '../../database.mjs';
+import { calculateLevel, getTier } from '../../utils/levelingAlgorithm.mjs';
 
 const MAX_SINGLE_AWARD = 500;
+const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+
+function normalizeInteger(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function normalizeIdempotencyKey(value) {
+  if (!value) return null;
+  return String(value).slice(0, MAX_IDEMPOTENCY_KEY_LENGTH);
+}
 
 export class GamificationPointsService {
   /**
@@ -86,6 +98,124 @@ export class GamificationPointsService {
       return currentPoints - pointsToAward;
     }
     return currentPoints + pointsToAward;
+  }
+
+  /**
+   * Record one point ledger entry and keep User.points/level/tier in sync.
+   * This is the shared write path for visible gamification point balances.
+   */
+  static async recordLedgerEntry({
+    userId,
+    points,
+    transactionType = 'earn',
+    source,
+    sourceId = null,
+    description,
+    metadata = null,
+    awardedBy = null,
+    idempotencyKey = null,
+    applyMultiplier = false,
+    dedupeBySourceToday = false
+  }, outerTransaction = null) {
+    const validation = this.validateAward(points, source, description);
+    if (!validation.valid) {
+      const error = new Error(validation.error);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const execute = async (transaction) => {
+      const normalizedKey = normalizeIdempotencyKey(idempotencyKey);
+      const normalizedSourceId = normalizeInteger(sourceId);
+
+      if (normalizedKey) {
+        const existing = await PointTransaction.findOne({
+          where: { userId, source, idempotencyKey: normalizedKey },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (existing) {
+          return {
+            success: true,
+            duplicate: true,
+            pointsAwarded: 0,
+            newBalance: existing.balance,
+            pointTransaction: existing
+          };
+        }
+      } else if (dedupeBySourceToday && await this.checkDuplicate(userId, source, normalizedSourceId, transaction)) {
+        return {
+          success: true,
+          duplicate: true,
+          pointsAwarded: 0,
+          newBalance: null,
+          pointTransaction: null
+        };
+      }
+
+      const user = await User.findByPk(userId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (!user) {
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const pointsToRecord = applyMultiplier
+        ? await this.getMultipliedPoints(validation.parsedPoints, transaction)
+        : validation.parsedPoints;
+
+      const lastTransaction = await PointTransaction.findOne({
+        where: { userId },
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      const currentBalance = Math.max(
+        Number(user.points || 0),
+        Number(lastTransaction?.balance || 0)
+      );
+      const newBalance = this.calculateBalance(currentBalance, pointsToRecord, transactionType);
+      const newLevel = calculateLevel(Math.max(newBalance, 0));
+      const newTier = getTier(newLevel);
+
+      const pointTransaction = await PointTransaction.create({
+        userId,
+        points: pointsToRecord,
+        balance: newBalance,
+        transactionType,
+        source,
+        sourceId: normalizedSourceId,
+        idempotencyKey: normalizedKey,
+        description,
+        metadata,
+        awardedBy
+      }, { transaction });
+
+      const userUpdates = { points: newBalance };
+      if (newLevel !== user.level) userUpdates.level = newLevel;
+      if (newTier !== user.tier) userUpdates.tier = newTier;
+      await user.update(userUpdates, { transaction });
+
+      return {
+        success: true,
+        duplicate: false,
+        pointsAwarded: pointsToRecord,
+        newBalance,
+        newLevel,
+        newTier,
+        previousLevel: user.level,
+        previousTier: user.tier,
+        pointTransaction
+      };
+    };
+
+    if (outerTransaction) return execute(outerTransaction);
+    return db.transaction(execute);
   }
 }
 

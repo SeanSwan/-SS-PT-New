@@ -29,6 +29,7 @@ interface TrendingTag {
   name: string;
   weeklyCount: number;
   category: string;
+  isDefault?: boolean;
 }
 
 interface TrendingHashtagsProps {
@@ -37,6 +38,27 @@ interface TrendingHashtagsProps {
      preserves the existing SocialFeed-full-variant behavior (where the
      parent already gates rendering and a null is fine). */
   showEmptyState?: boolean;
+}
+
+const DEFAULT_TRENDING_TAGS: TrendingTag[] = [
+  {
+    id: -1,
+    name: 'welcome',
+    weeklyCount: 1,
+    category: 'community',
+    isDefault: true,
+  },
+];
+
+function extractTrendingTags(payload: unknown): TrendingTag[] {
+  if (Array.isArray(payload)) return payload as TrendingTag[];
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.hashtags)) return record.hashtags as TrendingTag[];
+  if (Array.isArray(record.data)) return record.data as TrendingTag[];
+
+  return [];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -53,14 +75,16 @@ const TrendingHashtags: React.FC<TrendingHashtagsProps> = memo(({ showEmptyState
 
   useEffect(() => {
     api.get('/api/social/hashtags/trending?limit=8')
-      .then(res => setTags(res.data.hashtags || res.data || []))
+      .then(res => setTags(extractTrendingTags(res.data)))
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);
 
   if (!loaded) return null;
 
-  if (!tags.length) {
+  const displayTags = tags.length ? tags : (showEmptyState ? DEFAULT_TRENDING_TAGS : []);
+
+  if (!displayTags.length) {
     if (!showEmptyState) return null;
     return (
       <TrendingWrap>
@@ -79,13 +103,13 @@ const TrendingHashtags: React.FC<TrendingHashtagsProps> = memo(({ showEmptyState
         <TrendingUp size={14} />
         Trending
       </TrendingTitle>
-      {tags.map(tag => (
+      {displayTags.map(tag => (
         <TagRow key={tag.id}>
           <TagName>
             <Hash size={12} />
             {tag.name}
           </TagName>
-          <TagCount>{tag.weeklyCount} posts</TagCount>
+          <TagCount>{tag.isDefault ? 'Admin welcome' : `${tag.weeklyCount} posts`}</TagCount>
         </TagRow>
       ))}
     </TrendingWrap>

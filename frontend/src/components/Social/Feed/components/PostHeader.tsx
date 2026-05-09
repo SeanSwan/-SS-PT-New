@@ -31,6 +31,7 @@ import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import MembershipBadge from '../../../MembershipBadge/MembershipBadge';
 import type { ClientSource } from '../../../MembershipBadge/MembershipBadge';
 import RPGProfileHeader from '../../../Social/RPGProfileHeader';
+import swanLogoSrc from '../../../../assets/Logo.png';
 import {
   PostHeaderRelative,
   PostHeaderBar,
@@ -78,7 +79,11 @@ const postTypeIcons: Record<string, React.ElementType> = {
 
 export const AvatarEl: React.FC<{ src?: string; alt: string; fallback: string; size?: number }> = ({ src, alt, fallback, size }) => (
   <AvatarStyled $size={size} title={alt}>
-    {src ? <AvatarImage src={src} alt={alt} /> : fallback}
+    {src ? (
+      <AvatarImage src={src} alt={alt} />
+    ) : (
+      <AvatarImage src={swanLogoSrc} alt={`${fallback} SwanStudios profile fallback`} />
+    )}
   </AvatarStyled>
 );
 

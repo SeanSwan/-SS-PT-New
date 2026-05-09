@@ -96,8 +96,8 @@ module.exports = {
 
       await queryInterface.createTable('Achievements', {
         id: {
-          type: Sequelize.UUID,
-          defaultValue: Sequelize.UUIDV4,
+          type: Sequelize.INTEGER,
+          autoIncrement: true,
           primaryKey: true
         },
         name: {
@@ -541,6 +541,7 @@ module.exports = {
         'workout_completion', 'exercise_completion', 'streak_bonus', 'level_up',
         'achievement_earned', 'milestone_reached', 'reward_redemption',
         'package_purchase', 'friend_referral', 'admin_adjustment',
+        'social_engagement', 'goal_milestone', 'goal_completed',
         'trainer_award', 'challenge_completion'
       ]);
 
@@ -574,12 +575,16 @@ module.exports = {
             'workout_completion', 'exercise_completion', 'streak_bonus', 'level_up',
             'achievement_earned', 'milestone_reached', 'reward_redemption',
             'package_purchase', 'friend_referral', 'admin_adjustment',
-            'trainer_award', 'challenge_completion'
+            'social_engagement', 'trainer_award', 'challenge_completion'
           ),
           allowNull: false
         },
         sourceId: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
+          allowNull: true
+        },
+        idempotencyKey: {
+          type: Sequelize.STRING(128),
           allowNull: true
         },
         description: {
@@ -612,6 +617,10 @@ module.exports = {
       await safeAddIndex('PointTransactions', ['userId']);
       await safeAddIndex('PointTransactions', ['transactionType']);
       await safeAddIndex('PointTransactions', ['source']);
+      await safeAddIndex('PointTransactions', ['userId', 'source', 'idempotencyKey'], {
+        unique: true,
+        name: 'point_transactions_user_source_idempotency_key'
+      });
       await safeAddIndex('PointTransactions', ['createdAt']);
       console.log('  ✓ PointTransactions table created');
     } else {

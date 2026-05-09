@@ -49,8 +49,24 @@ const FeedContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 650px;
+  max-width: 860px;
   margin: 0 auto;
+
+  @media (min-width: 1440px) {
+    max-width: 920px;
+  }
+
+  @media (min-width: 1920px) {
+    max-width: 1040px;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1120px;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 1280px;
+  }
 `;
 
 const LoadMoreButton = styled.button`

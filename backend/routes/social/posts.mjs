@@ -10,7 +10,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
-import PointTransaction from '../../models/PointTransaction.mjs';
+import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import { getIO } from '../../socket/socketManager.mjs';
 
@@ -117,6 +117,16 @@ const SOCIAL_POINT_RULES = {
   comment_received: 3
 };
 
+function buildSocialPointKey(userId, action, metadata = {}) {
+  const parts = ['social', action, `user:${userId}`];
+  for (const key of ['postId', 'commentId', 'reactionType', 'likedByUserId', 'commentedByUserId']) {
+    if (metadata[key] !== undefined && metadata[key] !== null && metadata[key] !== '') {
+      parts.push(`${key}:${metadata[key]}`);
+    }
+  }
+  return parts.join(':');
+}
+
 /**
  * Award points for social actions with proper tracking
  * @param {string} userId - The user ID to award points to
@@ -133,39 +143,36 @@ async function awardSocialPoints(userId, action, metadata = {}) {
       return { pointsAwarded: 0, success: false };
     }
 
-    // Get current user balance
-    const lastTransaction = await PointTransaction.findOne({
-      where: { userId },
-      order: [['createdAt', 'DESC']]
-    });
-    
-    const currentBalance = lastTransaction ? lastTransaction.balance : 0;
-    const newBalance = currentBalance + pointsToAward;
-
-    // Create point transaction record
-    await PointTransaction.create({
+    const result = await GamificationPointsService.recordLedgerEntry({
       userId,
       points: pointsToAward,
-      balance: newBalance,
       transactionType: 'earn',
       source: 'social_engagement',
+      sourceId: null,
       description: `Social Action: ${action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
       metadata: {
         socialAction: action,
         ...metadata
-      }
+      },
+      awardedBy: userId,
+      idempotencyKey: buildSocialPointKey(userId, action, metadata)
     });
 
-    console.log(`✅ Awarded ${pointsToAward} points to user ${userId} for ${action}`);
+    if (result.duplicate) {
+      console.log(`[social-points] Duplicate point award skipped for user ${userId} and ${action}`);
+      return { pointsAwarded: 0, newBalance: result.newBalance, success: true, duplicate: true, action };
+    }
+
+    console.log(`[social-points] Awarded ${pointsToAward} points to user ${userId} for ${action}`);
     
     return {
-      pointsAwarded: pointsToAward,
-      newBalance,
+      pointsAwarded: result.pointsAwarded,
+      newBalance: result.newBalance,
       success: true,
       action
     };
   } catch (error) {
-    console.error(`❌ Error awarding social points for ${action}:`, error);
+    console.error(`[social-points] Error awarding social points for ${action}:`, error);
     return { pointsAwarded: 0, success: false, error: error.message };
   }
 }
@@ -180,7 +187,7 @@ async function awardEngagementReceivedPoints(postOwnerId, action, metadata = {})
   try {
     const result = await awardSocialPoints(postOwnerId, action, metadata);
     if (result.success) {
-      console.log(`🎉 Post owner ${postOwnerId} earned ${result.pointsAwarded} points for receiving ${action}`);
+      console.log(`[social-points] Post owner ${postOwnerId} earned ${result.pointsAwarded} points for receiving ${action}`);
     }
     return result;
   } catch (error) {
@@ -1236,14 +1243,16 @@ router.post('/:postId/like', async (req, res) => {
     // Award points
     const likeGivenResult = await awardSocialPoints(req.user.id, 'post_like_given', {
       postId,
-      postOwnerId: post.userId
+      postOwnerId: post.userId,
+      reactionType
     });
 
     let likeReceivedResult = { success: false };
     if (post.userId !== req.user.id) {
       likeReceivedResult = await awardEngagementReceivedPoints(post.userId, 'post_like_received', {
         postId,
-        likedByUserId: req.user.id
+        likedByUserId: req.user.id,
+        reactionType
       });
     }
 

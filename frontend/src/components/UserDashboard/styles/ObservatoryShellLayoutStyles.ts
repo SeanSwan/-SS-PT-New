@@ -44,21 +44,30 @@ export const ObservatoryGrid = styled.div`
   /* 1280px: compact three-column desktop. Right rail joins at this width
      in lockstep with ObservatoryRightRail's display:flex breakpoint. */
   @media (min-width: 1280px) {
-    grid-template-columns: minmax(220px, 240px) minmax(480px, 1fr) minmax(240px, 260px);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 280px);
     gap: 1.25rem;
   }
 
   @media (min-width: 1440px) {
-    grid-template-columns: minmax(220px, 240px) minmax(560px, 1fr) minmax(260px, 280px);
-    gap: 1.25rem;
+    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(280px, 320px);
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1920px) {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 380px);
+    gap: 1.75rem;
   }
 
   @media (min-width: 2560px) {
     --observatory-profile-banner-clearance: 440px;
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) minmax(360px, 440px);
+    gap: 2rem;
   }
 
   @media (min-width: 3840px) {
     --observatory-profile-banner-clearance: 540px;
+    grid-template-columns: minmax(360px, 520px) minmax(0, 1fr) minmax(420px, 560px);
+    gap: 2.5rem;
   }
 `;
 

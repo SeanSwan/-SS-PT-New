@@ -60,7 +60,7 @@ export const springScale = keyframes`
 
 export const PostCardWrapper = styled.article`
   width: 100%;
-  max-width: 680px;
+  max-width: 100%;
   margin-bottom: 12px;
   background: #111122;
   border-top: 1px solid rgba(255, 255, 255, 0.06);

@@ -78,8 +78,8 @@ export function useUserDashboardV3Controller() {
   );
 
   const observatoryNextBest = useMemo(
-    () => buildObservatoryNextBestActions(navigate, setActiveTab),
-    [navigate],
+    () => buildObservatoryNextBestActions(navigate, setActiveTab, user?.role),
+    [navigate, user?.role],
   );
 
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background') => {
@@ -120,8 +120,9 @@ export function useUserDashboardV3Controller() {
   const handleEditProfile = useCallback(() => setShowEditModal(true), []);
 
   const handleSettings = useCallback(() => {
-    navigate('/dashboard/profile');
-  }, [navigate]);
+    setActiveTab('profile');
+    setShowEditModal(true);
+  }, []);
 
   const handleShare = useCallback(async () => {
     const shareUrl = `${window.location.origin}/profile/${user?.id}`;
@@ -157,6 +158,7 @@ export function useUserDashboardV3Controller() {
     canonicalLevel,
     levelProgress,
     observatoryLevel: canonicalLevel,
+    observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
     observatoryTierName: levelProgress?.tierDisplay?.name ?? 'Bronze Forge',
     observatoryProgressPct: levelProgress?.progressPercent ?? 0,
     observatoryXpToNext: levelProgress?.pointsToNextLevel ?? 0,

@@ -108,6 +108,40 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(layoutSource).toContain('--observatory-profile-banner-clearance: 540px;');
   });
 
+  it('routes user dashboard workout actions through mounted role dashboards', () => {
+    const touchedActionFiles = [
+      'src/components/UserDashboard/components/HomeTab.tsx',
+      'src/components/UserDashboard/components/DailyHealthLoop.tsx',
+      'src/components/UserDashboard/components/ObservatoryShellAdapter.ts',
+      'src/components/UserDashboard/components/SwanCoachDock.tsx',
+      'src/components/UserDashboard/components/WorkoutsTab.tsx',
+    ];
+    const routeHelper = readSource('src/components/UserDashboard/components/swanCoachDashboardRoute.ts');
+
+    expect(routeHelper).toContain('getLogWorkoutDashboardPath');
+    expect(routeHelper).toContain('/log-workout');
+
+    touchedActionFiles.forEach((file) => {
+      const source = readSource(file);
+      expect(source, `${file} must not navigate to the stale standalone workout route`)
+        .not.toContain("navigate('/workout')");
+      expect(source, `${file} must not use the removed admin sessions route`)
+        .not.toContain('/dashboard/admin-sessions');
+    });
+  });
+
+  it('includes monitor-class QHD and 4K layout breakpoints for the observatory shell', () => {
+    const layoutSource = readSource('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
+    const dashboardLayoutSource = readSource('src/components/UserDashboard/styles/DashboardV3LayoutStyles.ts');
+
+    expect(layoutSource).toContain('@media (min-width: 1920px)');
+    expect(layoutSource).toContain('@media (min-width: 2560px)');
+    expect(layoutSource).toContain('@media (min-width: 3840px)');
+    expect(dashboardLayoutSource).toContain('@media (min-width: 1920px)');
+    expect(dashboardLayoutSource).toContain('@media (min-width: 2560px)');
+    expect(dashboardLayoutSource).toContain('@media (min-width: 3840px)');
+  });
+
   it('keeps touched dashboard home files free of corrupted mojibake text', () => {
     const touchedHomeFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',

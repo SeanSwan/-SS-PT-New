@@ -19,6 +19,7 @@ const SelectorButton = styled.button`
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
+  min-height: 44px;
   cursor: pointer;
   transition: all 0.2s ease;
   

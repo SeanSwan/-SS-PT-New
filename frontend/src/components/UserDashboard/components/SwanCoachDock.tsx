@@ -33,7 +33,7 @@ import {
   ChevronRight, Lock, Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getSwanCoachDashboardPath } from './swanCoachDashboardRoute';
+import { getLogWorkoutDashboardPath, getSwanCoachDashboardPath } from './swanCoachDashboardRoute';
 import {
   ActionChip,
   ChipRow,
@@ -135,7 +135,7 @@ const SwanCoachDock: React.FC<SwanCoachDockProps> = ({
                   onClick={() => {
                     if (action === 'progress' && onTabChange) onTabChange('progress');
                     else if (action === 'coach') navigate(getSwanCoachDashboardPath(userRole));
-                    else navigate('/workout');
+                    else navigate(getLogWorkoutDashboardPath(userRole));
                   }}
                   aria-label={label}
                 >

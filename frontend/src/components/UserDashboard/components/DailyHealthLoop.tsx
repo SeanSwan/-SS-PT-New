@@ -53,6 +53,7 @@ interface DailyHealthLoopProps {
   level: number;
   progressPercent: number;
   tierName: string;
+  logWorkoutPath: string;
   onTabChange: (tab: string) => void;
 }
 
@@ -82,6 +83,7 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
   level,
   progressPercent,
   tierName,
+  logWorkoutPath,
   onTabChange,
 }) => {
   const navigate = useNavigate();
@@ -107,7 +109,7 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
           <ResultPill><Sparkles size={13} /> {Math.round(progressPercent)}% to next level</ResultPill>
           <ResultPill><Users size={13} /> Share only when ready</ResultPill>
         </ResultRow>
-        <PrimaryAction onClick={() => navigate('/workout')}>
+        <PrimaryAction onClick={() => navigate(logWorkoutPath)}>
           <Dumbbell size={17} />
           Log Workout
           <Arrow size={15} />

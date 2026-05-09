@@ -38,11 +38,12 @@ import {
 import WorkoutsTabCharts from './WorkoutsTabCharts';
 import WorkoutsTabEmptyState from './WorkoutsTabEmptyState';
 import WorkoutsTabSummary from './WorkoutsTabSummary';
+import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 
 export const WORKOUT_SESSIONS_API_PATH = '/api/workout/sessions';
 
 const WorkoutsTab: React.FC = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,8 +51,8 @@ const WorkoutsTab: React.FC = () => {
   const [streak, setStreak] = useState(0);
 
   const navigateToLogger = useCallback(() => {
-    navigate('/dashboard/admin-sessions');
-  }, [navigate]);
+    navigate(getLogWorkoutDashboardPath(user?.role));
+  }, [navigate, user?.role]);
 
   const fetchWorkouts = useCallback(async () => {
     try {

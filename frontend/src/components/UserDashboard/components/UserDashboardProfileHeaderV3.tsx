@@ -7,6 +7,7 @@ import { Camera, Crown, Edit3, Settings, Share2 } from 'lucide-react';
 import {
   ActionButtons,
   BackgroundSection,
+  BannerActionRow,
   BadgeIcon,
   BadgeName,
   BadgeShowcase,
@@ -74,12 +75,13 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.8 }}
   >
-    <BackgroundSection $backgroundImage={backgroundImage}>
+    <BackgroundSection $backgroundImage={backgroundImage} />
+    <BannerActionRow>
       <BannerUploadButton onClick={onBackgroundClick}>
         <Camera size={18} />
         {backgroundImage ? 'Change Cover' : 'Add Cover'}
       </BannerUploadButton>
-    </BackgroundSection>
+    </BannerActionRow>
 
     <ProfileImageSection>
       <ProfileImageContainer whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

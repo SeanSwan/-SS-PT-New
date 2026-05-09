@@ -42,14 +42,15 @@ describe('WorkoutsTab', () => {
     });
   });
 
-  it('routes the log-workout call to the existing admin sessions logger', async () => {
+  it('routes the log-workout call to the canonical client workout logger', async () => {
     const user = userEvent.setup();
     authGet.mockResolvedValue({ data: { data: { workouts: [] } } });
+    mockUseAuth.mockReturnValue({ authAxios: { get: authGet }, user: { role: 'client' } });
 
     render(<WorkoutsTab />);
     await user.click(await screen.findByRole('button', { name: /log workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin-sessions');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
   });
 });
 

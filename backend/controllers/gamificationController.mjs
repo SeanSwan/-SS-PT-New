@@ -410,6 +410,7 @@ import UserReward from '../models/UserReward.mjs';
 import UserMilestone from '../models/UserMilestone.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import ComebackChallenge from '../models/ComebackChallenge.mjs';
+import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 
@@ -793,31 +794,34 @@ const gamificationController = {
 
       // ── SECURITY FIX #3: Input Validation (CRITICAL) ──
       // Prevents point inflation via unbounded award values
-      const MAX_SINGLE_AWARD = 500;
-      const parsedPoints = parseInt(points);
-      if (!Number.isInteger(parsedPoints) || parsedPoints < 1 || parsedPoints > MAX_SINGLE_AWARD) {
+      const validation = GamificationPointsService.validateAward(points, source, description);
+      if (!validation.valid) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: `Points must be an integer between 1 and ${MAX_SINGLE_AWARD}`
+          message: validation.error
         });
       }
 
       // ── SECURITY FIX #2: Idempotency Check (CRITICAL) ──
       // Prevents replay attacks — same user+source+sourceId on same day = reject
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      const idempotencyWhere = {
+      const idempotencyKey = req.body.idempotencyKey ||
+        ['manual-award', userId, source, sourceId || 'no-source-id', new Date().toISOString().slice(0, 10)].join(':');
+
+      const ledgerResult = await GamificationPointsService.recordLedgerEntry({
         userId,
-        source: source || 'manual',
-        createdAt: { [Op.gte]: startOfToday }
-      };
-      if (sourceId) idempotencyWhere.sourceId = sourceId;
-      const existingTransaction = await PointTransaction.findOne({
-        where: idempotencyWhere,
-        transaction
-      });
-      if (existingTransaction) {
+        points,
+        transactionType,
+        source,
+        sourceId,
+        description,
+        metadata,
+        awardedBy: req.user?.id,
+        idempotencyKey,
+        applyMultiplier: true
+      }, transaction);
+
+      if (ledgerResult.duplicate) {
         await transaction.rollback();
         return res.status(409).json({
           success: false,
@@ -825,112 +829,48 @@ const gamificationController = {
         });
       }
 
-      // Get current user points (with row-level lock for concurrency safety)
-      const user = await User.findByPk(userId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE
-      });
+      const { pointTransaction } = ledgerResult;
+      let finalBalance = ledgerResult.newBalance;
       
-      if (!user) {
-        await transaction.rollback();
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
+      if (ledgerResult.newTier !== ledgerResult.previousTier) {
+        const tierMilestone = await Milestone.findOne({
+          where: {
+            tier: ledgerResult.newTier,
+            isActive: true
+          },
+          transaction
         });
-      }
-      
-      // Get settings
-      const settings = await GamificationSettings.findOne({ transaction });
-      
-      // Apply multiplier if settings exist and feature is enabled
-      // Uses parsedPoints (validated integer) instead of raw input
-      const pointsToAward = settings && settings.isEnabled
-        ? Math.round(parsedPoints * (settings.pointsMultiplier || 1))
-        : parsedPoints;
-      
-      // Calculate new balance
-      const newBalance = transactionType === 'earn' || transactionType === 'bonus'
-        ? user.points + pointsToAward
-        : transactionType === 'spend' || transactionType === 'expire'
-          ? user.points - pointsToAward
-          : user.points + pointsToAward; // for adjustments, we trust the provided amount
-      
-      // Create transaction record
-      const pointTransaction = await PointTransaction.create({
-        userId,
-        points: pointsToAward,
-        balance: newBalance,
-        transactionType,
-        source,
-        sourceId,
-        description,
-        metadata,
-        awardedBy: req.user?.id // From auth middleware
-      }, { transaction });
-      
-      // Update user points
-      await user.update({ points: newBalance }, { transaction });
-      
-      // Check if user has reached new level/tier using logarithmic leveling
-      {
-        const { calculateLevel, getTier } = await import('../utils/levelingAlgorithm.mjs');
-        const newLevel = calculateLevel(newBalance);
-        const newTier = getTier(newLevel);
 
-        // Update level if changed
-        if (newLevel !== user.level) {
-          await user.update({ level: newLevel }, { transaction });
-        }
-
-        if (newTier !== user.tier) {
-          await user.update({ tier: newTier }, { transaction });
-          
-          // Find milestone for this tier
-          const tierMilestone = await Milestone.findOne({
+        if (tierMilestone) {
+          const existingMilestone = await UserMilestone.findOne({
             where: {
-              tier: newTier,
-              isActive: true
+              userId,
+              milestoneId: tierMilestone.id
             },
             transaction
           });
-          
-          if (tierMilestone) {
-            // Check if user already has this milestone
-            const existingMilestone = await UserMilestone.findOne({
-              where: {
+
+          if (!existingMilestone) {
+            await UserMilestone.create({
+              userId,
+              milestoneId: tierMilestone.id,
+              reachedAt: new Date(),
+              bonusPointsAwarded: tierMilestone.bonusPoints
+            }, { transaction });
+
+            if (tierMilestone.bonusPoints > 0) {
+              const bonusResult = await GamificationPointsService.recordLedgerEntry({
                 userId,
-                milestoneId: tierMilestone.id
-              },
-              transaction
-            });
-            
-            if (!existingMilestone) {
-              // Award milestone to user
-              await UserMilestone.create({
-                userId,
-                milestoneId: tierMilestone.id,
-                reachedAt: new Date(),
-                bonusPointsAwarded: tierMilestone.bonusPoints
-              }, { transaction });
-              
-              // Award bonus points
-              if (tierMilestone.bonusPoints > 0) {
-                const bonusBalance = newBalance + tierMilestone.bonusPoints;
-                
-                await PointTransaction.create({
-                  userId,
-                  points: tierMilestone.bonusPoints,
-                  balance: bonusBalance,
-                  transactionType: 'bonus',
-                  source: 'milestone_reached',
-                  sourceId: tierMilestone.id,
-                  description: `Milestone Bonus: ${tierMilestone.name}`,
-                  metadata: { milestoneId: tierMilestone.id }
-                }, { transaction });
-                
-                // Update user points again
-                await user.update({ points: bonusBalance }, { transaction });
-              }
+                points: tierMilestone.bonusPoints,
+                transactionType: 'bonus',
+                source: 'milestone_reached',
+                sourceId: tierMilestone.id,
+                description: `Milestone Bonus: ${tierMilestone.name}`,
+                metadata: { milestoneId: tierMilestone.id },
+                awardedBy: req.user?.id,
+                idempotencyKey: `milestone:tier:${userId}:${tierMilestone.id}`
+              }, transaction);
+              finalBalance = bonusResult.newBalance || finalBalance;
             }
           }
         }
@@ -943,14 +883,14 @@ const gamificationController = {
         success: true,
         message: 'Points awarded successfully',
         pointTransaction,
-        newBalance
+        newBalance: finalBalance
       });
     } catch (error) {
       await transaction.rollback();
       console.error('Error awarding points:', error);
-      return res.status(500).json({
+      return res.status(error.statusCode || 500).json({
         success: false,
-        message: 'Failed to award points',
+        message: error.statusCode ? error.message : 'Failed to award points',
         error: safeError(req, error)
       });
     }

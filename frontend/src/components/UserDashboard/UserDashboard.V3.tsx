@@ -47,6 +47,7 @@ const UserDashboardV3: React.FC = () => {
               onTabChange={dashboard.setActiveTab}
               onNavigate={dashboard.navigate}
               observatoryLevel={dashboard.observatoryLevel}
+              observatoryPoints={dashboard.observatoryPoints}
               observatoryTierName={dashboard.observatoryTierName}
               observatoryProgressPct={dashboard.observatoryProgressPct}
               observatoryXpToNext={dashboard.observatoryXpToNext}

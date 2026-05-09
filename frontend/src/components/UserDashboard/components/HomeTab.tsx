@@ -40,6 +40,7 @@ import ActivityTicker from '../../Social/Feed/ActivityTicker';
 import DailyHealthLoop from './DailyHealthLoop';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
+import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 import {
   HomeContainer,
   LevelBadge,
@@ -69,10 +70,10 @@ interface HomeTabProps {
 }
 
 const CTA_ITEMS = [
-  { label: 'Log Workout',    Icon: Dumbbell,  getAction: (nav: ReturnType<typeof useNavigate>, _: (t: string) => void) => () => nav('/workout') },
-  { label: 'View Progress',  Icon: Trophy,    getAction: (_: ReturnType<typeof useNavigate>, change: (t: string) => void) => () => change('progress') },
-  { label: 'Explore Feed',   Icon: Sparkles,  getAction: (_: ReturnType<typeof useNavigate>, change: (t: string) => void) => () => change('feed') },
-  { label: 'Find Community', Icon: Users,     getAction: (nav: ReturnType<typeof useNavigate>, _: (t: string) => void) => () => nav('/social/friends') },
+  { label: 'Log Workout',    Icon: Dumbbell, action: 'log-workout' },
+  { label: 'View Progress',  Icon: Trophy,   action: 'progress' },
+  { label: 'Explore Feed',   Icon: Sparkles, action: 'feed' },
+  { label: 'Find Community', Icon: Users,    action: 'community' },
 ] as const;
 
 const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
@@ -94,6 +95,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
   const progressPercent = levelProgress?.progressPercent ?? 0;
   const tierName        = levelProgress?.tierDisplay?.name ?? 'Bronze Forge';
   const tierColor       = levelProgress?.tierDisplay?.color ?? '#C6A84B';
+  const logWorkoutPath  = getLogWorkoutDashboardPath(user?.role);
 
   return (
     <HomeContainer>
@@ -150,6 +152,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
         level={level}
         progressPercent={progressPercent}
         tierName={tierName}
+        logWorkoutPath={logWorkoutPath}
         onTabChange={onTabChange}
       />
 
@@ -192,10 +195,13 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
 
       {/* ── 6. QUICK CTA GRID ── */}
       <CTAGrid>
-        {CTA_ITEMS.map(({ label, Icon, getAction }) => (
+        {CTA_ITEMS.map(({ label, Icon, action }) => (
           <CTACard
             key={label}
-            onClick={getAction(navigate, onTabChange)}
+            onClick={() => {
+              if (action === 'log-workout') navigate(logWorkoutPath);
+              else onTabChange(action);
+            }}
             whileHover={{ y: -3 }}
             whileTap={{ scale: 0.97 }}
           >

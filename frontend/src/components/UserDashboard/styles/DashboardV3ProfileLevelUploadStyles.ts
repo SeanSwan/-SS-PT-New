@@ -8,8 +8,9 @@ import { motion } from 'framer-motion';
 
 export const HexLevelBadge = styled.div`
   position: absolute;
-  bottom: 4px;
-  left: 4px;
+  top: 50%;
+  left: -72px;
+  transform: translateY(-50%);
   width: 56px;
   height: 56px;
   display: flex;
@@ -36,26 +37,32 @@ export const HexLevelBadge = styled.div`
     width: 44px;
     height: 44px;
     font-size: 0.9375rem;
-    bottom: 2px;
-    left: 2px;
+    top: auto;
+    bottom: -58px;
+    left: calc(50% - 52px);
+    transform: none;
   }
 
   @media (max-width: 320px) {
     width: 38px;
     height: 38px;
     font-size: 0.8125rem;
+    bottom: -50px;
+    left: calc(50% - 46px);
   }
 
   @media (min-width: 2560px) {
     width: 68px;
     height: 68px;
     font-size: 1.375rem;
+    left: -88px;
   }
 
   @media (min-width: 3840px) {
     width: 84px;
     height: 84px;
     font-size: 1.625rem;
+    left: -108px;
   }
 
   /* Performance: drop the soft drop-shadow on touch / low-power devices. */
@@ -66,8 +73,9 @@ export const HexLevelBadge = styled.div`
 
 export const ImageUploadButton = styled(motion.button)`
   position: absolute;
-  bottom: 8px;
-  right: 8px;
+  top: 50%;
+  right: -68px;
+  transform: translateY(-50%);
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -113,8 +121,10 @@ export const ImageUploadButton = styled(motion.button)`
   @media (max-width: 768px) {
     width: 44px;
     height: 44px;
-    bottom: 6px;
-    right: 6px;
+    top: auto;
+    right: calc(50% - 52px);
+    bottom: -58px;
+    transform: none;
     border-width: 2px;
 
     &:hover {

@@ -52,7 +52,7 @@ export const ProfileContainer = styled(motion.div)`
 export const ContentWrapper = styled.div`
   position: relative;
   z-index: 1;
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 3rem 2rem;
 
@@ -74,13 +74,18 @@ export const ContentWrapper = styled.div`
     padding: 0.75rem 0.5rem;
   }
 
+  @media (min-width: 1920px) {
+    max-width: 1760px;
+    padding: 3.5rem 2.5rem;
+  }
+
   @media (min-width: 2560px) {
-    max-width: 1600px;
+    max-width: 2360px;
     padding: 4rem 3rem;
   }
 
   @media (min-width: 3840px) {
-    max-width: 2200px;
+    max-width: 3440px;
     padding: 5rem 4rem;
   }
 `;
@@ -103,14 +108,20 @@ export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
     margin-top: 1rem;
   }
 
+  @media (min-width: 1920px) {
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '340px 1fr'};
+    gap: 2.25rem;
+    margin-top: 2.5rem;
+  }
+
   @media (min-width: 2560px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '380px 1fr'};
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '420px 1fr'};
     gap: 2.5rem;
     margin-top: 3rem;
   }
 
   @media (min-width: 3840px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '460px 1fr'};
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '520px 1fr'};
     gap: 3rem;
     margin-top: 4rem;
   }

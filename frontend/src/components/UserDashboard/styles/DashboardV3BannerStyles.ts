@@ -164,10 +164,32 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
 
 // Small themed button to change cover photo (replaces full-overlay darkening)
 
+export const BannerActionRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  width: min(100% - 2rem, 1440px);
+  margin: 0.875rem auto 0;
+  padding: 0 0.25rem;
+
+  @media (max-width: 768px) {
+    width: calc(100% - 1.5rem);
+    margin-top: 0.625rem;
+  }
+
+  @media (min-width: 1920px) {
+    width: min(100% - 4rem, 1760px);
+  }
+
+  @media (min-width: 2560px) {
+    width: min(100% - 6rem, 2360px);
+  }
+
+  @media (min-width: 3840px) {
+    width: min(100% - 8rem, 3440px);
+  }
+`;
+
 export const BannerUploadButton = styled.button`
-  position: absolute;
-  top: 16px;
-  right: 16px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -183,7 +205,6 @@ export const BannerUploadButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 3;
-  opacity: 0.75;
   letter-spacing: 0.02em;
 
   &:hover {
@@ -203,8 +224,6 @@ export const BannerUploadButton = styled.button`
   }
 
   @media (max-width: 768px) {
-    top: 12px;
-    right: 12px;
     padding: 6px 10px;
     font-size: 0;
     gap: 0;
@@ -215,8 +234,6 @@ export const BannerUploadButton = styled.button`
   }
 
   @media (max-width: 340px) {
-    top: 8px;
-    right: 8px;
     width: 44px;
     height: 44px;
   }

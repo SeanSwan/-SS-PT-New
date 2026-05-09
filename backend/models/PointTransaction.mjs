@@ -38,6 +38,9 @@ const PointTransaction = db.define('PointTransaction', {
       'reward_redemption',
       'package_purchase',
       'friend_referral',
+      'social_engagement',
+      'goal_milestone',
+      'goal_completed',
       'admin_adjustment',
       'trainer_award',
       'challenge_completion'
@@ -46,6 +49,10 @@ const PointTransaction = db.define('PointTransaction', {
   },
   sourceId: {
     type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  idempotencyKey: {
+    type: DataTypes.STRING(128),
     allowNull: true
   },
   description: {
@@ -75,6 +82,11 @@ const PointTransaction = db.define('PointTransaction', {
     },
     {
       fields: ['source']
+    },
+    {
+      unique: true,
+      fields: ['userId', 'source', 'idempotencyKey'],
+      name: 'point_transactions_user_source_idempotency_key'
     },
     {
       fields: ['createdAt']

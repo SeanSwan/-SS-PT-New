@@ -47,6 +47,7 @@ interface ObservatoryLeftRailProps {
   onTabChange: (tab: TabId) => void;
   navItems: ReadonlyArray<ObservatoryNavItem>;
   observatoryLevel: number;
+  observatoryPoints: number;
   observatoryTierName: string;
   observatoryProgressPct: number;
   observatoryXpToNext: number;
@@ -59,6 +60,7 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   onTabChange,
   navItems,
   observatoryLevel,
+  observatoryPoints,
   observatoryTierName,
   observatoryProgressPct,
   observatoryXpToNext,
@@ -110,11 +112,12 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
         <LeftRailMomentumProgress aria-hidden="true">
           <LeftRailMomentumProgressFill $pct={observatoryProgressPct} />
         </LeftRailMomentumProgress>
-        {observatoryXpToNext > 0 && (
-          <LeftRailMomentumMeta>
-            {observatoryXpToNext.toLocaleString()} XP to next level
-          </LeftRailMomentumMeta>
-        )}
+        <LeftRailMomentumMeta>
+          {observatoryPoints.toLocaleString()} pts now
+          {observatoryXpToNext > 0
+            ? ` - ${observatoryXpToNext.toLocaleString()} XP to next level`
+            : ' - next level ready'}
+        </LeftRailMomentumMeta>
       </LeftRailMomentumCard>
       <LeftRailMomentumCard>
         <LeftRailMomentumHeader>

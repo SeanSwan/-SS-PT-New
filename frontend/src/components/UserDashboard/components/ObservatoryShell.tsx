@@ -50,6 +50,7 @@ interface ObservatoryShellProps {
   onTabChange: (tab: TabId) => void;
   onNavigate: (path: string) => void;
   observatoryLevel: number;
+  observatoryPoints: number;
   observatoryTierName: string;
   observatoryProgressPct: number;
   observatoryXpToNext: number;
@@ -66,6 +67,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   onTabChange,
   onNavigate,
   observatoryLevel,
+  observatoryPoints,
   observatoryTierName,
   observatoryProgressPct,
   observatoryXpToNext,
@@ -84,6 +86,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
           onTabChange={onTabChange}
           navItems={navItems}
           observatoryLevel={observatoryLevel}
+          observatoryPoints={observatoryPoints}
           observatoryTierName={observatoryTierName}
           observatoryProgressPct={observatoryProgressPct}
           observatoryXpToNext={observatoryXpToNext}
