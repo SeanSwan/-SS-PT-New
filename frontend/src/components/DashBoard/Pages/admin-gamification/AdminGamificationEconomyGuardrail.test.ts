@@ -26,6 +26,11 @@ const ADMIN_GAMIFICATION_SETTINGS_FILES = readdirSync(
 )
   .filter(file => /^GamificationSettings.*\.(ts|tsx)$/.test(file))
   .map(file => `src/components/DashBoard/Pages/admin-gamification/components/${file}`);
+const ADMIN_GAMIFICATION_ACHIEVEMENT_FILES = readdirSync(
+  join(FRONTEND_ROOT, 'src/components/DashBoard/Pages/admin-gamification/components')
+)
+  .filter(file => /^AchievementManager.*\.(ts|tsx)$/.test(file))
+  .map(file => `src/components/DashBoard/Pages/admin-gamification/components/${file}`);
 
 function readSource(path: string) {
   return readFileSync(join(FRONTEND_ROOT, path), 'utf8');
@@ -59,11 +64,12 @@ describe('admin gamification economy guardrail contract', () => {
     expect(guardrailSource).toContain('Rewards only count when they map to real health behavior.');
   });
 
-  it('keeps the canonical admin gamification shell, RPG panel, settings, and shared styles under the file-size rule', () => {
+  it('keeps the canonical admin gamification shell, RPG panel, managers, and shared styles under the file-size rule', () => {
     [
       ...ADMIN_GAMIFICATION_SHELL_FILES,
       ...ADMIN_GAMIFICATION_RPG_PANEL_FILES,
       ...ADMIN_GAMIFICATION_SETTINGS_FILES,
+      ...ADMIN_GAMIFICATION_ACHIEVEMENT_FILES,
       ...ADMIN_GAMIFICATION_SHARED_STYLE_FILES,
     ].forEach(file => {
       const source = readSource(file);
