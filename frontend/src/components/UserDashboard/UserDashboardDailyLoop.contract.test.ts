@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -15,9 +15,17 @@ const USER_DASHBOARD_V3_SHELL_FILES = [
   'src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts',
 ];
 
+function listDashboardV3StyleFiles() {
+  return readdirSync(resolve(process.cwd(), 'src/components/UserDashboard/styles'))
+    .filter((file) => /^DashboardV3.*\.ts$/.test(file))
+    .map((file) => `src/components/UserDashboard/styles/${file}`);
+}
+
+const USER_DASHBOARD_V3_STYLE_FILES = listDashboardV3StyleFiles();
+
 describe('UserDashboard V3 daily loop contract', () => {
-  it('keeps the canonical V3 dashboard shell under the file-size rule', () => {
-    USER_DASHBOARD_V3_SHELL_FILES.forEach((file) => {
+  it('keeps the canonical V3 dashboard shell and style ownership files under the file-size rule', () => {
+    [...USER_DASHBOARD_V3_SHELL_FILES, ...USER_DASHBOARD_V3_STYLE_FILES].forEach((file) => {
       const source = readSource(file);
       const lineCount = source.split(/\r?\n/).length;
 
@@ -47,7 +55,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   });
 
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {
-    const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3Styles.ts');
+    const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
     expect(stylesSource).toContain('@media (max-width: 430px)');
     expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');

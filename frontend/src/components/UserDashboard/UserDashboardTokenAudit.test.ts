@@ -1,10 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+const dashboardV3StyleFiles = readdirSync(resolve(process.cwd(), 'src/components/UserDashboard/styles'))
+  .filter((file) => /^DashboardV3.*\.ts$/.test(file))
+  .map((file) => `src/components/UserDashboard/styles/${file}`);
+
 const dashboardFiles = [
   'src/components/UserDashboard/UserDashboard.V3.tsx',
-  'src/components/UserDashboard/styles/DashboardV3Styles.ts',
+  ...dashboardV3StyleFiles,
   // Phase 19B Observatory shell style files (added 2026-04-29 per Codex P1
   // re-review: the audit must protect the new shell chrome too).
   'src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts',

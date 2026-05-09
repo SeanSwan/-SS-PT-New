@@ -1,0 +1,127 @@
+/**
+ * Structural layout styles for the canonical UserDashboard V3 surface.
+ * Extracted from DashboardV3Styles.ts without CSS behavior changes.
+ */
+
+import styled from 'styled-components';
+import { motion } from 'framer-motion';
+
+export const NoiseOverlay = styled.div`
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+`;
+
+export const MainContentZWrapper = styled.div`
+  position: relative;
+  z-index: 2;
+`;
+
+// SECTION: Layout Components
+// PURPOSE: Primary containers, grids, and structural wrappers
+
+export const ProfileContainer = styled(motion.div)`
+  min-height: 100vh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+
+  /* Subtle background pattern for premium feel */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent-gold, #C6A84B) 5%, transparent) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+`;
+
+export const ContentWrapper = styled.div`
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+
+  @media (max-width: 1024px) {
+    max-width: 100%;
+    padding: 2rem 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem 0.75rem;
+  }
+
+  /* V3: Extended breakpoints */
+  @media (max-width: 320px) {
+    padding: 0.75rem 0.5rem;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1600px;
+    padding: 4rem 3rem;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 2200px;
+    padding: 5rem 4rem;
+  }
+`;
+
+export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
+  display: grid;
+  grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '300px 1fr'};
+  gap: 2rem;
+  margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
+  overflow: hidden;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* V3: Extended breakpoints */
+  @media (max-width: 320px) {
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  @media (min-width: 2560px) {
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '380px 1fr'};
+    gap: 2.5rem;
+    margin-top: 3rem;
+  }
+
+  @media (min-width: 3840px) {
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '460px 1fr'};
+    gap: 3rem;
+    margin-top: 4rem;
+  }
+`;
+
+
+export const TabStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+// SECTION: Profile Header Components
+// PURPOSE: Cover photo, profile image, and header info area
