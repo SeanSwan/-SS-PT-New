@@ -40,12 +40,22 @@ export const TabsContainer = styled.div`
     background: var(--accent-primary-soft, rgba(96, 192, 240, 0.26));
     border-radius: 2px;
   }
+
+  @media (max-width: 430px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    overflow-x: visible;
+    border-bottom: none;
+  }
 `;
 
 export const TabButton = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  flex-shrink: 0;
   min-height: 44px;
   padding: 0.75rem 1.5rem;
   background: ${({ $active }) => ($active ? 'var(--accent-primary-soft, rgba(96, 192, 240, 0.1))' : 'transparent')};
@@ -72,6 +82,22 @@ export const TabButton = styled.button<{ $active: boolean }>`
 
   svg {
     flex-shrink: 0;
+  }
+
+  @media (max-width: 430px) {
+    width: 100%;
+    min-width: 0;
+    padding: 0.75rem 0.875rem;
+    border-radius: 12px;
+    border: 1px solid
+      ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-subtle, rgba(96, 192, 240, 0.14))')};
+    margin-bottom: 0;
+    white-space: normal;
+    text-align: center;
+
+    &:last-child {
+      grid-column: 1 / -1;
+    }
   }
 `;
 
