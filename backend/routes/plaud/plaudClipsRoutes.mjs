@@ -18,7 +18,7 @@ import { protect, authorize } from '../../middleware/authMiddleware.mjs';
 import { plaudFeatureFlag } from '../../middleware/plaudFeatureFlag.mjs';
 import { handlePlaudAuthzError } from '../../middleware/plaudAuthz.mjs';
 import { uploadHandler } from '../../controllers/plaud/plaudUploadController.mjs';
-import { listHandler, deleteHandler } from '../../controllers/plaud/plaudListController.mjs';
+import { listHandler, deleteHandler, audioHandler } from '../../controllers/plaud/plaudListController.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
@@ -117,6 +117,8 @@ router.post(
 );
 
 router.get('/', listHandler);
+
+router.get('/:clipId/audio', audioHandler);
 
 router.delete('/:clipId', deleteHandler);
 

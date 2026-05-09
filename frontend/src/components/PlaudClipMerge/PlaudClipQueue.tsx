@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import { Trash2, CheckCircle, Circle, FileAudio } from 'lucide-react';
 import type { PlaudClip } from '../../services/plaudClipService';
 import { buildClipTimeline } from './plaudClipTimeline';
+import { PlaudClipAudioPreview } from './PlaudClipAudioPreview';
 
 const Container = styled.div`
   display: flex;
@@ -243,6 +244,7 @@ export function PlaudClipQueue({
                 {uploadedStr ? <span>Uploaded {uploadedStr}</span> : null}
                 <StatusPill $status={c.status}>{c.status.replace('_', ' ')}</StatusPill>
               </SubMeta>
+              <PlaudClipAudioPreview clip={c} label={label} />
             </ClipMeta>
             <DeleteButton
               type="button"

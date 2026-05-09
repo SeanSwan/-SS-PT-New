@@ -151,6 +151,29 @@ describe('Slice 3.5 — plaudListController', () => {
   it('delete invokes best-effort deleteClip from storage layer', () => {
     expect(LIST_SRC).toMatch(/deleteClip\(/);
   });
+
+  it('audio playback handler validates ownership and reads bytes through storage service', () => {
+    expect(LIST_SRC).toMatch(/export\s+async\s+function\s+audioHandler/);
+    expect(LIST_SRC).toMatch(/PLAUD_UUID_REGEX\.test\(clipId\)/);
+    expect(LIST_SRC).toMatch(/WHERE\s+clip_id\s*=\s*:clipId[\s\S]{0,240}user_id\s*=\s*:userId/);
+    expect(LIST_SRC).toMatch(/readClip\(\s*userId,\s*row\.clip_id,\s*row\.storage_ext/);
+    expect(LIST_SRC).toMatch(/fallbackR2Key:\s*row\.r2_key/);
+  });
+
+  it('audio playback handler returns private audio response headers and no raw filename', () => {
+    expect(LIST_SRC).toMatch(/Content-Type/);
+    expect(LIST_SRC).toMatch(/Cache-Control[\s\S]{0,80}private,\s*no-store/);
+    expect(LIST_SRC).toMatch(/X-Content-Type-Options[\s\S]{0,80}nosniff/);
+    expect(LIST_SRC).toMatch(/Content-Disposition[\s\S]{0,140}plaud-clip-\$\{row\.clip_id\}/);
+    expect(LIST_SRC).toMatch(/CLIP_NOT_READY/);
+    expect(LIST_SRC).toMatch(/UNSUPPORTED_AUDIO_TYPE/);
+    expect(LIST_SRC).toMatch(/CLIP_AUDIO_NOT_FOUND/);
+  });
+
+  it('list response marks which clips have a playback endpoint ready', () => {
+    expect(LIST_SRC).toMatch(/playbackReady:\s*isPlaybackReady\(r\.status\)/);
+    expect(LIST_SRC).toMatch(/playbackPath:\s*playbackPathFor\(r\.clip_id\)/);
+  });
 });
 
 describe('Slice 3.5 — plaudClipsRoutes mounting', () => {
@@ -196,6 +219,13 @@ describe('Slice 3.5 — plaudClipsRoutes mounting', () => {
 
   it('plaud authz error handler is registered after route handlers', () => {
     expect(ROUTES_SRC).toMatch(/handlePlaudAuthzError/);
+  });
+
+  it('registers protected GET /:clipId/audio before the authz error handler', () => {
+    const audioRouteIdx = ROUTES_SRC.indexOf("router.get('/:clipId/audio', audioHandler)");
+    const authzIdx = ROUTES_SRC.indexOf('router.use(handlePlaudAuthzError)');
+    expect(audioRouteIdx).toBeGreaterThan(0);
+    expect(authzIdx).toBeGreaterThan(audioRouteIdx);
   });
 
   it('mounted at /api/plaud/clips in core/routes.mjs', () => {

@@ -18,10 +18,11 @@ const CLIP_SRC = readFileSync(resolve(__dirname, 'plaudClipService.ts'), 'utf8')
 const MERGE_SRC = readFileSync(resolve(__dirname, 'plaudMergeService.ts'), 'utf8');
 
 describe('plaudClipService — exports', () => {
-  it('exports uploadClips, listClips, deleteClip', () => {
+  it('exports uploadClips, listClips, deleteClip, fetchClipAudioBlob', () => {
     expect(typeof plaudClipService.uploadClips).toBe('function');
     expect(typeof plaudClipService.listClips).toBe('function');
     expect(typeof plaudClipService.deleteClip).toBe('function');
+    expect(typeof plaudClipService.fetchClipAudioBlob).toBe('function');
   });
 
   it('exports PlaudApiError class with code field', () => {
@@ -44,10 +45,16 @@ describe('plaudClipService — exports', () => {
     await expect(plaudClipService.deleteClip('not-a-uuid')).rejects.toMatchObject({ code: 'INVALID_CLIP_ID' });
   });
 
+  it('fetchClipAudioBlob rejects malformed clipId client-side', async () => {
+    await expect(plaudClipService.fetchClipAudioBlob('not-a-uuid')).rejects.toMatchObject({ code: 'INVALID_CLIP_ID' });
+  });
+
   it('routes protected clip requests through apiService', () => {
     expect(CLIP_SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\/api\.service['"]/);
     expect(CLIP_SRC).toMatch(/apiService\.post[\s\S]{0,160}\(['"]\/api\/plaud\/clips\/upload/);
     expect(CLIP_SRC).toMatch(/apiService\.get[\s\S]{0,160}\(['"]\/api\/plaud\/clips/);
+    expect(CLIP_SRC).toMatch(/apiService\.get<Blob>[\s\S]{0,220}\/api\/plaud\/clips\/\$\{encodeURIComponent\(clipId\)\}\/audio/);
+    expect(CLIP_SRC).toMatch(/responseType:\s*['"]blob['"]/);
     expect(CLIP_SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
     expect(CLIP_SRC).not.toMatch(/Bearer \$\{token\}/);
   });

@@ -11,14 +11,35 @@
  * restart. Cursor format: base64(uploadedAt|clipId).
  */
 import sequelize from '../../database.mjs';
-import { deleteClip } from '../../services/plaudClipStorageDualTier.mjs';
+import {
+  ClipNotFoundError,
+  deleteClip,
+  readClip,
+} from '../../services/plaudClipStorageDualTier.mjs';
 import { PLAUD_UUID_REGEX } from '../../utils/plaudUuidRegex.mjs';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+const READY_FOR_PLAYBACK = new Set(['pending_merge', 'merged']);
+const AUDIO_MIME_PATTERN = /^audio\/[a-z0-9.+-]+$/i;
+
+function jsonError(res, status, code, message) {
+  return res.status(status).json({
+    success: false,
+    error: { code, message },
+  });
+}
 
 function encodeCursor(uploadedAt, clipId) {
   return Buffer.from(`${uploadedAt}|${clipId}`, 'utf8').toString('base64url');
+}
+
+function isPlaybackReady(status) {
+  return READY_FOR_PLAYBACK.has(status);
+}
+
+function playbackPathFor(clipId) {
+  return `/api/plaud/clips/${clipId}/audio`;
 }
 
 function decodeCursor(cursor) {
@@ -86,10 +107,67 @@ export async function listHandler(req, res) {
       status: r.status,
       uploadedAt: r.uploaded_at,
       expiresAt: r.expires_at,
+      playbackReady: isPlaybackReady(r.status),
+      playbackPath: playbackPathFor(r.clip_id),
     })),
     nextCursor,
     hasMore,
   });
+}
+
+export async function audioHandler(req, res) {
+  const userId = Number(req.user?.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+  }
+
+  const clipId = String(req.params.clipId || '');
+  if (!PLAUD_UUID_REGEX.test(clipId)) {
+    return jsonError(res, 400, 'INVALID_CLIP_ID', 'Invalid clipId format');
+  }
+
+  const [rows] = await sequelize.query(
+    `SELECT clip_id, storage_ext, mimetype, r2_key, status
+     FROM plaud_clips
+     WHERE clip_id = :clipId
+       AND user_id = :userId
+       AND deleted_at IS NULL
+     LIMIT 1`,
+    { replacements: { userId, clipId } },
+  );
+
+  const row = rows?.[0];
+  if (!row) {
+    return jsonError(res, 404, 'CLIP_NOT_FOUND', 'Clip not found');
+  }
+  if (!isPlaybackReady(row.status)) {
+    return jsonError(res, 409, 'CLIP_NOT_READY', 'Clip audio is still processing');
+  }
+  if (!AUDIO_MIME_PATTERN.test(row.mimetype)) {
+    return jsonError(res, 415, 'UNSUPPORTED_AUDIO_TYPE', 'Clip audio format is not supported');
+  }
+
+  let buffer;
+  try {
+    buffer = await readClip(userId, row.clip_id, row.storage_ext, {
+      fallbackR2Key: row.r2_key,
+      requireDiskRestore: false,
+    });
+  } catch (err) {
+    if (err instanceof ClipNotFoundError || err?.code === 'CLIP_NOT_FOUND') {
+      return jsonError(res, 404, 'CLIP_AUDIO_NOT_FOUND', 'Clip audio could not be found');
+    }
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to read clip audio');
+  }
+
+  res.set({
+    'Content-Type': row.mimetype,
+    'Content-Length': String(buffer.length),
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Disposition': `inline; filename="plaud-clip-${row.clip_id}.${row.storage_ext}"`,
+  });
+  return res.status(200).send(buffer);
 }
 
 export async function deleteHandler(req, res) {
@@ -135,4 +213,11 @@ export async function deleteHandler(req, res) {
   return res.status(200).json({ success: true });
 }
 
-export const _internal = { encodeCursor, decodeCursor, DEFAULT_LIMIT, MAX_LIMIT };
+export const _internal = {
+  encodeCursor,
+  decodeCursor,
+  DEFAULT_LIMIT,
+  MAX_LIMIT,
+  isPlaybackReady,
+  playbackPathFor,
+};

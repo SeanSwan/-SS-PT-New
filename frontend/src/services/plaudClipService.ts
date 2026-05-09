@@ -9,6 +9,7 @@
  *   uploadClips(files) -> { clips, rejected }
  *   listClips({ limit?, cursor? }) -> { clips, nextCursor, hasMore }
  *   deleteClip(clipId) -> { success }
+ *   fetchClipAudioBlob(clipId) -> Blob for authenticated in-app playback
  *
  * Errors are surfaced as PlaudApiError with the structured error code
  * from the backend response (PLAUD_DISABLED, RATE_LIMITED,
@@ -40,6 +41,8 @@ export interface PlaudClip {
   status: string;
   uploadedAt: string;
   expiresAt: string;
+  playbackReady?: boolean;
+  playbackPath?: string | null;
 }
 
 export interface PlaudUploadRejection {
@@ -67,6 +70,14 @@ function unwrapError(err: unknown, fallbackMessage: string): never {
     throw new PlaudApiError(code, message, err.response?.status || 0, data);
   }
   throw new PlaudApiError('UNKNOWN', fallbackMessage, 0);
+}
+
+const CLIP_ID_REGEX = /^[0-9a-fA-F-]{36}$/;
+
+function assertClipId(clipId: string): void {
+  if (!CLIP_ID_REGEX.test(clipId)) {
+    throw new PlaudApiError('INVALID_CLIP_ID', 'Invalid clipId format', 400);
+  }
 }
 
 export async function uploadClips(files: File[]): Promise<PlaudUploadResponse> {
@@ -104,9 +115,7 @@ export async function listClips({ limit, cursor }: { limit?: number; cursor?: st
 }
 
 export async function deleteClip(clipId: string): Promise<void> {
-  if (!/^[0-9a-fA-F-]{36}$/.test(clipId)) {
-    throw new PlaudApiError('INVALID_CLIP_ID', 'Invalid clipId format', 400);
-  }
+  assertClipId(clipId);
   try {
     await apiService.delete(`/api/plaud/clips/${encodeURIComponent(clipId)}`);
   } catch (err) {
@@ -114,4 +123,16 @@ export async function deleteClip(clipId: string): Promise<void> {
   }
 }
 
-export default { uploadClips, listClips, deleteClip, PlaudApiError };
+export async function fetchClipAudioBlob(clipId: string): Promise<Blob> {
+  assertClipId(clipId);
+  try {
+    const { data } = await apiService.get<Blob>(`/api/plaud/clips/${encodeURIComponent(clipId)}/audio`, {
+      responseType: 'blob',
+    });
+    return data;
+  } catch (err) {
+    unwrapError(err, 'Failed to load clip audio');
+  }
+}
+
+export default { uploadClips, listClips, deleteClip, fetchClipAudioBlob, PlaudApiError };

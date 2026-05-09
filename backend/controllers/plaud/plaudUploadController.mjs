@@ -244,6 +244,8 @@ async function processOneFile({ file, userId, tmpDir }) {
       uploadedAt: dbRow.uploaded_at,
       expiresAt: dbRow.expires_at,
       status: 'pending_merge',
+      playbackReady: true,
+      playbackPath: `/api/plaud/clips/${clipId}/audio`,
     },
   };
 }
