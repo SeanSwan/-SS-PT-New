@@ -173,7 +173,9 @@ describe('Slice 3.5 — plaudListController', () => {
   });
 
   it('list response marks which clips have a playback endpoint ready', () => {
-    expect(LIST_SRC).toMatch(/playbackReady:\s*isPlaybackReady\(r\.status\)/);
+    expect(LIST_SRC).toMatch(/function\s+isAudioLoadAvailable/);
+    expect(LIST_SRC).toMatch(/r2_mirror_status\s*!==\s*'failed_terminal'/);
+    expect(LIST_SRC).toMatch(/playbackReady:\s*isAudioLoadAvailable\(r\)/);
     expect(LIST_SRC).toMatch(/playbackPath:\s*playbackPathFor\(r\.clip_id\)/);
   });
 });

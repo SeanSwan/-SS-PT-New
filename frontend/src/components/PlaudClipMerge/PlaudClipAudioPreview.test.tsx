@@ -68,6 +68,19 @@ describe('PlaudClipAudioPreview', () => {
     expect(fetchClipAudioBlobMock).not.toHaveBeenCalled();
   });
 
+  it('does not request audio for terminal mirror failures', () => {
+    render(
+      <PlaudClipAudioPreview
+        clip={{ ...playableClip, playbackReady: false, r2MirrorStatus: 'failed_terminal' }}
+        label="Audio clip 1"
+      />,
+    );
+
+    expect(screen.getByText(/Audio mirror failed. Re-upload this recording./i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /load audio preview/i })).toBeNull();
+    expect(fetchClipAudioBlobMock).not.toHaveBeenCalled();
+  });
+
   it('fails clearly for unsupported audio formats without breaking the row', () => {
     render(
       <PlaudClipAudioPreview

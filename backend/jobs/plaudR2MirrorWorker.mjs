@@ -18,7 +18,6 @@
  *   failed_retryable -> in_flight (next retry window)
  *   failed_retryable -> failed_terminal (after 5 attempts; alert logged)
  *   in_flight -> failed_retryable (stale recovery: updated_at > 5min)
- *
  * Backoff: 30s, 1m, 5m, 30m, 2h. After 5 attempts: terminal.
  */
 import logger from '../utils/logger.mjs';
@@ -36,7 +35,6 @@ const BACKOFF_SECONDS = [30, 60, 300, 1800, 7200];
 
 let _intervalHandle = null;
 let _running = false;
-
 export function startPlaudR2MirrorWorker() {
   if (_intervalHandle) {
     logger.warn('[plaudR2MirrorWorker] already running, skipping start');
@@ -56,6 +54,8 @@ export function startPlaudR2MirrorWorker() {
   recoverStaleInFlight().catch((err) => {
     logger.error('[plaudR2MirrorWorker] startup stale recovery failed: %s', err.message);
   });
+  recoverTerminalAccessDenied()
+    .catch((err) => logger.error('[plaudR2MirrorWorker] startup access-denied recovery failed: %s', err.message));
 
   _intervalHandle = setInterval(() => {
     if (_running) return;
@@ -67,6 +67,41 @@ export function startPlaudR2MirrorWorker() {
   if (_intervalHandle.unref) _intervalHandle.unref();
 }
 
+async function recoverTerminalAccessDenied() {
+  const transaction = await sequelize.transaction();
+  try {
+    const [jobsResult] = await sequelize.query(
+      `UPDATE plaud_clip_mirror_jobs j
+       SET status        = 'failed_retryable',
+           attempts      = 0,
+           next_retry_at = NOW(),
+           last_error    = 'Recovered terminal Access Denied after bucket fallback update',
+           updated_at    = NOW()
+       FROM plaud_clips c
+       WHERE j.clip_id = c.clip_id
+         AND j.status = 'failed_terminal'
+         AND j.last_error ILIKE '%Access Denied%'
+         AND c.r2_key IS NULL
+         AND c.deleted_at IS NULL
+       RETURNING j.clip_id`,
+      { transaction },
+    );
+    const recoveredClipIds = (jobsResult || []).map((r) => r.clip_id);
+    if (recoveredClipIds.length > 0) {
+      await sequelize.query(
+        `UPDATE plaud_clips SET r2_mirror_status = 'failed_retryable', updated_at = NOW()
+         WHERE clip_id IN (:clipIds)`,
+        { replacements: { clipIds: recoveredClipIds }, transaction },
+      );
+      logger.warn('[plaudR2MirrorWorker] recovered %d terminal Access Denied job(s)', recoveredClipIds.length);
+    }
+    await transaction.commit();
+  } catch (err) {
+    await transaction.rollback();
+    throw err;
+  }
+}
+
 export function stopPlaudR2MirrorWorker() {
   if (_intervalHandle) {
     clearInterval(_intervalHandle);
@@ -75,9 +110,7 @@ export function stopPlaudR2MirrorWorker() {
   }
 }
 
-/**
- * One worker cycle: stale recovery, claim batch, attempt uploads.
- */
+/** One worker cycle: stale recovery, claim batch, attempt uploads. */
 export async function runOnce() {
   await recoverStaleInFlight();
   const claimed = await claimBatch();
@@ -261,6 +294,6 @@ async function processJob(job) {
         clipId, nextAttempts, backoffSec, err.message);
     }
   }
-}
+};
 
-export const _internal = { recoverStaleInFlight, claimBatch, processJob, BACKOFF_SECONDS, MAX_ATTEMPTS };
+export const _internal = { recoverStaleInFlight, recoverTerminalAccessDenied, claimBatch, processJob, BACKOFF_SECONDS, MAX_ATTEMPTS };

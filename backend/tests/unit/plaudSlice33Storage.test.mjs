@@ -42,6 +42,7 @@ describe('Slice 3.3 — plaudR2Client source contract', () => {
   it('exports getPlaudR2Client and isPlaudR2Configured', () => {
     expect(R2_CLIENT_SRC).toMatch(/export\s+function\s+getPlaudR2Client/);
     expect(R2_CLIENT_SRC).toMatch(/export\s+function\s+isPlaudR2Configured/);
+    expect(R2_CLIENT_SRC).toMatch(/export\s+function\s+getPlaudR2BucketCandidates/);
   });
 });
 
@@ -102,6 +103,12 @@ describe('Slice 3.3 — plaudClipStorageDualTier source contract', () => {
     expect(STORAGE_SRC).toMatch(/DeleteObjectCommand/);
     expect(STORAGE_SRC).toMatch(/HeadObjectCommand/);
   });
+
+  it('tries fallback buckets for AccessDenied / NoSuchBucket R2 errors', () => {
+    expect(STORAGE_SRC).toMatch(/getPlaudR2BucketCandidates/);
+    expect(STORAGE_SRC).toMatch(/isR2BucketAccessFallbackError/);
+    expect(STORAGE_SRC).toMatch(/R2 upload denied for bucket/);
+  });
 });
 
 describe('Slice 3.3 — plaudR2MirrorWorker source contract', () => {
@@ -127,6 +134,12 @@ describe('Slice 3.3 — plaudR2MirrorWorker source contract', () => {
     // Called from both startPlaudR2MirrorWorker (startup) and runOnce (every cycle)
     const matches = WORKER_SRC.match(/recoverStaleInFlight\(\)/g) || [];
     expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('startup recovers terminal Access Denied mirror jobs after bucket fallback changes', () => {
+    expect(WORKER_SRC).toMatch(/recoverTerminalAccessDenied/);
+    expect(WORKER_SRC).toMatch(/last_error\s+ILIKE\s+'%Access Denied%'/);
+    expect(WORKER_SRC).toMatch(/attempts\s*=\s*0/);
   });
 
   it('plaud_clips.r2_mirror_status updates atomically with job status changes', () => {

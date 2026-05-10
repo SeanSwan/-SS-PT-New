@@ -38,6 +38,10 @@ function isPlaybackReady(status) {
   return READY_FOR_PLAYBACK.has(status);
 }
 
+function isAudioLoadAvailable(row) {
+  return isPlaybackReady(row.status) && row.r2_mirror_status !== 'failed_terminal';
+}
+
 function playbackPathFor(clipId) {
   return `/api/plaud/clips/${clipId}/audio`;
 }
@@ -107,7 +111,7 @@ export async function listHandler(req, res) {
       status: r.status,
       uploadedAt: r.uploaded_at,
       expiresAt: r.expires_at,
-      playbackReady: isPlaybackReady(r.status),
+      playbackReady: isAudioLoadAvailable(r),
       playbackPath: playbackPathFor(r.clip_id),
     })),
     nextCursor,

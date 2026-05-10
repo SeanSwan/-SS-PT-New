@@ -20,7 +20,12 @@ const {
   R2_PLAUD_BUCKET,
 } = process.env;
 
-const PLAUD_BUCKET = R2_PLAUD_BUCKET || R2_BUCKET_NAME || 'swanstudios-plaud-clips';
+const PLAUD_BUCKET_CANDIDATES = Array.from(new Set([
+  R2_PLAUD_BUCKET,
+  R2_BUCKET_NAME,
+  'swanstudios-plaud-clips',
+].filter(Boolean)));
+const PLAUD_BUCKET = PLAUD_BUCKET_CANDIDATES[0];
 
 let _client = null;
 
@@ -50,6 +55,10 @@ export function getPlaudR2Client() {
 
 export function isPlaudR2Configured() {
   return !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY);
+}
+
+export function getPlaudR2BucketCandidates() {
+  return PLAUD_BUCKET_CANDIDATES;
 }
 
 export const PLAUD_R2_BUCKET = PLAUD_BUCKET;

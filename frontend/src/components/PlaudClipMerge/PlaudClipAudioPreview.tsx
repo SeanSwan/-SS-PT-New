@@ -109,6 +109,10 @@ function isPlaybackReady(clip: PlaudClip): boolean {
   return clip.playbackReady ?? READY_STATUSES.has(clip.status);
 }
 
+function hasTerminalMirrorFailure(clip: PlaudClip): boolean {
+  return clip.r2MirrorStatus === 'failed_terminal' && !clip.playbackReady;
+}
+
 export function PlaudClipAudioPreview({
   clip,
   label,
@@ -147,9 +151,15 @@ export function PlaudClipAudioPreview({
   if (!isPlaybackReady(clip)) {
     return (
       <PreviewWrap>
-        <PreviewStatus $tone="muted">
-          <Loader2 size={14} aria-hidden="true" />
-          <span>Audio is still processing.</span>
+        <PreviewStatus $tone={hasTerminalMirrorFailure(clip) ? 'error' : 'muted'}>
+          {hasTerminalMirrorFailure(clip)
+            ? <AlertCircle size={14} aria-hidden="true" />
+            : <Loader2 size={14} aria-hidden="true" />}
+          <span>
+            {hasTerminalMirrorFailure(clip)
+              ? 'Audio mirror failed. Re-upload this recording.'
+              : 'Audio is still processing.'}
+          </span>
         </PreviewStatus>
       </PreviewWrap>
     );

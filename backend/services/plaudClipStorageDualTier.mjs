@@ -47,7 +47,11 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import logger from '../utils/logger.mjs';
-import { getPlaudR2Client, isPlaudR2Configured } from './plaudR2Client.mjs';
+import {
+  getPlaudR2BucketCandidates,
+  getPlaudR2Client,
+  isPlaudR2Configured,
+} from './plaudR2Client.mjs';
 import { PLAUD_UUID_REGEX } from '../utils/plaudUuidRegex.mjs';
 
 // Read env on each call so tests can override PLAUD_DISK_BASE before
@@ -62,6 +66,18 @@ export class ClipNotFoundError extends Error {
     this.name = 'ClipNotFoundError';
     this.code = 'CLIP_NOT_FOUND';
   }
+}
+
+function isR2NotFound(err) {
+  return err?.name === 'NoSuchKey'
+    || err?.name === 'NotFound'
+    || err?.$metadata?.httpStatusCode === 404;
+}
+
+function isR2BucketAccessFallbackError(err) {
+  return err?.name === 'AccessDenied'
+    || err?.name === 'NoSuchBucket'
+    || err?.$metadata?.httpStatusCode === 403;
 }
 
 function diskPathFor(userId, clipId, ext) {
@@ -133,15 +149,22 @@ export async function readClip(userId, clipId, ext, opts = {}) {
     throw new ClipNotFoundError(`disk miss + R2 not configured (clipId=${clipId})`);
   }
 
-  const { client, bucket } = getPlaudR2Client();
+  const { client } = getPlaudR2Client();
   let response;
-  try {
-    response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: r2Key }));
-  } catch (err) {
-    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
-      throw new ClipNotFoundError(`disk miss + R2 miss (clipId=${clipId})`);
+  let lastR2Error = null;
+  for (const bucket of getPlaudR2BucketCandidates()) {
+    try {
+      response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: r2Key }));
+      break;
+    } catch (err) {
+      lastR2Error = err;
+      if (isR2NotFound(err) || isR2BucketAccessFallbackError(err)) continue;
+      throw err;
     }
-    throw err;
+  }
+  if (!response) {
+    if (lastR2Error && !isR2NotFound(lastR2Error)) throw lastR2Error;
+    throw new ClipNotFoundError(`disk miss + R2 miss (clipId=${clipId})`);
   }
 
   const buffer = await streamToBuffer(response.Body);
@@ -186,8 +209,12 @@ export async function deleteClip(userId, clipId, ext, opts = {}) {
   if (!isPlaudR2Configured()) return;
   const r2Key = opts.r2Key || computeR2Key(userId, clipId, ext);
   try {
-    const { client, bucket } = getPlaudR2Client();
-    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: r2Key }));
+    const { client } = getPlaudR2Client();
+    for (const bucket of getPlaudR2BucketCandidates()) {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: r2Key })).catch((err) => {
+        if (!isR2NotFound(err) && !isR2BucketAccessFallbackError(err)) throw err;
+      });
+    }
   } catch (err) {
     logger.warn('[plaudStorage] R2 delete failed (continuing): %s', err.message);
   }
@@ -205,26 +232,44 @@ export async function uploadClipToR2(userId, clipId, ext, mimetype) {
   const diskPath = diskPathFor(userId, clipId, ext);
   const body = await fs.readFile(diskPath);
   const r2Key = computeR2Key(userId, clipId, ext);
-  const { client, bucket } = getPlaudR2Client();
-  await client.send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: r2Key,
-    Body: body,
-    ContentType: mimetype || 'application/octet-stream',
-  }));
+  const { client } = getPlaudR2Client();
+  let lastR2Error = null;
+  for (const bucket of getPlaudR2BucketCandidates()) {
+    try {
+      await client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: r2Key,
+        Body: body,
+        ContentType: mimetype || 'application/octet-stream',
+      }));
+      return { r2Key, sizeBytes: body.length };
+    } catch (err) {
+      lastR2Error = err;
+      if (isR2BucketAccessFallbackError(err)) {
+        logger.warn('[plaudStorage] R2 upload denied for bucket %s; trying fallback bucket if configured', bucket);
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (lastR2Error) throw lastR2Error;
   return { r2Key, sizeBytes: body.length };
 }
 
 export async function r2KeyExists(userId, clipId, ext) {
   if (!isPlaudR2Configured()) return false;
-  const { client, bucket } = getPlaudR2Client();
-  try {
-    await client.send(new HeadObjectCommand({ Bucket: bucket, Key: computeR2Key(userId, clipId, ext) }));
-    return true;
-  } catch (err) {
-    if (err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404) return false;
-    throw err;
+  const { client } = getPlaudR2Client();
+  const key = computeR2Key(userId, clipId, ext);
+  for (const bucket of getPlaudR2BucketCandidates()) {
+    try {
+      await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+      return true;
+    } catch (err) {
+      if (isR2NotFound(err) || isR2BucketAccessFallbackError(err)) continue;
+      throw err;
+    }
   }
+  return false;
 }
 
 async function streamToBuffer(stream) {
