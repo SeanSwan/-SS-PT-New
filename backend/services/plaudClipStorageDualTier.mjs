@@ -125,7 +125,10 @@ export async function readClip(userId, clipId, ext, opts = {}) {
   }
 
   // Disk miss → try R2 fallback
-  const r2Key = opts.fallbackR2Key || computeR2Key(userId, clipId, ext);
+  const r2Key = opts.fallbackR2Key || (opts.skipR2Fallback ? null : computeR2Key(userId, clipId, ext));
+  if (!r2Key) {
+    throw new ClipNotFoundError(`disk miss + no mirrored R2 key (clipId=${clipId})`);
+  }
   if (!isPlaudR2Configured()) {
     throw new ClipNotFoundError(`disk miss + R2 not configured (clipId=${clipId})`);
   }

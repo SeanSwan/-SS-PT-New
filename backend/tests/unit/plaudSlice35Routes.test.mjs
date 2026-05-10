@@ -156,8 +156,10 @@ describe('Slice 3.5 — plaudListController', () => {
     expect(LIST_SRC).toMatch(/export\s+async\s+function\s+audioHandler/);
     expect(LIST_SRC).toMatch(/PLAUD_UUID_REGEX\.test\(clipId\)/);
     expect(LIST_SRC).toMatch(/WHERE\s+clip_id\s*=\s*:clipId[\s\S]{0,240}user_id\s*=\s*:userId/);
+    expect(LIST_SRC).toMatch(/r2_mirror_status/);
     expect(LIST_SRC).toMatch(/readClip\(\s*userId,\s*row\.clip_id,\s*row\.storage_ext/);
     expect(LIST_SRC).toMatch(/fallbackR2Key:\s*row\.r2_key/);
+    expect(LIST_SRC).toMatch(/skipR2Fallback:\s*!row\.r2_key\s*&&\s*row\.r2_mirror_status\s*!==\s*'mirrored'/);
   });
 
   it('audio playback handler returns private audio response headers and no raw filename', () => {

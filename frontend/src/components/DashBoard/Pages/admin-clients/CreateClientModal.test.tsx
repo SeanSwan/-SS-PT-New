@@ -68,4 +68,32 @@ describe('CreateClientModal', () => {
       height: 70,
     }));
   });
+
+  it('omits hidden username and password fields for Move Fitness clients', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateClientModal
+        open
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /move fitness/i }));
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Jordan' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Miles' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'jordan@example.com' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /create client/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted).toMatchObject({
+      clientSource: 'move_fitness',
+      availableSessions: 0,
+    });
+    expect(submitted).not.toHaveProperty('username');
+    expect(submitted).not.toHaveProperty('password');
+  });
 });

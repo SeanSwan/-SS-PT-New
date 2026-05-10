@@ -559,6 +559,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
         emergencyContact: formData.emergencyContact || undefined,
         trainerId: formData.trainerId || undefined,
       };
+      if (isExternal) {
+        delete (cleanData as Partial<CreateClientRequest>).username;
+        delete (cleanData as Partial<CreateClientRequest>).password;
+      }
 
       await onSubmit(cleanData);
 

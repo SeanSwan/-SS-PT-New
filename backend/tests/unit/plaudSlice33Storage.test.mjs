@@ -30,9 +30,9 @@ const R2_CLIENT_SRC = readFileSync(
 );
 
 describe('Slice 3.3 — plaudR2Client source contract', () => {
-  it('uses R2_PLAUD_BUCKET env (NOT generic R2_BUCKET_NAME)', () => {
+  it('prefers R2_PLAUD_BUCKET and falls back to the shared R2_BUCKET_NAME', () => {
     expect(R2_CLIENT_SRC).toMatch(/R2_PLAUD_BUCKET/);
-    expect(R2_CLIENT_SRC).not.toMatch(/R2_BUCKET_NAME/);
+    expect(R2_CLIENT_SRC).toMatch(/R2_BUCKET_NAME/);
   });
 
   it('default bucket is swanstudios-plaud-clips', () => {
@@ -67,6 +67,11 @@ describe('Slice 3.3 — plaudClipStorageDualTier source contract', () => {
   it('readClip falls back from disk ENOENT to R2', () => {
     expect(STORAGE_SRC).toMatch(/err\.code\s*!==\s*['"]ENOENT['"]/);
     expect(STORAGE_SRC).toMatch(/GetObjectCommand/);
+  });
+
+  it('readClip can skip computed R2 fallback when DB has no mirrored key', () => {
+    expect(STORAGE_SRC).toMatch(/skipR2Fallback/);
+    expect(STORAGE_SRC).toMatch(/disk miss \+ no mirrored R2 key/);
   });
 
   it('readClip restores R2-fetched bytes to disk for next reader', () => {

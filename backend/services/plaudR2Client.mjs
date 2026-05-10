@@ -3,7 +3,8 @@
  * ==================
  * R2 client + bucket factory for PLAUD clip storage. Reuses the same R2
  * credentials as the video R2 service but targets a different bucket
- * (`R2_PLAUD_BUCKET`, default `swanstudios-plaud-clips`). Singleton.
+ * (`R2_PLAUD_BUCKET`, falling back to the configured shared R2 bucket,
+ * then `swanstudios-plaud-clips`). Singleton.
  *
  * Phase 3 Slice 3.3 (2026-05-04). Plan: PHASE-3-PLAUD-MERGE-INGESTION-PLAN-v3-2026-05-04.md §17.3.
  */
@@ -15,10 +16,11 @@ const {
   R2_ACCESS_KEY_ID,
   R2_SECRET_ACCESS_KEY,
   R2_ENDPOINT,
+  R2_BUCKET_NAME,
   R2_PLAUD_BUCKET,
 } = process.env;
 
-const PLAUD_BUCKET = R2_PLAUD_BUCKET || 'swanstudios-plaud-clips';
+const PLAUD_BUCKET = R2_PLAUD_BUCKET || R2_BUCKET_NAME || 'swanstudios-plaud-clips';
 
 let _client = null;
 

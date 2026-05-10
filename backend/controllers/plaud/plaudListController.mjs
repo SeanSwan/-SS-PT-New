@@ -127,7 +127,7 @@ export async function audioHandler(req, res) {
   }
 
   const [rows] = await sequelize.query(
-    `SELECT clip_id, storage_ext, mimetype, r2_key, status
+    `SELECT clip_id, storage_ext, mimetype, r2_key, r2_mirror_status, status
      FROM plaud_clips
      WHERE clip_id = :clipId
        AND user_id = :userId
@@ -151,6 +151,7 @@ export async function audioHandler(req, res) {
   try {
     buffer = await readClip(userId, row.clip_id, row.storage_ext, {
       fallbackR2Key: row.r2_key,
+      skipR2Fallback: !row.r2_key && row.r2_mirror_status !== 'mirrored',
       requireDiskRestore: false,
     });
   } catch (err) {
