@@ -8,6 +8,24 @@
 import productionApiService from './api.service';
 import { AxiosResponse } from 'axios';
 
+/**
+ * 9-preset 3×3 grid for banner photo crop alignment (CSS object-position).
+ * 2026-05-10 SLICE 2: kept as a string-literal union so the type system
+ * rejects an out-of-allowlist value at the service boundary.
+ */
+export const BANNER_OBJECT_POSITION_PRESETS = [
+  'left top', 'center top', 'right top',
+  'left center', 'center center', 'right center',
+  'left bottom', 'center bottom', 'right bottom',
+] as const;
+
+export type BannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number];
+
+export function isBannerObjectPosition(value: unknown): value is BannerObjectPosition {
+  return typeof value === 'string'
+    && (BANNER_OBJECT_POSITION_PRESETS as readonly string[]).includes(value);
+}
+
 // Types for profile data
 export interface UserProfile {
   id: string;
@@ -30,6 +48,7 @@ export interface UserProfile {
   smsNotifications?: boolean;
   preferences?: string;
   bannerPhoto?: string;
+  bannerObjectPosition?: BannerObjectPosition;
   bio?: string;
   city?: string;
   state?: string;

@@ -19,6 +19,7 @@ import UserDashboardErrorBoundaryV3, {
 } from './components/UserDashboardStatusStatesV3';
 import UserDashboardProfileHeaderV3 from './components/UserDashboardProfileHeaderV3';
 import UserDashboardSidebarV3 from './components/UserDashboardSidebarV3';
+import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
 
@@ -56,9 +57,23 @@ const UserDashboardV3: React.FC = () => {
               navItems={OBSERVATORY_NAV_ITEMS}
               nextBestActions={dashboard.observatoryNextBest}
             >
+              {/* 2026-05-10 SLICE 1 (Codex round-2 placement): tab strip is
+                  the FIRST child of ObservatoryShell so position: sticky
+                  pins from the top of the scroll area regardless of
+                  whether ProfileHeader mounts below. Fixes "tabs become
+                  inoperable after Home -> non-home" on mobile/tablet. */}
+              <UserDashboardTabBarV3
+                activeTab={dashboard.activeTab}
+                onTabChange={dashboard.setActiveTab}
+              />
+
               {dashboard.activeTab !== 'home' && (
                 <UserDashboardProfileHeaderV3
                   backgroundImage={dashboard.backgroundImage}
+                  bannerObjectPosition={dashboard.bannerObjectPosition}
+                  showRepositionPanel={dashboard.showRepositionPanel}
+                  onToggleRepositionPanel={dashboard.toggleRepositionPanel}
+                  onBannerPositionChange={dashboard.handleBannerPositionChange}
                   profile={dashboard.profile}
                   displayStats={dashboard.displayStats}
                   topBadges={dashboard.topBadges}

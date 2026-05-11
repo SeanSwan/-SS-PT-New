@@ -184,6 +184,32 @@ async function migrateStabilizationColumns() {
   await addColumnIfMissing('Users', 'forcePasswordChange', 'BOOLEAN DEFAULT false');
   await addColumnIfMissing('Users', 'bannerPhoto', 'VARCHAR(255)');
 
+  // 2026-05-10 SLICE 2: banner crop alignment. Create the enum type first
+  // (Postgres requires the type to exist before a column can reference it)
+  // then add the column. Both steps are idempotent — startupMigrations runs
+  // on every boot and must be safe to no-op on already-migrated databases.
+  try {
+    await sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_Users_bannerObjectPosition') THEN
+          CREATE TYPE "enum_Users_bannerObjectPosition" AS ENUM (
+            'left top', 'center top', 'right top',
+            'left center', 'center center', 'right center',
+            'left bottom', 'center bottom', 'right bottom'
+          );
+        END IF;
+      END $$;
+    `);
+  } catch (error) {
+    logger.warn(`[Migration] bannerObjectPosition enum type create failed (non-critical): ${error.message}`);
+  }
+  await addColumnIfMissing(
+    'Users',
+    'bannerObjectPosition',
+    `"enum_Users_bannerObjectPosition" NOT NULL DEFAULT 'center center'`,
+  );
+
   // session_types table
   await addColumnIfMissing('session_types', 'creditsRequired', 'INTEGER DEFAULT 1');
 

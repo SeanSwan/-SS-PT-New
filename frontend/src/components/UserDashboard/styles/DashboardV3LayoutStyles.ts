@@ -31,7 +31,12 @@ export const ProfileContainer = styled(motion.div)`
   background: var(--bg-base);
   color: var(--text-primary);
   position: relative;
-  overflow: hidden;
+  /* 2026-05-10 SLICE 1 (Codex round-3 HIGH): keep horizontal clipping so the
+     ProfileHeader's `margin-left: calc(-50vw + 50%)` full-bleed trick can't
+     trigger horizontal scroll, but drop vertical overflow so the descendant
+     TabNavigation's position: sticky pins to the viewport instead of being
+     constrained by this ancestor's containing block. */
+  overflow-x: hidden;
 
   /* Subtle background pattern for premium feel */
   &::before {
@@ -95,7 +100,10 @@ export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '300px 1fr'};
   gap: 2rem;
   margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
-  overflow: hidden;
+  /* 2026-05-10 SLICE 1: removed overflow: hidden so the sticky tab strip
+     above ContentGrid can pin to the viewport without being clipped to
+     ContentGrid's box. The retired clip wasn't load-bearing here —
+     ProfileContainer/ContentWrapper still clip the page horizontally. */
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;

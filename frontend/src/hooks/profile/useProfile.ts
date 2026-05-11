@@ -5,7 +5,7 @@
  * Connects to SwanStudios backend PostgreSQL database
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import profileService, { UserProfile, UserStats, SocialPost, Achievement, FollowStats } from '../../services/profileService';
 import { logger } from '@/utils/logger';
@@ -33,7 +33,7 @@ interface UseProfileReturn {
   refreshProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   uploadProfilePhoto: (file: File) => Promise<void>;
-  uploadBannerPhoto: (file: File) => Promise<void>;
+  uploadBannerPhoto: (file: File) => Promise<string | null>;
   loadUserPosts: (userId?: string, limit?: number, offset?: number) => Promise<void>;
   loadMorePosts: () => Promise<void>;
   refreshStats: () => Promise<void>;
@@ -57,7 +57,15 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [followStats, setFollowStats] = useState<FollowStats | null>(null);
-  
+
+  // 2026-05-11 SLICE 1 (Codex round-6 race fix): banner-upload sequencer.
+  // Each call to uploadBannerPhoto bumps this ref and captures the value.
+  // After await, the call only commits its result to profile state if it
+  // is still the latest banner upload for THIS hook instance. Older calls
+  // that resolve out-of-order are dropped, so a stale earlier upload
+  // cannot clobber the latest banner.
+  const bannerUploadSeqRef = useRef(0);
+
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
@@ -289,28 +297,55 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   }, [user]);
 
   /**
-   * Upload banner/cover photo
+   * Upload banner/cover photo.
+   *
+   * 2026-05-11 SLICE 1 (Codex round-5): returns the server-confirmed banner
+   * URL so callers can avoid round-tripping through profile state to get
+   * it. This eliminates a concurrent-upload race in
+   * useUserDashboardV3Controller where the success branch had to read
+   * profileRef.current immediately after the await — which could be stale
+   * because React effects don't run until after render commit.
+   * Returns null if upload fails or no user is signed in.
    */
-  const uploadBannerPhoto = useCallback(async (file: File) => {
-    if (!user) return;
+  const uploadBannerPhoto = useCallback(async (file: File): Promise<string | null> => {
+    if (!user) return null;
 
     setIsUploading(true);
     setError(null);
 
+    // 2026-05-11 SLICE 1 (Codex round-6 race fix): capture this call's
+    // sequence number and bump the counter. Only commit results to profile
+    // state if this call is still the latest banner upload when it resolves.
+    // Stale earlier uploads that resolve out-of-order do NOT setProfile,
+    // so the controller's hydration effect cannot accidentally accept a
+    // stale URL as a fresh external profile change.
+    const mySeq = ++bannerUploadSeqRef.current;
+
     try {
       const result = await profileService.uploadBannerPhoto(file);
-      // Update local profile state with new banner URL
+      if (mySeq !== bannerUploadSeqRef.current) {
+        // A newer banner upload superseded this one; drop the result.
+        return null;
+      }
       if (result.user) {
         setProfile(result.user);
       } else {
         setProfile(prev => prev ? { ...prev, bannerPhoto: result.bannerPhoto } : prev);
       }
+      return result.bannerPhoto ?? null;
     } catch (err: any) {
       console.error('Error uploading banner photo:', err);
-      setError(err.message || 'Failed to upload banner photo');
-      throw err;
+      // Only surface the error if this is still the latest upload — a
+      // stale rejection from a superseded upload would confuse the UI.
+      if (mySeq === bannerUploadSeqRef.current) {
+        setError(err.message || 'Failed to upload banner photo');
+        throw err;
+      }
+      return null;
     } finally {
-      setIsUploading(false);
+      if (mySeq === bannerUploadSeqRef.current) {
+        setIsUploading(false);
+      }
     }
   }, [user]);
 

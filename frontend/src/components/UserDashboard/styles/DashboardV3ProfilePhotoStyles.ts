@@ -141,9 +141,13 @@ export const ProfileImage = styled.div<{ $image?: string }>`
   animation: ${subtleGlow} 6s ease-in-out infinite;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  ${({ $image, theme }) => $image
+  ${({ $image }) => $image
     ? css`
-      background: url(${$image});
+      /* 2026-05-10 SLICE 1 (Security CHAIN-1 + Codex round-2): the consumer
+         pre-sanitises via sanitizeImageUrl(), but defense in depth: quote
+         the URL and strip backslash/quote chars so a future caller that
+         skips sanitation cannot break out of the url("...") wrapper. */
+      background: url("${$image.replace(/[\\"]/g, '')}");
       background-size: cover;
       background-position: center;
       border: 4px solid var(--bg-base, #002060);
