@@ -162,8 +162,31 @@ export const updateUserProfile = async (req, res) => {
       'emailNotifications', 'smsNotifications', 'preferences',
       'notificationPreferences',
       'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
-      'showWorkoutHistory', 'showLevel', 'chartVisibility'
+      'showWorkoutHistory', 'showLevel', 'chartVisibility',
+      // 2026-05-10 SLICE 2: cover photo crop preset
+      'bannerObjectPosition'
     ];
+
+    // 2026-05-10 SLICE 2: hard-whitelist the bannerObjectPosition value
+    // BEFORE it reaches the model so a poisoned write cannot smuggle CSS
+    // into the frontend styled-component output (defense in depth — the
+    // Postgres enum and the frontend sanitizer also reject anything else).
+    if (updateData.bannerObjectPosition !== undefined) {
+      const BANNER_OBJECT_POSITION_PRESETS = new Set([
+        'left top', 'center top', 'right top',
+        'left center', 'center center', 'right center',
+        'left bottom', 'center bottom', 'right bottom',
+      ]);
+      if (
+        typeof updateData.bannerObjectPosition !== 'string' ||
+        !BANNER_OBJECT_POSITION_PRESETS.has(updateData.bannerObjectPosition)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerObjectPosition must be one of the 9 supported presets',
+        });
+      }
+    }
 
     if (updateData.notificationPreferences !== undefined) {
       const prefs = updateData.notificationPreferences;

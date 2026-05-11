@@ -1,15 +1,17 @@
 /**
- * Tab navigation and lazy tab panels for UserDashboard V3.
+ * Lazy tab panels for UserDashboard V3.
+ *
+ * 2026-05-10 SLICE 1 (Codex round-2 placement): the tab strip moved out
+ * of this component into UserDashboardTabBarV3 so it can be mounted as
+ * the FIRST child of ObservatoryShell (above ProfileHeader). This file
+ * now only renders MainContent + the per-tab Suspense panels.
  */
 
 import React, { lazy, Suspense } from 'react';
-import { Activity, Home, Sparkles, User, Users, type LucideIcon } from 'lucide-react';
 import {
   LoadingContainer,
   LoadingSpinner,
   MainContent,
-  Tab,
-  TabNavigation,
   TabStack,
 } from '../styles/DashboardV3Styles';
 import type { TransformationPhoto, PhotoVisibility } from './TransformationPhotoTypes';
@@ -25,14 +27,6 @@ const ActivitySection = lazy(() => import('./ActivitySection'));
 const NutritionWorkspace = lazy(() => import('../../DashBoard/workspaces/NutritionWorkspace'));
 const WorkoutsTab = lazy(() => import('./WorkoutsTab'));
 const TransformationPhotoShowcase = lazy(() => import('./TransformationPhotoShowcase'));
-
-const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon }> = [
-  { id: 'home', label: 'Home', Icon: Home },
-  { id: 'feed', label: 'Feed', Icon: Sparkles },
-  { id: 'progress', label: 'Progress', Icon: Activity },
-  { id: 'community', label: 'Community', Icon: Users },
-  { id: 'profile', label: 'Profile', Icon: User },
-];
 
 interface TabPanelProps {
   id: TabId;
@@ -68,25 +62,6 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.8, delay: 0.4 }}
   >
-    <TabNavigation role="tablist" aria-label="Dashboard sections">
-      {dashboardTabs.map(({ id, label, Icon }) => (
-        <Tab
-          key={id}
-          id={`tab-${id}`}
-          role="tab"
-          aria-selected={activeTab === id}
-          aria-controls={`panel-${id}`}
-          $active={activeTab === id}
-          onClick={() => onTabChange(id)}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Icon size={18} />
-          {label}
-        </Tab>
-      ))}
-    </TabNavigation>
-
     <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
       <TabPanel id="home" activeTab={activeTab}>
         <HomeTab onTabChange={(tab) => onTabChange(tab as TabId)} />

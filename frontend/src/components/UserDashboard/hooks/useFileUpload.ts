@@ -24,8 +24,8 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 interface UseFileUploadOptions {
   /** Function to upload profile photo to backend */
   uploadProfilePhoto: (file: File) => Promise<void>;
-  /** Function to upload banner photo to backend */
-  uploadBannerPhoto: (file: File) => Promise<void>;
+  /** Function to upload banner photo to backend — returns server-confirmed URL or null */
+  uploadBannerPhoto: (file: File) => Promise<string | null>;
   /** Current banner photo URL from profile data (server URL) */
   serverBannerUrl: string | null;
 }

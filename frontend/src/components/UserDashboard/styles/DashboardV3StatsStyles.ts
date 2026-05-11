@@ -42,7 +42,12 @@ export const StatsContainer = styled.div`
 
 export const StatItem = styled(motion.div)`
   text-align: center;
-  cursor: pointer;
+  /* 2026-05-10 SLICE 1 (rule 22 + Phase-2C UX consensus): StatItems are
+     non-interactive read-only stats. cursor: default + subtle hover
+     reveal instead of cursor: pointer + scale(1.05). The fake-button
+     gesture baited users into clicks that did nothing. The border/shadow
+     hover still gives the surface life without implying clickability. */
+  cursor: default;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 1rem;
   border-radius: 16px;

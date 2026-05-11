@@ -90,7 +90,13 @@ export const MainContent = styled(motion.div)`
   flex-direction: column;
   gap: 1.5rem;
   min-width: 0;
-  overflow: hidden;
+  /* 2026-05-10 SLICE 1: overflow: hidden removed; it was confining the
+     descendant TabNavigation's position: sticky to MainContent's box,
+     so once ProfileHeader mounted on non-home tabs and pushed MainContent
+     below the fold, the tab strip scrolled out of view and felt "inoperable".
+     The sticky tab strip now lives ABOVE MainContent (in V3 ObservatoryShell
+     children), so MainContent only contains panels — horizontal clipping
+     is still handled by ProfileContainer + ContentWrapper. */
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
@@ -109,7 +115,7 @@ export const MainContent = styled(motion.div)`
 export const TabNavigation = styled.div`
   display: flex;
   gap: 0.25rem;
-  background: var(--bg-elevated);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 92%, transparent);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-soft);
   border-radius: 16px;
@@ -123,6 +129,22 @@ export const TabNavigation = styled.div`
      behavior-x prevents the dashboard from triggering history nav. */
   scroll-snap-type: x proximity;
   overscroll-behavior-x: contain;
+
+  /* 2026-05-10 SLICE 1 (Codex round-2 placement): the in-tree tab strip
+     is mounted ABOVE ProfileHeader in the V3 ObservatoryShell children,
+     so sticky pins from the top of the scroll area on every tab regardless
+     of whether ProfileHeader is present. z-index: 50 sits well below the
+     modal/dropdown layer (1000) and above ambient page chrome (0-10).
+     The translucent bg keeps the underlying scroll content faintly
+     visible behind the strip — premium feel. */
+  position: sticky;
+  top: 0.5rem;
+  z-index: 50;
+
+  @supports not (backdrop-filter: blur(20px)) {
+    /* iOS <= 16.1 fallback: solid bg so the sticky strip stays opaque. */
+    background: var(--bg-elevated, #141419);
+  }
 
   /* V3: Enhanced glassmorphism */
   backdrop-filter: blur(24px);
@@ -142,14 +164,28 @@ export const TabNavigation = styled.div`
     padding: 0.375rem;
   }
 
+  /* 2026-05-10 SLICE 1: scale the sticky offset at large breakpoints so
+     the strip doesn't hug the chrome edge on QHD/4K, where ContentWrapper
+     already pads 4-5rem in. Matches CLAUDE.md responsive audit matrix
+     (1440 / 1920 / 2560 / 3440 / 3840). */
+  @media (min-width: 1920px) {
+    top: 0.75rem;
+  }
+
   @media (min-width: 2560px) {
     border-radius: 20px;
     padding: 0.625rem;
+    top: 1rem;
+  }
+
+  @media (min-width: 3440px) {
+    top: 1.25rem;
   }
 
   @media (min-width: 3840px) {
     border-radius: 24px;
     padding: 0.75rem;
+    top: 1.5rem;
   }
 `;
 

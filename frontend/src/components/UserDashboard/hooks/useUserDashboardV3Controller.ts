@@ -13,6 +13,11 @@ import {
   getTransformationVisibility,
 } from '../components/ObservatoryShellAdapter';
 import type { TabId } from '../types/UserDashboardTypes';
+import { sanitizeImageUrl } from '../../../utils/imageUrl';
+import {
+  isBannerObjectPosition,
+  type BannerObjectPosition,
+} from '../../../services/profileService';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -37,12 +42,65 @@ export function useUserDashboardV3Controller() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  // 2026-05-10 SLICE 2: banner crop-alignment state.
+  const [bannerObjectPosition, setBannerObjectPosition] =
+    useState<BannerObjectPosition>('center center');
+  const [showRepositionPanel, setShowRepositionPanel] = useState(false);
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
+  // 2026-05-10 SLICE 1 (Phase-2B consensus + Security CHAIN-1 + Codex
+  // rounds 3 / 4 / 5 race fix):
+  //   - previewUrlRef tracks the current optimistic blob: URL (may be null).
+  //   - uploadIdRef monotonically increases on each upload kick-off; it is
+  //     the canonical "latest upload" token.
+  //   - The banner-sync effect ONLY commits external profile changes when
+  //     no optimistic preview is showing. While a preview is showing,
+  //     handleFileUpload owns the commit (via the explicit success branch
+  //     below, gated on `thisUploadId === uploadIdRef.current`).
+  //   - The success branch commits the server URL RETURNED DIRECTLY by
+  //     uploadBannerPhoto, NOT from profile state — useProfile's
+  //     setProfile call schedules a render whose effects only run AFTER
+  //     commit, so reading profile via a ref-bridge here could see the
+  //     PREVIOUS upload's URL on a concurrent-upload race (Codex round-5).
+  //   - sanitizeImageUrl() filters server URLs through an origin allowlist
+  //     and strips CSS-injection chars BEFORE they reach styled-components.
+  const previewUrlRef = useRef<string | null>(null);
+  const uploadIdRef = useRef<number>(0);
+
+  const revokePreview = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  }, []);
+
+  // Hydrate banner state from external profile changes (initial load,
+  // refetches triggered by sibling surfaces). When the user is mid-upload
+  // (previewUrlRef !== null), this effect refuses to act — handleFileUpload
+  // owns the commit at that point, so a stale older-upload server URL
+  // arriving via this effect cannot clobber the newer optimistic preview.
+  // The else branch fires on both empty AND rejected (Codex round-2 LOW).
   useEffect(() => {
-    if (profile?.bannerPhoto) setBackgroundImage(profile.bannerPhoto);
+    if (previewUrlRef.current !== null) return;
+    const safe = sanitizeImageUrl(profile?.bannerPhoto);
+    setBackgroundImage(safe);
   }, [profile?.bannerPhoto]);
+
+  // Unmount cleanup so a hot navigation away mid-upload doesn't leak the blob.
+  useEffect(() => {
+    return () => revokePreview();
+  }, [revokePreview]);
+
+  // 2026-05-10 SLICE 2: hydrate bannerObjectPosition from profile. Guard
+  // with isBannerObjectPosition() so a malformed/poisoned value from the
+  // server falls back to the default rather than landing in CSS.
+  useEffect(() => {
+    const incoming = profile?.bannerObjectPosition;
+    if (isBannerObjectPosition(incoming)) {
+      setBannerObjectPosition(incoming);
+    }
+  }, [profile?.bannerObjectPosition]);
 
   const displayStats = useMemo(() => ({
     posts: stats?.posts || 0,
@@ -82,27 +140,76 @@ export function useUserDashboardV3Controller() {
     [navigate, user?.role],
   );
 
+  // 2026-05-10 SLICE 1 — AI Village 15-brain Phase-2B consensus + Architecture
+  // & Bug Hunter agreement: the prior implementation revoked the optimistic
+  // preview blob in a `finally` block while React state still pointed at it,
+  // leaving a broken image until the profile.bannerPhoto effect resolved.
+  // The rewrite below pairs each upload with an ID so a stale failure path
+  // cannot clobber a newer upload, and defers revocation to either the
+  // server-URL effect (success) or the gated catch (failure) / unmount.
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background') => {
     if (!file || !ALLOWED_TYPES.includes(file.type)) return;
     if (file.size > MAX_UPLOAD_SIZE) return;
 
-    let previewUrl: string | null = null;
+    if (type === 'profile') {
+      try {
+        await uploadProfilePhoto(file);
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+      }
+      return;
+    }
+
+    // Background path: optimistic preview, gated success + failure commit.
+    revokePreview();
+    const thisUploadId = ++uploadIdRef.current;
+    const objectUrl = URL.createObjectURL(file);
+    previewUrlRef.current = objectUrl;
+    setBackgroundImage(objectUrl);
 
     try {
-      if (type === 'profile') {
-        await uploadProfilePhoto(file);
-      } else {
-        previewUrl = URL.createObjectURL(file);
-        setBackgroundImage(previewUrl);
-        await uploadBannerPhoto(file);
+      // 2026-05-11 SLICE 1 (Codex round-5 race fix): commit DIRECTLY from
+      // the resolved server URL, not from profile state via a ref. profile
+      // state updates are scheduled by useProfile.setProfile but only flow
+      // into refs/effects AFTER React commits — reading them immediately
+      // after await could see a different upload's URL on a concurrent
+      // race. The returned value is unambiguously THIS upload's server URL.
+      const serverUrl = await uploadBannerPhoto(file);
+      // Only commit if I'm still the latest upload — a newer concurrent
+      // upload will resolve later with its own server URL and own commit.
+      if (thisUploadId === uploadIdRef.current) {
+        revokePreview();
+        setBackgroundImage(sanitizeImageUrl(serverUrl));
       }
     } catch (uploadError) {
       console.error('Upload error:', uploadError);
-      if (type === 'background') setBackgroundImage(profile?.bannerPhoto || null);
-    } finally {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      // Only revert if no newer upload has superseded this one. Read the
+      // pre-upload banner URL from profile (closure-captured) — the
+      // failure path did NOT mutate profile.bannerPhoto, so the closure
+      // value is the correct rollback target.
+      if (thisUploadId === uploadIdRef.current) {
+        revokePreview();
+        setBackgroundImage(sanitizeImageUrl(profile?.bannerPhoto));
+      }
     }
-  }, [profile?.bannerPhoto, uploadBannerPhoto, uploadProfilePhoto]);
+  }, [profile?.bannerPhoto, uploadBannerPhoto, uploadProfilePhoto, revokePreview]);
+
+  // 2026-05-10 SLICE 2: change crop preset. Optimistic local update so the
+  // user sees the crop apply instantly; updateProfile() persists. On failure
+  // the next profile refresh restores the truth via the hydration effect.
+  const handleBannerPositionChange = useCallback(async (next: BannerObjectPosition) => {
+    setBannerObjectPosition(next);
+    setShowRepositionPanel(false);
+    try {
+      await updateProfile({ bannerObjectPosition: next });
+    } catch (positionError) {
+      console.error('Failed to save banner crop preset:', positionError);
+    }
+  }, [updateProfile]);
+
+  const toggleRepositionPanel = useCallback(() => {
+    setShowRepositionPanel((open) => !open);
+  }, []);
 
   const handleProfileImageClick = useCallback(() => {
     profileInputRef.current?.click();
@@ -152,6 +259,10 @@ export function useUserDashboardV3Controller() {
     activeTab,
     setActiveTab,
     backgroundImage,
+    bannerObjectPosition,
+    showRepositionPanel,
+    toggleRepositionPanel,
+    handleBannerPositionChange,
     showEditModal,
     setShowEditModal,
     displayStats,
