@@ -32,7 +32,7 @@ export const ProfileContainer = styled(motion.div)`
   color: var(--text-primary);
   position: relative;
   /* 2026-05-10 SLICE 1 (Codex round-3 HIGH): keep horizontal clipping so the
-     ProfileHeader's `margin-left: calc(-50vw + 50%)` full-bleed trick can't
+     ProfileHeader margin-left full-bleed trick can't
      trigger horizontal scroll, but drop vertical overflow so the descendant
      TabNavigation's position: sticky pins to the viewport instead of being
      constrained by this ancestor's containing block. */
