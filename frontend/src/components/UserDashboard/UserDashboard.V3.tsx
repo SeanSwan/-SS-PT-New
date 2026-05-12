@@ -27,6 +27,7 @@ const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 const UserDashboardV3: React.FC = () => {
   const dashboard = useUserDashboardV3Controller();
+  const isHomeTab = dashboard.activeTab === 'home';
 
   if (dashboard.isLoading && !dashboard.profile) {
     return <UserDashboardLoadingState />;
@@ -42,32 +43,34 @@ const UserDashboardV3: React.FC = () => {
         <NoiseOverlay />
         <MainContentZWrapper>
           <ContentWrapper>
-            <ObservatoryShell
-              activeTab={dashboard.activeTab}
-              profileHeaderVisible={dashboard.activeTab !== 'home'}
-              onTabChange={dashboard.setActiveTab}
-              onNavigate={dashboard.navigate}
-              observatoryLevel={dashboard.observatoryLevel}
-              observatoryPoints={dashboard.observatoryPoints}
-              observatoryTierName={dashboard.observatoryTierName}
-              observatoryProgressPct={dashboard.observatoryProgressPct}
-              observatoryXpToNext={dashboard.observatoryXpToNext}
-              observatoryStreakDays={dashboard.observatoryStreakDays}
-              topBadges={dashboard.topBadges}
-              navItems={OBSERVATORY_NAV_ITEMS}
-              nextBestActions={dashboard.observatoryNextBest}
-            >
-              {/* 2026-05-10 SLICE 1 (Codex round-2 placement): tab strip is
-                  the FIRST child of ObservatoryShell so position: sticky
-                  pins from the top of the scroll area regardless of
-                  whether ProfileHeader mounts below. Fixes "tabs become
-                  inoperable after Home -> non-home" on mobile/tablet. */}
-              <UserDashboardTabBarV3
+            {isHomeTab ? (
+              <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}
                 onTabChange={dashboard.setActiveTab}
+                transformationPhotos={dashboard.transformationPhotos}
+                transformationVisibility={dashboard.transformationVisibility}
               />
+            ) : (
+              <ObservatoryShell
+                activeTab={dashboard.activeTab}
+                profileHeaderVisible={dashboard.activeTab !== 'home'}
+                onTabChange={dashboard.setActiveTab}
+                onNavigate={dashboard.navigate}
+                observatoryLevel={dashboard.observatoryLevel}
+                observatoryPoints={dashboard.observatoryPoints}
+                observatoryTierName={dashboard.observatoryTierName}
+                observatoryProgressPct={dashboard.observatoryProgressPct}
+                observatoryXpToNext={dashboard.observatoryXpToNext}
+                observatoryStreakDays={dashboard.observatoryStreakDays}
+                topBadges={dashboard.topBadges}
+                navItems={OBSERVATORY_NAV_ITEMS}
+                nextBestActions={dashboard.observatoryNextBest}
+              >
+                <UserDashboardTabBarV3
+                  activeTab={dashboard.activeTab}
+                  onTabChange={dashboard.setActiveTab}
+                />
 
-              {dashboard.activeTab !== 'home' && (
                 <UserDashboardProfileHeaderV3
                   backgroundImage={dashboard.backgroundImage}
                   bannerObjectPosition={dashboard.bannerObjectPosition}
@@ -87,24 +90,22 @@ const UserDashboardV3: React.FC = () => {
                   onSettings={dashboard.handleSettings}
                   onShare={dashboard.handleShare}
                 />
-              )}
 
-              <ContentGrid $fullWidth={dashboard.activeTab === 'home'}>
-                {dashboard.activeTab !== 'home' && (
+                <ContentGrid $fullWidth={dashboard.activeTab === 'home'}>
                   <UserDashboardSidebarV3
                     displayStats={dashboard.displayStats}
                     canonicalLevel={dashboard.canonicalLevel}
                   />
-                )}
 
-                <UserDashboardTabsV3
-                  activeTab={dashboard.activeTab}
-                  onTabChange={dashboard.setActiveTab}
-                  transformationPhotos={dashboard.transformationPhotos}
-                  transformationVisibility={dashboard.transformationVisibility}
-                />
-              </ContentGrid>
-            </ObservatoryShell>
+                  <UserDashboardTabsV3
+                    activeTab={dashboard.activeTab}
+                    onTabChange={dashboard.setActiveTab}
+                    transformationPhotos={dashboard.transformationPhotos}
+                    transformationVisibility={dashboard.transformationVisibility}
+                  />
+                </ContentGrid>
+              </ObservatoryShell>
+            )}
 
             <HiddenInput
               ref={dashboard.profileInputRef}

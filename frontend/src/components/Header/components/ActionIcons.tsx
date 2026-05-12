@@ -1,8 +1,8 @@
 /**
  * ActionIcons.tsx - Extracted Action Icons Component
- * Galaxy-themed right-side action icons (cart, notifications, profile, etc.)
+ * Crystalline right-side action icons (cart, notifications, profile, etc.)
  */
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -213,6 +213,10 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
   user, cart, isMobile, onCartOpen, onLogout, itemVariants, containerVariants
 }) => {
   const navigate = useNavigate();
+  const [failedProfileImage, setFailedProfileImage] = useState<string | null>(null);
+  const profileImageUrl = user?.profileImageUrl ?? '';
+  const isDevServePhoto = import.meta.env.DEV && profileImageUrl.includes('/api/serve-photo/photos/');
+  const hasProfileImage = profileImageUrl.length > 0 && !isDevServePhoto && failedProfileImage !== profileImageUrl;
 
   return (
     <ActionsContainer variants={containerVariants}>
@@ -243,9 +247,13 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
       {user ? (
         <motion.div variants={itemVariants} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Tooltip title={`${user?.firstName || 'User'} Profile`}>
-            <ProfileIconButton aria-label="User profile" $hasImage={!!user?.profileImageUrl}>
-              {user?.profileImageUrl ? (
-                <ProfileAvatar src={user.profileImageUrl} alt={user?.firstName || 'User'} />
+            <ProfileIconButton aria-label="User profile" $hasImage={hasProfileImage}>
+              {hasProfileImage ? (
+                <ProfileAvatar
+                  src={profileImageUrl}
+                  alt={user?.firstName || 'User'}
+                  onError={() => setFailedProfileImage(profileImageUrl)}
+                />
               ) : (
                 user?.firstName?.[0]?.toUpperCase() || 'U'
               )}

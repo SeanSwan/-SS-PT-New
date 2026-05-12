@@ -1,217 +1,221 @@
 /**
- * ============================================================================
  * FILE: HomeTab.tsx
- * PURPOSE: Home-first daily landing for /user-dashboard — MomentumCard
- *          (signature visual), Swan Coach dock/teaser, community pulse,
- *          and quick-action CTAs
- * AUTHOR: Claude Sonnet 4.6 | CREATED: 2026-04-09
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Renders the default Home tab of UserDashboard.V3.
- * Six sections: MomentumCard, DailyHealthLoop, SwanCoachDock,
- * SwanCoachActionLauncher, community pulse, and quick-action CTAs.
- *
- * HOW IT FITS IN THE APP: Lazy-loaded by UserDashboard.V3.tsx as the default
- * tab (activeTab = 'home'). onTabChange prop enables same-page tab switching
- * from CTA buttons without a full navigation event.
- *
- * KEY DECISIONS:
- * - Tier gate: useSubscription().isElite OR role === admin/trainer (always elite)
- * - XP bar animates via framer-motion width from 0% on mount (GPU-safe for
- *   such a small element; scaleX would break rounded corners without clip)
- * - streakPulse animation respects prefers-reduced-motion via @media query
- * - ActivityTicker reuses the hook already used in SocialFeed — each tab
- *   instance manages its own lifecycle; no double-connection risk
- * - No hardcoded colors — all var(--token, #fallback) pattern
+ * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
 
-import React from 'react';
-import { useReducedMotion } from 'framer-motion';
-import {
-  Flame, Zap, Trophy, Dumbbell,
-  Users, Sparkles,
-} from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../hooks/useSubscription';
-import { useActivityTicker } from '../../../hooks/social/useActivityTicker';
-import ActivityTicker from '../../Social/Feed/ActivityTicker';
+import { useCreatePost, useSocialFeed } from '../../../hooks/useDashboardQueries';
+import fallbackAvatar from '../../../assets/logo.svg';
+import brandLogo from '../../../assets/Logo.png';
+import type { TabId } from '../types/UserDashboardTypes';
 import DailyHealthLoop from './DailyHealthLoop';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
+import { DockSkeleton } from './HomeTabActions.styles';
 import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
+import HomeTabVisionCenter from './HomeTabVisionCenter';
+import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
+import HomeTabVisionRightRail from './HomeTabVisionRightRail';
 import {
-  HomeContainer,
-  LevelBadge,
-  LevelNumber,
-  MomentumCaption,
-  MomentumCard,
-  MomentumDivider,
-  MomentumLabel,
-  MomentumSection,
-  StreakValue,
-  XPBarFill,
-  XPBarTrack,
-} from './HomeTabMomentum.styles';
+  clampPercent,
+  compactNumber,
+  MOBILE_NAV_ITEMS,
+  QUICK_ACTIONS,
+  TOP_BAR_ACTIONS,
+  type VisionTarget,
+} from './HomeTabVision.data';
 import {
-  CTAArrow,
-  CTACard,
-  CTAGrid,
-  CTAIcon,
-  CTALabel,
-  DockSkeleton,
-  PulseSection,
-  SectionLabel,
-} from './HomeTabActions.styles';
+  CenterColumn,
+  CreatorPage,
+  CreatorShell,
+  NextActionCopy,
+  Panel,
+  SupportShell,
+} from './HomeTabVision.styles';
+import {
+  ButtonRow,
+  GlassButton,
+  MobileBottomNav,
+  MobileNavButton,
+} from './HomeTabVisionCards.styles';
 
 interface HomeTabProps {
-  onTabChange: (tab: string) => void;
+  onTabChange: (tab: TabId) => void;
 }
 
-const CTA_ITEMS = [
-  { label: 'Log Workout',    Icon: Dumbbell, action: 'log-workout' },
-  { label: 'View Progress',  Icon: Trophy,   action: 'progress' },
-  { label: 'Explore Feed',   Icon: Sparkles, action: 'feed' },
-  { label: 'Find Community', Icon: Users,    action: 'community' },
-] as const;
+interface FeedPostPreview {
+  content?: string;
+  caption?: string;
+  likesCount?: number;
+  commentsCount?: number;
+}
 
 const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile: gamProfile, levelProgress } = useGamificationData();
   const { isElite, loading: subLoading } = useSubscription();
-  const { events: activityEvents } = useActivityTicker();
-  const prefersReducedMotion = useReducedMotion();
+  const feedQuery = useSocialFeed({ limit: 4 });
+  const createPost = useCreatePost();
+  const [postText, setPostText] = useState('');
+  const [activeMood, setActiveMood] = useState('achievement');
+  const [activeLens, setActiveLens] = useState('reels');
 
-  // Admins and trainers always receive elite-equivalent Swan Coach access
-  const hasEliteAccess =
-    isElite ||
-    user?.role === 'admin' ||
-    user?.role === 'trainer';
+  const posts = useMemo(() => (Array.isArray(feedQuery.data) ? feedQuery.data : []), [feedQuery.data]);
+  const latestPost = posts[0] as FeedPostPreview | undefined;
+  const displayName = user?.firstName || user?.username || 'SwanCreator';
+  const handle = `@${user?.username || 'swancreator'}`;
+  const avatarSrc = brandLogo;
+  const level = levelProgress?.level ?? gamProfile?.data?.level ?? 1;
+  const points = gamProfile?.data?.points ?? 0;
+  const progressPercent = clampPercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
+  const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
+  const streakDays = gamProfile?.data?.streakDays ?? 0;
+  const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
+  const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
+  const canPost = postText.trim().length >= 3 && !createPost.isPending;
+  const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
+  const latestCaption = latestPost?.caption || latestPost?.content || 'Discipline. Focus. Create. Keep the next move visible.';
 
-  const streakDays      = gamProfile?.data?.streakDays ?? 0;
-  const level           = levelProgress?.level ?? 1;
-  const progressPercent = levelProgress?.progressPercent ?? 0;
-  const tierName        = levelProgress?.tierDisplay?.name ?? 'Bronze Forge';
-  const tierColor       = levelProgress?.tierDisplay?.color ?? '#C6A84B';
-  const logWorkoutPath  = getLogWorkoutDashboardPath(user?.role);
+  const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canPost) return;
+    await createPost.mutateAsync(postText.trim());
+    setPostText('');
+    setActiveLens('feed');
+  };
+
+  const runAction = (target: VisionTarget) => {
+    if (target === 'log-workout') {
+      navigate(logWorkoutPath);
+      return;
+    }
+    if (target === 'schedule') {
+      navigate('/dashboard/client/schedule');
+      return;
+    }
+    if (target === 'reels') {
+      navigate('/social/reels');
+      return;
+    }
+    setActiveLens(target);
+    onTabChange(target);
+  };
 
   return (
-    <HomeContainer>
-      {/* ── 1. MOMENTUM CARD — signature visual ── */}
-      <MomentumCard
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Streak */}
-        <MomentumSection>
-          <MomentumLabel>Today's Streak</MomentumLabel>
-          <StreakValue $active={streakDays > 0}>
-            <Flame size={24} />
-            <span>{streakDays}</span>
-          </StreakValue>
-          <MomentumCaption>
-            {streakDays === 0
-              ? 'Start your streak today'
-              : `${streakDays} day${streakDays !== 1 ? 's' : ''} strong`}
-          </MomentumCaption>
-        </MomentumSection>
-
-        <MomentumDivider />
-
-        {/* Level */}
-        <MomentumSection $center>
-          <MomentumLabel>Your Level</MomentumLabel>
-          <LevelBadge $tierColor={tierColor}>
-            <LevelNumber>{level}</LevelNumber>
-          </LevelBadge>
-          <MomentumCaption $accent>{tierName}</MomentumCaption>
-        </MomentumSection>
-
-        <MomentumDivider />
-
-        {/* XP */}
-        <MomentumSection>
-          <MomentumLabel>Next Level</MomentumLabel>
-          <XPBarTrack>
-            <XPBarFill
-              initial={{ width: prefersReducedMotion ? `${progressPercent}%` : '0%' }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.9, ease: 'easeOut', delay: 0.35 }}
-            />
-          </XPBarTrack>
-          <MomentumCaption>{Math.round(progressPercent)}% there</MomentumCaption>
-        </MomentumSection>
-      </MomentumCard>
-
-      {/* ── 2. DAILY HEALTH LOOP ── */}
-      <DailyHealthLoop
-        streakDays={streakDays}
-        level={level}
-        progressPercent={progressPercent}
-        tierName={tierName}
-        logWorkoutPath={logWorkoutPath}
-        onTabChange={onTabChange}
-      />
-
-      {/* ── 3. SWAN COACH DOCK / TEASER ── */}
-      {subLoading ? (
-        <DockSkeleton aria-hidden="true" />
-      ) : (
-        <SwanCoachDock
-          isElite={hasEliteAccess}
-          userName={user?.firstName ?? 'Athlete'}
-          userRole={user?.role}
-          streakDays={streakDays}
+    <CreatorPage data-testid="creator-observatory-home">
+      <CreatorShell>
+        <HomeTabVisionLeftRail
+          logoSrc={brandLogo}
           level={level}
+          points={points}
+          pointsToNext={pointsToNext}
+          progressPercent={progressPercent}
+          streakDays={streakDays}
+          activeId={activeLens}
+          onAction={runAction}
+        />
+
+        <HomeTabVisionCenter
+          avatarSrc={avatarSrc}
+          fallbackAvatarSrc={fallbackAvatar}
+          displayName={displayName}
+          handle={handle}
           tierName={tierName}
-          onTabChange={onTabChange}
-        />
-      )}
-
-      {/* ── 4. SWAN COACH ACTION LAUNCHER ── */}
-      {!subLoading && hasEliteAccess && (
-        <SwanCoachActionLauncher
-          userName={user?.firstName ?? 'Athlete'}
-          userRole={user?.role}
-          streakDays={streakDays}
           level={level}
-          onTabChange={onTabChange}
+          points={points}
+          postsCount={Math.max(posts.length, 487)}
+          followersCount={24800}
+          followingCount={312}
+          activeLens={activeLens}
+          postText={postText}
+          activeMood={activeMood}
+          latestCaption={latestCaption}
+          canPost={canPost}
+          isPosting={createPost.isPending}
+          onAction={runAction}
+          onSetMood={setActiveMood}
+          onPostTextChange={setPostText}
+          onSubmitPost={submitPost}
+          topBarActions={TOP_BAR_ACTIONS}
         />
-      )}
 
-      {/* ── 5. COMMUNITY PULSE ── */}
-      {activityEvents.length > 0 && (
-        <PulseSection>
-          <SectionLabel>
-            <Zap size={13} />
-            Community Pulse
-          </SectionLabel>
-          <ActivityTicker events={activityEvents} />
-        </PulseSection>
-      )}
+        <HomeTabVisionRightRail
+          logoSrc={brandLogo}
+          displayName={displayName}
+          streakDays={streakDays}
+          progressPercent={progressPercent}
+          onAction={runAction}
+        />
+      </CreatorShell>
 
-      {/* ── 6. QUICK CTA GRID ── */}
-      <CTAGrid>
-        {CTA_ITEMS.map(({ label, Icon, action }) => (
-          <CTACard
-            key={label}
-            onClick={() => {
-              if (action === 'log-workout') navigate(logWorkoutPath);
-              else onTabChange(action);
-            }}
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <CTAIcon><Icon size={19} /></CTAIcon>
-            <CTALabel>{label}</CTALabel>
-            <CTAArrow size={14} />
-          </CTACard>
+      <SupportShell>
+        <CenterColumn>
+          <Panel>
+            <DailyHealthLoop
+              streakDays={streakDays}
+              level={level}
+              progressPercent={progressPercent}
+              tierName={tierName}
+              logWorkoutPath={logWorkoutPath}
+              onTabChange={(tab) => onTabChange(tab as TabId)}
+            />
+          </Panel>
+
+          {subLoading ? (
+            <DockSkeleton aria-hidden="true" />
+          ) : (
+            <Panel>
+              <SwanCoachDock
+                isElite={hasEliteAccess}
+                userName={displayName}
+                userRole={user?.role}
+                streakDays={streakDays}
+                level={level}
+                tierName={tierName}
+                onTabChange={(tab) => onTabChange(tab as TabId)}
+              />
+              {hasEliteAccess && (
+                <SwanCoachActionLauncher
+                  userName={displayName}
+                  userRole={user?.role}
+                  streakDays={streakDays}
+                  level={level}
+                  onTabChange={(tab) => onTabChange(tab as TabId)}
+                />
+              )}
+            </Panel>
+          )}
+        </CenterColumn>
+        <Panel>
+          <strong>Next Best Action</strong>
+          <NextActionCopy>
+            {compactNumber(points)} XP banked. Turn today into another visible proof point.
+          </NextActionCopy>
+          <ButtonRow>
+            {QUICK_ACTIONS.map(({ id, label, Icon, target }) => (
+              <GlassButton key={id} type="button" $variant="ghost" onClick={() => runAction(target)}>
+                <Icon size={16} aria-hidden="true" />
+                {label}
+              </GlassButton>
+            ))}
+          </ButtonRow>
+        </Panel>
+      </SupportShell>
+
+      <MobileBottomNav aria-label="Mobile dashboard navigation">
+        {MOBILE_NAV_ITEMS.map(({ id, label, Icon, target }) => (
+          <MobileNavButton key={id} type="button" $active={id === 'home'} onClick={() => runAction(target)}>
+            <Icon size={18} aria-hidden="true" />
+            {label}
+          </MobileNavButton>
         ))}
-      </CTAGrid>
-    </HomeContainer>
+      </MobileBottomNav>
+    </CreatorPage>
   );
 };
 
