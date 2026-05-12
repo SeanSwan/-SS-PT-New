@@ -9,6 +9,7 @@ import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import SwanIcon from '../SwanIcon';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 // ─── Keyframes ──────────────────────────────────────────────────
 const heartPop = keyframes`
@@ -73,7 +74,10 @@ const VideoWrapper = styled.div`
 const ImageWrapper = styled.div<{ $src: string }>`
   position: absolute;
   inset: 0;
-  background: url(${p => p.$src}) center / cover no-repeat;
+  background: ${({ $src }) => {
+    const safe = sanitizeImageUrl($src);
+    return safe ? `url(${cssUrlValue(safe)}) center / cover no-repeat` : 'transparent';
+  }};
 
   &::after {
     content: '';
@@ -140,7 +144,12 @@ const Avatar = styled.div<{ $src?: string }>`
   height: 36px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.6);
-  background: ${p => p.$src ? `url(${p.$src}) center / cover` : 'linear-gradient(135deg, #60C0F0, #8B5CF6)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center / cover`
+      : 'linear-gradient(135deg, #60C0F0, #8B5CF6)';
+  }};
   flex-shrink: 0;
 `;
 

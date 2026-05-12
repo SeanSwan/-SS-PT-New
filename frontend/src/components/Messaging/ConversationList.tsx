@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 import { User, Plus, Trash2 } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
 import NewConversationModal from './NewConversationModal';
@@ -244,7 +245,10 @@ const Avatar = styled.div<{ src?: string | null; $isOnline?: boolean }>`
   border-radius: 50%;
   margin-right: 12px;
   background-color: var(--dark-bg, #0a0e1a);
-  background-image: url(${props => props.src});
+  background-image: ${({ src }) => {
+    const safe = src ? sanitizeImageUrl(src) : null;
+    return safe ? `url(${cssUrlValue(safe)})` : 'none';
+  }};
   background-size: cover;
   background-position: center;
   border: 2px solid var(--glass-border, rgba(0, 206, 209, 0.2));

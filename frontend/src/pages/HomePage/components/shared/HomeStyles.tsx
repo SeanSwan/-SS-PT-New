@@ -4,6 +4,7 @@
 
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 
 export const SectionEl = styled.section`
   position: relative;
@@ -64,7 +65,10 @@ export const ParallaxBg = styled(motion.div)<{ $bgImage: string; $opacity?: numb
   left: 0;
   width: 100%;
   height: 140%;
-  background-image: url(${({ $bgImage }) => $bgImage});
+  background-image: ${({ $bgImage }) => {
+    const safe = sanitizeImageUrl($bgImage);
+    return safe ? `url(${cssUrlValue(safe)})` : 'none';
+  }};
   background-size: cover;
   background-position: center;
   opacity: ${({ $opacity }) => $opacity ?? 0.4};
