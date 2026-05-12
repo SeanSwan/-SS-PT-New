@@ -4,6 +4,7 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 export const VideoCard = styled(motion.button)`
   position: relative;
@@ -35,7 +36,11 @@ export const VideoThumbnail = styled.div<{ $image: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)), url(${({ $image }) => $image});
+  background: ${({ $image }) => {
+    const overlay = 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1))';
+    const safe = sanitizeImageUrl($image);
+    return safe ? `${overlay}, url(${cssUrlValue(safe)})` : overlay;
+  }};
   background-position: center;
   background-size: cover;
 `;

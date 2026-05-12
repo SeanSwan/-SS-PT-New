@@ -20,6 +20,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import { Zap, Download, Plus, UserPlus, X } from 'lucide-react';
 import {
   AdminSessionsActionsProps,
@@ -237,9 +238,12 @@ const MiniAvatar = styled.div<{ $src?: string }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${props => props.$src
-    ? `url(${props.$src}) center/cover no-repeat`
-    : 'linear-gradient(135deg, #0ea5e9, #7c3aed)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #0ea5e9, #7c3aed)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

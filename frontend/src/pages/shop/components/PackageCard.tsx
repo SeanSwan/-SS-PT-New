@@ -19,6 +19,7 @@
 
 import React, { memo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/GlowButton';
 import { SpecialBadge } from './SpecialBadge';
@@ -283,7 +284,10 @@ const CardVideo = styled.video`
 const CardImage = styled.div<{$imageUrl?: string | null; $theme?: string}>`
   width: 100%;
   height: 100%;
-  background-image: ${props => props.$imageUrl ? `url(${props.$imageUrl})` : 'none'};
+  background-image: ${({ $imageUrl }) => {
+    const safe = $imageUrl ? sanitizeImageUrl($imageUrl) : null;
+    return safe ? `url(${cssUrlValue(safe)})` : 'none';
+  }};
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

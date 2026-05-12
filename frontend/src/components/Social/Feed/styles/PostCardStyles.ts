@@ -14,6 +14,7 @@
  */
 
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Keyframe Animations
@@ -110,22 +111,33 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
   justify-content: center;
   overflow: hidden;
 
-  ${props => props.$hasImage ? `
-    background-image: ${props.$gradient}, url(${props.$bgImage});
-    background-size: cover;
-    background-position: center;
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 40%;
-      background: linear-gradient(to bottom, rgba(17, 17, 34, 0) 0%, #111122 100%);
-      pointer-events: none;
+  ${props => {
+    if (!props.$hasImage) {
+      return `
+        background: ${props.$gradient},
+                    var(--bg-base, #002060);
+      `;
     }
-  ` : `
-    background: ${props.$gradient},
-                var(--bg-base, #002060);
-  `}
+    const safe = props.$bgImage ? sanitizeImageUrl(props.$bgImage) : null;
+    return safe
+      ? `
+        background-image: ${props.$gradient}, url(${cssUrlValue(safe)});
+        background-size: cover;
+        background-position: center;
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          height: 40%;
+          background: linear-gradient(to bottom, rgba(17, 17, 34, 0) 0%, #111122 100%);
+          pointer-events: none;
+        }
+      `
+      : `
+        background: ${props.$gradient},
+                    var(--bg-base, #002060);
+      `;
+  }}
 `;
 
 export const SwanWatermark = styled.div`

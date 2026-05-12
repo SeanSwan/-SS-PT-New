@@ -9,6 +9,7 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import {
   Heart,
   MessageCircle,
@@ -218,9 +219,12 @@ const PostAuthorImage = styled.div<{ $image?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: ${({ $image, theme }) =>
-    $image ? `url(${$image})` : theme.gradients?.primary || 'linear-gradient(135deg, #3B82F6, #8B5CF6)'
-  };
+  background: ${({ $image, theme }) => {
+    const safe = $image ? sanitizeImageUrl($image) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)})`
+      : theme.gradients?.primary || 'linear-gradient(135deg, #3B82F6, #8B5CF6)';
+  }};
   background-size: cover;
   background-position: center;
   border: 2px solid ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};

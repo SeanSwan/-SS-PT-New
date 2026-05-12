@@ -20,6 +20,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styled, { keyframes, css } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import { Calendar, Edit, Plus, CheckSquare, Eye, X } from 'lucide-react';
 import {
   AdminSessionsDialogsProps,
@@ -364,7 +365,10 @@ const MiniAvatar = styled.span<{ $src?: string }>`
   font-size: 0.7rem;
   font-weight: 600;
   color: #fff;
-  background: ${({ $src }) => $src ? `url(${$src}) center / cover no-repeat` : 'rgba(14, 165, 233, 0.4)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center / cover no-repeat` : 'rgba(14, 165, 233, 0.4)';
+  }};
   flex-shrink: 0;
 `;
 

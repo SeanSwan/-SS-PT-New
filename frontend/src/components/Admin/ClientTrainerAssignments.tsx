@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 import {
   Activity,
   AlertTriangle,
@@ -276,10 +277,12 @@ const Avatar = styled.div<{ $src?: string | null }>`
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: ${({ $src }) =>
-    $src
-      ? `url(${$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(80,160,240,0.8), rgba(198,168,75,0.7))'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, rgba(80,160,240,0.8), rgba(198,168,75,0.7))';
+  }};
   display: inline-flex;
   align-items: center;
   justify-content: center;

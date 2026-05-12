@@ -35,6 +35,7 @@
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { useTable } from '../../../../hooks/useTable';
@@ -96,7 +97,10 @@ const Avatar = styled.div<{ src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.src ? `url(${props.src})` : 'linear-gradient(135deg, #002060, #8B5CF6)'};
+  background: ${({ src }) => {
+    const safe = src ? sanitizeImageUrl(src) : null;
+    return safe ? `url(${cssUrlValue(safe)})` : 'linear-gradient(135deg, #002060, #8B5CF6)';
+  }};
   background-size: cover;
   background-position: center;
   display: flex;

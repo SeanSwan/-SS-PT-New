@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useSocialFriends } from '../../../hooks/social/useSocialFriends';
 import FriendRequests from './FriendRequests';
 import FriendSuggestions from './FriendSuggestions';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 const shimmer = keyframes`
   0% { background-position: -100% 0; }
@@ -143,7 +144,10 @@ const FriendAvatar = styled.div<{ $src?: string }>`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'rgba(139, 92, 246, 0.2)';
+  }};
   color: #60C0F0;
   display: flex;
   align-items: center;

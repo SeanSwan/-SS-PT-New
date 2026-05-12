@@ -6,6 +6,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 import { useNavigate } from 'react-router-dom';
 import type { VideoCatalogItem } from '../../hooks/useVideoCatalog';
 
@@ -52,8 +53,10 @@ const Thumbnail = styled.div<{ $src?: string }>`
   min-width: 120px;
   height: 68px;
   border-radius: 6px;
-  background: ${({ $src }) =>
-    $src ? `url(${$src}) center/cover no-repeat` : 'rgba(255,255,255,0.08)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover no-repeat` : 'rgba(255,255,255,0.08)';
+  }};
 `;
 
 const Info = styled.div`

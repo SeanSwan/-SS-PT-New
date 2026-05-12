@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, TrendingDown, Clock, UserX, CheckCircle2,
@@ -261,7 +262,10 @@ const RiskIndicator = styled.div<{ $level: string }>`
 `;
 const Avatar = styled.div<{ $src?: string }>`
   width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-  background: ${p => p.$src ? `url(${p.$src}) center/cover` : 'linear-gradient(135deg, #8B5CF6, #3b82f6)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'linear-gradient(135deg, #8B5CF6, #3b82f6)';
+  }};
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase;
 `;

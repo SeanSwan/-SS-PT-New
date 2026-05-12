@@ -28,6 +28,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   Send,
   Phone,
@@ -343,7 +344,12 @@ const Avatar = styled.div<{ $size?: number; $src?: string }>`
   width: ${({ $size }) => $size || 40}px;
   height: ${({ $size }) => $size || 40}px;
   border-radius: 50%;
-  background: ${({ $src }) => ($src ? `url(${$src}) center/cover no-repeat` : 'linear-gradient(135deg, #0ea5e9, #8B5CF6)')};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #0ea5e9, #8B5CF6)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

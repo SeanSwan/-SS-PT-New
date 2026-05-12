@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled, { keyframes, css } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../utils/imageUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import VIPConversionModal from './gallery/VIPConversionModal';
 import PhotoFeedback from './gallery/PhotoFeedback';
@@ -488,7 +489,10 @@ const EventCard = styled(motion.div)`
 const EventCover = styled.div<{ $src: string | null }>`
   width: 100%;
   height: 200px;
-  background: ${p => p.$src ? `url(${p.$src}) center/cover` : 'linear-gradient(135deg, #1a1035, #002060)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'linear-gradient(135deg, #1a1035, #002060)';
+  }};
   position: relative;
 `;
 

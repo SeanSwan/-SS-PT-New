@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   Lock,
   Eye,
@@ -147,8 +148,10 @@ const Card = styled.div`
 const Thumbnail = styled.div<{ $src?: string | null }>`
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: ${(p) =>
-    p.$src ? `url(${p.$src}) center/cover no-repeat` : 'rgba(0, 0, 0, 0.4)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover no-repeat` : 'rgba(0, 0, 0, 0.4)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

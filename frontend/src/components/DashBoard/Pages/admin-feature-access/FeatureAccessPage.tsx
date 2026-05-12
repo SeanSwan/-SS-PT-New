@@ -32,6 +32,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { Shield, Search, Users } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 
@@ -197,7 +198,10 @@ const Avatar = styled.div<{ $src?: string | null }>`
   height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: ${({ $src }) => $src ? `url(${$src}) center/cover` : 'rgba(139, 92, 246, 0.2)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'rgba(139, 92, 246, 0.2)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

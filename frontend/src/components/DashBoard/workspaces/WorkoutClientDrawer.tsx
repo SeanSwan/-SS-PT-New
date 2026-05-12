@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import { X, Search, User, Dumbbell, Calendar, Activity } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -410,10 +411,12 @@ const ClientAvatar = styled.div<{ $src?: string }>`
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: ${(p) =>
-    p.$src
-      ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #8B5CF6, #8B5CF6)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

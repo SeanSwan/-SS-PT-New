@@ -8,6 +8,7 @@
  */
 
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -101,7 +102,10 @@ export const PostAvatar = styled.div<{ $src?: string }>`
   height: 32px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: ${({ $src }) => $src ? `url(${$src}) center/cover` : 'var(--accent-secondary, #8B5CF6)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'var(--accent-secondary, #8B5CF6)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -204,7 +208,10 @@ export const PersonAvatar = styled.div<{ $src?: string }>`
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: ${({ $src }) => $src ? `url(${$src}) center/cover` : 'var(--accent-secondary, #8B5CF6)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'var(--accent-secondary, #8B5CF6)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

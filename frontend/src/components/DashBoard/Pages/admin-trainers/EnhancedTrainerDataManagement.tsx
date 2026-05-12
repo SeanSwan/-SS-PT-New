@@ -28,6 +28,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 
@@ -394,7 +395,10 @@ const AvatarCircle = styled.div<{ $src?: string }>`
   height: 40px;
   min-width: 40px;
   border-radius: 50%;
-  background: ${({ $src }) => ($src ? `url(${$src}) center/cover no-repeat` : '#8b5cf6')};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover no-repeat` : '#8b5cf6';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

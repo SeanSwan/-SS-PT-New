@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../../utils/imageUrl';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 
 import {
@@ -89,7 +90,10 @@ const TrainerAvatar = styled.div<{ $src?: string }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${props => props.$src ? `url(${props.$src}) center/cover` : '#60C0F0'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover` : '#60C0F0';
+  }};
   color: white;
   display: flex;
   align-items: center;

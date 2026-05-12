@@ -9,6 +9,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   Eye, Globe, Lock, Link2, Clock, Youtube, Upload,
 } from 'lucide-react';
@@ -68,10 +69,12 @@ const ThumbnailWrap = styled.div`
 const Thumbnail = styled.div<{ $src?: string | null }>`
   width: 100%;
   height: 100%;
-  background: ${p =>
-    p.$src
-      ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(139, 92, 246, 0.08) 100%)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(139, 92, 246, 0.08) 100%)';
+  }};
 `;
 
 const DurationBadge = styled.span`

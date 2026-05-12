@@ -10,6 +10,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   X, Youtube, Loader, Check, AlertCircle,
   Globe, Link2, Info, ChevronDown,
@@ -333,10 +334,12 @@ const ThumbnailPreview = styled.div<{ $src: string }>`
   width: 100%;
   height: 140px;
   border-radius: 8px;
-  background: ${p =>
-    p.$src
-      ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(139, 92, 246, 0.05))'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(139, 92, 246, 0.05))';
+  }};
   border: 1px solid rgba(59, 130, 246, 0.2);
   margin-top: 0.5rem;
 `;

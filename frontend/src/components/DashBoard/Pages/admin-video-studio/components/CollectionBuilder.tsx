@@ -12,6 +12,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   GripVertical, X, Plus, Save, Clock, Loader, Check,
 } from 'lucide-react';
@@ -189,10 +190,12 @@ const ItemThumb = styled.div<{ $src?: string | null }>`
   height: 36px;
   border-radius: 4px;
   flex-shrink: 0;
-  background: ${p =>
-    p.$src
-      ? `url(${p.$src}) center/cover no-repeat`
-      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(139, 92, 246, 0.08))'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, rgba(30, 58, 138, 0.5), rgba(139, 92, 246, 0.08))';
+  }};
   border: 1px solid rgba(59, 130, 246, 0.2);
 `;
 

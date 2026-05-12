@@ -5,6 +5,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import { 
   Video, 
   Upload, 
@@ -298,7 +299,10 @@ const ContentListItem = styled.div`
 
 const ContentThumbnail = styled.div<{ backgroundImage?: string }>`
   aspect-ratio: 16/9;
-  background: ${props => props.backgroundImage ? `url(${props.backgroundImage}) no-repeat center/cover` : 'linear-gradient(135deg, #1a1a2e, #16213e)'};
+  background: ${({ backgroundImage }) => {
+    const safe = backgroundImage ? sanitizeImageUrl(backgroundImage) : null;
+    return safe ? `url(${cssUrlValue(safe)}) no-repeat center/cover` : 'linear-gradient(135deg, #1a1a2e, #16213e)';
+  }};
   position: relative;
   display: flex;
   align-items: center;
@@ -313,7 +317,10 @@ const ListThumbnail = styled.div<{ backgroundImage?: string }>`
   width: 100px;
   height: 60px;
   border-radius: 8px;
-  background: ${props => props.backgroundImage ? `url(${props.backgroundImage}) no-repeat center/cover` : 'linear-gradient(135deg, #1a1a2e, #16213e)'};
+  background: ${({ backgroundImage }) => {
+    const safe = backgroundImage ? sanitizeImageUrl(backgroundImage) : null;
+    return safe ? `url(${cssUrlValue(safe)}) no-repeat center/cover` : 'linear-gradient(135deg, #1a1a2e, #16213e)';
+  }};
   position: relative;
   display: flex;
   align-items: center;

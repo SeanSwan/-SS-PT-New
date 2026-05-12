@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../ui/buttons/GlowButton';
@@ -334,7 +335,12 @@ const AvatarCircle = styled.span<{ $src?: string }>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: ${p => p.$src ? `url(${p.$src}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #60C0F0)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'linear-gradient(135deg, #8B5CF6, #60C0F0)';
+  }};
   display: inline-flex;
   align-items: center;
   justify-content: center;

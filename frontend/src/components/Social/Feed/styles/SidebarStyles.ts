@@ -14,6 +14,7 @@
  */
 
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Keyframe Animations
@@ -167,8 +168,10 @@ export const Avatar = styled.div<{ $src?: string }>`
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: ${({ $src }) =>
-    $src ? `url(${$src}) center/cover no-repeat` : 'rgba(139, 92, 246, 0.2)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover no-repeat` : 'rgba(139, 92, 246, 0.2)';
+  }};
   color: #60C0F0;
   display: flex;
   align-items: center;

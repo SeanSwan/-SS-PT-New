@@ -29,6 +29,7 @@ import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   Users, UserPlus, UserCheck, UserX, Edit3, Eye,
   Search, Filter, Download, RefreshCw, MoreVertical,
@@ -250,10 +251,12 @@ const ClientAvatar = styled.div<{ $status?: string; $src?: string }>`
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: ${({ $src, theme }) =>
-    $src
-      ? `url(${$src}) center/cover no-repeat`
-      : theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%)'};
+  background: ${({ $src, theme }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : theme.gradients?.primary || 'linear-gradient(135deg, #3b82f6 0%, #60C0F0 100%)';
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

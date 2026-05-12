@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
 import {
   DndContext,
   closestCenter,
@@ -473,8 +474,10 @@ const SmallThumb = styled.div<{ $src?: string | null }>`
   width: 64px;
   height: 36px;
   border-radius: 6px;
-  background: ${(p) =>
-    p.$src ? `url(${p.$src}) center/cover no-repeat` : 'rgba(0, 0, 0, 0.4)'};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe ? `url(${cssUrlValue(safe)}) center/cover no-repeat` : 'rgba(0, 0, 0, 0.4)';
+  }};
   flex-shrink: 0;
 `;
 

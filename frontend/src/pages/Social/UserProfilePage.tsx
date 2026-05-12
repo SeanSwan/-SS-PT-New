@@ -10,6 +10,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 import { ArrowLeft, MapPin, Calendar, Award, Lock } from 'lucide-react';
 import MembershipBadge from '../../components/MembershipBadge/MembershipBadge';
 import api from '../../services/api';
@@ -127,10 +128,12 @@ const BackButton = styled.button`
 const BannerSection = styled.div<{ $src?: string }>`
   width: 100%;
   height: 200px;
-  background: ${({ $src }) =>
-    $src
-      ? `url(${$src}) center/cover no-repeat`
-      : `linear-gradient(135deg, ${TOKENS.royalDepth} 0%, ${TOKENS.swanLavender} 50%, ${TOKENS.midnightSapphire} 100%)`};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : `linear-gradient(135deg, ${TOKENS.royalDepth} 0%, ${TOKENS.swanLavender} 50%, ${TOKENS.midnightSapphire} 100%)`;
+  }};
   position: relative;
 
   &::after {
@@ -166,10 +169,12 @@ const AvatarCircle = styled.div<{ $src?: string }>`
   border-radius: 50%;
   border: 3px solid ${TOKENS.royalDepth};
   box-shadow: 0 0 20px rgba(96, 192, 240, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.2);
-  background: ${({ $src }) =>
-    $src
-      ? `url(${$src}) center/cover no-repeat`
-      : `linear-gradient(135deg, ${TOKENS.swanLavender}, ${TOKENS.wingPurple})`};
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : `linear-gradient(135deg, ${TOKENS.swanLavender}, ${TOKENS.wingPurple})`;
+  }};
   display: flex;
   align-items: center;
   justify-content: center;

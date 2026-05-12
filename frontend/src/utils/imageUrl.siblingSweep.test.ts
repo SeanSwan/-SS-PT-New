@@ -17,30 +17,51 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const SURFACES: Array<{ label: string; path: string }> = [
-  {
-    label: 'PhotoGalleryCard.styles.ts (UserDashboard photo grid tiles)',
-    path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts',
-  },
-  {
-    label: 'ProfileStyles.ts (UserDashboard banner + avatar)',
-    path: '../components/UserDashboard/styles/ProfileStyles.ts',
-  },
-  {
-    label: 'ConversationList.tsx (Messaging avatar)',
-    path: '../components/Messaging/ConversationList.tsx',
-  },
-  {
-    label: 'TestimonialSlider.tsx (homepage testimonial photo)',
-    path: '../components/TestimonialSlider/TestimonialSlider.tsx',
-  },
-  {
-    label: 'VerticalReels.tsx (reel image + avatar)',
-    path: '../components/Social/Reels/VerticalReels.tsx',
-  },
-  {
-    label: 'HomeStyles.tsx (parallax bg)',
-    path: '../pages/HomePage/components/shared/HomeStyles.tsx',
-  },
+  // ── Wave 1 (PR #6): the 6 originally-named debate-file surfaces ────────
+  { label: 'PhotoGalleryCard.styles.ts', path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts' },
+  { label: 'ProfileStyles.ts', path: '../components/UserDashboard/styles/ProfileStyles.ts' },
+  { label: 'ConversationList.tsx', path: '../components/Messaging/ConversationList.tsx' },
+  { label: 'TestimonialSlider.tsx', path: '../components/TestimonialSlider/TestimonialSlider.tsx' },
+  { label: 'VerticalReels.tsx', path: '../components/Social/Reels/VerticalReels.tsx' },
+  { label: 'HomeStyles.tsx', path: '../pages/HomePage/components/shared/HomeStyles.tsx' },
+  // ── Wave 2 (this PR): Phase-4 wider sweep ──────────────────────────────
+  // Social cluster
+  { label: 'FriendSuggestions.tsx', path: '../components/Social/Friends/FriendSuggestions.tsx' },
+  { label: 'FriendsList.tsx', path: '../components/Social/Friends/FriendsList.tsx' },
+  { label: 'FriendRequests.tsx', path: '../components/Social/Friends/FriendRequests.tsx' },
+  { label: 'ExploreStyles.ts', path: '../components/Social/Explore/ExploreStyles.ts' },
+  { label: 'PostCardStyles.ts', path: '../components/Social/Feed/styles/PostCardStyles.ts' },
+  { label: 'SidebarStyles.ts', path: '../components/Social/Feed/styles/SidebarStyles.ts' },
+  { label: 'UserProfilePage.tsx', path: '../pages/Social/UserProfilePage.tsx' },
+  // UserDashboard cluster
+  { label: 'CreativeGalleryCard.styles.ts', path: '../components/UserDashboard/components/CreativeGalleryCard.styles.ts' },
+  { label: 'CommunityFeed.tsx', path: '../components/UserDashboard/components/CommunityFeed.tsx' },
+  // Admin Dashboard cluster
+  { label: 'ClientTrainerAssignments.tsx', path: '../components/Admin/ClientTrainerAssignments.tsx' },
+  { label: 'WorkoutClientDrawer.tsx', path: '../components/DashBoard/workspaces/WorkoutClientDrawer.tsx' },
+  { label: 'CommunicationCenter.tsx', path: '../components/DashBoard/Pages/admin-clients/components/CommunicationCenter.tsx' },
+  { label: 'EnhancedTrainerDataManagement.tsx', path: '../components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx' },
+  { label: 'admin-packages-view.tsx', path: '../components/DashBoard/Pages/admin-packages/admin-packages-view.tsx' },
+  { label: 'FeatureAccessPage.tsx', path: '../components/DashBoard/Pages/admin-feature-access/FeatureAccessPage.tsx' },
+  { label: 'AdminSessionsDialogs.tsx', path: '../components/DashBoard/Pages/admin-sessions/optimized/AdminSessionsDialogs.tsx' },
+  { label: 'AdminSessionsActions.tsx', path: '../components/DashBoard/Pages/admin-sessions/optimized/AdminSessionsActions.tsx' },
+  { label: 'admin-client-progress-view.V2.tsx', path: '../components/DashBoard/Pages/admin-client-progress/admin-client-progress-view.V2.tsx' },
+  { label: 'CollectionsTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/CollectionsTab.tsx' },
+  { label: 'LibraryTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/LibraryTab.tsx' },
+  { label: 'MembersVaultTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/MembersVaultTab.tsx' },
+  { label: 'CollectionBuilder.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/CollectionBuilder.tsx' },
+  { label: 'VideoCatalogCard.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/VideoCatalogCard.tsx' },
+  { label: 'YouTubeImportModal.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/YouTubeImportModal.tsx' },
+  { label: 'ClientsManagementSection.tsx', path: '../components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx' },
+  { label: 'ClientComplianceDashboard.tsx', path: '../components/DashBoard/Pages/admin-dashboard/components/ClientComplianceDashboard.tsx' },
+  { label: 'Leaderboard.tsx', path: '../components/DashBoard/Pages/client-gamification/components/Leaderboard.tsx' },
+  { label: 'ScheduledSessionsCard.tsx', path: '../components/DashBoard/Pages/client-dashboard/components/cards/ScheduledSessionsCard.tsx' },
+  // Misc cluster
+  { label: 'ContentFormCheck.tsx', path: '../components/TrainerDashboard/ContentFormCheck/ContentFormCheck.tsx' },
+  { label: 'RelatedVideos.tsx', path: '../components/video/RelatedVideos.tsx' },
+  { label: 'GalleryPage.tsx', path: '../pages/GalleryPage.tsx' },
+  { label: 'PackageCard.tsx', path: '../pages/shop/components/PackageCard.tsx' },
+  { label: 'PreviewPanel.tsx', path: '../components/Reports/PreviewPanel.tsx' },
 ];
 
 const readSource = (relativePath: string): string => {
@@ -77,7 +98,12 @@ describe('imageUrl sibling sweep — each surface uses sanitizeImageUrl + cssUrl
         // collects every `const NAME = ...sanitizeImageUrl(...)` LHS and then
         // requires every `cssUrlValue(X)` argument to be one of those names.
         const sanitizedVars = new Set<string>();
-        const sanitizedRegex = /\bconst\s+([\w$]+)\s*=\s*[^;]*?\bsanitizeImageUrl\s*\(/g;
+        // Scope: a `const NAME = ...sanitizeImageUrl(...)` declaration on a
+        // SINGLE LINE. Newlines are excluded from the in-between class so a
+        // styled-component template literal's outer `const X = styled.div\`...`
+        // can't span into the inner `const safe = sanitizeImageUrl(...)` and
+        // wrongly capture the outer styled-component name as "sanitized."
+        const sanitizedRegex = /\bconst\s+([\w$]+)\s*=\s*[^;\n]*?\bsanitizeImageUrl\s*\(/g;
         let m: RegExpExecArray | null;
         while ((m = sanitizedRegex.exec(src)) !== null) {
           sanitizedVars.add(m[1]);
@@ -102,7 +128,9 @@ describe('imageUrl sibling sweep — each surface uses sanitizeImageUrl + cssUrl
     });
   });
 
-  it('all 6 named surfaces still exist at their documented paths', () => {
-    expect(SURFACES.length).toBe(6);
+  it('SURFACES array covers Wave 1 (6 originally-named debate surfaces) + Wave 2 (Phase-4 wider sweep)', () => {
+    // Wave 1 was 6 surfaces (PR #6). Wave 2 adds the broader sweep — minimum
+    // total guards against accidental array truncation in future edits.
+    expect(SURFACES.length).toBeGreaterThanOrEqual(33);
   });
 });

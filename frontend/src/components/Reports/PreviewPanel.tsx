@@ -1,6 +1,7 @@
 // File: frontend/src/components/Reports/EnhancedPreviewPanel.tsx
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 import { format } from 'date-fns';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -152,7 +153,10 @@ interface HeaderSectionProps {
 }
 
 const HeaderSection = styled.div<HeaderSectionProps>`
-  background-image: ${props => props.backgroundImage ? `url(${props.backgroundImage})` : 'none'};
+  background-image: ${({ backgroundImage }) => {
+    const safe = backgroundImage ? sanitizeImageUrl(backgroundImage) : null;
+    return safe ? `url(${cssUrlValue(safe)})` : 'none';
+  }};
   background-size: cover;
   background-position: center;
   min-height: 150px;
