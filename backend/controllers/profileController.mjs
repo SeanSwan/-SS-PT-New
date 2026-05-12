@@ -12,6 +12,7 @@ import UserAchievement from '../models/UserAchievement.mjs';
 import Achievement from '../models/Achievement.mjs';
 import logger from '../utils/logger.mjs';
 import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
+import { sanitizeImageUrl } from '../utils/imageUrl.mjs';
 
 // Get directory name in ES modules context
 const __filename = fileURLToPath(import.meta.url);
@@ -199,6 +200,22 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
+    // 2026-05-11 SLICE 3: server-side photo URL allowlist. Companion to the
+    // frontend imageUrl.ts sanitizer — both must reject the same inputs so a
+    // URL that bypasses one cannot bypass the other. Accepts null/'' to clear.
+    // Persist the sanitized (trimmed) return value, not the original input —
+    // otherwise leading/trailing whitespace survives into the DB.
+    if (updateData.photo !== undefined && updateData.photo !== null && updateData.photo !== '') {
+      const sanitizedPhoto = sanitizeImageUrl(updateData.photo);
+      if (sanitizedPhoto === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'photo must be a relative /uploads path or an https URL on the configured photo-origin allowlist'
+        });
+      }
+      updateData.photo = sanitizedPhoto;
+    }
+
     // Validate chartVisibility — only allow known keys with boolean values
     if (updateData.chartVisibility !== undefined) {
       const cv = updateData.chartVisibility;
@@ -299,6 +316,19 @@ export const updateClientProfile = async (req, res) => {
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
       'emailNotifications', 'smsNotifications', 'preferences'
     ];
+
+    // 2026-05-11 SLICE 3 sibling sweep: same photo allowlist as
+    // updateUserProfile. Persist the sanitized (trimmed) return value.
+    if (updateData.photo !== undefined && updateData.photo !== null && updateData.photo !== '') {
+      const sanitizedPhoto = sanitizeImageUrl(updateData.photo);
+      if (sanitizedPhoto === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'photo must be a relative /uploads path or an https URL on the configured photo-origin allowlist'
+        });
+      }
+      updateData.photo = sanitizedPhoto;
+    }
 
     // Filter out fields that are not allowed to be updated
     const filteredUpdateData = Object.keys(updateData)
