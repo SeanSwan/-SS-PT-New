@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
+import { sanitizeImageUrl, cssUrlValue } from "../../utils/imageUrl";
 
 // Reduced-motion helper
 const reducedMotion = css`
@@ -256,7 +257,10 @@ const ClientImage = styled.div<{ image: string }>`
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  background-image: url(${props => props.image});
+  background-image: ${({ image }) => {
+    const safe = image ? sanitizeImageUrl(image) : null;
+    return safe ? `url(${cssUrlValue(safe)})` : 'none';
+  }};
   background-size: cover;
   background-position: center;
   border: 4px solid var(--neon-blue, #00D4AA);

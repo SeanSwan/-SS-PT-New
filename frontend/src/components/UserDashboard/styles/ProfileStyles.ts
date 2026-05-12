@@ -16,6 +16,7 @@
 import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { slideInUp, subtleGlow, pulseScale } from './animations';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Profile Header Container
@@ -56,11 +57,12 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
   height: 320px;
   position: relative;
   border-radius: 24px 24px 0 0;
-  background: ${({ $backgroundImage, theme }) =>
-    $backgroundImage
-      ? `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url(${$backgroundImage})`
-      : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
-  };
+  background: ${({ $backgroundImage, theme }) => {
+    const safe = $backgroundImage ? sanitizeImageUrl($backgroundImage) : null;
+    return safe
+      ? `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url(${cssUrlValue(safe)})`
+      : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)';
+  }};
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -197,26 +199,28 @@ export const ProfileImage = styled.div<{ $image?: string }>`
   animation: ${subtleGlow} 6s ease-in-out infinite;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-  ${({ $image, theme }) => $image
-    ? css`
-      background: url(${$image});
-      background-size: cover;
-      background-position: center;
-      border: 4px solid var(--bg-base, #002060);
-    `
-    : css`
-      background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 3.5rem;
-      font-weight: 700;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      letter-spacing: 0.05em;
-      border: 5px solid transparent;
-    `
-  }
+  ${({ $image, theme }) => {
+    const safe = $image ? sanitizeImageUrl($image) : null;
+    return safe
+      ? css`
+        background: url(${cssUrlValue(safe)});
+        background-size: cover;
+        background-position: center;
+        border: 4px solid var(--bg-base, #002060);
+      `
+      : css`
+        background: linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'});
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 3.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        letter-spacing: 0.05em;
+        border: 5px solid transparent;
+      `;
+  }}
 
   &:hover {
     transform: scale(1.05);

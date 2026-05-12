@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
 export const PhotoCard = styled(motion.article)`
   aspect-ratio: 1;
@@ -21,14 +22,11 @@ export const PhotoCard = styled(motion.article)`
 `;
 
 export const PhotoImage = styled.div<{ $image: string }>`
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(10, 10, 15, 0) 0%,
-      rgba(10, 10, 15, 0.04) 52%,
-      rgba(10, 10, 15, 0.86) 100%
-    ),
-    url(${({ $image }) => $image});
+  background-image: ${({ $image }) => {
+    const overlay = 'linear-gradient(180deg, rgba(10, 10, 15, 0) 0%, rgba(10, 10, 15, 0.04) 52%, rgba(10, 10, 15, 0.86) 100%)';
+    const safe = sanitizeImageUrl($image);
+    return safe ? `${overlay}, url(${cssUrlValue(safe)})` : overlay;
+  }};
   background-position: center;
   background-size: cover;
   height: 100%;
