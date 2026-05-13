@@ -189,7 +189,11 @@ const EmptyMessage = styled.li`
 // PURPOSE: Combobox logic — open/close, search, select, click-outside
 // ─────────────────────────────────────────────────────────────
 
-const GlobalClientSelector: React.FC = () => {
+interface GlobalClientSelectorProps {
+  closeKey?: string | number | boolean;
+}
+
+const GlobalClientSelector: React.FC<GlobalClientSelectorProps> = ({ closeKey }) => {
   const { activeClient, setActiveClient, clientList } = useGlobalClient();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -226,6 +230,12 @@ const GlobalClientSelector: React.FC = () => {
   useEffect(() => {
     if (isOpen) searchRef.current?.focus();
   }, [isOpen]);
+
+  /** Close portal dropdown when the hosting sidebar closes or route changes. */
+  useEffect(() => {
+    setIsOpen(false);
+    setSearchQuery('');
+  }, [closeKey]);
 
   const filteredClients = useMemo(() => {
     if (!searchQuery.trim()) return clientList;
@@ -294,7 +304,7 @@ const GlobalClientSelector: React.FC = () => {
         )}
       </TriggerButton>
 
-      {createPortal(
+      {isOpen && createPortal(
         <Dropdown
           ref={dropdownRef}
           $visible={isOpen}

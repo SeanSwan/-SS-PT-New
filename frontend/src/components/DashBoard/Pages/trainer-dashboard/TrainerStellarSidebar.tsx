@@ -586,7 +586,9 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
         </SidebarHeader>
 
         {/* Global Client Selector — only when sidebar is expanded */}
-        {!collapsed && <GlobalClientSelector />}
+        {!collapsed && (
+          <GlobalClientSelector closeKey={`${location.pathname}:${isMobileOpen}`} />
+        )}
 
         <NavScroll>
           {trainerNavConfig.map((group) => (

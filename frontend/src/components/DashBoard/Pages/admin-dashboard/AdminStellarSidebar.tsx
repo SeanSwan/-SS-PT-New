@@ -519,10 +519,10 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   };
   const [internalMobileOpen, setInternalMobileOpen] = useState(false);
   const mobileOpen = isMobileOpen ?? internalMobileOpen;
-  const setMobileOpen = (val: boolean) => {
+  const setMobileOpen = useCallback((val: boolean) => {
     setInternalMobileOpen(val);
     if (onToggleMobile && val !== mobileOpen) onToggleMobile();
-  };
+  }, [mobileOpen, onToggleMobile]);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 1024 : false
   );
@@ -536,7 +536,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, []);
+  }, [setMobileOpen]);
 
   // ── Lock body scroll when mobile sidebar is open ──
   useEffect(() => {
@@ -556,12 +556,12 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [mobileOpen]);
+  }, [mobileOpen, setMobileOpen]);
 
   const handleNav = useCallback((route: string) => {
     navigate(route);
     if (isMobile) setMobileOpen(false);
-  }, [navigate, isMobile]);
+  }, [navigate, isMobile, setMobileOpen]);
 
   const isActive = useCallback((prefix: string) => {
     return location.pathname === prefix || location.pathname.startsWith(prefix + '/');
@@ -624,7 +624,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         </SidebarHeader>
 
         {/* Global Client Selector — only when sidebar is expanded */}
-        {(!collapsed || isMobile) && <GlobalClientSelector />}
+        {(!collapsed || isMobile) && (
+          <GlobalClientSelector closeKey={`${location.pathname}:${mobileOpen}`} />
+        )}
 
         {/* Navigation items — grouped by section with Kirin dividers */}
         <NavScroll>

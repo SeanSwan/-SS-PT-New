@@ -23,7 +23,7 @@
  * platform experience described in the Master Tree Flowchart.
  */
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
@@ -40,6 +40,7 @@ import {
   selectCurrentUserRole,
   selectCurrentUserId
 } from '../../redux/slices/scheduleSlice';
+import { scheduleDashboardRouteScrollReset } from './DashboardRouteScroll';
 
 // Import the three stellar sidebars
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
@@ -645,6 +646,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [omniTerminalOpen, setOmniTerminalOpen] = useState(false);
+  const mainContentRef = useRef<HTMLElement | null>(null);
 
   // Redux state
   const currentUserRole = useAppSelector(selectCurrentUserRole);
@@ -716,6 +718,11 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const handleToggleMobile = useCallback(() => {
     setMobileSidebarOpen(prev => !prev);
   }, []);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+    return scheduleDashboardRouteScrollReset(mainContentRef.current);
+  }, [location.pathname]);
 
   // Handle logout
   const handleLogout = () => {
@@ -840,6 +847,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
 
           {/* Universal Main Content Area */}
           <UniversalMainContent
+            ref={mainContentRef}
             $sidebarCollapsed={sidebarCollapsed}
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
