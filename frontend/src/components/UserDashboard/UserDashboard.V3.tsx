@@ -21,13 +21,19 @@ import UserDashboardProfileHeaderV3 from './components/UserDashboardProfileHeade
 import UserDashboardSidebarV3 from './components/UserDashboardSidebarV3';
 import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
+import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
+import type { TabId } from './types/UserDashboardTypes';
 
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 const UserDashboardV3: React.FC = () => {
   const dashboard = useUserDashboardV3Controller();
   const isHomeTab = dashboard.activeTab === 'home';
+  const handleTabChange = React.useCallback((tab: TabId) => {
+    dashboard.setActiveTab(tab);
+    resetUserDashboardTabScroll();
+  }, [dashboard.setActiveTab]);
 
   if (dashboard.isLoading && !dashboard.profile) {
     return <UserDashboardLoadingState />;
@@ -46,7 +52,7 @@ const UserDashboardV3: React.FC = () => {
             {isHomeTab ? (
               <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}
-                onTabChange={dashboard.setActiveTab}
+                onTabChange={handleTabChange}
                 transformationPhotos={dashboard.transformationPhotos}
                 transformationVisibility={dashboard.transformationVisibility}
               />
@@ -54,7 +60,7 @@ const UserDashboardV3: React.FC = () => {
               <ObservatoryShell
                 activeTab={dashboard.activeTab}
                 profileHeaderVisible={dashboard.activeTab !== 'home'}
-                onTabChange={dashboard.setActiveTab}
+                onTabChange={handleTabChange}
                 onNavigate={dashboard.navigate}
                 observatoryLevel={dashboard.observatoryLevel}
                 observatoryPoints={dashboard.observatoryPoints}
@@ -68,7 +74,7 @@ const UserDashboardV3: React.FC = () => {
               >
                 <UserDashboardTabBarV3
                   activeTab={dashboard.activeTab}
-                  onTabChange={dashboard.setActiveTab}
+                  onTabChange={handleTabChange}
                 />
 
                 <UserDashboardProfileHeaderV3
@@ -99,7 +105,7 @@ const UserDashboardV3: React.FC = () => {
 
                   <UserDashboardTabsV3
                     activeTab={dashboard.activeTab}
-                    onTabChange={dashboard.setActiveTab}
+                    onTabChange={handleTabChange}
                     transformationPhotos={dashboard.transformationPhotos}
                     transformationVisibility={dashboard.transformationVisibility}
                   />

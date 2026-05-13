@@ -89,6 +89,15 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(stylesSource).toContain('grid-column: 1 / -1');
   });
 
+  it('resets dashboard scroll when switching between Home and the in-page tabs', () => {
+    const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
+
+    expect(dashboardSource).toContain('resetUserDashboardTabScroll');
+    expect(dashboardSource).toContain('const handleTabChange = React.useCallback');
+    expect(dashboardSource).toContain('onTabChange={handleTabChange}');
+    expect(dashboardSource).not.toContain('onTabChange={dashboard.setActiveTab}');
+  });
+
   it('keeps desktop observatory rails below the profile banner on non-home tabs', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
