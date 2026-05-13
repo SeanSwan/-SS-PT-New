@@ -14,7 +14,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEquipmentAPI } from '../../hooks/useEquipmentAPI';
+import {
+  getEquipmentApiErrorMessage,
+  useEquipmentAPI,
+  validateEquipmentPhoto,
+} from '../../hooks/useEquipmentAPI';
 import type {
   EquipmentProfile,
   EquipmentItem,
@@ -435,6 +439,32 @@ const PendingBadge = styled.span`
   animation: ${pulse} 2s ease-in-out infinite;
 `;
 
+const ScanErrorBox = styled.div`
+  padding: 14px 16px;
+  margin: 8px 0 16px;
+  background: rgba(255, 71, 87, 0.14);
+  border: 1px solid rgba(255, 71, 87, 0.32);
+  border-radius: 10px;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 14px;
+`;
+
+const ScanErrorTitle = styled.div`
+  color: var(--error, #FF6B7A);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+`;
+
+const ScanErrorActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+`;
+
 // --- Location Icons ---
 const LOCATION_ICONS: Record<string, string> = {
   gym: '🏋️',
@@ -593,6 +623,13 @@ const EquipmentManagerPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !selectedProfile) return;
 
+    const validationError = validateEquipmentPhoto(file);
+    if (validationError) {
+      setScanError(validationError);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     // Show preview
     const reader = new FileReader();
     reader.onload = () => setScanPreview(reader.result as string);
@@ -610,9 +647,8 @@ const EquipmentManagerPage: React.FC = () => {
         category: result.scanResult.suggestedCategory,
       });
       loadItems(selectedProfile.id);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Scan failed. Try again or add equipment manually.';
-      setScanError(msg);
+    } catch (err) {
+      setScanError(getEquipmentApiErrorMessage(err, 'Scan failed. Try again or add equipment manually.'));
     } finally {
       setScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -811,7 +847,7 @@ const EquipmentManagerPage: React.FC = () => {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <GhostButton onClick={() => setShowAddItem(true)}>+ Add Manually</GhostButton>
-            <PrimaryButton onClick={handleScanClick}>
+            <PrimaryButton onClick={handleScanClick} disabled={scanning}>
               {scanning ? 'Scanning...' : 'Swan Coach Scan'}
             </PrimaryButton>
           </div>
@@ -838,9 +874,14 @@ const EquipmentManagerPage: React.FC = () => {
           </CameraArea>
         )}
         {scanError && !scanning && (
-          <div style={{ padding: '12px 16px', margin: '8px 0', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#fca5a5', fontSize: 14 }}>
-            {scanError}
-          </div>
+          <ScanErrorBox role="alert">
+            <ScanErrorTitle>Scan unavailable</ScanErrorTitle>
+            <div>{scanError}</div>
+            <ScanErrorActions>
+              <GhostButton onClick={() => setShowAddItem(true)}>Add manually instead</GhostButton>
+              <GhostButton onClick={() => setScanError(null)}>Dismiss</GhostButton>
+            </ScanErrorActions>
+          </ScanErrorBox>
         )}
 
         {/* Equipment Items List */}

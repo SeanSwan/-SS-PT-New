@@ -132,6 +132,39 @@ function buildExerciseRecord(ex, opts) {
   };
 }
 
+function addEquipmentToken(tokens, value) {
+  if (typeof value !== 'string') return;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return;
+
+  tokens.add(normalized);
+  if (normalized.includes('_')) tokens.add(normalized.replace(/_/g, ' '));
+  if (normalized.includes(' ')) tokens.add(normalized.replace(/\s+/g, '_'));
+}
+
+export function buildAvailableEquipmentList(equipmentItems = []) {
+  const tokens = new Set(['bodyweight', 'none']);
+
+  for (const item of equipmentItems) {
+    if (
+      !item
+      || item.isActive === false
+      || item.approvalStatus === 'rejected'
+      || item.approvalStatus === 'pending'
+    ) {
+      continue;
+    }
+
+    addEquipmentToken(tokens, item.trainerLabel);
+    addEquipmentToken(tokens, item.name);
+    addEquipmentToken(tokens, item.category);
+    addEquipmentToken(tokens, item.resistanceType);
+    addEquipmentToken(tokens, item.equipmentType);
+  }
+
+  return [...tokens];
+}
+
 // ── Main Generation Function ──────────────────────────────────────────
 
 export async function generateBootcampClass(options) {
@@ -201,10 +234,16 @@ export async function generateBootcampClass(options) {
       if (profile) {
         // Get equipment items for this profile
         const equipmentItems = models.EquipmentItem
-          ? await models.EquipmentItem.findAll({ where: { profileId: equipmentProfileId }, raw: true })
+          ? await models.EquipmentItem.findAll({
+              where: {
+                profileId: equipmentProfileId,
+                isActive: true,
+                approvalStatus: { [Op.in]: ['approved', 'manual'] },
+              },
+              raw: true,
+            })
           : [];
-        const availableEquipment = equipmentItems.map(e => e.equipmentType || e.name).filter(Boolean);
-        if (availableEquipment.length === 0) availableEquipment.push('bodyweight');
+        const availableEquipment = buildAvailableEquipmentList(equipmentItems);
 
         const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
         const rolodexResults = await queryExercisesForBootcamp({
@@ -449,3 +488,7 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
 
 // Style modifiers imported from ./classStyleModifiers.mjs
 // Flow optimization imported from ./flowOptimizer.mjs
+
+export const __testing__ = {
+  buildAvailableEquipmentList,
+};

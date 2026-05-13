@@ -5,6 +5,8 @@
 import { useCallback, useMemo } from 'react';
 
 const API_BASE = '/api/equipment-profiles';
+const ACCEPTED_EQUIPMENT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_EQUIPMENT_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function getHeaders(): HeadersInit {
   const token = localStorage.getItem('token');
@@ -21,9 +23,47 @@ function getAuthHeader(): HeadersInit {
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...options, headers: { ...getHeaders(), ...options?.headers } });
-  const data = await res.json();
+  const data = await readEquipmentApiResponse(res);
   if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
+  return data as T;
+}
+
+async function readEquipmentApiResponse(res: Response): Promise<Record<string, any>> {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      error: text.slice(0, 240) || `Request failed (${res.status})`,
+    };
+  }
+}
+
+export function getEquipmentApiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+
+  const possibleMessage =
+    (err as any)?.response?.data?.error
+    || (err as any)?.response?.data?.message
+    || (err as any)?.message;
+
+  return typeof possibleMessage === 'string' && possibleMessage.trim()
+    ? possibleMessage
+    : fallback;
+}
+
+export function validateEquipmentPhoto(file: File): string | null {
+  if (!ACCEPTED_EQUIPMENT_IMAGE_TYPES.includes(file.type)) {
+    return 'Please upload a JPG, PNG, or WebP equipment photo.';
+  }
+
+  if (file.size > MAX_EQUIPMENT_IMAGE_BYTES) {
+    return 'Equipment photos must be 10MB or smaller.';
+  }
+
+  return null;
 }
 
 export interface EquipmentProfile {
@@ -173,6 +213,9 @@ export function useEquipmentAPI() {
   // ── AI Scan ───────────────────────────────────────────────────────
 
   const scanEquipment = useCallback(async (profileId: number, photo: File) => {
+    const photoError = validateEquipmentPhoto(photo);
+    if (photoError) throw new Error(photoError);
+
     const formData = new FormData();
     formData.append('photo', photo);
     const res = await fetch(`${API_BASE}/${profileId}/scan`, {
@@ -180,7 +223,7 @@ export function useEquipmentAPI() {
       headers: getAuthHeader(),
       body: formData,
     });
-    const data = await res.json();
+    const data = await readEquipmentApiResponse(res);
     if (!res.ok) throw new Error(data.error || `Scan failed (${res.status})`);
     return data as { success: boolean; item: EquipmentItem; scanResult: ScanResult };
   }, []);

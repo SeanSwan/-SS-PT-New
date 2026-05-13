@@ -10,6 +10,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { MapPin, Home, TreePine, Dumbbell, User, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -49,6 +50,12 @@ const LOCATION_LABELS: Record<string, string> = {
   custom: 'Custom Location',
 };
 
+export function getEquipmentManagerPath(pathname: string): string {
+  if (pathname.startsWith('/dashboard/trainer')) return '/dashboard/trainer/equipment';
+  if (pathname.startsWith('/dashboard/admin')) return '/dashboard/admin/equipment';
+  return '/dashboard/admin/equipment';
+}
+
 // ── Component ─────────────────────────────────────────────────────────
 
 const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
@@ -58,6 +65,7 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
   compact = false,
   label = 'Training Location',
 }) => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<EquipmentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -111,6 +119,9 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
     <PickerWrapper>
       <PickerLabel>{label}</PickerLabel>
       <PickerTrigger
+        type="button"
+        aria-expanded={expanded}
+        aria-haspopup="listbox"
         onClick={() => setExpanded(!expanded)}
         $hasSelection={!!selectedProfile}
       >
@@ -153,8 +164,11 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
       </PickerTrigger>
 
       {expanded && !loading && (
-        <DropdownPanel>
+        <DropdownPanel role="listbox" aria-label={`${label} options`}>
           <DropdownItem
+            type="button"
+            role="option"
+            aria-selected={!selectedProfileId}
             $active={!selectedProfileId}
             onClick={() => {
               onSelect(null);
@@ -172,6 +186,9 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
 
           {profiles.map((p) => (
             <DropdownItem
+              type="button"
+              role="option"
+              aria-selected={selectedProfileId === p.id}
               key={p.id}
               $active={selectedProfileId === p.id}
               onClick={() => {
@@ -197,8 +214,9 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
 
           {showManageLink && (
             <ManageLink
+              type="button"
               onClick={() => {
-                window.location.hash = '#/dashboard/workouts/equipment';
+                navigate(getEquipmentManagerPath(window.location.pathname));
                 setExpanded(false);
               }}
             >

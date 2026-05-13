@@ -34,7 +34,7 @@ import express from 'express';
 import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { getEquipmentProfile, getEquipmentItem, getEquipmentExerciseMap } from '../models/index.mjs';
-import { scanEquipmentImage } from '../services/equipmentScanService.mjs';
+import { isEquipmentScanConfigured, scanEquipmentImage } from '../services/equipmentScanService.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
@@ -480,7 +480,7 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     }
 
     // Graceful check: is AI scanning configured? (before rate limiter to avoid burning quota)
-    if (!process.env.GOOGLE_API_KEY) {
+    if (!isEquipmentScanConfigured()) {
       return res.status(503).json({
         success: false,
         error: 'AI scanning is not configured. Please add equipment manually or contact admin.',
@@ -566,7 +566,7 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     logger.error('[EquipmentRoutes] Scan error:', err);
     const msg = err.message || 'Equipment scan failed';
     // Map service errors to appropriate HTTP status codes
-    if (msg.includes('GOOGLE_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
+    if (msg.includes('GOOGLE_API_KEY') || msg.includes('GEMINI_API_KEY') || msg.includes('not configured') || msg.includes('SDK not installed')) {
       return res.status(503).json({ success: false, error: 'AI scanning is not available. Please add equipment manually.' });
     }
     if (msg.includes('Invalid image type') || msg.includes('Image too large')) {

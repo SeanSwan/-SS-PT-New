@@ -23,6 +23,10 @@ const RESISTANCE_TYPES = [
   'bodyweight', 'dumbbell', 'barbell', 'cable', 'band', 'machine', 'kettlebell', 'other'
 ];
 
+const DEFAULT_EQUIPMENT_SCAN_MODEL = process.env.EQUIPMENT_SCAN_MODEL
+  || process.env.AI_GEMINI_MODEL
+  || 'gemini-2.0-flash';
+
 const SCAN_PROMPT = `You are an expert fitness equipment identifier. Analyze this image and identify the gym/fitness equipment shown.
 
 Return a JSON object with these fields:
@@ -71,6 +75,17 @@ function sanitizeScanResult(raw) {
   return result;
 }
 
+export function getEquipmentScanApiKey() {
+  return process.env.GOOGLE_API_KEY
+    || process.env.GEMINI_API_KEY
+    || process.env.GOOGLE_AI_API_KEY
+    || null;
+}
+
+export function isEquipmentScanConfigured() {
+  return Boolean(getEquipmentScanApiKey());
+}
+
 /**
  * Scan equipment from an image using Gemini Flash Vision.
  *
@@ -79,8 +94,9 @@ function sanitizeScanResult(raw) {
  * @returns {Promise<object>} Sanitized scan result
  */
 export async function scanEquipmentImage(imageBuffer, mimeType) {
-  if (!process.env.GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY is not configured');
+  const apiKey = getEquipmentScanApiKey();
+  if (!apiKey) {
+    throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY is not configured');
   }
 
   const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -101,9 +117,9 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
     throw new Error('Google Generative AI SDK not installed');
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+  const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: DEFAULT_EQUIPMENT_SCAN_MODEL,
     generationConfig: {
       maxOutputTokens: 500,
       temperature: 0.2,
@@ -151,7 +167,7 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
       ...sanitized,
       rawResponse: parsed,
       latencyMs,
-      model: 'gemini-2.0-flash',
+      model: DEFAULT_EQUIPMENT_SCAN_MODEL,
     };
   } catch (err) {
     const latencyMs = Date.now() - startMs;
@@ -162,5 +178,10 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
     throw err;
   }
 }
+
+export const __testing__ = {
+  getEquipmentScanApiKey,
+  isEquipmentScanConfigured,
+};
 
 export default { scanEquipmentImage };
