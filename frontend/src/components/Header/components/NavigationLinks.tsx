@@ -6,7 +6,6 @@ import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Box } from '../../ui/primitives';
 import DashboardSelector from '../../DashboardSelector/DashboardSelector';
 
 // Theme-aware colors via CSS variables (no more hardcoded dark-only values)
@@ -17,7 +16,7 @@ const NavLinksContainer = styled.div`
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   justify-content: flex-start;
   margin-left: 0;
   
@@ -45,7 +44,7 @@ const Nav = styled(motion.nav)`
   flex-wrap: nowrap;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   
   @media (max-width: 768px) {
     display: none;
@@ -145,6 +144,18 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   }
 `;
 
+const DashboardSelectorMount = styled.div`
+  position: relative;
+  z-index: var(--z-dropdown, 1260);
+  flex: 0 0 auto;
+  margin: 0 8px;
+  overflow: visible;
+
+  @media (min-width: 2560px) {
+    margin: 0 12px;
+  }
+`;
+
 /* Secondary nav links hidden at narrow desktop (769-1024px) to prevent crowding */
 const SecondaryNavLink = styled(StyledNavLink)`
   @media (max-width: 1024px) {
@@ -179,9 +190,9 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
             SwanStudios Store
           </StyledNavLink>
 
-          <Box style={{ marginLeft: 8, marginRight: 8 }}>
+          <DashboardSelectorMount>
             <DashboardSelector />
-          </Box>
+          </DashboardSelectorMount>
         </>
       );
     } else {

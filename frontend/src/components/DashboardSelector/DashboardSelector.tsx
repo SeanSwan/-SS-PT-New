@@ -4,27 +4,74 @@ import styled from 'styled-components';
 import { ChevronDown, LayoutDashboard, Users, User, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+type DashboardType = 'admin' | 'trainer' | 'client' | 'user';
+
+const dashboardTypes: DashboardType[] = ['admin', 'trainer', 'client', 'user'];
+
+const dashboardMeta = {
+  admin: {
+    title: 'Admin Dashboard',
+    description: 'Manage all aspects of the platform',
+    path: '/dashboard/admin/coach-assistant',
+    badge: 'ADMIN',
+    Icon: LayoutDashboard,
+    iconColor: 'var(--accent-primary, #60C0F0)'
+  },
+  trainer: {
+    title: 'Trainer Dashboard',
+    description: 'Manage clients and training programs',
+    path: '/dashboard/trainer/overview',
+    badge: 'TRAINER',
+    Icon: Users,
+    iconColor: 'var(--accent-secondary, #8B5CF6)'
+  },
+  client: {
+    title: 'Client Dashboard',
+    description: 'Training progress and sessions',
+    path: '/dashboard/client/overview',
+    badge: 'CLIENT',
+    Icon: User,
+    iconColor: 'var(--gilded-fern, #C6A84B)'
+  },
+  user: {
+    title: 'User Dashboard',
+    description: 'Social profile and community features',
+    path: '/user-dashboard',
+    badge: 'SOCIAL',
+    Icon: UserCircle,
+    iconColor: 'rgb(var(--status-success-rgb, 34, 197, 94))'
+  }
+};
+
 const SelectorContainer = styled.div`
   position: relative;
   display: inline-block;
+  z-index: var(--z-dropdown, 1260);
 `;
 
 const SelectorButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(30, 30, 60, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.15));
+  color: var(--text-primary, #E0ECF4);
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   min-height: 44px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   
   &:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 14%, var(--bg-elevated, #141419));
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -34,15 +81,19 @@ const DropdownMenu = styled.div.withConfig({
   position: absolute;
   top: 100%;
   left: 0;
-  width: 250px;
-  background: #1A1A2E;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: min(280px, calc(100vw - 32px));
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 96%, var(--bg-base, #030712));
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.15));
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.45),
+    0 0 28px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+  z-index: var(--z-dropdown, 1260);
   margin-top: 0.5rem;
   display: ${({ isOpen }) => isOpen ? 'block' : 'none'};
-  overflow: hidden;
+  max-height: min(70vh, 420px);
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 const DropdownItem = styled.button.withConfig({
@@ -54,18 +105,18 @@ const DropdownItem = styled.button.withConfig({
   width: 100%;
   padding: 0.75rem 1rem;
   text-align: left;
-  background: ${({ active }) => active ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
+  background: ${({ active }) => active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 14%, transparent)' : 'transparent'};
   border: none;
-  color: ${({ disabled }) => disabled ? 'rgba(255, 255, 255, 0.4)' : '#fff'};
+  color: ${({ disabled }) => disabled ? 'var(--text-disabled, rgba(224, 236, 244, 0.6))' : 'var(--text-primary, #E0ECF4)'};
   cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${({ disabled }) => disabled ? 'transparent' : 'rgba(139, 92, 246, 0.05)'};
+    background: ${({ disabled }) => disabled ? 'transparent' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
   }
   
   &:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-soft, rgba(224, 236, 244, 0.12)) 100%, transparent);
   }
 `;
 
@@ -76,7 +127,7 @@ const ItemIcon = styled.div<{ disabled?: boolean }>`
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
   opacity: ${({ disabled }) => disabled ? 0.5 : 1};
 `;
 
@@ -92,13 +143,13 @@ const ItemTitle = styled.div`
 
 const ItemDescription = styled.div`
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
   margin-top: 0.25rem;
 `;
 
 const RoleBadge = styled.span`
-  background: rgba(139, 92, 246, 0.2);
-  color: #60C0F0;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent);
+  color: var(--accent-primary, #60C0F0);
   font-size: 0.65rem;
   padding: 2px 6px;
   border-radius: 4px;
@@ -119,16 +170,16 @@ const DashboardSelector: React.FC = () => {
   const { user } = useAuth();
   const currentPath = location.pathname;
   
-  // Determine which dashboard is currently active
-  const isAdminDashboard = currentPath.includes('/dashboard/admin');
-  const isTrainerDashboard = currentPath.includes('/dashboard/trainer');
-  const isClientDashboard = currentPath.includes('/dashboard/client');
-  const isUserDashboard = currentPath.includes('/user-dashboard');
-  
-  // Function to determine if a dashboard option should be enabled based on user role
-  const isEnabled = (dashboardType: string) => {
+  const activeDashboardByType: Record<DashboardType, boolean> = {
+    admin: currentPath.includes('/dashboard/admin'),
+    trainer: currentPath.includes('/dashboard/trainer'),
+    client: currentPath.includes('/dashboard/client'),
+    user: currentPath.includes('/user-dashboard')
+  };
+
+  const isEnabled = (dashboardType: DashboardType) => {
     if (!user || !user.role) return false;
-    
+
     switch (dashboardType) {
       case 'admin':
         return user.role === 'admin';
@@ -142,38 +193,25 @@ const DashboardSelector: React.FC = () => {
         return false;
     }
   };
-  
-  // Toggle the dropdown
+
+  const accessibleDashboards = dashboardTypes.filter(isEnabled);
+  const dashboardOptions = accessibleDashboards.map((type) => ({
+    ...dashboardMeta[type],
+    type,
+    active: activeDashboardByType[type]
+  }));
+
   const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+    setIsOpen((open) => !open);
   };
-  
-  // Close the dropdown
-  const closeDropdown = () => {
-    setIsOpen(false);
-  };
-  
-  // Handle dashboard selection
+
   const handleSelectDashboard = (path: string) => {
     navigate(path);
-    closeDropdown();
+    setIsOpen(false);
   };
-  
-  // Get the current dashboard name
-  const getCurrentDashboardName = () => {
-    if (isAdminDashboard) return 'Admin Dashboard';
-    if (isTrainerDashboard) return 'Trainer Dashboard';
-    if (isClientDashboard) return 'Client Dashboard';
-    if (isUserDashboard) return 'User Dashboard';
-    return 'Dashboard';
-  };
-  
-  // Check if user has access to multiple dashboards (to determine if selector should be shown)
-  const hasMultipleDashboards = () => {
-    const dashboards = ['admin', 'trainer', 'client', 'user'];
-    const accessibleDashboards = dashboards.filter(dashboard => isEnabled(dashboard));
-    return accessibleDashboards.length > 1;
-  };
+
+  const getCurrentDashboardName = () =>
+    dashboardOptions.find((option) => option.active)?.title ?? 'Dashboard';
   
   // Close dropdown on outside click
   React.useEffect(() => {
@@ -199,46 +237,20 @@ const DashboardSelector: React.FC = () => {
   }
   
   // If user only has access to one dashboard, show a direct link instead of dropdown
-  if (!hasMultipleDashboards()) {
-    const accessibleDashboards = ['admin', 'trainer', 'client', 'user'].filter(dashboard => isEnabled(dashboard));
+  if (accessibleDashboards.length <= 1) {
     const singleDashboard = accessibleDashboards[0];
-    
-    let dashboardPath = '/user-dashboard';
-    let dashboardName = 'My Dashboard';
-    let dashboardIcon = <UserCircle size={16} />;
-    
-    switch (singleDashboard) {
-      case 'admin':
-        dashboardPath = '/dashboard/admin/coach-assistant';
-        dashboardName = 'Admin Dashboard';
-        dashboardIcon = <LayoutDashboard size={16} />;
-        break;
-      case 'trainer':
-        dashboardPath = '/dashboard/trainer/overview';
-        dashboardName = 'Trainer Dashboard';
-        dashboardIcon = <Users size={16} />;
-        break;
-      case 'client':
-        dashboardPath = '/dashboard/client/overview';
-        dashboardName = 'Client Dashboard';
-        dashboardIcon = <User size={16} />;
-        break;
-      case 'user':
-      default:
-        dashboardPath = '/user-dashboard';
-        dashboardName = 'My Dashboard';
-        dashboardIcon = <UserCircle size={16} />;
-        break;
-    }
+    const dashboard = dashboardMeta[singleDashboard ?? 'user'];
+    const DashboardIcon = dashboard.Icon;
     
     return (
       <SelectorContainer>
         <SelectorButton 
-          onClick={() => navigate(dashboardPath)}
+          type="button"
+          onClick={() => navigate(dashboard.path)}
           style={{ cursor: 'pointer' }}
         >
-          {dashboardIcon}
-          {dashboardName}
+          <DashboardIcon size={16} />
+          {singleDashboard === 'user' ? 'My Dashboard' : dashboard.title}
         </SelectorButton>
       </SelectorContainer>
     );
@@ -246,78 +258,36 @@ const DashboardSelector: React.FC = () => {
   
   return (
     <SelectorContainer data-dashboard-selector="true">
-      <SelectorButton onClick={toggleDropdown}>
+      <SelectorButton
+        type="button"
+        onClick={toggleDropdown}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
         <LayoutDashboard size={16} />
         {getCurrentDashboardName()}
         <ChevronDown size={16} />
       </SelectorButton>
       
-      <DropdownMenu isOpen={isOpen}>
-        {/* Admin Dashboard - Only for Admin */}
-        {isEnabled('admin') && (
+      <DropdownMenu isOpen={isOpen} role="menu" aria-label="Dashboard navigation">
+        {dashboardOptions.map(({ type, title, description, path, badge, Icon, iconColor, active }) => (
           <DropdownItem
-            active={isAdminDashboard}
-            onClick={() => handleSelectDashboard('/dashboard/admin/coach-assistant')}
+            key={type}
+            type="button"
+            role="menuitem"
+            active={active}
+            onClick={() => handleSelectDashboard(path)}
           >
             <ItemIcon>
-              <LayoutDashboard size={16} color="#60C0F0" />
+              <Icon size={16} color={iconColor} />
             </ItemIcon>
             <ItemContent>
-              <ItemTitle>Admin Dashboard</ItemTitle>
-              <ItemDescription>Manage all aspects of the platform</ItemDescription>
+              <ItemTitle>{title}</ItemTitle>
+              <ItemDescription>{description}</ItemDescription>
             </ItemContent>
-            <RoleBadge>ADMIN</RoleBadge>
+            <RoleBadge>{badge}</RoleBadge>
           </DropdownItem>
-        )}
-        
-        {/* Trainer Dashboard - For Admin and Trainer */}
-        {isEnabled('trainer') && (
-          <DropdownItem
-            active={isTrainerDashboard}
-            onClick={() => handleSelectDashboard('/dashboard/trainer/overview')}
-          >
-            <ItemIcon>
-              <Users size={16} color="#8B5CF6" />
-            </ItemIcon>
-            <ItemContent>
-              <ItemTitle>Trainer Dashboard</ItemTitle>
-              <ItemDescription>Manage clients and training programs</ItemDescription>
-            </ItemContent>
-            <RoleBadge>TRAINER</RoleBadge>
-          </DropdownItem>
-        )}
-        
-        {/* Client Dashboard - For Admin and Client */}
-        {isEnabled('client') && (
-          <DropdownItem
-            active={isClientDashboard}
-            onClick={() => handleSelectDashboard('/dashboard/client/overview')}
-          >
-            <ItemIcon>
-              <User size={16} color="#FF6B6B" />
-            </ItemIcon>
-            <ItemContent>
-              <ItemTitle>Client Dashboard</ItemTitle>
-              <ItemDescription>Training progress and sessions</ItemDescription>
-            </ItemContent>
-            <RoleBadge>CLIENT</RoleBadge>
-          </DropdownItem>
-        )}
-        
-        {/* User Dashboard - Available to all authenticated users */}
-        <DropdownItem
-          active={isUserDashboard}
-          onClick={() => handleSelectDashboard('/user-dashboard')}
-        >
-          <ItemIcon>
-            <UserCircle size={16} color="#32CD32" />
-          </ItemIcon>
-          <ItemContent>
-            <ItemTitle>User Dashboard</ItemTitle>
-            <ItemDescription>Social profile and community features</ItemDescription>
-          </ItemContent>
-          <RoleBadge>SOCIAL</RoleBadge>
-        </DropdownItem>
+        ))}
       </DropdownMenu>
     </SelectorContainer>
   );

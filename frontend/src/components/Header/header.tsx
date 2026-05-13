@@ -38,7 +38,7 @@ const HeaderContainer = styled(motion.header)<{
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: var(--z-header, 1250);
   padding: 0 ${({ $isMobile }) => $isMobile ? '16px' : '24px'};
   height: ${({ $isMobile }) => $isMobile ? '60px' : '64px'};
   display: flex;
