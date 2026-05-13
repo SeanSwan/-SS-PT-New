@@ -12,12 +12,10 @@ import {
   getTransformationPhotos,
   getTransformationVisibility,
 } from '../components/ObservatoryShellAdapter';
+import { resetUserDashboardTabScroll } from '../components/UserDashboardTabScroll';
 import type { TabId } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-import {
-  isBannerObjectPosition,
-  type BannerObjectPosition,
-} from '../../../services/profileService';
+import { isBannerObjectPosition, type BannerObjectPosition } from '../../../services/profileService';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -28,6 +26,8 @@ export function useUserDashboardV3Controller() {
   const {
     profile,
     stats,
+    posts: profilePosts,
+    followStats,
     isLoading,
     error,
     uploadProfilePhoto,
@@ -135,10 +135,10 @@ export function useUserDashboardV3Controller() {
     [profile],
   );
 
-  const observatoryNextBest = useMemo(
-    () => buildObservatoryNextBestActions(navigate, setActiveTab, user?.role),
-    [navigate, user?.role],
-  );
+  const observatoryNextBest = useMemo(() => buildObservatoryNextBestActions(navigate, (tab) => {
+    setActiveTab(tab);
+    resetUserDashboardTabScroll();
+  }, user?.role), [navigate, user?.role]);
 
   // 2026-05-10 SLICE 1 — AI Village 15-brain Phase-2B consensus + Architecture
   // & Bug Hunter agreement: the prior implementation revoked the optimistic
@@ -254,6 +254,8 @@ export function useUserDashboardV3Controller() {
 
   return {
     profile,
+    profilePosts,
+    followStats,
     isLoading,
     error,
     activeTab,

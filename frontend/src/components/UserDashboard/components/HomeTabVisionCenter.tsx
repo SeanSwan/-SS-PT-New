@@ -76,11 +76,13 @@ interface HomeTabVisionCenterProps {
   activeLens: string;
   postText: string;
   activeMood: string;
+  selectedMediaName?: string;
   latestCaption: string;
   canPost: boolean;
   isPosting: boolean;
   onAction: (target: VisionTarget) => void;
   onSetMood: (mood: string) => void;
+  onAddMediaClick: () => void;
   onPostTextChange: (value: string) => void;
   onSubmitPost: (event: React.FormEvent<HTMLFormElement>) => void;
   topBarActions: ReadonlyArray<{ label: string; Icon: React.ElementType; count: number }>;
@@ -105,11 +107,13 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   activeLens,
   postText,
   activeMood,
+  selectedMediaName,
   latestCaption,
   canPost,
   isPosting,
   onAction,
   onSetMood,
+  onAddMediaClick,
   onPostTextChange,
   onSubmitPost,
   topBarActions,
@@ -246,9 +250,14 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
           ))}
         </MoodScroller>
         <ButtonRow style={{ justifyContent: 'space-between', marginTop: '0.75rem' }}>
-          <GlassButton type="button" $variant="ghost">
+          <GlassButton
+            type="button"
+            $variant="ghost"
+            onClick={onAddMediaClick}
+            title={selectedMediaName || 'Add media to post'}
+          >
             <ImagePlus size={15} aria-hidden="true" />
-            Add Media
+            {selectedMediaName ? 'Media Ready' : 'Add Media'}
           </GlassButton>
           <GlassButton type="submit" $variant="primary" disabled={!canPost}>
             {isPosting ? <Loader2 size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}

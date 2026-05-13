@@ -204,8 +204,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Special case for development mode: EMERGENCY FIX
   if (process.env.NODE_ENV === 'development') {
     const bypass = localStorage.getItem('bypass_admin_verification') === 'true';
-    if (bypass) {
-      logger.log('[EMERGENCY FIX] Using bypass flag to skip role checks in ProtectedRoute');
+    const emergencyMode = localStorage.getItem('admin_emergency_mode') === 'true';
+
+    if (bypass && !emergencyMode) {
+      localStorage.removeItem('bypass_admin_verification');
+      localStorage.removeItem('admin_emergency_mode');
+      logger.warn('[ProtectedRoute] Cleared stale admin bypass flag without emergency mode.');
+    } else if (bypass && emergencyMode) {
+      logger.log('[EMERGENCY FIX] Using explicit emergency mode to skip role checks in ProtectedRoute');
       return <>{children}</>;
     }
   }

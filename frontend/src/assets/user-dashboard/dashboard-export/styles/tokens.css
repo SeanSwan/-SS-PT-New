@@ -1,0 +1,44 @@
+/* SwanStudios — Enchanted Apex: Crystalline Swan
+   Token sheet. Nothing visual here — just the locked palette and type scales. */
+
+:root {
+  /* Palette — locked */
+  --midnight-sapphire: #002060;
+  --royal-depth: #003080;
+  --ice-wing: #60C0F0;
+  --arctic-cyan: #50A0F0;   /* data only */
+  --gilded-fern: #C6A84B;
+  --frost-white: #E0ECF4;
+  --swan-lavender: #4070C0;
+  --wing-purple: #8B5CF6;
+  --obsidian: #0A0A0F;
+  --carbon: #141419;
+  --graphite: #1A1A24;
+
+  /* Sapphire glass (luxury layer) */
+  --glass-sapphire-bg: rgba(0, 32, 96, 0.6);
+  --glass-sapphire-border: rgba(198, 168, 75, 0.2);
+  --glass-blur: blur(24px);
+
+  /* Type */
+  --font-head: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-editorial: "Cormorant Garamond", Georgia, serif;
+  --font-data: "Fira Code", ui-monospace, monospace;
+  --font-ui: "Sora", system-ui, sans-serif;
+
+  /* Rhythm */
+  --rail: clamp(16px, 3vw, 48px);
+  --gutter: clamp(24px, 5vw, 96px);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

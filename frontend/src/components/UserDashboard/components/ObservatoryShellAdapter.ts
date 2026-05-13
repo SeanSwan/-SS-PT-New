@@ -29,14 +29,14 @@ export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
 
 export function buildObservatoryNextBestActions(
   navigate: (path: string) => void,
-  setActiveTab: (tab: TabId) => void,
+  changeTab: (tab: TabId) => void,
   role?: string | null,
 ): ReadonlyArray<ObservatoryNextBestAction> {
   return [
     { label: 'Log Workout',    Icon: Dumbbell, run: () => navigate(getLogWorkoutDashboardPath(role)) },
-    { label: 'View Progress',  Icon: Trophy,   run: () => setActiveTab('progress') },
-    { label: 'Explore Feed',   Icon: Sparkles, run: () => setActiveTab('feed') },
-    { label: 'Find Community', Icon: Users,    run: () => setActiveTab('community') },
+    { label: 'View Progress',  Icon: Trophy,   run: () => changeTab('progress') },
+    { label: 'Explore Feed',   Icon: Sparkles, run: () => changeTab('feed') },
+    { label: 'Find Community', Icon: Users,    run: () => changeTab('community') },
   ];
 }
 

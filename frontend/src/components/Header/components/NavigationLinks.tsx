@@ -15,12 +15,14 @@ import DashboardSelector from '../../DashboardSelector/DashboardSelector';
 const NavLinksContainer = styled.div`
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   justify-content: flex-start;
-  margin-left: 32px;
+  margin-left: 0;
   
   @media (max-width: 1024px) {
-    margin-left: 24px;
+    margin-left: 0;
   }
   
   @media (max-width: 768px) {
@@ -28,11 +30,11 @@ const NavLinksContainer = styled.div`
   }
 
   @media (min-width: 2560px) {
-    margin-left: 48px;
+    margin-left: 0;
   }
 
   @media (min-width: 3840px) {
-    margin-left: 64px;
+    margin-left: 0;
   }
 `;
 
@@ -41,6 +43,9 @@ const Nav = styled(motion.nav)`
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   
   @media (max-width: 768px) {
     display: none;
@@ -59,6 +64,8 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   height: 64px;
   display: flex;
   align-items: center;
+  white-space: nowrap;
+  flex: 0 1 auto;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.3px;
   border-radius: 8px;
@@ -142,54 +149,6 @@ const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
 const SecondaryNavLink = styled(StyledNavLink)`
   @media (max-width: 1024px) {
     display: none;
-  }
-`;
-
-const LogoutButton = styled.button`
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  padding: 10px 16px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 8px;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg,
-      rgba(255, 64, 129, 0.12) 0%,
-      rgba(244, 67, 54, 0.08) 100%
-    );
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover {
-    color: var(--danger, #ff6b9d);
-    text-shadow: 0 0 14px rgba(255, 107, 157, 0.7);
-    transform: translateY(-1px);
-
-    &::before {
-      opacity: 1;
-    }
-  }
-
-  /* Focus state for accessibility */
-  &:focus-visible {
-    outline: 2px solid var(--danger, #ff4081);
-    outline-offset: 2px;
-    color: var(--danger, #ff4081);
   }
 `;
 

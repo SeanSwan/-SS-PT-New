@@ -14,7 +14,15 @@ import {
   Trophy,
   Users,
 } from 'lucide-react';
-import { STORY_ITEMS, TRENDING_TAGS, type VisionTarget } from './HomeTabVision.data';
+import { compactNumber, type VisionTarget } from './HomeTabVision.data';
+import type {
+  HomeBadgeItem,
+  HomeChallengeSummary,
+  HomeLeaderboardRow,
+  HomeLiveActivityItem,
+  HomeStoryItem,
+  TrendingTagSummary,
+} from './HomeTabViewModel';
 import { Eyebrow, Panel, RightRail } from './HomeTabVision.styles';
 import {
   Bar,
@@ -30,25 +38,46 @@ import { CrystalScene, MiniScene, Sparkline } from './HomeTabVisionScenes';
 
 interface HomeTabVisionRightRailProps {
   logoSrc: string;
-  displayName: string;
-  streakDays: number;
   progressPercent: number;
+  stories: HomeStoryItem[];
+  liveActivityItems: HomeLiveActivityItem[];
+  liveActivityConnected: boolean;
+  activeChallenge: HomeChallengeSummary | null;
+  challengeLoading: boolean;
+  badges: HomeBadgeItem[];
+  leaderboardRows: HomeLeaderboardRow[];
+  trendingTags: TrendingTagSummary[];
+  trendingLoading: boolean;
   onAction: (target: VisionTarget) => void;
+}
+
+function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
+  const text = item.action.toLowerCase();
+  if (text.includes('challenge')) return Trophy;
+  if (text.includes('badge')) return Sparkles;
+  if (text.includes('workout')) return Dumbbell;
+  if (text.includes('reel')) return Users;
+  return Heart;
 }
 
 const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   logoSrc,
-  displayName,
-  streakDays,
   progressPercent,
+  stories,
+  liveActivityItems,
+  liveActivityConnected,
+  activeChallenge,
+  challengeLoading,
+  badges,
+  leaderboardRows,
+  trendingTags,
+  trendingLoading,
   onAction,
 }) => {
-  const liveActivityItems: { user: string; action: string; Icon: React.ElementType }[] = [
-    { user: 'IronMuse', action: 'completed a challenge', Icon: Trophy },
-    { user: 'PixelPainter', action: 'earned a badge', Icon: Sparkles },
-    { user: 'BeatCraft', action: 'posted a reel', Icon: Users },
-    { user: displayName, action: 'kept momentum', Icon: Heart },
-  ];
+  const challengeButtonTarget: VisionTarget = activeChallenge?.joined ? 'progress' : 'challenges';
+  const challengeButtonLabel = activeChallenge
+    ? activeChallenge.joined ? 'View Progress' : 'Open Challenges'
+    : 'Explore Challenges';
 
   return (
   <RightRail aria-label="Creator observatory widgets">
@@ -58,12 +87,14 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         <button type="button" onClick={() => onAction('feed')} style={linkButtonStyle}>View all</button>
       </ButtonRow>
       <StoryStrip>
-        {STORY_ITEMS.map((story) => (
-          <StoryItem key={story.label} type="button" onClick={() => onAction(story.isCreate ? 'feed' : 'community')}>
+        {stories.map((story) => (
+          <StoryItem key={story.id} type="button" onClick={() => onAction(story.isCreate ? 'feed' : 'community')}>
             <StoryBubble>
               <div>
                 {story.isCreate ? (
-                  <img src={logoSrc} alt="" aria-hidden="true" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={logoSrc} alt="" aria-hidden="true" style={imageFillStyle} />
+                ) : story.mediaUrl ? (
+                  <img src={story.mediaUrl} alt="" aria-hidden="true" style={imageFillStyle} />
                 ) : (
                   <MiniScene tone={story.tone} />
                 )}
@@ -76,50 +107,70 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
     </Panel>
 
     <Panel>
-      <Eyebrow>Live Activity</Eyebrow>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem', marginTop: '0.9rem' }}>
-        {liveActivityItems.map(({ user, action, Icon }) => (
-          <div key={`${user}-${action}`} style={{ display: 'flex', gap: '0.55rem', minWidth: 0 }}>
-            <Chip>
-              <Icon size={13} aria-hidden="true" />
-            </Chip>
-            <div style={{ minWidth: 0, fontSize: '0.76rem', color: 'var(--vision-soft)' }}>
-              <strong style={{ color: 'var(--text-primary, #E0ECF4)' }}>{user}</strong> {action}
-              <div style={{ color: 'var(--text-muted, rgba(224,236,244,0.55))', fontSize: '0.68rem' }}>just now</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ButtonRow style={{ justifyContent: 'space-between' }}>
+        <Eyebrow>Live Activity</Eyebrow>
+        <Chip $tone={liveActivityConnected ? 'cyan' : 'violet'}>
+          {liveActivityConnected ? 'Live' : 'Recent'}
+        </Chip>
+      </ButtonRow>
+      {liveActivityItems.length ? (
+        <div style={activityGridStyle}>
+          {liveActivityItems.map((item) => {
+            const Icon = iconForActivity(item);
+            return (
+              <div key={item.id} style={activityItemStyle}>
+                <Chip>
+                  <Icon size={13} aria-hidden="true" />
+                </Chip>
+                <div style={activityCopyStyle}>
+                  <strong style={{ color: 'var(--text-primary, #E0ECF4)' }}>{item.user}</strong> {item.action}
+                  <div style={mutedTinyStyle}>{item.time}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p style={emptyStateStyle}>No community activity has landed yet.</p>
+      )}
     </Panel>
 
     <Panel $tone="gold">
       <ButtonRow style={{ justifyContent: 'space-between' }}>
         <Eyebrow $tone="gold">Active Challenge</Eyebrow>
-        <span style={{ color: 'var(--accent-gold, #C6A84B)', fontSize: '0.75rem', fontWeight: 900 }}>5D : 12H</span>
+        <span style={goldMetaStyle}>
+          {activeChallenge ? `${activeChallenge.daysLeft}D left` : challengeLoading ? 'Syncing' : 'Ready'}
+        </span>
       </ButtonRow>
-      <ButtonRow style={{ alignItems: 'stretch', marginTop: '0.9rem' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <ButtonRow>
+      {activeChallenge ? (
+        <ButtonRow style={{ alignItems: 'stretch', marginTop: '0.9rem' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ButtonRow>
+              <Chip $tone="gold">
+                <Dumbbell size={14} aria-hidden="true" />
+              </Chip>
+              <strong style={{ fontSize: '1.05rem' }}>{activeChallenge.title}</strong>
+            </ButtonRow>
+            <p style={softParagraphStyle}>
+              {compactNumber(activeChallenge.participants)} creators are in. Reward: {activeChallenge.reward}.
+            </p>
+            <Bar>
+              <Fill $pct={activeChallenge.progress} $gold />
+            </Bar>
+          </div>
+          <div style={challengeCrownStyle}>
             <Chip $tone="gold">
-              <Dumbbell size={14} aria-hidden="true" />
+              <Crown size={30} aria-hidden="true" />
             </Chip>
-            <strong style={{ fontSize: '1.05rem' }}>Strength Surge</strong>
-          </ButtonRow>
-          <p style={{ margin: '0.6rem 0 0.8rem', color: 'var(--vision-soft)', lineHeight: 1.45 }}>
-            7 intense workouts. Show up. Level up.
-          </p>
-          <Bar>
-            <Fill $pct={57} $gold />
-          </Bar>
-        </div>
-        <div style={{ display: 'grid', placeItems: 'center', width: 86 }}>
-          <Chip $tone="gold">
-            <Crown size={30} aria-hidden="true" />
-          </Chip>
-        </div>
-      </ButtonRow>
-      <GlassButton type="button" $variant="accent" onClick={() => onAction('progress')} style={{ width: '100%', marginTop: '0.9rem' }}>
-        Join Challenge
+          </div>
+        </ButtonRow>
+      ) : (
+        <p style={emptyStateStyle}>
+          {challengeLoading ? 'Checking the challenge board.' : 'No real active challenge is live yet.'}
+        </p>
+      )}
+      <GlassButton type="button" $variant="accent" onClick={() => onAction(challengeButtonTarget)} style={{ width: '100%', marginTop: '0.9rem' }}>
+        {challengeButtonLabel}
       </GlassButton>
     </Panel>
 
@@ -128,19 +179,23 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         <Eyebrow>Badges</Eyebrow>
         <Eyebrow>Leaderboard</Eyebrow>
       </ButtonRow>
-      <ButtonRow>
-        {[Sparkles, Trophy, Flame].map((Icon, index) => (
-          <Chip key={index} $tone={index === 1 ? 'gold' : index === 2 ? 'violet' : 'cyan'}>
-            <Icon size={18} aria-hidden="true" />
-          </Chip>
-        ))}
-      </ButtonRow>
-      <div style={{ marginTop: '0.9rem', display: 'grid', gap: '0.45rem' }}>
-        {['PhoenixFlex', displayName, 'IronMuse'].map((name, index) => (
-          <div key={name} style={{ display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: '0.55rem', alignItems: 'center' }}>
+      {badges.length ? (
+        <ButtonRow>
+          {badges.map((badge, index) => (
+            <Chip key={badge.id} $tone={index === 1 ? 'gold' : index === 2 ? 'violet' : 'cyan'} title={badge.name}>
+              {badge.imageUrl ? <img src={badge.imageUrl} alt="" aria-hidden="true" style={badgeImageStyle} /> : badge.icon}
+            </Chip>
+          ))}
+        </ButtonRow>
+      ) : (
+        <p style={emptyStateStyle}>Earn a badge to fill this showcase.</p>
+      )}
+      <div style={leaderboardStyle}>
+        {leaderboardRows.map((row, index) => (
+          <div key={row.id} style={leaderboardRowStyle}>
             <span style={{ color: index === 0 ? 'var(--accent-gold, #C6A84B)' : 'var(--vision-soft)', fontWeight: 900 }}>{index + 1}</span>
-            <strong style={{ minWidth: 0 }}>{name}</strong>
-            <span style={{ color: 'var(--vision-soft)', fontSize: '0.72rem' }}>{index === 1 ? '18.4K' : index === 0 ? '24.9K' : '16.2K'} XP</span>
+            <strong style={{ minWidth: 0 }}>{row.name}</strong>
+            <span style={mutedTinyStyle}>{compactNumber(row.points)} XP</span>
           </div>
         ))}
       </div>
@@ -148,14 +203,21 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
 
     <Panel>
       <Eyebrow>Trending</Eyebrow>
-      <div style={{ display: 'grid', gap: '0.6rem', marginTop: '0.8rem' }}>
-        {TRENDING_TAGS.map((tag, index) => (
-          <div key={tag} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.8rem', alignItems: 'center' }}>
-            <strong style={{ color: 'var(--accent-primary, #60C0F0)', fontSize: '0.82rem' }}>#{tag}</strong>
-            <Sparkline seed={index + 1} />
-          </div>
-        ))}
-      </div>
+      {trendingTags.length ? (
+        <div style={trendingGridStyle}>
+          {trendingTags.map((tag, index) => (
+            <div key={tag.name} style={trendingRowStyle}>
+              <div>
+                <strong style={tagNameStyle}>#{tag.name}</strong>
+                <div style={mutedTinyStyle}>{tag.count ? `${compactNumber(tag.count)} posts` : 'new'}</div>
+              </div>
+              <Sparkline seed={index + 1} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={emptyStateStyle}>{trendingLoading ? 'Loading trend signals.' : 'No trending tags yet.'}</p>
+      )}
     </Panel>
 
     <Panel>
@@ -190,9 +252,7 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
 
     <Panel>
       <Eyebrow>Next Best Action</Eyebrow>
-      <p style={{ color: 'var(--vision-soft)', margin: '0.55rem 0 0.9rem', lineHeight: 1.45 }}>
-        Share progress and turn today into visible momentum.
-      </p>
+      <p style={softParagraphStyle}>Share progress and turn today into visible momentum.</p>
       <ButtonRow>
         <GlassButton type="button" $variant="accent" onClick={() => onAction('reels')}>Create Reel</GlassButton>
         <GlassButton type="button" $variant="primary" onClick={() => onAction('feed')}>Share Update</GlassButton>
@@ -201,6 +261,22 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   </RightRail>
   );
 };
+
+const imageFillStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' };
+const badgeImageStyle: React.CSSProperties = { width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' };
+const activityGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem', marginTop: '0.9rem' };
+const activityItemStyle: React.CSSProperties = { display: 'flex', gap: '0.55rem', minWidth: 0 };
+const activityCopyStyle: React.CSSProperties = { minWidth: 0, fontSize: '0.76rem', color: 'var(--vision-soft)' };
+const emptyStateStyle: React.CSSProperties = { color: 'var(--vision-soft)', margin: '0.8rem 0 0', lineHeight: 1.45 };
+const softParagraphStyle: React.CSSProperties = { margin: '0.6rem 0 0.8rem', color: 'var(--vision-soft)', lineHeight: 1.45 };
+const mutedTinyStyle: React.CSSProperties = { color: 'var(--text-muted, rgba(224,236,244,0.55))', fontSize: '0.68rem' };
+const goldMetaStyle: React.CSSProperties = { color: 'var(--accent-gold, #C6A84B)', fontSize: '0.75rem', fontWeight: 900 };
+const challengeCrownStyle: React.CSSProperties = { display: 'grid', placeItems: 'center', width: 86 };
+const leaderboardStyle: React.CSSProperties = { marginTop: '0.9rem', display: 'grid', gap: '0.45rem' };
+const leaderboardRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '24px 1fr auto', gap: '0.55rem', alignItems: 'center' };
+const trendingGridStyle: React.CSSProperties = { display: 'grid', gap: '0.6rem', marginTop: '0.8rem' };
+const trendingRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.8rem', alignItems: 'center' };
+const tagNameStyle: React.CSSProperties = { color: 'var(--accent-primary, #60C0F0)', fontSize: '0.82rem' };
 
 const linkButtonStyle: React.CSSProperties = {
   border: 0,

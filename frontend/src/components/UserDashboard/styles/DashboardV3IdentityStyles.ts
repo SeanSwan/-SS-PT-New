@@ -11,6 +11,7 @@ export const ProfileInfo = styled(motion.div)`
   text-align: center;
   padding: 90px 2rem 3rem;
   position: relative;
+  pointer-events: none;
 
   /* Subtle backdrop for better text readability */
   &::before {
@@ -185,6 +186,7 @@ export const UserRole = styled(motion.span)`
   backdrop-filter: blur(10px);
   animation: ${slideInUp} 0.8s ease-out 0.2s both;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: auto;
 
   /* Premium glow effect */
   position: relative;

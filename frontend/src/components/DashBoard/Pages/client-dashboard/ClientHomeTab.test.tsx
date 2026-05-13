@@ -55,13 +55,36 @@ vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
       isLoading: false,
       error: null,
     },
+    achievements: {
+      data: [],
+      isLoading: false,
+      error: null,
+    },
+    levelProgress: {
+      progressPercent: 65,
+    },
     isLoading: false,
   }),
 }));
 
-// ── Stub SwanCoachDockClient so we don't pull in unrelated children ─────
-vi.mock('./SwanCoachDockClient', () => ({
-  default: () => <div data-testid="swan-coach-dock" />,
+// Mock dashboard data hooks consumed by the redesigned overview.
+vi.mock('../../../../hooks/useDashboardQueries', () => ({
+  useSocialFeed: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useSocialChallenges: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useLeaderboard: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useCreatePost: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 import ClientHomeTab from './ClientHomeTab';

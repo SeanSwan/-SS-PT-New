@@ -38,6 +38,13 @@ export const queryKeys = {
     feed: (params?: Record<string, unknown>) => ['social', 'feed', params] as const,
     challenges: () => ['social', 'challenges'] as const,
     posts: () => ['social', 'posts'] as const,
+    trendingTags: (params?: Record<string, unknown>) => ['social', 'trendingTags', params] as const,
+  },
+  notifications: {
+    summary: () => ['notifications', 'summary'] as const,
+  },
+  messaging: {
+    summary: () => ['messaging', 'summary'] as const,
   },
   gamification: {
     leaderboard: (params?: Record<string, unknown>) => ['gamification', 'leaderboard', params] as const,
@@ -69,6 +76,13 @@ interface FeedParams {
   hashtag?: string | null;
 }
 
+interface DashboardCreatePostInput {
+  content: string;
+  type?: string;
+  visibility?: 'public' | 'friends' | 'private';
+  media?: File | null;
+}
+
 export function useSocialFeed(params: FeedParams = {}) {
   const { authAxios } = useAuth();
   const queryParams: Record<string, string | number> = { limit: params.limit || 10 };
@@ -97,6 +111,25 @@ export function useSocialChallenges() {
   });
 }
 
+export function useTrendingHashtags(params: { limit?: number } = {}) {
+  const { authAxios } = useAuth();
+  const queryParams = { limit: params.limit || 5 };
+
+  return useQuery({
+    queryKey: queryKeys.social.trendingTags(queryParams),
+    queryFn: async ({ signal }) => {
+      const res = await authAxios.get('/api/social/hashtags/trending', {
+        params: queryParams,
+        signal,
+      });
+      return res.data;
+    },
+    enabled: !!authAxios,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Social Post Mutation
 // ─────────────────────────────────────────────────────────────
@@ -106,10 +139,29 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (input: string | DashboardCreatePostInput) => {
+      const payload: DashboardCreatePostInput = typeof input === 'string'
+        ? { content: input, type: 'general', visibility: 'friends' }
+        : input;
+      const trimmedContent = payload.content.trim();
+
+      if (payload.media) {
+        const formData = new FormData();
+        formData.append('content', trimmedContent);
+        formData.append('type', payload.type || 'general');
+        formData.append('visibility', payload.visibility || 'friends');
+        formData.append('media', payload.media);
+
+        const res = await authAxios.post('/api/social/posts', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return res.data;
+      }
+
       const res = await authAxios.post('/api/social/posts', {
-        content: content.trim(),
-        type: 'general',
+        content: trimmedContent,
+        type: payload.type || 'general',
+        visibility: payload.visibility || 'friends',
       });
       return res.data;
     },
@@ -117,6 +169,36 @@ export function useCreatePost() {
       // Invalidate all feed queries to show the new post
       queryClient.invalidateQueries({ queryKey: ['social', 'feed'] });
     },
+  });
+}
+
+export function useNotificationSummary() {
+  const { authAxios } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.notifications.summary(),
+    queryFn: async ({ signal }) => {
+      const res = await authAxios.get('/api/notifications', { signal });
+      return res.data;
+    },
+    enabled: !!authAxios,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+}
+
+export function useMessageSummary() {
+  const { authAxios } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.messaging.summary(),
+    queryFn: async ({ signal }) => {
+      const res = await authAxios.get('/api/messaging/conversations', { signal });
+      return res.data;
+    },
+    enabled: !!authAxios,
+    staleTime: 30 * 1000,
+    retry: false,
   });
 }
 

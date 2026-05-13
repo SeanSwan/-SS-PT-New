@@ -2,16 +2,22 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../hooks/useSubscription';
-import { useCreatePost, useSocialFeed } from '../../../hooks/useDashboardQueries';
+import {
+  useCreatePost,
+  useMessageSummary,
+  useNotificationSummary,
+  useSocialFeed,
+} from '../../../hooks/useDashboardQueries';
 import fallbackAvatar from '../../../assets/logo.svg';
 import brandLogo from '../../../assets/Logo.png';
-import type { TabId } from '../types/UserDashboardTypes';
+import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
+import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
+import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import DailyHealthLoop from './DailyHealthLoop';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
@@ -20,14 +26,22 @@ import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 import HomeTabVisionCenter from './HomeTabVisionCenter';
 import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
 import HomeTabVisionRightRail from './HomeTabVisionRightRail';
+import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import {
   clampPercent,
   compactNumber,
   MOBILE_NAV_ITEMS,
   QUICK_ACTIONS,
-  TOP_BAR_ACTIONS,
   type VisionTarget,
 } from './HomeTabVision.data';
+import {
+  buildCreatorStats,
+  buildHomePostPayload,
+  buildHomeTopBarActions,
+  parseUnreadNotificationCount,
+  resolveHomeAvatarSrc,
+  sumUnreadConversations,
+} from './HomeTabViewModel';
 import {
   CenterColumn,
   CreatorPage,
@@ -42,34 +56,62 @@ import {
   MobileBottomNav,
   MobileNavButton,
 } from './HomeTabVisionCards.styles';
-
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
+  profile: UserProfile | null;
+  displayStats: ProfileStats;
+  profilePosts: SocialPost[];
+  followStats: FollowStats | null;
+  displayNameOverride: string;
+  usernameOverride: string;
 }
-
 interface FeedPostPreview {
   content?: string;
   caption?: string;
   likesCount?: number;
   commentsCount?: number;
 }
-
-const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
+const HomeTab: React.FC<HomeTabProps> = ({
+  onTabChange,
+  profile,
+  displayStats,
+  profilePosts,
+  followStats,
+  displayNameOverride,
+  usernameOverride,
+}) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile: gamProfile, levelProgress } = useGamificationData();
+  const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   const { isElite, loading: subLoading } = useSubscription();
   const feedQuery = useSocialFeed({ limit: 4 });
+  const notificationSummary = useNotificationSummary();
+  const messageSummary = useMessageSummary();
   const createPost = useCreatePost();
   const [postText, setPostText] = useState('');
   const [activeMood, setActiveMood] = useState('achievement');
   const [activeLens, setActiveLens] = useState('reels');
-
+  const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
   const posts = useMemo(() => (Array.isArray(feedQuery.data) ? feedQuery.data : []), [feedQuery.data]);
   const latestPost = posts[0] as FeedPostPreview | undefined;
-  const displayName = user?.firstName || user?.username || 'SwanCreator';
-  const handle = `@${user?.username || 'swancreator'}`;
-  const avatarSrc = brandLogo;
+  const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
+  const handle = `@${usernameOverride || user?.username || 'swancreator'}`;
+  const avatarSrc = resolveHomeAvatarSrc({
+    profilePhoto: sanitizeImageUrl(profile?.photo),
+    authPhoto: sanitizeImageUrl(user?.profileImageUrl),
+    fallbackAvatar,
+  });
+  const creatorStats = useMemo(() => buildCreatorStats({
+    profileStats: displayStats,
+    profilePosts,
+    feedPosts: posts,
+    followStats,
+  }), [displayStats, followStats, posts, profilePosts]);
+  const topBarActions = useMemo(() => buildHomeTopBarActions({
+    inboxUnread: sumUnreadConversations(messageSummary.data),
+    notificationUnread: parseUnreadNotificationCount(notificationSummary.data),
+  }), [messageSummary.data, notificationSummary.data]);
   const level = levelProgress?.level ?? gamProfile?.data?.level ?? 1;
   const points = gamProfile?.data?.points ?? 0;
   const progressPercent = clampPercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
@@ -80,12 +122,26 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
   const canPost = postText.trim().length >= 3 && !createPost.isPending;
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   const latestCaption = latestPost?.caption || latestPost?.content || 'Discipline. Focus. Create. Keep the next move visible.';
+  const liveWidgets = useHomeTabLiveWidgets({
+    displayName,
+    feedPosts: posts,
+    achievements: gamProfile?.data?.achievements,
+    leaderboard: leaderboard?.data,
+    currentUserPoints: points,
+  });
+
+  const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] || null;
+    setSelectedMedia(file);
+    event.currentTarget.value = '';
+  };
 
   const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canPost) return;
-    await createPost.mutateAsync(postText.trim());
+    await createPost.mutateAsync(buildHomePostPayload(postText, activeMood, selectedMedia));
     setPostText('');
+    setSelectedMedia(null);
     setActiveLens('feed');
   };
 
@@ -100,6 +156,10 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
     }
     if (target === 'reels') {
       navigate('/social/reels');
+      return;
+    }
+    if (target === 'challenges') {
+      navigate('/social/challenges');
       return;
     }
     setActiveLens(target);
@@ -128,27 +188,43 @@ const HomeTab: React.FC<HomeTabProps> = ({ onTabChange }) => {
           tierName={tierName}
           level={level}
           points={points}
-          postsCount={Math.max(posts.length, 487)}
-          followersCount={24800}
-          followingCount={312}
+          postsCount={creatorStats.posts}
+          followersCount={creatorStats.followers}
+          followingCount={creatorStats.following}
           activeLens={activeLens}
           postText={postText}
           activeMood={activeMood}
+          selectedMediaName={selectedMedia?.name}
           latestCaption={latestCaption}
           canPost={canPost}
           isPosting={createPost.isPending}
           onAction={runAction}
           onSetMood={setActiveMood}
+          onAddMediaClick={() => mediaInputRef.current?.click()}
           onPostTextChange={setPostText}
           onSubmitPost={submitPost}
-          topBarActions={TOP_BAR_ACTIONS}
+          topBarActions={topBarActions}
+        />
+        <input
+          ref={mediaInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleMediaSelect}
+          hidden
         />
 
         <HomeTabVisionRightRail
           logoSrc={brandLogo}
-          displayName={displayName}
-          streakDays={streakDays}
           progressPercent={progressPercent}
+          stories={liveWidgets.stories}
+          liveActivityItems={liveWidgets.liveActivityItems}
+          liveActivityConnected={liveWidgets.liveActivityConnected}
+          activeChallenge={liveWidgets.activeChallenge}
+          challengeLoading={liveWidgets.challengeLoading}
+          badges={liveWidgets.badges}
+          leaderboardRows={liveWidgets.leaderboardRows}
+          trendingTags={liveWidgets.trendingTags}
+          trendingLoading={liveWidgets.trendingLoading}
           onAction={runAction}
         />
       </CreatorShell>

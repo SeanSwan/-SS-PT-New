@@ -2,7 +2,7 @@
  * main-routes.tsx
  * Application route definitions — Crystalline Swan theme, dark-first.
  */
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';
 
 // Layout and Error Handling
@@ -15,7 +15,7 @@ import { DashboardWrapper } from '../components/DashboardWrapper';
 
 // Custom Routes
 import DebugRoutes from './debug-routes';
-import { logger } from '@/utils/logger';
+import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 
 // Loading Component for Code Splitting
 const PageLoader: React.FC = () => (
@@ -38,90 +38,6 @@ const PageLoader: React.FC = () => (
     </div>
   </div>
 );
-
-// Enhanced lazy loading function
-function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = null) {
-  return lazy(() => 
-    importFn()
-      .catch(error => {
-        console.error(`Failed to load ${componentName}:`, error);
-        
-        if (fallbackImportFn) {
-          logger.log(`Trying fallback for ${componentName}...`);
-          return fallbackImportFn().catch(fallbackError => {
-            console.error(`Fallback also failed for ${componentName}:`, fallbackError);
-            return {
-              default: () => (
-                <div style={{
-                  padding: '2rem',
-                  textAlign: 'center',
-                  background: 'var(--bg-base, #0A0A0F)',
-                  color: 'white',
-                  minHeight: '50vh',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}>
-                  <h2 style={{ color: '#ff416c' }}>Error Loading {componentName}</h2>
-                  <p>Please refresh the page or contact support.</p>
-                  <button 
-                    onClick={() => window.location.reload()}
-                    style={{
-                      background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
-                      border: 'none',
-                      padding: '0.75rem 1.5rem',
-                      borderRadius: '8px',
-                      color: '#002060',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      marginTop: '1rem'
-                    }}
-                  >
-                    Retry
-                  </button>
-                </div>
-              )
-            };
-          });
-        }
-        
-        return {
-          default: () => (
-            <div style={{
-              padding: '2rem',
-              textAlign: 'center',
-              background: 'var(--bg-base, #0A0A0F)',
-              color: 'white',
-              minHeight: '50vh',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <h2 style={{ color: '#ff416c' }}>Error Loading {componentName}</h2>
-              <p>Please refresh the page or contact support.</p>
-              <button 
-                onClick={() => window.location.reload()}
-                style={{
-                  background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
-                  border: 'none',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '8px',
-                  color: '#002060',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  marginTop: '1rem'
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          )
-        };
-      })
-  );
-}
 
 // Lazy-loaded Components
 const ClientOnboardingWizard = lazyLoadWithErrorHandling(

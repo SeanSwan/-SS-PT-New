@@ -121,8 +121,9 @@ const HeaderContainer = styled(motion.header)<{
 `;
 
 const HeaderContent = styled.div`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: clamp(0.75rem, 1.1vw, 1.25rem);
   align-items: center;
   width: 100%;
   max-width: 1400px;
@@ -130,12 +131,21 @@ const HeaderContent = styled.div`
   position: relative;
   z-index: 2;
 
+  & > * {
+    min-width: 0;
+  }
+
   @media (min-width: 2560px) {
     max-width: 2200px;
   }
 
   @media (min-width: 3840px) {
     max-width: 3000px;
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
+    justify-content: space-between;
   }
 `;
 

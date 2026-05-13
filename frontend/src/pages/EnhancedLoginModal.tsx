@@ -482,19 +482,10 @@ const EnhancedLoginModal: React.FC = () => {
       usernameOrEmail: credentials.username,
       passwordLength: credentials.password.length
     });
-    
-    // Development mode bypass for admin login
-    if (process.env.NODE_ENV === 'development' && credentials.username.toLowerCase() === 'admin') {
-      logger.log('[DEV MODE] Admin login bypass activated');
-      localStorage.setItem('bypass_admin_verification', 'true');
-      
-      // Force a 100% successful login
-      setTimeout(() => {
-        logger.log('[DEV MODE] Admin login successful, redirecting to admin dashboard');
-        navigate('/dashboard/admin');
-      }, 200);
-      setIsLoading(false);
-      return;
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('bypass_admin_verification');
+      localStorage.removeItem('admin_emergency_mode');
     }
     
     try {

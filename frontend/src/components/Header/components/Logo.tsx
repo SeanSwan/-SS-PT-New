@@ -43,6 +43,7 @@ const LogoContainer = styled(motion.div)`
   margin-right: 24px;
   cursor: pointer;
   z-index: 3;
+  flex-shrink: 0;
   min-width: 44px;
   min-height: 44px;
 

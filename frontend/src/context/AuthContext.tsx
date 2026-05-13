@@ -82,6 +82,15 @@ const ROLE_PERMISSIONS = {
   user: ['user:self']
 };
 
+const clearEmergencyAdminBypass = () => {
+  if (typeof window === 'undefined') return;
+
+  localStorage.removeItem('bypass_admin_verification');
+  localStorage.removeItem('admin_emergency_mode');
+  sessionStorage.removeItem('bypass_admin_verification');
+  sessionStorage.removeItem('admin_emergency_mode');
+};
+
 // Auth Provider Component - PRODUCTION VERSION
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -203,6 +212,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         if (response.data?.user) {
           const userData = response.data.user;
+          clearEmergencyAdminBypass();
           
           // Ensure proper user structure
           const formattedUser: User = {
@@ -258,6 +268,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const login = useCallback(async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}> => {
     setLoading(true);
     setError(null);
+    clearEmergencyAdminBypass();
 
     try {
       // PRODUCTION: Only use real API login

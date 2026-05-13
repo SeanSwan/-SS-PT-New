@@ -55,6 +55,12 @@ const UserDashboardV3: React.FC = () => {
                 onTabChange={handleTabChange}
                 transformationPhotos={dashboard.transformationPhotos}
                 transformationVisibility={dashboard.transformationVisibility}
+                homeProfile={dashboard.profile}
+                homeDisplayStats={dashboard.displayStats}
+                homeProfilePosts={dashboard.profilePosts}
+                homeFollowStats={dashboard.followStats}
+                homeDisplayName={dashboard.getDisplayName()}
+                homeUsername={dashboard.getUsernameForDisplay()}
               />
             ) : (
               <ObservatoryShell
@@ -108,6 +114,12 @@ const UserDashboardV3: React.FC = () => {
                     onTabChange={handleTabChange}
                     transformationPhotos={dashboard.transformationPhotos}
                     transformationVisibility={dashboard.transformationVisibility}
+                    homeProfile={dashboard.profile}
+                    homeDisplayStats={dashboard.displayStats}
+                    homeProfilePosts={dashboard.profilePosts}
+                    homeFollowStats={dashboard.followStats}
+                    homeDisplayName={dashboard.getDisplayName()}
+                    homeUsername={dashboard.getUsernameForDisplay()}
                   />
                 </ContentGrid>
               </ObservatoryShell>

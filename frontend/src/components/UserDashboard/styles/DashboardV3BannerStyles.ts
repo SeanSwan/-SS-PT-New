@@ -13,6 +13,7 @@ export const ProfileHeader = styled(motion.div)`
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   width: 100vw;
+  pointer-events: none;
 
   @media (max-width: 768px) {
     margin-bottom: 2rem;

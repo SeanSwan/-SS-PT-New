@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-05-12 (cleanup archive pass)
+**Last updated:** 2026-05-13 (user dashboard stabilization pass 3, authenticated tab QA)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -31,6 +31,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, next-slice logic
 - `CURRENT-TASK.md` — active task tracker
 - `HANDOFF-PROTOCOL.md` — how cross-AI handoff works
+- `USER-DASHBOARD-SYSTEM-STATUS-2026-05-13.md` - canonical user-dashboard runtime map, current feature inventory, wiring gaps, and future-AI rules
 
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
@@ -188,6 +189,7 @@ These files describe future work that is NOT yet built. Read only when scoping t
 |---|---|
 | `qa-screenshots/` | Legacy QA screenshots |
 | `docs/qa/archive/2026-05-12/qa-screenshots-2026-04-04/` | Archived dated QA run |
+| `docs/qa/user-dashboard/2026-05-13/` | Authenticated User Dashboard/Reels Playwright smoke screenshots for tab-click fix and responsive checks |
 | `playwright-qa-screenshots/` | Playwright test runs, ignored if regenerated |
 | `playwright-qa-full/` | Full-page Playwright captures, ignored if regenerated |
 | `.swan/archive/cleanup-2026-05-12/` | Local ignored archive for generated root captures/logs and Playwright MCP captures |

@@ -45,7 +45,7 @@ class ProductionTokenCleanup {
       sessionStorage.removeItem(this.refreshTokenKey);
       
       // Clear other potential auth storage
-      const authKeys = ['authToken', 'jwt', 'accessToken', 'bypass_admin_verification'];
+      const authKeys = ['authToken', 'jwt', 'accessToken', 'bypass_admin_verification', 'admin_emergency_mode'];
       authKeys.forEach(key => {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);

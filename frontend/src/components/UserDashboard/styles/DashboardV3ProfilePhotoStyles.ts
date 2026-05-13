@@ -13,6 +13,7 @@ export const ProfileImageSection = styled.div`
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  pointer-events: none;
 
   @media (max-width: 768px) {
     top: 150px;  /* 220px cover height - 70px (half of 140px avatar) = center on cover boundary */
@@ -37,6 +38,7 @@ export const ProfileImageContainer = styled(motion.div)`
   width: 180px;
   height: 180px;
   margin: 0 auto;
+  pointer-events: auto;
 
   /* Professional ring effect */
   &::before {

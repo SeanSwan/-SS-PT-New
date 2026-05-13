@@ -48,6 +48,7 @@ export const StatItem = styled(motion.div)`
      gesture baited users into clicks that did nothing. The border/shadow
      hover still gives the surface life without implying clickability. */
   cursor: default;
+  pointer-events: auto;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 1rem;
   border-radius: 16px;

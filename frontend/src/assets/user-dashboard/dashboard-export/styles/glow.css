@@ -1,0 +1,112 @@
+/* Crystalline Swan — glow button + sheen card primitives */
+
+@keyframes glowRotate { to { transform: scale(1.05) translateY(-44px) rotate(360deg); } }
+@keyframes glowBreathe {
+  0%,100% { box-shadow: 0 8px 20px var(--shadow), 0 0 16px var(--glowStart); }
+  50%     { box-shadow: 0 8px 20px var(--shadow), 0 0 28px var(--glowStart), 0 0 48px var(--glowEnd); }
+}
+@keyframes glowRipple {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 1; }
+  80%  { transform: translate(-50%,-50%) scale(2); opacity: .3; }
+  100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
+}
+
+.glow-btn {
+  appearance: none; outline: none; margin: 0; background: none;
+  position: relative; cursor: pointer; color: var(--fg);
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; letter-spacing: 0.5px;
+  box-shadow: 0 8px 20px var(--shadow);
+  transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s;
+  --px: 0px; --py: 0px; --opac: 0;
+  overflow: hidden;
+}
+.glow-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px var(--shadow); }
+.glow-btn:active { transform: translateY(1px) scale(.98); }
+.glow-btn:focus-visible { outline: 2px solid #8B5CF6; outline-offset: 4px; }
+
+.glow-btn.glow-pulse { animation: glowBreathe 2.5s ease-in-out infinite; }
+
+.glow-gradient {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  transform: scaleY(1.02) scaleX(1.005) rotate(-.35deg);
+  pointer-events: none;
+}
+.glow-gradient::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  padding-bottom: 100%; border-radius: 50%;
+  background: linear-gradient(90deg, var(--shineL), var(--shineR));
+  transform: scale(1.05) translateY(-44px) rotate(0deg);
+  animation: glowRotate 2.4s linear infinite;
+}
+
+.glow-span {
+  z-index: 1; position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: calc(100% - 4px); height: calc(100% - 4px);
+  margin: 2px;
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  text-shadow: 0 1px 2px rgba(0,0,0,.5);
+  white-space: nowrap;
+}
+.glow-span::before {
+  content: ''; position: absolute; left: -16px; top: -16px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background-color: var(--glow, transparent);
+  opacity: var(--opac, 0);
+  transform: translate(var(--px, 0), var(--py, 0));
+  transition: opacity .25s, transform .5s ease;
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.glow-ripple {
+  position: absolute; width: 20px; height: 20px;
+  background: rgba(255,255,255,.7); border-radius: 50%;
+  transform: translate(-50%,-50%) scale(0);
+  animation: glowRipple .6s linear; pointer-events: none;
+}
+
+/* ── SheenCard ─────────────────────────────────────────────────────────── */
+.sheen-card {
+  position: relative;
+  background: var(--sc-bg);
+  border-radius: 24px;
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+  isolation: isolate;
+  --px: 0px; --py: 0px; --opac: 0;
+  transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s;
+}
+.sheen-card:hover { transform: translateY(-2px); box-shadow: 0 24px 60px rgba(0,0,0,.4), 0 0 32px var(--sc-glow); }
+
+/* Rotating thin border shine (masked ring) */
+.sheen-border {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--sc-shineL), transparent 40%, transparent 60%, var(--sc-shineR));
+  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  transition: opacity .3s;
+}
+.sheen-card:hover .sheen-border { opacity: 1; }
+
+/* Pointer-follow sheen overlay */
+.sheen-overlay {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background: radial-gradient(320px circle at var(--px) var(--py), var(--sc-glow), transparent 55%);
+  opacity: var(--opac, 0);
+  transition: opacity .3s;
+  mix-blend-mode: screen;
+}
+
+.sheen-content { position: relative; z-index: 3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-gradient::before, .glow-btn.glow-pulse, .glow-ripple { animation: none !important; }
+  .sheen-card { transition: none; }
+}

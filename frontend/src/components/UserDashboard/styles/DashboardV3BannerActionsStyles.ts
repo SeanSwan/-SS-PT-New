@@ -8,6 +8,7 @@ export const BannerRepositionAnchor = styled.div`
   position: relative;
   display: inline-flex;
   align-items: center;
+  pointer-events: auto;
 `;
 
 export const BannerRepositionButton = styled.button`
@@ -24,6 +25,7 @@ export const BannerRepositionButton = styled.button`
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  pointer-events: auto;
   transition: all 0.3s ease;
   z-index: 3;
   letter-spacing: 0.02em;
@@ -77,6 +79,7 @@ export const BannerRepositionPanel = styled.div`
   backdrop-filter: blur(20px);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent);
   z-index: 4;
+  pointer-events: auto;
 `;
 
 export const BannerRepositionCell = styled.button<{ $active?: boolean }>`
@@ -96,6 +99,7 @@ export const BannerRepositionCell = styled.button<{ $active?: boolean }>`
       ? 'var(--accent-primary, #60C0F0)'
       : 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent))'};
   cursor: pointer;
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,6 +124,7 @@ export const BannerActionRow = styled.div`
   width: min(100% - 2rem, 1440px);
   margin: 0.875rem auto 0;
   padding: 0 0.25rem;
+  pointer-events: none;
 
   @media (max-width: 768px) {
     width: calc(100% - 1.5rem);
@@ -153,6 +158,7 @@ export const BannerUploadButton = styled.button`
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  pointer-events: auto;
   transition: all 0.3s ease;
   z-index: 3;
   letter-spacing: 0.02em;

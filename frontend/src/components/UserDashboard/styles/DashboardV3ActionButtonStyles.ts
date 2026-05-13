@@ -37,6 +37,7 @@ export const PrimaryButton = styled(motion.button)`
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+  pointer-events: auto;
   transition: all 0.3s ease;
 
   &:hover {
@@ -78,6 +79,7 @@ export const SecondaryButton = styled(motion.button)`
   border: 1px solid var(--border-soft);
   border-radius: 12px;
   cursor: pointer;
+  pointer-events: auto;
   transition: all 0.3s ease;
 
   &:hover {

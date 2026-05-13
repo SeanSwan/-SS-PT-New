@@ -15,7 +15,8 @@ import {
   TabStack,
 } from '../styles/DashboardV3Styles';
 import type { TransformationPhoto, PhotoVisibility } from './TransformationPhotoTypes';
-import type { TabId } from '../types/UserDashboardTypes';
+import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
+import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 
 const HomeTab = lazy(() => import('./HomeTab'));
 const SocialFeed = lazy(() => import('../../Social/Feed/SocialFeed'));
@@ -49,6 +50,12 @@ interface UserDashboardTabsV3Props {
   onTabChange: (tab: TabId) => void;
   transformationPhotos: TransformationPhoto[];
   transformationVisibility: PhotoVisibility;
+  homeProfile: UserProfile | null;
+  homeDisplayStats: ProfileStats;
+  homeProfilePosts: SocialPost[];
+  homeFollowStats: FollowStats | null;
+  homeDisplayName: string;
+  homeUsername: string;
 }
 
 const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
@@ -56,6 +63,12 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
   onTabChange,
   transformationPhotos,
   transformationVisibility,
+  homeProfile,
+  homeDisplayStats,
+  homeProfilePosts,
+  homeFollowStats,
+  homeDisplayName,
+  homeUsername,
 }) => (
   <MainContent
     initial={{ opacity: 0, x: 50 }}
@@ -64,7 +77,14 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
   >
     <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
       <TabPanel id="home" activeTab={activeTab}>
-        <HomeTab onTabChange={(tab) => onTabChange(tab as TabId)} />
+        <HomeTab onTabChange={(tab) => onTabChange(tab as TabId)}
+          profile={homeProfile}
+          displayStats={homeDisplayStats}
+          profilePosts={homeProfilePosts}
+          followStats={homeFollowStats}
+          displayNameOverride={homeDisplayName}
+          usernameOverride={homeUsername}
+        />
       </TabPanel>
       <TabPanel id="feed" activeTab={activeTab}>
         <SocialFeed variant="compact" />

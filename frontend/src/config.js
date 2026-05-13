@@ -8,6 +8,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.adminAccess = {
     force: function() {
       localStorage.setItem('bypass_admin_verification', 'true');
+      localStorage.setItem('admin_emergency_mode', 'true');
       logger.log('Admin access bypass flag set. Reloading...');
       window.location.reload();
       return 'Forced admin access and reloaded';
@@ -16,6 +17,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       localStorage.removeItem('bypass_admin_verification');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('admin_emergency_mode');
       logger.log('Auth reset. Reloading...');
       window.location.reload();
       return 'Reset auth and reloaded';
@@ -24,7 +26,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       return {
         user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null,
         hasToken: !!localStorage.getItem('token'),
-        bypass: !!localStorage.getItem('bypass_admin_verification')
+        bypass: !!localStorage.getItem('bypass_admin_verification'),
+        emergencyMode: !!localStorage.getItem('admin_emergency_mode')
       };
     }
   };

@@ -6,6 +6,15 @@ function readSource(relativePath: string) {
   return readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 }
 
+function expectStyleBlockContains(source: string, exportName: string, declaration: string) {
+  const start = source.indexOf(`export const ${exportName}`);
+  expect(start, `${exportName} style block must exist`).toBeGreaterThanOrEqual(0);
+  const end = source.indexOf('`;', start);
+  expect(end, `${exportName} style block must close`).toBeGreaterThan(start);
+  expect(source.slice(start, end), `${exportName} must include ${declaration}`)
+    .toContain(declaration);
+}
+
 const USER_DASHBOARD_V3_SHELL_FILES = [
   'src/components/UserDashboard/UserDashboard.V3.tsx',
   'src/components/UserDashboard/components/UserDashboardProfileHeaderV3.tsx',
@@ -96,6 +105,27 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(dashboardSource).toContain('const handleTabChange = React.useCallback');
     expect(dashboardSource).toContain('onTabChange={handleTabChange}');
     expect(dashboardSource).not.toContain('onTabChange={dashboard.setActiveTab}');
+  });
+
+  it('keeps the full-bleed profile header from intercepting observatory rail clicks', () => {
+    const bannerSource = readSource('src/components/UserDashboard/styles/DashboardV3BannerStyles.ts');
+    const identitySource = readSource('src/components/UserDashboard/styles/DashboardV3IdentityStyles.ts');
+    const statsSource = readSource('src/components/UserDashboard/styles/DashboardV3StatsStyles.ts');
+    const actionSource = readSource('src/components/UserDashboard/styles/DashboardV3ActionButtonStyles.ts');
+    const bannerActionSource = readSource('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
+    const profilePhotoSource = readSource('src/components/UserDashboard/styles/DashboardV3ProfilePhotoStyles.ts');
+    const uploadSource = readSource('src/components/UserDashboard/styles/DashboardV3ProfileLevelUploadStyles.ts');
+
+    expectStyleBlockContains(bannerSource, 'ProfileHeader', 'pointer-events: none;');
+    expectStyleBlockContains(identitySource, 'ProfileInfo', 'pointer-events: none;');
+    expectStyleBlockContains(identitySource, 'UserRole', 'pointer-events: auto;');
+    expectStyleBlockContains(statsSource, 'StatItem', 'pointer-events: auto;');
+    expectStyleBlockContains(actionSource, 'PrimaryButton', 'pointer-events: auto;');
+    expectStyleBlockContains(actionSource, 'SecondaryButton', 'pointer-events: auto;');
+    expectStyleBlockContains(bannerActionSource, 'BannerRepositionButton', 'pointer-events: auto;');
+    expectStyleBlockContains(bannerActionSource, 'BannerUploadButton', 'pointer-events: auto;');
+    expectStyleBlockContains(profilePhotoSource, 'ProfileImageSection', 'pointer-events: none;');
+    expectStyleBlockContains(uploadSource, 'ImageUploadButton', 'pointer-events: auto;');
   });
 
   it('keeps desktop observatory rails below the profile banner on non-home tabs', () => {

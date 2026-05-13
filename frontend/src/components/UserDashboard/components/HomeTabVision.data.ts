@@ -18,9 +18,6 @@ import {
   Mic2,
   Palette,
   Plus,
-  Radio,
-  Search,
-  Settings,
   Sparkles,
   Trophy,
   UserRound,
@@ -30,7 +27,7 @@ import {
 } from 'lucide-react';
 import type { TabId } from '../types/UserDashboardTypes';
 
-export type VisionTarget = TabId | 'log-workout' | 'schedule' | 'reels';
+export type VisionTarget = TabId | 'log-workout' | 'schedule' | 'reels' | 'challenges';
 
 export interface VisionAction {
   id: string;
@@ -65,12 +62,6 @@ export const QUICK_ACTIONS: VisionAction[] = [
   { id: 'community', label: 'Find Community', Icon: Users, target: 'community' },
 ];
 
-export const TOP_BAR_ACTIONS = [
-  { label: 'Search dashboard', Icon: Search, count: 0 },
-  { label: 'Open inbox', Icon: Mail, count: 3 },
-  { label: 'View notifications', Icon: Radio, count: 7 },
-] as const;
-
 export const POST_MOODS = [
   { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'transformation', label: 'Transformation', Icon: Sparkles },
@@ -88,16 +79,6 @@ export const MOBILE_NAV_ITEMS: VisionAction[] = [
   { id: 'inbox', label: 'Inbox', Icon: Mail, target: 'community' },
   { id: 'profile', label: 'Profile', Icon: UserRound, target: 'profile' },
 ];
-
-export const STORY_ITEMS = [
-  { label: 'Your Story', tone: 'violet', isCreate: true },
-  { label: 'CrystalBloom', tone: 'cyan', isCreate: false },
-  { label: 'LunaDrift', tone: 'violet', isCreate: false },
-  { label: 'SkyWeaver', tone: 'cyan', isCreate: false },
-  { label: 'EchoVale', tone: 'gold', isCreate: false },
-] as const;
-
-export const TRENDING_TAGS = ['StrengthSurge', 'LevelUp', 'CreateDaily', 'SwanStudios', 'NoLimits'];
 
 export function compactNumber(value: number | undefined): string {
   return Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value || 0);
