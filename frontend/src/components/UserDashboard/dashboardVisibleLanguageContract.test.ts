@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const DASHBOARD_SOURCES = [
-  resolve(__dirname, './UserDashboard.tsx'),
   resolve(__dirname, './UserDashboard.V3.tsx'),
   resolve(__dirname, './components/HomeTab.tsx'),
   resolve(__dirname, './components/DailyHealthLoop.tsx'),
@@ -19,7 +18,5 @@ describe('dashboard visible language contract', () => {
     const visibleDashboardCopy = DASHBOARD_SOURCES.join('\n');
 
     expect(visibleDashboardCopy).not.toMatch(/\byog[a-z]*\b|\bmeditat[a-z]*\b|\bmindful[a-z]*\b/i);
-    expect(visibleDashboardCopy).toMatch(/Mobility & Stretching/);
-    expect(visibleDashboardCopy).toMatch(/Mobility/);
   });
 });

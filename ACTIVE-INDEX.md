@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-04-12 (Phase 3 quarantine move)
+**Last updated:** 2026-05-12 (cleanup archive pass)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -170,6 +170,7 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | Folder | What lives there |
 |---|---|
 | `archive/` | Top-level historical archive |
+| `archive/cleanup-2026-05-12/` | Current cleanup pass: archived root specs/docs and dormant dashboard code |
 | `archive/pending-deletion/` | Staged for deletion, includes `2026-02-13/` subfolder |
 | `docs/archive/` | ~27 superseded fix/complete summaries (ACCESSIBILITY, ADMIN_DASHBOARD_RESTORED, CONNECTION_FIX_COMPLETE, …) |
 | `docs/ai-workflow/archive/` | 6 subfolders: `design/`, `homepage-refactor/`, `master-plans/`, `old-versions/`, `phase-0/`, `week-reports/` |
@@ -186,16 +187,16 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | Folder | Purpose |
 |---|---|
 | `qa-screenshots/` | Legacy QA screenshots |
-| `qa-screenshots-2026-04-04/` | Dated QA run |
-| `playwright-qa-screenshots/` | Playwright test runs |
-| `playwright-qa-full/` | Full-page Playwright captures |
-| `./*.png` (repo root) | ~120+ unsorted QA screenshots — **Phase 2 relocation candidate** per `REPO-HYGIENE-INVENTORY-2026-04-12.md` |
+| `docs/qa/archive/2026-05-12/qa-screenshots-2026-04-04/` | Archived dated QA run |
+| `playwright-qa-screenshots/` | Playwright test runs, ignored if regenerated |
+| `playwright-qa-full/` | Full-page Playwright captures, ignored if regenerated |
+| `.swan/archive/cleanup-2026-05-12/` | Local ignored archive for generated root captures/logs and Playwright MCP captures |
 
 ---
 
 ## 🧾 Planning specs at root (ambiguous, 2026-04-12)
 
-~18 dashboard `.yml` files currently at repo root. Classification pending Sean's call — either active reference (→ `docs/ai-workflow/planning-specs/`) or superseded (→ `docs/ai-workflow/archive/dashboard-specs/`).
+Dashboard `.yml` browser snapshots formerly at repo root were archived under `archive/cleanup-2026-05-12/root-dashboard-snapshots/`.
 
 See `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-04-12.md` section D for the full list.
 

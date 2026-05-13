@@ -19,7 +19,6 @@ import { resolve } from 'path';
 const SURFACES: Array<{ label: string; path: string }> = [
   // ── Wave 1 (PR #6): the 6 originally-named debate-file surfaces ────────
   { label: 'PhotoGalleryCard.styles.ts', path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts' },
-  { label: 'ProfileStyles.ts', path: '../components/UserDashboard/styles/ProfileStyles.ts' },
   { label: 'ConversationList.tsx', path: '../components/Messaging/ConversationList.tsx' },
   { label: 'TestimonialSlider.tsx', path: '../components/TestimonialSlider/TestimonialSlider.tsx' },
   { label: 'VerticalReels.tsx', path: '../components/Social/Reels/VerticalReels.tsx' },
@@ -35,7 +34,6 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'UserProfilePage.tsx', path: '../pages/Social/UserProfilePage.tsx' },
   // UserDashboard cluster
   { label: 'CreativeGalleryCard.styles.ts', path: '../components/UserDashboard/components/CreativeGalleryCard.styles.ts' },
-  { label: 'CommunityFeed.tsx', path: '../components/UserDashboard/components/CommunityFeed.tsx' },
   // Admin Dashboard cluster
   { label: 'ClientTrainerAssignments.tsx', path: '../components/Admin/ClientTrainerAssignments.tsx' },
   { label: 'WorkoutClientDrawer.tsx', path: '../components/DashBoard/workspaces/WorkoutClientDrawer.tsx' },

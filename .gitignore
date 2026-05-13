@@ -253,6 +253,8 @@ BROWSER_CONSOLE_TESTS.js
 
 # Root-level Playwright/QA screenshots (use docs/qa/baseline/ instead)
 /*.png
+/*.jpg
+/*.jpeg
 
 # Root-level Jupyter notebooks (scoped to root to avoid ignoring intentional notebooks in subdirs)
 /*.ipynb
@@ -275,8 +277,16 @@ _tmp_login.json
 
 # QA screenshots & Playwright test artifacts
 qa-screenshots/
+qa-screenshots-*/
 playwright-qa-full/
 playwright-qa-screenshots/
+
+# Root-level generated dashboard/browser snapshots
+/admin-*.yml
+/client-*.yml
+/trainer-*.yml
+/user-dash-*.yml
+/tsc-errors.txt
 
 # ============================================
 # CREDENTIAL PROTECTION — added 2026-04-19 after settings.local.json leak
