@@ -575,6 +575,9 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     if (msg.includes('invalid JSON')) {
       return res.status(422).json({ success: false, error: 'AI could not identify the equipment. Try a clearer photo.' });
     }
+    if (msg.includes('[GoogleGenerativeAI Error]') || msg.includes('Gemini') || msg.includes('generateContent')) {
+      return res.status(502).json({ success: false, error: 'AI scanner is temporarily unavailable. Try again or add manually.' });
+    }
     res.status(500).json({ success: false, error: 'Equipment scan failed. Try again or add manually.' });
   }
 });

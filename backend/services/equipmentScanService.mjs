@@ -23,9 +23,11 @@ const RESISTANCE_TYPES = [
   'bodyweight', 'dumbbell', 'barbell', 'cable', 'band', 'machine', 'kettlebell', 'other'
 ];
 
-const DEFAULT_EQUIPMENT_SCAN_MODEL = process.env.EQUIPMENT_SCAN_MODEL
-  || process.env.AI_GEMINI_MODEL
-  || 'gemini-2.0-flash';
+const DEFAULT_EQUIPMENT_SCAN_MODEL = 'gemini-2.5-flash';
+const RETIRED_EQUIPMENT_SCAN_MODELS = new Set([
+  'gemini-2.0-flash',
+  'models/gemini-2.0-flash',
+]);
 
 const SCAN_PROMPT = `You are an expert fitness equipment identifier. Analyze this image and identify the gym/fitness equipment shown.
 
@@ -86,6 +88,17 @@ export function isEquipmentScanConfigured() {
   return Boolean(getEquipmentScanApiKey());
 }
 
+export function getEquipmentScanModel() {
+  const configuredModel = process.env.EQUIPMENT_SCAN_MODEL
+    || process.env.AI_GEMINI_VISION_MODEL
+    || process.env.AI_GEMINI_MODEL
+    || DEFAULT_EQUIPMENT_SCAN_MODEL;
+  const model = String(configuredModel).trim();
+  return RETIRED_EQUIPMENT_SCAN_MODELS.has(model)
+    ? DEFAULT_EQUIPMENT_SCAN_MODEL
+    : model;
+}
+
 /**
  * Scan equipment from an image using Gemini Flash Vision.
  *
@@ -117,12 +130,14 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
     throw new Error('Google Generative AI SDK not installed');
   }
 
+  const modelName = getEquipmentScanModel();
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: DEFAULT_EQUIPMENT_SCAN_MODEL,
+    model: modelName,
     generationConfig: {
       maxOutputTokens: 500,
       temperature: 0.2,
+      responseMimeType: 'application/json',
     },
   });
 
@@ -167,7 +182,7 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
       ...sanitized,
       rawResponse: parsed,
       latencyMs,
-      model: DEFAULT_EQUIPMENT_SCAN_MODEL,
+      model: modelName,
     };
   } catch (err) {
     const latencyMs = Date.now() - startMs;
@@ -181,6 +196,7 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
 
 export const __testing__ = {
   getEquipmentScanApiKey,
+  getEquipmentScanModel,
   isEquipmentScanConfigured,
 };
 
