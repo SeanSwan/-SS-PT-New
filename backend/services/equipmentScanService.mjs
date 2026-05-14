@@ -77,6 +77,87 @@ function sanitizeScanResult(raw) {
   return result;
 }
 
+function getFirstObject(value) {
+  if (Array.isArray(value)) {
+    return value.find((item) => item && typeof item === 'object' && !Array.isArray(item)) || {};
+  }
+  if (!value || typeof value !== 'object') return {};
+  if (value.equipment && typeof value.equipment === 'object' && !Array.isArray(value.equipment)) {
+    return value.equipment;
+  }
+  if (value.item && typeof value.item === 'object' && !Array.isArray(value.item)) {
+    return value.item;
+  }
+  if (Array.isArray(value.items)) {
+    return getFirstObject(value.items);
+  }
+  return value;
+}
+
+function tryParseScanJson(candidate) {
+  try {
+    return getFirstObject(JSON.parse(candidate));
+  } catch {
+    return null;
+  }
+}
+
+function extractBalancedJsonObject(rawText) {
+  for (let start = rawText.indexOf('{'); start !== -1; start = rawText.indexOf('{', start + 1)) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < rawText.length; i++) {
+      const ch = rawText[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') {
+        depth++;
+      } else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const parsed = tryParseScanJson(rawText.slice(start, i + 1));
+          if (parsed) return parsed;
+          break;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function parseEquipmentScanResponse(rawText) {
+  if (typeof rawText !== 'string' || rawText.trim().length === 0) {
+    throw new Error('AI returned empty response');
+  }
+
+  const trimmed = rawText.trim();
+  const direct = tryParseScanJson(trimmed);
+  if (direct) return direct;
+
+  const fenceMatches = trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
+  for (const match of fenceMatches) {
+    const parsed = tryParseScanJson(match[1].trim());
+    if (parsed) return parsed;
+  }
+
+  const balanced = extractBalancedJsonObject(trimmed);
+  if (balanced) return balanced;
+
+  throw new Error('AI returned invalid JSON response');
+}
+
 export function getEquipmentScanApiKey() {
   return process.env.GOOGLE_API_KEY
     || process.env.GEMINI_API_KEY
@@ -158,15 +239,7 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
     const response = result?.response;
     const text = typeof response?.text === 'function' ? response.text() : '';
 
-    // Parse JSON from response (strip markdown code fences if present)
-    const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      logger.warn('[EquipmentScan] Failed to parse AI response as JSON', { text: text.slice(0, 200) });
-      throw new Error('AI returned invalid JSON response');
-    }
+    const parsed = parseEquipmentScanResponse(text);
 
     const sanitized = sanitizeScanResult(parsed);
     const latencyMs = Date.now() - startMs;
@@ -198,6 +271,7 @@ export const __testing__ = {
   getEquipmentScanApiKey,
   getEquipmentScanModel,
   isEquipmentScanConfigured,
+  parseEquipmentScanResponse,
 };
 
 export default { scanEquipmentImage };

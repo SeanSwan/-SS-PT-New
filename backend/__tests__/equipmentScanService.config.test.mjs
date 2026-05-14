@@ -50,4 +50,37 @@ describe('equipment scan configuration', () => {
     process.env.EQUIPMENT_SCAN_MODEL = 'gemini-2.5-flash-lite';
     expect(__testing__.getEquipmentScanModel()).toBe('gemini-2.5-flash-lite');
   });
+
+  it('extracts recoverable JSON from Gemini scan responses with surrounding text', () => {
+    const parsed = __testing__.parseEquipmentScanResponse(`I can identify the main item.
+
+\`\`\`json
+{
+  "name": "Adjustable Bench",
+  "category": "bench",
+  "resistanceType": "other",
+  "description": "A multi-angle bench used for pressing and supported strength work.",
+  "confidence": 0.84,
+  "boundingBox": { "x": 0.1, "y": 0.2, "w": 0.7, "h": 0.6 },
+  "suggestedExercises": ["Dumbbell Bench Press", "Incline Press"]
+}
+\`\`\``);
+
+    expect(parsed.name).toBe('Adjustable Bench');
+    expect(parsed.category).toBe('bench');
+  });
+
+  it('unwraps common Gemini equipment JSON wrappers before sanitizing', () => {
+    const parsed = __testing__.parseEquipmentScanResponse(JSON.stringify({
+      equipment: {
+        name: 'Cable Crossover Machine',
+        category: 'cable_machine',
+        resistanceType: 'cable',
+        confidence: 0.91,
+      },
+    }));
+
+    expect(parsed.name).toBe('Cable Crossover Machine');
+    expect(parsed.category).toBe('cable_machine');
+  });
 });
