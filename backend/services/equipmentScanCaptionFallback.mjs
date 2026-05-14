@@ -39,7 +39,7 @@ export function scanResultFromCaption(rawText) {
     return null;
   }
 
-  if (/dumbbell|hex dumbbell|free[-\s]?weight/.test(lower)) {
+  if (/dumbbell|hex dumbbell|free[-\s]?weight|hexagonal weight|weight rack|weights?.*rack|rack.*weights?/.test(lower)) {
     const onRack = /rack|stand|storage|shelf/.test(lower);
     return {
       name: onRack ? 'Dumbbell Rack' : 'Dumbbells',

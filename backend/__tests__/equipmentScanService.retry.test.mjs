@@ -94,4 +94,31 @@ describe('equipment scan retry behavior', () => {
     expect(captionParts[0].inlineData.mimeType).toBe('image/jpeg');
     expect(captionParts[1].text).toContain('what workout equipment is this');
   });
+
+  it('uses caption fallback when strict Gemini JSON is malformed before identification', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    generateContentMock
+      .mockResolvedValueOnce({
+        response: {
+          text: () => 'I can see workout equipment, but here is not JSON.',
+        },
+      })
+      .mockResolvedValueOnce({
+        response: {
+          text: () => '',
+        },
+      })
+      .mockResolvedValueOnce({
+        response: {
+          text: () => 'A rack of black hexagonal weights.',
+        },
+      });
+
+    const result = await scanEquipmentImage(Buffer.from('fake image bytes'), 'image/jpeg');
+
+    expect(generateContentMock).toHaveBeenCalledTimes(3);
+    expect(result.suggestedName).toBe('Dumbbell Rack');
+    expect(result.suggestedCategory).toBe('dumbbell');
+    expect(result.resistanceType).toBe('dumbbell');
+  });
 });

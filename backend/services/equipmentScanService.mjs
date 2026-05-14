@@ -98,6 +98,23 @@ async function requestGeminiEquipmentScan(model, { base64Image, mimeType, prompt
   return parseEquipmentScanResponse(text);
 }
 
+async function tryGeminiEquipmentScan(model, params, pass) {
+  try {
+    const parsed = await requestGeminiEquipmentScan(model, params);
+    return {
+      parsed,
+      sanitized: sanitizeScanResult(parsed),
+      error: null,
+    };
+  } catch (err) {
+    logger.warn('[EquipmentScan] Strict JSON scan pass failed', {
+      pass,
+      error: String(err?.message || 'unknown').slice(0, 160),
+    });
+    return { parsed: null, sanitized: null, error: err };
+  }
+}
+
 async function requestGeminiEquipmentCaption(model, { base64Image, mimeType }) {
   const result = await model.generateContent({
     contents: [{
@@ -165,21 +182,24 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
 
   const startMs = Date.now();
   try {
-    let parsed = await requestGeminiEquipmentScan(model, {
+    let primary = await tryGeminiEquipmentScan(model, {
       base64Image,
       mimeType,
       prompt: buildEquipmentScanPrompt(),
-    });
-    let sanitized = sanitizeScanResult(parsed);
+    }, 'primary');
+    let parsed = primary.parsed;
+    let sanitized = primary.sanitized;
 
-    if (isUnknownEquipmentResult(sanitized)) {
-      parsed = await requestGeminiEquipmentScan(model, {
+    if (!sanitized || isUnknownEquipmentResult(sanitized)) {
+      const retry = await tryGeminiEquipmentScan(model, {
         base64Image,
         mimeType,
         prompt: buildEquipmentScanPrompt({ retry: true }),
-      });
-      sanitized = sanitizeScanResult(parsed);
-      if (isUnknownEquipmentResult(sanitized)) {
+      }, 'retry');
+      if (retry.sanitized && !isUnknownEquipmentResult(retry.sanitized)) {
+        parsed = retry.parsed;
+        sanitized = retry.sanitized;
+      } else {
         const caption = await requestGeminiEquipmentCaption(captionModel, { base64Image, mimeType });
         const captionResult = scanResultFromCaption(caption);
         if (!captionResult) {
