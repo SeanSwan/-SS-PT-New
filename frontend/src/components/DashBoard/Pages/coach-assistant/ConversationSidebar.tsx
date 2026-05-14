@@ -7,7 +7,7 @@
  *
  * WIREFRAME:
  * ┌────────────────────┐
- * │ [+ New Chat] [X]   │
+ * │ [+ New Coach Thread] [X] │
  * │ [Search........]   │
  * │                    │
  * │ Today              │
@@ -99,9 +99,9 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         aria-label="Conversation history"
       >
         <SidebarHeader>
-          <NewChatBtn type="button" onClick={handleNewChat} aria-label="Start new conversation">
+          <NewChatBtn type="button" onClick={handleNewChat} aria-label="Start new coach thread">
             <Plus size={16} />
-            New Chat
+            New Coach Thread
           </NewChatBtn>
           <CloseSidebarBtn type="button" onClick={onClose} aria-label="Close sidebar">
             <X size={20} />
@@ -110,10 +110,10 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
         <SearchInput
           type="text"
-          placeholder="Search conversations..."
+          placeholder="Search coach threads..."
           value={searchQuery}
           onChange={e => onSearchChange(e.target.value)}
-          aria-label="Search conversations"
+          aria-label="Search coach threads"
         />
 
         <ConversationList>
@@ -122,7 +122,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               <MessageSquareOff size={32} style={{ opacity: 0.3 }} />
               <div>{searchQuery ? 'No matches found' : 'No conversations yet'}</div>
               <div style={{ fontSize: '12px' }}>
-                {searchQuery ? 'Try a different search' : 'Start a new chat to begin'}
+                {searchQuery ? 'Try a different search' : 'Start a New Coach Thread to begin'}
               </div>
             </EmptyState>
           ) : (

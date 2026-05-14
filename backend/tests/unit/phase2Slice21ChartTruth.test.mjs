@@ -100,20 +100,35 @@ describe('Phase 2 Slice 2.1 — B1: legacy /progress formTrends null-honest', ()
 });
 
 describe('Phase 2 Slice 2.1 — B2: aiChatRoutes import intensity null-honest', () => {
-  it('workout-import handler does NOT `intensity || 5` on WorkoutSession.create', () => {
-    // The bug was specifically in the `WorkoutSession.create({...intensity: intensity || 5...})`
-    // call inside the import_workout_log action handler.
+  function legacyImportWorkoutSlice() {
     const importHandlerIdx = AI_CHAT_SOURCE.indexOf('import_workout_log');
-    expect(importHandlerIdx).toBeGreaterThan(0);
+    if (importHandlerIdx === -1) return null;
     const sliceEnd = AI_CHAT_SOURCE.indexOf('workoutImportResults.push', importHandlerIdx + 100);
-    const slice = AI_CHAT_SOURCE.slice(importHandlerIdx, sliceEnd);
+    expect(sliceEnd).toBeGreaterThan(importHandlerIdx);
+    return AI_CHAT_SOURCE.slice(importHandlerIdx, sliceEnd);
+  }
+
+  it('workout-import handler is absent or does NOT `intensity || 5` on WorkoutSession.create', () => {
+    // The legacy direct writer may be removed entirely. If it exists, it must
+    // still preserve null-honest intensity behavior.
+    const slice = legacyImportWorkoutSlice();
+    if (!slice) {
+      expect(AI_CHAT_SOURCE).not.toMatch(/WorkoutSession\.create[\s\S]{0,300}intensity:\s*intensity\s*\|\|\s*5/);
+      return;
+    }
 
     expect(slice).not.toMatch(/intensity:\s*intensity\s*\|\|\s*5/);
   });
 
-  it('workout-import handler explicitly null-coerces missing intensity', () => {
-    // Positive lock: the importedIntensity local must guard both
-    // undefined and null and pass through any genuine 1-10 value.
+  it('workout-import handler is removed or explicitly null-coerces missing intensity', () => {
+    // Positive lock: if the legacy handler returns, importedIntensity must
+    // guard both undefined and null and pass through any genuine 1-10 value.
+    const slice = legacyImportWorkoutSlice();
+    if (!slice) {
+      expect(AI_CHAT_SOURCE).not.toMatch(/workoutImportResults/);
+      return;
+    }
+
     expect(AI_CHAT_SOURCE).toMatch(
       /importedIntensity\s*=\s*\(intensity\s*===\s*undefined\s*\|\|\s*intensity\s*===\s*null\)/,
     );

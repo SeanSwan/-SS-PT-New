@@ -8,7 +8,7 @@
  *
  * WIREFRAME (Desktop 1024px+):
  * ┌──────────────┬───────────────────────────────┬──────────────┐
- * │ [+ New Chat] │ ☰  Swan Coach Assistant  [📖] │ BookOpen     │
+ * │ [+ New Coach Thread] │ ☰  Swan Coach Assistant  [📖] │ BookOpen     │
  * │ [Search...]  ├───────────────────────────────┤ Teach Mode   │
  * │              │ [🏋️] [📋] [👥] [📅] [📊] [💪] │ [🔍 Search]  │
  * │ Today        ├───────────────────────────────┤ Exercise Name│

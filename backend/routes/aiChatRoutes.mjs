@@ -14,6 +14,7 @@
  */
 import express from 'express';
 import multer from 'multer';
+import { Op } from 'sequelize';
 
 // Allowlist sanitizer — prevents prompt injection via foodContext fields
 const FOOD_CONTEXT_ALLOWED_KEYS = new Set([
@@ -65,6 +66,10 @@ import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
 import { purgeCoachIntakeRawArtifacts } from '../services/coachIntakeRetentionPurgeService.mjs';
 import { createCoachActionProposalsFromAiResponse } from '../services/ai/coachActionProposalService.mjs';
+
+// Phase 2 Slice 2.1 (2026-05-03): chart/KPI truthfulness guard.
+// Legacy direct workout import writes stay removed from aiChatRoutes; workout
+// logs now flow through review-gated Coach action proposals.
 
 // Multer config for audio uploads (memory storage, 25MB max)
 const audioUpload = multer({
@@ -228,6 +233,7 @@ router.get('/conversations/:id', async (req, res) => {
       where: {
         id: req.params.id,
         userId: req.user.id,
+        status: { [Op.ne]: 'deleted' },
       },
     });
 
@@ -527,6 +533,7 @@ router.patch('/conversations/:id', async (req, res) => {
       where: {
         id: req.params.id,
         userId: req.user.id,
+        status: { [Op.ne]: 'deleted' },
       },
     });
 
@@ -557,6 +564,7 @@ router.delete('/conversations/:id', async (req, res) => {
       where: {
         id: req.params.id,
         userId: req.user.id,
+        status: { [Op.ne]: 'deleted' },
       },
     });
 

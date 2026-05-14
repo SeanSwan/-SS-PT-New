@@ -16,6 +16,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { ADMIN_ALWAYS_ENABLED_COACH_COMMAND_FLAGS } from '../config/coachCommandFlags';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -36,6 +37,14 @@ interface FeatureAccessContextValue extends FeatureAccessState {
 const CACHE_VERSION = 'v1';
 const CACHE_KEY = `ss_feature_flags_${CACHE_VERSION}`;
 const CACHE_TTL = 60_000; // 60 seconds
+
+export const buildAdminFeatureFlags = (): Record<string, boolean> => ({
+  'content-studio': true,
+  'workout-planner-pro': true,
+  ...Object.fromEntries(
+    ADMIN_ALWAYS_ENABLED_COACH_COMMAND_FLAGS.map((featureKey) => [featureKey, true]),
+  ),
+});
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Context
@@ -70,7 +79,7 @@ export const FeatureAccessProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Admin shortcut — always has everything
     if (user.role === 'admin') {
-      const adminFlags = { 'content-studio': true, 'workout-planner-pro': true };
+      const adminFlags = buildAdminFeatureFlags();
       setState({ flags: adminFlags, isAdmin: true, loading: false, error: null });
       return;
     }

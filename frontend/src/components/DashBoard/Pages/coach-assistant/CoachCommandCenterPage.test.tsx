@@ -1,13 +1,25 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
 
 const useCoachIntakeQueueMock = vi.hoisted(() => vi.fn());
+const useAIChatMock = vi.hoisted(() => vi.fn());
+const listConversationsMock = vi.hoisted(() => vi.fn());
+const loadConversationMock = vi.hoisted(() => vi.fn());
+const sendMessageWithConversationMock = vi.hoisted(() => vi.fn());
+const newChatMock = vi.hoisted(() => vi.fn());
+const deleteConversationMock = vi.hoisted(() => vi.fn());
+const renameConversationMock = vi.hoisted(() => vi.fn());
+const createQuickCoachCommandClientMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
   default: useCoachIntakeQueueMock,
   useCoachIntakeQueue: useCoachIntakeQueueMock,
+}));
+
+vi.mock('../../../../hooks/useAIChat', () => ({
+  useAIChat: useAIChatMock,
 }));
 
 vi.mock('./CoachIntakeWorkspace', () => ({
@@ -19,6 +31,10 @@ vi.mock('./CoachIntakeWorkspace', () => ({
       </button>
     </section>
   ),
+}));
+
+vi.mock('../../../../services/coachCommandClientService', () => ({
+  createQuickCoachCommandClient: createQuickCoachCommandClientMock,
 }));
 
 vi.mock('../../../PlaudClipMerge/PlaudMergeWorkspace', () => ({
@@ -59,6 +75,66 @@ function renderPage(route = '/dashboard/admin/coach-assistant') {
 
 describe('CoachCommandCenterPage', () => {
   beforeEach(() => {
+    listConversationsMock.mockResolvedValue([]);
+    loadConversationMock.mockResolvedValue(null);
+    sendMessageWithConversationMock.mockResolvedValue({
+      role: 'assistant',
+      content: 'Prepared the review package. No final writes have been made.',
+      timestamp: '2026-05-14T12:00:00.000Z',
+    });
+    newChatMock.mockReset();
+    deleteConversationMock.mockResolvedValue(undefined);
+    renameConversationMock.mockResolvedValue(undefined);
+    createQuickCoachCommandClientMock.mockResolvedValue({
+      client: {
+        id: 77,
+        firstName: 'Ava',
+        lastName: 'Stone',
+        clientSource: 'move_fitness',
+      },
+      claimCode: 'claim-77',
+      claimUrl: 'https://sswanstudios.com/claim/claim-77',
+      isMoveFitness: true,
+    });
+    useAIChatMock.mockReturnValue({
+      conversations: [
+        {
+          id: 101,
+          title: 'Friday intake cleanup',
+          context: 'coach_assistant',
+          status: 'active',
+          messageCount: 4,
+          lastMessageAt: '2026-05-14T11:30:00.000Z',
+          createdAt: '2026-05-14T10:00:00.000Z',
+        },
+        {
+          id: 102,
+          title: 'Client confirmation holds',
+          context: 'coach_assistant',
+          status: 'active',
+          messageCount: 2,
+          lastMessageAt: '2026-05-13T19:30:00.000Z',
+          createdAt: '2026-05-13T18:00:00.000Z',
+        },
+      ],
+      activeConversation: null,
+      messages: [],
+      loading: false,
+      sending: false,
+      error: null,
+      lastErrorCode: null,
+      lastErrorRetryable: true,
+      createConversation: vi.fn(),
+      listConversations: listConversationsMock,
+      loadConversation: loadConversationMock,
+      sendMessage: vi.fn(),
+      sendMessageWithConversation: sendMessageWithConversationMock,
+      deleteConversation: deleteConversationMock,
+      renameConversation: renameConversationMock,
+      archiveConversation: vi.fn(),
+      newChat: newChatMock,
+      clearError: vi.fn(),
+    });
     useCoachIntakeQueueMock.mockReturnValue({
       items: [
         {
@@ -94,6 +170,7 @@ describe('CoachCommandCenterPage', () => {
   it('renders the command center labels, dock actions, and approval-gated copy', () => {
     renderPage();
 
+    expect(listConversationsMock).toHaveBeenCalledWith('active', true);
     expect(screen.getAllByText(/Swan Coach Command Center/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Coach Command Modes/i)).toBeInTheDocument();
     expect(screen.getByText(/Start with a workflow/i)).toBeInTheDocument();
@@ -106,16 +183,35 @@ describe('CoachCommandCenterPage', () => {
     expect(screen.getByText(/the operator approves the final write/i)).toBeInTheDocument();
   });
 
-  it('uses accessible thread buttons that update the composer and selected status', () => {
+  it('uses real conversation thread buttons that update the composer and selected status', () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Duplicate risk check/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Friday intake cleanup/i }));
 
     expect(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...')).toHaveValue(
-      'Review duplicate-risk logs for Client B-217 before any draft approval.',
+      'Continue Friday intake cleanup with review-gated context.',
     );
-    expect(screen.getAllByText(/Client B-217 - duplicate-risk hold/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Duplicate risk check/i })).toHaveAttribute('aria-current', 'true');
+    expect(loadConversationMock).toHaveBeenCalledWith(101);
+    expect(screen.getAllByText(/Friday intake cleanup - thread loaded/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /Friday intake cleanup/i })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('submits the command dock through the real coach conversation API', async () => {
+    renderPage();
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    fireEvent.change(composer, { target: { value: 'Prepare today intake review.' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        'Prepare today intake review.',
+        'coach_assistant',
+        'Friday intake cleanup',
+        null,
+        'both',
+      );
+    });
   });
 
   it('opens and closes mobile drawers with aria-expanded and Escape handling', () => {
@@ -140,5 +236,37 @@ describe('CoachCommandCenterPage', () => {
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveAttribute('data-embedded', 'true');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveTextContent('11111111-2222-3333-4444-555555555555');
+  });
+
+  it('shows real queue counts in the operations rail instead of static prototype values', () => {
+    renderPage();
+
+    const operationsRail = screen.getByLabelText('Coach operations rail');
+
+    expect(within(operationsRail).getByText('Ready drafts').closest('li')).toHaveTextContent('3');
+    expect(within(operationsRail).getByText('Client confirmation holds').closest('li')).toHaveTextContent('1');
+    expect(within(operationsRail).getByText('Clarification holds').closest('li')).toHaveTextContent('5');
+    expect(within(operationsRail).getByText('Duplicate-risk holds').closest('li')).toHaveTextContent('2');
+  });
+
+  it('creates a minimal client stub from the command rail and stages the composer for approved follow-up', async () => {
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
+    fireEvent.change(screen.getByLabelText('Client source'), { target: { value: 'move_fitness' } });
+    fireEvent.click(screen.getByRole('button', { name: /Create stub client/i }));
+
+    await waitFor(() => {
+      expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({
+        fullName: 'Ava Stone',
+        clientSource: 'move_fitness',
+      });
+    });
+
+    expect(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...')).toHaveValue(
+      'Continue Ava Stone with review-gated context.',
+    );
+    expect(screen.getAllByText(/Ava Stone - client stub ready/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
   });
 });

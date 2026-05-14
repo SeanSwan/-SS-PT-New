@@ -272,7 +272,8 @@ export const CommandCenterShell = styled.div`
 
   .new-thread,
   .search-wrap input,
-  .client-picker select {
+  .client-picker select,
+  .quick-client-submit {
     width: 100%;
   }
 
@@ -613,6 +614,41 @@ export const CommandCenterShell = styled.div`
     font-family: 'Fira Code', monospace;
     font-size: 11px;
     padding: 6px 9px;
+  }
+
+  .quick-client-form {
+    display: grid;
+    gap: 10px;
+  }
+
+  .quick-client-field {
+    color: var(--coach-text-soft);
+    display: grid;
+    font-size: 12px;
+    font-weight: 720;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .quick-client-note {
+    border: 1px solid var(--coach-line);
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    margin: 0;
+    padding: 9px;
+  }
+
+  .quick-client-note.success {
+    background: color-mix(in srgb, var(--coach-success) 10%, transparent);
+    border-color: color-mix(in srgb, var(--coach-success) 30%, transparent);
+    color: #d7ffe9;
+  }
+
+  .quick-client-note.error {
+    background: color-mix(in srgb, var(--coach-danger) 10%, transparent);
+    border-color: color-mix(in srgb, var(--coach-danger) 32%, transparent);
+    color: #ffd9e0;
   }
 
   .composer {

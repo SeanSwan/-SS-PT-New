@@ -22,34 +22,31 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  UserPlus,
   Volume2,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
+import { useAIChat, type ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import {
+  createQuickCoachCommandClient,
+  type CoachCommandClientSource,
+} from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { CommandCenterShell } from './CoachCommandCenter.styles';
 import {
-  COMMAND_THREADS,
   COMMAND_WORKFLOWS,
   INITIAL_COMMAND_LOGS,
   type CommandLogEntry,
-  type CommandThread,
 } from './CoachCommandCenter.data';
 
 type DrawerSide = 'left' | 'right';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const rightRailItems = [
-  'Ready draft: Client C-309 4-week block',
-  'Client confirmation hold: Client A-104',
-  'Clarification hold: missing shoulder note',
-  'Duplicate-risk hold: Client B-217',
-];
 
 type QueueMetric = {
   label: string;
@@ -62,6 +59,12 @@ type IntakeStateTile = {
   label: string;
   value: string;
   tone: 'hold' | 'stale' | 'processing' | 'ready' | 'failed';
+};
+
+type QueueHealthRow = {
+  label: string;
+  value: string;
+  tone: IntakeStateTile['tone'];
 };
 
 type DossierTile = {
@@ -82,16 +85,37 @@ function pickReviewNextMergeRequestId(items: CoachIntakeItem[]): string | null {
     .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
 }
 
+function getConversationTitle(thread?: ConversationSummary | null): string {
+  const title = thread?.title?.trim();
+  return title || 'Untitled coach thread';
+}
+
+function formatThreadMeta(thread: ConversationSummary): string {
+  const dateValue = thread.lastMessageAt || thread.createdAt;
+  const date = dateValue ? new Date(dateValue) : null;
+  const dateLabel = date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'No activity yet';
+  return `${thread.messageCount || 0} msgs - ${dateLabel} - ${thread.status || 'active'}`;
+}
+
 const CoachCommandCenterPage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const chat = useAIChat();
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12 });
-  const [activeThreadId, setActiveThreadId] = useState(COMMAND_THREADS[0].id);
+  const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
   const [commandText, setCommandText] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState(COMMAND_THREADS[0].clientStatus);
+  const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
+  const [threadSearch, setThreadSearch] = useState('');
   const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS);
   const [voiceActive, setVoiceActive] = useState(false);
   const [teachMode, setTeachMode] = useState(true);
   const [drawer, setDrawer] = useState<DrawerSide | null>(null);
+  const [quickClientName, setQuickClientName] = useState('');
+  const [quickClientSource, setQuickClientSource] = useState<CoachCommandClientSource>('move_fitness');
+  const [quickClientBusy, setQuickClientBusy] = useState(false);
+  const [quickClientMessage, setQuickClientMessage] = useState<string | null>(null);
+  const [quickClientError, setQuickClientError] = useState<string | null>(null);
 
   const shellRef = useRef<HTMLDivElement>(null);
   const commandFormRef = useRef<HTMLFormElement>(null);
@@ -101,10 +125,21 @@ const CoachCommandCenterPage: React.FC = () => {
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const coachThreads = useMemo(() => {
+    const threads = Array.isArray(chat.conversations) ? chat.conversations : [];
+    const query = threadSearch.trim().toLowerCase();
+    const coachOnly = threads.filter((thread) => !thread.context || thread.context === 'coach_assistant');
+    if (!query) return coachOnly;
+    return coachOnly.filter((thread) => {
+      const title = getConversationTitle(thread).toLowerCase();
+      return title.includes(query) || thread.context?.toLowerCase().includes(query);
+    });
+  }, [chat.conversations, threadSearch]);
   const activeThread = useMemo(
-    () => COMMAND_THREADS.find((thread) => thread.id === activeThreadId) ?? COMMAND_THREADS[0],
-    [activeThreadId],
+    () => coachThreads.find((thread) => thread.id === activeThreadId) ?? null,
+    [activeThreadId, coachThreads],
   );
+  const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
   const rawMergeRequestId = searchParams.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
@@ -115,7 +150,7 @@ const CoachCommandCenterPage: React.FC = () => {
     : null;
   const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId || undefined;
   const summary = coachQueue.summary;
-  const selectedClientLabel = activeThread.clientStatus.split(' - ')[0] || 'Selected client';
+  const selectedClientLabel = activeThread ? activeThreadTitle : 'Selected client';
 
   const statusMetrics = useMemo<QueueMetric[]>(() => [
     {
@@ -162,6 +197,26 @@ const CoachCommandCenterPage: React.FC = () => {
     { label: 'Operator approval', value: 'Required', note: 'Prepared recommendations only' },
   ], [initialReviewMergeRequestId, selectedClientLabel, summary.processing, summary.unprocessed]);
 
+  const queueHealthRows = useMemo<QueueHealthRow[]>(() => [
+    { label: 'Ready drafts', value: String(summary.preparedDrafts || summary.readyReview), tone: 'ready' },
+    { label: 'Client confirmation holds', value: String(summary.needsClient), tone: 'hold' },
+    { label: 'Clarification holds', value: String(summary.needsClarification), tone: 'hold' },
+    { label: 'Duplicate-risk holds', value: String(summary.duplicateHold), tone: 'stale' },
+    { label: 'Failed intake recovery', value: String(summary.failed), tone: 'failed' },
+  ], [summary]);
+
+  const rightRailItems = useMemo(() => {
+    const liveItems = coachQueue.items.slice(0, 4).map((item) => {
+      const source = item.sourceLabel || item.source || item.kind;
+      const status = item.queueStatus ? item.queueStatus.replace(/_/g, ' ') : 'pending review';
+      return `${source}: ${status}`;
+    });
+
+    return liveItems.length
+      ? liveItems
+      : ['No ready intake items. New PLAUD clips, transcripts, and coach drafts will appear here.'];
+  }, [coachQueue.items]);
+
   const focusComposer = (value?: string, status?: string) => {
     if (value !== undefined) setCommandText(value);
     if (status) setSelectedStatus(status);
@@ -188,24 +243,73 @@ const CoachCommandCenterPage: React.FC = () => {
     ]);
   };
 
-  const handleThreadSelect = (thread: CommandThread) => {
+  const handleThreadSelect = (thread: ConversationSummary) => {
+    const title = getConversationTitle(thread);
+    const status = `${title} - thread loaded`;
     setActiveThreadId(thread.id);
-    setSelectedStatus(thread.clientStatus);
+    setSelectedStatus(status);
     closeDrawer(false);
-    focusComposer(thread.prompt, thread.clientStatus);
+    void chat.loadConversation(thread.id);
+    focusComposer(`Continue ${title} with review-gated context.`, status);
   };
 
   const handleWorkflowSelect = (prompt: string) => {
     closeDrawer(false);
-    focusComposer(prompt, `${activeThread.title} - command staged`);
+    focusComposer(prompt, `${activeThreadTitle} - command staged`);
   };
 
   const handleNewThread = () => {
+    chat.newChat();
+    setActiveThreadId(null);
     closeDrawer(false);
-    focusComposer('Start a new review-gated coach thread for the selected client.', 'New coach thread staged');
+    focusComposer('Start a new review-gated coach thread for the selected client.', 'New Coach Thread ready');
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleQuickClientSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const fullName = quickClientName.trim();
+
+    if (!fullName) {
+      setQuickClientError('Client name is required.');
+      setQuickClientMessage(null);
+      return;
+    }
+
+    setQuickClientBusy(true);
+    setQuickClientError(null);
+    setQuickClientMessage(null);
+
+    try {
+      const result = await createQuickCoachCommandClient({
+        fullName,
+        clientSource: quickClientSource,
+      });
+      const createdName = [result.client.firstName, result.client.lastName].filter(Boolean).join(' ') || fullName;
+      const status = `${createdName} - client stub ready`;
+
+      setQuickClientName('');
+      setQuickClientMessage(`${createdName} created as a minimal client stub. No workout log was written.`);
+      addLog({
+        actor: 'system',
+        label: 'client stub created',
+        body: `${createdName} is ready for staged PLAUD/workout review. No workout log was written and final writes still require operator approval.`,
+        attachments: result.claimUrl ? ['claim link ready'] : ['client profile stub ready'],
+      });
+      focusComposer(`Continue ${createdName} with review-gated context.`, status);
+      void coachQueue.refresh();
+    } catch (error: any) {
+      setQuickClientError(error?.message || 'Client stub could not be created.');
+      addLog({
+        actor: 'system',
+        label: 'client stub failed',
+        body: 'Quick client capture failed. No client or workout write was completed from the command rail.',
+      });
+    } finally {
+      setQuickClientBusy(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = commandText.trim();
     if (!trimmed) return;
@@ -215,14 +319,36 @@ const CoachCommandCenterPage: React.FC = () => {
       label: 'operator command',
       body: trimmed,
     });
+    setCommandText('');
+    setSelectedStatus('Sending command to Swan Coach');
+    const response = await chat.sendMessageWithConversation(
+      trimmed,
+      'coach_assistant',
+      activeThread ? activeThreadTitle : trimmed.slice(0, 60),
+      null,
+      'both',
+    );
+
+    if (response && typeof response === 'object' && 'failed' in response) {
+      setSelectedStatus('Swan Coach command failed');
+      addLog({
+        actor: 'system',
+        label: 'command failed',
+        body: 'The command was not completed. No final write was made.',
+      });
+      return;
+    }
+
     addLog({
       actor: 'coach',
       label: 'prepared draft',
-      body: 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.',
+      body: response && typeof response === 'object' && 'content' in response
+        ? String(response.content)
+        : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.',
       attachments: ['draft_review_packet.md', 'approval gate remains locked'],
     });
-    setCommandText('');
     setSelectedStatus('Prepared draft awaiting operator approval');
+    void chat.listConversations('active', true);
   };
 
   const handleAttach = () => {
@@ -252,6 +378,19 @@ const CoachCommandCenterPage: React.FC = () => {
     });
     focusComposer();
   };
+
+  useEffect(() => {
+    void chat.listConversations('active', true);
+    // Load once on route mount; the hook owns its cache afterward.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (activeThreadId !== null || coachThreads.length === 0) return;
+    const firstThread = coachThreads[0];
+    setActiveThreadId(firstThread.id);
+    setSelectedStatus(`${getConversationTitle(firstThread)} - thread ready`);
+  }, [activeThreadId, coachThreads]);
 
   useEffect(() => {
     const syncDockSpace = () => {
@@ -372,7 +511,13 @@ const CoachCommandCenterPage: React.FC = () => {
           <section className="rail-section">
             <label className="search-wrap" htmlFor="coach-thread-search">
               <Search size={16} aria-hidden="true" />
-              <input id="coach-thread-search" type="search" placeholder="Search coach threads..." />
+              <input
+                id="coach-thread-search"
+                type="search"
+                placeholder="Search coach threads..."
+                value={threadSearch}
+                onChange={(event) => setThreadSearch(event.target.value)}
+              />
             </label>
           </section>
 
@@ -380,7 +525,7 @@ const CoachCommandCenterPage: React.FC = () => {
             <div className="client-name-row">
               <div>
                 <p className="panel-subtitle">Selected client context</p>
-                <strong>Client A-104</strong>
+                <strong>{selectedClientLabel}</strong>
               </div>
               <span className="status-pill processing">approval gate</span>
             </div>
@@ -399,22 +544,29 @@ const CoachCommandCenterPage: React.FC = () => {
           <section className="rail-section">
             <div className="section-title-row">
               <h3 className="panel-title">Threads</h3>
-              <span className="mini-chip cyan">3 live</span>
+              <span className="mini-chip cyan">{coachThreads.length} live</span>
             </div>
             <ul className="thread-list">
-              {COMMAND_THREADS.map((thread) => (
-                <li key={thread.id}>
-                  <button
-                    type="button"
-                    className={`thread-item ${thread.id === activeThreadId ? 'is-active' : ''}`}
-                    aria-current={thread.id === activeThreadId ? 'true' : undefined}
-                    onClick={() => handleThreadSelect(thread)}
-                  >
-                    <span className="thread-title">{thread.title}</span>
-                    <span className="thread-meta">{thread.meta}</span>
-                  </button>
+              {coachThreads.length ? (
+                coachThreads.map((thread) => (
+                  <li key={thread.id}>
+                    <button
+                      type="button"
+                      className={`thread-item ${thread.id === activeThreadId ? 'is-active' : ''}`}
+                      aria-current={thread.id === activeThreadId ? 'true' : undefined}
+                      onClick={() => handleThreadSelect(thread)}
+                    >
+                      <span className="thread-title">{getConversationTitle(thread)}</span>
+                      <span className="thread-meta">{formatThreadMeta(thread)}</span>
+                    </button>
+                  </li>
+                ))
+              ) : (
+                <li className="mode-item">
+                  <span className="mode-title">No coach threads yet</span>
+                  <span className="thread-meta">Start a New Coach Thread from the command dock.</span>
                 </li>
-              ))}
+              )}
             </ul>
           </section>
 
@@ -758,26 +910,55 @@ const CoachCommandCenterPage: React.FC = () => {
 
           <section className="panel">
             <div className="section-title-row">
+              <div>
+                <h2 className="panel-title">Quick client capture</h2>
+                <p className="panel-subtitle">Name-only client stub for staged PLAUD and workout review.</p>
+              </div>
+              <UserPlus size={19} aria-hidden="true" />
+            </div>
+            <form className="quick-client-form" onSubmit={handleQuickClientSubmit}>
+              <label className="quick-client-field" htmlFor="quick-client-name">
+                <span>Client name</span>
+                <input
+                  id="quick-client-name"
+                  value={quickClientName}
+                  onChange={(event) => setQuickClientName(event.target.value)}
+                  placeholder="First Last"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="quick-client-field" htmlFor="quick-client-source">
+                <span>Client source</span>
+                <select
+                  id="quick-client-source"
+                  value={quickClientSource}
+                  onChange={(event) => setQuickClientSource(event.target.value as CoachCommandClientSource)}
+                >
+                  <option value="move_fitness">Move Fitness</option>
+                  <option value="swanstudios">SwanStudios</option>
+                </select>
+              </label>
+              <button type="submit" className="primary-button quick-client-submit" disabled={quickClientBusy}>
+                <UserPlus size={16} aria-hidden="true" />
+                {quickClientBusy ? 'Creating stub...' : 'Create stub client'}
+              </button>
+              {quickClientMessage ? <p className="quick-client-note success">{quickClientMessage}</p> : null}
+              {quickClientError ? <p className="quick-client-note error">{quickClientError}</p> : null}
+            </form>
+          </section>
+
+          <section className="panel">
+            <div className="section-title-row">
               <h2 className="panel-title">Queue health</h2>
               <Activity size={19} aria-hidden="true" />
             </div>
             <ul className="health-list">
-              <li className="health-item item-row">
-                <span>Ready drafts</span>
-                <span className="status-pill ready">5</span>
-              </li>
-              <li className="health-item item-row">
-                <span>Client confirmation holds</span>
-                <span className="status-pill hold">2</span>
-              </li>
-              <li className="health-item item-row">
-                <span>Clarification holds</span>
-                <span className="status-pill hold">5</span>
-              </li>
-              <li className="health-item item-row">
-                <span>Duplicate-risk holds</span>
-                <span className="status-pill stale">3</span>
-              </li>
+              {queueHealthRows.map((row) => (
+                <li className="health-item item-row" key={row.label}>
+                  <span>{row.label}</span>
+                  <span className={`status-pill ${row.tone}`}>{row.value}</span>
+                </li>
+              ))}
             </ul>
           </section>
 
