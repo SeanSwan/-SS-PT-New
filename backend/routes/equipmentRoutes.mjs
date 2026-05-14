@@ -572,7 +572,7 @@ router.post('/:id/scan', upload.single('photo'), async (req, res) => {
     if (msg.includes('Invalid image type') || msg.includes('Image too large')) {
       return res.status(400).json({ success: false, error: msg });
     }
-    if (msg.includes('invalid JSON')) {
+    if (msg.includes('invalid JSON') || msg.includes('could not identify')) {
       return res.status(422).json({ success: false, error: 'AI could not identify the equipment. Try a clearer photo.' });
     }
     if (msg.includes('[GoogleGenerativeAI Error]') || msg.includes('Gemini') || msg.includes('generateContent')) {

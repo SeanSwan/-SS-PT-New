@@ -1,0 +1,63 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const generateContentMock = vi.fn();
+
+vi.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: vi.fn(function GoogleGenerativeAI() {
+    this.getGenerativeModel = vi.fn(() => ({
+      generateContent: generateContentMock,
+    }));
+  }),
+}));
+
+const { scanEquipmentImage } = await import('../services/equipmentScanService.mjs');
+
+function geminiJson(payload) {
+  return {
+    response: {
+      text: () => JSON.stringify(payload),
+    },
+  };
+}
+
+describe('equipment scan retry behavior', () => {
+  afterEach(() => {
+    generateContentMock.mockReset();
+    delete process.env.GEMINI_API_KEY;
+  });
+
+  it('asks Gemini a second direct question when the first pass returns Unknown at zero confidence', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    generateContentMock
+      .mockResolvedValueOnce(geminiJson({
+        name: 'Unknown',
+        category: 'other',
+        resistanceType: 'other',
+        confidence: 0,
+      }))
+      .mockResolvedValueOnce(geminiJson({
+        name: 'Dumbbell Rack',
+        category: 'dumbbell',
+        resistanceType: 'dumbbell',
+        description: 'A rack of dumbbells used for free-weight strength training.',
+        confidence: 0.88,
+        suggestedExercises: ['Dumbbell Bench Press', 'Goblet Squat'],
+      }));
+
+    const result = await scanEquipmentImage(Buffer.from('fake image bytes'), 'image/jpeg');
+
+    expect(generateContentMock).toHaveBeenCalledTimes(2);
+    expect(result.suggestedName).toBe('Dumbbell Rack');
+    expect(result.suggestedCategory).toBe('dumbbell');
+    expect(result.resistanceType).toBe('dumbbell');
+
+    const firstParts = generateContentMock.mock.calls[0][0].contents[0].parts;
+    const secondParts = generateContentMock.mock.calls[1][0].contents[0].parts;
+    const firstPrompt = firstParts[0].text;
+    const secondPrompt = secondParts[0].text;
+    expect(firstPrompt).toContain('what workout equipment is this');
+    expect(secondPrompt).toContain('second-pass review');
+    expect(firstParts[1].inlineData.mimeType).toBe('image/jpeg');
+    expect(secondParts[1].inlineData.data).toBe(Buffer.from('fake image bytes').toString('base64'));
+  });
+});

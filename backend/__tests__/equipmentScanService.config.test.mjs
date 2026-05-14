@@ -83,4 +83,53 @@ describe('equipment scan configuration', () => {
     expect(parsed.name).toBe('Cable Crossover Machine');
     expect(parsed.category).toBe('cable_machine');
   });
+
+  it('normalizes common dumbbell rack aliases from model output', () => {
+    const sanitized = __testing__.sanitizeScanResult({
+      equipmentName: 'Hex Dumbbells on Rack',
+      equipmentCategory: 'free_weights',
+      resistance: 'dumbbells',
+      confidenceScore: '87%',
+      exercises: ['Dumbbell Bench Press', 'Goblet Squat'],
+    });
+
+    expect(sanitized.suggestedName).toBe('Hex Dumbbells on Rack');
+    expect(sanitized.suggestedCategory).toBe('dumbbell');
+    expect(sanitized.resistanceType).toBe('dumbbell');
+    expect(sanitized.confidence).toBeCloseTo(0.87);
+  });
+
+  it('asks Gemini the direct equipment question and names dumbbell racks explicitly', () => {
+    const prompt = __testing__.buildEquipmentScanPrompt();
+    const retryPrompt = __testing__.buildEquipmentScanPrompt({ retry: true });
+
+    expect(prompt).toContain('what workout equipment is this');
+    expect(prompt).toContain('Dumbbell Rack');
+    expect(prompt).toContain('Hex Dumbbells on Rack');
+    expect(retryPrompt).toContain('second-pass review');
+  });
+
+  it('marks zero-confidence unknown equipment as retryable', () => {
+    expect(__testing__.isUnknownEquipmentResult({
+      suggestedName: 'Unknown Equipment',
+      confidence: 0,
+    })).toBe(true);
+    expect(__testing__.isUnknownEquipmentResult({
+      suggestedName: 'Dumbbell Rack',
+      confidence: 0.88,
+    })).toBe(false);
+  });
+
+  it('does not display zero confidence when Gemini names visible equipment', () => {
+    const sanitized = __testing__.sanitizeScanResult({
+      name: 'Dumbbell Rack',
+      category: 'dumbbell',
+      resistanceType: 'dumbbell',
+      confidence: 0,
+    });
+
+    expect(sanitized.suggestedName).toBe('Dumbbell Rack');
+    expect(sanitized.confidence).toBe(0.65);
+    expect(__testing__.isUnknownEquipmentResult(sanitized)).toBe(false);
+  });
 });

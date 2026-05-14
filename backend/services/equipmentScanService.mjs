@@ -12,42 +12,16 @@
  * Cost: ~$0.001 per scan (Gemini Flash Vision pricing)
  */
 import logger from '../utils/logger.mjs';
-
-const EQUIPMENT_CATEGORIES = [
-  'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
-  'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
-  'stability_ball', 'medicine_ball', 'pull_up_bar', 'trx', 'other'
-];
-
-const RESISTANCE_TYPES = [
-  'bodyweight', 'dumbbell', 'barbell', 'cable', 'band', 'machine', 'kettlebell', 'other'
-];
-
-const DEFAULT_EQUIPMENT_SCAN_MODEL = 'gemini-2.5-flash';
-const RETIRED_EQUIPMENT_SCAN_MODELS = new Set([
-  'gemini-2.0-flash',
-  'models/gemini-2.0-flash',
-]);
-
-const SCAN_PROMPT = `You are an expert fitness equipment identifier. Analyze this image and identify the gym/fitness equipment shown.
-
-Return a JSON object with these fields:
-{
-  "name": "Equipment name (e.g., 'Adjustable Bench', 'Cable Crossover Machine')",
-  "category": "One of: ${EQUIPMENT_CATEGORIES.join(', ')}",
-  "resistanceType": "One of: ${RESISTANCE_TYPES.join(', ')}",
-  "description": "Brief description of what this equipment is used for (1-2 sentences)",
-  "confidence": 0.0 to 1.0,
-  "boundingBox": { "x": 0.0-1.0, "y": 0.0-1.0, "w": 0.0-1.0, "h": 0.0-1.0 },
-  "suggestedExercises": ["exercise1", "exercise2", "exercise3"]
-}
-
-Rules:
-- boundingBox coordinates are normalized 0-1 relative to image dimensions
-- suggestedExercises should list 3-8 common exercises this equipment is used for
-- If multiple pieces of equipment are visible, identify the PRIMARY/largest one
-- If no fitness equipment is visible, set confidence to 0 and name to "Unknown"
-- Return ONLY valid JSON, no markdown or explanation`;
+import {
+  DEFAULT_EQUIPMENT_SCAN_MODEL,
+  EQUIPMENT_CATEGORIES,
+  RESISTANCE_TYPES,
+  RETIRED_EQUIPMENT_SCAN_MODELS,
+  buildEquipmentScanPrompt,
+  isUnknownEquipmentResult,
+  normalizeRawScanResult,
+  parseEquipmentScanResponse,
+} from './equipmentScanSupport.mjs';
 
 /**
  * Validate bounding box coordinates are in 0-1 range
@@ -63,99 +37,24 @@ function validateBoundingBox(box) {
  * Validate and sanitize the AI scan result
  */
 function sanitizeScanResult(raw) {
+  const normalized = normalizeRawScanResult(raw);
+  const hasKnownName = normalized.name && !/^unknown/i.test(normalized.name);
+  const fallbackConfidence = hasKnownName ? 0.65 : 0;
+  const confidence = typeof normalized.confidence === 'number'
+    ? Math.max(0, Math.min(1, normalized.confidence > 0 || !hasKnownName ? normalized.confidence : fallbackConfidence))
+    : fallbackConfidence;
   const result = {
-    suggestedName: typeof raw.name === 'string' ? raw.name.slice(0, 150) : 'Unknown Equipment',
-    suggestedCategory: EQUIPMENT_CATEGORIES.includes(raw.category) ? raw.category : 'other',
-    resistanceType: RESISTANCE_TYPES.includes(raw.resistanceType) ? raw.resistanceType : 'other',
-    description: typeof raw.description === 'string' ? raw.description.slice(0, 500) : '',
-    confidence: typeof raw.confidence === 'number' ? Math.max(0, Math.min(1, raw.confidence)) : 0,
-    boundingBox: validateBoundingBox(raw.boundingBox),
-    suggestedExercises: Array.isArray(raw.suggestedExercises)
-      ? raw.suggestedExercises.filter(e => typeof e === 'string').slice(0, 10).map(e => e.slice(0, 100))
+    suggestedName: typeof normalized.name === 'string' ? normalized.name.slice(0, 150) : 'Unknown Equipment',
+    suggestedCategory: EQUIPMENT_CATEGORIES.includes(normalized.category) ? normalized.category : 'other',
+    resistanceType: RESISTANCE_TYPES.includes(normalized.resistanceType) ? normalized.resistanceType : 'other',
+    description: typeof normalized.description === 'string' ? normalized.description.slice(0, 500) : '',
+    confidence,
+    boundingBox: validateBoundingBox(normalized.boundingBox),
+    suggestedExercises: Array.isArray(normalized.suggestedExercises)
+      ? normalized.suggestedExercises.filter(e => typeof e === 'string').slice(0, 10).map(e => e.slice(0, 100))
       : [],
   };
   return result;
-}
-
-function getFirstObject(value) {
-  if (Array.isArray(value)) {
-    return value.find((item) => item && typeof item === 'object' && !Array.isArray(item)) || {};
-  }
-  if (!value || typeof value !== 'object') return {};
-  if (value.equipment && typeof value.equipment === 'object' && !Array.isArray(value.equipment)) {
-    return value.equipment;
-  }
-  if (value.item && typeof value.item === 'object' && !Array.isArray(value.item)) {
-    return value.item;
-  }
-  if (Array.isArray(value.items)) {
-    return getFirstObject(value.items);
-  }
-  return value;
-}
-
-function tryParseScanJson(candidate) {
-  try {
-    return getFirstObject(JSON.parse(candidate));
-  } catch {
-    return null;
-  }
-}
-
-function extractBalancedJsonObject(rawText) {
-  for (let start = rawText.indexOf('{'); start !== -1; start = rawText.indexOf('{', start + 1)) {
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < rawText.length; i++) {
-      const ch = rawText[i];
-      if (escape) {
-        escape = false;
-        continue;
-      }
-      if (ch === '\\') {
-        escape = true;
-        continue;
-      }
-      if (ch === '"') {
-        inString = !inString;
-        continue;
-      }
-      if (inString) continue;
-      if (ch === '{') {
-        depth++;
-      } else if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          const parsed = tryParseScanJson(rawText.slice(start, i + 1));
-          if (parsed) return parsed;
-          break;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-function parseEquipmentScanResponse(rawText) {
-  if (typeof rawText !== 'string' || rawText.trim().length === 0) {
-    throw new Error('AI returned empty response');
-  }
-
-  const trimmed = rawText.trim();
-  const direct = tryParseScanJson(trimmed);
-  if (direct) return direct;
-
-  const fenceMatches = trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi);
-  for (const match of fenceMatches) {
-    const parsed = tryParseScanJson(match[1].trim());
-    if (parsed) return parsed;
-  }
-
-  const balanced = extractBalancedJsonObject(trimmed);
-  if (balanced) return balanced;
-
-  throw new Error('AI returned invalid JSON response');
 }
 
 export function getEquipmentScanApiKey() {
@@ -178,6 +77,21 @@ export function getEquipmentScanModel() {
   return RETIRED_EQUIPMENT_SCAN_MODELS.has(model)
     ? DEFAULT_EQUIPMENT_SCAN_MODEL
     : model;
+}
+
+async function requestGeminiEquipmentScan(model, { base64Image, mimeType, prompt }) {
+  const result = await model.generateContent({
+    contents: [{
+      role: 'user',
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType, data: base64Image } },
+      ],
+    }],
+  });
+  const response = result?.response;
+  const text = typeof response?.text === 'function' ? response.text() : '';
+  return parseEquipmentScanResponse(text);
 }
 
 /**
@@ -226,22 +140,25 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
 
   const startMs = Date.now();
   try {
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType, data: base64Image } },
-          { text: SCAN_PROMPT },
-        ],
-      }],
+    let parsed = await requestGeminiEquipmentScan(model, {
+      base64Image,
+      mimeType,
+      prompt: buildEquipmentScanPrompt(),
     });
+    let sanitized = sanitizeScanResult(parsed);
 
-    const response = result?.response;
-    const text = typeof response?.text === 'function' ? response.text() : '';
+    if (isUnknownEquipmentResult(sanitized)) {
+      parsed = await requestGeminiEquipmentScan(model, {
+        base64Image,
+        mimeType,
+        prompt: buildEquipmentScanPrompt({ retry: true }),
+      });
+      sanitized = sanitizeScanResult(parsed);
+      if (isUnknownEquipmentResult(sanitized)) {
+        throw new Error('AI could not identify visible workout equipment');
+      }
+    }
 
-    const parsed = parseEquipmentScanResponse(text);
-
-    const sanitized = sanitizeScanResult(parsed);
     const latencyMs = Date.now() - startMs;
 
     logger.info('[EquipmentScan] Scan complete', {
@@ -271,7 +188,10 @@ export const __testing__ = {
   getEquipmentScanApiKey,
   getEquipmentScanModel,
   isEquipmentScanConfigured,
+  buildEquipmentScanPrompt,
+  isUnknownEquipmentResult,
   parseEquipmentScanResponse,
+  sanitizeScanResult,
 };
 
 export default { scanEquipmentImage };
