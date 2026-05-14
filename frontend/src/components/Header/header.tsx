@@ -126,7 +126,7 @@ const HeaderContent = styled.div`
   column-gap: clamp(0.75rem, 1.1vw, 1.25rem);
   align-items: center;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -136,11 +136,11 @@ const HeaderContent = styled.div`
   }
 
   @media (min-width: 2560px) {
-    max-width: 2200px;
+    max-width: 2400px;
   }
 
   @media (min-width: 3840px) {
-    max-width: 3000px;
+    max-width: 3200px;
   }
 
   @media (max-width: 768px) {

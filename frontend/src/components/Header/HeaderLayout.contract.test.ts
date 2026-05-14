@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const headerSource = readFileSync(resolve(__dirname, './header.tsx'), 'utf-8');
 const navSource = readFileSync(resolve(__dirname, './components/NavigationLinks.tsx'), 'utf-8');
 const logoSource = readFileSync(resolve(__dirname, './components/Logo.tsx'), 'utf-8');
+const desktopMoreMenuSource = readFileSync(resolve(__dirname, './components/DesktopMoreMenu.tsx'), 'utf-8');
 const dashboardSelectorSource = readFileSync(
   resolve(__dirname, '../DashboardSelector/DashboardSelector.tsx'),
   'utf-8'
@@ -30,6 +31,11 @@ describe('Header layout contract', () => {
     expect(headerSource).toContain('z-index: var(--z-header');
     expect(navSource).toContain('const DashboardSelectorMount = styled.div');
     expect(navSource).toContain('overflow: visible;');
+    expect(navSource).toContain('DesktopMoreMenu');
+    expect(navSource).toContain('@media (max-width: 1720px)');
+    expect(navSource).toContain('@media (max-width: 1024px)');
+    expect(desktopMoreMenuSource).toContain('aria-haspopup="menu"');
+    expect(desktopMoreMenuSource).toContain('role="menu"');
     expect(dashboardSelectorSource).toContain('z-index: var(--z-dropdown');
     expect(dashboardSelectorSource).toContain('max-height: min(70vh, 420px);');
     expect(dashboardSelectorSource).toContain('overflow-y: auto;');

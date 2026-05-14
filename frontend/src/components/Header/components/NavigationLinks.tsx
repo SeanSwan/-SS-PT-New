@@ -7,6 +7,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import DashboardSelector from '../../DashboardSelector/DashboardSelector';
+import DesktopMoreMenu from './DesktopMoreMenu';
 
 // Theme-aware colors via CSS variables (no more hardcoded dark-only values)
 
@@ -24,7 +25,7 @@ const NavLinksContainer = styled.div`
     margin-left: 0;
   }
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     display: none;
   }
 
@@ -46,7 +47,7 @@ const Nav = styled(motion.nav)`
   max-width: 100%;
   overflow: visible;
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     display: none;
   }
 `;
@@ -156,9 +157,15 @@ const DashboardSelectorMount = styled.div`
   }
 `;
 
-/* Secondary nav links hidden at narrow desktop (769-1024px) to prevent crowding */
+const PrimaryStoreNavLink = styled(StyledNavLink)`
+  @media (max-width: 1180px) {
+    display: none;
+  }
+`;
+
+/* Secondary nav links move into DesktopMoreMenu before compact desktop crowding starts */
 const SecondaryNavLink = styled(StyledNavLink)`
-  @media (max-width: 1024px) {
+  @media (max-width: 1720px) {
     display: none;
   }
 `;
@@ -182,13 +189,13 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
     if (user) {
       return (
         <>
-          <StyledNavLink
+          <PrimaryStoreNavLink
             to="/store"
             $isActive={isActive('/store') || isActive('/shop')}
             variants={itemVariants}
           >
             SwanStudios Store
-          </StyledNavLink>
+          </PrimaryStoreNavLink>
 
           <DashboardSelectorMount>
             <DashboardSelector />
@@ -198,13 +205,13 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
     } else {
       return (
         <>
-          <StyledNavLink 
-            to="/store" 
+          <PrimaryStoreNavLink
+            to="/store"
             $isActive={isActive('/store')}
             variants={itemVariants}
           >
             SwanStudios Store
-          </StyledNavLink>
+          </PrimaryStoreNavLink>
           
           <StyledNavLink 
             to="/login" 
@@ -278,6 +285,8 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
         >
           About
         </SecondaryNavLink>
+
+        <DesktopMoreMenu isActive={isActive} includeCompactStore />
       </Nav>
     </NavLinksContainer>
   );
