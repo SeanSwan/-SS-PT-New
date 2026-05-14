@@ -3,9 +3,9 @@
  * ========================
  * Compact intake bridge for the live Swan Coach Assistant surface.
  *
- * The full PLAUD workspace remains mounted at /dashboard/{role}/plaud. This
- * panel gives trainer/admin users queue state and command hooks inside Coach
- * without duplicating backend write logic or implying auto-apply.
+ * The full trainer PLAUD workspace remains mounted at /dashboard/trainer/plaud.
+ * Admin PLAUD work is unified inside the Coach Command Center so queue review
+ * and merge approval do not split across duplicate tabs.
  */
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -95,7 +95,9 @@ export function CoachIntakeWorkspace({
     setScope: queue.setScope,
   });
 
-  const workspaceHref = `/dashboard/${userRole}/plaud`;
+  const workspaceHref = userRole === 'admin'
+    ? '/dashboard/admin/coach-assistant?workspace=plaud'
+    : `/dashboard/${userRole}/plaud`;
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
   const orderedItems = React.useMemo(() => orderedQueueItems(items), [items]);
   const nextItem = pickNextItem(orderedItems);

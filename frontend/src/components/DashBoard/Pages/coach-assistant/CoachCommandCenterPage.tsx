@@ -24,6 +24,12 @@ import {
   ShieldCheck,
   Volume2,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
+import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
+import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
+import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
+import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { CommandCenterShell } from './CoachCommandCenter.styles';
 import {
   COMMAND_THREADS,
@@ -38,27 +44,6 @@ type DrawerSide = 'left' | 'right';
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const statusMetrics = [
-  { label: 'Coach intake queue', value: '18', note: '5 ready, 7 holds, 3 parsing, 3 recovery', accent: '#60c0f0' },
-  { label: 'Queue health', value: '91%', note: 'Review SLA inside target', accent: '#47e89a' },
-  { label: 'Ready drafts', value: '5', note: 'Final writes blocked until approval', accent: '#c6a84b' },
-  { label: 'Failed intake recovery', value: '3', note: 'Audio/transcript recovery lane open', accent: '#ff6d85' },
-];
-
-const intakeStates = [
-  { label: 'Client confirmation holds', value: '2', tone: 'hold' },
-  { label: 'Clarification holds', value: '5', tone: 'hold' },
-  { label: 'Duplicate-risk holds', value: '3', tone: 'stale' },
-  { label: 'Transcript upload/parsing', value: '82%', tone: 'processing' },
-];
-
-const dossierTiles = [
-  { label: 'Active intake dossier', value: 'PLAUD review', note: 'Audio parsing, notes attached' },
-  { label: 'Selected client context', value: 'Client A-104', note: '30-day training and nutrition context' },
-  { label: 'Attachments', value: '4 files', note: 'Audio, transcript, session note, draft summary' },
-  { label: 'Operator approval', value: 'Required', note: 'Prepared recommendations only' },
-];
-
 const rightRailItems = [
   'Ready draft: Client C-309 4-week block',
   'Client confirmation hold: Client A-104',
@@ -66,7 +51,40 @@ const rightRailItems = [
   'Duplicate-risk hold: Client B-217',
 ];
 
+type QueueMetric = {
+  label: string;
+  value: string;
+  note: string;
+  accent: string;
+};
+
+type IntakeStateTile = {
+  label: string;
+  value: string;
+  tone: 'hold' | 'stale' | 'processing' | 'ready' | 'failed';
+};
+
+type DossierTile = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+function reviewableMergeTime(item: CoachIntakeItem): number {
+  const value = item.recordedAt || item.timelineAt || item.createdAt;
+  const parsed = Date.parse(value || '');
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
+function pickReviewNextMergeRequestId(items: CoachIntakeItem[]): string | null {
+  return [...items]
+    .filter((item) => item.kind === 'merge_request' && item.canReview && item.entityId)
+    .sort((a, b) => reviewableMergeTime(a) - reviewableMergeTime(b))[0]?.entityId || null;
+}
+
 const CoachCommandCenterPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12 });
   const [activeThreadId, setActiveThreadId] = useState(COMMAND_THREADS[0].id);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(COMMAND_THREADS[0].clientStatus);
@@ -80,12 +98,69 @@ const CoachCommandCenterPage: React.FC = () => {
   const commandTextRef = useRef<HTMLTextAreaElement>(null);
   const leftRailRef = useRef<HTMLElement>(null);
   const rightRailRef = useRef<HTMLElement>(null);
+  const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const activeThread = useMemo(
     () => COMMAND_THREADS.find((thread) => thread.id === activeThreadId) ?? COMMAND_THREADS[0],
     [activeThreadId],
   );
+  const searchKey = searchParams.toString();
+  const rawMergeRequestId = searchParams.get('mergeRequestId');
+  const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
+  const reviewNextRequested = searchParams.get('review') === 'next';
+  const plaudWorkspaceRequested = searchParams.get('workspace') === 'plaud';
+  const reviewNextMergeRequestId = reviewNextRequested || plaudWorkspaceRequested
+    ? pickReviewNextMergeRequestId(coachQueue.items)
+    : null;
+  const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId || undefined;
+  const summary = coachQueue.summary;
+  const selectedClientLabel = activeThread.clientStatus.split(' - ')[0] || 'Selected client';
+
+  const statusMetrics = useMemo<QueueMetric[]>(() => [
+    {
+      label: 'Coach intake queue',
+      value: String(summary.actionable),
+      note: `${summary.readyReview} ready, ${summary.needsClarification} clarification, ${summary.duplicateHold} duplicate-risk`,
+      accent: '#60c0f0',
+    },
+    {
+      label: 'Queue health',
+      value: coachQueue.health?.status ? coachQueue.health.status : coachQueue.isLoading ? 'loading' : 'ready',
+      note: coachQueue.health?.nextOperatorAction?.label || 'Unified PLAUD and Coach intake queue',
+      accent: '#47e89a',
+    },
+    {
+      label: 'Ready drafts',
+      value: String(summary.preparedDrafts || summary.readyReview),
+      note: 'Final writes remain blocked until operator approval',
+      accent: '#c6a84b',
+    },
+    {
+      label: 'Failed intake recovery',
+      value: String(summary.failed),
+      note: 'Audio/transcript recovery lane stays visible',
+      accent: '#ff6d85',
+    },
+  ], [coachQueue.health?.nextOperatorAction?.label, coachQueue.health?.status, coachQueue.isLoading, summary]);
+
+  const intakeStates = useMemo<IntakeStateTile[]>(() => [
+    { label: 'Client confirmation holds', value: String(summary.needsClient), tone: 'hold' },
+    { label: 'Clarification holds', value: String(summary.needsClarification), tone: 'hold' },
+    { label: 'Duplicate-risk holds', value: String(summary.duplicateHold), tone: 'stale' },
+    { label: 'Transcript upload/parsing', value: String(summary.processing), tone: 'processing' },
+  ], [summary]);
+
+  const dossierTiles = useMemo<DossierTile[]>(() => [
+    {
+      label: 'Active intake dossier',
+      value: initialReviewMergeRequestId ? 'PLAUD review selected' : 'Unified queue review',
+      note: initialReviewMergeRequestId ? 'Merge review loaded from the command route' : 'Next actionable item is pulled from the unified queue',
+    },
+    { label: 'Selected client context', value: selectedClientLabel, note: 'Client context remains operator-reviewed before draft work' },
+    { label: 'Attachments', value: `${summary.unprocessed + summary.processing} queued`, note: 'Audio, transcript, and typed intake sources' },
+    { label: 'Operator approval', value: 'Required', note: 'Prepared recommendations only' },
+  ], [initialReviewMergeRequestId, selectedClientLabel, summary.processing, summary.unprocessed]);
 
   const focusComposer = (value?: string, status?: string) => {
     if (value !== undefined) setCommandText(value);
@@ -188,6 +263,15 @@ const CoachCommandCenterPage: React.FC = () => {
     window.addEventListener('resize', syncDockSpace);
     return () => window.removeEventListener('resize', syncDockSpace);
   }, [commandText, drawer]);
+
+  useEffect(() => {
+    if (!plaudWorkspaceRequested && !rawMergeRequestId && !reviewNextRequested) return undefined;
+    const timer = window.setTimeout(() => {
+      plaudReviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      plaudReviewRef.current?.focus({ preventScroll: true });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested, searchKey]);
 
   useEffect(() => {
     const shell = shellRef.current;
@@ -411,11 +495,11 @@ const CoachCommandCenterPage: React.FC = () => {
               <div className="banner-orbit" aria-label="Queue health overview">
                 <span className="orbit-core" />
                 <div className="orbit-readout">
-                  intake queue: 18
+                  intake queue: {summary.actionable}
                   <br />
-                  ready drafts: 5
+                  ready drafts: {summary.preparedDrafts || summary.readyReview}
                   <br />
-                  operator holds: 10
+                  operator holds: {summary.needsClarification + summary.duplicateHold + summary.needsClient}
                 </div>
               </div>
             </div>
@@ -438,7 +522,7 @@ const CoachCommandCenterPage: React.FC = () => {
                   <h2 className="panel-title">Active intake dossier</h2>
                   <p className="panel-subtitle">PLAUD/audio review, transcript parsing, and selected context.</p>
                 </div>
-                <span className="status-pill processing">parsing 82%</span>
+                <span className="status-pill processing">{summary.processing} parsing</span>
               </div>
               <div className="dossier-main">
                 {dossierTiles.map((tile) => (
@@ -450,7 +534,10 @@ const CoachCommandCenterPage: React.FC = () => {
                 ))}
               </div>
               <div className="progress-track" aria-label="Transcript parsing progress">
-                <span className="progress-fill" style={{ '--progress': '82%' } as React.CSSProperties} />
+                <span
+                  className="progress-fill"
+                  style={{ '--progress': summary.processing > 0 ? '72%' : '8%' } as React.CSSProperties}
+                />
               </div>
             </article>
 
@@ -470,6 +557,51 @@ const CoachCommandCenterPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
+            </article>
+          </section>
+
+          <section className="live-intake-grid" aria-label="Unified PLAUD and Coach intake queue">
+            <div className="section-title-row">
+              <div>
+                <h2 className="panel-title">Unified PLAUD and Coach intake queue</h2>
+                <p className="panel-subtitle">
+                  Coach intake, PLAUD clips, transcript uploads, attachments, holds, and approvals stay in one operator flow.
+                </p>
+              </div>
+              <span className="mini-chip cyan">{coachQueue.health?.nextOperatorAction?.label || 'Review next intake'}</span>
+            </div>
+
+            <div className="live-workspace-panel">
+              <CoachIntakeWorkspace
+                userRole="admin"
+                selectedClientName={selectedClientLabel}
+                onCommandPrompt={handleWorkflowSelect}
+                queue={coachQueue}
+                activeIntakeId={searchParams.get('intake')}
+              />
+            </div>
+
+            <article
+              className="panel plaud-review-panel"
+              ref={plaudReviewRef}
+              tabIndex={-1}
+              aria-label="PLAUD audio merge review"
+            >
+              <div className="section-title-row">
+                <div>
+                  <h2 className="panel-title">PLAUD/audio merge review</h2>
+                  <p className="panel-subtitle">
+                    Existing clip ordering and merge approval workflow, embedded in the Command Center instead of a duplicate admin tab.
+                  </p>
+                </div>
+                <span className="status-pill hold">operator approval required</span>
+              </div>
+              <div className="plaud-merge-frame">
+                <PlaudMergeWorkspace
+                  embedded
+                  initialReviewMergeRequestId={initialReviewMergeRequestId}
+                />
+              </div>
             </article>
           </section>
 

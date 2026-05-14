@@ -35,12 +35,27 @@ function resolveRole(ctx) {
 }
 function resolveCoachQueueRoute(ctx) { return `/dashboard/${resolveRole(ctx)}/coach-assistant`; }
 
+function routeWithParams(route, params = {}) {
+  const [path, search = ''] = String(route || '').split('?');
+  const searchParams = new URLSearchParams(search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 function count(summary, key) { return Number(summary?.[key] || 0); }
 
 function resolvePlaudReviewRoute(ctx, item = null) {
-  const baseRoute = `/dashboard/${resolveRole(ctx)}/plaud`;
+  const role = resolveRole(ctx);
+  const baseRoute = role === 'admin'
+    ? '/dashboard/admin/coach-assistant?workspace=plaud'
+    : '/dashboard/trainer/plaud';
   const entityId = isPlaudUuid(item?.entityId) ? item.entityId : '';
-  return entityId ? `${baseRoute}?mergeRequestId=${encodeURIComponent(entityId)}` : `${baseRoute}?review=next`;
+  return entityId
+    ? routeWithParams(baseRoute, { mergeRequestId: entityId })
+    : routeWithParams(baseRoute, { review: 'next' });
 }
 
 function appendCoachScope(route, scope) {

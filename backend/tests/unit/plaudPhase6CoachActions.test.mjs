@@ -118,7 +118,7 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
     expect(JSON.stringify(result)).not.toMatch(/Do Not Return|transcript/i);
   });
 
-  it('returns the role-dashboard PLAUD route for admins', async () => {
+  it('returns the unified Coach Command Center PLAUD route for admins', async () => {
     vi.mocked(listPlaudIntakeItems).mockResolvedValue({
       scope: 'actionable',
       limit: 10,
@@ -140,7 +140,7 @@ describe('Phase 6 — PLAUD Swan Coach dispatcher behavior', () => {
       { user: { id: 7, role: 'admin' }, options: { sequelize: sequelizeOverride } },
     );
 
-    expect(result.queueRoute).toBe('/dashboard/admin/plaud');
+    expect(result.queueRoute).toBe('/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
   it('review-next prioritizes ready review items over unprocessed clips', async () => {

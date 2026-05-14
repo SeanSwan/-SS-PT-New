@@ -130,12 +130,32 @@ export function itemEntityId(item: CoachIntakeItem): string {
   return String(item.entityId || item.id || '').replace(/^coach:/, '');
 }
 
+function routeWithParams(baseHref: string, params: Record<string, string>): string {
+  const [path, search = ''] = baseHref.split('?');
+  const searchParams = new URLSearchParams(search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+function plaudReviewBaseHref(workspaceHref: string): string {
+  const path = workspaceHref.split('?')[0];
+  if (path === '/dashboard/admin/coach-assistant') {
+    return '/dashboard/admin/coach-assistant?workspace=plaud';
+  }
+  return path.replace('/coach-assistant', '/plaud');
+}
+
 export function itemReviewHref(item: CoachIntakeItem | null, workspaceHref: string): string {
   if (!item) return workspaceHref;
   if (item.kind === 'merge_request' && item.canReview) {
     const entityId = String(item.entityId || '').trim();
-    const plaudHref = workspaceHref.replace('/coach-assistant', '/plaud');
-    return entityId ? `${plaudHref}?mergeRequestId=${encodeURIComponent(entityId)}` : `${plaudHref}?review=next`;
+    const plaudHref = plaudReviewBaseHref(workspaceHref);
+    return entityId
+      ? routeWithParams(plaudHref, { mergeRequestId: entityId })
+      : routeWithParams(plaudHref, { review: 'next' });
   }
   const entityId = itemEntityId(item);
   return entityId ? `${workspaceHref}?intake=${encodeURIComponent(entityId)}` : workspaceHref;

@@ -63,7 +63,7 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
     });
 
     const { container } = render(
-      <MemoryRouter initialEntries={['/dashboard/admin/plaud']}>
+      <MemoryRouter initialEntries={['/dashboard/trainer/plaud']}>
         <PlaudIntelligenceWorkspacePage />
       </MemoryRouter>,
     );
@@ -84,7 +84,7 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
     });
 
     const { container } = render(
-      <MemoryRouter initialEntries={['/dashboard/admin/plaud']}>
+      <MemoryRouter initialEntries={['/dashboard/trainer/plaud']}>
         <PlaudIntelligenceWorkspacePage />
       </MemoryRouter>,
     );

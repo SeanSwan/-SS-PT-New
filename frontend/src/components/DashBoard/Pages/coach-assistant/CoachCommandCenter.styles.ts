@@ -497,6 +497,29 @@ export const CommandCenterShell = styled.div`
     grid-template-columns: minmax(0, 1.04fr) minmax(320px, 0.96fr);
   }
 
+  .live-intake-grid {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .live-workspace-panel,
+  .plaud-review-panel,
+  .plaud-merge-frame {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .live-workspace-panel > *,
+  .plaud-merge-frame > * {
+    max-width: 100%;
+  }
+
+  .plaud-review-panel:focus-visible {
+    outline: 2px solid var(--coach-cyan);
+    outline-offset: 4px;
+  }
+
   .dossier-card {
     display: grid;
     gap: 14px;
@@ -767,6 +790,7 @@ export const CommandCenterShell = styled.div`
     .command-banner,
     .queue-summary,
     .content-grid,
+    .live-intake-grid,
     .dossier-grid,
     .workflow-grid,
     .operations-grid,
@@ -782,6 +806,9 @@ export const CommandCenterShell = styled.div`
     .card-top > *,
     .mini-chip,
     .workflow-card,
+    .live-workspace-panel,
+    .plaud-review-panel,
+    .plaud-merge-frame,
     .status-card {
       max-width: 100%;
       min-width: 0;

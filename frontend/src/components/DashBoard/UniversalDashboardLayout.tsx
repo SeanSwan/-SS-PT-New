@@ -477,6 +477,18 @@ const ClientProgressWrapper: React.FC = () => {
   return <NASMProgressCharts clientId={user?.id || 0} />;
 };
 
+const ADMIN_PLAUD_COMMAND_CENTER_PATH = '/dashboard/admin/coach-assistant?workspace=plaud';
+
+const AdminPlaudCommandCenterRedirect: React.FC = () => {
+  const location = useLocation();
+  if (!location.search) {
+    return <Navigate to={ADMIN_PLAUD_COMMAND_CENTER_PATH} replace />;
+  }
+  const params = new URLSearchParams(location.search);
+  params.set('workspace', 'plaud');
+  return <Navigate to={`/dashboard/admin/coach-assistant?${params.toString()}`} replace />;
+};
+
 // === ROLE CONFIGURATION ===
 interface RoleConfig {
   routes: Array<{
@@ -551,7 +563,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
 
       // 💪 WORKOUT LOGGING (admin can log workouts too)
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
-      { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
+      { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
 
       // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },

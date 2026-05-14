@@ -74,7 +74,7 @@ describe('CoachIntakeWorkspace item review links', () => {
     expect(screen.getByRole('link', { name: /review intake coach voice note/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=coach-1');
     expect(screen.getByRole('link', { name: /review intake plaud merge/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud&mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
   it('does not build PLAUD merge review links from display ids when entityId is missing', () => {
@@ -93,7 +93,7 @@ describe('CoachIntakeWorkspace item review links', () => {
     );
 
     expect(screen.getByRole('link', { name: /review intake plaud merge/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud?review=next');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud&review=next');
   });
 
   it('marks the selected Coach intake row after a direct item link opens', () => {

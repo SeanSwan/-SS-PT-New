@@ -85,7 +85,7 @@ describe('CoachIntakeWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: /inspect audio pieces/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
     expect(screen.getByRole('link', { name: /open full plaud workspace/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
   it('keeps direct review-next routing into PLAUD when the next item is a reviewable merge', () => {
@@ -111,7 +111,7 @@ describe('CoachIntakeWorkspace', () => {
     );
 
     expect(screen.getByRole('link', { name: /review next intake/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud&mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
   it('shows a dedicated active review target when an intake id is selected', () => {

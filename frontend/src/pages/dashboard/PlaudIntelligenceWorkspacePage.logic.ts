@@ -73,11 +73,24 @@ export function visibleIntakePreviewItems(
   return selectedItem ? [selectedItem, ...firstItems.slice(0, 5)] : firstItems;
 }
 
+export function plaudWorkspaceHref(role: PlaudDashboardRole, params: Record<string, string> = {}): string {
+  const baseHref = role === 'admin'
+    ? '/dashboard/admin/coach-assistant?workspace=plaud'
+    : '/dashboard/trainer/plaud';
+  const [path, search = ''] = baseHref.split('?');
+  const searchParams = new URLSearchParams(search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export function intakePreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
   if (item.kind === 'merge_request') {
     return item.entityId
-      ? `/dashboard/${role}/plaud?mergeRequestId=${encodeURIComponent(item.entityId)}`
-      : `/dashboard/${role}/plaud?review=next`;
+      ? plaudWorkspaceHref(role, { mergeRequestId: item.entityId })
+      : plaudWorkspaceHref(role, { review: 'next' });
   }
   const intakeId = String(item.entityId || item.id || '').replace(/^coach:/, '');
   return intakeId

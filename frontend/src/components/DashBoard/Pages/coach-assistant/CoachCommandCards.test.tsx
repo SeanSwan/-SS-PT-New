@@ -20,7 +20,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
     expect(screen.getByText(/PLAUD intake queue ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Open the PLAUD workspace to continue the next actionable item/i)).toBeInTheDocument();
     expect(screen.queryByText('queueRoute')).toBeNull();
@@ -42,7 +42,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     const link = screen.getByRole('link', { name: /open plaud review/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud?mergeRequestId=11111111-1111-4111-8111-111111111111');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?mergeRequestId=11111111-1111-4111-8111-111111111111&workspace=plaud');
     expect(screen.getByText(/Next intake ready/i)).toBeInTheDocument();
     expect(screen.getByText(/Open the selected PLAUD review item/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/PLAUD intake queue summary/i)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
   it('skips malformed merge request review routes and uses the queue fallback', () => {
@@ -85,7 +85,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
   it('skips empty merge request review params and uses the queue fallback', () => {
@@ -104,7 +104,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     const link = screen.getByRole('link', { name: /open plaud workspace/i });
-    expect(link).toHaveAttribute('href', '/dashboard/admin/plaud');
+    expect(link).toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
   it('does not render route actions for traversal-shaped dashboard links', () => {
@@ -189,7 +189,7 @@ describe('ExecutionResultCard route actions', () => {
     );
 
     expect(screen.getByRole('link', { name: /open plaud workspace/i }))
-      .toHaveAttribute('href', '/dashboard/admin/plaud?note=/dashboard/admin/coach-assistant&proposal=stale');
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?note=%2Fdashboard%2Fadmin%2Fcoach-assistant&proposal=stale&workspace=plaud');
     expect(screen.queryByRole('link', { name: /open prepared draft/i })).toBeNull();
   });
 

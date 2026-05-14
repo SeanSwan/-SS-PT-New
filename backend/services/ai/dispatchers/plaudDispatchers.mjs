@@ -37,9 +37,19 @@ function resolveUserId(ctx) {
 
 function resolvePlaudQueueRoute(ctx) {
   const role = String(ctx?.user?.role || '').toLowerCase();
-  if (role === 'admin') return '/dashboard/admin/plaud';
+  if (role === 'admin') return '/dashboard/admin/coach-assistant?workspace=plaud';
   if (role === 'trainer') return '/dashboard/trainer/plaud';
   throw new Error('Access requires an admin or trainer role for PLAUD queue commands.');
+}
+
+function routeWithParams(route, params = {}) {
+  const [path, search = ''] = String(route || '').split('?');
+  const searchParams = new URLSearchParams(search);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 function normalizeLimit(raw, fallback = DEFAULT_QUEUE_LIMIT) {
@@ -78,9 +88,9 @@ function pickNextItem(items = []) {
 function reviewRouteForItem(item, queueRoute) {
   if (!item) return null;
   if (item.kind === 'merge_request' && item.canReview && isPlaudUuid(item.entityId)) {
-    return `${queueRoute}?mergeRequestId=${encodeURIComponent(item.entityId)}`;
+    return routeWithParams(queueRoute, { mergeRequestId: item.entityId });
   }
-  return `${queueRoute}?review=next`;
+  return routeWithParams(queueRoute, { review: 'next' });
 }
 
 function summaryEntityIdForItem(item) {
@@ -169,7 +179,7 @@ function summarizeAudioPieces(items, { queueRoute, gapThresholdMinutes }) {
     return `${index + 1}. ${piece.source} ${piece.timelineSource || 'time'}=${piece.timelineAt || 'unknown'} ${duration}${gap}`;
   }).join(' | ');
   const suggestedGroupCount = withGaps.length === 0 ? 0 : largeGaps.length + 1;
-  const targetRoute = `${queueRoute}?pieces=pending`;
+  const targetRoute = routeWithParams(queueRoute, { pieces: 'pending' });
   const needsOrderingReview = withGaps.length > 1;
   const audioConfidence = withGaps.length <= 1
     ? 'single'

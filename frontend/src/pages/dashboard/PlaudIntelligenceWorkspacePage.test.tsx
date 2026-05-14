@@ -51,15 +51,17 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).not.toMatch(/Swan Coach intake command/);
   });
 
-  it('is mounted for both admin and trainer role dashboards', () => {
+  it('merges admin PLAUD into the command center while preserving the trainer PLAUD workspace', () => {
     expect(LAYOUT_SRC).toMatch(/PlaudIntelligenceWorkspacePage/);
-    expect(roleBlock('admin')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}PlaudIntelligenceWorkspacePage/);
+    expect(LAYOUT_SRC).toMatch(/AdminPlaudCommandCenterRedirect/);
+    expect(LAYOUT_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
+    expect(roleBlock('admin')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}AdminPlaudCommandCenterRedirect/);
     expect(roleBlock('trainer')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}PlaudIntelligenceWorkspacePage/);
   });
 
-  it('is visible from admin and trainer navigation', () => {
-    expect(DASHBOARD_TABS_SRC).toMatch(/id:\s*['"]plaud['"]/);
-    expect(DASHBOARD_TABS_SRC).toMatch(/prefix:\s*['"]\/dashboard\/admin\/plaud['"]/);
+  it('removes the duplicate admin PLAUD tab while keeping trainer navigation', () => {
+    expect(DASHBOARD_TABS_SRC).not.toMatch(/id:\s*['"]plaud['"][\s\S]{0,160}prefix:\s*['"]\/dashboard\/admin\/plaud['"]/);
+    expect(DASHBOARD_TABS_SRC).toMatch(/id:\s*['"]coach['"][\s\S]{0,160}prefix:\s*['"]\/dashboard\/admin\/coach-assistant['"]/);
     expect(TRAINER_SIDEBAR_SRC).toMatch(/path:\s*['"]\/dashboard\/trainer\/plaud['"]/);
   });
 
@@ -99,7 +101,7 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/IntakeRecoveryAlert/);
     expect(PAGE_SRC).toMatch(/tabIndex=\{-1\}/);
     expect(PAGE_SRC).toMatch(/data-testid="plaud-invalid-review-link"/);
-    expect(PAGE_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
+    expect(PAGE_SRC).toMatch(/plaudWorkspaceHref\(role, \{ review: 'next' \}\)/);
   });
 
   it('marks the selected merge request target in the intake preview list', () => {
@@ -112,9 +114,12 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
 
   it('turns intake preview rows into direct review links', () => {
     expect(LOGIC_SRC).toMatch(/function intakePreviewHref/);
+    expect(LOGIC_SRC).toMatch(/function plaudWorkspaceHref/);
     expect(LOGIC_SRC).toMatch(/item\.kind\s*===\s*['"]merge_request['"]/);
-    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?mergeRequestId=/);
-    expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/plaud\?review=next/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
+    expect(LOGIC_SRC).toMatch(/\/dashboard\/trainer\/plaud/);
+    expect(LOGIC_SRC).toMatch(/plaudWorkspaceHref\(role, \{ mergeRequestId: item\.entityId \}\)/);
+    expect(LOGIC_SRC).toMatch(/plaudWorkspaceHref\(role, \{ review: 'next' \}\)/);
     expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant\?intake=/);
     expect(LOGIC_SRC).toMatch(/\/dashboard\/\$\{role\}\/coach-assistant`/);
     expect(PAGE_SRC).toMatch(/IntakePreviewLink/);

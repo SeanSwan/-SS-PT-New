@@ -3,13 +3,12 @@
  * ==================================
  *
  * WHAT THIS FILE DOES:
- * Canonical role-dashboard surface for PLAUD intake. It keeps the existing
- * manual merge workflow live while moving it into a top-level Training
- * workspace.
+ * Canonical trainer role-dashboard surface for PLAUD intake. Admin operators
+ * use the unified Coach Command Center, which embeds the same merge workflow.
  *
  * HOW IT FITS IN THE APP:
- * UniversalDashboardLayout mounts this page for admin and trainer roles at
- * /dashboard/{role}/plaud. The current live engine remains PlaudMergeWorkspace.
+ * UniversalDashboardLayout mounts this page for trainer users at
+ * /dashboard/trainer/plaud. The current live engine remains PlaudMergeWorkspace.
  *
  * KEY DECISION:
  * Swan Coach/Hive Mind status labels mirror review-gated capabilities. The UI
@@ -36,6 +35,7 @@ import {
   intakePreviewHref,
   intakePreviewLabel,
   pickReviewNextMergeRequestId,
+  plaudWorkspaceHref,
   queueLoadErrorMessage,
   visibleIntakePreviewItems,
   type PlaudDashboardRole,
@@ -192,7 +192,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
           >
             <AlertTriangle size={18} aria-hidden="true" />
             <span>That PLAUD review link has an invalid merge request ID.</span>
-            <IntakeRecoveryLink to={`/dashboard/${role}/plaud?review=next`}>
+            <IntakeRecoveryLink to={plaudWorkspaceHref(role, { review: 'next' })}>
               Review next item
             </IntakeRecoveryLink>
           </IntakeRecoveryAlert>

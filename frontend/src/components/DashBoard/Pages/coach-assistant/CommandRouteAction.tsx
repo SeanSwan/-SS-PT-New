@@ -47,6 +47,16 @@ const RouteLink = styled(Link)`
   }
 `;
 
+function normalizeAdminPlaudRoute(route: string): string {
+  const [pathWithSearch, hash = ''] = route.split('#', 2);
+  const [path, search = ''] = pathWithSearch.split('?');
+  if (path !== '/dashboard/admin/plaud') return route;
+  const searchParams = new URLSearchParams(search);
+  searchParams.set('workspace', 'plaud');
+  const query = searchParams.toString();
+  return `/dashboard/admin/coach-assistant${query ? `?${query}` : ''}${hash ? `#${hash}` : ''}`;
+}
+
 function safeInternalRoute(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const route = value.trim();
@@ -84,11 +94,14 @@ function safeInternalRoute(value: unknown): string | null {
     }
   }
 
-  return route;
+  return normalizeAdminPlaudRoute(route);
 }
 
 function labelForCommand(command: string, route: string): string {
   const path = route.split(/[?#]/, 1)[0];
+  const isAdminPlaudCommandCenter = path.includes('/coach-assistant') && /[?&]workspace=plaud(?:&|$)/.test(route);
+  if (isAdminPlaudCommandCenter && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
+  if (isAdminPlaudCommandCenter) return 'Open PLAUD Workspace';
   if (path.includes('/plaud') && route.includes('mergeRequestId=')) return 'Open PLAUD Review';
   if (path.includes('/coach-assistant') && /[?&]proposal=/.test(route)) return 'Open Prepared Draft';
   if (path.includes('/coach-assistant')) return 'Open Coach Intake';
