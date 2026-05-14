@@ -22,6 +22,10 @@ import {
   normalizeRawScanResult,
   parseEquipmentScanResponse,
 } from './equipmentScanSupport.mjs';
+import {
+  buildEquipmentCaptionPrompt,
+  scanResultFromCaption,
+} from './equipmentScanCaptionFallback.mjs';
 
 /**
  * Validate bounding box coordinates are in 0-1 range
@@ -84,14 +88,28 @@ async function requestGeminiEquipmentScan(model, { base64Image, mimeType, prompt
     contents: [{
       role: 'user',
       parts: [
-        { text: prompt },
         { inlineData: { mimeType, data: base64Image } },
+        { text: prompt },
       ],
     }],
   });
   const response = result?.response;
   const text = typeof response?.text === 'function' ? response.text() : '';
   return parseEquipmentScanResponse(text);
+}
+
+async function requestGeminiEquipmentCaption(model, { base64Image, mimeType }) {
+  const result = await model.generateContent({
+    contents: [{
+      role: 'user',
+      parts: [
+        { inlineData: { mimeType, data: base64Image } },
+        { text: buildEquipmentCaptionPrompt() },
+      ],
+    }],
+  });
+  const response = result?.response;
+  return typeof response?.text === 'function' ? response.text() : '';
 }
 
 /**
@@ -135,6 +153,13 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
       responseMimeType: 'application/json',
     },
   });
+  const captionModel = genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: 80,
+      temperature: 0.1,
+    },
+  });
 
   const base64Image = imageBuffer.toString('base64');
 
@@ -155,7 +180,13 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
       });
       sanitized = sanitizeScanResult(parsed);
       if (isUnknownEquipmentResult(sanitized)) {
-        throw new Error('AI could not identify visible workout equipment');
+        const caption = await requestGeminiEquipmentCaption(captionModel, { base64Image, mimeType });
+        const captionResult = scanResultFromCaption(caption);
+        if (!captionResult) {
+          throw new Error('AI could not identify visible workout equipment');
+        }
+        parsed = captionResult;
+        sanitized = sanitizeScanResult(captionResult);
       }
     }
 
@@ -188,9 +219,11 @@ export const __testing__ = {
   getEquipmentScanApiKey,
   getEquipmentScanModel,
   isEquipmentScanConfigured,
+  buildEquipmentCaptionPrompt,
   buildEquipmentScanPrompt,
   isUnknownEquipmentResult,
   parseEquipmentScanResponse,
+  scanResultFromCaption,
   sanitizeScanResult,
 };
 

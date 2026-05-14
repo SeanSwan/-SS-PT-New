@@ -53,11 +53,45 @@ describe('equipment scan retry behavior', () => {
 
     const firstParts = generateContentMock.mock.calls[0][0].contents[0].parts;
     const secondParts = generateContentMock.mock.calls[1][0].contents[0].parts;
-    const firstPrompt = firstParts[0].text;
-    const secondPrompt = secondParts[0].text;
+    const firstPrompt = firstParts[1].text;
+    const secondPrompt = secondParts[1].text;
     expect(firstPrompt).toContain('what workout equipment is this');
     expect(secondPrompt).toContain('second-pass review');
-    expect(firstParts[1].inlineData.mimeType).toBe('image/jpeg');
-    expect(secondParts[1].inlineData.data).toBe(Buffer.from('fake image bytes').toString('base64'));
+    expect(firstParts[0].inlineData.mimeType).toBe('image/jpeg');
+    expect(secondParts[0].inlineData.data).toBe(Buffer.from('fake image bytes').toString('base64'));
+  });
+
+  it('uses a plain Gemini caption fallback when both strict JSON passes return Unknown', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    generateContentMock
+      .mockResolvedValueOnce(geminiJson({
+        name: 'Unknown',
+        category: 'other',
+        resistanceType: 'other',
+        confidence: 0,
+      }))
+      .mockResolvedValueOnce(geminiJson({
+        name: 'Unknown Equipment',
+        category: 'other',
+        resistanceType: 'other',
+        confidence: 0,
+      }))
+      .mockResolvedValueOnce({
+        response: {
+          text: () => 'The image shows black hex dumbbells stored on a rack.',
+        },
+      });
+
+    const result = await scanEquipmentImage(Buffer.from('fake image bytes'), 'image/jpeg');
+
+    expect(generateContentMock).toHaveBeenCalledTimes(3);
+    expect(result.suggestedName).toBe('Dumbbell Rack');
+    expect(result.suggestedCategory).toBe('dumbbell');
+    expect(result.resistanceType).toBe('dumbbell');
+    expect(result.confidence).toBeGreaterThan(0.7);
+
+    const captionParts = generateContentMock.mock.calls[2][0].contents[0].parts;
+    expect(captionParts[0].inlineData.mimeType).toBe('image/jpeg');
+    expect(captionParts[1].text).toContain('what workout equipment is this');
   });
 });

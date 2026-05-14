@@ -102,11 +102,13 @@ describe('equipment scan configuration', () => {
   it('asks Gemini the direct equipment question and names dumbbell racks explicitly', () => {
     const prompt = __testing__.buildEquipmentScanPrompt();
     const retryPrompt = __testing__.buildEquipmentScanPrompt({ retry: true });
+    const captionPrompt = __testing__.buildEquipmentCaptionPrompt();
 
     expect(prompt).toContain('what workout equipment is this');
     expect(prompt).toContain('Dumbbell Rack');
     expect(prompt).toContain('Hex Dumbbells on Rack');
     expect(retryPrompt).toContain('second-pass review');
+    expect(captionPrompt).toContain('what workout equipment is this');
   });
 
   it('marks zero-confidence unknown equipment as retryable', () => {
@@ -131,5 +133,14 @@ describe('equipment scan configuration', () => {
     expect(sanitized.suggestedName).toBe('Dumbbell Rack');
     expect(sanitized.confidence).toBe(0.65);
     expect(__testing__.isUnknownEquipmentResult(sanitized)).toBe(false);
+  });
+
+  it('converts Gemini caption fallback text into a dumbbell rack scan result', () => {
+    const fallback = __testing__.scanResultFromCaption('The image shows a rack of black hex dumbbells.');
+
+    expect(fallback.name).toBe('Dumbbell Rack');
+    expect(fallback.category).toBe('dumbbell');
+    expect(fallback.resistanceType).toBe('dumbbell');
+    expect(fallback.confidence).toBeGreaterThan(0.7);
   });
 });
