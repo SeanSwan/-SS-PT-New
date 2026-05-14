@@ -1,5 +1,12 @@
 export type EquipmentScanSource = 'camera' | 'gallery';
 
+export type EquipmentScanQueueItem = {
+  id: string;
+  file: File;
+  fileName: string;
+  source: EquipmentScanSource;
+};
+
 type ScanDeviceContext = {
   userAgent?: string;
   maxTouchPoints?: number;
@@ -19,8 +26,35 @@ export function isMobileScanDevice(context: ScanDeviceContext = {}): boolean {
 }
 
 export function getEquipmentScanInputProps(source: EquipmentScanSource) {
+  if (source === 'camera') {
+    return {
+      accept: 'image/*',
+      capture: 'environment',
+    };
+  }
+
   return {
     accept: 'image/*',
-    capture: source === 'camera' ? 'environment' : undefined,
+    capture: undefined,
+    multiple: true,
   };
+}
+
+export function createEquipmentScanQueue(
+  files: ArrayLike<File> | Iterable<File>,
+  source: EquipmentScanSource,
+  startIndex = 0,
+): EquipmentScanQueueItem[] {
+  return Array.from(files).map((file, index) => ({
+    id: [
+      source,
+      startIndex + index,
+      file.name || 'equipment-photo',
+      file.size,
+      file.lastModified,
+    ].join('-'),
+    file,
+    fileName: file.name || `Equipment photo ${startIndex + index + 1}`,
+    source,
+  }));
 }

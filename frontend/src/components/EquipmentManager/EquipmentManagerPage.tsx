@@ -26,10 +26,11 @@ import type {
   ScanResult,
 } from '../../hooks/useEquipmentAPI';
 import {
+  createEquipmentScanQueue,
   getEquipmentScanInputProps,
   isMobileScanDevice,
 } from './equipmentScanInputs';
-import type { EquipmentScanSource } from './equipmentScanInputs';
+import type { EquipmentScanQueueItem, EquipmentScanSource } from './equipmentScanInputs';
 
 // --- Keyframes ---
 
@@ -134,6 +135,7 @@ const GhostButton = styled.button`
   min-height: 44px;
   transition: all 0.2s;
   &:hover { background: rgba(96, 192, 240, 0.1); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const Card = styled(motion.div)`
@@ -234,6 +236,51 @@ const ScanActionGroup = styled.div`
       flex: 1 1 140px;
     }
   }
+`;
+
+const ScanQueuePanel = styled.div`
+  padding: 14px 16px;
+  margin: 8px 0 16px;
+  background:
+    linear-gradient(135deg, rgba(96, 192, 240, 0.12), rgba(139, 92, 246, 0.1)),
+    rgba(0, 32, 96, 0.45);
+  border: 1px solid rgba(96, 192, 240, 0.22);
+  border-radius: 12px;
+  color: var(--text-primary, #E0ECF4);
+`;
+
+const ScanQueueHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const ScanQueueTitle = styled.div`
+  color: var(--accent-primary, #60C0F0);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
+const ScanQueueSummary = styled.div`
+  margin-top: 8px;
+  color: rgba(224, 236, 244, 0.78);
+  font-size: 13px;
+`;
+
+const ScanQueueList = styled.ol`
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding-left: 18px;
+`;
+
+const ScanQueueFile = styled.li`
+  color: rgba(224, 236, 244, 0.68);
+  font-size: 12px;
 `;
 
 const EmptyState = styled.div`
@@ -529,6 +576,8 @@ const EquipmentManagerPage: React.FC = () => {
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const [lastScanResult, setLastScanResult] = useState<{ item: EquipmentItem; scanResult: ScanResult } | null>(null);
+  const [scanQueue, setScanQueue] = useState<EquipmentScanQueueItem[]>([]);
+  const [activeScanItem, setActiveScanItem] = useState<EquipmentScanQueueItem | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [showApproval, setShowApproval] = useState<EquipmentItem | null>(null);
@@ -642,10 +691,10 @@ const EquipmentManagerPage: React.FC = () => {
 
   // ── AI Scan ───────────────────────────────────────────────────────
 
-  const resetScanInputs = () => {
+  const resetScanInputs = useCallback(() => {
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (galleryInputRef.current) galleryInputRef.current.value = '';
-  };
+  }, []);
 
   const handleScanClick = (source: EquipmentScanSource = mobileScanDevice ? 'camera' : 'gallery') => {
     if (source === 'gallery') {
@@ -655,26 +704,20 @@ const EquipmentManagerPage: React.FC = () => {
     cameraInputRef.current?.click();
   };
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedProfile) return;
+  const scanQueuedItem = useCallback(async (queueItem: EquipmentScanQueueItem) => {
+    if (!selectedProfile) return;
 
-    const validationError = validateEquipmentPhoto(file);
-    if (validationError) {
-      setScanError(validationError);
-      resetScanInputs();
-      return;
-    }
+    setActiveScanItem(queueItem);
+    setScanPreview(null);
 
-    // Show preview
     const reader = new FileReader();
     reader.onload = () => setScanPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(queueItem.file);
 
     setScanning(true);
     setScanError(null);
     try {
-      const result = await api.scanEquipment(selectedProfile.id, file);
+      const result = await api.scanEquipment(selectedProfile.id, queueItem.file);
       setLastScanResult(result);
       setShowApproval(result.item);
       setApprovalOverrides({
@@ -684,11 +727,57 @@ const EquipmentManagerPage: React.FC = () => {
       });
       loadItems(selectedProfile.id);
     } catch (err) {
-      setScanError(getEquipmentApiErrorMessage(err, 'Scan failed. Try again or add equipment manually.'));
+      setActiveScanItem(null);
+      setScanError(getEquipmentApiErrorMessage(
+        err,
+        `Scan failed for ${queueItem.fileName}. Try again or add equipment manually.`,
+      ));
     } finally {
       setScanning(false);
       resetScanInputs();
     }
+  }, [api, loadItems, resetScanInputs, selectedProfile]);
+
+  useEffect(() => {
+    if (!selectedProfile || scanning || showApproval || activeScanItem || scanError || scanQueue.length === 0) {
+      return;
+    }
+
+    const [nextScan, ...remainingQueue] = scanQueue;
+    setScanQueue(remainingQueue);
+    void scanQueuedItem(nextScan);
+  }, [activeScanItem, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>, source: EquipmentScanSource) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0 || !selectedProfile) return;
+
+    const filesToQueue = source === 'camera' ? selectedFiles.slice(0, 1) : selectedFiles;
+    const validationError = filesToQueue
+      .map(file => validateEquipmentPhoto(file))
+      .find((message): message is string => Boolean(message));
+
+    if (validationError) {
+      setScanError(validationError);
+      resetScanInputs();
+      return;
+    }
+
+    const queuedFiles = createEquipmentScanQueue(filesToQueue, source, Date.now());
+    setScanError(null);
+    setScanQueue(currentQueue => [...currentQueue, ...queuedFiles]);
+    resetScanInputs();
+  };
+
+  const handleClearScanQueue = () => {
+    setScanQueue([]);
+  };
+
+  const handleCloseApproval = () => {
+    setShowApproval(null);
+    setLastScanResult(null);
+    setScanPreview(null);
+    setActiveScanItem(null);
   };
 
   const handleApprove = async () => {
@@ -702,6 +791,7 @@ const EquipmentManagerPage: React.FC = () => {
       setShowApproval(null);
       setLastScanResult(null);
       setScanPreview(null);
+      setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
     } catch {
@@ -716,6 +806,7 @@ const EquipmentManagerPage: React.FC = () => {
       setShowApproval(null);
       setLastScanResult(null);
       setScanPreview(null);
+      setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
     } catch {
@@ -729,6 +820,10 @@ const EquipmentManagerPage: React.FC = () => {
     setItems([]);
     setLastScanResult(null);
     setScanPreview(null);
+    setScanQueue([]);
+    setActiveScanItem(null);
+    setScanError(null);
+    resetScanInputs();
   };
 
   // ── Render: Profile List ──────────────────────────────────────────
@@ -900,15 +995,44 @@ const EquipmentManagerPage: React.FC = () => {
           type="file"
           {...getEquipmentScanInputProps('camera')}
           style={{ display: 'none' }}
-          onChange={handleFileSelected}
+          onChange={(event) => handleFileSelected(event, 'camera')}
         />
         <input
           ref={galleryInputRef}
           type="file"
           {...getEquipmentScanInputProps('gallery')}
           style={{ display: 'none' }}
-          onChange={handleFileSelected}
+          onChange={(event) => handleFileSelected(event, 'gallery')}
         />
+
+        {(activeScanItem || scanQueue.length > 0) && (
+          <ScanQueuePanel aria-live="polite">
+            <ScanQueueHeader>
+              <ScanQueueTitle>Scan queue</ScanQueueTitle>
+              {scanQueue.length > 0 && (
+                <GhostButton onClick={handleClearScanQueue} disabled={scanning}>
+                  Clear queue
+                </GhostButton>
+              )}
+            </ScanQueueHeader>
+            <ScanQueueSummary>
+              {activeScanItem
+                ? `${scanning ? 'Scanning' : 'Reviewing'} ${activeScanItem.fileName}`
+                : 'Ready for next photo'}
+              {scanQueue.length > 0 ? ` - ${scanQueue.length} waiting` : ''}
+            </ScanQueueSummary>
+            {scanQueue.length > 0 && (
+              <ScanQueueList>
+                {scanQueue.slice(0, 4).map(item => (
+                  <ScanQueueFile key={item.id}>{item.fileName}</ScanQueueFile>
+                ))}
+                {scanQueue.length > 4 && (
+                  <ScanQueueFile>+{scanQueue.length - 4} more photos</ScanQueueFile>
+                )}
+              </ScanQueueList>
+            )}
+          </ScanQueuePanel>
+        )}
 
         {/* Scanning preview */}
         {scanning && (
@@ -917,7 +1041,9 @@ const EquipmentManagerPage: React.FC = () => {
             <ScanOverlay>
               <ScanLineEl />
             </ScanOverlay>
-            <ScanningText style={{ marginTop: 12 }}>Analyzing equipment...</ScanningText>
+            <ScanningText style={{ marginTop: 12 }}>
+              {activeScanItem ? `Analyzing ${activeScanItem.fileName}...` : 'Analyzing equipment...'}
+            </ScanningText>
           </CameraArea>
         )}
         {scanError && !scanning && (
@@ -926,7 +1052,9 @@ const EquipmentManagerPage: React.FC = () => {
             <div>{scanError}</div>
             <ScanErrorActions>
               <GhostButton onClick={() => setShowAddItem(true)}>Add manually instead</GhostButton>
-              <GhostButton onClick={() => setScanError(null)}>Dismiss</GhostButton>
+              <GhostButton onClick={() => setScanError(null)}>
+                {scanQueue.length > 0 ? 'Skip to next photo' : 'Dismiss'}
+              </GhostButton>
             </ScanErrorActions>
           </ScanErrorBox>
         )}
@@ -935,7 +1063,7 @@ const EquipmentManagerPage: React.FC = () => {
         {items.length === 0 && !scanning ? (
           <EmptyState>
             <EmptyTitle>No equipment here yet</EmptyTitle>
-            <p>Tap "Swan Coach Scan" to photograph equipment or add items manually.</p>
+            <p>Tap "Swan Coach Scan" or choose multiple library photos to queue equipment scans.</p>
           </EmptyState>
         ) : (
           <AnimatePresence>
@@ -1093,7 +1221,7 @@ const EquipmentManagerPage: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowApproval(null)}
+              onClick={handleCloseApproval}
             >
               <ModalContent
                 initial={{ y: 100 }}
@@ -1102,6 +1230,12 @@ const EquipmentManagerPage: React.FC = () => {
                 onClick={e => e.stopPropagation()}
               >
                 <ModalTitle>Review AI Scan</ModalTitle>
+                {activeScanItem && (
+                  <ScanQueueSummary style={{ margin: '-8px 0 16px' }}>
+                    {activeScanItem.fileName}
+                    {scanQueue.length > 0 ? ` - ${scanQueue.length} queued after this` : ''}
+                  </ScanQueueSummary>
+                )}
 
                 {scanPreview && (
                   <div style={{ marginBottom: 16, textAlign: 'center' }}>
@@ -1169,10 +1303,10 @@ const EquipmentManagerPage: React.FC = () => {
 
                 <FormRow style={{ marginTop: 8 }}>
                   <DangerButton onClick={handleReject} style={{ flex: 1, minHeight: 48 }}>
-                    Reject
+                    {scanQueue.length > 0 ? 'Reject & Next' : 'Reject'}
                   </DangerButton>
                   <PrimaryButton onClick={handleApprove} style={{ flex: 1, minHeight: 48 }}>
-                    Confirm
+                    {scanQueue.length > 0 ? 'Confirm & Next' : 'Confirm'}
                   </PrimaryButton>
                 </FormRow>
               </ModalContent>
