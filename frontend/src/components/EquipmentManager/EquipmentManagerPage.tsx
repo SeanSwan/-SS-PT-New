@@ -25,6 +25,11 @@ import type {
   ExerciseMapping,
   ScanResult,
 } from '../../hooks/useEquipmentAPI';
+import {
+  getEquipmentScanInputProps,
+  isMobileScanDevice,
+} from './equipmentScanInputs';
+import type { EquipmentScanSource } from './equipmentScanInputs';
 
 // --- Keyframes ---
 
@@ -213,6 +218,22 @@ const ActionGroup = styled.div`
   display: flex;
   gap: 6px;
   flex-shrink: 0;
+`;
+
+const ScanActionGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  @media (max-width: 600px) {
+    width: 100%;
+    justify-content: stretch;
+
+    button {
+      flex: 1 1 140px;
+    }
+  }
 `;
 
 const EmptyState = styled.div`
@@ -512,7 +533,9 @@ const EquipmentManagerPage: React.FC = () => {
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [showApproval, setShowApproval] = useState<EquipmentItem | null>(null);
   const [stats, setStats] = useState({ profileCount: 0, itemCount: 0, pendingApprovals: 0 });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [mobileScanDevice, setMobileScanDevice] = useState(false);
 
   // Form state for creating profile
   const [newProfile, setNewProfile] = useState({ name: '', locationType: 'custom', description: '' });
@@ -551,6 +574,10 @@ const EquipmentManagerPage: React.FC = () => {
   useEffect(() => {
     loadProfiles();
   }, [loadProfiles]);
+
+  useEffect(() => {
+    setMobileScanDevice(isMobileScanDevice());
+  }, []);
 
   // ── Profile Actions ───────────────────────────────────────────────
 
@@ -615,8 +642,17 @@ const EquipmentManagerPage: React.FC = () => {
 
   // ── AI Scan ───────────────────────────────────────────────────────
 
-  const handleScanClick = () => {
-    fileInputRef.current?.click();
+  const resetScanInputs = () => {
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
+
+  const handleScanClick = (source: EquipmentScanSource = mobileScanDevice ? 'camera' : 'gallery') => {
+    if (source === 'gallery') {
+      galleryInputRef.current?.click();
+      return;
+    }
+    cameraInputRef.current?.click();
   };
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -626,7 +662,7 @@ const EquipmentManagerPage: React.FC = () => {
     const validationError = validateEquipmentPhoto(file);
     if (validationError) {
       setScanError(validationError);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      resetScanInputs();
       return;
     }
 
@@ -651,7 +687,7 @@ const EquipmentManagerPage: React.FC = () => {
       setScanError(getEquipmentApiErrorMessage(err, 'Scan failed. Try again or add equipment manually.'));
     } finally {
       setScanning(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      resetScanInputs();
     }
   };
 
@@ -845,20 +881,31 @@ const EquipmentManagerPage: React.FC = () => {
             </Title>
             <Subtitle>{selectedProfile?.description || 'Equipment at this location'}</Subtitle>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <ScanActionGroup>
             <GhostButton onClick={() => setShowAddItem(true)}>+ Add Manually</GhostButton>
-            <PrimaryButton onClick={handleScanClick} disabled={scanning}>
+            <PrimaryButton onClick={() => handleScanClick()} disabled={scanning}>
               {scanning ? 'Scanning...' : 'Swan Coach Scan'}
             </PrimaryButton>
-          </div>
+            {mobileScanDevice && (
+              <GhostButton onClick={() => handleScanClick('gallery')} disabled={scanning}>
+                Photo Library
+              </GhostButton>
+            )}
+          </ScanActionGroup>
         </Header>
 
-        {/* Hidden file input for camera/upload */}
+        {/* Hidden file inputs: camera capture stays separate from mobile gallery picking. */}
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
           type="file"
-          accept="image/*"
-          capture="environment"
+          {...getEquipmentScanInputProps('camera')}
+          style={{ display: 'none' }}
+          onChange={handleFileSelected}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          {...getEquipmentScanInputProps('gallery')}
           style={{ display: 'none' }}
           onChange={handleFileSelected}
         />
