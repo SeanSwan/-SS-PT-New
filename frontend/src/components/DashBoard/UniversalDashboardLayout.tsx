@@ -107,6 +107,7 @@ const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout-planne
 const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
 const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'));
+const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'));
 const AdminWaiversManagerPage = React.lazy(() => import('./Pages/admin-waivers/AdminWaiversManager'));
 // Phase 18.C.1B.1R (2026-04-24): canonical re-mount of the admin view-as
 // aggregator. Lazy-loaded — rare admin route, kept out of base bundle.
@@ -493,7 +494,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/overview', component: RevolutionaryAdminDashboard, title: 'Command Center', description: 'Administrative oversight' },
 
       // 🤖 SWAN COACH ASSISTANT — Master AI with full context access
-      { path: '/coach-assistant', component: SwanCoachAssistantPage, title: 'Coach Assistant', description: 'Swan Studios Coach Assistant' },
+      { path: '/coach-assistant', component: CoachCommandCenterPage, title: 'Coach Command Center', description: 'Review-gated Swan Coach command observatory' },
 
       // 🏢 COMPREHENSIVE USER DATA MANAGEMENT SUITE
       { path: '/user-management', component: EnhancedUserDataManagement, title: 'User Data Management', description: 'Complete user data collection & lifecycle management' },
