@@ -36,6 +36,7 @@ import {
 } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
+import CoachCommandLogEntry from './CoachCommandLogEntry';
 import { CommandCenterShell } from './CoachCommandCenter.styles';
 import {
   COMMAND_WORKFLOWS,
@@ -710,6 +711,24 @@ const CoachCommandCenterPage: React.FC = () => {
             </span>
           </form>
 
+          <section className="log-card command-log-primary">
+            <div className="log-top">
+              <div>
+                <h2 className="panel-title">Command log</h2>
+                <p className="panel-subtitle">Prepared recommendations, readbacks, attachments, and approval holds.</p>
+              </div>
+              <button type="button" className="ghost-button" onClick={() => setLogs(INITIAL_COMMAND_LOGS)}>
+                <RefreshCw size={16} aria-hidden="true" />
+                Reset
+              </button>
+            </div>
+            <div className="log-stream" aria-live="polite">
+              {logs.map((entry) => (
+                <CoachCommandLogEntry entry={entry} key={entry.id} />
+              ))}
+            </div>
+          </section>
+
           <section className="command-banner glass">
             <div className="banner-content">
               <div className="banner-copy">
@@ -870,39 +889,6 @@ const CoachCommandCenterPage: React.FC = () => {
                   <strong>{workflow.title}</strong>
                   <span>{workflow.copy}</span>
                 </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="log-card">
-            <div className="log-top">
-              <div>
-                <h2 className="panel-title">Command log</h2>
-                <p className="panel-subtitle">Prepared recommendations, readbacks, attachments, and approval holds.</p>
-              </div>
-              <button type="button" className="ghost-button" onClick={() => setLogs(INITIAL_COMMAND_LOGS)}>
-                <RefreshCw size={16} aria-hidden="true" />
-                Reset
-              </button>
-            </div>
-            <div className="log-stream" aria-live="polite">
-              {logs.map((entry) => (
-                <article className={`log-entry ${entry.actor}`} key={entry.id}>
-                  <div className="log-meta">
-                    <span>{entry.actor}</span>
-                    <span>{entry.label}</span>
-                  </div>
-                  <p>{entry.body}</p>
-                  {entry.attachments?.length ? (
-                    <div className="attachment-row">
-                      {entry.attachments.map((attachment) => (
-                        <span className="attachment" key={attachment}>
-                          {attachment}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
               ))}
             </div>
           </section>

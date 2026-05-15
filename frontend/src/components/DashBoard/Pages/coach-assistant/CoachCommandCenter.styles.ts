@@ -581,6 +581,17 @@ export const CommandCenterShell = styled.div`
     padding-right: 4px;
   }
 
+  .command-log-primary {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 7%, transparent), transparent 42%),
+      color-mix(in srgb, var(--coach-surface) 92%, transparent);
+    border-color: var(--coach-line-strong);
+  }
+
+  .command-log-primary .log-stream {
+    max-height: min(54vh, 620px);
+  }
+
   .log-entry {
     border: 1px solid var(--coach-line);
     border-radius: 15px;

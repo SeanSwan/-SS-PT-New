@@ -189,10 +189,33 @@ describe('CoachCommandCenterPage', () => {
 
     const workspace = screen.getByLabelText('Swan Coach command workspace');
     const composer = within(workspace).getByRole('form', { name: /Swan Coach command composer/i });
+    const commandLog = within(workspace).getByRole('heading', { name: /Command log/i }).closest('section');
     const banner = within(workspace).getByText(/review-gated operator console/i).closest('section');
 
+    expect(commandLog).not.toBeNull();
     expect(banner).not.toBeNull();
-    expect(composer.compareDocumentPosition(banner as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(composer.compareDocumentPosition(commandLog as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((commandLog as Element).compareDocumentPosition(banner as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('formats long coach responses into readable steps and keeps structured packets collapsed', async () => {
+    sendMessageWithConversationMock.mockResolvedValueOnce({
+      role: 'assistant',
+      content:
+        '1. **Get Him Moving Gently:** Start with assisted mobility and controlled tempo work. 2. **Iron Out the Kinks:** Add stability work before loading. {"action":"coach_action_proposal","schema_version":"2026-05-07","proposal_type":"client_onboarding"}',
+      timestamp: '2026-05-14T12:00:00.000Z',
+    });
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...'), {
+      target: { value: 'Prepare readable review.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    expect(await screen.findByText('Get Him Moving Gently')).toBeInTheDocument();
+    expect(screen.getByText('Iron Out the Kinks')).toBeInTheDocument();
+    expect(screen.getByText(/Start with assisted mobility/i)).toBeInTheDocument();
+    expect(screen.getByText('Structured packet')).toBeInTheDocument();
   });
 
   it('opens the embedded PLAUD uploader from the top command dock', () => {
