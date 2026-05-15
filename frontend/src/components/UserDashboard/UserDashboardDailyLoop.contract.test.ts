@@ -197,4 +197,35 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it('locks the accepted Open Design Home shell responsive and mobile nav rules', () => {
+    const homeDataSource = readSource('src/components/UserDashboard/components/HomeTabVision.data.ts');
+    const homeLayoutSource = readSource('src/components/UserDashboard/components/HomeTabVision.styles.ts');
+    const cardStylesSource = readSource('src/components/UserDashboard/components/HomeTabVisionCards.styles.ts');
+    const rightRailSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
+    const rightRailStylesSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.styles.ts');
+    const sharedMobileNavSource = readSource('src/components/UserDashboard/components/ObservatoryMobileNav.tsx');
+
+    expect(homeDataSource).toContain("{ id: 'progress', label: 'Progress'");
+    expect(homeDataSource).not.toContain("{ id: 'inbox'");
+    expect(homeDataSource).not.toContain('Mail,');
+    expect(sharedMobileNavSource).toContain("onClick={() => onTabChange('progress')}");
+    expect(sharedMobileNavSource).not.toContain('Four items');
+
+    expect(homeLayoutSource).toContain('grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);');
+    expect(homeLayoutSource).toContain('@media (max-width: 1500px) and (min-width: 1321px)');
+    expect(homeLayoutSource).toContain('grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);');
+    expect(homeLayoutSource).toContain('@media (max-width: 1320px)');
+    expect(homeLayoutSource).toContain('grid-column: 2;');
+
+    expect(cardStylesSource).toContain('grid-auto-flow: column;');
+    expect(cardStylesSource).toContain('scrollbar-width: none;');
+    expect(cardStylesSource).toContain('&::-webkit-scrollbar { display: none; }');
+    expect(cardStylesSource).toContain('grid-auto-columns: minmax(72px, 1fr);');
+
+    expect(rightRailSource).toContain('LeaderboardRow');
+    expect(rightRailStylesSource).toContain('grid-template-columns: 26px minmax(0, 1fr) max-content;');
+    expect(rightRailStylesSource).toContain('text-overflow: ellipsis;');
+    expect(rightRailStylesSource).toContain('font-variant-numeric: tabular-nums;');
+  });
 });
