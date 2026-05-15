@@ -191,7 +191,7 @@ export const MessageActionBtn = styled.button`
   @media (min-width: 768px) {
     font-size: 13px;
     padding: 6px 12px;
-    min-height: 36px;
+    min-height: 44px;
   }
 
   @media (min-width: 1200px) {

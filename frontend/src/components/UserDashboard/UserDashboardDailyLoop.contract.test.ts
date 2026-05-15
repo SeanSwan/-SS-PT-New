@@ -69,12 +69,26 @@ describe('UserDashboard V3 daily loop contract', () => {
     });
   });
 
-  it('mounts the V3 dashboard at the protected user-dashboard route', () => {
+  it('keeps user-dashboard as a canonical client dashboard redirect instead of a competing app shell', () => {
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toContain("path: 'user-dashboard'");
-    expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    expect(routeSource).toContain('<UserDashboard />');
+    expect(routeSource).toContain('<Navigate to="/dashboard/client/overview" replace />');
+    expect(routeSource).not.toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
+  });
+
+  it('removes live navigation affordances that advertise user-dashboard as a separate destination', () => {
+    const selectorSource = readSource('src/components/DashboardSelector/DashboardSelector.tsx');
+    const mobileMenuSource = readSource('src/components/Header/components/MobileMenu.tsx');
+    const signupSource = readSource('src/pages/OptimizedSignupModal.tsx');
+    const heroSource = readSource('src/pages/HomePage/components/sections/HeroSection.tsx');
+    const vipConversionSource = readSource('src/pages/gallery/VIPConversionModal.tsx');
+
+    expect(selectorSource).not.toContain("path: '/user-dashboard'");
+    expect(mobileMenuSource).not.toContain('to="/user-dashboard"');
+    expect(signupSource).not.toContain("navigate('/user-dashboard')");
+    expect(heroSource).not.toContain("to: '/user-dashboard'");
+    expect(vipConversionSource).not.toContain("window.open('/user-dashboard/schedule'");
   });
 
   it('keeps Home as the daily return surface with the health loop and coach action launcher', () => {
@@ -218,10 +232,9 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeLayoutSource).toContain('@media (max-width: 1320px)');
     expect(homeLayoutSource).toContain('grid-column: 2;');
 
-    expect(cardStylesSource).toContain('grid-auto-flow: column;');
-    expect(cardStylesSource).toContain('scrollbar-width: none;');
-    expect(cardStylesSource).toContain('&::-webkit-scrollbar { display: none; }');
-    expect(cardStylesSource).toContain('grid-auto-columns: minmax(72px, 1fr);');
+    expect(cardStylesSource).toContain('flex-wrap: wrap;');
+    expect(cardStylesSource).toContain('min-width: min(100%, 7.6rem);');
+    expect(cardStylesSource).toContain('text-overflow: ellipsis;');
 
     expect(rightRailSource).toContain('LeaderboardRow');
     expect(rightRailStylesSource).toContain('grid-template-columns: 26px minmax(0, 1fr) max-content;');

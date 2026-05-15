@@ -84,10 +84,15 @@ const ClientObservatoryHome: React.FC = () => {
     if (id !== 'reels') navigate(path);
   }, [navigate]);
 
-  const handleCreatePost = useCallback(async () => {
-    const content = postText.trim();
+  const handleCreatePost = useCallback(async (input?: {
+    content: string;
+    type: string;
+    visibility: 'friends';
+    media: File | null;
+  }) => {
+    const content = (input?.content ?? postText).trim();
     if (content.length < 3) return;
-    await createPost.mutateAsync(content);
+    await createPost.mutateAsync(input ? { ...input, content } : content);
     setPostText('');
   }, [createPost, postText]);
 

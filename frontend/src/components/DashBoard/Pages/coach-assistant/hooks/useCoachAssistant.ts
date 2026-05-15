@@ -25,6 +25,7 @@ import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
 import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
+import type { CoachRouteContext } from '../CoachRouteContext';
 import {
   safeAttachmentSourceLabel,
   safeCommandConfirmationFailure,
@@ -222,6 +223,7 @@ interface UseCoachAssistantOptions {
   chat?: ReturnType<typeof useAIChat>;
   /** Target client ID for trainer/admin — routes AI data writes to this client */
   targetClientId?: number | null;
+  routeContext?: CoachRouteContext | null;
 }
 
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
@@ -230,6 +232,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     defaultStyle = DEFAULT_RESPONSE_STYLE,
     chat: externalChat,
     targetClientId = null,
+    routeContext = null,
   } = options || {};
 
   const internalChat = useAIChat();
@@ -281,7 +284,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
     let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
     if (isCommandLaneCandidate(trimmedText)) {
-      cmdResult = await executeCommand(trimmedText, { selectedClientId: targetClientId });
+      cmdResult = await executeCommand(trimmedText, { selectedClientId: targetClientId, routeContext });
     } else {
       cmdResult = { type: 'fallback_to_chat' };
     }
@@ -380,7 +383,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       setLocalMessages([]);
       return cmdResult;
     }
-  }, [chat, context, responseStyle, targetClientId, executeCommand, executingCommand]);
+  }, [chat, context, responseStyle, targetClientId, routeContext, executeCommand, executingCommand]);
 
   // ── Confirm a pending destructive/confirmation command ──
   const confirmCommand = useCallback(async (operationId: string): Promise<{ success: boolean; error?: string }> => {

@@ -180,8 +180,8 @@ export const VoiceOrbWrap = styled.button<{ $listening?: boolean; $size?: number
 // SECTION: TTS Read Aloud Toggle
 // ─────────────────────────────────────────────────────────────
 export const TtsToggle = styled.button<{ $active?: boolean }>`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid ${({ $active }) =>
     $active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};

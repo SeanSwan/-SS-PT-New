@@ -30,26 +30,26 @@
  *
  * DATA FLOW:
  * Props In:  none
- * State:     { gamData, loading, error }
- * API Calls: GET /api/v1/gamification/dashboard
+ * State:     useGamificationData profile cache
+ * API Calls: GET /api/v1/gamification/profile via shared hook
  * Children:  none
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Award, Star, TrendingUp, Shield, Crown, Gem } from 'lucide-react';
-import { useAuth } from '../../../../context/AuthContext';
+import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
 // ─────────────────────────────────────────────────────────────
 
 const TIERS = [
-  { name: 'Bronze Forge', min: 1, max: 10, color: '#CD7F32' },
-  { name: 'Silver Edge', min: 11, max: 25, color: '#C0C0C0' },
-  { name: 'Titanium Core', min: 26, max: 50, color: '#878681' },
-  { name: 'Obsidian Warrior', min: 51, max: 99, color: '#0A0A0F' },
-  { name: 'Crystalline Swan', min: 100, max: Infinity, color: '#60C0F0' },
+  { name: 'Bronze Forge', min: 1, max: 10, color: 'var(--accent-secondary, #C6A84B)' },
+  { name: 'Silver Edge', min: 11, max: 25, color: 'var(--text-secondary, #94a3b8)' },
+  { name: 'Titanium Core', min: 26, max: 50, color: 'var(--accent-tertiary, #4070C0)' },
+  { name: 'Obsidian Warrior', min: 51, max: 99, color: 'var(--bg-base, #0A0A0F)' },
+  { name: 'Crystalline Swan', min: 100, max: Infinity, color: 'var(--accent-primary, #60C0F0)' },
 ];
 
 const getTierForLevel = (level: number) =>
@@ -81,7 +81,7 @@ const TierRow = styled.div`
 
 const TierBadge = styled.div<{ $color: string }>`
   width: 48px; height: 48px; border-radius: 12px;
-  background: ${({ $color }) => $color}22;
+  background: color-mix(in srgb, ${({ $color }) => $color} 18%, transparent);
   border: 2px solid ${({ $color }) => $color};
   display: flex; align-items: center; justify-content: center;
   color: ${({ $color }) => $color};
@@ -136,9 +136,9 @@ const AchievementItem = styled.div`
 const BadgeIcon = styled.div<{ $rarity?: string }>`
   width: 36px; height: 36px; border-radius: 8px;
   background: ${({ $rarity }) =>
-    $rarity === 'epic' ? 'rgba(139,92,246,0.15)' :
-    $rarity === 'rare' ? 'rgba(198,168,75,0.15)' :
-    'rgba(96,192,240,0.1)'};
+    $rarity === 'epic' ? 'color-mix(in srgb, var(--accent-tertiary, #8B5CF6) 16%, transparent)' :
+    $rarity === 'rare' ? 'color-mix(in srgb, var(--accent-secondary, #C6A84B) 16%, transparent)' :
+    'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'};
   display: flex; align-items: center; justify-content: center;
   color: var(--accent-primary, #60C0F0);
 `;
@@ -146,6 +146,16 @@ const BadgeIcon = styled.div<{ $rarity?: string }>`
 const EmptyState = styled.p`
   color: var(--text-muted, #94a3b8); font-size: 0.875rem;
   text-align: center; padding: 1.5rem 0;
+`;
+
+const TransactionPoints = styled.span<{ $kind?: string }>`
+  margin-left: auto;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: ${({ $kind }) =>
+    $kind === 'spend'
+      ? 'var(--warning-accent, #F59E0B)'
+      : 'var(--accent-primary, #60C0F0)'};
 `;
 
 const BadgeGrid = styled.div`
@@ -178,44 +188,30 @@ const ErrorBox = styled.div`
 // ─────────────────────────────────────────────────────────────
 
 const ClientRewardsPage: React.FC = () => {
-  const { authAxios } = useAuth();
-  const [gamData, setGamData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const gamification = useGamificationData();
+  const gamData = gamification.profile.data;
+  const error = gamification.profile.error || gamification.error;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!authAxios) return;
-      try {
-        const res = await authAxios.get('/api/v1/gamification/dashboard');
-        setGamData(res.data?.data || res.data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load rewards data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [authAxios]);
-
-  if (loading) {
+  if (gamification.isLoading || gamification.profile.isLoading) {
     return <PageWrap><ShimmerBlock style={{ marginBottom: 12 }} /><ShimmerBlock style={{ height: 200 }} /></PageWrap>;
   }
 
-  const level = gamData?.level || gamData?.currentLevel || 1;
-  const xp = gamData?.totalPoints || gamData?.xp || 0;
+  const level = gamData?.level || 1;
+  const xp = gamData?.points || 0;
   const nextLevelXp = Math.ceil(((level + 1) / 0.1) ** 2);
   const currentLevelXp = Math.ceil((level / 0.1) ** 2);
-  // Clamp 0-100 to prevent negative progress bar at level 1 with 0 XP
-  const pct = nextLevelXp > currentLevelXp
-    ? Math.max(0, Math.min(100, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100))
-    : 0;
+  const pct = gamData?.nextLevelProgress ?? (
+    nextLevelXp > currentLevelXp
+      ? Math.max(0, Math.min(100, ((xp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100))
+      : 0
+  );
   const tier = getTierForLevel(level);
-  const achievements = gamData?.recentAchievements || gamData?.achievements || [];
+  const achievements = gamData?.achievements || [];
+  const transactions = gamData?.recentTransactions || [];
 
   return (
     <PageWrap>
-      {error && <ErrorBox>{error}</ErrorBox>}
+      {error && <ErrorBox>{(error as Error).message || 'Failed to load rewards data'}</ErrorBox>}
 
       <TierCard>
         <TierRow>
@@ -236,26 +232,46 @@ const ClientRewardsPage: React.FC = () => {
             ? <EmptyState>Complete workouts and challenges to earn achievements!</EmptyState>
             : achievements.slice(0, 5).map((a: any, i: number) => (
               <AchievementItem key={a.id || i}>
-                <BadgeIcon $rarity={a.rarity}><Star size={16} /></BadgeIcon>
-                <div><div>{a.name || a.title || 'Achievement'}</div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{a.description || ''}</span></div>
+                <BadgeIcon $rarity={a.achievement?.tier || a.achievement?.rarity}><Star size={16} /></BadgeIcon>
+                <div><div>{a.achievement?.name || a.name || a.title || 'Achievement'}</div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{a.achievement?.description || a.description || ''}</span></div>
               </AchievementItem>
             ))
           }
         </SectionCard>
         <SectionCard>
           <h3><TrendingUp size={18} /> Point History</h3>
-          <EmptyState>Point history will appear here as you earn XP from workouts, social posts, and streaks.</EmptyState>
+          {transactions.length === 0
+            ? <EmptyState>Point history will appear here as you earn XP from workouts, social posts, and streaks.</EmptyState>
+            : transactions.slice(0, 5).map((tx: any) => (
+              <AchievementItem key={tx.id}>
+                <BadgeIcon><TrendingUp size={16} /></BadgeIcon>
+                <div>
+                  <div>{tx.description || tx.source || 'Point activity'}</div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{tx.source || 'gamification'}</span>
+                </div>
+                <TransactionPoints $kind={tx.transactionType}>
+                  {tx.transactionType === 'spend' ? '-' : '+'}{Number(tx.points || 0).toLocaleString()} XP
+                </TransactionPoints>
+              </AchievementItem>
+            ))
+          }
         </SectionCard>
       </TwoCol>
 
       <SectionCard>
         <h3><Gem size={18} /> Badge Showcase</h3>
-        <BadgeGrid>
-          {[1,2,3,4,5,6].map(i => (
-            <BadgePlaceholder key={i}><Shield size={24} /><span>Locked</span></BadgePlaceholder>
-          ))}
-        </BadgeGrid>
+        {achievements.length === 0
+          ? <EmptyState>Earned badges will appear here after achievements are completed.</EmptyState>
+          : (
+            <BadgeGrid>
+              {achievements.slice(0, 6).map((a: any, i: number) => (
+                <BadgePlaceholder key={a.id || i} title={a.achievement?.name || a.name || 'Achievement'}>
+                  <Shield size={24} /><span>Earned</span>
+                </BadgePlaceholder>
+              ))}
+            </BadgeGrid>
+          )}
       </SectionCard>
     </PageWrap>
   );

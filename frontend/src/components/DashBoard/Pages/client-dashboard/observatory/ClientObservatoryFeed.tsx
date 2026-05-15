@@ -3,7 +3,7 @@
  * PURPOSE: Reels-style spotlight, quick post composer, and feed preview.
  */
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ImagePlus, Loader2, MessageCircle, Play, Send, Sparkles } from 'lucide-react';
 import {
   FeedPostPreview,
@@ -57,7 +57,12 @@ interface ClientObservatoryFeedProps {
   postText: string;
   creatingPost: boolean;
   onPostTextChange: (value: string) => void;
-  onCreatePost: () => Promise<void>;
+  onCreatePost: (input: {
+    content: string;
+    type: string;
+    visibility: 'friends';
+    media: File | null;
+  }) => Promise<void>;
   onNavigate: (path: string) => void;
 }
 
@@ -78,12 +83,39 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   onNavigate,
 }) => {
   const [category, setCategory] = useState<(typeof POST_CATEGORIES)[number]>('Training');
+  const [postType, setPostType] = useState('training');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const trimmedPost = postText.trim();
   const canPost = trimmedPost.length >= 3 && !creatingPost;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (canPost) await onCreatePost();
+    if (!canPost) return;
+
+    await onCreatePost({
+      content: trimmedPost,
+      type: postType,
+      visibility: 'friends',
+      media: mediaFile,
+    });
+    setMediaFile(null);
+    setPostType('training');
+    setCategory('Training');
+  };
+
+  const handleCategorySelect = (item: (typeof POST_CATEGORIES)[number]) => {
+    setCategory(item);
+    setPostType(item.toLowerCase());
+  };
+
+  const handleCreateReel = () => {
+    setCategory('Progress');
+    setPostType('reel');
+  };
+
+  const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setMediaFile(event.target.files?.[0] || null);
   };
 
   return (
@@ -102,6 +134,10 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                 Turn today&apos;s lift, stretch, meal prep, or recovery note into a community moment.
               </MutedText>
             </div>
+            <PrimaryButton type="button" onClick={handleCreateReel}>
+              <Play size={16} aria-hidden="true" />
+              Create Reel
+            </PrimaryButton>
           </ReelOverlay>
         </ReelCard>
 
@@ -126,23 +162,44 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                   <CategoryPill
                     key={item}
                     type="button"
-                    $active={item === category}
-                    onClick={() => setCategory(item)}
+                    $active={item === category && postType !== 'reel'}
+                    onClick={() => handleCategorySelect(item)}
                   >
                     {item}
                   </CategoryPill>
                 ))}
+                <CategoryPill
+                  type="button"
+                  $active={postType === 'reel'}
+                  onClick={handleCreateReel}
+                >
+                  Reel
+                </CategoryPill>
               </CategoryRow>
 
               <ComposerTextarea
                 value={postText}
                 onChange={(event) => onPostTextChange(event.target.value)}
-                placeholder={`Post a ${category.toLowerCase()} update for your community...`}
+                placeholder={postType === 'reel'
+                  ? 'Caption your training reel before posting...'
+                  : `Post a ${category.toLowerCase()} update for your community...`}
                 aria-label="Create a community post"
               />
 
               <ComposerActions>
-                <MutedText>{trimmedPost.length}/500 characters</MutedText>
+                <MutedText>{mediaFile ? mediaFile.name : `${trimmedPost.length}/500 characters`}</MutedText>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  aria-label="Attach media to quick post"
+                  onChange={handleMediaChange}
+                  style={{ display: 'none' }}
+                />
+                <GhostButton type="button" onClick={() => fileInputRef.current?.click()}>
+                  <ImagePlus size={16} aria-hidden="true" />
+                  Add Media
+                </GhostButton>
                 <PrimaryButton type="submit" disabled={!canPost}>
                   {creatingPost ? <Loader2 size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
                   Post

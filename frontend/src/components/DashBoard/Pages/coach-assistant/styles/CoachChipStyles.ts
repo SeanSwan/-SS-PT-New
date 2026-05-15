@@ -66,14 +66,14 @@ export const ContextChipBtn = styled.button<{ $active?: boolean }>`
 
   @media (max-width: 430px) {
     font-size: 11px;
-    padding: 5px 8px;
+    padding: 8px 10px;
     gap: 3px;
-    min-height: 36px;
+    min-height: 44px;
   }
 
   @media (max-width: 375px) {
     font-size: 10px;
-    padding: 4px 7px;
+    padding: 8px 9px;
     gap: 2px;
   }
 
@@ -147,7 +147,7 @@ export const StyleBtn = styled.button<{ $active?: boolean }>`
   gap: 4px;
   padding: 6px 10px;
   border-radius: 16px;
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid ${({ $active }) =>
     $active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
   background: ${({ $active }) =>
@@ -159,15 +159,15 @@ export const StyleBtn = styled.button<{ $active?: boolean }>`
 
   @media (max-width: 430px) {
     font-size: 11px;
-    padding: 5px 8px;
-    min-height: 32px;
+    padding: 8px 10px;
+    min-height: 44px;
     gap: 3px;
   }
 
   @media (min-width: 768px) {
     font-size: 13px;
-    padding: 6px 12px;
-    min-height: 36px;
+    padding: 8px 12px;
+    min-height: 44px;
   }
 
   @media (min-width: 1200px) {

@@ -70,6 +70,33 @@ describe('useCoachAssistant command summaries', () => {
     expect(assistantMessages.join(' ')).not.toContain('do-not-render-private-availability-detail');
   });
 
+  it('passes the route context binder into command-lane requests', async () => {
+    executeCommand.mockResolvedValue({ type: 'fallback_to_chat' });
+    sendMessageWithConversation.mockResolvedValue({ success: true });
+
+    const routeContext = {
+      route: '/dashboard/client/progress',
+      surface: 'progress',
+      scope: 'client',
+      allowedActions: [
+        { key: 'summarize_progress', mode: 'ask', requiresApproval: false },
+        { key: 'draft_workout_plan_delta', mode: 'draft', requiresApproval: true },
+      ],
+      writeBackPolicy: 'approval_required',
+    };
+
+    const { result } = renderHook(() => useCoachAssistant({ routeContext } as any));
+
+    await act(async () => {
+      await result.current.sendMessage('summarize progress');
+    });
+
+    expect(executeCommand).toHaveBeenCalledWith('summarize progress', {
+      selectedClientId: null,
+      routeContext,
+    });
+  });
+
   it('does not put raw transcript filenames into upload user bubbles', () => {
     const { result } = renderHook(() => useCoachAssistant());
 

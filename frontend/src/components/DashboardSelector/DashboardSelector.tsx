@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronDown, LayoutDashboard, Users, User, UserCircle } from 'lucide-react';
+import { ChevronDown, LayoutDashboard, Users, User, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 type DashboardType = 'admin' | 'trainer' | 'client' | 'user';
@@ -34,11 +34,11 @@ const dashboardMeta = {
     iconColor: 'var(--gilded-fern, #C6A84B)'
   },
   user: {
-    title: 'User Dashboard',
-    description: 'Social profile and community features',
-    path: '/user-dashboard',
+    title: 'Social Hub',
+    description: 'Feed, community, and creator activity',
+    path: '/social',
     badge: 'SOCIAL',
-    Icon: UserCircle,
+    Icon: MessageCircle,
     iconColor: 'rgb(var(--status-success-rgb, 34, 197, 94))'
   }
 };
@@ -174,7 +174,7 @@ const DashboardSelector: React.FC = () => {
     admin: currentPath.includes('/dashboard/admin'),
     trainer: currentPath.includes('/dashboard/trainer'),
     client: currentPath.includes('/dashboard/client'),
-    user: currentPath.includes('/user-dashboard')
+    user: currentPath.includes('/social')
   };
 
   const isEnabled = (dashboardType: DashboardType) => {

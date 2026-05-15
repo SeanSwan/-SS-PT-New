@@ -332,8 +332,8 @@ export const EventsHeader = styled.div`
 `;
 
 export const CreateEventBtn = styled.button`
-  min-height: 36px;
-  padding: 0.375rem 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
   border-radius: 8px;
   border: 1px solid var(--accent-secondary, #8B5CF6);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);

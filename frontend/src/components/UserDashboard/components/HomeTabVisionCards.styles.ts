@@ -171,17 +171,15 @@ export const ComposerInput = styled.textarea`
 `;
 
 export const MoodScroller = styled.div`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(72px, 1fr);
-  gap: 9px;
-  overflow-x: auto;
-  padding: 0.1rem 0 2px;
-  scrollbar-width: thin;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.1rem 0 0;
 `;
 
 export const MoodButton = styled.button<{ $active?: boolean }>`
-  min-height: 44px;
+  flex: 0 1 auto; min-height: 44px; min-width: min(100%, 7.6rem);
   white-space: nowrap;
   border-radius: 999px;
   border: 1px solid ${({ $active }) => ($active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--vision-border)')};
@@ -190,7 +188,7 @@ export const MoodButton = styled.button<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0 0.75rem;
+  max-width: 100%; overflow: hidden; padding: 0 0.85rem; text-overflow: ellipsis;
   cursor: pointer;
   ${focusRing}
 `;

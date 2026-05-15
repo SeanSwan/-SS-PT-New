@@ -272,11 +272,6 @@ const TrainerDashboard = lazyLoadWithErrorHandling(
   () => import('../components/TrainerDashboard/TrainerDashboard'),
   'Trainer Dashboard'
 );
-const UserDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/UserDashboard/UserDashboard.V3'),
-  'User Dashboard V3',
-  () => import('../components/UserDashboard')
-);
 const AdvancedGamificationPage = lazyLoadWithErrorHandling(
   () => import('../pages/AdvancedGamificationPage'),
   'Advanced Gamification Hub'
@@ -710,16 +705,10 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
-    // User Dashboard Route
+    // Legacy user dashboard URL now resolves to the canonical client dashboard.
     {
       path: 'user-dashboard',
-      element: (
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <UserDashboard />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/dashboard/client/overview" replace />
     },
     
     // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT

@@ -26,6 +26,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mock react-router-dom ────────────────────────────────────────────────
 const mockNavigate = vi.fn();
+const mockCreatePostMutate = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
@@ -82,7 +83,7 @@ vi.mock('../../../../hooks/useDashboardQueries', () => ({
     isLoading: false,
   }),
   useCreatePost: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: mockCreatePostMutate,
     isPending: false,
   }),
 }));
@@ -92,6 +93,8 @@ import ClientHomeTab from './ClientHomeTab';
 describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockCreatePostMutate.mockReset();
+    mockCreatePostMutate.mockResolvedValue({ success: true });
   });
 
   it('renders the NextSessionCard with an explicit "Not booked yet" subtext (not a fake live schedule)', () => {
@@ -146,5 +149,39 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(text).not.toMatch(/bmi/i);
     expect(text).not.toMatch(/measurement/i);
     expect(text).not.toMatch(/weight progression/i);
+  });
+
+  it('turns the Reels spotlight into a structured reel post action', async () => {
+    const user = userEvent.setup();
+    render(<ClientHomeTab />);
+
+    await user.click(screen.getByRole('button', { name: /create reel/i }));
+    await user.type(screen.getByLabelText(/create a community post/i), 'A controlled strength set from today');
+    await user.click(screen.getByRole('button', { name: /^post$/i }));
+
+    expect(mockCreatePostMutate).toHaveBeenCalledWith({
+      content: 'A controlled strength set from today',
+      type: 'reel',
+      visibility: 'friends',
+      media: null,
+    });
+  });
+
+  it('queues selected media through the existing social post mutation', async () => {
+    const user = userEvent.setup();
+    render(<ClientHomeTab />);
+    const file = new File(['training clip'], 'training-clip.mp4', { type: 'video/mp4' });
+
+    await user.upload(screen.getByLabelText(/attach media to quick post/i), file);
+    expect(screen.getByText('training-clip.mp4')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/create a community post/i), 'Clip from the final set');
+    await user.click(screen.getByRole('button', { name: /^post$/i }));
+
+    expect(mockCreatePostMutate).toHaveBeenCalledWith({
+      content: 'Clip from the final set',
+      type: 'training',
+      visibility: 'friends',
+      media: file,
+    });
   });
 });

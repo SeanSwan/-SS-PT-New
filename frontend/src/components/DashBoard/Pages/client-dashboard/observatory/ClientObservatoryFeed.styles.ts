@@ -83,7 +83,7 @@ export const CategoryRow = styled.div`
 `;
 
 export const CategoryPill = styled.button<{ $active: boolean }>`
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 999px;
   border: 1px solid ${({ $active }) => (
     $active
@@ -284,7 +284,7 @@ export const WidgetValue = styled.strong`
 `;
 
 export const SmallButton = styled(ButtonBase)`
-  min-height: 40px;
+  min-height: 44px;
   padding: 0.55rem 0.75rem;
   color: var(--accent-primary, #60C0F0);
   background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);

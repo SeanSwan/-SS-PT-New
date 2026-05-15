@@ -16,8 +16,8 @@ import { Paperclip } from 'lucide-react';
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 const AttachBtn = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: none;
   background: transparent;

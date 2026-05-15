@@ -28,10 +28,10 @@
  *            ResponseStyleSelector, CoachInputBar, CoachTeachModePanel
  */
 
-import React, { useCallback, useEffect, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { MessageCircle, PanelLeftOpen, BookOpen } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useAuth } from '../../../../hooks/useAuth';
 import { usePaywall } from '../../../../context/PaywallContext';
@@ -78,6 +78,7 @@ import { useTranscriptIntake } from './hooks/useTranscriptIntake';
 import { createCoachTextIntake } from '../../../../services/coachIntakeService';
 import { uploadClips } from '../../../../services/plaudClipService';
 import { getLocalIsoDate } from '../../../../utils/localDate';
+import { buildCoachRouteContext } from './CoachRouteContext';
 import {
   CoachHeader,
   CoachTitle,
@@ -241,7 +242,7 @@ const NeuralLinkPill = styled.button<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   margin: 0 16px 8px;
   align-self: flex-start;
   border-radius: 20px;
@@ -255,7 +256,7 @@ const NeuralLinkPill = styled.button<{ $active?: boolean }>`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 32px;
+  min-height: 44px;
 
   &:hover {
     background: ${({ $active }) =>
@@ -299,6 +300,7 @@ const TeachModeToggle = styled.button<{ $active?: boolean }>`
 
 const SwanCoachAssistantPage: React.FC = () => {
   const chat = useAIChat();
+  const location = useLocation();
   const { showPaywall } = usePaywall();
   const { user: authUser } = useAuth();
   const userRole = (authUser?.role ?? 'admin') as 'admin' | 'trainer' | 'client';
@@ -313,9 +315,14 @@ const SwanCoachAssistantPage: React.FC = () => {
     refresh: refreshCoachIntakeQueue,
     scope: coachIntakeScope,
   } = coachIntakeQueue;
+  const coachRouteContext = useMemo(
+    () => buildCoachRouteContext(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
   const coach = useCoachAssistant({
     chat,
     targetClientId: selectedClient?.id ?? null,
+    routeContext: coachRouteContext,
   });
   const tts = usePremiumTTS();
   const teachMode = useCoachTeachMode();

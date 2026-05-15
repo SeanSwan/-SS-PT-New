@@ -59,7 +59,11 @@ export function useCoachCommand() {
 
   const executeCommand = useCallback(async (
     message: string,
-    opts?: { selectedClientId?: number | null; previousContext?: string },
+    opts?: {
+      selectedClientId?: number | null;
+      previousContext?: string;
+      routeContext?: Record<string, unknown> | null;
+    },
   ): Promise<CommandResponse> => {
     setExecutingCommand(true);
     try {
@@ -67,6 +71,7 @@ export function useCoachCommand() {
         message,
         selectedClientId: opts?.selectedClientId ?? undefined,
         previousContext: opts?.previousContext ?? undefined,
+        routeContext: opts?.routeContext ?? undefined,
       });
       const data = res.data;
 

@@ -706,7 +706,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
   };
 
   const handleBookSession = () => {
-    window.open('/user-dashboard/schedule', '_blank');
+    window.open('/dashboard/client/schedule', '_blank');
   };
 
   // ── Step rendering ────────────────────────────────────────────────────

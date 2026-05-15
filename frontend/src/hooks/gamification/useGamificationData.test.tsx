@@ -166,4 +166,63 @@ describe('useGamificationData — profile streakDays top-level read', () => {
     expect(result.current.profile.data?.streakDays).toBe(15);
     expect(result.current.profile.data?.streakDays).not.toBe(999);
   });
+
+  it('maps real backend userAchievements and recentTransactions into the shared profile cache', async () => {
+    mockAxiosGet.mockImplementation((url: string) => {
+      if (url.includes('/profile')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            profile: {
+              id: 42,
+              points: 2500,
+              level: 5,
+              tier: 'silver_edge',
+              streakDays: 12,
+              userAchievements: [
+                {
+                  id: 'ua-1',
+                  achievementId: 'ach-1',
+                  progress: 1,
+                  isCompleted: true,
+                  earnedAt: '2026-05-15T12:00:00.000Z',
+                  pointsAwarded: 150,
+                  achievement: {
+                    id: 'ach-1',
+                    name: 'First Workout',
+                    description: 'Logged the first complete workout.',
+                    iconEmoji: 'Trophy',
+                    xpReward: 150,
+                    requiredPoints: 1,
+                    category: 'fitness',
+                  },
+                },
+              ],
+              recentTransactions: [
+                {
+                  id: 'tx-1',
+                  points: 150,
+                  balance: 2500,
+                  transactionType: 'earn',
+                  source: 'workout',
+                  description: 'Session recap approved',
+                  createdAt: '2026-05-15T12:30:00.000Z',
+                },
+              ],
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    const { result } = renderHook(() => useGamificationData(), { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.profile.isSuccess).toBe(true);
+    });
+
+    expect(result.current.profile.data?.achievements[0]?.achievement.name).toBe('First Workout');
+    expect(result.current.profile.data?.recentTransactions[0]?.description).toBe('Session recap approved');
+  });
 });

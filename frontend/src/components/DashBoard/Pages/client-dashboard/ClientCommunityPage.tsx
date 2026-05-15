@@ -72,14 +72,6 @@ import {
 // Styled components extracted to ClientCommunityStyles.ts per 300-line rule
 const MAX_POST_LENGTH = 500;
 
-const FALLBACK_LEADERS = [
-  { name: 'SwanAthlete1', xp: 12400 },
-  { name: 'IronPhoenix', xp: 9800 },
-  { name: 'CoreCrusher', xp: 7200 },
-  { name: 'FlexMaster', xp: 5100 },
-  { name: 'StrideKing', xp: 3600 },
-];
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // TanStack Query handles caching, deduplication, abort on unmount
@@ -113,9 +105,8 @@ const ClientCommunityPage: React.FC = () => {
 
   // Memoize leaderboard mapping to avoid recomputing on every render
   const leaderData = useMemo(() => {
-    if (leaderboard.length === 0) return FALLBACK_LEADERS;
     return leaderboard.slice(0, 5).map((u: any, i: number) => ({
-      name: u.firstName || u.username || `Swan${i + 1}`,
+      name: u.firstName || u.username || `Athlete ${i + 1}`,
       xp: u.totalPoints || u.points || 0,
     }));
   }, [leaderboard]);
@@ -215,19 +206,25 @@ const ClientCommunityPage: React.FC = () => {
 
         <SectionCard>
           <h3>Leaderboard</h3>
-          {leaderData.map((l, i) => (
-            <LeaderRow key={i}>
-              <RankBadge $rank={i + 1}>{i + 1}</RankBadge>
-              <span style={{ flex: 1, fontSize: '0.875rem' }}>{l.name}</span>
-              <span style={{
-                fontFamily: "'Fira Code', monospace",
-                fontSize: '0.75rem',
-                color: 'var(--accent-primary, #60C0F0)'
-              }}>
-                {l.xp.toLocaleString()} XP
-              </span>
-            </LeaderRow>
-          ))}
+          {leaderData.length === 0
+            ? (
+              <EmptyState>
+                No leaderboard entries yet. Log activity or join a challenge to start the board.
+              </EmptyState>
+            )
+            : leaderData.map((l, i) => (
+              <LeaderRow key={i}>
+                <RankBadge $rank={i + 1}>{i + 1}</RankBadge>
+                <span style={{ flex: 1, fontSize: '0.875rem' }}>{l.name}</span>
+                <span style={{
+                  fontFamily: "'Fira Code', monospace",
+                  fontSize: '0.75rem',
+                  color: 'var(--accent-primary, #60C0F0)'
+                }}>
+                  {l.xp.toLocaleString()} XP
+                </span>
+              </LeaderRow>
+            ))}
         </SectionCard>
       </TwoCol>
 

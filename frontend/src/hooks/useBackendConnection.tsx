@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import styled from 'styled-components';
 import { logger } from '@/utils/logger';
 
 // Connection states
@@ -466,6 +467,126 @@ export const useBackendConnection = (config = {}) => {
 /**
  * Connection Status Banner Component
  */
+const ConnectionBannerShell = styled.div<{ $tone: string }>`
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  top: calc(64px + env(safe-area-inset-top));
+  z-index: 990;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    top: calc(60px + env(safe-area-inset-top));
+  }
+
+  @media (max-width: 480px) {
+    top: calc(56px + env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+  }
+
+  @media (min-width: 2560px) {
+    top: calc(72px + env(safe-area-inset-top));
+  }
+
+  @media (min-width: 3840px) {
+    top: calc(80px + env(safe-area-inset-top));
+  }
+`;
+
+const getBannerBorder = (tone: string) => {
+  if (tone === 'error') return 'color-mix(in srgb, var(--danger, #EF4444) 42%, transparent)';
+  if (tone === 'warning') return 'color-mix(in srgb, var(--warning, #C6A84B) 42%, transparent)';
+  if (tone === 'mock') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 42%, transparent)';
+  return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent)';
+};
+
+const getBannerBackground = (tone: string) => {
+  if (tone === 'error') {
+    return 'linear-gradient(135deg, color-mix(in srgb, var(--danger, #EF4444) 18%, var(--bg-base, #030712)), color-mix(in srgb, var(--bg-base, #030712) 92%, transparent))';
+  }
+  if (tone === 'warning') {
+    return 'linear-gradient(135deg, color-mix(in srgb, var(--warning, #C6A84B) 18%, var(--bg-base, #030712)), color-mix(in srgb, var(--bg-base, #030712) 92%, transparent))';
+  }
+  if (tone === 'mock') {
+    return 'linear-gradient(135deg, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, var(--bg-base, #030712)), color-mix(in srgb, var(--bg-base, #030712) 92%, transparent))';
+  }
+  return 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, var(--bg-base, #030712)), color-mix(in srgb, var(--bg-base, #030712) 92%, transparent))';
+};
+
+const getBannerGlow = (tone: string) => {
+  if (tone === 'error') return 'color-mix(in srgb, var(--danger, #EF4444) 18%, transparent)';
+  if (tone === 'warning') return 'color-mix(in srgb, var(--warning, #C6A84B) 18%, transparent)';
+  if (tone === 'mock') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)';
+  return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)';
+};
+
+const ConnectionBannerCard = styled.div<{ $tone: string }>`
+  width: min(920px, 100%);
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid ${({ $tone }) => getBannerBorder($tone)};
+  background: ${({ $tone }) => getBannerBackground($tone)};
+  color: var(--text-primary, #E0ECF4);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 0 22px ${({ $tone }) => getBannerGlow($tone)};
+  backdrop-filter: blur(16px) saturate(1.35);
+  pointer-events: auto;
+
+  @media (max-width: 640px) {
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+`;
+
+const ConnectionBannerContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  text-align: center;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.35;
+`;
+
+const ConnectionBannerTitle = styled.span`
+  font-weight: 700;
+`;
+
+const ConnectionBannerMessage = styled.span`
+  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+`;
+
+const ConnectionRetryButton = styled.button`
+  min-width: 64px;
+  min-height: 44px;
+  margin-left: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent-primary, #60C0F0);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 export const ConnectionStatusBanner = ({ connection }) => {
   const { connectionState, isRetrying, retryCount, maxRetries, lastError, manualRetry } = connection;
   
@@ -494,7 +615,7 @@ export const ConnectionStatusBanner = ({ connection }) => {
           color: 'bg-red-500',
           icon: '❌',
           title: 'Connection Error',
-          message: lastError || 'Unable to connect to server'
+          message: typeof lastError === 'string' ? lastError : lastError?.message || 'Unable to connect to server'
         };
       case CONNECTION_STATES.MOCK_MODE:
         return {
@@ -513,25 +634,33 @@ export const ConnectionStatusBanner = ({ connection }) => {
     }
   };
   
-  const { color, icon, title, message } = getBannerConfig();
+  const { color, title, message } = getBannerConfig();
+  const tone = color === 'bg-red-500'
+    ? 'error'
+    : color === 'bg-orange-500'
+      ? 'warning'
+      : color === 'bg-purple-500'
+        ? 'mock'
+        : 'info';
   
   return (
-    <div className={`${color} text-white px-4 py-2 text-center relative`}>
-      <div className="flex items-center justify-center space-x-2">
-        <span>{icon}</span>
-        <span className="font-medium">{title}</span>
-        <span>-</span>
-        <span>{message}</span>
-        {(connectionState === CONNECTION_STATES.ERROR || connectionState === CONNECTION_STATES.MOCK_MODE) && (
-          <button
-            onClick={manualRetry}
-            className="ml-4 px-3 py-1 bg-white bg-opacity-20 rounded hover:bg-opacity-30 transition-colors"
-          >
-            Retry
-          </button>
-        )}
-      </div>
-    </div>
+    <ConnectionBannerShell $tone={tone} role="status" aria-live="polite">
+      <ConnectionBannerCard $tone={tone}>
+        <ConnectionBannerContent>
+          <ConnectionBannerTitle>{title}</ConnectionBannerTitle>
+          <span aria-hidden="true">-</span>
+          <ConnectionBannerMessage>{message}</ConnectionBannerMessage>
+          {(connectionState === CONNECTION_STATES.ERROR || connectionState === CONNECTION_STATES.MOCK_MODE) && (
+            <ConnectionRetryButton
+              type="button"
+              onClick={manualRetry}
+            >
+              Retry
+            </ConnectionRetryButton>
+          )}
+        </ConnectionBannerContent>
+      </ConnectionBannerCard>
+    </ConnectionBannerShell>
   );
 };
 

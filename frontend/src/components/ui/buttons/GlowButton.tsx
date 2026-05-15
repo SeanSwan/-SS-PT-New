@@ -38,6 +38,7 @@ export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   text?: string;
   variant?: GlowButtonColorScheme;
   theme?: GlowButtonColorScheme; // Alias for variant
+  colorScheme?: GlowButtonColorScheme; // Alias used by legacy CTA call-sites
   size?: GlowButtonSize;
   isLoading?: boolean;
   disabled?: boolean;
@@ -352,7 +353,7 @@ const StyledGlowButton = styled.button.withConfig({
       'isAnimating', 'variant',
       'startIcon', 'endIcon', 'leftIcon', 'rightIcon', // Icon props
       'animateOnRender', 'isLoading', // State props
-      'text', 'glowIntensity', 'theme', 'pulse', 'haptic' // Content prop + alias
+      'text', 'glowIntensity', 'theme', 'colorScheme', 'pulse', 'haptic' // Content prop + aliases
     ];
     return !nonDOMProps.includes(prop);
   }
@@ -563,6 +564,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   children,
   variant = "primary",
   theme,
+  colorScheme,
   size = "medium",
   isLoading = false,
   disabled = false,
@@ -591,7 +593,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   const resolvedRightIcon = rightIcon || endIcon;
 
   // Resolve variant (support theme alias + legacy names) and size configurations
-  const rawVariant = typeof theme === "string" ? theme : variant;
+  const rawVariant = typeof colorScheme === "string" ? colorScheme : typeof theme === "string" ? theme : variant;
   const canonicalVariant = resolveVariant(rawVariant);
 
   // Build the final ButtonTheme, merging light-theme overrides when needed
