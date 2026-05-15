@@ -41,6 +41,7 @@ vi.mock('../../../PlaudClipMerge/PlaudMergeWorkspace', () => ({
   PlaudMergeWorkspace: ({ embedded, initialReviewMergeRequestId }: { embedded?: boolean; initialReviewMergeRequestId?: string }) => (
     <section data-testid="mock-plaud-merge-workspace" data-embedded={String(Boolean(embedded))}>
       {initialReviewMergeRequestId || 'review-next'}
+      <input type="file" data-plaud-uploader-input="true" data-testid="plaud-uploader-input" />
     </section>
   ),
 }));
@@ -181,6 +182,30 @@ describe('CoachCommandCenterPage', () => {
     expect(screen.getByRole('button', { name: /^Readback$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Prepare$/i })).toBeInTheDocument();
     expect(screen.getByText(/the operator approves the final write/i)).toBeInTheDocument();
+  });
+
+  it('keeps the command composer at the top of the command workspace before the banner', () => {
+    renderPage();
+
+    const workspace = screen.getByLabelText('Swan Coach command workspace');
+    const composer = within(workspace).getByRole('form', { name: /Swan Coach command composer/i });
+    const banner = within(workspace).getByText(/review-gated operator console/i).closest('section');
+
+    expect(banner).not.toBeNull();
+    expect(composer.compareDocumentPosition(banner as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('opens the embedded PLAUD uploader from the top command dock', () => {
+    renderPage();
+
+    const uploadInput = screen.getByTestId('plaud-uploader-input');
+    const clickSpy = vi.spyOn(uploadInput, 'click');
+
+    fireEvent.click(screen.getByRole('button', { name: /Start PLAUD Upload/i }));
+
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText(/PLAUD upload lane ready/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/PLAUD recorder upload lane opened/i)).toBeInTheDocument();
   });
 
   it('uses real conversation thread buttons that update the composer and selected status', () => {

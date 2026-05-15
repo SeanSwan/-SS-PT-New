@@ -26,6 +26,12 @@ const VALID_SCOPES = new Set([
   'needs_client',
 ]);
 
+const CLIP_SOURCE_LABELS = {
+  manual_upload: 'Manual upload',
+  applaud_webhook: 'Applaud',
+  applaud_local_sync: 'APPLAUD sync',
+};
+
 function normalizeLimit(raw) {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return DEFAULT_LIMIT;
@@ -75,7 +81,7 @@ function queueStatusForMerge(row) {
 }
 
 export function mapClipRowToIntakeItem(row) {
-  const source = row.clip_source === 'applaud_webhook' ? 'applaud_webhook' : 'manual_upload';
+  const source = CLIP_SOURCE_LABELS[row.clip_source] ? row.clip_source : 'manual_upload';
   const queueStatus = queueStatusForClip(row.status);
   const clientId = row.client_id == null ? null : Number(row.client_id);
 
@@ -84,7 +90,7 @@ export function mapClipRowToIntakeItem(row) {
     entityId: row.clip_id,
     kind: 'clip',
     source,
-    sourceLabel: source === 'applaud_webhook' ? 'Applaud' : 'Manual upload',
+    sourceLabel: CLIP_SOURCE_LABELS[source],
     queueStatus,
     title: row.filename_original || 'Audio clip',
     clientId,
@@ -96,9 +102,9 @@ export function mapClipRowToIntakeItem(row) {
     errorCode: queueStatus === 'failed' ? row.status : null,
     status: row.status,
     createdAt: row.uploaded_at,
-    timelineAt: row.uploaded_at,
-    timelineAtSource: 'uploaded_at',
-    recordedAt: null,
+    timelineAt: row.recorded_at || row.uploaded_at,
+    timelineAtSource: row.recorded_at ? 'recorded_at' : 'uploaded_at',
+    recordedAt: row.recorded_at || null,
     completedAt: null,
     expiresAt: row.expires_at,
     durationSec: row.duration_sec == null ? null : Number(row.duration_sec),
@@ -185,7 +191,7 @@ export async function listPlaudIntakeItems({
   const clipRows = await sequelizeToUse.query(
     `SELECT c.clip_id, c.filename_original, c.mimetype, c.size_bytes,
             c.duration_sec, c.r2_mirror_status, c.status, c.uploaded_at,
-            c.expires_at, c.client_id, c.clip_source,
+            c.recorded_at, c.expires_at, c.client_id, c.clip_source,
             u."firstName" AS client_first_name,
             u."lastName" AS client_last_name
      FROM plaud_clips c

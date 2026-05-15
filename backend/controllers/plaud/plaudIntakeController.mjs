@@ -6,6 +6,7 @@
  */
 import logger from '../../utils/logger.mjs';
 import { listPlaudIntakeItems } from '../../services/plaudIntakeQueueService.mjs';
+import { listPlaudClipGroupCandidates } from '../../services/plaudClipGroupService.mjs';
 
 function jsonError(res, status, code, message) {
   return res.status(status).json({
@@ -37,4 +38,27 @@ export async function listPlaudIntakeHandler(req, res) {
   }
 }
 
-export default { listPlaudIntakeHandler };
+export async function listPlaudIntakeGroupsHandler(req, res) {
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return jsonError(res, 401, 'AUTH_REQUIRED', 'Authentication required');
+    }
+
+    const result = await listPlaudClipGroupCandidates({
+      userId,
+      limit: req.query.limit,
+      maxGapMinutes: req.query.maxGapMinutes,
+    });
+
+    return res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    logger.error('[plaudIntake.listPlaudIntakeGroupsHandler] %s', err.message);
+    return jsonError(res, 500, 'INTERNAL_ERROR', 'Failed to list PLAUD group candidates');
+  }
+}
+
+export default { listPlaudIntakeHandler, listPlaudIntakeGroupsHandler };

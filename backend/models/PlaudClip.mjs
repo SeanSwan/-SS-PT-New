@@ -97,6 +97,11 @@ PlaudClip.init(
       defaultValue: DataTypes.NOW,
       field: 'uploaded_at',
     },
+    recordedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'recorded_at',
+    },
     mergedAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -119,7 +124,7 @@ PlaudClip.init(
       allowNull: false,
       defaultValue: 'manual_upload',
       field: 'clip_source',
-      validate: { isIn: [['manual_upload', 'applaud_webhook']] },
+      validate: { isIn: [['manual_upload', 'applaud_webhook', 'applaud_local_sync']] },
     },
     // Plaud's recording_id (UUID-ish from Applaud). NULL for manual uploads.
     // Partial UNIQUE index (clip_source, clip_external_id, user_id)

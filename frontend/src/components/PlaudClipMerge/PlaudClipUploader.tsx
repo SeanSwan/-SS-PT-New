@@ -212,6 +212,8 @@ export function PlaudClipUploader({
           accept={ACCEPTED_MIMES.join(',')}
           onChange={onChange}
           disabled={isDisabled}
+          aria-label="Select PLAUD audio clips"
+          data-plaud-uploader-input="true"
           data-testid="plaud-uploader-input"
         />
       </DropZone>

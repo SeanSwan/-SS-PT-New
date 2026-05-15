@@ -177,7 +177,8 @@ function formatDuration(sec: number | null): string {
   return `${m}:${r.toString().padStart(2, '0')}`;
 }
 
-function formatUploadedAt(value: string): string {
+function formatClipTime(value: string | null | undefined): string {
+  if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
   return parsed.toLocaleString(undefined, {
@@ -186,6 +187,12 @@ function formatUploadedAt(value: string): string {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function sourceLabel(source: PlaudClip['clipSource']): string | null {
+  if (source === 'applaud_local_sync') return 'APPLAUD sync';
+  if (source === 'applaud_webhook') return 'Applaud';
+  return null;
 }
 
 function clipDisplayLabel(index: number): string {
@@ -221,7 +228,9 @@ export function PlaudClipQueue({
         const selected = selectedIds.has(c.clipId);
         const sizeStr = formatSize(c.size);
         const durStr = formatDuration(c.durationSec);
-        const uploadedStr = formatUploadedAt(c.uploadedAt);
+        const recordedStr = formatClipTime(c.recordedAt);
+        const uploadedStr = formatClipTime(c.uploadedAt);
+        const sourceStr = sourceLabel(c.clipSource);
         const order = selectedOrder.get(c.clipId);
         const label = clipDisplayLabel(index);
         return (
@@ -241,7 +250,8 @@ export function PlaudClipQueue({
                 {order ? <OrderPill>Merge step {order}</OrderPill> : null}
                 {durStr ? <span>{durStr}</span> : null}
                 {sizeStr ? <span>· {sizeStr}</span> : null}
-                {uploadedStr ? <span>Uploaded {uploadedStr}</span> : null}
+                {sourceStr ? <span>{sourceStr}</span> : null}
+                {recordedStr ? <span>Recorded {recordedStr}</span> : uploadedStr ? <span>Uploaded {uploadedStr}</span> : null}
                 <StatusPill $status={c.status}>{c.status.replace('_', ' ')}</StatusPill>
               </SubMeta>
               <PlaudClipAudioPreview clip={c} label={label} />

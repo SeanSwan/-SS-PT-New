@@ -39,6 +39,8 @@ export interface PlaudClip {
   durationSec: number | null;
   r2MirrorStatus?: string;
   status: string;
+  clipSource?: 'manual_upload' | 'applaud_webhook' | 'applaud_local_sync' | string;
+  recordedAt?: string | null;
   uploadedAt: string;
   expiresAt: string;
   playbackReady?: boolean;

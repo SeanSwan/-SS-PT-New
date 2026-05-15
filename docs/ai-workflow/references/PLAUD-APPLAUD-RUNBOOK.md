@@ -255,6 +255,28 @@ If the clip doesn't appear in 10–15 minutes, see **Troubleshooting** below.
 
 ---
 
+## Windows one-click local folder sync fallback
+
+As of 2026-05-14, SwanStudios also ships a Windows-friendly local sync path for Sean's home machine:
+
+- Repo launcher: `scripts/launchers/Start-Swan-Applaud-Sync.ps1`
+- Double-click wrapper: `scripts/launchers/Start-Swan-Applaud-Sync.cmd`
+- Sync agent: `scripts/applaud-sync/swan-applaud-sync.mjs`
+- Desktop copies created for convenience: `Start-Swan-Applaud-Sync.ps1` and `Start-Swan-Applaud-Sync.cmd`
+
+This path watches the folder where the local APPLAUD/PLAUD app exports recordings, then uploads stable recent audio files to `POST /api/plaud/clips/upload`. The launcher logs in to SwanStudios, stores the token with Windows DPAPI under `%LOCALAPPDATA%\SwanStudios\applaud-sync`, and starts the watcher. The sync state file stores SHA-256 fingerprints so the same local recording is not uploaded twice.
+
+Data behavior:
+
+- Local recordings are never deleted or moved by the sync agent.
+- Locally synced clips are tagged `clip_source='applaud_local_sync'`.
+- The source file modified time is sent as `recorded_at`, so suggested merge groups and timeline ordering use the real recording time instead of the later upload time.
+- Suggested groups are read-only hints from `GET /api/plaud/intake/groups`; final merge still requires trainer client selection and approval.
+
+If this fallback is used instead of the webhook/tunnel setup above, the Cloudflare tunnel and Applaud webhook route are not required for those locally exported files.
+
+---
+
 ## Troubleshooting
 
 ### Clip never appears in the queue

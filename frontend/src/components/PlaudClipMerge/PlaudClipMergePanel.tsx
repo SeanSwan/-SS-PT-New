@@ -15,13 +15,15 @@
  * Sticky-footer "Process selected (N) for {clientName}" on mobile
  * (CLAUDE.md Rule 22 premium UX, Rule 24 responsive).
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { usePlaudClipQueue } from '../../hooks/usePlaudClipQueue';
 import { submitMerge, type MergeResponse } from '../../services/plaudMergeService';
 import { PlaudApiError } from '../../services/plaudClipService';
+import { listPlaudClipGroups, type PlaudClipGroupCandidate } from '../../services/plaudClipGroupService';
 import { PlaudClientResolver, type PlaudResolvedClient } from './PlaudClientResolver';
 import { PlaudClipUploader } from './PlaudClipUploader';
+import { PlaudClipGroupRail } from './PlaudClipGroupRail';
 import { PlaudClipQueue } from './PlaudClipQueue';
 import {
   safePlaudIssueCode,
@@ -67,6 +69,30 @@ export function PlaudClipMergePanel({
   const [resolvedClient, setResolvedClient] = useState<PlaudResolvedClient | null>(null);
   const [isMerging, setIsMerging] = useState<boolean>(false);
   const [mergeError, setMergeError] = useState<PlaudApiError | null>(null);
+  const [clipGroups, setClipGroups] = useState<PlaudClipGroupCandidate[]>([]);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      const { groups } = await listPlaudClipGroups({ limit: 8, maxGapMinutes: 90 });
+      if (isMountedRef.current) setClipGroups(groups);
+    } catch {
+      if (isMountedRef.current) setClipGroups([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadGroups();
+  }, [loadGroups, queue.clips.length]);
+
+  const onSelectGroup = useCallback((group: PlaudClipGroupCandidate) => {
+    queue.selectClipIds(group.clipIds);
+  }, [queue]);
 
   const onMergeClick = useCallback(async () => {
     if (!queue.canMerge || !resolvedClient) return;
@@ -81,6 +107,7 @@ export function PlaudClipMergePanel({
       // Reset selection and refresh queue (consumed clips now status='merged')
       queue.clearSelection();
       await queue.refresh();
+      await loadGroups();
       onMergeReady(response, { clientId: resolvedClient.id, clientName: resolvedClient.fullName });
     } catch (err) {
       setMergeError(err as PlaudApiError);
@@ -130,6 +157,8 @@ export function PlaudClipMergePanel({
           </div>
         </ErrorBanner>
       ) : null}
+
+      <PlaudClipGroupRail groups={clipGroups} onSelectGroup={onSelectGroup} />
 
       <PlaudClipQueue
         clips={queue.clips}

@@ -56,8 +56,9 @@ const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 /**
  * Convert a returned-from-DB row into a clip record useful for the
  * pipeline. orderMode='provided' preserves trainer selection order;
- * orderMode='uploaded_at_asc' sorts by DB upload chronology with
- * trainer selection as a deterministic tie-breaker.
+ * orderMode='uploaded_at_asc' sorts by best available clip chronology.
+ * recorded_at wins when present; uploaded_at remains the compatibility
+ * fallback and trainer selection is the deterministic tie-breaker.
  */
 async function loadClipsInOrder(clipIds, userId, orderMode = 'provided') {
   if (clipIds.length === 0) return [];
@@ -67,11 +68,11 @@ async function loadClipsInOrder(clipIds, userId, orderMode = 'provided') {
   // ANY(...) and array_position(...) — both need a real Postgres array.
   const clipIdsLiteral = `{${clipIds.join(',')}}`;
   const orderClause = orderMode === 'uploaded_at_asc'
-    ? 'uploaded_at ASC, array_position(:clipIdsLiteral::uuid[], clip_id)'
+    ? 'COALESCE(recorded_at, uploaded_at) ASC, array_position(:clipIdsLiteral::uuid[], clip_id)'
     : 'array_position(:clipIdsLiteral::uuid[], clip_id)';
   const rows = await sequelize.query(
     `SELECT clip_id, filename_original, storage_ext, mimetype, duration_sec,
-            clip_source, status, uploaded_at, expires_at, deleted_at
+            clip_source, status, recorded_at, uploaded_at, expires_at, deleted_at
      FROM plaud_clips
      WHERE clip_id = ANY(:clipIdsLiteral::uuid[])
        AND user_id = :userId
@@ -96,6 +97,7 @@ function buildClipTimeline(clips, orderMode) {
     mergeStep: index + 1,
     clipId: c.clip_id,
     filename: c.filename_original,
+    recordedAt: c.recorded_at,
     uploadedAt: c.uploaded_at,
     durationSec: c.duration_sec == null ? null : Number(c.duration_sec),
     source: c.clip_source,

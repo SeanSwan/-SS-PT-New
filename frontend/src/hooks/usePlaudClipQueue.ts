@@ -48,6 +48,7 @@ export interface PlaudClipQueueState {
   upload: (files: File[]) => Promise<void>;
   removeClip: (clipId: string) => Promise<void>;
   toggleSelect: (clipId: string) => void;
+  selectClipIds: (clipIds: string[]) => void;
   selectAll: () => void;
   clearSelection: () => void;
 }
@@ -150,6 +151,12 @@ export function usePlaudClipQueue(): PlaudClipQueueState {
     });
   }, []);
 
+  const selectClipIds = useCallback((clipIds: string[]) => {
+    const validIds = new Set(clips.map((clip) => clip.clipId));
+    const next = clipIds.filter((clipId) => validIds.has(clipId)).slice(0, 5);
+    setSelectedIds(new Set(next));
+  }, [clips]);
+
   const selectAll = useCallback(() => {
     setSelectedIds(new Set(clips.map((c) => c.clipId)));
   }, [clips]);
@@ -177,6 +184,7 @@ export function usePlaudClipQueue(): PlaudClipQueueState {
     upload,
     removeClip,
     toggleSelect,
+    selectClipIds,
     selectAll,
     clearSelection,
   };

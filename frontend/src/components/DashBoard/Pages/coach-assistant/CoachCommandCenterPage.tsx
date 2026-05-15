@@ -258,6 +258,26 @@ const CoachCommandCenterPage: React.FC = () => {
     focusComposer(prompt, `${activeThreadTitle} - command staged`);
   };
 
+  const handleStartPlaudUpload = () => {
+    closeDrawer(false);
+    setSelectedStatus('PLAUD upload lane ready');
+    addLog({
+      actor: 'system',
+      label: 'PLAUD upload ready',
+      body: 'PLAUD recorder upload lane opened inside Swan Coach Command Center. Choose saved recorder clips, merge them, then review before any final write.',
+      attachments: ['PLAUD uploader ready', 'operator approval required'],
+    });
+
+    const panel = plaudReviewRef.current;
+    const uploadInput = panel?.querySelector<HTMLInputElement>('[data-plaud-uploader-input="true"]');
+    uploadInput?.click();
+
+    if (typeof panel?.scrollIntoView === 'function') {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    panel?.focus({ preventScroll: true });
+  };
+
   const handleNewThread = () => {
     chat.newChat();
     setActiveThreadId(null);
@@ -617,6 +637,79 @@ const CoachCommandCenterPage: React.FC = () => {
             </button>
           </div>
 
+          <form
+            className="composer command-dock"
+            ref={commandFormRef}
+            onSubmit={handleSubmit}
+            aria-label="Swan Coach command composer"
+          >
+            <div className="mobile-command-strip">
+              <button
+                type="button"
+                aria-controls="coach-command-threads"
+                aria-expanded={drawer === 'left'}
+                onClick={(event) => openDrawer('left', event)}
+              >
+                Threads
+              </button>
+              <span className="mobile-command-client">{selectedStatus}</span>
+              <button
+                type="button"
+                aria-controls="coach-command-ops"
+                aria-expanded={drawer === 'right'}
+                onClick={(event) => openDrawer('right', event)}
+              >
+                Ops
+              </button>
+            </div>
+            <div className="composer-header">
+              <div className="composer-heading">
+                <span className="mini-chip gold">recorder intake</span>
+                <strong>Upload saved PLAUD clips into Swan Coach</strong>
+                <span>Starts the existing upload, merge, and approval workflow.</span>
+              </div>
+              <button type="button" className="primary-button plaud-start-button" onClick={handleStartPlaudUpload}>
+                <FileAudio size={17} aria-hidden="true" />
+                <span>Start PLAUD Upload</span>
+              </button>
+            </div>
+            <textarea
+              ref={commandTextRef}
+              value={commandText}
+              onChange={(event) => setCommandText(event.target.value)}
+              placeholder="Ask Swan Coach, paste notes, or attach audio/transcript..."
+              aria-describedby="composerStatus"
+            />
+            <div className="composer-actions">
+              <button type="button" className="secondary-button" onClick={handleAttach}>
+                <Paperclip size={16} aria-hidden="true" />
+                <span className="desktop-label">Attach</span>
+                <span className="mobile-label">Attach</span>
+              </button>
+              <button
+                type="button"
+                className={`secondary-button ${voiceActive ? 'is-listening' : ''}`}
+                aria-pressed={voiceActive}
+                onClick={handleVoice}
+              >
+                <Mic size={16} aria-hidden="true" />
+                <span className="desktop-label">{voiceActive ? 'Listening' : 'Mic'}</span>
+                <span className="mobile-label">Mic</span>
+              </button>
+              <button type="button" className="secondary-button" onClick={handleReadback}>
+                <Volume2 size={16} aria-hidden="true" />
+                <span>Readback</span>
+              </button>
+              <button type="submit" className="primary-button">
+                <ShieldCheck size={16} aria-hidden="true" />
+                <span>Prepare</span>
+              </button>
+            </div>
+            <span id="composerStatus" className="panel-subtitle">
+              {selectedStatus}
+            </span>
+          </form>
+
           <section className="command-banner glass">
             <div className="banner-content">
               <div className="banner-copy">
@@ -814,62 +907,6 @@ const CoachCommandCenterPage: React.FC = () => {
             </div>
           </section>
 
-          <form className="composer mobile-command-dock" ref={commandFormRef} onSubmit={handleSubmit}>
-            <div className="mobile-command-strip">
-              <button
-                type="button"
-                aria-controls="coach-command-threads"
-                aria-expanded={drawer === 'left'}
-                onClick={(event) => openDrawer('left', event)}
-              >
-                Threads
-              </button>
-              <span className="mobile-command-client">{selectedStatus}</span>
-              <button
-                type="button"
-                aria-controls="coach-command-ops"
-                aria-expanded={drawer === 'right'}
-                onClick={(event) => openDrawer('right', event)}
-              >
-                Ops
-              </button>
-            </div>
-            <textarea
-              ref={commandTextRef}
-              value={commandText}
-              onChange={(event) => setCommandText(event.target.value)}
-              placeholder="Ask Swan Coach, paste notes, or attach audio/transcript..."
-              aria-describedby="composerStatus"
-            />
-            <div className="composer-actions">
-              <button type="button" className="secondary-button" onClick={handleAttach}>
-                <Paperclip size={16} aria-hidden="true" />
-                <span className="desktop-label">Attach</span>
-                <span className="mobile-label">Attach</span>
-              </button>
-              <button
-                type="button"
-                className={`secondary-button ${voiceActive ? 'is-listening' : ''}`}
-                aria-pressed={voiceActive}
-                onClick={handleVoice}
-              >
-                <Mic size={16} aria-hidden="true" />
-                <span className="desktop-label">{voiceActive ? 'Listening' : 'Mic'}</span>
-                <span className="mobile-label">Mic</span>
-              </button>
-              <button type="button" className="secondary-button" onClick={handleReadback}>
-                <Volume2 size={16} aria-hidden="true" />
-                <span>Readback</span>
-              </button>
-              <button type="submit" className="primary-button">
-                <ShieldCheck size={16} aria-hidden="true" />
-                <span>Prepare</span>
-              </button>
-            </div>
-            <span id="composerStatus" className="panel-subtitle">
-              {selectedStatus}
-            </span>
-          </form>
         </main>
 
         <aside

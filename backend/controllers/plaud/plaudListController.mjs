@@ -82,7 +82,7 @@ export async function listHandler(req, res) {
 
   const [rows] = await sequelize.query(
     `SELECT clip_id, filename_original, mimetype, size_bytes, duration_sec,
-            r2_mirror_status, status, uploaded_at, expires_at
+            r2_mirror_status, status, clip_source, recorded_at, uploaded_at, expires_at
      FROM plaud_clips
      WHERE user_id = :userId
        AND status NOT IN ('deleted', 'expired', 'lost')
@@ -109,6 +109,8 @@ export async function listHandler(req, res) {
       durationSec: r.duration_sec ? Number(r.duration_sec) : null,
       r2MirrorStatus: r.r2_mirror_status,
       status: r.status,
+      clipSource: r.clip_source,
+      recordedAt: r.recorded_at,
       uploadedAt: r.uploaded_at,
       expiresAt: r.expires_at,
       playbackReady: isAudioLoadAvailable(r),

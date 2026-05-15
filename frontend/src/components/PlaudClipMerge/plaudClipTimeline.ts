@@ -2,8 +2,8 @@
  * plaudClipTimeline.ts
  * ====================
  * Deterministic ordering helpers for PLAUD clips. The backend's durable
- * timestamp is uploadedAt, so this is the best available chronology until
- * a future recordedAt field lands from Applaud/PLAUD metadata.
+ * timestamp prefers recordedAt when the sync source provides it, with
+ * uploadedAt as the compatibility fallback.
  */
 import type { PlaudClip } from '../../services/plaudClipService';
 
@@ -18,7 +18,7 @@ export interface ClipTimeline {
 const LARGE_SESSION_GAP_MINUTES = 90;
 
 function clipTimeMs(clip: PlaudClip): number | null {
-  const parsed = Date.parse(clip.uploadedAt || '');
+  const parsed = Date.parse(clip.recordedAt || clip.uploadedAt || '');
   return Number.isFinite(parsed) ? parsed : null;
 }
 

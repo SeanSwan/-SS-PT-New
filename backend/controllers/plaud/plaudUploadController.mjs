@@ -39,6 +39,7 @@ import {
 
 const ALLOWED_CODECS = new Set(['mp3', 'aac', 'opus', 'pcm_s16le', 'flac', 'vorbis']);
 const ALLOWED_EXT = new Set(['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'webm']);
+const MAX_SOURCE_FUTURE_DRIFT_MS = 5 * 60 * 1000;
 
 function pickExtFromMimetype(mimetype, originalname) {
   const fallback = (originalname || '').split('.').pop()?.toLowerCase() || '';
@@ -59,6 +60,19 @@ function pickExtFromMimetype(mimetype, originalname) {
   return ALLOWED_EXT.has(candidate) ? candidate : null;
 }
 
+function normalizeRecordedAt(value, nowMs = Date.now()) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  const time = parsed.getTime();
+  if (!Number.isFinite(time)) return null;
+  if (time > nowMs + MAX_SOURCE_FUTURE_DRIFT_MS) return null;
+  return parsed.toISOString();
+}
+
+function normalizeClipSource(value) {
+  return value === 'applaud_local_sync' ? 'applaud_local_sync' : 'manual_upload';
+}
+
 export async function uploadHandler(req, res) {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({
@@ -77,12 +91,14 @@ export async function uploadHandler(req, res) {
 
   const accepted = [];
   const rejected = [];
+  const recordedAt = normalizeRecordedAt(req.body?.recordedAt);
+  const clipSource = normalizeClipSource(req.body?.clipSource);
 
   // Temp dir for ffprobe inputs (multer is memoryStorage; ffprobe needs a path)
   const tmpDir = await mkdtemp(join(tmpdir(), 'plaud-upload-'));
 
   for (const f of req.files) {
-    const result = await processOneFile({ file: f, userId, tmpDir })
+    const result = await processOneFile({ file: f, userId, tmpDir, recordedAt, clipSource })
       .catch((err) => {
         logger.error('[plaudUpload] processOneFile threw: %s', err.message);
         return {
@@ -103,7 +119,7 @@ export async function uploadHandler(req, res) {
   });
 }
 
-async function processOneFile({ file, userId, tmpDir }) {
+async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSource = 'manual_upload' }) {
   const ext = pickExtFromMimetype(file.mimetype, file.originalname);
   if (!ext) {
     return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: `mime ${file.mimetype}` } };
@@ -161,14 +177,15 @@ async function processOneFile({ file, userId, tmpDir }) {
       `INSERT INTO plaud_clips (
          clip_id, user_id, filename_original, storage_ext, mimetype,
          size_bytes, duration_sec, sha256, status,
-         expires_at
+         recorded_at, clip_source, expires_at
        )
        VALUES (
          :clipId, :userId, :filename, :ext, :mimetype,
          :size, :duration, '', 'uploading',
+         :recordedAt, :clipSource,
          NOW() + (:ttlHours || ' hours')::INTERVAL
        )
-       RETURNING id, clip_id, uploaded_at, expires_at`,
+       RETURNING id, clip_id, recorded_at, clip_source, uploaded_at, expires_at`,
       {
         replacements: {
           clipId,
@@ -178,6 +195,8 @@ async function processOneFile({ file, userId, tmpDir }) {
           mimetype: file.mimetype,
           size: file.size,
           duration: meta.durationSec || null,
+          recordedAt,
+          clipSource,
           ttlHours: String(Number(process.env.PLAUD_CLIP_TTL_HOURS) || 24),
         },
       },
@@ -241,6 +260,8 @@ async function processOneFile({ file, userId, tmpDir }) {
       size: file.size,
       mimetype: file.mimetype,
       durationSec: meta.durationSec,
+      recordedAt: dbRow.recorded_at,
+      clipSource: dbRow.clip_source,
       uploadedAt: dbRow.uploaded_at,
       expiresAt: dbRow.expires_at,
       status: 'pending_merge',
@@ -250,4 +271,6 @@ async function processOneFile({ file, userId, tmpDir }) {
   };
 }
 
-export const _internal = { processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype };
+export const _internal = {
+  processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype, normalizeRecordedAt, normalizeClipSource,
+};

@@ -659,8 +659,54 @@ export const CommandCenterShell = styled.div`
     padding: 12px;
   }
 
-  .mobile-command-dock {
-    position: relative;
+  .composer-header {
+    align-items: center;
+    border: 1px solid var(--coach-line);
+    border-radius: 15px;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .composer-heading {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .composer-heading strong {
+    color: var(--coach-text);
+    font-size: 15px;
+    font-weight: 820;
+    line-height: 1.25;
+  }
+
+  .composer-heading span:last-child {
+    color: var(--coach-muted);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .plaud-start-button {
+    box-shadow:
+      0 14px 34px color-mix(in srgb, var(--coach-purple) 20%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--coach-gold) 26%, transparent) inset;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .command-dock {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 9%, transparent), transparent 34%),
+      linear-gradient(180deg, rgba(10, 16, 31, 0.9), rgba(5, 9, 20, 0.84));
+    border-color: var(--coach-line-strong);
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+    order: -1;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
 
   .file-control {
@@ -730,7 +776,7 @@ export const CommandCenterShell = styled.div`
 
   @media (max-width: 860px) {
     min-height: 100dvh;
-    padding-bottom: calc(var(--mobile-dock-space) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
 
     .app-shell {
       display: block;
@@ -799,7 +845,7 @@ export const CommandCenterShell = styled.div`
     .left-rail,
     .right-rail {
       display: grid;
-      inset: 12px auto calc(var(--mobile-dock-space) + 16px + env(safe-area-inset-bottom)) 12px;
+      inset: 12px auto 12px 12px;
       max-width: min(336px, calc(100vw - 24px));
       opacity: 0;
       overflow-y: auto;
@@ -872,20 +918,18 @@ export const CommandCenterShell = styled.div`
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .mobile-command-dock {
+    .command-dock {
       background: linear-gradient(180deg, rgba(10, 16, 31, 0.94), rgba(4, 8, 18, 0.98));
       border: 1px solid var(--coach-line-strong);
-      border-radius: 20px 20px 0 0;
-      border-bottom: 0;
-      bottom: 0;
-      box-shadow: 0 -22px 70px rgba(0, 0, 0, 0.52);
+      border-radius: 20px;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.42);
       display: grid;
       gap: 8px;
-      left: 0;
-      padding: 9px 10px calc(10px + env(safe-area-inset-bottom));
-      position: fixed;
-      right: 0;
-      z-index: 100;
+      margin-bottom: 12px;
+      padding: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 60;
     }
 
     .mobile-command-strip {
@@ -917,19 +961,29 @@ export const CommandCenterShell = styled.div`
       white-space: nowrap;
     }
 
-    .mobile-command-dock textarea {
+    .command-dock textarea {
       max-height: 72px;
       min-height: 44px;
       resize: none;
     }
 
-    .mobile-command-dock .composer-actions {
+    .composer-header {
+      align-items: stretch;
+      display: grid;
+      gap: 8px;
+    }
+
+    .plaud-start-button {
+      width: 100%;
+    }
+
+    .command-dock .composer-actions {
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 6px;
     }
 
-    .mobile-command-dock .composer-actions button,
-    .mobile-command-dock .file-control {
+    .command-dock .composer-actions button,
+    .command-dock .file-control {
       min-width: 0;
       padding-inline: 6px;
     }
@@ -963,8 +1017,8 @@ export const CommandCenterShell = styled.div`
       font-size: clamp(20px, 8vw, 30px);
     }
 
-    .mobile-command-dock {
-      border-radius: 16px 16px 0 0;
+    .command-dock {
+      border-radius: 16px;
       padding-inline: 8px;
     }
   }
