@@ -8,7 +8,6 @@
 // Core Workout Management
 export { default as AdminWorkoutManagement } from './AdminWorkoutManagement';
 export { default as TrainerWorkoutManagement } from '../TrainerDashboard/WorkoutManagement/TrainerWorkoutManagement';
-export { default as EnhancedMyWorkoutsSection } from '../ClientDashboard/sections/EnhancedMyWorkoutsSection';
 
 // Shared Components
 export { default as ExerciseLibrary } from './ExerciseLibrary';

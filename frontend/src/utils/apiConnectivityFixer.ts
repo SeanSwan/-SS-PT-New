@@ -1,29 +1,21 @@
 /**
  * API Connectivity Fixer
  * 
- * This utility monitors network requests and automatically enables mock data mode
- * when connection issues are detected.
+ * This utility monitors network requests and reports API connectivity issues.
+ * SwanStudios no longer swaps failed backend calls for simulated data.
  */
 
-import { enableMockData, isMockDataEnabled } from './mockDataHelper';
 import { logger } from '@/utils/logger';
 
 let connectionErrors = 0;
-const MAX_ERRORS_BEFORE_MOCK = 3;
-let mockModeEnabled = isMockDataEnabled();
+const MAX_ERRORS_BEFORE_WARNING = 3;
 
 /**
  * Initialize the API connection monitoring
  * This adds global error handlers to detect network issues
  */
 export const initializeApiMonitoring = () => {
-  // Check if we're already in mock data mode
-  if (mockModeEnabled) {
-    logger.log('[API Monitor] Mock data mode already enabled, skipping monitoring');
-    return;
-  }
-
-  logger.log('[API Monitor] Initializing API connectivity monitoring');
+  logger.log('[API Monitor] Initializing API connectivity monitoring without simulated-data fallback');
 
   // Monitor fetch errors globally
   const originalFetch = window.fetch;
@@ -45,15 +37,11 @@ export const initializeApiMonitoring = () => {
           error.message?.includes('ECONNREFUSED')) {
         
         connectionErrors++;
-        logger.warn(`[API Monitor] Connection error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK}): ${error.message}`);
+        logger.warn(`[API Monitor] Connection error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_WARNING}): ${error.message}`);
         
-        if (connectionErrors >= MAX_ERRORS_BEFORE_MOCK && !mockModeEnabled) {
-          logger.warn('[API Monitor] Too many connection errors, enabling mock data mode');
-          enableMockData();
-          mockModeEnabled = true;
-          
-          // Show UI notification about mock mode
-          showMockModeNotification();
+        if (connectionErrors >= MAX_ERRORS_BEFORE_WARNING) {
+          logger.warn('[API Monitor] Too many connection errors; backend data remains unavailable until the API recovers');
+          showApiUnavailableNotification();
         }
       }
       
@@ -66,15 +54,11 @@ export const initializeApiMonitoring = () => {
   XMLHttpRequest.prototype.open = function(...args) {
     this.addEventListener('error', () => {
       connectionErrors++;
-      logger.warn(`[API Monitor] XHR error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_MOCK})`);
+      logger.warn(`[API Monitor] XHR error detected (${connectionErrors}/${MAX_ERRORS_BEFORE_WARNING})`);
       
-      if (connectionErrors >= MAX_ERRORS_BEFORE_MOCK && !mockModeEnabled) {
-        logger.warn('[API Monitor] Too many XHR errors, enabling mock data mode');
-        enableMockData();
-        mockModeEnabled = true;
-        
-        // Show UI notification about mock mode
-        showMockModeNotification();
+      if (connectionErrors >= MAX_ERRORS_BEFORE_WARNING) {
+        logger.warn('[API Monitor] Too many XHR errors; backend data remains unavailable until the API recovers');
+        showApiUnavailableNotification();
       }
     });
 
@@ -83,9 +67,9 @@ export const initializeApiMonitoring = () => {
 };
 
 /**
- * Show a notification to the user about mock data mode
+ * Show a notification to the user about API unavailability.
  */
-function showMockModeNotification() {
+function showApiUnavailableNotification() {
   try {
     // Create a notification element
     const notification = document.createElement('div');
@@ -104,7 +88,7 @@ function showMockModeNotification() {
     notification.innerHTML = `
       <div style="font-weight: bold; margin-bottom: 5px;">Backend Connection Error</div>
       <div style="font-size: 14px; margin-bottom: 8px;">
-        Unable to connect to backend services. The app is now running in mock data mode.
+        Unable to connect to backend services. Live data is unavailable until the API recovers.
       </div>
       <div style="font-size: 12px; color: #555;">
         (Click to dismiss)
@@ -131,24 +115,13 @@ function showMockModeNotification() {
 }
 
 /**
- * Manually enable mock data mode
- */
-export const enableMockDataMode = () => {
-  enableMockData();
-  mockModeEnabled = true;
-  logger.log('[API Monitor] Mock data mode manually enabled');
-  showMockModeNotification();
-};
-
-/**
- * Check if we're in mock data mode
+ * Check whether simulated data mode is active.
  */
 export const isMockDataModeEnabled = () => {
-  return mockModeEnabled || isMockDataEnabled();
+  return false;
 };
 
 export default {
   initializeApiMonitoring,
-  enableMockDataMode,
   isMockDataModeEnabled
 };

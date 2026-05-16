@@ -366,42 +366,13 @@ const ProgressAnalysis: React.FC<ProgressAnalysisProps> = ({ onClose }) => {
       return;
     }
 
-    // Short-circuit when MCP is disabled
-    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      enqueueSnackbar('AI progress analysis is currently disabled', { variant: 'info' });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Prepare analysis context
-      const mcpContext = {
-        clientId: selectedClient,
-        timeframe,
-        metrics: ['weight', 'strength', 'endurance', 'flexibility', 'consistency'],
-        includeComparisons: true,
-        generateRecommendations: true
-      };
-
-      // Call MCP backend for analysis
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/analyze`, {
-        method: 'POST',
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/analytics/${selectedClient}/dashboard?timeframe=${encodeURIComponent(timeframe)}`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          modelName: 'claude-3-5-sonnet',
-          temperature: 0.3,
-          maxTokens: 3000,
-          systemPrompt: `You are an AI fitness analyst. Analyze client progress data and provide insights.
-                        Focus on: trends, achievements, areas for improvement, recommendations.
-                        Format response as structured JSON with sections for metrics, insights, recommendations.`,
-          humanMessage: `Analyze client progress for the selected timeframe: ${timeframe}.
-                        Provide detailed insights on performance trends, achievements, and recommendations.`,
-          mcpContext
-        })
+        }
       });
 
       if (!response.ok) {
@@ -410,19 +381,13 @@ const ProgressAnalysis: React.FC<ProgressAnalysisProps> = ({ onClose }) => {
 
       const result = await response.json();
 
-      // Parse the AI response
-      let parsedAnalysis;
-      try {
-        parsedAnalysis = JSON.parse(result.content);
-      } catch (parseError) {
-        // If JSON parsing fails, treat as plain text and structure it
-        parsedAnalysis = {
-          summary: result.content,
-          metrics: generateMockMetrics(),
-          insights: extractInsights(result.content),
-          recommendations: extractRecommendations(result.content)
-        };
-      }
+      const dashboard = result.data || result.dashboard || result;
+      const parsedAnalysis = {
+        summary: dashboard.summary || 'Progress data loaded from SwanStudios analytics.',
+        metrics: dashboard.metrics || generateMockMetrics(),
+        insights: dashboard.insights || extractInsights(''),
+        recommendations: dashboard.recommendations || extractRecommendations('')
+      };
 
       setAnalysisData(parsedAnalysis);
       setProgressMetrics(parsedAnalysis.metrics || generateMockMetrics());

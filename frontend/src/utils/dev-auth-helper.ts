@@ -18,69 +18,13 @@ const setToken = (token: string | null) => ({
   payload: token
 });
 
-// Pre-defined test users
-const TEST_USERS = {
-  admin: {
-    id: 'admin-test-id',
-    name: 'Admin Test',
-    email: 'admin@swanstudios.com',
-    role: 'admin',
-    profileImageUrl: null,
-    permissions: ['manage_users', 'manage_content', 'manage_sessions', 'manage_packages', 'manage_gamification', 'view_analytics'],
-  },
-  trainer: {
-    id: 'trainer-test-id',
-    name: 'Trainer Test',
-    email: 'trainer@swanstudios.com',
-    role: 'trainer',
-    profileImageUrl: null,
-    permissions: ['manage_sessions', 'view_clients', 'create_workouts'],
-  },
-  client: {
-    id: 'client-test-id',
-    name: 'Client Test',
-    email: 'client@test.com',
-    role: 'client',
-    profileImageUrl: null,
-    membership: 'premium',
-    permissions: ['access_workouts', 'access_store'],
-  },
-  user: {
-    id: 'user-test-id',
-    name: 'User Test',
-    email: 'user@test.com',
-    role: 'user',
-    profileImageUrl: null,
-    permissions: ['access_social', 'create_posts'],
-  }
-};
-
-// Mock JWT tokens (just for development UI consistency)
-const MOCK_TOKENS = {
-  admin: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbi10ZXN0LWlkIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNTE2MjM5MDIyfQ.mock-signature',
-  trainer: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0cmFpbmVyLXRlc3QtaWQiLCJyb2xlIjoidHJhaW5lciIsImlhdCI6MTUxNjIzOTAyMn0.mock-signature',
-  client: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbGllbnQtdGVzdC1pZCIsInJvbGUiOiJjbGllbnQiLCJpYXQiOjE1MTYyMzkwMjJ9.mock-signature',
-  user: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLXRlc3QtaWQiLCJyb2xlIjoidXNlciIsImlhdCI6MTUxNjIzOTAyMn0.mock-signature'
-};
-
 /**
- * Quick login as a predefined test user (admin, trainer, client, or user)
- * This bypasses the normal authentication flow for development purposes
+ * Retired compatibility helper.
+ * Quick login used to bypass backend auth with fake users and fake tokens.
  */
 export const devQuickLogin = (role: 'admin' | 'trainer' | 'client' | 'user') => {
-  // 1. Set user in Redux store
-  store.dispatch(setUser(TEST_USERS[role]));
-  
-  // 2. Set fake JWT token
-  store.dispatch(setToken(MOCK_TOKENS[role]));
-  
-  // 3. Store in localStorage for persistence
-  localStorage.setItem('token', MOCK_TOKENS[role]);
-  localStorage.setItem('user', JSON.stringify(TEST_USERS[role]));
-  
-  logger.log(`[DEV MODE] Logged in as ${role}`);
-  
-  return TEST_USERS[role];
+  logger.warn(`[DEV MODE] Quick login for ${role} is retired. Use the real login flow with seeded backend users.`);
+  throw new Error('Dev quick login is retired. Use real backend authentication.');
 };
 
 /**
@@ -239,20 +183,9 @@ export const getCurrentUser = () => {
 };
 
 /**
- * Helper to run database seeding for test accounts
- * This would typically connect to a backend endpoint
+ * Retired compatibility helper.
  */
 export const seedTestAccounts = async () => {
-  try {
-    // In a real implementation, this would call an API endpoint
-    // For example:
-    // const response = await fetch('/api/dev/seed-test-accounts', { method: 'POST' });
-    // return response.json();
-    
-    logger.log('[DEV MODE] Seeded test accounts');
-    return { success: true, message: 'Test accounts created successfully' };
-  } catch (error) {
-    console.error('[DEV MODE] Failed to seed test accounts', error);
-    return { success: false, message: 'Failed to seed test accounts' };
-  }
+  logger.warn('[DEV MODE] Local fake account seeding is retired. Use backend seed scripts with explicit credentials.');
+  return { success: false, message: 'Local fake account seeding is retired' };
 };

@@ -2,11 +2,11 @@
  * Enhanced Client Dashboard Service
  * ================================
  * 
- * Revolutionary service layer that integrates MCP servers, real-time data,
+ * Compatibility service layer for real-time client dashboard data,
  * and cross-dashboard functionality for the SwanStudios platform.
  * 
  * Features:
- * - MCP server integration for gamification
+ * - First-party gamification API integration
  * - Real-time WebSocket connections
  * - Schedule service integration  
  * - Cross-dashboard data sharing
@@ -14,7 +14,7 @@
  * 
  * Master Prompt v28 Alignment:
  * - Backend architecture integration
- * - MCP server communication
+ * - First-party API communication
  * - Real-time data flow
  * - Security and performance optimization
  */
@@ -99,28 +99,16 @@ interface DashboardStats {
   goalsCompleted: number;
 }
 
-interface McpServerResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  timestamp: string;
-}
-
 // === CONFIGURATION ===
 // Robust configuration that works in all environments
 const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production' || window.location.hostname !== 'localhost';
 const PRODUCTION_URL = 'https://sswanstudios.com';
 const DEVELOPMENT_URL = 'http://localhost:10000';
 
-// Primary API configuration with multiple fallback methods
+// Primary API configuration with environment-specific API roots.
 const API_BASE_URL = isProduction 
   ? PRODUCTION_URL
   : (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || DEVELOPMENT_URL);
-
-// MCP server configuration (integrated into main backend in production)
-const MCP_GAMIFICATION_URL = isProduction
-  ? PRODUCTION_URL // MCP integrated into main backend
-  : (import.meta.env.VITE_MCP_GAMIFICATION_URL || 'http://localhost:8002');
 
 // WebSocket configuration (integrated into main backend in production)
 const WEBSOCKET_URL = isProduction
@@ -131,7 +119,6 @@ const WEBSOCKET_URL = isProduction
 logger.log('🔧 EnhancedClientDashboardService Configuration:', {
   isProduction,
   API_BASE_URL,
-  MCP_GAMIFICATION_URL,
   WEBSOCKET_URL,
   hostname: window.location.hostname,
   environment: import.meta.env.MODE
@@ -141,14 +128,6 @@ logger.log('🔧 EnhancedClientDashboardService Configuration:', {
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-const mcpClient = axios.create({
-  baseURL: MCP_GAMIFICATION_URL,
-  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -167,31 +146,11 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-mcpClient.interceptors.request.use(
-  (config) => {
-    // Fix: Use correct token key that matches AuthContext
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 // === RESPONSE INTERCEPTORS ===
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
-
-mcpClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('MCP Server Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -377,7 +336,7 @@ class EnhancedClientDashboardService {
         // Old format - direct array
         sessions = response.data;
       } else if (response.data?.sessions) {
-        // Fallback - sessions property exists
+        // Older response shape - sessions property exists.
         sessions = response.data.sessions;
       }
       
@@ -387,8 +346,8 @@ class EnhancedClientDashboardService {
         end: new Date(session.end || new Date(new Date(session.start || session.sessionDate).getTime() + (session.duration || 60) * 60000)),
       }));
     } catch (error) {
-      logger.warn('⚠️ Sessions unavailable, using fallback data');
-      return this.getFallbackSessions();
+      logger.warn('Sessions unavailable; returning an empty session state');
+      return [];
     }
   }
 
@@ -418,56 +377,33 @@ class EnhancedClientDashboardService {
     }
   }
 
-  // === GAMIFICATION SERVICES (MCP Integration) ===
+  // === GAMIFICATION SERVICES ===
   async getGamificationData(userId?: string): Promise<GamificationData> {
-    // Short-circuit when MCP is disabled — return fallback data without network call
-    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      return this.getFallbackGamificationData();
-    }
-
     try {
       const targetUserId = userId || this.userId;
-      if (!targetUserId) throw new Error('User ID required');
+      if (!targetUserId) return this.getEmptyGamificationData();
 
-      // Use the correct MCP endpoint for user engagement analysis
-      const response: AxiosResponse<any> = await apiClient.post(
-        `/api/mcp/analyze`,
-        {
-          modelName: 'claude-3-5-sonnet',
-          temperature: 0.3,
-          maxTokens: 3000,
-          systemPrompt: 'Analyze user engagement and gamification data for fitness tracking.',
-          humanMessage: `Analyze engagement data for user ${targetUserId} over the last 30 days. Include gamification metrics like XP, level, badges, and achievements.`,
-          mcpContext: {
-            userId: targetUserId,
-            timeframe: "30d",
-            includeComparisons: true,
-            analysisType: "engagement_and_gamification"
-          }
-        }
-      );
+      const [profileResponse, achievementsResponse] = await Promise.all([
+        apiClient.get('/api/v1/gamification/profile'),
+        apiClient.get('/api/v1/gamification/achievements')
+      ]);
+      const profile = profileResponse.data?.profile || {};
+      const achievements = achievementsResponse.data?.achievements || [];
 
-      // Transform MCP response to our GamificationData format
-      const mcpResponse = response.data;
-      
-      if (mcpResponse && mcpResponse.success) {
-        // Try to parse the MCP content for engagement data
-        const content = mcpResponse.content || '';
-        
-        // MCP analysis received — return fallback since parsing AI content
-        // into structured gamification data is not yet implemented.
-        // Real gamification data is fetched by useGamificationData hook instead.
-        logger.log('✅ MCP analysis received:', content.substring(0, 200) + '...');
-
-        return this.getFallbackGamificationData();
-      }
-
-      throw new Error('Invalid response format from MCP server');
+      return {
+        userId: String(targetUserId),
+        level: profile.level || 0,
+        xp: profile.points || 0,
+        xpToNextLevel: profile.nextLevelPoints || 100,
+        totalXp: profile.points || 0,
+        streak: profile.streakDays || 0,
+        badges: this.transformBadges(profile.badges || []),
+        achievements: this.transformAchievements(achievements),
+        leaderboardPosition: profile.leaderboardPosition || 0,
+      };
     } catch (error) {
-      console.error('❌ Error fetching gamification data from MCP:', error);
-      logger.log('ℹ️ Using fallback gamification data');
-      // Return fallback data
-      return this.getFallbackGamificationData();
+      console.error('Error fetching gamification data from SwanStudios APIs:', error);
+      return this.getEmptyGamificationData();
     }
   }
 
@@ -478,8 +414,7 @@ class EnhancedClientDashboardService {
     caloriesBurned?: number;
   }): Promise<GamificationData> {
     try {
-      // Use the backend API for recording workout completion
-      // The MCP server will be notified via internal backend processes
+      // Gamification rewards are recorded by the backend API.
       const response: AxiosResponse<any> = await apiClient.post(
         `/api/gamification/record-workout`,
         {
@@ -525,10 +460,9 @@ class EnhancedClientDashboardService {
         return response.data.stats;
       }
       
-      return this.getFallbackStats();
+      return this.getEmptyStats();
     } catch (error) {
-      // Silently use fallback data instead of logging errors
-      return this.getFallbackStats();
+      return this.getEmptyStats();
     }
   }
 
@@ -543,10 +477,9 @@ class EnhancedClientDashboardService {
         return response.data.notifications;
       }
       
-      return this.getFallbackNotifications();
+      return [];
     } catch (error) {
-      // Silently use fallback data instead of logging errors
-      return this.getFallbackNotifications();
+      return [];
     }
   }
 
@@ -571,9 +504,9 @@ class EnhancedClientDashboardService {
 
       return {
         sessions: sessions.status === 'fulfilled' ? sessions.value : [],
-        gamification: gamification.status === 'fulfilled' ? gamification.value : this.getFallbackGamificationData(),
+        gamification: gamification.status === 'fulfilled' ? gamification.value : this.getEmptyGamificationData(),
         notifications: notifications.status === 'fulfilled' ? notifications.value : [],
-        stats: stats.status === 'fulfilled' ? stats.value : this.getFallbackStats(),
+        stats: stats.status === 'fulfilled' ? stats.value : this.getEmptyStats(),
       };
     } catch (error) {
       console.error('❌ Error fetching complete dashboard data:', error);
@@ -606,8 +539,8 @@ class EnhancedClientDashboardService {
     }));
   }
 
-  // === FALLBACK DATA ===
-  private getFallbackGamificationData(): GamificationData {
+  // === EMPTY STATES ===
+  private getEmptyGamificationData(): GamificationData {
     return {
       userId: this.userId || '',
       level: 0,
@@ -621,7 +554,7 @@ class EnhancedClientDashboardService {
     };
   }
 
-  private getFallbackStats(): DashboardStats {
+  private getEmptyStats(): DashboardStats {
     return {
       totalWorkouts: 0,
       weeklyWorkouts: 0,
@@ -634,48 +567,6 @@ class EnhancedClientDashboardService {
     };
   }
 
-  private getFallbackSessions(): SessionEvent[] {
-    const now = new Date();
-    return [
-      {
-        id: 'fallback-1',
-        title: 'Personal Training Session',
-        start: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Tomorrow
-        end: new Date(now.getTime() + 25 * 60 * 60 * 1000),
-        status: 'booked',
-        userId: this.userId,
-        trainerId: 'trainer1',
-        location: 'Gym A',
-        duration: 60
-      },
-      {
-        id: 'fallback-2',
-        title: 'Consultation',
-        start: new Date(now.getTime() + 72 * 60 * 60 * 1000), // 3 days from now
-        end: new Date(now.getTime() + 73 * 60 * 60 * 1000),
-        status: 'confirmed',
-        userId: this.userId,
-        trainerId: 'trainer1',
-        location: 'Studio B',
-        duration: 60
-      }
-    ];
-  }
-
-  private getFallbackNotifications(): Notification[] {
-    return [
-      {
-        id: 'fallback-notif-1',
-        title: 'Welcome to SwanStudios!',
-        message: 'Your fitness journey starts here. Check out your personalized dashboard.',
-        type: 'welcome',
-        isRead: false,
-        priority: 'normal',
-        timestamp: new Date().toISOString(),
-        actionUrl: '/client/dashboard'
-      } as any
-    ];
-  }
 
   // === CLEANUP ===
   cleanup(): void {

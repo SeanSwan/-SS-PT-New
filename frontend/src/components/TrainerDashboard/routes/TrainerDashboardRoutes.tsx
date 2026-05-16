@@ -84,7 +84,7 @@ const MyClientsView = () => (
       <SectionText>
         Access detailed profiles of your assigned clients. View their progress,
         workout history, and current training programs. Add notes and track their
-        fitness journey. All client data is securely synchronized with the MCP server.
+        fitness journey. All client data is securely synchronized through SwanStudios API routes.
       </SectionText>
     </SectionCard>
   </PageContainer>
@@ -105,7 +105,7 @@ const TrainingSessionsView = () => (
       <SectionText>
         View your training schedule in calendar format. Book new sessions with clients,
         reschedule existing appointments, and track session completion.
-        Sessions are synchronized with the MCP server for client visibility.
+        Sessions are synchronized through SwanStudios API routes for client visibility.
       </SectionText>
     </SectionCard>
   </PageContainer>

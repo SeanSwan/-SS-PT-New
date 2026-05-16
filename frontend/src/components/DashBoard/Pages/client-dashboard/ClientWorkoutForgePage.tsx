@@ -38,7 +38,7 @@
  * DATA FLOW:
  * Props In:  none
  * State:     { phase, goal, equipment, duration, generating, result }
- * API Calls: POST /api/mcp/workout/generate
+ * API Calls: GET /api/workout/recommendations
  * Children:  none
  */
 
@@ -198,8 +198,8 @@ const ClientWorkoutForgePage: React.FC = () => {
     setError(null);
     setGenerating(true);
     try {
-      const res = await authAxios.post('/api/mcp/workout/generate', {
-        optPhase: phase, goal, equipment, durationMinutes: duration,
+      const res = await authAxios.get('/api/workout/recommendations', {
+        params: { optPhase: phase, goal, equipment: equipment.join(','), durationMinutes: duration },
       });
       setResult(res.data?.data || res.data);
     } catch (err: any) {

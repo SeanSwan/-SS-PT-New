@@ -215,7 +215,7 @@ const DevTools: React.FC = () => {
                 <div>
                   <SectionTitle>API Connection Debugger</SectionTitle>
                   <Description>
-                    Use this tool to diagnose backend connection issues and enable mock data mode when needed.
+                    Use this tool to diagnose backend connection issues against live API endpoints.
                   </Description>
                   <ApiDebugger />
                 </div>

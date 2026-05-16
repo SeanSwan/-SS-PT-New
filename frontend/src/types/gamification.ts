@@ -159,8 +159,8 @@ export interface GamificationProfile {
  * Formula: level = floor(0.1 * sqrt(totalPoints))
  */
 export function calculateLevel(totalPoints: number): number {
-  if (totalPoints <= 0) return 0;
-  return Math.floor(0.1 * Math.sqrt(totalPoints));
+  if (totalPoints <= 0) return 1;
+  return Math.max(1, Math.floor(0.1 * Math.sqrt(totalPoints)));
 }
 
 /**
@@ -168,7 +168,7 @@ export function calculateLevel(totalPoints: number): number {
  * Inverse of calculateLevel: points = ceil((level / 0.1)^2)
  */
 export function pointsForLevel(level: number): number {
-  if (level <= 0) return 0;
+  if (level <= 1) return 0;
   return Math.ceil(Math.pow(level / 0.1, 2));
 }
 

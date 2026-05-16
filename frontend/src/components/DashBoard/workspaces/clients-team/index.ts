@@ -6,7 +6,6 @@
  * ============================================================================
  */
 
-export { default as MasterDetailLayout } from './MasterDetailLayout';
 export { default as ClientMiniCard } from './ClientMiniCard';
 export { default as ClientDetailView } from './ClientDetailView';
 export { default as ClientSelectorDropdown } from './ClientSelectorDropdown';

@@ -769,66 +769,10 @@ const ExerciseAlternatives: React.FC<ExerciseAlternativesProps> = ({ onClose }) 
       return;
     }
 
-    // Short-circuit when MCP is disabled
-    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      enqueueSnackbar('Swan Coach exercise alternatives are currently disabled', { variant: 'info' });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Prepare context for AI
-      const mcpContext = {
-        exercise: selectedExercise,
-        limitations,
-        availableEquipment: equipment,
-        difficulty,
-        targetMuscles: selectedExercise.targetMuscles,
-        preferences: {
-          maintainSimilarMovement: true,
-          considerProgressions: true,
-          includeRegressions: true
-        }
-      };
-
-      // Call MCP backend for alternatives
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/alternatives`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          modelName: 'claude-3-5-sonnet',
-          temperature: 0.5,
-          maxTokens: 2000,
-          systemPrompt: `You are an expert fitness coach specializing in exercise modifications and alternatives.
-                        Provide safe, effective alternatives that target similar muscle groups.
-                        Consider equipment limitations, injuries, and skill level.
-                        Format response as structured JSON with exercise details.`,
-          humanMessage: `Find exercise alternatives for "${selectedExercise.name}".
-                        Limitations: ${limitations.join(', ') || 'None'}
-                        Available equipment: ${equipment.join(', ') || 'Any'}
-                        Preferred difficulty: ${difficulty || 'Any'}`,
-          mcpContext
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      // Parse AI response
-      let parsedAlternatives;
-      try {
-        parsedAlternatives = JSON.parse(result.content);
-      } catch (parseError) {
-        // If JSON parsing fails, generate alternatives based on exercise
-        parsedAlternatives = generateAlternatives(selectedExercise);
-      }
+      const parsedAlternatives = generateAlternatives(selectedExercise);
 
       setAlternatives(parsedAlternatives.alternatives || parsedAlternatives);
       enqueueSnackbar('Alternatives found successfully', { variant: 'success' });

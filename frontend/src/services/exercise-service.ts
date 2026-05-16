@@ -1,6 +1,5 @@
 // services/exercise-service.ts
 import { AxiosInstance } from 'axios';
-import { getMockRecommendedExercises } from './mock-exercise-service';
 import { logger } from '@/utils/logger';
 
 // Define Exercise interface
@@ -69,9 +68,12 @@ export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInte
         }
       } catch (error) {
         console.error('Error fetching recommended exercises:', error);
-        logger.log('Falling back to mock exercise data');
-        // Return mock data if the API fails
-        return getMockRecommendedExercises();
+        return {
+          success: false,
+          message: 'Recommended exercises are unavailable.',
+          recommendedExercises: [],
+          focusCategories: []
+        };
       }
     },
     
@@ -93,16 +95,10 @@ export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInte
         return response.data;
       } catch (error) {
         console.error(`Error fetching exercises by type ${type}:`, error);
-        
-        // Fallback: Filter mock data by type
-        const mockData = getMockRecommendedExercises();
-        const filteredExercises = mockData.recommendedExercises.filter(
-          ex => ex.exerciseType === type || ex.nasmCategory === type
-        );
-        
         return {
-          success: true,
-          exercises: filteredExercises
+          success: false,
+          message: 'Exercises are unavailable.',
+          exercises: []
         };
       }
     },
@@ -113,16 +109,10 @@ export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInte
         return response.data;
       } catch (error) {
         console.error(`Error fetching exercises by muscle group ${muscleGroup}:`, error);
-        
-        // Fallback: Filter mock data by muscle group
-        const mockData = getMockRecommendedExercises();
-        const filteredExercises = mockData.recommendedExercises.filter(
-          ex => ex.primaryMuscles.includes(muscleGroup) || ex.secondaryMuscles.includes(muscleGroup)
-        );
-        
         return {
-          success: true,
-          exercises: filteredExercises
+          success: false,
+          message: 'Exercises are unavailable.',
+          exercises: []
         };
       }
     },
@@ -133,22 +123,10 @@ export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInte
         return response.data;
       } catch (error) {
         console.error(`Error searching exercises with query "${query}":`, error);
-        
-        // Fallback: Search mock data
-        const mockData = getMockRecommendedExercises();
-        const lowercaseQuery = query.toLowerCase();
-        
-        const filteredExercises = mockData.recommendedExercises.filter(ex => 
-          ex.name.toLowerCase().includes(lowercaseQuery) || 
-          ex.description.toLowerCase().includes(lowercaseQuery) || 
-          ex.exerciseType.toLowerCase().includes(lowercaseQuery) ||
-          ex.primaryMuscles.some(muscle => muscle.toLowerCase().includes(lowercaseQuery)) ||
-          ex.secondaryMuscles.some(muscle => muscle.toLowerCase().includes(lowercaseQuery))
-        );
-        
         return {
-          success: true,
-          exercises: filteredExercises
+          success: false,
+          message: 'Exercise search is unavailable.',
+          exercises: []
         };
       }
     }

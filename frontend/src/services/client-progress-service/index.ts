@@ -1,13 +1,10 @@
 /**
  * Client Progress Service
  * 
- * Service for managing client progress data, integrating with both the backend API
- * and the workout/gamification MCP servers to provide a unified API for progress tracking.
+ * Service for managing client progress data through SwanStudios backend APIs.
  */
 
-import { authAxios } from '../../utils/axios-config';
-import workoutMcpApi from '../mcp/workoutMcpService';
-import gamificationMcpApi from '../mcp/gamificationMcpService';
+import apiService from '../api.service';
 
 // Type definitions
 export interface ClientProgress {
@@ -84,44 +81,27 @@ export const clientProgressService = {
    */
   getClientProgressById: async (userId: string) => {
     try {
-      // First try to get from backend API
-      const response = await authAxios.get(`/api/client-progress/${userId}`);
+      const response = await apiService.get(`/api/client-progress/${userId}`);
       return {
         success: true,
         progress: response.data.progress
       };
     } catch (err) {
-      console.error('Error fetching client progress from API:', err);
-      
-      try {
-        // Fallback to MCP server if backend API fails
-        const mcpResponse = await workoutMcpApi.getClientProgress({ userId });
-        
-        if (mcpResponse.data?.progress) {
-          return {
-            success: true,
-            progress: mcpResponse.data.progress
-          };
-        }
-        
-        throw new Error('Failed to fetch client progress from both API and MCP');
-      } catch (mcpErr) {
-        console.error('Error fetching client progress from MCP:', mcpErr);
-        return {
-          success: false,
-          error: 'Failed to fetch client progress data'
-        };
-      }
+      console.error('Error fetching client progress:', err);
+      return {
+        success: false,
+        error: 'Failed to fetch client progress data'
+      };
     }
   },
   
   /**
    * Update client progress by user ID
    * Updates progress data in the backend API
-   */
+    */
   updateClientProgressById: async (userId: string, progressData: Partial<ClientProgress>) => {
     try {
-      const response = await authAxios.put(`/api/client-progress/${userId}`, progressData);
+      const response = await apiService.put(`/api/client-progress/${userId}`, progressData);
       return {
         success: true,
         progress: response.data.progress
@@ -137,21 +117,17 @@ export const clientProgressService = {
   
   /**
    * Get leaderboard data
-   * Fetches leaderboard data from the backend API or MCP server
+   * Fetches leaderboard data from the backend API.
    */
   getLeaderboard: async () => {
     try {
-      // First try to get from backend API
-      const response = await authAxios.get('/api/client-progress/leaderboard');
+      const response = await apiService.get('/api/client-progress/leaderboard');
       return {
         success: true,
         leaderboard: response.data.leaderboard
       };
     } catch (err) {
-      console.error('Error fetching leaderboard from API:', err);
-      
-      // For now, return mock data as fallback
-      // In a real implementation, this could try to fetch from MCP server
+      console.error('Error fetching leaderboard:', err);
       return {
         success: false,
         error: 'Failed to fetch leaderboard data'
@@ -161,18 +137,16 @@ export const clientProgressService = {
   
   /**
    * Get achievements by user ID
-   * Fetches achievements data from the gamification MCP server
+   * Fetches achievements data from SwanStudios gamification APIs.
    */
   getAchievementsByUserId: async (userId: string) => {
     try {
-      const response = await gamificationMcpApi.getAchievements({ 
-        userId,
-        includeCompleted: true
-      });
+      const response = await apiService.get(`/api/v1/gamification/users/${userId}/achievements`);
+      const profile = response.data?.profile || response.data;
       
       return {
         success: true,
-        achievements: response.data?.achievements || []
+        achievements: profile?.userAchievements || profile?.achievements || []
       };
     } catch (err) {
       console.error('Error fetching achievements:', err);
@@ -185,24 +159,19 @@ export const clientProgressService = {
   
   /**
    * Log client activity
-   * Logs activity to both backend API and gamification MCP server
+   * Activity logging now routes through typed backend actions, not MCP side effects.
    */
   logClientActivity: async (userId: string, activityType: string, activityData: any) => {
     try {
-      // Log to backend API
-      await authAxios.post('/api/client-progress/activity', {
+      await apiService.post('/api/gamification/users/' + userId + '/points', {
         userId,
-        activityType,
-        activityData
+        points: activityData?.points || 1,
+        source: activityType,
+        sourceId: activityData?.sourceId,
+        description: activityData?.description || `Client activity: ${activityType}`,
+        metadata: activityData
       });
-      
-      // Log to gamification MCP server
-      await gamificationMcpApi.logActivity({
-        userId,
-        activityType,
-        activityData
-      });
-      
+
       return {
         success: true
       };

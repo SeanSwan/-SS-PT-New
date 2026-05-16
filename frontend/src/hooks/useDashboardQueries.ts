@@ -168,6 +168,7 @@ export function useCreatePost() {
     onSuccess: () => {
       // Invalidate all feed queries to show the new post
       queryClient.invalidateQueries({ queryKey: ['social', 'feed'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
     },
   });
 }

@@ -139,7 +139,6 @@ interface ApiStatusIndicatorProps {
  */
 const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProduction = true }) => {
   const [detailsExpanded, setDetailsExpanded] = useState(false);
-  const [usingMockData, setUsingMockData] = useState(false);
   const [apiEndpoint, setApiEndpoint] = useState('');
   const [envInfo, setEnvInfo] = useState<Record<string, string>>({});
   const [position, setPosition] = useState<Position>(() => {
@@ -164,9 +163,6 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
   // Get the API status on mount
   useEffect(() => {
     try {
-      const isMockDataEnabled = localStorage.getItem('use_mock_data') === 'true';
-      setUsingMockData(isMockDataEnabled);
-      
       // Get API endpoint from env
       const endpoint = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       setApiEndpoint(endpoint);
@@ -240,23 +236,6 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
   }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY]);
   
   /**
-   * Toggle mock data mode
-   */
-  const toggleMockData = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const newStatus = !usingMockData;
-      localStorage.setItem('use_mock_data', newStatus ? 'true' : 'false');
-      setUsingMockData(newStatus);
-      
-      // Force reload to apply changes
-      window.location.reload();
-    } catch (error) {
-      console.error('Error toggling mock data mode:', error);
-    }
-  };
-  
-  /**
    * Toggle details expansion
    */
   const toggleDetails = (e: React.MouseEvent) => {
@@ -276,21 +255,17 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
       title="Drag to move • Click to expand details"
     >
       <DragHandle className="drag-handle">
-        <StatusDot $isLive={!usingMockData} />
+        <StatusDot $isLive={true} />
         <StatusText>
           {isProd ? 'PRODUCTION' : 'DEVELOPMENT'} - 
-          {usingMockData ? ' Mock Data' : ' Live API'}
+          Live API
         </StatusText>
       </DragHandle>
-      
-      <ToggleButton onClick={toggleMockData}>
-        {usingMockData ? 'USE API' : 'USE MOCK'}
-      </ToggleButton>
       
       <DetailPanel $expanded={detailsExpanded}>
         <DetailItem>
           <strong>API Status:</strong>
-          <span>Mode: {usingMockData ? 'Using Mock Data' : 'Using Live API'}</span>
+          <span>Mode: Using Live API</span>
           <span>API Endpoint: {apiEndpoint}</span>
         </DetailItem>
         
@@ -304,13 +279,11 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
         
         <DetailItem>
           <strong>Storage:</strong>
-          <span>use_mock_data: {localStorage.getItem('use_mock_data') || 'not set'}</span>
           <span>Auth Token: {localStorage.getItem('token') ? '✅ Present' : '❌ Not found'}</span>
         </DetailItem>
         
         <DetailItem style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: '15px' }}>
-          Click the toggle button to switch between mock and live data.
-          <br />Warning: This will reload the page.
+          Drag this panel to move it around.
           <br /><br />💡 Drag this panel to move it around
         </DetailItem>
       </DetailPanel>

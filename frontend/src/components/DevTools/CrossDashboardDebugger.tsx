@@ -434,9 +434,6 @@ const DebugLog = styled.div`
 import sessionService from '../../services/session-service';
 import api from '../../services/api';
 import { axiosInstance, authAxiosInstance } from '../../utils/axiosConfig';
-import workoutMcpApi from '../../services/mcp/workoutMcpService';
-import gamificationMcpApi from '../../services/mcp/gamificationMcpService';
-import { ServerStatus as McpServerStatus } from '../../types/mcp/workout.types';
 
 /**
  * CrossDashboardDebugger
@@ -452,10 +449,6 @@ const CrossDashboardDebugger: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [apiStatus, setApiStatus] = useState<Record<string, any>>({});
-  const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({
-    workout: false,
-    gamification: false
-  });
   const [dataFlowIssues, setDataFlowIssues] = useState<string[]>([]);
   const [fixAttempts, setFixAttempts] = useState<Record<string, string>>({});
   const [debugLog, setDebugLog] = useState<string[]>([]);
@@ -523,26 +516,7 @@ const CrossDashboardDebugger: React.FC = () => {
       
       setApiStatus(apiResults);
       
-      // Check MCP server status
-      try {
-        log('Testing Workout MCP server connection');
-        const workoutStatus = await workoutMcpApi.checkServerStatus();
-        setMcpStatus(prev => ({ ...prev, workout: true }));
-        log('Workout MCP server is connected');
-      } catch (error) {
-        setMcpStatus(prev => ({ ...prev, workout: false }));
-        log('Workout MCP server connection failed');
-      }
-      
-      try {
-        log('Testing Gamification MCP server connection');
-        const gamificationStatus = await gamificationMcpApi.checkServerStatus();
-        setMcpStatus(prev => ({ ...prev, gamification: true }));
-        log('Gamification MCP server is connected');
-      } catch (error) {
-        setMcpStatus(prev => ({ ...prev, gamification: false }));
-        log('Gamification MCP server connection failed');
-      }
+      log('Legacy MCP server checks skipped; SwanStudios APIs are the active runtime');
       
       // Analyze data flow issues
       analyzeDataFlow();
@@ -593,14 +567,6 @@ const CrossDashboardDebugger: React.FC = () => {
       }
     }
     
-    // Check MCP issues
-    if (!mcpStatus.workout) {
-      issues.push('Workout MCP server is not accessible - workout data will not be synchronized');
-    }
-    if (!mcpStatus.gamification) {
-      issues.push('Gamification MCP server is not accessible - achievements and rewards will not update');
-    }
-    
     // Check progress data synchronization - new checks for consistency between client and admin dashboards
     try {
       // Check for client progress API endpoint
@@ -608,17 +574,7 @@ const CrossDashboardDebugger: React.FC = () => {
         issues.push('Client progress APIs are not accessible - progress data will not be synchronized between dashboards');
       }
       
-      // Verify the workout and gamification MCP servers are communicating correctly
-      if (mcpStatus.workout && mcpStatus.gamification) {
-        log('Verifying MCP server synchronization...');
-        // This is where we'd add more detailed checks between the two MCP services
-        // For now, just log that both servers are available
-        log('Both MCP servers are accessible - data can be synchronized');
-      } else if (mcpStatus.workout && !mcpStatus.gamification) {
-        issues.push('Workout data is available but gamification data is not - progress and achievements will be out of sync');
-      } else if (!mcpStatus.workout && mcpStatus.gamification) {
-        issues.push('Gamification data is available but workout data is not - achievements will not update based on workouts');
-      }
+      log('Workout and gamification data are checked through first-party API endpoint status');
     } catch (error) {
       issues.push('Error checking progress data synchronization - dashboards may show inconsistent information');
       log(`Error in synchronization check: ${error}`);
@@ -688,39 +644,13 @@ const CrossDashboardDebugger: React.FC = () => {
       fixResults['dataSynchronization'] = `Data synchronization failed: ${error.message}`;
     }
     
-    // Try to restart MCP connections if needed
-    if (!mcpStatus.workout || !mcpStatus.gamification) {
-      try {
-        log('Attempting to reconnect to MCP servers');
-        await authAxiosInstance.post('/api/admin/restart-mcp-connections');
-        fixResults['mcpConnections'] = 'MCP reconnection attempt successful';
-      } catch (error: any) {
-        fixResults['mcpConnections'] = `MCP reconnection failed: ${error.message}`;
-      }
-    }
+    fixResults['legacyMcpConnections'] = 'Skipped: MCP servers are retired; no restart attempted';
     
     // NEW: Attempt to fix client progress data synchronization
     try {
       log('Synchronizing client progress data between dashboards');
       
-      // First check if both MCP servers are accessible
-      if (mcpStatus.workout && mcpStatus.gamification) {
-        // Try to synchronize client progress data through the admin API
-        await authAxiosInstance.post('/api/admin/sync-client-progress');
-        fixResults['progressDataSync'] = 'Client progress data synchronization successful';
-        
-        // Now verify that the workout and gamification data are properly linked
-        log('Verifying workout and gamification data integration');
-        await authAxiosInstance.post('/api/admin/verify-progress-integration');
-        
-        // Update achievements based on workout progress
-        log('Updating achievements based on workout progress');
-        await authAxiosInstance.post('/api/admin/update-achievements');
-        
-        fixResults['achievementSync'] = 'Achievement data updated successfully';
-      } else {
-        fixResults['progressDataSync'] = 'Cannot synchronize progress data - one or both MCP servers are offline';
-      }
+      fixResults['progressDataSync'] = 'Skipped legacy MCP progress sync; active dashboards read REST APIs directly';
     } catch (error: any) {
       fixResults['progressDataSync'] = `Client progress synchronization failed: ${error.message}`;
     }
@@ -828,22 +758,14 @@ const CrossDashboardDebugger: React.FC = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className={(mcpStatus.workout && mcpStatus.gamification) ? '' : 'error-bg'}>
+                <Card>
                   <CardContent>
                     <CardTitle>
-                      MCP Servers
+                      Legacy MCP
                     </CardTitle>
                     <FlexBox className="gap-2" style={{ marginBottom: '8px' }}>
-                      <Chip 
-                        className={mcpStatus.workout ? "success small" : "error small"}
-                      >
-                        Workout
-                      </Chip>
-                      <Chip 
-                        className={mcpStatus.gamification ? "success small" : "error small"}
-                      >
-                        Gamification
-                      </Chip>
+                      <Chip className="warning small">Retired</Chip>
+                      <Chip className="success small">APIs Active</Chip>
                     </FlexBox>
                   </CardContent>
                 </Card>
@@ -1030,7 +952,7 @@ const CrossDashboardDebugger: React.FC = () => {
                 
                 <Accordion>
                   <AccordionHeader onClick={() => toggleAccordion(3)}>
-                    <span>MCP Server Connection Issues</span>
+                    <span>Legacy MCP Retirement</span>
                     <ChevronDown 
                       size={20} 
                       style={{ 
@@ -1042,16 +964,16 @@ const CrossDashboardDebugger: React.FC = () => {
                   <AccordionContent $isOpen={!!expandedAccordions[3]}>
                     <AccordionBody>
                       <Text>
-                        If MCP servers are not connecting properly, try these solutions:
+                        MCP servers are retired in this runtime. Use these checks instead:
                       </Text>
                       <ol>
-                        <li>Check that MCP servers are running on the correct ports</li>
-                        <li>Verify API keys and authentication tokens are valid</li>
-                        <li>Ensure CORS is properly configured for cross-origin requests</li>
-                        <li>Check network connectivity between frontend and MCP servers</li>
+                        <li>Verify workout routes under /api/workout are reachable</li>
+                        <li>Verify gamification routes under /api/v1/gamification are reachable</li>
+                        <li>Check auth headers and role access for the active REST endpoints</li>
+                        <li>Keep ENABLE_MCP_SERVICES and ENABLE_MCP_ROUTES disabled unless restoring the old stack deliberately</li>
                       </ol>
                       <Text style={{ marginTop: '16px' }}>
-                        Direct fix: You can restart the MCP servers using the scripts in the /scripts directory.
+                        Direct fix: repair the first-party API route or service that is failing.
                       </Text>
                     </AccordionBody>
                   </AccordionContent>
@@ -1203,7 +1125,7 @@ const CrossDashboardDebugger: React.FC = () => {
                 </TableContainer>
                 
                 <Subtitle style={{ marginTop: '32px', marginBottom: '16px' }}>
-                  MCP Server Status
+                  Legacy MCP Status
                 </Subtitle>
                 
                 <TableContainer>
@@ -1219,33 +1141,19 @@ const CrossDashboardDebugger: React.FC = () => {
                       <TableRow>
                         <TableCell>Workout MCP</TableCell>
                         <TableCell>
-                          <Chip 
-                            className={mcpStatus.workout ? "success" : "error"}
-                          >
-                            {mcpStatus.workout ? "Connected" : "Disconnected"}
-                          </Chip>
+                          <Chip className="warning">Retired</Chip>
                         </TableCell>
                         <TableCell>
-                          {mcpStatus.workout 
-                            ? "Workout data synchronized properly"
-                            : "Workout recommendations and tracking will be unavailable"
-                          }
+                          Workout data uses /api/workout and /api/client/analytics.
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Gamification MCP</TableCell>
                         <TableCell>
-                          <Chip 
-                            className={mcpStatus.gamification ? "success" : "error"}
-                          >
-                            {mcpStatus.gamification ? "Connected" : "Disconnected"}
-                          </Chip>
+                          <Chip className="warning">Retired</Chip>
                         </TableCell>
                         <TableCell>
-                          {mcpStatus.gamification 
-                            ? "Gamification features working properly"
-                            : "Achievements, rewards and points will not update"
-                          }
+                          Points, achievements, rewards, and challenges use /api/v1/gamification.
                         </TableCell>
                       </TableRow>
                     </TableBody>

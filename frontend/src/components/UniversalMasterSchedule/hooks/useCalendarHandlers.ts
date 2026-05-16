@@ -24,7 +24,7 @@ import { useCallback } from 'react';
 import { SlotInfo } from 'react-big-calendar';
 import { useToast } from '../../../hooks/use-toast';
 import sessionService from '../../../services/sessionService';
-import { gamificationMCPService } from '../../../services/gamificationMCPService';
+import gamificationRewardsService from '../../../services/gamificationRewardsService';
 import { useTouchGesture } from '../../PWA/TouchGestureProvider';
 import { useMicroInteractions } from './useMicroInteractions';
 import type { SessionEvent, Session } from '../types';
@@ -134,8 +134,15 @@ export const useCalendarHandlers = (dependencies: {
   const touchGestureContext = useTouchGesture?.() || null;
   const legacyHapticFeedback = touchGestureContext?.hapticFeedback || null;
   const isTouch = touchGestureContext?.isTouch || false;
+
+  const getSessionDurationMinutes = useCallback((sessionId: string) => {
+    const matchingSession = sessions.find(session => String(session.id) === String(sessionId));
+    const duration = Number(matchingSession?.duration);
+
+    return Number.isFinite(duration) && duration > 0 ? duration : 0;
+  }, [sessions]);
   
-  // ==================== ENHANCED GAMIFICATION MCP INTEGRATION ====================
+  // ==================== ENHANCED GAMIFICATION INTEGRATION ====================
   
   const triggerGamificationReward = useCallback(async (
     sessionId: string, 
@@ -143,21 +150,33 @@ export const useCalendarHandlers = (dependencies: {
     action: 'session_completed' | 'milestone_reached' | 'streak_achieved'
   ) => {
     try {
+      if (action !== 'session_completed') {
+        logger.log('[Gamification] Schedule milestone/streak celebration is visual-only; backend record-workout owns bonus awards.', {
+          action,
+          sessionId,
+          clientId
+        });
+        return;
+      }
+
       // Pre-interaction haptic feedback
       triggerHaptic('light');
       
-      // Integration with Gamification MCP Server
       const gamificationPayload = {
         userId: clientId,
         action,
         sessionId,
+        workoutId: sessionId,
+        duration: getSessionDurationMinutes(sessionId),
+        exercisesCompleted: 0,
+        notes: 'Completed from Universal Master Schedule',
         points: action === 'session_completed' ? 50 : action === 'milestone_reached' ? 100 : 75,
         timestamp: new Date().toISOString()
       };
       
       // Use micro-interactions loading state
       const result = await withLoadingState(
-        gamificationMCPService.awardPoints(gamificationPayload),
+        gamificationRewardsService.recordWorkoutCompletion(gamificationPayload),
         'medium'
       );
       
@@ -165,15 +184,8 @@ export const useCalendarHandlers = (dependencies: {
         // Celebratory haptic feedback for success
         triggerHaptic('success');
         playSound('success', 0.7);
-        
-        // Generate social media post
-        await gamificationMCPService.generateWorkoutPost({
-          userId: clientId,
-          type: action === 'session_completed' ? 'workout_completion' : 'achievement_unlock',
-          sessionId,
-          autoGenerate: true,
-          includeStats: true
-        });
+        const awardedPoints = Number(result.pointsAwarded ?? gamificationPayload.points);
+        const newTotal = result.newTotal ?? result.newBalance;
         
         logger.log('🎮 Gamification reward triggered successfully:', result);
         
@@ -182,7 +194,7 @@ export const useCalendarHandlers = (dependencies: {
           title: result.achievement ? 'Achievement Unlocked! 🏆' : 'Points Earned! ✨',
           description: result.achievement 
             ? `${result.achievement.title} - ${result.points} points!`
-            : `Earned ${gamificationPayload.points} points! Total: ${result.newTotal}`,
+            : `Earned ${awardedPoints} points! Total: ${newTotal}`,
           variant: 'default'
         });
         
@@ -218,7 +230,7 @@ export const useCalendarHandlers = (dependencies: {
         variant: 'default'
       });
     }
-  }, [toast, triggerHaptic, playSound, withLoadingState, animateElement]);
+  }, [toast, triggerHaptic, playSound, withLoadingState, animateElement, getSessionDurationMinutes]);
   
   // ==================== ENHANCED SESSION MANAGEMENT HANDLERS ====================
   

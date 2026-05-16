@@ -111,6 +111,7 @@ const ModernUserManagementSystem: React.FC = () => {
     lastName: '',
     email: '',
     username: '',
+    password: '',
     role: 'user' as const,
     isActive: true,
   });
@@ -217,6 +218,7 @@ const ModernUserManagementSystem: React.FC = () => {
       lastName: user.lastName,
       email: user.email,
       username: user.username,
+      password: '',
       role: user.role,
       isActive: user.isActive,
     });
@@ -237,7 +239,8 @@ const ModernUserManagementSystem: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const response = await authAxios.put(`/api/auth/users/${selectedUser.id}`, editFormData);
+      const { password, ...updatePayload } = editFormData;
+      const response = await authAxios.put(`/api/auth/users/${selectedUser.id}`, updatePayload);
 
       if (response.data && response.data.success) {
         toast({
@@ -266,6 +269,7 @@ const ModernUserManagementSystem: React.FC = () => {
       lastName: '',
       email: '',
       username: '',
+      password: '',
       role: 'user',
       isActive: true,
     });
@@ -275,10 +279,11 @@ const ModernUserManagementSystem: React.FC = () => {
   // Handle create new user
   const handleCreateUser = async () => {
     try {
-      const response = await authAxios.post('/api/auth/users', {
-        ...editFormData,
-        password: 'DefaultPassword123!', // Default password that user will be prompted to change
-      });
+      if (!editFormData.password) {
+        throw new Error('Temporary password is required for backend account creation');
+      }
+
+      const response = await authAxios.post('/api/auth/user', editFormData);
 
       if (response.data && response.data.success) {
         toast({
@@ -567,7 +572,7 @@ const ModernUserManagementSystem: React.FC = () => {
           </ModalTitle>
           <ModalContentStyled>
             <ModalSubText>
-              Create a new user account. The user will receive a welcome email with instructions to set their password.
+              Create a new user account with a temporary password. Have the user change it after first login.
             </ModalSubText>
 
             <FormGrid $columns={2} $gap="1rem">
@@ -614,6 +619,18 @@ const ModernUserManagementSystem: React.FC = () => {
                   onChange={handleEditFormChange}
                   required
                   placeholder="Username"
+                />
+              </FormField>
+              <FormField $fullWidth>
+                <FormLabel htmlFor="add-password">Temporary Password *</FormLabel>
+                <FormInput
+                  id="add-password"
+                  name="password"
+                  type="password"
+                  value={editFormData.password}
+                  onChange={handleEditFormChange}
+                  required
+                  placeholder="Set a temporary password"
                 />
               </FormField>
               <FormField $fullWidth>

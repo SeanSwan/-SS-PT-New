@@ -1,6 +1,5 @@
 // services/client-progress-service.ts
 import { AxiosInstance } from 'axios';
-import { getMockClientProgress, mockClientProgressService } from './mock-client-progress';
 import { logger } from '@/utils/logger';
 
 export interface ClientProgressData {
@@ -118,9 +117,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
         return response.data;
       } catch (error) {
         console.error('Error fetching client progress:', error);
-        logger.log('Falling back to mock client progress data');
-        // Return mock data if the API fails
-        return getMockClientProgress();
+        throw error;
       }
     },
     
@@ -131,11 +128,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
         return response.data;
       } catch (error) {
         console.error(`Error fetching client progress for user ${userId}:`, error);
-        logger.log('Falling back to mock client progress data');
-        // Return mock data if the API fails
-        const mockData = getMockClientProgress();
-        mockData.progress.userId = userId;
-        return mockData;
+        throw error;
       }
     },
     
@@ -146,10 +139,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
         return response.data;
       } catch (error) {
         console.error('Error updating client progress:', error);
-        // Simulate a successful update with mock data
-        const mockData = getMockClientProgress();
-        mockData.progress = { ...mockData.progress, ...updates };
-        return mockData;
+        throw error;
       }
     },
     
@@ -160,10 +150,7 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
         return response.data;
       } catch (error) {
         console.error(`Error updating client progress for user ${userId}:`, error);
-        // Simulate a successful update with mock data
-        const mockData = getMockClientProgress();
-        mockData.progress = { ...mockData.progress, userId, ...updates };
-        return mockData;
+        throw error;
       }
     },
     
@@ -174,44 +161,9 @@ export const createClientProgressService = (axios: AxiosInstance): ClientProgres
         return response.data;
       } catch (error) {
         console.error('Error fetching leaderboard:', error);
-        // Return mock leaderboard data
         return {
-          success: true,
-          leaderboard: [
-            {
-              userId: 'user-1',
-              overallLevel: 58,
-              client: {
-                id: 'user-1',
-                firstName: 'Jane',
-                lastName: 'Doe',
-                username: 'janedoe',
-                photo: '/images/avatar1.jpg'
-              }
-            },
-            {
-              userId: 'user-2',
-              overallLevel: 45,
-              client: {
-                id: 'user-2',
-                firstName: 'John',
-                lastName: 'Smith',
-                username: 'johnsmith',
-                photo: '/images/avatar2.jpg'
-              }
-            },
-            {
-              userId: 'user-3',
-              overallLevel: 42,
-              client: {
-                id: 'user-3',
-                firstName: 'Sam',
-                lastName: 'Johnson',
-                username: 'samjohnson',
-                photo: '/images/avatar3.jpg'
-              }
-            }
-          ]
+          success: false,
+          leaderboard: []
         };
       }
     }

@@ -7,7 +7,6 @@
  */
 
 import axios from 'axios';
-import { setupEnhancedMockApiInterceptor } from '../services/enhanced-mock-api-service';
 import { logger } from '@/utils/logger';
 
 // API base URL from environment variables
@@ -86,15 +85,7 @@ authAxiosInstance.interceptors.response.use(
   }
 );
 
-// Setup enhanced mock API interceptor for development environments - DISABLED FOR REAL BACKEND
-// Only enable if explicitly needed for testing
-if (process.env.NODE_ENV === 'development' && import.meta.env.VITE_FORCE_MOCK_MODE === 'true') {
-  setupEnhancedMockApiInterceptor(axiosInstance);
-  setupEnhancedMockApiInterceptor(authAxiosInstance);
-  logger.log('🔄 Enhanced mock API interceptor enabled for development (includes storefront support)');
-} else {
-  logger.log('🔄 Mock API interceptor DISABLED - using real backend');
-}
+logger.log('API clients configured for SwanStudios backend');
 
 export default {
   axiosInstance,

@@ -10,7 +10,7 @@
  * - Resource utilization monitoring (CPU, memory, connections)
  * - User activity and collaboration analytics
  * - Database performance and query optimization insights
- * - MCP server health and integration status
+ * - SwanStudios API health and integration status
  * - Automated diagnostics and recovery recommendations
  */
 
@@ -416,7 +416,7 @@ const RealTimeSystemMonitor: React.FC<RealTimeSystemMonitorProps> = ({
       errors: 0
     },
     {
-      name: 'MCP Servers',
+      name: 'SwanStudios APIs',
       status: 'online' as const,
       latency: '< 150ms',
       uptime: '99.5%',

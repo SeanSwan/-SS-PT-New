@@ -10,7 +10,7 @@
  * layout including the master pane, detail pane, client cards, pillar navigation,
  * animations, and responsive breakpoints.
  *
- * HOW IT FITS IN THE APP: ClientsWorkspace → MasterDetailLayout → these styles
+ * HOW IT FITS IN THE APP: ClientsWorkspace -> ClientMiniCard / ClientDetailView -> these styles
  *
  * KEY DECISIONS: Dark-first design (Obsidian Black #0A0A0F bg), Crystalline Swan
  * dual-glow system (Wing Purple border + Ice Wing inner glow on selection),

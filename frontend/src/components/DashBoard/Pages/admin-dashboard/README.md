@@ -21,11 +21,7 @@ The Enhanced Admin Dashboard is a comprehensive command center for the SwanStudi
 - **Conversion Rate Optimization**: Insights for improving conversions
 
 ### 👥 User Analytics Panel
-- **User Behavior Insights**: Deep dive into user engagement patterns
-- **Retention Analysis**: Cohort-based retention tracking
-- **User Journey Mapping**: Funnel analysis and conversion tracking
-- **Activity Heatmaps**: Visual representation of user activity
-- **Segmentation Analysis**: User categorization and targeting
+- **Status:** Archived as an unmounted legacy panel during the 2026-05 cleanup. Rebuild against real endpoints before remounting.
 
 ### 🤖 AI Monitoring Panel
 - **Model Performance Tracking**: Real-time AI model metrics
@@ -35,18 +31,10 @@ The Enhanced Admin Dashboard is a comprehensive command center for the SwanStudi
 - **Model Versioning**: Track different model versions and their performance
 
 ### 🔒 Security Monitoring Panel
-- **Real-time Threat Detection**: Active monitoring of security events
-- **Login Attempt Analysis**: Track and analyze authentication patterns
-- **Incident Management**: Comprehensive incident tracking and response
-- **Vulnerability Assessment**: Regular security health checks
-- **Compliance Monitoring**: Ensure adherence to security policies
+- **Status:** Archived as an unmounted legacy panel during the 2026-05 cleanup. Rebuild against real endpoints before remounting.
 
 ### 💻 System Health Panel
-- **Infrastructure Monitoring**: Real-time server and service health
-- **Performance Metrics**: CPU, memory, and disk utilization
-- **Service Status**: Track all microservices and their health
-- **Alert Management**: System-generated alerts and notifications
-- **Resource Planning**: Capacity planning and scaling recommendations
+- **Status:** Archived as an unmounted legacy panel during the 2026-05 cleanup. The mounted overview uses its own system-health widget.
 
 ## Technical Architecture
 
@@ -56,10 +44,7 @@ admin-dashboard/
 ├── admin-dashboard-view.tsx          # Main dashboard component
 ├── components/
 │   ├── RevenueAnalyticsPanel.tsx     # Financial analytics
-│   ├── UserAnalyticsPanel.tsx        # User behavior insights
 │   ├── AIMonitoringPanel.tsx         # AI/ML monitoring
-│   ├── SecurityMonitoringPanel.tsx   # Security dashboard
-│   └── SystemHealthPanel.tsx         # Infrastructure monitoring
 ├── index.ts                          # Component exports
 └── README.md                         # This documentation
 ```
@@ -67,15 +52,14 @@ admin-dashboard/
 ### Key Technologies
 - **React 18+**: Modern React with hooks and functional components
 - **TypeScript**: Type-safe development
-- **Material-UI v5**: Modern UI components with dark theme
-- **Recharts**: Advanced data visualization
-- **Redux Toolkit**: State management
-- **Styled Components**: Dynamic styling
+- **styled-components**: Dynamic styling with dashboard theme tokens
+- **Victory**: Data visualization for new chart work
+- **React Context and hooks**: State management for mounted dashboard surfaces
 
 ### Theme & Styling
 - **Dark Theme**: Professional dark interface optimized for long usage
 - **Glassmorphism**: Modern glass-like components with blur effects
-- **Cyan Accent**: #00ffff primary color throughout the interface
+- **Crystalline Swan Tokens**: Midnight Sapphire, Ice Wing, Wing Purple, Gilded Fern, and Frost White through CSS custom properties where practical
 - **Responsive Design**: Optimized for all screen sizes
 - **Accessibility**: WCAG AA compliant
 
@@ -173,11 +157,10 @@ The dashboard supports various customization options:
 /api/admin/security       // Security events
 ```
 
-### MCP Integration
-- Direct integration with MCP servers
-- Real-time data from AI models
-- System health monitoring
-- Performance metrics collection
+### AI And Automation Runtime
+- First-party SwanStudios APIs are the active runtime.
+- Legacy MCP server panels are retired and must not be remounted without a new route receipt, endpoint contract, and approval.
+- Monitoring panels must show real, empty, loading, or error states rather than fabricated fallback metrics.
 
 ## Future Enhancements
 

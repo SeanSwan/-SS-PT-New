@@ -445,33 +445,12 @@ const AdminDebugPanel: React.FC = () => {
 
       setApiStatus(apiResults);
 
-      // Check MCP server
-      try {
-        debugLog('Testing MCP server connection');
-        const response = await fetch('/mcp/status');
-        if (response.ok) {
-          const data = await response.json();
-          setMcpStatus({
-            status: 'connected',
-            version: data.version || 'unknown',
-            data
-          });
-          debugLog('MCP server is connected');
-        } else {
-          setMcpStatus({
-            status: 'error',
-            statusCode: response.status,
-            statusText: response.statusText
-          });
-          issues.push(`MCP server returned status ${response.status}`);
-        }
-      } catch (error) {
-        setMcpStatus({
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        issues.push(`Failed to connect to MCP server: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      // Legacy AI bridge servers are retired; do not ping a non-existent local bridge.
+      setMcpStatus({
+        status: 'decommissioned',
+        message: 'Workout, gamification, and AI actions now use SwanStudios API routes.'
+      });
+      debugLog('Retired bridge check skipped because SwanStudios APIs are active');
 
       // Get session purchase flow data
       // This would detect if sessions purchased show up correctly in all dashboards

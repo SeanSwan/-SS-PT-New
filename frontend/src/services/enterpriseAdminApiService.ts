@@ -3,11 +3,11 @@
  * =============================
  * 
  * AAA 7-Star Enterprise Admin Dashboard API Service
- * Handles all real API calls for MCP servers, business intelligence, social media management
+ * Handles real API calls for business intelligence and social media management
  * Built for production deployment with comprehensive error handling and security
  * 
  * FEATURES:
- * - Real-time MCP server monitoring and control
+ * - Retired MCP compatibility responses
  * - Business intelligence and analytics data
  * - Social media management APIs
  * - System health and performance monitoring
@@ -27,7 +27,7 @@ export interface MCPServerStatus {
   id: string;
   name: string;
   description: string;
-  status: 'online' | 'offline' | 'starting' | 'stopping' | 'error' | 'warning';
+  status: 'online' | 'offline' | 'starting' | 'stopping' | 'error' | 'warning' | 'retired';
   port: number;
   pid?: number;
   uptime: string;
@@ -203,98 +203,104 @@ export interface AdminAnalytics {
 class EnterpriseAdminApiService {
   
   // =====================================================
-  // MCP SERVER MANAGEMENT APIs
+  // RETIRED MCP SERVER MANAGEMENT COMPATIBILITY
   // =====================================================
+
+  private retiredMcpServer(serverId = 'legacy-mcp'): MCPServerStatus {
+    return {
+      id: serverId,
+      name: 'Legacy MCP Stack',
+      description: 'Retired. SwanStudios uses first-party APIs for workout, gamification, analytics, and AI workflows.',
+      status: 'retired',
+      port: 0,
+      uptime: 'retired',
+      lastSeen: new Date().toISOString(),
+      version: 'retired',
+      performance: {
+        cpu: 0,
+        memory: 0,
+        network: { in: 0, out: 0 },
+        requests: 0,
+        errors: 0,
+        responseTime: 0
+      },
+      config: {
+        autoRestart: false,
+        maxMemory: 0,
+        maxCpu: 0,
+        logLevel: 'info',
+        environment: {}
+      },
+      healthChecks: {
+        last: new Date().toISOString(),
+        status: 'unhealthy',
+        checks: [
+          {
+            name: 'retired',
+            status: 'warn',
+            message: 'Legacy MCP endpoints are retired; use SwanStudios APIs.',
+            duration: 0
+          }
+        ]
+      }
+    };
+  }
   
   /**
-   * Get all MCP servers with real-time status
+   * Get retired MCP compatibility status.
    */
   async getMCPServers(): Promise<MCPServerStatus[]> {
-    try {
-      const response = await productionApiService.get('/api/admin/mcp-servers');
-      return response.data.servers || [];
-    } catch (error) {
-      console.error('[Admin API] Failed to fetch MCP servers:', error);
-      throw new Error('Failed to fetch MCP server status');
-    }
+    return [this.retiredMcpServer()];
   }
   
   /**
-   * Get detailed status for a specific MCP server
+   * Get retired details for a legacy MCP server id.
    */
   async getMCPServerDetails(serverId: string): Promise<MCPServerStatus> {
-    try {
-      const response = await productionApiService.get(`/api/admin/mcp-servers/${serverId}`);
-      return response.data.server;
-    } catch (error) {
-      console.error(`[Admin API] Failed to fetch MCP server ${serverId}:`, error);
-      throw new Error(`Failed to fetch server ${serverId} details`);
-    }
+    return this.retiredMcpServer(serverId);
   }
   
   /**
-   * Start an MCP server
+   * Legacy MCP start is retired.
    */
   async startMCPServer(serverId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await productionApiService.post(`/api/admin/mcp-servers/${serverId}/start`);
-      return response.data;
-    } catch (error) {
-      console.error(`[Admin API] Failed to start MCP server ${serverId}:`, error);
-      throw new Error(`Failed to start server ${serverId}`);
-    }
+    return { success: false, message: `Legacy MCP server ${serverId} is retired.` };
   }
   
   /**
-   * Stop an MCP server
+   * Legacy MCP stop is retired.
    */
   async stopMCPServer(serverId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await productionApiService.post(`/api/admin/mcp-servers/${serverId}/stop`);
-      return response.data;
-    } catch (error) {
-      console.error(`[Admin API] Failed to stop MCP server ${serverId}:`, error);
-      throw new Error(`Failed to stop server ${serverId}`);
-    }
+    return { success: false, message: `Legacy MCP server ${serverId} is retired.` };
   }
   
   /**
-   * Restart an MCP server
+   * Legacy MCP restart is retired.
    */
   async restartMCPServer(serverId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await productionApiService.post(`/api/admin/mcp-servers/${serverId}/restart`);
-      return response.data;
-    } catch (error) {
-      console.error(`[Admin API] Failed to restart MCP server ${serverId}:`, error);
-      throw new Error(`Failed to restart server ${serverId}`);
-    }
+    return { success: false, message: `Legacy MCP server ${serverId} is retired.` };
   }
   
   /**
-   * Get real-time logs for an MCP server
+   * Legacy MCP logs are retired.
    */
-  async getMCPServerLogs(serverId: string, limit: number = 100): Promise<MCPServerLog[]> {
-    try {
-      const response = await productionApiService.get(`/api/admin/mcp-servers/${serverId}/logs?limit=${limit}`);
-      return response.data.logs || [];
-    } catch (error) {
-      console.error(`[Admin API] Failed to fetch MCP server logs for ${serverId}:`, error);
-      throw new Error(`Failed to fetch logs for server ${serverId}`);
-    }
+  async getMCPServerLogs(serverId: string, _limit: number = 100): Promise<MCPServerLog[]> {
+    return [{
+      id: `${serverId}-retired`,
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message: 'Legacy MCP logs are retired. Use first-party API monitoring.',
+      source: 'mcp-retirement',
+      serverId,
+      serverName: 'Legacy MCP Stack'
+    }];
   }
   
   /**
-   * Update MCP server configuration
+   * Legacy MCP configuration is retired.
    */
-  async updateMCPServerConfig(serverId: string, config: Partial<MCPServerStatus['config']>): Promise<{ success: boolean; message: string }> {
-    try {
-      const response = await productionApiService.put(`/api/admin/mcp-servers/${serverId}/config`, config);
-      return response.data;
-    } catch (error) {
-      console.error(`[Admin API] Failed to update MCP server config for ${serverId}:`, error);
-      throw new Error(`Failed to update server ${serverId} configuration`);
-    }
+  async updateMCPServerConfig(serverId: string, _config: Partial<MCPServerStatus['config']>): Promise<{ success: boolean; message: string }> {
+    return { success: false, message: `Legacy MCP server ${serverId} configuration is retired.` };
   }
   
   // =====================================================

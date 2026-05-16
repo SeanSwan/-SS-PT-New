@@ -10,7 +10,6 @@ import {
   ChevronUp
 } from 'lucide-react';
 
-import { enableMockDataMode, isMockDataModeEnabled } from '../../utils/apiConnectivityFixer';
 import api from '../../services/api';
 
 // Styled Components
@@ -246,25 +245,12 @@ const ApiDebugger = () => {
   );
   const [checking, setChecking] = useState(false);
   const [backendStatus, setBackendStatus] = useState('unknown');
-  const [mockEnabled, setMockEnabled] = useState(isMockDataModeEnabled());
   const [showDetails, setShowDetails] = useState(false);
   const [connectionStats, setConnectionStats] = useState({
     checked: false,
     successful: 0,
     failed: 0
   });
-
-  // Check the status of the mock data
-  useEffect(() => {
-    setMockEnabled(isMockDataModeEnabled());
-    
-    // Check every 2 seconds
-    const interval = setInterval(() => {
-      setMockEnabled(isMockDataModeEnabled());
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   // Check API connection health
   const checkApiConnection = async () => {
@@ -341,12 +327,6 @@ const ApiDebugger = () => {
     setChecking(false);
   };
 
-  // Enable mock data mode
-  const enableMockMode = () => {
-    enableMockDataMode();
-    setMockEnabled(true);
-  };
-
   // Reload the application
   const reloadApp = () => {
     window.location.reload();
@@ -379,24 +359,11 @@ const ApiDebugger = () => {
 
       {/* Connection status */}
       <div>
-        <AlertBox $severity={mockEnabled ? "warning" : "info"}>
+        <AlertBox $severity="info">
           <AlertContent>
             <div>
-              {mockEnabled 
-                ? "Mock data mode is ENABLED. You are using simulated data." 
-                : "Mock data mode is disabled. You are using real backend data."}
+              Simulated data mode is retired. This debugger now checks live backend endpoints only.
             </div>
-            
-            {!mockEnabled && (
-              <Button 
-                $size="small" 
-                $variant="outlined" 
-                $color="warning"
-                onClick={enableMockMode}
-              >
-                Enable Mock Data
-              </Button>
-            )}
           </AlertContent>
         </AlertBox>
         

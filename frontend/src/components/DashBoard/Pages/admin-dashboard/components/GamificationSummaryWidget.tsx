@@ -21,16 +21,13 @@ interface GamificationData {
   leaderboard: LeaderEntry[];
 }
 
-const DEMO: GamificationData = {
-  totalXPAwarded: 48250, achievementsThisWeek: 7,
-  totalAchievements: 156, activeStreaks: 12, topLevel: 24,
-  leaderboard: [
-    { rank: 1, name: 'Client A', xp: 4820, level: 24 },
-    { rank: 2, name: 'Client B', xp: 3960, level: 21 },
-    { rank: 3, name: 'Client C', xp: 3410, level: 19 },
-    { rank: 4, name: 'Client D', xp: 2890, level: 17 },
-    { rank: 5, name: 'Client E', xp: 2340, level: 15 },
-  ],
+const EMPTY_GAMIFICATION: GamificationData = {
+  totalXPAwarded: 0,
+  achievementsThisWeek: 0,
+  totalAchievements: 0,
+  activeStreaks: 0,
+  topLevel: 0,
+  leaderboard: [],
 };
 
 const RARITY_COLORS: Record<number, string> = {
@@ -41,7 +38,7 @@ const RARITY_COLORS: Record<number, string> = {
 
 const GamificationSummaryWidget: React.FC = () => {
   const { authAxios } = useAuth();
-  const [data, setData] = useState<GamificationData>(DEMO);
+  const [data, setData] = useState<GamificationData>(EMPTY_GAMIFICATION);
 
   const fetchData = useCallback(async () => {
     try {
@@ -62,7 +59,7 @@ const GamificationSummaryWidget: React.FC = () => {
         }));
       }
     } catch {
-      /* keep demo */
+      setData(EMPTY_GAMIFICATION);
     }
   }, [authAxios]);
 
@@ -104,7 +101,9 @@ const GamificationSummaryWidget: React.FC = () => {
       {/* Leaderboard */}
       <LeaderLabel>Leaderboard Snapshot</LeaderLabel>
       <LeaderList>
-        {data.leaderboard.map((entry) => (
+        {data.leaderboard.length === 0 ? (
+          <EmptyCopy>No leaderboard entries returned yet.</EmptyCopy>
+        ) : data.leaderboard.map((entry) => (
           <LeaderRow key={entry.rank}>
             <RankBadge $rank={entry.rank}>
               {entry.rank <= 3 ? <Crown size={10} /> : entry.rank}
@@ -182,6 +181,12 @@ const LeaderLabel = styled.div`
 
 const LeaderList = styled.div`
   display: flex; flex-direction: column; gap: 6px;
+`;
+
+const EmptyCopy = styled.div`
+  color: var(--text-muted, #94A3B8);
+  font-size: 0.85rem;
+  padding: 8px 0;
 `;
 
 const LeaderRow = styled.div`

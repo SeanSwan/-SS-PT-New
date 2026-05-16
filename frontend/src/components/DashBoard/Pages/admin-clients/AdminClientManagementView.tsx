@@ -481,6 +481,14 @@ const ServerChip = styled.span<{ $status: string }>`
     color: #ff9800;
     border: 1px solid rgba(255, 152, 0, 0.4);
   `}
+
+  ${({ $status }) =>
+    $status === 'decommissioned' &&
+    `
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+  `}
 `;
 
 // ─── Avatar ─────────────────────────────────────────────────
@@ -807,14 +815,14 @@ const AdminClientManagementView: React.FC = () => {
           logger.log('Handling mock MCP status response');
           setMcpStatus({
             servers: [
-              { name: 'Workout MCP', url: 'http://localhost:8000', status: 'online', lastChecked: new Date().toISOString() },
-              { name: 'Gamification MCP', url: 'http://localhost:8001', status: 'online', lastChecked: new Date().toISOString() },
-              { name: 'YOLO MCP', url: 'http://localhost:8002', status: 'offline', lastChecked: new Date().toISOString() },
-              { name: 'Social Media MCP', url: 'http://localhost:8003', status: 'online', lastChecked: new Date().toISOString() },
-              { name: 'Food Scanner MCP', url: 'http://localhost:8004', status: 'error', lastChecked: new Date().toISOString() },
-              { name: 'Video Processing MCP', url: 'http://localhost:8005', status: 'online', lastChecked: new Date().toISOString() }
+              { name: 'Workout API', replacement: '/api/workout', status: 'decommissioned', lastChecked: new Date().toISOString() },
+              { name: 'Gamification API', replacement: '/api/v1/gamification', status: 'decommissioned', lastChecked: new Date().toISOString() },
+              { name: 'Form Analysis API', replacement: '/api/form-analysis', status: 'decommissioned', lastChecked: new Date().toISOString() },
+              { name: 'Social API', replacement: '/api/social', status: 'decommissioned', lastChecked: new Date().toISOString() },
+              { name: 'Food Scanner API', replacement: '/api/food-scanner', status: 'decommissioned', lastChecked: new Date().toISOString() },
+              { name: 'Video Processing API', replacement: '/api/v2/videos', status: 'decommissioned', lastChecked: new Date().toISOString() }
             ],
-            summary: { online: 4, offline: 1, error: 1 }
+            summary: { online: 0, offline: 0, error: 0, decommissioned: 6 }
           });
         } else {
           // Handle real response structure
@@ -1150,7 +1158,7 @@ const AdminClientManagementView: React.FC = () => {
   const renderMCPStatus = () => (
     <CardPanel>
       <FlexRow $justify="space-between" style={{ marginBottom: 16 }}>
-        <SectionTitle>MCP Server Status</SectionTitle>
+        <SectionTitle>Legacy MCP Status</SectionTitle>
         <RoundIconButton
           onClick={fetchMCPStatus}
           $color="#60C0F0"
@@ -1162,7 +1170,7 @@ const AdminClientManagementView: React.FC = () => {
 
       {mcpStatus ? (
         <div>
-          <GridRow $columns="repeat(3, 1fr)" $gap="16px" style={{ marginBottom: 16 }}>
+          <GridRow $columns="repeat(4, 1fr)" $gap="16px" style={{ marginBottom: 16 }}>
             <StatCard $bgTint="rgba(76, 175, 80, 0.1)">
               <StatNumber $color="#4caf50">
                 {mcpStatus?.summary?.online || '0'}
@@ -1180,6 +1188,12 @@ const AdminClientManagementView: React.FC = () => {
                 {mcpStatus?.summary?.error || '0'}
               </StatNumber>
               <MutedText>Error</MutedText>
+            </StatCard>
+            <StatCard $bgTint="rgba(148, 163, 184, 0.1)">
+              <StatNumber $color="#94a3b8">
+                {mcpStatus?.summary?.decommissioned || '0'}
+              </StatNumber>
+              <MutedText>Retired</MutedText>
             </StatCard>
           </GridRow>
 

@@ -514,65 +514,10 @@ const NutritionPlanning = ({ onClose }: { onClose: () => void }) => {
       return;
     }
 
-    // Short-circuit when MCP is disabled
-    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
-      enqueueSnackbar('AI nutrition planning is currently disabled', { variant: 'info' });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Prepare nutrition context
-      const mcpContext = {
-        clientId: selectedClient,
-        goal,
-        activityLevel,
-        dietaryRestrictions,
-        mealCount,
-        includeSnacks,
-        preferences: {
-          cuisineTypes: ['international'],
-          cookingTime: 'moderate',
-          budgetLevel: 'moderate'
-        }
-      };
-
-      // Call MCP backend for nutrition planning
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/nutrition`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          modelName: 'claude-3-5-sonnet',
-          temperature: 0.6,
-          maxTokens: 3000,
-          systemPrompt: `You are an AI nutrition specialist. Create personalized nutrition plans based on client goals and restrictions.
-                        Include: macro breakdown, meal timing, food suggestions, portion sizes, supplements if needed.
-                        Format response as structured JSON with sections for macros, meals, supplements, tips.`,
-          humanMessage: `Create a personalized nutrition plan for client with goal: ${goal}, activity level: ${activityLevel}.
-                        Dietary restrictions: ${dietaryRestrictions.join(', ') || 'None'}.
-                        Include ${mealCount} main meals${includeSnacks ? ' plus snacks' : ''}.`,
-          mcpContext
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Nutrition planning failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      // Parse the AI response
-      let parsedPlan;
-      try {
-        parsedPlan = JSON.parse(result.content);
-      } catch (parseError) {
-        // If JSON parsing fails, create a structured plan from text
-        parsedPlan = generateMockNutritionPlan();
-      }
+      const parsedPlan = generateMockNutritionPlan();
 
       setNutritionPlan(parsedPlan);
       enqueueSnackbar('Nutrition plan generated successfully', { variant: 'success' });

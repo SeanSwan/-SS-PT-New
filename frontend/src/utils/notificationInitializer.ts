@@ -4,8 +4,6 @@
  */
 import { store } from '../store';
 import { fetchNotifications } from '../store/slices/notificationSlice';
-import api from '../services/api';
-import { enableMockData, isMockDataEnabled } from './mockDataHelper';
 import { logger } from '@/utils/logger';
 
 /**
@@ -16,29 +14,21 @@ export const initializeNotifications = () => {
   // Track connection failures
   let connectionFailures = 0;
   const MAX_RETRY_COUNT = 3;
-  let useMockData = isMockDataEnabled();
 
   // Function to fetch notifications with error handling and retry logic
   const fetchNotificationsWithRetry = async () => {
     try {
-      if (useMockData) {
-        // Use mock data if backend is unavailable
-        logger.log('[DEV MODE] Using mock notification data');
-        // We don't actually dispatch here as the reducer should handle the mock data
-      } else {
-        // Attempt to fetch real notifications
-        await store.dispatch(fetchNotifications());
-        // Reset failure count on success
-        connectionFailures = 0;
+      const result = await store.dispatch(fetchNotifications());
+      if (fetchNotifications.rejected.match(result)) {
+        throw new Error(String(result.payload || result.error.message || 'Notification fetch failed'));
       }
+      connectionFailures = 0;
     } catch (error) {
       connectionFailures++;
       logger.warn(`[Notifications] Connection attempt ${connectionFailures} failed:`, error);
       
       if (connectionFailures >= MAX_RETRY_COUNT) {
-        logger.warn('[Notifications] Switching to mock data after multiple failures');
-        useMockData = true;
-        enableMockData();
+        logger.warn('[Notifications] Notification polling paused until the next interval because the API is unavailable');
       }
     }
   };

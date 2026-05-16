@@ -49,7 +49,6 @@ import { setInitialized } from './store/slices/appSlice';
 
 // Utilities
 import { setupNotifications } from './utils/notificationInitializer';
-import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup'; // Initialize token cleanup handlers
@@ -167,9 +166,6 @@ const AppContent = () => {
     if (hadMockTokens) {
       logger.log('🔄 Cleared mock tokens, please login again with real credentials');
     }
-    
-    // Initialize mock data system
-    initializeMockData();
     
     // Start API connection monitoring with a slight delay to prevent conflicts
     setTimeout(() => {

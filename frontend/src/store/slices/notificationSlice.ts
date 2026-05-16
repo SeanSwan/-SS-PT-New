@@ -43,38 +43,6 @@ const initialState: NotificationState = {
 };
 
 // Async thunks
-// Mock notification data for fallback when backend is unavailable
-const mockNotifications: Notification[] = [
-  {
-    id: 'mock-1',
-    title: 'Welcome to SwanStudios',
-    message: 'Thanks for joining! Your fitness journey begins here.',
-    type: 'system',
-    read: false,
-    createdAt: new Date().toISOString(),
-    userId: 'current-user'
-  },
-  {
-    id: 'mock-2',
-    title: 'New Workout Plan Available',
-    message: 'Your trainer has created a new workout plan for you.',
-    type: 'workout',
-    read: false,
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    userId: 'current-user',
-    link: '/workout-plans'
-  },
-  {
-    id: 'mock-3',
-    title: 'Reminder: Upcoming Session',
-    message: 'You have a training session scheduled for tomorrow at 2:00 PM.',
-    type: 'client',
-    read: true,
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    userId: 'current-user'
-  }
-];
-
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchAll',
   async (_, { rejectWithValue, getState }) => {
@@ -83,18 +51,8 @@ export const fetchNotifications = createAsyncThunk(
       const response = await api.get('/api/notifications');
       return response.data;
     } catch (error: any) {
-      // Silently handle 503 errors (service unavailable) without console warnings
-      const is503Error = error.response?.status === 503 || error.message?.includes('503');
-
-      if (!is503Error) {
-        logger.warn('[Notifications] Failed to fetch notifications, using mock data:', error.message);
-      }
-
-      // Instead of rejecting, provide mock data as graceful fallback
-      return {
-        notifications: mockNotifications,
-        unreadCount: mockNotifications.filter(n => !n.read).length
-      };
+      logger.warn('[Notifications] Failed to fetch notifications:', error.message);
+      return rejectWithValue(error.message || 'Failed to fetch notifications');
     }
   }
 );

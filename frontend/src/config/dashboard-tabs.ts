@@ -408,16 +408,6 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Security monitoring and threat analysis',
   },
   {
-    key: 'mcp-servers',
-    label: 'MCP Servers',
-    icon: 'Server',
-    order: 19,
-    status: 'real',
-    section: 'system',
-    route: '/dashboard/mcp-servers',
-    description: 'MCP server status and configuration',
-  },
-  {
     key: 'settings',
     label: 'Admin Settings',
     icon: 'Settings',

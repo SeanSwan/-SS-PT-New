@@ -2,41 +2,33 @@
 
 ## Quick Authentication Panel
 
-This module provides a floating panel that allows developers to quickly switch between different user roles (admin, trainer, client) during development without having to repeatedly log in.
+This module provides development-only diagnostics. Quick role switching with fake users/tokens has been retired; use real backend authentication with explicitly seeded users.
 
 ## Features
 
-- Quick one-click login as Admin, Trainer, Client, or Social User
-- Persistent login state between refreshes
-- Automatic navigation to the appropriate dashboard
-- Reset test accounts with one click
+- Live backend login checks
+- Persistent status visibility between refreshes
+- API endpoint diagnostics
+- Retired test-account reset controls
 - Minimizable panel that stays out of the way
 
 ## How to Use
 
 The Development Tools panel is **automatically enabled in development mode only**. You don't need to do anything special to activate it - when you run the application in development mode, the panel will appear in the bottom-right corner of the screen.
 
-### Quick Role Switching
+### Login Testing
 
-1. Click on the "Login as Admin" button to instantly log in with admin privileges
-2. Click on "Login as Trainer" to switch to trainer role
-3. Click on "Login as Client" to switch to client role
-4. Click on "Login as User" to switch to regular social user role
+Use the real login page or configure local `VITE_DEV_*` values for the dev login form. The panel must not mint fake tokens or fake users.
 
 The panel will show your current role and provide a logout button if needed.
 
 ### Test Account Credentials
 
-These are the credentials used by the quick login buttons:
-
-- **Admin**: admin@swanstudios.com / admin123
-- **Trainer**: trainer@swanstudios.com / trainer123
-- **Client**: client@test.com / client123
-- **User**: user@test.com / user123
+No shared default credentials are documented here. Use local-only environment variables or backend seed scripts that require explicit passwords.
 
 ### Resetting Test Accounts
 
-If you need to refresh the test accounts (for example, after changing the database schema), click the refresh icon in the top-right corner of the panel. This will trigger the backend to recreate all test accounts with their default settings.
+The old one-click reset endpoint is retired. If test users are needed, seed them with backend scripts that require explicit credentials.
 
 ## Implementation Notes
 
@@ -51,7 +43,7 @@ If you need to refresh the test accounts (for example, after changing the databa
 
 The tool connects to the following API endpoints:
 
-- `GET /api/dev/seed-test-accounts`: Creates or resets test accounts in the database
+- `GET /api/dev/seed-test-accounts`: Retired; returns a non-success response
 - `GET /api/dev/health-check`: Checks if the development API is functioning
 
 ## Security Notes

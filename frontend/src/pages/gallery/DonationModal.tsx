@@ -630,7 +630,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   if (!isOpen) return null;
 
   const amount = getAmount();
-  const zelleRecipient = '3239968153';
+  const zelleRecipient = import.meta.env.VITE_ZELLE_RECIPIENT || '';
 
   return (
     <ModalOverlay onClick={handleOverlayClick}>
@@ -693,7 +693,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
             </ZelleQRSection>
             <ZelleInfoBox>
               Or send manually to:
-              <ZelleDetail>{zelleRecipient}</ZelleDetail>
+              <ZelleDetail>{zelleRecipient || 'Configured in payment settings'}</ZelleDetail>
               After sending, click the button below to let us know.
             </ZelleInfoBox>
             <NoteInput

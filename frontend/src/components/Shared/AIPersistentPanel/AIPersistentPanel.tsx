@@ -12,7 +12,7 @@
  * Includes DictationOrb for voice input and context switching.
  *
  * HOW IT FITS IN THE APP:
- *   UnifiedAdminDashboardLayout → ContentWithPanelWrapper
+ *   UniversalDashboardLayout -> ContentWithPanelWrapper
  *     → DashboardScrollArea (existing routes)
  *     → AIPersistentPanel (this component)
  *

@@ -296,7 +296,7 @@ const AdminClientsSummary: React.FC = () => {
     { Icon: Users, text: 'Comprehensive client database with search & filtering' },
     { Icon: UserPlus, text: 'Add new clients with detailed onboarding' },
     { Icon: ClipboardList, text: 'Manage client sessions and training packages' },
-    { Icon: BarChart3, text: 'Real-time MCP server statistics' },
+    { Icon: BarChart3, text: 'Real-time API-backed progress statistics' },
     { Icon: UserCog, text: 'Reset passwords and assign trainers' },
     { Icon: Activity, text: 'Track client progress and achievements' },
   ];
@@ -411,7 +411,7 @@ const AdminClientsSummary: React.FC = () => {
               </StatusCheckRow>
               <StatusCheckRow>
                 <CheckCircle2 size={20} color="#4caf50" />
-                MCP Services: 6/6 Online
+                API Action Layer: Active
               </StatusCheckRow>
             </StatusChecksWrapper>
 

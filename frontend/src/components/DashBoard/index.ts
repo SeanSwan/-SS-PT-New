@@ -6,13 +6,14 @@
  * Maintains backwards compatibility while providing cleaner import paths
  * 
  * PRODUCTION COMPONENTS (DO NOT MODIFY):
- * - UnifiedAdminDashboardLayout (Primary admin layout)
+ * - UniversalDashboardLayout (Primary role dashboard layout)
  * - AdminStellarSidebar (Primary navigation)
  * - TheAestheticCodex (Style guide)
  */
 
-// === PRIMARY PRODUCTION COMPONENTS (DO NOT MODIFY) ===
-export { default as UnifiedAdminDashboardLayout } from './UnifiedAdminDashboardLayout';
+import UniversalDashboardLayout from './UniversalDashboardLayout';
+import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
+import { TheAestheticCodex } from '../../core';
 
 // Primary Dashboard Pages (Production Ready)
 export { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
@@ -31,22 +32,16 @@ export {
   PackagesManagementSection,
   ContentModerationSection,
   NotificationsSection,
-  MCPServersSection,
   AdminSettingsSection
 } from './Pages/admin-dashboard/sections';
 
 // === ANALYTICS & BUSINESS INTELLIGENCE ===
 export { default as RevenueAnalyticsPanel } from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
-export { default as UserAnalyticsPanel } from './Pages/admin-dashboard/components/UserAnalyticsPanel';
-export { default as SystemHealthPanel } from './Pages/admin-dashboard/components/SystemHealthPanel';
-export { default as SecurityMonitoringPanel } from './Pages/admin-dashboard/components/SecurityMonitoringPanel';
-export { default as PerformanceReportsPanel } from './Pages/admin-dashboard/components/PerformanceReportsPanel';
 export { default as PendingOrdersAdminPanel } from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
 
 // === SPECIALIZED COMPONENTS ===
 export { default as TrainersManagementSection } from './Pages/admin-dashboard/TrainersManagementSection';
 export { default as AdminSocialManagementView } from './Pages/admin-dashboard/components/AdminSocialManagementView';
-export { default as NASMCompliancePanel } from './Pages/admin-dashboard/components/NASMCompliancePanel';
 
 // === EXERCISE MANAGEMENT SYSTEM ===
 export { default as AdminExerciseCommandCenter } from './Pages/admin-exercises';
@@ -59,7 +54,7 @@ export { default as AdminScheduleIntegration } from '../UniversalMasterSchedule/
 export { TheAestheticCodex } from '../../core';
 
 // === LAZY-LOADED ENTERPRISE COMPONENTS ===
-// These are lazy-loaded directly in UnifiedAdminDashboardLayout.tsx
+// These are lazy-loaded directly in UniversalDashboardLayout.tsx
 // DO NOT export them here as they cause "Cannot convert object to primitive value" errors
 // when React Router tries to render them
 
@@ -105,7 +100,6 @@ export const getAdminRouteTitle = (pathname: string): string => {
     '/dashboard/security': 'Security Monitor',
     '/dashboard/admin/marketing': 'Marketing',
     '/dashboard/admin/security': 'Security Intelligence',
-    '/dashboard/mcp-servers': 'MCP Servers',
     '/dashboard/settings': 'Admin Settings',
     '/dashboard/exercise-management': 'Exercise Center',
     '/dashboard/gamification': 'Gamification Hub',
@@ -139,7 +133,7 @@ export const ADMIN_PERMISSIONS = {
 } as const;
 
 export default {
-  UnifiedAdminDashboardLayout,
+  UniversalDashboardLayout,
   AdminStellarSidebar,
   TheAestheticCodex,
   version: ADMIN_DASHBOARD_VERSION

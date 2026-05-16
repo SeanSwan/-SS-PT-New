@@ -21,7 +21,6 @@ export { default as gamificationMcpApi, GamificationMcpError } from './gamificat
 // Type imports
 import type { GamificationMcpApi } from '../../types/mcp/gamification.types';
 import type { WorkoutMcpApi } from '../../types/mcp/workout.types';
-import { mcpConfig } from './mcpConfig';
 import { logger } from '@/utils/logger';
 
 /**
@@ -58,65 +57,27 @@ export interface McpServersStatus {
  */
 export const checkMcpServersStatus = async (forceRefresh = false): Promise<McpServersStatus> => {
   const timestamp = new Date().toISOString();
-  
-  try {
-    logger.log('[MCP Services] Checking comprehensive server status...');
-    
-    // Get health data from centralized config
-    const healthData = await mcpConfig.checkHealth(forceRefresh);
-    
-    const results: McpServersStatus = {
-      workout: {
-        available: healthData.services.workout.status === 'online',
-        status: healthData.services.workout.status,
-        message: healthData.services.workout.message,
-        lastChecked: timestamp
-      },
-      gamification: {
-        available: healthData.services.gamification.status === 'online',
-        status: healthData.services.gamification.status,
-        message: healthData.services.gamification.message,
-        lastChecked: timestamp
-      },
-      overall: {
-        healthy: healthData.status === 'healthy',
-        servicesEnabled: healthData.mcpServicesEnabled,
-        timestamp: healthData.timestamp
-      }
-    };
-    
-    logger.log('[MCP Services] Status check completed:', {
-      workoutAvailable: results.workout.available,
-      gamificationAvailable: results.gamification.available,
-      overallHealthy: results.overall.healthy
-    });
-    
-    return results;
-    
-  } catch (error) {
-    console.error('[MCP Services] Status check failed:', error);
-    
-    // Return error state
-    return {
-      workout: {
-        available: false,
-        status: 'error',
-        message: `Status check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        lastChecked: timestamp
-      },
-      gamification: {
-        available: false,
-        status: 'error',
-        message: `Status check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        lastChecked: timestamp
-      },
-      overall: {
-        healthy: false,
-        servicesEnabled: false,
-        timestamp
-      }
-    };
-  }
+  void forceRefresh;
+
+  return {
+    workout: {
+      available: false,
+      status: 'decommissioned',
+      message: 'Workout MCP is retired. Use /api/workout and /api/workout/sessions.',
+      lastChecked: timestamp
+    },
+    gamification: {
+      available: false,
+      status: 'decommissioned',
+      message: 'Gamification MCP is retired. Use /api/v1/gamification.',
+      lastChecked: timestamp
+    },
+    overall: {
+      healthy: false,
+      servicesEnabled: false,
+      timestamp
+    }
+  };
 };
 
 /**
@@ -127,12 +88,7 @@ export const checkMcpServersStatus = async (forceRefresh = false): Promise<McpSe
  * @returns Promise<boolean> True if any MCP service is available
  */
 export const isMcpAvailable = async (): Promise<boolean> => {
-  try {
-    return await mcpConfig.isAvailable();
-  } catch (error) {
-    console.error('[MCP Services] Availability check failed:', error);
-    return false;
-  }
+  return false;
 };
 
 /**
@@ -144,12 +100,8 @@ export const isMcpAvailable = async (): Promise<boolean> => {
  * @returns Promise<boolean> True if the service is available
  */
 export const isServiceAvailable = async (service: 'workout' | 'gamification'): Promise<boolean> => {
-  try {
-    return await mcpConfig.isServiceAvailable(service);
-  } catch (error) {
-    console.error(`[MCP Services] ${service} availability check failed:`, error);
-    return false;
-  }
+  void service;
+  return false;
 };
 
 /**
@@ -158,8 +110,7 @@ export const isServiceAvailable = async (service: 'workout' | 'gamification'): P
  * Forces fresh health checks on next status request
  */
 export const clearMcpCache = (): void => {
-  mcpConfig.clearHealthCache();
-  logger.log('[MCP Services] Health cache cleared');
+  logger.log('[MCP Services] MCP health cache disabled because MCP servers are retired');
 };
 
 /**

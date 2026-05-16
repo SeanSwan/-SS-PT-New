@@ -15,8 +15,7 @@ import { seedTestAccounts as seedTestAccountsApi } from '../../services/devAuthS
 import { 
   initializeMemoryStore, 
   getUserFromMemory, 
-  setUserInMemory,
-  setTokenInMemory 
+  setUserInMemory
 } from '../../utils/dev-memory-store';
 import { logger } from '@/utils/logger';
 
@@ -556,51 +555,13 @@ const DevLoginPanel: React.FC = () => {
   // Handle quick login for a specific role
   const handleQuickLogin = useCallback((role: 'admin' | 'trainer' | 'client' | 'user') => {
     try {
-      // Create mockUser with consistent naming across different parts of the app
-      const mockUser = {
-        id: `${role}-test-id`,
-        name: `Mock User (${role})`,
-        firstName: 'Mock',
-        lastName: 'User',
-        email: role === 'admin' ? 'admin@example.com' : 
-               role === 'trainer' ? 'trainer@example.com' :
-               role === 'client' ? 'client@example.com' : 'user@example.com',
-        role: role,
-        permissions: role === 'admin' ? ['all'] : []
-      };
-
-      // Call the dev quick login function
       devQuickLogin(role);
-      
-      // Update current user state directly for immediate feedback
-      setCurrentUser(mockUser);
-      
-      // Also update the memory store
-      setUserInMemory(mockUser);
-      setTokenInMemory(`mock-token-${role}-${Date.now()}`);
-      
-      // Navigate to the appropriate dashboard based on role
-      if (role === 'admin') {
-        safeNavigate('/dashboard');
-      } else if (role === 'trainer') {
-        safeNavigate('/dashboard/trainer/overview');
-      } else if (role === 'client') {
-        safeNavigate('/dashboard/client/overview');
-      } else if (role === 'user') {
-        safeNavigate('/social');
-      }
-      
-      // Show info about successful login
-      setShowInfo(true);
-      setTimeout(() => setShowInfo(false), 5000);
-      
     } catch (error) {
-      console.error('[DEV MODE] Error in quick login:', error);
-      // Show error message to user
+      logger.warn('[DEV MODE] Quick login retired:', error);
       setShowInfo(true);
       setTimeout(() => setShowInfo(false), 5000);
     }
-  }, [safeNavigate]);
+  }, []);
   
   // Handle seeding test accounts
   const handleSeedAccounts = useCallback(async () => {
@@ -659,7 +620,7 @@ const DevLoginPanel: React.FC = () => {
           <CollapseContainer $open={showInfo}>
             <AlertBox $severity={routerAvailable ? "success" : "warning"}>
               <div>
-                {routerAvailable ? "Test accounts refreshed!" : "Login successful! Please navigate manually to the appropriate dashboard."}
+                Dev quick login is retired. Use the real login page with backend-seeded users.
               </div>
               <DevIconButton
                 onClick={() => setShowInfo(false)}

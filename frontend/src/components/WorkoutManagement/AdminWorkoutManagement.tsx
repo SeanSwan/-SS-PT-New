@@ -621,7 +621,7 @@ const mockActiveWorkouts = [
  * AdminWorkoutManagement Component
  *
  * Main workout management interface for administrators
- * Integrates with the Workout MCP server for full functionality
+ * Uses SwanStudios workout APIs for workout planning and progress data.
  */
 const AdminWorkoutManagement: React.FC = () => {
   const { user } = useAuth();
@@ -655,7 +655,7 @@ const AdminWorkoutManagement: React.FC = () => {
   const [activeWorkouts, setActiveWorkouts] = useState(mockActiveWorkouts);
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
 
-  // Check MCP connection on component mount
+  // Check retired MCP compatibility status on component mount
   useEffect(() => {
     checkMcpConnection();
     loadDashboardData();
@@ -718,17 +718,15 @@ const AdminWorkoutManagement: React.FC = () => {
   // Dashboard Overview Tab
   const renderDashboardOverview = () => (
     <div>
-      {/* MCP Connection Status */}
+      {/* Workout API Status */}
       <AlertBox $severity={mcpConnected ? 'success' : 'warning'}>
         <AlertContent>
           <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: '0.9375rem' }}>
-            MCP Workout Server: {mcpConnected ? 'Connected' : 'Disconnected'}
+            Workout API Mode: {mcpConnected ? 'Legacy compatibility active' : 'SwanStudios APIs active'}
           </p>
           {!mcpConnected && (
             <TextSecondary style={{ display: 'block', marginTop: '4px' }}>
-              Server should be running on http://localhost:8000
-              <br />
-              Use the 'start-mcp-simple.bat' script to start the server
+              Retired MCP servers are not required. Workout actions now route through the app backend.
             </TextSecondary>
           )}
         </AlertContent>
@@ -948,16 +946,16 @@ const AdminWorkoutManagement: React.FC = () => {
           <IconBtn
             onClick={checkMcpConnection}
             $color={mcpConnected ? theme.success : theme.error}
-            title="Refresh MCP Connection"
+            title="Refresh workout API status"
           >
             <RefreshCw size={20} />
           </IconBtn>
           <StyledButton
             $variant="outlined"
-            onClick={() => {}} // TODO: Open MCP settings
+            onClick={checkMcpConnection}
           >
             <Settings size={18} />
-            MCP Settings
+            API Status
           </StyledButton>
         </HeaderActions>
       </PageHeader>

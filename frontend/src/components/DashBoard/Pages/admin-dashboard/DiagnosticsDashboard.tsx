@@ -369,7 +369,7 @@ const ScrollArea = styled.div<{ $maxH?: string }>`
  * - API connection status
  * - Database health checks
  * - Cart & session purchase flow diagnostics
- * - MCP server status
+ * - retired AI bridge compatibility status
  * - Cross-component integration verification
  * - Custom endpoint testing
  */
@@ -491,24 +491,14 @@ const DiagnosticsDashboard: React.FC = () => {
       setApiStatus(apiResults);
       setConnectionIssues(issues);
 
-      // Check MCP server
-      try {
-        debugLog('Testing MCP server connection');
-        const mcpResponse = await axios.get('/mcp/status');
-
-        setMcpStatus({
-          status: 'connected',
-          version: mcpResponse.data.version || 'unknown',
-          data: mcpResponse.data
-        });
-        debugLog('MCP server is connected');
-      } catch (error) {
-        setMcpStatus({
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-        issues.push(`Failed to connect to MCP server: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      // Legacy AI bridge servers are retired; diagnostics should not ping /mcp/status.
+      setMcpStatus({
+        status: 'decommissioned',
+        data: {
+          replacements: ['/api/workout', '/api/v1/gamification', '/api/ai-command']
+        }
+      });
+      debugLog('Retired bridge check skipped because SwanStudios APIs are the active runtime');
 
       // Check recent purchases and session assignments
       try {
@@ -737,7 +727,7 @@ const DiagnosticsDashboard: React.FC = () => {
   };
 
   /* ── Tab labels ── */
-  const tabLabels = ['System Status', 'Purchase Flow', 'Data Flow', 'MCP Server', 'Debug Tools'];
+  const tabLabels = ['System Status', 'Purchase Flow', 'Data Flow', 'Legacy Bridge', 'Debug Tools'];
 
   // Auth guard — admin only (placed after hooks to respect Rules of Hooks)
   if (user?.role !== 'admin') {
@@ -805,9 +795,9 @@ const DiagnosticsDashboard: React.FC = () => {
                     <BodyText>{Object.keys(apiStatus).length} endpoints checked</BodyText>
                   </CardPanel>
 
-                  {/* MCP Status */}
+                  {/* API Runtime Status */}
                   <CardPanel>
-                    <Heading6>MCP Server</Heading6>
+                    <Heading6>API Runtime</Heading6>
                     <BigNumber $color={
                       mcpStatus.status === 'connected' ? T.green : T.red
                     }>
@@ -1214,16 +1204,16 @@ const DiagnosticsDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* ════════════ MCP Server Tab ════════════ */}
+            {/* ════════════ Retired Bridge Tab ════════════ */}
             {activeTab === 3 && (
               <div>
-                <Heading6>MCP Server Status</Heading6>
+                <Heading6>Retired Bridge Status</Heading6>
 
-                <AlertBox $severity={mcpStatus.status === 'connected' ? 'success' : 'error'}>
-                  <AlertIcon severity={mcpStatus.status === 'connected' ? 'success' : 'error'} />
+                <AlertBox $severity={mcpStatus.status === 'connected' ? 'success' : 'info'}>
+                  <AlertIcon severity={mcpStatus.status === 'connected' ? 'success' : 'info'} />
                   {mcpStatus.status === 'connected'
-                    ? 'MCP Server is connected and operational'
-                    : 'MCP Server connection issue detected'}
+                    ? 'Legacy bridge is connected'
+                    : 'Legacy bridge is retired; SwanStudios APIs are active'}
                 </AlertBox>
 
                 {mcpStatus.status === 'connected' ? (
@@ -1257,69 +1247,44 @@ const DiagnosticsDashboard: React.FC = () => {
                   </GlassPanel>
                 ) : (
                   <GlassPanel $bg={T.panelBg}>
-                    <Subtitle>Connection Error</Subtitle>
-                    <ErrorText>{mcpStatus.error || 'Could not connect to MCP server'}</ErrorText>
+                    <Subtitle>Retired Bridge</Subtitle>
+                    <ErrorText>{mcpStatus.error || 'Legacy bridge intentionally decommissioned'}</ErrorText>
                     <BodyText style={{ marginTop: 8 }}>
-                      Check that the MCP server is running and configured correctly.
-                      You can start the MCP server using the command:
+                      Use the active API replacements for workout, gamification, and AI command workflows.
                     </BodyText>
-                    <CodeBlock>npm run start-mcp</CodeBlock>
+                    <CodeBlock>/api/workout | /api/v1/gamification | /api/ai-command</CodeBlock>
                   </GlassPanel>
                 )}
 
                 <div style={{ marginTop: 24 }}>
-                  <Heading6>MCP Integration Status</Heading6>
+                  <Heading6>API Replacement Status</Heading6>
 
                   <CardGrid $cols="1fr 1fr">
-                    {/* Workout MCP */}
+                    {/* Workout API */}
                     <CardPanel>
-                      <Subtitle>Workout MCP</Subtitle>
+                      <Subtitle>Workout API</Subtitle>
 
-                      <AlertBox
-                        $severity={
-                          mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name === 'generate_workout')
-                            ? 'success'
-                            : 'warning'
-                        }
-                      >
-                        <AlertIcon severity={
-                          mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name === 'generate_workout')
-                            ? 'success'
-                            : 'warning'
-                        } />
-                        {mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name === 'generate_workout')
-                          ? 'Workout generation is available'
-                          : 'Workout generation tools not detected'}
+                      <AlertBox $severity="info">
+                        <AlertIcon severity="info" />
+                        Workout workflows now use /api/workout and /api/workout-plans.
                       </AlertBox>
 
                       <BodyText>
-                        The workout MCP server provides Swan Coach workout generation, customization, and analysis.
+                        Swan Coach workout generation, customization, and analysis should use backend API services.
                       </BodyText>
                     </CardPanel>
 
-                    {/* Gamification MCP */}
+                    {/* Gamification API */}
                     <CardPanel>
-                      <Subtitle>Gamification MCP</Subtitle>
+                      <Subtitle>Gamification API</Subtitle>
 
-                      <AlertBox
-                        $severity={
-                          mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name?.includes('gamification'))
-                            ? 'success'
-                            : 'warning'
-                        }
-                      >
-                        <AlertIcon severity={
-                          mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name?.includes('gamification'))
-                            ? 'success'
-                            : 'warning'
-                        } />
-                        {mcpStatus.status === 'connected' && mcpStatus.data?.tools?.some((t: any) => t.name?.includes('gamification'))
-                          ? 'Gamification features are available'
-                          : 'Gamification tools not detected'}
+                      <AlertBox $severity="info">
+                        <AlertIcon severity="info" />
+                        Gamification workflows now use /api/v1/gamification.
                       </AlertBox>
 
                       <BodyText>
-                        The gamification MCP server provides achievement tracking, points management, and reward systems.
+                        Achievement tracking, points, tiers, challenges, and rewards should use the gamification API.
                       </BodyText>
                     </CardPanel>
                   </CardGrid>

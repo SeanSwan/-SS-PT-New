@@ -232,14 +232,6 @@ const SubscriptionSuccessPage = lazyLoadWithErrorHandling(
 );
 
 // Protected Pages
-const RevolutionaryClientDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/RevolutionaryClientDashboard'),
-  'Revolutionary Galaxy Client Dashboard'
-);
-const NewClientDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/NewDashboard'),
-  'Enhanced Client Dashboard'
-);
 const EmergencyDashboard = lazyLoadWithErrorHandling(
   () => import('../components/ClientDashboard/EmergencyDashboard'),
   'Emergency Dashboard'
@@ -247,10 +239,6 @@ const EmergencyDashboard = lazyLoadWithErrorHandling(
 const WorkoutDashboard = lazyLoadWithErrorHandling(
   () => import('../pages/workout/WorkoutDashboard'),
   'Workout Dashboard'
-);
-const AdminDashboardLayout = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/UnifiedAdminDashboardLayout'),
-  'Admin Dashboard Layout'
 );
 
 // Universal Dashboard Layout — serves ALL roles (admin, trainer, client)

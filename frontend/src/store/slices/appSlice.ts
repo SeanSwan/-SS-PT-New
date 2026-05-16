@@ -20,8 +20,7 @@ const initialState: AppState = {
   features: {
     // Feature flags
     enableNewDashboard: import.meta.env.VITE_ENABLE_NEW_DASHBOARD === 'true',
-    enableAdvancedAnalytics: import.meta.env.VITE_ENABLE_ADVANCED_ANALYTICS === 'true',
-    enableMockMode: import.meta.env.DEV
+    enableAdvancedAnalytics: import.meta.env.VITE_ENABLE_ADVANCED_ANALYTICS === 'true'
   }
 };
 

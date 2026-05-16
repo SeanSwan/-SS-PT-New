@@ -1,6 +1,6 @@
 /**
  * yolo-analysis-service.ts
- * Service for communicating with the YOLO AI Form/Posture Analysis MCP Server
+ * Service for communicating with an optional external YOLO form-analysis worker.
  */
 
 import { logger } from '@/utils/logger';
@@ -31,19 +31,26 @@ export interface AnalysisData {
   averageRangeOfMotion: string;
 }
 
-// Default to localhost for development, override in production
-const YOLO_API_URL = (import.meta as any).env?.VITE_YOLO_API_URL || 'http://localhost:8005';
+// No localhost default: the old MCP worker is retired unless explicitly configured.
+const YOLO_API_URL = (import.meta as any).env?.VITE_YOLO_API_URL || '';
+
+const requireYoloEndpoint = () => {
+  if (!YOLO_API_URL) {
+    throw new Error('External YOLO worker is not configured. Use /api/form-analysis for stored media analysis.');
+  }
+  return YOLO_API_URL;
+};
 
 export const YoloAnalysisService = {
   /**
-   * Start a new form analysis session with the YOLO MCP server
+   * Start a new form analysis session with the optional YOLO worker
    * @param userId - The ID of the user (trainer) starting the session
    * @param exerciseName - Optional exercise name to guide the analysis
    * @returns Session response with session_id if successful
    */
   startAnalysisSession: async (userId: string, exerciseName?: string): Promise<AnalysisSessionResponse> => {
     try {
-      const response = await fetch(`${YOLO_API_URL}/tools/StartFormAnalysis`, {
+      const response = await fetch(`${requireYoloEndpoint()}/tools/StartFormAnalysis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -86,7 +93,7 @@ export const YoloAnalysisService = {
         };
       }
       
-      const response = await fetch(`${YOLO_API_URL}/tools/StopFormAnalysis`, {
+      const response = await fetch(`${requireYoloEndpoint()}/tools/StopFormAnalysis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -123,7 +130,7 @@ export const YoloAnalysisService = {
         throw new Error('Cannot get feedback for an error session');
       }
       
-      const response = await fetch(`${YOLO_API_URL}/tools/GetRealTimeFeedback`, {
+      const response = await fetch(`${requireYoloEndpoint()}/tools/GetRealTimeFeedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -156,7 +163,7 @@ export const YoloAnalysisService = {
       throw new Error('Cannot create WebSocket for an error session');
     }
     
-    const wsUrl = `${YOLO_API_URL.replace('http', 'ws')}/ws/form-analysis/${sessionId}`;
+    const wsUrl = `${requireYoloEndpoint().replace('http', 'ws')}/ws/form-analysis/${sessionId}`;
     logger.log(`Creating WebSocket connection to: ${wsUrl}`);
     
     const socket = new WebSocket(wsUrl);
@@ -188,7 +195,7 @@ export const YoloAnalysisService = {
   },
   
   /**
-   * Send a video frame to the YOLO MCP server for analysis
+   * Send a video frame to the optional YOLO worker for analysis
    * @param socket - WebSocket connection
    * @param frameData - Base64 encoded frame data or raw frame bytes
    * @param includeAnnotated - Whether to include annotated frame in response
@@ -228,7 +235,7 @@ export const YoloAnalysisService = {
   
   /**
    * Transform YOLO metrics into analysis data for UI display
-   * @param metrics - Metrics from YOLO MCP server
+   * @param metrics - Metrics from the optional YOLO worker
    * @param contentId - ID of the content being analyzed
    * @returns Formatted analysis data for UI
    */

@@ -28,10 +28,6 @@ const DETAIL_VIEW_SOURCE = readFileSync(
   resolve(__dirname, './ClientDetailView.tsx'),
   'utf8',
 );
-const MASTER_LAYOUT_SOURCE = readFileSync(
-  resolve(__dirname, './MasterDetailLayout.tsx'),
-  'utf8',
-);
 const CLIENTS_WORKSPACE_SOURCE = readFileSync(
   resolve(__dirname, '../ClientsWorkspace.tsx'),
   'utf8',
@@ -67,14 +63,6 @@ describe('Phase 15.3 — Clients & Team Progress tab', () => {
     expect(DETAIL_VIEW_SOURCE).toMatch(
       /case\s+['"]progress['"]:\s*\n?\s*return\s+renderProgress/,
     );
-  });
-
-  it('MasterDetailLayout imports ProgressTabContent', () => {
-    expect(MASTER_LAYOUT_SOURCE).toMatch(/ProgressTabContent/);
-  });
-
-  it('MasterDetailLayout wires renderProgress to ClientDetailView', () => {
-    expect(MASTER_LAYOUT_SOURCE).toMatch(/renderProgress=\{renderProgress\}/);
   });
 
   it('tab barrel export includes ProgressTabContent', () => {

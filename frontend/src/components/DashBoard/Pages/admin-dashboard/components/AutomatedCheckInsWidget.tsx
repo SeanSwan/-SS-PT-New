@@ -14,7 +14,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare, CalendarCheck, Repeat, Zap, Send, Plus,
-  Droplets, Moon, Footprints, Apple, ChevronDown, ChevronUp,
+  Droplets, Footprints, ChevronDown, ChevronUp,
   CheckCircle2, Clock, Bell,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -35,7 +35,7 @@ interface ScheduledCheckIn {
 
 interface HabitSummary {
   habit: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   avgCompletion: number;
   activeClients: number;
   streakLeader: string;
@@ -63,20 +63,23 @@ const AutomatedCheckInsWidget: React.FC = () => {
   const [triggers, setTriggers] = useState<AutoTrigger[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedTrigger, setExpandedTrigger] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await authAxios.get('/api/admin/check-ins/dashboard');
       if (res.data) {
         setCheckIns(res.data.checkIns ?? []);
         setHabits(res.data.habits ?? []);
         setTriggers(res.data.triggers ?? []);
       }
-    } catch {
-      setCheckIns(demoCheckIns());
-      setHabits(demoHabits());
-      setTriggers(demoTriggers());
+    } catch (err) {
+      setCheckIns([]);
+      setHabits([]);
+      setTriggers([]);
+      setError(err instanceof Error ? err.message : 'Unable to load check-in automation data.');
     } finally {
       setLoading(false);
     }
@@ -144,6 +147,7 @@ const AutomatedCheckInsWidget: React.FC = () => {
 
       {/* Content */}
       <Content>
+        {error && <EmptyMsg>Check-in automation data unavailable. {error}</EmptyMsg>}
         <AnimatePresence mode="wait">
           {tab === 'check-ins' && (
             <motion.div key="ci" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -173,9 +177,11 @@ const AutomatedCheckInsWidget: React.FC = () => {
 
           {tab === 'habits' && (
             <motion.div key="hb" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {habits.map((h, i) => (
+              {loading ? <LoadingRows /> : habits.length === 0 ? (
+                <EmptyMsg>No tracked habits returned yet.</EmptyMsg>
+              ) : habits.map((h, i) => (
                 <HabitRow key={i}>
-                  <HabitIcon>{h.icon}</HabitIcon>
+                  <HabitIcon>{h.icon ?? <Footprints size={16} color="#10b981" />}</HabitIcon>
                   <HabitInfo>
                     <HabitName>{h.habit}</HabitName>
                     <HabitMeta>{h.activeClients} clients tracking</HabitMeta>
@@ -196,7 +202,9 @@ const AutomatedCheckInsWidget: React.FC = () => {
 
           {tab === 'triggers' && (
             <motion.div key="tr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {triggers.map(t => (
+              {loading ? <LoadingRows /> : triggers.length === 0 ? (
+                <EmptyMsg>No automation triggers returned yet.</EmptyMsg>
+              ) : triggers.map(t => (
                 <TriggerRow key={t.id}>
                   <TriggerHeader onClick={() => setExpandedTrigger(expandedTrigger === t.id ? null : t.id)}>
                     <TriggerDot $active={t.enabled} />
@@ -235,35 +243,6 @@ function formatDate(iso: string): string {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Tomorrow';
   return `in ${diff}d`;
-}
-
-function demoCheckIns(): ScheduledCheckIn[] {
-  const now = Date.now();
-  return [
-    { id: 1, clientName: 'Marcus Johnson', clientId: 1, type: 'weekly', template: 'Weekly progress check — how are you feeling?', nextDue: new Date(now - 2 * 86400000).toISOString(), status: 'overdue' },
-    { id: 2, clientName: 'Alicia Chen', clientId: 2, type: 'biweekly', template: 'Bi-weekly body measurements reminder', nextDue: new Date(now - 86400000).toISOString(), status: 'overdue' },
-    { id: 3, clientName: 'Devon Williams', clientId: 3, type: 'weekly', template: 'Weekly progress check — how are you feeling?', nextDue: new Date(now + 86400000).toISOString(), status: 'upcoming' },
-    { id: 4, clientName: 'Sarah Kim', clientId: 4, type: 'monthly', template: 'Monthly goals review and photo update', nextDue: new Date(now + 5 * 86400000).toISOString(), status: 'upcoming' },
-    { id: 5, clientName: 'James Rivera', clientId: 5, type: 'milestone', template: 'Congratulations on completing Phase 2!', nextDue: new Date(now + 7 * 86400000).toISOString(), status: 'upcoming' },
-  ];
-}
-
-function demoHabits(): HabitSummary[] {
-  return [
-    { habit: 'Water Intake (8+ glasses)', icon: <Droplets size={16} color="#3b82f6" />, avgCompletion: 72, activeClients: 34, streakLeader: 'Sarah K.', streakDays: 21 },
-    { habit: 'Sleep (7+ hours)', icon: <Moon size={16} color="#8B5CF6" />, avgCompletion: 58, activeClients: 28, streakLeader: 'James R.', streakDays: 14 },
-    { habit: 'Daily Steps (8k+)', icon: <Footprints size={16} color="#10b981" />, avgCompletion: 65, activeClients: 42, streakLeader: 'Devon W.', streakDays: 30 },
-    { habit: 'Protein Target Hit', icon: <Apple size={16} color="#f59e0b" />, avgCompletion: 48, activeClients: 22, streakLeader: 'Alicia C.', streakDays: 7 },
-  ];
-}
-
-function demoTriggers(): AutoTrigger[] {
-  return [
-    { id: 1, name: 'Missed Workout Nudge', condition: 'Client misses 2 consecutive scheduled workouts', action: 'Send motivational message + reschedule prompt', enabled: true, firedCount: 23 },
-    { id: 2, name: 'Program Expiry Warning', condition: 'Client has < 3 sessions remaining', action: 'Send renewal reminder with package link', enabled: true, firedCount: 8 },
-    { id: 3, name: 'New Client Welcome', condition: 'Client completes signup', action: 'Send welcome message + assessment link + first workout', enabled: true, firedCount: 47 },
-    { id: 4, name: 'Milestone Celebration', condition: 'Client completes 10th workout', action: 'Send congratulations + achievement badge', enabled: false, firedCount: 12 },
-  ];
 }
 
 const LoadingRows = () => (

@@ -1273,132 +1273,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [quickStats, setQuickStats] = useState<Record<string, any>>({});
   // mcpStatus removed — no real MCP servers in production
 
-  // Create mock enhanced client data
-  const generateMockClients = (): EnhancedAdminClient[] => [
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      username: 'johndoe',
-      phone: '+1 (555) 123-4567',
-      profileImageUrl: '/api/placeholder/64/64',
-      dateOfBirth: '1990-05-15',
-      gender: 'male',
-      weight: 82,
-      height: 180,
-      fitnessGoal: 'Build muscle and strength',
-      trainingExperience: 'intermediate',
-      healthConcerns: 'Previous lower back issues',
-      emergencyContact: 'Jane Doe - +1 (555) 987-6543',
-      availableSessions: 5,
-      isActive: true,
-      role: 'client',
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-12-10T14:30:00Z',
-      totalWorkouts: 127,
-      workoutStreak: 15,
-      lastWorkoutDate: '2024-12-10',
-      nextSessionDate: '2024-12-15',
-      totalOrders: 8,
-      achievements: [
-        { id: '1', title: 'First Workout', description: 'Completed your first workout', iconUrl: '/icons/first-workout.png', date: '2024-01-16', points: 100 },
-        { id: '2', title: 'Consistency King', description: '30-day workout streak', iconUrl: '/icons/streak.png', date: '2024-11-20', points: 500 }
-      ],
-      currentProgram: 'Strength & Hypertrophy Phase 2',
-      trainerName: 'Sarah Wilson',
-      socialScore: 85,
-      engagementLevel: 'high',
-      riskFactors: ['Previous back injury'],
-      aiInsights: [
-        { type: 'recommendation', title: 'Increase Deadlift Volume', description: 'Based on your progress, you can handle 10% more volume', confidence: 0.92, actionable: true },
-        { type: 'achievement', title: 'Personal Record Incoming', description: 'You\'re likely to hit a PR in your next bench press session', confidence: 0.78, actionable: false }
-      ],
-      customFields: {
-        preferredGym: 'Downtown Location',
-        workoutTime: 'Morning (6-8 AM)',
-        musicPreference: 'Hip-hop/Electronic'
-      },
-      level: 15,
-      xp: 12500,
-      badges: [
-        { id: '1', name: 'Iron Pumper', description: 'Lifted 1000+ lbs total', iconUrl: '/badges/achievements/bench_master_metallic.png', rarity: 'rare' },
-        { id: '2', name: 'Consistency Champion', description: '90% attendance rate', iconUrl: '/badges/achievements/balanced_week_glass.png', rarity: 'epic' }
-      ],
-      rank: 'Gold III',
-      initialAssessment: { overall: 6.2, strength: 6.0, endurance: 6.5, flexibility: 5.8, balance: 6.3, date: '2024-01-15' },
-      latestAssessment: { overall: 8.7, strength: 9.2, endurance: 8.5, flexibility: 8.0, balance: 8.8, date: '2024-12-01' },
-      progressScore: 94,
-      bodyComposition: { bodyFat: 12.5, muscleMass: 72.3, waterPercentage: 62.1, metabolicAge: 25, lastMeasured: '2024-12-01' },
-      lastContactDate: '2024-12-08',
-      preferredContactMethod: 'app',
-      injuryHistory: [
-        { type: 'Lower back strain', description: 'Lifting incident in 2023', date: '2023-03-15', status: 'recovered', restrictions: ['No heavy deadlifts for 6 weeks'] }
-      ],
-      allergies: ['Shellfish'],
-      formAnalysisScore: 88,
-      lastFormCheck: '2024-12-05'
-    },
-    {
-      id: '2',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane.smith@example.com',
-      username: 'janesmith',
-      phone: '+1 (555) 234-5678',
-      profileImageUrl: '/api/placeholder/64/64',
-      dateOfBirth: '1985-08-22',
-      gender: 'female',
-      weight: 65,
-      height: 165,
-      fitnessGoal: 'Weight loss and toning',
-      trainingExperience: 'beginner',
-      emergencyContact: 'Michael Smith - +1 (555) 876-5432',
-      availableSessions: 8,
-      isActive: true,
-      role: 'client',
-      createdAt: '2024-03-20T09:15:00Z',
-      updatedAt: '2024-12-09T16:45:00Z',
-      totalWorkouts: 45,
-      workoutStreak: 7,
-      lastWorkoutDate: '2024-12-08',
-      nextSessionDate: '2024-12-12',
-      totalOrders: 3,
-      achievements: [
-        { id: '3', title: 'Getting Started', description: 'Completed 10 workouts', iconUrl: '/icons/started.png', date: '2024-04-10', points: 200 }
-      ],
-      currentProgram: 'Beginner Fat Loss Program',
-      trainerName: 'Mike Johnson',
-      socialScore: 62,
-      engagementLevel: 'medium',
-      riskFactors: ['New to exercise'],
-      aiInsights: [
-        { type: 'recommendation', title: 'Focus on Form', description: 'Prioritize technique over weight for the next 2 weeks', confidence: 0.95, actionable: true },
-        { type: 'warning', title: 'Progress Plateau', description: 'Weight loss has stalled, consider diet review', confidence: 0.71, actionable: true }
-      ],
-      customFields: {
-        dietaryRestrictions: 'Vegetarian',
-        fitnessGoals: ['Lose 20 lbs', 'Run 5K']
-      },
-      level: 8,
-      xp: 4200,
-      badges: [
-        { id: '3', name: 'First Steps', description: 'Started your fitness journey', iconUrl: '/badges/achievements/first_workout_claymation.png', rarity: 'common' }
-      ],
-      rank: 'Bronze II',
-      initialAssessment: { overall: 4.5, strength: 4.0, endurance: 4.8, flexibility: 5.2, balance: 4.5, date: '2024-03-20' },
-      latestAssessment: { overall: 6.8, strength: 6.5, endurance: 7.2, flexibility: 6.8, balance: 6.5, date: '2024-11-15' },
-      progressScore: 78,
-      bodyComposition: { bodyFat: 28.5, muscleMass: 38.2, waterPercentage: 58.5, metabolicAge: 32, lastMeasured: '2024-11-15' },
-      lastContactDate: '2024-12-09',
-      preferredContactMethod: 'email',
-      injuryHistory: [],
-      allergies: ['Peanuts'],
-      formAnalysisScore: 75,
-      lastFormCheck: '2024-12-03'
-    }
-  ];
-
   // ─── Fetch real clients from API ─────────────────────────────
   // Maps API response to EnhancedAdminClient interface with sensible defaults
   // for fields the API doesn't yet return (gamification, assessments, etc.)
@@ -1464,47 +1338,28 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         const result = await adminClientService.getClients({ page: 1, limit: 100 });
         const apiClients = (result.clients || []).map(mapApiClientToEnhanced);
 
-        // If API returns clients, use them; otherwise fall back to mock data for demo
-        if (apiClients.length > 0) {
-          setClients(apiClients);
-          setTotalCount(apiClients.length);
-          setQuickStats({
-            totalClients: apiClients.length,
-            activeClients: apiClients.filter(c => c.isActive).length,
-            newThisMonth: result.stats?.newThisMonth || 0,
-            avgProgress: 0,
-            totalWorkouts: apiClients.reduce((sum, c) => sum + c.totalWorkouts, 0),
-            totalRevenue: result.stats?.totalRevenue || 0,
-            retentionRate: 0,
-            avgRating: 0
-          });
-        } else {
-          // Fallback to mock data if no real clients exist
-          const mockData = generateMockClients();
-          setClients(mockData);
-          setTotalCount(mockData.length);
-          setQuickStats({
-            totalClients: mockData.length,
-            activeClients: mockData.filter(c => c.isActive).length,
-            newThisMonth: 0,
-            avgProgress: 82,
-            totalWorkouts: mockData.reduce((sum, c) => sum + c.totalWorkouts, 0),
-            totalRevenue: 0,
-            retentionRate: 0,
-            avgRating: 0
-          });
-        }
-      } catch (err) {
-        console.error('[ClientManagement] Failed to fetch clients, using mock data:', err);
-        const mockData = generateMockClients();
-        setClients(mockData);
-        setTotalCount(mockData.length);
+        setClients(apiClients);
+        setTotalCount(apiClients.length);
         setQuickStats({
-          totalClients: mockData.length,
-          activeClients: mockData.filter(c => c.isActive).length,
+          totalClients: apiClients.length,
+          activeClients: apiClients.filter(c => c.isActive).length,
+          newThisMonth: result.stats?.newThisMonth || 0,
+          avgProgress: 0,
+          totalWorkouts: apiClients.reduce((sum, c) => sum + c.totalWorkouts, 0),
+          totalRevenue: result.stats?.totalRevenue || 0,
+          retentionRate: 0,
+          avgRating: 0
+        });
+      } catch (err) {
+        console.error('[ClientManagement] Failed to fetch clients:', err);
+        setClients([]);
+        setTotalCount(0);
+        setQuickStats({
+          totalClients: 0,
+          activeClients: 0,
           newThisMonth: 0,
-          avgProgress: 82,
-          totalWorkouts: mockData.reduce((sum, c) => sum + c.totalWorkouts, 0),
+          avgProgress: 0,
+          totalWorkouts: 0,
           totalRevenue: 0,
           retentionRate: 0,
           avgRating: 0

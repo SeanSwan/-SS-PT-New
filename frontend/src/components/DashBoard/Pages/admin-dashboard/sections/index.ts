@@ -11,7 +11,6 @@ export { default as ClientsManagementSection } from './ClientsManagementSection'
 export { default as PackagesManagementSection } from './PackagesManagementSection';
 export { default as ContentModerationSection } from './ContentModerationSection';
 export { default as NotificationsSection } from './NotificationsSection';
-export { default as MCPServersSection } from './MCPServersSection';
 export { default as AdminSettingsSection } from './AdminSettingsSection';
 
 // Type exports for better TypeScript integration
@@ -34,11 +33,6 @@ export type {
   Notification,
   NotificationStats
 } from './NotificationsSection';
-
-export type {
-  MCPServer,
-  MCPStats
-} from './MCPServersSection';
 
 export type {
   SystemSettings,

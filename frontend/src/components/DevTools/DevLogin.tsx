@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { 
+import {
   LogIn,
   User,
   AlertCircle,
@@ -40,11 +40,11 @@ const Paper = styled.div`
 
 const Section = styled.div`
   margin-bottom: 24px;
-  
+
   &.mb-2 {
     margin-bottom: 16px;
   }
-  
+
   &.mb-3 {
     margin-bottom: 24px;
   }
@@ -82,19 +82,19 @@ const Alert = styled.div`
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 16px;
-  
+
   &.info {
     background-color: rgba(23, 162, 184, 0.1);
     border: 1px solid rgba(23, 162, 184, 0.3);
     color: #17a2b8;
   }
-  
+
   &.error {
     background-color: rgba(244, 67, 54, 0.1);
     border: 1px solid rgba(244, 67, 54, 0.3);
     color: #f44336;
   }
-  
+
   &.success {
     background-color: rgba(40, 167, 69, 0.1);
     border: 1px solid rgba(40, 167, 69, 0.3);
@@ -114,6 +114,25 @@ const AlertContent = styled.div`
   font-size: 0.875rem;
   line-height: 1.4;
 `;
+
+const getConfiguredCredential = (role: string) => {
+  const config: Record<string, { username?: string; password?: string }> = {
+    admin: {
+      username: import.meta.env.VITE_DEV_ADMIN_USERNAME,
+      password: import.meta.env.VITE_DEV_ADMIN_PASSWORD
+    },
+    trainer: {
+      username: import.meta.env.VITE_DEV_TRAINER_USERNAME,
+      password: import.meta.env.VITE_DEV_TRAINER_PASSWORD
+    },
+    client: {
+      username: import.meta.env.VITE_DEV_CLIENT_USERNAME,
+      password: import.meta.env.VITE_DEV_CLIENT_PASSWORD
+    }
+  };
+
+  return config[role] || config.client;
+};
 
 // Form Components
 const FormGroup = styled.div`
@@ -138,13 +157,13 @@ const Input = styled.input`
   color: #ffffff;
   font-size: 0.875rem;
   box-sizing: border-box;
-  
+
   &:focus {
     outline: none;
     border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
-  
+
   &::placeholder {
     color: #94a3b8;
   }
@@ -160,13 +179,13 @@ const Select = styled.select`
   font-size: 0.875rem;
   box-sizing: border-box;
   cursor: pointer;
-  
+
   &:focus {
     outline: none;
     border-color: #60C0F0;
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
   }
-  
+
   option {
     background-color: #31304D;
     color: #ffffff;
@@ -187,22 +206,22 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &.primary {
     background-color: #60C0F0;
     color: #1a1a2e;
   }
-  
+
   &.secondary {
     background-color: #8B5CF6;
     color: #ffffff;
   }
-  
+
   &:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-1px);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -221,7 +240,7 @@ const Divider = styled.hr`
 
 /**
  * DevLogin Component
- * 
+ *
  * A developer tool for quickly testing different user roles and authentication states.
  */
 const DevLogin: React.FC = () => {
@@ -241,17 +260,14 @@ const DevLogin: React.FC = () => {
       // Clear any existing authentication first
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      // Get credentials for the selected role
-      const credentials = {
-        username: role === 'admin' ? 'admin' : 
-                 role === 'trainer' ? 'trainer@test.com' :
-                 'client@test.com',
-        password: role === 'admin' ? 'admin123' : 'password123'
-      };
-      
+
+      const credentials = getConfiguredCredential(role);
+      if (!credentials.username || !credentials.password) {
+        throw new Error('Dev login credentials are not configured in Vite env variables');
+      }
+
       logger.log(`DevTools: Attempting login as ${credentials.username}`);
-      
+
       // Make actual login request to backend
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -260,24 +276,24 @@ const DevLogin: React.FC = () => {
         },
         body: JSON.stringify(credentials)
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Login failed:', errorData);
         throw new Error(errorData.message || `Login failed with status ${response.status}`);
       }
-      
+
       const data = await response.json();
       logger.log('Login response:', data);
-      
+
       // Store the actual token from the backend
       if (data.token && data.user) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('tokenTimestamp', Date.now().toString());
-        
-        setSuccess(`✅ Successfully logged in as ${data.user.role} user (${data.user.username})`);
-        
+
+        setSuccess(`âœ… Successfully logged in as ${data.user.role} user (${data.user.username})`);
+
         // Reload to apply the new authentication state
         setTimeout(() => {
           window.location.reload();
@@ -287,7 +303,7 @@ const DevLogin: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Dev login error:', err);
-      setError(`❌ Failed to login: ${err.message}`);
+      setError(`âŒ Failed to login: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -303,8 +319,13 @@ const DevLogin: React.FC = () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
+      const testPassword = import.meta.env.VITE_DEV_TEST_USER_PASSWORD;
+      if (!testPassword) {
+        throw new Error('VITE_DEV_TEST_USER_PASSWORD is not configured');
+      }
+
       // This would call your backend API to create a test user
       const response = await fetch('/api/dev/create-test-user', {
         method: 'POST',
@@ -317,14 +338,14 @@ const DevLogin: React.FC = () => {
           firstName: `Test${role.charAt(0).toUpperCase() + role.slice(1)}`,
           lastName: 'User',
           email: `${username}@test.com`,
-          password: 'password123'
+          password: testPassword
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create test user');
       }
-      
+
       const data = await response.json();
       setSuccess(`Successfully created test ${role} user: ${username}`);
     } catch (err) {
@@ -341,25 +362,23 @@ const DevLogin: React.FC = () => {
           <User size={20} style={{ marginRight: 8 }} />
           Dev Login Tool
         </Title>
-        
+
         <Text>
           This tool allows you to quickly login as different user roles for testing. It uses actual backend authentication.
         </Text>
-        
+
         <Alert className="info">
           <AlertIcon>
             <Info size={16} />
           </AlertIcon>
           <AlertContent>
             <strong>Available Credentials:</strong><br />
-            • Admin: username=admin, password=admin123<br />
-            • Trainer: username=trainer@test.com, password=password123<br />
-            • Client: username=client@test.com, password=password123<br />
+            Configure VITE_DEV_ADMIN_*, VITE_DEV_TRAINER_*, and VITE_DEV_CLIENT_* values locally, then use real backend login.<br />
             <br />
             <strong>Note:</strong> This connects to the real backend on port 10000
           </AlertContent>
         </Alert>
-        
+
         {error && (
           <Alert className="error">
             <AlertIcon>
@@ -370,7 +389,7 @@ const DevLogin: React.FC = () => {
             </AlertContent>
           </Alert>
         )}
-        
+
         {success && (
           <Alert className="success">
             <AlertIcon>
@@ -381,7 +400,7 @@ const DevLogin: React.FC = () => {
             </AlertContent>
           </Alert>
         )}
-        
+
         <Section className="mb-3">
           <FormGroup>
             <Label htmlFor="role-select">Role</Label>
@@ -395,7 +414,7 @@ const DevLogin: React.FC = () => {
               <option value="admin">Admin</option>
             </Select>
           </FormGroup>
-          
+
           <Button
             className="primary"
             onClick={handleDevLogin}
@@ -411,13 +430,13 @@ const DevLogin: React.FC = () => {
             {loading ? 'Logging in...' : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
           </Button>
         </Section>
-        
+
         <Divider />
-        
+
         <Subtitle>
           Create Test User
         </Subtitle>
-        
+
         <FormGroup>
           <Label htmlFor="username-input">Username</Label>
           <Input
@@ -428,7 +447,7 @@ const DevLogin: React.FC = () => {
             onChange={(e) => setUsername(e.target.value)}
           />
         </FormGroup>
-        
+
         <Button
           className="secondary"
           onClick={handleCreateTestUser}

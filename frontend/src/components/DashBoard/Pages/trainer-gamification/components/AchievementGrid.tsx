@@ -21,7 +21,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
-import { Award, Trophy } from 'lucide-react';
+import { Award, Star, Trophy } from 'lucide-react';
 import { getBadgeImage } from '../../../../../utils/badgeImageResolver';
 import {
   AchievementGrid as StyledAchievementGrid,

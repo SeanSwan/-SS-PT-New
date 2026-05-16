@@ -842,21 +842,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       return response.data || [];
     } catch (error) {
       logger.warn('Failed to fetch client sessions from backend');
-      // Return mock data for demo
-      return [
-        {
-          id: 'demo-session-1',
-          userId: targetId,
-          title: 'Morning Workout',
-          duration: 2400,
-          status: 'completed',
-          startTime: new Date(Date.now() - 86400000).toISOString(),
-          exercises: [],
-          difficulty: 4,
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 86400000).toISOString()
-        } as WorkoutSession
-      ];
+      return [];
     }
   }, [isAuthenticated, user]);
 
@@ -871,21 +857,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       return response.data || [];
     } catch (error) {
       logger.warn('Failed to fetch all sessions from backend');
-      // Return mock data for demo
-      return [
-        {
-          id: 'admin-demo-1',
-          userId: 'user1',
-          title: 'Client Session 1',
-          duration: 1800,
-          status: 'completed',
-          startTime: new Date(Date.now() - 3600000).toISOString(),
-          exercises: [],
-          difficulty: 3,
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString()
-        } as WorkoutSession
-      ];
+      return [];
     }
   }, [isAuthenticated, user]);
 
@@ -900,20 +872,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       return response.data || {};
     } catch (error) {
       logger.warn('Failed to fetch trainer stats from backend');
-      // Return mock data for demo
-      return {
-        totalClients: 12,
-        activeClients: 3,
-        todaySessions: 8,
-        weekSessions: 34,
-        monthSessions: 142,
-        avgSessionDuration: 45,
-        clientProgress: {
-          improved: 8,
-          maintained: 3,
-          needsAttention: 1
-        }
-      };
+      return {};
     }
   }, [isAuthenticated, user]);
 
@@ -928,31 +887,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       return response.data || {};
     } catch (error) {
       logger.warn('Failed to fetch admin stats from backend');
-      // Return mock data for demo
-      return {
-        totalSessions: 1247,
-        activeSessions: 23,
-        totalUsers: 342,
-        avgSessionDuration: 45,
-        todaySessions: 67,
-        weekSessions: 289,
-        monthSessions: 1107,
-        platformHealth: {
-          uptime: 99.8,
-          avgResponseTime: 145,
-          errorRate: 0.02
-        },
-        topTrainers: [
-          { id: '1', name: 'Sarah Johnson', sessions: 89, rating: 4.9 },
-          { id: '2', name: 'Mike Chen', sessions: 76, rating: 4.8 },
-          { id: '3', name: 'Emma Davis', sessions: 62, rating: 4.7 }
-        ],
-        userGrowth: {
-          newUsersThisWeek: 23,
-          newUsersThisMonth: 87,
-          churnRate: 2.1
-        }
-      };
+      return {};
     }
   }, [isAuthenticated, user]);
 

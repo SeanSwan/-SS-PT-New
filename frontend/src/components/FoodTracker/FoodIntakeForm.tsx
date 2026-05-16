@@ -1,7 +1,7 @@
 /**
  * FoodIntakeForm Component
  *
- * Allows users to log their food intake which is then sent to both MCP servers for processing.
+ * Allows users to log their food intake through the SwanStudios nutrition API.
  * This component supports the integration between nutrition tracking and gamification.
  *
  * UI: styled-components + lucide-react (zero MUI dependencies)
@@ -10,7 +10,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
-import { checkMcpServersStatus } from '../../utils/mcp-utils';
 import useMcpIntegration from '../../hooks/useMcpIntegration';
 import { theme } from '../../theme/tokens';
 
@@ -517,8 +516,8 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
     }
   ]);
 
-  // Use the client dashboard MCP hook for integrated functionality
-  const { mcpStatus, logFoodIntake } = useMcpIntegration();
+  // Legacy hook name, REST-backed at runtime.
+  const { logFoodIntake } = useMcpIntegration();
 
   // UI state
   const [loading, setLoading] = useState<boolean>(false);
@@ -527,20 +526,6 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [toastExiting, setToastExiting] = useState(false);
-
-  // Check MCP server status on mount
-  useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const status = await checkMcpServersStatus();
-        logger.log('Food intake form MCP status:', status);
-      } catch (error) {
-        console.error('Error checking MCP status:', error);
-      }
-    };
-
-    checkStatus();
-  }, []);
 
   // Auto-dismiss toast after 5 seconds
   useEffect(() => {
@@ -682,11 +667,12 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
         throw new Error(errBody.message || `Failed to save nutrition data (${apiRes.status})`);
       }
 
-      // Also send to MCP if available (non-blocking)
+      // Keep the legacy integration hook non-blocking. The nutrition API above is
+      // the source of truth; this lets older gamification hooks observe the event.
       try {
         await logFoodIntake(entry);
-      } catch (mcpErr) {
-        logger.warn('MCP food intake logging failed (non-blocking):', mcpErr);
+      } catch (integrationErr) {
+        logger.warn('Food intake side-effect logging failed (non-blocking):', integrationErr);
       }
 
       // Success feedback
@@ -748,15 +734,15 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
         Food Intake Tracker
       </Title>
 
-      {/* MCP Status Indicators */}
+      {/* API Status Indicators */}
       <StatusRow>
-        <Chip $active={mcpStatus.workout}>
+        <Chip $active>
           <Zap />
-          Workout MCP: {mcpStatus.workout ? 'Online' : 'Offline'}
+          Nutrition API: Active
         </Chip>
-        <Chip $active={mcpStatus.gamification}>
+        <Chip $active>
           <Activity />
-          Gamification MCP: {mcpStatus.gamification ? 'Online' : 'Offline'}
+          Gamification API: Connected
         </Chip>
       </StatusRow>
 
@@ -965,7 +951,6 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
         <ToastOverlay $visible={showSuccessMessage} $exiting={toastExiting}>
           <ToastContent>
             Food intake logged successfully!
-            {mcpStatus.gamification && ' Gamification points awarded.'}
             <ToastCloseBtn
               type="button"
               onClick={handleCloseSuccessMessage}

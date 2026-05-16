@@ -50,7 +50,7 @@ export const AUTH_CONFIG = {
 export const APP_CONFIG = {
   appName: 'Swan Studios',
   logoPath: '/Logo.png',
-  contactEmail: 'ogpswan@yahoo.com',
+  contactEmail: import.meta.env.VITE_CONTACT_EMAIL || 'support@sswanstudios.com',
   supportPhone: '+18777804236',
 };
 

@@ -5,21 +5,6 @@
  * Centralized to make it easier to manage environment variables.
  */
 
-// MCP Server URLs
-export const MCP_CONFIG = {
-  // Workout MCP Server
-  WORKOUT_MCP_URL: import.meta.env.VITE_WORKOUT_MCP_URL || 'http://localhost:8000',
-  
-  // Gamification MCP Server
-  GAMIFICATION_MCP_URL: import.meta.env.VITE_GAMIFICATION_MCP_URL || 'http://localhost:8001',
-  
-  // Authentication settings
-  AUTH_TOKEN_KEY: 'auth_token',
-  
-  // Default timeout (in milliseconds)
-  DEFAULT_TIMEOUT: 10000
-};
-
 // API URLs
 export const API_CONFIG = {
   // Base API URL
@@ -123,7 +108,6 @@ export const APP_CONFIG = {
 
 // Default export for convenient import
 export default {
-  MCP_CONFIG,
   API_CONFIG,
   FEATURE_FLAGS,
   APP_CONFIG

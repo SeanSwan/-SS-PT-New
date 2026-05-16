@@ -22,6 +22,4 @@ export type { BadgeEarnOverlayProps } from './BadgeEarnOverlay';
 export { default as StreakFireEffect } from './StreakFireEffect';
 export type { StreakFireEffectProps } from './StreakFireEffect';
 
-// Pre-existing gamification components
-export { default as GamificationDisplay } from './GamificationDisplay';
 export { default as GamificationDashboard } from './GamificationDashboard';

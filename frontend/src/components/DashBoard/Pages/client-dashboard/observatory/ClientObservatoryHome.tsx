@@ -52,6 +52,10 @@ const ClientObservatoryHome: React.FC = () => {
 
   const [activeLens, setActiveLens] = useState<LensId>('reels');
   const [postText, setPostText] = useState('');
+  const [postReceipt, setPostReceipt] = useState<{
+    pointsAwarded: number;
+    message: string;
+  } | null>(null);
 
   const profile = gamification.profile?.data;
   const progress = clampPercent(profile?.nextLevelProgress ?? gamification.levelProgress?.progressPercent);
@@ -92,9 +96,27 @@ const ClientObservatoryHome: React.FC = () => {
   }) => {
     const content = (input?.content ?? postText).trim();
     if (content.length < 3) return;
-    await createPost.mutateAsync(input ? { ...input, content } : content);
+    const result = await createPost.mutateAsync(input ? { ...input, content } : content);
+    const pointsAwarded = Number(result?.pointsAwarded ?? result?.data?.pointsAwarded ?? 0);
+    if (pointsAwarded > 0) {
+      setPostReceipt({
+        pointsAwarded,
+        message: String(
+          result?.pointMessage ||
+          result?.data?.pointMessage ||
+          `You earned ${pointsAwarded} points for sharing an update.`
+        ),
+      });
+    } else {
+      setPostReceipt(null);
+    }
     setPostText('');
   }, [createPost, postText]);
+
+  const handlePostTextChange = useCallback((value: string) => {
+    setPostText(value);
+    if (postReceipt) setPostReceipt(null);
+  }, [postReceipt]);
 
   return (
     <PageShell>
@@ -120,7 +142,8 @@ const ClientObservatoryHome: React.FC = () => {
             posts={posts}
             postText={postText}
             creatingPost={createPost.isPending}
-            onPostTextChange={setPostText}
+            postReceipt={postReceipt}
+            onPostTextChange={handlePostTextChange}
             onCreatePost={handleCreatePost}
             onNavigate={handleNavigate}
           />

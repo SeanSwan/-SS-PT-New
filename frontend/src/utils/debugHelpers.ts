@@ -151,41 +151,22 @@ export const checkSessionFlow = async (clientId?: string) => {
 };
 
 /**
- * Check MCP Server connectivity
+ * Report legacy MCP retirement status.
+ *
+ * Kept as a compatibility export for older debug panels. Runtime workout and
+ * gamification behavior now flows through the SwanStudios backend APIs.
  */
 export const checkMcpServers = async () => {
-  try {
-    const results = {
+  return {
+    ok: true,
+    retired: true,
+    results: {
       workout: false,
       gamification: false
-    };
-    
-    try {
-      const workoutResponse = await authAxiosInstance.get('/mcp/workout/status');
-      results.workout = workoutResponse.status === 200;
-    } catch (error) {
-      results.workout = false;
-    }
-    
-    try {
-      const gamificationResponse = await authAxiosInstance.get('/mcp/gamification/status');
-      results.gamification = gamificationResponse.status === 200;
-    } catch (error) {
-      results.gamification = false;
-    }
-    
-    return {
-      ok: true,
-      results,
-      message: `MCP Servers: Workout ${results.workout ? 'Connected' : 'Disconnected'}, Gamification ${results.gamification ? 'Connected' : 'Disconnected'}`
-    };
-  } catch (error: any) {
-    return {
-      ok: false,
-      error: error.message,
-      message: `Error checking MCP servers: ${error.message}`
-    };
-  }
+    },
+    replacements: ['/api/workout', '/api/v1/gamification'],
+    message: 'Legacy MCP servers are retired; workout and gamification use backend APIs.'
+  };
 };
 
 /**

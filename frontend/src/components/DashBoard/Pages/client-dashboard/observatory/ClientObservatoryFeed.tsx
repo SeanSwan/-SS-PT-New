@@ -44,6 +44,9 @@ import {
   PostList,
   PostMedia,
   PostMeta,
+  PostReceipt,
+  PostReceiptBadge,
+  PostReceiptMessage,
   ReelCard,
   ReelChip,
   ReelImage,
@@ -56,6 +59,10 @@ interface ClientObservatoryFeedProps {
   posts: FeedPostPreview[];
   postText: string;
   creatingPost: boolean;
+  postReceipt?: {
+    pointsAwarded: number;
+    message: string;
+  } | null;
   onPostTextChange: (value: string) => void;
   onCreatePost: (input: {
     content: string;
@@ -78,6 +85,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   posts,
   postText,
   creatingPost,
+  postReceipt,
   onPostTextChange,
   onCreatePost,
   onNavigate,
@@ -185,6 +193,13 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                   : `Post a ${category.toLowerCase()} update for your community...`}
                 aria-label="Create a community post"
               />
+
+              {postReceipt && postReceipt.pointsAwarded > 0 && (
+                <PostReceipt role="status" aria-live="polite">
+                  <PostReceiptBadge>+{postReceipt.pointsAwarded} XP</PostReceiptBadge>
+                  <PostReceiptMessage>{postReceipt.message}</PostReceiptMessage>
+                </PostReceipt>
+              )}
 
               <ComposerActions>
                 <MutedText>{mediaFile ? mediaFile.name : `${trimmedPost.length}/500 characters`}</MutedText>

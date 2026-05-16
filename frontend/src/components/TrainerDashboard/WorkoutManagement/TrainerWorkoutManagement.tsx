@@ -16,7 +16,6 @@ import {
   Users,
   X
 } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
 import { useWorkoutMcp, WorkoutPlan, WorkoutSession, ClientProgress } from '../../../hooks/useWorkoutMcp';
 import WorkoutPlanBuilder from '../../WorkoutManagement/WorkoutPlanBuilder';
 import ClientSelection from '../../WorkoutManagement/ClientSelection';
@@ -687,11 +686,7 @@ interface ClientWithPlan {
  * - View workout analytics
  */
 const TrainerWorkoutManagement: React.FC = () => {
-  const { user } = useAuth();
   const {
-    generateWorkoutPlan,
-    getClientProgress,
-    getWorkoutStatistics,
     checkMcpHealth,
     loading,
     error
@@ -713,99 +708,6 @@ const TrainerWorkoutManagement: React.FC = () => {
     avgCompletionRate: 0
   });
 
-  // Mock data for demonstration
-  const mockClientsWithPlans: ClientWithPlan[] = [
-    {
-      id: 'client-1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      currentPlan: {
-        id: 'plan-1',
-        name: 'Strength Building Program',
-        description: 'Progressive strength training',
-        trainerId: user?.id || '',
-        clientId: 'client-1',
-        goal: 'strength',
-        startDate: '2024-03-01',
-        endDate: '2024-05-01',
-        status: 'active'
-      },
-      progress: {
-        userId: 'client-1',
-        strengthLevel: 7,
-        cardioLevel: 5,
-        flexibilityLevel: 4,
-        balanceLevel: 6,
-        coreLevel: 6,
-        totalWorkouts: 32,
-        totalSets: 420,
-        totalReps: 2850,
-        totalWeight: 12500,
-        totalExercises: 85,
-        currentStreak: 5
-      },
-      lastWorkout: '2024-05-12'
-    },
-    {
-      id: 'client-2',
-      name: 'Jane Smith',
-      email: 'jane.smith@email.com',
-      currentPlan: {
-        id: 'plan-2',
-        name: 'Weight Loss Journey',
-        description: 'Cardio and strength combination',
-        trainerId: user?.id || '',
-        clientId: 'client-2',
-        goal: 'weight_loss',
-        startDate: '2024-04-01',
-        endDate: '2024-06-01',
-        status: 'active'
-      },
-      progress: {
-        userId: 'client-2',
-        strengthLevel: 4,
-        cardioLevel: 8,
-        flexibilityLevel: 6,
-        balanceLevel: 5,
-        coreLevel: 7,
-        totalWorkouts: 28,
-        totalSets: 350,
-        totalReps: 2100,
-        totalWeight: 8500,
-        totalExercises: 65,
-        currentStreak: 8
-      },
-      lastWorkout: '2024-05-13',
-      activeWorkout: {
-        id: 'active-1',
-        userId: 'client-2',
-        title: 'Upper Body HIIT',
-        status: 'in_progress',
-        startedAt: '2024-05-13T14:30:00Z'
-      }
-    },
-    {
-      id: 'client-3',
-      name: 'Mike Johnson',
-      email: 'mike.johnson@email.com',
-      progress: {
-        userId: 'client-3',
-        strengthLevel: 3,
-        cardioLevel: 4,
-        flexibilityLevel: 3,
-        balanceLevel: 3,
-        coreLevel: 4,
-        totalWorkouts: 8,
-        totalSets: 96,
-        totalReps: 580,
-        totalWeight: 2400,
-        totalExercises: 24,
-        currentStreak: 2
-      },
-      lastWorkout: '2024-05-10'
-    }
-  ];
-
   useEffect(() => {
     checkMcpConnection();
     loadTrainerData();
@@ -817,19 +719,13 @@ const TrainerWorkoutManagement: React.FC = () => {
   };
 
   const loadTrainerData = async () => {
-    // Load mock data for demonstration
-    setClientsWithPlans(mockClientsWithPlans);
-
-    // Calculate dashboard stats
-    const stats = mockClientsWithPlans.reduce(
-      (acc, client) => {
-        if (client.currentPlan) acc.activePlans++;
-        if (client.lastWorkout === '2024-05-13') acc.completedToday++;
-        return acc;
-      },
-      { totalClients: mockClientsWithPlans.length, activePlans: 0, completedToday: 0, avgCompletionRate: 85 }
-    );
-    setDashboardStats(stats);
+    setClientsWithPlans([]);
+    setDashboardStats({
+      totalClients: 0,
+      activePlans: 0,
+      completedToday: 0,
+      avgCompletionRate: 0
+    });
   };
 
   const handlePlanCreated = (plan: WorkoutPlan) => {
@@ -859,9 +755,9 @@ const TrainerWorkoutManagement: React.FC = () => {
 
   const renderDashboard = () => (
     <div>
-      {/* MCP Connection Status */}
+      {/* Workout API Status */}
       <AlertBox $severity={mcpConnected ? 'success' : 'warning'}>
-        <span>MCP Workout Server: {mcpConnected ? 'Connected' : 'Disconnected'}</span>
+        <span>Workout API Mode: {mcpConnected ? 'Legacy compatibility active' : 'SwanStudios APIs active'}</span>
         <SmallButton onClick={checkMcpConnection}>
           <RefreshCw size={16} />
           Check

@@ -119,6 +119,36 @@ export const ComposerTextarea = styled.textarea`
   }
 `;
 
+export const PostReceipt = styled.div`
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 14px;
+  padding: 0.72rem 0.82rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 14%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
+`;
+
+export const PostReceiptBadge = styled.strong`
+  flex: 0 0 auto;
+  color: var(--accent-primary, #60C0F0);
+  font: 900 0.84rem/1 'Fira Code', monospace;
+  white-space: nowrap;
+`;
+
+export const PostReceiptMessage = styled.span`
+  min-width: 0;
+  color: var(--text-primary, #E0ECF4);
+  font: 800 0.78rem/1.35 'Sora', sans-serif;
+`;
+
 export const ComposerActions = styled.div`
   display: flex;
   justify-content: space-between;

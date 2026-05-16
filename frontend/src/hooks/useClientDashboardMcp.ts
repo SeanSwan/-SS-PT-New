@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import workoutMcpApi from '../services/mcp/workoutMcpService';
-import gamificationMcpApi from '../services/mcp/gamificationMcpService';
+import apiService from '../services/api.service';
 import { WorkoutProgress, TrainingProgramData } from '../types/mcp/workout.types';
 import { GamificationProfile, Achievement, Challenge } from '../types/mcp/gamification.types';
 import { logger } from '@/utils/logger';
@@ -14,16 +13,15 @@ interface GamificationData {
 }
 
 /**
- * Custom hook for integrating with the Client Dashboard MCP services
+ * Custom hook for integrating client dashboard data with SwanStudios APIs.
  * 
  * Provides data and functions for the client dashboard including:
  * - Progress data (fitness metrics, body measurements, etc.)
  * - Gamification data (achievements, leaderboard, etc.)
  * - Training program data (workouts, schedules, etc.)
  * 
- * This hook serves as the central integration point between the client dashboard
- * and the workout/gamification MCP servers, ensuring data synchronization between
- * the client and admin views of progress data.
+ * This hook keeps the older export name for compatibility while routing all reads
+ * through the same backend APIs used by the current dashboard surfaces.
  * 
  * @returns {Object} An object containing progress data, gamification data, loading state,
  *                  error state, and functions to refresh the data
@@ -44,16 +42,14 @@ const useClientDashboardMcp = () => {
     if (!user?.id) return;
     
     try {
-      // Fetch progress data from MCP server
-      const response = await workoutMcpApi.getClientProgress({
-        userId: user.id
-      });
+      const response = await apiService.get(`/api/workout/progress/${user.id}`);
+      const progressData = response.data?.progress || response.data?.data?.progress || response.data?.data || null;
       
-      if (response?.data?.progress) {
-        setProgress(response.data.progress);
+      if (progressData) {
+        setProgress(progressData);
       }
       
-      return response?.data?.progress;
+      return progressData;
     } catch (err) {
       console.error('Error fetching progress data:', err);
       setError('Failed to load progress data. Please try again later.');
@@ -68,29 +64,16 @@ const useClientDashboardMcp = () => {
     if (!user?.id) return;
     
     try {
-      // Fetch gamification profile data
-      const profileResponse = await gamificationMcpApi.getGamificationProfile({
-        userId: user.id
-      });
+      const [profileResponse, achievementsResponse, challengesResponse] = await Promise.all([
+        apiService.get('/api/v1/gamification/profile'),
+        apiService.get('/api/v1/gamification/achievements'),
+        apiService.get('/api/v1/gamification/challenges?limit=3')
+      ]);
       
-      // Fetch achievements
-      const achievementsResponse = await gamificationMcpApi.getAchievements({
-        userId: user.id,
-        includeCompleted: true,
-        includeInProgress: true
-      });
-      
-      // Fetch challenges
-      const challengesResponse = await gamificationMcpApi.getChallenges({
-        userId: user.id,
-        limit: 3
-      });
-      
-      // Combine all gamification data
       const gamificationData = {
-        profile: profileResponse?.data?.profile || null,
-        achievements: achievementsResponse?.data?.achievements || [],
-        challenges: challengesResponse?.data?.challenges || []
+        profile: profileResponse.data?.profile || null,
+        achievements: achievementsResponse.data?.achievements || [],
+        challenges: challengesResponse.data?.challenges || []
       };
       
       setGamification(gamificationData);
@@ -109,16 +92,14 @@ const useClientDashboardMcp = () => {
     if (!user?.id) return;
     
     try {
-      // Fetch training program data
-      const response = await workoutMcpApi.getClientTrainingProgram({
-        userId: user.id
-      });
+      const response = await apiService.get(`/api/workout-plans/client/${user.id}`);
+      const programData = response.data?.program || response.data?.plan || null;
       
-      if (response?.data?.program) {
-        setTrainingProgram(response.data.program);
+      if (programData) {
+        setTrainingProgram(programData);
       }
       
-      return response?.data?.program;
+      return programData;
     } catch (err) {
       console.error('Error fetching training program data:', err);
       setError('Failed to load training program data. Please try again later.');
@@ -129,9 +110,6 @@ const useClientDashboardMcp = () => {
   /**
    * Refresh all dashboard data
    * 
-   * This function fetches data from both the workout and gamification MCP servers
-   * in parallel to ensure a consistent view of the client's progress data.
-   * 
    * @returns {Promise<void>}
    */
   const refreshAll = useCallback(async () => {
@@ -141,37 +119,35 @@ const useClientDashboardMcp = () => {
     setError(null);
     
     try {
-      // Fetch all data in parallel without using the other useCallback functions
       const results = await Promise.allSettled([
-        // Fetch progress data
-        workoutMcpApi.getClientProgress({ userId: user.id }).then(response => {
-          if (response?.data?.progress) {
-            setProgress(response.data.progress);
-            return response.data.progress;
+        apiService.get(`/api/workout/progress/${user.id}`).then(response => {
+          const progressData = response.data?.progress || response.data?.data?.progress || response.data?.data || null;
+          if (progressData) {
+            setProgress(progressData);
+            return progressData;
           }
           return null;
         }),
         
-        // Fetch gamification data
         Promise.all([
-          gamificationMcpApi.getGamificationProfile({ userId: user.id }),
-          gamificationMcpApi.getAchievements({ userId: user.id, includeCompleted: true, includeInProgress: true }),
-          gamificationMcpApi.getChallenges({ userId: user.id, limit: 3 })
+          apiService.get('/api/v1/gamification/profile'),
+          apiService.get('/api/v1/gamification/achievements'),
+          apiService.get('/api/v1/gamification/challenges?limit=3')
         ]).then(([profileResponse, achievementsResponse, challengesResponse]) => {
           const gamificationData = {
-            profile: profileResponse?.data?.profile || null,
-            achievements: achievementsResponse?.data?.achievements || [],
-            challenges: challengesResponse?.data?.challenges || []
+            profile: profileResponse.data?.profile || null,
+            achievements: achievementsResponse.data?.achievements || [],
+            challenges: challengesResponse.data?.challenges || []
           };
           setGamification(gamificationData);
           return gamificationData;
         }),
         
-        // Fetch training program data
-        workoutMcpApi.getClientTrainingProgram({ userId: user.id }).then(response => {
-          if (response?.data?.program) {
-            setTrainingProgram(response.data.program);
-            return response.data.program;
+        apiService.get(`/api/workout-plans/client/${user.id}`).then(response => {
+          const programData = response.data?.program || response.data?.plan || null;
+          if (programData) {
+            setTrainingProgram(programData);
+            return programData;
           }
           return null;
         })
@@ -181,7 +157,7 @@ const useClientDashboardMcp = () => {
       setLastSyncTime(new Date());
       
       // Log successful sync for debugging
-      logger.log('Successfully synchronized data from MCP servers', {
+      logger.log('Successfully synchronized client dashboard data from SwanStudios APIs', {
         progress: results[0].status === 'fulfilled' && results[0].value ? 'Success' : 'Failed',
         gamification: results[1].status === 'fulfilled' && results[1].value ? 'Success' : 'Failed',
         trainingProgram: results[2].status === 'fulfilled' && results[2].value ? 'Success' : 'Failed',

@@ -727,75 +727,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Mock data for fallback when MCP server is unavailable
-  const mockExercises: Exercise[] = [
-    {
-      id: '1',
-      name: 'Push-ups',
-      description: 'Classic upper body exercise targeting chest, shoulders, and triceps',
-      difficulty: 'beginner',
-      category: 'strength',
-      exerciseType: 'compound',
-      muscleGroups: [
-        { id: '1', name: 'Chest', shortName: 'chest', bodyRegion: 'upper_body' },
-        { id: '2', name: 'Shoulders', shortName: 'shoulders', bodyRegion: 'upper_body' },
-        { id: '3', name: 'Triceps', shortName: 'triceps', bodyRegion: 'upper_body' }
-      ],
-      equipment: [{ id: '1', name: 'Bodyweight', category: 'bodyweight' }]
-    },
-    {
-      id: '2',
-      name: 'Squats',
-      description: 'Fundamental lower body exercise for legs and glutes',
-      difficulty: 'beginner',
-      category: 'strength',
-      exerciseType: 'compound',
-      muscleGroups: [
-        { id: '4', name: 'Quadriceps', shortName: 'quads', bodyRegion: 'lower_body' },
-        { id: '5', name: 'Glutes', shortName: 'glutes', bodyRegion: 'lower_body' }
-      ],
-      equipment: [{ id: '1', name: 'Bodyweight', category: 'bodyweight' }]
-    },
-    {
-      id: '3',
-      name: 'Deadlift',
-      description: 'Full body compound movement focusing on posterior chain',
-      difficulty: 'intermediate',
-      category: 'strength',
-      exerciseType: 'compound',
-      muscleGroups: [
-        { id: '6', name: 'Hamstrings', shortName: 'hamstrings', bodyRegion: 'lower_body' },
-        { id: '5', name: 'Glutes', shortName: 'glutes', bodyRegion: 'lower_body' },
-        { id: '7', name: 'Lower Back', shortName: 'lower_back', bodyRegion: 'core' }
-      ],
-      equipment: [{ id: '2', name: 'Barbell', category: 'free_weights' }]
-    },
-    {
-      id: '4',
-      name: 'Plank',
-      description: 'Core stability exercise for abdominal strength',
-      difficulty: 'beginner',
-      category: 'core',
-      exerciseType: 'isolation',
-      muscleGroups: [
-        { id: '8', name: 'Core', shortName: 'core', bodyRegion: 'core' }
-      ],
-      equipment: [{ id: '1', name: 'Bodyweight', category: 'bodyweight' }]
-    },
-    {
-      id: '5',
-      name: 'Bicycle Crunches',
-      description: 'Dynamic ab exercise with rotational movement',
-      difficulty: 'beginner',
-      category: 'core',
-      exerciseType: 'isolation',
-      muscleGroups: [
-        { id: '8', name: 'Core', shortName: 'core', bodyRegion: 'core' },
-        { id: '9', name: 'Obliques', shortName: 'obliques', bodyRegion: 'core' }
-      ],
-      equipment: [{ id: '1', name: 'Bodyweight', category: 'bodyweight' }]
-    }
-  ];
+  const emptyExercises: Exercise[] = [];
 
   // Load exercises on component mount
   useEffect(() => {
@@ -843,7 +775,7 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
 
   const loadExercises = async () => {
     try {
-      // Try to load from MCP server first
+      // Load from the active workout API compatibility hook.
       const response = await getWorkoutRecommendations({
         userId: 'admin-library', // Special ID for admin library view
         goal: filters.goal,
@@ -853,13 +785,11 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       if (response?.exercises && response.exercises.length > 0) {
         setExercises(response.exercises);
       } else {
-        // Fallback to mock data
-        setExercises(mockExercises);
+        setExercises(emptyExercises);
       }
     } catch (err) {
-      console.error('Failed to load exercises from MCP:', err);
-      // Use mock data as fallback
-      setExercises(mockExercises);
+      console.error('Failed to load exercises from workout API:', err);
+      setExercises(emptyExercises);
     }
   };
 

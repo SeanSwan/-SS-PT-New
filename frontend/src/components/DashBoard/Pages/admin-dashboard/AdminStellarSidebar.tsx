@@ -10,7 +10,7 @@
  * Collapsible on desktop (64px/280px), full-screen overlay on mobile.
  * Uses CSS custom properties matching the MasterDetail layout theme.
  *
- * HOW IT FITS IN THE APP: UnifiedAdminDashboardLayout → AdminStellarSidebar
+ * HOW IT FITS IN THE APP: UniversalDashboardLayout -> AdminStellarSidebar
  *
  * KEY DECISIONS: Rebuilt from scratch to match Clients & Team MasterDetail
  * theme. Uses CSS custom properties (var(--bg-base, ...)) instead of old

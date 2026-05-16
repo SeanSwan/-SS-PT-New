@@ -115,7 +115,7 @@ const PaymentSettingsPanel: React.FC = () => {
               type="text"
               value={settings.zelleRecipient}
               onChange={(e) => setSettings(prev => ({ ...prev, zelleRecipient: e.target.value }))}
-              placeholder="e.g., 3239968153 or pay@swanstudios.com"
+              placeholder="e.g., pay@sswanstudios.com"
             />
           </InputGroup>
           <StatusIndicator $active={!!settings.zelleRecipient}>

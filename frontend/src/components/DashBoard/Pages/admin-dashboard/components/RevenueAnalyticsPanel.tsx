@@ -4,7 +4,7 @@
  * 
  * Real-time financial intelligence dashboard for SwanStudios admin command center
  * Connects to live Stripe API data with enterprise-grade performance
- * Built for high-stakes business presentations and investor demos
+ * Built for high-stakes business review and operational oversight
  * 
  * 🔥 LIVE DATA INTEGRATION:
  * - Real-time Stripe revenue analytics
@@ -23,7 +23,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import DemoDataBanner from './DemoDataBanner';
 import {
   DollarSign, TrendingUp, TrendingDown, Users, ShoppingBag,
   Calendar, Download, RefreshCw, Filter, Eye, BarChart3,
@@ -384,7 +383,6 @@ const RevenueAnalyticsPanel: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [status, setStatus] = useState<'live' | 'updating' | 'error'>('live');
-  const [isDemoData, setIsDemoData] = useState(false);
 
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -419,7 +417,6 @@ const RevenueAnalyticsPanel: React.FC = () => {
         setRevenueData(data.data);
         setLastUpdated(new Date());
         setStatus('live');
-        setIsDemoData(false);
       } else {
         throw new Error(data.message || 'Failed to fetch revenue data');
       }
@@ -428,102 +425,10 @@ const RevenueAnalyticsPanel: React.FC = () => {
       setError(err.message || 'Failed to load revenue analytics');
       setStatus('error');
       
-      // Fallback to demo data — flag it so the banner shows
-      setRevenueData(generateDemoData());
-      setIsDemoData(true);
     } finally {
       setLoading(false);
     }
   }, [timeRange]);
-
-  // Generate impressive demo data for presentations
-  const generateDemoData = useCallback(() => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
-    // Generate realistic revenue progression
-    const revenueHistory = [];
-    for (let i = 11; i >= 0; i--) {
-      const month = new Date(currentYear, currentMonth - i, 1);
-      const baseRevenue = 45000 + (Math.random() * 25000);
-      const growth = Math.pow(1.15, (12 - i) / 12); // 15% annual growth
-      
-      revenueHistory.push({
-        date: month.toISOString().split('T')[0],
-        revenue: Math.round(baseRevenue * growth),
-        transactions: Math.round((baseRevenue * growth) / 150), // Average transaction $150
-        customers: Math.round((baseRevenue * growth) / 300), // Average customer value $300
-        month: month.toLocaleString('default', { month: 'short' })
-      });
-    }
-
-    return {
-      overview: {
-        totalRevenue: 847500,
-        monthlyRecurring: 125400,
-        averageTransaction: 185,
-        totalCustomers: 2847,
-        conversionRate: 3.2,
-        customerLifetimeValue: 2850
-      },
-      changes: {
-        revenue: 24.8,
-        transactions: 18.5,
-        customers: 15.2,
-        conversion: 8.9
-      },
-      revenueHistory,
-      topPackages: [
-        { name: 'Premium Training', revenue: 245000, percentage: 35.2 },
-        { name: 'Elite Coaching', revenue: 180000, percentage: 25.8 },
-        { name: 'Nutrition Plans', revenue: 125000, percentage: 18.0 },
-        { name: 'Group Sessions', revenue: 95000, percentage: 13.6 },
-        { name: 'Supplements', revenue: 52500, percentage: 7.4 }
-      ],
-      recentTransactions: [
-        {
-          id: 'txn_001',
-          customer: { name: 'Marcus Johnson', email: 'marcus@example.com' },
-          amount: 2500,
-          date: new Date(Date.now() - 3600000).toISOString(),
-          status: 'Completed',
-          package: 'Elite Annual Plan'
-        },
-        {
-          id: 'txn_002',
-          customer: { name: 'Sarah Williams', email: 'sarah@example.com' },
-          amount: 1850,
-          date: new Date(Date.now() - 7200000).toISOString(),
-          status: 'Completed',
-          package: 'Premium Quarterly'
-        },
-        {
-          id: 'txn_003',
-          customer: { name: 'David Chen', email: 'david@example.com' },
-          amount: 950,
-          date: new Date(Date.now() - 10800000).toISOString(),
-          status: 'Processing',
-          package: 'Nutrition + Training'
-        },
-        {
-          id: 'txn_004',
-          customer: { name: 'Jennifer Davis', email: 'jennifer@example.com' },
-          amount: 750,
-          date: new Date(Date.now() - 14400000).toISOString(),
-          status: 'Completed',
-          package: 'Monthly Premium'
-        },
-        {
-          id: 'txn_005',
-          customer: { name: 'Michael Brown', email: 'michael@example.com' },
-          amount: 1200,
-          date: new Date(Date.now() - 18000000).toISOString(),
-          status: 'Completed',
-          package: 'Group Training'
-        }
-      ]
-    };
-  }, []);
 
   // =====================================================
   // AUTO-REFRESH FUNCTIONALITY
@@ -710,8 +615,6 @@ const RevenueAnalyticsPanel: React.FC = () => {
           </ActionButton>
         </ControlsContainer>
       </PanelHeader>
-
-      {isDemoData && <DemoDataBanner />}
 
       {/* KPI Cards Grid */}
       {revenueData && (
