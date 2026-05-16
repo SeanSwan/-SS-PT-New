@@ -104,6 +104,17 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeSource).toContain('<SwanCoachActionLauncher');
   });
 
+  it('mounts the full V3 Home tab inside the canonical client overview route', () => {
+    const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
+
+    expect(clientHomeSource).toContain("import HomeTab from '../../../UserDashboard/components/HomeTab'");
+    expect(clientHomeSource).toContain('useProfile()');
+    expect(clientHomeSource).toContain('<HomeTab');
+    expect(clientHomeSource).toContain("feed: '/dashboard/client/community'");
+    expect(clientHomeSource).toContain("progress: '/dashboard/client/progress'");
+    expect(clientHomeSource).not.toContain("from './observatory/ClientObservatoryHome'");
+  });
+
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {
     const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
