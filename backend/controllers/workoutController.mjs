@@ -141,13 +141,13 @@
  *
  * WHY Service Layer Delegation?
  * - Separation of concerns (controller handles HTTP, service handles business logic)
- * - Reusability (service methods called from multiple controllers, MCP server, scheduled jobs)
+ * - Reusability (service methods called from multiple controllers, API jobs, scheduled jobs)
  * - Testability (service layer unit tests without HTTP mocking)
- * - MCP Server Integration (workoutService.mjs exposed to MCP server for AI workout generation)
+ * - First-party API Integration (workoutService.mjs backs Swan Coach workout generation)
  *
  * WHY Authorization Checks in Controller (Not Service)?
  * - HTTP context required (req.user.id, req.user.role from JWT)
- * - Service layer remains agnostic (reusable in non-HTTP contexts like MCP server)
+ * - Service layer remains agnostic (reusable in non-HTTP contexts like scheduled jobs)
  * - Centralized authorization logic (consistent across all routes)
  * - Security-first architecture (fail early with 403 before service logic)
  *

@@ -11,9 +11,9 @@ import LeadActivity from '../models/LeadActivity.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { upgradeToClient } from '../services/roleService.mjs';
-import axios from 'axios';
 import { sendNotification } from '../services/notificationService.mjs';
 import { createCommissionForPurchase } from '../services/CommissionService.mjs';
+import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 
 const router = express.Router();
 
@@ -332,68 +332,12 @@ async function processCompletedOrder(cartId) {
     // Create order record for history
     await createOrderRecord(cart);
     
-    // Notify the MCP server about the purchase (Financial Events MCP)
-    try {
-      const mcpUrl = process.env.FINANCIAL_EVENTS_MCP_URL || 'http://localhost:8010';
-      
-      // Extract comprehensive purchase metadata for enhanced analytics
-      const purchaseData = {
-        userId,
-        cartId,
-        userName: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        totalSessionsAdded,
-        packages: packageNames,
-        totalAmount: cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        timestamp: new Date().toISOString(),
-        // Enhanced metadata for better analytics
-        clientType: user.clientType || 'standard',
-        purchaseSource: cart.source || 'web',
-        isFirstPurchase: !user.hasPurchasedBefore, // Check if this is their first purchase
-        packageDetails: cart.cartItems.map(item => ({
-          id: item.storefrontItem?.id,
-          name: item.storefrontItem?.name,
-          type: item.storefrontItem?.itemType,
-          sessions: item.storefrontItem?.sessions || 0,
-          price: item.price,
-          quantity: item.quantity
-        })),
-        // Add user demographics if available
-        userDemographics: {
-          joinDate: user.createdAt,
-          region: user.region || 'unknown'
-        }
-      };
-      
-      // Fire all MCP notifications in parallel (non-critical, don't block webhook)
-      const mcpCalls = [
-        axios.post(`${mcpUrl}/api/process-sale`, purchaseData).catch(err =>
-          logger.warn(`Failed to notify Financial MCP: ${err.message}`)
-        ),
-      ];
-
-      const clientInsightsMcpUrl = process.env.CLIENT_INSIGHTS_MCP_URL;
-      if (clientInsightsMcpUrl) {
-        mcpCalls.push(
-          axios.post(`${clientInsightsMcpUrl}/api/enrich-client-profile`, { userId, purchaseData }).catch(err =>
-            logger.warn(`Failed to notify Client Insights MCP: ${err.message}`)
-          )
-        );
-      }
-
-      const schedulingMcpUrl = process.env.SCHEDULING_ASSIST_MCP_URL;
-      if (schedulingMcpUrl && totalSessionsAdded > 0) {
-        mcpCalls.push(
-          axios.post(`${schedulingMcpUrl}/api/suggest-session-slots`, { userId, packageId: cart.id, sessionCount: totalSessionsAdded }).catch(err =>
-            logger.warn(`Failed to notify Scheduling MCP: ${err.message}`)
-          )
-        );
-      }
-
-      await Promise.allSettled(mcpCalls);
-    } catch (error) {
-      logger.warn(`Error communicating with MCP servers: ${error.message}`);
-    }
+    logger.info('[Webhook] Purchase fulfillment completed through SwanStudios APIs', {
+      userId,
+      cartId,
+      totalSessionsAdded,
+      packages: packageNames.length
+    });
     
     // Send real-time notification to admins
     try {
@@ -477,23 +421,30 @@ async function createSubscription(userId, storefrontItem) {
  */
 async function triggerPurchaseAchievements(userId, cartItem) {
   try {
-    // Call the Gamification MCP server to award points and badges for purchase
-    const gamificationMcpUrl = process.env.GAMIFICATION_MCP_URL || 'http://localhost:8011';
-    
-    await axios.post(`${gamificationMcpUrl}/api/award_purchase_points`, {
+    const sessions = Number(cartItem.storefrontItem?.sessions || 0);
+    const points = Math.min(500, Math.max(25, sessions * 10 || Math.round(Number(cartItem.price || 0) / 10)));
+    const itemName = cartItem.storefrontItem?.name || 'Training Package';
+
+    await GamificationPointsService.recordLedgerEntry({
       userId,
-      purchaseDetails: {
+      points,
+      transactionType: 'earn',
+      source: 'package_purchase',
+      sourceId: cartItem.storefrontItemId,
+      description: `Purchase reward: ${itemName}`,
+      metadata: {
+        cartItemId: cartItem.id,
         itemId: cartItem.storefrontItemId,
-        itemName: cartItem.storefrontItem?.name || 'Unknown Package',
+        itemName,
         itemType: cartItem.storefrontItem?.itemType || 'UNKNOWN',
         price: cartItem.price,
-        sessions: cartItem.storefrontItem?.sessions || 0
-      }
-    }).catch(err => {
-      logger.warn(`Failed to trigger gamification rewards: ${err.message}`);
+        sessions
+      },
+      idempotencyKey: `purchase:${userId}:${cartItem.id || cartItem.storefrontItemId}`,
+      applyMultiplier: false
     });
     
-    logger.info(`Triggered purchase achievements for user ${userId} with item ${cartItem.storefrontItemId}`);
+    logger.info(`Recorded purchase reward for user ${userId} with item ${cartItem.storefrontItemId}`);
   } catch (error) {
     logger.warn(`Error triggering purchase achievements: ${error.message}`);
     // Don't throw the error to prevent blocking the main purchase flow

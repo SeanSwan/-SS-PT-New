@@ -8,9 +8,6 @@ import { ethicalAIReview } from '../ai/EthicalAIReview.mjs';
 import { accessibilityTesting } from '../accessibility/AccessibilityTesting.mjs';
 import { gamificationEngine } from '../gamification/GamificationEngine.mjs';
 import { ethicalGamification } from '../gamification/EthicalGamification.mjs';
-import { mcpServerMonitor } from '../mcp/MCPServerMonitor.mjs';
-import { mcpHealthChecker } from '../mcp/MCPHealthChecker.mjs';
-import { mcpMetricsCollector } from '../mcp/MCPMetricsCollector.mjs';
 import { privacyCompliance } from '../privacy/PrivacyCompliance.mjs';
 import { dataMinimization } from '../privacy/DataMinimization.mjs';
 
@@ -40,14 +37,10 @@ export class MasterPromptIntegration {
         description: 'Ethical gamification with positive engagement'
       },
       mcpCentric: {
-        name: 'MCP-Centric Architecture',
-        status: 'active',
-        services: {
-          monitor: mcpServerMonitor,
-          health: mcpHealthChecker,
-          metrics: mcpMetricsCollector
-        },
-        description: 'MCP-first architecture with individual server monitoring'
+        name: 'Retired MCP Architecture',
+        status: 'retired',
+        services: {},
+        description: 'Retired. SwanStudios first-party APIs own workout, gamification, analytics, and AI workflows.'
       },
       privacyFirst: {
         name: 'Privacy-First Design',
@@ -242,8 +235,6 @@ export class MasterPromptIntegration {
   async runFeatureSpecificInitialization(featureName, result) {
     switch (featureName) {
       case 'mcpCentric':
-        // Register default MCP servers
-        await this.registerDefaultMCPServers();
         break;
         
       case 'gamification':
@@ -355,15 +346,11 @@ export class MasterPromptIntegration {
       // Feature-specific health checks
       switch (featureName) {
         case 'mcpCentric':
-          const mcpHealth = await mcpHealthChecker.getSystemHealthSummary();
-          health.metrics = mcpHealth;
-          if (mcpHealth.overallStatus === 'critical') {
-            health.status = 'critical';
-            health.issues.push('Critical MCP server issues detected');
-          } else if (mcpHealth.overallStatus === 'warning') {
-            health.status = 'warning';
-            health.issues.push('MCP server warnings detected');
-          }
+          health.status = 'retired';
+          health.metrics = {
+            retired: true,
+            replacement: 'SwanStudios REST APIs'
+          };
           break;
           
         case 'gamification':
@@ -503,42 +490,11 @@ export class MasterPromptIntegration {
   // Feature-specific initialization methods
   
   async registerDefaultMCPServers() {
-    const defaultServers = [
-      {
-        name: 'workout-generation',
-        config: {
-          type: 'python',
-          script: 'workout_mcp_server.py',
-          port: 8001
-        }
-      },
-      {
-        name: 'gamification',
-        config: {
-          type: 'python',
-          script: 'gamification_mcp_server.py',
-          port: 8002
-        }
-      },
-      {
-        name: 'yolo-analysis',
-        config: {
-          type: 'python',
-          script: 'yolo_mcp_server.py',
-          port: 8003
-        }
-      }
-    ];
-    
-    for (const server of defaultServers) {
-      try {
-        await mcpServerMonitor.registerServer(server.name, server.config, false);
-      } catch (error) {
-        piiSafeLogger.error(`Failed to register MCP server ${server.name}`, {
-          error: error.message
-        });
-      }
-    }
+    return {
+      success: false,
+      status: 'retired',
+      message: 'Default MCP server registration is retired. Use SwanStudios REST APIs.'
+    };
   }
   
   async initializeGamificationRules() {
@@ -638,7 +594,10 @@ export class MasterPromptIntegration {
   async getFeatureMetrics(featureName) {
     switch (featureName) {
       case 'mcpCentric':
-        return await mcpMetricsCollector.getSystemMetricsSummary();
+        return {
+          retired: true,
+          replacement: 'SwanStudios REST APIs'
+        };
       case 'gamification':
         return await gamificationEngine.getSystemHealth();
       default:
@@ -774,19 +733,11 @@ export class MasterPromptIntegration {
   }
   
   async testMCPIntegration() {
-    try {
-      const testResult = await mcpServerMonitor.getSystemOverview();
-      
-      return {
-        passed: testResult.totalServers !== undefined,
-        message: 'MCP integration test passed'
-      };
-    } catch (error) {
-      return {
-        passed: false,
-        message: `MCP integration test failed: ${error.message}`
-      };
-    }
+    return {
+      passed: true,
+      status: 'retired',
+      message: 'MCP integration is retired. SwanStudios API services are the runtime path.'
+    };
   }
   
   async testPrivacyIntegration() {

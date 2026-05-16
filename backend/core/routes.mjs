@@ -147,7 +147,7 @@ import analyticsUserRoutes from '../routes/admin/analyticsUserRoutes.mjs';
 import analyticsSystemRoutes from '../routes/admin/analyticsSystemRoutes.mjs';
 // ⚙️ Admin Settings Management (system, notifications, API keys, security)
 import adminSettingsRoutes from '../routes/adminSettingsRoutes.mjs';
-// 🤖 MCP Server Management and Monitoring (already imported above)
+// Retired AI bridge compatibility routes (already imported above)
 // 📦 Real Order Management with Stripe Integration
 import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
 // 🔍 Data Verification and Debugging
@@ -435,12 +435,11 @@ export const setupRoutes = async (app) => {
 
   app.use('/api/admin/storefront', adminPackageRoutes); // Admin package CRUD (frontend uses /api/admin/storefront/*)
 
-  // Gate admin MCP routes: opt-IN in production, opt-OUT in dev
-  const ADMIN_MCP_ROUTES_ENABLED = isProduction
-    ? process.env.ENABLE_MCP_ROUTES === 'true'
-    : process.env.ENABLE_MCP_ROUTES !== 'false';
+  // Gate retired admin bridge routes behind explicit opt-in. Bridge management is
+  // retired from the default runtime after the Render cost reduction pass.
+  const ADMIN_MCP_ROUTES_ENABLED = process.env.ENABLE_MCP_ROUTES === 'true';
   if (ADMIN_MCP_ROUTES_ENABLED) {
-    app.use('/api/admin', adminMcpRoutes);              // Provides: /api/admin/mcp/* endpoints
+    app.use('/api/admin', adminMcpRoutes);              // Provides retired /api/admin/mcp/* compatibility endpoints
   }
 
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
@@ -622,7 +621,19 @@ export const setupRoutes = async (app) => {
   app.use('/api/supplements', supplementRoutes);
   app.use('/api/meal-plans', mealPlanRoutes);
   app.use('/api/free', freeApiRoutes);
-  app.use('/api/mcp', mcpRoutes);
+
+  const MCP_ROUTES_ENABLED = process.env.ENABLE_MCP_ROUTES === 'true';
+  if (MCP_ROUTES_ENABLED) {
+    app.use('/api/mcp', mcpRoutes)
+  } else {
+    const disabledLegacyMcpRoute = (_req, res) => res.status(410).json({
+      success: false,
+      message: 'Legacy MCP routes are decommissioned. Use SwanStudios API routes instead.',
+      replacement: '/api/gamification, /api/workout, /api/client/analytics, /api/ai-command'
+    });
+    app.all('/api/mcp', disabledLegacyMcpRoute);
+    app.all('/api/mcp/*', disabledLegacyMcpRoute);
+  }
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/subscriptions', subscriptionRoutes);
   app.use('/api/admin', adminAiUsageRoutes);

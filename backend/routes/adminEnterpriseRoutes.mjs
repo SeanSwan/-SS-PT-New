@@ -291,7 +291,7 @@ router.get('/dashboard/config', async (req, res) => {
   try {
     const config = {
       features: {
-        mcpServers: true,
+        mcpServers: false,
         businessIntelligence: true,
         socialMediaManagement: true,
         realTimeMonitoring: true,
@@ -353,319 +353,18 @@ router.get('/features/availability', async (req, res) => {
 });
 
 // =====================================================
-// MCP SERVER MANAGEMENT (decommissioned in production)
+// MCP SERVER MANAGEMENT (decommissioned)
 // =====================================================
-const MCP_ADMIN_ENABLED = process.env.NODE_ENV === 'production'
-  ? process.env.ENABLE_MCP_ROUTES === 'true'
-  : process.env.ENABLE_MCP_ROUTES !== 'false';
-
-/**
- * Get all MCP servers status
- * GET /api/admin/mcp-servers
- */
-router.get('/mcp-servers', async (req, res) => {
-  if (!MCP_ADMIN_ENABLED) {
-    return res.status(200).json({ success: true, servers: [], message: 'MCP servers decommissioned', timestamp: new Date().toISOString() });
-  }
-  try {
-    // Mock MCP server data for now
-    const servers = [
-      {
-        id: 'workout-mcp',
-        name: 'AI Workout Generator',
-        description: 'Generates personalized workout plans using NASM principles',
-        status: 'online',
-        port: 3001,
-        pid: 12345,
-        uptime: '2d 14h 23m',
-        lastSeen: new Date().toISOString(),
-        version: '1.2.0',
-        performance: {
-          cpu: 12,
-          memory: 45,
-          network: { in: 1200, out: 800 },
-          requests: 15420,
-          errors: 2,
-          responseTime: 85
-        },
-        config: {
-          autoRestart: true,
-          maxMemory: 512,
-          maxCpu: 80,
-          logLevel: 'info',
-          environment: {}
-        },
-        healthChecks: {
-          last: new Date().toISOString(),
-          status: 'healthy',
-          checks: [
-            { name: 'Database Connection', status: 'pass', message: 'Connected', duration: 45 },
-            { name: 'API Response', status: 'pass', message: 'Responding normally', duration: 120 }
-          ]
-        }
-      },
-      {
-        id: 'gamification-mcp',
-        name: 'Gamification Engine',
-        description: 'Handles user achievements, points, and progress tracking',
-        status: 'online',
-        port: 3002,
-        pid: 12346,
-        uptime: '2d 14h 20m',
-        lastSeen: new Date().toISOString(),
-        version: '1.1.5',
-        performance: {
-          cpu: 8,
-          memory: 38,
-          network: { in: 900, out: 600 },
-          requests: 8750,
-          errors: 0,
-          responseTime: 65
-        },
-        config: {
-          autoRestart: true,
-          maxMemory: 256,
-          maxCpu: 70,
-          logLevel: 'info',
-          environment: {}
-        },
-        healthChecks: {
-          last: new Date().toISOString(),
-          status: 'healthy',
-          checks: [
-            { name: 'Achievement System', status: 'pass', message: 'Processing normally', duration: 30 },
-            { name: 'Points Calculation', status: 'pass', message: 'Active', duration: 25 }
-          ]
-        }
-      },
-      {
-        id: 'financial-events-mcp',
-        name: 'Financial Events Engine',
-        description: 'Processes payments, subscriptions, and financial events',
-        status: 'online',
-        port: 3004,
-        pid: 12348,
-        uptime: '2d 14h 18m',
-        lastSeen: new Date().toISOString(),
-        version: '1.0.8',
-        performance: {
-          cpu: 15,
-          memory: 52,
-          network: { in: 2100, out: 1800 },
-          requests: 3250,
-          errors: 1,
-          responseTime: 95
-        },
-        config: {
-          autoRestart: true,
-          maxMemory: 512,
-          maxCpu: 80,
-          logLevel: 'info',
-          environment: {}
-        },
-        healthChecks: {
-          last: new Date().toISOString(),
-          status: 'healthy',
-          checks: [
-            { name: 'Payment Processing', status: 'pass', message: 'Stripe integration active', duration: 150 },
-            { name: 'Webhook Handler', status: 'pass', message: 'Processing events', duration: 75 }
-          ]
-        }
-      },
-      {
-        id: 'yolo-mcp',
-        name: 'YOLO Computer Vision',
-        description: 'Provides computer vision capabilities for form analysis',
-        status: 'warning',
-        port: 3005,
-        pid: 12349,
-        uptime: '6h 23m',
-        lastSeen: new Date(Date.now() - 300000).toISOString(),
-        version: '0.9.2',
-        performance: {
-          cpu: 25,
-          memory: 78,
-          network: { in: 3500, out: 2200 },
-          requests: 850,
-          errors: 12,
-          responseTime: 450
-        },
-        config: {
-          autoRestart: true,
-          maxMemory: 1024,
-          maxCpu: 90,
-          logLevel: 'debug',
-          environment: { GPU_ENABLED: 'true' }
-        },
-        healthChecks: {
-          last: new Date(Date.now() - 300000).toISOString(),
-          status: 'degraded',
-          checks: [
-            { name: 'Model Loading', status: 'warn', message: 'High memory usage', duration: 2500 },
-            { name: 'GPU Availability', status: 'pass', message: 'CUDA available', duration: 100 }
-          ]
-        }
-      }
-    ];
-
-    res.json({
-      success: true,
-      servers,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error('Failed to fetch MCP servers:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch MCP server status',
-      error: error.message
-    });
-  }
+const retiredMcpManagementResponse = (res) => res.status(410).json({
+  success: false,
+  status: 'retired',
+  message: 'MCP server management is retired. SwanStudios uses first-party APIs instead.',
+  replacements: ['/api/workout', '/api/v1/gamification', '/api/social', '/api/client/analytics'],
+  timestamp: new Date().toISOString()
 });
 
-/**
- * Start an MCP server
- * POST /api/admin/mcp-servers/:serverId/start
- */
-router.post('/mcp-servers/:serverId/start', async (req, res) => {
-  if (!MCP_ADMIN_ENABLED) {
-    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
-  }
-  try {
-    const { serverId } = req.params;
-
-    logger.info(`Admin ${req.user.id} starting MCP server ${serverId}`);
-
-    res.json({
-      success: true,
-      message: `MCP server ${serverId} start command sent`,
-      serverId,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error(`Failed to start MCP server ${req.params.serverId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to start MCP server ${req.params.serverId}`,
-      error: error.message
-    });
-  }
-});
-
-/**
- * Stop an MCP server
- * POST /api/admin/mcp-servers/:serverId/stop
- */
-router.post('/mcp-servers/:serverId/stop', async (req, res) => {
-  if (!MCP_ADMIN_ENABLED) {
-    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
-  }
-  try {
-    const { serverId } = req.params;
-
-    logger.info(`Admin ${req.user.id} stopping MCP server ${serverId}`);
-
-    res.json({
-      success: true,
-      message: `MCP server ${serverId} stop command sent`,
-      serverId,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error(`Failed to stop MCP server ${req.params.serverId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to stop MCP server ${req.params.serverId}`,
-      error: error.message
-    });
-  }
-});
-
-/**
- * Restart an MCP server
- * POST /api/admin/mcp-servers/:serverId/restart
- */
-router.post('/mcp-servers/:serverId/restart', async (req, res) => {
-  if (!MCP_ADMIN_ENABLED) {
-    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
-  }
-  try {
-    const { serverId } = req.params;
-
-    logger.info(`Admin ${req.user.id} restarting MCP server ${serverId}`);
-
-    res.json({
-      success: true,
-      message: `MCP server ${serverId} restart command sent`,
-      serverId,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error(`Failed to restart MCP server ${req.params.serverId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to restart MCP server ${req.params.serverId}`,
-      error: error.message
-    });
-  }
-});
-
-/**
- * Get MCP server logs
- * GET /api/admin/mcp-servers/:serverId/logs
- */
-router.get('/mcp-servers/:serverId/logs', async (req, res) => {
-  if (!MCP_ADMIN_ENABLED) {
-    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
-  }
-  try {
-    const { serverId } = req.params;
-    const { limit = 100 } = req.query;
-
-    // Mock log data for now
-    const logs = [
-      {
-        id: '1',
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message: 'Server started successfully',
-        source: 'main',
-        serverId,
-        serverName: 'MCP Server',
-        metadata: { port: 3001 }
-      },
-      {
-        id: '2',
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-        level: 'info',
-        message: 'Processing workout generation request',
-        source: 'workout-generator',
-        serverId,
-        serverName: 'MCP Server',
-        metadata: { userId: 123, duration: 450 }
-      }
-    ];
-
-    res.json({
-      success: true,
-      logs: logs.slice(0, parseInt(limit)),
-      serverId,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    logger.error(`Failed to fetch MCP server logs for ${req.params.serverId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to fetch logs for MCP server ${req.params.serverId}`,
-      error: error.message
-    });
-  }
-});
+router.all('/mcp-servers', (_req, res) => retiredMcpManagementResponse(res));
+router.all('/mcp-servers/*', (_req, res) => retiredMcpManagementResponse(res));
 
 // =====================================================
 // UTILITY FUNCTIONS
@@ -1035,9 +734,9 @@ async function checkSystemHealth() {
           message: 'Redis cache operational'
         },
         mcpServers: {
-          status: 'healthy', // TODO: Check MCP servers
-          onlineCount: 5,
-          totalCount: 5
+          status: 'decommissioned',
+          onlineCount: 0,
+          totalCount: 0
         },
         api: {
           status: 'healthy',
@@ -1093,13 +792,28 @@ async function acknowledgeAlert(alertId, adminId) {
   return { success: true };
 }
 
+function getSuperAdminEmails() {
+  return new Set(
+    (process.env.SUPER_ADMIN_EMAILS || process.env.OWNER_EMAIL || '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 function getAdminPermissions(user) {
+  const email = String(user.email || '').toLowerCase();
+  const canAccessFinancials =
+    user.role === 'super_admin' ||
+    user.permissions?.includes?.('super_admin') ||
+    getSuperAdminEmails().has(email);
+
   return {
     canManageUsers: true,
     canManageServers: true,
     canViewAnalytics: true,
     canModerateContent: true,
-    canAccessFinancials: user.email === 'ogpswan@gmail.com'
+    canAccessFinancials
   };
 }
 
@@ -1107,7 +821,7 @@ async function checkAdminFeaturesAvailability() {
   return {
     allAvailable: true,
     features: {
-      mcpServers: true,
+      mcpServers: false,
       businessIntelligence: true,
       socialMediaManagement: true,
       realTimeMonitoring: true,

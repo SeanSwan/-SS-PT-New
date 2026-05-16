@@ -291,122 +291,29 @@ const checkTrainerPermission = async (trainerId, permissionType) => {
 };
 
 /**
- * Helper function to process MCP integration asynchronously
- * Gated behind ENABLE_MCP_PROCESSING env var (disabled by default)
+ * Retired legacy MCP processing hook.
+ *
+ * The column names remain `mcpProcessed` / `mcpProcessedAt` because they are
+ * already part of the DailyWorkoutForm schema, but no server URL or env flag can
+ * reconnect the old MCP stack from this path.
  */
-const processMCPIntegration = async (formId, formData) => {
-  if (process.env.ENABLE_MCP_PROCESSING !== 'true') {
-    logger.info(`[MCP] Skipping MCP processing for form ${formId} (MCP disabled)`);
-    // Mark as processed with zero points to prevent reprocess queue buildup
-    try {
-      const DailyWorkoutForm = getDailyWorkoutForm();
-      await DailyWorkoutForm.update({
-        mcpProcessed: true,
-        mcpProcessedAt: new Date(),
-        totalPointsEarned: 0,
-        processingErrors: null
-      }, { where: { id: formId } });
-    } catch (err) {
-      logger.warn(`[MCP] Failed to mark form ${formId} as processed: ${err.message}`);
-    }
-    return;
-  }
+const processMCPIntegration = async (formId, _formData) => {
+  logger.info(`[MCP retired] Marking form ${formId} as processed by first-party API workflow`);
 
-  // MCP processing code preserved for future re-enablement
   try {
-    logger.info(`Starting MCP processing for form ${formId}`);
-
-    const mcpPayload = {
-      formId,
-      clientId: formData.clientId,
-      trainerId: formData.trainerId,
-      date: formData.date,
-      exercises: formData.formData.exercises,
-      sessionNotes: formData.formData.sessionNotes,
-      overallIntensity: formData.formData.overallIntensity,
-      submittedAt: formData.submittedAt
-    };
-
-    let pointsEarned = 0;
-    const mcpErrors = [];
-
-    try {
-      const gamificationUrl = process.env.GAMIFICATION_MCP_URL || 'http://localhost:8002';
-      const gamificationResponse = await fetch(`${gamificationUrl}/tools/ProcessWorkoutForm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mcpPayload),
-        timeout: 30000
-      });
-
-      if (gamificationResponse.ok) {
-        const gamificationResult = await gamificationResponse.json();
-        pointsEarned = gamificationResult.pointsEarned || 0;
-        logger.info(`Gamification MCP processing successful: ${pointsEarned} points earned`);
-      } else {
-        const errorText = await gamificationResponse.text();
-        mcpErrors.push(`Gamification MCP error: ${errorText}`);
-        logger.warn(`Gamification MCP error: ${errorText}`);
-      }
-    } catch (gamificationError) {
-      mcpErrors.push(`Gamification MCP connection error: ${gamificationError.message}`);
-      logger.warn(`Gamification MCP connection error:`, gamificationError);
-    }
-
-    try {
-      const workoutUrl = process.env.WORKOUT_MCP_URL || 'http://localhost:8000';
-      const workoutResponse = await fetch(`${workoutUrl}/tools/UpdateClientProgress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mcpPayload),
-        timeout: 30000
-      });
-
-      if (workoutResponse.ok) {
-        logger.info(`Workout MCP processing successful for form ${formId}`);
-      } else {
-        const errorText = await workoutResponse.text();
-        mcpErrors.push(`Workout MCP error: ${errorText}`);
-        logger.warn(`Workout MCP error: ${errorText}`);
-      }
-    } catch (workoutError) {
-      mcpErrors.push(`Workout MCP connection error: ${workoutError.message}`);
-      logger.warn(`Workout MCP connection error:`, workoutError);
-    }
-
     const DailyWorkoutForm = getDailyWorkoutForm();
     await DailyWorkoutForm.update({
-      totalPointsEarned: pointsEarned,
       mcpProcessed: true,
       mcpProcessedAt: new Date(),
-      processingErrors: mcpErrors.length > 0 ? { errors: mcpErrors } : null
-    }, {
-      where: { id: formId }
-    });
-
-    logger.info(`MCP processing completed for form ${formId}`, {
-      pointsEarned,
-      errorsCount: mcpErrors.length
-    });
-
-  } catch (error) {
-    logger.error(`MCP processing failed for form ${formId}:`, error);
-
-    try {
-      const DailyWorkoutForm = getDailyWorkoutForm();
-      await DailyWorkoutForm.update({
-        mcpProcessed: true,
-        mcpProcessedAt: new Date(),
-        processingErrors: {
-          errors: [`Processing failed: ${error.message}`],
-          timestamp: new Date().toISOString()
-        }
-      }, {
-        where: { id: formId }
-      });
-    } catch (updateError) {
-      logger.error(`Failed to update form ${formId} with error status:`, updateError);
-    }
+      totalPointsEarned: 0,
+      processingErrors: {
+        retired: true,
+        replacement: 'SwanStudios first-party workout and gamification APIs',
+        timestamp: new Date().toISOString()
+      }
+    }, { where: { id: formId } });
+  } catch (err) {
+    logger.warn(`[MCP retired] Failed to mark form ${formId} as processed: ${err.message}`);
   }
 };
 

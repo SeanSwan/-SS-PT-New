@@ -166,21 +166,20 @@ router.post('/sync-data', isAdmin, async (req, res) => {
   }
 });
 
-// Restart MCP connections
+// Legacy MCP restart endpoint
 router.post('/restart-mcp-connections', isAdmin, async (req, res) => {
   try {
-    logger.info('Admin initiated MCP server restart');
-    
-    // In a real implementation, this would call scripts to restart the MCP servers
-    // For now, just log the attempt
-    
-    return successResponse(res, {
-      success: true
-    }, 'MCP server restart initiated');
+    logger.info('Blocked retired MCP server restart request');
+
+    return res.status(410).json({
+      success: false,
+      retired: true,
+      message: 'MCP servers are retired. Use first-party SwanStudios API health and deployment controls.'
+    });
     
   } catch (error) {
-    logger.error('Error restarting MCP connections:', error.message, { stack: error.stack });
-    return errorResponse(res, 'Error restarting MCP connections', 500);
+    logger.error('Error blocking retired MCP restart:', error.message, { stack: error.stack });
+    return errorResponse(res, 'Error handling retired MCP restart request', 500);
   }
 });
 

@@ -748,7 +748,7 @@ export const p0MasterPromptIntegration = () => {
           ethicalAI: true,
           accessibility: true,
           gamification: true,
-          mcpCentric: true,
+          mcpCentric: false,
           privacyFirst: true
         },
         compliance: {

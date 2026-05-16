@@ -99,7 +99,7 @@ const DEFAULT_SYSTEM_SETTINGS = {
     paymentProcessing: true,
     socialFeatures: true,
     gamification: true,
-    mcpIntegration: true
+    mcpIntegration: false
   },
   limits: {
     maxUsersPerTrainer: 50,

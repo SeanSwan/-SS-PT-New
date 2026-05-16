@@ -5,7 +5,6 @@
  */
 
 // Import necessary modules
-import axios from 'axios';
 import { performance } from 'perf_hooks';
 import { EventEmitter } from 'events';
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
@@ -44,16 +43,7 @@ class MCPAnalytics extends EventEmitter {
     this.realTimeMetrics = new Map();
 
     // MCP servers are not deployed in production — skip real-time monitoring unless explicitly enabled
-    const isProduction = process.env.NODE_ENV === 'production';
-    const mcpEnabled = isProduction
-      ? process.env.ENABLE_MCP_SERVICES === 'true'
-      : process.env.ENABLE_MCP_SERVICES !== 'false';
-
-    if (mcpEnabled) {
-      this.startRealTimeMonitoring();
-    } else {
-      piiSafeLogger.info('MCP Analytics real-time monitoring DISABLED (MCP services not enabled)');
-    }
+    piiSafeLogger.info('MCP Analytics retained as retired compatibility service; real-time polling disabled.');
   }
 
   /**
@@ -920,12 +910,8 @@ class MCPAnalytics extends EventEmitter {
    * Start real-time monitoring
    */
   startRealTimeMonitoring() {
-    // Monitor every 30 seconds
-    setInterval(() => {
-      this.generateRealTimeReport();
-    }, 30000);
-    
-    piiSafeLogger.info('MCP Analytics real-time monitoring started');
+    piiSafeLogger.debug('MCP Analytics real-time monitoring start ignored because MCP is retired');
+    return false;
   }
 
   /**

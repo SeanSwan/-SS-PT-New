@@ -9,13 +9,13 @@
  * Architecture Overview:
  * ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
  * │  Admin Client   │─────▶│  Admin Client    │─────▶│  PostgreSQL     │
- * │  Dashboard      │      │  Controller      │      │  + MCP Servers  │
+ * │  Dashboard      │      │  Controller      │      │  + API Services │
  * └─────────────────┘      └──────────────────┘      └─────────────────┘
  *                                   │
  *                                   │ (optional)
  *                                   ▼
  *                          ┌──────────────────┐
- *                          │  MCP Servers     │
+ *                          │  API Services    │
  *                          │  Workout Stats   │
  *                          └──────────────────┘
  *
@@ -63,7 +63,7 @@
  * │ assignTrainer              Assign trainer to client         POST              │
  * │ getClientWorkoutStats      Get workout analytics            GET               │
  * │ generateWorkoutPlan        Generate AI workout plan         POST              │
- * │ getMCPStatus               Check MCP server status          GET               │
+ * │ getMCPStatus               Retired bridge status           GET               │
  * └────────────────────────────────────────────────────────────────────────────────┘
  *
  * Request/Response Flow (Mermaid):
@@ -74,7 +74,7 @@
  *     participant M as protect + adminOnly
  *     participant C as AdminClientController
  *     participant DB as PostgreSQL
- *     participant MCP as MCP Server
+ *     participant API as API Services
  *
  *     A->>R: GET /api/admin/clients?page=1&limit=10
  *     R->>M: Authenticate + authorize
@@ -200,11 +200,11 @@
  * - Revenue tracking: Orders remain linked to deleted clients
  * - Restoration: Admins can undo accidental deletions
  *
- * WHY MCP Server Integration (Optional)?
- * - Microservices: Workout stats computed by specialized MCP server
- * - Scalability: Offloads heavy analytics from main API
- * - Fault tolerance: Graceful degradation if MCP unavailable (try/catch)
- * - Future-proof: Allows swapping analytics engines without code changes
+ * WHY First-Party API Analytics?
+ * - Runtime simplicity: Workout stats stay inside SwanStudios API services.
+ * - Cost control: Retired MCP servers are not started by default.
+ * - Fault tolerance: Missing optional analytics fail closed without blocking core client records.
+ * - Future-proof: Compatibility method names remain until all callers migrate.
  *
  * WHY Password Reset (Admin Override)?
  * - Support workflow: Clients forget passwords, admins help
@@ -212,22 +212,19 @@
  * - Audit trail: Logged for compliance (admin reset client password)
  * - No email required: Admin can provide password directly to client
  *
- * MCP Server Integration:
+ * First-Party API Analytics:
  *
- * Workout Statistics MCP:
- * - Endpoint: http://localhost:8000/tools/GetWorkoutStatistics
- * - Method: POST
- * - Payload: { userId: "uuid" }
- * - Response: { statistics: { totalWorkouts, averageDuration, ... } }
- * - Used in: getClientDetails (optional enhancement)
- * - Failure handling: Logs warning, returns empty mcpStats (graceful degradation)
+ * Workout Statistics:
+ * - Source: local SwanStudios workout/session API and database records
+ * - Used in: getClientDetails and admin workout statistics
+ * - Failure handling: Logs warning, returns empty stats (graceful degradation)
  *
  * Performance Considerations:
  * - Pagination prevents loading 1000+ clients at once
  * - Eager loading (include) prevents N+1 query problem
  * - Separate queries for totalWorkouts/totalOrders (could be optimized with joins)
  * - Database indexes on role, isActive, createdAt (query optimization)
- * - MCP fetch timeout: None set (should add 5s timeout in production)
+ * - Optional analytics timeout: add a bounded timeout if an external provider is introduced later.
  * - Total response time: ~50-200ms for getClients (10 records)
  *
  * Dependencies:
@@ -250,7 +247,7 @@
  *   - ✅ updateClient → updates fields correctly
  *   - ✅ deleteClient → soft delete (isActive = false)
  *   - ✅ resetPassword → generates secure password
- *   - ✅ MCP failure → graceful degradation
+ *   - ✅ Optional analytics failure → graceful degradation
  *
  * Future Enhancements:
  * - Add bulk operations (bulk assign trainer, bulk delete)
@@ -564,7 +561,7 @@ class AdminClientController {
         });
       }
 
-      // MCP servers decommissioned — stats fetched from local DB only
+      // Retired bridge decommissioned; stats are fetched from local DB only.
       const mcpStats = {};
 
       return res.status(200).json({
@@ -809,7 +806,7 @@ class AdminClientController {
       // Update client data (whitelisted fields only)
       await client.update(safeUpdates, { transaction });
 
-      // MCP servers decommissioned — profile already saved via client.update() above
+      // Retired bridge decommissioned; profile is already saved via client.update() above.
 
       await transaction.commit();
 
@@ -1033,7 +1030,7 @@ class AdminClientController {
   }
 
   /**
-   * Get client workout statistics (local DB — MCP decommissioned)
+   * Get client workout statistics (local DB; retired bridge decommissioned)
    */
   async getClientWorkoutStats(req, res) {
     try {
@@ -1306,16 +1303,16 @@ class AdminClientController {
   }
 
   /**
-   * Get MCP server health status (MCP decommissioned)
+   * Get retired bridge health status
    */
   async getMCPStatus(req, res) {
     const mcpServers = [
-      { name: 'Workout MCP', url: 'http://localhost:8000' },
-      { name: 'Gamification MCP', url: 'http://localhost:8001' },
-      { name: 'YOLO MCP', url: 'http://localhost:8002' },
-      { name: 'Social Media MCP', url: 'http://localhost:8003' },
-      { name: 'Food Scanner MCP', url: 'http://localhost:8004' },
-      { name: 'Video Processing MCP', url: 'http://localhost:8005' }
+      { name: 'Workout API', replacement: '/api/workout' },
+      { name: 'Gamification API', replacement: '/api/v1/gamification' },
+      { name: 'Form Analysis API', replacement: '/api/form-analysis' },
+      { name: 'Social API', replacement: '/api/social' },
+      { name: 'Food Scanner API', replacement: '/api/food-scanner' },
+      { name: 'Video Processing API', replacement: '/api/v2/videos' }
     ];
 
     const statuses = mcpServers.map(server => ({

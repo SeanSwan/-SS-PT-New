@@ -6,7 +6,6 @@
  */
 
 import express from 'express';
-import seedTestAccounts from '../scripts/seed-test-accounts.mjs';
 
 const router = express.Router();
 
@@ -33,17 +32,10 @@ router.use(developmentOnlyMiddleware);
  * @access  Development only
  */
 router.get('/seed-test-accounts', async (req, res) => {
-  try {
-    const result = await seedTestAccounts();
-    return res.json(result);
-  } catch (error) {
-    console.error('Error in seed-test-accounts route:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error while seeding test accounts',
-      error: error.message
-    });
-  }
+  return res.status(410).json({
+    success: false,
+    message: 'Dev account seeding is retired. Use backend seed scripts with explicit credentials.'
+  });
 });
 
 /**

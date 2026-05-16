@@ -1,7 +1,7 @@
 /**
  * Master Prompt v26 Routes
  * API endpoints for all Master Prompt features
- * Ethical AI, Accessibility, Gamification, and MCP-Centric Architecture
+ * Ethical AI, Accessibility, Gamification, and privacy-first runtime APIs
  */
 
 import express from 'express';
@@ -13,16 +13,20 @@ import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import ethicalAIRoutes from './ethicalAI.mjs';
 import accessibilityRoutes from './accessibility.mjs';
 import gamificationRoutes from './gamification.mjs';
-import mcpCentricRoutes from './mcpCentric.mjs';
 import privacyRoutes from './privacy.mjs';
 
 const router = express.Router();
+const disabledMasterPromptMcpRoute = (_req, res) => res.status(410).json({
+  success: false,
+  message: 'Master Prompt MCP routes are decommissioned. Use SwanStudios API routes instead.'
+});
 
 // Mount sub-routes
 router.use('/ethical-ai', ethicalAIRoutes);
 router.use('/accessibility', accessibilityRoutes);
 router.use('/gamification', gamificationRoutes);
-router.use('/mcp', mcpCentricRoutes);
+router.all('/mcp', disabledMasterPromptMcpRoute);
+router.all('/mcp/*', disabledMasterPromptMcpRoute);
 router.use('/privacy', privacyRoutes);
 
 /**
@@ -193,13 +197,11 @@ router.get('/features', async (req, res) => {
         ]
       },
       mcpCentric: {
-        description: 'MCP-first architecture with individual server monitoring',
-        status: 'active',
+        description: 'Retired MCP architecture. SwanStudios REST APIs own runtime workflows.',
+        status: 'retired',
         capabilities: [
-          'Real-time health monitoring',
-          'Token usage tracking',
-          'Quality metrics',
-          'Cost optimization'
+          'Fail-closed legacy route responses',
+          'Historical archive only'
         ]
       },
       privacyFirst: {
