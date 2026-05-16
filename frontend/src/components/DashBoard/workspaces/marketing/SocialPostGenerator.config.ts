@@ -36,6 +36,12 @@ export const PLATFORMS: Record<SocialPlatform, PlatformConfig> = {
     color: '#00F2EA',
     bestTimes: 'Tue/Thu 7-9pm, Sun 12-3pm',
   },
+  nextdoor: {
+    name: 'Nextdoor',
+    maxChars: 8192,
+    color: '#00B246',
+    bestTimes: 'Tue-Thu 8-10am, Sat 9-11am',
+  },
 };
 
 export const HASHTAG_SUGGESTIONS: Record<string, string[]> = {

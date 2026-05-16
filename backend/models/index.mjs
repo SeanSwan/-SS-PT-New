@@ -230,6 +230,7 @@ export const getSprintExerciseMemory = () => getModel('SprintExerciseMemory');
 
 // Gallery Message Model
 export const getGalleryMessage = () => getModel('GalleryMessage');
+export const getMarketingCalendarItem = () => getModel('MarketingCalendarItem');
 
 // Export Sequelize operators for routes
 export { Op };

@@ -21,6 +21,7 @@ const PLATFORMS: Record<string, { name: string; color: string }> = {
   youtube: { name: 'YouTube', color: '#FF0000' },
   bluesky: { name: 'BlueSky', color: '#0085FF' },
   tiktok: { name: 'TikTok', color: '#00F2EA' },
+  nextdoor: { name: 'Nextdoor', color: '#00B246' },
 };
 
 // ─── Styled Components ─────────────────────────────────────────

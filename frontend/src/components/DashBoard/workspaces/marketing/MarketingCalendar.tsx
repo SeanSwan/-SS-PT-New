@@ -1,277 +1,222 @@
 /**
- * ┌─── PANEL: Marketing Calendar ───────────────────────────────┐
- * │ PARENT: MarketingWorkspace                                   │
- * │ PURPOSE: Visual content calendar across all channels (blog,  │
- * │          social, email, video). Week view with channel       │
- * │          color coding and status tracking.                   │
- * └──────────────────────────────────────────────────────────────┘
+ * PANEL: Marketing Calendar
+ * PARENT: MarketingWorkspace
+ * PURPOSE: Persisted Marketing calendar with read-only PT schedule awareness.
  */
 
-import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { CHART_COLORS, hexAlpha } from '../../../../components/Charts/chartTheme';
+import { MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle, ActionButton } from './marketing.styles';
+import type { CalendarChannel, SocialPlatform } from './marketing.types';
 import {
-  MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  StatusChip, PillTabs, PillTab,
-} from './marketing.styles';
-import type { CalendarEvent, CalendarChannel } from './marketing.types';
+  createMarketingCalendarItem,
+  fetchMarketingCalendar,
+  updateMarketingCalendarItem,
+  type MarketingCalendarAdvisory,
+  type MarketingCalendarItem,
+  type MarketingCalendarPayload,
+} from './MarketingCalendar.api';
+import {
+  Banner,
+  ColorDot,
+  Controls,
+  DayCell,
+  DayHeader,
+  EventPill,
+  Field,
+  FilterChip,
+  FilterRow,
+  FormGrid,
+  Input,
+  Meta,
+  NavBtn,
+  Select,
+  SmallBtn,
+  WeekGrid,
+  WeekLabel,
+} from './MarketingCalendar.styles';
 
-// ─── Channel Config ────────────────────────────────────────────
 const CHANNEL_CONFIG: Record<CalendarChannel, { label: string; color: string }> = {
   blog: { label: 'Blog', color: CHART_COLORS.iceWing },
   social: { label: 'Social', color: CHART_COLORS.wingPurple },
   email: { label: 'Email', color: CHART_COLORS.gildedFern },
-  video: { label: 'Video', color: '#F59E0B' },
+  video: { label: 'Video', color: CHART_COLORS.warning },
+  local: { label: 'Local', color: CHART_COLORS.success },
 };
 
-// ─── Demo Data ─────────────────────────────────────────────────
-const today = new Date();
-const getDate = (offset: number) => {
-  const d = new Date(today);
-  d.setDate(d.getDate() + offset);
-  return d.toISOString().split('T')[0];
-};
-
-const DEMO_EVENTS: CalendarEvent[] = [
-  { id: '1', date: getDate(-1), channel: 'blog', title: '5 Mobility Drills for Golfers', status: 'published' },
-  { id: '2', date: getDate(0), channel: 'social', title: 'Instagram: Client transformation post', status: 'approved' },
-  { id: '3', date: getDate(0), channel: 'social', title: 'Bluesky: Youth athlete training tip', status: 'draft' },
-  { id: '4', date: getDate(1), channel: 'email', title: 'Monthly Recap Newsletter', status: 'pending_review' },
-  { id: '5', date: getDate(2), channel: 'video', title: 'Golf flexibility routine (YouTube)', status: 'draft' },
-  { id: '6', date: getDate(3), channel: 'social', title: 'Facebook: New class announcement', status: 'draft' },
-  { id: '7', date: getDate(4), channel: 'blog', title: 'Why Periodized Training Matters', status: 'draft' },
-  { id: '8', date: getDate(5), channel: 'social', title: 'Instagram: Weekend motivation reel', status: 'draft' },
-];
-
-// ─── Styled Components ─────────────────────────────────────────
-const Controls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-`;
-
-const NavBtn = styled.button`
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-
-  &:hover { background: rgba(96, 192, 240, 0.08); }
-`;
-
-const WeekLabel = styled.span`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-  min-width: 200px;
-  text-align: center;
-`;
-
-const WeekGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const DayCell = styled.div<{ $isToday: boolean }>`
-  min-height: 140px;
-  border-radius: 12px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid ${({ $isToday }) =>
-    $isToday ? 'rgba(139, 92, 246, 0.4)' : 'var(--border-subtle, rgba(96, 192, 240, 0.08))'};
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const DayHeader = styled.div<{ $isToday: boolean }>`
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: ${({ $isToday }) => $isToday ? '#8B5CF6' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
-  margin-bottom: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const DayNum = styled.span<{ $isToday: boolean }>`
-  font-family: 'Fira Code', monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: ${({ $isToday }) => $isToday ? '#8B5CF6' : 'var(--text-primary, #E0ECF4)'};
-  ${({ $isToday }) => $isToday && `
-    background: rgba(139, 92, 246, 0.15);
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  `}
-`;
-
-const EventPill = styled.div<{ $color: string }>`
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: ${({ $color }) => hexAlpha($color, 0.12)};
-  border-left: 3px solid ${({ $color }) => $color};
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  color: var(--text-primary, #E0ECF4);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover { background: ${({ $color }) => hexAlpha($color, 0.2)}; }
-`;
-
-const FilterRow = styled.div`
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-`;
-
-const FilterChip = styled.button<{ $active: boolean; $color: string }>`
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid ${({ $active, $color }) => $active ? $color : 'rgba(96,192,240,0.08)'};
-  background: ${({ $active, $color }) => $active ? hexAlpha($color, 0.12) : 'transparent'};
-  color: ${({ $active, $color }) => $active ? $color : 'rgba(224,236,244,0.75)'};
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s;
-
-  &:hover { border-color: ${({ $color }) => $color}; }
-`;
-
-const ColorDot = styled.span<{ $color: string }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
-`;
-
+const PT_ADVISORY_CALENDAR = 'personal_training';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const SOCIAL_PLATFORMS: SocialPlatform[] = ['instagram', 'facebook', 'youtube', 'bluesky', 'tiktok', 'nextdoor'];
 
-// ─── Component ─────────────────────────────────────────────────
+const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const toLocalInput = (date: Date) => {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+};
+
+const initialForm = (): MarketingCalendarPayload => ({
+  title: '',
+  content: '',
+  channel: 'social',
+  platform: 'instagram',
+  status: 'scheduled',
+  scheduledAt: toLocalInput(new Date(Date.now() + 60 * 60000)),
+  durationMinutes: 30,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles',
+});
+
 const MarketingCalendar: React.FC = () => {
   const [weekOffset, setWeekOffset] = useState(0);
-  const [activeChannels, setActiveChannels] = useState<Set<CalendarChannel>>(
-    new Set(['blog', 'social', 'email', 'video'])
-  );
-
-  const toggleChannel = (ch: CalendarChannel) => {
-    setActiveChannels(prev => {
-      const next = new Set(prev);
-      if (next.has(ch)) next.delete(ch);
-      else next.add(ch);
-      return next;
-    });
-  };
+  const [items, setItems] = useState<MarketingCalendarItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [form, setForm] = useState<MarketingCalendarPayload>(() => initialForm());
+  const [lastAdvisories, setLastAdvisories] = useState<MarketingCalendarAdvisory[]>([]);
+  const [lastItem, setLastItem] = useState<MarketingCalendarItem | null>(null);
+  const [activeChannels, setActiveChannels] = useState<Set<CalendarChannel>>(new Set(['blog', 'social', 'email', 'video', 'local']));
 
   const weekStart = useMemo(() => {
-    const d = new Date(today);
+    const d = new Date();
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) + weekOffset * 7;
-    d.setDate(diff);
+    d.setDate(d.getDate() - day + (day === 0 ? -6 : 1) + weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
     return d;
   }, [weekOffset]);
-
-  const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(d.getDate() + i);
-      return d;
-    });
-  }, [weekStart]);
-
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  }), [weekStart]);
   const weekEnd = weekDays[6];
-  const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const todayKey = dateKey(new Date());
 
-  const todayStr = today.toISOString().split('T')[0];
+  const loadItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const endExclusive = new Date(weekEnd);
+      endExclusive.setDate(endExclusive.getDate() + 1);
+      setItems(await fetchMarketingCalendar(weekStart.toISOString(), endExclusive.toISOString()));
+      setMessage('');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to load marketing calendar');
+    } finally {
+      setLoading(false);
+    }
+  }, [weekStart, weekEnd]);
+
+  useEffect(() => { loadItems(); }, [loadItems]);
+
+  const upsertItem = (item: MarketingCalendarItem) => {
+    setItems(prev => [...prev.filter(row => row.id !== item.id), item].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.title.trim()) return;
+    try {
+      const result = await createMarketingCalendarItem({ ...form, scheduledAt: new Date(form.scheduledAt).toISOString() });
+      upsertItem(result.item);
+      setLastItem(result.item);
+      setLastAdvisories(result.advisories);
+      setMessage('Marketing item scheduled.');
+      setForm(prev => ({ ...initialForm(), channel: prev.channel, platform: prev.platform }));
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to schedule marketing item');
+    }
+  };
+
+  const moveLastItem = async (minutes: number) => {
+    if (!lastItem) return;
+    try {
+      const nextDate = new Date(new Date(lastItem.scheduledAt).getTime() + minutes * 60000);
+      const result = await updateMarketingCalendarItem(lastItem.id, { ...lastItem, scheduledAt: nextDate.toISOString() });
+      upsertItem(result.item);
+      setLastItem(result.item);
+      setLastAdvisories(result.advisories);
+      setMessage('Marketing item moved.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to move marketing item');
+    }
+  };
+
+  const byDate = useMemo(() => items.reduce<Record<string, MarketingCalendarItem[]>>((acc, item) => {
+    const key = dateKey(new Date(item.scheduledAt));
+    acc[key] = [...(acc[key] || []), item];
+    return acc;
+  }, {}), [items]);
+
+  const toggleChannel = (channel: CalendarChannel) => setActiveChannels(prev => {
+    const next = new Set(prev);
+    next.has(channel) ? next.delete(channel) : next.add(channel);
+    return next;
+  });
+  const advisoryCount = lastAdvisories.filter(item => item.calendar === PT_ADVISORY_CALENDAR).length;
+  const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
   return (
     <MarketingCard>
       <CardHeader>
         <HeaderLeft>
-          <IconWrap $bg={hexAlpha(CHART_COLORS.iceWing, 0.15)} $color={CHART_COLORS.iceWing}>
-            <CalendarDays size={18} />
-          </IconWrap>
+          <IconWrap $bg={hexAlpha(CHART_COLORS.iceWing, 0.15)} $color={CHART_COLORS.iceWing}><CalendarDays size={18} /></IconWrap>
           <div>
-            <CardTitle>Content Calendar</CardTitle>
-            <CardSubtitle>{DEMO_EVENTS.length} items scheduled</CardSubtitle>
+            <CardTitle>Marketing Calendar</CardTitle>
+            <CardSubtitle>{loading ? 'Loading' : `${items.length} real item${items.length === 1 ? '' : 's'} this week`}</CardSubtitle>
           </div>
         </HeaderLeft>
         <FilterRow>
-          {(Object.entries(CHANNEL_CONFIG) as [CalendarChannel, { label: string; color: string }][]).map(([ch, cfg]) => (
-            <FilterChip key={ch} $active={activeChannels.has(ch)} $color={cfg.color} onClick={() => toggleChannel(ch)}>
-              <ColorDot $color={cfg.color} />
-              {cfg.label}
+          {(Object.entries(CHANNEL_CONFIG) as [CalendarChannel, { label: string; color: string }][]).map(([channel, cfg]) => (
+            <FilterChip key={channel} $active={activeChannels.has(channel)} $color={cfg.color} onClick={() => toggleChannel(channel)}>
+              <ColorDot $color={cfg.color} /> {cfg.label}
             </FilterChip>
           ))}
         </FilterRow>
       </CardHeader>
 
+      <FormGrid onSubmit={handleSubmit}>
+        <Field>Title<Input value={form.title} onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Campaign item" /></Field>
+        <Field>Channel<Select value={form.channel} onChange={e => setForm(prev => ({ ...prev, channel: e.target.value as CalendarChannel }))}>{Object.entries(CHANNEL_CONFIG).map(([id, cfg]) => <option key={id} value={id}>{cfg.label}</option>)}</Select></Field>
+        <Field>Platform<Select value={form.platform || 'instagram'} onChange={e => setForm(prev => ({ ...prev, platform: e.target.value }))}>{SOCIAL_PLATFORMS.map(platform => <option key={platform} value={platform}>{platform}</option>)}</Select></Field>
+        <Field>When<Input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(prev => ({ ...prev, scheduledAt: e.target.value }))} /></Field>
+        <Field>Duration<Input type="number" min="5" max="1440" step="5" value={form.durationMinutes} onChange={e => setForm(prev => ({ ...prev, durationMinutes: Number(e.target.value) }))} /></Field>
+        <Field>Status<Select value={form.status || 'scheduled'} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as MarketingCalendarPayload['status'] }))}><option value="draft">draft</option><option value="scheduled">scheduled</option><option value="published">published</option><option value="failed">failed</option><option value="cancelled">cancelled</option></Select></Field>
+        <ActionButton type="submit"><Plus size={14} /> Schedule</ActionButton>
+      </FormGrid>
+
+      {message && <Banner>{message}</Banner>}
+      {advisoryCount > 0 && (
+        <Banner $warning>
+          <AlertTriangle size={16} />
+          {advisoryCount} PT calendar overlap{advisoryCount === 1 ? '' : 's'} detected.
+          <SmallBtn onClick={() => setLastAdvisories([])}>Keep as-is</SmallBtn>
+          <SmallBtn onClick={() => moveLastItem(30)}>Move 30m later</SmallBtn>
+        </Banner>
+      )}
+
       <Controls>
-        <NavBtn onClick={() => setWeekOffset(o => o - 1)} aria-label="Previous week">
-          <ChevronLeft size={18} />
-        </NavBtn>
+        <NavBtn onClick={() => setWeekOffset(o => o - 1)} aria-label="Previous week"><ChevronLeft size={18} /></NavBtn>
         <WeekLabel>{weekLabel}</WeekLabel>
-        <NavBtn onClick={() => setWeekOffset(o => o + 1)} aria-label="Next week">
-          <ChevronRight size={18} />
-        </NavBtn>
-        {weekOffset !== 0 && (
-          <NavBtn onClick={() => setWeekOffset(0)} aria-label="Today" style={{ fontSize: 12, padding: '0 12px' }}>
-            Today
-          </NavBtn>
-        )}
+        <NavBtn onClick={() => setWeekOffset(o => o + 1)} aria-label="Next week"><ChevronRight size={18} /></NavBtn>
+        {weekOffset !== 0 && <SmallBtn onClick={() => setWeekOffset(0)}>Today</SmallBtn>}
       </Controls>
 
       <WeekGrid>
-        {weekDays.map((day, i) => {
-          const dateStr = day.toISOString().split('T')[0];
-          const isToday = dateStr === todayStr;
-          const events = DEMO_EVENTS.filter(e => e.date === dateStr && activeChannels.has(e.channel));
-
+        {weekDays.map((day, index) => {
+          const key = dateKey(day);
+          const dayItems = (byDate[key] || []).filter(item => activeChannels.has(item.channel));
           return (
-            <DayCell key={i} $isToday={isToday}>
-              <DayHeader $isToday={isToday}>
-                {DAYS[i]}
-                <DayNum $isToday={isToday}>{day.getDate()}</DayNum>
-              </DayHeader>
-              {events.map(ev => (
-                <EventPill key={ev.id} $color={CHANNEL_CONFIG[ev.channel].color} title={`${ev.title} (${ev.status})`}>
-                  {ev.title}
-                </EventPill>
-              ))}
+            <DayCell key={key} $today={key === todayKey}>
+              <DayHeader $today={key === todayKey}><span>{DAYS[index]}</span><span>{day.getDate()}</span></DayHeader>
+              {dayItems.map(item => {
+                const cfg = CHANNEL_CONFIG[item.channel] || CHANNEL_CONFIG.social;
+                const hasPtOverlap = item.advisories?.some(advisory => advisory.calendar === PT_ADVISORY_CALENDAR);
+                return (
+                  <EventPill key={item.id} $color={cfg.color} $warn={!!hasPtOverlap} title={item.title}>
+                    {item.title}
+                    <Meta>{new Date(item.scheduledAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} / {item.status}{hasPtOverlap ? ' / PT overlap' : ''}</Meta>
+                  </EventPill>
+                );
+              })}
             </DayCell>
           );
         })}

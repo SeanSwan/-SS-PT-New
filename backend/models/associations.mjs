@@ -203,6 +203,7 @@ const setupAssociations = async () => {
     // CRM Lead Management Models
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
+    const MarketingCalendarItemModule = await import('./MarketingCalendarItem.mjs');
 
     // AI Chat & Macro Logging Models
     const AiConversationModule = await import('./AiConversation.mjs');
@@ -397,6 +398,7 @@ const setupAssociations = async () => {
     // CRM Lead Management Models
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
+    const MarketingCalendarItem = MarketingCalendarItemModule.default;
 
     // AI Chat & Macro Logging
     const AiConversation = AiConversationModule.default;
@@ -503,6 +505,7 @@ const setupAssociations = async () => {
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
+        MarketingCalendarItem,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
@@ -1233,6 +1236,13 @@ const setupAssociations = async () => {
     LeadActivity.belongsTo(User, { foreignKey: 'performedByUserId', as: 'performedBy', constraints: false });
     console.log('✅ CRM Lead Management models integrated');
 
+    // Marketing Calendar Associations
+    User.hasMany(MarketingCalendarItem, { foreignKey: 'createdBy', as: 'createdMarketingCalendarItems', constraints: false });
+    MarketingCalendarItem.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
+    User.hasMany(MarketingCalendarItem, { foreignKey: 'updatedBy', as: 'updatedMarketingCalendarItems', constraints: false });
+    MarketingCalendarItem.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
+    console.log('✅ Marketing Calendar model integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1405,7 +1415,7 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
-      Lead, LeadActivity,
+      Lead, LeadActivity, MarketingCalendarItem,
 
       // AI Chat & Macro Logging Models
       AiConversation,

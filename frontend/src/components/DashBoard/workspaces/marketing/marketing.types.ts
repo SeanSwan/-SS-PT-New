@@ -60,7 +60,7 @@ export interface BlogDraft {
 }
 
 // ─── Social Post ───────────────────────────────────────────────
-export type SocialPlatform = 'instagram' | 'facebook' | 'youtube' | 'bluesky' | 'tiktok';
+export type SocialPlatform = 'instagram' | 'facebook' | 'youtube' | 'bluesky' | 'tiktok' | 'nextdoor';
 
 export interface SocialPost {
   id: string;
@@ -105,7 +105,7 @@ export interface EmailTemplate {
 }
 
 // ─── Content Calendar ──────────────────────────────────────────
-export type CalendarChannel = 'blog' | 'social' | 'email' | 'video';
+export type CalendarChannel = 'blog' | 'social' | 'email' | 'video' | 'local';
 
 export interface CalendarEvent {
   id: string;
