@@ -2,13 +2,12 @@
   "name": "swanstudios",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "concurrently \"npm:start:backend\" \"npm:start:mcp\"",
+    "start": "npm run start:backend",
     "start:backend": "cd backend && npm start",
-    "start:mcp": "start cmd.exe /K scripts/development/START-ALL-MCP-SERVERS.bat",
     "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:full": "concurrently -n backend,frontend,mcp -c blue,green,yellow \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:start:mcp\"",
+    "dev:full": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"
   },
   "devDependencies": {

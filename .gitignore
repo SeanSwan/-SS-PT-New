@@ -203,6 +203,24 @@ CLIENT-REGISTRY.md
 **/CLIENT-REGISTRY.md
 client-data/
 
+# Local video-production agent skill packs installed by `npx skills add`.
+# Keep local for Codex workflows; do not commit upstream generated bundles.
+.agents/skills/animejs/
+.agents/skills/contribute-catalog/
+.agents/skills/css-animations/
+.agents/skills/gsap/
+.agents/skills/hyperframes/
+.agents/skills/hyperframes-cli/
+.agents/skills/hyperframes-media/
+.agents/skills/hyperframes-registry/
+.agents/skills/lottie/
+.agents/skills/remotion-to-hyperframes/
+.agents/skills/tailwind/
+.agents/skills/three/
+.agents/skills/typegpu/
+.agents/skills/waapi/
+.agents/skills/website-to-hyperframes/
+
 # Credentials & tokens - NEVER commit
 admin-login.json
 token.txt

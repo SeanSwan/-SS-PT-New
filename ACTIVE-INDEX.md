@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-05-13 (user dashboard stabilization pass 3, authenticated tab QA)
+**Last updated:** 2026-05-15 (repo hygiene cleanup: retired MCP/theme/mock/demo/debug artifacts)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -36,6 +36,19 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
+
+---
+
+## Active video production workflow
+
+Location: `scripts/swan-video-studio/`
+
+- `launch-swan-video-studio.ps1` - local launcher for the Codex + video-use + HyperFrames workflow.
+- `swan-video-studio-lib.ps1` - launcher helpers for workspace setup, Codex skill registration, dependency checks, and project folder creation.
+- `SWAN_VIDEO_STYLE.md` - Swan-specific exercise-video style, safety, privacy, metadata, and QA rules.
+- `WORKFLOW_PROMPTS.md` - reusable Codex prompts for trim, motion graphics, render, YouTube upload handoff, and Swan catalog import.
+- HyperFrames agent skills installed locally under `.agents/skills/` by `npx skills add heygen-com/hyperframes`; generated skill-pack folders are ignored from Git.
+- Runtime media belongs in `%USERPROFILE%\Videos\SwanStudios-Video-Studio`, not in Git.
 
 ---
 
@@ -172,7 +185,8 @@ These files describe future work that is NOT yet built. Read only when scoping t
 |---|---|
 | `archive/` | Top-level historical archive |
 | `archive/cleanup-2026-05-12/` | Current cleanup pass: archived root specs/docs and dormant dashboard code |
-| `archive/pending-deletion/` | Staged for deletion, includes `2026-02-13/` subfolder |
+| `archive/pending-deletion/2026-05-15/` | Current staged cleanup: retired MCP docs/runtime, retired theme docs, public debug artifacts, dangerous admin/password scripts, unmounted demo panels, legacy theme infra, stale source-folder docs, stale gamification hook/scripts/mock challenge fixtures, stale shop order history, stale client-dashboard workout variant, old schedule/mock API services, and unmounted schedule/homepage/checkout variants |
+| `archive/pending-deletion/` | Staged for deletion, includes historical cleanup subfolders |
 | `docs/archive/` | ~27 superseded fix/complete summaries (ACCESSIBILITY, ADMIN_DASHBOARD_RESTORED, CONNECTION_FIX_COMPLETE, …) |
 | `docs/ai-workflow/archive/` | 6 subfolders: `design/`, `homepage-refactor/`, `master-plans/`, `old-versions/`, `phase-0/`, `week-reports/` |
 | `docs/ai-workflow/AI-HANDOFF/debate-archive/` | 22+ completed Opus-Codex debates |
@@ -200,7 +214,8 @@ These files describe future work that is NOT yet built. Read only when scoping t
 
 Dashboard `.yml` browser snapshots formerly at repo root were archived under `archive/cleanup-2026-05-12/root-dashboard-snapshots/`.
 
-See `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-04-12.md` section D for the full list.
+Historical hygiene inventories were moved under
+`archive/pending-deletion/2026-05-15/old-hygiene-inventories/`.
 
 ---
 

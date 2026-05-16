@@ -17,10 +17,7 @@ class ServerMonitor {
   constructor() {
     this.servers = [
       { name: 'Backend', url: 'http://localhost:10000/health' },
-      { name: 'Frontend', url: 'http://localhost:5173' },
-      { name: 'Workout MCP', url: 'http://localhost:8001/health' },
-      { name: 'Gamification MCP', url: 'http://localhost:8002/health' },
-      { name: 'YOLO MCP', url: 'http://localhost:8003/health' }
+      { name: 'Frontend', url: 'http://localhost:5173' }
     ];
     this.monitoring = false;
     this.chalkInstance = null;

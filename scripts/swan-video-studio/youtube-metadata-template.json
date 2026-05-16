@@ -1,0 +1,36 @@
+﻿{
+  "youtubeVideoId": "",
+  "youtubeUrl": "",
+  "title": "",
+  "description": "",
+  "thumbnailUrl": "",
+  "durationSeconds": null,
+  "youtubeChannelId": "",
+  "visibility": "public",
+  "youtubeCTAStrategy": "book_session",
+  "contentType": "tutorial",
+  "tags": [
+    "SwanStudios",
+    "personal training",
+    "exercise form"
+  ],
+  "swanExercise": {
+    "name": "",
+    "aliases": [],
+    "primaryMuscles": [],
+    "secondaryMuscles": [],
+    "equipment": [],
+    "difficulty": "",
+    "movementPattern": "",
+    "contraindicationNote": ""
+  },
+  "production": {
+    "sourceProjectFolder": "",
+    "finalRenderPath": "",
+    "aspectRatio": "16:9",
+    "renderResolution": "1920x1080",
+    "captionStyle": "Swan lower-third",
+    "motionEngine": "HyperFrames",
+    "qaStatus": "not_reviewed"
+  }
+}

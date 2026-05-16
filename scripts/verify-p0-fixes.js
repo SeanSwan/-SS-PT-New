@@ -82,7 +82,6 @@ async function verifyP0Fixes() {
   
   // Test 1: Check if missing scripts were created
   const requiredScripts = [
-    'scripts/check-mcp-health.js',
     'scripts/kill-ports.js',
     'scripts/monitor-servers.js',
     'backend/scripts/check-system-status.mjs',

@@ -6,7 +6,7 @@ echo 📋 Pre-flight checks...
 
 REM Check if ports are available
 echo 🔌 Checking port availability...
-netstat -ano | findstr ":8000 :8001 :8002 :10000 :5173" > nul
+netstat -ano | findstr ":10000 :5173" > nul
 if %errorlevel% equ 0 (
     echo ⚠️ Some ports are in use. Consider running:
     echo    taskkill /F /IM node.exe
@@ -16,7 +16,7 @@ if %errorlevel% equ 0 (
 
 echo ✅ Starting services in correct order...
 
-REM Start backend first (it needs to be ready for MCP servers)
+REM Start backend first so API routes are available before the frontend opens.
 echo 🔧 Starting backend...
 cd backend
 start "Backend" cmd /c "npm run dev"
@@ -25,9 +25,6 @@ cd ..
 REM Wait a moment for backend to initialize
 timeout /t 3 /nobreak > nul
 
-REM Start MCP servers
-echo 🤖 Starting MCP servers...
-REM Add MCP startup commands here if needed
 
 REM Start frontend last
 echo 🎨 Starting frontend...

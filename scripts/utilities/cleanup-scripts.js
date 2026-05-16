@@ -17,7 +17,6 @@ const KEEP_SCRIPTS = [
   'VERIFY-PRODUCTION.bat',
   'GET-DATABASE-INFO.bat',
   'SHOW-ALL-USERS.bat',
-  'START-ALL-MCP-SERVERS.bat',
   'package.json',
   'file-tree.js',
   '.gitignore',

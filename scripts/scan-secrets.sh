@@ -52,6 +52,16 @@ PATTERNS=(
   "ssh-private-key|-----BEGIN OPENSSH PRIVATE KEY-----"
 )
 
+COMBINED_REGEX=""
+for entry in "${PATTERNS[@]}"; do
+  regex="${entry#*|}"
+  if [[ -z "$COMBINED_REGEX" ]]; then
+    COMBINED_REGEX="($regex)"
+  else
+    COMBINED_REGEX="$COMBINED_REGEX|($regex)"
+  fi
+done
+
 # Known-risky paths that are gitignored and so NEVER appear in `git ls-files`.
 # These are scanned by --hot-spots and --all modes as an extra defense layer.
 # Add paths here as new hot-spot classes are identified (e.g., other IDE plugin
@@ -135,7 +145,7 @@ scan_stream_for_pattern() {
   local pattern_name="$2"
   local regex="$3"
   local line_numbers
-  line_numbers="$(grep -nE "$regex" 2>/dev/null | cut -d: -f1 | tr '\n' ',' | sed 's/,$//' || true)"
+  line_numbers="$(LC_ALL=C grep -nE -- "$regex" 2>/dev/null | cut -d: -f1 | tr '\n' ',' | sed 's/,$//' || true)"
   [[ -z "$line_numbers" ]] && return 0
 
   local count
@@ -169,6 +179,9 @@ scan_one() {
     fi
     local staged_content
     staged_content="$(git show ":$file" 2>/dev/null)"
+    if ! LC_ALL=C grep -qE -- "$COMBINED_REGEX" <<< "$staged_content"; then
+      return 0
+    fi
     for entry in "${PATTERNS[@]}"; do
       local name="${entry%%|*}"
       local regex="${entry#*|}"
@@ -183,6 +196,9 @@ scan_one() {
     [[ -f "$REPO_ROOT/$file" ]] && fullpath="$REPO_ROOT/$file"
     [[ ! -f "$fullpath" ]] && return 0
     if file --mime-encoding "$fullpath" 2>/dev/null | grep -q binary; then
+      return 0
+    fi
+    if ! LC_ALL=C grep -qE -- "$COMBINED_REGEX" "$fullpath"; then
       return 0
     fi
     for entry in "${PATTERNS[@]}"; do

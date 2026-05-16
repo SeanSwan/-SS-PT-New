@@ -37,9 +37,8 @@ const MODELS = {
   pro:   'gemini-3-pro-image-preview',        // Higher quality (~$0.13)
 };
 
-const SWANSTUDIOS_STYLE = `Galaxy-Swan dark cosmic aesthetic. Deep space background (#0a0a1a).
-Cyan accent (#00FFFF) and cosmic purple (#7851A9) color palette.
-Premium, luxurious, motivating fitness brand feel.
+const SWANSTUDIOS_STYLE = `Enchanted Apex / Crystalline Swan aesthetic. Dark-first luxury fitness interface with Midnight Sapphire, Ice Wing cyan, Gilded Fern, Frost White, and Wing Purple accents.
+Premium, crystalline, focused personal-training brand feel.
 Professional photography quality, cinematic lighting.`;
 
 // ─────────────────────────────────────────────
@@ -115,7 +114,7 @@ function printHelp() {
 
   Options:
     --output, -o    Output file path (default: generated-images/image-{timestamp}.png)
-    --style, -s     Style override (default: SwanStudios Galaxy-Swan theme)
+    --style, -s     Style override (default: SwanStudios Crystalline Swan theme)
     --no-style      Don't append SwanStudios style to prompt
     --pro           Use Gemini Pro model (higher quality, ~$0.13/image)
     (default)       Uses Gemini Flash model (faster, ~$0.04/image)
@@ -241,7 +240,7 @@ async function main() {
   console.log(`  Model:  ${model}`);
   console.log(`  Prompt: "${opts.prompt}"`);
   if (opts.input) console.log(`  Input:  ${opts.input}`);
-  if (!opts.noStyle) console.log(`  Style:  SwanStudios Galaxy-Swan theme applied`);
+  if (!opts.noStyle) console.log(`  Style:  SwanStudios Crystalline Swan theme applied`);
   console.log(`  Output: ${outputPath}`);
   console.log('');
   console.log('  Generating...');
