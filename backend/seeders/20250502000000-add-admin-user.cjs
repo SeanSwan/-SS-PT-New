@@ -9,9 +9,14 @@ const { v4: uuidv4 } = require('uuid'); // Add UUID for ID generation
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD is required for admin-user seeding.');
+    }
+
     // Hash the admin password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('55555', salt);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
     
     // Create timestamp for consistent created/updated dates
     const now = new Date();

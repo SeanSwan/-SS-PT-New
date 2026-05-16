@@ -309,7 +309,7 @@
  * - logger: Winston-based structured logging
  *
  * Environment Variables:
- * - ADMIN_PROMOTION_CODE: Secret code for admin role promotion (default: "admin123")
+ * - ADMIN_PROMOTION_CODE: Secret code for admin role promotion (required; no default)
  *
  * Testing:
  * - Unit tests: backend/tests/userManagementRoutes.test.mjs
@@ -665,8 +665,15 @@ router.post('/promote-admin', protect, adminOnly, async (req, res) => {
   try {
     const { userId, adminCode } = req.body;
     
-    // Validate admin code
-    const expectedAdminCode = process.env.ADMIN_PROMOTION_CODE || 'admin123'; // Default code if not set in .env
+    // Validate admin code. Fail closed if not configured.
+    const expectedAdminCode = process.env.ADMIN_PROMOTION_CODE;
+    if (!expectedAdminCode) {
+      logger.error('ADMIN_PROMOTION_CODE is not configured; refusing admin promotion');
+      return res.status(503).json({
+        success: false,
+        message: 'Admin promotion is not configured'
+      });
+    }
     
     if (adminCode !== expectedAdminCode) {
       logger.warn(`Invalid admin code attempt by ${req.user.id}`);

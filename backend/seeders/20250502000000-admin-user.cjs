@@ -9,6 +9,11 @@ const { v4: uuidv4 } = require('uuid');
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD is required for admin-user seeding.');
+    }
+
     // Check if admin user already exists to avoid duplicates
     const adminExists = await queryInterface.rawSelect('users', {
       where: { username: 'admin' },
@@ -22,7 +27,7 @@ module.exports = {
 
     // Create admin password hash
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('55555', salt);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
     const now = new Date();
 
     // Create admin user with UUID

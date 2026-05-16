@@ -32,14 +32,19 @@ if (fs.existsSync(envPath)) {
 const PORT = process.env.PORT || 5000;
 const API_URL = `http://localhost:${PORT}/api/auth/login`;
 
-// Test credentials - update these if needed
-const DEFAULT_USERNAME = process.env.ADMIN_USERNAME || 'ogpswan';
-const DEFAULT_PASSWORD = 'Password123!'; // This should match what you set in admin-account-check.mjs
+// Test credentials must come from CLI args or environment.
+const DEFAULT_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const DEFAULT_PASSWORD = process.env.TEST_LOGIN_PASSWORD || '';
 
 // Get credentials from command line arguments if provided
 const args = process.argv.slice(2);
 const username = args[0] || DEFAULT_USERNAME;
 const password = args[1] || DEFAULT_PASSWORD;
+
+if (!password) {
+  console.error('Provide a password as the second argument or set TEST_LOGIN_PASSWORD.');
+  process.exit(1);
+}
 
 /**
  * Test the login API endpoint

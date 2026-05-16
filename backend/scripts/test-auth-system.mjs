@@ -3,6 +3,7 @@
 
 import axios from 'axios';
 import chalk from 'chalk';
+import { randomBytes } from 'crypto';
 
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://swanstudios-backend.onrender.com'
@@ -63,7 +64,7 @@ export async function testAuthSystem() {
     const response = await axios.post(`${BASE_URL}/api/auth/register`, {
       username: 'test_user_' + Date.now(),
       email: 'test@example.com',
-      password: 'testpassword123'
+      password: process.env.TEST_REGISTER_PASSWORD || randomBytes(18).toString('base64url')
     }, { 
       timeout: 10000,
       validateStatus: () => true

@@ -3,143 +3,107 @@
 /**
  * Production Environment Verification Script
  * ==========================================
- * Verifies all required environment variables are set for production deployment
+ * Verifies required production variables without printing secret values.
  */
 
-console.log('🔍 SwanStudios Production Environment Check');
-console.log('==========================================\\n');
+import crypto from 'crypto';
+
+console.log('SwanStudios Production Environment Check');
+console.log('========================================\n');
 
 const REQUIRED_ENV_VARS = [
   { name: 'NODE_ENV', expected: 'production', critical: true },
   { name: 'PORT', expected: '10000', critical: true },
-  { name: 'DATABASE_URL', description: 'PostgreSQL connection string (set by Render)', critical: true },
-  { name: 'FRONTEND_ORIGINS', description: 'Comma-separated list of allowed origins', critical: true },
-  { name: 'JWT_SECRET', description: 'Secret key for JWT tokens (min 32 chars)', critical: true },
+  { name: 'DATABASE_URL', description: 'PostgreSQL connection string from Render', critical: true, secret: true },
+  { name: 'FRONTEND_ORIGINS', description: 'Comma-separated allowed origins', critical: true },
+  { name: 'JWT_SECRET', description: 'JWT signing secret, minimum 32 chars', critical: true, secret: true },
   { name: 'ACCESS_TOKEN_EXPIRY', expected: '3600', critical: false },
-  { name: 'USE_SQLITE_FALLBACK', expected: 'false', critical: false }
-];
-
-const OPTIONAL_ENV_VARS = [
-  { name: 'ENABLE_MCP_HEALTH_CHECKS', expected: 'false' },
-  { name: 'ENABLE_MCP_HEALTH_ALERTS', expected: 'false' },
-  { name: 'ENABLE_MCP_SERVICES', expected: 'false' }
+  { name: 'USE_SQLITE_FALLBACK', expected: 'false', critical: false },
+  { name: 'ENABLE_MCP_ROUTES', expected: 'false', critical: false },
+  { name: 'ENABLE_MCP_HEALTH_CHECKS', expected: 'false', critical: false },
+  { name: 'ENABLE_MCP_HEALTH_ALERTS', expected: 'false', critical: false },
+  { name: 'ENABLE_MCP_SERVICES', expected: 'false', critical: false }
 ];
 
 let criticalIssues = 0;
 let warnings = 0;
 
+function describeValue(envVar, value) {
+  if (envVar.secret) {
+    return value ? `[SET ${value.length} chars]` : '[MISSING]';
+  }
+
+  return value || '[MISSING]';
+}
+
 function checkEnvironmentVariable(envVar) {
   const value = process.env[envVar.name];
-  const status = value ? '✅' : '❌';
-  
-  console.log(`${status} ${envVar.name}`);
-  
-  if (!value) {
+  const isSet = Boolean(value);
+
+  console.log(`${isSet ? 'OK' : 'MISSING'} ${envVar.name}`);
+
+  if (!isSet) {
     if (envVar.critical) {
-      console.log(`   🚨 CRITICAL: Missing required variable`);
+      console.log('   CRITICAL: Missing required variable');
       criticalIssues++;
     } else {
-      console.log(`   ⚠️  WARNING: Recommended variable not set`);
+      console.log('   WARNING: Recommended variable not set');
       warnings++;
     }
-    
+
     if (envVar.description) {
-      console.log(`   📝 Description: ${envVar.description}`);
-    }
-    
-    if (envVar.expected) {
-      console.log(`   💡 Expected value: ${envVar.expected}`);
+      console.log(`   Description: ${envVar.description}`);
     }
   } else {
-    console.log(`   ✅ Set: ${value.length > 50 ? '[LONG VALUE]' : value}`);
-    
-    // Validate specific values
+    console.log(`   Set: ${describeValue(envVar, value)}`);
+
     if (envVar.expected && value !== envVar.expected) {
-      console.log(`   ⚠️  WARNING: Expected '${envVar.expected}', got '${value}'`);
+      console.log(`   WARNING: Expected '${envVar.expected}'`);
       warnings++;
     }
-    
-    // Validate JWT secret length
+
     if (envVar.name === 'JWT_SECRET' && value.length < 32) {
-      console.log(`   ⚠️  WARNING: JWT_SECRET should be at least 32 characters (current: ${value.length})`);
+      console.log(`   WARNING: JWT_SECRET should be at least 32 characters, current length ${value.length}`);
       warnings++;
     }
-    
-    // Validate FRONTEND_ORIGINS format
+
     if (envVar.name === 'FRONTEND_ORIGINS') {
-      const origins = value.split(',');
-      console.log(`   📊 Origins configured: ${origins.length}`);
-      origins.forEach((origin, index) => {
-        console.log(`     ${index + 1}. ${origin.trim()}`);
-      });
-      
-      if (!origins.some(origin => origin.includes('sswanstudios.com'))) {
-        console.log(`   ⚠️  WARNING: No sswanstudios.com origin found`);
+      const origins = value.split(',').map((origin) => origin.trim()).filter(Boolean);
+      console.log(`   Origins configured: ${origins.length}`);
+
+      if (!origins.some((origin) => origin.includes('sswanstudios.com'))) {
+        console.log('   WARNING: No sswanstudios.com origin found');
         warnings++;
       }
     }
   }
-  
+
   console.log('');
 }
 
-function generateJWTSecret() {
-  try {
-    const crypto = await import('crypto');
-    return crypto.randomBytes(64).toString('hex');
-  } catch (error) {
-    return 'Please use: node -e "console.log(require(\\'crypto\\').randomBytes(64).toString(\\'hex\\'))"';
-  }
+function generateJWTSecretCommand() {
+  const sample = crypto.randomBytes(64).toString('hex');
+  return `Set JWT_SECRET to a generated 64-byte hex secret. Example length: ${sample.length} chars.`;
 }
 
-async function main() {
-  console.log('🔐 Required Environment Variables:');
-  console.log('─'.repeat(40));
-  
-  for (const envVar of REQUIRED_ENV_VARS) {
-    checkEnvironmentVariable(envVar);
-  }
-  
-  console.log('🔧 Optional Environment Variables:');
-  console.log('─'.repeat(40));
-  
-  for (const envVar of OPTIONAL_ENV_VARS) {
-    checkEnvironmentVariable(envVar);
-  }
-  
-  console.log('📊 Summary:');
-  console.log('─'.repeat(20));
-  console.log(`🚨 Critical Issues: ${criticalIssues}`);
-  console.log(`⚠️  Warnings: ${warnings}`);
-  console.log('');
-  
-  if (criticalIssues > 0) {
-    console.log('❌ DEPLOYMENT BLOCKED: Critical environment variables missing');
-    console.log('');
-    console.log('🔧 Required Actions:');
-    console.log('1. Set missing environment variables in Render dashboard');
-    console.log('2. Generate JWT_SECRET if missing:');
-    console.log(`   ${await generateJWTSecret()}`);
-    console.log('3. Redeploy after setting environment variables');
-    console.log('');
-    process.exit(1);
-  } else if (warnings > 0) {
-    console.log('⚠️  DEPLOYMENT POSSIBLE: With warnings');
-    console.log('Consider fixing warnings for optimal performance');
-    console.log('');
-  } else {
-    console.log('✅ DEPLOYMENT READY: All environment variables properly configured');
-    console.log('');
-  }
-  
-  console.log('🚀 Next Steps:');
-  console.log('1. Ensure these variables are set in Render service dashboard');
-  console.log('2. Deploy the updated code');
-  console.log('3. Test with: npm run test-health');
-  console.log('4. Check frontend connectivity');
+for (const envVar of REQUIRED_ENV_VARS) {
+  checkEnvironmentVariable(envVar);
 }
 
-main().catch(error => {
-  console.error('Environment check failed:', error);
+console.log('Summary');
+console.log('-------');
+console.log(`Critical Issues: ${criticalIssues}`);
+console.log(`Warnings: ${warnings}`);
+console.log('');
+
+if (criticalIssues > 0) {
+  console.log('DEPLOYMENT BLOCKED: Critical environment variables missing');
+  console.log(generateJWTSecretCommand());
   process.exit(1);
-});
+}
+
+if (warnings > 0) {
+  console.log('DEPLOYMENT POSSIBLE: warnings should be reviewed before release');
+} else {
+  console.log('DEPLOYMENT READY: all checked environment variables are configured');
+}

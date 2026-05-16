@@ -16,11 +16,16 @@ import logger from '../utils/logger.mjs';
 dotenv.config();
 
 // Admin user credentials from environment variables
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'ogpswan';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Password123!';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@swanstudios.com';
-const ADMIN_FIRST_NAME = process.env.ADMIN_FIRST_NAME || 'Sean';
-const ADMIN_LAST_NAME = process.env.ADMIN_LAST_NAME || 'Swan';
+const ADMIN_FIRST_NAME = process.env.ADMIN_FIRST_NAME || 'Admin';
+const ADMIN_LAST_NAME = process.env.ADMIN_LAST_NAME || 'User';
+
+if (!ADMIN_PASSWORD) {
+  console.error('ADMIN_PASSWORD is required; refusing to use a hardcoded default password.');
+  process.exit(1);
+}
 
 async function fixAuthentication() {
   console.log('🔧 AUTH REPAIR TOOL 🔧');

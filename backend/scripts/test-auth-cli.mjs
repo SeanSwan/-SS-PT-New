@@ -23,13 +23,13 @@
  *    - For testing Login:
  *          node test-auth-cli.mjs login your_username your_password
  *      Example:
- *          node test-auth-cli.mjs login ogpswan MyActualProdPassword123
+ *          node test-auth-cli.mjs login admin "<admin-password>"
  *
  *    - For testing Registration:
- *          node test-auth-cli.mjs register newtestuser newtest@example.com complexpassword123 "New" "Test"
+ *          node test-auth-cli.mjs register newtestuser newtest@example.com "<new-password>" "New" "Test"
  *
  *    - To check a user's existence:
- *          node test-auth-cli.mjs check-user ogpswan
+ *          node test-auth-cli.mjs check-user admin
  *          node test-auth-cli.mjs check-user someone@example.com
  *
  * 5. Analyze Output:

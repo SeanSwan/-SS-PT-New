@@ -42,6 +42,10 @@ import User from '../models/User.mjs';
 async function fixAdminUser() {
   try {
     console.log('----- Admin User Fix Script -----');
+    const envAdminPassword = process.env.ADMIN_PASSWORD;
+    if (!envAdminPassword) {
+      throw new Error('ADMIN_PASSWORD is required; refusing to create or reset admins with a hardcoded password.');
+    }
     
     // 1. Test database connection
     console.log('1. Testing database connection...');
@@ -63,7 +67,7 @@ async function fixAdminUser() {
       
       // Create admin with values from .env file
       const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-      const adminPassword = process.env.ADMIN_PASSWORD || '55555';
+      const adminPassword = envAdminPassword;
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@swanstudios.com';
       const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
       const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
@@ -94,7 +98,7 @@ async function fixAdminUser() {
       console.log('✅ New admin user created successfully!');
       console.log(`   ID: ${admin.id}`);
       console.log(`   Username: ${adminUsername}`);
-      console.log(`   Password: ${adminPassword}`);
+      console.log('   Password: sourced from ADMIN_PASSWORD');
     } else {
       console.log(`   Found ${adminUsers.length} admin users. Fixing credentials...`);
       
@@ -102,10 +106,10 @@ async function fixAdminUser() {
       for (const adminUser of adminUsers) {
         console.log(`   Processing admin user: ${adminUser.username} (ID: ${adminUser.id})`);
         
-        // Create new credentials from .env file, or default to "admin/55555"
+        // Create new credentials from .env file.
         const defaultUsername = adminUser.username === 'admin' ? 'admin' : adminUser.username;
         const adminUsername = process.env.ADMIN_USERNAME || defaultUsername;
-        const adminPassword = process.env.ADMIN_PASSWORD || '55555';
+        const adminPassword = envAdminPassword;
         const adminEmail = process.env.ADMIN_EMAIL || adminUser.email || 'admin@swanstudios.com';
         const adminFirstName = process.env.ADMIN_FIRST_NAME || adminUser.firstName || 'Admin';
         const adminLastName = process.env.ADMIN_LAST_NAME || adminUser.lastName || 'User';
@@ -130,7 +134,7 @@ async function fixAdminUser() {
         console.log(`✅ Admin user updated successfully!`);
         console.log(`   ID: ${adminUser.id}`);
         console.log(`   Username: ${adminUsername}`);
-        console.log(`   Password: ${adminPassword}`);
+        console.log('   Password: sourced from ADMIN_PASSWORD');
       }
     }
     
@@ -138,15 +142,8 @@ async function fixAdminUser() {
     console.log('');
     console.log('You can now log in with:');
     
-    // Prioritize .env values if available
-    if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
-      console.log(`Username: ${process.env.ADMIN_USERNAME}`);
-      console.log(`Password: ${process.env.ADMIN_PASSWORD}`);
-    } else {
-      // Fallback to admin/55555
-      console.log('Username: admin');
-      console.log('Password: 55555');
-    }
+    console.log(`Username: ${process.env.ADMIN_USERNAME || 'admin'}`);
+    console.log('Password: value supplied through ADMIN_PASSWORD');
     
   } catch (error) {
     console.error(`❌ Admin user fix failed: ${error.message}`);

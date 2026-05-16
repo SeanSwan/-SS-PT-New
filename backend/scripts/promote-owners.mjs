@@ -18,10 +18,15 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const OWNER_EMAILS = [
-  'ogpswan@yahoo.com',
-  'loveswanstudios@protonmail.com',
-];
+const OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
+
+if (OWNER_EMAILS.length === 0) {
+  console.error('Set OWNER_EMAILS or SUPER_ADMIN_EMAILS to a comma-separated list before running this script');
+  process.exit(1);
+}
 
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',

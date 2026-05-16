@@ -58,6 +58,7 @@ async function verifyAdmin() {
   
   try {
     logger.info('----- Admin User Verification Script -----');
+    const adminPassword = process.env.ADMIN_PASSWORD;
     
     // Get the development config
     const config = dbConfig.development;
@@ -179,12 +180,14 @@ async function verifyAdmin() {
     } else {
       logger.warn('Admin user NOT found!');
       
-      // Create admin user with temporary password
       logger.info('Creating admin user...');
+      if (!adminPassword) {
+        throw new Error('ADMIN_PASSWORD is required to create a missing admin user.');
+      }
       
       // Hash password
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('55555', salt);
+      const hashedPassword = await bcrypt.hash(adminPassword, salt);
       
       // Create admin user
       adminUser = await User.create({
@@ -206,14 +209,14 @@ async function verifyAdmin() {
       
       logger.info(`Admin user created successfully! ID: ${adminUser.id}`);
       logger.info('Username: admin');
-      logger.info('Password: 55555');
+      logger.info('Password: sourced from ADMIN_PASSWORD');
     }
     
     logger.info('----- Admin User Verification Complete -----');
     logger.info('');
     logger.info('You can now log in with:');
     logger.info('Username: admin');
-    logger.info('Password: 55555');
+    logger.info('Password: value supplied through ADMIN_PASSWORD');
     
   } catch (error) {
     logger.error(`Admin verification failed: ${error.message}`);

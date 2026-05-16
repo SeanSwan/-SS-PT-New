@@ -40,6 +40,10 @@ import User from '../models/User.mjs';
 async function createAdminUser() {
   try {
     console.log('----- Admin User Creation Script -----');
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD is required; refusing to create an admin with a hardcoded password.');
+    }
     
     // 1. Test database connection
     console.log('1. Testing database connection...');
@@ -70,7 +74,7 @@ async function createAdminUser() {
       
       // Hash password
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('55555', salt);
+      const hashedPassword = await bcrypt.hash(adminPassword, salt);
       
       // Create admin user
       const admin = await User.create({
@@ -94,14 +98,14 @@ async function createAdminUser() {
       console.log('✅ Admin user created successfully!');
       console.log(`   ID: ${admin.id}`);
       console.log(`   Username: admin`);
-      console.log(`   Password: 55555`);
+      console.log('   Password: sourced from ADMIN_PASSWORD');
     }
     
     console.log('----- Admin User Creation Complete -----');
     console.log('');
     console.log('You can now log in with:');
     console.log('Username: admin');
-    console.log('Password: 55555');
+    console.log('Password: value supplied through ADMIN_PASSWORD');
     
   } catch (error) {
     console.error(`❌ Admin user creation failed: ${error.message}`);

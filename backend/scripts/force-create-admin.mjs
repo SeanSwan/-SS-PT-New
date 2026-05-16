@@ -26,10 +26,15 @@ import sequelize from '../database.mjs'; // Import configured sequelize instance
 
 // --- Config ---
 const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'password123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_EMAIL = 'admin@swanstudios.com';
 const ADMIN_FIRST_NAME = 'Admin';
 const ADMIN_LAST_NAME = 'User';
+
+if (!ADMIN_PASSWORD) {
+  console.error('ADMIN_PASSWORD is required; refusing to create an admin with a hardcoded password.');
+  process.exit(1);
+}
 
 // --- Main Function ---
 async function forceCreateAdmin() {

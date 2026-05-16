@@ -18,9 +18,9 @@ const router = express.Router();
 const CATEGORY = 'payment';
 
 const DEFAULTS = {
-  zelleRecipient: '3239968153',
-  venmoHandle: '',
-  checkPayeeName: 'SwanStudios',
+  zelleRecipient: process.env.DEFAULT_ZELLE_RECIPIENT || '',
+  venmoHandle: process.env.DEFAULT_VENMO_HANDLE || '',
+  checkPayeeName: process.env.DEFAULT_CHECK_PAYEE_NAME || 'SwanStudios',
 };
 
 /**

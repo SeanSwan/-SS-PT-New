@@ -4,7 +4,7 @@
  * This script resets the password for an admin user in the database.
  * Run with: node reset-admin-password.mjs [username] [new-password]
  * 
- * Example: node reset-admin-password.mjs ogpswan NewPassword123!
+ * Example: node reset-admin-password.mjs admin "<new-password>"
  */
 
 import dotenv from 'dotenv';
@@ -80,8 +80,8 @@ async function resetPassword(username, newPassword, forceAdmin = false) {
 
 // Get arguments from command line
 const args = process.argv.slice(2);
-const username = args[0] || process.env.ADMIN_USERNAME || 'ogpswan';
-const newPassword = args[1] || 'SwanStudios2025!';
+const username = args[0] || process.env.ADMIN_USERNAME || 'admin';
+const newPassword = args[1] || process.env.ADMIN_PASSWORD;
 const forceAdmin = true; // Default to forcing admin role
 
 // Validate input
@@ -91,7 +91,7 @@ if (!username) {
 }
 
 if (!newPassword) {
-  console.error('Error: New password is required');
+  console.error('Error: New password is required as the second argument or ADMIN_PASSWORD.');
   process.exit(1);
 }
 
@@ -105,7 +105,7 @@ console.log(`Resetting password for user: ${username}`);
 resetPassword(username, newPassword, forceAdmin)
   .then(() => {
     console.log('Password reset successful');
-    console.log(`New login credentials:\nUsername: ${username}\nPassword: ${newPassword}`);
+    console.log(`New login credentials:\nUsername: ${username}\nPassword: value supplied by operator`);
     process.exit(0);
   })
   .catch(err => {

@@ -14,11 +14,11 @@ const seedAdmin = async () => {
     console.log('✅ Database connection established.');
 
     // Get admin credentials from environment variables
-    const adminUsername = process.env.ADMIN_USERNAME || 'ogpswan';
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD;
-    const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Sean';
-    const adminLastName = process.env.ADMIN_LAST_NAME || 'Swan';
-    const adminEmail = process.env.ADMIN_EMAIL || 'ogpswan@yahoo.com';
+    const adminFirstName = process.env.ADMIN_FIRST_NAME || 'Admin';
+    const adminLastName = process.env.ADMIN_LAST_NAME || 'User';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
 
     // Validate required env vars
     if (!adminPassword) {

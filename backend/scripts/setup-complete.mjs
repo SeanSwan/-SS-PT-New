@@ -49,6 +49,13 @@ import '../setupAssociations.mjs';
 async function setupComplete() {
   try {
     console.log('===== COMPLETE DATABASE SETUP =====');
+    if (process.env.ALLOW_DESTRUCTIVE_DB_RESET !== 'true') {
+      throw new Error('ALLOW_DESTRUCTIVE_DB_RESET=true is required because this script drops and recreates tables.');
+    }
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD is required; refusing to seed an admin with a hardcoded password.');
+    }
     
     // 1. Test database connection
     console.log('1. Testing database connection...');
@@ -81,7 +88,7 @@ async function setupComplete() {
       
       // Hash password
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('55555', salt);
+      const hashedPassword = await bcrypt.hash(adminPassword, salt);
       
       // Create admin user
       const admin = await User.create({
@@ -105,7 +112,7 @@ async function setupComplete() {
       console.log('✅ Admin user created successfully!');
       console.log(`   ID: ${admin.id}`);
       console.log(`   Username: admin`);
-      console.log(`   Password: 55555`);
+      console.log('   Password: sourced from ADMIN_PASSWORD');
     } catch (error) {
       console.error(`❌ Error creating admin user: ${error.message}`);
       throw error;
@@ -265,7 +272,7 @@ async function setupComplete() {
     console.log('');
     console.log('✅ The database has been completely set up with:');
     console.log('   - All tables created based on models');
-    console.log('   - Admin user created (username: admin, password: 55555)');
+    console.log('   - Admin user created (username: admin, password sourced from ADMIN_PASSWORD)');
     console.log('   - Storefront items created');
     console.log('   - SequelizeMeta table created');
     console.log('');
@@ -274,7 +281,7 @@ async function setupComplete() {
     console.log('');
     console.log('✅ Log in with:');
     console.log('   Username: admin');
-    console.log('   Password: 55555');
+    console.log('   Password: value supplied through ADMIN_PASSWORD');
     
   } catch (error) {
     console.error(`❌ Complete database setup failed: ${error.message}`);

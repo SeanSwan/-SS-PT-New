@@ -3,12 +3,18 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     const now = new Date();
-    
-    await queryInterface.bulkInsert('notification_settings', [
+
+    const primaryEmail = process.env.PRIMARY_NOTIFICATION_EMAIL;
+    if (!primaryEmail) {
+      console.log('PRIMARY_NOTIFICATION_EMAIL is not set; skipping default notification settings seed.');
+      return;
+    }
+
+    const notificationRows = [
       {
-        name: 'Sean Swan',
-        email: 'ogpswan@yahoo.com',
-        phone: '+13239968153',
+        name: process.env.PRIMARY_NOTIFICATION_NAME || 'Primary Admin',
+        email: primaryEmail,
+        phone: process.env.PRIMARY_NOTIFICATION_PHONE || null,
         isActive: true,
         notificationType: 'ALL',
         isPrimary: true,
@@ -16,18 +22,8 @@ module.exports = {
         updatedAt: now
       },
       {
-        name: 'Jasmine Hearon',
-        email: 'jasminehearon@gmail.com',
-        phone: '+13239944779',
-        isActive: true,
-        notificationType: 'ALL',
-        isPrimary: false,
-        createdAt: now,
-        updatedAt: now
-      },
-      {
         name: 'Swan Studios',
-        email: 'loveswanstudios@protonmail.com',
+        email: process.env.STUDIO_NOTIFICATION_EMAIL || primaryEmail,
         phone: null,
         isActive: true,
         notificationType: 'ALL',
@@ -35,7 +31,23 @@ module.exports = {
         createdAt: now,
         updatedAt: now
       }
-    ], {});
+    ];
+
+    const secondaryEmail = process.env.SECONDARY_NOTIFICATION_EMAIL;
+    if (secondaryEmail) {
+      notificationRows.splice(1, 0, {
+        name: process.env.SECONDARY_NOTIFICATION_NAME || 'Secondary Admin',
+        email: secondaryEmail,
+        phone: process.env.SECONDARY_NOTIFICATION_PHONE || null,
+        isActive: true,
+        notificationType: 'ALL',
+        isPrimary: false,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+
+    await queryInterface.bulkInsert('notification_settings', notificationRows, {});
   },
 
   down: async (queryInterface, Sequelize) => {

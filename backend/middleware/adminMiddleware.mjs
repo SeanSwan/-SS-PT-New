@@ -8,6 +8,13 @@
 
 import logger from '../utils/logger.mjs';
 
+const getSuperAdminEmails = () => new Set(
+  (process.env.SUPER_ADMIN_EMAILS || process.env.OWNER_EMAIL || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
+
 /**
  * Require admin role middleware
  * Checks if authenticated user has admin privileges
@@ -65,8 +72,11 @@ export const requireSuperAdmin = (req, res, next) => {
       });
     }
 
-    // Only allow the primary admin account for super admin operations
-    const isSuperAdmin = req.user.email === 'ogpswan@gmail.com';
+    const email = String(req.user.email || '').toLowerCase();
+    const isSuperAdmin =
+      req.user.role === 'super_admin' ||
+      req.user.permissions?.includes?.('super_admin') ||
+      getSuperAdminEmails().has(email);
     
     if (!isSuperAdmin) {
       logger.warn(`Unauthorized super admin access attempt by user ${req.user.id} (${req.user.email})`);

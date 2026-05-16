@@ -16,7 +16,12 @@ import fetch from 'node-fetch';
 // Configuration
 const API_BASE = process.env.API_URL || 'http://localhost:10000';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'adminpassword';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+if (!ADMIN_PASSWORD) {
+  console.error('ADMIN_PASSWORD is required for billing/session smoke tests.');
+  process.exit(1);
+}
 
 // Test state
 let authToken = null;
