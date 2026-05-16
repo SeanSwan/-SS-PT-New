@@ -16,9 +16,9 @@ Active documentation for the current state of the SwanStudios application.
 
 ### Design System
 
-- **[Galaxy-Swan Theme Documentation](current/GALAXY-SWAN-THEME-DOCS.md)** - Complete design system documentation including color palette, design philosophy, and accessibility guidelines
-- **[Implementation Status](current/IMPLEMENTATION_STATUS.md)** - Current theme system implementation details and performance optimizations
-- **[Glow Button Refactor](current/GLOW-BUTTON-REFACTOR-COMPLETE.md)** - Current button system implementation and color hierarchy
+- **[Crystalline Swan Design System](ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md)** - Current visual identity and premium dark-first design direction
+- **[Theme Changer Compatibility](ai-workflow/references/THEME-CHANGER-COMPAT.md)** - Token and runtime theme-change expectations
+- **[Dashboard Vision Brief](ai-workflow/references/SWANSTUDIOS-DASHBOARD-VISION-BRIEF.md)** - Current dashboard experience target
 
 ### UI Kit Components
 
@@ -31,11 +31,9 @@ Active documentation for the current state of the SwanStudios application.
 - **[Trainer Dashboard Optimization](current/TRAINER_DASHBOARD_OPTIMIZATION_COMPLETE.md)** - Modular architecture transformation (600+ line monolithic → 5 focused components)
 - **[User Dashboard Optimization](current/USER_DASHBOARD_OPTIMIZATION_COMPLETE.md)** - Complete refactoring documentation (1500+ line component → modular architecture)
 
-### Backend - MCP Servers
+### Backend Runtime
 
-- **[MCP Financial Events Implementation](current/MCP_FINANCIAL_EVENTS_IMPLEMENTATION.md)** - Financial Events MCP server implementation with gamification integration
-- **[MCP Financial Events API](current/MCP_FINANCIAL_EVENTS_API.md)** - API endpoint specifications and webhook handling
-- **[MCP Financial Events Testing](current/MCP_FINANCIAL_EVENTS_TESTING.md)** - Test cases, mock data, and integration testing procedures
+- **[Current Architecture Summary](current/CURRENT_ARCHITECTURE.md)** - Active first-party API architecture and retired MCP compatibility notes
 
 ---
 
@@ -81,7 +79,7 @@ Historical documentation preserved for reference. These documents describe past 
 ### Additional Historical Documentation
 
 For comprehensive historical documentation including deployment guides, fix summaries, and production deployment records, see:
-- **[scripts/archived_documentation/](../scripts/archived_documentation/)** - Complete archive of deployment guides, authentication fixes, and production documentation
+- **[Archived Script Documentation](../archive/pending-deletion/2026-05-15/scripts-archived-documentation/)** - Historical deployment guides, authentication fixes, and production notes pending final deletion approval
 
 ---
 
@@ -92,20 +90,15 @@ Component and module READMEs remain in their respective directories for contextu
 ### Frontend
 - [Frontend Root README](../frontend/README.md) - Vite setup and project structure
 - [Source README](../frontend/src/README.md) - Source directory structure
-- [Client Dashboard README](../frontend/src/components/ClientDashboard/README.md) - Client dashboard implementation
 - [Admin Dashboard README](../frontend/src/components/DashBoard/Pages/admin-dashboard/README.md) - Admin dashboard architecture
 - [Schedule README](../frontend/src/components/Schedule/README.md) - Schedule component guide
 - [DevTools README](../frontend/src/components/DevTools/README.md) - Development tools documentation
 - [Workout Page README](../frontend/src/pages/workout/README.md) - Workout page implementation
-- [MCP Frontend README](../frontend/src/mcp/README.md) - Frontend MCP integration
-- [MCP Services README](../frontend/src/services/mcp/README.md) - MCP service layer
-- [MCP Types README](../frontend/src/types/mcp/README.md) - MCP TypeScript types
+- [Retired MCP Services README](../frontend/src/services/mcp/README.md) - Compatibility adapters that now route through first-party REST APIs
+- [Retired MCP Types README](../frontend/src/types/mcp/README.md) - Legacy type names retained for compatibility only
 
 ### Backend
-- [MCP Server README](../AI-Village-Documentation/README.md) - MCP servers overview and setup
-- [Gamification MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/gamification_mcp_server/README.md) - Gamification server documentation
-- [Workout MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/workout_mcp_server/README.md) - Workout server documentation
-- [YOLO MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/yolo_mcp_server/README.md) - YOLO detection server documentation
+- [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md) - Active backend route ownership and first-party API runtime
 - [Backup Scripts README](../backend/seeders/backup/README.md) - Database backup procedures
 - [Seeders Backup README](../backend/seeders/backup/README.md) - Seeder backup documentation
 
@@ -157,21 +150,21 @@ This section provides curated learning paths for common tasks.
 2. Review [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md) for tech stack overview
 3. Study [Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md) for component development
 4. Reference [UI Kit Migration Guide](current/UI-KIT-MIGRATION-GUIDE.md) for component patterns
-5. Understand [Galaxy-Swan Theme](current/GALAXY-SWAN-THEME-DOCS.md) for design system
+5. Understand [Crystalline Swan Design System](ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md) for design system
 1. **Setup & Workflow**: Start with the [Development Guide](current/DEVELOPMENT_GUIDE.md).
 2. **System Overview**: Review the [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md).
 3. **Component Development**: Study the [Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md).
-4. **Design System**: Understand the [Galaxy-Swan Theme](current/GALAXY-SWAN-THEME-DOCS.md).
+4. **Design System**: Understand the [Crystalline Swan Design System](ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md).
 
 ### Working with Components
 - Follow the [Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md)
 - Reference dashboard optimization docs for architecture patterns
 - Check component-specific READMEs for implementation details
 
-### Working with MCP Servers
-- Start with [MCP Server README](../AI-Village-Documentation/README.md)
-- Review specific server documentation for implementation details
-- Reference [MCP Financial Events API](current/MCP_FINANCIAL_EVENTS_API.md) for API patterns
+### Working with AI Automation
+- Start with the [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md).
+- Use first-party SwanStudios APIs for workout, gamification, social, analytics, and assistant workflows.
+- Treat MCP material under `archive/pending-deletion/` as historical only unless Sean explicitly approves a restore.
 
 ### Deploying to Production
 1. Review [Development Guide - Production Deployment](current/DEVELOPMENT_GUIDE.md#3-production-deployment)

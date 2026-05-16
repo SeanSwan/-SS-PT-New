@@ -189,8 +189,9 @@ If any answer is yes, those items are added to the next cleanup backlog rather t
 - `CLAUDE.md` — rules 32–39 drive the protocol
 - `ACTIVE-INDEX.md` (repo root) — updated whenever a Phase 2 move lands
 - `docs/ai-workflow/references/FILE-CLEANUP-PROTOCOL.md` — task-scoped cleanup (different scope)
-- `docs/ai-workflow/REPO-HYGIENE-INVENTORY-YYYY-MM-DD.md` — dated inventory snapshots
+- `docs/ai-workflow/REPO-HYGIENE-INVENTORY-YYYY-MM-DD.md` — dated inventory snapshots while active, moved to archive after acted on
 
 ## Current active inventory
 
-See `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-04-12.md` for the first formal inventory under this protocol.
+The first formal inventory under this protocol is archived under
+`archive/pending-deletion/2026-05-15/old-hygiene-inventories/`.

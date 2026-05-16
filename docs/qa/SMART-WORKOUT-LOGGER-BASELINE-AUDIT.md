@@ -1,4 +1,4 @@
-# Smart Workout Logger — Phase 0 Baseline Audit
+# Smart Workout Logger â€” Phase 0 Baseline Audit
 
 **Date:** 2026-02-24
 **Auditor:** Claude Code (Opus 4.6)
@@ -6,58 +6,58 @@
 **Purpose:** Required Phase 0 deliverable before any implementation work begins on the Smart Workout Logger + Privacy Middleware + NASM Workflow project
 
 **Companion documents:**
-- `docs/qa/SMART-WORKOUT-LOGGER-PLAYWRIGHT-EVIDENCE.md` — Playwright screenshots, console errors, network failures
-- `docs/qa/SMART-WORKOUT-LOGGER-APPENDICES.md` — Database models, file reference, RBAC stack
-- `docs/qa/playwright-phase0/` — 14 screenshots + `audit-results.json`
+- `docs/qa/SMART-WORKOUT-LOGGER-PLAYWRIGHT-EVIDENCE.md` â€” Playwright screenshots, console errors, network failures
+- `docs/qa/SMART-WORKOUT-LOGGER-APPENDICES.md` â€” Database models, file reference, RBAC stack
+- `docs/qa/playwright-phase0/` â€” 14 screenshots + `audit-results.json`
 
 ---
 
-## 1. Current Workflow Audit — Entry Points & Data Flow
+## 1. Current Workflow Audit â€” Entry Points & Data Flow
 
 ### Frontend Entry Points
 
 ```
 User Dashboard
-├── ClientDashboard/sections/MyWorkoutsSection.tsx          ← client workout tab
-├── ClientDashboard/sections/EnhancedMyWorkoutsSection.tsx  ← enhanced client view
-└── pages/workout/WorkoutDashboard.tsx                      ← standalone workout page
-    ├── components/WorkoutForm.tsx                          ← log a session
-    ├── components/ExerciseSelector.tsx                     ← pick exercises
-    ├── components/WorkoutPlanner/WorkoutPlanner.tsx        ← build plans
-    │   ├── DaySelector.tsx
-    │   ├── ExerciseList.tsx
-    │   ├── PlanForm.tsx / PlanHeader.tsx / PlanList.tsx
-    │   └── SaveControls.tsx
-    ├── components/RecentSessions.tsx                       ← session history
-    ├── components/ClientProgress.tsx                       ← progress charts
-    └── components/SessionNotes.tsx                         ← per-session notes
+â”œâ”€â”€ ClientDashboard/sections/MyWorkoutsSection.tsx          â† client workout tab
+â”œâ”€â”€ archive/pending-deletion/2026-05-15/frontend-client-dashboard-stale/EnhancedMyWorkoutsSection.tsx  â† archived stale variant
+â””â”€â”€ pages/workout/WorkoutDashboard.tsx                      â† standalone workout page
+    â”œâ”€â”€ components/WorkoutForm.tsx                          â† log a session
+    â”œâ”€â”€ components/ExerciseSelector.tsx                     â† pick exercises
+    â”œâ”€â”€ components/WorkoutPlanner/WorkoutPlanner.tsx        â† build plans
+    â”‚   â”œâ”€â”€ DaySelector.tsx
+    â”‚   â”œâ”€â”€ ExerciseList.tsx
+    â”‚   â”œâ”€â”€ PlanForm.tsx / PlanHeader.tsx / PlanList.tsx
+    â”‚   â””â”€â”€ SaveControls.tsx
+    â”œâ”€â”€ components/RecentSessions.tsx                       â† session history
+    â”œâ”€â”€ components/ClientProgress.tsx                       â† progress charts
+    â””â”€â”€ components/SessionNotes.tsx                         â† per-session notes
 
 Trainer Dashboard
-├── TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx
-├── TrainerDashboard/WorkoutLogging/IntegrationTest.tsx
-└── TrainerDashboard/WorkoutManagement/TrainerWorkoutManagement.tsx
+â”œâ”€â”€ TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx
+â”œâ”€â”€ TrainerDashboard/WorkoutLogging/IntegrationTest.tsx
+â””â”€â”€ TrainerDashboard/WorkoutManagement/TrainerWorkoutManagement.tsx
 
 Admin Dashboard
-├── DashBoard/Pages/admin-clients/components/WorkoutLoggerModal.tsx  ← Phase 1C modal
-├── DashBoard/Pages/admin-dashboard/WorkoutDataEntry.tsx
-├── DashBoard/Pages/admin-dashboard/WorkoutProgressCharts.tsx
-├── DashBoard/Pages/admin-exercises/AdminExerciseCommandCenter.tsx
-│   ├── ExerciseCreationWizard.tsx
-│   ├── ExerciseLibraryManager.tsx
-│   ├── ExercisePreviewModal.tsx
-│   ├── ExerciseStatsPanel.tsx
-│   ├── VideoUploadProcessor.tsx
-│   └── hooks/useNASMValidation.ts                                   ← NASM protocol hook
-├── WorkoutManagement/AdminWorkoutManagement.tsx
-├── WorkoutManagement/ExerciseLibrary.tsx
-├── WorkoutManagement/WorkoutPlanBuilder.tsx
-└── WorkoutManagement/ClientSelection.tsx
+â”œâ”€â”€ DashBoard/Pages/admin-clients/components/WorkoutLoggerModal.tsx  â† Phase 1C modal
+â”œâ”€â”€ DashBoard/Pages/admin-dashboard/WorkoutDataEntry.tsx
+â”œâ”€â”€ DashBoard/Pages/admin-dashboard/WorkoutProgressCharts.tsx
+â”œâ”€â”€ DashBoard/Pages/admin-exercises/AdminExerciseCommandCenter.tsx
+â”‚   â”œâ”€â”€ ExerciseCreationWizard.tsx
+â”‚   â”œâ”€â”€ ExerciseLibraryManager.tsx
+â”‚   â”œâ”€â”€ ExercisePreviewModal.tsx
+â”‚   â”œâ”€â”€ ExerciseStatsPanel.tsx
+â”‚   â”œâ”€â”€ VideoUploadProcessor.tsx
+â”‚   â””â”€â”€ hooks/useNASMValidation.ts                                   â† NASM protocol hook
+â”œâ”€â”€ WorkoutManagement/AdminWorkoutManagement.tsx
+â”œâ”€â”€ WorkoutManagement/ExerciseLibrary.tsx
+â”œâ”€â”€ WorkoutManagement/WorkoutPlanBuilder.tsx
+â””â”€â”€ WorkoutManagement/ClientSelection.tsx
 
 Shared Components
-├── WorkoutLogger/WorkoutLogger.tsx           ← desktop logger
-├── WorkoutLogger/MobileWorkoutLogger.tsx     ← mobile logger
-├── WorkoutLogger/WorkoutLoggerTypes.ts
-└── WorkoutLogger/WorkoutLoggerTheme.ts
+â”œâ”€â”€ WorkoutLogger/WorkoutLogger.tsx           â† desktop logger
+â”œâ”€â”€ WorkoutLogger/MobileWorkoutLogger.tsx     â† mobile logger
+â”œâ”€â”€ WorkoutLogger/WorkoutLoggerTypes.ts
+â””â”€â”€ WorkoutLogger/WorkoutLoggerTheme.ts
 ```
 
 ### Frontend Services & State
@@ -66,54 +66,54 @@ Shared Components
 - **Hooks:** `useWorkoutHistory`, `useWorkoutProgress`, `useCurrentWorkout`, `useWorkoutMcp`
 - **Redux:** `workoutSlice.ts`, `exerciseSlice.ts`
 
-### Backend Route → Controller → Model Flow
+### Backend Route â†’ Controller â†’ Model Flow
 
 ```
 Client/Trainer Requests
-├── POST /api/workout/sessions     → workoutRoutes → workoutService → WorkoutSession
-├── PUT  /api/workout/sessions/:id → workoutRoutes → workoutService → WorkoutSession
-├── GET  /api/workout/sessions     → workoutRoutes → workoutService → WorkoutSession
-├── GET  /api/workout/progress     → workoutRoutes → workoutService → WorkoutSession + Set
-├── GET  /api/workout/statistics   → workoutRoutes → workoutService → WorkoutSession
-├── GET  /api/workout/recommendations → workoutRoutes → workoutService → Exercise (NASM-based)
-├── POST /api/workout/plans        → workoutRoutes → WorkoutPlan + WorkoutPlanDay
-├── GET  /api/workout/plans/:id    → workoutRoutes → WorkoutPlan
-└── POST /api/workout/plans/:id/generate → workoutRoutes → WorkoutSession (from plan)
+â”œâ”€â”€ POST /api/workout/sessions     â†’ workoutRoutes â†’ workoutService â†’ WorkoutSession
+â”œâ”€â”€ PUT  /api/workout/sessions/:id â†’ workoutRoutes â†’ workoutService â†’ WorkoutSession
+â”œâ”€â”€ GET  /api/workout/sessions     â†’ workoutRoutes â†’ workoutService â†’ WorkoutSession
+â”œâ”€â”€ GET  /api/workout/progress     â†’ workoutRoutes â†’ workoutService â†’ WorkoutSession + Set
+â”œâ”€â”€ GET  /api/workout/statistics   â†’ workoutRoutes â†’ workoutService â†’ WorkoutSession
+â”œâ”€â”€ GET  /api/workout/recommendations â†’ workoutRoutes â†’ workoutService â†’ Exercise (NASM-based)
+â”œâ”€â”€ POST /api/workout/plans        â†’ workoutRoutes â†’ WorkoutPlan + WorkoutPlanDay
+â”œâ”€â”€ GET  /api/workout/plans/:id    â†’ workoutRoutes â†’ WorkoutPlan
+â””â”€â”€ POST /api/workout/plans/:id/generate â†’ workoutRoutes â†’ WorkoutSession (from plan)
 
 Admin Workout Logging (Phase 1C)
-├── POST /api/admin/clients/:cid/workouts → adminWorkoutLoggerRoutes → WorkoutLog + awardWorkoutXP
-└── GET  /api/admin/clients/:cid/workouts → adminWorkoutLoggerRoutes → WorkoutLog
+â”œâ”€â”€ POST /api/admin/clients/:cid/workouts â†’ adminWorkoutLoggerRoutes â†’ WorkoutLog + awardWorkoutXP
+â””â”€â”€ GET  /api/admin/clients/:cid/workouts â†’ adminWorkoutLoggerRoutes â†’ WorkoutLog
 
 Exercise Library
-├── GET  /api/exercises/search       → exerciseRoutes → Exercise
-├── GET  /api/exercises/categories   → exerciseRoutes → Exercise
-├── GET  /api/exercises/:id          → exerciseRoutes → Exercise
-└── GET  /api/exercises/recommended  → exerciseRoutes → Exercise (NASM-filtered)
+â”œâ”€â”€ GET  /api/exercises/search       â†’ exerciseRoutes â†’ Exercise
+â”œâ”€â”€ GET  /api/exercises/categories   â†’ exerciseRoutes â†’ Exercise
+â”œâ”€â”€ GET  /api/exercises/:id          â†’ exerciseRoutes â†’ Exercise
+â””â”€â”€ GET  /api/exercises/recommended  â†’ exerciseRoutes â†’ Exercise (NASM-filtered)
 
-AI Workout Generation  ← CRITICAL: PII sent to OpenAI here
-├── POST /api/ai/workout-generation  → aiRoutes → aiWorkoutController → OpenAI GPT-4
-│   └── Sends: masterPromptJson (contains real name, email, phone, health data)
-│       + NASM constraints from ClientBaselineMeasurements
-│       → Returns: structured WorkoutPlan JSON
+AI Workout Generation  â† CRITICAL: PII sent to OpenAI here
+â”œâ”€â”€ POST /api/ai/workout-generation  â†’ aiRoutes â†’ aiWorkoutController â†’ OpenAI GPT-4
+â”‚   â””â”€â”€ Sends: masterPromptJson (contains real name, email, phone, health data)
+â”‚       + NASM constraints from ClientBaselineMeasurements
+â”‚       â†’ Returns: structured WorkoutPlan JSON
 
 Onboarding / Assessment
-├── POST /api/onboarding            → onboardingController → User.masterPromptJson + clients_pii
-├── POST /api/onboarding/self       → onboardingController → User.masterPromptJson
-├── GET  /api/onboarding/:userId    → onboardingController → User.masterPromptJson
-├── POST /api/admin/baseline-measurements → adminOnboardingRoutes → ClientBaselineMeasurements
-├── GET  /api/admin/baseline-measurements/:userId → adminOnboardingRoutes → ClientBaselineMeasurements
-├── POST /api/admin/clients/:cid/onboarding → adminOnboardingRoutes → ClientOnboardingQuestionnaire
-├── GET  /api/admin/clients/:cid/onboarding → adminOnboardingRoutes → ClientOnboardingQuestionnaire
-└── DELETE /api/admin/clients/:cid/onboarding → adminOnboardingRoutes → reset
+â”œâ”€â”€ POST /api/onboarding            â†’ onboardingController â†’ User.masterPromptJson + clients_pii
+â”œâ”€â”€ POST /api/onboarding/self       â†’ onboardingController â†’ User.masterPromptJson
+â”œâ”€â”€ GET  /api/onboarding/:userId    â†’ onboardingController â†’ User.masterPromptJson
+â”œâ”€â”€ POST /api/admin/baseline-measurements â†’ adminOnboardingRoutes â†’ ClientBaselineMeasurements
+â”œâ”€â”€ GET  /api/admin/baseline-measurements/:userId â†’ adminOnboardingRoutes â†’ ClientBaselineMeasurements
+â”œâ”€â”€ POST /api/admin/clients/:cid/onboarding â†’ adminOnboardingRoutes â†’ ClientOnboardingQuestionnaire
+â”œâ”€â”€ GET  /api/admin/clients/:cid/onboarding â†’ adminOnboardingRoutes â†’ ClientOnboardingQuestionnaire
+â””â”€â”€ DELETE /api/admin/clients/:cid/onboarding â†’ adminOnboardingRoutes â†’ reset
 
 Daily Workout Forms (NASM protocol)
-└── dailyWorkoutFormRoutes.mjs → DailyWorkoutForm
+â””â”€â”€ dailyWorkoutFormRoutes.mjs â†’ DailyWorkoutForm
 
-Other (secondary — not modified in Phase 1)
-├── workoutPlanRoutes.mjs (legacy, Zod-validated, clone/archive/restore)
-├── workoutSessionRoutes.mjs, clientWorkoutRoutes.mjs
-├── aiMonitoringRoutes.mjs (in-memory metrics, 4 endpoints)
-└── masterPrompt/ (status, health, compliance, sub-routes: ethical-ai, privacy, mcp, etc.)
+Other (secondary â€” not modified in Phase 1)
+â”œâ”€â”€ workoutPlanRoutes.mjs (legacy, Zod-validated, clone/archive/restore)
+â”œâ”€â”€ workoutSessionRoutes.mjs, clientWorkoutRoutes.mjs
+â”œâ”€â”€ aiMonitoringRoutes.mjs (in-memory metrics, 4 endpoints)
+â””â”€â”€ masterPrompt/ (status, health, compliance, sub-routes: ethical-ai, privacy, mcp, etc.)
 ```
 
 ---
@@ -125,31 +125,31 @@ Other (secondary — not modified in Phase 1)
 | Method | Path | Auth | Request Body | Response Shape |
 |--------|------|------|-------------|----------------|
 | `POST` | `/api/workout/sessions` | user | `{ title, date, duration, intensity, notes, exercises[], workoutPlanId? }` | `{ success, session: WorkoutSession }` |
-| `GET` | `/api/workout/sessions` | user | — | `{ success, sessions: WorkoutSession[] }` |
-| `GET` | `/api/workout/sessions/user/:userId` | trainer/admin | — | `{ success, sessions: WorkoutSession[] }` |
-| `GET` | `/api/workout/sessions/:sessionId` | user | — | `{ success, session: WorkoutSession }` |
+| `GET` | `/api/workout/sessions` | user | â€” | `{ success, sessions: WorkoutSession[] }` |
+| `GET` | `/api/workout/sessions/user/:userId` | trainer/admin | â€” | `{ success, sessions: WorkoutSession[] }` |
+| `GET` | `/api/workout/sessions/:sessionId` | user | â€” | `{ success, session: WorkoutSession }` |
 | `PUT` | `/api/workout/sessions/:sessionId` | user | partial session fields | `{ success, session: WorkoutSession }` |
-| `DELETE` | `/api/workout/sessions/:sessionId` | user | — | `{ success, message }` |
-| `GET` | `/api/workout/progress` | user | — | `{ success, progress: { totalSessions, totalWeight, ... } }` |
-| `GET` | `/api/workout/progress/:userId` | trainer/admin | — | same |
-| `GET` | `/api/workout/statistics` | user | — | `{ success, statistics }` |
-| `GET` | `/api/workout/recommendations` | user | — | `{ success, exercises: Exercise[] }` |
+| `DELETE` | `/api/workout/sessions/:sessionId` | user | â€” | `{ success, message }` |
+| `GET` | `/api/workout/progress` | user | â€” | `{ success, progress: { totalSessions, totalWeight, ... } }` |
+| `GET` | `/api/workout/progress/:userId` | trainer/admin | â€” | same |
+| `GET` | `/api/workout/statistics` | user | â€” | `{ success, statistics }` |
+| `GET` | `/api/workout/recommendations` | user | â€” | `{ success, exercises: Exercise[] }` |
 
 ### 2b. Admin Workout Logging (`adminWorkoutLoggerRoutes.mjs`)
 
 | Method | Path | Auth | Request Body | Response Shape |
 |--------|------|------|-------------|----------------|
 | `POST` | `/api/admin/clients/:clientId/workouts` | admin/trainer | `{ title, date, duration, intensity, exercises[{ name, sets, reps, weight, tempo?, rest? }], notes? }` | `{ success, workoutLog, xpAwarded? }` |
-| `GET` | `/api/admin/clients/:clientId/workouts` | admin/trainer | — | `{ success, workoutLogs: WorkoutLog[] }` |
+| `GET` | `/api/admin/clients/:clientId/workouts` | admin/trainer | â€” | `{ success, workoutLogs: WorkoutLog[] }` |
 
 ### 2c. Exercise Library (`exerciseRoutes.mjs`)
 
 | Method | Path | Auth | Request Body | Response Shape |
 |--------|------|------|-------------|----------------|
 | `GET` | `/api/exercises/search` | trainer/admin | `?q=<term>&type=<type>&muscle=<group>` | `{ success, exercises: Exercise[] }` |
-| `GET` | `/api/exercises/categories` | trainer/admin | — | `{ success, exerciseTypes[], muscleGroups[] }` |
-| `GET` | `/api/exercises/:id` | trainer/admin | — | `{ success, exercise: Exercise }` |
-| `GET` | `/api/exercises/recommended` | user | — | `{ success, exercises: Exercise[] }` (NASM-filtered) |
+| `GET` | `/api/exercises/categories` | trainer/admin | â€” | `{ success, exerciseTypes[], muscleGroups[] }` |
+| `GET` | `/api/exercises/:id` | trainer/admin | â€” | `{ success, exercise: Exercise }` |
+| `GET` | `/api/exercises/recommended` | user | â€” | `{ success, exercises: Exercise[] }` (NASM-filtered) |
 
 ### 2d. AI Workout Generation (`aiRoutes.mjs`)
 
@@ -165,14 +165,14 @@ Other (secondary — not modified in Phase 1)
 |--------|------|------|-------------|----------------|
 | `POST` | `/api/onboarding` | trainer/admin | 85-field questionnaire form data | `{ success, masterPromptJson, spiritName }` |
 | `POST` | `/api/onboarding/self` | user | same | `{ success, masterPromptJson }` |
-| `GET` | `/api/onboarding/:userId` | trainer/admin | — | `{ success, masterPromptJson }` |
+| `GET` | `/api/onboarding/:userId` | trainer/admin | â€” | `{ success, masterPromptJson }` |
 | `POST` | `/api/admin/baseline-measurements` | admin | PAR-Q+, OHSA, postural, strength tests | `{ success, measurement: ClientBaselineMeasurements }` |
-| `GET` | `/api/admin/baseline-measurements/:userId` | admin | — | `{ success, measurements[] }` |
+| `GET` | `/api/admin/baseline-measurements/:userId` | admin | â€” | `{ success, measurements[] }` |
 | `POST` | `/api/admin/clients/:cid/onboarding` | admin/trainer | `{ responses, status }` | `{ success, questionnaire }` |
-| `GET` | `/api/admin/clients/:cid/onboarding` | admin/trainer | — | `{ success, status, questionnaire }` |
-| `DELETE` | `/api/admin/clients/:cid/onboarding` | admin | — | `{ success, message }` |
+| `GET` | `/api/admin/clients/:cid/onboarding` | admin/trainer | â€” | `{ success, status, questionnaire }` |
+| `DELETE` | `/api/admin/clients/:cid/onboarding` | admin | â€” | `{ success, message }` |
 
-### 2f. Workout Plan Routes (`workoutPlanRoutes.mjs`) — Legacy/Secondary
+### 2f. Workout Plan Routes (`workoutPlanRoutes.mjs`) â€” Legacy/Secondary
 
 Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `POST /:id/restore`. All Zod-validated, trainer/admin auth. Response: `{ success, plan: WorkoutPlan }`.
 
@@ -225,20 +225,20 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 
 | NASM Resource | Source URL | Edition / Version | Checked |
 |--------------|-----------|-------------------|---------|
-| OPT Model (5-phase) | nasm.org/certified-personal-trainer/the-opt-model | CPT 7th Edition (updated at Optima 2020 — Phase 3 renamed "Muscular Development") | 2026-02-24 |
+| OPT Model (5-phase) | nasm.org/certified-personal-trainer/the-opt-model | CPT 7th Edition (updated at Optima 2020 â€” Phase 3 renamed "Muscular Development") | 2026-02-24 |
 | OPT Model Updates | blog.nasm.org/new-opt-model-updates | 5 updates: fundamental movement, dynamic warmup, integrated CES, skill dev, client choice | 2026-02-24 |
 | PAR-Q+ Screening | eparmedx.com (official), surrey.ca/ParQ-Plus-2024 | 2024 edition (maintained by PAR-Q+ Collaboration / CSEP) | 2026-02-24 |
-| NASM CPT Textbook | ISBN 9781284200881 (7th ed.) | 7th Edition — "NASM Essentials of Personal Fitness Training" | 2026-02-24 |
-| CES Protocol (4-phase) | Part of CPT 7th Edition curriculum | Inhibit → Lengthen → Activate → Integrate (NASM CES standard) | 2026-02-24 |
-| NASM Fitness Calculators | nasm.org/resources (404 as of check date — page restructured) | N/A — calculators embedded in CPT materials | 2026-02-24 |
+| NASM CPT Textbook | ISBN 9781284200881 (7th ed.) | 7th Edition â€” "NASM Essentials of Personal Fitness Training" | 2026-02-24 |
+| CES Protocol (4-phase) | Part of CPT 7th Edition curriculum | Inhibit â†’ Lengthen â†’ Activate â†’ Integrate (NASM CES standard) | 2026-02-24 |
+| NASM Fitness Calculators | nasm.org/resources (404 as of check date â€” page restructured) | N/A â€” calculators embedded in CPT materials | 2026-02-24 |
 
-**Note:** NASM CPT 7th Edition is the current certification standard (2025-2026 exam cycle). Third-party study guides reference 2026-2027 materials. Our in-app OPT Model uses the original 5-phase naming (Phase 3 = "Hypertrophy" rather than the updated "Muscular Development") — this is a cosmetic gap, not a protocol error.
+**Note:** NASM CPT 7th Edition is the current certification standard (2025-2026 exam cycle). Third-party study guides reference 2026-2027 materials. Our in-app OPT Model uses the original 5-phase naming (Phase 3 = "Hypertrophy" rather than the updated "Muscular Development") â€” this is a cosmetic gap, not a protocol error.
 
 ### 3e. Internal Versioning Strategy
 
 - Onboarding questionnaire version tracked in `ClientOnboardingQuestionnaire.questionnaireVersion` (default: `'3.0'`)
 - `masterPromptJson` follows v3.0 schema (declared in `onboardingController.mjs`)
-- No formal versioning on NASM assessment protocols — relying on JSONB flexibility
+- No formal versioning on NASM assessment protocols â€” relying on JSONB flexibility
 - **Recommendation:** Add explicit protocol version fields when adding de-identification middleware
 
 ### 3g. NASM Template Gaps
@@ -260,7 +260,7 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 
 ## 4. Data Sensitivity Matrix
 
-### 4a. Direct Identifiers (PII — Must NEVER reach LLM)
+### 4a. Direct Identifiers (PII â€” Must NEVER reach LLM)
 
 | Field | Model/Table | Classification |
 |-------|------------|----------------|
@@ -273,7 +273,7 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 | `masterPromptJson.client.contact.email` | `Users.masterPromptJson` | Direct identifier |
 | `masterPromptJson.client.contact.phone` | `Users.masterPromptJson` | Direct identifier |
 
-### 4b. Quasi-Identifiers (Caution — may re-identify in combination)
+### 4b. Quasi-Identifiers (Caution â€” may re-identify in combination)
 
 | Field | Model | Risk Level |
 |-------|-------|-----------|
@@ -282,7 +282,7 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 | `bloodType` | `masterPromptJson` | Low-medium |
 | `zipCode` / location | `masterPromptJson` | Medium-high |
 
-### 4c. Health/Performance Data (PHI — Protected, needs consent)
+### 4c. Health/Performance Data (PHI â€” Protected, needs consent)
 
 | Field | Model | Notes |
 |-------|-------|-------|
@@ -302,7 +302,7 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 
 | Field | Model | Notes |
 |-------|-------|-------|
-| `spiritName` | `Users`, `clients_pii` | Privacy alias — OK for LLM |
+| `spiritName` | `Users`, `clients_pii` | Privacy alias â€” OK for LLM |
 | `primaryGoal` | `ClientOnboardingQuestionnaire` | Training objective |
 | `trainingTier` | `ClientOnboardingQuestionnaire` | Session frequency |
 | `commitmentLevel` | `ClientOnboardingQuestionnaire` | 1-10 scale |
@@ -324,19 +324,19 @@ Standard CRUD (`GET/POST/PUT/DELETE /`) + `POST /clone`, `POST /:id/archive`, `P
 
 | Provider | BAA Available? | Current Integration | PII Exposure Risk |
 |----------|---------------|--------------------|--------------------|
-| OpenAI GPT-4 | Enterprise BAA available | **ACTIVE** — `aiWorkoutController.mjs` sends raw masterPromptJson | **CRITICAL** — real name, email, phone, health data sent |
-| Anthropic Claude | API BAA available | Configured in `MasterPromptModelManager.mjs`, not wired to masterPromptJson flow | LOW — not receiving PII currently |
+| OpenAI GPT-4 | Enterprise BAA available | **ACTIVE** â€” `aiWorkoutController.mjs` sends raw masterPromptJson | **CRITICAL** â€” real name, email, phone, health data sent |
+| Anthropic Claude | API BAA available | Configured in `MasterPromptModelManager.mjs`, not wired to masterPromptJson flow | LOW â€” not receiving PII currently |
 
 ### 5b. Current PII Transmission Path (CRITICAL FINDING)
 
 ```
-Onboarding Form → onboardingController.transformQuestionnaireToMasterPrompt()
-    → User.masterPromptJson (stored with real name, email, phone)
-        → aiWorkoutController.generateWorkoutPlan()
-            → buildPrompt(masterPromptJson, constraints)
-                → JSON.stringify(masterPromptJson) ← FULL PII HERE
-                    → openai.chat.completions.create({ messages: [{ content: prompt }] })
-                        → OpenAI GPT-4 receives: real name, email, phone, health history
+Onboarding Form â†’ onboardingController.transformQuestionnaireToMasterPrompt()
+    â†’ User.masterPromptJson (stored with real name, email, phone)
+        â†’ aiWorkoutController.generateWorkoutPlan()
+            â†’ buildPrompt(masterPromptJson, constraints)
+                â†’ JSON.stringify(masterPromptJson) â† FULL PII HERE
+                    â†’ openai.chat.completions.create({ messages: [{ content: prompt }] })
+                        â†’ OpenAI GPT-4 receives: real name, email, phone, health history
 ```
 
 **The comment in `onboardingController.mjs` says "Will be REDACTED before AI processing" but NO redaction code exists.** This is the #1 priority fix.
@@ -364,20 +364,20 @@ Onboarding Form → onboardingController.transformQuestionnaireToMasterPrompt()
 | DataMinimization | 40% | No AI rules, no-op deletion |
 | spiritName | 80% | Not substituted in AI prompts |
 | MasterPromptModelManager | 70% | No fallback chain |
-| PII-Safe Logger / RBAC | 90% | Active — no gap |
+| PII-Safe Logger / RBAC | 90% | Active â€” no gap |
 
 ### 5f. Regulatory Status
 
 | Regulation | Engineering Assessment | Gap | Notes |
 |-----------|----------------------|-----|-------|
-| HIPAA | Likely non-compliant without BAA | PHI sent to OpenAI without data processing agreement | Legal validation required — this is an engineering assessment, not a legal conclusion |
+| HIPAA | Likely non-compliant without BAA | PHI sent to OpenAI without data processing agreement | Legal validation required â€” this is an engineering assessment, not a legal conclusion |
 | GDPR Art.22 | Partial | No AI-specific consent or opt-out mechanism | Consent model needed before expanding AI features |
 | CCPA | Partial | No AI data sharing disclosure to users | Disclosure language needed in privacy policy |
 | NASM Scope of Practice | Aligned | Physician referral disclaimers present | No scope-of-practice violations identified |
 
 ### 5g. Questions for Legal Counsel
 
-1. Does `masterPromptJson` PII → OpenAI require a formal DPA under GDPR Art. 28?
+1. Does `masterPromptJson` PII â†’ OpenAI require a formal DPA under GDPR Art. 28?
 2. Is health/fitness data PHI (HIPAA) or PII-only (state law) given SwanStudios is not a covered entity?
 3. Should consent be granular (AI coaching vs. analytics vs. social)?
 4. Liability exposure for existing PII-to-OpenAI pipeline on data audit request?
@@ -391,8 +391,8 @@ Onboarding Form → onboardingController.transformQuestionnaireToMasterPrompt()
 
 | Resource | Approach | Licensing Risk |
 |----------|----------|---------------|
-| OPT Model phase names | Use freely — publicly documented educational framework | None |
-| PAR-Q+ screening questions | Use freely — public health screening tool (CSEP) | None |
+| OPT Model phase names | Use freely â€” publicly documented educational framework | None |
+| PAR-Q+ screening questions | Use freely â€” public health screening tool (CSEP) | None |
 | OHSA checkpoint names | Use generic anatomical terms, not NASM-specific naming | Low |
 | CES protocol names (Inhibit/Lengthen/Activate/Integrate) | Use generic phases, cite NASM in docs only | Low |
 | NASM exercise library content | Do NOT embed copyrighted exercise descriptions | High |
@@ -422,8 +422,8 @@ Onboarding Form → onboardingController.transformQuestionnaireToMasterPrompt()
 | Component | Priority | Description |
 |-----------|----------|-------------|
 | De-identification Middleware | P0-CRITICAL | Strip PII from masterPromptJson before any LLM call |
-| Consent Data Model | P0-CRITICAL | `AiPrivacyProfile` — per-user AI consent with granular toggles |
-| Consent Withdrawal Handler | P0-CRITICAL | Revoke consent → stop AI processing, queue data purge |
+| Consent Data Model | P0-CRITICAL | `AiPrivacyProfile` â€” per-user AI consent with granular toggles |
+| Consent Withdrawal Handler | P0-CRITICAL | Revoke consent â†’ stop AI processing, queue data purge |
 | Provider Abstraction Layer | P1-HIGH | Unified interface for OpenAI/Anthropic/future providers with fallback |
 | AI Context Builder (Prep Mode) | P1-HIGH | Build safe LLM context from de-identified data + NASM constraints |
 | Session Mode Engine | P1-HIGH | Real-time workout tracking with in-session AI coaching |
@@ -432,7 +432,7 @@ Onboarding Form → onboardingController.transformQuestionnaireToMasterPrompt()
 | Rate Limiter (per-user AI) | P2-MEDIUM | Prevent abuse of AI generation endpoints |
 | `ClientsPii` Sequelize Model | P2-MEDIUM | Replace raw SQL access with proper ORM model + access controls |
 
-### 7c. Key Gap — PII in AI Pipeline
+### 7c. Key Gap â€” PII in AI Pipeline
 
 The single most critical finding: `masterPromptJson` is constructed with `client.name` (real name), `client.contact.email`, `client.contact.phone`, and full health history, then sent verbatim to OpenAI GPT-4 via `aiWorkoutController.mjs`. The code contains a comment "Will be REDACTED before AI processing" but **no redaction code exists**.
 
@@ -447,7 +447,7 @@ The `spiritName` system is already in place (`masterPromptJson.client.alias`) bu
 | # | Severity | Risk | Impact | Mitigation |
 |---|----------|------|--------|------------|
 | 1 | **CRITICAL** | PII sent to OpenAI in production | Real names, emails, phones, health data transmitted to third-party AI | De-identification middleware (Phase 1 P0) |
-| 2 | **HIGH** | No user consent model for AI processing | GDPR/CCPA violation risk — no record of user consent for AI data use | `AiPrivacyProfile` model (Phase 1) |
+| 2 | **HIGH** | No user consent model for AI processing | GDPR/CCPA violation risk â€” no record of user consent for AI data use | `AiPrivacyProfile` model (Phase 1) |
 | 3 | **HIGH** | Privacy services are mock/stub | `PrivacyCompliance.deleteUserData()` and `DataMinimization` are no-ops | Wire to real implementations (Phase 2) |
 | 4 | **HIGH** | `clients_pii` has no ORM model | Raw SQL access bypasses Sequelize hooks, RBAC, and audit logging | Create Sequelize model with access controls |
 | 5 | **MEDIUM** | No AI feature kill switch | Cannot quickly disable AI features if PII breach detected | Runtime feature flag (Phase 1) |
@@ -470,29 +470,29 @@ The `spiritName` system is already in place (`masterPromptJson.client.alias`) bu
 
 Based on this audit, the recommended implementation sequence is:
 
-### Phase 1 — Privacy Foundation (MUST complete before any new AI features)
-1. **De-identification middleware** — intercept `masterPromptJson` before LLM calls, strip PII, substitute `spiritName`
-2. **`AiPrivacyProfile` model** — consent state per user with granular toggles
-3. **Consent UI** — client-facing consent screen during onboarding
-4. **`ClientsPii` Sequelize model** — replace raw SQL access
-5. **AI kill switch** — runtime feature flag to disable all AI endpoints
-6. **`AiInteractionLog` model** — audit trail for all AI API calls
+### Phase 1 â€” Privacy Foundation (MUST complete before any new AI features)
+1. **De-identification middleware** â€” intercept `masterPromptJson` before LLM calls, strip PII, substitute `spiritName`
+2. **`AiPrivacyProfile` model** â€” consent state per user with granular toggles
+3. **Consent UI** â€” client-facing consent screen during onboarding
+4. **`ClientsPii` Sequelize model** â€” replace raw SQL access
+5. **AI kill switch** â€” runtime feature flag to disable all AI endpoints
+6. **`AiInteractionLog` model** â€” audit trail for all AI API calls
 
-### Phase 2 — Smart Workout Logger Core
-7. **Prep Mode** — AI context builder using de-identified data + NASM constraints
-8. **Session Mode** — real-time workout tracking with in-session AI suggestions
-9. **Provider abstraction** — unified interface for OpenAI/Anthropic with fallback chain
+### Phase 2 â€” Smart Workout Logger Core
+7. **Prep Mode** â€” AI context builder using de-identified data + NASM constraints
+8. **Session Mode** â€” real-time workout tracking with in-session AI suggestions
+9. **Provider abstraction** â€” unified interface for OpenAI/Anthropic with fallback chain
 10. **Wire de-identified context** to existing `aiWorkoutController.mjs`
 
-### Phase 3 — Polish & Compliance
+### Phase 3 â€” Polish & Compliance
 11. Wire `PrivacyCompliance.deleteUserData()` + `DataMinimization` to real implementations
-12. Persistent AI monitoring (in-memory → database) + per-user rate limiting
+12. Persistent AI monitoring (in-memory â†’ database) + per-user rate limiting
 13. Compliance reporting for GDPR/CCPA audit requests
 
 ---
 
-> **Phase 0 COMPLETE** (repo audit + unauthenticated Playwright + authenticated Playwright infrastructure verified). Authenticated visual capture pending valid test credentials — see `SMART-WORKOUT-LOGGER-PLAYWRIGHT-EVIDENCE.md` for run command.
+> **Phase 0 COMPLETE** (repo audit + unauthenticated Playwright + authenticated Playwright infrastructure verified). Authenticated visual capture pending valid test credentials â€” see `SMART-WORKOUT-LOGGER-PLAYWRIGHT-EVIDENCE.md` for run command.
 >
-> All 6 deliverables: workflow audit (§1), endpoint inventory (§2), NASM matrix (§3), data sensitivity (§4), compliance (§5), integration recs (§6). Plus: AI maturity (§7), risks (§8), execution order (§10). Models/files in appendices doc.
+> All 6 deliverables: workflow audit (Â§1), endpoint inventory (Â§2), NASM matrix (Â§3), data sensitivity (Â§4), compliance (Â§5), integration recs (Â§6). Plus: AI maturity (Â§7), risks (Â§8), execution order (Â§10). Models/files in appendices doc.
 >
 > **Test baseline:** 407 tests passing, 23 files (2026-02-24)

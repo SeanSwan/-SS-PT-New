@@ -7,14 +7,14 @@
 - [x] **StripeAnalyticsService.mjs** - Real-time Stripe API integration with Redis caching
 - [x] **BusinessIntelligenceService.mjs** - Advanced KPI calculation and forecasting  
 - [x] **AdminAnalyticsRoutes.mjs** - Complete financial analytics API with security
-- [x] **AdminMCPRoutes.mjs** - MCP server management and monitoring
+- [x] **Admin compatibility routes** - retired bridge responses are fail-closed
 - [x] **AdminOrdersRoutes.mjs** - Real order management with Stripe correlation
 
 ### ✅ API Endpoints Ready
 - [x] `GET /api/admin/finance/overview` - Real Stripe financial data
 - [x] `GET /api/admin/finance/export` - Export capabilities  
 - [x] `GET /api/admin/business-intelligence/metrics` - Business KPIs
-- [x] `GET /api/admin/mcp-servers` - MCP server status
+- [x] Retired `/api/admin/mcp*` compatibility routes return decommissioned status
 - [x] `GET /api/admin/orders/pending` - Real pending orders
 - [x] `GET /api/admin/orders/analytics` - Order analytics
 
@@ -33,9 +33,9 @@
 
 ### 🔄 Needs Completion
 - [ ] **PendingOrdersAdminPanel.tsx** - Complete real API integration
-- [ ] **BusinessIntelligence components** - Connect to real endpoints
-- [ ] **MCP Management components** - Real server monitoring integration
-- [ ] **UserAnalyticsPanel.tsx** - Real user data integration
+- [ ] **Business intelligence components** - Rebuild only after route receipt and real endpoint contract
+- [x] **Legacy bridge management components** - Archived; do not remount retired MCP UI
+- [x] **UserAnalyticsPanel.tsx** - Archived as unmounted demo panel pending a real endpoint-backed rebuild
 
 ## 🚀 DEPLOYMENT STEPS
 
@@ -78,7 +78,7 @@ chmod +x test-real-stripe-analytics.sh
 # Complete remaining frontend components:
 # 1. Update PendingOrdersAdminPanel data fetching
 # 2. Connect BusinessIntelligence to real API
-# 3. Integrate MCP monitoring components
+# 3. Keep retired bridge monitoring out of the active UI
 # 4. Test all admin dashboard features
 ```
 
@@ -87,7 +87,7 @@ chmod +x test-real-stripe-analytics.sh
 ### Backend API Testing
 - [ ] `/api/admin/finance/overview` returns real Stripe data
 - [ ] `/api/admin/business-intelligence/metrics` calculates real KPIs
-- [ ] `/api/admin/mcp-servers` shows actual server status
+- [ ] Retired bridge compatibility routes return fail-closed decommissioned status
 - [ ] `/api/admin/orders/pending` loads real pending orders
 - [ ] Export functionality downloads real data
 - [ ] Rate limiting prevents abuse
@@ -97,7 +97,7 @@ chmod +x test-real-stripe-analytics.sh
 - [ ] Revenue charts display real Stripe data
 - [ ] Business metrics show calculated KPIs
 - [ ] Pending orders load from database
-- [ ] MCP server status updates in real-time
+- [x] Retired bridge status does not poll removed services
 - [ ] Export buttons download real CSV data
 - [ ] Error messages display appropriately
 - [ ] Loading states work correctly
@@ -114,7 +114,7 @@ chmod +x test-real-stripe-analytics.sh
 ### ✅ Functional Requirements
 - [x] Real Stripe financial data integration
 - [x] Business intelligence calculation  
-- [x] MCP server monitoring
+- [x] Retired bridge compatibility status
 - [x] Order management with Stripe correlation
 - [x] Data export capabilities
 

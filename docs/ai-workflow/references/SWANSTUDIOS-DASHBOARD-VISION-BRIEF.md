@@ -32,7 +32,7 @@ The dashboards must support revenue, daily return behavior, and fast operations 
 
 ### Admin dashboard
 - Entry route: `/dashboard/*`
-- Live shell: `frontend/src/components/DashBoard/UnifiedAdminRoutes.tsx`
+- Live shell: `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx`
 - Admin is already moving toward workspace grouping: home, people, scheduling, store, workouts, gamification, content, analytics, system
 
 ## Shared Diagnosis
@@ -202,7 +202,7 @@ This makes everything feel important and nothing feel prioritized.
 
 ## Admin Dashboard: Heads-Up Architecture
 ### Current state
-Admin is already on the right path because `UnifiedAdminRoutes.tsx` groups work into workspaces.
+Admin is already on the right path because `UniversalDashboardLayout.tsx` groups work into workspaces.
 Do not blow that up.
 
 ### Recommended rule

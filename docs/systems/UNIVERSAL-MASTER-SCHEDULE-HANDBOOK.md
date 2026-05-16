@@ -1,7 +1,7 @@
 # Universal Master Schedule System - Complete Handbook
 
 ## System Overview
-The Universal Master Schedule System unifies scheduling across Admin, Trainer, and Client dashboards. It replaces disparate calendar implementations with a single, robust, mobile-first solution that mirrors industry-standard features (MindBody) while adhering to SwanStudios' Galaxy-Swan design system.
+The Universal Master Schedule System unifies scheduling across Admin, Trainer, and Client dashboards. It replaces disparate calendar implementations with a single, robust, mobile-first solution that mirrors industry-standard features while adhering to SwanStudios' Enchanted Apex / Crystalline Swan design system.
 
 **Core Philosophy:** "One Calendar, Three Views"
 - **Admin View:** Full control, all trainers, all clients, override capabilities.

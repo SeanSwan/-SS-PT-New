@@ -1,25 +1,25 @@
-# SwanStudios Workout System — Unified Upgrade & Fix Master Prompt
+# SwanStudios Workout System â€” Unified Upgrade & Fix Master Prompt
 
 ## Context
-SwanStudios is a production personal training SaaS platform (React 18 + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). The workout system spans Plans, Logger, AI Chat, Body Map, Bootcamp Builder, and Equipment Manager — but these systems have critical bugs, missing integrations, and design issues that prevent them from working as a unified training ecosystem.
+SwanStudios is a production personal training SaaS platform (React 18 + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). The workout system spans Plans, Logger, AI Chat, Body Map, Bootcamp Builder, and Equipment Manager â€” but these systems have critical bugs, missing integrations, and design issues that prevent them from working as a unified training ecosystem.
 
-**Owner:** Sean Swan — 25+ year NCEP-certified personal trainer who uses NASM protocols
+**Owner:** Sean Swan â€” 25+ year NCEP-certified personal trainer who uses NASM protocols
 **Theme:** Enchanted Apex: Crystalline Swan (Midnight Sapphire `#002060`, Royal Depth `#003080`, Ice Wing `#60C0F0`, Wing Purple `#8B5CF6`, Gilded Fern `#C6A84B`, Frost White `#E0ECF4`)
-**Privacy Requirement:** Swan AI must ONLY see client ID numbers, NEVER client names — all AI interactions must use de-identified client references (e.g., "Client #47")
+**Privacy Requirement:** Swan AI must ONLY see client ID numbers, NEVER client names â€” all AI interactions must use de-identified client references (e.g., "Client #47")
 
 ---
 
-## CRITICAL BUGS (P0 — Must Fix)
+## CRITICAL BUGS (P0 â€” Must Fix)
 
 ### Bug 1: Swan AI Chat Fails After One Message (429 Rate Limit Lock)
 
-**Symptoms:** User sends one message in AI chat terminal → gets response → second message returns `429: An AI generation request is already in progress`
+**Symptoms:** User sends one message in AI chat terminal â†’ gets response â†’ second message returns `429: An AI generation request is already in progress`
 **Console errors:**
 ```
 /api/ai-chat/conversations/14/messages:1 Failed to load resource: status 429
 ```
 
-**Root Cause:** In `backend/routes/aiChatRoutes.mjs` line 201, the route `POST /conversations/:id/messages` uses `aiRateLimiter` middleware which calls `checkRateLimit(userId)` — this adds `userId` to `concurrentUsers` Set in `backend/services/ai/rateLimiter.mjs` line 115. But the route handler **NEVER calls `releaseConcurrent(userId)`** after the request completes. The lock is permanent until server restart.
+**Root Cause:** In `backend/routes/aiChatRoutes.mjs` line 201, the route `POST /conversations/:id/messages` uses `aiRateLimiter` middleware which calls `checkRateLimit(userId)` â€” this adds `userId` to `concurrentUsers` Set in `backend/services/ai/rateLimiter.mjs` line 115. But the route handler **NEVER calls `releaseConcurrent(userId)`** after the request completes. The lock is permanent until server restart.
 
 **Fix required:**
 - In `aiChatRoutes.mjs`, the `POST /conversations/:id/messages` handler must call `releaseConcurrent(req.user.id)` in a `finally` block
@@ -29,7 +29,7 @@ SwanStudios is a production personal training SaaS platform (React 18 + TypeScri
 
 **Files:**
 - `backend/routes/aiChatRoutes.mjs` (line 201-315)
-- `backend/services/ai/rateLimiter.mjs` (line 124-126 — `releaseConcurrent` exists but is never called)
+- `backend/services/ai/rateLimiter.mjs` (line 124-126 â€” `releaseConcurrent` exists but is never called)
 - `backend/controllers/aiWorkoutController.mjs`
 - `backend/middleware/aiRateLimiter.mjs`
 
@@ -66,17 +66,17 @@ ss-pt-new.onrender.com/api/ai/workout-generation:1 Failed to load resource: stat
 
 **Symptoms:**
 ```
-useWorkoutMcp.ts:210 MCP call failed, using mock data for workout recommendations: Error: MCP_DISABLED
+useWorkoutMcp.ts:210 MCP call failed for workout recommendations: Error: MCP_DISABLED
 ```
 
-**Assessment:** This is a graceful fallback — the MCP (Model Context Protocol) server isn't running, so it falls back to mock data. This is acceptable for now but should be noted. The exercise library should work without MCP by loading from the database exercise table directly.
+**Assessment:** Historical note. MCP fallback is retired; the exercise library should work without MCP by loading from the database exercise table directly.
 
 **Files:**
 - `frontend/src/hooks/useWorkoutMcp.ts`
 
 ---
 
-## INTEGRATION GAPS (P1 — Unify the Ecosystem)
+## INTEGRATION GAPS (P1 â€” Unify the Ecosystem)
 
 ### Gap 1: Swan AI Cannot Fill Out Workout Logger Forms
 
@@ -94,14 +94,14 @@ useWorkoutMcp.ts:210 MCP call failed, using mock data for workout recommendation
    - Previous workout history (progressive overload context)
    - Movement analysis results (compensations to address)
    - Equipment available at training location (see Gap 3)
-4. **Privacy:** AI receives `Client #47` not "John Smith" — de-identification must be enforced
+4. **Privacy:** AI receives `Client #47` not "John Smith" â€” de-identification must be enforced
 
 **Data flow:**
 ```
 Trainer types: "Log workout for Client #47: we did bench 3x10 at 185, squats 4x8 at 225, felt good, RPE 7"
-→ AI chat sends to backend with targetUserId = 47
-→ Backend enriches with client #47's data (pain map, history, equipment profile)
-→ AI parses and returns structured JSON:
+â†’ AI chat sends to backend with targetUserId = 47
+â†’ Backend enriches with client #47's data (pain map, history, equipment profile)
+â†’ AI parses and returns structured JSON:
 {
   "action": "populate_workout_form",
   "clientId": 47,
@@ -112,16 +112,16 @@ Trainer types: "Log workout for Client #47: we did bench 3x10 at 185, squats 4x8
   "sessionNotes": "Client felt good overall",
   "overallIntensity": 7
 }
-→ Frontend detects action block, opens WorkoutLogger pre-filled
-→ Trainer reviews, adjusts, submits
+â†’ Frontend detects action block, opens WorkoutLogger pre-filled
+â†’ Trainer reviews, adjusts, submits
 ```
 
 **Files to modify:**
-- `backend/services/aiChatService.mjs` — Add `workout_logging` context with structured output instructions
-- `backend/routes/aiChatRoutes.mjs` — Handle `populate_workout_form` action type
-- `frontend/src/hooks/useAIChat.ts` — Detect action blocks in AI responses
-- `frontend/src/components/Shared/AITerminalPanel.tsx` — Show "Apply to Logger" button when action detected
-- `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx` — Accept pre-filled data from AI
+- `backend/services/aiChatService.mjs` â€” Add `workout_logging` context with structured output instructions
+- `backend/routes/aiChatRoutes.mjs` â€” Handle `populate_workout_form` action type
+- `frontend/src/hooks/useAIChat.ts` â€” Detect action blocks in AI responses
+- `frontend/src/components/Shared/AITerminalPanel.tsx` â€” Show "Apply to Logger" button when action detected
+- `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx` â€” Accept pre-filled data from AI
 
 ### Gap 2: Swan AI Cannot Manipulate Bootcamp Builder
 
@@ -134,8 +134,8 @@ Trainer types: "Log workout for Client #47: we did bench 3x10 at 185, squats 4x8
 4. AI must respect equipment profiles for the specified location
 
 **Files:**
-- `backend/services/aiChatService.mjs` — Add bootcamp generation context
-- `frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx` — Accept AI-generated data
+- `backend/services/aiChatService.mjs` â€” Add bootcamp generation context
+- `frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx` â€” Accept AI-generated data
 
 ### Gap 3: Training Location / Equipment Profile Not in Workout Logger
 
@@ -148,14 +148,14 @@ Trainer types: "Log workout for Client #47: we did bench 3x10 at 185, squats 4x8
 4. Equipment Manager must support photo uploads that persist to database (R2 or similar)
 
 **Data model changes:**
-- `DailyWorkoutForm` model — Add `equipmentProfileId` field (FK to EquipmentProfile)
-- Equipment photos should use the existing image upload pipeline (multer → R2)
+- `DailyWorkoutForm` model â€” Add `equipmentProfileId` field (FK to EquipmentProfile)
+- Equipment photos should use the existing image upload pipeline (multer â†’ R2)
 
 **Files:**
-- `backend/models/DailyWorkoutForm.mjs` — Add `equipmentProfileId` column
-- `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx` — Add equipment profile picker
-- `backend/services/aiChatService.mjs` — Include equipment list in AI context enrichment
-- `frontend/src/components/Shared/EquipmentProfilePicker.tsx` — Ensure photo upload works
+- `backend/models/DailyWorkoutForm.mjs` â€” Add `equipmentProfileId` column
+- `frontend/src/components/WorkoutLogger/WorkoutLogger.tsx` â€” Add equipment profile picker
+- `backend/services/aiChatService.mjs` â€” Include equipment list in AI context enrichment
+- `frontend/src/components/Shared/EquipmentProfilePicker.tsx` â€” Ensure photo upload works
 
 ### Gap 4: Body Map Contrast Issues
 
@@ -175,9 +175,9 @@ Trainer types: "Log workout for Client #47: we did bench 3x10 at 185, squats 4x8
 
 ---
 
-## ENHANCEMENT REQUESTS (P2 — Upgrade & Polish)
+## ENHANCEMENT REQUESTS (P2 â€” Upgrade & Polish)
 
-### Enhancement 1: Workout Plan Builder — Full AI Integration
+### Enhancement 1: Workout Plan Builder â€” Full AI Integration
 
 The Plan tab should allow trainers to:
 1. Create plans manually (current functionality)
@@ -185,7 +185,7 @@ The Plan tab should allow trainers to:
 3. AI-generated plans should auto-populate the plan builder form
 4. Plans should be editable after AI generation
 
-### Enhancement 2: Equipment Manager — Photo Persistence
+### Enhancement 2: Equipment Manager â€” Photo Persistence
 
 Current state unclear whether equipment photos persist to database. Ensure:
 1. Photos upload to R2/cloud storage via multer
@@ -193,7 +193,7 @@ Current state unclear whether equipment photos persist to database. Ensure:
 3. Photos display in Equipment Manager UI
 4. Equipment profiles are selectable in Workout Logger and AI chat
 
-### Enhancement 3: Swan AI — Unified Client Data Access
+### Enhancement 3: Swan AI â€” Unified Client Data Access
 
 When a trainer chats about a specific client (via `targetUserId`), the AI must see ALL of:
 1. Onboarding questionnaire responses
@@ -209,13 +209,13 @@ When a trainer chats about a specific client (via `targetUserId`), the AI must s
 
 **Privacy enforcement:** All of this data must be de-identified before reaching the AI. Client names, emails, phone numbers must be stripped. Only "Client #[ID]" references allowed.
 
-### Enhancement 4: Body Map — Enhanced Interactive Experience
+### Enhancement 4: Body Map â€” Enhanced Interactive Experience
 
 Upgrade the body map to:
 1. Show pain history timeline (not just current entries)
 2. Animate severity changes over time
 3. Better touch targets for mobile (44px minimum per CLAUDE.md)
-4. Integration with workout logger — auto-flag exercises that target painful areas
+4. Integration with workout logger â€” auto-flag exercises that target painful areas
 5. Crystalline Swan theme compliance (current colors may use retired Galaxy-Swan tokens)
 
 ### Enhancement 5: Error Handling & UX Flow
@@ -224,7 +224,7 @@ All tabs in the workout workspace should:
 1. Show meaningful error messages (not generic "Failed to load")
 2. Have loading skeletons instead of spinners
 3. Gracefully degrade when backend is slow (Render cold start ~30s)
-4. Never show a white screen — use ErrorBoundary
+4. Never show a white screen â€” use ErrorBoundary
 5. All forms should save draft state to localStorage to prevent data loss
 
 ---
@@ -248,33 +248,33 @@ All tabs in the workout workspace should:
 ### Current File Structure
 ```
 Frontend (React 18 + TypeScript + styled-components):
-├── components/WorkoutLogger/WorkoutLogger.tsx     — Manual workout form
-├── components/WorkoutLogger/MobileWorkoutLogger.tsx — Mobile variant
-├── components/WorkoutManagement/WorkoutPlanBuilder.tsx — Plan creation
-├── components/BootcampBuilder/BootcampBuilderPage.tsx — Bootcamp class builder
-├── components/BodyMap/BodyMapSVG.tsx               — Interactive pain map
-├── components/Shared/AITerminalPanel.tsx            — AI chat UI
-├── components/Shared/EquipmentProfilePicker.tsx     — Equipment selector
-├── hooks/useAIChat.ts                              — AI chat state management
-├── hooks/useWorkoutMcp.ts                          — MCP integration (fallback)
+â”œâ”€â”€ components/WorkoutLogger/WorkoutLogger.tsx     â€” Manual workout form
+â”œâ”€â”€ components/WorkoutLogger/MobileWorkoutLogger.tsx â€” Mobile variant
+â”œâ”€â”€ components/WorkoutManagement/WorkoutPlanBuilder.tsx â€” Plan creation
+â”œâ”€â”€ components/BootcampBuilder/BootcampBuilderPage.tsx â€” Bootcamp class builder
+â”œâ”€â”€ components/BodyMap/BodyMapSVG.tsx               â€” Interactive pain map
+â”œâ”€â”€ components/Shared/AITerminalPanel.tsx            â€” AI chat UI
+â”œâ”€â”€ components/Shared/EquipmentProfilePicker.tsx     â€” Equipment selector
+â”œâ”€â”€ hooks/useAIChat.ts                              â€” AI chat state management
+â”œâ”€â”€ hooks/useWorkoutMcp.ts                          â€” MCP integration (fallback)
 
 Backend (Node.js + Express + Sequelize):
-├── routes/aiChatRoutes.mjs          — AI conversation CRUD + messaging
-├── routes/aiRoutes.mjs              — AI workout generation
-├── routes/workoutPlanRoutes.mjs     — Workout plan CRUD
-├── routes/dailyWorkoutFormRoutes.mjs — Workout form submission
-├── routes/workoutSessionRoutes.mjs  — Session tracking
-├── services/aiChatService.mjs       — AI prompt construction + provider routing
-├── services/ai/rateLimiter.mjs      — Rate limiting (THE BUG IS HERE)
-├── middleware/aiRateLimiter.mjs      — Express middleware wrapper
-├── controllers/aiWorkoutController.mjs — 18-step generation pipeline
-├── models/DailyWorkoutForm.mjs      — Workout form data
-├── models/WorkoutPlan.mjs           — Plan entity
-├── models/WorkoutPlanDay.mjs        — Plan days
-├── models/WorkoutPlanDayExercise.mjs — Plan exercises
-├── models/EquipmentProfile.mjs      — Location equipment inventories
-├── models/EquipmentItem.mjs         — Individual equipment
-├── models/BootcampTemplate.mjs      — Bootcamp class templates
+â”œâ”€â”€ routes/aiChatRoutes.mjs          â€” AI conversation CRUD + messaging
+â”œâ”€â”€ routes/aiRoutes.mjs              â€” AI workout generation
+â”œâ”€â”€ routes/workoutPlanRoutes.mjs     â€” Workout plan CRUD
+â”œâ”€â”€ routes/dailyWorkoutFormRoutes.mjs â€” Workout form submission
+â”œâ”€â”€ routes/workoutSessionRoutes.mjs  â€” Session tracking
+â”œâ”€â”€ services/aiChatService.mjs       â€” AI prompt construction + provider routing
+â”œâ”€â”€ services/ai/rateLimiter.mjs      â€” Rate limiting (THE BUG IS HERE)
+â”œâ”€â”€ middleware/aiRateLimiter.mjs      â€” Express middleware wrapper
+â”œâ”€â”€ controllers/aiWorkoutController.mjs â€” 18-step generation pipeline
+â”œâ”€â”€ models/DailyWorkoutForm.mjs      â€” Workout form data
+â”œâ”€â”€ models/WorkoutPlan.mjs           â€” Plan entity
+â”œâ”€â”€ models/WorkoutPlanDay.mjs        â€” Plan days
+â”œâ”€â”€ models/WorkoutPlanDayExercise.mjs â€” Plan exercises
+â”œâ”€â”€ models/EquipmentProfile.mjs      â€” Location equipment inventories
+â”œâ”€â”€ models/EquipmentItem.mjs         â€” Individual equipment
+â”œâ”€â”€ models/BootcampTemplate.mjs      â€” Bootcamp class templates
 ```
 
 ### Database Models Involved
@@ -288,12 +288,12 @@ Backend (Node.js + Express + Sequelize):
 - GamificationProfile, Achievement, UserAchievement
 
 ### AI Provider Chain
-Gemini 3.1 Pro → OpenAI → Anthropic → Venice (failover)
+Gemini 3.1 Pro â†’ OpenAI â†’ Anthropic â†’ Venice (failover)
 
 ### Rate Limiter Configuration
 - Per-user per-minute: 15 requests
 - Per-user per-hour: 60 requests
-- Concurrent: 1 per user (THIS IS THE BUG — lock never released)
+- Concurrent: 1 per user (THIS IS THE BUG â€” lock never released)
 - Global per-minute: 60 requests
 
 ---
@@ -304,7 +304,7 @@ Gemini 3.1 Pro → OpenAI → Anthropic → Venice (failover)
 
 ### Validation Focus Areas:
 1. **Security:** De-identification enforcement, PII detection, rate limiting correctness
-2. **Architecture:** Unified data flow between Logger ↔ AI Chat ↔ Bootcamp ↔ Body Map
+2. **Architecture:** Unified data flow between Logger â†” AI Chat â†” Bootcamp â†” Body Map
 3. **UX:** Error states, loading states, mobile responsiveness, accessibility
 4. **Performance:** AI response times, database query optimization, N+1 queries in enrichment
 5. **NASM Compliance:** Ensure AI workout suggestions follow NASM OPT model phases
@@ -331,11 +331,11 @@ Gemini 3.1 Pro → OpenAI → Anthropic → Venice (failover)
 After implementation:
 1. Swan AI chat sends messages without 429 errors (concurrent lock properly released)
 2. Workout Logger loads client data without errors
-3. Trainer can describe a workout in AI chat → forms auto-populate in Logger
+3. Trainer can describe a workout in AI chat â†’ forms auto-populate in Logger
 4. Body map has proper contrast on Crystalline Swan theme (WCAG AA)
 5. Equipment profile selector in Workout Logger
 6. AI uses equipment constraints when suggesting exercises
 7. All AI interactions use Client #ID, never names
 8. Bootcamp Builder can receive AI-generated configurations from chat
-9. No white screens — all error states handled gracefully
+9. No white screens â€” all error states handled gracefully
 10. Mobile responsive at 340px-3840px (7-point verified)

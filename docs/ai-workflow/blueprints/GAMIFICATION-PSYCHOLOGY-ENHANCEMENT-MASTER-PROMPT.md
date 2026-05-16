@@ -105,7 +105,7 @@ SwanStudios gamification should make users **addicted to health** the same way g
 | Clean duplicate Achievement rows in prod DB | One-time SQL script | TODO |
 | Fix `calculateStatsFromDatabase()` stub | `GamificationPersistence.mjs` | TODO |
 | Wire PostgreSQL fallbacks for leaderboard/streak | `GamificationPersistence.mjs` | TODO |
-| Remove stale `useGamificationData-fixed.ts` | Hook cleanup | TODO |
+| Remove stale `useGamificationData-fixed.ts` | Hook cleanup | Archived 2026-05-15 |
 | Fix rarity color: Epic should be `#8B5CF6` not `#60C0F0` | `types/gamification.ts` | TODO |
 | Fix retired Galaxy-Swan theme reference | `AdvancedGamificationHub.tsx:79` | TODO |
 | Reconcile leveling formula (remove engine threshold table) | `GamificationEngine.mjs` | TODO |

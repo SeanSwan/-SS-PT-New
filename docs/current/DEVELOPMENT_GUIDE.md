@@ -125,14 +125,14 @@ npm run check-mcp-health
 
 ### Database Issues
 \`\`\`bash
-# Reset database
-npm run db:reset-complete
+# Reset database only with an explicit destructive guard
+ALLOW_DESTRUCTIVE_DB_RESET=true ADMIN_PASSWORD="<admin-password>" npm run db:reset-complete
 
 # Check database connection
 npm run test-database
 
-# Verify user creation
-npm run verify-admin
+# Verify user creation; creating a missing admin requires ADMIN_PASSWORD
+ADMIN_PASSWORD="<admin-password>" npm run verify-admin
 \`\`\`
 
 ### Build Issues

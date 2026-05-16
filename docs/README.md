@@ -34,7 +34,7 @@ docs/
 - **[Current Architecture](current/CURRENT_ARCHITECTURE.md)** - Complete tech stack overview
 - **[Development Guide](current/DEVELOPMENT_GUIDE.md)** - Development workflow and commands
 - **[Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md)** - Component development guide
-- **[Galaxy-Swan Theme](current/GALAXY-SWAN-THEME-DOCS.md)** - Design system documentation
+- **[Crystalline Swan Design System](ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md)** - Current design-system source of truth
 
 ## 🔧 Maintenance
 

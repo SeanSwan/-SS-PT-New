@@ -87,7 +87,7 @@ Next product-depth priorities:
    - **Phase 19.C DEFERRED** — optional movement-screen nested route architecture
      - Candidate route: `/dashboard/admin/client-management/:clientId/movement-screen`.
      - Requires its own planning doc + rule-15 gate. Do not fold into hygiene or Phase 18.B.
-   - **Dormant cleanup deferred** — `UnifiedAdminRoutes.tsx` + `MasterDetailLayout.tsx` deletion pass needs Sean's approval per rule 34.
+   - **Dormant cleanup completed in the 2026-05-15 repo hygiene pass** — `UnifiedAdminRoutes.tsx`, `UnifiedAdminDashboardLayout.tsx`, `AdminRoutes.tsx`, and `MasterDetailLayout.tsx` moved to archive after reference checks and test updates.
 
 3. **P1 - Phase 18.B admin-as-client impersonation / measurements gate** 🔜 **NEXT PRODUCT BUILD LANE**
    - Scope: L6 admin view-as in `EnhancedAdminClientManagementView.tsx:1841,2130`; L7 measurements CTA in `ClientMeasurementPanel.tsx:365`.

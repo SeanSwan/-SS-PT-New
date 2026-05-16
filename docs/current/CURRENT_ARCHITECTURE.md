@@ -1,7 +1,7 @@
 # SwanStudios Current Architecture
 
-> **Last Updated:** 2025-10-27
-> **Architecture Version:** v2.0 (Post-MUI Elimination)
+> **Last Updated:** 2026-05-15
+> **Architecture Version:** v2.1 (First-party API runtime, retired MCP compatibility)
 
 This document provides a high-level overview of the SwanStudios application architecture, tech stack, and key design decisions.
 
@@ -110,32 +110,16 @@ frontend/
 - **Email:** Nodemailer
 - **Payment Processing:** Stripe integration
 
-### MCP (Model Context Protocol) Servers
+### AI And Automation Runtime
 
-The backend includes **4 specialized MCP servers** for AI-powered features:
+The retired MCP server stack is no longer part of the active runtime. AI-powered
+features now use SwanStudios first-party API routes and backend services.
 
-1. **Workout MCP Server**
-   - Exercise recommendations
-   - Workout plan generation
-   - Form analysis
-
-2. **Financial Events MCP Server**
-   - Transaction tracking
-   - Revenue analytics
-   - Client insights
-   - Gamification integration
-
-3. **Gamification MCP Server**
-   - Achievement tracking
-   - Leaderboard management
-   - Reward distribution
-
-4. **YOLO MCP Server**
-   - Computer vision integration
-   - Form detection
-   - Real-time pose analysis
-
-**MCP Documentation:** See [backend/mcp_server/README.md](../../AI-Village-Documentation/README.md)
+- Workout and workout planning: `/api/workout`, `/api/workout/sessions`
+- Gamification: `/api/v1/gamification`, `/api/gamification`
+- Client analytics: `/api/client/analytics`
+- Form analysis and equipment scanning: first-party backend routes
+- Legacy `/api/mcp` paths return retired/fail-closed responses only.
 
 ### API Architecture
 
@@ -147,7 +131,7 @@ The backend includes **4 specialized MCP servers** for AI-powered features:
   - `/api/packages` - Package management
   - `/api/gamification` - Gamification features
   - `/api/financial-events` - Financial tracking
-  - `/api/mcp` - MCP server proxy endpoints
+  - `/api/mcp` - retired compatibility responses only
 
 ### Directory Structure
 
@@ -159,7 +143,6 @@ backend/
 ├── models/             # Sequelize models
 ├── routes/             # API routes
 ├── services/           # Business logic services
-├── mcp_server/         # MCP servers
 ├── migrations/         # Database migrations
 ├── seeders/            # Database seeders
 └── scripts/            # Utility scripts
@@ -169,21 +152,14 @@ backend/
 
 ## Design System
 
-### Galaxy-Swan Theme
+### Enchanted Apex / Crystalline Swan
 
-The application uses the **Galaxy-Swan theme system**, a fusion of:
-- **Swan Brand Colors** - Professional, elegant brand identity
-- **Galaxy Cosmic Elements** - Dynamic, engaging visual experience
+The application uses the **Enchanted Apex / Crystalline Swan** design system:
+- **Dark-first premium surfaces** using Obsidian Black, Midnight Sapphire, Royal Depth, and Carbon.
+- **Crystalline accents** using Ice Wing cyan, Wing Purple, Gilded Fern, and Frost White.
+- **Theme-token governance** through CSS custom properties with fallback values so the header theme changer reaches every dashboard surface.
 
-**Color Palette:**
-- **Primary (Blue):** Main actions, primary CTAs
-- **Secondary (Purple):** Secondary actions, accents
-- **Success (Green):** Positive feedback, achievements
-- **Warning (Orange):** Caution states, alerts
-- **Error (Red):** Error states, destructive actions
-- **Cosmic Background:** Deep space gradients with subtle animations
-
-**Theme Documentation:** See [GALAXY-SWAN-THEME-DOCS.md](GALAXY-SWAN-THEME-DOCS.md)
+**Theme Documentation:** See [SWAN-CINEMATIC-DESIGN-SYSTEM.md](../ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md) and [THEME-CHANGER-COMPAT.md](../ai-workflow/references/THEME-CHANGER-COMPAT.md).
 
 ### Design Principles
 
@@ -415,15 +391,14 @@ npm start  # Node.js server
 - Improved maintainability and testability
 - Better code organization and reusability
 
-### 4. MCP Server Integration
+### 4. Retired MCP Servers, First-Party API Runtime
 
-**Decision:** Build specialized MCP servers for AI features
+**Decision:** Decommission the default MCP server runtime and keep fail-closed compatibility adapters only.
 
 **Rationale:**
-- Separation of concerns (AI logic separate from main backend)
-- Scalability (can deploy MCP servers independently)
-- Easier integration with AI models and services
-- Clear API boundaries
+- Render cost and operational overhead were too high for always-on MCP services.
+- SwanStudios production workflows now route through first-party REST APIs and backend services.
+- Legacy MCP route names may remain as compatibility wrappers, but they must not start servers, poll retired endpoints, or become the source of truth.
 
 ### 5. Styled-Components Over CSS Modules
 
@@ -468,7 +443,7 @@ npm start  # Node.js server
 
 - **Unit Tests:** Jest
 - **Integration Tests:** Supertest
-- **MCP Tests:** Individual server test suites
+- **Retired MCP Contract Tests:** Compatibility routes and adapters must fail closed and point callers to first-party APIs.
 
 ---
 
@@ -527,8 +502,8 @@ npm test
 
 - [Golden Standard Pattern](GOLDEN-STANDARD-PATTERN.md) - Component development guide
 - [UI Kit Migration Guide](UI-KIT-MIGRATION-GUIDE.md) - MUI to UI Kit migration
-- [Galaxy-Swan Theme](GALAXY-SWAN-THEME-DOCS.md) - Design system documentation
-- [MCP Servers](../../AI-Village-Documentation/README.md) - MCP server overview
+- [Crystalline Swan Design System](../ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md) - Current design-system source of truth
+- [Theme Changer Compatibility](../ai-workflow/references/THEME-CHANGER-COMPAT.md) - Dashboard theme-token expectations
 
 ---
 
