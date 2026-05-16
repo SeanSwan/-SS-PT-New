@@ -269,9 +269,9 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   'User Profile Page'
 );
 const SocialPage = lazyLoadWithErrorHandling(
-  () => import('../pages/Social/SocialPage.V3'),
-  'Social Hub V3',
-  () => import('../pages/Social/SocialPage')
+  () => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome'),
+  'Client Observatory Social Hub',
+  () => import('../pages/Social/SocialPage.V3')
 );
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)

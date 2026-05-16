@@ -5,15 +5,12 @@
 
 import type { LucideIcon } from 'lucide-react';
 import {
-  Activity,
-  Aperture,
-  Camera,
   Dumbbell,
   Flame,
   Image as ImageIcon,
   MessageCircle,
   Trophy,
-  Utensils,
+  Users,
   Video,
 } from 'lucide-react';
 
@@ -21,7 +18,7 @@ import heroSwan from '../../../../../assets/crystal-swan.png';
 import profileMark from '../../../../../assets/logo.svg';
 import reelArt from '../../../../../assets/swan-paint-3.png';
 
-export type LensId = 'reels' | 'feed' | 'creative' | 'photos' | 'activity' | 'nutrition';
+export type LensId = 'feed' | 'reels' | 'friends' | 'challenges';
 
 export interface LensTab {
   id: LensId;
@@ -91,12 +88,10 @@ export const OBSERVATORY_ASSETS = {
 };
 
 export const LENS_TABS: LensTab[] = [
-  { id: 'reels', label: 'Reels', Icon: Video, path: '/dashboard/client/community' },
-  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/dashboard/client/community' },
-  { id: 'creative', label: 'Creative', Icon: Aperture, path: '/dashboard/client/creators' },
-  { id: 'photos', label: 'Photos', Icon: Camera, path: '/dashboard/client/profile' },
-  { id: 'activity', label: 'Activity', Icon: Activity, path: '/dashboard/client/progress' },
-  { id: 'nutrition', label: 'Nutrition', Icon: Utensils, path: '/dashboard/client/meal-planner' },
+  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/social' },
+  { id: 'reels', label: 'Reels', Icon: Video, path: '/social/reels' },
+  { id: 'friends', label: 'Friends', Icon: Users, path: '/social/friends' },
+  { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/social/challenges' },
 ];
 
 export const QUICK_ACTIONS: QuickAction[] = [

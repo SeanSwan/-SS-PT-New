@@ -104,15 +104,29 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeSource).toContain('<SwanCoachActionLauncher');
   });
 
-  it('mounts the full V3 Home tab inside the canonical client overview route', () => {
+  it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
 
-    expect(clientHomeSource).toContain("import HomeTab from '../../../UserDashboard/components/HomeTab'");
-    expect(clientHomeSource).toContain('useProfile()');
-    expect(clientHomeSource).toContain('<HomeTab');
-    expect(clientHomeSource).toContain("feed: '/dashboard/client/community'");
-    expect(clientHomeSource).toContain("progress: '/dashboard/client/progress'");
-    expect(clientHomeSource).not.toContain("from './observatory/ClientObservatoryHome'");
+    expect(clientHomeSource).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
+    expect(clientHomeSource).toContain('<ClientObservatoryHome />');
+    expect(clientHomeSource).not.toContain("../../../UserDashboard/components/HomeTab");
+  });
+
+  it('routes Social Hub to the same client observatory surface with real social lenses', () => {
+    const routeSource = readSource('src/routes/main-routes.tsx');
+    const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
+    const observatoryHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome.tsx');
+
+    expect(routeSource).toContain("path: 'social'");
+    expect(routeSource).toContain("() => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome')");
+    expect(observatoryDataSource).toContain("export type LensId = 'feed' | 'reels' | 'friends' | 'challenges'");
+    expect(observatoryDataSource).toContain("{ id: 'feed', label: 'Feed'");
+    expect(observatoryDataSource).toContain("{ id: 'reels', label: 'Reels'");
+    expect(observatoryDataSource).toContain("{ id: 'friends', label: 'Friends'");
+    expect(observatoryDataSource).toContain("{ id: 'challenges', label: 'Challenges'");
+    expect(observatoryHomeSource).toContain("const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'))");
+    expect(observatoryHomeSource).toContain("const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'))");
+    expect(observatoryHomeSource).toContain("const VerticalReels = lazy(() => import('../../../../Social/Reels/VerticalReels'))");
   });
 
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {

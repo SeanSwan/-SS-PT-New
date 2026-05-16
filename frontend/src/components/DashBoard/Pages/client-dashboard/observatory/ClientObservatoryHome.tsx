@@ -9,8 +9,8 @@
  * - Leaderboard: /api/v1/gamification/leaderboard via useLeaderboard
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useGamificationData } from '../../../../../hooks/gamification/useGamificationData';
 import {
@@ -35,14 +35,28 @@ import {
   hashtagsFromPosts,
 } from './ClientObservatoryData';
 import {
+  CardInner,
   MainGrid,
+  MutedText,
+  ObservatoryCard,
   PageShell,
   PrimaryColumn,
+  SectionTitle,
   SideColumn,
 } from './ClientObservatoryShell.styles';
 
+const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'));
+const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'));
+const VerticalReels = lazy(() => import('../../../../Social/Reels/VerticalReels'));
+
+const lensFromRoute = (tab?: string): LensId => {
+  if (tab === 'reels' || tab === 'friends' || tab === 'challenges') return tab;
+  return 'feed';
+};
+
 const ClientObservatoryHome: React.FC = () => {
   const navigate = useNavigate();
+  const { tab } = useParams<{ tab?: string }>();
   const { user } = useAuth();
   const gamification = useGamificationData();
   const feedQuery = useSocialFeed({ limit: 6 });
@@ -50,7 +64,7 @@ const ClientObservatoryHome: React.FC = () => {
   const leaderboardQuery = useLeaderboard({ limit: 5 });
   const createPost = useCreatePost();
 
-  const [activeLens, setActiveLens] = useState<LensId>('reels');
+  const [activeLens, setActiveLens] = useState<LensId>(() => lensFromRoute(tab));
   const [postText, setPostText] = useState('');
   const [postReceipt, setPostReceipt] = useState<{
     pointsAwarded: number;
@@ -79,13 +93,17 @@ const ClientObservatoryHome: React.FC = () => {
   const points = profile?.points ?? 0;
   const streakDays = profile?.streakDays ?? 0;
 
+  useEffect(() => {
+    setActiveLens(lensFromRoute(tab));
+  }, [tab]);
+
   const handleNavigate = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
 
   const handleLensSelect = useCallback((id: LensId, path: string) => {
     setActiveLens(id);
-    if (id !== 'reels') navigate(path);
+    navigate(path);
   }, [navigate]);
 
   const handleCreatePost = useCallback(async (input?: {
@@ -118,6 +136,73 @@ const ClientObservatoryHome: React.FC = () => {
     if (postReceipt) setPostReceipt(null);
   }, [postReceipt]);
 
+  const primaryContent = useMemo(() => {
+    if (activeLens === 'reels') {
+      return (
+        <ObservatoryCard>
+          <CardInner>
+            <SectionTitle>Reels</SectionTitle>
+            <MutedText>Review training clips and creator media in the observatory feed.</MutedText>
+            <Suspense fallback={<MutedText>Loading reels...</MutedText>}>
+              <VerticalReels />
+            </Suspense>
+          </CardInner>
+        </ObservatoryCard>
+      );
+    }
+
+    if (activeLens === 'friends') {
+      return (
+        <ObservatoryCard>
+          <CardInner>
+            <SectionTitle>Friends</SectionTitle>
+            <MutedText>Find and manage community connections from the same observatory surface.</MutedText>
+            <Suspense fallback={<MutedText>Loading friends...</MutedText>}>
+              <FriendsList />
+            </Suspense>
+          </CardInner>
+        </ObservatoryCard>
+      );
+    }
+
+    if (activeLens === 'challenges') {
+      return (
+        <ObservatoryCard>
+          <CardInner>
+            <SectionTitle>Challenges</SectionTitle>
+            <MutedText>Join challenges, track goals, and turn social activity into progress.</MutedText>
+            <Suspense fallback={<MutedText>Loading challenges...</MutedText>}>
+              <ChallengesView />
+            </Suspense>
+          </CardInner>
+        </ObservatoryCard>
+      );
+    }
+
+    return (
+      <ClientObservatoryFeed
+        feedLoading={feedQuery.isLoading}
+        posts={posts}
+        postText={postText}
+        creatingPost={createPost.isPending}
+        postReceipt={postReceipt}
+        onPostTextChange={handlePostTextChange}
+        onCreatePost={handleCreatePost}
+        onNavigate={handleNavigate}
+      />
+    );
+  }, [
+    activeLens,
+    createPost.isPending,
+    feedQuery.isLoading,
+    handleCreatePost,
+    handleNavigate,
+    handlePostTextChange,
+    postReceipt,
+    postText,
+    posts,
+  ]);
+
   return (
     <PageShell>
       <ClientObservatoryHero
@@ -137,16 +222,7 @@ const ClientObservatoryHome: React.FC = () => {
 
       <MainGrid>
         <PrimaryColumn>
-          <ClientObservatoryFeed
-            feedLoading={feedQuery.isLoading}
-            posts={posts}
-            postText={postText}
-            creatingPost={createPost.isPending}
-            postReceipt={postReceipt}
-            onPostTextChange={handlePostTextChange}
-            onCreatePost={handleCreatePost}
-            onNavigate={handleNavigate}
-          />
+          {primaryContent}
         </PrimaryColumn>
 
         <SideColumn>
