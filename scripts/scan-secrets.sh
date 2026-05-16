@@ -215,6 +215,87 @@ scan_one() {
   return $hits
 }
 
+scan_staged_fast() {
+  local -a staged_files=()
+  local f
+
+  scanned=0
+  skipped=0
+  total_hits=0
+
+  for f in "${files[@]}"; do
+    [[ -z "$f" ]] && continue
+    if is_skipped_path "$f"; then
+      skipped=$((skipped + 1))
+      continue
+    fi
+    staged_files+=("$f")
+    scanned=$((scanned + 1))
+  done
+
+  [[ ${#staged_files[@]} -eq 0 ]] && return 0
+
+  local entry name regex tmp rc file line _
+  for entry in "${PATTERNS[@]}"; do
+    name="${entry%%|*}"
+    regex="${entry#*|}"
+    tmp="$(mktemp)"
+
+    set +e
+    if [[ "$name" == "rotated-password-shape" ]]; then
+      # The full rotated-password regex is intentionally broad and can become
+      # slow against large Markdown archives. First find cheap candidate lines,
+      # then apply the expensive same-line password-context check in Bash.
+      git grep --cached -I -nE -- "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" -- "${staged_files[@]}" > "$tmp"
+    else
+      git grep --cached -I -nE -- "$regex" -- "${staged_files[@]}" > "$tmp"
+    fi
+    rc=$?
+    set -e
+
+    if (( rc == 1 )); then
+      rm -f "$tmp"
+      continue
+    fi
+
+    if (( rc != 0 )); then
+      rm -f "$tmp"
+      echo "Secret scan failed while scanning staged files for pattern: $name" >&2
+      return 2
+    fi
+
+    declare -A lines_by_file=()
+    while IFS=: read -r file line _; do
+      [[ -z "$file" || -z "$line" ]] && continue
+      if [[ "$name" == "rotated-password-shape" && ! "$_" =~ $regex ]]; then
+        continue
+      fi
+      if [[ -z "${lines_by_file[$file]:-}" ]]; then
+        lines_by_file[$file]="$line"
+      else
+        lines_by_file[$file]="${lines_by_file[$file]},$line"
+      fi
+    done < "$tmp"
+    rm -f "$tmp"
+
+    for file in "${!lines_by_file[@]}"; do
+      local line_numbers="${lines_by_file[$file]}"
+      local count
+      count="$(echo "$line_numbers" | tr ',' '\n' | grep -c .)"
+
+      if is_allowlisted "$file" "$name"; then
+        echo "  [allowlisted: $name in $file ($count match(es))]" >&2
+        continue
+      fi
+
+      echo "  [SECRET FOUND: $name in $file (lines: $line_numbers)]" >&2
+      total_hits=$((total_hits + 1))
+    done
+  done
+
+  return 0
+}
+
 mode="${1:-}"
 scan_mode="--workingtree"
 case "$mode" in
@@ -309,6 +390,36 @@ esac
 total_hits=0
 scanned=0
 skipped=0
+
+if [[ "$scan_mode" == "--stagedblob" ]]; then
+  scan_staged_fast
+  scan_rc=$?
+  echo ""
+  echo "=== Scan summary ==="
+  echo "Scanned:     $scanned files"
+  echo "Skipped:     $skipped files (binaries, vendor, generated)"
+  echo "Hits:        $total_hits"
+
+  if (( scan_rc != 0 )); then
+    echo ""
+    echo "SECRET SCAN FAILED. Commit/write blocked until scanner error is fixed."
+    exit "$scan_rc"
+  fi
+
+  if [[ $total_hits -gt 0 ]]; then
+    echo ""
+    echo "SECRETS DETECTED. Commit/write blocked."
+    echo "Pattern names + file paths reported above. Matched lines NOT shown."
+    echo "Open the flagged file at the listed line number to review."
+    echo ""
+    echo "To allowlist a specific file+pattern, add to .secretignore:"
+    echo "  path/to/file.md::pattern-name"
+    exit 1
+  fi
+
+  echo "CLEAN."
+  exit 0
+fi
 
 for f in "${files[@]}"; do
   [[ -z "$f" ]] && continue
